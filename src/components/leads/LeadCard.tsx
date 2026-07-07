@@ -100,7 +100,7 @@ export default function LeadCard({ lead, stageKey, actionLoading, onMarkWon, onM
         )}
         {lead.contactSource && (
           <span className="px-1.5 py-0.5 bg-blue-500/8 text-[8px] font-black uppercase tracking-wider text-blue-500 rounded border border-blue-500/15">
-            {lead.contactSource}
+            {lead.contactSource === 'WEB_STOREFRONT' ? 'Tienda Online' : lead.contactSource}
           </span>
         )}
         {lead.dni && (

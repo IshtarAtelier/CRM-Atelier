@@ -318,7 +318,7 @@ export async function POST(req: Request) {
           phone: normalizedPhone,
           dni: customer.dni,
           address: `${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
-          contactSource: "WEB_STOREFRONT",
+          contactSource: "Tienda Online",
         });
       } catch (error: any) {
         let isHandled = false;
@@ -328,7 +328,7 @@ export async function POST(req: Request) {
             if (parsedError?.isDuplicate && parsedError?.existingClient?.id) {
               client = await ContactService.update(parsedError.existingClient.id, {
                 address: `${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
-                contactSource: "WEB_STOREFRONT"
+                contactSource: "Tienda Online"
               });
               isHandled = true;
             }

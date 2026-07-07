@@ -261,7 +261,7 @@ export default function ContactHeader({
                     { label: 'DNI / Documento', icon: FileText, value: contact.dni || 'No registrado' },
                     { label: 'Dirección', icon: MapPin, value: contact.address || 'No registrada' },
                     { label: 'Obra Social', icon: Building2, value: contact.insurance || 'Sin Obra Social' },
-                    { label: 'Origen', icon: Share2, value: contact.contactSource || 'No especificado' },
+                    { label: 'Origen', icon: Share2, value: contact.contactSource === 'WEB_STOREFRONT' ? 'Tienda Online' : (contact.contactSource || 'No especificado') },
                     { label: 'Interés', icon: Tag, value: contact.interest || 'General' },
                     { label: 'Presupuesto Est.', icon: Calculator, value: `$${safePrice(contact.expectedValue).toLocaleString()}` }
                 ].map((item, idx) => {
