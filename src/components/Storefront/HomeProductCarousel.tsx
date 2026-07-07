@@ -206,7 +206,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     )}
                   </div>
                 
-                <div className="flex items-center justify-between mt-1 pr-2">
+                <div className="mt-1 pr-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-col gap-0.5">
                     {item.price.includes("$") ? (
                       <p className="flex flex-col">
@@ -228,7 +228,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex flex-row flex-wrap gap-1 sm:flex-col sm:items-end">
                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
                       15% OFF 🔥
                     </span>
@@ -239,7 +239,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center gap-2">
+              <div className="mt-4 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
                 <span className="text-[10px] font-black uppercase tracking-widest px-3.5 py-2 bg-black text-white hover:bg-stone-800 transition-colors rounded-full text-center">
                   Comprar
                 </span>
