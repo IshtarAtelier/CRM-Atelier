@@ -42,7 +42,7 @@ export function HomeConfiguratorSection() {
               {step.num}
             </div>
             <h3 className="text-[11px] font-bold uppercase tracking-widest mb-1.5">{step.title}</h3>
-            <p className="text-[9px] text-[#999] uppercase tracking-[0.2em]">{step.desc}</p>
+            <p className="text-xs text-[#78716c] uppercase tracking-[0.2em]">{step.desc}</p>
           </motion.div>
         ))}
       </div>
@@ -68,7 +68,7 @@ export function HomeConfiguratorSection() {
         >
           ¿No sabés qué lentes elegir? Te ayudamos
         </a>
-        <span className="text-[10px] text-stone-400 font-medium tracking-wide max-w-xs sm:max-w-md text-center mt-2">
+        <span className="text-xs text-stone-500 font-medium tracking-wide max-w-xs sm:max-w-md text-center mt-2">
           📍 Retirá gratis en nuestro local en Cerro de las Rosas o recibilo a domicilio en todo el país.
         </span>
       </motion.div>

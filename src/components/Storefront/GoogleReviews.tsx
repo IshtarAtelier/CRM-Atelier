@@ -80,7 +80,7 @@ export function GoogleReviews() {
             </div>
             
             <h2 className="text-4xl sm:text-5xl font-light tracking-tight text-stone-900 leading-[1.1] font-serif mb-6">
-              Cuidado visual con <span className="italic text-primary block mt-1">5 Estrellas</span>
+              Cuidado visual con <span className="italic text-[#8a6d3b] block mt-1">5 Estrellas</span>
             </h2>
 
             <div className="flex items-center justify-center lg:justify-start gap-4 mb-8">
@@ -107,7 +107,7 @@ export function GoogleReviews() {
               href="https://www.google.com/maps?cid=14830223812501661125"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center lg:justify-start gap-2 text-[11px] font-bold uppercase tracking-widest text-primary hover:text-stone-900 transition-colors"
+              className="inline-flex items-center justify-center lg:justify-start gap-2 text-xs font-bold uppercase tracking-widest text-[#8a6d3b] hover:text-stone-900 transition-colors"
             >
               Ver todas las opiniones ({userRatingCount}) →
             </a>
@@ -146,13 +146,13 @@ export function GoogleReviews() {
                       referrerPolicy="no-referrer" 
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                    <div className="w-9 h-9 rounded-full bg-[#8a6d3b]/10 text-[#8a6d3b] flex items-center justify-center text-xs font-bold">
                       {getInitials(review.author_name)}
                     </div>
                   )}
                   <div>
                     <p className="text-xs font-bold text-stone-900">{review.author_name}</p>
-                    <p className="text-[9px] text-stone-400 uppercase tracking-widest font-medium mt-0.5">{review.relative_time_description}</p>
+                    <p className="text-xs text-stone-500 uppercase tracking-widest font-medium mt-0.5">{review.relative_time_description}</p>
                   </div>
                 </div>
               </div>

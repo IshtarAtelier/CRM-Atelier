@@ -101,7 +101,7 @@ export function ReviewsPageContent({
         <div className="max-w-[1200px] mx-auto px-5">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
             <div>
-              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary mb-3 block">
+              <span className="text-xs font-black uppercase tracking-[0.2em] text-[#8a6d3b] dark:text-[#c8a55c] mb-3 block">
                 Opiniones de la Comunidad
               </span>
               <h1 className=" font-serif">
@@ -160,7 +160,7 @@ export function ReviewsPageContent({
       {/* ═══════════════════════════════════════════════ */}
       <section className="bg-white dark:bg-stone-950 py-12 border-b border-stone-100 dark:border-stone-900">
         <div className="max-w-[1200px] mx-auto px-5 flex flex-wrap items-center gap-3">
-          <span className="text-xs font-bold text-stone-400 uppercase tracking-wider mr-2">Filtrar por:</span>
+          <span className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mr-2">Filtrar por:</span>
           {[
             { id: "all", label: "Todas las opiniones" },
             { id: "5", label: "5 Estrellas" },
@@ -213,7 +213,7 @@ export function ReviewsPageContent({
                           referrerPolicy="no-referrer"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold tracking-wider shrink-0 border border-primary/20">
+                        <div className="w-12 h-12 rounded-full bg-[#8a6d3b]/10 text-[#8a6d3b] dark:text-[#c8a55c] flex items-center justify-center text-sm font-bold tracking-wider shrink-0 border border-[#8a6d3b]/20">
                           {getInitials(review.author_name)}
                         </div>
                       )}
@@ -221,7 +221,7 @@ export function ReviewsPageContent({
                         <h4 className="text-sm font-black text-stone-800 dark:text-white tracking-tight">
                           {review.author_name}
                         </h4>
-                        <span className="text-[10px] text-stone-400 dark:text-stone-500 uppercase tracking-widest font-medium">
+                        <span className="text-xs text-stone-500 dark:text-stone-400 uppercase tracking-widest font-medium">
                           {review.relative_time_description}
                         </span>
                       </div>
@@ -246,15 +246,15 @@ export function ReviewsPageContent({
                   </div>
 
                   <div className="mt-6 pt-4 border-t border-stone-100/60 dark:border-stone-900 flex justify-between items-center">
-                    <span className="flex items-center gap-1.5 text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                      <MessageCircle className="w-3 h-3 text-stone-400" /> Reseña Verificada
+                    <span className="flex items-center gap-1.5 text-xs font-black text-stone-500 dark:text-stone-400 uppercase tracking-widest">
+                      <MessageCircle className="w-3 h-3 text-stone-500 dark:text-stone-400" /> Reseña Verificada
                     </span>
                     {review.author_url && (
                       <a
                         href={review.author_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[10px] font-black text-primary hover:text-stone-900 dark:hover:text-white uppercase tracking-widest flex items-center gap-0.5"
+                        className="text-xs font-black text-[#8a6d3b] dark:text-[#c8a55c] hover:text-stone-900 dark:hover:text-white uppercase tracking-widest flex items-center gap-0.5"
                       >
                         Google <ExternalLink className="w-2.5 h-2.5" />
                       </a>

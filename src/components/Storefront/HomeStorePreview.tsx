@@ -159,10 +159,11 @@ export async function HomeStorePreview() {
               <div className="absolute inset-0 pointer-events-none rounded-[2rem] shadow-[inset_0_0_40px_rgba(28,25,23,0.9)] z-20" />
               
               <div className="absolute top-6 right-6 z-30 transform -translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                <a 
-                  href={mapsUrl} 
-                  target="_blank" 
+                <a
+                  href={mapsUrl}
+                  target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="Abrir ubicación en Google Maps"
                   className="w-12 h-12 bg-[#b08f4c] text-stone-950 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
                 >
                   <ArrowRight className="w-5 h-5 -rotate-45" />

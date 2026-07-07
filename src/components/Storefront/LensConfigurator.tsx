@@ -136,7 +136,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
       {/* BLOQUE DE ASESORAMIENTO */}
       <div className="mb-12 border-b border-black/10 pb-6 flex flex-col gap-5">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#999]">Asistencia Personalizada</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c]">Asistencia Personalizada</span>
           <a href={`https://wa.me/${WHATSAPP_PHONE}?text=Hola,%20necesito%20asesoramiento%20para%20elegir%20mis%20cristales.`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-[0.15em] text-black hover:text-[#666] transition-colors flex items-center gap-2">
             <div className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -183,7 +183,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
             ) : (
               <>
                 <div className="mb-6">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">01 / Color del Cristal</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">01 / Color del Cristal</p>
                   <p className="text-sm font-serif italic text-black">Seleccioná el tinte para proteger tu vista con estilo.</p>
                 </div>
                 <div className="flex flex-wrap gap-4 mt-6">
@@ -208,7 +208,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                 ) : (
                   <>
                     <div className="mb-6 mt-4">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">02 / Estilo de Teñido</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">02 / Estilo de Teñido</p>
                       <p className="text-sm font-serif italic text-black">Elegí la forma en que se aplicará el color en tu lente.</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
@@ -230,7 +230,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                 ) : (
                   <>
                     <div className="mb-6 mt-4">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">03 / Visión</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">03 / Visión</p>
                       <p className="text-sm font-serif italic text-black">Podés hacer que tus anteojos de sol tengan tu receta.</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
@@ -276,7 +276,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
             ) : (
               <>
                 <div className="mb-6">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">01 / Tipo de Visión</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">01 / Tipo de Visión</p>
                   <p className="text-sm font-serif italic text-black">Definí cómo vas a usar tus anteojos en el día a día.</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
@@ -300,7 +300,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                 ) : (
                   <>
                     <div className="mb-6 mt-4">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">02 / Calidad del Cristal</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">02 / Calidad del Cristal</p>
                       <p className="text-sm font-serif italic text-black">Elegí el tratamiento ideal para cuidar tu vista.</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
@@ -376,7 +376,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
             className="overflow-hidden mb-12 mt-4"
           >
             <div className="mb-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#999] mb-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#78716c] mb-2">
                 {flowType === "SUN" ? "04" : "03"} / {tintStyle === "SEGÚN MUESTRA" ? "Receta y Muestra" : "Tu Receta"}
               </p>
               <p className="text-sm font-serif italic text-black">
@@ -511,7 +511,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
         </div>
 
         <div className="w-full flex flex-col items-center mb-2">
-          <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#999] mb-2">Inversión Final</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#78716c] mb-2">Inversión Final</p>
           <motion.p 
             key={calculateTotal()}
             className="text-4xl font-serif tracking-tight"
@@ -522,8 +522,8 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
             <p className="text-[11px] font-bold text-stone-700">
               💳 {webSettings.web_promo_installments} de <span className="underline">${Math.round(calculateTotal() / installmentsCount).toLocaleString('es-AR')}</span>
             </p>
-            <p className="text-[11px] font-bold text-[#9e7f65] bg-[#faf8f5] px-3.5 py-1 rounded-full border border-[#e8e2db] mt-0.5 shadow-sm">
-              💵 ${Math.round(calculateTotal() * (1 - discountRate)).toLocaleString('es-AR')} en efectivo / transferencia <span className="text-[10px] font-black uppercase text-primary ml-1">({webSettings.web_promo_cash_discount}% OFF)</span>
+            <p className="text-[11px] font-bold text-[#8a6d3b] bg-[#faf8f5] px-3.5 py-1 rounded-full border border-[#e8e2db] mt-0.5 shadow-sm">
+              💵 ${Math.round(calculateTotal() * (1 - discountRate)).toLocaleString('es-AR')} en efectivo / transferencia <span className="text-[10px] font-black uppercase text-[#8a6d3b] ml-1">({webSettings.web_promo_cash_discount}% OFF)</span>
             </p>
           </div>
         </div>
@@ -571,7 +571,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
           <span>{cartItemId ? "Confirmar Cristales" : "Agregar al Carrito"}</span>
         </button>
 
-        <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-[#999] text-center">Envío Asegurado sin cargo a todo el país</p>
+        <p className="text-xs uppercase font-bold tracking-[0.2em] text-[#78716c] text-center">Envío Asegurado sin cargo a todo el país</p>
       </motion.div>
     </div>
   );
@@ -606,7 +606,7 @@ function OptionCard({ selected, onClick, title, desc, price, badge, features }: 
              ))}
            </ul>
         ) : (
-          <p className={`text-[11px] font-serif italic leading-relaxed ${selected ? 'text-white/80' : 'text-[#888]'}`}>
+          <p className={`text-[11px] font-serif italic leading-relaxed ${selected ? 'text-white/80' : 'text-stone-600'}`}>
             {desc}
           </p>
         )}
@@ -638,7 +638,7 @@ function ColorOption({ color, hex, selected, onClick }: any) {
         )}
       </div>
       <div className="text-center">
-        <h4 className={`text-[9px] uppercase tracking-[0.15em] font-bold transition-colors ${selected ? 'text-black' : 'text-[#666]'}`}>
+        <h4 className={`text-[10px] uppercase tracking-[0.15em] font-bold transition-colors ${selected ? 'text-black' : 'text-[#666]'}`}>
           {color}
         </h4>
       </div>
@@ -650,13 +650,13 @@ function CompletedStep({ num, subtitle, title, onClick }: { num: string, subtitl
   return (
     <div role="button" tabIndex={0} className="flex flex-col sm:flex-row sm:items-center justify-between py-6 border-b border-black/10 cursor-pointer group hover:bg-black/5 px-6 -mx-6 transition-colors rounded-xl" onClick={onClick}>
       <div className="flex items-center gap-6">
-        <span className="text-[12px] font-bold uppercase tracking-[0.3em] text-[#999] opacity-40">{num}</span>
+        <span className="text-[12px] font-bold uppercase tracking-[0.3em] text-[#78716c] opacity-40">{num}</span>
         <div>
-          <span className="text-[9px] text-[#999] uppercase tracking-[0.3em] block mb-1">{subtitle}</span>
+          <span className="text-[10px] text-[#78716c] uppercase tracking-[0.3em] block mb-1">{subtitle}</span>
           <span className="text-[12px] font-bold uppercase tracking-widest text-black">{title}</span>
         </div>
       </div>
-      <span className="text-[9px] uppercase tracking-[0.2em] text-black underline underline-offset-4 opacity-0 group-hover:opacity-100 transition-opacity mt-4 sm:mt-0 font-bold">Modificar</span>
+      <span className="text-[10px] uppercase tracking-[0.2em] text-black underline underline-offset-4 opacity-0 group-hover:opacity-100 transition-opacity mt-4 sm:mt-0 font-bold">Modificar</span>
     </div>
   );
 }

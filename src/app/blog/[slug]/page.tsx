@@ -1447,7 +1447,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: cleanTitle,
     description: post.metaDescription,
-    alternates: { canonical: `/blog/${resolvedParams.slug}` },
+    // Absoluto al dominio real (como producto): el relativo resolvía contra
+    // metadataBase, que apunta a Railway hasta que se setee NEXT_PUBLIC_APP_URL
+    alternates: { canonical: `https://www.atelieroptica.com.ar/blog/${resolvedParams.slug}` },
     openGraph: {
       title: cleanTitle,
       description: post.metaDescription,

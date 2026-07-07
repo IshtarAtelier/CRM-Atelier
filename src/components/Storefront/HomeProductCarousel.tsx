@@ -218,10 +218,10 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
                       15% OFF 🔥
                     </span>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-stone-700 bg-stone-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-700 bg-stone-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
                       Envío Gratis
                     </span>
                   </div>
@@ -229,7 +229,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
               </div>
 
               <div className="mt-4 flex items-center gap-2">
-                <span className="text-[8px] font-black uppercase tracking-widest px-3.5 py-2 bg-black text-white hover:bg-stone-800 transition-colors rounded-full text-center">
+                <span className="text-[10px] font-black uppercase tracking-widest px-3.5 py-2 bg-black text-white hover:bg-stone-800 transition-colors rounded-full text-center">
                   Comprar
                 </span>
                 <button
@@ -240,7 +240,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     const text = `Hola Atelier! Me interesa el modelo ${productModelName} y me gustaría recibir asesoramiento.`;
                     window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(text)}`, "_blank");
                   }}
-                  className="flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-widest px-3.5 py-2 border border-stone-200 text-stone-600 hover:border-[#25D366] hover:text-[#25D366] transition-colors rounded-full cursor-pointer bg-white"
+                  className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-2 border border-stone-200 text-stone-700 hover:border-[#25D366] hover:text-[#25D366] transition-colors rounded-full cursor-pointer bg-white"
                 >
                   <WhatsAppIcon className="w-3 h-3" />
                   Consultar

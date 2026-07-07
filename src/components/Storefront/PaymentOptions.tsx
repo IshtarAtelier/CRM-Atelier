@@ -74,20 +74,20 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
     return (
       <div className="w-full bg-stone-50 border-y border-stone-100 py-4 px-5">
         <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-center md:justify-start gap-6">
-          <span className="text-[9px] font-black uppercase tracking-[0.25em] text-stone-400 hidden md:block">
+          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-500 hidden md:block">
             Medios de pago
           </span>
           <div className="w-px h-4 bg-stone-200 hidden md:block" />
           {options.map((opt) => (
             <div key={opt.label} className="flex items-center gap-2">
-              <span className={opt.highlight ? "text-black" : "text-stone-400"}>
+              <span className={opt.highlight ? "text-black" : "text-stone-500"}>
                 {opt.icon}
               </span>
               <div className="flex items-baseline gap-1">
                 <span className={`text-[12px] font-black ${opt.highlight ? "text-black" : "text-stone-700"}`}>
                   {opt.label}
                 </span>
-                <span className="text-[10px] text-stone-400 font-medium">{opt.sub}</span>
+                <span className="text-xs text-stone-500 font-medium">{opt.sub}</span>
               </div>
               <div className="w-px h-3 bg-stone-200 last:hidden" />
             </div>
@@ -109,19 +109,19 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
               : "bg-white text-black"
           }`}
         >
-          <span className={opt.highlight ? "text-primary" : "text-stone-400"}>
+          <span className={opt.highlight ? "text-[#8a6d3b] dark:text-[#c8a55c]" : "text-stone-500"}>
             {opt.icon}
           </span>
           <div className="flex-1 min-w-0">
-            <span className={`text-[12px] font-bold tracking-wide ${opt.highlight ? "text-primary-800" : "text-stone-900"}`}>
+            <span className={`text-[12px] font-bold tracking-wide ${opt.highlight ? "text-[#433831] dark:text-[#ebe5df]" : "text-stone-900"}`}>
               {opt.label}
             </span>
-            <p className={`text-[10px] mt-0.5 ${opt.highlight ? "text-stone-500" : "text-stone-400"}`}>
+            <p className={`text-xs mt-0.5 ${opt.highlight ? "text-stone-500 dark:text-stone-400" : "text-stone-500"}`}>
               {opt.sub}
             </p>
           </div>
           {opt.highlight && (
-            <span className="text-[8px] font-black uppercase tracking-widest bg-primary text-white px-2.5 py-1 rounded-sm shadow-sm">
+            <span className="text-[10px] font-black uppercase tracking-widest bg-[#8a6d3b] text-white px-2.5 py-1 rounded-sm shadow-sm">
               Destacado
             </span>
           )}
