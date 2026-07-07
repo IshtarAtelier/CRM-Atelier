@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -23,6 +23,33 @@ const CATEGORY_IMAGES: Record<string, string> = {
 
 // Removed duplicated isXlProduct function
 
+type FiltrosUrl = {
+  brand: string;
+  shape: string;
+  material: string;
+  gender: string;
+  sort: string;
+};
+
+// useSearchParams fuerza render en cliente hasta el <Suspense> más cercano; lo
+// aislamos acá para que el resto de la tienda (h1, hero, grilla inicial) salga
+// en el HTML del servidor y los filtros de la URL se apliquen al hidratar.
+function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosUrl) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    onChange({
+      brand: searchParams.get('marca') || '',
+      shape: searchParams.get('forma') || '',
+      material: searchParams.get('material') || '',
+      gender: searchParams.get('genero') || '',
+      sort: searchParams.get('orden') || 'recientes',
+    });
+  }, [searchParams, onChange]);
+
+  return null;
+}
+
 export function TiendaClient({ 
   initialProducts,
   initialTotalCount = 0,
@@ -42,12 +69,18 @@ export function TiendaClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(24);
 
-  const searchParams = useSearchParams();
-  const filterBrand = searchParams.get('marca') || '';
-  const filterShape = searchParams.get('forma') || '';
-  const filterMaterial = searchParams.get('material') || '';
-  const filterGender = searchParams.get('genero') || '';
-  const sortParam = searchParams.get('orden') || 'recientes';
+  const [urlFilters, setUrlFilters] = useState<FiltrosUrl>({
+    brand: '',
+    shape: '',
+    material: '',
+    gender: '',
+    sort: 'recientes',
+  });
+  const filterBrand = urlFilters.brand;
+  const filterShape = urlFilters.shape;
+  const filterMaterial = urlFilters.material;
+  const filterGender = urlFilters.gender;
+  const sortParam = urlFilters.sort;
 
   useEffect(() => {
     setVisibleCount(24);
@@ -68,6 +101,11 @@ export function TiendaClient({
       } catch (e) {}
     }
 
+    // Verificar sesión solo si hay indicios de estar logueado (user guardado o
+    // cookie visible); evita un 401 por cada visitante anónimo. La cookie real
+    // es httpOnly, por eso el user de localStorage es la señal principal.
+    if (!stored && !document.cookie.includes('session=')) return;
+
     fetch('/api/auth/me')
       .then(res => {
         if (res.ok) return res.json();
@@ -76,6 +114,7 @@ export function TiendaClient({
       .then(data => {
         if (data.role === 'OPTICA') {
           setIsWholesale(true);
+          localStorage.setItem('user', JSON.stringify(data));
         } else {
           setIsWholesale(false);
         }
@@ -191,6 +230,9 @@ export function TiendaClient({
 
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
+      <Suspense fallback={null}>
+        <FiltrosDesdeUrl onChange={setUrlFilters} />
+      </Suspense>
       <StorefrontNavbar theme="light" />
 
       {/* ── HERO BAR (TEXT) ── */}
@@ -199,7 +241,7 @@ export function TiendaClient({
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-400 mb-2">Atelier Óptica</p>
             <h1 className="text-4xl md:text-5xl font-serif">
-              Colección
+              Tienda — Anteojos de diseño
             </h1>
           </div>
           <p className="text-sm text-stone-400 max-w-xs leading-relaxed">
@@ -212,7 +254,9 @@ export function TiendaClient({
       <div className="w-full">
         {/* Image Container */}
         <div className="relative w-full h-[350px] md:h-[450px] lg:h-[550px] bg-stone-200 overflow-hidden">
-          <AnimatePresence mode="wait">
+          {/* initial={false}: el primer render llega del SSR y debe pintar visible
+              (sin esto el HTML sale con opacity:0 hasta hidratar y arruina el LCP) */}
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={activeCategory}
               initial={{ opacity: 0, scale: 1.05 }}
@@ -233,9 +277,9 @@ export function TiendaClient({
             </motion.div>
           </AnimatePresence>
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-             <h1 className="text-white text-5xl md:text-7xl font-serif text-center drop-shadow-2xl tracking-tight">
+             <p className="text-white text-5xl md:text-7xl font-serif text-center drop-shadow-2xl tracking-tight">
                 {activeCategory === "Todo" ? "Nueva Colección" : activeCategory}
-             </h1>
+             </p>
           </div>
         </div>
 
@@ -297,11 +341,15 @@ export function TiendaClient({
 
       <main className="max-w-[1600px] mx-auto px-5 py-12 pb-20 flex flex-col lg:flex-row gap-8 lg:gap-12 relative">
         <aside className="w-full lg:w-64 flex-shrink-0">
-          <ProductFilters 
-            availableBrands={availableBrands} 
-            availableShapes={availableShapes}
-            availableMaterials={availableMaterials}
-          />
+          {/* ProductFilters usa useSearchParams: necesita su propio Suspense para
+              no arrastrar el resto de la página al render en cliente */}
+          <Suspense fallback={null}>
+            <ProductFilters
+              availableBrands={availableBrands}
+              availableShapes={availableShapes}
+              availableMaterials={availableMaterials}
+            />
+          </Suspense>
         </aside>
 
         <div className="flex-1">
@@ -348,7 +396,8 @@ export function TiendaClient({
           </div>
 
           {/* The skeleton is no longer needed since data is preloaded */}
-          <AnimatePresence mode="wait">
+          {/* initial={false}: la grilla ya viaja en el HTML del servidor, no ocultarla */}
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={activeCategory}
               initial={{ opacity: 0, y: 8 }}
@@ -439,7 +488,7 @@ export function TiendaClient({
                         {hasSecondImage && secondImgUrl && (
                           <Image unoptimized={String(secondImgUrl).startsWith('data:')}
                             src={secondImgUrl}
-                            alt={`${p.brand} ${p.model} Try-On`}
+                            alt={`${p.brand} ${p.model} puestos`}
                             fill
                             sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
                             className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
@@ -458,7 +507,7 @@ export function TiendaClient({
                       {p.material === "Titanio" && (
                         <span className="absolute bottom-3 left-3 text-[8px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-800 shadow-md flex items-center gap-1.5 rounded-sm">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                          Titanium
+                          Titanio
                         </span>
                       )}
                     </div>
@@ -469,7 +518,7 @@ export function TiendaClient({
                         <h3 className="text-[10px] text-stone-500 font-black uppercase tracking-[0.20em]">{p.brand || 'ATELIER'}</h3>
                         {p.material === "Titanio" && (
                           <span className="text-[8px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
-                            Titanium
+                            Titanio
                           </span>
                         )}
                       </div>
@@ -505,22 +554,13 @@ export function TiendaClient({
                       )}
 
                       <div className="mt-4 w-full border-2 border-stone-900 text-stone-900 group-hover:bg-stone-900 group-hover:text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 text-center rounded-xl transition-all duration-300">
-                        Ver Anteojo
+                        Ver Modelo
                       </div>
                     </div>
                   </Link>
                 );
               })
             )}
-
-            {displayedProducts.length === 0 && (
-                <div className="col-span-full py-24 text-center">
-                  <p className="text-stone-400 text-sm uppercase tracking-widest mb-4">Sin productos en esta categoría</p>
-                  <button onClick={() => setActiveCategory("Todo")} className="text-xs font-bold underline">
-                    Ver todo
-                  </button>
-                </div>
-              )}
             </motion.div>
           </AnimatePresence>
         {currentPage < totalPages && (

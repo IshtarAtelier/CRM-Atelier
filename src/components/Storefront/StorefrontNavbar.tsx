@@ -45,7 +45,11 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
       } catch (e) {}
     }
 
-    // Verify session
+    // Verificar sesión solo si hay indicios de estar logueado (user guardado o
+    // cookie visible); evita un 401 por cada visitante anónimo. La cookie real
+    // es httpOnly, por eso el user de localStorage es la señal principal.
+    if (!stored && !document.cookie.includes('session=')) return;
+
     fetch('/api/auth/me')
       .then(res => {
         if (res.ok) return res.json();
@@ -114,9 +118,11 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
   const isHeaderScrolled = scrolled;
   
   // Scrolled style (white background with glassmorphism), otherwise transparent
-  const headerBgClass = isHeaderScrolled 
-    ? "bg-[#faf8f5]/90 backdrop-blur-md shadow-sm border-b border-[#e8e2db]/50 py-3" 
-    : "bg-transparent py-3.5 sm:py-4";
+  // Altura fija (en vez de paddings) para que links, logo e iconos queden
+  // siempre centrados y contenidos dentro de la barra
+  const headerBgClass = isHeaderScrolled
+    ? "bg-[#faf8f5]/90 backdrop-blur-md shadow-sm border-b border-[#e8e2db]/50 h-12"
+    : "bg-transparent h-12 sm:h-14";
     
   // Scrolled text is always dark brown for legibility, otherwise relies on isDark prop
   const activeTextColorClass = isHeaderScrolled ? "text-[#433831]" : (isDark ? "text-white" : "text-[#433831]");
@@ -131,7 +137,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${isHeaderScrolled ? 'shadow-sm border-b border-[#e8e2db]/50 bg-[#faf8f5]/90' : 'bg-transparent'}`}>
         {/* Dynamic Announcement Bar */}
         {showAnnouncement && (
-          <div className="w-full bg-black text-white text-center py-2 px-3 text-[9px] font-black uppercase tracking-[0.25em] relative z-10 transition-all shadow-sm flex items-center justify-center gap-1.5">
+          <div className="w-full bg-black text-white text-center py-2 px-3 text-[10px] font-black uppercase tracking-[0.25em] relative z-10 transition-all shadow-sm flex items-center justify-center gap-1.5">
             {announcementLink ? (
               <Link href={announcementLink} className="hover:underline flex items-center justify-center gap-1 hover:opacity-90">
                 {announcementText}
@@ -143,33 +149,33 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
         )}
 
         {/* Navbar Inner Row */}
-        <div className={`px-3 sm:px-5 py-1 flex justify-between items-center transition-all duration-300 ${headerBgClass} ${mixBlend && !isHeaderScrolled ? 'mix-blend-difference text-white' : ''}`}>
+        <div className={`px-3 sm:px-5 flex justify-between items-center transition-all duration-300 ${headerBgClass} ${mixBlend && !isHeaderScrolled ? 'mix-blend-difference text-white' : ''}`}>
           {/* Izquierda: Links de navegación */}
           <div className="flex-1 flex justify-start">
             <nav className="flex gap-2 lg:gap-6 items-center">
-                <Link 
-                  href="/tienda" 
-                  className={`relative group text-[11px] lg:text-[13px] font-medium ${activeTextColorClass} p-2 lg:p-0 hidden lg:block transition-colors`} 
+                <Link
+                  href="/tienda"
+                  className={`relative group text-[11px] lg:text-[13px] leading-none font-medium ${activeTextColorClass} hidden lg:block transition-colors`}
                   style={activeTextShadowStyle}
                 >
-                  Shop
+                  Tienda
                   <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-current transition-all duration-300 group-hover:w-full opacity-80"></span>
                 </Link>
-                <Link 
-                  href="/cristales-opticos" 
-                  className={`relative group text-[11px] lg:text-[13px] font-medium ${activeTextColorClass} p-2 lg:p-0 hidden lg:block transition-colors`} 
+                <Link
+                  href="/cristales-opticos"
+                  className={`relative group text-[11px] lg:text-[13px] leading-none font-medium ${activeTextColorClass} hidden lg:block transition-colors`}
                   style={activeTextShadowStyle}
                 >
                   Cristales
                   <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-current transition-all duration-300 group-hover:w-full opacity-80"></span>
                 </Link>
-                <Link 
-                  href="/arma-tus-lentes" 
-                  className={`relative group text-[13px] font-bold ${activeTextColorClass} hidden lg:block transition-colors pb-0.5`} 
+                <Link
+                  href="/arma-tus-lentes"
+                  className={`relative group text-[13px] leading-none font-bold ${activeTextColorClass} hidden lg:block transition-colors`}
                   style={activeTextShadowStyle}
                 >
                   Lentes a Medida
-                  <span className={`absolute bottom-0 left-0 h-[2px] bg-primary transition-all duration-300 opacity-80 ${pathname === '/arma-tus-lentes' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                  <span className={`absolute -bottom-1 left-0 h-[2px] bg-primary transition-all duration-300 opacity-80 ${pathname === '/arma-tus-lentes' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
                 </Link>
     
               <div 
@@ -177,11 +183,11 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                 onMouseEnter={() => setIsExploreOpen(true)}
                 onMouseLeave={() => setIsExploreOpen(false)}
               >
-                <button aria-expanded={isExploreOpen} aria-haspopup="true" 
-                  className={`flex items-center gap-0.5 lg:gap-1 text-[11px] lg:text-[13px] font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 lg:p-0`}
+                <button aria-expanded={isExploreOpen} aria-haspopup="true"
+                  className={`flex items-center gap-0.5 lg:gap-1 text-[11px] lg:text-[13px] leading-none font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 lg:p-0`}
                   style={activeTextShadowStyle}
                 >
-                  <span className="hidden lg:inline">Explore</span>
+                  <span className="hidden lg:inline">Explorar</span>
                   <span className="lg:hidden">Menú</span>
                   <ChevronDown className="w-3 h-3 opacity-70" />
                 </button>
@@ -199,7 +205,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                       <div className="lg:hidden border-b border-white/10 py-2 px-2">
                         <Link href="/tienda" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
                           <ShoppingCart className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
-                          Shop
+                          Tienda
                           <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
                         </Link>
                         <Link href="/cristales-opticos" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
@@ -266,10 +272,10 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
           </div>
           
           {/* Centro: Texto logo */}
-          <div className="flex-shrink-0 flex justify-center z-10 px-2">
-            <Link 
-              href="/" 
-              className={`text-[11px] sm:text-[14px] md:text-[16px] font-bold tracking-[0.05em] sm:tracking-[0.10em] md:tracking-[0.15em] ${activeTextColorClass} drop-shadow-md text-center whitespace-nowrap`} 
+          <div className="flex-shrink-0 flex justify-center items-center z-10 px-2">
+            <Link
+              href="/"
+              className={`text-[11px] sm:text-[14px] md:text-[16px] leading-none font-bold tracking-[0.05em] sm:tracking-[0.10em] md:tracking-[0.15em] ${activeTextColorClass} drop-shadow-md text-center whitespace-nowrap`}
               style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
             >
               ATELIER ÓPTICA
@@ -280,10 +286,10 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
           <div className={`flex-1 flex justify-end items-center gap-1.5 sm:gap-4 ${activeTextColorClass}`}>
             {currentUser && currentUser.role === 'OPTICA' ? (
               <div className="flex items-center gap-1.5 sm:gap-2 mr-1 sm:mr-2">
-                <span className="text-[8px] sm:text-[9.5px] font-black uppercase bg-[#b08f4c] text-white px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full whitespace-nowrap shadow-sm hidden sm:block">
+                <span className="text-[10px] font-black uppercase bg-[#b08f4c] text-white px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full whitespace-nowrap shadow-sm hidden sm:block">
                   Óptica: {currentUser.name}
                 </span>
-                <span className="text-[8px] font-black uppercase bg-[#b08f4c] text-white px-1.5 py-0.5 rounded-full whitespace-nowrap shadow-sm sm:hidden">
+                <span className="text-[10px] font-black uppercase bg-[#b08f4c] text-white px-1.5 py-0.5 rounded-full whitespace-nowrap shadow-sm sm:hidden">
                   Ópt.
                 </span>
                 <button
@@ -292,21 +298,21 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                     localStorage.removeItem('user');
                     window.location.href = '/login';
                   }}
-                  className="text-[8px] sm:text-[9.5px] font-black uppercase text-stone-400 hover:text-red-500 transition-colors ml-1"
+                  className="text-[10px] font-black uppercase text-stone-500 hover:text-red-500 transition-colors ml-1"
                 >
                   Salir
                 </button>
               </div>
             ) : null}
-            <button 
-              onClick={() => setIsSearchOpen(true)} 
-              className="hover:opacity-60 transition-opacity p-2 sm:p-0" 
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="flex items-center justify-center hover:opacity-60 transition-opacity p-2 sm:p-0"
               aria-label="Buscar"
             >
               <Search className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
             </button>
-            <button 
-              className="hover:opacity-60 transition-opacity relative p-2 sm:p-0" 
+            <button
+              className="flex items-center justify-center hover:opacity-60 transition-opacity relative p-2 sm:p-0"
               aria-label="Carrito"
               onClick={() => setCartOpen(true)}
             >
@@ -333,7 +339,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
           >
             {/* Close button */}
             <div className="flex justify-between items-center mb-12">
-              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-400">Buscar en Atelier</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-500 dark:text-stone-400">Buscar en Atelier</span>
               <button 
                 onClick={() => {
                   setIsSearchOpen(false);
@@ -362,7 +368,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
             <div className="max-w-4xl mx-auto w-full flex-1 overflow-y-auto pr-2">
               {searchQuery.trim().length < 2 ? (
                 <div className="flex flex-col gap-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Sugerencias</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-stone-500 dark:text-stone-400">Sugerencias</p>
                   <div className="flex flex-wrap gap-2">
                     {["Receta", "Sol", "Clip-On"].map(term => (
                       <button
@@ -399,11 +405,11 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                           )}
                         </div>
                         <div className="flex flex-col justify-center">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">{p.brand || 'ATELIER'}</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-stone-500 dark:text-stone-400">{p.brand || 'ATELIER'}</span>
                           <span className="text-sm font-medium text-stone-850 dark:text-stone-100 leading-tight group-hover:text-black dark:group-hover:text-white transition-colors">
                             {p.name || p.model}
                           </span>
-                          <span className="text-xs text-[#b08f4c] dark:text-[#c8a55c] font-bold mt-1">
+                          <span className="text-xs text-[#8a6d3b] dark:text-[#c8a55c] font-bold mt-1">
                             ${(p.price || 0).toLocaleString("es-AR")}
                           </span>
                         </div>
@@ -412,7 +418,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                   })}
                 </div>
               ) : (
-                <p className="text-stone-400 dark:text-stone-500 text-sm italic">No se encontraron productos que coincidan con &quot;{searchQuery}&quot;.</p>
+                <p className="text-stone-500 dark:text-stone-500 text-sm italic">No se encontraron productos que coincidan con &quot;{searchQuery}&quot;.</p>
               )}
             </div>
           </motion.div>

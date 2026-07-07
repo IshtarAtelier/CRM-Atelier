@@ -47,7 +47,7 @@ export function CartSidebar() {
             {/* Header del Carrito */}
             <div className="px-6 py-6 border-b border-stone-200 flex justify-between items-center">
               <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-black">
-                Shopping Cart ({items.reduce((acc, i) => acc + i.quantity, 0)})
+                Carrito ({items.reduce((acc, i) => acc + i.quantity, 0)})
               </h2>
               <button 
                 onClick={() => setIsOpen(false)}

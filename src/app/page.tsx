@@ -330,10 +330,10 @@ export default async function Home() {
       <section className="w-full bg-white pt-16 pb-8">
         <div className="px-5 mb-2">
           <h2 className="text-[13px] font-bold tracking-normal uppercase">
-            LATEST: ATELIER&apos;S NEW ARRIVAL
+            LO NUEVO DE ATELIER
           </h2>
           <Link href="/tienda" className="text-[13px] font-medium underline underline-offset-4 decoration-1 hover:opacity-60 transition-opacity mt-1 inline-block">
-            MORE
+            VER MÁS
           </Link>
         </div>
       </section>

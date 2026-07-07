@@ -125,7 +125,7 @@ export function HomeRecommendationQuiz() {
               exit={{ opacity: 0, y: -15 }}
               className="space-y-6"
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#b08f4c]">Recomendador Inteligente</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8a6d3b]">Recomendador Inteligente</p>
               <h2 className="text-3xl md:text-4xl font-serif text-stone-900 font-light">¿Buscás tus anteojos ideales?</h2>
               <p className="text-stone-500 text-sm font-light leading-relaxed max-w-md mx-auto">
                 Respondé 3 preguntas rápidas y te ayudaremos a elegir los marcos y cristales perfectos para tu estilo de vida.
@@ -150,7 +150,7 @@ export function HomeRecommendationQuiz() {
               className="space-y-8"
             >
               {/* Progress */}
-              <div className="flex justify-between items-center max-w-xs mx-auto text-stone-400 text-[10px] font-mono tracking-widest uppercase">
+              <div className="flex justify-between items-center max-w-xs mx-auto text-stone-500 text-xs font-mono tracking-widest uppercase">
                 <button 
                   onClick={() => setStep(prev => prev - 1)}
                   className="flex items-center gap-1 hover:text-black transition-colors"
@@ -191,7 +191,7 @@ export function HomeRecommendationQuiz() {
               exit={{ opacity: 0 }}
               className="space-y-8"
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#b08f4c]">Tu Recomendación Personalizada</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8a6d3b]">Tu Recomendación Personalizada</p>
               
               <div className="bg-white border border-stone-200/60 p-8 rounded-3xl shadow-sm max-w-md mx-auto space-y-4">
                 <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-2xl">
@@ -224,7 +224,7 @@ export function HomeRecommendationQuiz() {
 
               <button
                 onClick={resetQuiz}
-                className="text-[10px] font-black uppercase tracking-wider text-stone-400 hover:text-black transition-colors flex items-center gap-1.5 mx-auto pt-4 cursor-pointer"
+                className="text-xs font-black uppercase tracking-wider text-stone-500 hover:text-black transition-colors flex items-center gap-1.5 mx-auto pt-4 cursor-pointer"
               >
                 <RefreshCw className="w-3 h-3" /> Repetir Test
               </button>

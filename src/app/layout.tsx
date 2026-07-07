@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import Script from "next/script";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
@@ -30,7 +29,7 @@ export const metadata: Metadata = {
       {
         url: "/images/og-image.jpg",
         width: 1200,
-        height: 140,
+        height: 630,
         alt: "Atelier Óptica Córdoba",
       },
     ],
@@ -84,12 +83,6 @@ export default function RootLayout({
           <Toaster position="top-right" richColors />
           <FloatingWhatsApp />
           <TrackingScripts />
-
-          <Script strategy="afterInteractive" id="sw-register">{`
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.register('/sw.js').catch(() => {});
-            }
-          `}</Script>
         </ThemeProvider>
       </body>
     </html>

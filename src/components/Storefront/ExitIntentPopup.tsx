@@ -102,20 +102,20 @@ export function ExitIntentPopup() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={handleClose}
-                className="w-full py-4 bg-black text-white hover:bg-stone-800 text-[10px] font-black uppercase tracking-widest rounded-full transition-colors flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                className="w-full py-4 bg-black text-white hover:bg-stone-800 text-xs font-black uppercase tracking-widest rounded-full transition-colors flex items-center justify-center gap-2 shadow-lg cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" /> Chatear con Asesor Óptico
               </a>
               <button
                 onClick={handleClose}
-                className="w-full py-3 bg-stone-50 hover:bg-stone-100 dark:bg-stone-900 dark:hover:bg-stone-850 text-stone-600 dark:text-stone-400 text-[9px] font-bold uppercase tracking-widest rounded-full transition-colors cursor-pointer"
+                className="w-full py-3 bg-stone-50 hover:bg-stone-100 dark:bg-stone-900 dark:hover:bg-stone-850 text-stone-600 dark:text-stone-400 text-xs font-bold uppercase tracking-widest rounded-full transition-colors cursor-pointer"
               >
                 Seguir Navegando
               </button>
             </div>
 
             {/* Footnote */}
-            <p className="text-[8.5px] font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-widest">
+            <p className="text-[10px] font-semibold text-stone-500 dark:text-stone-500 uppercase tracking-widest">
               Atelier Óptica · Cerro de las Rosas
             </p>
           </motion.div>

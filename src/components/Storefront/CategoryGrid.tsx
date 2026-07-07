@@ -112,34 +112,34 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                 
                 {/* Etiqueta de Stock / Promo */}
                 {p.stock === 0 && (
-                  <div className="absolute top-3 left-3 bg-red-500 text-white text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded">
+                  <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded">
                     Agotado
                   </div>
                 )}
                 {p.isFeatured && p.stock > 0 && (
-                  <div className="absolute top-3 right-3 bg-black text-white text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded">
+                  <div className="absolute top-3 right-3 bg-black text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded">
                     Destacado
                   </div>
                 )}
               </div>
 
               <div className="flex flex-col flex-1 px-1">
-                <h3 className="text-[10px] text-stone-400 font-bold uppercase tracking-[0.20em] mb-1">{p.brand}</h3>
+                <h3 className="text-[10px] text-stone-500 dark:text-stone-400 font-bold uppercase tracking-[0.20em] mb-1">{p.brand}</h3>
                 <h2 className="text-base font-serif tracking-tight text-stone-900 dark:text-white mb-2 leading-tight flex-1">{p.model}</h2>
                 
                 <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40 flex flex-col gap-1">
                   <div className="flex items-baseline justify-between">
                     <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
-                      {webSettings.web_promo_installments} de <span className="font-extrabold text-[#b08f4c] dark:text-[#c8a55c]">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
+                      {webSettings.web_promo_installments} de <span className="font-extrabold text-[#8a6d3b] dark:text-[#c8a55c]">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
                     </p>
-                    <span className="text-[9px] text-stone-400 uppercase tracking-wider font-medium hover:text-black dark:hover:text-white transition-colors shrink-0">Ver detalles</span>
+                    <span className="text-xs text-stone-500 dark:text-stone-400 uppercase tracking-wider font-medium hover:text-black dark:hover:text-white transition-colors shrink-0">Ver detalles</span>
                   </div>
                   
                   <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
-                    ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transferencia <span className="text-emerald-600 dark:text-emerald-500 font-bold text-[9px] uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
+                    ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transferencia <span className="text-emerald-600 dark:text-emerald-500 font-bold text-xs uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
                   </p>
                   
-                  <p className="text-[9px] text-stone-350 dark:text-stone-600">
+                  <p className="text-xs text-stone-500 dark:text-stone-600">
                     Precio de lista: ${(p.price || 0).toLocaleString("es-AR")}
                   </p>
                 </div>

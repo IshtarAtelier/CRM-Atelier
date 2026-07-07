@@ -16,7 +16,7 @@ export default function GlobalError({
               Error Crítico
             </h2>
             <p className="text-gray-600 mb-6">
-              Ha ocurrido un error a nivel de aplicación. Por favor recarga la página.
+              Ocurrió un error en la aplicación. Por favor, recargá la página.
             </p>
             <button
               onClick={() => reset()}

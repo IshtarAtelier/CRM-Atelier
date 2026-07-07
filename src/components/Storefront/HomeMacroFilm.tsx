@@ -45,15 +45,17 @@ export function HomeMacroFilm() {
   );
 
   // Opacity and scale for the text inside the core
+  // Reaches full opacity early and holds it while the panels are open,
+  // so the copy reads pure white and never sits half-faded mid-scroll.
   const textOpacity = useTransform(
     scrollYProgress,
-    [0.45, 0.6, 0.8, 0.9],
+    [0.45, 0.52, 0.88, 0.95],
     [0, 1, 1, 0]
   );
 
   const textScale = useTransform(
     scrollYProgress,
-    [0.45, 0.6, 0.8, 0.9],
+    [0.45, 0.52, 0.88, 0.95],
     [0.9, 1, 1, 0.9]
   );
 
@@ -75,16 +77,16 @@ export function HomeMacroFilm() {
           style={{ opacity: textOpacity, scale: textScale }}
           className="absolute z-10 flex flex-col items-center justify-center text-center px-6 max-w-2xl pointer-events-none"
         >
-          <p className="text-white/40 text-[10px] md:text-[11px] uppercase tracking-[0.55em] font-semibold mb-4">
+          <p className="text-[#f5f5f0]/85 text-xs md:text-[13px] uppercase tracking-[0.55em] font-semibold mb-4">
             Atelier Óptica — Detalles
           </p>
           <h2
-            className="text-white text-4xl md:text-6xl font-light tracking-tight leading-none mb-6"
+            className="text-[#f5f5f0] text-4xl md:text-6xl font-light tracking-tight leading-none mb-6"
             style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
           >
             La mirada en acción
           </h2>
-          <p className="text-white/30 text-[10px] md:text-xs font-light tracking-[0.2em] max-w-md uppercase leading-relaxed">
+          <p className="text-[#f5f5f0]/90 text-xs md:text-sm font-light tracking-[0.2em] max-w-md uppercase leading-relaxed">
             Curaduría de diseño y precisión en cada detalle. Experimentá la fusión entre arte y tecnología.
           </p>
         </motion.div>
@@ -110,7 +112,7 @@ export function HomeMacroFilm() {
           {/* WARNING: Do NOT change this image. The Acetate Macro Film is a critical brand asset requested by the owner. */}
           <Image
             src="/images/atelier-macro-film.webp"
-            alt="Atelier Macro Detail Left"
+            alt="Detalle macro izquierdo — Atelier"
             fill
             sizes="100vw"
             className="object-cover"
@@ -141,7 +143,7 @@ export function HomeMacroFilm() {
           {/* WARNING: Do NOT change this image. The Acetate Macro Film is a critical brand asset requested by the owner. */}
           <Image
             src="/images/atelier-macro-film.webp"
-            alt="Atelier Macro Detail Right"
+            alt="Detalle macro derecho — Atelier"
             fill
             sizes="100vw"
             className="object-cover"

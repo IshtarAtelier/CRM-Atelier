@@ -122,7 +122,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key as TabKey)}
-            className={`px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap rounded-full border ${
+            className={`px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap rounded-full border cursor-pointer ${
               activeTab === tab.key 
                 ? 'bg-black text-white border-black' 
                 : 'bg-white text-stone-500 border-stone-200 hover:border-black hover:text-black'
@@ -159,7 +159,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                 {isTitanium && (
                   <span className="absolute bottom-3 left-3 text-[8px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-850 shadow-md flex items-center gap-1.5 rounded-sm">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                    Titanium
+                    Titanio
                   </span>
                 )}
 
@@ -195,13 +195,13 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
               </div>
               
               {/* Nombre, precio y botones de acción */}
-              <div className="px-3 pt-6 pb-4 border-r border-[#e5e5e5] flex flex-col justify-between min-h-[150px] h-auto">
+              <div className="px-5 pt-6 pb-4 border-r border-[#e5e5e5] flex flex-col justify-between min-h-[150px] h-auto">
                 <div>
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-[12px] font-bold text-stone-900 line-clamp-1 uppercase tracking-wide">{item.name}</h3>
                     {isTitanium && (
                       <span className="text-[7.5px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-                        Titanium
+                        Titanio
                       </span>
                     )}
                   </div>

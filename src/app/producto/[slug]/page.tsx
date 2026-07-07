@@ -102,6 +102,12 @@ async function getProduct(slug: string) {
   }
 }
 
+// Saca sufijos tipo "| Atelier" / "| Atelier Óptica" que ya vienen en el seoTitle,
+// para no duplicar la marca cuando armamos el title final
+function stripBrandSuffix(title: string) {
+  return title.replace(/(\s*\|\s*Atelier[^|]*)+$/i, '').trim();
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const product = await getProduct(resolvedParams.slug);
@@ -113,9 +119,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   // Generación automática del "mensajito" SEO si no tiene descripción manual
-  const title = (product as any).seoTitle || `${product.brand} ${product.model} | Atelier Óptica Córdoba`;
-  const description = (product as any).seoDescription || product.description || `Llevate los anteojos ${product.category} ${product.brand} ${product.model} en Atelier Óptica Córdoba. Diseño premium. Comprá online con envío a todo el país y 6 cuotas sin interés.`;
-  
+  const baseTitle = stripBrandSuffix((product as any).seoTitle || product.model || product.brand);
+  const title = `${baseTitle} | Atelier Óptica Córdoba`;
+  const rawDescription = (product as any).seoDescription?.trim() || product.description?.trim() || `Llevate los anteojos ${product.category} ${product.brand} ${product.model} en Atelier Óptica Córdoba. Diseño premium. Comprá online con envío a todo el país y 6 cuotas sin interés.`;
+  const plainDescription = rawDescription.replace(/\s+/g, ' ').trim();
+  const description = plainDescription.length > 160 ? `${plainDescription.slice(0, 157).trimEnd()}…` : plainDescription;
+
   const imageUrl = product.imagenesCatalogo && product.imagenesCatalogo.length > 0 
     ? resolveStorageUrl(product.imagenesCatalogo[0])
     : ((product as any).mockImage || '/images/og-image.jpg');
@@ -123,7 +132,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const absoluteImageUrl = imageUrl.startsWith('http') ? imageUrl : `https://www.atelieroptica.com.ar${imageUrl}`;
 
   return {
-    title,
+    // absolute: evita que el template del layout ("%s | Atelier Óptica") vuelva a agregar la marca
+    title: { absolute: title },
     description,
     alternates: {
       canonical: `https://www.atelieroptica.com.ar/producto/${product.slug}`,
@@ -191,7 +201,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           const colorName = colorMatch ? colorMatch[1] : modelName.replace(baseModel, '').trim();
           return {
             slug: s.slug,
-            colorCode: colorName || 'Default',
+            colorCode: colorName || 'Único',
             imageUrl: s.images.length > 0 ? s.images[0] : (s.product.imagenesCatalogo?.[0] || null)
           };
         });
@@ -244,7 +254,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const jsonLd: any = {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: (product as any).seoTitle || `${product.brand} ${product.model}`,
+    name: stripBrandSuffix((product as any).seoTitle || `${product.brand} ${product.model}`),
     image: allImages,
     description: (product as any).seoDescription || product.description || `Anteojos ${product.category} ${product.brand} ${product.model}.`,
     sku: (product as any).id?.substring(0, 8).toUpperCase(),

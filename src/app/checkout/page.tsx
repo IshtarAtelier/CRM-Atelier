@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/checkout' },
-  title: "Checkout",
+  title: "Finalizar compra",
   description: 'Finalizá tu compra de forma segura',
   robots: {
     index: false,

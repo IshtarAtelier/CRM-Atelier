@@ -1,9 +1,16 @@
 import { Metadata } from 'next';
+import nextDynamic from 'next/dynamic';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { prisma } from "@/lib/db";
 
 export const dynamic = 'force-dynamic';
-import { CustomGlassesBuilder } from "@/components/Storefront/CustomGlassesBuilder";
+
+// Import dinámico: el builder arrastra framer-motion + LensConfigurator; separarlo
+// del chunk inicial baja el TBT de la página. SSR se mantiene (SEO intacto).
+const CustomGlassesBuilder = nextDynamic(
+  () => import("@/components/Storefront/CustomGlassesBuilder").then(mod => mod.CustomGlassesBuilder),
+  { loading: () => <div className="flex-1 bg-stone-50 dark:bg-stone-950" /> }
+);
 
 
 export const metadata: Metadata = {

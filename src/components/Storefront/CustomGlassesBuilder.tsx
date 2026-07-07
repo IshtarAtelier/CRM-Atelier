@@ -2,9 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LensConfigurator } from "./LensConfigurator";
 import dynamic from "next/dynamic";
 const Interactive3DImage = dynamic(() => import("./Interactive3DImage").then(mod => mod.Interactive3DImage), { ssr: false });
+// Carga diferida: el configurador recién se monta cuando el cliente elige un armazón,
+// así no pesa en el bundle inicial del builder.
+const LensConfigurator = dynamic(
+  () => import("./LensConfigurator").then(mod => mod.LensConfigurator),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex flex-col items-center justify-center gap-4 py-20">
+        <span aria-hidden="true" className="w-8 h-8 rounded-full border-2 border-[#c8a55c]/25 border-t-[#c8a55c] animate-spin" />
+        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-stone-500">Cargando configurador…</p>
+      </div>
+    ),
+  }
+);
 import Image from "next/image";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";

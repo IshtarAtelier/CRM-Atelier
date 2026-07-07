@@ -25,7 +25,7 @@ const GALLERY_IMAGES = [
   { src: "/images/blog/fachada-ladrillo.webp", alt: "Fachada de ladrillo de Atelier Óptica", caption: "Nuestra Fachada", aspect: "aspect-[4/5]" },
   { src: "/images/blog/mostrador-marmol.webp", alt: "Mostrador de mármol Atelier Óptica", caption: "El Mostrador", aspect: "aspect-[3/4]" },
   { src: "/images/blog/vidriera-atelier.webp", alt: "Vidriera de Atelier Óptica", caption: "La Vidriera", aspect: "aspect-[4/5]" },
-  { src: "/images/blog/muestrario-smart-lens.webp", alt: "Muestrario de cristales inteligentes", caption: "Smart Lens Lab", aspect: "aspect-[3/4]" },
+  { src: "/images/blog/muestrario-smart-lens.webp", alt: "Muestrario de cristales inteligentes", caption: "Cristales Inteligentes", aspect: "aspect-[3/4]" },
   { src: "/images/blog/local-varilux.webp", alt: "Espacio Varilux en Atelier Óptica", caption: "Espacio Varilux", aspect: "aspect-[4/5]" },
   { src: "/images/atelier-macro-film.webp", alt: "Macro detalle de anteojos Atelier", caption: "El Detalle", aspect: "aspect-[3/4]" },
 ];

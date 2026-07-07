@@ -37,6 +37,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Todo elemento accionable muestra cursor manito */
+button,
+[role="button"],
+a,
+label[for],
+select,
+summary,
+input[type="checkbox"],
+input[type="radio"],
+input[type="submit"],
+.cursor-pointer {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 
 
 /* Toast progress bar animation */

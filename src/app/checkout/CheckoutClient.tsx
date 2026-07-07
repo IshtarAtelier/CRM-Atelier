@@ -101,15 +101,10 @@ export function CheckoutClient({
   useEffect(() => {
     if (paywayConfig) {
       // Load Decidir SDK immediately on mount using server props
-      const script = document.createElement('script');
-      script.src = paywayConfig.environment === 'production' 
-        ? 'https://live.decidir.com/static/v2/decidir.js'
-        : 'https://developers.decidir.com/static/v2/decidir.js';
-      script.async = true;
-      script.onload = () => {
+      const initDecidir = () => {
         setPaywayLoaded(true);
         try {
-          const decidirUrl = paywayConfig.environment === 'production' 
+          const decidirUrl = paywayConfig.environment === 'production'
             ? 'https://live.decidir.com/api/v2'
             : 'https://developers.decidir.com/api/v2';
           const instance = new (window as any).Decidir(decidirUrl);
@@ -120,6 +115,19 @@ export function CheckoutClient({
           console.error("Failed to initialize Decidir on mount:", e);
         }
       };
+
+      // Si el SDK ya está en memoria (re-montaje, navegación atrás), no inyectar otro <script>
+      if ((window as any).Decidir) {
+        initDecidir();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = paywayConfig.environment === 'production'
+        ? 'https://live.decidir.com/static/v2/decidir.js'
+        : 'https://developers.decidir.com/static/v2/decidir.js';
+      script.async = true;
+      script.onload = initDecidir;
       document.body.appendChild(script);
     }
   }, [paywayConfig]);
@@ -154,6 +162,10 @@ export function CheckoutClient({
       } catch (e) {}
     }
 
+    // Verificar sesión SIEMPRE contra /api/auth/me: la cookie de sesión es
+    // httpOnly (document.cookie no la ve) y el user de localStorage puede
+    // haberse limpiado. En una página transaccional el request extra no importa
+    // y evita mostrar precios minoristas a un mayorista logueado.
     fetch('/api/auth/me')
       .then(res => {
         if (res.ok) return res.json();
@@ -567,7 +579,7 @@ export function CheckoutClient({
         <div className="lg:col-span-7 flex flex-col gap-10">
           <div>
             <h1 className=" font-serif">
-              Checkout
+              Finalizá tu compra
             </h1>
             <p className="text-stone-500 text-sm">Completá tus datos para finalizar la compra de forma segura.</p>
           </div>

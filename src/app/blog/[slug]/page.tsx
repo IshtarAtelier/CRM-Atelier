@@ -2,7 +2,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { ArrowLeft, Calendar, Tag, ArrowRight, ShoppingBag } from 'lucide-react';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
@@ -1364,11 +1364,74 @@ const SLUG_REDIRECTS: Record<string, string> = {
   '18-lentes-ninos': 'lentes-para-ninos-essilor-cordoba'
 };
 
+// Slugs heredados de la importación de Medium/Tienda Nube: terminan en un hash
+// hexadecimal (ej. "...-de24d54c7a83") y duplican artículos que ya existen con
+// slug limpio. Espeja los redirects de /blog/posts/* de next.config.ts para que
+// también apliquen sobre /blog/:slug.
+const HASH_SLUG_REDIRECTS: Record<string, string> = {
+  'anteojos-para-ninos-salud-visual-y-vuelta-al-cole-atelier-optica-cordoba-de24d54c7a83': 'anteojos-para-ninos',
+  'lentes-filtro-luz-azul-home-office-cordoba-atelier-optica-85679646df21': 'filtro-azul-pantallas',
+  'tendencias-anteojos-de-sol-2026-cordoba-atelier-optica-d67c205b4d5d': 'lentes-de-sol-tendencias-2026',
+  'lentes-progresivos-multifocales-cordoba-atelier-optica-c0e9ffcaefb9': 'guia-multifocales-cordoba',
+  'anteojos-segun-tipo-rostro-guia-cordoba-atelier-optica-588826877f03': 'elegir-anteojos-recetados',
+  'tendencias-en-anteojos-2026-marcos-colores-y-estilos-que-dominan-este-anio-09f7ade26e9d': 'diseno-y-marcas-armazones-cordoba',
+  'tratamiento-crizal-essilor-en-crdoba-2026-visin-clara-y-proteccin-total-6fd79b8ca784': 'multifocales-marcas-precios-varilux-novar',
+  'xperio-transitions-essilor-cordoba-2026-529a0209b715': 'cristales-fotocromaticos-transitions',
+  'varilux-liberty-3-0-cordoba-2026-5c5c684411a8': 'multifocales-primera-vez-guia-cordoba',
+  'varilux-physio-cordoba-2026-1c4afadee3eb': 'mejor-optica-multifocales-cordoba',
+  'varilux-comfort-max-cordoba-f11509d74771': 'pasos-faciles-adaptacion-multifocales',
+  'varilux-xr-series-cordoba-dcf372d4c673': 'por-que-nuestros-multifocales-no-fallan-tecnologia-cordoba',
+  // Importados con hash que no estaban contemplados en next.config.ts
+  'multifocales-vs-bifocales-88beb900df52': 'bifocales-vs-multifocales-diferencias',
+  'lentes-multifocales-precios-argentina-893166c0d81a': 'precio-multifocales-cordoba-2026',
+  'lentes-multifocales-cordoba-69ccf4016c8d': 'guia-multifocales-cordoba',
+  'lentes-multifocales-cordoba-69ccf4016c8d-1572994c138d': 'guia-multifocales-cordoba',
+  'lentes-varilux-9f7dbebda6cb': 'multifocales-marcas-precios-varilux-novar',
+  'lentes-varilux-fotocromaticos-cordoba-c0ffdb0d81fc': 'cristales-fotocromaticos-transitions',
+};
+
+const HASH_SUFFIX_REGEX = /-[0-9a-f]{12}$/;
+
+// Devuelve el slug limpio al que redirigir (301) cuando llega un slug heredado
+// con sufijo hash. Fuera del mapa conocido, solo redirige si al quitar el hash
+// queda un artículo que realmente existe (estático o publicado en la DB).
+async function resolveHashSlugRedirect(slug: string): Promise<string | null> {
+  if (slug in HASH_SLUG_REDIRECTS) {
+    return HASH_SLUG_REDIRECTS[slug];
+  }
+  if (!HASH_SUFFIX_REGEX.test(slug)) return null;
+
+  let cleanSlug = slug;
+  while (HASH_SUFFIX_REGEX.test(cleanSlug)) {
+    cleanSlug = cleanSlug.replace(HASH_SUFFIX_REGEX, '');
+  }
+  if (!cleanSlug) return null;
+
+  if (posts[cleanSlug]) return cleanSlug;
+
+  try {
+    const dbPost = await prisma.blogPost.findUnique({
+      where: { slug: cleanSlug },
+      select: { status: true }
+    });
+    if (dbPost?.status === 'PUBLISHED') return cleanSlug;
+  } catch (error) {
+    console.error("Error resolving legacy blog slug:", error);
+  }
+
+  return null;
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
-  
+
   if (resolvedParams.slug in SLUG_REDIRECTS) {
     redirect(`/blog/${SLUG_REDIRECTS[resolvedParams.slug]}`);
+  }
+
+  const hashRedirect = await resolveHashSlugRedirect(resolvedParams.slug);
+  if (hashRedirect) {
+    permanentRedirect(`/blog/${hashRedirect}`);
   }
 
   const post = await getPostBySlug(resolvedParams.slug);
@@ -1397,9 +1460,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
-  
+
   if (resolvedParams.slug in SLUG_REDIRECTS) {
     redirect(`/blog/${SLUG_REDIRECTS[resolvedParams.slug]}`);
+  }
+
+  const hashRedirect = await resolveHashSlugRedirect(resolvedParams.slug);
+  if (hashRedirect) {
+    permanentRedirect(`/blog/${hashRedirect}`);
   }
 
   const post = await getPostBySlug(resolvedParams.slug);

@@ -35,7 +35,7 @@ const FRAMES = [
     id: "pearl",
     src: "/images/editorial/filmmaker-pearl.webp",
     title: "La Chica de la Perla",
-    subtitle: "Wire Frame · Redondo",
+    subtitle: "Metal Fino · Redondo",
     year: "S. XVII",
     credit: "Johannes Vermeer",
   },
@@ -172,7 +172,7 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
       {/* ─── PLAY INDICATOR DOT ─── */}
       <div className="absolute top-[15%] right-6 z-30 flex items-center gap-2">
         <span className={`w-1.5 h-1.5 rounded-full ${isRotating ? "bg-red-500 animate-pulse" : "bg-white/40"}`} />
-        <span className="font-mono text-[9px] text-white/40 tracking-widest">{isRotating ? "REC" : "PAUSED"}</span>
+        <span className="font-mono text-[9px] text-white/40 tracking-widest">{isRotating ? "REC" : "PAUSA"}</span>
       </div>
 
       {/* ─── TEXT OVERLAY ─── */}
@@ -226,7 +226,7 @@ export function FilmmakerReel({ reviewCount = 642, rating = 5.0 }: FilmmakerReel
                 href="/tienda"
                 className="w-full sm:w-auto px-6 py-3.5 bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-white/90 hover:scale-105 transition-all rounded-full text-center shadow-[0_0_30px_rgba(255,255,255,0.4)] group flex items-center justify-center gap-2"
               >
-                1. Elige tu Armazón <span className="opacity-60 group-hover:opacity-100 transition-opacity">→</span>
+                1. Elegí tu Armazón <span className="opacity-60 group-hover:opacity-100 transition-opacity">→</span>
               </Link>
               <a
                 href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`Hola, vi los anteojos de diseño "${frame.title}" en su web y me gustaría recibir asesoramiento.`)}`}

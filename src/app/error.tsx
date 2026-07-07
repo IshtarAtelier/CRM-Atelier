@@ -20,7 +20,7 @@ export default function GlobalError({
           ¡Ups! Algo salió mal
         </h2>
         <p className="text-gray-600 dark:text-gray-300 mb-6">
-          Ha ocurrido un error inesperado. Por favor, intenta de nuevo o contacta a soporte si el problema persiste.
+          Ocurrió un error inesperado. Probá de nuevo o escribinos si el problema persiste.
         </p>
         <button
           onClick={() => reset()}
