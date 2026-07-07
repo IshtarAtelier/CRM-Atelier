@@ -71,7 +71,7 @@ function getModel() {
 const savePrescriptionDataTool = new DynamicStructuredTool({
     schema: z.object({ chatId: z.string().optional(), clientId: z.string().optional(), tipoDeLente: z.string().optional(), odEsf: z.number().optional(), odCil: z.number().optional(), odEje: z.number().optional(), oiEsf: z.number().optional(), oiCil: z.number().optional(), oiEje: z.number().optional(), add: z.number().optional(), odDip: z.number().optional(), oiDip: z.number().optional(), origen: z.string().optional(), obraSocial: z.string().optional(), notes: z.string().optional(), userName: z.string().optional(), userPhone: z.string().optional() }).catchall(z.any()),
     name: "save_prescription_data",
-    description: "Guarda los valores de una receta médica (esferas, cilindros, ejes, adición, DIP, etc.) en la ficha del cliente en el CRM. Úsala de forma MANDATORIA cuando has leído una receta en el chat y querés dejarla guardada. Requisitos: JSON estricto con 'chatId' (MANDATORIO), 'clientId' (MANDATORIO, o null/none/empty si el contacto aún no está registrado), 'tipoDeLente' ('Monofocal' o 'Multifocal'), 'odEsf' (número), 'odCil' (número), 'odEje' (entero), 'oiEsf' (número), 'oiCil' (número), 'oiEje' (entero), 'add' (adición, número, opcional), 'odDip' (DIP ojo derecho, opcional), 'oiDip' (DIP ojo izquierdo, opcional), 'origen' (opcional), 'obraSocial' (MANDATORIO: obra social que figura en la receta o que indicó el cliente, o el texto 'Particular' si no tiene o ignoró la pregunta), 'notes' (comentarios, opcional), 'userName' (nombre del cliente si clientId es null, opcional), 'userPhone' (teléfono si clientId es null, opcional). La herramienta buscará la foto de la receta en la caché de la charla y la subirá automáticamente.",
+    description: "Guarda los valores de una receta médica (esferas, cilindros, ejes, adición, DIP, etc.) en la ficha del cliente en el CRM. Úsala de forma MANDATORIA cuando has leído una receta en el chat y querés dejarla guardada. Requisitos: JSON estricto con 'chatId' (MANDATORIO), 'clientId' (MANDATORIO, o null/none/empty si el contacto aún no está registrado), 'tipoDeLente' ('Monofocal' o 'Multifocal'), 'odEsf' (número), 'odCil' (número), 'odEje' (entero), 'oiEsf' (número), 'oiCil' (número), 'oiEje' (entero), 'add' (adición, número, opcional), 'odDip' (DIP ojo derecho, opcional), 'oiDip' (DIP ojo izquierdo, opcional), 'origen' (opcional), 'obraSocial' (MANDATORIO: obra social que figura en la receta o que indicó el cliente, o el texto 'Particular' si no tiene o ignoró la pregunta), 'notes' (comentarios, opcional), 'userName' (nombre del cliente si clientId es null: tomalo del nombre del PACIENTE en la receta o del perfil de WhatsApp, NUNCA se lo preguntes al cliente), 'userPhone' (teléfono si clientId es null, opcional: NUNCA se lo preguntes al cliente). La herramienta buscará la foto de la receta en la caché de la charla y la subirá automáticamente.",
     func: safeToolRun(async (input) => {
         const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
         const { HumanMessage } = require("@langchain/core/messages");
@@ -80,7 +80,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
         const parsed = safeParse(input, "save_prescription_data");
         const { chatId, clientId, tipoDeLente, odEsf, odCil, odEje, oiEsf, oiCil, oiEje, add, odDip, oiDip, origen, obraSocial, notes, userName, userPhone } = parsed;
 
-        if (!chatId) return "[INSTRUCCIÓN INTERNA] No pudiste guardar la receta porque falta el chatId. Reintentá pasando el chatId correcto. NO le digas nada al cliente sobre este problema.";
+        if (!chatId) return "[INSTRUCCIÓN INTERNA] No pudiste guardar la receta porque falta el chatId. Reintentá pasando el chatId correcto. NO le digas nada al cliente sobre este problema y seguí la venta normalmente (cotizá con los valores que leíste).";
 
         // 1. Obtener imagen en caché
         const cacheItems = global.mediaCache?.[chatId] || [];
@@ -137,7 +137,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
             const resolvedName = (userName && userName.trim().length >= 2 && userName !== 'null' && nameDigits < 5 && !/^\d+$/.test(userName.trim()) && !isPhrase(userName.trim())) ? userName.trim() : null;
             
             if (!resolvedName) {
-                return "[INSTRUCCIÓN INTERNA] Necesitás un nombre válido para guardar la receta. Preguntale al cliente su nombre de forma natural y cálida (ej: 'me decís tu nombre así te armo el presupuesto?'). Una vez que te lo diga, volvé a llamar a esta herramienta con el nombre. NUNCA le menciones al cliente que hubo un error ni que necesitás registrarlo.";
+                return "[INSTRUCCIÓN INTERNA] La receta no se guardó todavía porque falta un nombre válido. JAMÁS le preguntes el nombre al cliente (se siente encuesta de IA, no humano). Buscá el nombre del PACIENTE en la receta que leíste, o usá el nombre real del perfil de WhatsApp, y volvé a llamar esta herramienta con ese 'userName'. Si no existe por ninguna vía, seguí cotizando normalmente sin guardar y reintentá solo si el nombre aparece solo en la charla. NO frenes la conversación. NUNCA le menciones errores ni registros.";
             }
 
             let phoneToUse = userPhone || '';
@@ -147,7 +147,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
 
             const cleanPhone = phoneToUse ? phoneToUse.replace(/\D/g, '') : '';
             if (!cleanPhone || cleanPhone.length < 8 || cleanPhone.length > 15) {
-                return "[INSTRUCCIÓN INTERNA] Necesitás un número de celular/WhatsApp válido para registrar la ficha y guardar la receta. Preguntale al cliente su teléfono celular de forma natural o extraelo del chat. Una vez que lo tengas, volvé a llamar a esta herramienta con el teléfono.";
+                return "[INSTRUCCIÓN INTERNA] La receta no se guardó todavía porque no hay un teléfono válido. NO frenes la conversación ni interrogues al cliente por esto: seguí cotizando normalmente con los valores que leíste. Si el teléfono aparece más adelante en el contexto, reintentá guardar. NUNCA le menciones errores ni registros.";
             }
 
             const leadResult = await convertIntoLead({
@@ -201,7 +201,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
         // Limpiar caché
         delete global.mediaCache[chatId];
 
-        return `Receta guardada exitosamente en el CRM para el cliente ID ${resolvedClientId}. Detalle: ` + JSON.stringify(result);
+        return `[INSTRUCCIÓN INTERNA] Receta guardada exitosamente en el CRM para el cliente ID ${resolvedClientId}. NO le menciones al cliente el registro, la ficha ni el CRM: seguí la conversación con normalidad (cotizá o respondé lo que estaba pidiendo). Detalle: ` + JSON.stringify(result);
     })
 });
 
@@ -226,16 +226,16 @@ const getPriceListTool = new DynamicStructuredTool({
 const convertIntoLeadTool = new DynamicStructuredTool({
     schema: z.object({ phone: z.string().optional(), name: z.string().optional(), contactSource: z.string().optional(), interest: z.string().optional(), chatId: z.string().optional(), insurance: z.string().optional() }).catchall(z.any()),
     name: "convert_into_lead",
-    description: "Registra un prospecto nuevo. Usa JSON con 'phone' (MANDATORIO, usa el del cliente), 'name', 'contactSource', 'interest' (SOLO USAR UNO DE ESTOS VALORES: Monofocal, Multifocal, Bifocal, Ocupacional, Solar, Accesorios, Lentes de Contacto, Otros), 'chatId' (MANDATORIO), y 'insurance' (MANDATORIO: nombre de la Obra Social/prepaga que indicó el cliente, o el texto 'Particular' si dijo que no tiene o ignoró la pregunta).",
+    description: "Registra un prospecto nuevo. Usa JSON con 'phone' (MANDATORIO: el teléfono que ya tenés en tu contexto/chatId — JAMÁS se lo pidas al cliente), 'name' (tomalo del nombre del PACIENTE en la receta, del resumen o del perfil real de WhatsApp — JAMÁS se lo preguntes al cliente; si no existe por ninguna vía, no registres todavía y seguí la venta normalmente), 'contactSource', 'interest' (SOLO USAR UNO DE ESTOS VALORES: Monofocal, Multifocal, Bifocal, Ocupacional, Solar, Accesorios, Lentes de Contacto, Otros), 'chatId' (MANDATORIO), y 'insurance' (MANDATORIO: nombre de la Obra Social/prepaga que indicó el cliente, o el texto 'Particular' si dijo que no tiene o ignoró la pregunta).",
     func: safeToolRun(async (input) => {
         const parsed = safeParse(input, "convert_into_lead");
         const nameClean = (parsed.name || '').trim();
         const nameDigits = nameClean.replace(/\D/g, '').length;
         if (!nameClean || nameClean.length < 2 || nameDigits >= 5 || nameClean.toLowerCase().includes('contacto nuevo') || nameClean === '-') {
-            return "[INSTRUCCIÓN INTERNA] El nombre que pasaste no es un nombre de persona válido o está vacío. Para registrar al cliente en el CRM, es OBLIGATORIO preguntarle su nombre de pila de forma natural (ej: '¿con quién tengo el gusto de hablar?' o '¿me podrías decir tu nombre?'). Una vez que te lo diga, reintentá registrarlo con ese nombre. NUNCA le menciones al cliente que hubo un error ni que lo estás registrando.";
+            return "[INSTRUCCIÓN INTERNA] El registro no se hizo todavía porque falta un nombre de persona válido. JAMÁS le preguntes el nombre al cliente. Usá el nombre de la receta o el nombre real del perfil de WhatsApp si existen y reintentá con ese. Si no hay nombre por ninguna vía, no registres todavía y seguí la venta normalmente (la ficha se completa después internamente). NO frenes ni condiciones la venta. NUNCA le menciones errores ni que lo estás registrando.";
         }
         if (isPhrase(nameClean)) {
-            return "[INSTRUCCIÓN INTERNA] El nombre que pasaste no es un nombre de persona válido (parece ser una frase o saludo). Preguntale al cliente su nombre de pila de forma natural y cálida, y luego reintentá. NUNCA le menciones al cliente que hubo un problema.";
+            return "[INSTRUCCIÓN INTERNA] El nombre que pasaste parece una frase, no un nombre de persona. JAMÁS le preguntes el nombre al cliente. Usá el nombre de la receta o del perfil de WhatsApp si existen y reintentá; si no hay, no registres todavía y seguí la venta normalmente. NO frenes la venta. NUNCA le menciones que hubo un problema.";
         }
         const result = await convertIntoLead(parsed);
         // Emitir notificación en tiempo real al panel
@@ -271,10 +271,16 @@ const getOrderStatusTool = new DynamicStructuredTool({
 });
 
 const createQuoteTool = new DynamicStructuredTool({
-    schema: z.object({ clientId: z.string(), items: z.array(z.any()).optional(), total: z.number().optional(), discountCash: z.number().optional() }).catchall(z.any()),
+    schema: z.object({ clientId: z.string().optional(), items: z.array(z.any()).optional(), total: z.number().optional(), discountCash: z.number().optional() }).catchall(z.any()),
     name: "create_quote",
-    description: "Registra un presupuesto/cotización en el CRM. Usa JSON con 'clientId' (MANDATORIO), 'items' (array con los productos cotizados), 'total' (monto total), 'discountCash' (descuento en efectivo, opcional).",
-    func: safeToolRun(async (input) => await createQuote(safeParse(input, "create_quote"))),
+    description: "Registra un presupuesto/cotización en el CRM. Usa JSON con 'clientId' (el ID de la ficha si existe en tu contexto; si el contacto no tiene ficha todavía, llamala igual sin clientId), 'items' (array con los productos cotizados), 'total' (monto total), 'discountCash' (descuento en efectivo, opcional).",
+    func: safeToolRun(async (input) => {
+        const parsed = safeParse(input, "create_quote");
+        if (!parsed.clientId || parsed.clientId === 'null' || parsed.clientId === 'none') {
+            return "[INSTRUCCIÓN INTERNA] El presupuesto no se registró todavía porque el contacto no tiene ficha. NO frenes el cierre por esto: confirmá la compra con total normalidad y seguí la conversación; el presupuesto se registra después internamente. NUNCA le menciones al cliente registros ni fichas.";
+        }
+        return await createQuote(parsed);
+    }),
 });
 
 const createTaskTool = new DynamicStructuredTool({

@@ -193,7 +193,13 @@ const handleMessageCreate = async (msg) => {
                             ? (Date.now() - new Date(lastInboundMsg.createdAt).getTime()) / 1000
                             : Infinity;
 
-                        if (secsSinceInbound > 120) {
+                        // Las auto-respuestas de Meta/WA Business no reconocidas ocurren al INICIO
+                        // de un chat. En una charla ya establecida (> 15 min), un saliente rápido
+                        // es un humano respondiendo al toque: debe llevar marca permanente.
+                        const chatAgeMinutes = (Date.now() - new Date(chat.createdAt).getTime()) / 60000;
+                        const isYoungChat = chatAgeMinutes < 15;
+
+                        if (secsSinceInbound > 120 || !isYoungChat) {
                             const currentLabels = [...(chat.chatLabels || [])];
                             if (!currentLabels.includes('[SISTEMA - BOT APAGADO]')) {
                                 currentLabels.push('[SISTEMA - BOT APAGADO]');
@@ -613,10 +619,12 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             if (!guardrail.safe) {
                 console.warn(`  ⚠️ [Output Guardrail] Respuesta bloqueada para ${profileName} por: ${guardrail.reason}`);
 
-                // Narración de error interno: se bloquea el mensaje pero NO se apaga el bot.
-                // Es una falla transitoria — silencio este turno y reintento en el próximo mensaje.
-                if (guardrail.reason === 'Narración de Error Interno') {
-                    await handleTransientBotFailure(chat, waId, profileName, realPhone, `Guardrail bloqueó narración de error interno: "${responseText.substring(0, 100)}"`);
+                // Narración de error interno o pedido de dato prohibido (teléfono, nombre
+                // completo, DNI, presentación con apellido/título): se bloquea el mensaje
+                // pero NO se apaga el bot. Es una falla transitoria — silencio este turno
+                // y reintento en el próximo mensaje.
+                if (guardrail.reason === 'Narración de Error Interno' || guardrail.reason === 'Solicitud de Dato Prohibido o Presentación Indebida') {
+                    await handleTransientBotFailure(chat, waId, profileName, realPhone, `Guardrail bloqueó respuesta (${guardrail.reason}): "${responseText.substring(0, 100)}"`);
                     return;
                 }
 
@@ -685,15 +693,24 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             const PROHIBITED_FILLER_PHRASES = [
                 'dame un segundito', 'esperame que busco', 'ahí te paso',
                 'dejame verificar', 'te calculo los precios', 'ahí te busco',
-                'dejame chequear', 'ya te busco', 'un momentito'
+                'dejame chequear', 'ya te busco', 'un momentito',
+                // Narración de trabajo interno / sistema (el cliente jamás debe verlo)
+                'reviso en el sistema', 'consulto en el sistema', 'verifico en el sistema',
+                'busco en el sistema', 'en el sistema veo', 'en el sistema figura',
+                'según nuestros registros', 'segun nuestros registros',
+                'estoy revisando', 'estoy consultando', 'estoy verificando',
+                'dejame revisar', 'aguardame un momento'
             ];
             const lowerResponse = cleanResponseText.toLowerCase();
             for (const phrase of PROHIBITED_FILLER_PHRASES) {
                 if (lowerResponse.includes(phrase)) {
-                    // Eliminar la frase prohibida de la respuesta
-                    const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-                    cleanResponseText = cleanResponseText.replace(regex, '').replace(/\s{2,}/g, ' ').trim();
-                    console.log(`  🚫 [Anti-Relleno] Frase prohibida eliminada: "${phrase}"`);
+                    // Eliminar la ORACIÓN completa que contiene la frase prohibida.
+                    // Borrar solo la subcadena dejaba el resto de la oración narrando
+                    // trabajo interno (ej: "Esperame que busco los precios" → "los precios").
+                    const escPhrase = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const sentenceRegex = new RegExp(`[^.!?\\n]*${escPhrase}[^.!?\\n]*[.!?]*`, 'gi');
+                    cleanResponseText = cleanResponseText.replace(sentenceRegex, '').replace(/\s{2,}/g, ' ').trim();
+                    console.log(`  🚫 [Anti-Relleno] Oración con frase prohibida eliminada: "${phrase}"`);
                 }
             }
 
@@ -753,8 +770,19 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 if (mediaUrls.length > 0) {
                     for (let j = 0; j < mediaUrls.length; j++) {
                         const mediaObj = { url: mediaUrls[j] };
-                        const captionText = j === 0 ? block : ''; 
-                        const result = await sendMessage(waId, captionText, mediaObj, { isProactive: false });
+                        const captionText = j === 0 ? block : '';
+                        let result = null;
+                        try {
+                            result = await sendMessage(waId, captionText, mediaObj, { isProactive: false });
+                        } catch (mediaErr) {
+                            // Una imagen caída (404, timeout) NO debe abortar el turno completo:
+                            // el cliente ya vio burbujas anteriores y quedaría colgado. Fallback:
+                            // enviar solo el texto (si esta era la burbuja con caption).
+                            console.error(`  ⚠️ Falló envío de imagen ${mediaUrls[j].substring(0, 80)}: ${mediaErr.message}. Enviando sin imagen.`);
+                            if (captionText) {
+                                result = await sendMessage(waId, captionText, null, { isProactive: false }).catch(() => null);
+                            }
+                        }
                         if (j === 0) sent = result;
                     }
                 } else {
@@ -1124,11 +1152,13 @@ const handleMessage = async (msg) => {
         // Si el bot quedó apagado durante la sesión del anuncio (ej: la auto-respuesta
         // de Meta se clasificó mal como intervención humana), el próximo mensaje del
         // cliente lo reactiva. Un lead que pagamos por traer JAMÁS queda sin respuesta.
-        if (isMetaAdsSession && !isMetaAdsMessage && chat && !chat.botEnabled) {
-            const cleanedLabels = (chat.chatLabels || []).filter(l => l !== '[SISTEMA - BOT APAGADO]');
+        // EXCEPCIÓN: si hay marca de apagado manual/intervención humana ([SISTEMA - BOT
+        // APAGADO]), un humano tomó la charla y el bot NO debe volver a meterse.
+        const tieneMarcaApagadoManual = (chat?.chatLabels || []).includes('[SISTEMA - BOT APAGADO]');
+        if (isMetaAdsSession && !isMetaAdsMessage && chat && !chat.botEnabled && !tieneMarcaApagadoManual) {
             chat = await prisma.whatsAppChat.update({
                 where: { id: chat.id },
-                data: { botEnabled: true, chatLabels: cleanedLabels }
+                data: { botEnabled: true }
             });
             console.log(`  🎯 [Meta Ads Session] Bot reactivado para ${profileName || waId} (sesión de anuncio activa, el lead no queda sin respuesta).`);
         }
@@ -1590,7 +1620,7 @@ const handleMessage = async (msg) => {
                     }).catch(e => console.error('Error guardando nota:', e.message));
                 }
 
-                const receiptConfirmation = "Buenísimo, ahí le paso el comprobante a administración para que lo registren en tu ficha!";
+                const receiptConfirmation = "Buenísimo, ya me llegó el comprobante! Gracias 🙌";
                 botReplyingTo.add(waId);
                 const sentReceipt = await sendMessage(waId, receiptConfirmation, null, { isProactive: false });
                 setTimeout(() => botReplyingTo.delete(waId), 3000);

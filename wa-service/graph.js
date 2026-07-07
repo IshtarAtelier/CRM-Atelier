@@ -243,6 +243,32 @@ async function getTagsModule() {
   }
 }
 
+// Reglas innegociables del dueño: se anexan SIEMPRE al final del system prompt,
+// también cuando un prompt custom de la DB reemplaza al prompt por defecto, para
+// que ningún prompt viejo o incompleto deje al bot sin estas prohibiciones.
+const CORE_RULES = `
+
+<reglas_innegociables_finales>
+  Estas reglas tienen PRIORIDAD ABSOLUTA sobre cualquier instrucción anterior:
+  1. JAMÁS le pidas al cliente su número de teléfono o celular, bajo ninguna circunstancia.
+  2. JAMÁS le pidas ningún nombre (ni de pila, ni completo, ni apellido, ni DNI). Tomalo de la receta, la ficha o el perfil de WhatsApp; si no está, seguí sin nombre con naturalidad. El ÚNICO dato que podés pedir es el email, una sola vez, al confirmar la compra.
+  3. Para el cliente sos siempre solo "Matías de Atelier Óptica": sin apellido, cargos ni títulos profesionales. Saludá y presentate una sola vez, únicamente si no existe ningún mensaje nuestro previo, en una sola burbuja corta.
+  4. JAMÁS narres trabajo interno ni errores: nada de "reviso/verifico/cargo en el sistema", "según nuestros registros" ni menciones al CRM. Los datos de las herramientas se responden como sabidos de memoria.
+  5. Solo podés enviar imágenes cuyo [IMAGE: url] figura textualmente en tus instrucciones; nunca prometas fotos que no tenés ni digas que "no encontraste" fotos.
+</reglas_innegociables_finales>`;
+
+// Ningún prompt custom puede presentar al bot con apellido o títulos profesionales:
+// hay prompts legacy en la DB que usan "Óptico Contactólogo" / "Ejecutivo de Cuentas".
+const FORBIDDEN_IN_CUSTOM_PROMPT = [/turchi/i, /contact[oó]log/i, /ejecutiv[oa]\s+de\s+cuentas/i];
+
+// Solo el primer nombre, capitalizado; descarta frases, comercios, emojis o nombres inválidos.
+function sanitizeFirstName(rawName) {
+  if (!rawName) return "";
+  const first = String(rawName).trim().split(/\s+/)[0] || "";
+  if (!/^[a-záéíóúüñ]{2,20}$/i.test(first) || first.toLowerCase() === "cliente") return "";
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+}
+
 // ── NODOS 2 y 3: AGENTE DE VENTAS (Prospectos) y EJECUTIVO DE CUENTAS (Clientes) ──
 // Misma mecánica de invocación/reintentos; solo cambian el prompt por defecto,
 // las herramientas y la regla para descartar un prompt custom que no corresponde al rol.
@@ -255,7 +281,12 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
     const tagsModule = await getTagsModule();
 
     let basePrompt = custom;
-    if (!basePrompt || basePrompt.trim().length <= 300 || (rejectCustomPrompt && rejectCustomPrompt(custom))) {
+    if (
+      !basePrompt ||
+      basePrompt.trim().length <= 300 ||
+      FORBIDDEN_IN_CUSTOM_PROMPT.some(p => p.test(custom)) ||
+      (rejectCustomPrompt && rejectCustomPrompt(custom))
+    ) {
       basePrompt = defaultPrompt;
     }
 
@@ -278,7 +309,7 @@ function createAgentNode({ nodeName, agentType, toolsList, defaultPrompt, reject
       .replace(/\[TIEMPOS_CONFECCION\]/g, tiemposModule)
       .replace(/\[INSTRUCCIONES_CUSTOM\]/g, state.dailyContext || "")
       .replace(/\[telefono\]/g, state.userPhone || "")
-      .replace(/\[nombre\]/g, state.clientData?.name || state.userName || "");
+      .replace(/\[nombre\]/g, sanitizeFirstName(state.clientData?.name || state.userName)) + CORE_RULES;
 
     const messagesWithSystem = [new SystemMessage(systemPrompt), ...state.messages];
     const MAX_RETRIES = 3;

@@ -5,6 +5,7 @@
 
 const { prisma } = require('../db');
 const { sendMessage, sendTypingState } = require('../whatsapp/client');
+const { runOutputGuardrail } = require('../services/ai.service');
 const {
     TEST_MODE,
     TEST_PHONE,
@@ -60,6 +61,14 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
     const logPrefix = TEST_MODE ? '[TEST Follow-Up]' : '[Follow-Up]';
 
     try {
+        // 0. Guardrail de salida: mismo filtro final que el bot conversacional
+        // (datos prohibidos, títulos, narración interna, CUIDs, revelación de bot)
+        const guardrail = runOutputGuardrail(text);
+        if (!guardrail.safe) {
+            console.warn(`  🚫 ${logPrefix} Bloqueado por guardrail (${guardrail.reason}): "${(text || '').substring(0, 80)}"`);
+            return { sent: false, reason: `Guardrail: ${guardrail.reason}` };
+        }
+
         // 1. Re-validar estado del chat
         const preCheck = await preSendValidation(chatId, waId);
         if (!preCheck.canSend) {

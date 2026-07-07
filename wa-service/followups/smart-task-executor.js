@@ -51,7 +51,9 @@ const SYSTEM_PROMPT =
     "5. Usá 1 o 2 emojis máximo (😊, 📍, 👋). Terminá siempre el mensaje con un emoji o signo de pregunta.\n" +
     "6. PROHIBIDO decir que sos un bot o inteligencia artificial.\n" +
     "7. PROHIBIDO usar lenguaje formal extremo ('estimado', 'quedo a su entera disposición').\n" +
-    "8. Respondé ÚNICAMENTE con el texto del mensaje. Sin comillas ni notas extras.";
+    "8. Respondé ÚNICAMENTE con el texto del mensaje. Sin comillas ni notas extras.\n" +
+    "9. PROHIBIDO presentarte de nuevo ('soy Matías', 'te habla Matías'): el cliente ya te conoce de la charla previa. JAMÁS uses apellidos ni títulos profesionales (óptico, contactólogo, ejecutivo de cuentas).\n" +
+    "10. MÁXIMO UNA pregunta por mensaje, y JAMÁS le pidas ningún dato (nombre, teléfono, DNI, email).";
 
 function formatChatHistory(messages) {
     if (!messages || messages.length === 0) return "(Sin historial reciente)";
@@ -65,7 +67,9 @@ function formatChatHistory(messages) {
 async function generateSmartTaskMessage(client, taskDescription, recentMessages) {
     const model = getModel();
 
-    let userPrompt = `INFORMACIÓN DEL CLIENTE:\n- Nombre: ${client.name || 'Cliente'}\n\n`;
+    const rawFirstName = ((client.name || '').trim().split(/\s+/)[0]) || '';
+    const hasValidName = /^[a-záéíóúüñ]{2,20}$/i.test(rawFirstName) && rawFirstName.toLowerCase() !== 'cliente';
+    let userPrompt = `INFORMACIÓN DEL CLIENTE:\n- Nombre: ${hasValidName ? rawFirstName : '(no lo tenemos: escribí sin nombre, NO lo inventes ni uses genéricos como "Cliente")'}\n\n`;
     userPrompt += `TAREA A REALIZAR:\n"${taskDescription}"\n(Redactá un mensaje de WhatsApp que cumpla con esta tarea. Si la tarea pide enviar dirección o ubicación, asegúrate de incluirla).\n\n`;
     userPrompt += `HISTORIAL DE CHAT RECIENTE (para contexto):\n${formatChatHistory(recentMessages)}\n\n`;
 

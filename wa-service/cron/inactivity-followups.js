@@ -11,15 +11,27 @@ const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const { isBusinessHours } = require('../shared/business-hours');
 const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
 const { generateFollowUpMessage } = require('../followups/message-generator');
+const { runOutputGuardrail } = require('../services/ai.service');
 
-// Pool de variantes de RESPALDO: solo se usa si la generación personalizada falla
+// Pool de variantes de RESPALDO: solo se usa si la generación personalizada falla.
+// Reglas: una sola pregunta por mensaje, sin referencias temporales fijas ("ayer"),
+// sin empujar el cierre/seña — solo sondear.
 const FOLLOW_UP_TEXT_VARIANTS = [
     "Hola! Te escribo para saber si te quedó alguna duda o si querés que sigamos viendo opciones 😊",
-    "Buenas! Cómo estás? Te escribo para ver si pudiste revisar la info y si te quedó alguna consulta sobre los armazones o lentes 👍",
+    "Buenas! Te escribo para ver si pudiste revisar la info sobre los armazones o lentes 👍",
     "Hola! Quería saber si tenías alguna consulta sobre el presupuesto o si querés que busquemos otras alternativas de cristales 👓",
+    "Hola! Pudiste ver las opciones que te pasé? Si buscabas algo un poco más económico también vemos alternativas 👓",
+    "Hola! Espero que estés bien. Te quedó alguna duda pendiente de lo que estuvimos charlando de los lentes? 😊"
+];
+
+// Variantes viejas ya enviadas en chats: se mantienen solo para el dedup
+// (si el último mensaje del chat es una de estas, no mandar otro follow-up).
+const FOLLOW_UP_TEXT_VARIANTS_LEGACY = [
+    "Buenas! Cómo estás? Te escribo para ver si pudiste revisar la info y si te quedó alguna consulta sobre los armazones o lentes 👍",
     "Hola! Qué tal? Pudiste ver las opciones que te pasé? Contame qué te parecieron, o si buscabas algo un poco más económico y vemos alternativas 👓",
     "Hola! Espero que estés bien. Te quedó alguna duda pendiente de lo que charlamos ayer o querés coordinar los lentes? 😊"
 ];
+const ALL_FOLLOW_UP_VARIANTS = [...FOLLOW_UP_TEXT_VARIANTS, ...FOLLOW_UP_TEXT_VARIANTS_LEGACY];
 
 // Cooldown mínimo entre follow-ups para el mismo chat (48 horas según políticas anti-ban)
 const FOLLOW_UP_COOLDOWN_MS = 48 * 60 * 60 * 1000;
@@ -57,7 +69,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
         // Solo actuar si el último mensaje fue del Bot (outbound)
         if (lastMsg.direction === 'OUTBOUND' && lastMsg.senderName === 'Bot') {
             // DEDUP #1: Si el último mensaje ya es un follow-up de nuestro pool, saltar
-            if (FOLLOW_UP_TEXT_VARIANTS.includes(lastMsg.content)) {
+            if (ALL_FOLLOW_UP_VARIANTS.includes(lastMsg.content)) {
                 continue;
             }
 
@@ -112,7 +124,7 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                             take: 10
                         });
                         const generated = await generateFollowUpMessage({
-                            client: { name: chat.profileName || 'Cliente' },
+                            client: { name: chat.profileName || null },
                             chat,
                             quote: null,
                             followUpType: 'INACTIVIDAD',
@@ -133,6 +145,13 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                         const unused = FOLLOW_UP_TEXT_VARIANTS.filter(v => !previousContents.includes(v));
                         const pool = unused.length > 0 ? unused : FOLLOW_UP_TEXT_VARIANTS;
                         selectedText = pool[Math.floor(Math.random() * pool.length)];
+                    }
+
+                    // Guardrail de salida: mismo filtro final que el bot conversacional
+                    const guardrail = runOutputGuardrail(selectedText);
+                    if (!guardrail.safe) {
+                        console.warn(`  🚫 [Follow-Up] Bloqueado por guardrail (${guardrail.reason}) para ${chat.profileName || chat.waId}: "${selectedText.substring(0, 80)}"`);
+                        continue;
                     }
 
                     await sendTypingState(chat.waId);

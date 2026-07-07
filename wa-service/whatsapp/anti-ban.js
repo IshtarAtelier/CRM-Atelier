@@ -473,6 +473,13 @@ class AntiBanQueue {
                 30000,
                 'MessageMedia.fromUrl'
             );
+            // fromUrl no valida el status HTTP: un 404 devuelve el XML del error
+            // como adjunto. Si no es un medio real, abortar para que el caller
+            // haga fallback a texto en vez de mandarle un archivo roto al cliente.
+            const mime = (mediaObj && mediaObj.mimetype) || '';
+            if (!/^(image|audio|video)\//i.test(mime)) {
+                throw new Error(`Media URL no devolvió un archivo válido (mimetype: ${mime || 'desconocido'}): ${media.url}`);
+            }
             const sendOptions = { caption: processedContent || '' };
             sentReceipt = await withTimeout(
                 this.client.sendMessage(targetWaId, mediaObj, sendOptions),

@@ -49,11 +49,54 @@ function runOutputGuardrail(text) {
         'problema de conexión', 'problema de conexion', 'error de conexión', 'error de conexion',
         'no pude acceder al sistema', 'no puedo acceder al sistema',
         'estamos con problemas técnicos', 'estamos con problemas tecnicos',
-        'intermitencia en el sistema', 'error interno'
+        'intermitencia en el sistema', 'error interno',
+        // Formas genéricas de narrar errores (Auditoría 2026-07-07)
+        'hubo un error', 'ocurrió un error', 'ocurrio un error', 'tuve un error',
+        'no pude procesar', 'no pude acceder', 'no puedo acceder',
+        // Narración de procesos/trabajo interno (CRM, registros, sistema)
+        'cargo tus datos', 'cargando tus datos', 'cargo los datos', 'cargando los datos',
+        'registro tus datos', 'registro tu receta', 'cargo tu receta', 'guardo tu receta',
+        'te registro a nombre', 'según nuestros registros', 'segun nuestros registros',
+        'en el sistema veo', 'en el sistema figura', 'en el sistema me figura',
+        'me figura en el sistema', 'acá me figura', 'aca me figura',
+        'reviso en el sistema', 'consulto en el sistema', 'verifico en el sistema',
+        'busco en el sistema', 'lo cargo en el sistema', 'lo registro en el sistema'
     ];
     const narratesInternalError = internalErrorKeywords.some(keyword => lowerText.includes(keyword));
 
-    if (hasCuid || hasJson || revealsBot || narratesInternalError) {
+    // 5. Detectar pedidos de datos prohibidos o presentación indebida: el bot JAMÁS
+    // pide el nombre (de pila, completo, apellido, DNI) ni el teléfono/celular, y
+    // JAMÁS se presenta con apellido o título profesional. Pedir datos se siente
+    // encuesta de IA. Se trata como transitorio (turno en silencio).
+    const forbiddenDataPatterns = [
+        /me\s+(pas[aá]s|dec[ií]s|dej[aá]s|dar[ií]as?|compart[ií]s)\s+(tu|su|un)\s+(n[uú]mero|tel[eé]fono|celular)/i,
+        /cu[aá]l\s+es\s+(tu|su)\s+(n[uú]mero|tel[eé]fono|celular)/i,
+        /(tu|su)\s+n[uú]mero\s+de\s+(tel[eé]fono|celular|contacto|wh?atsapp)/i,
+        /nombre\s+completo/i,
+        /me\s+(dec[ií]s|pas[aá]s)\s+(tu|su)\s+apellido/i,
+        /(tu|su)\s+dni\b/i,
+        // Preguntas por el nombre (cualquier forma)
+        /me\s+(dec[ií]s|pas[aá]s|dir[ií]as?|indic[aá]s|record[aá]s)\s+(tu|su)\s+nombre/i,
+        /cu[aá]l\s+es\s+(tu|su)\s+nombre/i,
+        /con\s+qui[eé]n\s+tengo\s+el\s+gusto/i,
+        /a\s+nombre\s+de\s+qui[eé]n/i,
+        /(tu|su)\s+nombre\s+de\s+pila/i,
+        /c[oó]mo\s+(te\s+llam[aá]s|es\s+tu\s+nombre)/i,
+        // Imperativos voseantes y confirmaciones (el registro natural del bot).
+        // Para nombre/apellido/dni se exige "tu/su" para no bloquear frases legítimas
+        // como "decime el nombre de tu obra social".
+        /(decime|pasame|dejame|indicame|mandame|confirmame|compartime|escribime)\s+(tu|su)\s+(nombre|apellido|dni)\b/i,
+        /(decime|pasame|dejame|indicame|mandame|confirmame|compartime|escribime)\s+(tu|su|el|un)\s+(n[uú]mero\s+de\s+)?(tel[eé]fono|celular)\b/i,
+        /me\s+(confirm[aá]s|record[aá]s|escrib[ií]s|dej[aá]s)\s+(tu|su)\s+(nombre|apellido|dni|celular|tel[eé]fono|n[uú]mero)\b/i,
+        // Presentación indebida (apellido o títulos profesionales, sueltos o combinados)
+        /\bturchi\b/i,
+        /contact[oó]log[oa]s?/i,
+        /[oó]ptic[oa]\s+contact[oó]log[oa]/i,
+        /ejecutiv[oa]\s+de\s+cuentas/i,
+    ];
+    const asksForbiddenData = forbiddenDataPatterns.some(p => p.test(text));
+
+    if (hasCuid || hasJson || revealsBot || narratesInternalError || asksForbiddenData) {
         return {
             safe: false,
             reason: hasCuid
@@ -62,7 +105,9 @@ function runOutputGuardrail(text) {
                     ? 'Estructura JSON Detectada'
                     : (revealsBot
                         ? 'Revelación de Identidad de Bot o Desactivación Manual'
-                        : 'Narración de Error Interno')),
+                        : (narratesInternalError
+                            ? 'Narración de Error Interno'
+                            : 'Solicitud de Dato Prohibido o Presentación Indebida'))),
             matched: hasCuid ? text.match(cuidRegex) : null
         };
     }

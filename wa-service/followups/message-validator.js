@@ -91,6 +91,39 @@ function validateMessage(text) {
     // 9. Nombre del cliente repetido más de 1 vez (señal de que el LLM está divagando)
     // Se chequea externamente pasando el nombre
 
+    // 9b. Máximo UNA pregunta por mensaje (regla global de estilo del bot)
+    const questionCount = (trimmed.match(/\?/g) || []).length;
+    if (questionCount > 1) {
+        return { valid: false, reason: `Más de una pregunta en el mensaje (${questionCount})` };
+    }
+
+    // 9c. Re-presentación o títulos: en un seguimiento el cliente ya nos conoce
+    const presentationPatterns = [
+        /\bsoy\s+mat[ií]as/i,
+        /te\s+(habla|escribe|saluda)\s+mat[ií]as/i,
+        /\bturchi\b/i,
+        /contact[oó]log/i,
+        /ejecutiv[oa]\s+de\s+cuentas/i,
+    ];
+    for (const pattern of presentationPatterns) {
+        if (pattern.test(trimmed)) {
+            return { valid: false, reason: `Se presenta de nuevo o usa títulos (${pattern.source})` };
+        }
+    }
+
+    // 9d. Pedido de datos personales o nombre genérico inventado
+    const dataRequestPatterns = [
+        /(decime|pasame|dejame|confirmame|indicame|mandame)\s+(tu|su)?\s*(nombre|apellido|dni|n[uú]mero|tel[eé]fono|celular|email|correo)/i,
+        /cu[aá]l\s+es\s+(tu|su)\s+(nombre|n[uú]mero|tel[eé]fono|celular|email|correo)/i,
+        /me\s+(dec[ií]s|pas[aá]s|confirm[aá]s)\s+(tu|su)\s+(nombre|apellido|dni|celular|tel[eé]fono|n[uú]mero|email|correo)/i,
+        /hola,?\s+cliente\b/i,
+    ];
+    for (const pattern of dataRequestPatterns) {
+        if (pattern.test(trimmed)) {
+            return { valid: false, reason: `Pide datos personales o usa nombre genérico (${pattern.source})` };
+        }
+    }
+
     // 10. Terminación limpia
     if (!VALID_ENDINGS.test(trimmed)) {
         return { valid: false, reason: `No termina limpio. Último char: "${trimmed.slice(-3)}"` };
