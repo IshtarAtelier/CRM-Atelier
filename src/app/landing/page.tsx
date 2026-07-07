@@ -15,12 +15,12 @@ const DEFAULT = CAMPAIGNS.default;
 export const metadata: Metadata = {
   title: DEFAULT.seo.title,
   description: DEFAULT.seo.description,
-  alternates: { canonical: "https://www.atelieroptica.com.ar/landing" },
+  alternates: { canonical: "https://atelieroptica.com.ar/landing" },
   robots: { index: false, follow: true },
   openGraph: {
     title: DEFAULT.seo.title,
     description: DEFAULT.seo.description,
-    url: "https://www.atelieroptica.com.ar/landing",
+    url: "https://atelieroptica.com.ar/landing",
     type: "website",
   },
 };

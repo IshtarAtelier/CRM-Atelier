@@ -16,7 +16,7 @@ const CustomGlassesBuilder = nextDynamic(
 export const metadata: Metadata = {
   title: "Armá tus Lentes a Medida",
   description: "Elegí tu armazón favorito y configurá tus cristales con receta en un solo lugar.",
-  alternates: { canonical: 'https://www.atelieroptica.com.ar/arma-tus-lentes' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/arma-tus-lentes' },
 };
 
 export default async function ArmaTusLentesPage() {

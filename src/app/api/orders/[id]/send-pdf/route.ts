@@ -94,7 +94,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         // (no hay riesgo de duplicado porque nunca se envió media).
         console.log('[send-pdf] Sin PDF generado, enviando link de respaldo para orden:', orderId);
 
-        const pdfUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.atelieroptica.com.ar'}/api/orders/${orderId}/pdf`;
+        const pdfUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar'}/api/orders/${orderId}/pdf`;
         const fallbackText = `${text}\n\n📄 *Descargar Documento:* ${pdfUrl}`;
 
         try {

@@ -71,7 +71,7 @@ function emailShell(content: string) {
               <td align="center" style="padding: 18px 40px 40px;">
                 <p style="margin: 0; font-family: ${SANS}; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #6f6a5e; line-height: 2;">
                   Atelier &Oacute;ptica &mdash; Cerro de las Rosas, C&oacute;rdoba<br/>
-                  <a href="https://www.atelieroptica.com.ar" style="color: ${GOLD}; text-decoration: none;">atelieroptica.com.ar</a>
+                  <a href="https://atelieroptica.com.ar" style="color: ${GOLD}; text-decoration: none;">atelieroptica.com.ar</a>
                 </p>
               </td>
             </tr>

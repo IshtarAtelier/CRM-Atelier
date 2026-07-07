@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_AR",
-    url: "https://www.atelieroptica.com.ar",
+    url: "https://atelieroptica.com.ar",
     siteName: "Atelier Óptica",
     title: "Atelier Óptica Córdoba | Cuidado Visual Personalizado",
     description: "Somos ópticos creativos con una sola pasión: Cuidar tu salud visual ofreciendo los mejores diseños de anteojos.",

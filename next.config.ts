@@ -40,7 +40,21 @@ const nextConfig: NextConfig = {
     ]
   },
   async redirects() {
+    // Redirect del dominio Railway al dominio real (sin www, como canonicaliza
+    // el dominio vivo). APAGADO hasta el cutover DNS: se activa seteando
+    // DOMAIN_CUTOVER=1 en Railway (el cambio de variable dispara redeploy).
+    // Activarlo antes dejaría la tienda inaccesible (el dominio real todavía
+    // sirve Tienda Nube).
+    const cutoverRedirect = process.env.DOMAIN_CUTOVER === '1'
+      ? [{
+          source: '/:path*',
+          has: [{ type: 'host' as const, value: 'crm-atelier-production-ae72.up.railway.app' }],
+          destination: 'https://atelieroptica.com.ar/:path*',
+          permanent: true,
+        }]
+      : [];
     return [
+      ...cutoverRedirect,
       {
         source: '/politicas',
         destination: '/politicas-de-cambio',

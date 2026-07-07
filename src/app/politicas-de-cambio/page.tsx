@@ -6,7 +6,7 @@ import { AlertTriangle, Glasses, RefreshCcw } from 'lucide-react';
 export const metadata: Metadata = {
   title: "Políticas de Cambio",
   description: "Conocé nuestras políticas de cambio, devoluciones y garantía de adaptación para lentes multifocales y anteojos de sol.",
-  alternates: { canonical: 'https://www.atelieroptica.com.ar/politicas-de-cambio' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/politicas-de-cambio' },
 };
 
 export default function PoliticasDeCambioPage() {

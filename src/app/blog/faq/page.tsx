@@ -7,11 +7,11 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 export const metadata: Metadata = {
   title: "Preguntas Frecuentes sobre Salud Visual | Atelier Óptica",
   description: "Respuestas de expertos a las dudas más comunes sobre miopía infantil (Stellest, Myopilux), lentes con filtro azul, anteojos inteligentes Meta Ray-Ban y adaptación a multifocales.",
-  alternates: { canonical: 'https://www.atelieroptica.com.ar/blog/faq' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/faq' },
   openGraph: {
     title: "Preguntas Frecuentes sobre Salud Visual | Atelier Óptica",
     description: "Resolvé todas tus dudas sobre cristales especiales, control de miopía infantil, tecnología Blue Block y Smart Glasses con nuestros ópticos contactólogos.",
-    url: "https://www.atelieroptica.com.ar/blog/faq",
+    url: "https://atelieroptica.com.ar/blog/faq",
     images: [
       {
         url: "/images/blog/blog1_header.png",

@@ -37,7 +37,7 @@ ESTILO VISUAL: Editorial de moda, tonos nude/warm (#9e7f65, #c2a38a), fotografí
 PRODUCTOS ESTRELLA: Multifocales Varilux, armazones de diseño, cristales Essilor, Ray-Ban Meta.
 DIFERENCIAL: Atención personalizada uno a uno, garantía de adaptación en multifocales, tecnología de medición de alta precisión.
 AUDIENCIA: Adultos 30-65 años, profesionales, interesados en salud visual premium.
-WEB: www.atelieroptica.com.ar
+WEB: atelieroptica.com.ar
 INSTAGRAM: @atelier.optica
 
 ENFOQUE PRINCIPAL: Aportar valor real al usuario. No sonar como un catálogo de ventas ni forzar promociones salvo que se pida explícitamente. Priorizar la educación sobre salud visual, tendencias de diseño, y el storytelling de la marca. 
@@ -123,7 +123,7 @@ async function getSourceContext(sourceType: string, sourceId?: string, topic?: s
 - Título: ${post.title}
 - Extracto: ${post.excerpt}
 - Categoría: ${post.category}
-- URL: www.atelieroptica.com.ar/blog/${post.slug}`;
+- URL: atelieroptica.com.ar/blog/${post.slug}`;
     }
 
     if (sourceType === 'PROMO') {

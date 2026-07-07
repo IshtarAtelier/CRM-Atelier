@@ -129,14 +129,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     ? resolveStorageUrl(product.imagenesCatalogo[0])
     : ((product as any).mockImage || '/images/og-image.jpg');
 
-  const absoluteImageUrl = imageUrl.startsWith('http') ? imageUrl : `https://www.atelieroptica.com.ar${imageUrl}`;
+  const absoluteImageUrl = imageUrl.startsWith('http') ? imageUrl : `https://atelieroptica.com.ar${imageUrl}`;
 
   return {
     // absolute: evita que el template del layout ("%s | Atelier Óptica") vuelva a agregar la marca
     title: { absolute: title },
     description,
     alternates: {
-      canonical: `https://www.atelieroptica.com.ar/producto/${product.slug}`,
+      canonical: `https://atelieroptica.com.ar/producto/${product.slug}`,
     },
     openGraph: {
       title,
@@ -238,12 +238,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // Resolve all product images to absolute URLs
   const resolveAbsolute = (url: string) => {
     const resolved = resolveStorageUrl(url);
-    return resolved.startsWith('http') ? resolved : `https://www.atelieroptica.com.ar${resolved}`;
+    return resolved.startsWith('http') ? resolved : `https://atelieroptica.com.ar${resolved}`;
   };
 
   const allImages = product.imagenesCatalogo && product.imagenesCatalogo.length > 0
     ? product.imagenesCatalogo.map(resolveAbsolute)
-    : [`https://www.atelieroptica.com.ar${(product as any).mockImage || '/images/og-image.jpg'}`];
+    : [`https://atelieroptica.com.ar${(product as any).mockImage || '/images/og-image.jpg'}`];
 
   // Extract color code from model name (e.g., "C1", "C2", "GLD")
   const colorMatch = product.model?.match(/\(([^)]+)\)/) || product.model?.match(/\b(C\d+)\b/i);
@@ -266,7 +266,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     material: material,
     offers: {
       '@type': 'Offer',
-      url: `https://www.atelieroptica.com.ar/producto/${product.slug}`,
+      url: `https://atelieroptica.com.ar/producto/${product.slug}`,
       priceCurrency: 'ARS',
       price: product.price,
       availability: (product.stock !== undefined && product.stock > 0) || product.slug === 'atelier-carey-vintage' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
@@ -319,8 +319,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://www.atelieroptica.com.ar' },
-      { '@type': 'ListItem', position: 2, name: catInfo.name, item: `https://www.atelieroptica.com.ar${catInfo.path}` },
+      { '@type': 'ListItem', position: 1, name: 'Inicio', item: 'https://atelieroptica.com.ar' },
+      { '@type': 'ListItem', position: 2, name: catInfo.name, item: `https://atelieroptica.com.ar${catInfo.path}` },
       { '@type': 'ListItem', position: 3, name: product.model },
     ],
   };

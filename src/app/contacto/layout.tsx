@@ -3,12 +3,12 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Contacto | Atelier Óptica Córdoba',
   description: 'Contactá a Atelier Óptica Córdoba. WhatsApp, Instagram y visita a nuestro local en Cerro de las Rosas. Turnos y consultas.',
-  alternates: { canonical: 'https://www.atelieroptica.com.ar/contacto' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/contacto' },
   openGraph: {
     title: 'Contacto | Atelier Óptica Córdoba',
     description: 'Contactá a Atelier Óptica Córdoba. WhatsApp, Instagram y visita a nuestro local en Cerro de las Rosas.',
     type: "website",
-    url: "https://www.atelieroptica.com.ar/contacto",
+    url: "https://atelieroptica.com.ar/contacto",
     images: [
       {
         url: "/images/blog/fachada-ladrillo.webp",

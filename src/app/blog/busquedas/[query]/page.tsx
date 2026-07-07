@@ -29,11 +29,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${title} | Atelier Óptica`,
     description: `Si estás buscando ${title.toLowerCase()}, en Atelier Óptica Córdoba tenemos la mejor opción. Conocé nuestras promociones y asesoramiento personalizado.`,
-    alternates: { canonical: `https://www.atelieroptica.com.ar/blog/busquedas/${query}` },
+    alternates: { canonical: `https://atelieroptica.com.ar/blog/busquedas/${query}` },
     openGraph: {
       title: `${title} | Atelier Óptica`,
       description: `Las mejores opciones de ${title.toLowerCase()} en Córdoba. Calidad, garantía y la mejor atención.`,
-      url: `https://www.atelieroptica.com.ar/blog/busquedas/${query}`,
+      url: `https://atelieroptica.com.ar/blog/busquedas/${query}`,
       images: [
         {
           url: "/images/blog/blog1_header.png", // Usa una imagen genérica potente

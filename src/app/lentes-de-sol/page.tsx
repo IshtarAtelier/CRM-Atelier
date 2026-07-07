@@ -15,12 +15,12 @@ export const metadata: Metadata = {
   title: "Anteojos de Sol",
   description: "Descubrí nuestra colección de anteojos de sol con protección UV400. Las mejores marcas y diseños en Córdoba.",
   alternates: {
-    canonical: 'https://www.atelieroptica.com.ar/lentes-de-sol',
+    canonical: 'https://atelieroptica.com.ar/lentes-de-sol',
   },
   openGraph: {
     title: "Anteojos de Sol",
     description: 'Descubrí nuestra colección de anteojos de sol con protección UV400. Las mejores marcas y diseños en Córdoba.',
-    url: 'https://www.atelieroptica.com.ar/lentes-de-sol',
+    url: 'https://atelieroptica.com.ar/lentes-de-sol',
     type: 'website',
   },
 };
@@ -182,7 +182,7 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
     '@type': 'CollectionPage',
     name: 'Anteojos de Sol',
     description: 'Descubrí nuestra colección de anteojos de sol con protección UV400. Las mejores marcas y diseños en Córdoba.',
-    url: 'https://www.atelieroptica.com.ar/lentes-de-sol',
+    url: 'https://atelieroptica.com.ar/lentes-de-sol',
     mainEntity: {
       '@type': 'ItemList',
       numberOfItems: filteredProducts.length,
@@ -190,11 +190,11 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
         const img = p.imagenesCatalogo && p.imagenesCatalogo.length > 0
           ? resolveStorageUrl(p.imagenesCatalogo[0])
           : undefined;
-        const absoluteImg = img ? (img.startsWith('http') ? img : `https://www.atelieroptica.com.ar${img}`) : undefined;
+        const absoluteImg = img ? (img.startsWith('http') ? img : `https://atelieroptica.com.ar${img}`) : undefined;
         return {
           '@type': 'ListItem',
           position: i + 1,
-          url: `https://www.atelieroptica.com.ar/producto/${p.slug}`,
+          url: `https://atelieroptica.com.ar/producto/${p.slug}`,
           name: `${p.brand} ${p.model}`,
           ...(absoluteImg ? { image: absoluteImg } : {}),
         };

@@ -14,12 +14,12 @@ export const metadata: Metadata = {
   title: "Anteojos de Receta",
   description: "Armazones de receta de diseño. Encontrá el modelo perfecto para tus cristales monofocales o multifocales.",
   alternates: {
-    canonical: 'https://www.atelieroptica.com.ar/receta',
+    canonical: 'https://atelieroptica.com.ar/receta',
   },
   openGraph: {
     title: "Anteojos de Receta",
     description: 'Armazones de receta de diseño. Encontrá el modelo perfecto para tus cristales monofocales o multifocales.',
-    url: 'https://www.atelieroptica.com.ar/receta',
+    url: 'https://atelieroptica.com.ar/receta',
     type: 'website',
   },
 };
@@ -201,7 +201,7 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
     '@type': 'CollectionPage',
     name: 'Anteojos de Receta',
     description: 'Armazones de receta de diseño. Encontrá el modelo perfecto para tus cristales monofocales o multifocales.',
-    url: 'https://www.atelieroptica.com.ar/receta',
+    url: 'https://atelieroptica.com.ar/receta',
     mainEntity: {
       '@type': 'ItemList',
       numberOfItems: filteredProducts.length,
@@ -209,11 +209,11 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
         const img = p.imagenesCatalogo && p.imagenesCatalogo.length > 0
           ? resolveStorageUrl(p.imagenesCatalogo[0])
           : undefined;
-        const absoluteImg = img ? (img.startsWith('http') ? img : `https://www.atelieroptica.com.ar${img}`) : undefined;
+        const absoluteImg = img ? (img.startsWith('http') ? img : `https://atelieroptica.com.ar${img}`) : undefined;
         return {
           '@type': 'ListItem',
           position: i + 1,
-          url: `https://www.atelieroptica.com.ar/producto/${p.slug}`,
+          url: `https://atelieroptica.com.ar/producto/${p.slug}`,
           name: `${p.brand} ${p.model}`,
           ...(absoluteImg ? { image: absoluteImg } : {}),
         };

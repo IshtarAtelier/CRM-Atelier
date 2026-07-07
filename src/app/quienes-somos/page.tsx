@@ -6,12 +6,12 @@ import { Sparkles, Eye, MapPin, Heart } from 'lucide-react';
 export const metadata: Metadata = {
   title: "Quiénes Somos",
   description: "Conocé Atelier Óptica, especialistas en salud visual en el Cerro de las Rosas. Diseño, atención personalizada y cristales de alta gama.",
-  alternates: { canonical: 'https://www.atelieroptica.com.ar/quienes-somos' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/quienes-somos' },
   openGraph: {
     title: "Quiénes Somos",
     description: "Conocé Atelier Óptica, especialistas en salud visual en el Cerro de las Rosas. Diseño, atención personalizada y cristales de alta gama.",
     type: "website",
-    url: "https://www.atelieroptica.com.ar/quienes-somos",
+    url: "https://atelieroptica.com.ar/quienes-somos",
     images: [
       {
         url: "/images/blog/fachada-ladrillo.webp",

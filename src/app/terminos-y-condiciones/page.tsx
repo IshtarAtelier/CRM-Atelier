@@ -6,7 +6,7 @@ import { Shield, FileText, CreditCard } from 'lucide-react';
 export const metadata: Metadata = {
   title: "Términos y Condiciones",
   description: "Conocé los términos y condiciones de compra en Atelier Óptica. Procesamiento de pagos seguro con Payway y regulaciones de salud visual.",
-  alternates: { canonical: 'https://www.atelieroptica.com.ar/terminos-y-condiciones' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/terminos-y-condiciones' },
 };
 
 export default function TerminosYCondicionesPage() {

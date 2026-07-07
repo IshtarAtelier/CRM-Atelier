@@ -25,12 +25,12 @@ export const metadata: Metadata = {
   title: "Atelier Óptica | Anteojos, Cristales y Multifocales en Cuotas",
   description: "Atelier Óptica en Córdoba. Especialistas en anteojos de receta, lentes de sol, y multifocales Varilux. Envíos a todo el país y presupuestos rápidos por WhatsApp.",
   alternates: {
-    canonical: 'https://www.atelieroptica.com.ar',
+    canonical: 'https://atelieroptica.com.ar',
   },
   openGraph: {
     title: "Atelier Óptica | Anteojos, Cristales y Multifocales en Cuotas",
     description: "Especialistas en anteojos de receta, lentes de sol, y multifocales Varilux. Envíos a todo el país y presupuestos por WhatsApp.",
-    url: 'https://www.atelieroptica.com.ar',
+    url: 'https://atelieroptica.com.ar',
     type: 'website',
   },
 };
@@ -184,8 +184,8 @@ export default async function Home() {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "Atelier Óptica",
-    "url": "https://www.atelieroptica.com.ar",
-    "logo": "https://www.atelieroptica.com.ar/assets/logo-pwa-512.png",
+    "url": "https://atelieroptica.com.ar",
+    "logo": "https://atelieroptica.com.ar/assets/logo-pwa-512.png",
     "sameAs": [
       "https://www.instagram.com/atelier.optica/",
       "https://maps.app.goo.gl/atelieroptica"
@@ -207,8 +207,8 @@ export default async function Home() {
     "@context": "https://schema.org",
     "@type": "Optician",
     "name": "Atelier Óptica",
-    "image": "https://www.atelieroptica.com.ar/assets/logo-pwa-512.png",
-    "url": "https://www.atelieroptica.com.ar",
+    "image": "https://atelieroptica.com.ar/assets/logo-pwa-512.png",
+    "url": "https://atelieroptica.com.ar",
     "telephone": "+54 9 354 121 5971",
     "address": {
       "@type": "PostalAddress",
@@ -258,10 +258,10 @@ export default async function Home() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "Atelier Óptica",
-    "url": "https://www.atelieroptica.com.ar",
+    "url": "https://atelieroptica.com.ar",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://www.atelieroptica.com.ar/tienda?q={search_term}",
+      "target": "https://atelieroptica.com.ar/tienda?q={search_term}",
       "query-input": "required name=search_term"
     }
   };
@@ -272,11 +272,11 @@ export default async function Home() {
     "itemListElement": dbWebProducts.map((wp, index) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "url": `https://www.atelieroptica.com.ar/producto/${wp.slug}`,
+      "url": `https://atelieroptica.com.ar/producto/${wp.slug}`,
       "name": wp.name,
       "image": wp.imageUrl 
         ? resolveStorageUrl(wp.imageUrl) 
-        : (wp.images?.length > 0 ? resolveStorageUrl(wp.images[0]) : "https://www.atelieroptica.com.ar/assets/logo-pwa-512.png")
+        : (wp.images?.length > 0 ? resolveStorageUrl(wp.images[0]) : "https://atelieroptica.com.ar/assets/logo-pwa-512.png")
     }))
   };
 

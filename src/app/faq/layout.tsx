@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Preguntas Frecuentes | Atelier Óptica Córdoba',
   description: 'Respuestas a las preguntas más frecuentes sobre anteojos de receta, multifocales, lentes de sol y servicios de Atelier Óptica en Córdoba.',
-  alternates: { canonical: 'https://www.atelieroptica.com.ar/faq' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/faq' },
   openGraph: {
     title: 'Preguntas Frecuentes | Atelier Óptica Córdoba',
     description: 'Respuestas a las preguntas más frecuentes sobre anteojos de receta, multifocales, lentes de sol y servicios de Atelier Óptica en Córdoba.',

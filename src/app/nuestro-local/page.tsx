@@ -7,12 +7,12 @@ import { getGoogleReviews } from '@/lib/googleReviews';
 export const metadata: Metadata = {
   title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
   description: "Visitá Atelier Óptica en el corazón del Cerro de las Rosas. Somos especialistas en asesoramiento estético y técnico, cristales multifocales y anteojos de diseño exclusivo.",
-  alternates: { canonical: 'https://www.atelieroptica.com.ar/nuestro-local' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/nuestro-local' },
   openGraph: {
     title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
     description: "Visitá Atelier Óptica en el corazón del Cerro de las Rosas. Somos especialistas en asesoramiento estético y técnico, cristales multifocales y anteojos de diseño exclusivo.",
     type: "website",
-    url: "https://www.atelieroptica.com.ar/nuestro-local",
+    url: "https://atelieroptica.com.ar/nuestro-local",
     images: [
       {
         url: "/images/blog/fachada-ladrillo.webp",
@@ -39,9 +39,9 @@ export default async function NuestroLocalPage() {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     'name': 'Atelier Óptica',
-    'image': 'https://www.atelieroptica.com.ar/images/og-image.jpg',
+    'image': 'https://atelieroptica.com.ar/images/og-image.jpg',
     '@id': mapsUrl,
-    'url': 'https://www.atelieroptica.com.ar',
+    'url': 'https://atelieroptica.com.ar',
     'telephone': phone,
     'priceRange': '$$',
     'address': {

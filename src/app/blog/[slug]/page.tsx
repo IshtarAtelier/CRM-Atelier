@@ -1449,7 +1449,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: post.metaDescription,
     // Absoluto al dominio real (como producto): el relativo resolvía contra
     // metadataBase, que apunta a Railway hasta que se setee NEXT_PUBLIC_APP_URL
-    alternates: { canonical: `https://www.atelieroptica.com.ar/blog/${resolvedParams.slug}` },
+    alternates: { canonical: `https://atelieroptica.com.ar/blog/${resolvedParams.slug}` },
     openGraph: {
       title: cleanTitle,
       description: post.metaDescription,
@@ -1481,7 +1481,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   // Get 3 other posts to suggest
   const otherPosts = await getRelatedPosts(post.slug);
 
-  const baseUrl = 'https://www.atelieroptica.com.ar';
+  const baseUrl = 'https://atelieroptica.com.ar';
   const schema = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -1502,10 +1502,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     "publisher": {
       "@type": "Organization",
       "name": "Atelier Óptica",
-      "url": "https://www.atelieroptica.com.ar",
+      "url": "https://atelieroptica.com.ar",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://www.atelieroptica.com.ar/icon.png"
+        "url": "https://atelieroptica.com.ar/icon.png"
       }
     },
     "mainEntityOfPage": {

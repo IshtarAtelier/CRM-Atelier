@@ -7,7 +7,7 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 export const metadata: Metadata = {
   title: "Reseñas de Clientes",
   description: 'Descubrí lo que nuestros clientes opinan sobre Atelier Óptica. Opiniones reales de Google sobre nuestros armazones, lentes de sol y cristales graduados en el Cerro de las Rosas, Córdoba.',
-  alternates: { canonical: 'https://www.atelieroptica.com.ar/resenas' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/resenas' },
 };
 
 // Revalidar cada hora para refrescar opiniones sin consumir excesiva cuota de API
@@ -109,9 +109,9 @@ export default async function ResenasPage() {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
     'name': 'Atelier Óptica Córdoba',
-    'image': 'https://www.atelieroptica.com.ar/images/og-image.jpg',
+    'image': 'https://atelieroptica.com.ar/images/og-image.jpg',
     '@id': 'https://www.google.com/maps?cid=14830223812501661125',
-    'url': 'https://www.atelieroptica.com.ar',
+    'url': 'https://atelieroptica.com.ar',
     'telephone': `+${WHATSAPP_PHONE}`,
     'priceRange': '$$',
     'address': {

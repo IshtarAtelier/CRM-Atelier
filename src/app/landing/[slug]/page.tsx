@@ -25,7 +25,7 @@ export async function generateMetadata({
   const campaign = getCampaign(slug);
   if (!campaign) return {};
 
-  const url = `https://www.atelieroptica.com.ar/landing/${slug}`;
+  const url = `https://atelieroptica.com.ar/landing/${slug}`;
   return {
     title: campaign.seo.title,
     description: campaign.seo.description,
