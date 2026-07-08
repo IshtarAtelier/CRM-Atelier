@@ -883,7 +883,7 @@ export class OrderService {
                                     <p style="margin: 0; color: #4b5563; white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${body.postSaleNotesEntry || postSaleNotes || 'Sin notas descriptivas'}</p>
                                 </div>
                                 <div style="margin-top: 24px; text-align: center;">
-                                    <a href="https://crm-atelier-production-ae72.up.railway.app/admin/ventas?orderId=${id}" style="display: inline-block; padding: 12px 24px; background-color: #d97706; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);">Ver pedido en CRM</a>
+                                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'}/admin/ventas?orderId=${id}" style="display: inline-block; padding: 12px 24px; background-color: #d97706; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);">Ver pedido en CRM</a>
                                 </div>
                                 <p style="margin-top: 32px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #f3f4f6; padding-top: 16px;">Este es un mensaje automático del Sistema de Gestión de Atelier Óptica.</p>
                             </div>
