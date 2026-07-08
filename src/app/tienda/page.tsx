@@ -123,7 +123,7 @@ async function getWebCatalog(): Promise<any[]> {
       const { shape, material } = getProductAttributes(modelCode, wp.product.seoTags);
 
       const isXl = ["9004M C3", "9004M C2", "TL3684 C4", "91501 C6"].some(code => modelCode.toUpperCase().includes(code)) ||
-                   ["dionisio", "dionisio-c2", "selene-c4", "atelier-athena-3ytl", "poseidon-c3", "poseidon-c2"].includes(wp.slug);
+                   ["dionisio", "dionisio-c2", "selene-c4", "armazon-receta-atelier-athena-91501-c6", "poseidon-c3", "poseidon-c2"].includes(wp.slug);
 
       return {
         id: wp.product.id,
