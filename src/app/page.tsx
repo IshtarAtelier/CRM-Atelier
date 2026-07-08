@@ -15,6 +15,7 @@ const HomeWhyChooseUs = dynamic(() => import("@/components/Storefront/HomeWhyCho
 const HomeRecommendationQuiz = dynamic(() => import("@/components/Storefront/HomeRecommendationQuiz").then(mod => mod.HomeRecommendationQuiz));
 
 import { prisma } from "@/lib/db";
+import { rethrowUnlessBuild } from "@/lib/db-guard";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { getGoogleReviews } from "@/lib/googleReviews";
 import { getWebSettings, defaultWebSettings } from "@/lib/web-settings";
@@ -135,7 +136,7 @@ export default async function Home() {
       } else {
         // Si la DB no responde, lanzar en vez de cachear el home vacío:
         // con ISR, Next conserva la última versión buena de la página.
-        throw error;
+        rethrowUnlessBuild(error, 'Home');
       }
     }
   }

@@ -4,6 +4,7 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { CategoryGrid } from "@/components/Storefront/CategoryGrid";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { prisma } from '@/lib/db';
+import { rethrowUnlessBuild } from '@/lib/db-guard';
 export const revalidate = 300;
 import { Glasses } from 'lucide-react';
 import { Suspense } from 'react';
@@ -74,7 +75,7 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
     dbProducts = pRes;
     uniqueBrandsResult = bRes;
   } catch (error) {
-    console.error("Prerendering warning: Database not reachable at build time on Receta page.", error);
+    rethrowUnlessBuild(error, 'Receta');
   }
 
   // Extract distinct brands
