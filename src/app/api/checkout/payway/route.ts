@@ -9,6 +9,7 @@ import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
 import { recalculateItemPrice } from '@/lib/checkout/checkout-pricing';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
+import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 
 function getArgentineStateCode(stateName: string): string {
   if (!stateName) return "C"; // fallback to CABA
@@ -584,7 +585,7 @@ export async function POST(req: Request) {
     `).join('');
 
     const confirmationHtml = getConfirmationHtml(customer, order.id, emailTotal, shippingMethodLabel, hasCrystals, getClientItemsHtml(sanitizedItems));
-    const adminEmails = 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
+    const adminEmails = ADMIN_ALERT_EMAILS;
     const adminHtml = getAdminHtml(customer, order.id, emailTotal, shippingMethodLabel, isTransfer, itemsHtml);
 
     // Si eligió transferencia bancaria, enviar email al cliente con instrucciones y devolver exito

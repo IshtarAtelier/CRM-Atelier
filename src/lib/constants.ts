@@ -1,6 +1,10 @@
 // WhatsApp phone number (single source of truth for all storefront pages)
 export const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5493518685644';
 
+// Destinatarios de las alertas internas (nuevas ventas web, stock bajo, etc.).
+// Single source of truth: no hardcodear estos correos en cada endpoint.
+export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
+
 // "Sin atender" — borrón y cuenta nueva. El backlog viejo de leads sin atender se
 // dio por cerrado el 2026-07-06: solo los contactos ingresados a partir de este
 // momento cuentan/marcan como "sin atender" (contador del botón, badge del sidebar,

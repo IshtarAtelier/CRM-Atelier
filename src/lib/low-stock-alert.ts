@@ -1,9 +1,7 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { resolveStorageUrl } from '@/lib/utils/storage';
-
-// Destinatarios de las alertas internas (mismos que las notificaciones de venta).
-const ADMIN_EMAILS = 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
+import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 
 // Base absoluta para links e imágenes del email. Hasta el cutover del dominio
 // apunta al sitio vivo en Railway; después toma NEXT_PUBLIC_APP_URL.
@@ -102,6 +100,6 @@ async function sendOneAlert(productId: string, newStock: number): Promise<void> 
 
   const text = `${badge}: ${displayName} (${code}) — ${quedan}. ${link}`;
 
-  await sendEmail({ to: ADMIN_EMAILS, subject, html, text });
+  await sendEmail({ to: ADMIN_ALERT_EMAILS, subject, html, text });
   console.log(`[low-stock] alerta enviada: ${displayName} (${code}) stock=${newStock}`);
 }
