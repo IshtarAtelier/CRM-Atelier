@@ -1630,7 +1630,24 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         <article className="blog-article w-full max-w-none">
           {post.isDb ? (
-            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content as string, { allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'iframe']), allowedAttributes: false }) }} />
+            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content as string, {
+              allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'iframe']),
+              // Whitelist explícita por tag: sin esto (allowedAttributes: false) pasaban
+              // los handlers on* y iframe srcdoc → XSS almacenado en contenido de blog
+              // que puede venir del pipeline de IA (SeoAgent / blog-agent.service).
+              allowedAttributes: {
+                a: ['href', 'name', 'target', 'rel'],
+                img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+                iframe: ['src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen', 'title', 'loading'],
+                '*': ['class', 'id', 'style'],
+              },
+              allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+              allowedSchemesByTag: { img: ['http', 'https', 'data'] },
+              allowIframeRelativeUrls: false,
+              // Solo embeds de proveedores conocidos; si un embed legítimo desaparece,
+              // agregar el hostname acá.
+              allowedIframeHostnames: ['www.youtube.com', 'youtube.com', 'www.youtube-nocookie.com', 'player.vimeo.com', 'www.google.com', 'maps.google.com', 'open.spotify.com'],
+            }) }} />
           ) : (
             post.content
           )}

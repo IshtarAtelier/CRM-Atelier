@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import nextDynamic from 'next/dynamic';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { prisma } from "@/lib/db";
+import { rethrowUnlessBuild } from "@/lib/db-guard";
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ export default async function ArmaTusLentesPage() {
       orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }]
     });
   } catch (error) {
-    console.error("Prerendering warning: Database not reachable at build time on Arma Tus Lentes page.", error);
+    rethrowUnlessBuild(error, 'ArmaTusLentes');
   }
 
   const products = dbProducts.map(wp => ({

@@ -83,7 +83,7 @@ export class LabAuditService {
                 </tr>
             </table>
             <br/>
-            <p><a href="https://crm-atelier-production-ae72.up.railway.app/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente en el CRM</a></p>
+            <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'}/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente en el CRM</a></p>
         `;
 
         // Usa el sistema central de emails (Resend/SMTP según configuración).

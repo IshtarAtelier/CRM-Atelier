@@ -4,6 +4,7 @@ import { StorefrontFooterStatic } from '@/components/Storefront/StorefrontFooter
 import { Metadata } from 'next';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { serverCache } from '@/lib/cache';
+import { rethrowUnlessBuild } from '@/lib/db-guard';
 
 export const revalidate = 60;
 
@@ -45,7 +46,7 @@ export default async function TiendaPage() {
       }
     });
   } catch (error) {
-    console.error(`[Tienda] Error fetching filter metadata:`, error);
+    rethrowUnlessBuild(error, 'Tienda/filtros');
   }
 
   const brandsSet = new Set<string>();
@@ -79,7 +80,7 @@ export default async function TiendaPage() {
   try {
     catalog = await getWebCatalog();
   } catch (error) {
-    console.error(`[Tienda] Error fetching initial products:`, error);
+    rethrowUnlessBuild(error, 'Tienda/catalogo');
   }
 
   const mappedInitialProducts = catalog.slice(0, 24);
@@ -122,7 +123,7 @@ async function getWebCatalog(): Promise<any[]> {
       const { shape, material } = getProductAttributes(modelCode, wp.product.seoTags);
 
       const isXl = ["9004M C3", "9004M C2", "TL3684 C4", "91501 C6"].some(code => modelCode.toUpperCase().includes(code)) ||
-                   ["dionisio", "poseidon", "selene-c4", "atelier-athena-3ytl", "poseidon-c3", "poseidon-c2"].includes(wp.slug);
+                   ["dionisio", "dionisio-c2", "selene-c4", "armazon-receta-atelier-athena-91501-c6", "poseidon-c3", "poseidon-c2"].includes(wp.slug);
 
       return {
         id: wp.product.id,

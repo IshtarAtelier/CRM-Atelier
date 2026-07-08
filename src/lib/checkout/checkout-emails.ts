@@ -1,7 +1,6 @@
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
-// atelieroptica.com.ar apunta hoy a Tienda Nube y no sirve /images/* — usar el dominio Railway de la app
-const LOGO_URL = 'https://crm-atelier-production-ae72.up.railway.app/images/logo-blanco.png';
+const LOGO_URL = `${process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'}/images/logo-blanco.png`;
 const SERIF = "Georgia, 'Times New Roman', serif";
 const SANS = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 const GOLD = '#c9a227';

@@ -23,7 +23,7 @@ function getClientHtml(client: any): string {
         console.error('Error al leer logo local para el PDF de la ficha:', e);
     }
 
-    const logoUrl = logoBase64 || `https://crm-atelier-production-ae72.up.railway.app/assets/logo-atelier-optica.png`;
+    const logoUrl = logoBase64 || `${process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'}/assets/logo-atelier-optica.png`;
     
     // Brand Colors
     const brandBeige = '#D4C3B5';

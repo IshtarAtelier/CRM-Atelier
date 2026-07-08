@@ -399,6 +399,18 @@ function createApiRouter(deps) {
             botReplyingTo.delete(waId);
             if (dbChatId) {
                 await disableBotForChatById(dbChatId, 'Intervención humana (mensaje desde CRM)');
+                // Marca permanente: sin esta etiqueta, el Auto-Resume de 24hs y la garantía de
+                // Meta Ads reencienden el bot en una charla que un humano ya tomó.
+                try {
+                    const chatRow = await prisma.whatsAppChat.findUnique({ where: { id: dbChatId } });
+                    const labels = [...(chatRow?.chatLabels || [])];
+                    if (!labels.includes('[SISTEMA - BOT APAGADO]')) {
+                        labels.push('[SISTEMA - BOT APAGADO]');
+                        await prisma.whatsAppChat.update({ where: { id: dbChatId }, data: { chatLabels: labels } });
+                    }
+                } catch (labelErr) {
+                    console.error('Error marcando apagado permanente tras envío desde CRM:', labelErr.message);
+                }
             }
 
             // Ya no guardamos el mensaje manualmente aquí para evitar duplicados.

@@ -4,6 +4,7 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { CategoryGrid } from "@/components/Storefront/CategoryGrid";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { prisma } from '@/lib/db';
+import { rethrowUnlessBuild } from '@/lib/db-guard';
 
 export const revalidate = 300;
 import { Glasses } from 'lucide-react';
@@ -76,7 +77,7 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
     dbProducts = pRes;
     uniqueBrandsResult = bRes;
   } catch (error) {
-    console.error("Prerendering warning: Database not reachable at build time on Lentes de Sol page.", error);
+    rethrowUnlessBuild(error, 'LentesDeSol');
   }
 
   // Extract distinct brands

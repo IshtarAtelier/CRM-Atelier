@@ -863,7 +863,7 @@ export default function VentasPage() {
         const dateStr = format(new Date(order.createdAt), "d 'de' MMMM yyyy", { locale: es });
         const labDate = order.labSentAt ? format(new Date(order.labSentAt), "d/MM/yyyy HH:mm", { locale: es }) : 'Pendiente';
         const financials = PricingService.calculateOrderFinancials(order);
-        const logoUrl = `https://crm-atelier-production-ae72.up.railway.app/assets/logo-atelier-optica.png`;
+        const logoUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'}/assets/logo-atelier-optica.png`;
 
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido Lab - ${order.client.name} | Atelier</title>
 <style>

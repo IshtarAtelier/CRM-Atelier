@@ -14,6 +14,17 @@ function safeCompare(a: string, b: string): boolean {
     return result === 0;
 }
 
+// Hosts que SÍ deben indexarse. Hasta el cutover DNS, el dominio real sirve
+// Tienda Nube y esta app solo se sirve por el subdominio de Railway, así que
+// todo el tráfico rastreable acá es no-canónico y debe ir noindex. Post-cutover,
+// cuando esta app sirva atelieroptica.com.ar, ese host pasa a ser indexable.
+const CANONICAL_HOSTS = new Set(['atelieroptica.com.ar', 'www.atelieroptica.com.ar']);
+
+function isNonCanonicalHost(request: NextRequest): boolean {
+    const host = (request.headers.get('host') ?? '').split(':')[0].toLowerCase();
+    return host !== '' && !CANONICAL_HOSTS.has(host);
+}
+
 export async function middleware(request: NextRequest) {
 
     const token = request.cookies.get('session')?.value
@@ -41,7 +52,7 @@ export async function middleware(request: NextRequest) {
     // Las rutas de bot (/api/bot/) tienen su propia validación de API KEY abajo
     // Las rutas públicas del e-commerce (store, web, checkout) no requieren auth
     const isCheckoutBypass = pathname.startsWith('/api/checkout/') && !(pathname === '/api/checkout/session' && request.method === 'GET');
-    const isPublicGetApi = request.method === 'GET' && (pathname === '/api/settings' || pathname === '/api/reviews');
+    const isPublicGetApi = request.method === 'GET' && (pathname === '/api/settings' || pathname === '/api/reviews' || pathname === '/api/health');
     
     if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !isCheckoutBypass && !pathname.startsWith('/api/storage/view') && !pathname.startsWith('/api/admin/alert') && !isPublicGetApi) {
         if (!token) {
@@ -142,7 +153,13 @@ export async function middleware(request: NextRequest) {
     }
 
     // Permitir el resto de las rutas públicas (E-commerce, Blog, etc.)
-    return NextResponse.next();
+    const response = NextResponse.next();
+    // Segunda barrera contra contenido duplicado: el canonical tag es solo una
+    // sugerencia; este header es una directiva dura para el subdominio de Railway.
+    if (isNonCanonicalHost(request)) {
+        response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    }
+    return response;
 }
 
 export const config = {

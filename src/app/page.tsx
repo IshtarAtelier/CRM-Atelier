@@ -15,6 +15,7 @@ const HomeWhyChooseUs = dynamic(() => import("@/components/Storefront/HomeWhyCho
 const HomeRecommendationQuiz = dynamic(() => import("@/components/Storefront/HomeRecommendationQuiz").then(mod => mod.HomeRecommendationQuiz));
 
 import { prisma } from "@/lib/db";
+import { rethrowUnlessBuild } from "@/lib/db-guard";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { getGoogleReviews } from "@/lib/googleReviews";
 import { getWebSettings, defaultWebSettings } from "@/lib/web-settings";
@@ -133,19 +134,9 @@ export default async function Home() {
       if (attempt < MAX_RETRIES) {
         await new Promise(r => setTimeout(r, 500 * attempt)); // Backoff: 500ms, 1s, 1.5s
       } else {
-        // En build/prerender no hay DATABASE_URL (Railway inyecta la DB solo en
-        // runtime): NO tirar el build — se genera el home y el ISR lo repuebla
-        // en la primera request con DB.
-        const isBuildTime =
-          process.env.NEXT_PHASE === 'phase-production-build' ||
-          !process.env.DATABASE_URL;
-        if (isBuildTime) {
-          console.warn('[Home] Sin DB en build/prerender — se genera con catálogo vacío; ISR lo repuebla en runtime.');
-          break;
-        }
-        // En runtime sí relanzamos: con ISR, Next conserva la última versión
-        // buena en vez de cachear un home vacío ante un corte puntual de la DB.
-        throw error;
+        // Si la DB no responde, lanzar en vez de cachear el home vacío:
+        // con ISR, Next conserva la última versión buena de la página.
+        rethrowUnlessBuild(error, 'Home');
       }
     }
   }

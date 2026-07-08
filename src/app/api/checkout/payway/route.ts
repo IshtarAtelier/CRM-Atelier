@@ -409,10 +409,22 @@ export async function POST(req: Request) {
             where: { id: item.productId }
           });
           if (dbProduct && dbProduct.category !== "Cristal" && dbProduct.category !== "Tratamiento") {
-            await prisma.product.update({
-              where: { id: item.productId },
+            // Decremento atómico: solo baja el stock si todavía hay suficiente (gte qty).
+            // Si dos compras compiten por la última unidad, únicamente una obtiene count=1;
+            // la otra recibe count=0 y aborta sin cobrar. Evita la sobreventa (stock negativo).
+            const decResult = await prisma.product.updateMany({
+              where: { id: item.productId, stock: { gte: item.quantity } },
               data: { stock: { decrement: item.quantity } }
             });
+            if (decResult.count === 0) {
+              // Otra compra simultánea reservó la última unidad entre el check y este punto.
+              // Restaurar lo ya decrementado de items anteriores del carrito y abortar sin cobrar.
+              if (globalRestoreStock) await globalRestoreStock();
+              return NextResponse.json(
+                { error: `Stock insuficiente para ${item.model}. Otro cliente acaba de reservar la última unidad. No te cobramos.` },
+                { status: 409 }
+              );
+            }
             decrementedProducts.push({ id: item.productId, quantity: item.quantity });
           }
         }
