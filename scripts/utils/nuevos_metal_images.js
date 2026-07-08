@@ -14,30 +14,35 @@ const INPUT_DIR = '/Users/ishtarpissano/Desktop/Pagina web atelier/Nuevos';
 const PUBLIC_DIR = path.join(__dirname, '../../public/images/products');
 const MANIFEST = path.join(__dirname, '../../scratch/nuevos_metal_manifest.json');
 
-// Nombre de fantasía + clasificación por código de modelo (confirmado por el usuario)
+// Nombre estelar + clasificación por código de modelo (confirmado por el usuario 7/7).
+// `med` = medidas ya scrapeadas de Kazwini (lensWidth-bridgeWidth-templeLength).
 const MODELS = {
-  'GS7008S': { name: 'Eros',   webCat: 'Sol',    prodCat: 'Lentes de Sol',     type: 'Armazón',           costUSD: 10.78 },
-  'GS7010S': { name: 'Apolo',  webCat: 'Sol',    prodCat: 'Lentes de Sol',     type: 'Armazón',           costUSD: 10.78 },
-  'GS7014S': { name: 'Ares',   webCat: 'Sol',    prodCat: 'Lentes de Sol',     type: 'Armazón',           costUSD: 10.78 },
-  'GS7017S': { name: 'Febo',   webCat: 'Sol',    prodCat: 'Lentes de Sol',     type: 'Armazón',           costUSD: 10.78 },
-  'G7008':   { name: 'Atlas',  webCat: 'Receta', prodCat: 'Armazón de Receta', type: 'Armazón de Receta', costUSD: 10.06 },
-  'G7010':   { name: 'Jano',   webCat: 'Receta', prodCat: 'Armazón de Receta', type: 'Armazón de Receta', costUSD: 10.06 },
-  'G7012':   { name: 'Orión',  webCat: 'Receta', prodCat: 'Armazón de Receta', type: 'Armazón de Receta', costUSD: 10.06 },
-  'G7013':   { name: 'Néstor', webCat: 'Receta', prodCat: 'Armazón de Receta', type: 'Armazón de Receta', costUSD: 10.06 },
+  'GS7008S': { name: 'Sirio',   webCat: 'Sol',    prodCat: 'Lentes de Sol',     type: 'Armazón',           costUSD: 10.78, med: { lensWidth: 54, bridgeWidth: 16, templeLength: 135 } },
+  'GS7010S': { name: 'Vega',    webCat: 'Sol',    prodCat: 'Lentes de Sol',     type: 'Armazón',           costUSD: 10.78, med: { lensWidth: 52, bridgeWidth: 19, templeLength: 140 } },
+  'GS7014S': { name: 'Altair',  webCat: 'Sol',    prodCat: 'Lentes de Sol',     type: 'Armazón',           costUSD: 10.78, med: { lensWidth: 54, bridgeWidth: 19, templeLength: 143 } },
+  'GS7017S': { name: 'Antares', webCat: 'Sol',    prodCat: 'Lentes de Sol',     type: 'Armazón',           costUSD: 10.78, med: { lensWidth: 54, bridgeWidth: 18, templeLength: 145 } },
+  'G7008':   { name: 'Rigel',   webCat: 'Receta', prodCat: 'Armazón de Receta', type: 'Armazón de Receta', costUSD: 10.06, med: { lensWidth: 54, bridgeWidth: 16, templeLength: 135 } },
+  'G7010':   { name: 'Lira',    webCat: 'Receta', prodCat: 'Armazón de Receta', type: 'Armazón de Receta', costUSD: 10.06, med: { lensWidth: 52, bridgeWidth: 19, templeLength: 140 } },
+  'G7012':   { name: 'Orión',   webCat: 'Receta', prodCat: 'Armazón de Receta', type: 'Armazón de Receta', costUSD: 10.06, med: { lensWidth: 52, bridgeWidth: 19, templeLength: 140 } },
+  'G7013':   { name: 'Halley',  webCat: 'Receta', prodCat: 'Armazón de Receta', type: 'Armazón de Receta', costUSD: 10.06, med: { lensWidth: 51, bridgeWidth: 19, templeLength: 143 } },
 };
+
+// Variantes a NO publicar (sin foto del color real). Clave: `${model}|${color}`.
+const SKIP = new Set(['G7008|c3']);
 
 const slugify = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
 // prioridad de la toma para ordenar (menor = imagen principal)
+// OJO: "sol" en el nombre no es un ángulo (indica que el modelo es de sol),
+// así que se ignora; "atras" SIEMPRE va último aunque el archivo diga "(sol)".
 function anglePriority(desc) {
-  const d = desc.toLowerCase();
+  const d = desc.toLowerCase().replace(/\bsol\b/g, '').trim();
+  if (d.includes('atras') || d.includes('atrás')) return 90; // trasera: nunca principal
   if (d.includes('frente')) return 0;
-  if (d === '' ) return 1;
-  if (d.includes('sol') && !d.includes('lateral')) return 2;
-  if (d.includes('lateral')) return 3;
-  if (d.includes('45')) return 4;
-  if (d.includes('atras') || d.includes('atrás')) return 5;
-  return 3;
+  if (d === '') return 10;   // toma "limpia" sin descriptor = frontal de producto
+  if (d.includes('45')) return 20;
+  if (d.includes('lateral')) return 30;
+  return 40;
 }
 
 function parse(file) {
@@ -75,6 +80,7 @@ async function main() {
     const { model, color, desc } = parse(file);
     if (!MODELS[model]) { console.log(`⚠️  sin config, salteo: ${file} (modelo ${model})`); continue; }
     const key = `${model}|${color}`;
+    if (SKIP.has(key)) { console.log(`⏭️  salteo (sin foto de color real): ${file}`); continue; }
     (groups[key] ||= []).push({ file, desc });
   }
 
@@ -102,7 +108,7 @@ async function main() {
       webCat: cfg.webCat, prodCat: cfg.prodCat, type: cfg.type,
       costUSD: cfg.costUSD,
       images,
-      measurements: { lensWidth: null, bridgeWidth: null, templeLength: null },
+      measurements: { ...cfg.med },
     });
     console.log(`✓ ${slug.padEnd(12)} ${images.length} foto(s)  [${model} ${color}]`);
   }
