@@ -7,7 +7,7 @@ import { getWebSettings } from '@/lib/web-settings';
 import { CrystalMapping } from '@/lib/config/crystal-mapping';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
-import { recalculateItemPrice } from '@/lib/checkout/checkout-pricing';
+import { recalculateItemPrice, effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 
@@ -275,9 +275,16 @@ export async function POST(req: Request) {
       console.log(`[PAYWAY CHECKOUT] Item: ${si.model} | Precio calculado: ${si.price} | Qty: ${si.quantity} | ProductId: ${si.productId}`);
     }
 
-    if (Math.abs(recalculatedItemsTotal - total) > 5) {
-      console.error("[PAYWAY CHECKOUT] DISCREPANCIA DETECTADA - Backend:", recalculatedItemsTotal, "Frontend:", total);
+    // Guard direccional: solo bloqueamos si el cliente intenta pagar MENOS que el precio
+    // recalculado en el server (defensa anti-manipulación). Si el total del cliente es MAYOR
+    // (p.ej. una oferta que el backend conoce y el front no reflejó), no bloqueamos: el cobro
+    // sale siempre de recalculatedItemsTotal (el precio más bajo y correcto, de la DB).
+    if (recalculatedItemsTotal - total > 5) {
+      console.error("[PAYWAY CHECKOUT] DISCREPANCIA DETECTADA (pago de menos) - Backend:", recalculatedItemsTotal, "Frontend:", total);
       return NextResponse.json({ error: "Discrepancia de precio detectada. Por favor, reintente." }, { status: 400 });
+    }
+    if (total - recalculatedItemsTotal > 5) {
+      console.warn("[PAYWAY CHECKOUT] Total del cliente mayor al backend (se cobra el backend):", recalculatedItemsTotal, "vs", total);
     }
 
     // Validar y aplicar CUPÓN (server-side = fuente de verdad). El descuento del
@@ -449,7 +456,8 @@ export async function POST(req: Request) {
           });
         }
         
-        const framePrice = dbProduct ? dbProduct.price : item.price;
+        // Mismo criterio que recalculateItemPrice (salePrice/wholesale) para que el desglose cierre.
+        const framePrice = dbProduct ? effectiveFramePrice(dbProduct, isWholesaleUser) : item.price;
         const totalLensPrice = Math.max(0, item.price - framePrice);
         const lensPricePerEye = Math.round(totalLensPrice / 2);
         

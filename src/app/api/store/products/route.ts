@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
                     modelCode: modelCode,
                     category: wp.category,
                     price: wp.product.price,
+                    salePrice: wp.product.salePrice,
                     ...(isWholesale ? { wholesalePrice: wp.product.wholesalePrice } : {}),
                     stock: wp.product.stock,
                     slug: wp.slug,

@@ -13,10 +13,13 @@ export async function GET() {
                         brand: true,
                         model: true,
                         price: true,
+                        salePrice: true,
                         stock: true,
                         imagenesCatalogo: true,
                         publishToWeb: true,
                         seoTags: true,
+                        seoTitle: true,
+                        seoDescription: true,
                         gender: true,
                     }
                 }
@@ -36,10 +39,22 @@ export async function GET() {
 export async function PATCH(request: Request) {
     try {
         const body = await request.json();
-        const { id, category, isFeatured, isActive, description, slug, seoTags, gender } = body;
+        const {
+            id, category, isFeatured, isActive, description, slug, seoTags, gender,
+            images, imageAlts, salePrice, seoTitle, seoDescription,
+        } = body;
 
         if (!id) {
             return NextResponse.json({ error: 'Falta el ID del WebProduct' }, { status: 400 });
+        }
+
+        // Traer el registro actual (necesario para validar salePrice contra el precio de lista)
+        const current = await prisma.webProduct.findUnique({
+            where: { id },
+            include: { product: { select: { price: true } } },
+        });
+        if (!current) {
+            return NextResponse.json({ error: 'WebProduct no encontrado' }, { status: 404 });
         }
 
         // Validate slug unique if it is being changed
@@ -55,6 +70,47 @@ export async function PATCH(request: Request) {
             }
         }
 
+        // Normalizar galería: array de strings no vacíos. imageAlts se alinea por índice.
+        let cleanImages: string[] | undefined;
+        let cleanAlts: string[] | undefined;
+        let mainImage: string | undefined;
+        if (images !== undefined) {
+            cleanImages = (Array.isArray(images) ? images : [])
+                .map((s: unknown) => (typeof s === 'string' ? s.trim() : ''))
+                .filter((s: string) => s.length > 0);
+            const rawAlts = Array.isArray(imageAlts) ? imageAlts : [];
+            cleanAlts = cleanImages.map((_, i) => (typeof rawAlts[i] === 'string' ? rawAlts[i].trim() : ''));
+            mainImage = cleanImages[0]; // la principal es siempre la primera de la galería
+        }
+
+        // Validar precio de oferta: null limpia la oferta; si viene número debe ser > 0 y < precio de lista.
+        let saleUpdate: { salePrice: number | null } | undefined;
+        if (salePrice !== undefined) {
+            if (salePrice === null || salePrice === '') {
+                saleUpdate = { salePrice: null };
+            } else {
+                const n = Number(salePrice);
+                if (!Number.isFinite(n) || n < 0) {
+                    return NextResponse.json({ error: 'El precio de oferta no es un número válido.' }, { status: 400 });
+                }
+                if (n === 0) {
+                    saleUpdate = { salePrice: null };
+                } else if (n >= current.product.price) {
+                    return NextResponse.json({ error: 'El precio de oferta debe ser menor al precio de lista.' }, { status: 400 });
+                } else {
+                    saleUpdate = { salePrice: n };
+                }
+            }
+        }
+
+        const productUpdate = {
+            ...(seoTags !== undefined ? { seoTags } : {}),
+            ...(gender !== undefined ? { gender } : {}),
+            ...(seoTitle !== undefined ? { seoTitle: seoTitle || null } : {}),
+            ...(seoDescription !== undefined ? { seoDescription: seoDescription || null } : {}),
+            ...(saleUpdate !== undefined ? saleUpdate : {}),
+        };
+
         const updated = await prisma.webProduct.update({
             where: { id },
             data: {
@@ -63,19 +119,15 @@ export async function PATCH(request: Request) {
                 ...(isActive !== undefined ? { isActive } : {}),
                 ...(description !== undefined ? { description } : {}),
                 ...(slug !== undefined ? { slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-') } : {}),
-                ...((seoTags !== undefined || gender !== undefined) ? {
-                    product: {
-                        update: {
-                            ...(seoTags !== undefined ? { seoTags } : {}),
-                            ...(gender !== undefined ? { gender } : {}),
-                        }
-                    }
-                } : {})
+                ...(cleanImages !== undefined ? { images: cleanImages, imageAlts: cleanAlts, imageUrl: mainImage ?? null } : {}),
+                ...(Object.keys(productUpdate).length > 0 ? { product: { update: productUpdate } } : {}),
             }
         });
 
         revalidatePath('/');
         revalidatePath('/tienda');
+        revalidatePath('/lentes-de-sol');
+        revalidatePath(`/producto/${updated.slug}`);
 
         return NextResponse.json({ success: true, webProduct: updated });
     } catch (error: any) {

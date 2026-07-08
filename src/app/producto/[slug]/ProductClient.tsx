@@ -121,19 +121,31 @@ export function ProductClient({
   const cashDiscount = settings && settings.web_promo_cash_discount && !isNaN(Number(settings.web_promo_cash_discount)) ? Number(settings.web_promo_cash_discount) : 15;
   const installmentsText = settings ? settings.web_promo_installments : "6 cuotas sin interés";
 
-  const images = product.imagenesCatalogo && product.imagenesCatalogo.length > 0 
+  const images = product.imagenesCatalogo && product.imagenesCatalogo.length > 0
     ? product.imagenesCatalogo.map((key: string) => resolveStorageUrl(key)).filter(Boolean)
     : (product.mockImage ? [product.mockImage] : []);
+
+  // Alt por foto: usa el override cargado en el CRM o genera uno rico (marca + modelo + vista)
+  const imageAlts: string[] = (product as any).imageAlts || [];
+  const altFor = (index: number) =>
+    (imageAlts[index]?.trim()) || `${product.brand} ${product.model}${index > 0 ? ` - vista ${index + 1}` : ''}`.trim();
+
+  // Precio de oferta ("precio tachado"): solo si es un descuento real sobre el precio de lista
+  const listPrice = product.price || 0;
+  const saleRaw = (product as any).salePrice;
+  const hasSale = saleRaw != null && saleRaw > 0 && saleRaw < listPrice;
+  const effectivePrice = hasSale ? saleRaw : listPrice;
+  const pctOff = hasSale ? Math.round((1 - saleRaw / listPrice) * 100) : 0;
 
   const getThumbnailLabel = (index: number) => {
     if (images[index]) {
       return (
         <Image unoptimized={String(images[index]).startsWith('data:')}
-          src={images[index]} 
-          alt={`Vista ${index + 1}`} 
-          fill 
+          src={images[index]}
+          alt={altFor(index)}
+          fill
           sizes="48px"
-          className="object-cover p-1 rounded-full" 
+          className="object-cover p-1 rounded-full"
         />
       );
     }
@@ -197,7 +209,7 @@ export function ProductClient({
                 >
                   <Image unoptimized={String(images[activeImageIndex]).startsWith('data:')}
                     src={images[activeImageIndex]}
-                    alt={`${product.brand} ${product.model}`}
+                    alt={altFor(activeImageIndex)}
                     fill
                     priority={activeImageIndex === 0}
                     sizes="(max-width: 1024px) 100vw, 85vw"
@@ -216,6 +228,12 @@ export function ProductClient({
               <div className="absolute top-6 right-6 z-20 bg-black/50 backdrop-blur-md text-white text-[10px] font-mono tracking-widest uppercase px-3 py-1.5 rounded-full flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                 Vista {activeImageIndex + 1}
+              </div>
+            )}
+
+            {hasSale && (
+              <div className="absolute top-6 left-6 z-20 bg-red-600 text-white text-[11px] font-black tracking-widest uppercase px-3 py-1.5 rounded-full shadow-lg">
+                -{pctOff}% OFF
               </div>
             )}
           </motion.div>
@@ -350,20 +368,36 @@ export function ProductClient({
               </motion.div>
             ) : (
               <>
-                <motion.p 
+                <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.4, duration: 0.8 }}
-                  className="text-2xl font-light tracking-tight text-black mb-6"
+                  className="mb-6"
                 >
-                  ${(product.price || 0).toLocaleString("es-AR")}
-                </motion.p>
-                
-                <PaymentOptions 
-                  variant="inline" 
-                  price={product.price || 0} 
-                  cashDiscount={cashDiscount} 
-                  installmentsText={installmentsText} 
+                  {hasSale ? (
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span className="text-3xl font-black tracking-tight text-red-600">
+                        ${effectivePrice.toLocaleString("es-AR")}
+                      </span>
+                      <span className="text-lg font-medium text-stone-400 line-through">
+                        ${listPrice.toLocaleString("es-AR")}
+                      </span>
+                      <span className="text-xs font-black uppercase text-white bg-red-600 px-2 py-1 rounded">
+                        {pctOff}% OFF
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="text-2xl font-light tracking-tight text-black">
+                      ${(product.price || 0).toLocaleString("es-AR")}
+                    </p>
+                  )}
+                </motion.div>
+
+                <PaymentOptions
+                  variant="inline"
+                  price={effectivePrice}
+                  cashDiscount={cashDiscount}
+                  installmentsText={installmentsText}
                 />
               </>
             )}
@@ -372,7 +406,7 @@ export function ProductClient({
               <button
                 disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal" || isAdded}
                 onClick={() => {
-                  const itemPrice = isWholesale && product.wholesalePrice > 0 ? product.wholesalePrice : (product.price || 0);
+                  const itemPrice = isWholesale && product.wholesalePrice > 0 ? product.wholesalePrice : effectivePrice;
                   trackAddToCart({
                     id: product.id,
                     name: product.model,
@@ -644,7 +678,7 @@ export function ProductClient({
                 href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(
                   isWholesale 
                     ? `¡Hola! Soy de la óptica ${currentUser?.name || ''} y quiero consultar por el anteojo mayorista ${product.brand || ''} ${product.model || ''} por $${(product.wholesalePrice || product.price || 0).toLocaleString("es-AR")}.`
-                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round((product.price || 0) * 0.85).toLocaleString("es-AR")} por transferencia o $${(product.price || 0).toLocaleString("es-AR")} en cuotas. ¿Me pasarían los datos de pago?`
+                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round(effectivePrice * 0.85).toLocaleString("es-AR")} por transferencia o $${effectivePrice.toLocaleString("es-AR")} en cuotas. ¿Me pasarían los datos de pago?`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -689,7 +723,12 @@ export function ProductClient({
                   <p className="text-xs text-stone-500 font-bold uppercase tracking-wider">{p.brand}</p>
                   <h4 className="text-xs font-bold text-stone-900 truncate uppercase mt-0.5">{p.model}</h4>
                   <p className="text-xs text-stone-600 font-medium mt-1">
-                    ${(isWholesale && p.wholesalePrice > 0 ? p.wholesalePrice : (p.price || 0)).toLocaleString("es-AR")} {isWholesale && <span className="text-[10px] font-black text-blue-600">(Mayorista)</span>}
+                    {(() => {
+                      const pSale = p.salePrice != null && p.salePrice > 0 && p.salePrice < p.price;
+                      if (isWholesale) return <>${(p.wholesalePrice > 0 ? p.wholesalePrice : (p.price || 0)).toLocaleString("es-AR")} <span className="text-[10px] font-black text-blue-600">(Mayorista)</span></>;
+                      if (pSale) return <><span className="text-red-600 font-bold">${p.salePrice.toLocaleString("es-AR")}</span> <span className="text-[10px] text-stone-400 line-through">${(p.price || 0).toLocaleString("es-AR")}</span></>;
+                      return <>${(p.price || 0).toLocaleString("es-AR")}</>;
+                    })()}
                   </p>
                 </Link>
               ))}

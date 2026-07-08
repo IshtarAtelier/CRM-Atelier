@@ -194,6 +194,7 @@ model Product {
   diameterMin           Float?
   wholesalePrice        Float        @default(0.0)
   publishToWholesale    Boolean      @default(false)
+  salePrice             Float?       // Precio de oferta web ("precio tachado"). Si es > 0 y < price, se muestra y se cobra este.
   orderItems            OrderItem[]
   webProducts           WebProduct[]
 
@@ -494,6 +495,7 @@ model WebProduct {
   description String?
   imageUrl    String?
   images      String[] @default([])
+  imageAlts   String[] @default([]) // Texto alternativo (alt) por foto, alineado por índice con images. Vacío = alt auto-generado.
   isActive    Boolean  @default(true)
   isFeatured  Boolean  @default(false)
   category    String

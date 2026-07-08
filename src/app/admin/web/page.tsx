@@ -36,6 +36,8 @@ interface WebProduct {
   slug: string;
   description: string | null;
   imageUrl: string | null;
+  images: string[];
+  imageAlts: string[];
   isActive: boolean;
   isFeatured: boolean;
   category: string;
@@ -44,10 +46,13 @@ interface WebProduct {
     brand: string | null;
     model: string | null;
     price: number;
+    salePrice?: number | null;
     stock: number;
     publishToWeb: boolean;
     imagenesCatalogo: string[];
     seoTags?: string | null;
+    seoTitle?: string | null;
+    seoDescription?: string | null;
     gender?: string | null;
   };
 }
@@ -114,8 +119,16 @@ export default function WebManagementPage() {
     description: "",
     slug: "",
     seoTags: "",
-    gender: ""
+    gender: "",
+    images: [] as string[],
+    imageAlts: [] as string[],
+    salePrice: "",
+    seoTitle: "",
+    seoDescription: ""
   });
+  // Estado de subida de fotos en el editor de galería
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [newPhotoUrl, setNewPhotoUrl] = useState("");
 
   const renderStoryContent = (isFullscreen = false) => {
     const p = products.find(prod => prod.id === selectedProductId);
@@ -570,6 +583,9 @@ export default function WebManagementPage() {
 
   const handleEditProduct = (p: WebProduct) => {
     setEditingProduct(p);
+    // La galería web es WebProduct.images; si está vacía, se muestra la del inventario (imagenesCatalogo)
+    const gallery = (p.images && p.images.length > 0) ? p.images : (p.product.imagenesCatalogo || []);
+    const alts = gallery.map((_, i) => (p.images && p.images.length > 0 ? (p.imageAlts?.[i] || "") : ""));
     setProductForm({
       id: p.id,
       category: p.category,
@@ -578,8 +594,67 @@ export default function WebManagementPage() {
       description: p.description || "",
       slug: p.slug,
       seoTags: p.product.seoTags || "",
-      gender: p.product.gender || ""
+      gender: p.product.gender || "",
+      images: [...gallery],
+      imageAlts: alts,
+      salePrice: p.product.salePrice != null ? String(p.product.salePrice) : "",
+      seoTitle: p.product.seoTitle || "",
+      seoDescription: p.product.seoDescription || ""
     });
+    setNewPhotoUrl("");
+  };
+
+  // ---- Gestión de galería de fotos en el editor ----
+  const movePhoto = (from: number, to: number) => {
+    setProductForm(prev => {
+      if (to < 0 || to >= prev.images.length) return prev;
+      const images = [...prev.images];
+      const alts = [...prev.imageAlts];
+      const [img] = images.splice(from, 1);
+      const [alt] = alts.splice(from, 1);
+      images.splice(to, 0, img);
+      alts.splice(to, 0, alt);
+      return { ...prev, images, imageAlts: alts };
+    });
+  };
+  const setMainPhoto = (idx: number) => movePhoto(idx, 0);
+  const removePhoto = (idx: number) => {
+    setProductForm(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== idx),
+      imageAlts: prev.imageAlts.filter((_, i) => i !== idx),
+    }));
+  };
+  const setPhotoAlt = (idx: number, value: string) => {
+    setProductForm(prev => {
+      const imageAlts = [...prev.imageAlts];
+      imageAlts[idx] = value;
+      return { ...prev, imageAlts };
+    });
+  };
+  const addPhotoUrl = (url: string) => {
+    const clean = (url || "").trim();
+    if (!clean) return;
+    setProductForm(prev => ({ ...prev, images: [...prev.images, clean], imageAlts: [...prev.imageAlts, ""] }));
+  };
+  const handlePhotoFile = async (file: File | null | undefined) => {
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        addPhotoUrl(data.url);
+      } else {
+        alert(data.error || 'No se pudo subir la foto');
+      }
+    } catch {
+      alert('Error de conexión al subir la foto');
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -976,8 +1051,10 @@ export default function WebManagementPage() {
                     </thead>
                     <tbody className="divide-y divide-stone-150 dark:divide-stone-800 text-xs">
                       {filteredProducts.map(wp => {
-                        const img = wp.product.imagenesCatalogo?.length > 0 
-                          ? resolveStorageUrl(wp.product.imagenesCatalogo[0]) 
+                        const img = wp.images?.length > 0
+                          ? resolveStorageUrl(wp.images[0])
+                          : wp.product.imagenesCatalogo?.length > 0
+                          ? resolveStorageUrl(wp.product.imagenesCatalogo[0])
                           : (wp.imageUrl || "/images/placeholder.svg");
                         return (
                           <tr key={wp.id} className="hover:bg-stone-50/50 dark:hover:bg-stone-800/30 transition-colors">
@@ -1062,8 +1139,10 @@ export default function WebManagementPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                 {filteredProducts.map(wp => {
-                  const img = wp.product.imagenesCatalogo?.length > 0 
-                    ? resolveStorageUrl(wp.product.imagenesCatalogo[0]) 
+                  const img = wp.images?.length > 0
+                    ? resolveStorageUrl(wp.images[0])
+                    : wp.product.imagenesCatalogo?.length > 0
+                    ? resolveStorageUrl(wp.product.imagenesCatalogo[0])
                     : (wp.imageUrl || "/images/placeholder.svg");
                   return (
                     <div 
@@ -1931,7 +2010,7 @@ export default function WebManagementPage() {
       {editingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingProduct(null)} />
-          <div className="relative bg-white dark:bg-stone-900 w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl z-10 space-y-6">
+          <div className="relative bg-white dark:bg-stone-900 w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-8 shadow-2xl z-10 space-y-6">
             <div className="flex justify-between items-center border-b border-stone-100 dark:border-stone-800 pb-4">
               <div>
                 <span className="text-[9px] font-black uppercase tracking-widest text-primary">Tienda Web</span>
@@ -1948,11 +2027,74 @@ export default function WebManagementPage() {
             <form onSubmit={handleSaveProduct} className="space-y-4">
               <div className="flex items-center gap-3 p-3 bg-stone-50 dark:bg-stone-800/40 rounded-xl border border-stone-200/50 dark:border-stone-700/50">
                 <div className="w-12 h-12 bg-white border border-stone-200 dark:border-stone-800 rounded-lg overflow-hidden shrink-0 flex items-center justify-center p-1 relative">
-                  <img src={editingProduct.product.imagenesCatalogo?.length > 0 ? resolveStorageUrl(editingProduct.product.imagenesCatalogo[0]) : editingProduct.imageUrl || "/images/placeholder.svg"} alt="Producto" className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal p-1" />
+                  <img src={productForm.images.length > 0 ? resolveStorageUrl(productForm.images[0]) : (editingProduct.product.imagenesCatalogo?.length > 0 ? resolveStorageUrl(editingProduct.product.imagenesCatalogo[0]) : editingProduct.imageUrl || "/images/placeholder.svg")} alt="Producto" className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal p-1" />
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-stone-800 dark:text-stone-200 leading-tight">{editingProduct.product.model}</h4>
                   <p className="text-[10px] text-stone-400 font-bold uppercase tracking-wider mt-0.5">{editingProduct.product.brand || 'ATELIER'}</p>
+                </div>
+              </div>
+
+              {/* ---- Galería de fotos ---- */}
+              <div className="space-y-3 p-3 bg-stone-50/60 dark:bg-stone-800/30 rounded-xl border border-stone-200/60 dark:border-stone-700/50">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Fotos del producto ({productForm.images.length})</label>
+                  <span className="text-[9px] text-stone-400">La 1ª es la principal</span>
+                </div>
+
+                {productForm.images.length === 0 && (
+                  <p className="text-[11px] text-stone-400 italic py-2">Sin fotos. Agregá una abajo.</p>
+                )}
+
+                <div className="space-y-2">
+                  {productForm.images.map((img, idx) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 bg-white dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700 rounded-xl">
+                      <div className="w-14 h-14 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg overflow-hidden shrink-0 flex items-center justify-center relative">
+                        <img src={resolveStorageUrl(img)} alt={productForm.imageAlts[idx] || `Foto ${idx + 1}`} className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal" />
+                        {idx === 0 && <span className="absolute top-0 left-0 bg-primary text-white text-[7px] font-black px-1 py-0.5 rounded-br-lg">PRINCIPAL</span>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <input
+                          type="text"
+                          placeholder={`Texto alternativo (alt) — opcional, ayuda al SEO`}
+                          className="w-full px-2 py-1.5 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg text-[11px] outline-none focus:border-primary transition-all"
+                          value={productForm.imageAlts[idx] || ""}
+                          onChange={e => setPhotoAlt(idx, e.target.value)}
+                        />
+                        <p className="text-[8px] text-stone-400 font-mono mt-0.5 truncate" title={img}>{img}</p>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <button type="button" title="Hacer principal" disabled={idx === 0} onClick={() => setMainPhoto(idx)} className="p-1.5 rounded-lg text-stone-400 hover:text-amber-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                          <Star className="w-3.5 h-3.5" fill={idx === 0 ? "currentColor" : "none"} />
+                        </button>
+                        <button type="button" title="Subir" disabled={idx === 0} onClick={() => movePhoto(idx, idx - 1)} className="px-1.5 py-1 rounded-lg text-stone-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed text-sm leading-none transition-colors">↑</button>
+                        <button type="button" title="Bajar" disabled={idx === productForm.images.length - 1} onClick={() => movePhoto(idx, idx + 1)} className="px-1.5 py-1 rounded-lg text-stone-400 hover:text-black dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed text-sm leading-none transition-colors">↓</button>
+                        <button type="button" title="Eliminar foto" onClick={() => removePhoto(idx)} className="p-1.5 rounded-lg text-stone-400 hover:text-red-500 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Agregar foto: subir archivo o pegar link */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                  <label className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold cursor-pointer transition-all ${uploadingPhoto ? 'bg-stone-200 dark:bg-stone-700 text-stone-400' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}>
+                    {uploadingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                    {uploadingPhoto ? 'Subiendo…' : 'Subir foto'}
+                    <input type="file" accept="image/*" className="hidden" disabled={uploadingPhoto} onChange={e => { handlePhotoFile(e.target.files?.[0]); e.target.value = ''; }} />
+                  </label>
+                  <div className="flex-1 flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="o pegá un link de imagen…"
+                      className="flex-1 px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-[11px] outline-none focus:border-primary transition-all"
+                      value={newPhotoUrl}
+                      onChange={e => setNewPhotoUrl(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPhotoUrl(newPhotoUrl); setNewPhotoUrl(''); } }}
+                    />
+                    <button type="button" onClick={() => { addPhotoUrl(newPhotoUrl); setNewPhotoUrl(''); }} className="px-3 py-2 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl text-[11px] font-bold hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors">Agregar</button>
+                  </div>
                 </div>
               </div>
 
@@ -1980,6 +2122,42 @@ export default function WebManagementPage() {
                     onChange={e => setProductForm({ ...productForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
                   />
                 </div>
+              </div>
+
+              {/* ---- Precio de oferta ---- */}
+              <div className="space-y-1.5 p-3 bg-stone-50/60 dark:bg-stone-800/30 rounded-xl border border-stone-200/60 dark:border-stone-700/50">
+                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Precio de oferta (opcional)</label>
+                <div className="flex items-center gap-3">
+                  <div className="text-xs text-stone-500 dark:text-stone-400 shrink-0">
+                    Precio de lista: <span className="font-bold text-stone-700 dark:text-stone-200">${(editingProduct.product.price || 0).toLocaleString('es-AR')}</span>
+                  </div>
+                  <div className="flex items-center gap-1 flex-1">
+                    <span className="text-stone-400 text-sm font-bold">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="Sin oferta"
+                      className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                      value={productForm.salePrice}
+                      onChange={e => setProductForm({ ...productForm, salePrice: e.target.value })}
+                    />
+                    {productForm.salePrice && (
+                      <button type="button" title="Quitar oferta" onClick={() => setProductForm({ ...productForm, salePrice: "" })} className="p-1.5 rounded-lg text-stone-400 hover:text-red-500 transition-colors shrink-0">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {(() => {
+                  const list = editingProduct.product.price || 0;
+                  const sale = Number(productForm.salePrice);
+                  if (!productForm.salePrice) return null;
+                  if (!Number.isFinite(sale) || sale <= 0) return <p className="text-[10px] text-red-500 font-bold">Ingresá un número válido.</p>;
+                  if (sale >= list) return <p className="text-[10px] text-red-500 font-bold">La oferta debe ser menor al precio de lista.</p>;
+                  const pct = Math.round((1 - sale / list) * 100);
+                  return <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">En oferta a ${sale.toLocaleString('es-AR')} — {pct}% OFF sobre el precio de lista.</p>;
+                })()}
               </div>
 
               <div className="space-y-1.5 pb-2">
@@ -2120,6 +2298,41 @@ export default function WebManagementPage() {
                   value={productForm.description}
                   onChange={e => setProductForm({ ...productForm, description: e.target.value })}
                 />
+              </div>
+
+              {/* ---- SEO (Google) ---- */}
+              <div className="space-y-3 p-3 bg-stone-50/60 dark:bg-stone-800/30 rounded-xl border border-stone-200/60 dark:border-stone-700/50">
+                <div className="flex items-center gap-1.5">
+                  <Search className="w-3 h-3 text-stone-400" />
+                  <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest">SEO — cómo aparece en Google</label>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Título SEO</label>
+                    <span className={`text-[9px] font-mono ${productForm.seoTitle.length > 60 ? 'text-amber-500' : 'text-stone-400'}`}>{productForm.seoTitle.length}/60</span>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Ej: Anteojos de sol Verona C1 clip-on | Atelier Óptica"
+                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all"
+                    value={productForm.seoTitle}
+                    onChange={e => setProductForm({ ...productForm, seoTitle: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] font-bold text-stone-400 uppercase tracking-wider">Meta descripción</label>
+                    <span className={`text-[9px] font-mono ${productForm.seoDescription.length > 160 ? 'text-amber-500' : 'text-stone-400'}`}>{productForm.seoDescription.length}/160</span>
+                  </div>
+                  <textarea
+                    rows={2}
+                    placeholder="Texto que Google muestra bajo el título. 120-160 caracteres con palabras clave."
+                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs outline-none focus:border-primary transition-all resize-none"
+                    value={productForm.seoDescription}
+                    onChange={e => setProductForm({ ...productForm, seoDescription: e.target.value })}
+                  />
+                </div>
+                <p className="text-[9px] text-stone-400">Si los dejás vacíos, se usa el título/descripción automáticos del producto.</p>
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-stone-100 dark:border-stone-800">

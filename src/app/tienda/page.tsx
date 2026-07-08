@@ -132,6 +132,7 @@ async function getWebCatalog(): Promise<any[]> {
         modelCode: modelCode,
         category: wp.category,
         price: wp.product.price,
+        salePrice: wp.product.salePrice,
         stock: wp.product.stock,
         slug: wp.slug,
         imagenesCatalogo: wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || []),

@@ -445,6 +445,11 @@ export function TiendaClient({
                     <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
                       {/* Badges en la esquina superior derecha */}
                       <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 items-end">
+                        {!isWholesale && p.salePrice != null && p.salePrice > 0 && p.salePrice < (p.price || 0) && (
+                          <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-1 shadow-md rounded">
+                            Oferta -{Math.round((1 - p.salePrice / p.price) * 100)}%
+                          </span>
+                        )}
                         {!isWholesale && (
                           <span className="bg-[#1a1a1a] text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 shadow-sm">
                             {webSettings.web_promo_cash_discount}% OFF
@@ -542,16 +547,23 @@ export function TiendaClient({
                             )}
                           </div>
                         </div>
-                      ) : (
-                        <div className="pt-3 flex items-center gap-2">
-                          <p className="text-lg font-black text-stone-900 tracking-tight">
-                            ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
-                          </p>
-                          <p className="text-sm font-medium text-stone-500 line-through decoration-1">
-                            ${(p.price || 0).toLocaleString("es-AR")}
-                          </p>
-                        </div>
-                      )}
+                      ) : (() => {
+                        const hasSale = p.salePrice != null && p.salePrice > 0 && p.salePrice < (p.price || 0);
+                        const base = hasSale ? p.salePrice : (p.price || 0);
+                        return (
+                          <div className="pt-3 flex items-center gap-2 flex-wrap">
+                            <p className="text-lg font-black text-stone-900 tracking-tight">
+                              ${Math.round(base * (1 - discountRate)).toLocaleString("es-AR")}
+                            </p>
+                            <p className="text-sm font-medium text-stone-500 line-through decoration-1">
+                              ${(p.price || 0).toLocaleString("es-AR")}
+                            </p>
+                            {hasSale && (
+                              <span className="text-[9px] font-black uppercase text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Oferta</span>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       <div className="mt-4 w-full border-2 border-stone-900 text-stone-900 group-hover:bg-stone-900 group-hover:text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 text-center rounded-xl transition-all duration-300">
                         Ver Modelo

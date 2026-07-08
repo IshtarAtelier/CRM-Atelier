@@ -54,13 +54,27 @@ export const buildPricingMap = (crystals: any[], treatments: any[]) => {
   };
 };
 
+/**
+ * Precio efectivo del armazón (fuente de verdad única para checkout y desglose de la orden).
+ * - Mayorista con wholesalePrice > 0 → wholesalePrice (la oferta retail NO aplica a mayoristas).
+ * - Retail con salePrice válido (0 < salePrice < price) → salePrice (precio de oferta).
+ * - En cualquier otro caso → price de lista.
+ * Siempre sale de la DB (dbProduct), nunca del payload del cliente.
+ */
+export const effectiveFramePrice = (dbProduct: any, isWholesaleUser: boolean): number => {
+  if (isWholesaleUser && dbProduct.wholesalePrice > 0) return dbProduct.wholesalePrice;
+  const sale = dbProduct.salePrice;
+  if (sale != null && sale > 0 && sale < dbProduct.price) return sale;
+  return dbProduct.price;
+};
+
 export const recalculateItemPrice = (
-  item: any, 
-  dbProduct: any, 
-  isWholesaleUser: boolean, 
+  item: any,
+  dbProduct: any,
+  isWholesaleUser: boolean,
   pricingMap: any
 ) => {
-  const framePrice = isWholesaleUser && dbProduct.wholesalePrice > 0 ? dbProduct.wholesalePrice : dbProduct.price;
+  const framePrice = effectiveFramePrice(dbProduct, isWholesaleUser);
   let calculatedPrice = framePrice;
   const isCustomLens = item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color);
 
