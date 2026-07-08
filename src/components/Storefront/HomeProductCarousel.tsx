@@ -146,8 +146,10 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
               key={`${item.id}-${i}`} 
               className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
             >
-              {/* Contenedor de imagen — fondo gris muy claro */}
-              <div className="bg-[#f5f5f5] aspect-square overflow-hidden border-r border-[#e5e5e5] relative isolate">
+              {/* Contenedor de imagen — fondo blanco. Sin mix-blend ni isolate: en el
+                  carrusel auto-scrolleado esa capa de composición NO se pintaba en prod
+                  (cards en gris vacío). El fondo blanco funde las fotos igual de limpio. */}
+              <div className="bg-white aspect-square overflow-hidden border-r border-[#e5e5e5] relative">
                 {/* Badge Urgencia / Escasez */}
                 {item.stock !== undefined && item.stock > 0 && item.stock <= 3 && (
                   <span className="absolute top-3 right-3 z-10 bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
@@ -171,7 +173,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     priority={i < 4}
                     loading={i < 4 ? "eager" : "lazy"}
                     sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
-                    className={`object-contain p-6 mix-blend-multiply transition-opacity duration-500 ease-in-out ${item.secondImg ? 'md:group-hover:opacity-0' : ''}`}
+                    className={`object-contain p-6 transition-opacity duration-500 ease-in-out ${item.secondImg ? 'md:group-hover:opacity-0' : ''}`}
                   />
                 ) : (
                   <div className="absolute inset-0 w-full h-full flex items-center justify-center text-stone-400 text-[10px] font-black uppercase tracking-widest text-center">
