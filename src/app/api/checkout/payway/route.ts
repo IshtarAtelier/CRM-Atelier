@@ -8,6 +8,7 @@ import { CrystalMapping } from '@/lib/config/crystal-mapping';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
 import { recalculateItemPrice } from '@/lib/checkout/checkout-pricing';
+import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 
 function getArgentineStateCode(stateName: string): string {
   if (!stateName) return "C"; // fallback to CABA
@@ -388,7 +389,7 @@ export async function POST(req: Request) {
     }
 
     // Decrement stock in preparation
-    const decrementedProducts: { id: string, quantity: number }[] = [];
+    const decrementedProducts: { id: string, quantity: number, prevStock: number }[] = [];
     globalRestoreStock = async () => {
       for (const dp of decrementedProducts) {
         try {
@@ -425,7 +426,7 @@ export async function POST(req: Request) {
                 { status: 409 }
               );
             }
-            decrementedProducts.push({ id: item.productId, quantity: item.quantity });
+            decrementedProducts.push({ id: item.productId, quantity: item.quantity, prevStock: dbProduct.stock });
           }
         }
       }
@@ -628,6 +629,9 @@ export async function POST(req: Request) {
           await incrementCouponUsage(appliedCouponCode);
         }
 
+        // Aviso de stock bajo (armazones que quedaron en <=1) — no bloquea la respuesta.
+        await notifyLowStockCrossing(decrementedProducts);
+
         return NextResponse.json({
           success: true,
           message: "Orden de transferencia generada",
@@ -651,8 +655,10 @@ export async function POST(req: Request) {
         html: adminWholesaleHtml
       }).catch(err => console.error("Error admin wholesale email:", err));
 
-      return NextResponse.json({ 
-        success: true, 
+      await notifyLowStockCrossing(decrementedProducts);
+
+      return NextResponse.json({
+        success: true,
         message: "Pedido mayorista registrado",
         orderId: order.id
       });
@@ -902,8 +908,11 @@ export async function POST(req: Request) {
       console.error("[PAYWAY EMAIL] Error general procesando correos post-pago:", emailErr);
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    // Pago acreditado: avisar si algún armazón quedó en su última unidad.
+    await notifyLowStockCrossing(decrementedProducts);
+
+    return NextResponse.json({
+      success: true,
       transactionId: paywayData.id,
       message: "Pago procesado con éxito",
       orderId: order.id

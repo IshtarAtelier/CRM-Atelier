@@ -13,6 +13,7 @@ import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { logAudit } from '@/lib/audit';
 import { addBusinessDays, calculateEstimatedDays } from '@/lib/business-days';
+import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { format } from 'date-fns';
 import { OptovisionAuditService } from '@/services/optovision-audit.service';
 import { mapOrderPostSale } from '@/types/orders';
@@ -1187,7 +1188,7 @@ export class OrderService {
                             select: {
                                 productId: true,
                                 quantity: true,
-                                product: { select: { category: true, type: true } }
+                                product: { select: { category: true, type: true, stock: true } }
                             }
                         }
                     }
@@ -1289,6 +1290,16 @@ export class OrderService {
 
                     return ord;
                 }, { maxWait: 25000, timeout: 25000 });
+
+                // Aviso de stock bajo: armazones (sol/receta/clip-on) que quedaron en su
+                // última unidad tras confirmar la venta. Fire-and-forget, no rompe la venta.
+                notifyLowStockCrossing(
+                    stockItems.map((it: any) => ({
+                        productId: it.productId,
+                        prevStock: it.product?.stock ?? 0,
+                        quantity: it.quantity,
+                    }))
+                ).catch(err => console.error('Error en alerta de stock bajo (venta CRM):', err));
 
                 // Enviar conversión offline a Meta/Google de forma asíncrona (fire and forget)
                 AdsService.sendOfflineConversion(updatedOrder as any).catch(err => {
