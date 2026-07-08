@@ -4,8 +4,8 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/peligros-anteojos-pregraduados-farmacia' },
-  title: "Peligros de los Anteojos de Farmacia o Calle | Atelier Óptica Córdoba",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/peligros-anteojos-pregraduados-farmacia' },
+  title: { absolute: "Peligros de los Anteojos de Farmacia o Calle | Atelier Óptica Córdoba" },
   description: "Descubrí por qué usar anteojos pregraduados de farmacia daña tu salud visual. Evitá mareos y fatiga. Visitá nuestra óptica en Cerro de las Rosas, Córdoba.",
   keywords: [
     "peligros anteojos farmacia",

@@ -438,7 +438,7 @@ const posts: Record<string, Post> = {
         <p>Comprar lentes multifocales no es lo mismo que comprar un par de anteojos de sol. Un multifocal mal hecho puede generarte mareos, dolor de cuello y una frustración enorme. La diferencia entre una buena y una mala experiencia está en tres factores clave:</p>
         <ul>
           <li><strong>Precisión en la medición:</strong> En Atelier Óptica usamos instrumentos digitales de última generación para medir tu distancia nasopupilar y altura pupilar al milímetro. Un error de 1 mm puede arruinar la adaptación.</li>
-          <li><strong>Calidad del cristal:</strong> Trabajamos exclusivamente con laboratorios de tallado digital (Freeform) como <strong>Novar</strong> y <strong>Essilor-Varilux</strong>, las marcas líderes a nivel mundial en lentes progresivos.</li>
+          <li><strong>Calidad del cristal:</strong> Trabajamos con laboratorios de tallado digital (Freeform) como <strong>Novar</strong>, <strong>Kodak</strong> y <strong>Essilor-Varilux</strong>, líderes mundiales en lentes progresivos.</li>
           <li><strong>Atención personalizada:</strong> No somos una cadena que atiende por número. Cada paciente recibe un asesoramiento uno a uno, sin apuros, con tiempo para probar y elegir.</li>
         </ul>
 
@@ -528,6 +528,7 @@ const posts: Record<string, Post> = {
         <ul>
           <li><strong>Varilux (Essilor):</strong> El creador del lente progresivo. Líneas premium con inteligencia artificial para campos visuales inmensos.</li>
           <li><strong>Novar:</strong> Tecnología de tallado digital argentina-alemana con la mejor relación calidad-precio del mercado.</li>
+          <li><strong>Kodak:</strong> El prestigio de una marca óptica estadounidense, con tallado digital Freeform y gran nitidez de imagen en toda la superficie del lente.</li>
         </ul>
 
         <h2>La óptica con mejor atención de Córdoba</h2>
@@ -661,7 +662,7 @@ const posts: Record<string, Post> = {
         <p>A diferencia de los antiguos lentes bifocales (que tenían una línea visible y dividían el lente en dos), los multifocales o progresivos ofrecen una transición gradual de la graduación. Esto permite enfocar a cualquier distancia simplemente moviendo los ojos hacia arriba o hacia abajo.</p>
 
         <h2>¿Dónde comprar multifocales en Córdoba?</h2>
-        <p>En <strong>Atelier Óptica Córdoba</strong>, nos especializamos en la adaptación de lentes multifocales de alta gama. Trabajamos con marcas líderes a nivel mundial como <strong>Varilux (Essilor)</strong> y <strong>Novar</strong>, asegurando campos visuales amplios y la menor distorsión lateral posible.</p>
+        <p>En <strong>Atelier Óptica Córdoba</strong>, nos especializamos en la adaptación de lentes multifocales de alta gama. Trabajamos con marcas líderes a nivel mundial como <strong>Novar</strong>, <strong>Kodak</strong> y <strong>Varilux (Essilor)</strong>, asegurando campos visuales amplios y la menor distorsión lateral posible.</p>
 
         <h2>Consejos para una adaptación rápida</h2>
         <ul>
@@ -696,7 +697,7 @@ const posts: Record<string, Post> = {
         <p>Si tu cara es circular, sin ángulos fuertes, te beneficiarán los anteojos cuadrados o rectangulares. Estos añadirán líneas definidas y harán que tu rostro parezca más largo y delgado.</p>
         
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <Image src={resolveStorageUrl("/assets/products/acetato/57202LJH-c1.avif")} alt="Anteojo de diseño modelo Aurora" width={1200} height={800} className="w-full h-full object-cover" />
@@ -709,7 +710,7 @@ const posts: Record<string, Post> = {
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <Image unoptimized={String(resolveStorageUrl("1780932146269_HY238014-c4-1.avif")).startsWith('data:')} src={resolveStorageUrl("1780932146269_HY238014-c4-1.avif")} alt="Anteojo de diseño modelo Hera" width={1200} height={800} className="w-full h-full object-cover" />
@@ -722,7 +723,7 @@ const posts: Record<string, Post> = {
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <Image unoptimized={String(resolveStorageUrl("1780932170075_TL5217-c2.avif")).startsWith('data:')} src={resolveStorageUrl("1780932170075_TL5217-c2.avif")} alt="Anteojo de diseño modelo Leda" width={1200} height={800} className="w-full h-full object-cover" />
@@ -741,7 +742,7 @@ const posts: Record<string, Post> = {
         <p>Las mandíbulas fuertes y frentes anchas se suavizan con anteojos redondos u ovalados. Los marcos delgados y curvos son tu mejor opción.</p>
         
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <Image unoptimized={String(resolveStorageUrl("1780932122264_GS7015-C3.avif")).startsWith('data:')} src={resolveStorageUrl("1780932122264_GS7015-C3.avif")} alt="Anteojo de diseño modelo Iris" width={1200} height={800} className="w-full h-full object-cover" />
@@ -754,7 +755,7 @@ const posts: Record<string, Post> = {
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <Image src={resolveStorageUrl("/assets/products/acetato/BC3063-c1.avif")} alt="Anteojo de diseño modelo Julieta" width={1200} height={800} className="w-full h-full object-cover" />
@@ -767,7 +768,7 @@ const posts: Record<string, Post> = {
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <Image unoptimized={String(resolveStorageUrl("1780932129076_HK011-c3.avif")).startsWith('data:')} src={resolveStorageUrl("1780932129076_HK011-c3.avif")} alt="Anteojo de diseño modelo Pandora" width={1200} height={800} className="w-full h-full object-cover" />
@@ -786,7 +787,7 @@ const posts: Record<string, Post> = {
         <p>¡Tienen suerte! Casi cualquier forma les queda bien. Animate a probar armazones grandes, de estilo aviador o marcos geométricos modernos.</p>
         
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <Image unoptimized={String(resolveStorageUrl("1780932162871_TL3932-c3.avif")).startsWith('data:')} src={resolveStorageUrl("1780932162871_TL3932-c3.avif")} alt="Anteojo de diseño modelo Diana" width={1200} height={800} className="w-full h-full object-cover" />
@@ -799,7 +800,7 @@ const posts: Record<string, Post> = {
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <Image unoptimized={String(resolveStorageUrl("1780932106867__91501-c6.avif")).startsWith('data:')} src={resolveStorageUrl("1780932106867__91501-c6.avif")} alt="Anteojo de diseño modelo Athena" width={1200} height={800} className="w-full h-full object-cover" />
@@ -812,7 +813,7 @@ const posts: Record<string, Post> = {
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
-          <div className="bg-[#faf8f5] dark:bg-stone-850 p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
+          <div className="bg-[#faf8f5] p-6 rounded-3xl border border-black/5  flex flex-col justify-between hover:shadow-lg transition-all duration-300">
             <div>
               <div className="aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-stone-100 relative shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-stone-150 dark:border-stone-750">
                 <Image unoptimized={String(resolveStorageUrl("1780932166781_TL3932-c4.avif")).startsWith('data:')} src={resolveStorageUrl("1780932166781_TL3932-c4.avif")} alt="Anteojo de diseño modelo Ceres" width={1200} height={800} className="w-full h-full object-cover" />
@@ -1150,7 +1151,7 @@ const posts: Record<string, Post> = {
         </ul>
 
         <h2>El Vínculo Laboratorio-Óptica</h2>
-        <p>Una vez que terminamos nuestra calibración y pruebas bajo certificación experta, enviamos este "mapa" exacto a los mejores laboratorios de tallado digital de Argentina (como Novar y Essilor-Varilux). Ellos tallan el lente milímetro a milímetro (tecnología Freeform) para que el canal visual se alinee de forma idéntica a lo que probamos en nuestro local.</p>
+        <p>Una vez que terminamos nuestra calibración y pruebas bajo certificación experta, enviamos este "mapa" exacto a los mejores laboratorios de tallado digital de Argentina (como Novar, Kodak y Essilor-Varilux). Ellos tallan el lente milímetro a milímetro (tecnología Freeform) para que el canal visual se alinee de forma idéntica a lo que probamos en nuestro local.</p>
 
         <h2>Garantía de Adaptación Real</h2>
         <p>Nuestra confianza en nuestro método de control certificado por Essilor es tan grande que te brindamos <strong>Garantía de Adaptación</strong>. Si tenés problemas para acostumbrarte, re-evaluamos el lente y lo solucionamos.</p>
@@ -1578,7 +1579,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   } : null;
 
   return (
-    <div className="min-h-screen bg-[#faf8f5] dark:bg-stone-950 pb-20">
+    <div className="min-h-screen bg-[#faf8f5] pb-20">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}

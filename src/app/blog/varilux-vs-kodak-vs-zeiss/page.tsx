@@ -3,8 +3,8 @@ import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/varilux-vs-kodak-vs-zeiss' },
-  title: "Varilux vs Zeiss vs Kodak: Comparativa de Multifocales Prémium | Atelier Óptica",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/varilux-vs-kodak-vs-zeiss' },
+  title: { absolute: "Varilux vs Zeiss vs Kodak: Comparativa de Multifocales Prémium | Atelier Óptica" },
   description: "Descubrí las diferencias entre lentes progresivos Varilux, Zeiss y Kodak. La guía definitiva para elegir tu multifocal prémium en Córdoba. ¡Conocé más!",
   keywords: ["óptica en córdoba", "cerro de las rosas", "nueva córdoba", "varilux vs zeiss", "lentes multifocales prémium", "anteojos progresivos", "cristales kodak", "presbicia", "multifocales de alta gama"],
 };
@@ -37,7 +37,7 @@ export default function VariluxVsKodakVsZeissPage() {
               Si llegaste a esa etapa donde alejar el celular para leer se volvió una costumbre, o si ya sos usuario de <strong>lentes progresivos</strong> pero sentís que necesitás dar un salto de calidad, probablemente te encuentres frente a un mar de opciones. Las marcas líderes prometen una visión perfecta, pero en la práctica, ¿qué las diferencia realmente?
             </p>
             <p>
-              En <strong>Atelier Óptica</strong>, tanto en nuestra sucursal de <strong>Cerro de las Rosas</strong> como en <strong>Nueva Córdoba</strong>, recibimos a diario la misma inquietud: <em>“¿Se justifica la inversión en Varilux? ¿Me conviene más la precisión de Zeiss o la relación calidad-precio de Kodak?”</em>.
+              En <strong>Atelier Óptica</strong>, en nuestro local en el <strong>Cerro de las Rosas</strong>, recibimos a diario la misma inquietud: <em>“¿Se justifica la inversión en Varilux? ¿Me conviene más la precisión de Zeiss o la relación calidad-precio de Kodak?”</em>.
             </p>
             <p>
               Antes de sumergirnos en la tecnología, queremos ser muy claros: nosotros somos <strong>ópticos y asesores estéticos</strong>, no médicos. Nuestro rol es traducir la indicación médica en los anteojos perfectos para tu estilo de vida. Por eso, <strong>el primer paso siempre debe ser una consulta con tu médico oftalmólogo</strong>, quien evaluará tu salud ocular y determinará tu graduación exacta.
@@ -72,8 +72,8 @@ export default function VariluxVsKodakVsZeissPage() {
             </p>
             <ul className="list-disc pl-6 mb-8 space-y-2">
               <li><strong>Nitidez extrema:</strong> Zeiss se obsesiona con el contraste y la claridad. Su portafolio, incluyendo la tecnología SmartLife, optimiza el cristal considerando la edad del paciente y el comportamiento de la pupila ante las pantallas.</li>
-              <li><strong>Personalización total:</strong> Exigen una toma de medidas biométricas y de centrado sumamente precisas (algo que realizamos meticulosamente en nuestras ópticas de Córdoba). Una vez calibrados, brindan una experiencia visual de &quot;alta resolución&quot;.</li>
-              <li><strong>El veredicto de Atelier:</strong> Ideales para perfeccionistas, profesionales visuales, personas con astigmatismos complejos o quienes priorizan la nitidez absoluta por encima de todo.</li>
+              <li><strong>Personalización total:</strong> Exigen una toma de medidas biométricas y de centrado sumamente precisas (algo que realizamos meticulosamente en nuestra óptica de Córdoba). Una vez calibrados, brindan una experiencia visual de &quot;alta resolución&quot;.</li>
+              <li><strong>El veredicto de Atelier:</strong> Zeiss es una referencia mundial en nitidez; en Atelier trabajamos con Varilux y Kodak, que cubren el mismo nivel para la gran mayoría de los casos.</li>
             </ul>
 
             <h2 className="text-2xl mt-12 mb-6">3. Kodak Lenses: La Decisión Inteligente</h2>
@@ -88,10 +88,10 @@ export default function VariluxVsKodakVsZeissPage() {
 
             <h2 className="text-2xl mt-12 mb-6">Conclusión: ¿Qué multifocal elegir en Córdoba?</h2>
             <p>
-              En óptica de alta complejidad, las recetas universales no existen. La decisión final es un proceso a medida que construimos juntos en nuestros locales, analizando:
+              En óptica de alta complejidad, las recetas universales no existen. La decisión final es un proceso a medida que construimos juntos en nuestro local, analizando:
             </p>
             <ol className="list-decimal pl-6 mb-8 space-y-2">
-              <li><strong>Tu receta médica:</strong> Ciertas miopías, hipermetropías o adiciones elevadas por presbicia &quot;piden&quot; características puntuales que un diseño de Zeiss o Varilux puede resolver mejor.</li>
+              <li><strong>Tu receta médica:</strong> Ciertas miopías, hipermetropías o adiciones elevadas por presbicia &quot;piden&quot; características puntuales que un diseño de Varilux o Kodak puede resolver mejor.</li>
               <li><strong>Tu memoria visual:</strong> Si hace años usás Varilux y te sentís bárbaro, nuestro consejo suele ser actualizarte a una generación superior dentro de la misma familia.</li>
               <li><strong>Tu ergonomía visual:</strong> Evaluamos tus horas frente a la computadora, si manejás de noche o si practicás deportes de precisión.</li>
             </ol>
@@ -102,7 +102,7 @@ export default function VariluxVsKodakVsZeissPage() {
             <div className="bg-[#e8e2db]/30 p-8 rounded-2xl mt-12 text-center border border-[#e8e2db]">
               <h3 className="text-xl font-medium tracking-tight mb-4">¿Buscás asesoramiento experto? ¡Vení con tu receta!</h3>
               <p className="mb-6 text-black/70">
-                Traé la receta de tu oftalmólogo a cualquiera de nuestras sucursales en <strong>Cerro de las Rosas</strong> o <strong>Nueva Córdoba</strong>. Te vamos a asesorar de forma personalizada, mostrándote qué cristales y armazones de diseño se adaptan verdaderamente a tus necesidades y presupuesto.
+                Traé la receta de tu oftalmólogo a nuestro local en el <strong>Cerro de las Rosas</strong>. Te vamos a asesorar de forma personalizada, mostrándote qué cristales y armazones de diseño se adaptan verdaderamente a tus necesidades y presupuesto.
               </p>
               <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer"
                 className="inline-block bg-[#111] text-white px-8 py-3 rounded-full font-medium tracking-tight hover:bg-black transition-colors"

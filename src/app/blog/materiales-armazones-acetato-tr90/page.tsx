@@ -4,8 +4,8 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/materiales-armazones-acetato-tr90' },
-  title: "Acetato Italiano vs Metal vs Inyectado: ¿Cuál dura más? | Óptica en Córdoba",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/materiales-armazones-acetato-tr90' },
+  title: { absolute: "Acetato Italiano vs Metal vs Inyectado: ¿Cuál dura más? | Óptica en Córdoba" },
   description: "Descubrí las diferencias entre anteojos de acetato, metal e inyectado. Analizamos durabilidad, estética y alergias. Tu óptica en Córdoba (Nueva Córdoba, Cerro de las Rosas). Envíos a todo el país.",
   keywords: ["óptica en Córdoba", "armazones acetato italiano", "anteojos de metal", "armazones inyectados TR90", "Nueva Córdoba", "Cerro de las Rosas", "anteojos de receta Córdoba", "lentes hipoalergénicos"],
 };

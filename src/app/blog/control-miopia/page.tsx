@@ -5,8 +5,8 @@ import Image from "next/image";
 
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/control-miopia' },
-  title: "Control de Miopía en Córdoba | Cristales Stellest - Atelier Óptica",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/control-miopia' },
+  title: { absolute: "Control de Miopía en Córdoba | Cristales Stellest - Atelier Óptica" },
   description: "Descubrí el revolucionario tratamiento de control de miopía con cristales Essilor Stellest en Córdoba. Asesoramiento en Cerro de las Rosas y Nueva Córdoba.",
   keywords: ["control de miopía Córdoba", "cristales Stellest Córdoba", "desenfoque periférico", "Essilor Stellest", "óptica Cerro de las Rosas", "óptica Nueva Córdoba", "salud visual infantil", "frenar miopía niños"],
 };

@@ -5,8 +5,8 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/lentes-fotocromaticos-transitions' },
-  title: "Lentes Fotocromáticos Transitions: ¿Valen la Pena? | Óptica en Córdoba",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/lentes-fotocromaticos-transitions' },
+  title: { absolute: "Lentes Fotocromáticos Transitions: ¿Valen la Pena? | Óptica en Córdoba" },
   description: "Descubrí cómo los cristales fotocromáticos Transitions protegen tu visión y se adaptan a la luz. Asesoramiento experto en Atelier Óptica, zona Cerro de las Rosas y Nueva Córdoba. ¡Envíos a toda Argentina!",
   keywords: ["lentes fotocromáticos transitions", "cristales transitions", "anteojos inteligentes", "óptica Cerro de las Rosas", "óptica Nueva Córdoba", "Atelier Óptica Córdoba", "protección UV", "anteojos de receta", "envíos a toda Argentina"],
 };

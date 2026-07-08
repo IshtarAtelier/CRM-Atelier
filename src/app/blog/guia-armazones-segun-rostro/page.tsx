@@ -2,12 +2,11 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { User, Square, Heart, Info, Glasses } from "lucide-react";
-import Link from 'next/link';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/guia-armazones-segun-rostro' },
-  title: "Guía para Elegir Armazones Según tu Rostro | Atelier Óptica Córdoba",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/guia-armazones-segun-rostro' },
+  title: { absolute: "Guía para Elegir Armazones Según tu Rostro | Atelier Óptica Córdoba" },
   description: "Descubrí qué anteojos de receta van perfecto con tu rostro. Asesoramiento estético y técnico en Atelier Óptica, Córdoba (zona Cerro de las Rosas y Nueva Córdoba). Envíos a toda Argentina.",
   keywords: ["óptica en Córdoba", "anteojos de receta Córdoba", "lentes según rostro", "armazones de diseño", "Atelier Óptica Cerro de las Rosas", "óptica Nueva Córdoba", "envíos a toda Argentina", "asesoramiento estético anteojos", "guía armazones según rostro", "anteojos de moda", "lentes de receta"],
 };
@@ -149,12 +148,14 @@ export default function GlassesFrameGuidePage() {
                 <p className="text-white/80 mb-6 max-w-lg mx-auto">
                   Acercate con tu prescripción médica a nuestra óptica en <strong>Córdoba</strong> (a minutos de Nueva Córdoba y el Cerro). Te brindaremos un asesoramiento de imagen personalizado para que descubras ese armazón que potencie tu estilo al máximo nivel. Si no estás en la ciudad, ¡no te preocupes! Realizamos <strong>envíos seguros a toda la Argentina</strong>.
                 </p>
-                <Link 
-                  href="/turnos" 
+                <a
+                  href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent('Hola! Quiero coordinar un turno para asesorarme con mis anteojos')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-block bg-[#faf8f5] text-black px-8 py-3 font-medium rounded-full hover:bg-neutral-200 transition-colors"
                 >
                   Agendar un Turno Exclusivo
-                </Link>
+                </a>
               </div>
 
             </div>
