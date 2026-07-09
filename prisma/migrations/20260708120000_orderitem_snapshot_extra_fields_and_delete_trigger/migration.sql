@@ -40,18 +40,10 @@ CREATE TRIGGER trg_freeze_orderitem_snapshot
   BEFORE DELETE ON "Product"
   FOR EACH ROW EXECUTE FUNCTION freeze_orderitem_snapshot();
 
--- 3) Backfill único: rellena la foto en las líneas de venta cuyo producto sigue
---    vivo pero quedaron sin snapshot (ventas viejas). Idempotente (COALESCE solo
---    completa NULLs). Las líneas cuyo producto ya fue borrado no tienen origen del
---    cual recuperar y quedan como están.
-UPDATE "OrderItem" oi SET
-  "productNameSnapshot"      = COALESCE(oi."productNameSnapshot", p."model", p."name"),
-  "productBrandSnapshot"     = COALESCE(oi."productBrandSnapshot", p."brand"),
-  "productCategorySnapshot"  = COALESCE(oi."productCategorySnapshot", p."category"),
-  "productCostSnapshot"      = COALESCE(oi."productCostSnapshot", p."cost", 0),
-  "laboratorySnapshot"       = COALESCE(oi."laboratorySnapshot", p."laboratory"),
-  "productTypeSnapshot"      = COALESCE(oi."productTypeSnapshot", p."type"),
-  "productLensIndexSnapshot" = COALESCE(oi."productLensIndexSnapshot", p."lensIndex"),
-  "productUnitTypeSnapshot"  = COALESCE(oi."productUnitTypeSnapshot", p."unitType")
-FROM "Product" p
-WHERE oi."productId" = p."id";
+-- 3) Backfill: NO va en la migración (a propósito, para no correr un UPDATE pesado en el
+--    arranque del deploy). El trigger de arriba ya congela los 8 campos al borrar cualquier
+--    producto vivo, y la medición mostró 0 ventas con la foto core vacía y 0 huérfanas, así
+--    que no hay pérdida posible sin backfill. Si se quiere rellenar proactivamente los 3
+--    campos nuevos en ventas viejas, correr aparte y controlado (no bloquea prod):
+--      node scripts/utils/backfill_order_item_snapshots.js           (dry, solo informa)
+--      node scripts/utils/backfill_order_item_snapshots.js --commit  (escribe)
