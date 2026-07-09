@@ -678,13 +678,13 @@ export function ProductClient({
                 href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(
                   isWholesale 
                     ? `¡Hola! Soy de la óptica ${currentUser?.name || ''} y quiero consultar por el anteojo mayorista ${product.brand || ''} ${product.model || ''} por $${(product.wholesalePrice || product.price || 0).toLocaleString("es-AR")}.`
-                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round(effectivePrice * 0.85).toLocaleString("es-AR")} por transferencia o $${effectivePrice.toLocaleString("es-AR")} en cuotas. ¿Me pasarían los datos de pago?`
+                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round(effectivePrice * (1 - cashDiscount / 100)).toLocaleString("es-AR")} por transferencia o $${effectivePrice.toLocaleString("es-AR")} en cuotas. ¿Me pasarían los datos de pago?`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-stone-500 font-bold uppercase tracking-widest hover:text-[#1b4332] transition-colors flex items-center justify-center gap-1.5 underline underline-offset-4"
+                className="w-full flex items-center justify-center gap-2 border-2 border-[#1b4332] text-[#1b4332] hover:bg-[#1b4332] hover:text-white text-xs font-black uppercase tracking-widest py-3.5 rounded-sm transition-all duration-300"
               >
-                <WhatsAppIcon className="w-3.5 h-3.5 fill-current" /> Comprar directo por WhatsApp
+                <WhatsAppIcon className="w-4 h-4 fill-current" /> Comprar directo por WhatsApp
               </a>
 
               <a 

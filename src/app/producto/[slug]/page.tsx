@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { cache } from 'react';
 import { redirect, permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { rethrowUnlessBuild } from '@/lib/db-guard';
@@ -31,7 +32,9 @@ const DEMO_PRODUCT = {
   description: "Anteojos de receta estilo vintage Carey. Diseño premium ideal para multifocales."
 };
 
-async function getProduct(slug: string) {
+// cache(): la misma request llama getProduct dos veces (generateMetadata + la
+// página). Memoizamos para no pegarle dos veces a la base por el mismo slug.
+const getProduct = cache(async (slug: string) => {
   if (slug === 'atelier-carey-vintage') {
     return DEMO_PRODUCT;
   }
@@ -51,7 +54,7 @@ async function getProduct(slug: string) {
     if (webProduct && webProduct.isActive) {
       return {
         id: webProduct.product.id,
-        brand: 'ATELIER',
+        brand: webProduct.product.brand || 'ATELIER',
         model: webProduct.name || webProduct.product.model || '',
         modelCode: webProduct.product.model,
         price: webProduct.product.price,
@@ -85,7 +88,7 @@ async function getProduct(slug: string) {
 
     return {
       id: product.id,
-      brand: 'ATELIER',
+      brand: product.brand || 'ATELIER',
       model: product.model || 'Sin modelo',
       modelCode: product.model,
       price: product.price,
@@ -114,7 +117,7 @@ async function getProduct(slug: string) {
     rethrowUnlessBuild(error, 'Producto');
     return null;
   }
-}
+});
 
 // Saca sufijos tipo "| Atelier" / "| Atelier Óptica" que ya vienen en el seoTitle,
 // para no duplicar la marca cuando armamos el title final
@@ -149,6 +152,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     // absolute: evita que el template del layout ("%s | Atelier Óptica") vuelva a agregar la marca
     title: { absolute: title },
     description,
+    // El producto DEMO tiene un Offer falso InStock: no debe indexarse.
+    robots: product.slug === 'atelier-carey-vintage' ? { index: false, follow: false } : undefined,
     alternates: {
       canonical: `https://atelieroptica.com.ar/producto/${product.slug}`,
     },
@@ -182,7 +187,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await getProduct(resolvedParams.slug);
 
   if (!product) {
-    redirect('/tienda');
+    // Producto discontinuado que ya no existe (y no es un renombrado conocido de
+    // LEGACY_SLUGS). En vez de servir un soft-404 (HTTP 200 con "Producto no
+    // encontrado" — que Google penaliza y desperdicia crawl), redirigimos a la
+    // categoría más afín para no perder al visitante ni ensuciar el índice.
+    // Redirect TEMPORAL (307), no permanente: si el producto se reactiva más
+    // adelante, el link vuelve a funcionar sin quedar "pegado" en cachés/Google.
+    // getProduct ya relanza ante fallo de DB (rethrowUnlessBuild), así que acá
+    // null == genuinamente inexistente, nunca un problema transitorio de base.
+    const s = resolvedParams.slug.toLowerCase();
+    const esSol = s.includes('lentes-de-sol') || s.includes('sunglass');
+    redirect(esSol ? '/lentes-de-sol' : '/tienda');
   }
 
   // Get material from product attributes
@@ -234,14 +249,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       where: {
         isActive: true,
         category: product.category,
-        productId: { not: product.id }
+        productId: { not: product.id },
+        product: { publishToWeb: true }
       },
       include: { product: true },
+      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
       take: 4
     });
     relatedProducts = siblings.map(wp => ({
       id: wp.product.id,
-      brand: 'ATELIER',
+      brand: wp.product.brand || 'ATELIER',
       model: wp.name || wp.product.model || '',
       price: wp.product.price,
       salePrice: wp.product.salePrice,

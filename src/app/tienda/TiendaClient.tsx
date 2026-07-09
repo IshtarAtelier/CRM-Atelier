@@ -450,11 +450,6 @@ export function TiendaClient({
                             Oferta -{Math.round((1 - p.salePrice / p.price) * 100)}%
                           </span>
                         )}
-                        {!isWholesale && (
-                          <span className="bg-[#1a1a1a] text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 shadow-sm">
-                            {webSettings.web_promo_cash_discount}% OFF
-                          </span>
-                        )}
                         {p.stock !== undefined && p.stock > 0 && p.stock <= 3 && (
                           <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
                             Últimas {p.stock} u.
@@ -551,16 +546,28 @@ export function TiendaClient({
                         const hasSale = p.salePrice != null && p.salePrice > 0 && p.salePrice < (p.price || 0);
                         const base = hasSale ? p.salePrice : (p.price || 0);
                         return (
-                          <div className="pt-3 flex items-center gap-2 flex-wrap">
-                            <p className="text-lg font-black text-stone-900 tracking-tight">
-                              ${Math.round(base * (1 - discountRate)).toLocaleString("es-AR")}
-                            </p>
-                            <p className="text-sm font-medium text-stone-500 line-through decoration-1">
-                              ${(p.price || 0).toLocaleString("es-AR")}
-                            </p>
-                            {hasSale && (
-                              <span className="text-[9px] font-black uppercase text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Oferta</span>
-                            )}
+                          <div className="pt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex flex-col gap-0.5">
+                              <p className="flex flex-col">
+                                <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">
+                                  {installmentsCount} cuotas de
+                                </span>
+                                <span className="text-[15px] font-black text-stone-900 tracking-tight whitespace-nowrap">
+                                  ${Math.round(base / installmentsCount).toLocaleString("es-AR")}
+                                </span>
+                              </p>
+                              <p className="text-[10px] text-stone-500 font-medium">
+                                ${Math.round(base * (1 - discountRate)).toLocaleString("es-AR")} eft/transf
+                              </p>
+                            </div>
+                            <div className="flex flex-row flex-wrap gap-1 sm:flex-col sm:items-end">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+                                {webSettings.web_promo_cash_discount}% OFF 🔥
+                              </span>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-stone-700 bg-stone-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+                                Envío Gratis
+                              </span>
+                            </div>
                           </div>
                         );
                       })()}

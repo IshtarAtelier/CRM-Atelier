@@ -130,7 +130,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let productRoutes: any[] = [];
   try {
     const products = await prisma.webProduct.findMany({
-      where: { isActive: true },
+      // Espejamos el catálogo: solo lo publicado y sin Cristal, para no indexar
+      // URLs que la ficha redirige o que no representan productos comprables.
+      where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } },
       select: { slug: true, updatedAt: true }
     });
     productRoutes = products.map((product) => ({

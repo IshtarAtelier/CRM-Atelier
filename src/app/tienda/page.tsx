@@ -32,6 +32,7 @@ export default async function TiendaPage() {
         isActive: true,
         product: {
           publishToWeb: true,
+          category: { not: 'Cristal' },
         }
       },
       select: {
@@ -115,7 +116,9 @@ async function getWebCatalog(): Promise<any[]> {
       include: {
         product: true
       },
-      orderBy: { createdAt: 'desc' }
+      // Destacados primero (isFeatured), luego lo más nuevo: la vitrina abre por
+      // lo curado, no por el último lote. Mismo criterio que la API del catálogo.
+      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }]
     });
 
     mappedProducts = webProducts.map(wp => {
@@ -135,7 +138,7 @@ async function getWebCatalog(): Promise<any[]> {
         salePrice: wp.product.salePrice,
         stock: wp.product.stock,
         slug: wp.slug,
-        imagenesCatalogo: wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || []),
+        imagenesCatalogo: (wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || [])).slice(0, 2),
         shape: isXl ? "XL" : (shape || "Otros"),
         material: material || "Acetato",
         gender: wp.product.gender || "Unisex"
