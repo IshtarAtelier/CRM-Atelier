@@ -103,6 +103,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
         return (p.brand || '').toLowerCase().includes(term) ||
                (p.name || '').toLowerCase().includes(term) ||
                (p.model || '').toLowerCase().includes(term) ||
+               (p.modelCode || '').toLowerCase().includes(term) ||
                (p.category || '').toLowerCase().includes(term);
       })
     : [];
