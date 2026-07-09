@@ -121,6 +121,7 @@ export function ProductClient({
   const whatsappPhoneId = (settings?.web_store_whatsapp_id || WHATSAPP_PHONE).replace(/\D/g, '');
   const cashDiscount = settings && settings.web_promo_cash_discount && !isNaN(Number(settings.web_promo_cash_discount)) ? Number(settings.web_promo_cash_discount) : 15;
   const installmentsText = settings ? settings.web_promo_installments : "6 cuotas sin interés";
+  const installmentsCount = parseInt(installmentsText?.match(/\d+/)?.[0] || "6", 10);
 
   const images = product.imagenesCatalogo && product.imagenesCatalogo.length > 0
     ? product.imagenesCatalogo.map((key: string) => resolveStorageUrl(key)).filter(Boolean)
@@ -193,7 +194,7 @@ export function ProductClient({
           )}
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="w-full lg:w-[85%] aspect-square lg:max-h-full relative bg-[#fdfdfd] border border-[#f0f0f0] shadow-sm flex items-center justify-center"
@@ -202,7 +203,7 @@ export function ProductClient({
               {images.length > 0 ? (
                 <motion.div
                   key={activeImageIndex}
-                  initial={{ opacity: 0 }}
+                  initial={activeImageIndex === 0 ? false : { opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.4 }}
@@ -213,7 +214,7 @@ export function ProductClient({
                     alt={altFor(activeImageIndex)}
                     fill
                     priority={activeImageIndex === 0}
-                    sizes="(max-width: 1024px) 100vw, 85vw"
+                    sizes="(max-width: 1024px) 100vw, 51vw"
                     style={{ objectFit: activeImageIndex === 0 ? "contain" : "cover", transform: "translateZ(0)" }}
                     className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-125" : ((product.model || '').toLowerCase().includes('diana') ? "p-0 scale-110" : "p-8 lg:p-12")) : ""}
                   />
@@ -504,10 +505,14 @@ export function ProductClient({
                           />
                         </div>
 
-                        <button 
-                          onClick={() => {
-                            navigator.clipboard.writeText(window.location.href);
-                            alert("¡Enlace copiado al portapapeles!");
+                        <button
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(window.location.href);
+                              alert("¡Enlace copiado al portapapeles!");
+                            } catch {
+                              window.prompt("Copiá el enlace:", window.location.href);
+                            }
                           }}
                           className="flex items-center gap-2 text-xs uppercase font-bold tracking-widest text-[#78716c] hover:text-black transition-colors"
                         >
@@ -541,7 +546,7 @@ export function ProductClient({
                           <Truck className="w-5 h-5 text-[#2b6a22]" />
                           <div>
                             <p className="text-sm font-bold text-[#2b6a22]">Envío gratis a todo el país</p>
-                            <p className="text-[11px] text-[#2b6a22]/80 mt-0.5">Promoción especial por esta semana.</p>
+                            <p className="text-[11px] text-[#2b6a22]/80 mt-0.5">Sin monto mínimo, a todo el país.</p>
                           </div>
                         </div>
                         <div className="mt-4 p-4 bg-stone-50 border border-stone-200 text-stone-800 text-xs flex flex-col gap-3 rounded-lg">
@@ -628,7 +633,7 @@ export function ProductClient({
               </div>
               <div className="flex flex-col items-center text-center p-1">
                 <CreditCard className="w-4 h-4 text-stone-700 mb-1" />
-                <span className="text-[10px] font-black uppercase tracking-wider text-stone-800">6 Cuotas</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-stone-800">{installmentsCount} Cuotas</span>
               </div>
               <div className="flex flex-col items-center text-center p-1">
                 <Truck className="w-4 h-4 text-stone-700 mb-1" />
@@ -636,7 +641,7 @@ export function ProductClient({
               </div>
               <div className="flex flex-col items-center text-center p-1">
                 <Percent className="w-4 h-4 text-stone-700 mb-1" />
-                <span className="text-[10px] font-black uppercase tracking-wider text-stone-800">15% OFF</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-stone-800">{cashDiscount}% OFF</span>
               </div>
             </div>
             
