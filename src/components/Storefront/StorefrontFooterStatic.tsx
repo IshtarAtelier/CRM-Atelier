@@ -37,6 +37,17 @@ export function StorefrontFooterStatic() {
             <Link href="/blog" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Editorial</Link>
           </div>
 
+          {/* Comprar / Categorías */}
+          <div className="flex flex-col gap-1 md:gap-3">
+            <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Comprar</p>
+            <Link href="/receta" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Anteojos de Receta</Link>
+            <Link href="/lentes-de-sol" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Lentes de Sol</Link>
+            <Link href="/clip-on" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Clip-On 2 en 1</Link>
+            <Link href="/arma-tus-lentes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Armá tus Lentes</Link>
+            <Link href="/obras-sociales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Obras Sociales</Link>
+            <Link href="/urgencias" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Urgencias 24h</Link>
+          </div>
+
           {/* Ubicación */}
           <div className="flex flex-col gap-3">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Visitanos</p>
