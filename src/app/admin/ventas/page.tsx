@@ -595,8 +595,8 @@ export default function VentasPage() {
         new Set(
             orders.flatMap(o =>
                 o.items
-                    .filter(i => i.product?.category === 'Cristal' && (i.product as any)?.laboratory)
-                    .map(i => (i.product as any).laboratory as string)
+                    .filter(i => (i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal') && (i.product?.laboratory || i.laboratorySnapshot))
+                    .map(i => (i.product?.laboratory || i.laboratorySnapshot) as string)
             )
         )
     ).sort();
@@ -727,7 +727,7 @@ export default function VentasPage() {
             (o.labOrderNumber || '').toLowerCase().includes(word)
         );
         const matchLab = filterLab === 'ALL' || (o.labStatus || 'NONE') === filterLab;
-        const matchLaboratory = filterLaboratory === 'ALL' || (o.items || []).some(i => i.product?.category === 'Cristal' && (i.product as any)?.laboratory === filterLaboratory);
+        const matchLaboratory = filterLaboratory === 'ALL' || (o.items || []).some(i => (i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal') && (i.product?.laboratory || i.laboratorySnapshot) === filterLaboratory);
         const matchDate = (!dateFrom || new Date(o.createdAt) >= new Date(dateFrom)) && (!dateTo || new Date(o.createdAt) <= new Date(dateTo + 'T23:59:59'));
         const matchBalance = !filterBalance || getFinancials(o.id).hasBalance;
         const matchSeller = filterSeller === 'ALL' || filterSeller === '__LOADING__' || o.userId === filterSeller;
@@ -1299,11 +1299,11 @@ export default function VentasPage() {
                         const LabIcon = labInfo.icon;
                         const isUpdating = updatingId === order.id;
                         const financials = getFinancials(order.id);
-                        const isGrupoOptico = (order.items || []).some((i: any) => i.product?.category === 'Cristal' && /grupo[\s\-]?ó?o?ptico/i.test((i.product as any)?.laboratory || ''));
+                        const isGrupoOptico = (order.items || []).some((i: any) => (i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal') && /grupo[\s\-]?ó?o?ptico/i.test((i.product?.laboratory || i.laboratorySnapshot) || ''));
                         const orderLabs = Array.from(new Set(
                             (order.items || [])
-                                .filter((i: any) => i.product?.category === 'Cristal' && (i.product as any)?.laboratory)
-                                .map((i: any) => (i.product as any).laboratory as string)
+                                .filter((i: any) => (i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal') && (i.product?.laboratory || i.laboratorySnapshot))
+                                .map((i: any) => (i.product?.laboratory || i.laboratorySnapshot) as string)
                         ));
 
                         return (

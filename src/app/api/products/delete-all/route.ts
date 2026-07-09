@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-// DELETE /api/products/delete-all — Remove all products (clears OrderItems first)
+// DELETE /api/products/delete-all — Borra TODOS los productos SIN tocar el historial de ventas.
+// El trigger de la base (freeze_orderitem_snapshot) congela la foto de cada producto en sus
+// líneas de venta antes de borrarlo, y la FK ON DELETE SET NULL preserva las líneas. Las ventas
+// quedan intactas. (Antes este endpoint borraba TODOS los OrderItems primero — destruía el
+// historial completo. Ya no.)
 export async function DELETE(request: Request) {
     try {
         const role = request.headers.get('x-user-role');
@@ -9,18 +13,12 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'Acceso denegado. Se requiere rol ADMIN.' }, { status: 403 });
         }
 
-        // First delete all OrderItems referencing products
-        // First delete all OrderItems referencing products
-        const deletedItems = await prisma.orderItem.deleteMany({});
-        
-        // Then delete all products
         const deletedProducts = await prisma.product.deleteMany({});
 
         return NextResponse.json({
             success: true,
-            message: `Se eliminaron ${deletedProducts.count} productos y ${deletedItems.count} items de órdenes.`,
+            message: `Se eliminaron ${deletedProducts.count} productos. El historial de ventas quedó intacto.`,
             deletedProducts: deletedProducts.count,
-            deletedOrderItems: deletedItems.count,
         });
     } catch (error: any) {
         console.error('Error deleting all products:', error);

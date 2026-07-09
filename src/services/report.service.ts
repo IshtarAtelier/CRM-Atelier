@@ -69,6 +69,9 @@ export class ReportService {
                         productNameSnapshot: true,
                         productBrandSnapshot: true,
                         laboratorySnapshot: true,
+                        productTypeSnapshot: true,
+                        productLensIndexSnapshot: true,
+                        productUnitTypeSnapshot: true,
                         product: {
                             select: {
                                 id: true,
@@ -421,12 +424,11 @@ export class ReportService {
         const labOrderIds: Record<string, Set<string>> = {};
         for (const order of orders) {
             for (const item of order.items) {
-                const product = item.product;
-                if (!product) continue;
-
-                const cat = (product.category || '').toUpperCase();
-                const labName = product.laboratory;
-                if (labName && (cat.includes('CRISTAL') || (product.type || '').includes('Cristal') || (product.type || '').includes('Multifocal') || (product.type || '').includes('Monofocal'))) {
+                // Snapshot-first: la orden cuenta en su laboratorio aunque el producto se haya borrado.
+                const cat = (item.productCategorySnapshot || item.product?.category || '').toUpperCase();
+                const labName = item.laboratorySnapshot || item.product?.laboratory || null;
+                const type = item.productTypeSnapshot || item.product?.type || '';
+                if (labName && (cat.includes('CRISTAL') || type.includes('Cristal') || type.includes('Multifocal') || type.includes('Monofocal'))) {
                     if (!labOrderIds[labName]) labOrderIds[labName] = new Set();
                     labOrderIds[labName].add(order.id);
                 }

@@ -3,6 +3,7 @@ import { sendEmail } from '@/lib/email';
 import { ContactService } from '@/services/contact.service';
 import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
+import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { recalculateCrystalPrices } from '@/lib/promo-utils';
 import { z } from 'zod';
@@ -514,11 +515,11 @@ export class OrderService {
                         cylinderVal: isCrystal && rxDetails ? (isOD ? rxDetails.cylinderOD : rxDetails.cylinderOI) : (item.cylinderVal ?? null),
                         axisVal: isCrystal && rxDetails ? (isOD ? rxDetails.axisOD : rxDetails.axisOI) : (item.axisVal ?? null),
                         additionVal: isCrystal && rxDetails ? (isOD ? (rxDetails.additionOD ?? rxDetails.addition) : (rxDetails.additionOI ?? rxDetails.addition)) : (item.additionVal ?? null),
-                        productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : (item.productNameSnapshot || null),
-                        productBrandSnapshot: dbProd ? (dbProd.brand || null) : (item.productBrandSnapshot || null),
-                        productCategorySnapshot: dbProd ? (dbProd.category || null) : (item.productCategorySnapshot || null),
-                        productCostSnapshot: dbProd ? (dbProd.cost || 0) : null,
-                        laboratorySnapshot: dbProd ? (dbProd.laboratory || null) : null,
+                        ...snapshotFromProduct(dbProd, {
+                            name: item.productNameSnapshot,
+                            brand: item.productBrandSnapshot,
+                            category: item.productCategorySnapshot,
+                        }),
                         crystalColor: item.crystalColor || null,
                         crystalColorType: item.crystalColorType || null,
                     };

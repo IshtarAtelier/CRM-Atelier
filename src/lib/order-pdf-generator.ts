@@ -160,7 +160,7 @@ function getOrderHtml(order: any, client: any): string {
                     totalDisplay = '<span style="color:#10b981; font-weight:900;">$0</span>';
                 }
 
-                const refIndex = it.product?.lensIndex || '';
+                const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
                 return `
                 <tr>
                     <td>
@@ -439,7 +439,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         else if (it.eye) eyeLabel = it.eye;
         
         let itemName = `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.trim();
-        const refIndex = it.product?.lensIndex || '';
+        const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
         if (refIndex) itemName += `\n   Índice: ${refIndex}`;
         if (eyeLabel) itemName += `\n   Lado: ${eyeLabel}`;
         

@@ -344,6 +344,9 @@ model OrderItem {
   crystalColorType        String?
   laboratorySnapshot      String?
   productCostSnapshot     Float?
+  productTypeSnapshot      String?
+  productLensIndexSnapshot String?
+  productUnitTypeSnapshot  String?
   order                   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product                 Product? @relation(fields: [productId], references: [id])
 

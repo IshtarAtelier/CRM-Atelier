@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
+import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { isMultifocal2x1, recalculateCrystalPrices } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
@@ -125,6 +126,7 @@ export async function POST(request: Request) {
                             sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
                             crystalColor: true, crystalColorType: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
+                            laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true,
                             product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true } }
                         }
                     },
@@ -172,11 +174,7 @@ export async function POST(request: Request) {
                                 additionVal: item.additionVal ?? null,
                                 crystalColor: item.crystalColor || null,
                                 crystalColorType: item.crystalColorType || null,
-                                productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
-                                productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
-                                productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
-                                productCostSnapshot: dbProd ? (dbProd.cost || 0) : null,
-                                laboratorySnapshot: dbProd ? (dbProd.laboratory || null) : null,
+                                ...snapshotFromProduct(dbProd),
                             };
                         }),
                     },
@@ -206,6 +204,7 @@ export async function POST(request: Request) {
                             sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
                             crystalColor: true, crystalColorType: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
+                            laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true,
                             product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true } }
                         }
                     },
@@ -414,6 +413,7 @@ export async function GET(request: Request) {
                     pdVal: true, heightVal: true, prismVal: true,
                     crystalColor: true, crystalColorType: true,
                     productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
+                    laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true,
                     product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true, lensIndex: true, origin: true } }
                 }
             },

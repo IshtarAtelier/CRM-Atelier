@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { ContactService, normalizeArgentinePhone } from '@/services/contact.service';
 
 export async function POST(req: Request) {
@@ -56,6 +57,12 @@ export async function POST(req: Request) {
         // 3. Crear Orden
         const orderNotes = `Pedido Web\nCristales: ${lensType} ${treatment ? '- ' + treatment : ''}\nTinte: ${tintColor || 'Ninguno'}`;
 
+        // Foto del producto para la línea de venta: si vino un armazón, la tomamos de él;
+        // si no, describimos los cristales. Así el "Pedido Web" conserva qué se vendió aunque
+        // el producto se borre o renombre después (mismo criterio que los demás canales).
+        const dbFrame = productId ? await prisma.product.findUnique({ where: { id: productId } }) : null;
+        const webLineName = `Cristales ${lensType || ''}${treatment ? ' - ' + treatment : ''}`.trim();
+
         const order = await prisma.order.create({
             data: {
                 clientId: client.id,
@@ -69,6 +76,7 @@ export async function POST(req: Request) {
                     create: [
                         {
                             productId: productId || undefined, // Si viene armazón, lo vinculamos
+                            ...snapshotFromProduct(dbFrame, { name: webLineName, category: 'Cristal' }),
                             quantity: 1,
                             price: totalPrice, // Por ahora englobamos el precio total acá
                         }
