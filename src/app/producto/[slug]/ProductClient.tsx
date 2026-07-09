@@ -5,6 +5,7 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
+import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
@@ -736,6 +737,9 @@ export function ProductClient({
           </div>
         </div>
       )}
+
+      {/* Prueba social: reseñas reales de Google, pegadas al punto de decisión */}
+      <GoogleReviews />
 
       {footer}
 

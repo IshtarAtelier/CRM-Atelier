@@ -284,6 +284,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const colorMatch = product.model?.match(/\(([^)]+)\)/) || product.model?.match(/\b(C\d+)\b/i);
   const colorCode = colorMatch ? colorMatch[1] : undefined;
 
+  // Vigencia del precio para el Offer (Google la pide); se renueva ~45 días.
+  const priceValidUntil = new Date(Date.now() + 1000 * 60 * 60 * 24 * 45).toISOString().slice(0, 10);
 
   // Generar JSON-LD (Schema.org para Google Shopping / SEO)
   const jsonLd: any = {
@@ -306,9 +308,28 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       price: ((product as any).salePrice != null && (product as any).salePrice > 0 && (product as any).salePrice < product.price) ? (product as any).salePrice : product.price,
       availability: (product.stock !== undefined && product.stock > 0) || product.slug === 'atelier-carey-vintage' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       itemCondition: 'https://schema.org/NewCondition',
+      priceValidUntil,
       seller: {
         '@type': 'Organization',
         name: 'Atelier Óptica',
+      },
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'AR',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        merchantReturnDays: 30,
+        returnMethod: 'https://schema.org/ReturnByMail',
+        returnFees: 'https://schema.org/FreeReturn',
+      },
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: { '@type': 'MonetaryAmount', value: 0, currency: 'ARS' },
+        shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'AR' },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 2, unitCode: 'DAY' },
+          transitTime: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 7, unitCode: 'DAY' },
+        },
       },
     },
   };

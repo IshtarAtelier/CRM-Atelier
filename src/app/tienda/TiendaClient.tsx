@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
+import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 const CATEGORIES = ["Todo", "Receta", "Sol", "Clip-On", "Contacto", "Cristales"];
@@ -602,8 +603,11 @@ export function TiendaClient({
         </div>
       </main>
 
+      {/* Prueba social: reseñas reales de Google en la vitrina principal */}
+      <GoogleReviews />
+
       {footer}
-      
+
     </div>
   );
 }

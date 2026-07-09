@@ -87,15 +87,38 @@ export default async function TiendaPage() {
   const mappedInitialProducts = catalog.slice(0, 24);
   const initialTotalCount = catalog.length;
 
+  const collectionLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Colección de Anteojos | Atelier Óptica',
+    url: 'https://atelieroptica.com.ar/tienda',
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: initialTotalCount,
+      itemListElement: mappedInitialProducts.map((p: any, i: number) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: `https://atelieroptica.com.ar/producto/${p.slug || p.id}`,
+        name: `${p.brand || 'ATELIER'} ${p.model || ''}`.trim(),
+      })),
+    },
+  };
+
   return (
-    <TiendaClient
-      initialProducts={mappedInitialProducts}
-      initialTotalCount={initialTotalCount}
-      availableBrands={availableBrands}
-      availableShapes={availableShapes}
-      availableMaterials={availableMaterials}
-      footer={<StorefrontFooterStatic />}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }}
+      />
+      <TiendaClient
+        initialProducts={mappedInitialProducts}
+        initialTotalCount={initialTotalCount}
+        availableBrands={availableBrands}
+        availableShapes={availableShapes}
+        availableMaterials={availableMaterials}
+        footer={<StorefrontFooterStatic />}
+      />
+    </>
   );
 }
 
