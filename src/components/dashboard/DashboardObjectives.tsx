@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { TrendingUp, Target, Zap, Trophy, Info, Edit3, X, Loader2, Save } from "lucide-react";
+import { TrendingUp, Target, Zap, Trophy, Info, Edit3 } from "lucide-react";
 
 interface DashboardObjectivesProps {
   currentTotal: number;
@@ -81,34 +82,16 @@ export default function DashboardObjectives({
   weekSold = 0
 }: DashboardObjectivesProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editT1, setEditT1] = useState('');
-  const [editT2, setEditT2] = useState('');
-  const [editT3, setEditT3] = useState('');
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-    if (targets) {
-      setEditT1(targets.target1?.toString() || '18000000');
-      setEditT2(targets.target2?.toString() || '24000000');
-      setEditT3(targets.target3?.toString() || '30000000');
-    } else {
-      setEditT1('18000000');
-      setEditT2('24000000');
-      setEditT3('30000000');
-    }
-  }, [targets]);
+  }, []);
 
-  // Base USD equivalents: $18M ≈ 12k, $24M ≈ 16k, $30M ≈ 20k (using 1500 as initial ref)
-  const refUSD1 = 12000;
-  const refUSD2 = 16000;
-  const refUSD3 = 20000;
-
-  // Actual targets are the MAX between the base pesos and the current USD equivalent
-  const t1 = Math.max(targets?.target1 || 18000000, refUSD1 * (dolarBlue || 0));
-  const t2 = Math.max(targets?.target2 || 24000000, refUSD2 * (dolarBlue || 0));
-  const t3 = Math.max(targets?.target3 || 30000000, refUSD3 * (dolarBlue || 0));
+  // Los targets llegan del server ya resueltos en ARS (configurados en USD
+  // y convertidos con el blue del día). Fallback ARS por si no hay datos.
+  const t1 = targets?.target1 || 18000000;
+  const t2 = targets?.target2 || 24000000;
+  const t3 = targets?.target3 || 30000000;
 
   const progress1 = t1 > 0 ? Math.min((currentTotal / t1) * 100, 100) : 0;
   const progress2 = t2 > 0 ? Math.min((currentTotal / t2) * 100, 100) : 0;
@@ -138,28 +121,6 @@ export default function DashboardObjectives({
   };
 
   const formatCurrency = (val: number) => val.toLocaleString('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
-
-  const handleSaveTargets = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch('/api/targets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          target1: editT1,
-          target2: editT2,
-          target3: editT3
-        })
-      });
-      if (res.ok) {
-        setIsEditing(false);
-        window.location.reload(); // Quick refresh to update dashboard
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    setSaving(false);
-  };
 
   if (!isMounted) return <div className="h-[400px] bg-stone-900 rounded-[2.5rem] animate-pulse" />;
 
@@ -194,13 +155,13 @@ export default function DashboardObjectives({
               <span className="text-xl font-black text-white leading-none mt-1">{remainingBusinessDays} <span className="text-xs font-bold text-white/40">/ {totalBusinessDays}</span></span>
             </div>
             {isAdmin && (
-              <button 
-                onClick={() => setIsEditing(true)}
+              <Link
+                href="/admin/configuracion/objetivos"
                 className="bg-white/5 hover:bg-white/10 transition-all duration-300 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 flex items-center gap-2 font-bold hover:scale-102"
               >
                 <Edit3 className="w-4 h-4 text-[#c2a38a]" />
                 <span className="text-xs font-black uppercase tracking-widest text-white">Editar</span>
-              </button>
+              </Link>
             )}
           </div>
         </div>
@@ -323,57 +284,6 @@ export default function DashboardObjectives({
         </div>
       </div>
 
-      {/* Edit Modal */}
-      {isEditing && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-stone-900 border border-white/10 rounded-3xl p-6 lg:p-8 max-w-md w-full shadow-2xl relative"
-          >
-            <button 
-              onClick={() => setIsEditing(false)}
-              className="absolute top-6 right-6 text-stone-400 hover:text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <h3 className="text-xl font-black italic text-white mb-6">Configurar Objetivos Mensuales</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-2">Objetivo Base (ARS)</label>
-                <input type="number" value={editT1} onChange={e => setEditT1(e.target.value)} className="w-full bg-stone-800 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-colors" />
-              </div>
-              <div>
-                <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-2">Objetivo Stretch (ARS)</label>
-                <input type="number" value={editT2} onChange={e => setEditT2(e.target.value)} className="w-full bg-stone-800 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-colors" />
-              </div>
-              <div>
-                <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-2">Objetivo Elite (ARS)</label>
-                <input type="number" value={editT3} onChange={e => setEditT3(e.target.value)} className="w-full bg-stone-800 border border-white/10 rounded-xl px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary transition-colors" />
-              </div>
-            </div>
-            
-            <div className="mt-8 flex justify-end gap-3">
-              <button 
-                onClick={() => setIsEditing(false)}
-                className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-stone-400 hover:text-white transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={handleSaveTargets}
-                disabled={saving}
-                className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-black uppercase tracking-widest hover:bg-primary/80 transition-colors flex items-center gap-2 disabled:opacity-50"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Guardar
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </section>
   );
 }

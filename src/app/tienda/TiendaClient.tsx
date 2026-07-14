@@ -446,11 +446,6 @@ export function TiendaClient({
                     <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
                       {/* Badges en la esquina superior derecha */}
                       <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 items-end">
-                        {!isWholesale && p.salePrice != null && p.salePrice > 0 && p.salePrice < (p.price || 0) && (
-                          <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-wider px-2 py-1 shadow-md rounded">
-                            Oferta -{Math.round((1 - p.salePrice / p.price) * 100)}%
-                          </span>
-                        )}
                         {p.stock !== undefined && p.stock > 0 && p.stock <= 3 && (
                           <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
                             Últimas {p.stock} u.
@@ -544,8 +539,10 @@ export function TiendaClient({
                           </div>
                         </div>
                       ) : (() => {
-                        const hasSale = p.salePrice != null && p.salePrice > 0 && p.salePrice < (p.price || 0);
-                        const base = hasSale ? p.salePrice : (p.price || 0);
+                        // Precio idéntico al del home: siempre sobre el precio de lista
+                        // (price), nunca salePrice, para que un mismo producto muestre el
+                        // mismo valor (cuotas + eft/transf) en la home y en la tienda.
+                        const base = (p.price || 0);
                         return (
                           <div className="pt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex flex-col gap-0.5">

@@ -41,9 +41,16 @@ const FALLBACK_REVIEWS = [
   }
 ];
 
+// Si Google no responde en este tiempo, se corta y se usan las reseñas de respaldo
+// para no bloquear el render de las páginas que llaman a getGoogleReviews().
+const GOOGLE_TIMEOUT_MS = 2500;
+
 export async function fetchLegacyReviews(placeId: string, apiKey: string) {
   const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews,rating,user_ratings_total&key=${apiKey}&language=es`;
-  const response = await fetch(url, { next: { revalidate: 3600 } });
+  const response = await fetch(url, {
+    next: { revalidate: 3600 },
+    signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS),
+  });
   const data = await response.json();
   if (data.status !== 'OK') {
     throw new Error(data.error_message || `Legacy API returned status: ${data.status}`);
@@ -72,7 +79,8 @@ export async function fetchNewReviews(placeId: string, apiKey: string) {
       'X-Goog-Api-Key': apiKey,
       'X-Goog-FieldMask': 'reviews,rating,userRatingCount'
     },
-    next: { revalidate: 3600 }
+    next: { revalidate: 3600 },
+    signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS),
   });
   
   if (!response.ok) {

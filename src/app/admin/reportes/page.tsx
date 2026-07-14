@@ -13,6 +13,7 @@ import { SalesDetailSection } from '@/components/admin/reports/SalesDetailSectio
 import { TopPerformersSection } from '@/components/admin/reports/TopPerformersSection';
 import { LaboratoryStats } from '@/components/admin/reports/LaboratoryStats';
 import { VendorMetrics } from '@/components/admin/reports/VendorMetrics';
+import { ObjectivesReport, MonthObjective } from '@/components/admin/reports/ObjectivesReport';
 import DoctorCommissions from '@/components/admin/DoctorCommissions';
 
 // ── Types ─────────────────────────────────────
@@ -93,6 +94,8 @@ interface ReportData {
     labStats: { laboratory: string; revenue: number; cost: number; profit: number; ordersCount: number; clients?: { name: string; date: string; product: string; revenue: number; cost: number }[] }[];
     billingStats: { account: string; total: number; count: number }[];
     salesDetail: SaleDetail[];
+    objectivesByMonth?: MonthObjective[];
+    dolarBlue?: number | null;
 }
 
 // ── Helpers ────────────────────────────────────
@@ -135,6 +138,18 @@ export default function ReportsDashboard() {
     const [dateTo, setDateTo] = useState('');
     const [activePreset, setActivePreset] = useState('month');
     const [saved, setSaved] = useState(false);
+    const [dolarBlue, setDolarBlue] = useState<number | null>(null);
+
+    // Cotización blue (venta) para mostrar equivalentes en USD
+    useEffect(() => {
+        fetch('https://mercados.ambito.com//dolar/informal/variacion')
+            .then(r => r.json())
+            .then(json => {
+                const venta = parseFloat(json.venta.replace('.', '').replace(',', '.'));
+                if (!isNaN(venta)) setDolarBlue(venta);
+            })
+            .catch(() => { });
+    }, []);
 
     // Restore saved state or default to current month
     useEffect(() => {
@@ -287,7 +302,12 @@ export default function ReportsDashboard() {
                 </div>
             ) : (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both space-y-8">
-                    
+
+                    {/* ── Objetivos por Mes ── */}
+                    {data.objectivesByMonth && data.objectivesByMonth.length > 0 && (
+                        <ObjectivesReport data={data.objectivesByMonth} dolarBlue={data.dolarBlue ?? dolarBlue} />
+                    )}
+
                     {/* ── KPIs Principales ── */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                         <KPICard

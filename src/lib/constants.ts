@@ -50,6 +50,23 @@ export function getCommissionRate(method: string): number {
 // Doctor commission rate
 export const DOCTOR_COMMISSION_RATE = 0.15; // 15%
 
+// Objetivos mensuales por defecto (base de 1 vendedor) cuando no hay
+// MonthlyTarget configurado para el mes. Se configuran en DÓLARES y se
+// convierten a ARS con el blue del día; se ajustan por mes desde
+// /admin/configuracion/objetivos (ej: 2 vendedores = ×2).
+export const DEFAULT_MONTHLY_TARGETS_USD = {
+    target1: 12000, // Base
+    target2: 16000, // Stretch
+    target3: 20000, // Elite
+};
+
+// Fallback en ARS si no hay cotización disponible (último recurso).
+export const DEFAULT_MONTHLY_TARGETS = {
+    target1: 18000000, // Base
+    target2: 24000000, // Stretch
+    target3: 30000000, // Elite
+};
+
 // ISH POSNET Threshold Monitoring
 export const ISH_POSNET_THRESHOLD = 8500000;
 export const ISH_POSNET_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH'];

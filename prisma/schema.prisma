@@ -452,6 +452,9 @@ model MonthlyTarget {
   target1   Float
   target2   Float
   target3   Float?
+  // Moneda de target1-3: "USD" (se convierte a ARS con el blue del día)
+  // o "ARS" (legacy, valor fijo en pesos).
+  currency  String   @default("ARS")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

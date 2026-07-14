@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ContactService } from '@/services/contact.service';
 import { ATTENTION_CUTOFF_ISO } from '@/lib/constants';
+import { resolveMonthlyTargets } from '@/lib/targets';
 
 export const dynamic = 'force-dynamic';
 
@@ -568,13 +569,12 @@ export async function GET(request: Request) {
         const targetMonth = from && from !== 'all' ? new Date(`${from}T00:00:00.000Z`).getUTCMonth() + 1 : now.getUTCMonth() + 1;
         const targetYear = from && from !== 'all' ? new Date(`${from}T00:00:00.000Z`).getUTCFullYear() : now.getUTCFullYear();
         
+        // Objetivos configurados en USD, resueltos a ARS con el blue del día.
         let targets = null;
         try {
-            targets = await prisma.monthlyTarget.findUnique({
-                where: { month_year: { month: targetMonth, year: targetYear } }
-            });
+            targets = await resolveMonthlyTargets(targetMonth, targetYear);
         } catch (e) {
-            console.warn('Could not fetch targets, model might not be in client yet:', e);
+            console.warn('Could not resolve monthly targets:', e);
         }
 
         const pendingBalancesList = !isStaff ? await ContactService.getOrdersWithBalance() : [];
