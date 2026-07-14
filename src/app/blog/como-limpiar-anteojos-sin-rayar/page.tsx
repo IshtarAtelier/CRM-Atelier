@@ -5,8 +5,8 @@ import Link from "next/link";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/como-limpiar-anteojos-sin-rayar' },
-  title: "Cómo limpiar anteojos sin rayar el cristal | Atelier Óptica",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/como-limpiar-anteojos-sin-rayar' },
+  title: { absolute: "Cómo limpiar anteojos sin rayar el cristal | Atelier Óptica" },
   description: "Descubrí el método definitivo para limpiar tus lentes sin dañar el antirreflejo. Guía paso a paso, consejos de expertos en Córdoba y envíos a toda Argentina.",
   keywords: ["cómo limpiar anteojos sin rayar", "limpiar lentes de sol", "cuidado de anteojos", "óptica Córdoba", "nueva Córdoba", "cerro de las rosas", "anteojos de receta", "envíos a toda Argentina"],
 };

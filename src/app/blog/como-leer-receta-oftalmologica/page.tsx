@@ -6,8 +6,8 @@ import { FileText, Eye, CheckCircle } from 'lucide-react';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/como-leer-receta-oftalmologica' },
-  title: "Cómo Leer tu Receta Oftalmológica: Guía Paso a Paso | Atelier Óptica",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/como-leer-receta-oftalmologica' },
+  title: { absolute: "Cómo Leer tu Receta Oftalmológica: Guía Paso a Paso | Atelier Óptica" },
   description: "¿No entendés tu receta oftalmológica (OD, OI, Esfera, Cilindro)? Descubrí cómo interpretarla con nuestra guía. Asesoramiento en Cerro de las Rosas, Nueva Córdoba y envíos a toda Argentina.",
   keywords: ["cómo leer receta oftalmológica", "receta de anteojos", "esfera cilindro eje", "óptica en Córdoba", "Cerro de las Rosas", "Nueva Córdoba", "anteojos de receta", "Atelier Óptica", "astigmatismo", "miopía", "presbicia"],
 };
@@ -132,7 +132,7 @@ export default function LeerRecetaOftalmologicaPage() {
                 ¿Estás en Córdoba Capital? Ya sea que te encuentres por Nueva Córdoba, el Centro o el Cerro de las Rosas, traé la receta que te dio tu oftalmólogo y nuestro equipo se encargará del resto. Si estás en otra provincia, ¡hacemos envíos a toda Argentina! Vas a tener unos anteojos increíbles que vas a amar.
               </p>
               <a href={`https://wa.me/${WHATSAPP_PHONE}`} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-6 py-3 bg-[#faf8f5] text-white font-medium rounded-lg hover:bg-[#faf8f5] transition-colors"
+                className="inline-flex items-center justify-center px-6 py-3 bg-[#111] text-white font-medium rounded-lg hover:bg-black transition-colors"
               >
                 Contactanos por WhatsApp
               </a>

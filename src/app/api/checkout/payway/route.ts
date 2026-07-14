@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
+import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { sendEmail } from '@/lib/email';
 import { ContactService, normalizeArgentinePhone } from '@/services/contact.service';
 import { getWebSettings } from '@/lib/web-settings';
@@ -464,11 +465,10 @@ export async function POST(req: Request) {
         // 1. Agregar el armazón
         orderItemsToCreate.push({
           productId: item.productId || undefined,
+          ...snapshotFromProduct(dbProduct),
           productNameSnapshot: item.model,
           productBrandSnapshot: item.brand,
           productCategorySnapshot: dbProduct?.category || "Armazón",
-          productCostSnapshot: dbProduct ? (dbProduct.cost || 0) : null,
-          laboratorySnapshot: dbProduct ? (dbProduct.laboratory || null) : null,
           quantity: item.quantity,
           price: framePrice,
           eye: null
@@ -491,11 +491,10 @@ export async function POST(req: Request) {
         // 2. Agregar cristal Ojo Derecho (OD)
         orderItemsToCreate.push({
           productId: matchedCrystal ? matchedCrystal.id : undefined,
+          ...snapshotFromProduct(matchedCrystal),
           productNameSnapshot: lensName,
           productBrandSnapshot: "Laboratorio",
           productCategorySnapshot: "Cristal",
-          productCostSnapshot: matchedCrystal ? (matchedCrystal.cost || 0) : null,
-          laboratorySnapshot: matchedCrystal ? (matchedCrystal.laboratory || null) : null,
           quantity: item.quantity,
           price: lensPricePerEye,
           eye: "OD",
@@ -506,11 +505,10 @@ export async function POST(req: Request) {
         // 3. Agregar cristal Ojo Izquierdo (OI)
         orderItemsToCreate.push({
           productId: matchedCrystal ? matchedCrystal.id : undefined,
+          ...snapshotFromProduct(matchedCrystal),
           productNameSnapshot: lensName,
           productBrandSnapshot: "Laboratorio",
           productCategorySnapshot: "Cristal",
-          productCostSnapshot: matchedCrystal ? (matchedCrystal.cost || 0) : null,
-          laboratorySnapshot: matchedCrystal ? (matchedCrystal.laboratory || null) : null,
           quantity: item.quantity,
           price: lensPricePerEye,
           eye: "OI",
@@ -528,11 +526,10 @@ export async function POST(req: Request) {
         
         orderItemsToCreate.push({
           productId: item.productId || undefined,
+          ...snapshotFromProduct(dbProduct),
           productNameSnapshot: item.model,
           productBrandSnapshot: item.brand,
           productCategorySnapshot: dbProduct?.category || null,
-          productCostSnapshot: dbProduct ? (dbProduct.cost || 0) : null,
-          laboratorySnapshot: dbProduct ? (dbProduct.laboratory || null) : null,
           quantity: item.quantity,
           price: item.price,
           eye: null

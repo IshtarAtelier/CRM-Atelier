@@ -366,8 +366,8 @@ function CotizadorPageContent() {
         const isTeñidoAddon = (p.name || '').toLowerCase() === 'teñido' && p.type === 'ADDON';
         if (isTeñidoAddon) {
             const hasOrganicoBlanco = quoteItems.some(item => {
-                const name = (item.product.name || '').toLowerCase();
-                return isCrystal(item.product) && (name.includes('orgánico blanco') || name.includes('organico blanco'));
+                const name = (item.product?.name || '').toLowerCase();
+                return !!item.product && isCrystal(item.product) && (name.includes('orgánico blanco') || name.includes('organico blanco'));
             });
             if (!hasOrganicoBlanco) {
                 const proceed = window.confirm(
@@ -384,7 +384,7 @@ function CotizadorPageContent() {
             // Split crystal into OD/OI automatically
             setQuoteItems(prev => {
                 const is2x1 = isMultifocal2x1(p);
-                const existingPairs = prev.filter(i => i.product.id === p.id && i.eye === 'OD').length;
+                const existingPairs = prev.filter(i => i.product?.id === p.id && i.eye === 'OD').length;
 
                 // Lógica de precio: El primer par se cobra, el segundo es gratis ($0), el tercero se cobra, etc.
                 const isFree = is2x1 && existingPairs % 2 !== 0;
@@ -399,10 +399,10 @@ function CotizadorPageContent() {
             });
         } else {
             setQuoteItems(prev => {
-                const existing = prev.find(i => i.product.id === p.id);
+                const existing = prev.find(i => i.product?.id === p.id);
                 if (existing) {
                     if (existing.quantity >= p.stock) return prev;
-                    return prev.map(i => i.product.id === p.id ? { ...i, quantity: i.quantity + 1 } : i);
+                    return prev.map(i => i.product?.id === p.id ? { ...i, quantity: i.quantity + 1 } : i);
                 }
                 return [...prev, { product: p, quantity: 1, customPrice: sprice }];
             });
@@ -850,7 +850,7 @@ function CotizadorPageContent() {
                                         </thead>
                                         <tbody>
                                             {filtered.map((product, idx) => {
-                                                const inQuote = quoteItems.find(i => i.product.id === product.id);
+                                                const inQuote = quoteItems.find(i => i.product?.id === product.id);
                                                 const sprice = safePrice(product.price);
                                                 const pTotal = sprice * (1 + markup / 100);
                                                 const pCash = pTotal * (1 - discountCash / 100);
@@ -904,7 +904,7 @@ function CotizadorPageContent() {
                                         </div>
                                         <div className="grid grid-cols-1 gap-2">
                                             {brandProducts.map(product => {
-                                                const inQuote = quoteItems.find(i => i.product.id === product.id);
+                                                const inQuote = quoteItems.find(i => i.product?.id === product.id);
                                                 const config = getTypeConfig(product.type, product.category);
                                                 const TypeIcon = config.icon;
                                                 return (

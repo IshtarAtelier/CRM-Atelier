@@ -4,8 +4,8 @@ import { Metadata } from "next";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/por-que-no-pegar-anteojos-la-gotita' },
-  title: "Por qué NUNCA debés pegar tus anteojos rotos con La Gotita | Óptica en Córdoba",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/por-que-no-pegar-anteojos-la-gotita' },
+  title: { absolute: "Por qué NUNCA debés pegar tus anteojos rotos con La Gotita | Óptica en Córdoba" },
   description: "Descubrí por qué pegar tus anteojos con cianoacrilato o La Gotita puede arruinarlos. Desde nuestro taller en Córdoba (cerca de Cerro de las Rosas y Nueva Córdoba) te contamos cómo solucionarlo. Envíos a toda Argentina y cuotas sin interés.",
   keywords: ["óptica en Córdoba", "reparación de anteojos Córdoba", "Nueva Córdoba", "Cerro de las Rosas", "no pegar anteojos con la gotita", "arreglar lentes rotos", "taller óptico Córdoba", "armazones rotos", "soldadura de anteojos", "cianoacrilato lentes"],
 };

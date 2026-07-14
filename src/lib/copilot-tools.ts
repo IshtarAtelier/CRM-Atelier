@@ -765,7 +765,7 @@ const getFinancialReport: CopilotTool = {
       where: { orderType: 'SALE', isDeleted: false, createdAt: { gte: from, lte: to } },
       select: {
         total: true, paid: true, subtotalWithMarkup: true,
-        items: { select: { price: true, quantity: true, product: { select: { cost: true, unitType: true, category: true } } } },
+        items: { select: { price: true, quantity: true, productCostSnapshot: true, productUnitTypeSnapshot: true, product: { select: { cost: true, unitType: true, category: true } } } },
         payments: { select: { amount: true, method: true } },
       },
     });
@@ -775,9 +775,11 @@ const getFinancialReport: CopilotTool = {
       revenue += order.subtotalWithMarkup || order.total || 0;
       for (const p of order.payments) totalPaid += p.amount || 0;
       for (const item of order.items) {
-        if (!item.product) continue;
-        let cost = (item.product.cost || 0) * item.quantity;
-        if (item.product.unitType === 'PAR' && item.price === 0) cost = 0;
+        // Snapshot-first: la línea conserva costo/unidad aunque el producto haya sido borrado.
+        const unitCost = item.productCostSnapshot ?? item.product?.cost ?? 0;
+        const unitType = item.productUnitTypeSnapshot ?? item.product?.unitType ?? null;
+        let cost = unitCost * item.quantity;
+        if (unitType === 'PAR' && item.price === 0) cost = 0;
         totalCost += cost;
       }
     }

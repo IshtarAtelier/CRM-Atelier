@@ -4,8 +4,8 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/lentes-polarizados-vs-comunes' },
-  title: "Lentes Polarizados vs Comunes: La Mejor Opción para Manejar | Atelier Óptica",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/lentes-polarizados-vs-comunes' },
+  title: { absolute: "Lentes Polarizados vs Comunes: La Mejor Opción para Manejar | Atelier Óptica" },
   description: "Descubrí la diferencia exacta entre anteojos polarizados y de sol comunes. Evitá el deslumbramiento, mejorá tu seguridad vial y descansá la vista. Conseguí tus próximos lentes en Atelier Óptica, Cerro de las Rosas, Córdoba.",
   keywords: ["lentes polarizados vs comunes", "anteojos polarizados Córdoba", "gafas para manejar", "óptica Cerro de las Rosas", "óptica Nueva Córdoba", "cristales polarizados con aumento", "seguridad vial lentes", "comprar anteojos polarizados", "deslumbramiento asfalto"],
 };

@@ -4,7 +4,7 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/mitos-lentes-contacto' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/mitos-lentes-contacto' },
   title: "Mitos, verdades y primera adaptación a lentes de contacto en Córdoba",
   description: "Descubrí la verdad sobre los lentes de contacto. Guía para tu primera adaptación en Córdoba (Cerro de las Rosas, Nueva Córdoba). Oxigenación, descartables e higiene. Consultá con tu oftalmólogo y visitá Atelier Óptica.",
   keywords: ["lentes de contacto Córdoba", "adaptación lentes de contacto", "mitos lentes de contacto", "óptica Cerro de las Rosas", "óptica Nueva Córdoba", "lentes descartables", "Atelier Óptica", "salud visual", "cuotas sin interés"],

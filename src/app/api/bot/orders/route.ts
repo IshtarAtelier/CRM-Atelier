@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService } from '@/services/PricingService';
 
@@ -136,11 +137,7 @@ export async function POST(request: Request) {
                             quantity: it.quantity || 1,
                             price: it.price,
                             eye: it.eye || null,
-                            productNameSnapshot: dbProd ? (dbProd.model || dbProd.name || null) : null,
-                            productBrandSnapshot: dbProd ? (dbProd.brand || null) : null,
-                            productCategorySnapshot: dbProd ? (dbProd.category || null) : null,
-                            productCostSnapshot: dbProd ? (dbProd.cost || 0) : null,
-                            laboratorySnapshot: dbProd ? (dbProd.laboratory || null) : null,
+                            ...snapshotFromProduct(dbProd),
                         };
                     })
                 }

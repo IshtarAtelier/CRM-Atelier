@@ -4,7 +4,7 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/control-miopia-infantil-lentes' },
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/control-miopia-infantil-lentes' },
   title: "Control de Miopía Infantil en Córdoba: Lentes Stellest y MyoFix",
   description: "Descubrí cómo los cristales Stellest y MyoFix frenan la miopía infantil. Asesoramiento óptico experto en Córdoba (Cerro de las Rosas, Nueva Córdoba). Envíos a todo el país y cuotas.",
   keywords: ["control miopía infantil", "lentes Stellest Córdoba", "cristales MyoFix", "óptica infantil Córdoba", "Cerro de las Rosas", "Nueva Córdoba", "anteojos para niños", "frenar miopía", "oftalmopediatría", "Atelier Óptica"],
@@ -23,7 +23,7 @@ export default function ControlMiopiaInfantilPage() {
           
           <div className="bg-stone-200 p-6 rounded-md mb-10 border-l-4 border-[#c8a55c]">
             <p className="text-sm md:text-base text-stone-800 m-0 font-medium leading-relaxed">
-              <strong>Aviso importante:</strong> En Atelier Óptica somos ópticos especialistas, no médicos. Nuestro rol es brindarte el mejor asesoramiento en cristales y armazones basándonos en tu receta previa. Si notás que tu hijo entrecierra los ojos o se acerca mucho a las pantallas, el paso fundamental es <strong>visitar a su oftalmopediatra de confianza</strong>. Solo un profesional de la salud visual puede diagnosticar y recetar la corrección adecuada. No realizamos medición de vista ni diagnósticos en nuestras sucursales.
+              <strong>Aviso importante:</strong> En Atelier Óptica somos ópticos especialistas, no médicos. Nuestro rol es brindarte el mejor asesoramiento en cristales y armazones basándonos en tu receta previa. Si notás que tu hijo entrecierra los ojos o se acerca mucho a las pantallas, el paso fundamental es <strong>visitar a su oftalmopediatra de confianza</strong>. Solo un profesional de la salud visual puede diagnosticar y recetar la corrección adecuada. No realizamos medición de vista ni diagnósticos en nuestro local en el Cerro de las Rosas.
             </p>
           </div>
 

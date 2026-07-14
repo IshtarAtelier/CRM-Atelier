@@ -31,6 +31,11 @@ export interface OrderItem {
     productNameSnapshot?: string | null;
     productBrandSnapshot?: string | null;
     productCategorySnapshot?: string | null;
+    laboratorySnapshot?: string | null;
+    productCostSnapshot?: number | null;
+    productTypeSnapshot?: string | null;
+    productLensIndexSnapshot?: string | null;
+    productUnitTypeSnapshot?: string | null;
     product: OrderItemProduct | null;
 }
 

@@ -71,7 +71,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
         const markupFactor = 1 + ((order as any).markup || 0) / 100;
         const baseItems = (order.items || []).map((it, idx) => ({
             id: `init-${idx}`,
-            description: `${it.product?.brand || ''} ${it.product?.name || 'Producto'}`.trim(),
+            description: `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || 'Producto'}`.trim(),
             quantity: it.quantity || 1,
             price: Math.round((it.price || 0) * markupFactor) // Apply markup to match sale price
         }));

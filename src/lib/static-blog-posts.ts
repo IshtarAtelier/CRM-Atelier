@@ -263,5 +263,141 @@ export const staticPosts: StaticBlogPost[] = [
     date: '2026-05-18',
     category: 'Tendencias',
     imageUrl: '/images/blog/anteojos-rosa-pastel.webp'
+  },
+  {
+    slug: 'colores-cristales',
+    title: 'El verdadero significado del color en tus lentes',
+    excerpt: 'Del gris al marrón, cada tinte de tus lentes cumple una función. Descubrí qué color de cristal se adapta mejor a tu día a día y a tu vista.',
+    date: '2026-06-20',
+    category: 'Cristales',
+    imageUrl: '/images/blog/muestrario-smart-lens.webp'
+  },
+  {
+    slug: 'como-leer-receta-oftalmologica',
+    title: 'Guía Definitiva para Leer tu Receta Oftalmológica: Qué Significan OD, OI, Esfera, Cilindro y Eje',
+    excerpt: 'OD, OI, Esfera, Cilindro, Eje y Adición dejan de ser un misterio: te explicamos paso a paso cómo interpretar lo que escribió tu oftalmólogo.',
+    date: '2026-06-18',
+    category: 'Salud Visual',
+    imageUrl: '/images/blog/medicion-pupilar-optica.webp'
+  },
+  {
+    slug: 'como-limpiar-anteojos-sin-rayar',
+    title: 'Cómo limpiar tus anteojos sin rayar el cristal: La guía definitiva',
+    excerpt: 'La remera y el papel arruinan el antirreflex. Aprendé el método correcto para limpiar tus anteojos y que tus cristales duren años como nuevos.',
+    date: '2026-06-16',
+    category: 'Mantenimiento',
+    imageUrl: '/images/blog/mostrador-marmol.webp'
+  },
+  {
+    slug: 'control-miopia-infantil-lentes',
+    title: 'Control de Miopía Infantil en Córdoba: Todo sobre Lentes Stellest y MyoFix',
+    excerpt: 'La miopía infantil avanza rápido. Conocé cómo los lentes Stellest y MyoFix frenan su progresión y cuidan la visión de tus hijos en Córdoba.',
+    date: '2026-06-14',
+    category: 'Pediatría',
+    imageUrl: '/images/blog/vidriera-atelier.webp'
+  },
+  {
+    slug: 'diferencia-miopia-hipermetropia-astigmatismo',
+    title: '¿Miopía, Hipermetropía o Astigmatismo? Entendiendo tu Receta Oftalmológica',
+    excerpt: 'Miopía, hipermetropía y astigmatismo se confunden fácilmente. Te explicamos en qué se diferencian y cómo se reflejan en tu receta oftalmológica.',
+    date: '2026-06-12',
+    category: 'Salud Visual',
+    imageUrl: '/images/blog/blog6_consulta.webp'
+  },
+  {
+    slug: 'filtro-azul-vs-antirreflejo',
+    title: 'Filtro Azul (Blue Cut) vs Antirreflejo: ¿Cuál necesitás realmente?',
+    excerpt: 'Son los dos tratamientos más pedidos y siempre se confunden. Descubrí para qué sirve cada uno y cuál necesitás según tu rutina frente a pantallas.',
+    date: '2026-06-10',
+    category: 'Cristales',
+    imageUrl: '/images/blog/muestrario-smart-lens.webp'
+  },
+  {
+    slug: 'guia-armazones-segun-rostro',
+    title: 'Guía Definitiva para Elegir Armazones Según tu Tipo de Rostro',
+    excerpt: 'Rostro redondo, cuadrado, ovalado o con forma de corazón: descubrí qué armazón armoniza con tus facciones y potencia tu mirada.',
+    date: '2026-06-08',
+    category: 'Tendencias',
+    imageUrl: '/images/blog/arte-venus.webp'
+  },
+  {
+    slug: 'guia-cristales',
+    title: 'El arte de elegir tus cristales',
+    excerpt: 'Índice, tratamientos y diseños: elegir el cristal correcto es un arte. Te guiamos para que aciertes según tu receta y tu estilo de vida.',
+    date: '2026-06-06',
+    category: 'Cristales',
+    imageUrl: '/images/blog/mostrador-marmol.webp'
+  },
+  {
+    slug: 'guia-precios-multifocales-argentina',
+    title: '¿Cuánto cuesta un lente multifocal en Argentina? (Guía Definitiva 2026)',
+    excerpt: '¿Cuánto cuesta un multifocal en Argentina en 2026? Analizamos marcas, tecnologías y por qué el precio varía tanto entre un lente y otro.',
+    date: '2026-06-04',
+    category: 'Multifocales',
+    imageUrl: '/images/blog/local-varilux.webp'
+  },
+  {
+    slug: 'lentes-fotocromaticos-transitions',
+    title: 'Cristales Transitions: ¿Realmente valen la pena para tu uso diario?',
+    excerpt: 'Pasan de transparentes a oscuros con el sol y vuelven solos. Descubrí cómo funcionan los cristales Transitions y si valen la pena para tu día.',
+    date: '2026-06-02',
+    category: 'Cristales',
+    imageUrl: '/images/blog/pareja-multifocales-exterior.webp'
+  },
+  {
+    slug: 'lentes-polarizados-vs-comunes',
+    title: 'Lentes Polarizados vs Comunes: La gran diferencia al manejar',
+    excerpt: 'Al volante, la diferencia se nota. Descubrí cómo los lentes polarizados eliminan el reflejo del asfalto y por qué superan a los comunes al manejar.',
+    date: '2026-05-31',
+    category: 'Cristales',
+    imageUrl: '/images/blog/muestrario-smart-lens.webp'
+  },
+  {
+    slug: 'materiales-armazones-acetato-tr90',
+    title: 'Acetato Italiano vs Metal vs Inyectado: ¿Cuál armazón dura más?',
+    excerpt: 'Acetato italiano, metal o inyectado: cada material responde distinto al uso diario. Te contamos cuál dura más y cuál se adapta mejor a vos.',
+    date: '2026-05-29',
+    category: 'Tendencias',
+    imageUrl: '/images/blog/anteojos-rosa-pastel.webp'
+  },
+  {
+    slug: 'mitos-lentes-contacto',
+    title: 'Mitos, verdades y tu primera adaptación a lentes de contacto',
+    excerpt: '¿Se pueden perder detrás del ojo? Derribamos los mitos más comunes y te acompañamos en tu primera adaptación a los lentes de contacto.',
+    date: '2026-05-27',
+    category: 'Salud Visual',
+    imageUrl: '/images/blog/blog6_consulta.webp'
+  },
+  {
+    slug: 'peligros-anteojos-pregraduados-farmacia',
+    title: 'Por qué los anteojos de farmacia o calle están arruinando tu vista',
+    excerpt: 'Los lentes de lectura listos para usar parecen una ganga, pero pueden dañar tu vista. Enterate por qué los pregraduados de farmacia son un riesgo.',
+    date: '2026-05-26',
+    category: 'Salud Visual',
+    imageUrl: '/images/blog/blog4_leyendo.webp'
+  },
+  {
+    slug: 'por-que-no-pegar-anteojos-la-gotita',
+    title: 'Por qué NUNCA debés pegar tus anteojos rotos con "La Gotita"',
+    excerpt: 'Pegar tus anteojos rotos con La Gotita parece práctico, pero arruina el armazón y daña tus ojos. Te explicamos qué hacer en su lugar.',
+    date: '2026-05-25',
+    category: 'Mantenimiento',
+    imageUrl: '/images/blog/mostrador-marmol.webp'
+  },
+  {
+    slug: 'sintomas-presbicia-soluciones',
+    title: '¿Te alejás el celular para leer? Síntomas de la presbicia y soluciones',
+    excerpt: 'Si alejás el celular para leer, la presbicia ya llegó. Reconocé sus síntomas y descubrí las soluciones ópticas para volver a ver de cerca.',
+    date: '2026-05-23',
+    category: 'Salud Visual',
+    imageUrl: '/images/blog/multifocal-mujer-lectura.webp'
+  },
+  {
+    slug: 'varilux-vs-kodak-vs-zeiss',
+    title: 'Varilux, Zeiss o Kodak: ¿Cuál es el Mejor Multifocal Prémium para Vos?',
+    excerpt: 'Comparamos adaptación, campos visuales y tecnología de los tres multifocales prémium más buscados para que elijas el ideal según tu receta.',
+    date: '2026-05-21',
+    category: 'Multifocales',
+    imageUrl: '/images/blog/lentes-progresivos-zonas.webp'
   }
 ];

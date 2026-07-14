@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
+import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { ProductService } from '@/services/product.service';
 
 export async function DELETE(
@@ -17,9 +18,23 @@ export async function DELETE(
 
         const { id } = await params;
 
-        await prisma.product.delete({
-            where: { id }
-        });
+        // Blindaje del histórico: si el producto tiene ventas, congelamos la foto (nombre,
+        // marca, categoría, costo, laboratorio) en cada línea que aún no la tenga ANTES de
+        // borrar. Al borrar, la FK (ON DELETE SET NULL) desvincula el producto, pero la venta
+        // conserva qué se vendió y a qué costo. Así nunca se pierde nada del histórico.
+        const prod = await prisma.product.findUnique({ where: { id } });
+        if (!prod) {
+            return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
+        }
+
+        await prisma.$transaction([
+            prisma.orderItem.updateMany({
+                where: { productId: id, productNameSnapshot: null },
+                data: snapshotFromProduct(prod),
+            }),
+            prisma.product.delete({ where: { id } }),
+        ]);
+
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error('Error deleting product:', error);

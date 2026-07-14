@@ -4,8 +4,8 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/diferencia-miopia-hipermetropia-astigmatismo' },
-  title: "Diferencia entre Miopía, Hipermetropía y Astigmatismo | Atelier Óptica",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/diferencia-miopia-hipermetropia-astigmatismo' },
+  title: { absolute: "Diferencia entre Miopía, Hipermetropía y Astigmatismo | Atelier Óptica" },
   description: "Descubrí la diferencia entre miopía, hipermetropía y astigmatismo. Interpretá tu receta oftalmológica con Atelier Óptica en Córdoba. Asesoramiento experto.",
   keywords: ["diferencia miopía hipermetropía astigmatismo", "anteojos de receta Córdoba", "óptica Cerro de las Rosas", "óptica Nueva Córdoba", "interpretar receta oftalmológica", "cristales divergentes", "cristales convergentes", "astigmatismo cilindro y eje", "Atelier Óptica"],
 };

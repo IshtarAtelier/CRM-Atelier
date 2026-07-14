@@ -40,7 +40,9 @@ export async function GET(request: NextRequest) {
                 include: {
                     product: true
                 },
-                orderBy: { createdAt: 'desc' }
+                // Los destacados (isFeatured) mandan; recién después, lo más nuevo.
+                // Así la vitrina abre por lo curado y no por el último lote cargado.
+                orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }]
             });
 
             mappedProducts = webProducts.map(wp => {
@@ -61,7 +63,9 @@ export async function GET(request: NextRequest) {
                     ...(isWholesale ? { wholesalePrice: wp.product.wholesalePrice } : {}),
                     stock: wp.product.stock,
                     slug: wp.slug,
-                    imagenesCatalogo: wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || []),
+                    // La grilla solo usa [0] (principal) y [1] (hover). Recortamos a 2
+                    // para no arrastrar el resto de Data URIs base64 (peso muerto ×24).
+                    imagenesCatalogo: (wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || [])).slice(0, 2),
                     shape: isXl ? "XL" : (productShape || "Otros"),
                     material: productMaterial || "Acetato",
                     gender: wp.product.gender || "Unisex"
@@ -129,12 +133,19 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // 7) Orden (Sort)
-        if (sort === 'menor-precio') {
+        // 7) Orden (Sort). Normalizamos guion bajo -> guion medio para aceptar los
+        // ids del sidebar (menor_precio/mayor_precio) y del resto del sitio
+        // (menor-precio/mayor-precio), que antes nunca matcheaban.
+        const sortKey = sort.replace(/_/g, '-');
+        if (sortKey === 'menor-precio') {
             filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
-        } else if (sort === 'mayor-precio') {
+        } else if (sortKey === 'mayor-precio') {
             filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+        } else if (sortKey === 'forma') {
+            filtered.sort((a, b) => (a.shape || '').localeCompare(b.shape || '', 'es'));
         }
+        // 'recientes' (o cualquier otro): se respeta el orden base del catálogo
+        // (isFeatured desc, luego createdAt desc).
 
         // 8) Paginación
         const totalCount = filtered.length;

@@ -3,8 +3,8 @@ import Link from "next/link";
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  alternates: { canonical: '/blog/guia-cristales' },
-  title: "Guía de Cristales para Anteojos en Córdoba | Atelier Óptica",
+  alternates: { canonical: 'https://atelieroptica.com.ar/blog/guia-cristales' },
+  title: { absolute: "Guía de Cristales para Anteojos en Córdoba | Atelier Óptica" },
   description: "Descubrí cómo elegir los cristales perfectos en Atelier Óptica, Córdoba. Cristales multifocales, filtro azul y diseño exclusivo como joyería artesanal.",
   keywords: ["óptica Córdoba", "guía cristales", "anteojos de receta", "cristales multifocales", "filtro azul", "Cerro de las Rosas", "Nueva Córdoba", "joyería artesanal", "piedras naturales", "diseño exclusivo"],
 };

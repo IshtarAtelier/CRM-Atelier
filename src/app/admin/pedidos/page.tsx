@@ -483,14 +483,14 @@ export default function PedidosPage() {
     };
 
     const getSmartLabData = (order: Order) => {
-        const lensItems = order.items.filter(i => i.product?.category === 'Cristal');
+        const lensItems = order.items.filter(i => i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal');
         const odItem = lensItems.find(i => i.eye === 'OD');
         const oiItem = lensItems.find(i => i.eye === 'OI');
-        const lensType = lensItems[0]?.product?.type || 'MONOFOCAL';
-        const lensIndex = lensItems[0]?.product?.lensIndex || '';
+        const lensType = lensItems[0]?.product?.type || lensItems[0]?.productTypeSnapshot || 'MONOFOCAL';
+        const lensIndex = lensItems[0]?.product?.lensIndex || lensItems[0]?.productLensIndexSnapshot || '';
         const lensBrand = lensItems[0]?.product?.brand || lensItems[0]?.productBrandSnapshot || '';
-        const laboratory = lensItems[0]?.product?.laboratory || '';
-        const frameItems = order.items.filter(i => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS');
+        const laboratory = lensItems[0]?.product?.laboratory || lensItems[0]?.laboratorySnapshot || '';
+        const frameItems = order.items.filter(i => i.product?.category === 'FRAME' || i.product?.category === 'SUNGLASS' || i.productCategorySnapshot === 'FRAME' || i.productCategorySnapshot === 'SUNGLASS');
         const frameInfo = frameItems.length > 0
             ? `${frameItems[0]?.product?.brand || frameItems[0]?.productBrandSnapshot || ''} ${frameItems[0]?.product?.name || frameItems[0]?.productNameSnapshot || ''}`.trim()
             : order.frameSource === 'USUARIO'
@@ -811,9 +811,9 @@ export default function PedidosPage() {
             grandTotalDays += diffDays;
 
             // Find crystal items
-            const crystals = order.items.filter(i => i.product?.category === 'Cristal');
+            const crystals = order.items.filter(i => i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal');
             crystals.forEach(item => {
-                const crystalType = item.product?.type || 'Otros';
+                const crystalType = item.product?.type || item.productTypeSnapshot || 'Otros';
                 if (!statsMap[crystalType]) {
                     statsMap[crystalType] = { totalDays: 0, count: 0, name: crystalType };
                 }
@@ -1158,7 +1158,7 @@ export default function PedidosPage() {
                         const payProgress = orderTotal > 0 ? Math.min(100, (order.paid / orderTotal) * 100) : 100;
 
                         const financials = PricingService.calculateOrderFinancials(order);
-                        const isGrupoOptico = order.items.some((i: any) => i.product?.category === 'Cristal' && /grupo[\s\-]?ó?o?ptico/i.test((i.product as any)?.laboratory || ''));
+                        const isGrupoOptico = order.items.some((i: any) => (i.product?.category === 'Cristal' || i.productCategorySnapshot === 'Cristal') && /grupo[\s\-]?ó?o?ptico/i.test((i.product?.laboratory || i.laboratorySnapshot) || ''));
 
                         return (
                             <div
