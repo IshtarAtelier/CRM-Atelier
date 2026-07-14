@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
     Target, Zap, Trophy, ChevronLeft, ChevronRight, ArrowLeft,
-    Loader2, Save, X, Users, CheckCircle2
+    Loader2, Save, X, Users, CheckCircle2, AlertTriangle
 } from 'lucide-react';
-import { DEFAULT_MONTHLY_TARGETS } from '@/lib/constants';
+import { DEFAULT_MONTHLY_TARGETS_USD } from '@/lib/constants';
 
 interface MonthlyTarget {
     id: string;
@@ -15,6 +15,7 @@ interface MonthlyTarget {
     target1: number;
     target2: number;
     target3: number | null;
+    currency?: string;
 }
 
 const MONTH_NAMES = [
@@ -31,6 +32,8 @@ const MULTIPLIERS = [
 const fmtARS = (val: number) =>
     new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(val || 0);
 
+const fmtUSD = (val: number) => `USD ${Math.round(val).toLocaleString('es-AR')}`;
+
 export default function ObjetivosConfigPage() {
     const now = new Date();
     const [year, setYear] = useState(now.getFullYear());
@@ -38,7 +41,7 @@ export default function ObjetivosConfigPage() {
     const [loading, setLoading] = useState(true);
     const [dolarBlue, setDolarBlue] = useState<number | null>(null);
 
-    // Edit modal state
+    // Edit modal state (valores en USD)
     const [editingMonth, setEditingMonth] = useState<number | null>(null);
     const [editT1, setEditT1] = useState('');
     const [editT2, setEditT2] = useState('');
@@ -75,19 +78,34 @@ export default function ObjetivosConfigPage() {
 
     const getTargetFor = (month: number) => targets.find(t => t.month === month && t.year === year) || null;
 
+    // Valores en USD de un mes (convierte filas legacy en ARS con el blue de hoy)
+    const getUSDValues = (t: MonthlyTarget | null): { usd1: number; usd2: number; usd3: number; isLegacyARS: boolean } | null => {
+        if (!t) return null;
+        if (t.currency === 'USD') {
+            return { usd1: t.target1, usd2: t.target2, usd3: t.target3 ?? DEFAULT_MONTHLY_TARGETS_USD.target3, isLegacyARS: false };
+        }
+        if (!dolarBlue) return null;
+        return {
+            usd1: Math.round(t.target1 / dolarBlue),
+            usd2: Math.round(t.target2 / dolarBlue),
+            usd3: Math.round((t.target3 ?? 0) / dolarBlue) || DEFAULT_MONTHLY_TARGETS_USD.target3,
+            isLegacyARS: true,
+        };
+    };
+
     const openEdit = (month: number) => {
-        const t = getTargetFor(month);
-        setEditT1(String(Math.round(t?.target1 ?? DEFAULT_MONTHLY_TARGETS.target1)));
-        setEditT2(String(Math.round(t?.target2 ?? DEFAULT_MONTHLY_TARGETS.target2)));
-        setEditT3(String(Math.round(t?.target3 ?? DEFAULT_MONTHLY_TARGETS.target3)));
+        const usd = getUSDValues(getTargetFor(month));
+        setEditT1(String(usd?.usd1 ?? DEFAULT_MONTHLY_TARGETS_USD.target1));
+        setEditT2(String(usd?.usd2 ?? DEFAULT_MONTHLY_TARGETS_USD.target2));
+        setEditT3(String(usd?.usd3 ?? DEFAULT_MONTHLY_TARGETS_USD.target3));
         setApplyRestOfYear(false);
         setEditingMonth(month);
     };
 
     const applyMultiplier = (factor: number) => {
-        setEditT1(String(Math.round(DEFAULT_MONTHLY_TARGETS.target1 * factor)));
-        setEditT2(String(Math.round(DEFAULT_MONTHLY_TARGETS.target2 * factor)));
-        setEditT3(String(Math.round(DEFAULT_MONTHLY_TARGETS.target3 * factor)));
+        setEditT1(String(Math.round(DEFAULT_MONTHLY_TARGETS_USD.target1 * factor)));
+        setEditT2(String(Math.round(DEFAULT_MONTHLY_TARGETS_USD.target2 * factor)));
+        setEditT3(String(Math.round(DEFAULT_MONTHLY_TARGETS_USD.target3 * factor)));
     };
 
     const handleSave = async () => {
@@ -102,7 +120,7 @@ export default function ObjetivosConfigPage() {
                 await fetch('/api/targets', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ target1: editT1, target2: editT2, target3: editT3, month: m, year })
+                    body: JSON.stringify({ target1: editT1, target2: editT2, target3: editT3, month: m, year, currency: 'USD' })
                 });
             }
             setSavedMonth(editingMonth);
@@ -115,7 +133,7 @@ export default function ObjetivosConfigPage() {
         setSaving(false);
     };
 
-    const toUSD = (ars: number) => (dolarBlue && dolarBlue > 0 ? Math.round(ars / dolarBlue) : null);
+    const toARS = (usd: number) => (dolarBlue && dolarBlue > 0 ? usd * dolarBlue : null);
 
     return (
         <main className="p-4 lg:p-8 max-w-6xl mx-auto space-y-8 pb-32">
@@ -127,7 +145,7 @@ export default function ObjetivosConfigPage() {
                     </Link>
                     <h1 className="text-3xl font-black text-stone-800 dark:text-white tracking-tight">Objetivos Mensuales</h1>
                     <p className="text-stone-500 dark:text-stone-400 mt-2 font-medium">
-                        Configurá los 3 objetivos (Base, Stretch, Elite) de cada mes. Con 2 vendedores usá ×2; si alguien se incorpora a mitad de mes, ×1.5.
+                        Los objetivos se configuran <strong>en dólares</strong> y se convierten a pesos con el blue del día. Con 2 vendedores usá ×2; si alguien se incorpora a mitad de mes, ×1.5.
                     </p>
                 </div>
 
@@ -153,9 +171,9 @@ export default function ObjetivosConfigPage() {
             {/* Reference base values */}
             <div className="bg-white/80 dark:bg-stone-800/80 backdrop-blur-xl border border-stone-200/60 dark:border-stone-700/60 rounded-2xl p-5 flex flex-wrap items-center gap-x-8 gap-y-2">
                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Base de referencia (1 vendedor):</p>
-                <span className="text-xs font-bold text-stone-600 dark:text-stone-300 flex items-center gap-1.5"><Target className="w-3.5 h-3.5 text-emerald-500" /> Base {fmtARS(DEFAULT_MONTHLY_TARGETS.target1)}</span>
-                <span className="text-xs font-bold text-stone-600 dark:text-stone-300 flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-blue-500" /> Stretch {fmtARS(DEFAULT_MONTHLY_TARGETS.target2)}</span>
-                <span className="text-xs font-bold text-stone-600 dark:text-stone-300 flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5 text-amber-500" /> Elite {fmtARS(DEFAULT_MONTHLY_TARGETS.target3)}</span>
+                <span className="text-xs font-bold text-stone-600 dark:text-stone-300 flex items-center gap-1.5"><Target className="w-3.5 h-3.5 text-emerald-500" /> Base {fmtUSD(DEFAULT_MONTHLY_TARGETS_USD.target1)}</span>
+                <span className="text-xs font-bold text-stone-600 dark:text-stone-300 flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-blue-500" /> Stretch {fmtUSD(DEFAULT_MONTHLY_TARGETS_USD.target2)}</span>
+                <span className="text-xs font-bold text-stone-600 dark:text-stone-300 flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5 text-amber-500" /> Elite {fmtUSD(DEFAULT_MONTHLY_TARGETS_USD.target3)}</span>
             </div>
 
             {/* Months grid */}
@@ -168,11 +186,12 @@ export default function ObjetivosConfigPage() {
                     {MONTH_NAMES.map((name, idx) => {
                         const month = idx + 1;
                         const t = getTargetFor(month);
-                        const t1 = t?.target1 ?? DEFAULT_MONTHLY_TARGETS.target1;
-                        const t2 = t?.target2 ?? DEFAULT_MONTHLY_TARGETS.target2;
-                        const t3 = t?.target3 ?? DEFAULT_MONTHLY_TARGETS.target3;
+                        const usd = getUSDValues(t);
+                        const usd1 = usd?.usd1 ?? DEFAULT_MONTHLY_TARGETS_USD.target1;
+                        const usd2 = usd?.usd2 ?? DEFAULT_MONTHLY_TARGETS_USD.target2;
+                        const usd3 = usd?.usd3 ?? DEFAULT_MONTHLY_TARGETS_USD.target3;
                         const isCurrent = month === now.getMonth() + 1 && year === now.getFullYear();
-                        const approxFactor = t ? t.target1 / DEFAULT_MONTHLY_TARGETS.target1 : 1;
+                        const approxFactor = usd1 / DEFAULT_MONTHLY_TARGETS_USD.target1;
 
                         return (
                             <div
@@ -190,9 +209,15 @@ export default function ObjetivosConfigPage() {
                                         {savedMonth === month && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                                     </div>
                                     {t ? (
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 px-2 py-1 rounded-lg flex items-center gap-1">
-                                            <Users className="w-3 h-3" /> ×{Number(approxFactor.toFixed(2))}
-                                        </span>
+                                        usd?.isLegacyARS ? (
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2 py-1 rounded-lg flex items-center gap-1" title="Configurado en pesos fijos; editalo para pasarlo a dólares">
+                                                <AlertTriangle className="w-3 h-3" /> ARS fijo
+                                            </span>
+                                        ) : (
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 px-2 py-1 rounded-lg flex items-center gap-1">
+                                                <Users className="w-3 h-3" /> ×{Number(approxFactor.toFixed(2))}
+                                            </span>
+                                        )
                                     ) : (
                                         <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded-lg">Default</span>
                                     )}
@@ -200,17 +225,17 @@ export default function ObjetivosConfigPage() {
 
                                 <div className="space-y-2 mb-4">
                                     {[
-                                        { icon: Target, color: 'text-emerald-500', label: 'Base', val: t1 },
-                                        { icon: Zap, color: 'text-blue-500', label: 'Stretch', val: t2 },
-                                        { icon: Trophy, color: 'text-amber-500', label: 'Elite', val: t3 },
+                                        { icon: Target, color: 'text-emerald-500', label: 'Base', val: usd1 },
+                                        { icon: Zap, color: 'text-blue-500', label: 'Stretch', val: usd2 },
+                                        { icon: Trophy, color: 'text-amber-500', label: 'Elite', val: usd3 },
                                     ].map(({ icon: Icon, color, label, val }) => (
                                         <div key={label} className="flex items-center justify-between bg-stone-50 dark:bg-stone-900/40 rounded-xl px-3 py-2">
                                             <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-stone-400">
                                                 <Icon className={`w-3.5 h-3.5 ${color}`} /> {label}
                                             </span>
                                             <span className="text-right">
-                                                <span className="block text-sm font-black text-stone-800 dark:text-white">{fmtARS(val)}</span>
-                                                {toUSD(val) !== null && <span className="block text-[9px] font-bold text-emerald-600 dark:text-emerald-400">≈ USD {toUSD(val)!.toLocaleString('es-AR')}</span>}
+                                                <span className="block text-sm font-black text-stone-800 dark:text-white">{fmtUSD(val)}</span>
+                                                {toARS(val) !== null && <span className="block text-[9px] font-bold text-emerald-600 dark:text-emerald-400">≈ {fmtARS(toARS(val)!)}</span>}
                                             </span>
                                         </div>
                                     ))}
@@ -242,7 +267,7 @@ export default function ObjetivosConfigPage() {
                         <h3 className="text-xl font-black text-stone-800 dark:text-white mb-1">
                             Objetivos de {MONTH_NAMES[editingMonth - 1]} {year}
                         </h3>
-                        <p className="text-xs text-stone-400 font-medium mb-6">Ajuste rápido según cantidad de vendedores:</p>
+                        <p className="text-xs text-stone-400 font-medium mb-6">Valores en dólares. Ajuste rápido según cantidad de vendedores:</p>
 
                         {/* Quick multipliers */}
                         <div className="grid grid-cols-3 gap-3 mb-6">
@@ -260,9 +285,9 @@ export default function ObjetivosConfigPage() {
 
                         <div className="space-y-4">
                             {[
-                                { label: 'Objetivo Base (ARS)', value: editT1, set: setEditT1 },
-                                { label: 'Objetivo Stretch (ARS)', value: editT2, set: setEditT2 },
-                                { label: 'Objetivo Elite (ARS)', value: editT3, set: setEditT3 },
+                                { label: 'Objetivo Base (USD)', value: editT1, set: setEditT1 },
+                                { label: 'Objetivo Stretch (USD)', value: editT2, set: setEditT2 },
+                                { label: 'Objetivo Elite (USD)', value: editT3, set: setEditT3 },
                             ].map(f => (
                                 <div key={f.label}>
                                     <label className="text-xs font-black uppercase tracking-widest text-stone-400 block mb-2">{f.label}</label>
@@ -274,7 +299,7 @@ export default function ObjetivosConfigPage() {
                                     />
                                     {dolarBlue && Number(f.value) > 0 && (
                                         <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-                                            ≈ USD {Math.round(Number(f.value) / dolarBlue).toLocaleString('es-AR')} · {fmtARS(Number(f.value))}
+                                            ≈ {fmtARS(Number(f.value) * dolarBlue)} al blue de hoy (${dolarBlue.toLocaleString('es-AR')})
                                         </p>
                                     )}
                                 </div>

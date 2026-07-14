@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { PricingService } from '@/services/PricingService';
+import { resolveMonthlyTargets } from '@/lib/targets';
 
 // ═══════════════════════════════════════════════════
 // Tipos
@@ -670,24 +671,11 @@ const getSalesVsTarget: CopilotTool = {
       }
     }
 
-    let target = null;
-    try {
-      target = await prisma.monthlyTarget.findUnique({
-        where: { month_year: { month, year } }
-      });
-    } catch (e) {
-      console.error('Error fetching targets:', e);
-    }
+    // Objetivos configurados en USD, resueltos a ARS con el blue del día.
+    const target = await resolveMonthlyTargets(month, year);
 
     const monthNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
     const monthStr = monthNames[month - 1];
-
-    if (!target) {
-      return `Ventas de ${monthStr} ${year}:\n` +
-             `- Total vendido: $${totalSold.toLocaleString('es-AR')}\n` +
-             `- Total cobrado: $${totalPaid.toLocaleString('es-AR')}\n` +
-             `* No hay objetivos mensuales definidos para este período en el sistema.`;
-    }
 
     const goal1 = target.target1 || 0;
     const goal2 = target.target2 || 0;
@@ -701,6 +689,9 @@ const getSalesVsTarget: CopilotTool = {
     msg += `- Facturado actual: $${totalSold.toLocaleString('es-AR')}\n`;
     msg += `- Cobrado actual: $${totalPaid.toLocaleString('es-AR')}\n\n`;
     msg += `🎯 **Metas Mensuales (Base en Facturación):**\n`;
+    if (target.currency === 'USD' && target.usd1 && target.rate) {
+      msg += `_(Configuradas en USD: ${target.usd1.toLocaleString('es-AR')} / ${target.usd2?.toLocaleString('es-AR')} / ${target.usd3?.toLocaleString('es-AR')} — blue $${target.rate.toLocaleString('es-AR')})_\n`;
+    }
     msg += `1. **Meta 1 (Mínimo):** $${goal1.toLocaleString('es-AR')} | Progreso: ${progressSoldPercent1}% ${totalSold >= goal1 ? '✅ ¡Alcanzado!' : `(Falta $${(goal1 - totalSold).toLocaleString('es-AR')})`}\n`;
     msg += `2. **Meta 2 (Medio):** $${goal2.toLocaleString('es-AR')} | Progreso: ${progressSoldPercent2}% ${totalSold >= goal2 ? '✅ ¡Alcanzado!' : `(Falta $${(goal2 - totalSold).toLocaleString('es-AR')})`}\n`;
     if (goal3 > 0) {

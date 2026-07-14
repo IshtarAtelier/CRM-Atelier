@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
-import { getCommissionRate, DOCTOR_COMMISSION_RATE, DEFAULT_MONTHLY_TARGETS } from '@/lib/constants';
+import { getCommissionRate, DOCTOR_COMMISSION_RATE } from '@/lib/constants';
+import { getDolarBlueVenta, resolveTargetsFromRow } from '@/lib/targets';
 
 interface BillingStat {
     account: string;
@@ -454,8 +455,9 @@ export class ReportService {
             .sort((a, b) => b.revenue - a.revenue);
 
         // ── Objetivos por mes: cruza facturación mensual con MonthlyTarget ──
+        // Los objetivos se configuran en USD y se convierten a ARS con el blue del día.
         const monthPairs = Object.values(objectiveMonths).map(m => ({ month: m.month, year: m.year }));
-        let targetRows: { month: number; year: number; target1: number; target2: number; target3: number | null }[] = [];
+        let targetRows: { month: number; year: number; target1: number; target2: number; target3: number | null; currency?: string | null }[] = [];
         if (monthPairs.length > 0) {
             try {
                 targetRows = await prisma.monthlyTarget.findMany({ where: { OR: monthPairs } });
@@ -464,14 +466,13 @@ export class ReportService {
             }
         }
         const targetMap = new Map(targetRows.map(t => [`${t.year}-${String(t.month).padStart(2, '0')}`, t]));
+        const dolarBlue = monthPairs.length > 0 ? await getDolarBlueVenta() : null;
 
         const objectivesByMonth = Object.entries(objectiveMonths)
             .sort((a, b) => b[0].localeCompare(a[0]))
             .map(([key, m]) => {
-                const t = targetMap.get(key);
-                const target1 = t?.target1 ?? DEFAULT_MONTHLY_TARGETS.target1;
-                const target2 = t?.target2 ?? DEFAULT_MONTHLY_TARGETS.target2;
-                const target3 = t?.target3 ?? DEFAULT_MONTHLY_TARGETS.target3;
+                const resolved = resolveTargetsFromRow(targetMap.get(key) || null, dolarBlue);
+                const { target1, target2, target3 } = resolved;
                 const reachedLevel = m.billed >= target3 ? 3 : m.billed >= target2 ? 2 : m.billed >= target1 ? 1 : 0;
 
                 // Ganancia del mes: bruta (ventas - CMV - descuentos - comisiones) menos costos fijos y marketing del mes
@@ -490,7 +491,7 @@ export class ReportService {
                     orders: m.orders,
                     grossProfit: Math.round(grossProfit),
                     netProfit: Math.round(grossProfit - monthOverhead),
-                    targets: { target1, target2, target3, isCustom: !!t },
+                    targets: resolved,
                     reachedLevel,
                     vendors: Object.values(m.vendors)
                         .map(v => ({ ...v, billed: Math.round(v.billed) }))
@@ -512,6 +513,7 @@ export class ReportService {
             vendorStats: Object.values(vendorStats).map(v => ({ ...v, avgTicket: v.orders > 0 ? Math.round(v.revenue / v.orders) : 0 })).sort((a, b) => b.revenue - a.revenue),
             monthlyStats: Object.entries(monthlyStats).map(([month, data]) => ({ month, ...data })),
             objectivesByMonth,
+            dolarBlue,
             paymentMethods: Object.entries(paymentMethodStats).map(([method, data]) => ({ method, ...data })).sort((a, b) => b.total - a.total),
             labStats,
             salesDetail,

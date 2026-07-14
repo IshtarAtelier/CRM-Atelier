@@ -95,6 +95,7 @@ interface ReportData {
     billingStats: { account: string; total: number; count: number }[];
     salesDetail: SaleDetail[];
     objectivesByMonth?: MonthObjective[];
+    dolarBlue?: number | null;
 }
 
 // ── Helpers ────────────────────────────────────
@@ -304,7 +305,7 @@ export default function ReportsDashboard() {
 
                     {/* ── Objetivos por Mes ── */}
                     {data.objectivesByMonth && data.objectivesByMonth.length > 0 && (
-                        <ObjectivesReport data={data.objectivesByMonth} dolarBlue={dolarBlue} />
+                        <ObjectivesReport data={data.objectivesByMonth} dolarBlue={data.dolarBlue ?? dolarBlue} />
                     )}
 
                     {/* ── KPIs Principales ── */}

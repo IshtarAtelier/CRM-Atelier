@@ -51,8 +51,16 @@ export function getCommissionRate(method: string): number {
 export const DOCTOR_COMMISSION_RATE = 0.15; // 15%
 
 // Objetivos mensuales por defecto (base de 1 vendedor) cuando no hay
-// MonthlyTarget configurado para el mes. Se ajustan por mes desde
+// MonthlyTarget configurado para el mes. Se configuran en DÓLARES y se
+// convierten a ARS con el blue del día; se ajustan por mes desde
 // /admin/configuracion/objetivos (ej: 2 vendedores = ×2).
+export const DEFAULT_MONTHLY_TARGETS_USD = {
+    target1: 12000, // Base
+    target2: 16000, // Stretch
+    target3: 20000, // Elite
+};
+
+// Fallback en ARS si no hay cotización disponible (último recurso).
 export const DEFAULT_MONTHLY_TARGETS = {
     target1: 18000000, // Base
     target2: 24000000, // Stretch

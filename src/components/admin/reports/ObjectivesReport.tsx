@@ -12,7 +12,11 @@ export interface MonthObjective {
     orders: number;
     grossProfit: number;
     netProfit: number;
-    targets: { target1: number; target2: number; target3: number; isCustom: boolean };
+    targets: {
+        target1: number; target2: number; target3: number;
+        usd1: number | null; usd2: number | null; usd3: number | null;
+        currency: string; rate: number | null; isCustom: boolean;
+    };
     reachedLevel: 0 | 1 | 2 | 3;
     vendors: { name: string; billed: number; orders: number }[];
 }
@@ -84,7 +88,7 @@ export function ObjectivesReport({ data, dolarBlue }: { data: MonthObjective[]; 
                 {data.map((m) => {
                     const level = LEVELS[m.reachedLevel];
                     const LevelIcon = level.icon;
-                    const { target1, target2, target3, isCustom } = m.targets;
+                    const { target1, target2, target3, usd1, usd2, usd3, isCustom } = m.targets;
                     const scale = Math.max(target3, m.billed, 1);
                     const barPct = Math.min((m.billed / scale) * 100, 100);
                     const billedUSD = toUSD(m.billed);
@@ -165,9 +169,9 @@ export function ObjectivesReport({ data, dolarBlue }: { data: MonthObjective[]; 
                                     ))}
                                 </div>
                                 <div className="flex justify-between mt-2 text-[9px] font-bold text-stone-400 uppercase tracking-widest">
-                                    <span>Base {fmtARS(target1)}</span>
-                                    <span>Stretch {fmtARS(target2)}</span>
-                                    <span>Elite {fmtARS(target3)}</span>
+                                    <span>Base {usd1 ? `${fmtUSD(usd1)} · ` : ''}{fmtARS(target1)}</span>
+                                    <span>Stretch {usd2 ? `${fmtUSD(usd2)} · ` : ''}{fmtARS(target2)}</span>
+                                    <span>Elite {usd3 ? `${fmtUSD(usd3)} · ` : ''}{fmtARS(target3)}</span>
                                 </div>
                             </div>
 
@@ -203,7 +207,7 @@ export function ObjectivesReport({ data, dolarBlue }: { data: MonthObjective[]; 
             </div>
 
             <p className="mt-6 text-[10px] font-medium text-stone-400 leading-relaxed">
-                El objetivo se mide contra lo <strong>facturado</strong> del mes (mismo criterio que el dashboard). La conversión a dólares usa la cotización blue de hoy. La ganancia descuenta CMV, descuentos, comisiones y los costos fijos/marketing cargados para ese mes.
+                Los objetivos están configurados <strong>en dólares</strong> y se convierten a pesos con el blue del día; el cumplimiento se mide contra lo <strong>facturado</strong> del mes (mismo criterio que el dashboard). La ganancia descuenta CMV, descuentos, comisiones y los costos fijos/marketing cargados para ese mes.
             </p>
         </div>
     );

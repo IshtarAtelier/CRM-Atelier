@@ -31,10 +31,12 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { target1, target2, target3, month, year } = body;
+        const { target1, target2, target3, month, year, currency } = body;
 
         const currentMonth = month || new Date().getMonth() + 1;
         const currentYear = year || new Date().getFullYear();
+        // "USD" = los valores se convierten a ARS con el blue del día; "ARS" = fijos.
+        const targetCurrency = currency === 'USD' ? 'USD' : 'ARS';
 
         const updatedTarget = await prisma.monthlyTarget.upsert({
             where: {
@@ -46,14 +48,16 @@ export async function POST(request: Request) {
             update: {
                 target1: parseFloat(target1),
                 target2: parseFloat(target2),
-                target3: target3 ? parseFloat(target3) : null
+                target3: target3 ? parseFloat(target3) : null,
+                currency: targetCurrency
             },
             create: {
                 month: currentMonth,
                 year: currentYear,
                 target1: parseFloat(target1),
                 target2: parseFloat(target2),
-                target3: target3 ? parseFloat(target3) : null
+                target3: target3 ? parseFloat(target3) : null,
+                currency: targetCurrency
             }
         });
 
