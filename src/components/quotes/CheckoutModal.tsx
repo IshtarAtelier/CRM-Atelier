@@ -22,6 +22,7 @@ interface CheckoutModalProps {
     onComplete: (data: any) => Promise<void>;
     onRefreshContact: () => Promise<void>;
     onRequestPrescription?: () => void;
+    currentUserRole?: string;
 }
 
 export default function CheckoutModal({
@@ -30,12 +31,17 @@ export default function CheckoutModal({
     onClose,
     onComplete,
     onRefreshContact,
-    onRequestPrescription
+    onRequestPrescription,
+    currentUserRole = 'STAFF'
 }: CheckoutModalProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [savingDraft, setSavingDraft] = useState(false);
     const [savedDraft, setSavedDraft] = useState(false);
+    // Autorización del administrador para seña < mínimo (se persiste en la orden)
+    const [localAuthorized, setLocalAuthorized] = useState<boolean>(!!order.authorizedByAdmin);
+    const [authLoading, setAuthLoading] = useState(false);
+    useEffect(() => { setLocalAuthorized(!!order.authorizedByAdmin); }, [order.authorizedByAdmin]);
     
     // Client Data Validation
     const [clientForm, setClientForm] = useState({
@@ -48,9 +54,9 @@ export default function CheckoutModal({
 
     // Repaso Final: Usar PricingService para consistencia total
     const financials = PricingService.calculateOrderFinancials(order);
-    const total = financials.totalCash; // Cambiado a totalCash como base para la seña del 40%
+    const total = financials.totalCash; // Base de la seña: totalCash (precio efectivo)
     const paid = financials.paidReal;
-    const minRequired = total * 0.4;
+    const minRequired = total * 0.5; // 50% — mismo umbral que el gate del servidor
     
     // Prescription Selection
     const isContactLens = order.items?.some((it: any) => {
@@ -178,9 +184,40 @@ export default function CheckoutModal({
         ))
     );
 
-    const canConvert = Number(paid) >= Number(minRequired) && 
-                       isClientDataComplete && 
+    // La autorización del administrador (seña < mínimo) habilita el envío igual
+    // que en el gate del servidor (order.service.ts: QUOTE→SALE). Sin este bypass
+    // el botón queda deshabilitado aunque el pedido esté autorizado.
+    const isAuthorized = localAuthorized;
+    const canConvert = (Number(paid) >= Number(minRequired) || isAuthorized) &&
+                       isClientDataComplete &&
                        (!hasCrystals || (selectedRxId && isFrameDataComplete));
+
+    // Tilde de autorización dentro del checkout (solo ADMIN). Persiste authorizedByAdmin
+    // en la orden, igual que el checkbox de la tarjeta del presupuesto.
+    const handleAuthorize = async (checked: boolean) => {
+        setAuthLoading(true);
+        setError(null);
+        setLocalAuthorized(checked); // optimista: habilita el botón al instante
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ authorizedByAdmin: checked }),
+            });
+            if (res.ok) {
+                await onRefreshContact();
+            } else {
+                const d = await res.json();
+                setLocalAuthorized(!checked); // revertir si el servidor rechaza
+                setError(d.error || 'No se pudo actualizar la autorización');
+            }
+        } catch {
+            setLocalAuthorized(!checked);
+            setError('Error de red al autorizar');
+        } finally {
+            setAuthLoading(false);
+        }
+    };
 
     const handleUpdateClient = async () => {
         setLoading(true);
@@ -910,16 +947,37 @@ export default function CheckoutModal({
                                 <div className="flex-1 space-y-2">
                                     <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
                                         <span className="text-stone-400 italic">Cobertura de la Orden</span>
-                                        <span className={paid >= minRequired ? 'text-emerald-500' : 'text-amber-500'}>
-                                            ${paid.toLocaleString()} / ${Math.ceil(minRequired).toLocaleString()} {paid >= minRequired ? '✓ COMPLETADO' : '⚠️ SEÑA INSUFICIENTE'}
+                                        <span className={paid >= minRequired || isAuthorized ? 'text-emerald-500' : 'text-amber-500'}>
+                                            ${paid.toLocaleString()} / ${Math.ceil(minRequired).toLocaleString()} {paid >= minRequired ? '✓ COMPLETADO' : isAuthorized ? '✓ AUTORIZADO POR ADMIN' : '⚠️ SEÑA INSUFICIENTE'}
                                         </span>
                                     </div>
                                     <div className="h-2 bg-stone-100 dark:bg-stone-900 rounded-full overflow-hidden border border-stone-200 dark:border-stone-700">
-                                        <div 
-                                            className={`h-full transition-all duration-700 ${paid >= minRequired ? 'bg-emerald-500' : 'bg-amber-500'}`} 
-                                            style={{ width: `${Math.min((paid / (total || 1)) * 100, 100)}%` }} 
+                                        <div
+                                            className={`h-full transition-all duration-700 ${paid >= minRequired || isAuthorized ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                            style={{ width: `${Math.min((paid / (total || 1)) * 100, 100)}%` }}
                                         />
                                     </div>
+
+                                    {/* Autorización de seña < 50% — disponible acá mismo, al enviar a fábrica */}
+                                    {currentUserRole === 'ADMIN' && paid < minRequired && (
+                                        <label className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer select-none transition-all mt-1 ${isAuthorized ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={isAuthorized}
+                                                disabled={authLoading}
+                                                onChange={(e) => handleAuthorize(e.target.checked)}
+                                                className="w-4 h-4 accent-emerald-600 cursor-pointer disabled:opacity-50"
+                                            />
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${isAuthorized ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                                {authLoading ? 'Guardando…' : isAuthorized ? '✓ Autorizado — habilitado para enviar a fábrica' : 'Autorizar envío con seña menor al 50%'}
+                                            </span>
+                                        </label>
+                                    )}
+                                    {currentUserRole !== 'ADMIN' && paid < minRequired && !isAuthorized && (
+                                        <p className="text-[9px] font-bold text-stone-400 italic mt-1">
+                                            Seña menor al 50% — requiere autorización de un administrador.
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </section>

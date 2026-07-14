@@ -1215,9 +1215,10 @@ export default function QuoteSummary({
             )}
 
             {showCheckout && (
-                <CheckoutModal 
+                <CheckoutModal
                     order={order}
                     contact={contact as any}
+                    currentUserRole={currentUserRole}
                     onClose={() => setShowCheckout(false)}
                     onRequestPrescription={onRequestPrescription}
                     onComplete={async (data) => {
