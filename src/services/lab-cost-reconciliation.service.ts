@@ -80,6 +80,11 @@ export class LabCostReconciliationService {
         const billedComparable = input.billedNet ?? input.billedTotal ?? null;
         const systemCost = order ? this.systemCostForLab(order, input.lab) : null;
 
+        // Una venta puede tener varios pedidos de lab ("580841-580844"): el costo
+        // sistema es de TODA la venta, mientras la factura puede ser de un pedido.
+        const orderNumbers = order?.labOrderNumber?.match(/\d{4,}/g) || [];
+        const multiPedido = orderNumbers.length > 1;
+
         let status = 'UNMATCHED';
         let difference: number | null = null;
         if (order && billedComparable !== null && systemCost !== null) {
@@ -88,6 +93,10 @@ export class LabCostReconciliationService {
             else if (difference < -TOLERANCE) status = 'UNDERCOST';
             else status = 'OK';
         }
+
+        const notes = multiPedido
+            ? `La venta tiene ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber}); el costo sistema es el total de la venta.`
+            : null;
 
         const data = {
             orderId: order?.id ?? null,
@@ -99,6 +108,7 @@ export class LabCostReconciliationService {
             sourceFile: input.sourceFile ?? null,
             invoiceDate: input.invoiceDate ?? null,
             status,
+            notes,
         };
 
         const existing = await prisma.labCostEntry.findUnique({

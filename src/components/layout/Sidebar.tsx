@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe } from "lucide-react";
+import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -70,6 +70,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
       { href: "/admin/ventas?mode=WEB", label: "↳ Ventas Web", icon: Globe, adminOnly: false, isSubLink: true },
       { href: "/admin/ventas?mode=POST_VENTA", label: "↳ Post Venta", icon: Wrench, adminOnly: false, isSubLink: true },
+      { href: "/admin/laboratorio/costos", label: "↳ Costos de Lab", icon: FlaskConical, adminOnly: true, isSubLink: true },
       { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
       { href: "/admin/whatsapp", label: "WhatsApp", icon: WhatsAppIcon, adminOnly: false },
       { href: "/admin/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: false },
