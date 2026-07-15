@@ -6,6 +6,13 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
+  // Sin preload: la fuente del cuerpo no es necesaria para el LCP (los títulos del
+  // hero usan serif del sistema). Así no compite por ancho de banda con la imagen
+  // LCP en la ventana crítica del móvil 4G. El texto usa el fallback y luego cambia.
+  preload: false,
+  fallback: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+  adjustFontFallback: true,
 });
 
 
@@ -59,6 +66,7 @@ export const metadata: Metadata = {
 import { Toaster } from "sonner";
 import { TrackingScripts } from "@/components/Storefront/TrackingScripts";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
+import { ChunkReloadGuard } from "@/components/ChunkReloadGuard";
 
 export default function RootLayout({
   children,
@@ -83,6 +91,7 @@ export default function RootLayout({
           <Toaster position="top-right" richColors />
           <FloatingWhatsApp />
           <TrackingScripts />
+          <ChunkReloadGuard />
         </ThemeProvider>
       </body>
     </html>

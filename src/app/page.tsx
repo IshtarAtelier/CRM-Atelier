@@ -14,8 +14,8 @@ const HomeStorePreview = dynamic(() => import("@/components/Storefront/HomeStore
 const HomeWhyChooseUs = dynamic(() => import("@/components/Storefront/HomeWhyChooseUs").then(mod => mod.HomeWhyChooseUs));
 const HomeRecommendationQuiz = dynamic(() => import("@/components/Storefront/HomeRecommendationQuiz").then(mod => mod.HomeRecommendationQuiz));
 
-import { prisma } from "@/lib/db";
-import { rethrowUnlessBuild } from "@/lib/db-guard";
+import { getHomeProducts } from "@/lib/home-products";
+import { formatProducts } from "@/lib/home-fallback";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { getGoogleReviews } from "@/lib/googleReviews";
 import { getWebSettings, defaultWebSettings } from "@/lib/web-settings";
@@ -45,148 +45,26 @@ export const metadata: Metadata = {
 // + Horizontal product scroll + Footer simple
 // ==========================================
 
-const PRODUCTS = [
-  { id: 1, name: "Atelier 9030(GLD)", price: "6 cuotas de $9.167", img: "/images/products/atelier-9030-gold.png", slug: "atelier-carey-vintage" },
-  { id: 2, name: "Rosé Cat Eye(PNK)", price: "6 cuotas de $8.000", img: "/images/products/cateye-rose.png", slug: "atelier-carey-vintage" },
-  { id: 3, name: "Pantos Blush(RSE)", price: "6 cuotas de $7.500", img: "/images/products/pantos-pink.png", slug: "atelier-carey-vintage" },
-  { id: 4, name: "Mistral Manglares(BRD)", price: "6 cuotas de $8.667", img: "/images/products/mistral-manglares.png", slug: "atelier-carey-vintage" },
-  { id: 5, name: "Cima Dreamy(CRL)", price: "6 cuotas de $9.667", img: "/images/products/cima-dreamy.png", slug: "atelier-carey-vintage" },
-];
-
 export default async function Home() {
-  // 1. Server-Side Data Fetching from WebProduct to get Goddess names and slugs
-  let dbWebProducts: any[] = [];
-  let solProducts: any[] = [];
-  let recetaProducts: any[] = [];
-  let nuevosProducts: any[] = [];
-  let totalCatalogCount: number = 120;
-
-  // Solo los campos que usa formatProducts (evita traer la fila completa del producto → HTML más liviano)
-  const PRODUCT_SELECT = {
-    name: true,
-    imageUrl: true,
-    images: true,
-    slug: true,
-    product: {
-      select: {
-        id: true,
-        price: true,
-        stock: true,
-        model: true,
-        category: true,
-        imagenesCatalogo: true,
-      },
-    },
-  };
-
   // Reseñas de Google y settings web en paralelo con las consultas de productos (antes bloqueaban en serie)
   const reviewsPromise = getGoogleReviews();
   const webSettingsPromise = getWebSettings().catch(() => defaultWebSettings);
 
-  const MAX_RETRIES = 3;
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      dbWebProducts = await prisma.webProduct.findMany({
-        where: {
-          isActive: true,
-          isFeatured: true, // Only display featured products in the homepage carousel
-          product: {
-            publishToWeb: true,
-            category: { not: 'Cristal' }
-          }
-        },
-        select: PRODUCT_SELECT,
-        orderBy: { createdAt: 'desc' },
-        take: 24 // Fetch more to allow for deduplication
-      });
-      
-      const [dbSol, dbReceta, dbNuevos, count] = await Promise.all([
-        prisma.webProduct.findMany({
-          where: { isActive: true, product: { publishToWeb: true, category: 'Lentes de Sol' } },
-          select: PRODUCT_SELECT,
-          orderBy: { createdAt: 'desc' },
-          take: 24
-        }),
-        prisma.webProduct.findMany({
-          where: { isActive: true, product: { publishToWeb: true, category: 'Armazón de Receta' } },
-          select: PRODUCT_SELECT,
-          orderBy: { createdAt: 'desc' },
-          take: 24
-        }),
-        prisma.webProduct.findMany({
-          where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } },
-          select: PRODUCT_SELECT,
-          orderBy: { createdAt: 'desc' },
-          take: 24
-        }),
-        prisma.webProduct.count({
-          where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } }
-        })
-      ]);
+  // Productos con fallback en cadena (DB viva → memoria → snapshot del build):
+  // la home NUNCA renderiza sin productos, aunque la DB esté caída o el build
+  // corra sin base. Ver src/lib/home-products.ts.
+  const { data: homeData } = await getHomeProducts();
 
-      solProducts = dbSol;
-      recetaProducts = dbReceta;
-      nuevosProducts = dbNuevos;
-      totalCatalogCount = count;
-      break; // Success — exit retry loop
-    } catch (error) {
-      console.error(`[Home] DB query attempt ${attempt}/${MAX_RETRIES} failed:`, error);
-      if (attempt < MAX_RETRIES) {
-        await new Promise(r => setTimeout(r, 500 * attempt)); // Backoff: 500ms, 1s, 1.5s
-      } else {
-        // Si la DB no responde, lanzar en vez de cachear el home vacío:
-        // con ISR, Next conserva la última versión buena de la página.
-        rethrowUnlessBuild(error, 'Home');
-      }
-    }
-  }
-
-  // Formateamos los productos para el carrusel y evitamos variantes repetidas
-  const formatProducts = (list: any[]) => {
-    if (!list || list.length === 0) return [];
-    
-    const formatted = list.map(wp => ({
-      id: wp.product.id,
-      name: wp.name,
-      rawPrice: wp.product.price,
-      price: wp.product.price ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}` : "",
-      img: wp.imageUrl 
-        ? resolveStorageUrl(wp.imageUrl)
-        : (wp.images.length > 0 
-            ? resolveStorageUrl(wp.images[0])
-            : (wp.product.imagenesCatalogo.length > 0 ? resolveStorageUrl(wp.product.imagenesCatalogo[0]) : '/images/og-image.jpg')),
-      slug: wp.slug,
-      stock: wp.product.stock,
-      brand: 'ATELIER',
-      model: wp.product.model,
-      secondImg: wp.images.length > 1 
-        ? resolveStorageUrl(wp.images[1])
-        : (wp.product.imagenesCatalogo.length > 1 ? resolveStorageUrl(wp.product.imagenesCatalogo[1]) : null),
-      category: wp.product.category
-    }));
-
-    // Deduplicate variants (e.g. "Frida C1" and "Frida C5" -> only keep first)
-    const uniqueBaseNames = new Set<string>();
-    const deduplicated = formatted.filter(p => {
-      const match = (p.model || p.name).match(/(.*)\s+(c\d+)\b/i);
-      const baseName = match ? match[1].trim().toLowerCase() : (p.model || p.name).toLowerCase();
-      
-      if (uniqueBaseNames.has(baseName)) return false;
-      uniqueBaseNames.add(baseName);
-      return true;
-    });
-
-    return deduplicated.slice(0, 12);
-  };
-
+  // Formateo + dedup de variantes viven en src/lib/home-fallback.ts (fijados por check:home)
+  const dbWebProducts = homeData.destacados;
   const carouselData = {
-    destacados: formatProducts(dbWebProducts),
-    sol: formatProducts(solProducts),
-    receta: formatProducts(recetaProducts),
-    nuevos: formatProducts(nuevosProducts),
+    destacados: formatProducts(homeData.destacados, resolveStorageUrl),
+    sol: formatProducts(homeData.sol, resolveStorageUrl),
+    receta: formatProducts(homeData.receta, resolveStorageUrl),
+    nuevos: formatProducts(homeData.nuevos, resolveStorageUrl),
   };
-  
-  const catalogCount = totalCatalogCount;
+
+  const catalogCount = homeData.count;
 
   const organizationSchema = {
     "@context": "https://schema.org",

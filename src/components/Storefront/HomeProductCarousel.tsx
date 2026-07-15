@@ -11,10 +11,10 @@ interface CarouselProduct {
   id: string | number;
   name: string;
   price: string;
-  rawPrice?: number;
+  rawPrice?: number | null;
   img: string;
   slug: string;
-  stock?: number;
+  stock?: number | null;
   brand?: string | null;
   model?: string | null;
   category?: string | null;
@@ -151,7 +151,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                   (cards en gris vacío). El fondo blanco funde las fotos igual de limpio. */}
               <div className="bg-white aspect-square overflow-hidden border-r border-[#e5e5e5] relative">
                 {/* Badge Urgencia / Escasez */}
-                {item.stock !== undefined && item.stock > 0 && item.stock <= 3 && (
+                {item.stock != null && item.stock > 0 && item.stock <= 3 && (
                   <span className="absolute top-3 right-3 z-10 bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
                     Últimas {item.stock} u.
                   </span>
