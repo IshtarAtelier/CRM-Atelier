@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
+import { LabCostReconciliationService } from './lab-cost-reconciliation.service';
 
 interface ScrapedDetail {
     num: string;
@@ -103,6 +104,7 @@ export class SmartLabService {
 
             // ── Limpiar Filtro de Fechas y Cambiar a 100 registros para ver pedidos trabados ──
             const stuckOrdersList: any[] = [];
+            const portalOrdersSeen: { num: string; client: string; date: string }[] = [];
             try {
                 console.log('[SmartLab Sync] Limpiando filtro de fechas via DOM...');
                 await page.evaluate(() => {
@@ -137,7 +139,10 @@ export class SmartLabService {
                     const dateStr = (await cells[2].innerText() || '').trim();
                     const sector = (await cells[3].innerText() || '').trim().replace(/\n/g, ' ');
                     const progressColText = (await cells[4].innerText() || '').trim().replace(/\n/g, ' ');
-                    
+
+                    // Guardar todo pedido visible del portal para el control de huérfanos
+                    if (/\d{4,}/.test(num)) portalOrdersSeen.push({ num, client, date: dateStr });
+
                     let progress = 0;
                     const progressMatch = progressColText.match(/([\d.]+)\s*%/);
                     if (progressMatch) progress = Math.round(parseFloat(progressMatch[1]));
@@ -175,6 +180,43 @@ export class SmartLabService {
                 console.log(`[SmartLab Sync] Se encontraron ${stuckOrdersList.length} pedidos trabados/pendientes.`);
             } catch (errScrape) {
                 console.error('[SmartLab Sync] Error al obtener pedidos trabados:', errScrape);
+            }
+
+            // ── Control de huérfanos: pedidos del portal sin venta en el sistema ──
+            try {
+                if (portalOrdersSeen.length > 0) {
+                    const known = await prisma.order.findMany({
+                        where: {
+                            isDeleted: false,
+                            OR: [
+                                { labOrderNumber: { not: null } },
+                                { postSaleCases: { some: { newOrderNumber: { not: null } } } },
+                            ],
+                        },
+                        select: {
+                            labOrderNumber: true,
+                            postSaleCases: { select: { newOrderNumber: true } },
+                        },
+                    });
+                    const knownNums = new Set<string>();
+                    for (const o of known) {
+                        for (const src of [o.labOrderNumber, ...o.postSaleCases.map(c => c.newOrderNumber)]) {
+                            for (const n of src?.match(/\d{4,}/g) || []) knownNums.add(n);
+                        }
+                    }
+                    const orphans = portalOrdersSeen.filter(p => {
+                        const n = (p.num.match(/\d{4,}/) || [])[0];
+                        return n && !knownNums.has(n);
+                    });
+                    if (orphans.length > 0) {
+                        const registered = await LabCostReconciliationService.registerPortalOrphans('GRUPO_OPTICO', orphans);
+                        console.log(`[SmartLab Sync] ${registered} pedidos del portal SIN venta en el sistema (huérfanos) registrados en la conciliación.`);
+                    } else {
+                        console.log('[SmartLab Sync] Todos los pedidos visibles del portal tienen venta en el sistema.');
+                    }
+                }
+            } catch (errOrphans) {
+                console.error('[SmartLab Sync] Error en el control de huérfanos:', errOrphans);
             }
 
             // ── Obtener pedidos del CRM que son de Grupo Óptico y activos ──

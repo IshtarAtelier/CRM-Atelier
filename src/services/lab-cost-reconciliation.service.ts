@@ -14,6 +14,7 @@ export interface LabCostInput {
     source: 'IMAP_PDF' | 'CSV' | 'SCRAPER' | 'MANUAL';
     sourceFile?: string | null;
     invoiceDate?: Date | null;
+    notes?: string | null;
 }
 
 // Tolerancia en pesos para diferencias de redondeo entre lista y factura.
@@ -85,18 +86,30 @@ export class LabCostReconciliationService {
         const orderNumbers = order?.labOrderNumber?.match(/\d{4,}/g) || [];
         const multiPedido = orderNumbers.length > 1;
 
+        // UNMATCHED = sin venta en el sistema (¡pedido huérfano si vino del portal!)
+        // PENDING   = con venta, pero todavía sin costo facturado para comparar
         let status = 'UNMATCHED';
         let difference: number | null = null;
-        if (order && billedComparable !== null && systemCost !== null) {
+        if (order && billedComparable === null) {
+            status = 'PENDING';
+        } else if (order && billedComparable !== null && systemCost !== null) {
             difference = billedComparable - systemCost;
             if (difference > TOLERANCE) status = 'OVERCOST';
             else if (difference < -TOLERANCE) status = 'UNDERCOST';
             else status = 'OK';
         }
 
-        const notes = multiPedido
+        const existing = await prisma.labCostEntry.findUnique({
+            where: { lab_labOrderNumber: { lab: input.lab, labOrderNumber: cleanNumber } },
+        });
+
+        // Conservar las notas existentes (p. ej. la del portal) cuando la
+        // actualización no trae nota propia, y no duplicar la de multi-pedido.
+        const baseNotes = input.notes ?? existing?.notes ?? null;
+        const multiNote = multiPedido && !baseNotes?.includes('pedidos de lab')
             ? `La venta tiene ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber}); el costo sistema es el total de la venta.`
             : null;
+        const notes = [baseNotes, multiNote].filter(Boolean).join(' ') || null;
 
         const data = {
             orderId: order?.id ?? null,
@@ -110,10 +123,6 @@ export class LabCostReconciliationService {
             status,
             notes,
         };
-
-        const existing = await prisma.labCostEntry.findUnique({
-            where: { lab_labOrderNumber: { lab: input.lab, labOrderNumber: cleanNumber } },
-        });
 
         const entry = existing
             ? await prisma.labCostEntry.update({ where: { id: existing.id }, data })
@@ -216,6 +225,34 @@ export class LabCostReconciliationService {
 
         console.log(`[LabCost] Escaneo Optovision: ${JSON.stringify(summary)}`);
         return summary;
+    }
+
+    /**
+     * Registra pedidos vistos en el portal del laboratorio que no corresponden
+     * a ninguna venta del sistema (pedidos huérfanos: plata gastada en el lab
+     * sin venta que la respalde). Si la venta aparece después, el re-cruce
+     * diario los pasa a PENDING automáticamente.
+     */
+    static async registerPortalOrphans(
+        lab: LabName | string,
+        portalOrders: { num: string; client?: string; date?: string }[]
+    ) {
+        let registered = 0;
+        for (const po of portalOrders) {
+            const clean = (po.num.match(/\d{4,}/) || [])[0];
+            if (!clean) continue;
+            const detail = [po.client, po.date && `ingreso ${po.date}`].filter(Boolean).join(', ');
+            const entry = await this.upsertEntry({
+                lab,
+                labOrderNumber: clean,
+                billedNet: null,
+                billedTotal: null,
+                source: 'SCRAPER',
+                notes: `Pedido visto en el portal del laboratorio${detail ? ` (${detail})` : ''}.`,
+            });
+            if (entry) registered++;
+        }
+        return registered;
     }
 
     /**
@@ -335,6 +372,7 @@ export class LabCostReconciliationService {
                 source: entry.source as LabCostInput['source'],
                 sourceFile: entry.sourceFile,
                 invoiceDate: entry.invoiceDate,
+                notes: entry.notes,
             });
             if (updated && updated.status !== 'UNMATCHED') rematched++;
         }

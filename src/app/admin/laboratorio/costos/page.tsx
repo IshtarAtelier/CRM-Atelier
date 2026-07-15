@@ -91,7 +91,8 @@ const STATUS_META: Record<string, { label: string; badge: string }> = {
     OVERCOST: { label: 'Sobrecosto', badge: 'bg-red-100 text-red-700' },
     UNDERCOST: { label: 'Menor costo', badge: 'bg-emerald-100 text-emerald-700' },
     OK: { label: 'OK', badge: 'bg-green-100 text-green-700' },
-    UNMATCHED: { label: 'Sin match', badge: 'bg-amber-100 text-amber-700' },
+    UNMATCHED: { label: 'Sin venta', badge: 'bg-amber-100 text-amber-700' },
+    PENDING: { label: 'Esperando factura', badge: 'bg-blue-100 text-blue-700' },
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -297,9 +298,9 @@ export default function LabCostosPage() {
                     <div className="text-xs text-gray-400">el lab cobró menos</div>
                 </div>
                 <div className="bg-white rounded-xl border border-amber-200 p-4">
-                    <div className="flex items-center gap-2 text-amber-600 text-sm font-medium"><HelpCircle size={16} /> Sin match</div>
+                    <div className="flex items-center gap-2 text-amber-600 text-sm font-medium"><HelpCircle size={16} /> Sin venta</div>
                     <div className="text-2xl font-bold text-gray-900 mt-1">{countFor('UNMATCHED')}</div>
-                    <div className="text-xs text-gray-400">sin venta asociada</div>
+                    <div className="text-xs text-gray-400">pedidos/facturas sin venta en el sistema</div>
                 </div>
             </div>
 
@@ -432,7 +433,8 @@ export default function LabCostosPage() {
                     <option value="OVERCOST">Sobrecosto</option>
                     <option value="UNDERCOST">Menor costo</option>
                     <option value="OK">OK</option>
-                    <option value="UNMATCHED">Sin match</option>
+                    <option value="UNMATCHED">Sin venta</option>
+                    <option value="PENDING">Esperando factura</option>
                 </select>
             </div>
 
@@ -484,7 +486,7 @@ export default function LabCostosPage() {
                                                     {entry.order.client?.name || 'Ver venta'}
                                                 </Link>
                                             ) : (
-                                                <span className="text-gray-400">—</span>
+                                                <span className="text-gray-400" title={entry.notes || undefined}>sin venta</span>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-gray-600">{fmtDate(entry.invoiceDate)}</td>
