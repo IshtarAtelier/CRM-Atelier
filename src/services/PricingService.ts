@@ -109,8 +109,10 @@ export class PricingService {
         if (!order.items || order.items.length === 0) return 0;
         
         return order.items.reduce((total: number, item: any) => {
-            const productCost = item.product?.cost || 0;
-            return total + (productCost * item.quantity);
+            // El snapshot congela el costo al momento de la venta; el costo vivo
+            // del producto puede haber cambiado desde entonces (falsas alarmas).
+            const productCost = item.productCostSnapshot ?? item.product?.cost ?? 0;
+            return total + (productCost * (item.quantity || 1));
         }, 0);
     }
 

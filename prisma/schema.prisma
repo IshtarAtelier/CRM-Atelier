@@ -279,6 +279,7 @@ model Order {
   postSaleCases          PostSaleCase[]
   invoices               Invoice[]
   notifications          Notification[]
+  labCostEntries         LabCostEntry[]
   client                 Client         @relation(fields: [clientId], references: [id])
   prescription           Prescription?  @relation(fields: [prescriptionId], references: [id])
   user                   User           @relation(fields: [userId], references: [id])
@@ -636,6 +637,32 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([userId])
+  @@index([createdAt])
+}
+
+// Conciliación de costos de laboratorio: qué nos cobró el lab por cada número
+// de pedido vs. el costo de lista cargado en el CRM. Una fila por (lab, nº pedido).
+model LabCostEntry {
+  id             String    @id @default(cuid())
+  lab            String // OPTOVISION | GRUPO_OPTICO | otro
+  labOrderNumber String
+  orderId        String?
+  systemCost     Float? // costo según CRM al momento del cruce (snapshot de los items)
+  billedNet      Float? // subtotal de la factura (neto, sin IVA)
+  billedTotal    Float? // total de la factura
+  difference     Float? // costo facturado comparable - systemCost (positivo = sobrecosto)
+  source         String // IMAP_PDF | CSV | SCRAPER | MANUAL
+  sourceFile     String?
+  invoiceDate    DateTime?
+  status         String    @default("UNMATCHED") // UNMATCHED | OK | OVERCOST | UNDERCOST
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  order          Order?    @relation(fields: [orderId], references: [id])
+
+  @@unique([lab, labOrderNumber])
+  @@index([status])
+  @@index([orderId])
   @@index([createdAt])
 }
 
