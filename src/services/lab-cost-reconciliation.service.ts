@@ -285,15 +285,21 @@ export class LabCostReconciliationService {
                 ? matched.reduce((t: number, e: any) => t + (e.billedNet ?? e.billedTotal ?? 0), 0)
                 : null;
             const difference = billed !== null ? Math.round(billed - r.systemCost) : null;
+            const status = !r.labOrderNumber ? 'SIN_NUMERO'
+                : matched.length === 0 ? 'SIN_FACTURA'
+                    : difference! > TOLERANCE ? 'OVERCOST'
+                        : difference! < -TOLERANCE ? 'UNDERCOST' : 'OK';
             return {
                 ...r,
                 billed: billed !== null ? Math.round(billed) : null,
                 difference,
                 invoicesFound: matched.length,
-                status: !r.labOrderNumber ? 'SIN_NUMERO'
-                    : matched.length === 0 ? 'SIN_FACTURA'
-                        : difference! > TOLERANCE ? 'OVERCOST'
-                            : difference! < -TOLERANCE ? 'UNDERCOST' : 'OK',
+                status,
+                // Antigüedad de lo pendiente: días desde el envío al lab sin factura,
+                // para detectar operaciones que ya deberían estar facturadas.
+                daysWaiting: status === 'SIN_FACTURA' || status === 'SIN_NUMERO'
+                    ? Math.max(0, Math.floor((Date.now() - new Date(r.fecha).getTime()) / 86400000))
+                    : null,
             };
         });
 

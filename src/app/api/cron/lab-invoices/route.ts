@@ -5,13 +5,15 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 /**
- * Cron de conciliación de costos de laboratorio.
- * Escanea la casilla IMAP buscando facturas PDF de Optovision, registra el costo
- * facturado por nº de pedido en LabCostEntry y alerta sobrecostos vs. el costo
- * de lista del CRM. Pensado para correr 1 vez por día desde cron-job.org.
+ * Cron DIARIO de conciliación de costos de laboratorio. Hace el ciclo completo:
+ *   1. Escanea la casilla IMAP buscando facturas PDF de Optovision y registra
+ *      el costo facturado por nº de pedido (alerta sobrecostos nuevos).
+ *   2. Re-cruza las entradas sin match (facturas que llegaron antes de que se
+ *      cargara el nº de pedido en la venta, o números cargados tarde).
+ * Si el paso IMAP falla (p. ej. credencial vencida), el re-cruce corre igual.
  *
- * Query params: ?secret=CRON_SECRET (o header Authorization: Bearer)
- *               &days=35 (ventana de búsqueda hacia atrás, opcional)
+ * Alta en cron-job.org: GET diario a /api/cron/lab-invoices?secret=CRON_SECRET
+ * Query params opcionales: &days=35 (ventana de búsqueda hacia atrás)
  */
 export async function GET(request: Request) {
     try {
@@ -29,9 +31,18 @@ export async function GET(request: Request) {
         }
 
         const days = Math.min(parseInt(searchParams.get('days') || '35', 10) || 35, 365);
-        const result = await LabCostReconciliationService.scanOptovisionInbox(days);
 
-        return NextResponse.json({ ok: true, ...result });
+        let scan: any;
+        try {
+            scan = await LabCostReconciliationService.scanOptovisionInbox(days);
+        } catch (err: any) {
+            console.error('[Cron lab-invoices] Falló el escaneo IMAP:', err);
+            scan = { error: err?.message || 'Error IMAP' };
+        }
+
+        const recheck = await LabCostReconciliationService.recheckUnmatched();
+
+        return NextResponse.json({ ok: true, scan, recheck });
     } catch (error: any) {
         console.error('[Cron lab-invoices] Error:', error);
         return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 });

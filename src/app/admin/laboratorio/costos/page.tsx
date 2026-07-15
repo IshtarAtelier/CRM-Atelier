@@ -48,6 +48,7 @@ interface ReportRow {
     difference: number | null;
     invoicesFound: number;
     status: string;
+    daysWaiting: number | null;
 }
 
 interface MonthlyReport {
@@ -238,7 +239,7 @@ export default function LabCostosPage() {
         if (!report) return;
         const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
         const lines = [
-            'nro_operacion;cliente;fecha;laboratorio;costo_sistema;costo_real;diferencia;estado;items',
+            'nro_operacion;cliente;fecha;laboratorio;costo_sistema;costo_real;diferencia;estado;dias_sin_factura;items',
             ...report.rows.map(r => [
                 esc(r.labOrderNumber || 'SIN NÚMERO'),
                 esc(r.cliente),
@@ -248,6 +249,7 @@ export default function LabCostosPage() {
                 r.billed ?? '',
                 r.difference ?? '',
                 REPORT_STATUS_META[r.status]?.label || r.status,
+                r.daysWaiting ?? '',
                 esc(r.items.join(' | ')),
             ].join(';')),
         ];
@@ -354,6 +356,8 @@ export default function LabCostosPage() {
                             <tbody>
                                 {report.rows.map(r => {
                                     const meta = REPORT_STATUS_META[r.status] || { label: r.status, badge: 'bg-gray-100 text-gray-600' };
+                                    // Sin factura hace más de 30 días: ya debería estar facturada — resaltar.
+                                    const overdue = r.status === 'SIN_FACTURA' && (r.daysWaiting ?? 0) > 30;
                                     return (
                                         <tr key={r.orderId} className="border-b border-gray-100 hover:bg-gray-50">
                                             <td className="px-4 py-2.5 font-mono text-gray-900" title={r.items.join(' | ')}>
@@ -373,8 +377,11 @@ export default function LabCostosPage() {
                                             }`}>
                                                 {r.difference === null ? '—' : (r.difference > 0 ? '+' : '') + fmt(r.difference)}
                                             </td>
-                                            <td className="px-4 py-2.5">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${meta.badge}`}>{meta.label}</span>
+                                            <td className="px-4 py-2.5 whitespace-nowrap">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${overdue ? 'bg-red-100 text-red-700' : meta.badge}`}>
+                                                    {meta.label}
+                                                    {r.daysWaiting !== null && ` · ${r.daysWaiting}d`}
+                                                </span>
                                             </td>
                                         </tr>
                                     );
