@@ -72,7 +72,7 @@ export class LabCostReconciliationService {
             },
             include: {
                 client: { select: { name: true } },
-                items: { include: { product: { select: { cost: true, laboratory: true, category: true } } } },
+                items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -246,10 +246,20 @@ export class LabCostReconciliationService {
         const to = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
         const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
 
+        // Ítems cargados en la venta, para distinguir a simple vista si el lab
+        // cobró de más o si el vendedor cargó un producto distinto al pedido.
+        const itemsHtml = (order.items || [])
+            .map((i: any) => {
+                const name = i.productNameSnapshot || i.product?.name || 'Producto sin nombre';
+                const cost = i.productCostSnapshot ?? i.product?.cost ?? 0;
+                return `<li>${name} ×${i.quantity || 1} — costo ${fmt(cost)}</li>`;
+            })
+            .join('');
+
         const html = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
-                <h2 style="color: #dc2626;">⚠️ Sobrecosto de laboratorio detectado</h2>
-                <p>El laboratorio <strong>${entry.lab === 'GRUPO_OPTICO' ? 'Grupo Óptico' : 'Optovision'}</strong> facturó más que el costo de lista del sistema:</p>
+                <h2 style="color: #dc2626;">⚠️ Diferencia de costo con el laboratorio</h2>
+                <p><strong>${entry.lab === 'GRUPO_OPTICO' ? 'Grupo Óptico' : 'Optovision'}</strong> facturó más que el costo de lista cargado en el sistema. Puede ser un sobreprecio del laboratorio <em>o</em> una venta cargada con un producto distinto al que se pidió — revisar la venta:</p>
                 <table style="width: 100%; border-collapse: collapse; margin-top: 12px;">
                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Cliente</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${order.client?.name || '-'}</td></tr>
                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Nº pedido lab</strong></td><td style="padding: 8px; border: 1px solid #ddd; font-family: monospace;">${entry.labOrderNumber}</td></tr>
@@ -258,13 +268,17 @@ export class LabCostReconciliationService {
                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Diferencia</strong></td><td style="padding: 8px; border: 1px solid #ddd; color: #dc2626; font-weight: bold;">${fmt(entry.difference || 0)}</td></tr>
                     ${entry.sourceFile ? `<tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Factura</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${entry.sourceFile}</td></tr>` : ''}
                 </table>
+                ${itemsHtml ? `
+                <p style="margin-top: 16px; margin-bottom: 4px;"><strong>Cargado en la venta:</strong></p>
+                <ul style="margin-top: 0; line-height: 1.6;">${itemsHtml}</ul>
+                ` : ''}
                 <p style="margin-top: 16px;"><a href="${appUrl}/admin/laboratorio/costos">Ver conciliación de costos en el CRM</a></p>
             </div>
         `;
 
         await sendEmail({
             to,
-            subject: `⚠️ Sobrecosto lab: pedido ${entry.labOrderNumber} (${order.client?.name || 'cliente'})`,
+            subject: `⚠️ Diferencia de costo lab: pedido ${entry.labOrderNumber} (${order.client?.name || 'cliente'})`,
             html,
         });
         console.log(`[LabCost] Alerta de sobrecosto enviada para pedido ${entry.labOrderNumber}`);
