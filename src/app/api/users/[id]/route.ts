@@ -9,19 +9,33 @@ export async function PATCH(
 ) {
     try {
         const roleHeader = request.headers.get('x-user-role');
-        if (roleHeader !== 'ADMIN') {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-        }
+        const requesterId = request.headers.get('x-user-id');
 
         const { id } = await params;
         const body = await request.json();
         const { name, role, password } = body;
 
+        const isAdmin = roleHeader === 'ADMIN';
+        const isSelf = !!requesterId && requesterId === id;
+
+        // ADMIN puede editar a cualquiera; cualquier usuario puede editar SOLO su propia cuenta
+        if (!isAdmin && !isSelf) {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const data: any = {};
-        if (name) data.name = name;
-        if (role) data.role = role;
+        // Nombre y rol solo los puede tocar un ADMIN (evita que uno se auto-ascienda)
+        if (isAdmin) {
+            if (name) data.name = name;
+            if (role) data.role = role;
+        }
+        // La contraseña la puede cambiar el ADMIN o el propio usuario
         if (password) {
             data.password = await bcrypt.hash(password, 10);
+        }
+
+        if (Object.keys(data).length === 0) {
+            return NextResponse.json({ error: 'No hay cambios para aplicar' }, { status: 400 });
         }
 
         const user = await prisma.user.update({
