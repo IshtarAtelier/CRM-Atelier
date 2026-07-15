@@ -307,7 +307,7 @@ export function getClientTransferHtml(customer: any, orderId: string, emailTotal
               <span style="color: ${GOLD}; letter-spacing: 2px; font-size: 11px; text-transform: uppercase; font-weight: bold;">Datos para la transferencia</span><br/>
               <strong style="color: ${IVORY};">Titular:</strong> Ishtar Pissano<br/>
               <strong style="color: ${IVORY};">CVU:</strong> <span style="font-family: 'Courier New', monospace; color: ${IVORY};">0000069704088281149142</span><br/>
-              <strong style="color: ${IVORY};">Alias:</strong> <span style="font-family: 'Courier New', monospace; color: ${IVORY};">badaza.media.arq</span><br/>
+              <strong style="color: ${IVORY};">Alias:</strong> <span style="font-family: 'Courier New', monospace; color: ${IVORY};">atelieroptica.arq</span><br/>
               <strong style="color: ${IVORY};">Banco:</strong> Proveedor de Servicios de Pago - Garpa S.A.
             </td>
           </tr>
