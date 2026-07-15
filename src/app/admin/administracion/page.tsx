@@ -434,9 +434,24 @@ export default function AdministracionPage() {
         }
     };
 
-    const filteredPayments = data?.payments?.filter(p =>
-        !searchQuery || p.clientName.toLowerCase().includes(searchQuery.toLowerCase())
-    ) || [];
+    // Busca por nombre de cliente, teléfono, nº de operación (notas/ref), monto y nº de orden
+    const q = searchQuery.trim().toLowerCase();
+    const qDigits = q.replace(/\D/g, '');
+    const filteredPayments = data?.payments?.filter(p => {
+        if (!q) return true;
+        if (p.clientName.toLowerCase().includes(q)) return true;
+        const notes = (p.notes || '').toLowerCase();
+        if (notes.includes(q)) return true;
+        if (p.orderId.slice(-6).toLowerCase().includes(q)) return true;
+        if (qDigits.length >= 2) {
+            // nº de operación aunque esté escrito con espacios/guiones en las notas
+            if (notes.replace(/\D/g, '').includes(qDigits)) return true;
+            // monto: tolera $ y separadores de miles ("150.000" encuentra 150000)
+            if (String(Math.trunc(p.amount ?? 0)).includes(qDigits)) return true;
+            if (p.clientPhone && p.clientPhone.replace(/\D/g, '').includes(qDigits)) return true;
+        }
+        return false;
+    }) || [];
 
     if (loading && !data) {
         return (
@@ -669,7 +684,7 @@ export default function AdministracionPage() {
                                     type="text"
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
-                                    placeholder="Buscar cliente..."
+                                    placeholder="Buscar por cliente, nº de operación o monto..."
                                     className="w-full pl-11 pr-4 py-3.5 bg-stone-50 dark:bg-stone-800 border-none rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                                 />
                             </div>
