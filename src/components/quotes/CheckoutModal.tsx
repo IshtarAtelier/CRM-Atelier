@@ -14,6 +14,7 @@ import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { PricingService } from '@/services/PricingService';
 import { isMultifocal2x1 } from '@/lib/promo-utils';
+import { minimumDeposit, depositClearsFactoryGate } from '@/lib/factory-gate';
 
 interface CheckoutModalProps {
     order: any;
@@ -56,7 +57,7 @@ export default function CheckoutModal({
     const financials = PricingService.calculateOrderFinancials(order);
     const total = financials.totalCash; // Base de la seña: totalCash (precio efectivo)
     const paid = financials.paidReal;
-    const minRequired = total * 0.5; // 50% — mismo umbral que el gate del servidor
+    const minRequired = minimumDeposit(total); // fuente única de verdad: @/lib/factory-gate
     
     // Prescription Selection
     const isContactLens = order.items?.some((it: any) => {
@@ -188,7 +189,7 @@ export default function CheckoutModal({
     // que en el gate del servidor (order.service.ts: QUOTE→SALE). Sin este bypass
     // el botón queda deshabilitado aunque el pedido esté autorizado.
     const isAuthorized = localAuthorized;
-    const canConvert = (Number(paid) >= Number(minRequired) || isAuthorized) &&
+    const canConvert = depositClearsFactoryGate({ paid, total, authorizedByAdmin: isAuthorized }) &&
                        isClientDataComplete &&
                        (!hasCrystals || (selectedRxId && isFrameDataComplete));
 
