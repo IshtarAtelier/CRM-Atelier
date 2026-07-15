@@ -109,3 +109,60 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
         } : {})
     });
 }
+
+interface VendorReceiptErrorInfo {
+    clientName: string;
+    orderId: string;
+    amount: number;
+    receiptUrl: string;
+    /** Observaciones en lenguaje coloquial, ya listas para que las lea un vendedor. */
+    issues: string[];
+}
+
+/**
+ * Cuando el auditor IA encuentra errores en un comprobante, además del aviso
+ * al admin les llega un mail a los vendedores pidiéndoles que lo corrijan.
+ * El mail va redactado en primera persona como si lo mandara Ishtar (texto
+ * plano, sin plantilla), con reply-to a su Gmail para que las respuestas le
+ * lleguen a su casilla personal.
+ */
+export async function notifyVendorsReceiptError(info: VendorReceiptErrorInfo) {
+    if (info.issues.length === 0) return;
+
+    const filename = info.receiptUrl.replace(/^local:\/\//, '').split('/').pop() || 'comprobante';
+    const ext = (filename.split('.').pop() || '').toLowerCase();
+    const contentType = EXT_CONTENT_TYPES[ext] || 'application/octet-stream';
+
+    let buffer: Buffer | null = null;
+    try {
+        buffer = await getFileBuffer(info.receiptUrl);
+    } catch (err) {
+        console.error('[ReceiptNotify] No se pudo adjuntar el comprobante al mail de vendedores:', err);
+    }
+
+    const shortOrder = info.orderId.slice(-4).toUpperCase();
+
+    // Sin cajas de colores ni encabezados: tiene que leerse como un mail escrito a mano.
+    const html = `
+      <div style="font-family: Arial, sans-serif; font-size: 14px; color: #222; line-height: 1.7;">
+        <p>Hola,</p>
+        <p>Estuve revisando el comprobante que cargaron de <strong>${info.clientName}</strong> (venta #${shortOrder}, $${info.amount.toLocaleString('es-AR')}) y encontré esto:</p>
+        <ul>
+          ${info.issues.map(i => `<li>${i}</li>`).join('')}
+        </ul>
+        <p>¿Pueden fijarse y volver a cargarlo bien? ${buffer ? 'Les reenvío el comprobante adjunto así lo ven.' : ''} Cualquier duda me escriben.</p>
+        <p>Gracias,<br/>Ishtar</p>
+      </div>
+    `;
+
+    await sendEmail({
+        to: process.env.VENDOR_ALERT_EMAILS || 'atelier.optica.cerro@gmail.com',
+        from: process.env.PERSONAL_EMAIL_FROM || 'Ishtar - Atelier Óptica <ishtar@atelieroptica.com.ar>',
+        replyTo: process.env.PERSONAL_REPLY_TO || 'pisano.ishtar@gmail.com',
+        subject: `Comprobante de ${info.clientName} (venta #${shortOrder}) — hay que corregirlo`,
+        html,
+        ...(buffer ? {
+            attachments: [{ filename, content: buffer, contentType }]
+        } : {})
+    });
+}

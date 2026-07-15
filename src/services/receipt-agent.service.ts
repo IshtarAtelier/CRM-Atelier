@@ -4,7 +4,7 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
 import { retryWithBackoff } from '@/lib/retry-utils';
-import { notifyReceiptUploaded } from '@/lib/receipt-notify';
+import { notifyReceiptUploaded, notifyVendorsReceiptError } from '@/lib/receipt-notify';
 
 export class ReceiptAgentService {
     /**
@@ -111,17 +111,22 @@ Solo devuelve el JSON, sin texto antes ni después.`;
 
             // 5. Validation Rules
             const errors: string[] = [];
+            // Mismas observaciones pero redactadas en tono coloquial: van en el mail
+            // a los vendedores firmado por Ishtar, no pueden sonar a sistema.
+            const vendorIssues: string[] = [];
 
             // A) Check Amount
             const tolerance = 5; // 5 pesos de tolerancia por errores de redondeo o carga
             if (extracted.amount && Math.abs(extracted.amount - expectedAmount) > tolerance) {
                 errors.push(`Monto difiere. Comprobante dice $${extracted.amount.toLocaleString()}, se cargó $${expectedAmount.toLocaleString()}.`);
+                vendorIssues.push(`El comprobante está por $${extracted.amount.toLocaleString('es-AR')} pero el pago lo cargaron por $${expectedAmount.toLocaleString('es-AR')}.`);
             }
 
             // B) Check CUIT
             if (expectedCuit && extracted.cuit) {
                 if (!extracted.cuit.includes(expectedCuit.toString())) {
                      errors.push(`CUIT de destino distinto. Se esperaba ${expectedCuit} y figura ${extracted.cuit}.`);
+                     vendorIssues.push(`La transferencia fue a otro CUIT: en el comprobante figura ${extracted.cuit} y tendría que ser ${expectedCuit}.`);
                 }
             }
 
@@ -146,6 +151,7 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 if (userReference && !referenceMatchesExtracted) {
                     // The user typed something wrong — correct it with the AI-extracted value
                     errors.push(`Referencia corregida: El usuario cargó "${userReference}" pero el comprobante dice "${extractedTx}". Se actualizó automáticamente.`);
+                    vendorIssues.push(`Cargaron la referencia "${userReference}" pero en el comprobante figura "${extractedTx}" (ya la corregí yo, fíjense la próxima).`);
                     
                     await prisma.payment.update({
                         where: { id: paymentId },
@@ -183,6 +189,7 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                         return `ID: ...${d.id.slice(-4).toUpperCase()} de ${clientName}`;
                     }).join(', ');
                     errors.push(`¡Posible Duplicado! El comprobante tiene la Operación ${extractedTx}, igual a la/s en pago/s: ${duplicateDetails}.`);
+                    vendorIssues.push(`El número de operación ${extractedTx} ya estaba cargado en otro pago (${duplicateDetails}) — parece el mismo comprobante dos veces.`);
                 }
             }
 
@@ -194,6 +201,7 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
                 if (diffDays > 5) {
                     errors.push(`Fecha antigua. El comprobante indica la fecha ${extracted.date}.`);
+                    vendorIssues.push(`El comprobante es del ${extracted.date}, quedó viejo — fíjense que sea el que corresponde a esta venta.`);
                 }
             }
 
@@ -209,6 +217,15 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                         requestedBy: 'IA (Auditor)',
                         status: 'PENDING'
                     }
+                });
+
+                // Mail a los vendedores como si lo mandara Ishtar pidiendo corregir la carga
+                await notifyVendorsReceiptError({
+                    clientName,
+                    orderId,
+                    amount: expectedAmount,
+                    receiptUrl,
+                    issues: vendorIssues.length > 0 ? vendorIssues : errors
                 });
             } else {
                  console.log(`[ReceiptAgent] Payment ${paymentId} check passed successfully.`);
