@@ -219,6 +219,101 @@ export class LabCostReconciliationService {
     }
 
     /**
+     * Reporte mensual: todas las ventas con ítems de laboratorio del mes
+     * (por fecha de envío al lab, o de creación si nunca se envió), con costo
+     * sistema, costo real facturado (si ya se cargó/escaneó) y diferencia.
+     */
+    static async monthlyReport(year: number, month: number) {
+        // Límites del mes en hora argentina (UTC-3).
+        const desde = new Date(Date.UTC(year, month - 1, 1, 3));
+        const hasta = new Date(Date.UTC(year, month, 1, 3));
+
+        const orders = await prisma.order.findMany({
+            where: {
+                isDeleted: false,
+                orderType: 'SALE',
+                OR: [
+                    { labSentAt: { gte: desde, lt: hasta } },
+                    { labSentAt: null, createdAt: { gte: desde, lt: hasta } },
+                ],
+            },
+            include: {
+                client: { select: { name: true } },
+                items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+
+        const anyLab = /(optovision|grupo[\s\-]?[oó]ptico)/i;
+        const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
+
+        const rows = orders
+            .map(order => {
+                const labItems = (order.items || []).filter((i: any) => anyLab.test(labOf(i)));
+                if (labItems.length === 0) return null;
+
+                const lab = labItems.some((i: any) => LAB_ITEM_PATTERNS.OPTOVISION.test(labOf(i)))
+                    ? 'OPTOVISION' : 'GRUPO_OPTICO';
+                const systemCost = labItems.reduce((t: number, i: any) =>
+                    t + (i.productCostSnapshot ?? i.product?.cost ?? 0) * (i.quantity || 1), 0);
+                const numbers = order.labOrderNumber?.match(/\d{4,}/g) || [];
+
+                return {
+                    orderId: order.id,
+                    clientId: order.clientId,
+                    cliente: order.client?.name || '-',
+                    fecha: (order.labSentAt || order.createdAt).toISOString(),
+                    labOrderNumber: order.labOrderNumber?.trim() || null,
+                    numbers,
+                    lab,
+                    systemCost: Math.round(systemCost),
+                    items: labItems.map((i: any) => i.productNameSnapshot || i.product?.name || 'Sin nombre'),
+                };
+            })
+            .filter(Boolean) as any[];
+
+        // Cruce con los costos reales ya registrados (facturas/planillas).
+        const allNumbers = rows.flatMap(r => r.numbers);
+        const entries = allNumbers.length > 0
+            ? await prisma.labCostEntry.findMany({ where: { labOrderNumber: { in: allNumbers } } })
+            : [];
+        const byNumber = new Map(entries.map(e => [e.labOrderNumber, e]));
+
+        const report = rows.map(r => {
+            const matched = r.numbers.map((n: string) => byNumber.get(n)).filter(Boolean);
+            const billed = matched.length > 0
+                ? matched.reduce((t: number, e: any) => t + (e.billedNet ?? e.billedTotal ?? 0), 0)
+                : null;
+            const difference = billed !== null ? Math.round(billed - r.systemCost) : null;
+            return {
+                ...r,
+                billed: billed !== null ? Math.round(billed) : null,
+                difference,
+                invoicesFound: matched.length,
+                status: !r.labOrderNumber ? 'SIN_NUMERO'
+                    : matched.length === 0 ? 'SIN_FACTURA'
+                        : difference! > TOLERANCE ? 'OVERCOST'
+                            : difference! < -TOLERANCE ? 'UNDERCOST' : 'OK',
+            };
+        });
+
+        const sum = (fn: (r: any) => number) => report.reduce((t, r) => t + fn(r), 0);
+        return {
+            month: `${year}-${String(month).padStart(2, '0')}`,
+            rows: report,
+            totals: {
+                operaciones: report.length,
+                costoSistema: sum(r => r.systemCost),
+                costoReal: sum(r => r.billed || 0),
+                conFactura: report.filter(r => r.invoicesFound > 0).length,
+                sinFactura: report.filter(r => r.status === 'SIN_FACTURA').length,
+                sinNumero: report.filter(r => r.status === 'SIN_NUMERO').length,
+                sobrecostos: report.filter(r => r.status === 'OVERCOST').length,
+            },
+        };
+    }
+
+    /**
      * Re-cruza las entradas sin match (p. ej. la factura llegó antes de cargar el
      * nº de pedido en la venta) reutilizando los montos ya guardados.
      */
