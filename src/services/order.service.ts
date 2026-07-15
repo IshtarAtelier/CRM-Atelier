@@ -787,7 +787,6 @@ export class OrderService {
 
             if (currentOrderForPostSale) {
                 const activeCaseObj = currentOrderForPostSale.postSaleCases?.[0];
-                const currentCaseNotes = activeCaseObj?.notes;
                 const currentCaseStatus = activeCaseObj?.status;
 
                 // Initialize postSaleStatus if not present
@@ -847,10 +846,8 @@ export class OrderService {
                         }
                     });
 
-                    // Send email notification for new case
-                    const wasPostSaleInitialized = (resolvedStatus === 'SENT' && !currentCaseStatus);
-                    const isNewPostSaleNotes = (postSaleNotes && !currentCaseNotes);
-                    if (wasPostSaleInitialized || isNewPostSaleNotes) {
+                    // Notificación por email SIEMPRE que se registra un caso nuevo de post-venta
+                    {
                         const adminEmail = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
                         const clientName = currentOrderForPostSale.client?.name || 'Cliente';
                         const subject = `⚠️ Nuevo caso de Post-Venta registrado - ${clientName}`;
