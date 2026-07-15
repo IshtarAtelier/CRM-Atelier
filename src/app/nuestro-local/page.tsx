@@ -5,6 +5,8 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { getGoogleReviews } from '@/lib/googleReviews';
 import { buildOpticianSchema } from '@/lib/schema';
 
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: "Nuestro Local | Óptica Boutique en Cerro de las Rosas, Córdoba",
   description: "Visitá Atelier Óptica en el corazón del Cerro de las Rosas. Somos especialistas en asesoramiento estético y técnico, cristales multifocales y anteojos de diseño exclusivo.",
