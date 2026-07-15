@@ -1,10 +1,9 @@
-import { prisma } from '@/lib/db';
 import { TiendaClient } from './TiendaClient';
 import { StorefrontFooterStatic } from '@/components/Storefront/StorefrontFooterStatic';
 import { Metadata } from 'next';
 import { getProductAttributes } from '@/utils/product-controllers';
-import { serverCache } from '@/lib/cache';
-import { rethrowUnlessBuild } from '@/lib/db-guard';
+import { getTiendaFiltros } from '@/lib/catalog/sources';
+import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
 
 export const revalidate = 60;
 
@@ -24,31 +23,9 @@ export const metadata: Metadata = {
 };
 
 export default async function TiendaPage() {
-  // 1) Fetch only filter metadata for the sidebar (very light query selecting only specific text fields)
-  let filterMetadata: any[] = [];
-  try {
-    filterMetadata = await prisma.webProduct.findMany({
-      where: {
-        isActive: true,
-        product: {
-          publishToWeb: true,
-          category: { not: 'Cristal' },
-        }
-      },
-      select: {
-        name: true,
-        product: {
-          select: {
-            brand: true,
-            model: true,
-            seoTags: true,
-          }
-        }
-      }
-    });
-  } catch (error) {
-    rethrowUnlessBuild(error, 'Tienda/filtros');
-  }
+  // 1) Metadatos del sidebar de filtros — fuente resiliente (vivo → memoria →
+  //    snapshot): nunca lanza y nunca llega vacía. Ver src/lib/catalog/.
+  const { data: filterMetadata } = await getTiendaFiltros();
 
   const brandsSet = new Set<string>();
   const shapesSet = new Set<string>();
@@ -74,15 +51,10 @@ export default async function TiendaPage() {
   const availableShapes = Array.from(shapesSet).sort();
   const availableMaterials = Array.from(materialsSet).sort();
 
-  // 2) First page of products for the server render & SEO. Same logic and SAME
-  // cache key as /api/store/products (web channel): the mapped catalog is shared
-  // via serverCache (180s), so the page render and the API endpoint reuse one copy.
-  let catalog: any[] = [];
-  try {
-    catalog = await getWebCatalog();
-  } catch (error) {
-    rethrowUnlessBuild(error, 'Tienda/catalogo');
-  }
+  // 2) Primera página de productos para el SSR y el SEO. Mismo catálogo mapeado
+  // (y mismo serverCache de 180s) que /api/store/products: una sola copia, con
+  // fallback resiliente por debajo — la tienda nunca renderiza vacía.
+  const { products: catalog } = await getMappedWebCatalog();
 
   const mappedInitialProducts = catalog.slice(0, 24);
   const initialTotalCount = catalog.length;
@@ -122,52 +94,5 @@ export default async function TiendaPage() {
   );
 }
 
-// Réplica exacta del armado de catálogo de /api/store/products (canal web),
-// compartiendo su clave de caché para no duplicar queries a la base.
-async function getWebCatalog(): Promise<any[]> {
-  const cacheKey = 'store-products-mapped:web';
-  let mappedProducts = serverCache.get<any[]>(cacheKey);
-  if (mappedProducts === null) {
-    const webProducts = await prisma.webProduct.findMany({
-      where: {
-        isActive: true,
-        product: {
-          publishToWeb: true,
-          category: { not: 'Cristal' }
-        }
-      },
-      include: {
-        product: true
-      },
-      // Destacados primero (isFeatured), luego lo más nuevo: la vitrina abre por
-      // lo curado, no por el último lote. Mismo criterio que la API del catálogo.
-      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }]
-    });
-
-    mappedProducts = webProducts.map(wp => {
-      const modelCode = wp.product.model || wp.name || '';
-      const { shape, material } = getProductAttributes(modelCode, wp.product.seoTags);
-
-      const isXl = ["9004M C3", "9004M C2", "TL3684 C4", "91501 C6"].some(code => modelCode.toUpperCase().includes(code)) ||
-                   ["dionisio", "dionisio-c2", "selene-c4", "atelier-athena-3ytl", "poseidon-c3", "poseidon-c2"].includes(wp.slug);
-
-      return {
-        id: wp.product.id,
-        brand: wp.product.brand || 'ATELIER',
-        model: wp.name || modelCode,
-        modelCode: modelCode,
-        category: wp.category,
-        price: wp.product.price,
-        salePrice: wp.product.salePrice,
-        stock: wp.product.stock,
-        slug: wp.slug,
-        imagenesCatalogo: (wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || [])).slice(0, 2),
-        shape: isXl ? "XL" : (shape || "Otros"),
-        material: material || "Acetato",
-        gender: wp.product.gender || "Unisex"
-      };
-    });
-    serverCache.set(cacheKey, mappedProducts, 180);
-  }
-  return mappedProducts;
-}
+// El armado del catálogo mapeado (compartido con /api/store/products) vive en
+// src/lib/catalog/tienda-map.ts — una sola definición para página y API.

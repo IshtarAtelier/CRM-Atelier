@@ -1,8 +1,7 @@
 import { Metadata } from 'next';
 import nextDynamic from 'next/dynamic';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { prisma } from "@/lib/db";
-import { rethrowUnlessBuild } from "@/lib/db-guard";
+import { getArmaTusLentes } from "@/lib/catalog/sources";
 
 export const dynamic = 'force-dynamic';
 
@@ -21,20 +20,9 @@ export const metadata: Metadata = {
 };
 
 export default async function ArmaTusLentesPage() {
-  let dbProducts: any[] = [];
-  try {
-    dbProducts = await prisma.webProduct.findMany({
-      where: { 
-        category: { contains: "Receta", mode: "insensitive" },
-        isActive: true,
-        product: { stock: { gt: 0 } }
-      },
-      include: { product: true },
-      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }]
-    });
-  } catch (error) {
-    rethrowUnlessBuild(error, 'ArmaTusLentes');
-  }
+  // Fuente resiliente (vivo → memoria → snapshot): el builder siempre tiene
+  // armazones para elegir, aunque la DB esté caída. Ver src/lib/catalog/.
+  const { data: dbProducts } = await getArmaTusLentes();
 
   const products = dbProducts.map(wp => ({
     id: wp.product.id,

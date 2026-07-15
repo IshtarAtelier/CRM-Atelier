@@ -1,0 +1,1804 @@
+{
+  "generatedAt": "2026-07-15T14:49:56.561Z",
+  "key": "arma-tus-lentes",
+  "data": [
+    {
+      "name": "Aquiles C4",
+      "imageUrl": "/assets/products/metal/tg2810-c4-titanium.avif",
+      "category": "Receta",
+      "slug": "aquiles-c4",
+      "images": [
+        "/assets/products/metal/tg2810-c4-titanium.avif",
+        "/assets/products/gallery/TG2810-C4-2.avif",
+        "/assets/products/gallery/TG2810-C4-3.avif"
+      ],
+      "product": {
+        "id": "cmqvkplmf001dmiihw5j7inq7",
+        "model": "TG2810 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tg2810-c4-titanium.avif",
+          "/assets/products/gallery/TG2810-C4-2.avif",
+          "/assets/products/gallery/TG2810-C4-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Aquiles C1",
+      "imageUrl": "/assets/products/metal/tg2810-c1-titanium.avif",
+      "category": "Receta",
+      "slug": "aquiles-c1",
+      "images": [
+        "/assets/products/metal/tg2810-c1-titanium.avif",
+        "/assets/products/gallery/TG2810-C1-2.avif",
+        "/assets/products/gallery/TG2810-C1-3.avif"
+      ],
+      "product": {
+        "id": "cmqvkplmc0019miihk4jbp2yk",
+        "model": "TG2810 C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tg2810-c1-titanium.avif",
+          "/assets/products/gallery/TG2810-C1-2.avif",
+          "/assets/products/gallery/TG2810-C1-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Teseo C4",
+      "imageUrl": "/assets/products/metal/tg2809-c4-titanium.avif",
+      "category": "Receta",
+      "slug": "teseo-c4",
+      "images": [
+        "/assets/products/metal/tg2809-c4-titanium.avif",
+        "/assets/products/gallery/TG2809-C4-2.avif",
+        "/assets/products/gallery/TG2809-C4-3.avif"
+      ],
+      "product": {
+        "id": "cmqvkplm80015miihaw0va95a",
+        "model": "TG2809 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tg2809-c4-titanium.avif",
+          "/assets/products/gallery/TG2809-C4-2.avif",
+          "/assets/products/gallery/TG2809-C4-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Teseo C1",
+      "imageUrl": "/assets/products/metal/tg2809-c1-titanium.avif",
+      "category": "Receta",
+      "slug": "teseo-c1",
+      "images": [
+        "/assets/products/metal/tg2809-c1-titanium.avif",
+        "/assets/products/gallery/TG2809-C1-2.avif",
+        "/assets/products/gallery/TG2809-C1-3.avif"
+      ],
+      "product": {
+        "id": "cmqvkplm60011miihpgowga6q",
+        "model": "TG2809 C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tg2809-c1-titanium.avif",
+          "/assets/products/gallery/TG2809-C1-2.avif",
+          "/assets/products/gallery/TG2809-C1-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Helios",
+      "imageUrl": "/assets/products/metal/tg2807-c1-titanium-lateral.avif",
+      "category": "Receta",
+      "slug": "atelier-tg2807-c1-116i",
+      "images": [
+        "/assets/products/metal/tg2807-c1-titanium-lateral.avif",
+        "/assets/products/gallery/TG2807-C1-2.avif",
+        "/assets/products/gallery/TG2807-C1-3.avif"
+      ],
+      "product": {
+        "id": "cmqvkplm2000xmiihg93o116i",
+        "model": "TG2807 C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tg2807-c1-titanium-lateral.avif",
+          "/assets/products/gallery/TG2807-C1-2.avif",
+          "/assets/products/gallery/TG2807-C1-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Frida C2",
+      "imageUrl": "/assets/products/acetato/Q8013-c2.avif",
+      "category": "Receta",
+      "slug": "frida-c2",
+      "images": [
+        "/assets/products/acetato/Q8013-c2.avif"
+      ],
+      "product": {
+        "id": "cmqbq14wv002xkrnfghw5c5u1",
+        "model": "Q8013-C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q8013-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Victoria C6",
+      "imageUrl": "/assets/products/acetato/Q6013-c6.avif",
+      "category": "Receta",
+      "slug": "victoria-c6",
+      "images": [
+        "/assets/products/acetato/Q6013-c6.avif"
+      ],
+      "product": {
+        "id": "cmqbq14wq002rkrnfojjc8k5w",
+        "model": "Q6013-C6",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q6013-c6.avif"
+        ]
+      }
+    },
+    {
+      "name": "Helena C2",
+      "imageUrl": "/assets/products/acetato/Q5205-c2.avif",
+      "category": "Receta",
+      "slug": "helena-c2",
+      "images": [
+        "/assets/products/acetato/Q5205-c2.avif"
+      ],
+      "product": {
+        "id": "cmqbq14w50023krnfoyug2tw5",
+        "model": "Q5205-C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5205-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Gala C8",
+      "imageUrl": "/assets/products/acetato/Q5005-c8.avif",
+      "category": "Receta",
+      "slug": "gala-c8",
+      "images": [
+        "/assets/products/acetato/Q5005-c8.avif"
+      ],
+      "product": {
+        "id": "cmqbq14w30020krnfr4zwziyl",
+        "model": "Q5005-C8",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5005-c8.avif"
+        ]
+      }
+    },
+    {
+      "name": "Gala C1",
+      "imageUrl": "/assets/products/acetato/Q5005-c1.avif",
+      "category": "Receta",
+      "slug": "gala-c1",
+      "images": [
+        "/assets/products/acetato/Q5005-c1.avif",
+        "/assets/products/gallery/Q5005-C1-2.avif",
+        "/assets/products/gallery/Q5005-C1-3.avif"
+      ],
+      "product": {
+        "id": "cmqbq14vn001ikrnfalce3fdp",
+        "model": "Q5005-C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5005-c1.avif",
+          "/assets/products/gallery/Q5005-C1-2.avif",
+          "/assets/products/gallery/Q5005-C1-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Venus C4",
+      "imageUrl": "/assets/products/acetato/P5787-c4.avif",
+      "category": "Receta",
+      "slug": "venus-c4",
+      "images": [
+        "/assets/products/acetato/P5787-c4.avif",
+        "/assets/products/gallery/P5787-C4-2.avif"
+      ],
+      "product": {
+        "id": "cmqbq14vk001fkrnf4uzl1p0y",
+        "model": "P5787-C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/P5787-c4.avif",
+          "/assets/products/gallery/P5787-C4-2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Olimpia C1",
+      "imageUrl": "/assets/products/acetato/P5786-c1.avif",
+      "category": "Receta",
+      "slug": "olimpia-c1",
+      "images": [
+        "/assets/products/acetato/P5786-c1.avif",
+        "/assets/products/gallery/P5786-C1-2.avif"
+      ],
+      "product": {
+        "id": "cmqbq14vh001ckrnffbrddikc",
+        "model": "P5786-C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/P5786-c1.avif",
+          "/assets/products/gallery/P5786-C1-2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Atenea C3",
+      "imageUrl": "/assets/products/acetato/P5783-c3.avif",
+      "category": "Receta",
+      "slug": "atenea-c3",
+      "images": [
+        "/assets/products/acetato/P5783-c3.avif",
+        "/assets/products/gallery/P5783-C3-2.avif"
+      ],
+      "product": {
+        "id": "cmqbq14ve0019krnf1a8497d4",
+        "model": "P5783-C3",
+        "price": 160000,
+        "stock": 6,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/P5783-c3.avif",
+          "/assets/products/gallery/P5783-C3-2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Cleopatra C4",
+      "imageUrl": "/assets/products/acetato/FD88821-c4.webp",
+      "category": "Receta",
+      "slug": "cleopatra-c4",
+      "images": [
+        "/assets/products/acetato/FD88821-c4.webp"
+      ],
+      "product": {
+        "id": "cmqbq14vb0016krnfgnj2iifa",
+        "model": "FD88821-C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/FD88821-c4.webp"
+        ]
+      }
+    },
+    {
+      "name": "Roma C1",
+      "imageUrl": "/assets/products/acetato/FD88810-c1.webp",
+      "category": "Receta",
+      "slug": "roma-c1",
+      "images": [
+        "/assets/products/acetato/FD88810-c1.webp",
+        "/assets/products/gallery/FD88810-C1-2.webp"
+      ],
+      "product": {
+        "id": "cmqbq14v80013krnflepy152y",
+        "model": "FD88810-C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/FD88810-c1.webp",
+          "/assets/products/gallery/FD88810-C1-2.webp"
+        ]
+      }
+    },
+    {
+      "name": "Pegaso C1",
+      "imageUrl": "/assets/products/acetato/BC3063-c1.avif",
+      "category": "Receta",
+      "slug": "pegaso-c1",
+      "images": [
+        "/assets/products/acetato/BC3063-c1.avif"
+      ],
+      "product": {
+        "id": "cmqbq14v50010krnfhcvipiql",
+        "model": "BC3063-C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/BC3063-c1.avif"
+        ]
+      }
+    },
+    {
+      "name": "Anastasia C1",
+      "imageUrl": "/assets/products/acetato/BC3059-c1.avif",
+      "category": "Receta",
+      "slug": "anastasia-c1",
+      "images": [
+        "/assets/products/acetato/BC3059-c1.avif",
+        "/assets/products/gallery/BC3059-C1-2.avif"
+      ],
+      "product": {
+        "id": "cmqbq14v2000xkrnfm120wbo3",
+        "model": "BC3059-C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/BC3059-c1.avif",
+          "/assets/products/gallery/BC3059-C1-2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Polaris C7",
+      "imageUrl": "/assets/products/acetato/57202LJH-c7.avif",
+      "category": "Receta",
+      "slug": "polaris-c7",
+      "images": [
+        "/assets/products/acetato/57202LJH-c7.avif"
+      ],
+      "product": {
+        "id": "cmqbq14v0000ukrnfplk5vvec",
+        "model": "57202LJH-C7",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/57202LJH-c7.avif"
+        ]
+      }
+    },
+    {
+      "name": "Andrómeda C7",
+      "imageUrl": "/assets/products/acetato/57201LJH-c7.avif",
+      "category": "Receta",
+      "slug": "andromeda-c7",
+      "images": [
+        "/assets/products/acetato/57201LJH-c7.avif"
+      ],
+      "product": {
+        "id": "cmqbq14uh000ckrnf9sqqty35",
+        "model": "57201LJH-C7",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/57201LJH-c7.avif"
+        ]
+      }
+    },
+    {
+      "name": "Diana C3",
+      "imageUrl": "/assets/products/metal/TL3932-c3.avif",
+      "category": "Receta",
+      "slug": "diana-c3",
+      "images": [
+        "/assets/products/metal/TL3932-c3.avif",
+        "/assets/products/gallery/TL3932-C3-2.avif",
+        "/assets/products/gallery/TL3932-C3-3.avif"
+      ],
+      "product": {
+        "id": "cmq5d11h7002ohy61zpoc02gw",
+        "model": "TL3932 C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/TL3932-c3.avif",
+          "/assets/products/gallery/TL3932-C3-2.avif",
+          "/assets/products/gallery/TL3932-C3-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Gaia",
+      "imageUrl": "/assets/products/metal/HY238013-c1.avif",
+      "category": "Receta",
+      "slug": "atelier-gaia-hb3t",
+      "images": [
+        "/assets/products/metal/HY238013-c1.avif"
+      ],
+      "product": {
+        "id": "cmq5d0g4h001chy61r9x9rx92",
+        "model": "HY238013 C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/HY238013-c1.avif"
+        ]
+      }
+    },
+    {
+      "name": "Iris C1",
+      "imageUrl": "/assets/products/metal/GS7015-c1.avif",
+      "category": "Receta",
+      "slug": "iris-c1",
+      "images": [
+        "/assets/products/metal/GS7015-c1.avif",
+        "/assets/products/gallery/GS7015-C1-2.avif",
+        "/assets/products/gallery/GS7015-C1-3.jpg"
+      ],
+      "product": {
+        "id": "cmq5d087g000uhy61sdrrvx9f",
+        "model": "GS7015 C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/GS7015-c1.avif",
+          "/assets/products/gallery/GS7015-C1-2.avif",
+          "/assets/products/gallery/GS7015-C1-3.jpg"
+        ]
+      }
+    },
+    {
+      "name": "Iris C3",
+      "imageUrl": "/assets/products/metal/GS7015-C3.avif",
+      "category": "Receta",
+      "slug": "iris-c3",
+      "images": [
+        "/assets/products/metal/GS7015-C3.avif",
+        "/assets/products/gallery/GS7015-C3-2.avif"
+      ],
+      "product": {
+        "id": "cmq5d05lu000ohy61zm4pigk2",
+        "model": "GS7015 C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/GS7015-C3.avif",
+          "/assets/products/gallery/GS7015-C3-2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Athena",
+      "imageUrl": "/assets/products/metal/91501-c6.avif",
+      "category": "Receta",
+      "slug": "atelier-athena-906p",
+      "images": [
+        "/assets/products/metal/91501-c6.avif"
+      ],
+      "product": {
+        "id": "cmq5czu340000hy61q0qsoxyo",
+        "model": "91501 C6",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/91501-c6.avif"
+        ]
+      }
+    },
+    {
+      "name": "Néstor C1",
+      "imageUrl": "/images/products/nestor-c1.webp",
+      "category": "Receta",
+      "slug": "nestor-c1",
+      "images": [
+        "/images/products/nestor-c1.webp",
+        "/images/products/nestor-c1-2.webp"
+      ],
+      "product": {
+        "id": "cmrbevktm000f2mqo76x8jmkq",
+        "model": "G7013 C1",
+        "price": 200000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/images/products/nestor-c1.webp",
+          "/images/products/nestor-c1-2.webp"
+        ]
+      }
+    },
+    {
+      "name": "Orión C1",
+      "imageUrl": "/images/products/orion-c1.webp",
+      "category": "Receta",
+      "slug": "orion-c1",
+      "images": [
+        "/images/products/orion-c1.webp",
+        "/images/products/orion-c1-2.webp",
+        "/images/products/orion-c1-3.webp"
+      ],
+      "product": {
+        "id": "cmrbevktj000c2mqonnwg9e8h",
+        "model": "G7012 C1",
+        "price": 200000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/images/products/orion-c1.webp",
+          "/images/products/orion-c1-2.webp",
+          "/images/products/orion-c1-3.webp"
+        ]
+      }
+    },
+    {
+      "name": "Jano C1",
+      "imageUrl": "/images/products/jano-c1.webp",
+      "category": "Receta",
+      "slug": "jano-c1",
+      "images": [
+        "/images/products/jano-c1.webp",
+        "/images/products/jano-c1-2.webp"
+      ],
+      "product": {
+        "id": "cmrbevktf00092mqopjhpipl8",
+        "model": "G7010 C1",
+        "price": 200000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/images/products/jano-c1.webp",
+          "/images/products/jano-c1-2.webp"
+        ]
+      }
+    },
+    {
+      "name": "Atlas C3",
+      "imageUrl": "/images/products/atlas-c3.webp",
+      "category": "Receta",
+      "slug": "atlas-c3",
+      "images": [
+        "/images/products/atlas-c3.webp",
+        "/images/products/atlas-c3-2.webp"
+      ],
+      "product": {
+        "id": "cmrbevktc00062mqonybp65g8",
+        "model": "G7008 C3",
+        "price": 200000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/images/products/atlas-c3.webp",
+          "/images/products/atlas-c3-2.webp"
+        ]
+      }
+    },
+    {
+      "name": "Atlas C2",
+      "imageUrl": "/images/products/atlas-c2.webp",
+      "category": "Receta",
+      "slug": "atlas-c2",
+      "images": [
+        "/images/products/atlas-c2.webp"
+      ],
+      "product": {
+        "id": "cmrbevkt800032mqojo6ys9q2",
+        "model": "G7008 C2",
+        "price": 200000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/images/products/atlas-c2.webp"
+        ]
+      }
+    },
+    {
+      "name": "Atlas C1",
+      "imageUrl": "/images/products/atlas-c1.webp",
+      "category": "Receta",
+      "slug": "atlas-c1",
+      "images": [
+        "/images/products/atlas-c1.webp",
+        "/images/products/atlas-c1-2.webp"
+      ],
+      "product": {
+        "id": "cmrbevkss00002mqo5cyk168f",
+        "model": "G7008 C1",
+        "price": 200000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/images/products/atlas-c1.webp",
+          "/images/products/atlas-c1-2.webp"
+        ]
+      }
+    },
+    {
+      "name": "Orfeo C4",
+      "imageUrl": "/assets/products/metal/yx05-c4.avif",
+      "category": "Receta",
+      "slug": "orfeo-c4",
+      "images": [
+        "/assets/products/metal/yx05-c4.avif"
+      ],
+      "product": {
+        "id": "cmqvkplmy0025miihm0c0cgyh",
+        "model": "YX05 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/yx05-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Orfeo C3",
+      "imageUrl": "/assets/products/metal/yx05-c3.avif",
+      "category": "Receta",
+      "slug": "orfeo-c3",
+      "images": [
+        "/assets/products/metal/yx05-c3.avif"
+      ],
+      "product": {
+        "id": "cmqvkplmw0021miih1vmcab64",
+        "model": "YX05 C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/yx05-c3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Orfeo C2",
+      "imageUrl": "/assets/products/metal/yx05-c2.avif",
+      "category": "Receta",
+      "slug": "orfeo-c2",
+      "images": [
+        "/assets/products/metal/yx05-c2.avif"
+      ],
+      "product": {
+        "id": "cmqvkplmt001xmiihxjdd75ig",
+        "model": "YX05 C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/yx05-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Orfeo C1",
+      "imageUrl": "/assets/products/metal/yx05-c1.avif",
+      "category": "Receta",
+      "slug": "orfeo-c1",
+      "images": [
+        "/assets/products/metal/yx05-c1.avif"
+      ],
+      "product": {
+        "id": "cmqvkplmq001tmiihyf9e7tyg",
+        "model": "YX05 C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/yx05-c1.avif"
+        ]
+      }
+    },
+    {
+      "name": "Cronos C3",
+      "imageUrl": "/assets/products/metal/v99018-c3.avif",
+      "category": "Receta",
+      "slug": "cronos-c3",
+      "images": [
+        "/assets/products/metal/v99018-c3.avif"
+      ],
+      "product": {
+        "id": "cmqvkplmn001pmiih24uhjzad",
+        "model": "V99018 C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/v99018-c3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Cronos C1",
+      "imageUrl": "/assets/products/metal/v99018-c1.avif",
+      "category": "Receta",
+      "slug": "cronos-c1",
+      "images": [
+        "/assets/products/metal/v99018-c1.avif"
+      ],
+      "product": {
+        "id": "cmqvkplml001lmiihog991c41",
+        "model": "V99018 C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/v99018-c1.avif"
+        ]
+      }
+    },
+    {
+      "name": "Ulises",
+      "imageUrl": "/assets/products/metal/v99011-c4.avif",
+      "category": "Receta",
+      "slug": "atelier-v99011-c4-0usl",
+      "images": [
+        "/assets/products/metal/v99011-c4.avif"
+      ],
+      "product": {
+        "id": "cmqvkplmh001hmiih6d0f0usl",
+        "model": "V99011 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/v99011-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Hermes C4",
+      "imageUrl": "/assets/products/metal/9006m-c4.avif",
+      "category": "Receta",
+      "slug": "hermes-c4",
+      "images": [
+        "/assets/products/metal/9006m-c4.avif"
+      ],
+      "product": {
+        "id": "cmqvkpllv000tmiih07q02g3v",
+        "model": "9006M C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/9006m-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Hermes C3",
+      "imageUrl": "/assets/products/metal/9006m-c3.avif",
+      "category": "Receta",
+      "slug": "hermes-c3",
+      "images": [
+        "/assets/products/metal/9006m-c3.avif"
+      ],
+      "product": {
+        "id": "cmqvkpllr000pmiihcf095v5u",
+        "model": "9006M C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/9006m-c3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Hermes C2",
+      "imageUrl": "/assets/products/metal/9006m-c2.avif",
+      "category": "Receta",
+      "slug": "hermes-c2",
+      "images": [
+        "/assets/products/metal/9006m-c2.avif"
+      ],
+      "product": {
+        "id": "cmqvkpllo000lmiihd4mlflzo",
+        "model": "9006M C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/9006m-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Hermes C1",
+      "imageUrl": "/assets/products/metal/9006m-c1.avif",
+      "category": "Receta",
+      "slug": "hermes-c1",
+      "images": [
+        "/assets/products/metal/9006m-c1.avif"
+      ],
+      "product": {
+        "id": "cmqvkpllk000hmiihza13ri8n",
+        "model": "9006M C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/9006m-c1.avif"
+        ]
+      }
+    },
+    {
+      "name": "Poseidon C6",
+      "imageUrl": "/assets/products/metal/9004m-c6.avif",
+      "category": "Receta",
+      "slug": "poseidon-c6",
+      "images": [
+        "/assets/products/metal/9004m-c6.avif"
+      ],
+      "product": {
+        "id": "cmqvkpllg000dmiihu4rsmn5y",
+        "model": "9004M C6",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/9004m-c6.avif"
+        ]
+      }
+    },
+    {
+      "name": "Poseidon C5",
+      "imageUrl": "/assets/products/metal/9004m-c5.avif",
+      "category": "Receta",
+      "slug": "poseidon-c5",
+      "images": [
+        "/assets/products/metal/9004m-c5.avif"
+      ],
+      "product": {
+        "id": "cmqvkpll90009miih52wktk8o",
+        "model": "9004M C5",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/9004m-c5.avif"
+        ]
+      }
+    },
+    {
+      "name": "Poseidon C3",
+      "imageUrl": "/assets/products/metal/9004m-c3.avif",
+      "category": "Receta",
+      "slug": "poseidon-c3",
+      "images": [
+        "/assets/products/metal/9004m-c3.avif"
+      ],
+      "product": {
+        "id": "cmqvkpll40005miihusv4h790",
+        "model": "9004M C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/9004m-c3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Poseidon C2",
+      "imageUrl": "/assets/products/metal/9004m-c2.avif",
+      "category": "Receta",
+      "slug": "poseidon-c2",
+      "images": [
+        "/assets/products/metal/9004m-c2.avif"
+      ],
+      "product": {
+        "id": "cmqvkplk60001miihqfkuo4ro",
+        "model": "9004M C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/9004m-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Leda C4",
+      "imageUrl": "/assets/products/metal/tl5217-c4.avif",
+      "category": "Receta",
+      "slug": "leda-c4",
+      "images": [
+        "/assets/products/metal/tl5217-c4.avif",
+        "/assets/products/gallery/TL5217-C4-2.avif",
+        "/assets/products/gallery/TL5217-C4-3.avif"
+      ],
+      "product": {
+        "id": "cmqviosx5001lpehixv21ezxb",
+        "model": "TL5217 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tl5217-c4.avif",
+          "/assets/products/gallery/TL5217-C4-2.avif",
+          "/assets/products/gallery/TL5217-C4-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Semele",
+      "imageUrl": "/assets/products/metal/tl5213-c4.avif",
+      "category": "Receta",
+      "slug": "atelier-tl5213-c4-20z2",
+      "images": [
+        "/assets/products/metal/tl5213-c4.avif"
+      ],
+      "product": {
+        "id": "cmqviosx3001hpehi9iq420z2",
+        "model": "TL5213 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tl5213-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Rhea",
+      "imageUrl": "/assets/products/metal/tl5208-c2.avif",
+      "category": "Receta",
+      "slug": "atelier-tl5208-c2-9zme",
+      "images": [
+        "/assets/products/metal/tl5208-c2.avif"
+      ],
+      "product": {
+        "id": "cmqvioswz001dpehitw3t9zme",
+        "model": "TL5208 C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tl5208-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Niobe",
+      "imageUrl": "/assets/products/metal/tl5207-c4.avif",
+      "category": "Receta",
+      "slug": "atelier-tl5207-c4-8kmz",
+      "images": [
+        "/assets/products/metal/tl5207-c4.avif"
+      ],
+      "product": {
+        "id": "cmqvioswu0019pehi1n648kmz",
+        "model": "TL5207 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tl5207-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Maia",
+      "imageUrl": "/assets/products/metal/tl5206-c4.avif",
+      "category": "Receta",
+      "slug": "atelier-tl5206-c4-0o2w",
+      "images": [
+        "/assets/products/metal/tl5206-c4.avif"
+      ],
+      "product": {
+        "id": "cmqvioswq0015pehi8wnt0o2w",
+        "model": "TL5206 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tl5206-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Diana C2",
+      "imageUrl": "/assets/products/metal/tl3932-c2.avif",
+      "category": "Receta",
+      "slug": "diana-c2",
+      "images": [
+        "/assets/products/metal/tl3932-c2.avif",
+        "/assets/products/gallery/TL3932-C2-2.jpg",
+        "/assets/products/gallery/TL3932-C2-3.jpg"
+      ],
+      "product": {
+        "id": "cmqvioswn0011pehi8sj09f4t",
+        "model": "TL3932 C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tl3932-c2.avif",
+          "/assets/products/gallery/TL3932-C2-2.jpg",
+          "/assets/products/gallery/TL3932-C2-3.jpg"
+        ]
+      }
+    },
+    {
+      "name": "Euterpe",
+      "imageUrl": "/assets/products/metal/tl3704a-c5.avif",
+      "category": "Receta",
+      "slug": "atelier-tl3704a-c5-v7qf",
+      "images": [
+        "/assets/products/metal/tl3704a-c5.avif"
+      ],
+      "product": {
+        "id": "cmqvioswj000xpehinrzgv7qf",
+        "model": "TL3704A C5",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tl3704a-c5.avif"
+        ]
+      }
+    },
+    {
+      "name": "Electra",
+      "imageUrl": "/assets/products/metal/tl3704a-c4.avif",
+      "category": "Receta",
+      "slug": "atelier-tl3704a-c4-6tom",
+      "images": [
+        "/assets/products/metal/tl3704a-c4.avif"
+      ],
+      "product": {
+        "id": "cmqvioswg000tpehiukna6tom",
+        "model": "TL3704A C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/tl3704a-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Clotho",
+      "imageUrl": "/assets/products/metal/m7239-c4.avif",
+      "category": "Receta",
+      "slug": "atelier-m7239-c4-3wor",
+      "images": [
+        "/assets/products/metal/m7239-c4.avif"
+      ],
+      "product": {
+        "id": "cmqvioswc000ppehih11l3wor",
+        "model": "M7239 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/m7239-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Ariadne C2",
+      "imageUrl": "/assets/products/metal/m7237-c2.avif",
+      "category": "Receta",
+      "slug": "ariadne-c2",
+      "images": [
+        "/assets/products/metal/m7237-c2.avif"
+      ],
+      "product": {
+        "id": "cmqviosw9000lpehihwz8u9vc",
+        "model": "M7237 C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/m7237-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Ariadne C1",
+      "imageUrl": "/assets/products/metal/m7237-c1.avif",
+      "category": "Receta",
+      "slug": "ariadne-c1",
+      "images": [
+        "/assets/products/metal/m7237-c1.avif"
+      ],
+      "product": {
+        "id": "cmqviosw6000hpehiytdwsydx",
+        "model": "M7237 C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/m7237-c1.avif"
+        ]
+      }
+    },
+    {
+      "name": "Hestia C2",
+      "imageUrl": "/assets/products/metal/m7033-c2.avif",
+      "category": "Receta",
+      "slug": "hestia-c2",
+      "images": [
+        "/assets/products/metal/m7033-c2.avif"
+      ],
+      "product": {
+        "id": "cmqviosw1000dpehiuiwbscew",
+        "model": "M7033 C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/m7033-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Hestia C1",
+      "imageUrl": "/assets/products/metal/m7033-c1.avif",
+      "category": "Receta",
+      "slug": "hestia-c1",
+      "images": [
+        "/assets/products/metal/m7033-c1.avif"
+      ],
+      "product": {
+        "id": "cmqviosvx0009pehi6o9pn3ru",
+        "model": "M7033 C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/m7033-c1.avif"
+        ]
+      }
+    },
+    {
+      "name": "Calliope",
+      "imageUrl": "/assets/products/metal/m7027-c4.avif",
+      "category": "Receta",
+      "slug": "atelier-m7027-c4-lgzf",
+      "images": [
+        "/assets/products/metal/m7027-c4.avif"
+      ],
+      "product": {
+        "id": "cmqviosvs0005pehi20wqlgzf",
+        "model": "M7027 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/m7027-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Hebe",
+      "imageUrl": "/assets/products/metal/m7011-c4.avif",
+      "category": "Receta",
+      "slug": "atelier-m7011-c4-as4m",
+      "images": [
+        "/assets/products/metal/m7011-c4.avif"
+      ],
+      "product": {
+        "id": "cmqviosv40001pehinwzsas4m",
+        "model": "M7011 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/m7011-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Catalina C1",
+      "imageUrl": "/assets/products/acetato/YF3090-c1.avif",
+      "category": "Receta",
+      "slug": "catalina-c1",
+      "images": [
+        "/assets/products/acetato/YF3090-c1.avif"
+      ],
+      "product": {
+        "id": "cmqbq14x7003ckrnf06penlaa",
+        "model": "YF3090-C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/YF3090-c1.avif"
+        ]
+      }
+    },
+    {
+      "name": "Frida C7",
+      "imageUrl": "/assets/products/acetato/Q8013-c7.avif",
+      "category": "Receta",
+      "slug": "frida-c7",
+      "images": [
+        "/assets/products/acetato/Q8013-c7.avif"
+      ],
+      "product": {
+        "id": "cmqbq14x50039krnftpvu35u2",
+        "model": "Q8013-C7",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q8013-c7.avif"
+        ]
+      }
+    },
+    {
+      "name": "Frida C6",
+      "imageUrl": "/assets/products/acetato/Q8013-c6.avif",
+      "category": "Receta",
+      "slug": "frida-c6",
+      "images": [
+        "/assets/products/acetato/Q8013-c6.avif"
+      ],
+      "product": {
+        "id": "cmqbq14x20036krnf9ysq4xfa",
+        "model": "Q8013-C6",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q8013-c6.avif"
+        ]
+      }
+    },
+    {
+      "name": "Frida C5",
+      "imageUrl": "/assets/products/acetato/Q8013-c5.avif",
+      "category": "Receta",
+      "slug": "frida-c5",
+      "images": [
+        "/assets/products/acetato/Q8013-c5.avif"
+      ],
+      "product": {
+        "id": "cmqbq14x00033krnfs8ixn743",
+        "model": "Q8013-C5",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q8013-c5.avif"
+        ]
+      }
+    },
+    {
+      "name": "Frida C3",
+      "imageUrl": "/assets/products/acetato/Q8013-c3.avif",
+      "category": "Receta",
+      "slug": "frida-c3",
+      "images": [
+        "/assets/products/acetato/Q8013-c3.avif",
+        "/assets/products/gallery/Q8013-C3-2.avif"
+      ],
+      "product": {
+        "id": "cmqbq14wx0030krnflmrqgw56",
+        "model": "Q8013-C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q8013-c3.avif",
+          "/assets/products/gallery/Q8013-C3-2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Frida C1",
+      "imageUrl": "/assets/products/acetato/Q8013-c1.avif",
+      "category": "Receta",
+      "slug": "frida-c1",
+      "images": [
+        "/assets/products/acetato/Q8013-c1.avif",
+        "/assets/products/gallery/Q8013-C1-2.avif",
+        "/assets/products/gallery/Q8013-C1-3.avif",
+        "/assets/products/gallery/Q8013-C1-4.avif"
+      ],
+      "product": {
+        "id": "cmqbq14ws002ukrnfiukwomg7",
+        "model": "Q8013-C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q8013-c1.avif",
+          "/assets/products/gallery/Q8013-C1-2.avif",
+          "/assets/products/gallery/Q8013-C1-3.avif",
+          "/assets/products/gallery/Q8013-C1-4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Victoria C5",
+      "imageUrl": "/assets/products/acetato/Q6013-c5.avif",
+      "category": "Receta",
+      "slug": "victoria-c5",
+      "images": [
+        "/assets/products/acetato/Q6013-c5.avif"
+      ],
+      "product": {
+        "id": "cmqbq14wn002okrnf9duif2n4",
+        "model": "Q6013-C5",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q6013-c5.avif"
+        ]
+      }
+    },
+    {
+      "name": "Victoria C4",
+      "imageUrl": "/assets/products/acetato/Q6013-c4.avif",
+      "category": "Receta",
+      "slug": "victoria-c4",
+      "images": [
+        "/assets/products/acetato/Q6013-c4.avif"
+      ],
+      "product": {
+        "id": "cmqbq14wl002lkrnf8725h1se",
+        "model": "Q6013-C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q6013-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Victoria C1",
+      "imageUrl": "/assets/products/acetato/Q6013-c1.avif",
+      "category": "Receta",
+      "slug": "victoria-c1",
+      "images": [
+        "/assets/products/acetato/Q6013-c1.avif",
+        "/assets/products/gallery/Q6013-C1-2.avif",
+        "/assets/products/gallery/Q6013-C1-3.avif"
+      ],
+      "product": {
+        "id": "cmqbq14wi002ikrnfyyjiw8me",
+        "model": "Q6013-C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q6013-c1.avif",
+          "/assets/products/gallery/Q6013-C1-2.avif",
+          "/assets/products/gallery/Q6013-C1-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Helena C8",
+      "imageUrl": "/assets/products/acetato/Q5205-c8.avif",
+      "category": "Receta",
+      "slug": "helena-c8",
+      "images": [
+        "/assets/products/acetato/Q5205-c8.avif"
+      ],
+      "product": {
+        "id": "cmqbq14wf002fkrnfm15kq6v7",
+        "model": "Q5205-C8",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5205-c8.avif"
+        ]
+      }
+    },
+    {
+      "name": "Helena C5",
+      "imageUrl": "/assets/products/acetato/Q5205-c5.avif",
+      "category": "Receta",
+      "slug": "helena-c5",
+      "images": [
+        "/assets/products/acetato/Q5205-c5.avif"
+      ],
+      "product": {
+        "id": "cmqbq14wd002ckrnfycuhe9lp",
+        "model": "Q5205-C5",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5205-c5.avif"
+        ]
+      }
+    },
+    {
+      "name": "Helena C4",
+      "imageUrl": "/assets/products/acetato/Q5205-c4.avif",
+      "category": "Receta",
+      "slug": "helena-c4",
+      "images": [
+        "/assets/products/acetato/Q5205-c4.avif"
+      ],
+      "product": {
+        "id": "cmqbq14wb0029krnf7zd9hj52",
+        "model": "Q5205-C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5205-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Helena C3",
+      "imageUrl": "/assets/products/acetato/Q5205-c3.avif",
+      "category": "Receta",
+      "slug": "helena-c3",
+      "images": [
+        "/assets/products/acetato/Q5205-c3.avif"
+      ],
+      "product": {
+        "id": "cmqbq14w80026krnfk5oq0uel",
+        "model": "Q5205-C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5205-c3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Gala C7",
+      "imageUrl": "/assets/products/acetato/Q5005-c7.avif",
+      "category": "Receta",
+      "slug": "gala-c7",
+      "images": [
+        "/assets/products/acetato/Q5005-c7.avif"
+      ],
+      "product": {
+        "id": "cmqbq14w0001xkrnflu8q1f43",
+        "model": "Q5005-C7",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5005-c7.avif"
+        ]
+      }
+    },
+    {
+      "name": "Gala C6",
+      "imageUrl": "/assets/products/acetato/Q5005-c6.avif",
+      "category": "Receta",
+      "slug": "gala-c6",
+      "images": [
+        "/assets/products/acetato/Q5005-c6.avif"
+      ],
+      "product": {
+        "id": "cmqbq14vx001ukrnfxmpsmxni",
+        "model": "Q5005-C6",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5005-c6.avif"
+        ]
+      }
+    },
+    {
+      "name": "Gala C4",
+      "imageUrl": "/assets/products/acetato/Q5005-c4.avif",
+      "category": "Receta",
+      "slug": "gala-c4",
+      "images": [
+        "/assets/products/acetato/Q5005-c4.avif"
+      ],
+      "product": {
+        "id": "cmqbq14vv001rkrnfwbv9kdok",
+        "model": "Q5005-C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5005-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Gala C3",
+      "imageUrl": "/assets/products/acetato/Q5005-c3.avif",
+      "category": "Receta",
+      "slug": "gala-c3",
+      "images": [
+        "/assets/products/acetato/Q5005-c3.avif"
+      ],
+      "product": {
+        "id": "cmqbq14vt001okrnf99ytc4o6",
+        "model": "Q5005-C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5005-c3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Gala C2",
+      "imageUrl": "/assets/products/acetato/Q5005-c2.avif",
+      "category": "Receta",
+      "slug": "gala-c2",
+      "images": [
+        "/assets/products/acetato/Q5005-c2.avif"
+      ],
+      "product": {
+        "id": "cmqbq14vq001lkrnfvxceoct5",
+        "model": "Q5005-C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/Q5005-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Polaris C6",
+      "imageUrl": "/assets/products/acetato/57202LJH-c6.avif",
+      "category": "Receta",
+      "slug": "polaris-c6",
+      "images": [
+        "/assets/products/acetato/57202LJH-c6.avif"
+      ],
+      "product": {
+        "id": "cmqbq14ux000rkrnfggag1z1i",
+        "model": "57202LJH-C6",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/57202LJH-c6.avif"
+        ]
+      }
+    },
+    {
+      "name": "Polaris C5",
+      "imageUrl": "/assets/products/acetato/57202LJH-c5.avif",
+      "category": "Receta",
+      "slug": "polaris-c5",
+      "images": [
+        "/assets/products/acetato/57202LJH-c5.avif"
+      ],
+      "product": {
+        "id": "cmqbq14uu000okrnfw82bv2qg",
+        "model": "57202LJH-C5",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/57202LJH-c5.avif"
+        ]
+      }
+    },
+    {
+      "name": "Polaris C2",
+      "imageUrl": "/assets/products/acetato/57202LJH-c2.avif",
+      "category": "Receta",
+      "slug": "polaris-c2",
+      "images": [
+        "/assets/products/acetato/57202LJH-c2.avif",
+        "/assets/products/gallery/57202LJH-C2-2.avif",
+        "/assets/products/gallery/57202LJH-C2-3.avif"
+      ],
+      "product": {
+        "id": "cmqbq14un000ikrnfz5jrovkc",
+        "model": "57202LJH-C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/57202LJH-c2.avif",
+          "/assets/products/gallery/57202LJH-C2-2.avif",
+          "/assets/products/gallery/57202LJH-C2-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Polaris C1",
+      "imageUrl": "/assets/products/acetato/57202LJH-c1.avif",
+      "category": "Receta",
+      "slug": "polaris-c1",
+      "images": [
+        "/assets/products/acetato/57202LJH-c1.avif"
+      ],
+      "product": {
+        "id": "cmqbq14uk000fkrnfyj7vc8p4",
+        "model": "57202LJH-C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/57202LJH-c1.avif"
+        ]
+      }
+    },
+    {
+      "name": "Andrómeda C6",
+      "imageUrl": "/assets/products/acetato/57201LJH-c6.avif",
+      "category": "Receta",
+      "slug": "andromeda-c6",
+      "images": [
+        "/assets/products/acetato/57201LJH-c6.avif"
+      ],
+      "product": {
+        "id": "cmqbq14ud0009krnfypch741y",
+        "model": "57201LJH-C6",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/57201LJH-c6.avif"
+        ]
+      }
+    },
+    {
+      "name": "Andrómeda C4",
+      "imageUrl": "/assets/products/acetato/57201LJH-c4.avif",
+      "category": "Receta",
+      "slug": "andromeda-c4",
+      "images": [
+        "/assets/products/acetato/57201LJH-c4.avif"
+      ],
+      "product": {
+        "id": "cmqbq14ua0006krnfil3j0242",
+        "model": "57201LJH-C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/57201LJH-c4.avif"
+        ]
+      }
+    },
+    {
+      "name": "Andrómeda C3",
+      "imageUrl": "/assets/products/acetato/57201LJH-c3.avif",
+      "category": "Receta",
+      "slug": "andromeda-c3",
+      "images": [
+        "/assets/products/acetato/57201LJH-c3.avif"
+      ],
+      "product": {
+        "id": "cmqbq14u40003krnfy3mi7haz",
+        "model": "57201LJH-C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/57201LJH-c3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Andrómeda C1",
+      "imageUrl": "/assets/products/acetato/57201LJH-c1.avif",
+      "category": "Receta",
+      "slug": "andromeda-c1",
+      "images": [
+        "/assets/products/acetato/57201LJH-c1.avif",
+        "/assets/products/gallery/57201LJH-C1-2.avif",
+        "/assets/products/gallery/57201LJH-C1-3.avif"
+      ],
+      "product": {
+        "id": "cmqbq14tx0000krnft5avwtnl",
+        "model": "57201LJH-C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/acetato/57201LJH-c1.avif",
+          "/assets/products/gallery/57201LJH-C1-2.avif",
+          "/assets/products/gallery/57201LJH-C1-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Leda C5",
+      "imageUrl": "/assets/products/metal/TL5217-c5.avif",
+      "category": "Receta",
+      "slug": "leda-c5",
+      "images": [
+        "/assets/products/metal/TL5217-c5.avif"
+      ],
+      "product": {
+        "id": "cmq5d194e0036hy61vq5hdppd",
+        "model": "TL5217 C5",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/TL5217-c5.avif"
+        ]
+      }
+    },
+    {
+      "name": "Leda C2",
+      "imageUrl": "/assets/products/metal/TL5217-c2.avif",
+      "category": "Receta",
+      "slug": "leda-c2",
+      "images": [
+        "/assets/products/metal/TL5217-c2.avif"
+      ],
+      "product": {
+        "id": "cmq5d16fs0030hy61lroclwgw",
+        "model": "TL5217 C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/TL5217-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Diana C4",
+      "imageUrl": "/assets/products/metal/TL3932-c4.avif",
+      "category": "Receta",
+      "slug": "diana-c4",
+      "images": [
+        "/assets/products/metal/TL3932-c4.avif",
+        "/assets/products/gallery/TL3932-C4-3.avif"
+      ],
+      "product": {
+        "id": "cmq5d13zk002uhy611k7b2vba",
+        "model": "TL3932 C4",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/TL3932-c4.avif",
+          "/assets/products/gallery/TL3932-C4-3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Minerva C4-1",
+      "imageUrl": "/assets/products/metal/HY238014-c4-1.avif",
+      "category": "Receta",
+      "slug": "minerva-c4-1",
+      "images": [
+        "/assets/products/metal/HY238014-c4-1.avif"
+      ],
+      "product": {
+        "id": "cmq5d0o0m001uhy61ms37fn1a",
+        "model": "HY238014 C4-1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/HY238014-c4-1.avif"
+        ]
+      }
+    },
+    {
+      "name": "Minerva C3",
+      "imageUrl": "/assets/products/metal/HY238014-c3.avif",
+      "category": "Receta",
+      "slug": "minerva-c3",
+      "images": [
+        "/assets/products/metal/HY238014-c3.avif"
+      ],
+      "product": {
+        "id": "cmq5d0lno001ohy61dg4gksa5",
+        "model": "HY238014 C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/HY238014-c3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Minerva C2",
+      "imageUrl": "/assets/products/metal/HY238014-c2.avif",
+      "category": "Receta",
+      "slug": "minerva-c2",
+      "images": [
+        "/assets/products/metal/HY238014-c2.avif"
+      ],
+      "product": {
+        "id": "cmq5d0j1v001ihy6184fo8odn",
+        "model": "HY238014 C2",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/HY238014-c2.avif"
+        ]
+      }
+    },
+    {
+      "name": "Pandora C5",
+      "imageUrl": "/assets/products/metal/HK011-c5.avif",
+      "category": "Receta",
+      "slug": "pandora-c5",
+      "images": [
+        "/assets/products/metal/HK011-c5.avif"
+      ],
+      "product": {
+        "id": "cmq5d0db70016hy61khi5sskn",
+        "model": "HK011 C5",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/HK011-c5.avif"
+        ]
+      }
+    },
+    {
+      "name": "Pandora C3",
+      "imageUrl": "/assets/products/metal/HK011-c3.avif",
+      "category": "Receta",
+      "slug": "pandora-c3",
+      "images": [
+        "/assets/products/metal/HK011-c3.avif"
+      ],
+      "product": {
+        "id": "cmq5d0atu0010hy61r99kp7mi",
+        "model": "HK011 C3",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/HK011-c3.avif"
+        ]
+      }
+    },
+    {
+      "name": "Artemis",
+      "imageUrl": "/assets/products/metal/G7013-c1.avif",
+      "category": "Receta",
+      "slug": "atelier-artemis-8f6p",
+      "images": [
+        "/assets/products/metal/G7013-c1.avif",
+        "/assets/products/gallery/G7013-C1-2.avif"
+      ],
+      "product": {
+        "id": "cmq5d02rh000ihy61s6ad5noo",
+        "model": "G7013 C1",
+        "price": 160000,
+        "stock": 5,
+        "imagenesCatalogo": [
+          "/assets/products/metal/G7013-c1.avif",
+          "/assets/products/gallery/G7013-C1-2.avif"
+        ]
+      }
+    }
+  ]
+}

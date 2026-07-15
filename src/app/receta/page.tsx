@@ -4,7 +4,8 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { CategoryGrid } from "@/components/Storefront/CategoryGrid";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { prisma } from '@/lib/db';
-import { rethrowUnlessBuild } from '@/lib/db-guard';
+import { LISTADO_SELECT } from '@/lib/catalog/queries';
+import { getRecetaListado } from '@/lib/catalog/sources';
 export const revalidate = 300;
 import { Glasses } from 'lucide-react';
 import { Suspense } from 'react';
@@ -64,18 +65,24 @@ export default async function RecetaPage({ searchParams }: { searchParams: Promi
     const [pRes, bRes] = await Promise.all([
       prisma.webProduct.findMany({
         where: whereClause,
-        include: { product: true },
+        select: LISTADO_SELECT,
         orderBy: orderBy
       }),
       prisma.webProduct.findMany({
         where: { category: { contains: "Receta", mode: "insensitive" }, isActive: true },
-        include: { product: { select: { brand: true, model: true } } }
+        select: { name: true, product: { select: { brand: true, model: true } } }
       })
     ]);
     dbProducts = pRes;
     uniqueBrandsResult = bRes;
   } catch (error) {
-    rethrowUnlessBuild(error, 'Receta');
+    // DB caída: vista por defecto resiliente (memoria → snapshot). La página
+    // nunca queda vacía; los filtros de la URL se ignoran mientras dure la falla.
+    // Un resultado vacío por filtros NO pasa por acá (es legítimo y se muestra).
+    console.error('[Receta] query en vivo falló — usando fallback:', error);
+    const fallback = await getRecetaListado();
+    dbProducts = fallback.data.products;
+    uniqueBrandsResult = fallback.data.meta;
   }
 
   // Extract distinct brands

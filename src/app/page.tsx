@@ -14,7 +14,7 @@ const HomeStorePreview = dynamic(() => import("@/components/Storefront/HomeStore
 const HomeWhyChooseUs = dynamic(() => import("@/components/Storefront/HomeWhyChooseUs").then(mod => mod.HomeWhyChooseUs));
 const HomeRecommendationQuiz = dynamic(() => import("@/components/Storefront/HomeRecommendationQuiz").then(mod => mod.HomeRecommendationQuiz));
 
-import { getHomeProducts } from "@/lib/home-products";
+import { getHomeProducts } from "@/lib/catalog/sources";
 import { formatProducts } from "@/lib/home-fallback";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { getGoogleReviews } from "@/lib/googleReviews";

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { serverCache } from '@/lib/cache';
+import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,19 +22,24 @@ export async function GET(request: NextRequest) {
 
         // El catálogo mapeado solo depende del canal (web vs mayorista): la query a la
         // base es idéntica para cualquier filtro/orden/página (todo eso se resuelve en
-        // JS más abajo). Lo cacheamos por canal 180s para no rebajar el catálogo entero
-        // de la DB en cada cambio de filtro del storefront. Staleza aceptable para una
-        // tienda; una edición de producto se refleja en ≤3 min.
-        const cacheKey = `store-products-mapped:${isWholesale ? 'wholesale' : 'web'}`;
-        let mappedProducts = serverCache.get<any[]>(cacheKey);
-        if (mappedProducts === null) {
+        // JS más abajo). Canal WEB: catálogo compartido con /tienda vía
+        // src/lib/catalog/tienda-map.ts (caché 180s + fallback resiliente: esta API
+        // no devuelve 500 ni vacío aunque la DB esté caída). Canal MAYORISTA: camino
+        // propio con su caché, como siempre.
+        let mappedProducts: any[];
+        if (!isWholesale) {
+            mappedProducts = (await getMappedWebCatalog()).products;
+        } else {
+        const cacheKey = 'store-products-mapped:wholesale';
+        const cachedWholesale = serverCache.get<any[]>(cacheKey);
+        if (cachedWholesale !== null) {
+            mappedProducts = cachedWholesale;
+        } else {
             const webProducts = await prisma.webProduct.findMany({
                 where: {
                     isActive: true,
                     product: {
-                        ...(isWholesale
-                            ? { publishToWholesale: true }
-                            : { publishToWeb: true }),
+                        publishToWholesale: true,
                         category: { not: 'Cristal' }
                     }
                 },
@@ -60,7 +66,7 @@ export async function GET(request: NextRequest) {
                     category: wp.category,
                     price: wp.product.price,
                     salePrice: wp.product.salePrice,
-                    ...(isWholesale ? { wholesalePrice: wp.product.wholesalePrice } : {}),
+                    wholesalePrice: wp.product.wholesalePrice,
                     stock: wp.product.stock,
                     slug: wp.slug,
                     // La grilla solo usa [0] (principal) y [1] (hover). Recortamos a 2
@@ -72,6 +78,7 @@ export async function GET(request: NextRequest) {
                 };
             });
             serverCache.set(cacheKey, mappedProducts, 180);
+        }
         }
 
         // Copia para no mutar el array cacheado con el .sort() de más abajo.

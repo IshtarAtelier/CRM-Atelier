@@ -1,0 +1,854 @@
+{
+  "generatedAt": "2026-07-15T14:49:56.543Z",
+  "key": "tienda-filtros",
+  "data": [
+    {
+      "name": "Minerva C4-1",
+      "product": {
+        "brand": "Atelier",
+        "model": "HY238014 C4-1",
+        "seoTags": "Hexagonal, Metal"
+      }
+    },
+    {
+      "name": "Andrómeda C7",
+      "product": {
+        "brand": "Atelier",
+        "model": "57201LJH-C7",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Polaris C5",
+      "product": {
+        "brand": "Atelier",
+        "model": "57202LJH-C5",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Polaris C7",
+      "product": {
+        "brand": "Atelier",
+        "model": "57202LJH-C7",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Niobe",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL5207 C4",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Minerva C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "HY238014 C2",
+        "seoTags": "Hexagonal, Metal"
+      }
+    },
+    {
+      "name": "Polaris C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "57202LJH-C2",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Helena C5",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5205-C5",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Calliope",
+      "product": {
+        "brand": "Atelier",
+        "model": "M7027 C4",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Euterpe",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL3704A C5",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Ariadne C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "M7237 C2",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Helena C8",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5205-C8",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Semele",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL5213 C4",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Helena C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5205-C3",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Leda C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL5217 C4",
+        "seoTags": "Redondo, Metal"
+      }
+    },
+    {
+      "name": "Pandora C5",
+      "product": {
+        "brand": "Atelier",
+        "model": "HK011 C5",
+        "seoTags": "Redondo, Metal"
+      }
+    },
+    {
+      "name": "Andrómeda C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "57201LJH-C1",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Andrómeda C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "57201LJH-C3",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Andrómeda C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "57201LJH-C4",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Andrómeda C6",
+      "product": {
+        "brand": "Atelier",
+        "model": "57201LJH-C6",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Polaris C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "57202LJH-C1",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Leda C5",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL5217 C5",
+        "seoTags": "Redondo, Metal"
+      }
+    },
+    {
+      "name": "Diana C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL3932 C3",
+        "seoTags": "Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Diana C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL3932 C4",
+        "seoTags": "Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Iris C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "GS7015 C1",
+        "seoTags": "Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Rhea",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL5208 C2",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Cleopatra C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "FD88821-C4",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Roma C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "FD88810-C1",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Gala C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5005-C2",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Gala C6",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5005-C6",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Gala C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5005-C1",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Poseidon C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "9004M C3",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Frida C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q8013-C2",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Frida C5",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q8013-C5",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Victoria C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q6013-C4",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Ariadne C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "M7237 C1",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Hebe",
+      "product": {
+        "brand": "Atelier",
+        "model": "M7011 C4",
+        "seoTags": "Redondo, Metal"
+      }
+    },
+    {
+      "name": "Hestia C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "M7033 C1",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Hestia C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "M7033 C2",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Poseidon C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "9004M C2",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Poseidon C5",
+      "product": {
+        "brand": "Atelier",
+        "model": "9004M C5",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Clotho",
+      "product": {
+        "brand": "Atelier",
+        "model": "M7239 C4",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Ulises",
+      "product": {
+        "brand": "Atelier",
+        "model": "V99011 C4",
+        "seoTags": "Redondo, Metal"
+      }
+    },
+    {
+      "name": "Hermes C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "9006M C2",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Orfeo C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "YX05 C1",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Orfeo C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "YX05 C3",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Teseo C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "TG2809 C4",
+        "seoTags": "Cuadrado, Titanio"
+      }
+    },
+    {
+      "name": "Helena C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5205-C4",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Gala C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5005-C4",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Gala C7",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5005-C7",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Frida C6",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q8013-C6",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Polaris C6",
+      "product": {
+        "brand": "Atelier",
+        "model": "57202LJH-C6",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Helena C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5205-C2",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Poseidon C6",
+      "product": {
+        "brand": "Atelier",
+        "model": "9004M C6",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Frida C7",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q8013-C7",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Victoria C6",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q6013-C6",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Helios",
+      "product": {
+        "brand": "Atelier",
+        "model": "TG2807 C1",
+        "seoTags": "Cuadrado, Titanio"
+      }
+    },
+    {
+      "name": "Atenea C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "P5783-C3",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Hermes C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "9006M C1",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Hermes C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "9006M C3",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Hermes C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "9006M C4",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Maia",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL5206 C4",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Cronos C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "V99018 C1",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Cronos C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "V99018 C3",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Aquiles C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "TG2810 C4",
+        "seoTags": "Cuadrado, Titanio"
+      }
+    },
+    {
+      "name": "Leda C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL5217 C2",
+        "seoTags": "Redondo, Metal"
+      }
+    },
+    {
+      "name": "Pandora C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "HK011 C3",
+        "seoTags": "Redondo, Metal"
+      }
+    },
+    {
+      "name": "Iris C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "GS7015 C3",
+        "seoTags": "Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Artemis",
+      "product": {
+        "brand": "Atelier",
+        "model": "G7013 C1",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Athena",
+      "product": {
+        "brand": "Atelier",
+        "model": "91501 C6",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Minerva C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "HY238014 C3",
+        "seoTags": "Hexagonal, Metal"
+      }
+    },
+    {
+      "name": "Diana C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL3932 C2",
+        "seoTags": "Cat-Eye, Metal"
+      }
+    },
+    {
+      "name": "Frida C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q8013-C1",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Orfeo C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "YX05 C4",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Pegaso C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "BC3063-C1",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Olimpia C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "P5786-C1",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Venus C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "P5787-C4",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Gala C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5005-C3",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Gala C8",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5005-C8",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Frida C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q8013-C3",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Victoria C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q6013-C1",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Victoria C5",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q6013-C5",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Catalina C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "YF3090-C1",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Gaia",
+      "product": {
+        "brand": "Atelier",
+        "model": "HY238013 C1",
+        "seoTags": "Redondo, Metal"
+      }
+    },
+    {
+      "name": "Orfeo C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "YX05 C2",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Teseo C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "TG2809 C1",
+        "seoTags": "Cuadrado, Titanio"
+      }
+    },
+    {
+      "name": "Aquiles C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "TG2810 C1",
+        "seoTags": "Cuadrado, Titanio"
+      }
+    },
+    {
+      "name": "Anastasia C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "BC3059-C1",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Electra",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL3704A C4",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Atlas C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "G7008 C1",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Atlas C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "G7008 C2",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Atlas C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "G7008 C3",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Jano C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "G7010 C1",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Orión C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "G7012 C1",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Néstor C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "G7013 C1",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Eros C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "GS7008S C1",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Eros C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "GS7008S C2",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Apolo C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "GS7010S C1",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Apolo C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "GS7010S C2",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Ares C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "GS7014S C2",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Febo C1",
+      "product": {
+        "brand": "Atelier",
+        "model": "GS7017S C1",
+        "seoTags": "Metal"
+      }
+    },
+    {
+      "name": "Mizar C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "YD1335 C2",
+        "seoTags": "yd1335 c2, mizar c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Redondo"
+      }
+    },
+    {
+      "name": "Adhara C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "YD1330 C4",
+        "seoTags": "yd1330 c4, adhara c4, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cuadrado"
+      }
+    },
+    {
+      "name": "Cánopo C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "YD1331 C4",
+        "seoTags": "yd1331 c4, cánopo c4, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Redondo"
+      }
+    },
+    {
+      "name": "Nashira C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "FG1596 C3",
+        "seoTags": "fg1596 c3, nashira c3, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cat-Eye"
+      }
+    },
+    {
+      "name": "Fénix C2",
+      "product": {
+        "brand": "Atelier",
+        "model": "J853T19 C2",
+        "seoTags": "j853t19 c2, fénix c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cuadrado"
+      }
+    }
+  ]
+}

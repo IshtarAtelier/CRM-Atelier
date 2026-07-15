@@ -1,10 +1,9 @@
 // ────────────────────────────────────────────────────────────────────────────
-// Lógica PURA del fallback de productos del home (sin prisma, sin I/O).
+// Tipos y formato PUROS del carrusel del home (sin prisma, sin I/O).
 //
-// Garantía que implementa: la home NUNCA se queda sin productos. La cadena es
-//   vivo (DB) → última lectura buena en memoria → snapshot empaquetado en el build
-// La capa con prisma vive en home-products.ts; acá solo la selección y el formato,
-// para poder fijarlos con `npm run check:home` sin base de datos.
+// La resiliencia (vivo → memoria → snapshot) vive en src/lib/catalog/
+// (resilience.ts + sources.ts); acá solo el shape de las filas y el formateo
+// del carrusel, para poder fijarlos con `npm run check:catalog` sin base.
 //
 // SIN imports a propósito: el check lo ejecuta Node pelado (--experimental-strip-types),
 // que no resuelve el alias "@/". El resolvedor de URLs se inyecta por parámetro.
@@ -37,8 +36,6 @@ export interface HomeSourceData {
   count: number;
 }
 
-export type HomeDataSource = "live" | "memory" | "snapshot";
-
 export function countProducts(data: HomeSourceData | null | undefined): number {
   if (!data) return 0;
   return (
@@ -51,22 +48,6 @@ export function countProducts(data: HomeSourceData | null | undefined): number {
 
 export function hasProducts(data: HomeSourceData | null | undefined): boolean {
   return countProducts(data) > 0;
-}
-
-/**
- * Elige la fuente de datos: vivo si trae productos; si no, la última buena en
- * memoria; si no, el snapshot del build. Una respuesta "exitosa" de la DB con
- * 0 productos se trata como falla — jamás se elige una fuente vacía habiendo
- * otra con productos.
- */
-export function chooseHomeSource(
-  live: HomeSourceData | null,
-  memory: HomeSourceData | null,
-  snapshot: HomeSourceData,
-): { data: HomeSourceData; source: HomeDataSource } {
-  if (hasProducts(live)) return { data: live as HomeSourceData, source: "live" };
-  if (hasProducts(memory)) return { data: memory as HomeSourceData, source: "memory" };
-  return { data: snapshot, source: "snapshot" };
 }
 
 /** Producto ya formateado para el carrusel del home. */
