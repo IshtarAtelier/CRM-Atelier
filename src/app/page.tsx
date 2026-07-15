@@ -8,6 +8,7 @@ const StorefrontFooter = dynamic(() => import("@/components/Storefront/Storefron
 const FloatingWhatsApp = dynamic(() => import("@/components/Storefront/FloatingWhatsApp").then(mod => mod.FloatingWhatsApp));
 const GoogleReviews = dynamic(() => import("@/components/Storefront/GoogleReviews").then(mod => mod.GoogleReviews));
 const HomeProductCarousel = dynamic(() => import("@/components/Storefront/HomeProductCarousel").then(mod => mod.HomeProductCarousel));
+import { HomeSolShowcase } from "@/components/Storefront/HomeSolShowcase";
 const HomeConfiguratorSection = dynamic(() => import("@/components/Storefront/HomeConfiguratorSection").then(mod => mod.HomeConfiguratorSection));
 const HomeMacroFilm = dynamic(() => import("@/components/Storefront/HomeMacroFilm").then(mod => mod.HomeMacroFilm));
 const HomeStorePreview = dynamic(() => import("@/components/Storefront/HomeStorePreview").then(mod => mod.HomeStorePreview));
@@ -65,6 +66,17 @@ export default async function Home() {
   };
 
   const catalogCount = homeData.count;
+
+  // DÚO DESTACADO DE SOL: 2 piezas grandes bajo el carrusel. Se eligen de las
+  // colecciones YA blindadas (misma tubería vivo→memoria→snapshot): primero los
+  // destacados que sean de sol, y se completa con lo más nuevo de sol. Sin
+  // queries nuevas — hereda la garantía de nunca quedar vacío.
+  const isSol = (p: { category?: string | null }) => (p.category || "").toLowerCase().includes("sol");
+  const featuredSol = carouselData.destacados.filter(isSol);
+  const solShowcase = [
+    ...featuredSol,
+    ...carouselData.sol.filter((p) => !featuredSol.some((f) => f.id === p.id)),
+  ].slice(0, 2);
 
   const organizationSchema = {
     "@context": "https://schema.org",
@@ -175,6 +187,11 @@ export default async function Home() {
 
       {/* PRODUCT GRID — Scroll horizontal infinito en Cliente */}
       <HomeProductCarousel collections={carouselData} totalCount={catalogCount} />
+
+      {/* ═══════════════════════════════════════════════ */}
+      {/* DÚO DESTACADO DE SOL — 2 piezas grandes          */}
+      {/* ═══════════════════════════════════════════════ */}
+      {solShowcase.length === 2 && <HomeSolShowcase products={solShowcase} />}
 
       {/* ═══════════════════════════════════════════════ */}
       {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}
