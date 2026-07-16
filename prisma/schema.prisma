@@ -20,6 +20,7 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   cashMovements CashMovement[]
+  vendorCashEntries VendorCashEntry[] @relation("VendorCashEntries")
   orders        Order[]
 }
 
@@ -74,6 +75,27 @@ model CashMovement {
   user       User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+// Caja por vendedor: cuenta corriente individual. Saldo = CREDITO − DEBITO.
+// Positivo = el vendedor tiene para cobrar; negativo = debe (adelantos,
+// descuentos de post venta, etc.).
+model VendorCashEntry {
+  id            String   @id @default(cuid())
+  vendorId      String
+  type          String   // 'CREDITO' (a favor) | 'DEBITO' (descuento)
+  amount        Float    // siempre positivo; el signo lo da `type`
+  reason        String
+  category      String   @default("OTRO") // PAGO|COMISION|ADELANTO|POST_VENTA|OTRO
+  receiptUrl    String?
+  // Actor: quién cargó el movimiento (denormalizado, sobrevive al borrado de usuarios)
+  createdById   String?
+  createdByName String?
+  createdAt     DateTime @default(now())
+  vendor        User     @relation("VendorCashEntries", fields: [vendorId], references: [id])
+
+  @@index([vendorId])
+  @@index([createdAt])
 }
 
 model Interaction {

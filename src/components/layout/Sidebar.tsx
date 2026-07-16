@@ -74,6 +74,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
       { href: "/admin/whatsapp", label: "WhatsApp", icon: WhatsAppIcon, adminOnly: false },
       { href: "/admin/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: false },
+      { href: "/admin/caja/vendedores", label: "↳ Caja Vendedores", icon: Wallet, adminOnly: false, isSubLink: true },
       { href: "/admin/gastos", label: "Gastos", icon: TrendingDown, adminOnly: true },
       { href: "/admin/administracion", label: "Administración", icon: Wallet, adminOnly: true },
       { href: "/admin/reportes", label: "Reportes", icon: FileText, adminOnly: true },
@@ -107,7 +108,9 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
           const Icon = link.icon;
           let isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href) && !link.href.includes('?'));
           
-          if (link.href === '/admin/ventas') {
+          if (link.href === '/admin/caja') {
+             isActive = pathname === '/admin/caja';
+          } else if (link.href === '/admin/ventas') {
              isActive = pathname === '/admin/ventas' && searchParams.get('mode') !== 'POST_VENTA' && searchParams.get('mode') !== 'WEB';
           } else if (link.href === '/admin/ventas?mode=POST_VENTA') {
              isActive = pathname === '/admin/ventas' && searchParams.get('mode') === 'POST_VENTA';

@@ -4,7 +4,7 @@ export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'LO
 export type AuditEntityType =
     | 'ORDER' | 'CONTACT' | 'PAYMENT' | 'USER' | 'PRODUCT'
     | 'TASK' | 'PRESCRIPTION' | 'INVOICE' | 'EXPENSE' | 'DOCTOR_PAYMENT'
-    | 'COUPON' | 'SETTING' | 'OTHER';
+    | 'COUPON' | 'SETTING' | 'VENDOR_CASH' | 'OTHER';
 
 export async function logAudit(params: {
   userId?: string | null;
