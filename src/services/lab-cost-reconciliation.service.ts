@@ -163,23 +163,40 @@ export class LabCostReconciliationService {
      * `sinceDays` días y registra cada una en la conciliación.
      */
     static async scanOptovisionInbox(sinceDays = 35) {
-        const password = process.env.IMAP_PASSWORD || '';
-        if (!password) {
-            console.warn('[LabCost] IMAP_PASSWORD no configurada. Se omite el escaneo.');
+        // Cadena de credenciales configuradas: primero la dedicada a IMAP y, si
+        // falla, la del SMTP (la misma app password de Gmail sirve para ambos).
+        const candidates = [
+            { user: process.env.IMAP_USER || process.env.EMAIL_USER, password: process.env.IMAP_PASSWORD },
+            { user: process.env.EMAIL_USER, password: process.env.EMAIL_PASS },
+        ].filter(c => c.user && c.password);
+
+        if (candidates.length === 0) {
+            console.warn('[LabCost] Sin credenciales IMAP/EMAIL configuradas. Se omite el escaneo.');
             return { skipped: true, reason: 'no_imap_password' };
         }
 
-        const connection = await imaps.connect({
-            imap: {
-                user: process.env.IMAP_USER || process.env.EMAIL_USER || 'crm.atelier.optica@gmail.com',
-                password,
-                host: 'imap.gmail.com',
-                port: 993,
-                tls: true,
-                tlsOptions: { rejectUnauthorized: false },
-                authTimeout: 10000,
-            },
-        });
+        let connection: any = null;
+        let lastError: any = null;
+        for (const cred of candidates) {
+            try {
+                connection = await imaps.connect({
+                    imap: {
+                        user: cred.user!,
+                        password: cred.password!,
+                        host: 'imap.gmail.com',
+                        port: 993,
+                        tls: true,
+                        tlsOptions: { rejectUnauthorized: false },
+                        authTimeout: 10000,
+                    },
+                });
+                break;
+            } catch (err: any) {
+                lastError = err;
+                console.warn(`[LabCost] IMAP no autenticó con ${cred.user}; probando la siguiente credencial configurada…`);
+            }
+        }
+        if (!connection) throw lastError || new Error('IMAP sin conexión');
 
         const summary = { emails: 0, pdfs: 0, parsed: 0, unparsed: 0, overcost: 0, unmatched: 0, entries: [] as string[] };
 

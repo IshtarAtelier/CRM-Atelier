@@ -25,6 +25,7 @@ interface PortalOrder {
     anulado: boolean;
     factura: string | null;
     invoiceNumbers: string[]; // todos los nº de factura del pedido (para cruzar importes)
+    rework: boolean; // el portal lo marca como reproceso/reclamo
 }
 
 export class GrupoOpticoProvider {
@@ -85,6 +86,7 @@ export class GrupoOpticoProvider {
                         anulado: r.Anulado === '1',
                         factura: r.invoices?.[0]?.number || r.Factura || null,
                         invoiceNumbers,
+                        rework: !!r.is_rework || r.Reclamo === '1',
                     });
                 }
                 if (reachedPreCrm) break; // la API viene ordenada de más nuevo a más viejo
@@ -114,7 +116,8 @@ export class GrupoOpticoProvider {
                     if (amount) billed = (billed || 0) + amount;
                 }
 
-                const detail = [o.cliente, `ingreso ${o.fecha.slice(0, 16)}`].filter(Boolean).join(', ');
+                const detail = [o.cliente, `ingreso ${o.fecha.slice(0, 16)}`, o.rework ? 'REPROCESO' : null]
+                    .filter(Boolean).join(', ');
                 const entry = await LabCostReconciliationService.upsertEntry({
                     lab: 'GRUPO_OPTICO',
                     labOrderNumber: o.num,
