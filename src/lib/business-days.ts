@@ -70,6 +70,24 @@ export function addBusinessDays(startDate: Date, businessDays: number): Date {
 }
 
 /**
+ * Cuenta los días hábiles (sin fines de semana ni feriados) entre dos fechas.
+ * Si end <= start devuelve 0.
+ */
+export function countBusinessDays(start: Date, end: Date): number {
+    let count = 0;
+    const cursor = new Date(start.getTime());
+    cursor.setHours(12, 0, 0, 0);
+    const limit = new Date(end.getTime());
+    limit.setHours(12, 0, 0, 0);
+
+    while (cursor < limit) {
+        cursor.setDate(cursor.getDate() + 1);
+        if (!isWeekend(cursor) && !isHoliday(cursor)) count++;
+    }
+    return count;
+}
+
+/**
  * Calcula la cantidad de días hábiles estimados para un pedido en base a sus cristales
  * @param items Items del pedido
  * @returns Cantidad de días hábiles estimados

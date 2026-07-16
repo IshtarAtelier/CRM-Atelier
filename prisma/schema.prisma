@@ -14,6 +14,9 @@ model User {
   email         String         @unique
   password      String
   role          String         @default("STAFF")
+  // Casilla propia para avisos dirigidos (notas, pedidos, saldos). Si es null
+  // se usa la casilla compartida del local (ver src/lib/vendor-email.ts).
+  notificationEmail String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   cashMovements CashMovement[]
@@ -83,6 +86,10 @@ model Interaction {
   // sobreviva al borrado/renombrado de usuarios). null = registros previos.
   userId    String?
   userName  String?
+  // Nota dirigida: a quién va destinada (se le avisa por email con link a la
+  // ficha). Denormalizado igual que el actor.
+  directedToId   String?
+  directedToName String?
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])

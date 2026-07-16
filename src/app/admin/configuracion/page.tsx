@@ -23,6 +23,7 @@ interface User {
     name: string;
     email: string;
     role: string;
+    notificationEmail?: string | null;
     createdAt: string;
 }
 
@@ -139,6 +140,7 @@ export default function ConfiguracionPage() {
     // Edit form
     const [editName, setEditName] = useState('');
     const [editRole, setEditRole] = useState('');
+    const [editNotificationEmail, setEditNotificationEmail] = useState('');
 
     // Change password
     const [newPass, setNewPass] = useState('');
@@ -459,6 +461,7 @@ export default function ConfiguracionPage() {
         setEditingId(user.id);
         setEditName(user.name);
         setEditRole(user.role);
+        setEditNotificationEmail(user.notificationEmail || '');
     };
 
     const saveEdit = async (userId: string) => {
@@ -466,7 +469,7 @@ export default function ConfiguracionPage() {
             const res = await fetch(`/api/users/${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: editName, role: editRole }),
+                body: JSON.stringify({ name: editName, role: editRole, notificationEmail: editNotificationEmail }),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Usuario actualizado' });
@@ -773,29 +776,38 @@ export default function ConfiguracionPage() {
                                         {/* Info */}
                                         <div className="flex-1 min-w-0">
                                             {isEditing ? (
-                                                <div className="flex items-center gap-3">
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="text"
+                                                            value={editName}
+                                                            onChange={e => setEditName(e.target.value)}
+                                                            className="px-3 py-1.5 border-2 border-primary rounded-lg text-sm font-bold outline-none bg-white dark:bg-stone-900 w-48"
+                                                            autoFocus
+                                                        />
+                                                        <select
+                                                            value={editRole}
+                                                            onChange={e => setEditRole(e.target.value)}
+                                                            className="px-3 py-1.5 border-2 border-primary rounded-lg text-sm font-bold outline-none bg-white dark:bg-stone-900"
+                                                        >
+                                                            <option value="STAFF">STAFF</option>
+                                                            <option value="ADMIN">ADMIN</option>
+                                                            <option value="OPTICA">OPTICA</option>
+                                                        </select>
+                                                        <button onClick={() => saveEdit(user.id)} className="p-2 bg-emerald-500 text-white rounded-lg hover:scale-105 transition-all">
+                                                            <Save className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => setEditingId(null)} className="p-2 bg-stone-200 dark:bg-stone-600 text-stone-500 dark:text-stone-300 rounded-lg hover:scale-105 transition-all">
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                     <input
-                                                        type="text"
-                                                        value={editName}
-                                                        onChange={e => setEditName(e.target.value)}
-                                                        className="px-3 py-1.5 border-2 border-primary rounded-lg text-sm font-bold outline-none bg-white dark:bg-stone-900 w-48"
-                                                        autoFocus
+                                                        type="email"
+                                                        value={editNotificationEmail}
+                                                        onChange={e => setEditNotificationEmail(e.target.value)}
+                                                        placeholder="Email de avisos (vacío = casilla del local)"
+                                                        className="px-3 py-1.5 border-2 border-primary rounded-lg text-xs font-medium outline-none bg-white dark:bg-stone-900 w-80"
                                                     />
-                                                    <select
-                                                        value={editRole}
-                                                        onChange={e => setEditRole(e.target.value)}
-                                                        className="px-3 py-1.5 border-2 border-primary rounded-lg text-sm font-bold outline-none bg-white dark:bg-stone-900"
-                                                    >
-                                                        <option value="STAFF">STAFF</option>
-                                                        <option value="ADMIN">ADMIN</option>
-                                                        <option value="OPTICA">OPTICA</option>
-                                                    </select>
-                                                    <button onClick={() => saveEdit(user.id)} className="p-2 bg-emerald-500 text-white rounded-lg hover:scale-105 transition-all">
-                                                        <Save className="w-4 h-4" />
-                                                    </button>
-                                                    <button onClick={() => setEditingId(null)} className="p-2 bg-stone-200 dark:bg-stone-600 text-stone-500 dark:text-stone-300 rounded-lg hover:scale-105 transition-all">
-                                                        <X className="w-4 h-4" />
-                                                    </button>
                                                 </div>
                                             ) : (
                                                 <>
@@ -810,7 +822,14 @@ export default function ConfiguracionPage() {
                                                             {user.role === 'ADMIN' ? '🛡️ Admin' : user.role === 'OPTICA' ? '🏪 Óptica' : '👤 Vendedor'}
                                                         </span>
                                                     </div>
-                                                    <p className="text-xs text-stone-400 font-medium">{user.email}</p>
+                                                    <p className="text-xs text-stone-400 font-medium">
+                                                        {user.email}
+                                                        {user.role !== 'OPTICA' && (
+                                                            <span className="ml-2 text-stone-400/80">
+                                                                ✉️ {user.notificationEmail || 'casilla del local'}
+                                                            </span>
+                                                        )}
+                                                    </p>
                                                 </>
                                             )}
                                         </div>

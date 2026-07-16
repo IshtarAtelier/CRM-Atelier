@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import { 
-    MessageCircle, 
-    Calculator, 
-    ShoppingBag, 
-    CheckCircle2, 
-    Sparkles, 
-    AlertCircle 
+import React, { useState, useEffect } from 'react';
+import {
+    MessageCircle,
+    Calculator,
+    ShoppingBag,
+    CheckCircle2,
+    Sparkles,
+    AlertCircle,
+    AtSign
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -17,7 +18,13 @@ interface HistoryManagerProps {
     contactCreatedAt: string;
     contactCreatedBy?: string;
     interactions: any[];
-    onAddInteraction: (content: string) => Promise<void>;
+    onAddInteraction: (content: string, directedToId?: string | null) => Promise<void>;
+}
+
+interface DirectableUser {
+    id: string;
+    name: string;
+    role: string;
 }
 
 export default function HistoryManager({
@@ -29,13 +36,29 @@ export default function HistoryManager({
 }: HistoryManagerProps) {
     const [newNote, setNewNote] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [directedToId, setDirectedToId] = useState('');
+    const [users, setUsers] = useState<DirectableUser[]>([]);
+
+    // Usuarios internos a los que se les puede dirigir la nota (se les avisa
+    // por email). Se excluyen las cuentas de ópticas mayoristas.
+    useEffect(() => {
+        fetch('/api/users')
+            .then(res => (res.ok ? res.json() : []))
+            .then((data: DirectableUser[]) => {
+                if (Array.isArray(data)) {
+                    setUsers(data.filter(u => u.role !== 'OPTICA'));
+                }
+            })
+            .catch(() => setUsers([]));
+    }, []);
 
     const handleSubmit = async () => {
         if (!newNote.trim()) return;
         setIsSaving(true);
         try {
-            await onAddInteraction(newNote);
+            await onAddInteraction(newNote, directedToId || null);
             setNewNote('');
+            setDirectedToId('');
         } finally {
             setIsSaving(false);
         }
@@ -107,6 +130,26 @@ export default function HistoryManager({
                         {isSaving ? '...' : 'Registrar'}
                     </button>
                 </div>
+                {/* Dirigir la nota a un compañero: se le avisa por email con link a esta ficha */}
+                <div className="flex items-center gap-2 mt-3 ml-1">
+                    <AtSign className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 flex-shrink-0">Dirigir a</label>
+                    <select
+                        value={directedToId}
+                        onChange={(e) => setDirectedToId(e.target.value)}
+                        className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
+                    >
+                        <option value="">Nadie (nota general)</option>
+                        {users.map(u => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                    </select>
+                    {directedToId && (
+                        <span className="text-[10px] font-medium text-stone-400">
+                            le llega un email con el link a esta ficha
+                        </span>
+                    )}
+                </div>
             </div>
 
             <div className="space-y-4">
@@ -147,11 +190,18 @@ export default function HistoryManager({
                                     <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
                                         {format(new Date(interaction.createdAt), "EEEE d 'de' MMMM, HH:mm", { locale: es })}
                                     </span>
-                                    {interaction.userName && (
-                                        <span className="text-[10px] font-black text-primary uppercase tracking-widest flex-shrink-0">
-                                            👤 {interaction.userName}
-                                        </span>
-                                    )}
+                                    <span className="flex items-center gap-2 flex-shrink-0">
+                                        {interaction.directedToName && (
+                                            <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">
+                                                📣 para {interaction.directedToName}
+                                            </span>
+                                        )}
+                                        {interaction.userName && (
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                                                👤 {interaction.userName}
+                                            </span>
+                                        )}
+                                    </span>
                                 </div>
                                 <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-line">{interaction.content}</p>
                             </div>

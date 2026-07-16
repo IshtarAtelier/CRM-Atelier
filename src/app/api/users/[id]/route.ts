@@ -15,7 +15,7 @@ export async function PATCH(
 
         const { id } = await params;
         const body = await request.json();
-        const { name, role, password } = body;
+        const { name, role, password, notificationEmail } = body;
 
         const isAdmin = roleHeader === 'ADMIN';
         const isSelf = !!requesterId && requesterId === id;
@@ -36,6 +36,15 @@ export async function PATCH(
             if (name) data.name = name;
             if (role) data.role = role;
         }
+        // Casilla de avisos: la puede cambiar el ADMIN o el propio usuario.
+        // String vacío la borra (vuelve a usarse la casilla compartida del local).
+        if (notificationEmail !== undefined) {
+            const cleaned = String(notificationEmail || '').trim().toLowerCase();
+            if (cleaned && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) {
+                return NextResponse.json({ error: 'El email de avisos no es válido' }, { status: 400 });
+            }
+            data.notificationEmail = cleaned || null;
+        }
         // La contraseña la puede cambiar el ADMIN o el propio usuario
         if (password) {
             data.password = await bcrypt.hash(password, 10);
@@ -53,6 +62,7 @@ export async function PATCH(
                 name: true,
                 email: true,
                 role: true,
+                notificationEmail: true,
                 createdAt: true,
             },
         });
@@ -70,6 +80,7 @@ export async function PATCH(
                 self: isSelf,
                 ...(data.name && before?.name !== data.name ? { name: { from: before?.name, to: data.name } } : {}),
                 ...(data.role && before?.role !== data.role ? { role: { from: before?.role, to: data.role } } : {}),
+                ...(notificationEmail !== undefined ? { notificationEmail: data.notificationEmail || '(compartida)' } : {}),
                 ...(password ? { passwordChanged: true } : {})
             }
         });

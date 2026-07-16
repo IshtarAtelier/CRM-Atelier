@@ -180,7 +180,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
         }
     };
 
-    const addInteraction = async (id: string, type: string, content: string) => {
+    const addInteraction = async (id: string, type: string, content: string, directedToId?: string | null) => {
         try {
             if (type === 'STORE_VISIT') {
                 setContacts(prev => prev.map(c => c.id === id ? { ...c, hasVisitedStore: true } : c));
@@ -188,7 +188,7 @@ export function useContacts(activeTab: ContactStatus, searchQuery: string, favor
             const res = await fetch(`/api/contacts/${id}/interactions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type, content })
+                body: JSON.stringify({ type, content, directedToId: directedToId || null })
             });
             if (res.ok) {
                 await fetchContacts();

@@ -7,6 +7,7 @@ import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 import { logAudit } from '@/lib/audit';
 import type { Actor } from '@/lib/actor';
+import { notifyDirectedNote } from '@/lib/note-notify';
 
 
 // Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
@@ -912,16 +913,47 @@ export const ContactService = {
         });
     },
 
-    async addInteraction(clientId: string, type: string, content: string, actor?: Actor) {
+    async addInteraction(clientId: string, type: string, content: string, actor?: Actor, directedToId?: string | null) {
+        // Nota dirigida: se guarda a quién va y se le avisa por email con link
+        // a la ficha (su casilla propia o la compartida del local).
+        const directedTo = directedToId
+            ? await prisma.user.findUnique({
+                where: { id: directedToId },
+                select: { id: true, name: true, email: true, notificationEmail: true },
+            })
+            : null;
+
         const interaction = await prisma.interaction.create({
             data: {
                 clientId,
                 type,
                 content,
                 userId: actor?.id || null,
-                userName: actor?.name || null
+                userName: actor?.name || null,
+                directedToId: directedTo?.id || null,
+                directedToName: directedTo?.name || null
             }
         });
+
+        let directedEmailSent: boolean | undefined;
+        // No avisamos si uno se dirige la nota a sí mismo.
+        if (directedTo && directedTo.id !== actor?.id) {
+            try {
+                const client = await prisma.client.findUnique({
+                    where: { id: clientId },
+                    select: { id: true, name: true },
+                });
+                directedEmailSent = await notifyDirectedNote({
+                    directedTo,
+                    authorName: actor?.name || 'Sistema',
+                    clientId,
+                    clientName: client?.name || 'Cliente',
+                });
+            } catch (e) {
+                directedEmailSent = false;
+                console.error('[Interaction] Error avisando la nota dirigida:', e);
+            }
+        }
 
         if (type === 'STORE_VISIT') {
             try {
@@ -946,7 +978,7 @@ export const ContactService = {
             }
         }
 
-        return interaction;
+        return { ...interaction, directedEmailSent };
     },
 
     async getById(id: string) {

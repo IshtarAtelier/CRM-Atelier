@@ -3,6 +3,8 @@ import { format } from 'date-fns';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { LAB_AUDIT_START_ISO } from '@/lib/constants';
+import { vendorGreeting } from '@/lib/vendor-email';
+import { needsLabOperation } from '@/lib/lab-orders';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -22,43 +24,12 @@ const REMINDER_INTERVAL_DAYS = 3;
 // el historial).
 const NOTIF_TYPE = 'PEDIDO_SIN_OPERACION_AVISADO';
 
-/**
- * Vendedores que atienden la casilla del local (atelier.optica.cerro) y a
- * quienes se dirige el aviso por su apodo. Sólo se avisa por pedidos de estos
- * vendedores; los de otros (web, admin) se omiten para no molestar a la casilla
- * con pedidos que no son suyos. Se matchea por nombre y por username (el campo
- * User.email guarda el usuario de login, ej: "matias" / "milena").
- */
-const KNOWN_VENDORS: { match: string[]; greeting: string }[] = [
-    { match: ['matias', 'matías'], greeting: 'Mati' },
-    { match: ['milena'], greeting: 'Mile' },
-];
-
-function vendorGreeting(user?: { name?: string | null; email?: string | null } | null): string | null {
-    const haystack = `${user?.name || ''} ${user?.email || ''}`.toLowerCase();
-    for (const v of KNOWN_VENDORS) {
-        if (v.match.some(m => haystack.includes(m))) return v.greeting;
-    }
-    return null;
-}
-
 function appUrl() {
     return process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
 }
 
 function fichaLink(clientId?: string | null) {
     return clientId ? `${appUrl()}/admin/contactos?id=${clientId}` : `${appUrl()}/admin/pedidos`;
-}
-
-/** Un pedido va al laboratorio (y lleva nº de operación) si tiene un cristal.
- *  Mismo criterio que calculateEstimatedDays: categoría/tipo "Cristal".
- *  Contempla el snapshot por si el producto fue borrado. */
-function needsLabOperation(items: any[]): boolean {
-    return (items || []).some(it => {
-        const cat = (it.product?.category || it.productCategorySnapshot || '').toLowerCase();
-        const type = (it.product?.type || it.productTypeSnapshot || '').toLowerCase();
-        return cat.includes('cristal') || type.includes('cristal');
-    });
 }
 
 interface PendingOrder {
