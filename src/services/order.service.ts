@@ -772,15 +772,20 @@ export class OrderService {
                             status: true
                         }
                     },
-                    client: { select: { name: true } },
+                    client: { select: { name: true, phone: true, email: true, dni: true, insurance: true, doctor: true } },
                     items: {
                         select: {
-                            product: { select: { laboratory: true } },
+                            quantity: true,
+                            productNameSnapshot: true,
+                            productBrandSnapshot: true,
                             productCategorySnapshot: true,
-                            laboratorySnapshot: true
+                            laboratorySnapshot: true,
+                            product: { select: { name: true, brand: true, laboratory: true } }
                         }
                     },
                     labOrderNumber: true,
+                    createdAt: true,
+                    total: true,
                     id: true
                 }
             });
@@ -846,36 +851,69 @@ export class OrderService {
                         }
                     });
 
-                    // Notificación por email SIEMPRE que se registra un caso nuevo de post-venta
+                    // Notificación por email SIEMPRE que se registra un caso nuevo de post-venta,
+                    // con la ficha completa del cliente, el pedido y el caso.
                     {
                         const adminEmail = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
-                        const clientName = currentOrderForPostSale.client?.name || 'Cliente';
+                        const cli = currentOrderForPostSale.client;
+                        const clientName = cli?.name || 'Cliente';
                         const subject = `⚠️ Nuevo caso de Post-Venta registrado - ${clientName}`;
+
+                        const row = (label: string, value: string | null | undefined, valueStyle = 'color: #1f2937;') => `
+                                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                                        <td style="padding: 8px 0; font-weight: bold; color: #4b5563; width: 160px; vertical-align: top;">${label}:</td>
+                                        <td style="padding: 8px 0; ${valueStyle}">${value || 'No registrado'}</td>
+                                    </tr>`;
+                        const sectionTitle = (title: string) => `
+                                <h3 style="color: #92400e; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 4px 0; border-bottom: 1px solid #fde68a; padding-bottom: 4px;">${title}</h3>`;
+
+                        const productsList = (currentOrderForPostSale.items || [])
+                            .map((item: any) => {
+                                const name = item.productNameSnapshot || item.product?.name || 'Producto';
+                                const brand = item.productBrandSnapshot || item.product?.brand;
+                                const lab = item.laboratorySnapshot || item.product?.laboratory;
+                                const qty = item.quantity && item.quantity > 1 ? `${item.quantity} × ` : '';
+                                return `${qty}${brand ? `${brand} — ` : ''}${name}${lab ? ` (Lab: ${lab})` : ''}`;
+                            })
+                            .join('<br/>');
+
+                        const orderDate = currentOrderForPostSale.createdAt
+                            ? new Date(currentOrderForPostSale.createdAt).toLocaleDateString('es-AR')
+                            : null;
+                        const orderTotal = currentOrderForPostSale.total
+                            ? `$${Number(currentOrderForPostSale.total).toLocaleString('es-AR')}`
+                            : null;
+
                         const html = `
                             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; background-color: #ffffff; color: #1f2937;">
                                 <h2 style="color: #d97706; margin-top: 0; border-bottom: 2px solid #f59e0b; padding-bottom: 8px;">⚠️ Nuevo Caso de Post-Venta Registrado</h2>
                                 <p style="font-size: 14px; line-height: 1.5;">Se ha registrado un nuevo caso de post-venta en el sistema con los siguientes detalles:</p>
-                                <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px;">
-                                    <tr style="border-bottom: 1px solid #f3f4f6;">
-                                        <td style="padding: 10px 0; font-weight: bold; color: #4b5563; width: 150px;">Cliente:</td>
-                                        <td style="padding: 10px 0; color: #1f2937; font-weight: bold;">${clientName}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;">
-                                        <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">N° Pedido:</td>
-                                        <td style="padding: 10px 0; color: #2563eb; font-family: monospace; font-weight: bold;">#${id.slice(-6).toUpperCase()}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;">
-                                        <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Responsabilidad:</td>
-                                        <td style="padding: 10px 0; color: #1f2937;">${postSaleResponsible || body.postSaleResponsible || 'No especificado'}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;">
-                                        <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Costo Adicional:</td>
-                                        <td style="padding: 10px 0; color: #b91c1c; font-weight: bold;">$${postSaleCost || body.postSaleCost || 0}</td>
-                                    </tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;">
-                                        <td style="padding: 10px 0; font-weight: bold; color: #4b5563;">Opción en Lab:</td>
-                                        <td style="padding: 10px 0; color: #1f2937; text-transform: uppercase; font-size: 12px; font-weight: bold;">${postSaleOrderOption || body.postSaleOrderOption || 'No requiere'}</td>
-                                    </tr>
+                                ${sectionTitle('Cliente')}
+                                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                                    ${row('Nombre', clientName, 'color: #1f2937; font-weight: bold;')}
+                                    ${row('Teléfono', cli?.phone)}
+                                    ${row('Email', cli?.email)}
+                                    ${row('DNI', cli?.dni)}
+                                    ${row('Obra social', cli?.insurance)}
+                                    ${row('Médico', cli?.doctor)}
+                                </table>
+                                ${sectionTitle('Pedido')}
+                                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                                    ${row('N° Pedido', `#${id.slice(-6).toUpperCase()}`, 'color: #2563eb; font-family: monospace; font-weight: bold;')}
+                                    ${row('N° Lab', currentOrderForPostSale.labOrderNumber)}
+                                    ${row('Fecha del pedido', orderDate)}
+                                    ${row('Total', orderTotal)}
+                                    ${row('Productos', productsList || null)}
+                                </table>
+                                ${sectionTitle('Caso')}
+                                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                                    ${row('Tipo de caso', postSaleCaseType || body.postSaleCaseType, 'color: #1f2937; font-weight: bold;')}
+                                    ${row('Responsable', postSaleResponsible || body.postSaleResponsible)}
+                                    ${row('Culpa / origen', postSaleFault || body.postSaleFault)}
+                                    ${row('Cobertura', postSaleCoverage || body.postSaleCoverage)}
+                                    ${row('Costo Adicional', `$${postSaleCost || body.postSaleCost || 0}`, 'color: #b91c1c; font-weight: bold;')}
+                                    ${row('Opción en Lab', postSaleOrderOption || body.postSaleOrderOption || 'No requiere', 'color: #1f2937; text-transform: uppercase; font-size: 12px; font-weight: bold;')}
+                                    ${postSaleNewOrderNumber || body.postSaleNewOrderNumber ? row('Nuevo N° de pedido', postSaleNewOrderNumber || body.postSaleNewOrderNumber) : ''}
                                 </table>
                                 <div style="margin-top: 24px; padding: 16px; background-color: #fffbeb; border-left: 4px solid #d97706; border-radius: 8px;">
                                     <strong style="color: #b45309; display: block; margin-bottom: 6px; font-size: 14px;">Detalle / Observaciones del caso:</strong>
