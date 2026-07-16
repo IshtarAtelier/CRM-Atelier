@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     ArrowUpRight, ArrowDownRight, ArrowRightLeft, ImageIcon, Trash2, History, Pencil,
     CreditCard, Banknote, Wallet, Plus, RefreshCw, ChevronDown, Search, DollarSign,
@@ -38,6 +38,11 @@ interface CashData {
 
 interface PaymentsData {
     payments: PaymentRecord[];
+    pageInfo: {
+        nextCursor: string | null;
+        hasMore: boolean;
+        matchCount: number;
+    };
     summary: {
         grandTotal: number;
         totalCount: number;
@@ -45,6 +50,9 @@ interface PaymentsData {
     };
     methodBreakdown: { method: string; total: number; count: number }[];
 }
+
+/** Tamaño de página de la tabla de pagos; el resto se trae con "Cargar más". */
+const PAGE_SIZE = 50;
 
 // Individual method definitions for display
 const ALL_METHODS: Record<string, { label: string; icon: any; color: string; lightBg: string; textColor: string }> = {
@@ -144,6 +152,7 @@ function getPresetDates(preset: string): { from: string; to: string } {
 export default function AdministracionPage() {
     const [data, setData] = useState<PaymentsData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [activePreset, setActivePreset] = useState('month');
@@ -192,27 +201,63 @@ export default function AdministracionPage() {
         }
     };
 
-    const fetchPayments = async (from?: string, to?: string, method?: string) => {
-        setLoading(true);
+    // Descarta respuestas viejas si el usuario encadena filtros/búsquedas rápido
+    const fetchSeq = useRef(0);
+
+    const fetchPayments = async (from?: string, to?: string, method?: string, q?: string, cursor?: string) => {
+        const seq = ++fetchSeq.current;
+        if (cursor) setLoadingMore(true); else setLoading(true);
         try {
             const params = new URLSearchParams();
             if (from) params.set('from', from);
             if (to) params.set('to', to);
             if (method) params.set('method', method);
+            if (q?.trim()) params.set('q', q.trim());
+            params.set('take', String(PAGE_SIZE));
+            if (cursor) params.set('cursor', cursor);
             const res = await fetch(`/api/payments?${params.toString()}`);
             const json = await res.json();
-            
+
+            if (seq !== fetchSeq.current) return; // llegó una respuesta más nueva antes
+
             if (json.error) {
                 console.error('API Error fetching payments:', json.error);
                 setData(null);
             } else {
-                setData(json);
+                // Con cursor se acumulan páginas; sin cursor se reemplaza todo
+                setData(prev => cursor && prev
+                    ? { ...json, payments: [...prev.payments, ...json.payments] }
+                    : json);
             }
         } catch (error) {
             console.error('Error fetching payments:', error);
         }
-        setLoading(false);
+        if (seq === fetchSeq.current) {
+            setLoading(false);
+            setLoadingMore(false);
+        }
     };
+
+    const loadMorePayments = () => {
+        const cursor = data?.pageInfo?.nextCursor;
+        if (!cursor || loadingMore) return;
+        fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined, searchQuery, cursor);
+    };
+
+    // La búsqueda es server-side (param `q`): recorre todo el período aunque
+    // la tabla esté paginada. Debounce para no pegarle a la API por tecla.
+    const skipSearchEffectRef = useRef(true);
+    useEffect(() => {
+        if (skipSearchEffectRef.current) {
+            skipSearchEffectRef.current = false;
+            return;
+        }
+        const timer = setTimeout(() => {
+            fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined, searchQuery);
+        }, 350);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchQuery]);
 
     const handleDeletePayment = async (paymentId: string) => {
         if (!confirm('¿Estás seguro que querés eliminar este pago? Esta acción no se puede deshacer.')) return;
@@ -227,7 +272,7 @@ export default function AdministracionPage() {
             if (!res.ok || json.error) {
                 alert(json.error || 'Error al eliminar pago');
             } else {
-                fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined);
+                fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined, searchQuery);
                 fetchCashData();
             }
         } catch (err: any) {
@@ -283,7 +328,7 @@ export default function AdministracionPage() {
             if (!res.ok) throw new Error(json.error || 'Error al actualizar pago');
 
             setEditingPayment(null);
-            fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined);
+            fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined, searchQuery);
             fetchCashData();
         } catch (err: any) {
             alert('Error al actualizar: ' + err.message);
@@ -297,24 +342,24 @@ export default function AdministracionPage() {
         if (preset === 'all') {
             setDateFrom('');
             setDateTo('');
-            fetchPayments(undefined, undefined, selectedMethod || undefined);
+            fetchPayments(undefined, undefined, selectedMethod || undefined, searchQuery);
         } else {
             const { from, to } = getPresetDates(preset);
             setDateFrom(from);
             setDateTo(to);
-            fetchPayments(from, to, selectedMethod || undefined);
+            fetchPayments(from, to, selectedMethod || undefined, searchQuery);
         }
     };
 
     const applyCustomDates = () => {
         setActivePreset('custom');
-        fetchPayments(dateFrom, dateTo, selectedMethod || undefined);
+        fetchPayments(dateFrom, dateTo, selectedMethod || undefined, searchQuery);
     };
 
     const handleMethodFilter = (method: string) => {
         const newMethod = method === selectedMethod ? '' : method;
         setSelectedMethod(newMethod);
-        fetchPayments(dateFrom || undefined, dateTo || undefined, newMethod || undefined);
+        fetchPayments(dateFrom || undefined, dateTo || undefined, newMethod || undefined, searchQuery);
     };
 
     const handleGroupFilter = (group: typeof FILTER_GROUPS[0]) => {
@@ -323,21 +368,21 @@ export default function AdministracionPage() {
             // Deselect group
             setSelectedMethod('');
             setExpandedGroup('');
-            fetchPayments(dateFrom || undefined, dateTo || undefined, undefined);
+            fetchPayments(dateFrom || undefined, dateTo || undefined, undefined, searchQuery);
         } else {
             setSelectedMethod(groupMethods);
             setExpandedGroup(group.id);
-            fetchPayments(dateFrom || undefined, dateTo || undefined, groupMethods);
+            fetchPayments(dateFrom || undefined, dateTo || undefined, groupMethods, searchQuery);
         }
     };
 
     const handleSubMethodFilter = (methodKey: string) => {
         if (selectedMethod === methodKey) {
             setSelectedMethod('');
-            fetchPayments(dateFrom || undefined, dateTo || undefined, undefined);
+            fetchPayments(dateFrom || undefined, dateTo || undefined, undefined, searchQuery);
         } else {
             setSelectedMethod(methodKey);
-            fetchPayments(dateFrom || undefined, dateTo || undefined, methodKey);
+            fetchPayments(dateFrom || undefined, dateTo || undefined, methodKey, searchQuery);
         }
     };
 
@@ -425,7 +470,7 @@ export default function AdministracionPage() {
                 setMovementReason('');
                 setMovementReceiptUrl('');
                 fetchCashData();
-                fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined);
+                fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined, searchQuery);
             }
         } catch (error) {
             console.error('Error saving movement:', error);
@@ -434,24 +479,9 @@ export default function AdministracionPage() {
         }
     };
 
-    // Busca por nombre de cliente, teléfono, nº de operación (notas/ref), monto y nº de orden
-    const q = searchQuery.trim().toLowerCase();
-    const qDigits = q.replace(/\D/g, '');
-    const filteredPayments = data?.payments?.filter(p => {
-        if (!q) return true;
-        if (p.clientName.toLowerCase().includes(q)) return true;
-        const notes = (p.notes || '').toLowerCase();
-        if (notes.includes(q)) return true;
-        if (p.orderId.slice(-6).toLowerCase().includes(q)) return true;
-        if (qDigits.length >= 2) {
-            // nº de operación aunque esté escrito con espacios/guiones en las notas
-            if (notes.replace(/\D/g, '').includes(qDigits)) return true;
-            // monto: tolera $ y separadores de miles ("150.000" encuentra 150000)
-            if (String(Math.trunc(p.amount ?? 0)).includes(qDigits)) return true;
-            if (p.clientPhone && p.clientPhone.replace(/\D/g, '').includes(qDigits)) return true;
-        }
-        return false;
-    }) || [];
+    // La búsqueda ya viene filtrada del servidor (param `q` sobre todo el período)
+    const filteredPayments = data?.payments ?? [];
+    const matchCount = data?.pageInfo?.matchCount ?? filteredPayments.length;
 
     if (loading && !data) {
         return (
@@ -500,7 +530,7 @@ export default function AdministracionPage() {
                     </div>
                     <button
                         onClick={() => {
-                            fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined);
+                            fetchPayments(dateFrom || undefined, dateTo || undefined, selectedMethod || undefined, searchQuery);
                             fetchCashData();
                         }}
                         className="p-4 bg-stone-100 dark:bg-stone-800 rounded-2xl text-stone-500 hover:bg-stone-200 dark:hover:bg-stone-700 transition-all hover:rotate-180"
@@ -689,11 +719,12 @@ export default function AdministracionPage() {
                                 />
                             </div>
                             <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest italic">
-                                Mostrando {filteredPayments.length} de {data?.payments?.length || 0} registros
+                                Mostrando {filteredPayments.length.toLocaleString('es-AR')} de {matchCount.toLocaleString('es-AR')} registros
                             </span>
                         </div>
 
                         {filteredPayments.length > 0 ? (
+                            <>
                             <div className="overflow-x-auto">
                                 <table className="w-full border-collapse">
                                     <thead>
@@ -792,6 +823,19 @@ export default function AdministracionPage() {
                                     </tbody>
                                 </table>
                             </div>
+                            {data?.pageInfo?.hasMore && (
+                                <div className="p-6 border-t border-stone-50 dark:border-stone-800 flex justify-center">
+                                    <button
+                                        onClick={loadMorePayments}
+                                        disabled={loadingMore}
+                                        className="flex items-center gap-2 px-8 py-3.5 bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-300 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-stone-200 dark:hover:bg-stone-700 transition-all disabled:opacity-50"
+                                    >
+                                        {loadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />}
+                                        Cargar más ({(matchCount - filteredPayments.length).toLocaleString('es-AR')} restantes)
+                                    </button>
+                                </div>
+                            )}
+                            </>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-24 text-stone-300 dark:text-stone-700">
                                 <Search size={48} className="mb-4 opacity-20" />
