@@ -855,79 +855,26 @@ export class OrderService {
                     // con la ficha completa del cliente, el pedido y el caso.
                     {
                         const adminEmail = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
-                        const cli = currentOrderForPostSale.client;
-                        const clientName = cli?.name || 'Cliente';
-                        const subject = `⚠️ Nuevo caso de Post-Venta registrado - ${clientName}`;
-
-                        const row = (label: string, value: string | null | undefined, valueStyle = 'color: #1f2937;') => `
-                                    <tr style="border-bottom: 1px solid #f3f4f6;">
-                                        <td style="padding: 8px 0; font-weight: bold; color: #4b5563; width: 160px; vertical-align: top;">${label}:</td>
-                                        <td style="padding: 8px 0; ${valueStyle}">${value || 'No registrado'}</td>
-                                    </tr>`;
-                        const sectionTitle = (title: string) => `
-                                <h3 style="color: #92400e; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 4px 0; border-bottom: 1px solid #fde68a; padding-bottom: 4px;">${title}</h3>`;
-
-                        const productsList = (currentOrderForPostSale.items || [])
-                            .map((item: any) => {
-                                const name = item.productNameSnapshot || item.product?.name || 'Producto';
-                                const brand = item.productBrandSnapshot || item.product?.brand;
-                                const lab = item.laboratorySnapshot || item.product?.laboratory;
-                                const qty = item.quantity && item.quantity > 1 ? `${item.quantity} × ` : '';
-                                return `${qty}${brand ? `${brand} — ` : ''}${name}${lab ? ` (Lab: ${lab})` : ''}`;
-                            })
-                            .join('<br/>');
-
-                        const orderDate = currentOrderForPostSale.createdAt
-                            ? new Date(currentOrderForPostSale.createdAt).toLocaleDateString('es-AR')
-                            : null;
-                        const orderTotal = currentOrderForPostSale.total
-                            ? `$${Number(currentOrderForPostSale.total).toLocaleString('es-AR')}`
-                            : null;
-
-                        const html = `
-                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; background-color: #ffffff; color: #1f2937;">
-                                <h2 style="color: #d97706; margin-top: 0; border-bottom: 2px solid #f59e0b; padding-bottom: 8px;">⚠️ Nuevo Caso de Post-Venta Registrado</h2>
-                                <p style="font-size: 14px; line-height: 1.5;">Se ha registrado un nuevo caso de post-venta en el sistema con los siguientes detalles:</p>
-                                ${sectionTitle('Cliente')}
-                                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                                    ${row('Nombre', clientName, 'color: #1f2937; font-weight: bold;')}
-                                    ${row('Teléfono', cli?.phone)}
-                                    ${row('Email', cli?.email)}
-                                    ${row('DNI', cli?.dni)}
-                                    ${row('Obra social', cli?.insurance)}
-                                    ${row('Médico', cli?.doctor)}
-                                </table>
-                                ${sectionTitle('Pedido')}
-                                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                                    ${row('N° Pedido', `#${id.slice(-6).toUpperCase()}`, 'color: #2563eb; font-family: monospace; font-weight: bold;')}
-                                    ${row('N° Lab', currentOrderForPostSale.labOrderNumber)}
-                                    ${row('Fecha del pedido', orderDate)}
-                                    ${row('Total', orderTotal)}
-                                    ${row('Productos', productsList || null)}
-                                </table>
-                                ${sectionTitle('Caso')}
-                                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                                    ${row('Tipo de caso', postSaleCaseType || body.postSaleCaseType, 'color: #1f2937; font-weight: bold;')}
-                                    ${row('Responsable', postSaleResponsible || body.postSaleResponsible)}
-                                    ${row('Culpa / origen', postSaleFault || body.postSaleFault)}
-                                    ${row('Cobertura', postSaleCoverage || body.postSaleCoverage)}
-                                    ${row('Costo Adicional', `$${postSaleCost || body.postSaleCost || 0}`, 'color: #b91c1c; font-weight: bold;')}
-                                    ${row('Opción en Lab', postSaleOrderOption || body.postSaleOrderOption || 'No requiere', 'color: #1f2937; text-transform: uppercase; font-size: 12px; font-weight: bold;')}
-                                    ${postSaleNewOrderNumber || body.postSaleNewOrderNumber ? row('Nuevo N° de pedido', postSaleNewOrderNumber || body.postSaleNewOrderNumber) : ''}
-                                </table>
-                                <div style="margin-top: 24px; padding: 16px; background-color: #fffbeb; border-left: 4px solid #d97706; border-radius: 8px;">
-                                    <strong style="color: #b45309; display: block; margin-bottom: 6px; font-size: 14px;">Detalle / Observaciones del caso:</strong>
-                                    <p style="margin: 0; color: #4b5563; white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${body.postSaleNotesEntry || postSaleNotes || 'Sin notas descriptivas'}</p>
-                                </div>
-                                <div style="margin-top: 24px; text-align: center;">
-                                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'}/admin/ventas?orderId=${id}" style="display: inline-block; padding: 12px 24px; background-color: #d97706; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);">Ver pedido en CRM</a>
-                                </div>
-                                <p style="margin-top: 32px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #f3f4f6; padding-top: 16px;">Este es un mensaje automático del Sistema de Gestión de Atelier Óptica.</p>
-                            </div>
-                        `;
+                        const clientName = currentOrderForPostSale.client?.name || 'Cliente';
+                        const html = buildPostSaleCaseEmailHtml({
+                            heading: '⚠️ Nuevo Caso de Post-Venta Registrado',
+                            intro: 'Se ha registrado un nuevo caso de post-venta en el sistema con los siguientes detalles:',
+                            orderId: id,
+                            order: currentOrderForPostSale,
+                            caseInfo: {
+                                caseType: postSaleCaseType || body.postSaleCaseType,
+                                responsible: postSaleResponsible || body.postSaleResponsible,
+                                fault: postSaleFault || body.postSaleFault,
+                                coverage: postSaleCoverage || body.postSaleCoverage,
+                                cost: postSaleCost ?? body.postSaleCost ?? 0,
+                                orderOption: postSaleOrderOption || body.postSaleOrderOption,
+                                newOrderNumber: postSaleNewOrderNumber || body.postSaleNewOrderNumber
+                            },
+                            notes: body.postSaleNotesEntry || postSaleNotes || 'Sin notas descriptivas'
+                        });
                         sendEmail({
                             to: adminEmail,
-                            subject,
+                            subject: `⚠️ Nuevo caso de Post-Venta registrado - ${clientName}`,
                             html
                         }).catch(err => console.error('[Post-Sale Email Error]:', err));
                     }
@@ -977,6 +924,7 @@ export class OrderService {
                     }
 
                     // Extract and create new note entry if notes were updated/appended
+                    let appendedNoteText = '';
                     if (postSaleNotes !== undefined && postSaleNotes !== activeCase.notes) {
                         const oldNotes = activeCase.notes || '';
                         let newAppendedNotes = postSaleNotes;
@@ -984,6 +932,7 @@ export class OrderService {
                             newAppendedNotes = postSaleNotes.slice(oldNotes.length).trim();
                         }
                         if (newAppendedNotes) {
+                            appendedNoteText = newAppendedNotes;
                             const lines = newAppendedNotes.split('\n').filter((line: string) => line.trim() !== '');
                             for (const line of lines) {
                                 const match = line.match(/^\[(.*?)\]:\s*(.*)$/);
@@ -998,6 +947,53 @@ export class OrderService {
                                 });
                             }
                         }
+                    }
+
+                    // Email de actualización cuando cambia algo relevante del caso
+                    // (n° de operación, tipo, costo, cobertura, notas nuevas, etc.).
+                    // Mover la tarjeta de columna en el tablero (solo status) NO avisa.
+                    const fmtVal = (v: any) => (v === null || v === undefined || v === '' ? '—' : String(v));
+                    const changes: string[] = [];
+                    if (postSaleNewOrderNumber !== undefined && (postSaleNewOrderNumber || null) !== (activeCase.newOrderNumber || null)) {
+                        changes.push(`<b>N° de operación / nuevo pedido:</b> ${fmtVal(activeCase.newOrderNumber)} → ${fmtVal(postSaleNewOrderNumber)}`);
+                    }
+                    if (postSaleCaseType !== undefined && (postSaleCaseType || null) !== (activeCase.caseType || null)) {
+                        changes.push(`<b>Tipo de caso:</b> ${fmtVal(activeCase.caseType)} → ${fmtVal(postSaleCaseType)}`);
+                    }
+                    if (postSaleResponsible !== undefined && (postSaleResponsible || null) !== (activeCase.responsible || null)) {
+                        changes.push(`<b>Responsable:</b> ${fmtVal(activeCase.responsible)} → ${fmtVal(postSaleResponsible)}`);
+                    }
+                    if (postSaleFault !== undefined && (postSaleFault || null) !== (activeCase.fault || null)) {
+                        changes.push(`<b>Culpa / origen:</b> ${fmtVal(activeCase.fault)} → ${fmtVal(postSaleFault)}`);
+                    }
+                    if (postSaleCoverage !== undefined && (postSaleCoverage || null) !== (activeCase.coverage || null)) {
+                        changes.push(`<b>Cobertura:</b> ${fmtVal(activeCase.coverage)} → ${fmtVal(postSaleCoverage)}`);
+                    }
+                    if (postSaleOrderOption !== undefined && (postSaleOrderOption || null) !== (activeCase.orderOption || null)) {
+                        changes.push(`<b>Opción en Lab:</b> ${fmtVal(activeCase.orderOption)} → ${fmtVal(postSaleOrderOption)}`);
+                    }
+                    if (postSaleCost !== undefined && postSaleCost !== null && Number(postSaleCost) !== activeCase.cost) {
+                        changes.push(`<b>Costo adicional:</b> $${activeCase.cost} → $${Number(postSaleCost)}`);
+                    }
+
+                    if (changes.length > 0 || appendedNoteText) {
+                        const adminEmail = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
+                        const clientName = currentOrderForPostSale.client?.name || 'Cliente';
+                        const html = buildPostSaleCaseEmailHtml({
+                            heading: '🔄 Caso de Post-Venta Actualizado',
+                            intro: 'Se actualizó el caso de post-venta de este pedido.',
+                            orderId: id,
+                            order: currentOrderForPostSale,
+                            caseInfo: updatedCase,
+                            changes,
+                            notes: appendedNoteText || null,
+                            notesLabel: 'Nueva nota agregada'
+                        });
+                        sendEmail({
+                            to: adminEmail,
+                            subject: `🔄 Caso de Post-Venta actualizado - ${clientName}`,
+                            html
+                        }).catch(err => console.error('[Post-Sale Update Email Error]:', err));
                     }
                 }
             }
@@ -1502,4 +1498,108 @@ export class OrderService {
         throw new Error(error.message);
     }
 }
+}
+
+// ── Email de casos de post-venta ─────────────────────────────────────────────
+// Arma el HTML con la ficha completa (cliente, pedido y caso). Lo usan tanto
+// el alta de un caso nuevo como las actualizaciones relevantes del caso.
+function buildPostSaleCaseEmailHtml(opts: {
+    heading: string;
+    intro: string;
+    orderId: string;
+    order: {
+        client?: { name?: string | null; phone?: string | null; email?: string | null; dni?: string | null; insurance?: string | null; doctor?: string | null } | null;
+        items?: any[];
+        labOrderNumber?: string | null;
+        createdAt?: Date | string | null;
+        total?: number | null;
+    };
+    caseInfo: {
+        caseType?: string | null;
+        responsible?: string | null;
+        fault?: string | null;
+        coverage?: string | null;
+        cost?: number | null;
+        orderOption?: string | null;
+        newOrderNumber?: string | null;
+    };
+    changes?: string[];
+    notes?: string | null;
+    notesLabel?: string;
+}): string {
+    const { heading, intro, orderId, order, caseInfo, changes, notes, notesLabel } = opts;
+    const cli = order.client;
+
+    const row = (label: string, value: string | null | undefined, valueStyle = 'color: #1f2937;') => `
+                                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                                        <td style="padding: 8px 0; font-weight: bold; color: #4b5563; width: 160px; vertical-align: top;">${label}:</td>
+                                        <td style="padding: 8px 0; ${valueStyle}">${value || 'No registrado'}</td>
+                                    </tr>`;
+    const sectionTitle = (title: string) => `
+                                <h3 style="color: #92400e; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin: 20px 0 4px 0; border-bottom: 1px solid #fde68a; padding-bottom: 4px;">${title}</h3>`;
+
+    const productsList = (order.items || [])
+        .map((item: any) => {
+            const name = item.productNameSnapshot || item.product?.name || 'Producto';
+            const brand = item.productBrandSnapshot || item.product?.brand;
+            const lab = item.laboratorySnapshot || item.product?.laboratory;
+            const qty = item.quantity && item.quantity > 1 ? `${item.quantity} × ` : '';
+            return `${qty}${brand ? `${brand} — ` : ''}${name}${lab ? ` (Lab: ${lab})` : ''}`;
+        })
+        .join('<br/>');
+
+    const orderDate = order.createdAt ? new Date(order.createdAt).toLocaleDateString('es-AR') : null;
+    const orderTotal = order.total ? `$${Number(order.total).toLocaleString('es-AR')}` : null;
+
+    const changesBlock = changes && changes.length > 0 ? `
+                                <div style="margin-top: 16px; padding: 16px; background-color: #eff6ff; border-left: 4px solid #2563eb; border-radius: 8px;">
+                                    <strong style="color: #1d4ed8; display: block; margin-bottom: 6px; font-size: 14px;">Qué cambió:</strong>
+                                    <p style="margin: 0; color: #374151; font-size: 13px; line-height: 1.7;">${changes.join('<br/>')}</p>
+                                </div>` : '';
+
+    const notesBlock = notes ? `
+                                <div style="margin-top: 24px; padding: 16px; background-color: #fffbeb; border-left: 4px solid #d97706; border-radius: 8px;">
+                                    <strong style="color: #b45309; display: block; margin-bottom: 6px; font-size: 14px;">${notesLabel || 'Detalle / Observaciones del caso'}:</strong>
+                                    <p style="margin: 0; color: #4b5563; white-space: pre-wrap; font-size: 13px; line-height: 1.5;">${notes}</p>
+                                </div>` : '';
+
+    return `
+                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; background-color: #ffffff; color: #1f2937;">
+                                <h2 style="color: #d97706; margin-top: 0; border-bottom: 2px solid #f59e0b; padding-bottom: 8px;">${heading}</h2>
+                                <p style="font-size: 14px; line-height: 1.5;">${intro}</p>
+                                ${changesBlock}
+                                ${sectionTitle('Cliente')}
+                                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                                    ${row('Nombre', cli?.name, 'color: #1f2937; font-weight: bold;')}
+                                    ${row('Teléfono', cli?.phone)}
+                                    ${row('Email', cli?.email)}
+                                    ${row('DNI', cli?.dni)}
+                                    ${row('Obra social', cli?.insurance)}
+                                    ${row('Médico', cli?.doctor)}
+                                </table>
+                                ${sectionTitle('Pedido')}
+                                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                                    ${row('N° Pedido', `#${orderId.slice(-6).toUpperCase()}`, 'color: #2563eb; font-family: monospace; font-weight: bold;')}
+                                    ${row('N° Lab', order.labOrderNumber)}
+                                    ${row('Fecha del pedido', orderDate)}
+                                    ${row('Total', orderTotal)}
+                                    ${row('Productos', productsList || null)}
+                                </table>
+                                ${sectionTitle('Caso')}
+                                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                                    ${row('Tipo de caso', caseInfo.caseType, 'color: #1f2937; font-weight: bold;')}
+                                    ${row('Responsable', caseInfo.responsible)}
+                                    ${row('Culpa / origen', caseInfo.fault)}
+                                    ${row('Cobertura', caseInfo.coverage)}
+                                    ${row('Costo Adicional', `$${caseInfo.cost || 0}`, 'color: #b91c1c; font-weight: bold;')}
+                                    ${row('Opción en Lab', caseInfo.orderOption || 'No requiere', 'color: #1f2937; text-transform: uppercase; font-size: 12px; font-weight: bold;')}
+                                    ${caseInfo.newOrderNumber ? row('N° de operación / nuevo pedido', caseInfo.newOrderNumber, 'color: #2563eb; font-family: monospace; font-weight: bold;') : ''}
+                                </table>
+                                ${notesBlock}
+                                <div style="margin-top: 24px; text-align: center;">
+                                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'}/admin/ventas?orderId=${orderId}" style="display: inline-block; padding: 12px 24px; background-color: #d97706; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);">Ver pedido en CRM</a>
+                                </div>
+                                <p style="margin-top: 32px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #f3f4f6; padding-top: 16px;">Este es un mensaje automático del Sistema de Gestión de Atelier Óptica.</p>
+                            </div>
+                        `;
 }
