@@ -33,6 +33,12 @@ export class LabCostReconciliationService {
      * Costo de sistema de una orden para un laboratorio dado: suma solo los ítems
      * de ese lab (snapshot primero, costo vivo como fallback). Si ningún ítem
      * matchea el lab, cae a los ítems de categoría Cristal; si tampoco, a todos.
+     *
+     * REGLA POR PAR: el costo de los cristales se carga POR PAR (ambos ojos) en
+     * el producto, pero la venta los guarda como DOS ítems (eye OD/OI), cada uno
+     * con el snapshot del par completo. Por eso cada ítem con ojo cuenta la MITAD
+     * — así el total de la venta es un solo par, igual que factura el lab
+     * (2 líneas de 0.50 × unitario por par). Un solo ojo vendido = medio par.
      */
     static systemCostForLab(order: any, lab: string): number {
         const items: any[] = order.items || [];
@@ -48,7 +54,8 @@ export class LabCostReconciliationService {
 
         return relevant.reduce((total, item) => {
             const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
-            return total + cost * (item.quantity || 1);
+            const perEyeHalf = item.eye ? 0.5 : 1;
+            return total + cost * perEyeHalf * (item.quantity || 1);
         }, 0);
     }
 
@@ -324,8 +331,10 @@ export class LabCostReconciliationService {
 
                 const lab = labItems.some((i: any) => LAB_ITEM_PATTERNS.OPTOVISION.test(labOf(i)))
                     ? 'OPTOVISION' : 'GRUPO_OPTICO';
+                // Regla por par: cada ítem con ojo (OD/OI) lleva el costo del par
+                // completo en el snapshot → cuenta la mitad (ver systemCostForLab).
                 const systemCost = labItems.reduce((t: number, i: any) =>
-                    t + (i.productCostSnapshot ?? i.product?.cost ?? 0) * (i.quantity || 1), 0);
+                    t + (i.productCostSnapshot ?? i.product?.cost ?? 0) * (i.eye ? 0.5 : 1) * (i.quantity || 1), 0);
                 const numbers = order.labOrderNumber?.match(/\d{4,}/g) || [];
 
                 return {

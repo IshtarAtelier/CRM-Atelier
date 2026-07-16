@@ -50,6 +50,29 @@ existen en el laboratorio y no responden a ninguna venta del sistema**.
 Cada paso tolera la falla de los demás. El sync de estado de SmartLab (cada 15 min)
 además registra huérfanos de los últimos 100 pedidos visibles, para latencia intra-día.
 
+## Reglas de dinero (verificadas contra los comprobantes reales — NO romper)
+
+1. **Todos los costos de cristales son POR PAR (ambos ojos).** `Product.cost` y
+   `Product.price` se cargan por par. La venta guarda los cristales como DOS
+   ítems (eye OD/OI) con el precio dividido a la mitad (para que los ítems de la
+   factura ARCA no sean de tan alto valor), pero el `productCostSnapshot` de
+   CADA ojo lleva el costo del par completo → **al sumar costo de sistema, cada
+   ítem con `eye` cuenta la MITAD** (`systemCostForLab`, `calculateEstimatedCost`,
+   reporte mensual). Un solo ojo vendido = medio par, igual que factura el lab.
+2. **El lab factura por LÍNEA, y una factura agrupa varios pedidos.** El costo
+   real de un pedido = suma de SUS líneas (columna Pedido + columna Importe),
+   nunca el total del comprobante. Los cristales van en 2 líneas de 0.50 con el
+   unitario POR PAR → la suma da el par.
+3. **Dos series de comprobantes, ambas cuentan** (sin doble conteo, son
+   conceptos distintos): FACTURAS (nº alto, total real: trabajos de lab y
+   armados ~$2.670) y REMITOS X (nº bajo, total $0, "30 Días Lista": cristales
+   de STOCK a cuenta corriente — el importe real está en las líneas).
+4. **Líneas sin nº de pedido** en una factura se asignan por el vínculo
+   pedido→factura que da la API del portal (`invoices[].number`): primero a los
+   pedidos de esa factura sin líneas propias, si no a prorrata.
+5. Consumidor final / monotributo: el total del comprobante no discrimina IVA —
+   el importe de línea ES el costo comparable contra el costo por par del CRM.
+
 ## Estados de una entrada
 
 | Estado | Significado |

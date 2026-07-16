@@ -112,7 +112,11 @@ export class PricingService {
             // El snapshot congela el costo al momento de la venta; el costo vivo
             // del producto puede haber cambiado desde entonces (falsas alarmas).
             const productCost = item.productCostSnapshot ?? item.product?.cost ?? 0;
-            return total + (productCost * (item.quantity || 1));
+            // Los cristales se cargan con costo POR PAR pero la venta los guarda
+            // como dos ítems (eye OD/OI) con el snapshot del par cada uno: cada
+            // ojo cuenta la mitad para no duplicar el par.
+            const perEyeHalf = item.eye ? 0.5 : 1;
+            return total + (productCost * perEyeHalf * (item.quantity || 1));
         }, 0);
     }
 

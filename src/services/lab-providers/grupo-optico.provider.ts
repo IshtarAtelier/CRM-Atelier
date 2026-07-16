@@ -1,13 +1,14 @@
 import { LabCostReconciliationService } from '../lab-cost-reconciliation.service';
 import { LAB_AUDIT_START_ISO } from '../../lib/constants';
-import { buildInvoiceAmountMap } from './grupo-optico-invoices';
+import { buildPedidoAmountMap } from './grupo-optico-invoices';
 
 /**
  * Proveedor de Grupo Óptico: lee los pedidos desde la API JSON interna del
  * portal SmartLab (la misma que usa su propia página web), paginada y estable —
  * sin scraping de pantallas. Registra TODOS los pedidos de la era CRM en la
- * conciliación con su COSTO REAL: cruza cada pedido con el PDF de facturas del
- * rango (buildInvoiceAmountMap) por nº de factura. Los que tienen venta quedan
+ * conciliación con su COSTO REAL POR LÍNEA de factura: cada pedido suma sus
+ * líneas de detalle en todos los comprobantes (facturas + remitos X de stock);
+ * ver reglas en grupo-optico-invoices.ts. Los que tienen venta quedan
  * OK/OVERCOST/PENDING, los que no, UNMATCHED ("Sin venta") — con su importe.
  *
  * Credenciales: SMARTLAB_USER / SMARTLAB_PASSWORD (fallback a las actuales).
@@ -95,12 +96,19 @@ export class GrupoOpticoProvider {
 
             summary.seen = orders.length;
 
-            // Importes reales: el PDF de facturas del rango (nº de factura → monto).
-            // Si la descarga/parseo falla, seguimos sin importes (no rompe el cruce).
-            let invoiceAmounts = new Map<string, number>();
+            // Importes reales POR PEDIDO: líneas de detalle del PDF de comprobantes
+            // (facturas + remitos X), con reparto de líneas sin nº por el vínculo
+            // pedido→factura de la API. Si falla, seguimos sin importes.
+            let pedidoAmounts = new Map<string, number>();
             try {
-                invoiceAmounts = await buildInvoiceAmountMap(page, clientId, auditStart, new Date());
-                console.log(`[GrupoOptico] ${invoiceAmounts.size} facturas con importe descargadas del portal`);
+                const pedidoInvoices = new Map<string, string[]>();
+                for (const o of orders) if (o.invoiceNumbers.length) pedidoInvoices.set(o.num, o.invoiceNumbers);
+                const res = await buildPedidoAmountMap(page, clientId, auditStart, new Date(), pedidoInvoices);
+                pedidoAmounts = res.amounts;
+                console.log(`[GrupoOptico] Comprobantes parseados: ${res.stats.invoices} | ` +
+                    `líneas con pedido $${Math.round(res.stats.attributedSum).toLocaleString('es-AR')} | ` +
+                    `sin pedido $${Math.round(res.stats.unattributedSum).toLocaleString('es-AR')} ` +
+                    `(repartido $${Math.round(res.stats.distributedSum).toLocaleString('es-AR')})`);
             } catch (err) {
                 console.error('[GrupoOptico] No se pudo obtener el PDF de facturas (se sigue sin importes):', err);
             }
@@ -109,12 +117,9 @@ export class GrupoOpticoProvider {
                 if (!o.num.match(/\d{4,}/)) continue;
                 if (o.anulado) { summary.anulados++; continue; }
 
-                // Costo real = suma de los importes de las facturas del pedido.
-                let billed: number | null = null;
-                for (const inv of o.invoiceNumbers) {
-                    const amount = invoiceAmounts.get(inv);
-                    if (amount) billed = (billed || 0) + amount;
-                }
+                // Costo real = suma de las líneas de detalle del pedido (par completo).
+                const raw = pedidoAmounts.get(o.num);
+                const billed: number | null = raw ? Math.round(raw * 100) / 100 : null;
 
                 const detail = [o.cliente, `ingreso ${o.fecha.slice(0, 16)}`, o.rework ? 'REPROCESO' : null]
                     .filter(Boolean).join(', ');

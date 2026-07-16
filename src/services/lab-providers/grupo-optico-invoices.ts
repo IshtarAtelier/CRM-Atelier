@@ -1,38 +1,57 @@
 import PDFParser from 'pdf2json';
 
 /**
- * Descarga y parseo de las facturas de Grupo Óptico.
+ * Descarga y parseo de las facturas de Grupo Óptico — POR LÍNEA de detalle.
  *
- * El portal SmartLab no expone importes por pedido en JSON: la cuenta corriente
- * solo lista deuda impaga (vacía si se paga al contado). El único origen de los
- * montos es el PDF de facturas emitidas por rango de fechas, que su propia app
- * descarga con:
+ * Cómo factura el lab (verificado sobre el PDF real del rango 8/4→15/7/2026):
+ *
+ *  - Cada página es un comprobante con columnas: Cant | Descripción | Cod.Opt |
+ *    Pedido | Unitario | Dto | Unit.C/Dto | Importe. Los cristales van en DOS
+ *    líneas de 0.50 (una por ojo) con el Unitario POR PAR → la suma de líneas
+ *    de un pedido es el costo del par completo.
+ *  - Hay DOS series de comprobantes y AMBAS son plata real del pedido:
+ *      · FACTURAS (nº alto, ej. 0004-00339862, Total > 0): trabajos de
+ *        laboratorio y armados/calibrados (~$2.670 por pedido de stock).
+ *      · REMITOS X (nº bajo, ej. 00004-00021275, Total $0, "30 Días Lista"):
+ *        cristales de STOCK entregados a cuenta corriente — el importe real
+ *        está en las líneas aunque el total del comprobante diga 0.
+ *    Un pedido de stock suma de las dos series (armado en factura + cristal en
+ *    remito): NO es doble conteo, son conceptos distintos.
+ *  - Algunas facturas traen líneas SIN nº de pedido (columna vacía). Esas se
+ *    asignan por el vínculo pedido→factura que da la API del portal
+ *    (invoices[].number de cada pedido): se reparten entre los pedidos de esa
+ *    factura que no tengan líneas propias, o a prorrata si todos tienen.
+ *
+ * Endpoint de descarga (el mismo que usa la web del portal):
  *   GET /smartlab-api-v2/public/index.php/laboratory/order/invoice?cl={cliente}&t=2&c=1&s={DD-MM-YYYY}&e={DD-MM-YYYY}
- * Devuelve un PDF con una factura por página (nº de factura + nº de pedido + Total).
- *
- * Este módulo lo parsea a un mapa nº-de-factura → importe. El proveedor lo cruza
- * contra el nº de factura que ya trae cada pedido de la API (invoices[].number).
  */
 
-export interface InvoiceAmount {
-    invoiceNumber: string; // "0004-00340415"
-    amount: number;        // total facturado (los consumidor-final no discriminan IVA: el total ES el monto)
-    orderNumbers: string[]; // pedidos referidos en esa página (respaldo del join)
+export interface ParsedInvoice {
+    invoiceNumber: string;                  // "0004-00339862" (normalizado sin ceros extra del pto. de venta)
+    total: number | null;                   // Total del comprobante (0 en remitos X)
+    attributed: Map<string, number>;        // nº de pedido → suma de sus líneas
+    unattributed: number;                   // suma de líneas sin nº de pedido
 }
 
 const API_BASE = 'https://grupooptico.dyndns.info/smartlab-api-v2/public/index.php';
 
-/** Formatea una fecha a DD-MM-YYYY (lo que espera el endpoint de descarga). */
+/** Normaliza "00004-00339862" → "0004-00339862" (la API usa 4 dígitos de pto. de venta). */
+export function normalizeInvoiceNumber(n: string): string {
+    const [pv, num] = n.split('-');
+    return `${pv.slice(-4).padStart(4, '0')}-${num}`;
+}
+
 function toDdMmYyyy(d: Date): string {
     const p = (n: number) => String(n).padStart(2, '0');
     return `${p(d.getDate())}-${p(d.getMonth() + 1)}-${d.getFullYear()}`;
 }
 
-/**
- * Descarga el PDF de facturas del rango [from, to] usando la sesión autenticada
- * de la página Playwright que se le pasa. Devuelve un Buffer, o null si el lab
- * respondió que no hay facturas (404).
- */
+const money = (s: string): number | null => {
+    const m = String(s).match(/^\d{1,3}(\.\d{3})*,\d{2}$/);
+    return m ? parseFloat(s.replace(/\./g, '').replace(',', '.')) : null;
+};
+
+/** Descarga el PDF de comprobantes del rango usando la sesión Playwright autenticada. */
 export async function downloadInvoicePdf(page: any, clientId: string, from: Date, to: Date): Promise<Buffer | null> {
     const url = `${API_BASE}/laboratory/order/invoice?cl=${clientId}&t=2&c=1&s=${toDdMmYyyy(from)}&e=${toDdMmYyyy(to)}`;
     const result: { status: number; b64: string; size: number } = await page.evaluate(async (u: string) => {
@@ -52,27 +71,66 @@ export async function downloadInvoicePdf(page: any, clientId: string, from: Date
     return Buffer.from(result.b64, 'base64');
 }
 
-/** Parsea el PDF de facturas a una lista de { nº factura, importe, pedidos }. */
-export function parseInvoicePdf(pdfBuffer: Buffer): Promise<InvoiceAmount[]> {
+/** Parsea el PDF a comprobantes con sus líneas de detalle (estructurado, por coordenadas). */
+export function parseInvoicePdf(pdfBuffer: Buffer): Promise<ParsedInvoice[]> {
     return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Parseo de PDF de facturas excedió 60s')), 60000);
+        const timeout = setTimeout(() => reject(new Error('Parseo de PDF de facturas excedió 120s')), 120000);
         const parser = new PDFParser(null as any, true);
+        const dec = (s: string) => { try { return decodeURIComponent(s); } catch { return s; } };
 
         parser.on('pdfParser_dataError', (err: any) => { clearTimeout(timeout); reject(err.parserError); });
-        parser.on('pdfParser_dataReady', () => {
+        parser.on('pdfParser_dataReady', (data: any) => {
             clearTimeout(timeout);
             try {
-                const text = parser.getRawTextContent();
-                const pages = text.split(/----------------Page \(\d+\).*?----------------/);
-                const out: InvoiceAmount[] = [];
-                for (const pg of pages) {
-                    const invMatch = pg.match(/(\d{4}-\d{8})/);
-                    // "Sub Total 352.232,00" es el neto de la factura (== total en consumidor final)
-                    const totMatch = pg.match(/Sub\s*Total\s+([\d.]+,\d{2})/) || pg.match(/Total\s*\$?\s*([\d.]+,\d{2})/);
-                    if (!invMatch || !totMatch) continue;
-                    const amount = parseFloat(totMatch[1].replace(/\./g, '').replace(',', '.'));
-                    const orderNumbers = [...new Set([...pg.matchAll(/\b(80\d{6})\b/g)].map(m => m[1]))];
-                    out.push({ invoiceNumber: invMatch[1], amount, orderNumbers });
+                const out: ParsedInvoice[] = [];
+                for (const pg of data.Pages || []) {
+                    const texts = (pg.Texts || []).map((t: any) => ({
+                        x: t.x, y: t.y, s: dec(t.R.map((r: any) => r.T).join('')).trim(),
+                    })).filter((t: any) => t.s);
+
+                    // Filas por proximidad vertical
+                    const rows: Record<string, { x: number; s: string }[]> = {};
+                    for (const t of texts) {
+                        const k = String(Math.round(t.y * 2) / 2);
+                        (rows[k] = rows[k] || []).push(t);
+                    }
+
+                    // Encabezado de columnas: fila que contiene "Pedido" e "Importe"
+                    let xPedido = 22.4, xImporte = 33.8, yHeader = 9.5;
+                    for (const [y, cells] of Object.entries(rows)) {
+                        const ped = cells.find(c => c.s === 'Pedido');
+                        const imp = cells.find(c => c.s === 'Importe');
+                        if (ped && imp) { xPedido = ped.x; xImporte = imp.x; yHeader = Number(y); break; }
+                    }
+
+                    const inv: ParsedInvoice = { invoiceNumber: '', total: null, attributed: new Map(), unattributed: 0 };
+                    for (const [yKey, cellsRaw] of Object.entries(rows)) {
+                        const y = Number(yKey);
+                        const cells = cellsRaw.sort((a, b) => a.x - b.x);
+                        const joined = cells.map(c => c.s).join(' ');
+
+                        if (!inv.invoiceNumber && y < yHeader) {
+                            const m = joined.match(/(\d{4,5}-\d{8})/);
+                            if (m) inv.invoiceNumber = normalizeInvoiceNumber(m[1]);
+                        }
+                        const tm = joined.match(/Total\s*\$\s*(\d{1,3}(?:\.\d{3})*,\d{2})/);
+                        if (tm) inv.total = money(tm[1]);
+
+                        // Zona de detalle: entre el encabezado y el pie (Sub Total ~y=41)
+                        if (y <= yHeader + 0.3 || y >= 40) continue;
+                        // Importe: celda money en la columna Importe (la más a la derecha)
+                        let importe: number | null = null;
+                        for (let i = cells.length - 1; i >= 0; i--) {
+                            const v = money(cells[i].s);
+                            if (v !== null && cells[i].x >= xImporte - 1.5) { importe = v; break; }
+                        }
+                        if (importe === null) continue;
+                        // Pedido: celda 80xxxxxx cerca de la columna Pedido
+                        const ped = cells.find(c => /^80\d{6}$/.test(c.s) && Math.abs(c.x - xPedido) < 3);
+                        if (ped) inv.attributed.set(ped.s, (inv.attributed.get(ped.s) || 0) + importe);
+                        else inv.unattributed += importe;
+                    }
+                    if (inv.invoiceNumber) out.push(inv);
                 }
                 resolve(out);
             } catch (err) {
@@ -85,16 +143,54 @@ export function parseInvoicePdf(pdfBuffer: Buffer): Promise<InvoiceAmount[]> {
 }
 
 /**
- * Descarga + parsea + arma el mapa nº-de-factura → importe para el rango dado.
- * Suma cuando una factura aparece repetida. Ignora importes 0 (remitos letra X).
+ * Costo real POR PEDIDO: suma de sus líneas en todos los comprobantes (ambas
+ * series) + reparto de las líneas sin nº de pedido usando el vínculo
+ * pedido→facturas de la API. Devuelve también métricas de conciliación.
  */
-export async function buildInvoiceAmountMap(page: any, clientId: string, from: Date, to: Date): Promise<Map<string, number>> {
+export async function buildPedidoAmountMap(
+    page: any,
+    clientId: string,
+    from: Date,
+    to: Date,
+    pedidoInvoices: Map<string, string[]>, // nº pedido → nº de facturas (de la API)
+): Promise<{ amounts: Map<string, number>; stats: { invoices: number; attributedSum: number; unattributedSum: number; distributedSum: number } }> {
+    const amounts = new Map<string, number>();
+    const stats = { invoices: 0, attributedSum: 0, unattributedSum: 0, distributedSum: 0 };
+
     const pdf = await downloadInvoicePdf(page, clientId, from, to);
-    const map = new Map<string, number>();
-    if (!pdf) return map;
+    if (!pdf) return { amounts, stats };
     const invoices = await parseInvoicePdf(pdf);
-    for (const inv of invoices) {
-        if (inv.amount > 0) map.set(inv.invoiceNumber, (map.get(inv.invoiceNumber) || 0) + inv.amount);
+    stats.invoices = invoices.length;
+
+    // Índice inverso: factura → pedidos que la referencian según la API
+    const invoicePedidos = new Map<string, string[]>();
+    for (const [ped, invs] of pedidoInvoices) {
+        for (const n of invs) {
+            const key = normalizeInvoiceNumber(n);
+            invoicePedidos.set(key, [...(invoicePedidos.get(key) || []), ped]);
+        }
     }
-    return map;
+
+    for (const inv of invoices) {
+        for (const [ped, sum] of inv.attributed) {
+            amounts.set(ped, (amounts.get(ped) || 0) + sum);
+            stats.attributedSum += sum;
+        }
+        if (inv.unattributed > 0) {
+            stats.unattributedSum += inv.unattributed;
+            const peds = invoicePedidos.get(inv.invoiceNumber) || [];
+            // Preferir los pedidos de esta factura SIN líneas propias en ella;
+            // si todos tienen, repartir a prorrata simple entre todos.
+            const sinLineas = peds.filter(p => !inv.attributed.has(p));
+            const target = sinLineas.length > 0 ? sinLineas : peds;
+            if (target.length > 0) {
+                const share = inv.unattributed / target.length;
+                for (const ped of target) {
+                    amounts.set(ped, (amounts.get(ped) || 0) + share);
+                    stats.distributedSum += share;
+                }
+            }
+        }
+    }
+    return { amounts, stats };
 }
