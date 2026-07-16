@@ -25,8 +25,8 @@ export default function QuoteLineItems({
         
         // Filter frames
         const frames = items.filter(it => {
-            const cat = (it.product?.category || '').toLowerCase();
-            const type = (it.product?.type || '').toLowerCase();
+            const cat = (it.product?.category || it.productCategorySnapshot || '').toLowerCase();
+            const type = (it.product?.type || it.productTypeSnapshot || '').toLowerCase();
             return cat === 'FRAME' || cat === 'ATELIER' || cat === 'SUNGLASS' || type.includes('armazon') || type.includes('marco');
         });
 
@@ -48,6 +48,10 @@ export default function QuoteLineItems({
                 const itemPrice = item.price * item.quantity;
                 const priceWithMarkup = itemPrice * (1 + markup / 100);
                 const isBonified = item.id === bonifiedItemId;
+                // Si el producto fue borrado del catálogo, cae a la foto congelada en la línea
+                const brand = item.product?.brand || item.productBrandSnapshot || '';
+                const name = item.product?.name || item.productNameSnapshot || 'Producto eliminado';
+                const typeLabel = item.product?.type || item.product?.category || item.productTypeSnapshot || item.productCategorySnapshot || '';
                 
                 return (
                     <div key={item.id} className={`flex justify-between items-center bg-stone-50/50 dark:bg-stone-900/30 px-5 py-3 rounded-2xl border ${isBonified ? 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/30' : 'border-stone-100 dark:border-stone-800'} backdrop-blur-sm group/item hover:border-primary/30 transition-all`}>
@@ -60,15 +64,25 @@ export default function QuoteLineItems({
                             <div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-black text-stone-800 dark:text-stone-200 block group-hover/item:text-primary transition-colors">
-                                        {(item.product?.brand || '').toUpperCase()} · {item.product?.name}
+                                        {brand ? `${brand.toUpperCase()} · ` : ''}{name}
                                     </span>
                                     {isBonified && (
                                         <span className="bg-emerald-500 text-white text-[7px] px-1.5 py-0.5 rounded-lg font-black uppercase tracking-widest animate-pulse">
                                             BONIFICADO 2x1
                                         </span>
                                     )}
+                                    {item.product?.origin === 'STOCK' && (
+                                        <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[8px] px-1.5 py-0.5 rounded-lg font-black uppercase tracking-widest">
+                                            Stock
+                                        </span>
+                                    )}
+                                    {item.product?.origin === 'LABORATORIO' && (
+                                        <span className="bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 text-[8px] px-1.5 py-0.5 rounded-lg font-black uppercase tracking-widest">
+                                            Laboratorio
+                                        </span>
+                                    )}
                                 </div>
-                                <span className="text-[10px] font-bold text-stone-400">{item.product?.type || item.product?.category} x{item.quantity}</span>
+                                <span className="text-[10px] font-bold text-stone-400">{typeLabel} x{item.quantity}</span>
                             </div>
                         </div>
                         <div className="text-right">
