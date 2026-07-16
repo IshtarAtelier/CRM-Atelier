@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 // DELETE /api/products/delete-all — Borra TODOS los productos SIN tocar el historial de ventas.
 // El trigger de la base (freeze_orderitem_snapshot) congela la foto de cada producto en sus
@@ -13,7 +15,19 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'Acceso denegado. Se requiere rol ADMIN.' }, { status: 403 });
         }
 
+        const count = await prisma.product.count();
         const deletedProducts = await prisma.product.deleteMany({});
+
+        // Trazabilidad: quién vació el catálogo y cuántos productos había
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'DELETE',
+            entityType: 'PRODUCT',
+            entityId: 'ALL',
+            details: { count },
+        });
 
         return NextResponse.json({
             success: true,

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,6 +66,25 @@ export async function POST(request: Request) {
                 expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
                 maxUses: body.maxUses != null && body.maxUses !== '' ? Number(body.maxUses) : null,
                 minOrderAmount: body.minOrderAmount != null && body.minOrderAmount !== '' ? Number(body.minOrderAmount) : 0,
+            },
+        });
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'CREATE',
+            entityType: 'COUPON',
+            entityId: coupon.id,
+            details: {
+                descripcion: `Cupón "${coupon.code}" creado`,
+                code: coupon.code,
+                discountType: coupon.discountType,
+                discountValue: coupon.discountValue,
+                isActive: coupon.isActive,
+                expiresAt: coupon.expiresAt,
+                maxUses: coupon.maxUses,
+                minOrderAmount: coupon.minOrderAmount,
             },
         });
 

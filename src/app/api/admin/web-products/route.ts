@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +53,7 @@ export async function PATCH(request: Request) {
         // Traer el registro actual (necesario para validar salePrice contra el precio de lista)
         const current = await prisma.webProduct.findUnique({
             where: { id },
-            include: { product: { select: { price: true } } },
+            include: { product: { select: { price: true, salePrice: true } } },
         });
         if (!current) {
             return NextResponse.json({ error: 'WebProduct no encontrado' }, { status: 404 });
@@ -128,6 +130,33 @@ export async function PATCH(request: Request) {
         revalidatePath('/tienda');
         revalidatePath('/lentes-de-sol');
         revalidatePath(`/producto/${updated.slug}`);
+
+        // Trazabilidad: registrar solo los campos sensibles que cambiaron (oferta, visibilidad, destacado)
+        const beforeChanged: Record<string, unknown> = {};
+        const afterChanged: Record<string, unknown> = {};
+        if (saleUpdate !== undefined && current.product.salePrice !== saleUpdate.salePrice) {
+            beforeChanged.salePrice = current.product.salePrice;
+            afterChanged.salePrice = saleUpdate.salePrice;
+        }
+        if (isActive !== undefined && current.isActive !== isActive) {
+            beforeChanged.isActive = current.isActive;
+            afterChanged.isActive = isActive;
+        }
+        if (isFeatured !== undefined && current.isFeatured !== isFeatured) {
+            beforeChanged.isFeatured = current.isFeatured;
+            afterChanged.isFeatured = isFeatured;
+        }
+        if (Object.keys(beforeChanged).length > 0) {
+            const actor = getActor(request);
+            await logAudit({
+                userId: actor.id,
+                userName: actor.name,
+                action: 'UPDATE',
+                entityType: 'PRODUCT',
+                entityId: current.productId,
+                details: { webProductId: id, slug: updated.slug, before: beforeChanged, after: afterChanged },
+            });
+        }
 
         return NextResponse.json({ success: true, webProduct: updated });
     } catch (error: any) {

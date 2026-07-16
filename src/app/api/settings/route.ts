@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
 import { defaultWebSettings } from '@/lib/web-settings';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export async function GET(request: Request) {
     try {
@@ -57,10 +59,36 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
         }
 
+        // Leer el valor previo antes del upsert para dejar before/after en la auditoría
+        const previo = await prisma.systemSetting.findUnique({ where: { key } });
+        let valorPrevio: any = null;
+        if (previo) {
+            try {
+                valorPrevio = JSON.parse(previo.value);
+            } catch {
+                valorPrevio = previo.value;
+            }
+        }
+
         const setting = await prisma.systemSetting.upsert({
             where: { key },
             update: { value: JSON.stringify(value) },
             create: { key, value: JSON.stringify(value) }
+        });
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'UPDATE',
+            entityType: 'SETTING',
+            entityId: key,
+            details: {
+                descripcion: `Configuración "${key}" ${previo ? 'actualizada' : 'creada'}`,
+                key,
+                before: valorPrevio,
+                after: value,
+            },
         });
 
         return NextResponse.json({ success: true, setting: { key: setting.key, value: JSON.parse(setting.value) } });

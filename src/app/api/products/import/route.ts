@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 // ─── Templates ────────────────────────────────────────────────
 const TEMPLATES: Record<string, { filename: string; headers: string[]; examples: string[] }> = {
@@ -84,6 +86,12 @@ function resolveCategory(tipoText: string): { category: string; type: string } {
 // POST /api/products/import — Bulk import from CSV (auto-detects category)
 export async function POST(request: Request) {
     try {
+        // Only ADMIN can import products
+        const role = request.headers.get('x-user-role');
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Solo el administrador puede importar productos' }, { status: 403 });
+        }
+
         const formData = await request.formData();
         const file = formData.get('file') as File;
         const forceCategory = (formData.get('category') as string) || null;
@@ -293,6 +301,19 @@ export async function POST(request: Request) {
             } catch (err: any) {
                 errors.push(`Error en carga masiva: ${err.message}`);
             }
+        }
+
+        // Trazabilidad: quién importó el CSV y cuántos productos entraron
+        if (importedCount > 0) {
+            const actor = getActor(request);
+            await logAudit({
+                userId: actor.id,
+                userName: actor.name,
+                action: 'CREATE',
+                entityType: 'PRODUCT',
+                entityId: 'IMPORT',
+                details: { count: importedCount },
+            });
         }
 
         const templateLabel = isCristalTemplate ? 'cristales'

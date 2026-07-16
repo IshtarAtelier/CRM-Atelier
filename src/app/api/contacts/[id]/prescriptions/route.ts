@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
+import { getActor } from '@/lib/actor';
 
 export async function GET(
     request: Request,
@@ -22,7 +23,7 @@ export async function POST(
         const { id } = await params;
         const body = await request.json();
 
-        const prescription = await ContactService.addPrescription(id, body);
+        const prescription = await ContactService.addPrescription(id, body, getActor(request));
         return NextResponse.json(prescription);
     } catch (error: any) {
         console.error('Error in prescriptions POST:', error);

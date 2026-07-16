@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export async function GET(request: NextRequest) {
     try {
@@ -33,7 +35,22 @@ export async function POST(request: NextRequest) {
                 autoAssignCondition: body.autoAssignCondition || null
             }
         });
-        
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'CREATE',
+            entityType: 'OTHER',
+            entityId: newTag.id,
+            details: {
+                descripcion: `Etiqueta "${newTag.name}" creada`,
+                name: newTag.name,
+                botAction: newTag.botAction,
+                notifyPhone: newTag.notifyPhone,
+            },
+        });
+
         return NextResponse.json(newTag);
     } catch (error: any) {
         if (error.code === 'P2002') {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { ContactService } from '@/services/contact.service';
+import { getActor } from '@/lib/actor';
 
 export async function PATCH(
     request: Request,
@@ -10,7 +11,7 @@ export async function PATCH(
         const { presId } = await params;
         const role = (await headers()).get('x-user-role');
         const body = await request.json();
-        const prescription = await ContactService.updatePrescription(presId, body, role);
+        const prescription = await ContactService.updatePrescription(presId, body, role, getActor(request));
         return NextResponse.json(prescription);
     } catch (error) {
         if ((error as any)?.code === 'PRESCRIPTION_LOCKED') {
@@ -28,7 +29,7 @@ export async function DELETE(
     try {
         const { presId } = await params;
         const role = (await headers()).get('x-user-role');
-        await ContactService.deletePrescription(presId, role);
+        await ContactService.deletePrescription(presId, role, getActor(request));
         return NextResponse.json({ success: true });
     } catch (error) {
         if ((error as any)?.code === 'PRESCRIPTION_LOCKED') {

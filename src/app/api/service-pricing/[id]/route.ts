@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const body = await request.json();
         const { id } = await params;
+
+        const previo = await prisma.servicePricing.findUnique({ where: { id } });
 
         const updatedService = await prisma.servicePricing.update({
             where: { id },
@@ -21,6 +25,31 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
                 sortOrder: body.sortOrder !== undefined ? parseInt(body.sortOrder) : undefined,
             }
         });
+
+        const actor = getActor(request);
+        const before: Record<string, any> = {};
+        const after: Record<string, any> = {};
+        if (previo) {
+            for (const campo of ['name', 'priceCash', 'priceCredit', 'active'] as const) {
+                if (previo[campo] !== updatedService[campo]) {
+                    before[campo] = previo[campo];
+                    after[campo] = updatedService[campo];
+                }
+            }
+        }
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'UPDATE',
+            entityType: 'SETTING',
+            entityId: updatedService.id,
+            details: {
+                descripcion: `Precio de servicio "${updatedService.name}" actualizado`,
+                before,
+                after,
+            },
+        });
+
         return NextResponse.json(updatedService);
     } catch (error) {
         console.error('Error updating service pricing:', error);
@@ -31,9 +60,31 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
+        const previo = await prisma.servicePricing.findUnique({ where: { id } });
         await prisma.servicePricing.delete({
             where: { id }
         });
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'DELETE',
+            entityType: 'SETTING',
+            entityId: id,
+            details: {
+                descripcion: `Precio de servicio "${previo?.name ?? id}" eliminado`,
+                snapshot: previo ? {
+                    name: previo.name,
+                    category: previo.category,
+                    subcategory: previo.subcategory,
+                    priceCash: previo.priceCash,
+                    priceCredit: previo.priceCredit,
+                    active: previo.active,
+                } : null,
+            },
+        });
+
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Error deleting service pricing:', error);

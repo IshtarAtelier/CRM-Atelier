@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 const VALID_TYPES = ['FIXED', 'PERCENT'];
 
@@ -51,7 +53,35 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         if (body.maxUses !== undefined) data.maxUses = body.maxUses != null && body.maxUses !== '' ? Number(body.maxUses) : null;
         if (body.minOrderAmount !== undefined) data.minOrderAmount = body.minOrderAmount != null && body.minOrderAmount !== '' ? Number(body.minOrderAmount) : 0;
 
+        const previo = await prisma.coupon.findUnique({ where: { id } });
         const coupon = await prisma.coupon.update({ where: { id }, data });
+
+        const actor = getActor(request);
+        const before: Record<string, any> = {};
+        const after: Record<string, any> = {};
+        if (previo) {
+            for (const campo of ['code', 'discountType', 'discountValue', 'isActive', 'expiresAt', 'maxUses', 'minOrderAmount'] as const) {
+                const antes = previo[campo] instanceof Date ? (previo[campo] as Date).toISOString() : previo[campo];
+                const despues = coupon[campo] instanceof Date ? (coupon[campo] as Date).toISOString() : coupon[campo];
+                if (antes !== despues) {
+                    before[campo] = antes;
+                    after[campo] = despues;
+                }
+            }
+        }
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'UPDATE',
+            entityType: 'COUPON',
+            entityId: coupon.id,
+            details: {
+                descripcion: `Cupón "${coupon.code}" actualizado`,
+                before,
+                after,
+            },
+        });
+
         return NextResponse.json({ success: true, coupon });
     } catch (error: any) {
         console.error('Error updating coupon:', error);
@@ -66,7 +96,31 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
             return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
         const { id } = await params;
+        const previo = await prisma.coupon.findUnique({ where: { id } });
         await prisma.coupon.delete({ where: { id } });
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'DELETE',
+            entityType: 'COUPON',
+            entityId: id,
+            details: {
+                descripcion: `Cupón "${previo?.code ?? id}" eliminado`,
+                snapshot: previo ? {
+                    code: previo.code,
+                    discountType: previo.discountType,
+                    discountValue: previo.discountValue,
+                    usedCount: previo.usedCount,
+                    isActive: previo.isActive,
+                    expiresAt: previo.expiresAt,
+                    maxUses: previo.maxUses,
+                    minOrderAmount: previo.minOrderAmount,
+                } : null,
+            },
+        });
+
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error('Error deleting coupon:', error);

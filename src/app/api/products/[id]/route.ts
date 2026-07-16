@@ -3,6 +3,8 @@ import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { ProductService } from '@/services/product.service';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export async function DELETE(
     request: Request,
@@ -35,6 +37,17 @@ export async function DELETE(
             prisma.product.delete({ where: { id } }),
         ]);
 
+        // Trazabilidad: quién borró el producto y qué era
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'DELETE',
+            entityType: 'PRODUCT',
+            entityId: id,
+            details: { name: prod.name, brand: prod.brand, price: prod.price, stock: prod.stock },
+        });
+
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error('Error deleting product:', error);
@@ -60,7 +73,38 @@ export async function PUT(
         const { id } = await params;
         const body = await request.json();
 
+        // Foto previa de los campos sensibles para auditar solo lo que cambia
+        const before = await prisma.product.findUnique({
+            where: { id },
+            select: { price: true, cost: true, wholesalePrice: true, stock: true },
+        });
+
         const product = await ProductService.update(id, body);
+
+        const watched = ['price', 'cost', 'wholesalePrice', 'stock'] as const;
+        const beforeChanged: Record<string, unknown> = {};
+        const afterChanged: Record<string, unknown> = {};
+        if (before) {
+            for (const field of watched) {
+                if (before[field] !== (product as any)[field]) {
+                    beforeChanged[field] = before[field];
+                    afterChanged[field] = (product as any)[field];
+                }
+            }
+        }
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'UPDATE',
+            entityType: 'PRODUCT',
+            entityId: id,
+            details: Object.keys(beforeChanged).length > 0
+                ? { name: product.name, brand: product.brand, before: beforeChanged, after: afterChanged }
+                : { name: product.name, brand: product.brand },
+        });
+
         return NextResponse.json(product);
     } catch (error: any) {
         console.error('Error updating product:', error);
@@ -96,6 +140,18 @@ export async function PATCH(
                 ...(frameHeight !== undefined && { frameHeight: frameHeight ? parseInt(frameHeight) : null }),
             },
         });
+
+        // Trazabilidad: quién actualizó las medidas del armazón
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'UPDATE',
+            entityType: 'PRODUCT',
+            entityId: id,
+            details: { medidas: { lensWidth, bridgeWidth, templeLength, frameHeight } },
+        });
+
         return NextResponse.json({ success: true, id: updated.id });
     } catch (error: any) {
         console.error('Error updating frame measures:', error);

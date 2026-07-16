@@ -1209,7 +1209,7 @@ export const ContactService = {
         };
     },
 
-    async addPrescription(clientId: string, data: any) {
+    async addPrescription(clientId: string, data: any, actor?: Actor) {
         const transposed = this._transposePrescription(data);
         const isNear = data.prescriptionType === 'NEAR';
 
@@ -1247,7 +1247,7 @@ export const ContactService = {
             return existing;
         }
 
-        return await prisma.prescription.create({
+        const created = await prisma.prescription.create({
             data: {
                 clientId,
                 sphereOD: transposed.sphereOD,
@@ -1275,6 +1275,28 @@ export const ContactService = {
                 nearAxisOI: isNear ? transposed.nearAxisOI : null
             }
         });
+
+        // Trazabilidad: quién cargó la receta queda en la ficha y en el AuditLog
+        await prisma.interaction.create({
+            data: {
+                clientId,
+                type: 'NOTE',
+                content: `👓 ${actor?.name || 'Sistema'} cargó una nueva receta`,
+                userId: actor?.id || null,
+                userName: actor?.name || null
+            }
+        }).catch(console.error);
+
+        logAudit({
+            userId: actor?.id || null,
+            userName: actor?.name || null,
+            action: 'CREATE',
+            entityType: 'PRESCRIPTION',
+            entityId: created.id,
+            details: { clientId, prescriptionType: created.prescriptionType }
+        }).catch(console.error);
+
+        return created;
     },
 
     async _assertPrescriptionEditable(presId: string, role?: string | null) {
@@ -1303,11 +1325,13 @@ export const ContactService = {
         }
     },
 
-    async updatePrescription(presId: string, data: any, role?: string | null) {
+    async updatePrescription(presId: string, data: any, role?: string | null, actor?: Actor) {
         await this._assertPrescriptionEditable(presId, role);
+        // Foto previa para auditar solo los campos clínicos que cambian
+        const prev = await prisma.prescription.findUnique({ where: { id: presId } });
         const transposed = this._transposePrescription(data);
         const isNear = data.prescriptionType === 'NEAR';
-        return await prisma.prescription.update({
+        const updated = await prisma.prescription.update({
             where: { id: presId },
             data: {
                 sphereOD: transposed.sphereOD,
@@ -1335,13 +1359,78 @@ export const ContactService = {
                 nearAxisOI: isNear ? transposed.nearAxisOI : null
             }
         });
+
+        if (prev) {
+            // Diff de campos clínicos: solo lo que realmente cambió
+            const clinicalFields = [
+                'sphereOD', 'cylinderOD', 'axisOD', 'sphereOI', 'cylinderOI', 'axisOI',
+                'addition', 'additionOD', 'additionOI', 'pd',
+                'distanceOD', 'distanceOI', 'heightOD', 'heightOI',
+                'nearSphereOD', 'nearSphereOI', 'nearCylinderOD', 'nearAxisOD',
+                'nearCylinderOI', 'nearAxisOI', 'prescriptionType'
+            ] as const;
+            const before: Record<string, unknown> = {};
+            const after: Record<string, unknown> = {};
+            for (const field of clinicalFields) {
+                if ((prev as any)[field] !== (updated as any)[field]) {
+                    before[field] = (prev as any)[field];
+                    after[field] = (updated as any)[field];
+                }
+            }
+
+            await prisma.interaction.create({
+                data: {
+                    clientId: prev.clientId,
+                    type: 'NOTE',
+                    content: `👓 ${actor?.name || 'Sistema'} modificó la receta`,
+                    userId: actor?.id || null,
+                    userName: actor?.name || null
+                }
+            }).catch(console.error);
+
+            logAudit({
+                userId: actor?.id || null,
+                userName: actor?.name || null,
+                action: 'UPDATE',
+                entityType: 'PRESCRIPTION',
+                entityId: presId,
+                details: { clientId: prev.clientId, before, after }
+            }).catch(console.error);
+        }
+
+        return updated;
     },
 
-    async deletePrescription(presId: string, role?: string | null) {
+    async deletePrescription(presId: string, role?: string | null, actor?: Actor) {
         await this._assertPrescriptionEditable(presId, role);
-        return await prisma.prescription.delete({
+        // Foto completa antes de borrar: el AuditLog conserva qué receta era
+        const prev = await prisma.prescription.findUnique({ where: { id: presId } });
+        const deleted = await prisma.prescription.delete({
             where: { id: presId }
         });
+
+        if (prev) {
+            await prisma.interaction.create({
+                data: {
+                    clientId: prev.clientId,
+                    type: 'NOTE',
+                    content: `🗑️ ${actor?.name || 'Sistema'} eliminó una receta`,
+                    userId: actor?.id || null,
+                    userName: actor?.name || null
+                }
+            }).catch(console.error);
+
+            logAudit({
+                userId: actor?.id || null,
+                userName: actor?.name || null,
+                action: 'DELETE',
+                entityType: 'PRESCRIPTION',
+                entityId: presId,
+                details: prev
+            }).catch(console.error);
+        }
+
+        return deleted;
     },
 
     async addPayment(orderId: string, amount: number, method: string, notes?: string, receiptUrl?: string, date?: Date | string, actor?: Actor) {

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,10 +120,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
+        const actor = getActor(request);
         let expense;
 
         if (id) {
             // Update existing
+            const previo = await prisma.fixedCost.findUnique({ where: { id } });
             expense = await prisma.fixedCost.update({
                 where: { id },
                 data: {
@@ -131,6 +135,29 @@ export async function POST(request: Request) {
                     type,
                     notes
                 }
+            });
+
+            const before: Record<string, any> = {};
+            const after: Record<string, any> = {};
+            if (previo) {
+                for (const campo of ['name', 'amount', 'category', 'month'] as const) {
+                    if (previo[campo] !== expense[campo]) {
+                        before[campo] = previo[campo];
+                        after[campo] = expense[campo];
+                    }
+                }
+            }
+            await logAudit({
+                userId: actor.id,
+                userName: actor.name,
+                action: 'UPDATE',
+                entityType: 'EXPENSE',
+                entityId: expense.id,
+                details: {
+                    descripcion: `Gasto "${expense.name}" (${expense.month}/${expense.year}) actualizado`,
+                    before,
+                    after,
+                },
             });
         } else {
             // Create new
@@ -144,6 +171,22 @@ export async function POST(request: Request) {
                     year: parseInt(year, 10),
                     notes
                 }
+            });
+
+            await logAudit({
+                userId: actor.id,
+                userName: actor.name,
+                action: 'CREATE',
+                entityType: 'EXPENSE',
+                entityId: expense.id,
+                details: {
+                    descripcion: `Gasto "${expense.name}" (${expense.month}/${expense.year}) creado`,
+                    name: expense.name,
+                    amount: expense.amount,
+                    category: expense.category,
+                    month: expense.month,
+                    year: expense.year,
+                },
             });
         }
 
@@ -168,8 +211,31 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'Missing expense ID' }, { status: 400 });
         }
 
+        const previo = await prisma.fixedCost.findUnique({ where: { id } });
+
         await prisma.fixedCost.delete({
             where: { id }
+        });
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'DELETE',
+            entityType: 'EXPENSE',
+            entityId: id,
+            details: {
+                descripcion: `Gasto "${previo?.name ?? id}" eliminado`,
+                snapshot: previo ? {
+                    name: previo.name,
+                    amount: previo.amount,
+                    category: previo.category,
+                    type: previo.type,
+                    month: previo.month,
+                    year: previo.year,
+                    notes: previo.notes,
+                } : null,
+            },
         });
 
         return NextResponse.json({ success: true });

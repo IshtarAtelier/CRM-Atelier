@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +56,23 @@ export async function POST(request: Request) {
                 month: Number(month),
                 year: Number(year),
                 notes: notes || null,
+            },
+        });
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'CREATE',
+            entityType: 'EXPENSE',
+            entityId: cost.id,
+            details: {
+                descripcion: `Costo fijo "${cost.name}" (${cost.month}/${cost.year}) creado`,
+                name: cost.name,
+                amount: cost.amount,
+                category: cost.category,
+                month: cost.month,
+                year: cost.year,
             },
         });
 

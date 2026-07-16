@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ProductService } from '@/services/product.service';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export async function POST(request: Request) {
     try {
@@ -15,6 +17,18 @@ export async function POST(request: Request) {
         }
 
         const result = await ProductService.bulkCreate(items);
+
+        // Trazabilidad: quién hizo la carga masiva y cuántos productos entraron
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'CREATE',
+            entityType: 'PRODUCT',
+            entityId: 'BULK',
+            details: { count: result.count },
+        });
+
         return NextResponse.json({ success: true, count: result.count });
     } catch (error: any) {
         console.error('Error in bulk creation:', error);

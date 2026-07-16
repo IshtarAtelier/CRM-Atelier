@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export async function GET(request: Request) {
     try {
@@ -38,6 +40,16 @@ export async function POST(request: Request) {
         // "USD" = los valores se convierten a ARS con el blue del día; "ARS" = fijos.
         const targetCurrency = currency === 'USD' ? 'USD' : 'ARS';
 
+        // Leer el objetivo previo antes del upsert para dejar before/after en la auditoría
+        const previo = await prisma.monthlyTarget.findUnique({
+            where: {
+                month_year: {
+                    month: currentMonth,
+                    year: currentYear
+                }
+            }
+        });
+
         const updatedTarget = await prisma.monthlyTarget.upsert({
             where: {
                 month_year: {
@@ -59,6 +71,32 @@ export async function POST(request: Request) {
                 target3: target3 ? parseFloat(target3) : null,
                 currency: targetCurrency
             }
+        });
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'UPDATE',
+            entityType: 'SETTING',
+            entityId: updatedTarget.id,
+            details: {
+                descripcion: `Objetivos de ${currentMonth}/${currentYear} ${previo ? 'actualizados' : 'creados'}`,
+                month: currentMonth,
+                year: currentYear,
+                before: previo ? {
+                    target1: previo.target1,
+                    target2: previo.target2,
+                    target3: previo.target3,
+                    currency: previo.currency,
+                } : null,
+                after: {
+                    target1: updatedTarget.target1,
+                    target2: updatedTarget.target2,
+                    target3: updatedTarget.target3,
+                    currency: updatedTarget.currency,
+                },
+            },
         });
 
         return NextResponse.json(updatedTarget);

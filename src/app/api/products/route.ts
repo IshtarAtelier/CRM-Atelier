@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { ProductService } from '@/services/product.service';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +27,18 @@ export async function POST(request: Request) {
 
         const body = await request.json();
         const product = await ProductService.create(body);
+
+        // Trazabilidad: quién cargó el producto
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'CREATE',
+            entityType: 'PRODUCT',
+            entityId: product.id,
+            details: { name: product.name, brand: product.brand, price: product.price, cost: product.cost },
+        });
+
         return NextResponse.json(product);
     } catch (error: any) {
         console.error('Error creating product:', error);

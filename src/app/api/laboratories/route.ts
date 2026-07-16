@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 import { unstable_cache } from 'next/cache';
 
@@ -44,6 +46,22 @@ export async function POST(req: Request) {
                 iva: parseFloat(data.iva) || 0.0,
                 deliveryTime: data.deliveryTime || null,
             }
+        });
+
+        const actor = getActor(req);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'CREATE',
+            entityType: 'OTHER',
+            entityId: lab.id,
+            details: {
+                descripcion: `Laboratorio "${lab.name}" creado`,
+                name: lab.name,
+                calibrado: lab.calibrado,
+                iva: lab.iva,
+                deliveryTime: lab.deliveryTime,
+            },
         });
 
         return NextResponse.json({ laboratory: lab });

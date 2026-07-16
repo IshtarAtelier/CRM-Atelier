@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 import { unstable_cache } from 'next/cache';
 
@@ -46,6 +48,23 @@ export async function POST(request: Request) {
                 sortOrder: parseInt(sortOrder) || 0,
             }
         });
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'CREATE',
+            entityType: 'SETTING',
+            entityId: newService.id,
+            details: {
+                descripcion: `Precio de servicio "${newService.name}" creado`,
+                name: newService.name,
+                category: newService.category,
+                priceCash: newService.priceCash,
+                priceCredit: newService.priceCredit,
+            },
+        });
+
         return NextResponse.json(newService);
     } catch (error) {
         console.error('Error creating service pricing:', error);
