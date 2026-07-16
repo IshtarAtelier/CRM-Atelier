@@ -10,6 +10,13 @@ const EXT_CONTENT_TYPES: Record<string, string> = {
     pdf: 'application/pdf',
 };
 
+/** Pago anterior donde ya figura cargado el mismo número de operación. */
+export interface DuplicatePaymentRef {
+    clientName: string;
+    clientId?: string;
+    orderId: string;
+}
+
 interface ReceiptUploadedInfo {
     clientName: string;
     clientId?: string;
@@ -25,6 +32,16 @@ interface ReceiptUploadedInfo {
      * - null      → la auditoría no pudo correr (falla de IA / archivo ilegible)
      */
     auditErrors: string[] | null;
+    /** Si hubo duplicado, los pagos anteriores con el mismo nº de operación. */
+    duplicateRefs?: DuplicatePaymentRef[];
+}
+
+function appUrl() {
+    return process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+}
+
+function clientFichaLink(clientId?: string) {
+    return clientId ? `${appUrl()}/admin/contactos?id=${clientId}` : `${appUrl()}/admin/ventas`;
 }
 
 /**
@@ -47,11 +64,24 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
         console.error('[ReceiptNotify] No se pudo leer el comprobante, se envía aviso sin adjunto:', err);
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
     const shortOrder = info.orderId.slice(-4).toUpperCase();
-    const clientLink = info.clientId ? `${appUrl}/admin/contactos?id=${info.clientId}` : `${appUrl}/admin/ventas`;
+    const clientLink = clientFichaLink(info.clientId);
 
     const hasWarnings = !!info.auditErrors && info.auditErrors.length > 0;
+
+    // Si el nº de operación ya estaba cargado en otro pago, links directos a
+    // ambas fichas para comparar los dos comprobantes sin buscar nada.
+    const duplicatesBlock = info.duplicateRefs && info.duplicateRefs.length > 0 ? `
+        <div style="margin: 16px 0; padding: 12px 16px; background: #fff7ed; border: 1px solid #fdba74; border-radius: 6px;">
+          <p style="margin: 0 0 8px; font-weight: bold; color: #9a3412;">El mismo nº de operación ya figura cargado en:</p>
+          <ul style="margin: 0; padding-left: 18px; line-height: 1.9;">
+            ${info.duplicateRefs.map(d => `
+              <li><a href="${clientFichaLink(d.clientId)}" style="color: #1e3a8a;">${d.clientName} — venta #${d.orderId.slice(-4).toUpperCase()}</a></li>
+            `).join('')}
+          </ul>
+          <p style="margin: 8px 0 0;">Y ahora también en <a href="${clientLink}" style="color: #1e3a8a;">${info.clientName} — venta #${shortOrder}</a>.</p>
+        </div>
+    ` : '';
 
     const auditBlock = hasWarnings ? `
         <div style="margin: 16px 0; padding: 12px 16px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 6px;">
@@ -83,6 +113,7 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
           ${info.reference ? `<li><strong>Referencia:</strong> ${info.reference}</li>` : ''}
         </ul>
         ${auditBlock}
+        ${duplicatesBlock}
         ${buffer && isInlineImage ? `
           <p style="margin: 16px 0 8px; font-weight: bold;">Imagen del comprobante:</p>
           <img src="cid:comprobante" alt="Comprobante" style="max-width: 100%; border: 1px solid #ddd;" />
@@ -112,11 +143,14 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
 
 interface VendorReceiptErrorInfo {
     clientName: string;
+    clientId?: string;
     orderId: string;
     amount: number;
     receiptUrl: string;
     /** Observaciones en lenguaje coloquial, ya listas para que las lea un vendedor. */
     issues: string[];
+    /** Si hubo duplicado, los pagos anteriores con el mismo nº de operación. */
+    duplicateRefs?: DuplicatePaymentRef[];
 }
 
 /**
@@ -132,6 +166,7 @@ export async function notifyVendorsReceiptError(info: VendorReceiptErrorInfo) {
     const filename = info.receiptUrl.replace(/^local:\/\//, '').split('/').pop() || 'comprobante';
     const ext = (filename.split('.').pop() || '').toLowerCase();
     const contentType = EXT_CONTENT_TYPES[ext] || 'application/octet-stream';
+    const isInlineImage = contentType.startsWith('image/');
 
     let buffer: Buffer | null = null;
     try {
@@ -142,6 +177,10 @@ export async function notifyVendorsReceiptError(info: VendorReceiptErrorInfo) {
 
     const shortOrder = info.orderId.slice(-4).toUpperCase();
 
+    const duplicateLines = (info.duplicateRefs || []).map(d =>
+        `<p>El mismo pago ya está cargado en la ficha de <a href="${clientFichaLink(d.clientId)}" style="color: #1e3a8a;">${d.clientName} (venta #${d.orderId.slice(-4).toUpperCase()})</a> — entren y comparen los dos.</p>`
+    ).join('');
+
     // Sin cajas de colores ni encabezados: tiene que leerse como un mail escrito a mano.
     const html = `
       <div style="font-family: Arial, sans-serif; font-size: 14px; color: #222; line-height: 1.7;">
@@ -150,7 +189,15 @@ export async function notifyVendorsReceiptError(info: VendorReceiptErrorInfo) {
         <ul>
           ${info.issues.map(i => `<li>${i}</li>`).join('')}
         </ul>
-        <p>¿Pueden fijarse y volver a cargarlo bien? ${buffer ? 'Les reenvío el comprobante adjunto así lo ven.' : ''} Cualquier duda me escriben.</p>
+        ${duplicateLines}
+        <p>Acá les dejo la ficha del cliente para corregirlo: <a href="${clientFichaLink(info.clientId)}" style="color: #1e3a8a;">${info.clientName} — venta #${shortOrder}</a></p>
+        <p>¿Pueden fijarse y volver a cargarlo bien? Cualquier duda me escriben.</p>
+        ${buffer && isInlineImage ? `
+          <p>Este es el comprobante que subieron:</p>
+          <img src="cid:comprobante" alt="Comprobante" style="max-width: 100%; border: 1px solid #ddd;" />
+        ` : buffer ? `
+          <p>Les reenvío el comprobante adjunto (${ext.toUpperCase()}) así lo ven.</p>
+        ` : ''}
         <p>Gracias,<br/>Ishtar</p>
       </div>
     `;
@@ -159,10 +206,18 @@ export async function notifyVendorsReceiptError(info: VendorReceiptErrorInfo) {
         to: process.env.VENDOR_ALERT_EMAILS || 'atelier.optica.cerro@gmail.com',
         from: process.env.PERSONAL_EMAIL_FROM || 'Ishtar - Atelier Óptica <ishtar@atelieroptica.com.ar>',
         replyTo: process.env.PERSONAL_REPLY_TO || 'pisano.ishtar@gmail.com',
+        // Copia oculta a Ishtar: le queda en su casilla el mail exacto que salió
+        // a su nombre, y Gmail encadena las respuestas de los vendedores con él.
+        bcc: process.env.PERSONAL_BCC || 'pisano.ishtar@gmail.com',
         subject: `Comprobante de ${info.clientName} (venta #${shortOrder}) — hay que corregirlo`,
         html,
         ...(buffer ? {
-            attachments: [{ filename, content: buffer, contentType }]
+            attachments: [{
+                filename,
+                content: buffer,
+                contentType,
+                ...(isInlineImage ? { cid: 'comprobante' } : {})
+            }]
         } : {})
     });
 }

@@ -4,7 +4,7 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
 import { retryWithBackoff } from '@/lib/retry-utils';
-import { notifyReceiptUploaded, notifyVendorsReceiptError } from '@/lib/receipt-notify';
+import { notifyReceiptUploaded, notifyVendorsReceiptError, type DuplicatePaymentRef } from '@/lib/receipt-notify';
 
 export class ReceiptAgentService {
     /**
@@ -114,6 +114,8 @@ Solo devuelve el JSON, sin texto antes ni después.`;
             // Mismas observaciones pero redactadas en tono coloquial: van en el mail
             // a los vendedores firmado por Ishtar, no pueden sonar a sistema.
             const vendorIssues: string[] = [];
+            // Pagos anteriores con el mismo nº de operación → links a ambas fichas
+            const duplicateRefs: DuplicatePaymentRef[] = [];
 
             // A) Check Amount
             const tolerance = 5; // 5 pesos de tolerancia por errores de redondeo o carga
@@ -184,6 +186,11 @@ Solo devuelve el JSON, sin texto antes ni después.`;
 
                 if (duplicates.length > 0) {
                     isDuplicate = true;
+                    duplicateRefs.push(...duplicates.map(d => ({
+                        clientName: d.order?.client?.name || 'Cliente Desconocido',
+                        clientId: d.order?.client?.id,
+                        orderId: d.orderId
+                    })));
                     const duplicateDetails = duplicates.map(d => {
                         const clientName = d.order?.client?.name || 'Cliente Desconocido';
                         return `ID: ...${d.id.slice(-4).toUpperCase()} de ${clientName}`;
@@ -222,10 +229,12 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 // Mail a los vendedores como si lo mandara Ishtar pidiendo corregir la carga
                 await notifyVendorsReceiptError({
                     clientName,
+                    clientId: orderInfo?.client?.id,
                     orderId,
                     amount: expectedAmount,
                     receiptUrl,
-                    issues: vendorIssues.length > 0 ? vendorIssues : errors
+                    issues: vendorIssues.length > 0 ? vendorIssues : errors,
+                    duplicateRefs
                 });
             } else {
                  console.log(`[ReceiptAgent] Payment ${paymentId} check passed successfully.`);
@@ -236,7 +245,8 @@ Solo devuelve el JSON, sin texto antes ni después.`;
             await notifyReceiptUploaded({
                 ...emailBase,
                 reference: extracted.transaction_id || null,
-                auditErrors: errors
+                auditErrors: errors,
+                duplicateRefs
             });
 
         } catch (err: any) {

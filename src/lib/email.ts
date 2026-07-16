@@ -38,6 +38,8 @@ interface SendEmailOptions {
     from?: string;
     /** Dirección a la que llegan las respuestas (puede ser cualquier casilla, ej. Gmail). */
     replyTo?: string;
+    /** Copia oculta (los destinatarios no la ven). */
+    bcc?: string;
     attachments?: Array<{
         filename: string;
         content: string | Buffer;
@@ -50,7 +52,7 @@ interface SendEmailOptions {
 /**
  * Envía un email vía la API HTTPS de Resend.
  */
-async function sendViaResend({ to, subject, text, html, attachments, from, replyTo }: SendEmailOptions) {
+async function sendViaResend({ to, subject, text, html, attachments, from, replyTo, bcc }: SendEmailOptions) {
     const sender = from || process.env.EMAIL_FROM || 'Atelier Óptica <onboarding@resend.dev>';
     const recipients = to.split(',').map(r => r.trim()).filter(Boolean);
 
@@ -60,7 +62,8 @@ async function sendViaResend({ to, subject, text, html, attachments, from, reply
         subject,
         ...(html ? { html } : {}),
         ...(text ? { text } : {}),
-        ...(replyTo ? { reply_to: replyTo } : {})
+        ...(replyTo ? { reply_to: replyTo } : {}),
+        ...(bcc ? { bcc: bcc.split(',').map(r => r.trim()).filter(Boolean) } : {})
     };
 
     if (attachments && attachments.length > 0) {
@@ -95,10 +98,10 @@ async function sendViaResend({ to, subject, text, html, attachments, from, reply
  * Utility to send an email to a client.
  * Usa Resend (HTTPS) si hay RESEND_API_KEY; si no, SMTP de Gmail.
  */
-export async function sendEmail({ to, subject, text, html, attachments, from, replyTo }: SendEmailOptions) {
+export async function sendEmail({ to, subject, text, html, attachments, from, replyTo, bcc }: SendEmailOptions) {
     try {
         if (process.env.RESEND_API_KEY) {
-            const id = await sendViaResend({ to, subject, text, html, attachments, from, replyTo });
+            const id = await sendViaResend({ to, subject, text, html, attachments, from, replyTo, bcc });
             console.log(`[Email] Correo enviado vía Resend a ${to}. ID: ${id}`);
             return { success: true, messageId: id };
         }
@@ -110,7 +113,8 @@ export async function sendEmail({ to, subject, text, html, attachments, from, re
             text,
             html,
             attachments,
-            ...(replyTo ? { replyTo } : {})
+            ...(replyTo ? { replyTo } : {}),
+            ...(bcc ? { bcc } : {})
         });
         console.log(`[Email] Correo enviado exitosamente a ${to}. ID: ${info.messageId}`);
         return { success: true, messageId: info.messageId };
