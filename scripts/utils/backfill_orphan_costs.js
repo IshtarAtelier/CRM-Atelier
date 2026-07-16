@@ -18,10 +18,15 @@
  *   LOCAL informe:   node scripts/utils/backfill_orphan_costs.js
  *   PROD informe:    DATABASE_URL="$PROD_DATABASE_URL" node scripts/utils/backfill_orphan_costs.js
  *   PROD escribir:   DATABASE_URL="$PROD_DATABASE_URL" node scripts/utils/backfill_orphan_costs.js --commit
+ *
+ * --ambiguous-min: cuando hay gemelos vivos con costos DISTINTOS, en vez de saltear la
+ * línea usa el costo MENOR (decisión del 16/7: los "Atelier"/"Acetato" genéricos con
+ * gemelos a $25.000/$30.000 se resuelven a $25.000).
  */
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const COMMIT = process.argv.includes('--commit');
+const AMBIGUOUS_MIN = process.argv.includes('--ambiguous-min');
 
 const norm = (s) => (s || '').trim().toLowerCase();
 
@@ -77,8 +82,9 @@ async function main() {
     if (withCost.length === 0) { unmatched.push(it); continue; }
 
     const costs = [...new Set(withCost.map((p) => p.cost))];
-    if (costs.length > 1) { ambiguous.push({ item: it, costs }); continue; }
-    matched.push({ item: it, cost: costs[0], via: withCost[0] });
+    if (costs.length > 1 && !AMBIGUOUS_MIN) { ambiguous.push({ item: it, costs }); continue; }
+    const cost = costs.length > 1 ? Math.min(...costs) : costs[0];
+    matched.push({ item: it, cost, via: withCost.find((p) => p.cost === cost) });
   }
 
   console.log(`\n✅ Matcheadas (costo único e inequívoco): ${matched.length}`);
