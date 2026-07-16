@@ -12,6 +12,11 @@ export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.isht
 // futuro, mover esta fecha (el server además admite override por ATTENTION_CUTOFF_DATE).
 export const ATTENTION_CUTOFF_ISO = '2026-07-06T18:16:07.000Z';
 
+// Conciliación de costos de laboratorio — inicio de la auditoría. El CRM registró
+// su primera venta el 2026-04-08: los pedidos de laboratorio anteriores son de la
+// era pre-sistema y no se cruzan (serían todos "sin venta" por definición).
+export const LAB_AUDIT_START_ISO = '2026-04-08T00:00:00.000Z';
+
 // Platform commission rates for payment methods
 export const PLATFORM_COMMISSIONS: Record<string, number> = {
     // ── Pay Way 6 cuotas (20% plataforma) ──

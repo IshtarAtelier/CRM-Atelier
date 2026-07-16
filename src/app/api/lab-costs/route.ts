@@ -73,6 +73,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: true, ...result });
         }
 
+        if (body.action === 'scan-grupo-optico') {
+            const { GrupoOpticoProvider } = await import('@/services/lab-providers/grupo-optico.provider');
+            const result = await GrupoOpticoProvider.collect();
+            return NextResponse.json({ ok: true, ...result });
+        }
+
         const rows: any[] = Array.isArray(body.rows) ? body.rows : [];
         if (rows.length === 0) {
             return NextResponse.json({ error: 'Sin filas para importar' }, { status: 400 });

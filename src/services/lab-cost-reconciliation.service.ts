@@ -78,7 +78,27 @@ export class LabCostReconciliationService {
             orderBy: { createdAt: 'desc' },
         });
 
-        const billedComparable = input.billedNet ?? input.billedTotal ?? null;
+        const existing = await prisma.labCostEntry.findUnique({
+            where: { lab_labOrderNumber: { lab: input.lab, labOrderNumber: cleanNumber } },
+        });
+
+        // Una fuente sin importes (p. ej. el barrido del portal) NUNCA debe pisar
+        // la facturación ya registrada por otra fuente (planilla, PDF de email).
+        const hasNewBilling = input.billedNet != null || input.billedTotal != null;
+        const keepExistingBilling = !hasNewBilling && !!existing
+            && (existing.billedNet !== null || existing.billedTotal !== null);
+
+        const billedNet = keepExistingBilling ? existing!.billedNet : (input.billedNet ?? null);
+        const billedTotal = keepExistingBilling ? existing!.billedTotal : (input.billedTotal ?? null);
+        const source = keepExistingBilling ? existing!.source : input.source;
+        const sourceFile = keepExistingBilling
+            ? existing!.sourceFile
+            : (input.sourceFile ?? existing?.sourceFile ?? null);
+        const invoiceDate = hasNewBilling
+            ? (input.invoiceDate ?? null)
+            : (existing?.invoiceDate ?? input.invoiceDate ?? null);
+
+        const billedComparable = billedNet ?? billedTotal ?? null;
         const systemCost = order ? this.systemCostForLab(order, input.lab) : null;
 
         // Una venta puede tener varios pedidos de lab ("580841-580844"): el costo
@@ -99,10 +119,6 @@ export class LabCostReconciliationService {
             else status = 'OK';
         }
 
-        const existing = await prisma.labCostEntry.findUnique({
-            where: { lab_labOrderNumber: { lab: input.lab, labOrderNumber: cleanNumber } },
-        });
-
         // Conservar las notas existentes (p. ej. la del portal) cuando la
         // actualización no trae nota propia, y no duplicar la de multi-pedido.
         const baseNotes = input.notes ?? existing?.notes ?? null;
@@ -114,12 +130,12 @@ export class LabCostReconciliationService {
         const data = {
             orderId: order?.id ?? null,
             systemCost,
-            billedNet: input.billedNet ?? null,
-            billedTotal: input.billedTotal ?? null,
+            billedNet,
+            billedTotal,
             difference,
-            source: input.source,
-            sourceFile: input.sourceFile ?? null,
-            invoiceDate: input.invoiceDate ?? null,
+            source,
+            sourceFile,
+            invoiceDate,
             status,
             notes,
         };

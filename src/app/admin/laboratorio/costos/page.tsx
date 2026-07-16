@@ -406,6 +406,14 @@ export default function LabCostosPage() {
                     Escanear facturas Optovision
                 </button>
                 <button
+                    onClick={() => runAction('scan-grupo-optico', 'Barrido SmartLab')}
+                    disabled={busy !== null}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-800 disabled:opacity-50"
+                >
+                    {busy === 'scan-grupo-optico' ? <Loader2 size={16} className="animate-spin" /> : <FlaskConical size={16} />}
+                    Barrer portal Grupo Óptico
+                </button>
+                <button
                     onClick={() => setShowImport(true)}
                     disabled={busy !== null}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-50"
