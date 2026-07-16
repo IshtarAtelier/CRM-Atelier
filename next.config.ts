@@ -6,6 +6,10 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 
 const nextConfig: NextConfig = {
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  // Permite aislar el build de medición de rendimiento (Lighthouse) del `.next`
+  // del server de desarrollo en curso. Sin la env seteada, usa `.next` normal
+  // (cero impacto en prod).
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -69,6 +73,22 @@ const nextConfig: NextConfig = {
       {
         source: '/productos/:slug',
         destination: '/producto/:slug',
+        permanent: true,
+      },
+      // Paginación vieja de Tienda Nube (/<categoría>/page/N) para CUALQUIER
+      // categoría: /lentes-de-sol/page/18 (Soft 404 en GSC), /receta/page/2, etc.
+      // Cae en la categoría real con un 301 limpio. La app nueva no tiene rutas
+      // /page/N, así que la regla no pisa nada.
+      {
+        source: '/:categoria/page/:num(\\d+)',
+        destination: '/:categoria',
+        permanent: true,
+      },
+      // Landing vieja de marcas Vulk & Rusty (404 en GSC). Se siguen vendiendo,
+      // así que recuperamos el link mandándolo a la categoría de sol.
+      {
+        source: '/vulk-y-rusty',
+        destination: '/lentes-de-sol',
         permanent: true,
       },
       {
