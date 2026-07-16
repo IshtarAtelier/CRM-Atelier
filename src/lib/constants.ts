@@ -12,9 +12,12 @@ export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.isht
 // futuro, mover esta fecha (el server además admite override por ATTENTION_CUTOFF_DATE).
 export const ATTENTION_CUTOFF_ISO = '2026-07-06T18:16:07.000Z';
 
-// Conciliación de costos de laboratorio — inicio de la auditoría. El CRM registró
-// su primera venta el 2026-04-08: los pedidos de laboratorio anteriores son de la
-// era pre-sistema y no se cruzan (serían todos "sin venta" por definición).
+// Conciliación de costos de laboratorio — inicio de la auditoría.
+// Verificado contra producción el 2026-07-15: primera venta del CRM el 7/4/2026,
+// primer pedido CON número de operación el 8/4/2026 18:54 (ART). La auditoría
+// arranca ese día completo (inclusive): todo pedido de laboratorio desde acá
+// se cruza; los anteriores son de la era pre-sistema y serían "sin venta" por
+// definición. No mover hacia adelante: achicar la ventana esconde huérfanos.
 export const LAB_AUDIT_START_ISO = '2026-04-08T00:00:00.000Z';
 
 // Platform commission rates for payment methods
