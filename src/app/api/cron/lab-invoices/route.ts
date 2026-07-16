@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { runAllProviders, LAB_PROVIDERS } from '@/services/lab-providers';
 import { sendEmail } from '@/lib/email';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
+import { prisma } from '@/lib/db';
+
+const LAB_LABELS: Record<string, string> = { OPTOVISION: 'Optovision', GRUPO_OPTICO: 'Grupo Óptico' };
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -37,7 +40,41 @@ export async function GET(request: Request) {
         }
 
         const days = Math.min(parseInt(searchParams.get('days') || '35', 10) || 35, 365);
+        const runStart = new Date();
         const results = await runAllProviders({ days });
+
+        // Digest diario pedido por el administrador: cada pedido/factura NUEVO sin
+        // venta en el sistema se informa por email con sus pistas, siempre.
+        const newOrphans = await prisma.labCostEntry.findMany({
+            where: { status: 'UNMATCHED', createdAt: { gte: runStart } },
+            orderBy: [{ lab: 'asc' }, { labOrderNumber: 'asc' }],
+        });
+        if (newOrphans.length > 0) {
+            const rows = newOrphans.map((o, i) => `
+                <tr style="background:${i % 2 === 0 ? '#fff' : '#f9fafb'}">
+                    <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${o.labOrderNumber}</td>
+                    <td style="padding:6px 8px;border:1px solid #e5e7eb">${LAB_LABELS[o.lab] || o.lab}</td>
+                    <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${o.sourceFile || '—'}</td>
+                    <td style="padding:6px 8px;border:1px solid #e5e7eb;font-size:12px">${o.notes || '—'}</td>
+                </tr>`).join('');
+            await sendEmail({
+                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                subject: `🔎 ${newOrphans.length} pedido(s) de laboratorio nuevos SIN venta en el sistema`,
+                html: `
+                    <div style="font-family:Arial,sans-serif;max-width:760px;margin:0 auto;color:#1f2937">
+                        <h2 style="color:#b45309">Pedidos de laboratorio sin venta que los respalde</h2>
+                        <p>El cruce diario encontró ${newOrphans.length} pedido(s) nuevos en el laboratorio que no corresponden a ninguna venta del sistema. Revisar: anotar el número en la venta correcta, registrar la postventa, o darlo por conocido.</p>
+                        <table style="border-collapse:collapse;width:100%;font-size:13px">
+                            <tr style="background:#111827;color:#fff">
+                                <th style="padding:8px;text-align:left">Nº operación</th><th style="padding:8px;text-align:left">Lab</th>
+                                <th style="padding:8px;text-align:left">Factura lab</th><th style="padding:8px;text-align:left">Pista</th>
+                            </tr>${rows}
+                        </table>
+                        <p style="margin-top:14px"><a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar'}/admin/laboratorio/costos">Ver conciliación completa en el CRM</a></p>
+                    </div>
+                `,
+            }).catch(err => console.error('[Cron lab-invoices] Error enviando digest de huérfanos:', err));
+        }
 
         // Watchdog: proveedores caídos hace STALE_DAYS o más
         const stale = LAB_PROVIDERS
