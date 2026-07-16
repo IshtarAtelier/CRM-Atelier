@@ -39,6 +39,9 @@ existen en el laboratorio y no responden a ninguna venta del sistema**.
 2. **Grupo Óptico**: pagina la API del portal (`smartlab-api-v2 → laboratory/order/list`)
    desde el pedido más nuevo hasta el inicio de la auditoría → registra todos los
    pedidos de la era CRM; los que no matchean quedan **"Sin venta"** (huérfanos).
+   Además descarga el **PDF de facturas del rango** (`laboratory/order/invoice?cl&t=2&c=1&s&e`),
+   lo parsea (`grupo-optico-invoices.ts`) y asigna a cada pedido su **costo real**
+   por número de factura → totalmente automático, sin planilla.
 3. **Re-cruce**: lo que estaba sin match se vuelve a cruzar (números cargados tarde).
 4. **Watchdog**: si una fuente lleva 3+ días sin corrida exitosa (estado en
    `SystemSetting: lab-provider:*:lastOkAt`), email de alerta — un pipeline caído

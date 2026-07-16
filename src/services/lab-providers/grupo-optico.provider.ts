@@ -1,12 +1,14 @@
 import { LabCostReconciliationService } from '../lab-cost-reconciliation.service';
 import { LAB_AUDIT_START_ISO } from '../../lib/constants';
+import { buildInvoiceAmountMap } from './grupo-optico-invoices';
 
 /**
  * Proveedor de Grupo Óptico: lee los pedidos desde la API JSON interna del
  * portal SmartLab (la misma que usa su propia página web), paginada y estable —
  * sin scraping de pantallas. Registra TODOS los pedidos de la era CRM en la
- * conciliación: los que tienen venta quedan PENDING/OK/…, los que no, UNMATCHED
- * ("Sin venta"). El nº de factura del lab (si ya existe) queda en sourceFile.
+ * conciliación con su COSTO REAL: cruza cada pedido con el PDF de facturas del
+ * rango (buildInvoiceAmountMap) por nº de factura. Los que tienen venta quedan
+ * OK/OVERCOST/PENDING, los que no, UNMATCHED ("Sin venta") — con su importe.
  *
  * Credenciales: SMARTLAB_USER / SMARTLAB_PASSWORD (fallback a las actuales).
  */
@@ -22,6 +24,7 @@ interface PortalOrder {
     cliente: string;
     anulado: boolean;
     factura: string | null;
+    invoiceNumbers: string[]; // todos los nº de factura del pedido (para cruzar importes)
 }
 
 export class GrupoOpticoProvider {
@@ -39,7 +42,7 @@ export class GrupoOpticoProvider {
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
         });
 
-        const summary = { pages: 0, seen: 0, anulados: 0, preCrm: 0, registered: 0, unmatched: 0, overcost: 0 };
+        const summary = { pages: 0, seen: 0, anulados: 0, preCrm: 0, registered: 0, unmatched: 0, overcost: 0, withCost: 0 };
         try {
             const page = await browser.newContext().then(c => c.newPage());
             await this.login(page);
@@ -49,11 +52,12 @@ export class GrupoOpticoProvider {
             await page.waitForTimeout(3000);
 
             const auditStart = new Date(LAB_AUDIT_START_ISO);
+            const clientId = process.env.SMARTLAB_CLIENT_ID || '2462';
             const orders: PortalOrder[] = [];
 
             for (let current = 1; current <= MAX_PAGES; current++) {
                 const url = `${API_BASE}/laboratory/order/list?rowPerPage=${ROWS_PER_PAGE}&current=${current}` +
-                    `&isClient=1&isSeller=0&userId=${process.env.SMARTLAB_CLIENT_ID || '2462'}&sellerId=0` +
+                    `&isClient=1&isSeller=0&userId=${clientId}&sellerId=0` +
                     `&search=&invoiceNumber=&sector=0&client=null&invoice=0&lensType=0&calibratedBy=0&zone=0`;
                 const res: any = await page.evaluate(async (u) => {
                     const r = await fetch(u, { credentials: 'include' });
@@ -71,12 +75,16 @@ export class GrupoOpticoProvider {
                     const fecha = new Date((r.FechaRegistro || '').replace(' ', 'T'));
                     if (isNaN(fecha.getTime())) continue;
                     if (fecha < auditStart) { reachedPreCrm = true; summary.preCrm++; continue; }
+                    const invoiceNumbers = (r.invoices || [])
+                        .map((i: any) => i?.number)
+                        .filter((n: any): n is string => typeof n === 'string' && n.length > 0);
                     orders.push({
                         num: String(r.IdPedido || ''),
                         fecha: r.FechaRegistro,
                         cliente: (r.CodigoOptica || '').trim(),
                         anulado: r.Anulado === '1',
                         factura: r.invoices?.[0]?.number || r.Factura || null,
+                        invoiceNumbers,
                     });
                 }
                 if (reachedPreCrm) break; // la API viene ordenada de más nuevo a más viejo
@@ -84,24 +92,42 @@ export class GrupoOpticoProvider {
             }
 
             summary.seen = orders.length;
+
+            // Importes reales: el PDF de facturas del rango (nº de factura → monto).
+            // Si la descarga/parseo falla, seguimos sin importes (no rompe el cruce).
+            let invoiceAmounts = new Map<string, number>();
+            try {
+                invoiceAmounts = await buildInvoiceAmountMap(page, clientId, auditStart, new Date());
+                console.log(`[GrupoOptico] ${invoiceAmounts.size} facturas con importe descargadas del portal`);
+            } catch (err) {
+                console.error('[GrupoOptico] No se pudo obtener el PDF de facturas (se sigue sin importes):', err);
+            }
+
             for (const o of orders) {
                 if (!o.num.match(/\d{4,}/)) continue;
                 if (o.anulado) { summary.anulados++; continue; }
+
+                // Costo real = suma de los importes de las facturas del pedido.
+                let billed: number | null = null;
+                for (const inv of o.invoiceNumbers) {
+                    const amount = invoiceAmounts.get(inv);
+                    if (amount) billed = (billed || 0) + amount;
+                }
 
                 const detail = [o.cliente, `ingreso ${o.fecha.slice(0, 16)}`].filter(Boolean).join(', ');
                 const entry = await LabCostReconciliationService.upsertEntry({
                     lab: 'GRUPO_OPTICO',
                     labOrderNumber: o.num,
-                    // La API no trae importes: el costo real entra por planilla o
-                    // por la cuenta corriente (fase 2). NUNCA pisa importes previos.
-                    billedNet: null,
-                    billedTotal: null,
+                    // Consumidor final: el total del PDF es el monto final (IVA no discriminado).
+                    billedNet: billed,
+                    billedTotal: billed,
                     source: 'SCRAPER',
                     sourceFile: o.factura ? `Fact ${o.factura}` : null,
                     notes: `Pedido visto en el portal del laboratorio (${detail}).`,
                 });
                 if (entry) {
                     summary.registered++;
+                    if (billed) summary.withCost++;
                     if (entry.status === 'UNMATCHED') summary.unmatched++;
                     if (entry.status === 'OVERCOST') summary.overcost++;
                 }
