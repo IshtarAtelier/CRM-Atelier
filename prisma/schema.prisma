@@ -16,7 +16,6 @@ model User {
   role          String         @default("STAFF")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  auditLogs     AuditLog[]
   cashMovements CashMovement[]
   orders        Order[]
 }
@@ -640,6 +639,9 @@ model TeamMessage {
   @@index([createdAt])
 }
 
+// Sin FK a User a propósito: el log de auditoría debe sobrevivir al borrado
+// de usuarios (con FK, un userId de un usuario eliminado haría fallar el
+// insert y se perdería el registro — lo contrario de lo que busca auditar).
 model AuditLog {
   id         String   @id @default(cuid())
   userId     String?
@@ -649,7 +651,6 @@ model AuditLog {
   entityId   String
   details    Json?
   createdAt  DateTime @default(now())
-  user       User?    @relation(fields: [userId], references: [id])
 
   @@index([entityType, entityId])
   @@index([userId])

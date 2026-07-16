@@ -30,6 +30,16 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get('session')?.value
     const { pathname } = request.nextUrl
 
+    // Los headers x-user-* SOLO pueden nacer en este middleware (JWT validado).
+    // Se eliminan de TODA request entrante: sin esto, un caller con BOT_API_KEY
+    // (o en rutas públicas) podría mandar x-user-name y firmar acciones como
+    // si fueran de un vendedor real. Las ramas que autentican por sesión los
+    // re-inyectan sobre esta misma base ya saneada.
+    const sanitizedHeaders = new Headers(request.headers);
+    sanitizedHeaders.delete('x-user-id');
+    sanitizedHeaders.delete('x-user-role');
+    sanitizedHeaders.delete('x-user-name');
+
     const isAdminRoute = pathname.startsWith('/admin');
     const isApiRoute = pathname.startsWith('/api/');
     const isAuthRoute = pathname === '/login' || pathname.startsWith('/api/auth');
@@ -45,7 +55,7 @@ export async function middleware(request: NextRequest) {
                 return NextResponse.redirect(new URL('/admin', request.url));
             }
         }
-        return NextResponse.next();
+        return NextResponse.next({ request: { headers: sanitizedHeaders } });
     }
 
     // Proteger rutas API (excepto auth, cron, upload y whatsapp proxy)
@@ -67,41 +77,39 @@ export async function middleware(request: NextRequest) {
             return NextResponse.json({ error: 'Acceso no autorizado' }, { status: 403 });
         }
 
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.set('x-user-id', payload.id as string);
-        requestHeaders.set('x-user-role', payload.role as string);
-        requestHeaders.set('x-user-name', payload.name as string);
+        sanitizedHeaders.set('x-user-id', payload.id as string);
+        sanitizedHeaders.set('x-user-role', payload.role as string);
+        sanitizedHeaders.set('x-user-name', payload.name as string);
 
-        return NextResponse.next({ request: { headers: requestHeaders } });
+        return NextResponse.next({ request: { headers: sanitizedHeaders } });
     }
 
     // Proteger rutas internas de bot (wa-service) o admin panel (incluyendo alertas de admin)
     if (pathname.startsWith('/api/bot/') || pathname.startsWith('/api/whatsapp/') || pathname.startsWith('/api/admin/alert')) {
         const apiKey = request.headers.get('x-api-key');
         const validKey = process.env.BOT_API_KEY;
-        
-        // 1. Validar por API Key (usado por wa-service)
+
+        // 1. Validar por API Key (usado por wa-service) — pasa SIN identidad de usuario
         if (apiKey && validKey && safeCompare(apiKey, validKey)) {
-            return NextResponse.next();
+            return NextResponse.next({ request: { headers: sanitizedHeaders } });
         }
-        
+
         // 2. Validar por Cookie de Sesión (usado por panel de administración)
         if (token) {
             const payload = await decrypt(token);
             if (payload) {
-                const requestHeaders = new Headers(request.headers);
-                requestHeaders.set('x-user-id', payload.id as string);
-                requestHeaders.set('x-user-role', payload.role as string);
-                requestHeaders.set('x-user-name', payload.name as string);
-                
+                sanitizedHeaders.set('x-user-id', payload.id as string);
+                sanitizedHeaders.set('x-user-role', payload.role as string);
+                sanitizedHeaders.set('x-user-name', payload.name as string);
+
                 return NextResponse.next({
                     request: {
-                        headers: requestHeaders,
+                        headers: sanitizedHeaders,
                     },
                 });
             }
         }
-        
+
         return NextResponse.json({ error: 'Acceso denegado. Se requiere API Key o sesión válida.' }, { status: 403 });
     }
 
@@ -111,9 +119,9 @@ export async function middleware(request: NextRequest) {
         const validKey = process.env.BOT_API_KEY;
         
         if (apiKey && validKey && safeCompare(apiKey, validKey)) {
-            return NextResponse.next(); // Autorizado como bot
+            return NextResponse.next({ request: { headers: sanitizedHeaders } }); // Autorizado como bot
         }
-        
+
         if (!token) {
             return NextResponse.json({ error: 'No autenticado para subir archivos' }, { status: 401 });
         }
@@ -121,7 +129,11 @@ export async function middleware(request: NextRequest) {
         if (!payload) {
             return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 });
         }
-        return NextResponse.next();
+        // Sesión válida: el que sube el archivo queda identificado
+        sanitizedHeaders.set('x-user-id', payload.id as string);
+        sanitizedHeaders.set('x-user-role', payload.role as string);
+        sanitizedHeaders.set('x-user-name', payload.name as string);
+        return NextResponse.next({ request: { headers: sanitizedHeaders } });
     }
 
     // Proteger rutas de administración (/admin)
@@ -140,20 +152,19 @@ export async function middleware(request: NextRequest) {
         }
 
         // Inyectar datos del usuario para el layout del admin
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.set('x-user-id', payload.id as string);
-        requestHeaders.set('x-user-role', payload.role as string);
-        requestHeaders.set('x-user-name', payload.name as string);
+        sanitizedHeaders.set('x-user-id', payload.id as string);
+        sanitizedHeaders.set('x-user-role', payload.role as string);
+        sanitizedHeaders.set('x-user-name', payload.name as string);
 
         return NextResponse.next({
             request: {
-                headers: requestHeaders,
+                headers: sanitizedHeaders,
             },
         });
     }
 
     // Permitir el resto de las rutas públicas (E-commerce, Blog, etc.)
-    const response = NextResponse.next();
+    const response = NextResponse.next({ request: { headers: sanitizedHeaders } });
     // Segunda barrera contra contenido duplicado: el canonical tag es solo una
     // sugerencia; este header es una directiva dura para el subdominio de Railway.
     if (isNonCanonicalHost(request)) {
