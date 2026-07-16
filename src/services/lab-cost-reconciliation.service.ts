@@ -3,6 +3,7 @@ import { simpleParser } from 'mailparser';
 import { prisma } from '../lib/db';
 import { OptovisionParserService } from './optovision-parser.service';
 import { sendEmail } from '../lib/email';
+import { RESOLUCIONES_CONOCIDAS } from './lab-providers/resoluciones';
 
 export type LabName = 'OPTOVISION' | 'GRUPO_OPTICO';
 
@@ -132,7 +133,11 @@ export class LabCostReconciliationService {
         const multiNote = multiPedido && !baseNotes?.includes('pedidos de lab')
             ? `La venta tiene ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber}); el costo sistema es el total de la venta.`
             : null;
-        const notes = [baseNotes, multiNote].filter(Boolean).join(' ') || null;
+        // Resolución conocida del administrador (p. ej. "COSTO VENDEDOR"): queda
+        // fija en el detalle de la entrada, venga de la fuente que venga.
+        const resolucion = RESOLUCIONES_CONOCIDAS[cleanNumber];
+        const resolucionNote = resolucion && !baseNotes?.includes('RESUELTO') ? resolucion : null;
+        const notes = [resolucionNote, baseNotes, multiNote].filter(Boolean).join(' ') || null;
 
         const data = {
             orderId: order?.id ?? null,
