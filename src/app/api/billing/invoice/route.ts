@@ -31,7 +31,9 @@ export async function POST(request: Request) {
             items,
             amount,
             issueDate,
-            observations
+            observations,
+            actorId: headersList.get('x-user-id'),
+            actorName: headersList.get('x-user-name')
         });
 
         return NextResponse.json(invoice);

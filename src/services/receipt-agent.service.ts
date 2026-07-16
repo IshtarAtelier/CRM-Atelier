@@ -15,7 +15,8 @@ export class ReceiptAgentService {
         orderId: string,
         receiptUrl: string,
         expectedAmount: number,
-        method: string
+        method: string,
+        uploadedByName?: string | null
     ) {
         let adminEmailSent = false;
         try {
@@ -32,7 +33,8 @@ export class ReceiptAgentService {
                 orderId,
                 amount: expectedAmount,
                 method,
-                receiptUrl
+                receiptUrl,
+                uploadedByName: uploadedByName || null
             };
 
             // 1. Convert file from storage to base64
@@ -214,7 +216,7 @@ Solo devuelve el JSON, sin texto antes ni después.`;
 
             // 6. Report if errors
             if (errors.length > 0) {
-                const alertMsg = `ERROR IA en Comprobante (${clientName}): ${errors.join(' ')}`;
+                const alertMsg = `ERROR IA en Comprobante (${clientName}${uploadedByName ? `, cargado por ${uploadedByName}` : ''}): ${errors.join(' ')}`;
 
                 await prisma.notification.create({
                     data: {
@@ -270,6 +272,7 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                          amount: expectedAmount,
                          method,
                          receiptUrl,
+                         uploadedByName: uploadedByName || null,
                          auditErrors: null
                      });
                  } catch (emailErr) {

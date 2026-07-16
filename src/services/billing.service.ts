@@ -53,6 +53,8 @@ export interface CreateInvoiceParams {
     items?: CreateInvoiceItem[]; // Nuevo: ítems ya validados (ej: divididos por el tope de 500k)
     issueDate?: string;    // Nuevo: Fecha de emisión de la factura (YYYY-MM-DD)
     observations?: string; // Nuevo: Observaciones opcionales
+    actorId?: string | null;   // Usuario que emite la factura (trazabilidad)
+    actorName?: string | null;
 }
 
 export const BillingService = {
@@ -61,7 +63,7 @@ export const BillingService = {
      * Emite una Factura C electrónica para una orden de tipo SALE.
      */
     async createInvoice(params: CreateInvoiceParams) {
-        const { orderId, account = 'ISH', docTipo = 99, docNro = '0', puntoDeVenta, amount, items, issueDate, observations } = params;
+        const { orderId, account = 'ISH', docTipo = 99, docNro = '0', puntoDeVenta, amount, items, issueDate, observations, actorId, actorName } = params;
  
         // 1. Validar orden
         const order = await prisma.order.findUnique({
@@ -231,6 +233,7 @@ export const BillingService = {
                     billingAccount: account,
                     status: 'COMPLETED',
                     observations: observations || null,
+                    createdByName: actorName || null,
                 },
             });
 
@@ -239,11 +242,24 @@ export const BillingService = {
                 data: {
                     clientId: order.clientId,
                     type: 'INVOICE',
-                    content: `🧾 Factura ${voucherLabel} emitida por $${totalAmount.toLocaleString('es-AR')} — CAE: ${result.CAE}`,
+                    content: `🧾 ${actorName || 'Sistema'} emitió la Factura ${voucherLabel} por $${totalAmount.toLocaleString('es-AR')} — CAE: ${result.CAE}`,
+                    userId: actorId || null,
+                    userName: actorName || 'Sistema',
                 },
             });
 
             return { ...invoice, voucherLabel };
+        }).then(async (created) => {
+            const { logAudit } = await import('@/lib/audit');
+            logAudit({
+                userId: actorId || null,
+                userName: actorName || 'Sistema',
+                action: 'CREATE',
+                entityType: 'INVOICE',
+                entityId: created.id,
+                details: { orderId, voucherLabel: created.voucherLabel, totalAmount, billingAccount: account, cae: result.CAE }
+            }).catch(console.error);
+            return created;
         });
     },
 

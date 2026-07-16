@@ -5,8 +5,18 @@ import { fetchWa } from '@/lib/wa-config';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        console.log('[WhatsApp Send] Sending to:', body.chatId, '| Has media:', !!body.media);
-        
+
+        // Identidad confiable: si hay sesión, el senderName sale del JWT (middleware),
+        // no del body (que era spoofeable vía localStorage). El bot entra por x-api-key
+        // sin sesión, así que su senderName del body se respeta. 'Sistema Atelier' se
+        // preserva para los mensajes automáticos disparados desde el CRM.
+        const sessionUserName = request.headers.get('x-user-name');
+        if (sessionUserName && body.senderName !== 'Sistema Atelier') {
+            body.senderName = sessionUserName;
+        }
+
+        console.log('[WhatsApp Send] Sending to:', body.chatId, '| Has media:', !!body.media, '| From:', body.senderName || 'CRM');
+
         const res = await fetchWa('/api/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

@@ -25,6 +25,8 @@ interface ReceiptUploadedInfo {
     method: string;
     reference?: string | null;
     receiptUrl: string;
+    /** Vendedor que cargó el pago/comprobante (ej: "Milena Magallanes"). */
+    uploadedByName?: string | null;
     /**
      * Resultado de la auditoría IA:
      * - []        → auditado, sin observaciones
@@ -107,6 +109,7 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
         <h2 style="color: #333; border-bottom: 2px solid #000; padding-bottom: 10px;">${subjectPrefix}</h2>
         <ul style="list-style: none; padding: 0; line-height: 1.9;">
           <li><strong>Cliente:</strong> ${info.clientName}</li>
+          ${info.uploadedByName ? `<li><strong>Cargado por:</strong> ${info.uploadedByName}</li>` : ''}
           <li><strong>Venta:</strong> #${shortOrder}</li>
           <li><strong>Monto cargado:</strong> $${info.amount.toLocaleString('es-AR')}</li>
           <li><strong>Método:</strong> ${info.method}</li>
@@ -128,7 +131,7 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
 
     await sendEmail({
         to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-        subject: `${subjectPrefix}: $${info.amount.toLocaleString('es-AR')} - ${info.clientName} (#${shortOrder})`,
+        subject: `${subjectPrefix}: $${info.amount.toLocaleString('es-AR')} - ${info.clientName} (#${shortOrder})${info.uploadedByName ? ` · subió ${info.uploadedByName}` : ''}`,
         html,
         ...(buffer ? {
             attachments: [{

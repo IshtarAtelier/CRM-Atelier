@@ -5,6 +5,8 @@ import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
+import { logAudit } from '@/lib/audit';
+import type { Actor } from '@/lib/actor';
 
 
 // Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
@@ -726,7 +728,8 @@ export const ContactService = {
         return updatedClient;
     },
 
-    async updateStatus(id: string, status: string, userRole: string = 'STAFF') {
+    async updateStatus(id: string, status: string, userRole: string = 'STAFF', actor?: Actor) {
+        const actorName = actor?.name || 'Sistema';
         const client = await prisma.client.findUnique({
             where: { id },
             include: { 
@@ -763,17 +766,17 @@ export const ContactService = {
         if (client.status === 'CONFIRMED' && status === 'CLIENT') {
             const validation = await this.canCloseSale(id);
             if (!validation.canClose) {
-                const warningMsg = `⚠️ Venta de ${client.name} cerrada con datos faltantes: ${validation.reason}`;
-                
+                const warningMsg = `⚠️ Venta de ${client.name} cerrada con datos faltantes: ${validation.reason}\n\n🧑 Cerrada por: ${actorName}`;
+
                 // Encontrar la orden actual (SALE) para vincularla a la alerta
                 const lastOrder = client.orders[0];
-                
+
                 await prisma.notification.create({
                     data: {
                         type: 'RECEIPT_ERROR',
                         message: warningMsg,
                         orderId: lastOrder?.id || null,
-                        requestedBy: 'SISTEMA (Cierre Incompleto)',
+                        requestedBy: actorName,
                         status: 'PENDING'
                     }
                 }).catch(err => console.error('[Notification Close Sale Error]', err));
@@ -791,7 +794,7 @@ export const ContactService = {
 
         return await prisma.client.update({
             where: { id },
-            data: { 
+            data: {
                 status,
                 ...(status === 'CLIENT' ? { isFavorite: false } : {})
             }
@@ -800,9 +803,33 @@ export const ContactService = {
             if (status === 'CLIENT') {
                 await prisma.clientTask.updateMany({
                     where: { clientId: id, status: 'PENDING', type: 'TASK' },
-                    data: { status: 'COMPLETED' }
+                    data: { status: 'COMPLETED', completedBy: 'Sistema (cierre venta)', completedAt: new Date() }
                 });
             }
+
+            // El cambio de estado queda en el historial con quién lo hizo
+            const STATUS_LABELS: Record<string, string> = {
+                CONTACT: 'Contacto', CONFIRMED: 'Confirmado', CLIENT: 'Cliente (venta cerrada)'
+            };
+            await prisma.interaction.create({
+                data: {
+                    clientId: id,
+                    type: 'SISTEMA',
+                    content: `🔄 ${actorName} cambió el estado del cliente: ${STATUS_LABELS[client.status] || client.status} → ${STATUS_LABELS[status] || status}`,
+                    userId: actor?.id || null,
+                    userName: actorName
+                }
+            }).catch(console.error);
+
+            logAudit({
+                userId: actor?.id || null,
+                userName: actorName,
+                action: 'STATUS_CHANGE',
+                entityType: 'CONTACT',
+                entityId: id,
+                details: { clientName: client.name, from: client.status, to: status }
+            }).catch(console.error);
+
             return updated;
         });
     },
@@ -885,12 +912,14 @@ export const ContactService = {
         });
     },
 
-    async addInteraction(clientId: string, type: string, content: string) {
+    async addInteraction(clientId: string, type: string, content: string, actor?: Actor) {
         const interaction = await prisma.interaction.create({
             data: {
                 clientId,
                 type,
-                content
+                content,
+                userId: actor?.id || null,
+                userName: actor?.name || null
             }
         });
 
@@ -996,16 +1025,30 @@ export const ContactService = {
         });
     },
 
-    async addTask(clientId: string, description: string, dueDate?: string) {
-        return await prisma.clientTask.create({
+    async addTask(clientId: string, description: string, dueDate?: string, actor?: Actor) {
+        const task = await prisma.clientTask.create({
             data: {
                 clientId,
                 description,
                 dueDate: dueDate ? new Date(dueDate) : null,
                 status: 'PENDING',
-                type: 'TASK'
+                type: 'TASK',
+                createdBy: actor?.name || null
             }
         });
+
+        // La creación de la tarea queda en el historial de la ficha
+        await prisma.interaction.create({
+            data: {
+                clientId,
+                type: 'NOTE',
+                content: `📋 ${actor?.name || 'Sistema'} creó una tarea: ${description}`,
+                userId: actor?.id || null,
+                userName: actor?.name || null
+            }
+        }).catch(console.error);
+
+        return task;
     },
 
     async addReviewRequest(clientId: string, description: string) {
@@ -1014,12 +1057,13 @@ export const ContactService = {
                 clientId,
                 description,
                 status: 'PENDING',
-                type: 'REVIEW_REQUEST'
+                type: 'REVIEW_REQUEST',
+                createdBy: 'Sistema'
             }
         });
     },
 
-    async updateTaskStatus(taskId: string, status: string) {
+    async updateTaskStatus(taskId: string, status: string, actor?: Actor) {
         // Obtener la tarea para saber qué se está finalizando
         const task = await prisma.clientTask.findUnique({
             where: { id: taskId }
@@ -1027,29 +1071,69 @@ export const ContactService = {
 
         if (!task) throw new Error('Tarea no encontrada');
 
+        const isClosing = status === 'COMPLETED' || status === 'CANCELLED';
         const updatedTask = await prisma.clientTask.update({
             where: { id: taskId },
-            data: { status }
+            data: {
+                status,
+                ...(isClosing ? { completedBy: actor?.name || 'Sistema', completedAt: new Date() } : {})
+            }
         });
 
-        // Si se marca como completada, registrar en el historial
+        // Si se marca como completada, registrar en el historial con quién la finalizó
         if (status === 'COMPLETED') {
             await prisma.interaction.create({
                 data: {
                     clientId: task.clientId,
                     type: 'TASK_COMPLETED',
-                    content: `✅ Tarea finalizada: ${task.description}`
+                    content: `✅ ${actor?.name || 'Sistema'} finalizó la tarea: ${task.description}`,
+                    userId: actor?.id || null,
+                    userName: actor?.name || null
                 }
             });
         }
 
+        logAudit({
+            userId: actor?.id || null,
+            userName: actor?.name || null,
+            action: 'STATUS_CHANGE',
+            entityType: 'TASK',
+            entityId: taskId,
+            details: { clientId: task.clientId, description: task.description, from: task.status, to: status }
+        }).catch(console.error);
+
         return updatedTask;
     },
 
-    async deleteTask(taskId: string) {
-        return await prisma.clientTask.delete({
+    async deleteTask(taskId: string, actor?: Actor) {
+        const task = await prisma.clientTask.findUnique({ where: { id: taskId } });
+        const deleted = await prisma.clientTask.delete({
             where: { id: taskId }
         });
+
+        // El borrado deja rastro: qué tarea era y quién la eliminó
+        if (task) {
+            await prisma.interaction.create({
+                data: {
+                    clientId: task.clientId,
+                    type: 'NOTE',
+                    content: `🗑️ ${actor?.name || 'Sistema'} eliminó la tarea: ${task.description}`,
+                    userId: actor?.id || null,
+                    userName: actor?.name || null
+                }
+            }).catch(console.error);
+
+            logAudit({
+                userId: actor?.id || null,
+                userName: actor?.name || null,
+                action: 'DELETE',
+                entityType: 'TASK',
+                entityId: taskId,
+                details: { clientId: task.clientId, description: task.description, status: task.status, dueDate: task.dueDate }
+            }).catch(console.error);
+        }
+
+        return deleted;
     },
 
     async getPrescriptions(clientId: string) {
@@ -1260,7 +1344,9 @@ export const ContactService = {
         });
     },
 
-    async addPayment(orderId: string, amount: number, method: string, notes?: string, receiptUrl?: string, date?: Date | string) {
+    async addPayment(orderId: string, amount: number, method: string, notes?: string, receiptUrl?: string, date?: Date | string, actor?: Actor) {
+        // Nombre del vendedor que carga el pago — viaja a la ficha, los emails y el AuditLog
+        const actorName = actor?.name || 'Sistema';
         return await prisma.$transaction(async (tx) => {
             // Lock the order row using raw SQL FOR UPDATE to prevent race conditions on concurrent payments
             await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
@@ -1296,7 +1382,9 @@ export const ContactService = {
                     data: {
                         clientId: order.clientId,
                         type: 'SISTEMA',
-                        content: `El estado del cliente cambió automáticamente a CONFIRMADOS al registrar un pago.`
+                        content: `El estado del cliente cambió automáticamente a CONFIRMADOS al registrar un pago.`,
+                        userId: actor?.id || null,
+                        userName: actorName
                     }
                 });
             }
@@ -1326,14 +1414,14 @@ export const ContactService = {
                 if (duplicatePayment) {
                     const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
                     const dupClientName = duplicatePayment.order?.client?.name || 'Otro Cliente';
-                    const warningMsg = `⚠️ DUPLICADO DETECTADO: Pago de $${amount.toLocaleString('es-AR')} para ${clientName} con la misma referencia "${cleanedNotes}" que ya fue usada en la orden #${duplicatePayment.orderId.slice(-4).toUpperCase()} (${dupClientName}).`;
-                    
+                    const warningMsg = `⚠️ DUPLICADO DETECTADO: Pago de $${amount.toLocaleString('es-AR')} para ${clientName} con la misma referencia "${cleanedNotes}" que ya fue usada en la orden #${duplicatePayment.orderId.slice(-4).toUpperCase()} (${dupClientName}).\n\n🧑 Cargado por: ${actorName}`;
+
                     await tx.notification.create({
                         data: {
                             type: 'RECEIPT_ERROR',
                             message: warningMsg,
                             orderId: orderId,
-                            requestedBy: 'SISTEMA (Duplicado Manual)',
+                            requestedBy: actorName,
                             status: 'PENDING'
                         }
                     });
@@ -1362,14 +1450,14 @@ export const ContactService = {
                 if (duplicateReceipt) {
                     const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
                     const dupClientName = duplicateReceipt.order?.client?.name || 'Otro Cliente';
-                    const warningMsg = `🚨 COMPROBANTE REPETIDO: Se subió el mismo archivo de comprobante para la orden #${orderId.slice(-4).toUpperCase()} (${clientName}) que ya se usó anteriormente en la orden #${duplicateReceipt.orderId.slice(-4).toUpperCase()} (${dupClientName}).`;
-                    
+                    const warningMsg = `🚨 COMPROBANTE REPETIDO: Se subió el mismo archivo de comprobante para la orden #${orderId.slice(-4).toUpperCase()} (${clientName}) que ya se usó anteriormente en la orden #${duplicateReceipt.orderId.slice(-4).toUpperCase()} (${dupClientName}).\n\n🧑 Subido por: ${actorName}`;
+
                     await tx.notification.create({
                         data: {
                             type: 'RECEIPT_ERROR',
                             message: warningMsg,
                             orderId: orderId,
-                            requestedBy: 'SISTEMA (Archivo Duplicado)',
+                            requestedBy: actorName,
                             status: 'PENDING'
                         }
                     });
@@ -1414,12 +1502,12 @@ export const ContactService = {
                 const clientLink = `${appUrl}/admin/contactos?id=${order.clientId}`;
                 
                 const msg = `🚨 ALERTA IMPORTANTE: Ya ingresaste un pago idéntico de $${amount.toLocaleString('es-AR')} (${method}) para el cliente ${clientName} recientemente (Orden #${duplicateAmountMethod.orderId.slice(-4).toUpperCase()}).\n\nPor seguridad, el sistema bloqueó este ingreso para evitar pagos duplicados. Si el cliente realmente hizo DOS pagos exactos, por favor contactá al Administrador.`;
-                
+
                 import('@/lib/email').then(({ sendEmail }) => {
                     sendEmail({
                         to: 'pisano.ishtar@gmail.com',
-                        subject: '🚨 Vendedor bloqueado por Posible Pago Duplicado',
-                        text: `El vendedor intentó cargar un pago duplicado.\n\n${msg}\n\nFicha del cliente: ${clientLink}`
+                        subject: `🚨 ${actorName} bloqueado por Posible Pago Duplicado`,
+                        text: `El vendedor ${actorName} intentó cargar un pago duplicado.\n\n${msg}\n\nFicha del cliente: ${clientLink}`
                     });
                 }).catch(console.error);
 
@@ -1427,12 +1515,14 @@ export const ContactService = {
             }
 
             const payment = await tx.payment.create({
-                data: { 
-                    orderId, 
-                    amount, 
-                    method, 
-                    notes, 
+                data: {
+                    orderId,
+                    amount,
+                    method,
+                    notes,
                     receiptUrl,
+                    createdById: actor?.id || null,
+                    createdByName: actorName,
                     ...(date ? { date: new Date(date) } : {})
                 }
             });
@@ -1456,12 +1546,14 @@ export const ContactService = {
 
 
 
-            // Registrar en la ficha del cliente
+            // Registrar en la ficha del cliente — con nombre y apellido de quién lo cargó
             await tx.interaction.create({
                 data: {
                     clientId: order.clientId,
                     type: 'SISTEMA',
-                    content: `Se registró un pago por $${amount.toLocaleString('es-AR')} (${method}).${notes ? ` Ref: ${notes}` : ''}`
+                    content: `💰 ${actorName} registró un pago por $${amount.toLocaleString('es-AR')} (${method}).${notes ? ` Ref: ${notes}` : ''}`,
+                    userId: actor?.id || null,
+                    userName: actorName
                 }
             });
 
@@ -1497,11 +1589,11 @@ export const ContactService = {
                             type: 'INVOICE_REQUEST',
                             message: msg,
                             orderId: orderId,
-                            requestedBy: 'SISTEMA (Auto)',
+                            requestedBy: `Sistema (pago cargado por ${actorName})`,
                             status: 'PENDING'
                         }
                     });
-                    
+
                     // Notificar al administrador por email (fire-and-forget para no bloquear tx)
                     const adminEmail = (process.env.ADMIN_EMAIL || '').trim();
                     const toEmail = !adminEmail || adminEmail.toLowerCase() === 'pisano.ishtar@gmail.com'
@@ -1511,7 +1603,7 @@ export const ContactService = {
                     sendEmail({
                         to: toEmail,
                         subject: '🧾 Solicitud de Factura (Automática)',
-                        text: `El sistema ha generado una nueva solicitud de factura:\n\n${msg}`
+                        text: `El sistema ha generado una nueva solicitud de factura:\n\n${msg}\n\n🧑 Pago cargado por: ${actorName}`
                     }).catch(console.error);
                 }
             }
@@ -1607,12 +1699,22 @@ export const ContactService = {
                     sendEmail({
                         to: 'pisano.ishtar@gmail.com',
                         subject: `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')}`,
-                        text: `Se ha registrado un nuevo pago en EFECTIVO en el sistema.\n\n👤 Cliente: ${result.clientName}\n💰 Monto: $${amount.toLocaleString('es-AR')}\n\nFicha del cliente: ${clientLink}`
+                        text: `${actorName} registró un nuevo pago en EFECTIVO en el sistema.\n\n👤 Cliente: ${result.clientName}\n💰 Monto: $${amount.toLocaleString('es-AR')}\n🧑 Registrado por: ${actorName}\n\nFicha del cliente: ${clientLink}`
                     }).catch(console.error);
                 } catch (e) {
                     console.error('Error sending cash email alert:', e);
                 }
             }
+            // Registro de auditoría: quién cargó el pago, cuánto y cómo
+            logAudit({
+                userId: actor?.id || null,
+                userName: actorName,
+                action: 'CREATE',
+                entityType: 'PAYMENT',
+                entityId: result.id,
+                details: { orderId, amount, method, notes: notes || null, receiptUrl: receiptUrl || null }
+            }).catch(console.error);
+
             // FIRE BACKGROUND AI VERIFICATION IF RECEIPT EXISTS
             if (receiptUrl) {
                 ReceiptAgentService.analyzeReceipt(
@@ -1620,7 +1722,8 @@ export const ContactService = {
                     orderId,
                     receiptUrl,
                     amount,
-                    method
+                    method,
+                    actorName
                 ).catch(err => console.error('[ReceiptAgent Background Error]', err));
             }
 
@@ -1644,6 +1747,7 @@ export const ContactService = {
 
                     let msgText = `💵 *Nuevo Pago Registrado (${tipoPago})*\n`;
                     msgText += `👤 *Cliente:* ${result.clientName}\n`;
+                    msgText += `🧑 *Cargado por:* ${actorName}\n`;
                     msgText += `💰 *Monto de este Pago:* $${amount.toLocaleString('es-AR')}\n`;
                     msgText += `💳 *Método:* ${method}\n`;
                     msgText += `📈 *Total de la Operación:* $${result.totalOperacion.toLocaleString('es-AR')}\n`;
@@ -1833,8 +1937,9 @@ export const ContactService = {
         amount?: number;
         notes?: string | null;
         receiptUrl?: string | null;
-    }) {
+    }, actor?: Actor) {
         const isAutoBillingMethod = (m: string) => m.toUpperCase().includes('PAY_WAY');
+        const actorName = actor?.name || 'Administrador';
 
         return await prisma.$transaction(async (tx) => {
             // 1. Obtener estado previo completo
@@ -1922,14 +2027,14 @@ export const ContactService = {
                     if (duplicatePayment) {
                         const clientName = (await tx.client.findUnique({ where: { id: oldPayment.order.clientId }, select: { name: true } }))?.name || 'Cliente';
                         const dupClientName = duplicatePayment.order?.client?.name || 'Otro Cliente';
-                        const warningMsg = `⚠️ DUPLICADO DETECTADO AL EDITAR: El pago editado ID ${paymentId} para ${clientName} tiene la misma referencia "${cleanedNotes}" que ya fue usada en la orden #${duplicatePayment.orderId.slice(-4).toUpperCase()} (${dupClientName}).`;
-                        
+                        const warningMsg = `⚠️ DUPLICADO DETECTADO AL EDITAR: El pago editado ID ${paymentId} para ${clientName} tiene la misma referencia "${cleanedNotes}" que ya fue usada en la orden #${duplicatePayment.orderId.slice(-4).toUpperCase()} (${dupClientName}).\n\n🧑 Editado por: ${actorName}`;
+
                         await tx.notification.create({
                             data: {
                                 type: 'RECEIPT_ERROR',
                                 message: warningMsg,
                                 orderId: orderId,
-                                requestedBy: 'SISTEMA (Edición Duplicada)',
+                                requestedBy: actorName,
                                 status: 'PENDING'
                             }
                         });
@@ -1960,14 +2065,14 @@ export const ContactService = {
                 if (duplicateReceipt) {
                     const clientName = (await tx.client.findUnique({ where: { id: oldPayment.order.clientId }, select: { name: true } }))?.name || 'Cliente';
                     const dupClientName = duplicateReceipt.order?.client?.name || 'Otro Cliente';
-                    const warningMsg = `🚨 COMPROBANTE REPETIDO AL EDITAR: Se subió el mismo archivo de comprobante para la orden #${orderId.slice(-4).toUpperCase()} (${clientName}) que ya se usó anteriormente en la orden #${duplicateReceipt.orderId.slice(-4).toUpperCase()} (${dupClientName}).`;
-                    
+                    const warningMsg = `🚨 COMPROBANTE REPETIDO AL EDITAR: Se subió el mismo archivo de comprobante para la orden #${orderId.slice(-4).toUpperCase()} (${clientName}) que ya se usó anteriormente en la orden #${duplicateReceipt.orderId.slice(-4).toUpperCase()} (${dupClientName}).\n\n🧑 Editado por: ${actorName}`;
+
                     await tx.notification.create({
                         data: {
                             type: 'RECEIPT_ERROR',
                             message: warningMsg,
                             orderId: orderId,
-                            requestedBy: 'SISTEMA (Edición de Archivo Duplicado)',
+                            requestedBy: actorName,
                             status: 'PENDING'
                         }
                     });
@@ -2019,8 +2124,8 @@ export const ContactService = {
                     import('@/lib/email').then(({ sendEmail }) => {
                         sendEmail({
                             to: 'pisano.ishtar@gmail.com',
-                            subject: '🚨 Vendedor bloqueado por Posible Pago Duplicado (Edición)',
-                            text: `El vendedor intentó editar un pago que resultó en un duplicado.\n\n${msg}\n\nFicha del cliente: ${clientLink}`
+                            subject: `🚨 ${actorName} bloqueado por Posible Pago Duplicado (Edición)`,
+                            text: `El vendedor ${actorName} intentó editar un pago que resultó en un duplicado.\n\n${msg}\n\nFicha del cliente: ${clientLink}`
                         });
                     }).catch(console.error);
 
@@ -2110,7 +2215,7 @@ export const ContactService = {
                                 type: 'INVOICE_REQUEST',
                                 message: msg,
                                 orderId,
-                                requestedBy: 'SISTEMA (Edición)',
+                                requestedBy: `Sistema (edición de ${actorName})`,
                                 status: 'PENDING'
                             }
                         });
@@ -2123,7 +2228,7 @@ export const ContactService = {
                         sendEmail({
                             to: toEmail,
                             subject: '🧾 Solicitud de Factura (Edición de Pago)',
-                            text: `El sistema ha generado una nueva solicitud de factura por modificación de pago:\n\n${msg}`
+                            text: `El sistema ha generado una nueva solicitud de factura por modificación de pago:\n\n${msg}\n\n🧑 Editado por: ${actorName}`
                         }).catch(console.error);
                     }
                 }
@@ -2152,17 +2257,30 @@ export const ContactService = {
                 }
             }
 
-            // 7. Registrar en la línea de tiempo del cliente
+            // 7. Registrar en la línea de tiempo del cliente — con nombre real del editor
             await tx.interaction.create({
                 data: {
                     clientId,
                     type: 'SISTEMA',
-                    content: `✏️ Pago editado por Administrador: ${changes.join(' | ')}`
+                    content: `✏️ ${actorName} editó un pago: ${changes.join(' | ')}`,
+                    userId: actor?.id || null,
+                    userName: actorName
                 }
             });
 
             return updatedPayment;
-        }, { maxWait: 25000, timeout: 25000 });
+        }, { maxWait: 25000, timeout: 25000 }).then(result => {
+            // Registro de auditoría con el diff completo de la edición
+            logAudit({
+                userId: actor?.id || null,
+                userName: actorName,
+                action: 'UPDATE',
+                entityType: 'PAYMENT',
+                entityId: paymentId,
+                details: { updates }
+            }).catch(console.error);
+            return result;
+        });
     },
 
     async canCloseSale(clientId: string) {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
+import { getActor } from '@/lib/actor';
 
 export async function POST(
     request: Request,
@@ -14,7 +15,8 @@ export async function POST(
             return NextResponse.json({ error: 'El contenido es obligatorio' }, { status: 400 });
         }
 
-        const interaction = await ContactService.addInteraction(id, type || 'NOTE', content);
+        // La nota queda firmada por el usuario logueado (quién la dejó)
+        const interaction = await ContactService.addInteraction(id, type || 'NOTE', content, getActor(request));
         return NextResponse.json(interaction);
     } catch (error) {
         console.error('Error adding interaction:', error);

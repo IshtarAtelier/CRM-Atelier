@@ -14,8 +14,13 @@ export async function PATCH(
         // Read role from middleware headers for security
         const headersList = await headers();
         const userRole = headersList.get('x-user-role') || 'STAFF';
+        const actor = {
+            id: headersList.get('x-user-id'),
+            name: headersList.get('x-user-name') || 'Sistema',
+            role: userRole
+        };
 
-        const contact = await ContactService.updateStatus(id, status, userRole);
+        const contact = await ContactService.updateStatus(id, status, userRole, actor);
         return NextResponse.json(contact);
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Error al actualizar el estado';

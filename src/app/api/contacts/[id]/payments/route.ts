@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
+import { getActor } from '@/lib/actor';
 
 export async function POST(
     request: Request,
@@ -18,7 +19,7 @@ export async function POST(
             return NextResponse.json({ error: 'El monto del pago debe ser mayor a 0' }, { status: 400 });
         }
 
-        const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl);
+        const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl, undefined, getActor(request));
         return NextResponse.json(result);
     } catch (error) {
         return NextResponse.json({ error: 'Error al registrar pago' }, { status: 500 });

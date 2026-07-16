@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 import bcrypt from 'bcryptjs';
@@ -59,6 +61,17 @@ export async function POST(request: Request) {
                 role: true,
                 createdAt: true,
             },
+        });
+
+        // Auditoría: qué admin dio de alta la cuenta y con qué rol
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'CREATE',
+            entityType: 'USER',
+            entityId: user.id,
+            details: { name: user.name, email: user.email, role: user.role }
         });
 
         // Crear automáticamente la ficha de cliente en el CRM si es una Óptica

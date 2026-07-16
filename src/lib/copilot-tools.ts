@@ -281,7 +281,7 @@ const updateLabOrder: CopilotTool = {
     },
     required: ['query'],
   },
-  execute: async (args) => {
+  execute: async (args, ctx) => {
     const q = (args.query as string).trim();
     const newStatus = args.newStatus as string | undefined;
     const labOrderNumber = args.labOrderNumber as string | undefined;
@@ -343,6 +343,29 @@ const updateLabOrder: CopilotTool = {
         where: { id: order.id },
         data: dataToUpdate
     });
+
+    // Trazabilidad: quién lo cambió (vía Copilot) queda en ficha y AuditLog
+    if (willChangeStatus) {
+        const copilotActor = `${ctx.userName || 'Usuario'} (vía Copilot)`;
+        prisma.interaction.create({
+            data: {
+                clientId: order.clientId,
+                type: 'SISTEMA',
+                content: `📦 ${copilotActor} cambió el estado del pedido #${order.id.slice(-4).toUpperCase()}: ${order.labStatus || 'NONE'} → ${finalStatus}`,
+                userId: ctx.userId || null,
+                userName: copilotActor
+            }
+        }).catch(err => console.error('Error registrando cambio de estado (Copilot):', err));
+
+        import('@/lib/audit').then(({ logAudit }) => logAudit({
+            userId: ctx.userId || null,
+            userName: copilotActor,
+            action: 'STATUS_CHANGE',
+            entityType: 'ORDER',
+            entityId: order.id,
+            details: { from: order.labStatus, to: finalStatus, labOrderNumber: labOrderNumber || null }
+        })).catch(console.error);
+    }
 
     let sideEffectMsg = '';
     
@@ -551,13 +574,16 @@ const completeClientTask: CopilotTool = {
     },
     required: ['taskId'],
   },
-  execute: async (args) => {
-    const updated = await prisma.clientTask.update({
-      where: { id: args.taskId as string },
-      data: { status: 'COMPLETED' },
-      include: { client: { select: { name: true } } },
-    });
-    return `Tarea "${updated.description}" de ${updated.client.name} marcada como COMPLETADA.`;
+  execute: async (args, ctx) => {
+    // Vía el service: hereda completedBy, Interaction en ficha y AuditLog
+    const { ContactService } = await import('@/services/contact.service');
+    const copilotActor = `${ctx.userName || 'Usuario'} (vía Copilot)`;
+    const updated = await ContactService.updateTaskStatus(
+      args.taskId as string,
+      'COMPLETED',
+      { id: ctx.userId || null, name: copilotActor, role: ctx.userRole || null }
+    );
+    return `Tarea "${updated.description}" marcada como COMPLETADA por ${copilotActor}.`;
   },
 };
 
@@ -573,13 +599,15 @@ const addClientInteraction: CopilotTool = {
     },
     required: ['clientId', 'content'],
   },
-  execute: async (args) => {
+  execute: async (args, ctx) => {
     const type = (args.type as string || 'NOTE').toUpperCase();
     const interaction = await prisma.interaction.create({
       data: {
         clientId: args.clientId as string,
         type,
         content: args.content as string,
+        userId: ctx.userId || null,
+        userName: ctx.userName ? `${ctx.userName} (vía Copilot)` : 'Copilot',
       },
       include: { client: { select: { name: true } } },
     });

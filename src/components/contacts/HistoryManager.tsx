@@ -143,10 +143,15 @@ export default function HistoryManager({
                                 <IconComponent className={`w-3 h-3 ${styles.textColor}`} />
                             </div>
                             <div className={`${styles.bgColor} p-5 rounded-2xl border border-stone-100 dark:border-stone-800/80 shadow-sm transition-all`}>
-                                <div className="flex justify-between items-start mb-2">
+                                <div className="flex justify-between items-start mb-2 gap-2">
                                     <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
                                         {format(new Date(interaction.createdAt), "EEEE d 'de' MMMM, HH:mm", { locale: es })}
                                     </span>
+                                    {interaction.userName && (
+                                        <span className="text-[10px] font-black text-primary uppercase tracking-widest flex-shrink-0">
+                                            👤 {interaction.userName}
+                                        </span>
+                                    )}
                                 </div>
                                 <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-line">{interaction.content}</p>
                             </div>

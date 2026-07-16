@@ -1,8 +1,50 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ContactService } from '@/services/contact.service';
+import { getActor } from '@/lib/actor';
+import { digitsOnly, MIN_DIGITS_FOR_NUMERIC_MATCH } from '@/lib/payment-search';
 
 export const dynamic = 'force-dynamic';
+
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 200;
+
+/**
+ * Filtro de búsqueda para `q`: espeja la semántica client-side de
+ * src/lib/payment-search.ts pero sobre TODO el período (clave para
+ * detectar pagos duplicados aunque no estén en la página cargada).
+ * Las coincidencias que requieren normalizar a dígitos (ref con guiones,
+ * monto formateado, teléfono) se resuelven con un query crudo porque
+ * `contains` de Prisma no puede aplicar regexp_replace.
+ */
+async function buildSearchWhere(q: string) {
+    const query = q.toLowerCase();
+    const or: any[] = [
+        { notes: { contains: query, mode: 'insensitive' } },
+        { orderId: { contains: query, mode: 'insensitive' } },
+        { order: { client: { name: { contains: query, mode: 'insensitive' } } } },
+    ];
+
+    const qDigits = digitsOnly(query);
+    if (qDigits.length >= MIN_DIGITS_FOR_NUMERIC_MATCH) {
+        const pattern = `%${qDigits}%`;
+        const rows = await prisma.$queryRaw<{ id: string }[]>`
+            SELECT p.id
+            FROM "Payment" p
+            JOIN "Order" o ON o.id = p."orderId"
+            LEFT JOIN "Client" c ON c.id = o."clientId"
+            WHERE o."isDeleted" = false AND (
+                regexp_replace(coalesce(p.notes, ''), '\\D', '', 'g') LIKE ${pattern}
+                OR trunc(p.amount)::bigint::text LIKE ${pattern}
+                OR regexp_replace(coalesce(c.phone, ''), '\\D', '', 'g') LIKE ${pattern}
+            )`;
+        if (rows.length > 0) {
+            or.push({ id: { in: rows.map(r => r.id) } });
+        }
+    }
+
+    return { OR: or };
+}
 
 export async function POST(request: Request) {
     try {
@@ -17,7 +59,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'El monto debe ser un número positivo' }, { status: 400 });
         }
 
-        const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl, date);
+        const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl, date, getActor(request));
         return NextResponse.json(result);
     } catch (error: any) {
         console.error('Error creating payment:', error);
@@ -31,8 +73,15 @@ export async function GET(request: Request) {
         const method = searchParams.get('method');
         const from = searchParams.get('from');
         const to = searchParams.get('to');
+        const q = searchParams.get('q')?.trim() ?? '';
+        const cursor = searchParams.get('cursor');
+        const takeParam = Number(searchParams.get('take'));
+        const take = Number.isInteger(takeParam) && takeParam > 0
+            ? Math.min(takeParam, MAX_PAGE_SIZE)
+            : DEFAULT_PAGE_SIZE;
 
-        // Build where clause
+        // Where del período (método + fechas + órdenes vivas): rige el resumen
+        // y el desglose por método, que siempre son sobre el período completo.
         const whereClause: any = {};
         if (method) {
             // Support comma-separated methods for group filtering
@@ -60,32 +109,46 @@ export async function GET(request: Request) {
             isDeleted: false
         };
 
-        // Fetch payments with order + client info
-        const payments = await prisma.payment.findMany({
-            where: whereClause,
-            include: {
-                order: {
-                    include: {
-                        client: {
-                            select: { id: true, name: true, phone: true }
+        // La búsqueda solo acota la lista paginada; los KPIs siguen mostrando
+        // el período completo (igual que cuando el filtrado era client-side).
+        const listWhere = q
+            ? { AND: [whereClause, await buildSearchWhere(q)] }
+            : whereClause;
+
+        const [totals, byMethod, matchCount, page] = await Promise.all([
+            prisma.payment.aggregate({
+                where: whereClause,
+                _sum: { amount: true },
+                _avg: { amount: true },
+                _count: true,
+            }),
+            prisma.payment.groupBy({
+                by: ['method'],
+                where: whereClause,
+                _sum: { amount: true },
+                _count: { _all: true },
+            }),
+            prisma.payment.count({ where: listWhere }),
+            prisma.payment.findMany({
+                where: listWhere,
+                include: {
+                    order: {
+                        include: {
+                            client: {
+                                select: { id: true, name: true, phone: true }
+                            }
                         }
                     }
-                }
-            },
-            orderBy: { date: 'desc' },
-        });
+                },
+                // Orden estable (id desempata fechas iguales) para que el cursor no saltee ni repita filas
+                orderBy: [{ date: 'desc' }, { id: 'desc' }],
+                take: take + 1,
+                ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+            }),
+        ]);
 
-        // Aggregate by method
-        const methodSummary: Record<string, { total: number; count: number }> = {};
-        let grandTotal = 0;
-
-        for (const payment of payments) {
-            const m = payment.method;
-            if (!methodSummary[m]) methodSummary[m] = { total: 0, count: 0 };
-            methodSummary[m].total += payment.amount;
-            methodSummary[m].count += 1;
-            grandTotal += payment.amount;
-        }
+        const hasMore = page.length > take;
+        const payments = hasMore ? page.slice(0, take) : page;
 
         // Format payments for response
         const formattedPayments = payments.map(p => ({
@@ -103,13 +166,18 @@ export async function GET(request: Request) {
 
         return NextResponse.json({
             payments: formattedPayments,
-            summary: {
-                grandTotal,
-                totalCount: payments.length,
-                averagePayment: payments.length > 0 ? grandTotal / payments.length : 0,
+            pageInfo: {
+                nextCursor: hasMore ? payments[payments.length - 1].id : null,
+                hasMore,
+                matchCount,
             },
-            methodBreakdown: Object.entries(methodSummary)
-                .map(([method, data]) => ({ method, ...data }))
+            summary: {
+                grandTotal: totals._sum.amount ?? 0,
+                totalCount: totals._count,
+                averagePayment: totals._avg.amount ?? 0,
+            },
+            methodBreakdown: byMethod
+                .map(g => ({ method: g.method, total: g._sum.amount ?? 0, count: g._count._all }))
                 .sort((a, b) => b.total - a.total),
         });
     } catch (error: any) {

@@ -80,6 +80,10 @@ model Interaction {
   type      String   @default("NOTE")
   content   String
   createdAt DateTime @default(now())
+  // Actor: quién ejecutó la acción (denormalizado para que el historial
+  // sobreviva al borrado/renombrado de usuarios). null = registros previos.
+  userId    String?
+  userName  String?
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
@@ -105,6 +109,9 @@ model ClientTask {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   createdBy   String?
+  // Quién la completó/canceló y cuándo ('Sistema (cierre venta)' si fue automático)
+  completedBy String?
+  completedAt DateTime?
   type        String    @default("TASK")
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
@@ -318,6 +325,8 @@ model Invoice {
   status         String   @default("COMPLETED")
   createdAt      DateTime @default(now())
   observations   String?
+  // Actor: qué usuario emitió la factura en ARCA
+  createdByName  String?
   order          Order    @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
@@ -356,16 +365,20 @@ model OrderItem {
 }
 
 model Payment {
-  id         String   @id @default(cuid())
-  orderId    String
-  amount     Float
-  method     String
-  date       DateTime @default(now())
-  notes      String?
-  receiptUrl String?
-  order      Order    @relation(fields: [orderId], references: [id])
+  id            String   @id @default(cuid())
+  orderId       String
+  amount        Float
+  method        String
+  date          DateTime @default(now())
+  notes         String?
+  receiptUrl    String?
+  // Actor: qué usuario cargó el pago (denormalizado; 'Sistema (Payway)' en web)
+  createdById   String?
+  createdByName String?
+  order         Order    @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
+  @@index([createdById])
 }
 
 model Doctor {
@@ -416,15 +429,18 @@ model WhatsAppMessage {
 }
 
 model DoctorPayment {
-  id         String   @id @default(cuid())
-  doctorId   String?
-  doctorName String
-  amount     Float
-  method     String
-  receiptUrl String?
-  notes      String?
-  date       DateTime @default(now())
-  doctor     Doctor?  @relation(fields: [doctorId], references: [id])
+  id            String   @id @default(cuid())
+  doctorId      String?
+  doctorName    String
+  amount        Float
+  method        String
+  receiptUrl    String?
+  notes         String?
+  date          DateTime @default(now())
+  // Actor: qué usuario registró el pago de comisión (salida de dinero real)
+  createdById   String?
+  createdByName String?
+  doctor        Doctor?  @relation(fields: [doctorId], references: [id])
 
   @@index([doctorName])
   @@index([doctorId])

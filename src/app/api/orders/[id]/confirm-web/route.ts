@@ -18,6 +18,11 @@ export async function POST(
         const { id: orderId } = await params;
         const headersList = await headers();
         const userName = headersList.get('x-user-name') || 'CRM';
+        const actor = {
+            id: headersList.get('x-user-id'),
+            name: userName,
+            role: headersList.get('x-user-role')
+        };
 
         const order = await prisma.order.findUnique({
             where: { id: orderId },
@@ -50,7 +55,10 @@ export async function POST(
                         orderId,
                         remaining,
                         'TRANSFERENCIA_ISHTAR',
-                        `Venta Web #${orderId.slice(-4).toUpperCase()} — transferencia acreditada, confirmada por ${userName}`
+                        `Venta Web #${orderId.slice(-4).toUpperCase()} — transferencia acreditada, confirmada por ${userName}`,
+                        undefined,
+                        undefined,
+                        actor
                     );
                 } catch (payErr: any) {
                     // Si falla el registro del pago, revertir el reclamo para que la venta

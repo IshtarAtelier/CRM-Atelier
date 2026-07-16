@@ -43,22 +43,30 @@ export async function DELETE(
 
         const deletedPayment = await ContactService.deletePayment(paymentId);
 
-        // Registrar en la ficha del cliente (Línea de Tiempo)
+        const userId = headersList.get('x-user-id');
+        const userName = headersList.get('x-user-name') || 'Administrador';
+
+        // Registrar en la ficha del cliente (Línea de Tiempo) con el nombre real
         if (payment.order?.clientId) {
             const formattedAmount = payment.amount.toLocaleString('es-AR');
-            const interactionText = `El Administrador eliminó un registro de pago por $${formattedAmount} (${payment.method}). Motivo: Eliminación manual / Corrección de caja.`;
-            await ContactService.addInteraction(payment.order.clientId, 'SISTEMA', interactionText);
+            const interactionText = `🗑️ ${userName} eliminó un registro de pago por $${formattedAmount} (${payment.method}). Motivo: Eliminación manual / Corrección de caja.`;
+            await ContactService.addInteraction(payment.order.clientId, 'SISTEMA', interactionText, { id: userId, name: userName, role: 'ADMIN' });
         }
 
-        const userId = headersList.get('x-user-id');
-        const userName = headersList.get('x-user-name');
         await logAudit({
             userId,
             userName,
             action: 'DELETE',
             entityType: 'PAYMENT',
             entityId: paymentId,
-            details: { amount: payment.amount, method: payment.method, orderId: payment.orderId }
+            details: {
+                amount: payment.amount,
+                method: payment.method,
+                orderId: payment.orderId,
+                notes: payment.notes,
+                receiptUrl: payment.receiptUrl,
+                createdByName: (payment as any).createdByName || null
+            }
         });
 
         return NextResponse.json(deletedPayment);
@@ -90,6 +98,11 @@ export async function PUT(
         }
 
         const body = await request.json();
+        const actor = {
+            id: headersList.get('x-user-id'),
+            name: headersList.get('x-user-name') || 'Administrador',
+            role
+        };
 
         // Llamar al service que maneja toda la cascada
         const updatedPayment = await ContactService.updatePayment(paymentId, {
@@ -97,7 +110,7 @@ export async function PUT(
             amount: body.amount ? Number(body.amount) : undefined,
             notes: body.notes,
             receiptUrl: body.receiptUrl
-        });
+        }, actor);
 
         // Si se subió una nueva imagen de comprobante y no es efectivo, re-disparamos el agente de IA
         if (body.receiptUrl && body.method && !['EFECTIVO', 'CASH'].includes(body.method)) {
@@ -108,7 +121,8 @@ export async function PUT(
                 updatedPayment.orderId,
                 body.receiptUrl,
                 updatedPayment.amount,
-                updatedPayment.method
+                updatedPayment.method,
+                actor.name
             ).catch(err => console.error('[ReceiptAgent Background Error from Edit]', err));
         }
 

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 // PATCH /api/users/[id] — Update user (name, role, password)
 export async function PATCH(
@@ -22,6 +24,11 @@ export async function PATCH(
         if (!isAdmin && !isSelf) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
         }
+
+        const before = await prisma.user.findUnique({
+            where: { id },
+            select: { name: true, role: true }
+        });
 
         const data: any = {};
         // Nombre y rol solo los puede tocar un ADMIN (evita que uno se auto-ascienda)
@@ -48,6 +55,23 @@ export async function PATCH(
                 role: true,
                 createdAt: true,
             },
+        });
+
+        // Auditoría: quién editó a quién (rol y contraseña son los cambios más sensibles)
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'UPDATE',
+            entityType: 'USER',
+            entityId: id,
+            details: {
+                targetUser: user.name,
+                self: isSelf,
+                ...(data.name && before?.name !== data.name ? { name: { from: before?.name, to: data.name } } : {}),
+                ...(data.role && before?.role !== data.role ? { role: { from: before?.role, to: data.role } } : {}),
+                ...(password ? { passwordChanged: true } : {})
+            }
         });
 
         return NextResponse.json(user);
@@ -82,6 +106,22 @@ export async function DELETE(
         }
 
         await prisma.user.delete({ where: { id } });
+
+        // Auditoría con snapshot: el usuario desaparece pero queda quién era y quién lo borró
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'DELETE',
+            entityType: 'USER',
+            entityId: id,
+            details: {
+                name: userToDelete?.name,
+                email: userToDelete?.email,
+                role: userToDelete?.role
+            }
+        });
+
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error('Error deleting user:', error);

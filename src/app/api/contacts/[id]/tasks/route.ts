@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
+import { getActor } from '@/lib/actor';
 
 export async function GET(
     request: Request,
@@ -27,7 +28,7 @@ export async function POST(
             return NextResponse.json({ error: 'La descripción es obligatoria' }, { status: 400 });
         }
 
-        const task = await ContactService.addTask(id, description, dueDate);
+        const task = await ContactService.addTask(id, description, dueDate, getActor(request));
         return NextResponse.json(task);
     } catch (error) {
         return NextResponse.json({ error: 'Error al crear tarea' }, { status: 500 });
@@ -43,7 +44,7 @@ export async function PATCH(
         const body = await request.json();
         const { taskId, status } = body;
 
-        const task = await ContactService.updateTaskStatus(taskId, status);
+        const task = await ContactService.updateTaskStatus(taskId, status, getActor(request));
         return NextResponse.json(task);
     } catch (error) {
         return NextResponse.json({ error: 'Error al actualizar tarea' }, { status: 500 });
@@ -62,7 +63,7 @@ export async function DELETE(
             return NextResponse.json({ error: 'taskId es requerido' }, { status: 400 });
         }
 
-        const task = await ContactService.deleteTask(taskId);
+        const task = await ContactService.deleteTask(taskId, getActor(request));
         return NextResponse.json(task);
     } catch (error) {
         return NextResponse.json({ error: 'Error al eliminar tarea' }, { status: 500 });

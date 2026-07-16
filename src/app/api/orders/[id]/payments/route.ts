@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
+import { getActor } from '@/lib/actor';
 import { z } from 'zod';
 
 const PaymentSchema = z.object({
@@ -45,7 +46,8 @@ export async function POST(
             method,
             notes ?? undefined,
             receiptUrl ?? undefined,
-            date ?? undefined
+            date ?? undefined,
+            getActor(request)
         );
 
         return NextResponse.json(payment);

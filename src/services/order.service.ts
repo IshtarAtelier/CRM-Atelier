@@ -156,6 +156,14 @@ export class OrderService {
                         cylinderVal: true,
                         axisVal: true,
                         additionVal: true,
+                        productNameSnapshot: true,
+                        productBrandSnapshot: true,
+                        productCategorySnapshot: true,
+                        productCostSnapshot: true,
+                        laboratorySnapshot: true,
+                        productTypeSnapshot: true,
+                        productLensIndexSnapshot: true,
+                        productUnitTypeSnapshot: true,
                         product: {
                             select: {
                                 id: true,
@@ -242,6 +250,13 @@ export class OrderService {
             throw new Error('Solo el administrador puede eliminar operaciones. Solicitá la eliminación desde el panel de ventas.');
         }
 
+        // Snapshot de los pagos ANTES del borrado: deleteOrder hace hard-delete
+        // de todos los Payment y sin esto desaparecerían sin rastro de qué eran.
+        const paymentsSnapshot = await prisma.payment.findMany({
+            where: { orderId: id },
+            select: { id: true, amount: true, method: true, notes: true, receiptUrl: true, date: true, createdByName: true }
+        });
+
         const order = await ContactService.deleteOrder(id, reason);
 
         await logAudit({
@@ -250,8 +265,19 @@ export class OrderService {
             action: 'DELETE',
             entityType: 'ORDER',
             entityId: id,
-            details: { reason, orderType: order.orderType, total: order.total }
+            details: { reason, orderType: order.orderType, total: order.total, deletedPayments: paymentsSnapshot }
         });
+
+        // El borrado queda visible en la ficha del cliente
+        await prisma.interaction.create({
+            data: {
+                clientId: order.clientId,
+                type: 'SISTEMA',
+                content: `🗑️ ${userName || 'Administrador'} eliminó el pedido #${id.slice(-4).toUpperCase()} (${order.orderType === 'SALE' ? 'venta' : 'presupuesto'} de $${(order.total || 0).toLocaleString('es-AR')}${paymentsSnapshot.length > 0 ? `, ${paymentsSnapshot.length} pago/s` : ''}). Motivo: ${reason}`,
+                userId: userId || null,
+                userName: userName || 'Administrador'
+            }
+        }).catch(err => console.error('Error registrando borrado de pedido en ficha:', err));
 
         return order;
     } catch (error) {
@@ -498,10 +524,25 @@ export class OrderService {
                 where: { id: { in: productIds } }
             });
 
+            // Preservar la foto congelada de las líneas existentes (clave: id de OrderItem).
+            // updateOrder recrea TODAS las líneas (deleteMany + create); si un producto fue
+            // borrado (productId null) no hay de dónde re-derivar el snapshot, así que lo tomamos
+            // de la fila vieja por id. Autoritativo: no depende de que el front reenvíe los 8 campos.
+            const existingSnapshots = await prisma.orderItem.findMany({
+                where: { orderId: id },
+                select: {
+                    id: true, productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
+                    productCostSnapshot: true, laboratorySnapshot: true, productTypeSnapshot: true,
+                    productLensIndexSnapshot: true, productUnitTypeSnapshot: true,
+                },
+            });
+            const prevSnapById = new Map(existingSnapshots.map(e => [e.id, e]));
+
             data.items = {
                 deleteMany: {},
                 create: items.map((item: any) => {
                     const dbProd = dbProducts.find(p => p.id === item.productId);
+                    const prev = item.id ? prevSnapById.get(item.id) : undefined;
                     const isOD = item.eye === 'OD';
                     const isOI = item.eye === 'OI';
                     const isCrystal = dbProd && (dbProd.category === 'Cristal' || (dbProd.type || '').includes('Cristal'));
@@ -516,9 +557,14 @@ export class OrderService {
                         axisVal: isCrystal && rxDetails ? (isOD ? rxDetails.axisOD : rxDetails.axisOI) : (item.axisVal ?? null),
                         additionVal: isCrystal && rxDetails ? (isOD ? (rxDetails.additionOD ?? rxDetails.addition) : (rxDetails.additionOI ?? rxDetails.addition)) : (item.additionVal ?? null),
                         ...snapshotFromProduct(dbProd, {
-                            name: item.productNameSnapshot,
-                            brand: item.productBrandSnapshot,
-                            category: item.productCategorySnapshot,
+                            name: prev?.productNameSnapshot ?? item.productNameSnapshot,
+                            brand: prev?.productBrandSnapshot ?? item.productBrandSnapshot,
+                            category: prev?.productCategorySnapshot ?? item.productCategorySnapshot,
+                            cost: prev?.productCostSnapshot ?? item.productCostSnapshot,
+                            laboratory: prev?.laboratorySnapshot ?? item.laboratorySnapshot,
+                            type: prev?.productTypeSnapshot ?? item.productTypeSnapshot,
+                            lensIndex: prev?.productLensIndexSnapshot ?? item.productLensIndexSnapshot,
+                            unitType: prev?.productUnitTypeSnapshot ?? item.productUnitTypeSnapshot,
                         }),
                         crystalColor: item.crystalColor || null,
                         crystalColorType: item.crystalColorType || null,
@@ -836,7 +882,8 @@ export class OrderService {
                             data: {
                                 caseId: activeCase.id,
                                 content: noteContent,
-                                createdBy: postSaleResponsible || userName || 'Sistema'
+                                // El autor es SIEMPRE el usuario logueado; "responsable" del caso es otro dato
+                                createdBy: userName || 'Sistema'
                             }
                         });
                     }
@@ -858,7 +905,7 @@ export class OrderService {
                         const clientName = currentOrderForPostSale.client?.name || 'Cliente';
                         const html = buildPostSaleCaseEmailHtml({
                             heading: '⚠️ Nuevo Caso de Post-Venta Registrado',
-                            intro: 'Se ha registrado un nuevo caso de post-venta en el sistema con los siguientes detalles:',
+                            intro: `${userName || 'Sistema'} registró un nuevo caso de post-venta en el sistema con los siguientes detalles:`,
                             orderId: id,
                             order: currentOrderForPostSale,
                             caseInfo: {
@@ -942,7 +989,8 @@ export class OrderService {
                                     data: {
                                         caseId: activeCase.id,
                                         content: noteContent,
-                                        createdBy: postSaleResponsible || userName || 'Sistema'
+                                        // El autor es SIEMPRE el usuario logueado; "responsable" del caso es otro dato
+                                        createdBy: userName || 'Sistema'
                                     }
                                 });
                             }
@@ -1347,24 +1395,39 @@ export class OrderService {
                     }).catch(err => console.error('Error syncClient:', err));
                 }
 
-                // Registrar conversión a VENTA en el historial del cliente
+                // Registrar conversión a VENTA en el historial del cliente — con el vendedor que confirmó
                 const saleSummaries = formatOrderItemsSummary(updatedOrder.items);
-                const historyContent = `🛒 Presupuesto #${updatedOrder.id.slice(-4).toUpperCase()} confirmado como VENTA por $${(updatedOrder.total || 0).toLocaleString('es-AR')}\n\nProductos:\n• ${saleSummaries}`;
+                const confirmedBy = userName || 'Sistema';
+                const historyContent = `🛒 ${confirmedBy} confirmó el presupuesto #${updatedOrder.id.slice(-4).toUpperCase()} como VENTA por $${(updatedOrder.total || 0).toLocaleString('es-AR')}\n\nProductos:\n• ${saleSummaries}`;
                 await prisma.interaction.create({
                     data: {
                         clientId: existingOrder.client.id,
                         type: 'SALE_CONFIRMED',
                         content: historyContent,
+                        userId: userId || null,
+                        userName: confirmedBy,
                     },
                 }).catch(err => console.error('Error al registrar interacción de venta:', err));
+
+                // La confirmación de venta es la mutación más importante del negocio:
+                // queda SIEMPRE en AuditLog (el early return de esta rama salteaba el log genérico).
+                logAudit({
+                    userId: userId || null,
+                    userName: confirmedBy,
+                    action: 'STATUS_CHANGE',
+                    entityType: 'ORDER',
+                    entityId: updatedOrder.id,
+                    details: { from: 'QUOTE', to: 'SALE', total: updatedOrder.total, paid: updatedOrder.paid }
+                }).catch(err => console.error('Error logging audit for sale confirmation:', err));
 
                 // Enviar mensaje al grupo de ventas
                 try {
                     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
                     const link = `${appUrl}/admin/contactos?id=${existingOrder.client.id}`;
                     
-                    const groupMessage = `🎉 *NUEVA VENTA CONFIRMADA* 🎉\n` + 
+                    const groupMessage = `🎉 *NUEVA VENTA CONFIRMADA* 🎉\n` +
                         `👤 *Cliente:* ${existingOrder.client.name}\n` +
+                        `🧑 *Confirmada por:* ${confirmedBy}\n` +
                         `💵 *Total:* $${(updatedOrder.total || 0).toLocaleString('es-AR')}\n` +
                         `💳 *Abonado:* $${(updatedOrder.paid || 0).toLocaleString('es-AR')}\n` +
                         `Detalle:\n• ${saleSummaries}\n` +
@@ -1385,6 +1448,15 @@ export class OrderService {
 
                 return updatedOrder;
             }
+        }
+
+        // Estado previo para historizar transiciones (quién cambió qué estado)
+        let prevState: { labStatus: string | null; status: string } | null = null;
+        if (data.labStatus !== undefined || data.status !== undefined) {
+            prevState = await prisma.order.findUnique({
+                where: { id },
+                select: { labStatus: true, status: true }
+            });
         }
 
         const order = await prisma.order.update({
@@ -1443,6 +1515,25 @@ export class OrderService {
             },
         });
 
+        // ── Historial: cambio de estado de laboratorio en la ficha del cliente ──
+        if (prevState && data.labStatus !== undefined && prevState.labStatus !== data.labStatus) {
+            const LAB_LABELS: Record<string, string> = {
+                NONE: 'Pendiente', SENT: 'Enviado a fábrica', IN_PROGRESS: 'Procesado',
+                FINISHED: 'Finalizado', READY: 'Listo para retirar', DELIVERED: 'Entregado'
+            };
+            const fromLabel = LAB_LABELS[prevState.labStatus || 'NONE'] || prevState.labStatus || 'Pendiente';
+            const toLabel = LAB_LABELS[data.labStatus] || data.labStatus;
+            await prisma.interaction.create({
+                data: {
+                    clientId: order.clientId,
+                    type: 'SISTEMA',
+                    content: `📦 ${userName || 'Sistema'} cambió el estado del pedido #${id.slice(-4).toUpperCase()}: ${fromLabel} → ${toLabel}`,
+                    userId: userId || null,
+                    userName: userName || 'Sistema'
+                }
+            }).catch(err => console.error('Error registrando cambio de estado en ficha:', err));
+        }
+
         // ── Auto-Task: Request Review when DELIVERED ──
         if (labStatus === 'DELIVERED') {
             const taskDescription = `Solicitar comentario a ${order.client.name}`;
@@ -1470,21 +1561,23 @@ export class OrderService {
             await BotService.notifyOrderReady(order);
         }
 
-        // Log Audit for update
-        if (userId) {
-            await logAudit({
-                userId,
-                userName,
-                action: 'UPDATE',
-                entityType: 'ORDER',
-                entityId: id,
-                details: {
-                    changes: Object.keys(data),
-                    orderType: order.orderType,
-                    total: order.total
-                }
-            }).catch(err => console.error('Error logging audit for order update:', err));
-        }
+        // Log Audit for update — siempre (aunque falte userId), con transición old→new si hubo cambio de estado
+        await logAudit({
+            userId: userId || null,
+            userName: userName || 'Sistema',
+            action: (data.labStatus !== undefined || data.status !== undefined) ? 'STATUS_CHANGE' : 'UPDATE',
+            entityType: 'ORDER',
+            entityId: id,
+            details: {
+                changes: Object.keys(data),
+                ...(prevState ? {
+                    from: { labStatus: prevState.labStatus, status: prevState.status },
+                    to: { labStatus: data.labStatus ?? prevState.labStatus, status: data.status ?? prevState.status }
+                } : {}),
+                orderType: order.orderType,
+                total: order.total
+            }
+        }).catch(err => console.error('Error logging audit for order update:', err));
 
         return order;
     } catch (error: any) {
