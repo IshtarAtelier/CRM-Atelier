@@ -50,6 +50,14 @@ const UNATTENDED_WHERE = {
     createdAt: { gte: ATTENTION_CUTOFF },
 };
 
+// La fecha llega del form como "YYYY-MM-DD"; se guarda al mediodía UTC para que
+// no se corra de día con la zona horaria de Argentina (UTC-3).
+function parseBirthDate(value: string | null | undefined): Date | null {
+    if (!value || !String(value).trim()) return null;
+    const parsed = new Date(`${String(value).trim().slice(0, 10)}T12:00:00.000Z`);
+    return isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export function normalizeArgentinePhone(phone: string | null | undefined): string {
     if (!phone) return '';
     let base = phone.replace(/\D/g, '');
@@ -138,6 +146,7 @@ export interface ContactCreateData {
     email?: string | null;
     phone?: string | null;
     dni?: string | null;
+    birthDate?: string | null;
     interest?: string | null;
     expectedValue?: number;
     priority?: number;
@@ -400,6 +409,7 @@ export const ContactService = {
             email: data.email?.trim() === "" ? null : data.email,
             phone: normalizedIncomingPhone, // Se guarda normalizado (solo números)
             dni: data.dni?.trim() === "" ? null : data.dni,
+            birthDate: parseBirthDate(data.birthDate),
             status: data.status || 'CONTACT',
             contactSource: normalizeContactSource(data.contactSource),
             interest: data.interest?.trim() === "" ? 'Otros' : data.interest,
@@ -491,6 +501,7 @@ export const ContactService = {
             updateData.phone = normalizedPhone;
         }
         if (data.dni !== undefined) updateData.dni = data.dni?.trim() === "" ? null : data.dni;
+        if (data.birthDate !== undefined) updateData.birthDate = parseBirthDate(data.birthDate);
         if (data.status !== undefined) {
             updateData.status = data.status;
             if (data.status === 'CLIENT') {

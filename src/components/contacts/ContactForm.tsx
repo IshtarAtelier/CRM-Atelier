@@ -9,6 +9,7 @@ export interface ContactFormData {
     email: string;
     phone: string;
     dni: string;
+    birthDate: string;
     contactSource: string;
     interest: string;
     expectedValue: number;
@@ -40,6 +41,8 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
         email: initialData?.email || '',
         phone: initialData?.phone || '',
         dni: initialData?.dni || '',
+        // Del server llega como ISO completo; el <input type="date"> necesita YYYY-MM-DD
+        birthDate: initialData?.birthDate ? String(initialData.birthDate).slice(0, 10) : '',
         contactSource: initialData?.contactSource || '',
         interest: initialData?.interest || 'Otros',
         expectedValue: initialData?.expectedValue || 0,

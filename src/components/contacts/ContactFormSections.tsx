@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { User, Phone, FileText, Building2, Stethoscope, ChevronDown, Mail, MapPin } from 'lucide-react';
+import { User, Phone, FileText, Building2, Stethoscope, ChevronDown, Mail, MapPin, Cake } from 'lucide-react';
 
 interface ContactFormSectionsProps {
     formData: any;
@@ -42,6 +42,16 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                         <label htmlFor="input-3" className="sr-only">Número de documento</label>
 <input id="input-3" type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="Número de documento" value={formData.dni} onChange={(e) => setFormData({ ...formData, dni: e.target.value })} />
                     </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">Fecha de Nacimiento</label>
+                    <div className="relative group">
+                        <Cake className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
+                        <label htmlFor="input-birthdate" className="sr-only">Fecha de nacimiento</label>
+<input id="input-birthdate" type="date" max={new Date().toISOString().slice(0, 10)} className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" value={formData.birthDate || ''} onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} />
+                    </div>
+                    <p className="text-[10px] font-bold text-stone-400 ml-1">Obligatoria para enviar pedidos a fábrica</p>
                 </div>
 
                 <div className="space-y-2">

@@ -39,28 +39,11 @@ export default function CajaPage() {
     const [successMessage, setSuccessMessage] = useState('');
     const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
     const [labsConfig, setLabsConfig] = useState<{name: string}[]>([]);
-    const [userRole, setUserRole] = useState('STAFF');
+    // Quién puede ver el saldo acumulado lo decide el server (ADMIN o encargado
+    // de caja — User.cashManager); acá solo se respeta el flag que devuelve /api/cash.
+    const [canViewTotals, setCanViewTotals] = useState(false);
 
     useEffect(() => {
-        const loadUserRole = async () => {
-            try {
-                const stored = localStorage.getItem('user');
-                if (stored) {
-                    const u = JSON.parse(stored);
-                    setUserRole(u.role || 'STAFF');
-                    return;
-                }
-            } catch { }
-            try {
-                const res = await fetch('/api/auth/me');
-                if (res.ok) {
-                    const u = await res.json();
-                    setUserRole(u.role || 'STAFF');
-                    localStorage.setItem('user', JSON.stringify(u));
-                }
-            } catch { }
-        };
-        loadUserRole();
         fetchMovements();
         fetchLabs();
     }, []);
@@ -80,6 +63,7 @@ export default function CajaPage() {
             const json = await res.json();
             if (json.movements) {
                 setMovements(json.movements);
+                setCanViewTotals(!!json.canViewTotals);
                 setBalances({
                     total: json.total || 0,
                     paymentsTotal: json.paymentsTotal || 0,
@@ -220,7 +204,7 @@ export default function CajaPage() {
             </div>
 
             {/* Cash Balance Summary */}
-            {balances && userRole === 'ADMIN' && (
+            {balances && canViewTotals && (
                 <div className="mb-8 flex justify-center">
                     <div className={`w-full max-w-md bg-gradient-to-br transition-all duration-300 hover:scale-[1.01] rounded-[2rem] p-6 text-center flex flex-col items-center justify-center shadow-lg border ${
                         balances.total >= 0 

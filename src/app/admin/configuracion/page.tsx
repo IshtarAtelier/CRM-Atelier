@@ -23,6 +23,7 @@ interface User {
     name: string;
     email: string;
     role: string;
+    cashManager?: boolean;
     notificationEmail?: string | null;
     createdAt: string;
 }
@@ -140,6 +141,7 @@ export default function ConfiguracionPage() {
     // Edit form
     const [editName, setEditName] = useState('');
     const [editRole, setEditRole] = useState('');
+    const [editCashManager, setEditCashManager] = useState(false);
     const [editNotificationEmail, setEditNotificationEmail] = useState('');
 
     // Change password
@@ -461,6 +463,7 @@ export default function ConfiguracionPage() {
         setEditingId(user.id);
         setEditName(user.name);
         setEditRole(user.role);
+        setEditCashManager(!!user.cashManager);
         setEditNotificationEmail(user.notificationEmail || '');
     };
 
@@ -469,7 +472,7 @@ export default function ConfiguracionPage() {
             const res = await fetch(`/api/users/${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: editName, role: editRole, notificationEmail: editNotificationEmail }),
+                body: JSON.stringify({ name: editName, role: editRole, cashManager: editCashManager, notificationEmail: editNotificationEmail }),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Usuario actualizado' });
@@ -808,6 +811,17 @@ export default function ConfiguracionPage() {
                                                         placeholder="Email de avisos (vacío = casilla del local)"
                                                         className="px-3 py-1.5 border-2 border-primary rounded-lg text-xs font-medium outline-none bg-white dark:bg-stone-900 w-80"
                                                     />
+                                                    <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={editCashManager}
+                                                            onChange={e => setEditCashManager(e.target.checked)}
+                                                            className="w-4 h-4 accent-emerald-500"
+                                                        />
+                                                        <span className="text-xs font-bold text-stone-500 dark:text-stone-400">
+                                                            💰 Encargado de caja (ve el saldo total de la caja en efectivo)
+                                                        </span>
+                                                    </label>
                                                 </div>
                                             ) : (
                                                 <>
@@ -821,6 +835,11 @@ export default function ConfiguracionPage() {
                                                             }`}>
                                                             {user.role === 'ADMIN' ? '🛡️ Admin' : user.role === 'OPTICA' ? '🏪 Óptica' : '👤 Vendedor'}
                                                         </span>
+                                                        {user.cashManager && (
+                                                            <span className="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
+                                                                💰 Caja
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <p className="text-xs text-stone-400 font-medium">
                                                         {user.email}

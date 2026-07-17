@@ -4,7 +4,7 @@ import React from 'react';
 import { 
     User, Heart, Pencil, Calculator, Star, X, 
     Phone, Mail, FileText, MapPin, Building2, Share2, Tag,
-    History, CheckCircle2, Receipt, Trash2
+    History, CheckCircle2, Receipt, Trash2, Cake
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useRouter } from 'next/navigation';
@@ -256,9 +256,10 @@ export default function ContactHeader({
             </div>
 
             {/* Quick Info Grid - Improved UX: All items clickable to edit */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4 mt-1">
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-2 mb-4 mt-1">
                 {[
                     { label: 'DNI / Documento', icon: FileText, value: contact.dni || 'No registrado' },
+                    { label: 'Nacimiento', icon: Cake, value: contact.birthDate ? new Date(contact.birthDate).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : 'No registrada' },
                     { label: 'Dirección', icon: MapPin, value: contact.address || 'No registrada' },
                     { label: 'Obra Social', icon: Building2, value: contact.insurance || 'Sin Obra Social' },
                     { label: 'Origen', icon: Share2, value: contact.contactSource === 'WEB_STOREFRONT' ? 'Tienda Online' : (contact.contactSource || 'No especificado') },

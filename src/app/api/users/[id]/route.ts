@@ -15,7 +15,7 @@ export async function PATCH(
 
         const { id } = await params;
         const body = await request.json();
-        const { name, role, password, notificationEmail } = body;
+        const { name, role, password, notificationEmail, cashManager } = body;
 
         const isAdmin = roleHeader === 'ADMIN';
         const isSelf = !!requesterId && requesterId === id;
@@ -35,6 +35,9 @@ export async function PATCH(
         if (isAdmin) {
             if (name) data.name = name;
             if (role) data.role = role;
+            // Encargado de caja: habilita ver el saldo total de la caja en efectivo.
+            // Solo ADMIN lo otorga (mismo criterio que el rol).
+            if (cashManager !== undefined) data.cashManager = !!cashManager;
         }
         // Casilla de avisos: la puede cambiar el ADMIN o el propio usuario.
         // String vacío la borra (vuelve a usarse la casilla compartida del local).
@@ -62,6 +65,7 @@ export async function PATCH(
                 name: true,
                 email: true,
                 role: true,
+                cashManager: true,
                 notificationEmail: true,
                 createdAt: true,
             },
@@ -81,6 +85,7 @@ export async function PATCH(
                 ...(data.name && before?.name !== data.name ? { name: { from: before?.name, to: data.name } } : {}),
                 ...(data.role && before?.role !== data.role ? { role: { from: before?.role, to: data.role } } : {}),
                 ...(notificationEmail !== undefined ? { notificationEmail: data.notificationEmail || '(compartida)' } : {}),
+                ...(data.cashManager !== undefined ? { cashManager: data.cashManager } : {}),
                 ...(password ? { passwordChanged: true } : {})
             }
         });
