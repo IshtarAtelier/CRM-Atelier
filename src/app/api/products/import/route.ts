@@ -292,11 +292,22 @@ export async function POST(request: Request) {
             }
         }
 
+        // Guardia de costos: ninguna fila puede entrar al catálogo con costo $0
+        // (los reportes contarían sus ventas como ganancia pura). Se rechaza la fila
+        // y se informa, sin frenar el resto del archivo.
+        const sinCosto = validItems.filter((it: any) => !(parseFloat(String(it.cost)) > 0));
+        if (sinCosto.length > 0) {
+            for (const it of sinCosto) {
+                errors.push(`"${it.name || it.model || 'sin nombre'}" rechazado: costo vacío o $0 (obligatorio, es lo que pagaste al proveedor)`);
+            }
+        }
+        const itemsConCosto = validItems.filter((it: any) => parseFloat(String(it.cost)) > 0);
+
         // Batch create all valid items
         let importedCount = 0;
-        if (validItems.length > 0) {
+        if (itemsConCosto.length > 0) {
             try {
-                const result = await prisma.product.createMany({ data: validItems });
+                const result = await prisma.product.createMany({ data: itemsConCosto });
                 importedCount = result.count;
             } catch (err: any) {
                 errors.push(`Error en carga masiva: ${err.message}`);

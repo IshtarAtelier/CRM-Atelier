@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { ContactService, normalizeArgentinePhone } from '@/services/contact.service';
+import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 
 export async function POST(req: Request) {
     try {
@@ -84,6 +85,9 @@ export async function POST(req: Request) {
                 }
             }
         });
+
+        // Red de seguridad: avisar si alguna línea quedó con costo $0.
+        notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (checkout web):', err));
 
         return NextResponse.json({ success: true, orderId: order.id });
     } catch (error: any) {

@@ -15,6 +15,7 @@ import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { logAudit } from '@/lib/audit';
 import { addBusinessDays, calculateEstimatedDays } from '@/lib/business-days';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
+import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { format } from 'date-fns';
 import { OptovisionAuditService } from '@/services/optovision-audit.service';
 import { mapOrderPostSale } from '@/types/orders';
@@ -1407,6 +1408,11 @@ export class OrderService {
                         quantity: it.quantity,
                     }))
                 ).catch(err => console.error('Error en alerta de stock bajo (venta CRM):', err));
+
+                // Red de seguridad de costos: si alguna línea quedó con costo $0 y
+                // precio > 0, avisa al admin. Fire-and-forget, no frena la venta.
+                notifyZeroCostSale(updatedOrder.id)
+                    .catch(err => console.error('Error en alerta de costo $0 (venta CRM):', err));
 
                 // Enviar conversión offline a Meta/Google de forma asíncrona (fire and forget)
                 AdsService.sendOfflineConversion(updatedOrder as any).catch(err => {

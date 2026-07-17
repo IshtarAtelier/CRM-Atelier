@@ -31,6 +31,9 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, count: result.count });
     } catch (error: any) {
+        if (error?.name === 'InvalidCostError') {
+            return NextResponse.json({ error: error.message }, { status: 400 });
+        }
         console.error('Error in bulk creation:', error);
         return NextResponse.json({
             error: 'Error en la carga masiva',

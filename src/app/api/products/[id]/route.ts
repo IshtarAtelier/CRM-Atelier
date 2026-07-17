@@ -107,6 +107,9 @@ export async function PUT(
 
         return NextResponse.json(product);
     } catch (error: any) {
+        if (error?.name === 'InvalidCostError') {
+            return NextResponse.json({ error: error.message }, { status: 400 });
+        }
         console.error('Error updating product:', error);
         return NextResponse.json({
             error: 'Error al actualizar producto',

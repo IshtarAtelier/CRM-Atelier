@@ -10,6 +10,7 @@ import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
 import { recalculateItemPrice, effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
+import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 
 function getArgentineStateCode(stateName: string): string {
@@ -637,6 +638,8 @@ export async function POST(req: Request) {
 
         // Aviso de stock bajo (armazones que quedaron en <=1) — no bloquea la respuesta.
         await notifyLowStockCrossing(decrementedProducts);
+        // Red de seguridad: avisar si alguna línea quedó con costo $0.
+        notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (transferencia web):', err));
 
         return NextResponse.json({
           success: true,
@@ -662,6 +665,7 @@ export async function POST(req: Request) {
       }).catch(err => console.error("Error admin wholesale email:", err));
 
       await notifyLowStockCrossing(decrementedProducts);
+      notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (mayorista web):', err));
 
       return NextResponse.json({
         success: true,
@@ -918,6 +922,8 @@ export async function POST(req: Request) {
 
     // Pago acreditado: avisar si algún armazón quedó en su última unidad.
     await notifyLowStockCrossing(decrementedProducts);
+    // Red de seguridad: avisar si alguna línea quedó con costo $0.
+    notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (pago Payway):', err));
 
     return NextResponse.json({
       success: true,

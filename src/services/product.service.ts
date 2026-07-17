@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { autoCorrectBrand, autoCorrectLab, autoCorrectIndex } from '@/utils/product-controllers';
+import { requireValidCost } from '@/lib/product-cost-guard';
 
 export const ProductService = {
     async getAll() {
@@ -32,7 +33,7 @@ export const ProductService = {
                 category: data.category,
                 price: parseFloat(data.price) || 0,
                 wholesalePrice: data.wholesalePrice != null ? parseFloat(data.wholesalePrice) : 0,
-                cost: parseFloat(data.cost) || 0,
+                cost: requireValidCost(data.cost, data.name || data.model),
                 stock: parseInt(data.stock) || 0,
                 lensIndex: autoCorrectIndex(data.lensIndex),
                 unitType: data.unitType || 'UNIDAD',
@@ -74,7 +75,7 @@ export const ProductService = {
                 category: data.category,
                 price: data.price !== undefined ? (parseFloat(data.price) || 0) : undefined,
                 wholesalePrice: data.wholesalePrice !== undefined ? (parseFloat(data.wholesalePrice) || 0) : undefined,
-                cost: data.cost !== undefined ? (parseFloat(data.cost) || 0) : undefined,
+                cost: data.cost !== undefined ? requireValidCost(data.cost, data.name || data.model) : undefined,
                 stock: data.stock !== undefined ? (parseInt(data.stock) || 0) : undefined,
                 lensIndex: data.lensIndex !== undefined ? autoCorrectIndex(data.lensIndex) : undefined,
                 unitType: data.unitType !== undefined ? data.unitType : undefined,
@@ -124,7 +125,7 @@ export const ProductService = {
                     category: item.category,
                     price: parseFloat(item.price) || 0,
                     wholesalePrice: item.wholesalePrice != null ? parseFloat(item.wholesalePrice) : 0,
-                    cost: parseFloat(item.cost) || 0,
+                    cost: requireValidCost(item.cost, item.name || item.model),
                     stock: parseInt(item.stock) || 0,
                     lensIndex: autoCorrectIndex(item.lensIndex),
                     unitType: item.unitType || 'UNIDAD',
