@@ -2,6 +2,7 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PricingService } from '@/services/PricingService';
+import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
 import fs from 'fs';
 import path from 'path';
 
@@ -161,11 +162,13 @@ function getOrderHtml(order: any, client: any): string {
                 }
 
                 const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
+                const origin = lensOriginLabel(lensOriginFromItem(it));
                 return `
                 <tr>
                     <td>
                         <div style="font-weight: 900;">${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}</div>
                         ${refIndex ? `<div style="font-size:10px; color:#c2410c; font-weight: 700; margin-top: 1px;">Índice de Refracción: ${refIndex}</div>` : ''}
+                        ${origin ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Origen: ${origin}</div>` : ''}
                         ${eyeLabel ? `<div style="font-size:10px; color:#78716c; font-weight: 600;">Lado: ${eyeLabel}</div>` : ''}
                         ${itemPrice === 0 ? `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">* Bonificado por Promoción</div>` : ''}
                     </td>
@@ -441,6 +444,8 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         let itemName = `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.trim();
         const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
         if (refIndex) itemName += `\n   Índice: ${refIndex}`;
+        const origin = lensOriginLabel(lensOriginFromItem(it));
+        if (origin) itemName += `\n   Origen: ${origin}`;
         if (eyeLabel) itemName += `\n   Lado: ${eyeLabel}`;
         
         let priceLabel = `$${ip.toLocaleString()}`;

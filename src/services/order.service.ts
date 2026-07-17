@@ -164,6 +164,7 @@ export class OrderService {
                         productTypeSnapshot: true,
                         productLensIndexSnapshot: true,
                         productUnitTypeSnapshot: true,
+                        productOriginSnapshot: true,
                         product: {
                             select: {
                                 id: true,
@@ -176,6 +177,7 @@ export class OrderService {
                                 stock: true,
                                 lensIndex: true,
                                 laboratory: true,
+                                origin: true,
                             }
                         }
                     }
@@ -533,7 +535,7 @@ export class OrderService {
                 select: {
                     id: true, productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                     productCostSnapshot: true, laboratorySnapshot: true, productTypeSnapshot: true,
-                    productLensIndexSnapshot: true, productUnitTypeSnapshot: true,
+                    productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
                 },
             });
             const prevSnapById = new Map(existingSnapshots.map(e => [e.id, e]));
@@ -565,6 +567,7 @@ export class OrderService {
                             type: prev?.productTypeSnapshot ?? item.productTypeSnapshot,
                             lensIndex: prev?.productLensIndexSnapshot ?? item.productLensIndexSnapshot,
                             unitType: prev?.productUnitTypeSnapshot ?? item.productUnitTypeSnapshot,
+                            origin: prev?.productOriginSnapshot ?? item.productOriginSnapshot,
                         }),
                         crystalColor: item.crystalColor || null,
                         crystalColorType: item.crystalColorType || null,

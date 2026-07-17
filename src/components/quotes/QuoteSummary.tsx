@@ -17,6 +17,7 @@ import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
 // Modular Components
 import QuoteLineItems from './QuoteLineItems';
+import { lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
@@ -334,15 +335,16 @@ export default function QuoteSummary({
 
     const handleWhatsApp = async () => {
         const items = order.items || [];
-        const summary: Record<string, { brand: string, name: string }> = {};
+        const summary: Record<string, { brand: string, name: string, origin: string }> = {};
         items.forEach((it: any) => {
             const brand = it.product?.brand || it.productBrandSnapshot || '';
             const name = it.product?.name || it.productNameSnapshot || 'Producto';
+            const origin = lensOriginSuffix(lensOriginFromItem(it));
             const key = `${brand}|${name}`;
-            if (!summary[key]) summary[key] = { brand, name };
+            if (!summary[key]) summary[key] = { brand, name, origin };
         });
-        
-        const itemLines = Object.values(summary).map((g) => `• ${g.brand ? g.brand + ' · ' : ''}${g.name}`).join('\n');
+
+        const itemLines = Object.values(summary).map((g) => `• ${g.brand ? g.brand + ' · ' : ''}${g.name}${g.origin}`).join('\n');
         
         let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨\n`;
         text += `👤 *Cliente:* ${contact.name}\n\n`;

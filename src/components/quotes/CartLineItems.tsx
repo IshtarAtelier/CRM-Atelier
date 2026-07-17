@@ -4,6 +4,8 @@ import React from 'react';
 import { ShoppingBag, X, Minus, Plus, Palette, ChevronDown } from 'lucide-react';
 import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice } from '@/lib/promo-utils';
 import { needsColorSelection, COLOR_CATEGORIES } from '@/lib/crystal-color-utils';
+import { lensOriginFromItem } from '@/lib/lens-origin';
+import LensOriginBadge from '@/components/ui/LensOriginBadge';
 
 interface CrystalColorOption {
     id: string;
@@ -81,6 +83,7 @@ export default function CartLineItems({
                                         {getCategoryKey(item.product?.type || item.productCategorySnapshot || null, item.product?.category || item.productCategorySnapshot || null)}
                                         {item.isPromo && <span className="text-emerald-500 ml-2">† SIN CARGO 2x1</span>}
                                     </p>
+                                    <LensOriginBadge origin={lensOriginFromItem(item)} />
                                     {hasColor && (
                                         <span className="inline-flex items-center gap-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                                             <Palette className="w-3 h-3" />

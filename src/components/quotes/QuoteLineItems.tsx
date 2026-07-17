@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { Plus } from 'lucide-react';
+import { lensOriginFromItem } from '@/lib/lens-origin';
+import LensOriginBadge from '@/components/ui/LensOriginBadge';
 
 interface QuoteLineItemsProps {
     items: any[];
@@ -71,16 +73,7 @@ export default function QuoteLineItems({
                                             BONIFICADO 2x1
                                         </span>
                                     )}
-                                    {item.product?.origin === 'STOCK' && (
-                                        <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[8px] px-1.5 py-0.5 rounded-lg font-black uppercase tracking-widest">
-                                            Stock
-                                        </span>
-                                    )}
-                                    {item.product?.origin === 'LABORATORIO' && (
-                                        <span className="bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 text-[8px] px-1.5 py-0.5 rounded-lg font-black uppercase tracking-widest">
-                                            Laboratorio
-                                        </span>
-                                    )}
+                                    <LensOriginBadge origin={lensOriginFromItem(item)} />
                                 </div>
                                 <span className="text-[10px] font-bold text-stone-400">{typeLabel} x{item.quantity}</span>
                             </div>

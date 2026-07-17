@@ -417,10 +417,10 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 {!formData.laboratory && <p className="text-[9px] font-bold text-red-400 ml-4">El laboratorio es obligatorio para cristales</p>}
                             </div>
 
-                            {/* Origen (Solo Monofocales de GRUPO OPTICO) */}
-                            {finalType === 'Cristal Monofocal' && formData.laboratory === 'GRUPO OPTICO' && (
+                            {/* Origen (Solo Monofocales) */}
+                            {finalType === 'Cristal Monofocal' && (
                                 <div className="space-y-3 col-span-2 pb-2 mt-4">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Origen del Cristal (Solo SmartLab)</label>
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">Origen del Cristal</label>
                                     <div className="grid grid-cols-2 gap-3">
                                         <button type="button" onClick={() => setFormData({ ...formData, origin: 'LABORATORIO' })} className={`py-4 px-4 rounded-2xl border-2 font-black text-xs uppercase tracking-tight flex items-center justify-center gap-2 transition-all ${formData.origin === 'LABORATORIO' ? 'bg-primary/10 border-primary text-primary shadow-sm' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-500 hover:border-stone-300'}`}>
                                             <Database className="w-4 h-4" /> Laboratorio (Bajo Pedido)

@@ -14,6 +14,7 @@ import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { PricingService } from '@/services/PricingService';
 import { isMultifocal2x1 } from '@/lib/promo-utils';
+import { lensOriginFromItem, LENS_ORIGIN } from '@/lib/lens-origin';
 import { minimumDeposit, depositClearsFactoryGate } from '@/lib/factory-gate';
 
 interface CheckoutModalProps {
@@ -79,7 +80,7 @@ export default function CheckoutModal({
     const isLabOrder = order.labType === 'LABORATORY' || order.items?.some((it: any) => {
         const prod = it.product || {};
         const labType = (prod.labType || '').toUpperCase();
-        const origin = (prod.origin || '').toUpperCase();
+        const origin = lensOriginFromItem(it);
         const name = (prod.name || it.productNameSnapshot || '').toLowerCase();
         const category = (prod.category || it.productCategorySnapshot || '').toLowerCase();
         
@@ -89,7 +90,7 @@ export default function CheckoutModal({
         if (!isLens) return false;
 
         // Authoritative lab indicators on the product database record
-        if (labType === 'LABORATORY' || origin === 'LABORATORIO') return true;
+        if (labType === 'LABORATORY' || origin === LENS_ORIGIN.LABORATORIO) return true;
 
         // Fallback name heuristics for lab-tallado prescription items
         return name.includes('tallado') || 

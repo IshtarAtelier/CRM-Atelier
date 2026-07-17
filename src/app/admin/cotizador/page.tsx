@@ -46,6 +46,8 @@ import {
     Gem 
 } from 'lucide-react';
 import type { Product } from '@/types/orders';
+import { normalizeLensOrigin, lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
+import LensOriginBadge from '@/components/ui/LensOriginBadge';
 import Image from "next/image";
 
 const getTypeConfig = (type: string | null, category?: string | null) => {
@@ -67,6 +69,7 @@ const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 
 interface QuoteItem {
+    id?: string;
     product: Product;
     quantity: number;
     customPrice: number;
@@ -76,6 +79,11 @@ interface QuoteItem {
     productBrandSnapshot?: string | null;
     productNameSnapshot?: string | null;
     productCategorySnapshot?: string | null;
+    laboratorySnapshot?: string | null;
+    productCostSnapshot?: number | null;
+    productTypeSnapshot?: string | null;
+    productLensIndexSnapshot?: string | null;
+    productUnitTypeSnapshot?: string | null;
     uid?: number;
 }
 
@@ -163,11 +171,20 @@ function CotizadorPageContent() {
                         
                         // Map items — API returns `price`, CotizadorCart expects `customPrice`
                         const mappedItems = quote.items.map((it: any, idx: number) => ({
+                            id: it.id,
                             product: it.product,
                             quantity: it.quantity,
                             customPrice: it.price,
                             eye: it.eye,
-                            uid: Date.now() + idx
+                            uid: Date.now() + idx,
+                            productNameSnapshot: it.productNameSnapshot,
+                            productBrandSnapshot: it.productBrandSnapshot,
+                            productCategorySnapshot: it.productCategorySnapshot,
+                            laboratorySnapshot: it.laboratorySnapshot,
+                            productCostSnapshot: it.productCostSnapshot,
+                            productTypeSnapshot: it.productTypeSnapshot,
+                            productLensIndexSnapshot: it.productLensIndexSnapshot,
+                            productUnitTypeSnapshot: it.productUnitTypeSnapshot,
                         }));
                         setQuoteItems(mappedItems);
                         
@@ -267,7 +284,7 @@ function CotizadorPageContent() {
             }
             
             if (activeType === 'Cristal' && selectedOrigin) {
-                if ((p as any).origin !== selectedOrigin) return false;
+                if (normalizeLensOrigin(p.origin) !== selectedOrigin) return false;
             }
             
             return true;
@@ -323,7 +340,7 @@ function CotizadorPageContent() {
             }
 
             if (activeType === 'Cristal' && selectedOrigin) {
-                if ((p as any).origin !== selectedOrigin) return false;
+                if (normalizeLensOrigin(p.origin) !== selectedOrigin) return false;
             }
 
             if (selectedBrand) {
@@ -442,6 +459,7 @@ function CotizadorPageContent() {
                 body: JSON.stringify({
                     clientId: contactId,
                     items: quoteItems.map(it => ({
+                        id: it.id,
                         productId: it.product?.id || null,
                         quantity: it.quantity,
                         price: it.customPrice,
@@ -451,6 +469,11 @@ function CotizadorPageContent() {
                         productBrandSnapshot: it.productBrandSnapshot || it.product?.brand || null,
                         productNameSnapshot: it.productNameSnapshot || it.product?.name || it.product?.model || null,
                         productCategorySnapshot: it.productCategorySnapshot || it.product?.category || null,
+                        laboratorySnapshot: it.laboratorySnapshot ?? it.product?.laboratory ?? null,
+                        productCostSnapshot: it.productCostSnapshot ?? it.product?.cost ?? null,
+                        productTypeSnapshot: it.productTypeSnapshot ?? it.product?.type ?? null,
+                        productLensIndexSnapshot: it.productLensIndexSnapshot ?? it.product?.lensIndex ?? null,
+                        productUnitTypeSnapshot: it.productUnitTypeSnapshot ?? it.product?.unitType ?? null,
                     })),
                     markup,
                     discount: discountCash,
@@ -558,7 +581,8 @@ function CotizadorPageContent() {
         // Build the message
         let msg = `Hola ${pendingContact.name}, te envío el presupuesto solicitado:\n\n`;
         quoteItems.forEach(it => {
-            msg += `- ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
+            const origin = lensOriginSuffix(lensOriginFromItem(it));
+            msg += `- ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''}${origin} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
         });
         msg += `\n*Precio Lista: $${listPrice.toLocaleString()}*\n`;
         msg += `💰 Efectivo (-${discountCash}%): $${Math.round(totalCash).toLocaleString()}\n`;
@@ -591,7 +615,8 @@ function CotizadorPageContent() {
     const handleCopy = () => {
         let text = `PRESUPUESTO ATELIER\n\n`;
         quoteItems.forEach(it => {
-            text += `• ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
+            const origin = lensOriginSuffix(lensOriginFromItem(it));
+            text += `• ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''}${origin} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
         });
         text += `\nTotal Lista: $${Math.round(totalWithMarkup).toLocaleString()}\n`;
         text += `Promo Efectivo: $${Math.round(totalCash).toLocaleString()}\n`;
@@ -602,6 +627,7 @@ function CotizadorPageContent() {
 
     const handleEditQuote = (quote: any) => {
         const mappedItems = quote.items.map((it: any, idx: number) => ({
+            id: it.id,
             product: it.product,
             quantity: it.quantity,
             customPrice: it.price,
@@ -609,7 +635,13 @@ function CotizadorPageContent() {
             uid: Date.now() + idx,
             productBrandSnapshot: it.productBrandSnapshot,
             productNameSnapshot: it.productNameSnapshot,
-            productCategorySnapshot: it.productCategorySnapshot
+            productCategorySnapshot: it.productCategorySnapshot,
+            laboratorySnapshot: it.laboratorySnapshot,
+            productCostSnapshot: it.productCostSnapshot,
+            productTypeSnapshot: it.productTypeSnapshot,
+            productLensIndexSnapshot: it.productLensIndexSnapshot,
+            productUnitTypeSnapshot: it.productUnitTypeSnapshot,
+            productOriginSnapshot: it.productOriginSnapshot,
         }));
         setQuoteItems(mappedItems);
         
@@ -841,6 +873,7 @@ function CotizadorPageContent() {
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider w-[100px]">Tipo</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider w-[100px]">Marca</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[70px]">Índice</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[100px]">Origen</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Descripción</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px]">Lista</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px] text-emerald-600 dark:text-emerald-400">Efectivo</th>
@@ -869,6 +902,11 @@ function CotizadorPageContent() {
                                                         </td>
                                                         <td className="px-4 py-2.5 text-center">
                                                             <span className="text-[10px] font-bold">{product.lensIndex || '—'}</span>
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-center">
+                                                            {normalizeLensOrigin(product.origin)
+                                                                ? <LensOriginBadge origin={product.origin} />
+                                                                : <span className="text-[10px] font-bold text-stone-300 dark:text-stone-600">—</span>}
                                                         </td>
                                                         <td className="px-4 py-2.5">
                                                             <p className="text-xs font-semibold truncate max-w-xs xl:max-w-sm">{product.name || '—'}</p>

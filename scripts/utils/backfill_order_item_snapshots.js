@@ -29,6 +29,7 @@ function snapshotFromProduct(p) {
     productTypeSnapshot: p.type || null,
     productLensIndexSnapshot: p.lensIndex || null,
     productUnitTypeSnapshot: p.unitType || null,
+    productOriginSnapshot: p.origin || null,
   };
 }
 
@@ -64,7 +65,7 @@ async function main() {
 
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
-    select: { id: true, model: true, name: true, brand: true, category: true, cost: true, laboratory: true, type: true, lensIndex: true, unitType: true },
+    select: { id: true, model: true, name: true, brand: true, category: true, cost: true, laboratory: true, type: true, lensIndex: true, unitType: true, origin: true },
   });
   const foundIds = new Set(products.map((p) => p.id));
 

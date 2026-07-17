@@ -193,6 +193,7 @@ export interface Product {
     lensIndex?: string | null;
     unitType?: string | null;
     laboratory?: string | null;
+    origin?: string | null;
     is2x1?: boolean;
     botLabel?: string | null;
     botRecommended?: boolean;

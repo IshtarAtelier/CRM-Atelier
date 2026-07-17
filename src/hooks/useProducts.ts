@@ -16,6 +16,7 @@ export interface Product {
     lensIndex: string | null;
     unitType: string | null;
     laboratory: string | null;
+    origin?: string | null;
     is2x1: boolean;
     // Rangos de fabricación
     sphereMin: number | null;

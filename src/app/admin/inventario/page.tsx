@@ -12,6 +12,8 @@ import SettingsModal from '@/components/inventory/SettingsModal';
 import { useProducts } from '@/hooks/useProducts';
 import { autoCorrectLab, getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial } from '@/utils/product-controllers';
 import { PRODUCT_CATEGORIES as SHARED_CATEGORIES } from '@/lib/constants';
+import { normalizeLensOrigin, LENS_ORIGIN } from '@/lib/lens-origin';
+import LensOriginBadge from '@/components/ui/LensOriginBadge';
 const PRODUCT_CATEGORIES = [
     { id: 'ALL', label: 'Todos' },
     ...SHARED_CATEGORIES
@@ -169,7 +171,7 @@ export default function InventarioPage() {
         products = products.filter(p => p.publishToWeb === true);
     }
     if (selectedOrigin) {
-        products = products.filter(p => (p as any).origin === selectedOrigin);
+        products = products.filter(p => normalizeLensOrigin(p.origin) === selectedOrigin);
     }
 
     // Helper: detecta cristales (incluye valores legacy LENS/MULTIFOCAL/etc)
@@ -267,7 +269,7 @@ export default function InventarioPage() {
             mpn: (p as any).mpn || '',
             gender: (p as any).gender || '',
             ageGroup: (p as any).ageGroup || '',
-            origin: (p as any).origin || 'LABORATORIO',
+            origin: normalizeLensOrigin(p.origin) || LENS_ORIGIN.LABORATORIO,
         });
         setShowEditRanges(false);
     };
@@ -748,6 +750,7 @@ export default function InventarioPage() {
                                                 <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${isCristal ? 'bg-violet-100 text-violet-600' : 'bg-stone-100 text-stone-400'}`}>
                                                     {isCristal ? '🔬 Cristal' : p.category || p.type}
                                                 </span>
+                                                <LensOriginBadge origin={p.origin} className="mt-0.5 ml-1 inline-block" />
                                                 {p.publishToWeb && (
                                                     <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full mt-0.5 inline-block bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 ml-1.5">
                                                         🛍️ Mino
@@ -843,6 +846,7 @@ export default function InventarioPage() {
                                             <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full ${isCristal ? 'bg-violet-100 text-violet-600' : 'bg-stone-100 text-stone-400'}`}>
                                                 {isCristal ? '🔬 Cristal' : p.category || p.type}
                                             </span>
+                                            <LensOriginBadge origin={p.origin} />
                                             {p.lensIndex && <span className="text-[8px] font-black bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{p.lensIndex}</span>}
                                             {p.is2x1 && <span className="text-[8px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 px-1.5 py-0.5 rounded-full">2x1</span>}
                                             <span className="text-[8px] font-black bg-stone-100 dark:bg-stone-800 text-stone-500 px-1.5 py-0.5 rounded-full">STOCK: {isRequestedToLab(p) ? (p.laboratory || 'A Pedido') : p.stock}</span>

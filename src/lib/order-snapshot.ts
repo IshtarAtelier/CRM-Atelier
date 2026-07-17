@@ -19,6 +19,7 @@ type SnapshotSource =
           type?: string | null;
           lensIndex?: string | null;
           unitType?: string | null;
+          origin?: string | null;
       }
     | null
     | undefined;
@@ -32,6 +33,7 @@ type SnapshotFallback = {
     type?: string | null;
     lensIndex?: string | null;
     unitType?: string | null;
+    origin?: string | null;
 };
 
 export type ProductSnapshot = {
@@ -43,6 +45,7 @@ export type ProductSnapshot = {
     productTypeSnapshot: string | null;
     productLensIndexSnapshot: string | null;
     productUnitTypeSnapshot: string | null;
+    productOriginSnapshot: string | null;
 };
 
 /**
@@ -66,5 +69,6 @@ export function snapshotFromProduct(dbProd: SnapshotSource, fallback: SnapshotFa
         productTypeSnapshot: dbProd ? (dbProd.type || null) : (fallback.type ?? null),
         productLensIndexSnapshot: dbProd ? (dbProd.lensIndex || null) : (fallback.lensIndex ?? null),
         productUnitTypeSnapshot: dbProd ? (dbProd.unitType || null) : (fallback.unitType ?? null),
+        productOriginSnapshot: dbProd ? (dbProd.origin || null) : (fallback.origin ?? null),
     };
 }

@@ -126,8 +126,8 @@ export async function POST(request: Request) {
                             sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
                             crystalColor: true, crystalColorType: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
-                            laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true,
-                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true } }
+                            laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
+                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true, origin: true } }
                         }
                     },
                 }
@@ -204,8 +204,8 @@ export async function POST(request: Request) {
                             sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
                             crystalColor: true, crystalColorType: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
-                            laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true,
-                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true } }
+                            laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
+                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true, origin: true } }
                         }
                     },
                 }
@@ -413,7 +413,7 @@ export async function GET(request: Request) {
                     pdVal: true, heightVal: true, prismVal: true,
                     crystalColor: true, crystalColorType: true,
                     productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
-                    laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true,
+                    laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
                     product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true, lensIndex: true, origin: true } }
                 }
             },
