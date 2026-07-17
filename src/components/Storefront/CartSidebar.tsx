@@ -1,8 +1,8 @@
 "use client";
 
-import { useCart } from "@/store/useCart";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, ChevronRight, ShieldCheck, Truck, CreditCard } from "lucide-react";
+import { useCart, getItemUnitPrice } from "@/store/useCart";
+import { useIsWholesale, useWholesaleCartBackfill } from "@/hooks/useIsWholesale";
+import { X, Trash2, ChevronRight, ShieldCheck, Truck, CreditCard, Building2, Handshake } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
@@ -11,6 +11,8 @@ import Image from "next/image";
 
 export function CartSidebar() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal } = useCart();
+  const { isWholesale } = useIsWholesale();
+  useWholesaleCartBackfill(isWholesale);
   const [mounted, setMounted] = useState(false);
   const [configuringItemId, setConfiguringItemId] = useState<string | null>(null);
 
@@ -21,28 +23,16 @@ export function CartSidebar() {
 
   return (
     <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            key="overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+      {isOpen && (
+          <div
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] animate-[backdropFade_0.3s_ease-out]"
           />
         )}
-      </AnimatePresence>
-      
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            key="panel"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-            className="fixed top-0 right-0 h-full w-full max-w-[400px] bg-white z-[101] flex flex-col shadow-2xl"
+
+      {isOpen && (
+          <div
+            className="cart-slide-in fixed top-0 right-0 h-full w-full max-w-[400px] bg-white z-[101] flex flex-col shadow-2xl"
           >
             {/* Header del Carrito */}
             <div className="px-6 py-6 border-b border-stone-200 flex justify-between items-center">
@@ -125,7 +115,10 @@ export function CartSidebar() {
                           </button>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold">${(item.price * item.quantity).toLocaleString("es-AR")}</p>
+                          <p className="text-sm font-bold">${(getItemUnitPrice(item, isWholesale) * item.quantity).toLocaleString("es-AR")}</p>
+                          {isWholesale && item.wholesaleBasePrice != null && item.wholesaleBasePrice > 0 && (
+                            <p className="text-[9px] font-black uppercase tracking-widest text-blue-600">Mayorista</p>
+                          )}
                           {(!item.lensConfig || (item.lensConfig.lensType === "NONE" && !item.lensConfig.color)) && (
                             <button
                               onClick={() => setConfiguringItemId(item.id)}
@@ -145,39 +138,61 @@ export function CartSidebar() {
             {/* Footer / Checkout */}
             {items.length > 0 && (
               <div className="border-t border-stone-200 p-6 bg-[#fafafa]">
+                {isWholesale && (
+                  <div className="flex justify-between items-center text-[10px] text-blue-600 font-black uppercase tracking-widest bg-blue-50/50 p-2 rounded border border-blue-100/80 mb-4">
+                    <span>Tarifa Mayorista Activa</span>
+                    <span>Precio Neto</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-xs font-black uppercase tracking-widest text-stone-500">Subtotal</span>
-                  <span className="text-xl font-light">${getCartTotal().toLocaleString("es-AR")}</span>
+                  <span className="text-xl font-light">${getCartTotal(isWholesale).toLocaleString("es-AR")}</span>
                 </div>
-                
-                <Link 
+
+                <Link
                   href="/checkout"
                   onClick={() => setIsOpen(false)}
                   className="w-full flex items-center justify-center gap-2 bg-black text-white px-6 py-4 text-xs font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
                 >
-                  Finalizar mi compra <ChevronRight className="w-4 h-4" />
+                  {isWholesale ? "Finalizar Pedido Mayorista" : "Finalizar mi compra"} <ChevronRight className="w-4 h-4" />
                 </Link>
-                
-                <div className="mt-4 grid grid-cols-3 gap-2 border-t border-stone-200 pt-4">
-                  <div className="flex flex-col items-center text-center">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 mb-1" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-stone-500">Pago Seguro</span>
+
+                {isWholesale ? (
+                  <div className="mt-4 grid grid-cols-3 gap-2 border-t border-stone-200 pt-4">
+                    <div className="flex flex-col items-center text-center">
+                      <Building2 className="w-4 h-4 text-blue-600 mb-1" />
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-stone-500">Canal Ópticas</span>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      <Truck className="w-4 h-4 text-stone-700 mb-1" />
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-stone-500">Envío a Coordinar</span>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      <Handshake className="w-4 h-4 text-stone-700 mb-1" />
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-stone-500">Pago a Convenir</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center text-center">
-                    <Truck className="w-4 h-4 text-stone-700 mb-1" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-stone-500">Envío Gratis</span>
+                ) : (
+                  <div className="mt-4 grid grid-cols-3 gap-2 border-t border-stone-200 pt-4">
+                    <div className="flex flex-col items-center text-center">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 mb-1" />
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-stone-500">Pago Seguro</span>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      <Truck className="w-4 h-4 text-stone-700 mb-1" />
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-stone-500">Envío Gratis</span>
+                    </div>
+                    <div className="flex flex-col items-center text-center">
+                      <CreditCard className="w-4 h-4 text-stone-700 mb-1" />
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-stone-500">6 Cuotas</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center text-center">
-                    <CreditCard className="w-4 h-4 text-stone-700 mb-1" />
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-stone-500">6 Cuotas</span>
-                  </div>
-                </div>
+                )}
               </div>
             )}
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
-      
+
       {/* Modal Configurador de Cristales */}
       <Modal isOpen={!!configuringItemId} onClose={() => setConfiguringItemId(null)} maxWidth="4xl">
         {configuringItemId && (() => {

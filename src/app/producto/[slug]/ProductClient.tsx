@@ -243,7 +243,23 @@ export function ProductClient({
 
         <div className="w-full lg:w-[40%] bg-[#fafafa] flex flex-col relative z-10">
           <div className="p-8 lg:p-14 border-b border-[#e5e5e5] bg-white">
-            <motion.h1 
+            {/* Breadcrumb visible (el JSON-LD BreadcrumbList ya existía; esto orienta al cliente) */}
+            <nav aria-label="Ruta de navegación" className="mb-4 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-stone-400">
+              <Link href="/" className="hover:text-black transition-colors">Inicio</Link>
+              <span aria-hidden="true">›</span>
+              {(() => {
+                const catMap: Record<string, { name: string; path: string }> = {
+                  'Receta': { name: 'Receta', path: '/receta' },
+                  'Sol': { name: 'Lentes de Sol', path: '/lentes-de-sol' },
+                  'Clip-On': { name: 'Clip-On', path: '/clip-on' },
+                };
+                const cat = catMap[product.category] || { name: 'Tienda', path: '/tienda' };
+                return <Link href={cat.path} className="hover:text-black transition-colors">{cat.name}</Link>;
+              })()}
+              <span aria-hidden="true">›</span>
+              <span className="text-stone-600 normal-case tracking-normal font-medium truncate max-w-[180px]">{product.model}</span>
+            </nav>
+            <motion.h1
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.8 }}
@@ -420,6 +436,7 @@ export function ProductClient({
                     brand: product.brand,
                     model: product.model,
                     price: itemPrice,
+                    wholesaleBasePrice: product.wholesalePrice || 0,
                     image: images[0] || "/images/placeholder.svg",
                     lensColor: null,
                     lensConfig: {
@@ -772,9 +789,10 @@ export function ProductClient({
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <LensConfigurator 
-              basePrice={product.price || 0} 
-              productId={product.id} 
+            <LensConfigurator
+              basePrice={product.price || 0}
+              wholesaleBasePrice={product.wholesalePrice || 0}
+              productId={product.id}
               productInfo={{ brand: product.brand, model: product.model, image: images[0] || "/images/placeholder.svg" }}
               onSuccess={() => {
                 setShowConfigurator(false);

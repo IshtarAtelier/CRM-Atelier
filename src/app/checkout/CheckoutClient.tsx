@@ -1,6 +1,7 @@
 "use client";
 
 import { useCart } from "@/store/useCart";
+import { useWholesaleCartBackfill } from "@/hooks/useIsWholesale";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
@@ -33,6 +34,10 @@ export function CheckoutClient({
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
 
+  // Completa wholesaleBasePrice en ítems agregados antes del login de óptica,
+  // para que el resumen muestre lo que el backend efectivamente va a cobrar.
+  useWholesaleCartBackfill(isWholesale);
+
   // Monto del descuento por cupón, calculado sobre el subtotal actual (solo display;
   // el backend lo vuelve a validar y calcular al pagar). No aplica a mayoristas.
   const couponDiscount = (() => {
@@ -50,7 +55,7 @@ export function CheckoutClient({
   useEffect(() => {
     if (mounted && items.length > 0 && !initiatedRef.current) {
       try {
-        trackInitiateCheckout(items, getCartTotal());
+        trackInitiateCheckout(items, getCartTotal(isWholesale));
         initiatedRef.current = true;
       } catch (e) {
         console.error("InitiateCheckout tracking error:", e);
@@ -213,7 +218,7 @@ export function CheckoutClient({
               shippingMethod: formData.shippingMethod,
               shippingBranch: formData.shippingBranch
             },
-            total: getCartTotal()
+            total: getCartTotal(isWholesale)
           };
 
           try {
@@ -289,7 +294,7 @@ export function CheckoutClient({
               shippingBranch: formData.shippingBranch
             },
             items: items,
-            total: getCartTotal(),
+            total: getCartTotal(isWholesale),
             couponCode: appliedCoupon?.code || null,
             paymentToken: null
           })
@@ -306,7 +311,7 @@ export function CheckoutClient({
             localStorage.removeItem("atelier-checkout-session-id");
           }
           try {
-            trackPurchase(sessionId || crypto.randomUUID(), getCartTotal(), items);
+            trackPurchase(sessionId || crypto.randomUUID(), getCartTotal(isWholesale), items);
           } catch (e) {
             console.error("Purchase tracking error:", e);
           }
@@ -402,7 +407,7 @@ export function CheckoutClient({
                 shippingBranch: formData.shippingBranch
               },
               items: items,
-              total: getCartTotal(),
+              total: getCartTotal(isWholesale),
               couponCode: appliedCoupon?.code || null,
               paymentToken: token,
               bin: bin,
@@ -424,7 +429,7 @@ export function CheckoutClient({
                 localStorage.removeItem("atelier-checkout-session-id");
               }
               try {
-                trackPurchase(data.orderId || sessionId || crypto.randomUUID(), getCartTotal(), items);
+                trackPurchase(data.orderId || sessionId || crypto.randomUUID(), getCartTotal(isWholesale), items);
               } catch (e) {
                 console.error("Purchase tracking error:", e);
               }

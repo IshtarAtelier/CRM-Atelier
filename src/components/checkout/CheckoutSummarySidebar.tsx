@@ -2,12 +2,16 @@ import React from "react";
 import Image from "next/image";
 import { CreditCard, BadgePercent, Truck } from "lucide-react";
 import { CouponField, type AppliedCoupon } from "@/components/checkout/CouponField";
+import { getItemUnitPrice } from "@/store/useCart";
 
 export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings, isWholesale, appliedCoupon, couponDiscount = 0, onCouponApplied }: { items: any[], getCartTotal: any, formData: any, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, isWholesale?: boolean, appliedCoupon?: AppliedCoupon | null, couponDiscount?: number, onCouponApplied?: (coupon: AppliedCoupon | null) => void }) {
   const discountRate = (webSettings?.web_promo_cash_discount || 15) / 100;
 
+  // Subtotal según canal: mayorista ve tarifa mayorista, minorista la de lista.
+  const cartTotal = getCartTotal(!!isWholesale);
+
   // El cupón se descuenta del subtotal; sobre ese resultado se aplica el % por método de pago.
-  const subtotalAfterCoupon = Math.max(0, getCartTotal() - (couponDiscount || 0));
+  const subtotalAfterCoupon = Math.max(0, cartTotal - (couponDiscount || 0));
   const transferDiscountAmount = subtotalAfterCoupon * discountRate;
   const finalTotal = formData.paymentMethod === 'TRANSFER' ? subtotalAfterCoupon - transferDiscountAmount : subtotalAfterCoupon;
 
@@ -25,7 +29,7 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
           <div className="flex items-center gap-3 bg-emerald-50/60 border border-emerald-200 px-4 py-3">
             <BadgePercent className="w-4 h-4 text-emerald-600 shrink-0" />
             <p className="text-xs font-semibold flex-1 text-emerald-900">{Math.round(discountRate * 100)}% OFF en efectivo o transferencia</p>
-            <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-600 text-white px-2 py-1">Ahorrás ${(getCartTotal() * discountRate).toLocaleString("es-AR", { maximumFractionDigits: 0 })}</span>
+            <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-600 text-white px-2 py-1">Ahorrás ${(cartTotal * discountRate).toLocaleString("es-AR", { maximumFractionDigits: 0 })}</span>
           </div>
           <div className="flex items-center gap-3 bg-white border border-stone-200 px-4 py-3">
             <Truck className="w-4 h-4 text-stone-700 shrink-0" />
@@ -61,7 +65,7 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
                   )}
                 </div>
               )}
-              <p className="text-sm font-bold mt-1">${(item.price * item.quantity).toLocaleString("es-AR")}</p>
+              <p className="text-sm font-bold mt-1">${(getItemUnitPrice(item, !!isWholesale) * item.quantity).toLocaleString("es-AR")}</p>
             </div>
           </div>
         ))}
@@ -69,14 +73,14 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
 
       {!isWholesale && onCouponApplied && (
         <div className="border-t border-stone-200 pt-6 mb-2">
-          <CouponField subtotal={getCartTotal()} appliedCoupon={appliedCoupon || null} onApplied={onCouponApplied} />
+          <CouponField subtotal={cartTotal} appliedCoupon={appliedCoupon || null} onApplied={onCouponApplied} />
         </div>
       )}
 
       <div className="border-t border-stone-200 pt-6 flex flex-col gap-3">
         <div className="flex justify-between text-sm text-stone-500">
           <span>Subtotal</span>
-          <span>${getCartTotal().toLocaleString("es-AR")}</span>
+          <span>${cartTotal.toLocaleString("es-AR")}</span>
         </div>
 
         {couponDiscount > 0 && appliedCoupon && (

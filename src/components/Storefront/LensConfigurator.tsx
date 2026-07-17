@@ -10,6 +10,7 @@ type Treatment = "ORGANICO_BLANCO" | "ORGANICO_AR" | "ORGANICO_BLUE" | "POLI_BLU
 
 interface ConfiguratorProps {
   basePrice: number;
+  wholesaleBasePrice?: number; // precio mayorista del armazón, viaja al ítem del carrito
   productId?: string;
   category?: string;
   onColorChange?: (hex: string | null) => void;
@@ -19,7 +20,7 @@ interface ConfiguratorProps {
   onStepChange?: (step: number) => void;
 }
 
-export function LensConfigurator({ basePrice, productId, category, onColorChange, productInfo, cartItemId, onSuccess, onStepChange }: ConfiguratorProps) {
+export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, category, onColorChange, productInfo, cartItemId, onSuccess, onStepChange }: ConfiguratorProps) {
   const [webSettings, setWebSettings] = useState({
     web_promo_cash_discount: 15,
     web_promo_installments: "6 cuotas sin interés"
@@ -553,6 +554,7 @@ export function LensConfigurator({ basePrice, productId, category, onColorChange
                 model: productInfo.model,
                 price: calculateTotal(),
                 basePrice: basePrice,
+                wholesaleBasePrice: wholesaleBasePrice || 0,
                 image: productInfo.image,
                 lensColor: mapColorToHex(tintColor),
                 lensConfig: {
