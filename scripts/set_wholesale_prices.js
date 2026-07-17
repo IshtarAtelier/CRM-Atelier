@@ -5,7 +5,7 @@
 // públicos" — referencia Loveli: acetato $37-45k, sol $30-40k, clip-on $50.8k):
 //   Clip-on ......... $45.000   (categoría/nombre contiene "clip")
 //   Estelares ....... $45.000   (modelo empieza con G7/GS7)
-//   Sol ............. $29.000
+//   Sol ............. $32.000   (subido de 29k a pedido del usuario, 17/7)
 //   Receta (resto) .. $32.000   (bajado de 35k a pedido del usuario, 17/7)
 //
 // Uso:
@@ -16,7 +16,7 @@
 require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 
-const TIERS = { CLIP_ON: 45000, ESTELARES: 45000, SOL: 29000, RECETA: 32000 };
+const TIERS = { CLIP_ON: 45000, ESTELARES: 45000, SOL: 32000, RECETA: 32000 };
 
 const isProd = process.argv.includes('--prod');
 const confirmed = process.argv.includes('--yes');
