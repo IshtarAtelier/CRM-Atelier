@@ -103,7 +103,7 @@ export class SmartLabService {
             await page.waitForTimeout(2000);
 
             // ── Limpiar Filtro de Fechas y Cambiar a 100 registros para ver pedidos trabados ──
-            const stuckOrdersList: any[] = [];
+            let stuckOrdersList: any[] = [];
             const portalOrdersSeen: { num: string; client: string; date: string }[] = [];
             try {
                 console.log('[SmartLab Sync] Limpiando filtro de fechas via DOM...');
@@ -180,6 +180,46 @@ export class SmartLabService {
                 console.log(`[SmartLab Sync] Se encontraron ${stuckOrdersList.length} pedidos trabados/pendientes.`);
             } catch (errScrape) {
                 console.error('[SmartLab Sync] Error al obtener pedidos trabados:', errScrape);
+            }
+
+            // ── Excluir pedidos ANULADOS de los trabados: la tabla HTML no muestra
+            // ese estado, pero la API JSON del portal sí (campo Anulado) ──
+            if (stuckOrdersList.length > 0) {
+                try {
+                    const clientId = process.env.SMARTLAB_CLIENT_ID || '2462';
+                    const pendingNums = new Set(
+                        stuckOrdersList.map(o => (o.num.match(/\d{4,}/) || [])[0]).filter(Boolean)
+                    );
+                    const anulados = new Set<string>();
+                    for (let current = 1; current <= 10 && pendingNums.size > 0; current++) {
+                        const url = `https://grupooptico.dyndns.info/smartlab-api-v2/public/index.php/laboratory/order/list?rowPerPage=100&current=${current}` +
+                            `&isClient=1&isSeller=0&userId=${clientId}&sellerId=0` +
+                            `&search=&invoiceNumber=&sector=0&client=null&invoice=0&lensType=0&calibratedBy=0&zone=0`;
+                        const res: any = await page.evaluate(async (u) => {
+                            const r = await fetch(u, { credentials: 'include' });
+                            if (!r.ok) return { error: r.status };
+                            return await r.json();
+                        }, url);
+                        if (res?.error) throw new Error(`API SmartLab respondió ${res.error} en la página ${current}`);
+                        const apiRows: any[] = res?.rows || [];
+                        if (apiRows.length === 0) break;
+                        for (const r of apiRows) {
+                            const n = String(r.IdPedido || '');
+                            if (pendingNums.has(n)) {
+                                pendingNums.delete(n);
+                                if (r.Anulado === '1') anulados.add(n);
+                            }
+                        }
+                        await page.waitForTimeout(400);
+                    }
+                    if (anulados.size > 0) {
+                        const before = stuckOrdersList.length;
+                        stuckOrdersList = stuckOrdersList.filter(o => !anulados.has((o.num.match(/\d{4,}/) || [])[0] || o.num));
+                        console.log(`[SmartLab Sync] ${before - stuckOrdersList.length} pedidos trabados descartados por ANULADOS: ${[...anulados].join(', ')}`);
+                    }
+                } catch (errAnulados) {
+                    console.error('[SmartLab Sync] No se pudo verificar anulados (se alerta igual):', errAnulados);
+                }
             }
 
             // ── Control de huérfanos: pedidos del portal sin venta en el sistema ──
@@ -453,7 +493,19 @@ export class SmartLabService {
 
                     const newStuckOrders = stuckOrdersList.filter(o => !notifiedNums.includes(o.num));
 
-                    if (newStuckOrders.length > 0) {
+                    // Como máximo UNA alerta de trabados por día. Si estamos en ventana
+                    // de silencio, los nuevos NO se marcan como notificados: se acumulan
+                    // y salen todos juntos en el aviso del día siguiente.
+                    const STUCK_ALERT_MIN_INTERVAL_MS = 20 * 60 * 60 * 1000; // ~1/día con cron cada 4 h
+                    const lastStuckAlert = await prisma.systemSetting.findUnique({
+                        where: { key: 'smartlab_stuck_alert_last_at' }
+                    });
+                    const lastStuckAlertMs = lastStuckAlert?.value ? new Date(lastStuckAlert.value).getTime() : 0;
+                    const inQuietWindow = Date.now() - lastStuckAlertMs < STUCK_ALERT_MIN_INTERVAL_MS;
+
+                    if (newStuckOrders.length > 0 && inQuietWindow) {
+                        console.log(`[SmartLab Sync] ${newStuckOrders.length} trabados nuevos, pero la alerta diaria ya se envió — quedan para el próximo aviso.`);
+                    } else if (newStuckOrders.length > 0) {
                         console.log(`[SmartLab Sync] Detectados ${newStuckOrders.length} nuevos pedidos trabados. Enviando alertas...`);
                         
                         const orderDetailsText = newStuckOrders.map(o => 
@@ -487,6 +539,14 @@ export class SmartLabService {
                             where: { key: 'smartlab_notified_stuck_orders' },
                             update: { value: JSON.stringify(updatedNotifiedNums) },
                             create: { key: 'smartlab_notified_stuck_orders', value: JSON.stringify(updatedNotifiedNums) }
+                        });
+                        notifiedNums = updatedNotifiedNums;
+
+                        const nowIso = new Date().toISOString();
+                        await prisma.systemSetting.upsert({
+                            where: { key: 'smartlab_stuck_alert_last_at' },
+                            update: { value: nowIso },
+                            create: { key: 'smartlab_stuck_alert_last_at', value: nowIso }
                         });
                     }
 
