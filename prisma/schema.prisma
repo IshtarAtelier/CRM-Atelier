@@ -408,6 +408,7 @@ model Payment {
 
   @@index([orderId])
   @@index([createdById])
+  @@index([date])
 }
 
 model Doctor {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { serverCache } from '@/lib/cache';
+import { getActor } from '@/lib/actor';
 
 export const dynamic = 'force-dynamic';
 
@@ -427,11 +428,14 @@ export async function POST(req: Request) {
 
         if (type === 'STALLED_FAVORITE') {
             // Create a system interaction note to update last activity
+            const actor = getActor(req);
             await prisma.interaction.create({
                 data: {
                     clientId: id,
                     type: 'NOTE',
-                    content: 'Seguimiento finalizado (Oportunidad de Cierre)'
+                    content: `Seguimiento finalizado (Oportunidad de Cierre) por ${actor.name}`,
+                    userId: actor.id,
+                    userName: actor.name,
                 }
             });
             // Also trigger client updatedAt update

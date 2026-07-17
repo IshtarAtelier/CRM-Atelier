@@ -98,6 +98,13 @@ export async function middleware(request: NextRequest) {
         if (token) {
             const payload = await decrypt(token);
             if (payload) {
+                // Las cuentas OPTICA (mayoristas externos) solo deben ver /tienda:
+                // sin este check, una sesión OPTICA válida podía escribir en la
+                // ficha de cualquier cliente o mandar WhatsApp por la línea del negocio.
+                if (payload.role === 'OPTICA') {
+                    return NextResponse.json({ error: 'Acceso no autorizado' }, { status: 403 });
+                }
+
                 sanitizedHeaders.set('x-user-id', payload.id as string);
                 sanitizedHeaders.set('x-user-role', payload.role as string);
                 sanitizedHeaders.set('x-user-name', payload.name as string);
@@ -128,6 +135,9 @@ export async function middleware(request: NextRequest) {
         const payload = await decrypt(token);
         if (!payload) {
             return NextResponse.json({ error: 'Sesión inválida' }, { status: 401 });
+        }
+        if (payload.role === 'OPTICA') {
+            return NextResponse.json({ error: 'Acceso no autorizado' }, { status: 403 });
         }
         // Sesión válida: el que sube el archivo queda identificado
         sanitizedHeaders.set('x-user-id', payload.id as string);

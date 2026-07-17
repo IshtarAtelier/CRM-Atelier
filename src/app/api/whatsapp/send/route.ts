@@ -6,12 +6,13 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
 
-        // Identidad confiable: si hay sesión, el senderName sale del JWT (middleware),
-        // no del body (que era spoofeable vía localStorage). El bot entra por x-api-key
-        // sin sesión, así que su senderName del body se respeta. 'Sistema Atelier' se
-        // preserva para los mensajes automáticos disparados desde el CRM.
+        // Identidad confiable: si hay sesión, el senderName SIEMPRE sale del JWT
+        // (middleware), nunca del body — es spoofeable (localStorage, DevTools).
+        // Ningún flujo automático real llega con cookie de sesión, así que no
+        // hace falta (ni conviene) una excepción para 'Sistema Atelier': antes
+        // permitía a cualquier vendedor logueado lavar su firma mandándola en el body.
         const sessionUserName = request.headers.get('x-user-name');
-        if (sessionUserName && body.senderName !== 'Sistema Atelier') {
+        if (sessionUserName) {
             body.senderName = sessionUserName;
         }
 

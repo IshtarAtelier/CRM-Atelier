@@ -829,7 +829,9 @@ export async function POST(req: Request) {
           orderId: order.id,
           amount: finalItemsTotal,
           method: "TARJETA",
-          notes: `Pago aprobado por Payway. Transacción ID: ${paywayData.id}`
+          notes: `Pago aprobado por Payway. Transacción ID: ${paywayData.id}`,
+          createdById: null,
+          createdByName: "Sistema (Payway)"
         }
       });
 

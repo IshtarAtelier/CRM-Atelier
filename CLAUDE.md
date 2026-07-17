@@ -39,6 +39,33 @@ LOCAL (localhost:3000, base local) → rama `desarrollo` → testear → merge a
 - Si una migración falla por "column already exists" (drift): verificar que la
   columna exista y marcarla con `npx prisma migrate resolve --applied <nombre>`.
 
+## Trazabilidad de actor
+Toda mutación de negocio debe quedar firmada con quién la hizo — ficha del cliente,
+AuditLog y emails/WhatsApp que la mencionen.
+- El middleware (`src/middleware.ts`) valida el JWT de la cookie `session` y
+  reinyecta `x-user-id` / `x-user-name` / `x-user-role` en TODA request API
+  autenticada, sobrescribiendo lo que mande el cliente (son confiables). Leerlos
+  SOLO con `getActor(request)` de `src/lib/actor.ts` — nunca a mano desde headers.
+- Shape canónico para services NUEVOS: parámetro opcional final `actor?: Actor`
+  (patrón de `contact.service.ts`). No inventar variantes nuevas — hoy conviven
+  4 shapes distintas por deuda histórica (`Actor` tipado, `userId/userName`
+  posicionales en `order.service.ts`, `actorId/actorName` sueltos en
+  `billing.service.ts`, string armado en `copilot-tools.ts`); si tocás uno de
+  esos archivos, migrar ese call site a `Actor` es bienvenido pero no obligatorio.
+- Toda mutación de negocio: crea una `Interaction` firmada (`userId` + `userName`,
+  y el nombre interpolado en `content`) y llama `logAudit()` aparte (nunca lanza,
+  `src/lib/audit.ts`). Para borrados u otras mutaciones destructivas, `await`
+  el `logAudit` (garantiza la fila commiteada antes de responder); para el resto,
+  fire-and-forget con `.catch(console.error)` alcanza.
+- Acciones sin humano detrás: usar `SYSTEM_ACTOR` / `BOT_ACTOR` de `actor.ts`
+  (`'Sistema'` para crons/procesos automáticos, `'Bot'` para el bot de WhatsApp,
+  `'Sistema (Payway)'` para pagos del checkout web).
+- Extender `AuditAction` / `AuditEntityType` (`src/lib/audit.ts`) es agregar un
+  valor al union type — la columna en Postgres es `String` plano, no requiere migración.
+- Pendiente conocido: revalidación del JWT contra la DB (dura 24h; un usuario
+  borrado o con rol degradado sigue operando con los permisos viejos hasta que
+  expira). No resuelto — evaluar antes de cualquier cambio a la duración del token.
+
 ## Pendientes / notas
 - Token de GitHub en texto plano en `.git/config` (remote origin) — conviene rotar
   y pasar a credential helper.

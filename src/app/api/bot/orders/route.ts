@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService } from '@/services/PricingService';
+import { BOT_ACTOR } from '@/lib/actor';
 
 export const dynamic = 'force-dynamic';
 
@@ -155,7 +156,9 @@ export async function POST(request: Request) {
             data: {
                 clientId,
                 type: 'BUDGET_SENT',
-                content: `🤖 Presupuesto generado automáticamente vía WhatsApp por $${order.total.toLocaleString('es-AR')}\n\nProductos:\n• ${itemSummaries}`
+                content: `🤖 Presupuesto generado automáticamente vía WhatsApp por $${order.total.toLocaleString('es-AR')}\n\nProductos:\n• ${itemSummaries}`,
+                userId: BOT_ACTOR.id,
+                userName: BOT_ACTOR.name,
             }
         });
 

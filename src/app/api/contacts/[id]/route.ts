@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
+import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
@@ -32,8 +33,13 @@ export async function PATCH(
         const { id } = await params;
         const body = await request.json();
 
-        // Foto previa para auditar solo los campos que cambian
-        const before = await ContactService.getById(id);
+        // Foto previa para auditar solo los campos que cambian — select liviano
+        // (no ContactService.getById: trae todo el dossier del cliente —
+        // interactions/prescriptions/orders completos — solo para diffear 6 escalares)
+        const before = await prisma.client.findUnique({
+            where: { id },
+            select: { name: true, phone: true, dni: true, email: true, doctor: true, insurance: true },
+        });
 
         const contact = await ContactService.update(id, body);
 

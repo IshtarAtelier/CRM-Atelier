@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { BOT_ACTOR } from '@/lib/actor';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,9 @@ export async function POST(request: Request) {
             data: {
                 clientId,
                 type: 'NOTE',
-                content: `🤖 Bot creó tarea: ${description}`
+                content: `🤖 Bot creó tarea: ${description}`,
+                userId: BOT_ACTOR.id,
+                userName: BOT_ACTOR.name,
             }
         });
 

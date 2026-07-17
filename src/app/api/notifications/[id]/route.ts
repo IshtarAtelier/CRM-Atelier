@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
-import { ContactService } from '@/services/contact.service';
 import { OrderService } from '@/services/order.service';
 
 // PATCH /api/notifications/[id] — Approve, reject, or mark delivered
@@ -13,6 +12,7 @@ export async function PATCH(
         const { id } = await params;
         const headersList = await headers();
         const role = headersList.get('x-user-role') || 'STAFF';
+        const adminId = headersList.get('x-user-id');
         const adminName = headersList.get('x-user-name') || 'Admin';
 
         const body = await request.json();
@@ -59,7 +59,10 @@ export async function PATCH(
         // If approving a DELETE_REQUEST, execute the deletion
         if (action === 'APPROVED' && notification.type === 'DELETE_REQUEST' && notification.orderId) {
             try {
-                await ContactService.deleteOrder(notification.orderId, `Aprobado por ${adminName} — Solicitado por ${notification.requestedBy}`);
+                // OrderService.deleteOrder (no ContactService.deleteOrder): es la única
+                // vía que deja snapshot de pagos + logAudit + entrada en la ficha del
+                // cliente. Role ya es ADMIN acá (gate de la línea 30-38 lo garantiza).
+                await OrderService.deleteOrder(notification.orderId, `Aprobado por ${adminName} — Solicitado por ${notification.requestedBy}`, role, adminId, adminName);
             } catch (err: any) {
                 return NextResponse.json({ error: `Error al eliminar la orden: ${err.message}` }, { status: 500 });
             }
@@ -71,7 +74,7 @@ export async function PATCH(
                 return NextResponse.json({ error: 'Notificación inválida para marcar como entregado' }, { status: 400 });
             }
             try {
-                await OrderService.updateOrder(notification.orderId, { labStatus: 'DELIVERED' });
+                await OrderService.updateOrder(notification.orderId, { labStatus: 'DELIVERED' }, adminId, adminName, role);
                 finalStatus = 'RESOLVED';
             } catch (err: any) {
                 return NextResponse.json({ error: `Error al actualizar la orden: ${err.message}` }, { status: 500 });

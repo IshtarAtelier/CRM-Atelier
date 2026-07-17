@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { ContactService } from '@/services/contact.service';
 import { getActor } from '@/lib/actor';
@@ -17,7 +18,7 @@ const MAX_PAGE_SIZE = 200;
  * monto formateado, teléfono) se resuelven con un query crudo porque
  * `contains` de Prisma no puede aplicar regexp_replace.
  */
-async function buildSearchWhere(q: string) {
+async function buildSearchWhere(q: string, fromDate: Date | null, toDate: Date | null) {
     const query = q.toLowerCase();
     const or: any[] = [
         { notes: { contains: query, mode: 'insensitive' } },
@@ -28,12 +29,18 @@ async function buildSearchWhere(q: string) {
     const qDigits = digitsOnly(query);
     if (qDigits.length >= MIN_DIGITS_FOR_NUMERIC_MATCH) {
         const pattern = `%${qDigits}%`;
+        // El resultado igual se intersecta con whereClause (que ya trae from/to),
+        // así que acotar acá evita escanear pagos que van a descartarse después.
+        const dateFilter = Prisma.sql`
+            ${fromDate ? Prisma.sql`AND p."date" >= ${fromDate}` : Prisma.empty}
+            ${toDate ? Prisma.sql`AND p."date" <= ${toDate}` : Prisma.empty}
+        `;
         const rows = await prisma.$queryRaw<{ id: string }[]>`
             SELECT p.id
             FROM "Payment" p
             JOIN "Order" o ON o.id = p."orderId"
             LEFT JOIN "Client" c ON c.id = o."clientId"
-            WHERE o."isDeleted" = false AND (
+            WHERE o."isDeleted" = false ${dateFilter} AND (
                 regexp_replace(coalesce(p.notes, ''), '\\D', '', 'g') LIKE ${pattern}
                 OR trunc(p.amount)::bigint::text LIKE ${pattern}
                 OR regexp_replace(coalesce(c.phone, ''), '\\D', '', 'g') LIKE ${pattern}
@@ -112,7 +119,7 @@ export async function GET(request: Request) {
         // La búsqueda solo acota la lista paginada; los KPIs siguen mostrando
         // el período completo (igual que cuando el filtrado era client-side).
         const listWhere = q
-            ? { AND: [whereClause, await buildSearchWhere(q)] }
+            ? { AND: [whereClause, await buildSearchWhere(q, dateFilter.gte ?? null, dateFilter.lte ?? null)] }
             : whereClause;
 
         const [totals, byMethod, matchCount, page] = await Promise.all([

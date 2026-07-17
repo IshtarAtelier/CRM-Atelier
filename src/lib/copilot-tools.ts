@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { PricingService } from '@/services/PricingService';
 import { resolveMonthlyTargets } from '@/lib/targets';
+import { logAudit } from '@/lib/audit';
 
 // ═══════════════════════════════════════════════════
 // Tipos
@@ -357,14 +358,14 @@ const updateLabOrder: CopilotTool = {
             }
         }).catch(err => console.error('Error registrando cambio de estado (Copilot):', err));
 
-        import('@/lib/audit').then(({ logAudit }) => logAudit({
+        logAudit({
             userId: ctx.userId || null,
             userName: copilotActor,
             action: 'STATUS_CHANGE',
             entityType: 'ORDER',
             entityId: order.id,
             details: { from: order.labStatus, to: finalStatus, labOrderNumber: labOrderNumber || null }
-        })).catch(console.error);
+        }).catch(console.error);
     }
 
     let sideEffectMsg = '';
@@ -784,7 +785,7 @@ const getFinancialReport: CopilotTool = {
       where: { orderType: 'SALE', isDeleted: false, createdAt: { gte: from, lte: to } },
       select: {
         total: true, paid: true, subtotalWithMarkup: true,
-        items: { select: { price: true, quantity: true, productCostSnapshot: true, productUnitTypeSnapshot: true, product: { select: { cost: true, unitType: true, category: true } } } },
+        items: { select: { price: true, quantity: true, eye: true, productCostSnapshot: true, productUnitTypeSnapshot: true, product: { select: { cost: true, unitType: true, category: true } } } },
         payments: { select: { amount: true, method: true } },
       },
     });
@@ -797,7 +798,9 @@ const getFinancialReport: CopilotTool = {
         // Snapshot-first: la línea conserva costo/unidad aunque el producto haya sido borrado.
         const unitCost = item.productCostSnapshot ?? item.product?.cost ?? 0;
         const unitType = item.productUnitTypeSnapshot ?? item.product?.unitType ?? null;
-        let cost = unitCost * item.quantity;
+        // Cristales: costo POR PAR guardado en dos ítems (eye OD/OI), cada ojo cuenta la mitad.
+        const perEyeHalf = item.eye ? 0.5 : 1;
+        let cost = unitCost * perEyeHalf * item.quantity;
         if (unitType === 'PAR' && item.price === 0) cost = 0;
         totalCost += cost;
       }

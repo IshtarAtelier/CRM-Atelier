@@ -219,6 +219,8 @@ export async function POST(request: Request) {
                     clientId,
                     type: 'BUDGET_SENT',
                     content: historyContent,
+                    userId,
+                    userName: headersList.get('x-user-name'),
                 },
             });
 

@@ -46,13 +46,10 @@ export async function DELETE(
         const userId = headersList.get('x-user-id');
         const userName = headersList.get('x-user-name') || 'Administrador';
 
-        // Registrar en la ficha del cliente (Línea de Tiempo) con el nombre real
-        if (payment.order?.clientId) {
-            const formattedAmount = payment.amount.toLocaleString('es-AR');
-            const interactionText = `🗑️ ${userName} eliminó un registro de pago por $${formattedAmount} (${payment.method}). Motivo: Eliminación manual / Corrección de caja.`;
-            await ContactService.addInteraction(payment.order.clientId, 'SISTEMA', interactionText, { id: userId, name: userName, role: 'ADMIN' });
-        }
-
+        // El AuditLog va PRIMERO y siempre: es el único rastro garantizado de
+        // este borrado. Si la Interaction de la ficha (best-effort, con catch)
+        // falla, la operación no debe devolver 500 con el pago ya borrado y sin
+        // ningún registro de quién lo hizo.
         await logAudit({
             userId,
             userName,
@@ -65,9 +62,17 @@ export async function DELETE(
                 orderId: payment.orderId,
                 notes: payment.notes,
                 receiptUrl: payment.receiptUrl,
-                createdByName: (payment as any).createdByName || null
+                createdByName: payment.createdByName || null
             }
         });
+
+        // Registrar en la ficha del cliente (Línea de Tiempo) con el nombre real
+        if (payment.order?.clientId) {
+            const formattedAmount = payment.amount.toLocaleString('es-AR');
+            const interactionText = `🗑️ ${userName} eliminó un registro de pago por $${formattedAmount} (${payment.method}). Motivo: Eliminación manual / Corrección de caja.`;
+            await ContactService.addInteraction(payment.order.clientId, 'SISTEMA', interactionText, { id: userId, name: userName, role: 'ADMIN' })
+                .catch(err => console.error('Error registrando borrado de pago en ficha:', err));
+        }
 
         return NextResponse.json(deletedPayment);
     } catch (error: any) {

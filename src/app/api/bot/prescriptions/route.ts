@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { uploadFile } from '@/lib/storage';
 import { ContactService } from '@/services/contact.service';
+import { BOT_ACTOR } from '@/lib/actor';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,14 +49,16 @@ export async function POST(request: Request) {
         };
 
         // Llamar a la capa de servicios para que ejecute validaciones y anti-duplicados
-        const prescription = await ContactService.addPrescription(clientId, mappedData);
+        const prescription = await ContactService.addPrescription(clientId, mappedData, BOT_ACTOR);
 
         // Log interaction
         await prisma.interaction.create({
             data: {
                 clientId,
                 type: 'NOTE',
-                content: `🤖 Bot procesó y cargó una nueva receta vía OCR.`
+                content: `🤖 Bot procesó y cargó una nueva receta vía OCR.`,
+                userId: BOT_ACTOR.id,
+                userName: BOT_ACTOR.name,
             }
         });
 

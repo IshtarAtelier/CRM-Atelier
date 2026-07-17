@@ -5,6 +5,7 @@ import { uploadFile, getSignedUrl } from '@/lib/storage';
 import fs from 'fs';
 import path from 'path';
 import { retryWithBackoff, isTransientNetworkError } from '@/lib/retry-utils';
+import { logAudit } from '@/lib/audit';
 
 // Logo en base64 para incluir en los PDFs de factura
 let logoBase64Cache: string | null = null;
@@ -250,15 +251,16 @@ export const BillingService = {
 
             return { ...invoice, voucherLabel };
         }).then(async (created) => {
-            const { logAudit } = await import('@/lib/audit');
-            logAudit({
+            // Awaited: la factura es dinero — garantiza la fila de AuditLog
+            // commiteada antes de responder (logAudit nunca lanza)
+            await logAudit({
                 userId: actorId || null,
                 userName: actorName || 'Sistema',
                 action: 'CREATE',
                 entityType: 'INVOICE',
                 entityId: created.id,
                 details: { orderId, voucherLabel: created.voucherLabel, totalAmount, billingAccount: account, cae: result.CAE }
-            }).catch(console.error);
+            });
             return created;
         });
     },

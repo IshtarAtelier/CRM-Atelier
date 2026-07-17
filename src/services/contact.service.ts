@@ -987,8 +987,13 @@ export const ContactService = {
             include: {
                 tags: true,
                 tasks: true,
+                // Tope duro: sin esto, un cliente recurrente con años de historial
+                // (pagos/estados/tareas ahora todos firmados) trae cientos de filas
+                // en cada apertura de ficha. 100 cubre el uso normal; si hace falta
+                // ver más atrás, la vía es un endpoint paginado (no existe todavía).
                 interactions: {
-                    orderBy: { createdAt: 'desc' }
+                    orderBy: { createdAt: 'desc' },
+                    take: 100,
                 },
                 prescriptions: {
                     orderBy: { date: 'desc' }
@@ -1809,7 +1814,7 @@ export const ContactService = {
                 discountCash: financials.discountCash,
                 discountTransfer: financials.discountTransfer
             };
-        }, { maxWait: 25000, timeout: 25000 }).then(result => {
+        }, { maxWait: 25000, timeout: 25000 }).then(async result => {
             // Si es efectivo, verificar alerta de saldo fuera de la transacción
             if (method === 'EFECTIVO' || method === 'CASH') {
                 CashService.checkBalanceAndAlert().catch(err => console.error('Error in cash alert:', err));
@@ -1826,15 +1831,18 @@ export const ContactService = {
                     console.error('Error sending cash email alert:', e);
                 }
             }
-            // Registro de auditoría: quién cargó el pago, cuánto y cómo
-            logAudit({
+            // Registro de auditoría: quién cargó el pago, cuánto y cómo.
+            // Awaited (logAudit nunca lanza): garantiza la fila commiteada antes
+            // de responder — si no, un redeploy en el instante siguiente pierde
+            // el rastro de un pago real ya confirmado.
+            await logAudit({
                 userId: actor?.id || null,
                 userName: actorName,
                 action: 'CREATE',
                 entityType: 'PAYMENT',
                 entityId: result.id,
                 details: { orderId, amount, method, notes: notes || null, receiptUrl: receiptUrl || null }
-            }).catch(console.error);
+            });
 
             // FIRE BACKGROUND AI VERIFICATION IF RECEIPT EXISTS
             if (receiptUrl) {
@@ -2390,16 +2398,17 @@ export const ContactService = {
             });
 
             return updatedPayment;
-        }, { maxWait: 25000, timeout: 25000 }).then(result => {
-            // Registro de auditoría con el diff completo de la edición
-            logAudit({
+        }, { maxWait: 25000, timeout: 25000 }).then(async result => {
+            // Registro de auditoría con el diff completo de la edición (awaited:
+            // garantiza la fila commiteada antes de responder, ver addPayment)
+            await logAudit({
                 userId: actor?.id || null,
                 userName: actorName,
                 action: 'UPDATE',
                 entityType: 'PAYMENT',
                 entityId: paymentId,
                 details: { updates }
-            }).catch(console.error);
+            });
             return result;
         });
     },
