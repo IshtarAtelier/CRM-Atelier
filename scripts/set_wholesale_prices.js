@@ -6,7 +6,7 @@
 //   Clip-on ......... $45.000   (categoría/nombre contiene "clip")
 //   Estelares ....... $45.000   (modelo empieza con G7/GS7)
 //   Sol ............. $29.000
-//   Receta (resto) .. $35.000
+//   Receta (resto) .. $32.000   (bajado de 35k a pedido del usuario, 17/7)
 //
 // Uso:
 //   node scripts/set_wholesale_prices.js            → corre contra DATABASE_URL (local)
@@ -16,7 +16,7 @@
 require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 
-const TIERS = { CLIP_ON: 45000, ESTELARES: 45000, SOL: 29000, RECETA: 35000 };
+const TIERS = { CLIP_ON: 45000, ESTELARES: 45000, SOL: 29000, RECETA: 32000 };
 
 const isProd = process.argv.includes('--prod');
 const confirmed = process.argv.includes('--yes');
