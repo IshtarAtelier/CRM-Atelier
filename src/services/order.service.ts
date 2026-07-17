@@ -533,7 +533,7 @@ export class OrderService {
             const existingSnapshots = await prisma.orderItem.findMany({
                 where: { orderId: id },
                 select: {
-                    id: true, productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
+                    id: true, productId: true, productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                     productCostSnapshot: true, laboratorySnapshot: true, productTypeSnapshot: true,
                     productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
                 },
@@ -549,6 +549,35 @@ export class OrderService {
                     const isOI = item.eye === 'OI';
                     const isCrystal = dbProd && (dbProd.category === 'Cristal' || (dbProd.type || '').includes('Cristal'));
 
+                    const liveSnap = snapshotFromProduct(dbProd, {
+                        name: prev?.productNameSnapshot ?? item.productNameSnapshot,
+                        brand: prev?.productBrandSnapshot ?? item.productBrandSnapshot,
+                        category: prev?.productCategorySnapshot ?? item.productCategorySnapshot,
+                        cost: prev?.productCostSnapshot ?? item.productCostSnapshot,
+                        laboratory: prev?.laboratorySnapshot ?? item.laboratorySnapshot,
+                        type: prev?.productTypeSnapshot ?? item.productTypeSnapshot,
+                        lensIndex: prev?.productLensIndexSnapshot ?? item.productLensIndexSnapshot,
+                        unitType: prev?.productUnitTypeSnapshot ?? item.productUnitTypeSnapshot,
+                        origin: prev?.productOriginSnapshot ?? item.productOriginSnapshot,
+                    });
+                    // Línea preexistente que sigue siendo el MISMO producto: la foto congelada
+                    // manda (editar la orden no debe re-estampar el costo histórico con el costo
+                    // vivo de hoy); lo vivo solo rellena campos que la foto nunca tuvo. Si la
+                    // línea cambió de producto (o es nueva), foto fresca del producto actual.
+                    const snap = prev && prev.productId === (item.productId || null)
+                        ? {
+                            productNameSnapshot: prev.productNameSnapshot ?? liveSnap.productNameSnapshot,
+                            productBrandSnapshot: prev.productBrandSnapshot ?? liveSnap.productBrandSnapshot,
+                            productCategorySnapshot: prev.productCategorySnapshot ?? liveSnap.productCategorySnapshot,
+                            productCostSnapshot: prev.productCostSnapshot ?? liveSnap.productCostSnapshot,
+                            laboratorySnapshot: prev.laboratorySnapshot ?? liveSnap.laboratorySnapshot,
+                            productTypeSnapshot: prev.productTypeSnapshot ?? liveSnap.productTypeSnapshot,
+                            productLensIndexSnapshot: prev.productLensIndexSnapshot ?? liveSnap.productLensIndexSnapshot,
+                            productUnitTypeSnapshot: prev.productUnitTypeSnapshot ?? liveSnap.productUnitTypeSnapshot,
+                            productOriginSnapshot: prev.productOriginSnapshot ?? liveSnap.productOriginSnapshot,
+                        }
+                        : liveSnap;
+
                     return {
                         productId: item.productId || null,
                         quantity: item.quantity,
@@ -558,17 +587,7 @@ export class OrderService {
                         cylinderVal: isCrystal && rxDetails ? (isOD ? rxDetails.cylinderOD : rxDetails.cylinderOI) : (item.cylinderVal ?? null),
                         axisVal: isCrystal && rxDetails ? (isOD ? rxDetails.axisOD : rxDetails.axisOI) : (item.axisVal ?? null),
                         additionVal: isCrystal && rxDetails ? (isOD ? (rxDetails.additionOD ?? rxDetails.addition) : (rxDetails.additionOI ?? rxDetails.addition)) : (item.additionVal ?? null),
-                        ...snapshotFromProduct(dbProd, {
-                            name: prev?.productNameSnapshot ?? item.productNameSnapshot,
-                            brand: prev?.productBrandSnapshot ?? item.productBrandSnapshot,
-                            category: prev?.productCategorySnapshot ?? item.productCategorySnapshot,
-                            cost: prev?.productCostSnapshot ?? item.productCostSnapshot,
-                            laboratory: prev?.laboratorySnapshot ?? item.laboratorySnapshot,
-                            type: prev?.productTypeSnapshot ?? item.productTypeSnapshot,
-                            lensIndex: prev?.productLensIndexSnapshot ?? item.productLensIndexSnapshot,
-                            unitType: prev?.productUnitTypeSnapshot ?? item.productUnitTypeSnapshot,
-                            origin: prev?.productOriginSnapshot ?? item.productOriginSnapshot,
-                        }),
+                        ...snap,
                         crystalColor: item.crystalColor || null,
                         crystalColorType: item.crystalColorType || null,
                     };
@@ -608,7 +627,7 @@ export class OrderService {
                         select: { amount: true, method: true, receiptUrl: true }
                     },
                     client: {
-                        select: { email: true }
+                        select: { email: true, birthDate: true }
                     }
                 }
             });
@@ -624,6 +643,11 @@ export class OrderService {
                     // 0. Email validation (required for CAPI and billing)
                     if (!orderForValidation.client?.email) {
                         errors.push('El cliente debe tener un email registrado para enviar a fábrica (necesario para CAPI y facturación).');
+                    }
+
+                    // 0b. Birth date (dato obligatorio de la ficha para fabricar)
+                    if (!orderForValidation.client?.birthDate) {
+                        errors.push('El cliente debe tener la fecha de nacimiento cargada en su ficha para enviar a fábrica.');
                     }
 
                     // 1. Crystal validations
