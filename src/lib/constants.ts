@@ -12,6 +12,12 @@ export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.isht
 // futuro, mover esta fecha (el server además admite override por ATTENTION_CUTOFF_DATE).
 export const ATTENTION_CUTOFF_ISO = '2026-07-06T18:16:07.000Z';
 
+// Rendiciones de efectivo (vendedor → encargada de caja) — inicio del circuito.
+// Los cobros en efectivo anteriores a esta fecha no cuentan como "pendientes de
+// rendición": ese histórico se considera ya entregado/conciliado por fuera del
+// sistema. La primera rendición de cada vendedor arranca desde acá.
+export const RENDICION_CUTOFF_ISO = '2026-07-17T00:00:00.000Z';
+
 // Conciliación de costos de laboratorio — inicio de la auditoría.
 // Verificado contra producción el 2026-07-15: primera venta del CRM el 7/4/2026,
 // primer pedido CON número de operación el 8/4/2026 18:54 (ART). La auditoría

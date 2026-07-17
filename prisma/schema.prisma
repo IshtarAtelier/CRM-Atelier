@@ -102,6 +102,53 @@ model VendorCashEntry {
   @@index([createdAt])
 }
 
+// Rendición de efectivo: un vendedor entrega a la encargada de caja los cobros
+// en efectivo que recibió. Doble confirmación: el vendedor la registra (PENDING)
+// y la encargada/ADMIN la confirma contando la plata (CONFIRMED). Denormalizado
+// (nombres + snapshot de pagos en Json) para que el historial sobreviva a
+// borrados de usuarios/pagos.
+model CashHandover {
+  id              String    @id @default(cuid())
+  vendorId        String
+  vendorName      String
+  status          String    @default("PENDING") // PENDING | CONFIRMED
+  expectedAmount  Float // suma de cobros en efectivo del período según el sistema
+  declaredAmount  Float // lo que el vendedor declara entregar
+  countedAmount   Float? // lo que la encargada cuenta al recibir
+  difference      Float? // countedAmount − expectedAmount (al confirmar)
+  periodFrom      DateTime
+  periodTo        DateTime
+  payments        Json // snapshot [{id, amount, date, client}]
+  notes           String?
+  confirmedById   String?
+  confirmedByName String?
+  confirmedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Arqueo de caja (cierre de lote): la encargada/ADMIN cuenta el efectivo físico
+// y lo compara contra el saldo teórico del sistema. Queda el período cubierto y
+// un resumen de movimientos para auditar diferencias.
+model CashCount {
+  id               String   @id @default(cuid())
+  theoreticalTotal Float // saldo teórico de caja al momento del arqueo
+  countedAmount    Float // efectivo físico contado
+  difference       Float // countedAmount − theoreticalTotal
+  periodFrom       DateTime // desde el arqueo anterior (o inicio del circuito)
+  periodTo         DateTime
+  summary          Json // {paymentsTotal, manualIn, manualOut, movementsCount} del período
+  notes            String?
+  closedById       String?
+  closedByName     String?
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model Interaction {
   id        String   @id @default(cuid())
   clientId  String

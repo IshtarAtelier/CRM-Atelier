@@ -176,6 +176,12 @@ export default function CajaPage() {
                         Registrá ingresos y egresos de efectivo
                     </p>
                 </div>
+                <a
+                    href="/admin/caja/cierres"
+                    className="px-5 py-3 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-black uppercase tracking-widest text-stone-600 dark:text-stone-300 hover:border-primary/50 hover:text-primary transition-all text-center"
+                >
+                    ⚖️ Rendición y Arqueo
+                </a>
             </div>
 
             {/* Action Buttons — Two big buttons */}
