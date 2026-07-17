@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
     Loader2, ArrowLeft, HandCoins, ClipboardCheck, CheckCircle2,
-    AlertCircle, ChevronDown, ChevronUp, Scale, X
+    AlertCircle, ChevronDown, ChevronUp, Scale, X, BookOpen, Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -60,6 +60,18 @@ export default function CierresCajaPage() {
     const [arqueoNotes, setArqueoNotes] = useState('');
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
+    const [showGuide, setShowGuide] = useState(false);
+
+    // Capacitación integrada: la guía se abre sola la primera vez que el
+    // usuario entra a esta pantalla; después queda en el botón "Guía".
+    useEffect(() => {
+        try {
+            if (!localStorage.getItem('cierres-guia-vista')) {
+                setShowGuide(true);
+                localStorage.setItem('cierres-guia-vista', '1');
+            }
+        } catch { }
+    }, []);
 
     const notify = (type: 'ok' | 'error', text: string) => {
         setToast({ type, text });
@@ -177,21 +189,29 @@ export default function CierresCajaPage() {
             )}
 
             {/* Header */}
-            <div className="flex items-center gap-4 bg-white dark:bg-stone-900 p-6 sm:p-8 rounded-[2rem] border border-stone-100 dark:border-stone-800 shadow-sm">
-                <Link href="/admin/caja" className="p-3 bg-stone-50 dark:bg-stone-800 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors">
-                    <ArrowLeft className="w-5 h-5 text-stone-400" />
-                </Link>
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                            <Scale className="w-5 h-5" />
-                        </div>
-                        Rendición y Arqueo
-                    </h1>
-                    <p className="text-stone-400 text-xs mt-1.5 font-medium">
-                        Entregas de efectivo a la encargada de caja y cierres de lote
-                    </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-stone-900 p-6 sm:p-8 rounded-[2rem] border border-stone-100 dark:border-stone-800 shadow-sm">
+                <div className="flex items-center gap-4">
+                    <Link href="/admin/caja" className="p-3 bg-stone-50 dark:bg-stone-800 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors">
+                        <ArrowLeft className="w-5 h-5 text-stone-400" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-black text-stone-800 dark:text-white tracking-tight flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                                <Scale className="w-5 h-5" />
+                            </div>
+                            Rendición y Arqueo
+                        </h1>
+                        <p className="text-stone-400 text-xs mt-1.5 font-medium">
+                            Entregas de efectivo a la encargada de caja y cierres de lote
+                        </p>
+                    </div>
                 </div>
+                <button
+                    onClick={() => setShowGuide(true)}
+                    className="px-5 py-3 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-black uppercase tracking-widest text-stone-600 dark:text-stone-300 hover:border-primary/50 hover:text-primary transition-all flex items-center justify-center gap-2 shrink-0"
+                >
+                    <BookOpen size={15} /> Guía
+                </button>
             </div>
 
             {/* Mi pendiente de rendición */}
@@ -386,6 +406,110 @@ export default function CierresCajaPage() {
                         </div>
                     )}
                 </section>
+            )}
+
+            {/* Guía de capacitación integrada */}
+            {showGuide && (
+                <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setShowGuide(false)}>
+                    <div className="bg-white dark:bg-stone-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-300 max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 sm:p-8">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                                        <BookOpen className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black text-stone-800 dark:text-white tracking-tight">Cómo funciona esta pantalla</h3>
+                                        <p className="text-stone-400 text-[10px] font-black uppercase tracking-widest">Guía paso a paso</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowGuide(false)} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-full transition-colors">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <p className="text-xs text-stone-500 font-medium mt-4 mb-5 leading-relaxed">
+                                Cada cobro en efectivo queda anotado a nombre de quien lo recibió. La plata se entrega
+                                con una <b>rendición</b> (doble confirmación: uno entrega, otro cuenta) y la caja se
+                                controla con <b>arqueos</b>. Nada queda sin registrar.
+                            </p>
+
+                            {/* Pasos del vendedor */}
+                            <div className="mb-5">
+                                <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-3">💵 Para entregar tu efectivo (vendedores)</p>
+                                <div className="space-y-3">
+                                    {[
+                                        ['Mirá tu pendiente', 'Arriba ves "Mi efectivo pendiente de rendición": el total y, en "Ver detalle", cada cobro con cliente, fecha y monto.'],
+                                        ['Contá la plata física', 'Antes de tocar nada, contá los billetes que vas a entregar. Debería dar igual a lo que dice el sistema.'],
+                                        ['Registrá la entrega', 'Botón "Registrar Entrega". Poné el monto REAL que entregás; si no coincide con el sistema, explicalo en la nota — nunca acomodes el número.'],
+                                        ['Entregá la plata en mano', 'Tu entrega queda PENDIENTE hasta que la encargada la cuente y confirme. Si dio bien vas a ver "Coincide ✓".'],
+                                    ].map(([t, d], i) => (
+                                        <div key={i} className="flex gap-3">
+                                            <div className="w-7 h-7 rounded-full bg-stone-900 dark:bg-white text-primary dark:text-stone-900 font-black text-sm flex items-center justify-center shrink-0">{i + 1}</div>
+                                            <div>
+                                                <p className="text-sm font-black text-stone-800 dark:text-white leading-tight">{t}</p>
+                                                <p className="text-xs text-stone-500 font-medium leading-relaxed">{d}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-3 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-xl">
+                                    <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400 leading-relaxed">
+                                        <b>Reglas:</b> una entrega pendiente a la vez · nadie confirma su propia entrega ·
+                                        rendí el mismo día que cobraste, apenas esté la encargada.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Pasos de la encargada */}
+                            {canManage && (
+                                <div className="mb-5">
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-3">💰 Para la encargada de caja</p>
+                                    <div className="space-y-3">
+                                        {[
+                                            ['Contá ANTES de mirar los números', 'Recibí el efectivo y contalo sin mirar cuánto dice el sistema ni cuánto declaró el vendedor. Tu conteo independiente es el valor del doble control.'],
+                                            ['"Contar y Confirmar"', 'Ingresá lo que contaste. El sistema compara solo contra lo cobrado según registros y lo declarado. Si difiere, queda sellado y administración recibe un email al instante.'],
+                                            ['Arqueo al cierre del día', 'Contá TODO el efectivo del local, ingresalo en "Arqueo de caja" y cerrá. Queda teórico, contado, diferencia y quién cerró. Hacelo a diario y antes/después de cada retiro grande.'],
+                                        ].map(([t, d], i) => (
+                                            <div key={i} className="flex gap-3">
+                                                <div className="w-7 h-7 rounded-full bg-primary text-white font-black text-sm flex items-center justify-center shrink-0">{i + 1}</div>
+                                                <div>
+                                                    <p className="text-sm font-black text-stone-800 dark:text-white leading-tight">{t}</p>
+                                                    <p className="text-xs text-stone-500 font-medium leading-relaxed">{d}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="p-3.5 bg-stone-50 dark:bg-stone-900 rounded-xl mb-5">
+                                <p className="text-[11px] font-medium text-stone-500 leading-relaxed">
+                                    <b className="text-stone-700 dark:text-stone-300">Regla de oro:</b> las diferencias se
+                                    registran, no se tapan. Una diferencia declarada a tiempo es un ajuste; una escondida
+                                    es un problema. Ante cualquier cosa rara, usá el campo de nota y avisá.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <a
+                                    href="/manuales/capacitacion-caja-rendicion-arqueo.pdf"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 py-4 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl text-[10px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-300 hover:border-primary/50 hover:text-primary transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Download size={14} /> Manual completo (PDF)
+                                </a>
+                                <button
+                                    onClick={() => setShowGuide(false)}
+                                    className="flex-1 py-4 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+                                >
+                                    Entendido
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Modal registrar entrega */}
