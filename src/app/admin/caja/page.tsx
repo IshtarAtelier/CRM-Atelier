@@ -272,6 +272,15 @@ export default function CajaPage() {
                                             </span>
                                             <span className="text-stone-200 dark:text-stone-700">|</span>
                                             <span>{m.createdAt ? format(new Date(m.createdAt), 'dd MMM, HH:mm', { locale: es }) : '---'}</span>
+                                            {m.user?.name && (
+                                                <>
+                                                    <span className="text-stone-200 dark:text-stone-700">|</span>
+                                                    <span className="truncate">
+                                                        {m.category === 'VENTA' ? `Cobró ${m.user.name}` : `Registró ${m.user.name}`}
+                                                        {m.category === 'VENTA' && m.seller && m.seller !== m.user.name ? ` · venta de ${m.seller}` : ''}
+                                                    </span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
 

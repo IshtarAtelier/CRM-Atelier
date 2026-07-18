@@ -58,15 +58,18 @@ export const CashService = {
             take: 50
         });
 
-        // Convertir pagos a formato de movimiento
+        // Convertir pagos a formato de movimiento.
+        // user.name = quién RECIBIÓ la plata (custodia, Payment.createdByName);
+        // seller = de quién es la venta (comisión). Son ejes independientes.
         const formattedPayments = recentPayments.map((p: any) => ({
             id: p.id,
             type: 'IN',
             amount: p.amount || 0,
             reason: `Cobro Venta - ${p.order?.client?.name || 'Cliente'}`,
             category: 'VENTA',
-            createdAt: p.date, 
-            user: { name: p.order?.user?.name || 'Vendedor' },
+            createdAt: p.date,
+            user: { name: p.createdByName || p.order?.user?.name || '—' },
+            seller: p.order?.user?.name || null,
             receiptUrl: p.receiptUrl
         }));
 

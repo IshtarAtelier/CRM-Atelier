@@ -222,7 +222,10 @@ export interface CashMovement {
     laboratory?: string | null;
     createdAt: string;
     receiptUrl?: string | null;
+    /** Quién recibió/registró la plata (custodia). En cobros = Payment.createdByName. */
     user?: { name: string };
+    /** Solo cobros de venta: vendedor de la orden (comisión), puede diferir de quien cobró. */
+    seller?: string | null;
 }
 
 export function mapOrderPostSale(order: any): any {
