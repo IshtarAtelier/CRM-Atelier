@@ -14,7 +14,9 @@ import {
     Calendar,
     Activity,
     Layers,
-    Search
+    Search,
+    ChevronRight,
+    ChevronUp
 } from 'lucide-react';
 import type { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
@@ -112,6 +114,7 @@ export function OrderDetailPanel({
     const [postSaleNewOrderNumber, setPostSaleNewOrderNumber] = useState(order.postSaleNewOrderNumber || '');
     const [newNoteText, setNewNoteText] = useState('');
     const [isSavingPostSale, setIsSavingPostSale] = useState(false);
+    const [showPostSaleForm, setShowPostSaleForm] = useState(false);
 
     const [pair1Faulty, setPair1Faulty] = useState(true);
     const [pair2Faulty, setPair2Faulty] = useState(false);
@@ -1068,13 +1071,22 @@ export function OrderDetailPanel({
 
                     {/* Post Venta Form — only after sent to factory */}
                     {order.orderType === 'SALE' && (order.labStatus && order.labStatus !== 'NONE' || order.postSaleNotes || (order.postSaleCost ?? 0) > 0 || order.postSaleOrderOption) && (
-                        <div className="bg-white dark:bg-stone-850 rounded-2xl border border-stone-100 dark:border-stone-700/50 p-5 shadow-sm space-y-4">
-                            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-stone-100 dark:border-stone-700/50">
+                        <div className={showPostSaleForm ? "bg-white dark:bg-stone-850 rounded-2xl border border-stone-100 dark:border-stone-700/50 p-5 shadow-sm space-y-4" : ""}>
+                            <button
+                                onClick={() => setShowPostSaleForm(!showPostSaleForm)}
+                                className={showPostSaleForm
+                                    ? "w-full flex items-center justify-between gap-2 mb-2 pb-2 border-b border-stone-100 dark:border-stone-700/50"
+                                    : "w-full flex items-center justify-between gap-2 px-4 py-3 bg-white dark:bg-stone-850 rounded-2xl border border-stone-100 dark:border-stone-700/50 shadow-sm hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-all"}
+                            >
                                 <span className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest">
                                     Servicio de Post Venta
                                 </span>
-                            </div>
+                                {showPostSaleForm
+                                    ? <ChevronUp className="w-4 h-4 text-amber-500" />
+                                    : <ChevronRight className="w-4 h-4 text-amber-500" />}
+                            </button>
 
+                            {showPostSaleForm && (
                             <div className="space-y-3">
                                 <div>
                                     {/* Timeline de notas */}
@@ -1340,6 +1352,7 @@ export function OrderDetailPanel({
                                     )}
                                 </button>
                             </div>
+                            )}
                         </div>
                     )}
                 </div>
