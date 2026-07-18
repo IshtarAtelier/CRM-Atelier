@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Search, ShoppingBag, X, ShoppingCart, Gem, Glasses, BookOpen, Users, MapPin, HelpCircle, Star, MessageCircle, ChevronRight, Briefcase } from "lucide-react";
 import { useCart } from "@/store/useCart";
 import dynamic from "next/dynamic";
@@ -131,8 +130,13 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
   const activeTextShadowStyle = (isDark && !isHeaderScrolled) ? { textShadow: "0 1px 3px rgba(0,0,0,0.3)" } : {};
 
   const showAnnouncement = webSettings ? webSettings.web_announcement_active : true;
-  const announcementText = webSettings ? webSettings.web_announcement_text : "6 Cuotas Sin Interés • 15% OFF en Efectivo o Transferencia • Envío Gratis";
-  const announcementLink = webSettings ? webSettings.web_announcement_link : "/tienda";
+  // La promo minorista (cuotas / % off) no aplica al canal mayorista: a las
+  // ópticas logueadas se les muestra el mensaje del canal, no el de la tienda.
+  const isWholesaleSession = !!currentUser && currentUser.role === 'OPTICA';
+  const announcementText = isWholesaleSession
+    ? "Canal Mayorista Ópticas • Precios Netos • Envío y Pago a Convenir"
+    : (webSettings ? webSettings.web_announcement_text : "6 Cuotas Sin Interés • 15% OFF en Efectivo o Transferencia • Envío Gratis");
+  const announcementLink = isWholesaleSession ? "/tienda" : (webSettings ? webSettings.web_announcement_link : "/tienda");
 
   return (
     <>
@@ -194,14 +198,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                   <ChevronDown className="w-3 h-3 opacity-70" />
                 </button>
     
-                <AnimatePresence>
-                  {isExploreOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                      className="absolute top-full left-0 mt-3 w-[280px] bg-[#0f0e0c] shadow-2xl shadow-black/40 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-xl"
+                {isExploreOpen && (
+                    <div
+                      className="nav-drop-in absolute top-full left-0 mt-3 w-[280px] bg-[#0f0e0c] shadow-2xl shadow-black/40 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-xl"
                     >
                       {/* Mobile-only links */}
                       <div className="lg:hidden border-b border-white/10 py-2 px-2">
@@ -266,9 +265,8 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                           <ChevronRight className="w-3 h-3 opacity-50 ml-auto group-hover:translate-x-0.5 transition-transform" />
                         </Link>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
               </div>
             </nav>
           </div>
@@ -331,13 +329,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
       <CartSidebar />
 
       {/* Luxury Search Overlay */}
-      <AnimatePresence>
         {isSearchOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] text-black dark:text-white"
+          <div
+            className="nav-fade-in fixed inset-0 z-[100] text-black dark:text-white"
           >
             {/* Fondo oscurecido: el home se ve detrás, click para cerrar */}
             <div
@@ -349,12 +343,8 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
             />
 
             {/* Panel de búsqueda que baja del header */}
-            <motion.div
-              initial={{ y: -24 }}
-              animate={{ y: 0 }}
-              exit={{ y: -24 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="relative bg-[#faf8f5] dark:bg-stone-950 border-b border-stone-200/70 dark:border-stone-800 shadow-2xl flex flex-col max-h-[85vh] p-6 md:px-16 md:py-10"
+            <div
+              className="nav-panel-in relative bg-[#faf8f5] dark:bg-stone-950 border-b border-stone-200/70 dark:border-stone-800 shadow-2xl flex flex-col max-h-[85vh] p-6 md:px-16 md:py-10"
             >
             {/* Close button */}
             <div className="flex justify-between items-center mb-8">
@@ -440,10 +430,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                 <p className="text-stone-500 dark:text-stone-500 text-sm italic">No se encontraron productos que coincidan con &quot;{searchQuery}&quot;.</p>
               )}
             </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
     </>
   );
 }
