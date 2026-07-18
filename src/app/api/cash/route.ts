@@ -28,7 +28,19 @@ export async function GET(request: Request) {
             });
         }
 
-        return NextResponse.json({ canViewTotals: true, ...balance });
+        // Para quien ve totales, el desglose de custodia va junto al saldo:
+        // cuánto hay EN CAJA y cuánto sigue en poder de cada vendedor sin rendir.
+        const holdings = await CashService.getVendorsHolding();
+        const holdingTotal = holdings.reduce((s, v) => s + v.holding, 0);
+        return NextResponse.json({
+            canViewTotals: true,
+            ...balance,
+            custody: {
+                holdings,
+                holdingTotal,
+                expectedInDrawer: balance.total - holdingTotal,
+            },
+        });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

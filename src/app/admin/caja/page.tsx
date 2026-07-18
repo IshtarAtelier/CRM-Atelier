@@ -42,6 +42,12 @@ export default function CajaPage() {
     // Quién puede ver el saldo acumulado lo decide el server (ADMIN o encargado
     // de caja — User.cashManager); acá solo se respeta el flag que devuelve /api/cash.
     const [canViewTotals, setCanViewTotals] = useState(false);
+    // Desglose de custodia (solo llega si canViewTotals): en caja + por vendedor
+    const [custody, setCustody] = useState<{
+        holdings: { vendorId: string; vendorName: string; holding: number }[];
+        holdingTotal: number;
+        expectedInDrawer: number;
+    } | null>(null);
 
     useEffect(() => {
         fetchMovements();
@@ -64,6 +70,7 @@ export default function CajaPage() {
             if (json.movements) {
                 setMovements(json.movements);
                 setCanViewTotals(!!json.canViewTotals);
+                setCustody(json.custody || null);
                 setBalances({
                     total: json.total || 0,
                     paymentsTotal: json.paymentsTotal || 0,
@@ -230,6 +237,20 @@ export default function CajaPage() {
                         }`}>
                             ${balances.total.toLocaleString('es-AR')}
                         </p>
+                        {custody && (
+                            <div className="mt-4 pt-4 border-t border-stone-200/60 dark:border-stone-700/60 w-full space-y-1.5">
+                                <div className="flex items-center justify-between text-xs font-bold text-stone-500 dark:text-stone-400">
+                                    <span>💰 En caja</span>
+                                    <span className="font-black text-stone-700 dark:text-stone-200">${Math.round(custody.expectedInDrawer).toLocaleString('es-AR')}</span>
+                                </div>
+                                {custody.holdings.map(v => (
+                                    <div key={v.vendorId} className="flex items-center justify-between text-xs font-bold text-amber-600 dark:text-amber-400">
+                                        <span>👤 {v.vendorName} (sin entregar)</span>
+                                        <span className="font-black">${Math.round(v.holding).toLocaleString('es-AR')}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
