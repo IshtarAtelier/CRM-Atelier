@@ -48,6 +48,9 @@ export default function CajaPage() {
         holdingTotal: number;
         expectedInDrawer: number;
     } | null>(null);
+    // Cierres de caja por día (solo canViewTotals): con cuánto terminó cada noche
+    const [dailyCloses, setDailyCloses] = useState<{ day: string; close: number; delta: number; inProgress: boolean }[]>([]);
+    const [showCloses, setShowCloses] = useState(false);
 
     useEffect(() => {
         fetchMovements();
@@ -71,6 +74,7 @@ export default function CajaPage() {
                 setMovements(json.movements);
                 setCanViewTotals(!!json.canViewTotals);
                 setCustody(json.custody || null);
+                setDailyCloses(json.dailyCloses || []);
                 setBalances({
                     total: json.total || 0,
                     paymentsTotal: json.paymentsTotal || 0,
@@ -252,6 +256,33 @@ export default function CajaPage() {
                                     <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                                         ✓ Nadie tiene efectivo sin entregar
                                     </p>
+                                )}
+                            </div>
+                        )}
+                        {dailyCloses.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-stone-200/60 dark:border-stone-700/60 w-full">
+                                <button
+                                    onClick={() => setShowCloses(!showCloses)}
+                                    className="w-full text-[10px] font-black text-stone-400 uppercase tracking-[0.2em] hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
+                                >
+                                    {showCloses ? '▴ Ocultar cierres por día' : '▾ Cierre de caja por día'}
+                                </button>
+                                {showCloses && (
+                                    <div className="mt-2 space-y-1 text-left max-h-56 overflow-y-auto">
+                                        {dailyCloses.map(c => (
+                                            <div key={c.day} className="flex items-center justify-between text-xs font-bold">
+                                                <span className="text-stone-500 dark:text-stone-400">
+                                                    {c.inProgress ? 'Hoy (en curso)' : format(new Date(c.day + 'T12:00:00Z'), 'EEE dd MMM', { locale: es })}
+                                                    <span className={`ml-2 text-[10px] ${c.delta >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                        {c.delta >= 0 ? '+' : ''}{Math.round(c.delta).toLocaleString('es-AR')}
+                                                    </span>
+                                                </span>
+                                                <span className="font-black text-stone-700 dark:text-stone-200 tabular-nums">
+                                                    ${Math.round(c.close).toLocaleString('es-AR')}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         )}

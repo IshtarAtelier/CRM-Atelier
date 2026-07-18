@@ -316,6 +316,59 @@ export const CashService = {
     },
 
     /**
+     * Cierre de caja por día: con cuánto terminó la caja cada noche.
+     * Se ancla en el total actual y se descuentan hacia atrás los movimientos
+     * de cada día — mismo método que el saldo corrido, agrupado por día.
+     * Días en horario de Argentina (-03): los cobros se estampan D+1 00:00 UTC
+     * (= D 21:00 ART) y los movimientos manuales llevan hora real, así que
+     * restar 3 horas ubica a ambos en su día correcto.
+     */
+    async getDailyCloses(days = 14) {
+        const balance = await this.getCashBalance();
+        const now = new Date();
+        const ART_OFFSET_MS = 3 * 3600 * 1000;
+        const artDayOf = (d: Date) => new Date(d.getTime() - ART_OFFSET_MS).toISOString().slice(0, 10);
+
+        // Desde el inicio (ART) del día más viejo pedido
+        const todayArt = artDayOf(now);
+        const since = new Date(new Date(todayArt + 'T00:00:00Z').getTime() + ART_OFFSET_MS - (days - 1) * 86400000);
+
+        const [pays, movs] = await Promise.all([
+            prisma.payment.findMany({
+                where: { method: { in: CASH_METHODS }, date: { gt: since }, order: { isDeleted: false } },
+                select: { date: true, amount: true },
+            }),
+            prisma.cashMovement.findMany({
+                where: { createdAt: { gt: since } },
+                select: { createdAt: true, type: true, amount: true },
+            }),
+        ]);
+
+        const deltaByDay = new Map<string, number>();
+        for (const p of pays) {
+            const k = artDayOf(p.date);
+            deltaByDay.set(k, (deltaByDay.get(k) || 0) + (p.amount || 0));
+        }
+        for (const m of movs) {
+            const k = artDayOf(m.createdAt);
+            const signed = m.type === 'IN' ? (m.amount || 0) : -(m.amount || 0);
+            deltaByDay.set(k, (deltaByDay.get(k) || 0) + signed);
+        }
+
+        // Caminar hacia atrás desde el total actual
+        const closes: { day: string; close: number; delta: number; inProgress: boolean }[] = [];
+        let running = balance.total;
+        for (let i = 0; i < days; i++) {
+            const d = new Date(new Date(todayArt + 'T00:00:00Z').getTime() - i * 86400000);
+            const key = d.toISOString().slice(0, 10);
+            const delta = deltaByDay.get(key) || 0;
+            closes.push({ day: key, close: running, delta, inProgress: i === 0 });
+            running -= delta;
+        }
+        return closes;
+    },
+
+    /**
      * Números del arqueo: el efectivo esperado EN LA CAJA no es el saldo
      * teórico total — hay que descontar lo que todavía está en poder de
      * vendedores sin rendir. Sin esto, todo arqueo daría "faltante" falso.

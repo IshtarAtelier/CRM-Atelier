@@ -30,7 +30,10 @@ export async function GET(request: Request) {
 
         // Para quien ve totales, el desglose de custodia va junto al saldo:
         // cuánto hay EN CAJA y cuánto sigue en poder de cada vendedor sin rendir.
-        const holdings = await CashService.getVendorsHolding();
+        const [holdings, dailyCloses] = await Promise.all([
+            CashService.getVendorsHolding(),
+            CashService.getDailyCloses(14),
+        ]);
         const holdingTotal = holdings.reduce((s, v) => s + v.holding, 0);
 
         // Saldo corrido estilo resumen bancario: cada movimiento lleva el saldo
@@ -53,6 +56,7 @@ export async function GET(request: Request) {
                 holdingTotal,
                 expectedInDrawer: balance.total - holdingTotal,
             },
+            dailyCloses,
         });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
