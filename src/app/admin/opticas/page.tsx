@@ -4,7 +4,7 @@
 // Tabla de leads scrapeados/importados con rating, datos, link a Maps y botón
 // de WhatsApp con mensaje precargado (el envío lo dispara siempre un humano).
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Star, MapPin, MessageCircle, Check, Ban, RotateCcw, Search,
   Upload, Copy, ShieldAlert, Store, Phone, X,
@@ -29,12 +29,22 @@ export default function OpticasLeadsPage() {
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
 
-  // Filtros
+  // Filtros (q/city se debouncean para no disparar un fetch por tecla)
   const [status, setStatus] = useState("");
+  const [qInput, setQInput] = useState("");
+  const [cityInput, setCityInput] = useState("");
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
   const [minRating, setMinRating] = useState(0);
   const [onlyWa, setOnlyWa] = useState(true);
+  // Descarta respuestas viejas que lleguen después de una más nueva
+  const fetchSeq = useRef(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => { setQ(qInput); setCity(cityInput); setPage(1); }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qInput, cityInput]);
 
   // Plantilla del mensaje (se guarda en el navegador)
   const [tpl, setTpl] = useState(DEFAULT_TPL);
@@ -49,6 +59,7 @@ export default function OpticasLeadsPage() {
   }, []);
 
   const fetchLeads = useCallback(async () => {
+    const seq = ++fetchSeq.current;
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -60,15 +71,17 @@ export default function OpticasLeadsPage() {
         ...(onlyWa ? { onlyWa: "1" } : {}),
       });
       const res = await fetch(`/api/admin/opticas-leads?${params}`);
+      if (seq !== fetchSeq.current) return; // llegó tarde: hay una búsqueda más nueva
       if (res.status === 403) { setForbidden(true); return; }
       const data = await res.json();
+      if (seq !== fetchSeq.current) return;
       setLeads(data.leads || []);
       setStats(data.stats || null);
       setTotalPages(data.totalPages || 1);
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (seq === fetchSeq.current) setLoading(false);
     }
   }, [page, status, q, city, minRating, onlyWa]);
 
@@ -80,11 +93,8 @@ export default function OpticasLeadsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (res.ok) {
-      const updated = await res.json();
-      setLeads(prev => prev.map(l => (l.id === id ? updated : l)));
-      fetchLeads();
-    }
+    // Un solo camino de actualización: refetch (lista + stats coherentes).
+    if (res.ok) fetchLeads();
   };
 
   const waLink = (lead: any) => {
@@ -105,13 +115,30 @@ export default function OpticasLeadsPage() {
         const parsed = JSON.parse(text);
         rows = Array.isArray(parsed) ? parsed : parsed.leads || [];
       } else {
-        // CSV simple: name,phone,rating,address,city  (con encabezado)
+        // CSV con soporte de comillas (las direcciones de Maps traen comas:
+        // "Av. Colón 123, Local 2"). Split naive corrompería las columnas.
+        const parseCsvLine = (line: string): string[] => {
+          const cells: string[] = [];
+          let cur = "", inQuotes = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (inQuotes) {
+              if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+              else if (ch === '"') inQuotes = false;
+              else cur += ch;
+            } else if (ch === '"') inQuotes = true;
+            else if (ch === ",") { cells.push(cur); cur = ""; }
+            else cur += ch;
+          }
+          cells.push(cur);
+          return cells.map(c => c.trim());
+        };
         const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-        const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+        const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase());
         rows = lines.slice(1).map(line => {
-          const cells = line.split(",");
+          const cells = parseCsvLine(line);
           const row: any = {};
-          headers.forEach((h, i) => { row[h] = cells[i]?.trim(); });
+          headers.forEach((h, i) => { row[h] = cells[i]; });
           return row;
         });
       }
@@ -122,7 +149,7 @@ export default function OpticasLeadsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error");
-      setImportMsg(`✓ ${data.created} nuevos, ${data.updated} actualizados, ${data.skipped} salteados`);
+      setImportMsg(`✓ ${data.created} nuevos, ${data.updated} actualizados, ${data.skipped} salteados${data.failed ? `, ${data.failed} con error` : ""}`);
       setImportText("");
       fetchLeads();
     } catch (e: any) {
@@ -241,11 +268,11 @@ export default function OpticasLeadsPage() {
         </select>
         <div className="relative">
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
-          <input value={q} onChange={e => { setQ(e.target.value); setPage(1); }}
+          <input value={qInput} onChange={e => setQInput(e.target.value)}
             placeholder="nombre, dirección o teléfono"
             className="border border-stone-200 rounded-lg pl-8 pr-3 py-2 text-xs w-56 bg-white" />
         </div>
-        <input value={city} onChange={e => { setCity(e.target.value); setPage(1); }}
+        <input value={cityInput} onChange={e => setCityInput(e.target.value)}
           placeholder="ciudad"
           className="border border-stone-200 rounded-lg px-3 py-2 text-xs w-32 bg-white" />
         <select value={minRating} onChange={e => { setMinRating(Number(e.target.value)); setPage(1); }}

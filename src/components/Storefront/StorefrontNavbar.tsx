@@ -129,10 +129,12 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
   const activeTextColorClass = isHeaderScrolled ? "text-[#433831]" : (isDark ? "text-white" : "text-[#433831]");
   const activeTextShadowStyle = (isDark && !isHeaderScrolled) ? { textShadow: "0 1px 3px rgba(0,0,0,0.3)" } : {};
 
-  const showAnnouncement = webSettings ? webSettings.web_announcement_active : true;
   // La promo minorista (cuotas / % off) no aplica al canal mayorista: a las
   // ópticas logueadas se les muestra el mensaje del canal, no el de la tienda.
   const isWholesaleSession = !!currentUser && currentUser.role === 'OPTICA';
+  // El toggle de admin apaga solo la promo minorista; el aviso del canal
+  // mayorista es informativo (precios netos / pago a convenir) y queda siempre.
+  const showAnnouncement = isWholesaleSession || (webSettings ? webSettings.web_announcement_active : true);
   const announcementText = isWholesaleSession
     ? "Canal Mayorista Ópticas • Precios Netos • Envío y Pago a Convenir"
     : (webSettings ? webSettings.web_announcement_text : "6 Cuotas Sin Interés • 15% OFF en Efectivo o Transferencia • Envío Gratis");

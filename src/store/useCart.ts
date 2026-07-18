@@ -105,12 +105,14 @@ export const useCart = create<CartState>()(
         ),
       })),
 
-      // Backfill de precios mayoristas para ítems agregados antes de loguearse
-      // como óptica (no tenían wholesaleBasePrice al momento de agregar).
+      // Sincroniza los precios mayoristas del carrito con el catálogo actual.
+      // SIEMPRE pisa el valor guardado: si el negocio re-tarifa (ej. sol 29→32k),
+      // el carrito persistido debe reflejar lo que el backend va a cobrar.
+      // Un producto ausente del mapa ya no tiene precio mayorista → se limpia.
       setItemWholesalePrices: (pricesByProductId) => set((state) => ({
         items: state.items.map((i) => {
-          const wp = pricesByProductId[i.productId];
-          return wp && wp > 0 && !i.wholesaleBasePrice ? { ...i, wholesaleBasePrice: wp } : i;
+          const wp = pricesByProductId[i.productId] || 0;
+          return wp !== (i.wholesaleBasePrice || 0) ? { ...i, wholesaleBasePrice: wp } : i;
         }),
       })),
 

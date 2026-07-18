@@ -37,12 +37,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
         const lead = await prisma.opticaLead.update({ where: { id }, data });
 
-        logAudit({
+        const auditPromise = logAudit({
             userId: actor.id, userName: actor.name,
             action: data.status ? 'STATUS_CHANGE' : 'UPDATE',
             entityType: 'OPTICA_LEAD', entityId: id,
             details: { name: lead.name, ...data },
-        }).catch(console.error);
+        });
+        // OCULTO saca el lead de todas las vistas y BLOCKLIST lo marca
+        // no-contactar: son las mutaciones "destructivas" de esta entidad,
+        // el audit se espera (regla de trazabilidad de CLAUDE.md).
+        if (data.status === 'OCULTO' || data.status === 'BLOCKLIST') {
+            await auditPromise.catch(console.error);
+        } else {
+            auditPromise.catch(console.error);
+        }
 
         return NextResponse.json(lead);
     } catch (e: any) {

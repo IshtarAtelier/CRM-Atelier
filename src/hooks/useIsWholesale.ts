@@ -38,11 +38,16 @@ export function useIsWholesale() {
           setWholesaleUser(data);
           localStorage.setItem('user', JSON.stringify(data));
         } else {
+          // Sesión confirmada como NO mayorista: limpiar el user viejo para que
+          // ningún otro componente siga mostrando tarifa mayorista por un
+          // localStorage vencido (mismo criterio que StorefrontNavbar).
           setIsWholesale(false);
           setWholesaleUser(null);
+          localStorage.removeItem('user');
         }
       })
       .catch(() => {
+        // Error de red: no tocar localStorage (puede ser un blip de conexión).
         setIsWholesale(false);
         setWholesaleUser(null);
       });
@@ -51,27 +56,24 @@ export function useIsWholesale() {
   return { isWholesale, wholesaleUser };
 }
 
-// Cuando la sesión mayorista se detecta DESPUÉS de que el visitante ya cargó el
-// carrito (agregó como anónimo y recién ahí se logueó), los ítems quedaron sin
-// wholesaleBasePrice. Este hook los completa desde el catálogo mayorista para
-// que el carrito muestre el precio que efectivamente se va a cobrar.
+// Sincroniza los precios mayoristas del carrito con el catálogo vigente cada
+// vez que hay sesión de óptica: cubre ítems agregados antes del login Y
+// re-tarifaciones posteriores (el precio guardado en el carrito persistido
+// nunca es autoridad — el backend cobra el de la base). Usa el endpoint
+// liviano de ids+precios, no el catálogo completo con imágenes.
 export function useWholesaleCartBackfill(isWholesale: boolean) {
   const items = useCart(s => s.items);
   const setItemWholesalePrices = useCart(s => s.setItemWholesalePrices);
 
   useEffect(() => {
-    if (!isWholesale) return;
-    const missing = items.filter(i => !i.wholesaleBasePrice);
-    if (missing.length === 0) return;
+    if (!isWholesale || items.length === 0) return;
 
-    fetch('/api/store/products?channel=wholesale&limit=500')
+    fetch('/api/store/wholesale-prices')
       .then(res => res.json())
       .then(data => {
-        const map: Record<string, number> = {};
-        for (const p of data.products || []) {
-          if (p.wholesalePrice > 0) map[p.id] = p.wholesalePrice;
+        if (data.prices && typeof data.prices === 'object') {
+          setItemWholesalePrices(data.prices);
         }
-        if (Object.keys(map).length > 0) setItemWholesalePrices(map);
       })
       .catch(() => {});
     // items.length (no items) evita re-fetch en cada mutación menor del carrito.

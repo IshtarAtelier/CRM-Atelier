@@ -46,21 +46,37 @@ function tierFor(product, webProduct) {
 
 (async () => {
   const prisma = new PrismaClient({ datasources: { db: { url: dbUrl } } });
+  // select mínimo: sin imágenes base64 (pesan MB y acá no sirven)
   const wps = await prisma.webProduct.findMany({
     where: { isActive: true, product: { category: { not: 'Cristal' } } },
-    include: { product: true },
+    select: {
+      name: true, category: true,
+      product: { select: { id: true, brand: true, model: true, category: true, price: true } },
+    },
   });
   const counts = {};
+  const idsByTier = {}; // tier -> { ws, ids: [] }
   for (const wp of wps) {
     const p = wp.product;
     if (!(p.price > 0)) continue;
     const [tier, ws] = tierFor(p, wp);
     counts[tier] = (counts[tier] || 0) + 1;
-    if (dryRun) {
-      if (counts[tier] <= 3) console.log(`  [dry] ${p.brand} ${wp.name || p.model} → ${tier} $${ws.toLocaleString('es-AR')}`);
-    } else {
-      await prisma.product.update({ where: { id: p.id }, data: { publishToWholesale: true, wholesalePrice: ws } });
+    (idsByTier[tier] = idsByTier[tier] || { ws, ids: [] }).ids.push(p.id);
+    if (dryRun && counts[tier] <= 3) {
+      console.log(`  [dry] ${p.brand} ${wp.name || p.model} → ${tier} $${ws.toLocaleString('es-AR')}`);
     }
+  }
+  if (!dryRun) {
+    // Un updateMany por tier dentro de una transacción: atómico y rápido
+    // (4 queries en vez de una por producto — clave contra prod en Singapur).
+    await prisma.$transaction(
+      Object.values(idsByTier).map(({ ws, ids }) =>
+        prisma.product.updateMany({
+          where: { id: { in: ids } },
+          data: { publishToWholesale: true, wholesalePrice: ws },
+        })
+      )
+    );
   }
   console.log(dryRun ? 'Se cargarían:' : 'Cargados:');
   for (const [t, n] of Object.entries(counts)) console.log(`- ${t}: ${n} productos`);

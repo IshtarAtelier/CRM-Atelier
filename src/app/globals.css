@@ -87,6 +87,41 @@ button:disabled {
   100% { transform: translateX(-25%); }
 }
 
+/* ── Transiciones de la tienda (reemplazan framer-motion para no bloquear el LCP) ──
+   El hero arranca en opacity .6 (ya visible) → el navegador cuenta el LCP casi de
+   inmediato, sin esperar a la hidratación de JS. La grilla sí puede fundir desde 0
+   porque no es el elemento LCP (el hero a pantalla completa es más grande). */
+@keyframes heroImgFade { from { opacity: 0.6; } to { opacity: 1; } }
+.hero-img-fade { animation: heroImgFade 0.4s ease-out; }
+
+@keyframes tiendaFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.tienda-grid-fade { animation: tiendaFadeUp 0.3s ease-out; }
+
+@keyframes backdropFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Navbar: menús/overlays con CSS puro (sin framer-motion en el bundle inicial) */
+@keyframes navDropIn { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
+.nav-drop-in { animation: navDropIn 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes navFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.nav-fade-in { animation: navFadeIn 0.2s ease-out; }
+@keyframes navPanelIn { from { transform: translateY(-24px); } to { transform: translateY(0); } }
+.nav-panel-in { animation: navPanelIn 0.25s ease-out; }
+
+/* Carrito lateral y tooltip de WhatsApp — CSS puro, sin framer-motion */
+@keyframes cartSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+.cart-slide-in { animation: cartSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes waTooltipIn { from { opacity: 0; transform: translateY(10px) scale(0.9); } to { opacity: 1; transform: none; } }
+.wa-tooltip-in { animation: waTooltipIn 0.4s ease-out 1s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop-fade, .nav-drop-in, .nav-fade-in, .nav-panel-in,
+  .cart-slide-in, .wa-tooltip-in { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-img-fade, .tienda-grid-fade { animation: none; }
+}
+
 /* ═══════════════════════════════════════════════════════════
    Blog Article Styles — Atelier Óptica
    Premium typography for readable, beautiful blog posts.

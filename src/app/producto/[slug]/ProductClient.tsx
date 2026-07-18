@@ -424,18 +424,22 @@ export function ProductClient({
               <button
                 disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal" || isAdded}
                 onClick={() => {
-                  const itemPrice = isWholesale && product.wholesalePrice > 0 ? product.wholesalePrice : effectivePrice;
+                  // price SIEMPRE guarda el precio minorista: el mayorista se
+                  // resuelve en vivo por sesión (getItemUnitPrice) para que un
+                  // carrito persistido nunca muestre tarifa mayorista a un
+                  // minorista (ni viceversa) tras login/logout.
+                  const displayPrice = isWholesale && product.wholesalePrice > 0 ? product.wholesalePrice : effectivePrice;
                   trackAddToCart({
                     id: product.id,
                     name: product.model,
-                    price: itemPrice,
+                    price: displayPrice,
                     quantity: 1
                   });
                   addItem({
                     productId: product.id,
                     brand: product.brand,
                     model: product.model,
-                    price: itemPrice,
+                    price: effectivePrice,
                     wholesaleBasePrice: product.wholesalePrice || 0,
                     image: images[0] || "/images/placeholder.svg",
                     lensColor: null,
