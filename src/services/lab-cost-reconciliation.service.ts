@@ -137,20 +137,23 @@ export class LabCostReconciliationService {
             input.lab === 'OPTOVISION' ? (e.billedTotal ?? e.billedNet ?? null) : (e.billedNet ?? e.billedTotal ?? null);
         let saleBilled = billedComparable;
         let facturadosEnVenta = billedComparable !== null ? 1 : 0;
-        let maxSiblingBilled = 0;
+        // Principal de la venta = pedido de mayor importe facturado; a igualdad,
+        // el nº de pedido menor. Garantiza EXACTAMENTE un principal (una sola
+        // alerta por venta), tanto si el 2º par va gratis como si se cobra igual.
+        const myBilled = billedComparable ?? 0;
+        let isPrimaryOfSale = true;
         if (multiPedido && order) {
             const siblings = await prisma.labCostEntry.findMany({
                 where: { orderId: order.id, NOT: { labOrderNumber: cleanNumber } },
-                select: { billedNet: true, billedTotal: true },
+                select: { labOrderNumber: true, billedNet: true, billedTotal: true },
             });
             for (const s of siblings) {
                 const b = billedForLab(s);
-                if (b !== null) { saleBilled = (saleBilled ?? 0) + b; facturadosEnVenta++; maxSiblingBilled = Math.max(maxSiblingBilled, b); }
+                if (b !== null) { saleBilled = (saleBilled ?? 0) + b; facturadosEnVenta++; }
+                const sb = b ?? 0;
+                if (sb > myBilled || (sb === myBilled && s.labOrderNumber < cleanNumber)) isPrimaryOfSale = false;
             }
         }
-        // En una venta multi-pedido, alertar una sola vez: por el pedido de mayor
-        // importe (el par real del 2x1), no por el hermano de ~$0.
-        const isPrimaryOfSale = !multiPedido || (billedComparable ?? 0) >= maxSiblingBilled;
         const ventaCompleta = !multiPedido || facturadosEnVenta >= orderNumbers.length;
 
         // UNMATCHED = sin venta en el sistema (¡pedido huérfano si vino del portal!)
