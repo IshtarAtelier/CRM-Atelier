@@ -121,19 +121,46 @@ export class LabCostReconciliationService {
             : (billedNet ?? billedTotal ?? null);
         const systemCost = order ? this.systemCostForLab(order, input.lab) : null;
 
-        // Una venta puede tener varios pedidos de lab ("580841-580844"): el costo
-        // sistema es de TODA la venta, mientras la factura puede ser de un pedido.
+        // Una venta puede tener varios pedidos de lab ("580841-580844", típico en
+        // 2x1: el lab cobra un par real y el otro ~$0). El costo sistema es de TODA
+        // la venta, así que la comparación debe ser a NIVEL VENTA: sumar las
+        // facturas de TODOS sus pedidos (cada uno buscado individualmente), no la
+        // de un solo pedido. Si a algún pedido de la venta le falta factura, la
+        // venta está incompleta → PENDING (no un falso ahorro/sobrecosto).
         const orderNumbers = order?.labOrderNumber?.match(/\d{4,}/g) || [];
         const multiPedido = orderNumbers.length > 1;
 
+        // Comparable a nivel venta: importe de este pedido + el de sus hermanos ya
+        // registrados (misma venta, otro nº). Y cuántos pedidos de la venta ya
+        // tienen factura, para saber si está completa.
+        const billedForLab = (e: { billedNet: number | null; billedTotal: number | null }) =>
+            input.lab === 'OPTOVISION' ? (e.billedTotal ?? e.billedNet ?? null) : (e.billedNet ?? e.billedTotal ?? null);
+        let saleBilled = billedComparable;
+        let facturadosEnVenta = billedComparable !== null ? 1 : 0;
+        let maxSiblingBilled = 0;
+        if (multiPedido && order) {
+            const siblings = await prisma.labCostEntry.findMany({
+                where: { orderId: order.id, NOT: { labOrderNumber: cleanNumber } },
+                select: { billedNet: true, billedTotal: true },
+            });
+            for (const s of siblings) {
+                const b = billedForLab(s);
+                if (b !== null) { saleBilled = (saleBilled ?? 0) + b; facturadosEnVenta++; maxSiblingBilled = Math.max(maxSiblingBilled, b); }
+            }
+        }
+        // En una venta multi-pedido, alertar una sola vez: por el pedido de mayor
+        // importe (el par real del 2x1), no por el hermano de ~$0.
+        const isPrimaryOfSale = !multiPedido || (billedComparable ?? 0) >= maxSiblingBilled;
+        const ventaCompleta = !multiPedido || facturadosEnVenta >= orderNumbers.length;
+
         // UNMATCHED = sin venta en el sistema (¡pedido huérfano si vino del portal!)
-        // PENDING   = con venta, pero todavía sin costo facturado para comparar
+        // PENDING   = con venta pero sin todas las facturas de la venta todavía
         let status = 'UNMATCHED';
         let difference: number | null = null;
-        if (order && billedComparable === null) {
+        if (order && (billedComparable === null || !ventaCompleta)) {
             status = 'PENDING';
-        } else if (order && billedComparable !== null && systemCost !== null) {
-            difference = billedComparable - systemCost;
+        } else if (order && saleBilled !== null && systemCost !== null) {
+            difference = saleBilled - systemCost;
             if (difference > TOLERANCE) status = 'OVERCOST';
             else if (difference < -TOLERANCE) status = 'UNDERCOST';
             else status = 'OK';
@@ -176,7 +203,7 @@ export class LabCostReconciliationService {
         // Alertar solo cuando el sobrecosto es nuevo (entrada nueva o que cambió
         // de estado), para no repetir el mail en cada corrida del cron.
         const isNewOvercost = status === 'OVERCOST' && (!existing || existing.status !== 'OVERCOST');
-        if (isNewOvercost && order) {
+        if (isNewOvercost && order && isPrimaryOfSale) {
             await this.sendOvercostAlert(entry, order).catch(err =>
                 console.error('[LabCost] Error enviando alerta de sobrecosto:', err)
             );
@@ -502,13 +529,19 @@ export class LabCostReconciliationService {
     }
 
     /**
-     * Re-cruza las entradas sin match (p. ej. la factura llegó antes de cargar el
-     * nº de pedido en la venta) reutilizando los montos ya guardados.
+     * Re-cruza las entradas que pueden cambiar de estado en una segunda pasada,
+     * reutilizando los montos ya guardados:
+     *  - UNMATCHED: la factura llegó antes de cargar el nº de pedido en la venta.
+     *  - PENDING: ventas multi-pedido (2x1) donde al procesar el 1er pedido el
+     *    hermano aún no existía; ahora que están todos, el estado a nivel venta
+     *    (OK/OVERCOST/UNDERCOST) queda correcto.
      */
     static async recheckUnmatched() {
-        const unmatched = await prisma.labCostEntry.findMany({ where: { status: 'UNMATCHED' } });
+        const pendientes = await prisma.labCostEntry.findMany({
+            where: { status: { in: ['UNMATCHED', 'PENDING'] } },
+        });
         let rematched = 0;
-        for (const entry of unmatched) {
+        for (const entry of pendientes) {
             const updated = await this.upsertEntry({
                 lab: entry.lab,
                 labOrderNumber: entry.labOrderNumber,
@@ -519,9 +552,9 @@ export class LabCostReconciliationService {
                 invoiceDate: entry.invoiceDate,
                 notes: entry.notes,
             });
-            if (updated && updated.status !== 'UNMATCHED') rematched++;
+            if (updated && updated.status !== entry.status) rematched++;
         }
-        return { checked: unmatched.length, rematched };
+        return { checked: pendientes.length, rematched };
     }
 
     private static async sendChargedReworkAlert(entry: any, order: any, pvCase: any, billed: number) {
