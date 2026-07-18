@@ -77,6 +77,5 @@ export function useWholesaleCartBackfill(isWholesale: boolean) {
       })
       .catch(() => {});
     // items.length (no items) evita re-fetch en cada mutación menor del carrito.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isWholesale, items.length]);
+  }, [isWholesale, items.length, setItemWholesalePrices]);
 }

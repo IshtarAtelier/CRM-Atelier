@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical } from "lucide-react";
+import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -64,6 +64,9 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
       { href: "/admin/contactos", label: "Contactos y Clientes", icon: Contact, adminOnly: false },
       { href: "/admin/leads", label: "Embudo de Leads", icon: ClipboardList, adminOnly: false },
+      // Captación B2B: la página además valida acceso propio (ADMIN o
+      // email en OPTICAS_LEADS_EMAILS — Milena entra por URL directa si no es ADMIN)
+      { href: "/admin/opticas", label: "↳ Captación Ópticas", icon: Store, adminOnly: true, isSubLink: true },
       { href: "/admin/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
       { href: "/admin/web", label: "Sitio Web", icon: ShoppingCart, adminOnly: true },
       { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
