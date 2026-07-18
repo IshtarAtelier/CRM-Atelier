@@ -401,8 +401,12 @@ export class LabCostReconciliationService {
 
         const report = rows.map(r => {
             const matched = r.numbers.map((n: string) => byNumber.get(n)).filter(Boolean);
+            // Mismo comparable por laboratorio que upsertEntry: Optovision se compara
+            // contra el TOTAL c/IVA (monotributo no lo recupera); el resto contra el neto.
             const billed = matched.length > 0
-                ? matched.reduce((t: number, e: any) => t + (e.billedNet ?? e.billedTotal ?? 0), 0)
+                ? matched.reduce((t: number, e: any) => t + (r.lab === 'OPTOVISION'
+                    ? (e.billedTotal ?? e.billedNet ?? 0)
+                    : (e.billedNet ?? e.billedTotal ?? 0)), 0)
                 : null;
             const difference = billed !== null ? Math.round(billed - r.systemCost) : null;
             const status = !r.labOrderNumber ? 'SIN_NUMERO'
