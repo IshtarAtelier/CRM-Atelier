@@ -48,7 +48,13 @@ export default function CierresCajaPage() {
     const [pending, setPending] = useState<any>(null);
     const [handovers, setHandovers] = useState<Handover[]>([]);
     const [counts, setCounts] = useState<CashCount[]>([]);
-    const [theoretical, setTheoretical] = useState<number | null>(null);
+    // Números del arqueo: teórico global, en poder de vendedores y esperado en caja
+    const [preview, setPreview] = useState<{
+        globalTheoretical: number;
+        vendorsHolding: { vendorId: string; vendorName: string; holding: number }[];
+        holdingTotal: number;
+        expectedInDrawer: number;
+    } | null>(null);
 
     const [showPendingDetail, setShowPendingDetail] = useState(false);
     const [showHandoverModal, setShowHandoverModal] = useState(false);
@@ -91,7 +97,7 @@ export default function CierresCajaPage() {
                     const c = await cRes.json();
                     if (cRes.ok) {
                         setCounts(c.counts || []);
-                        setTheoretical(c.theoretical);
+                        setPreview(c.preview || null);
                     }
                 }
             }
@@ -214,14 +220,16 @@ export default function CierresCajaPage() {
                 </button>
             </div>
 
-            {/* Mi pendiente de rendición */}
+            {/* Mi pendiente de rendición / custodia directa (encargada) */}
             {pending && (
                 <section className="bg-white dark:bg-stone-900 rounded-[2rem] border border-stone-100 dark:border-stone-800 shadow-sm p-6 sm:p-8">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                             <HandCoins className="w-5 h-5 text-primary" />
                             <div>
-                                <h2 className="text-base font-black text-stone-800 dark:text-white tracking-tight">Mi efectivo pendiente de rendición</h2>
+                                <h2 className="text-base font-black text-stone-800 dark:text-white tracking-tight">
+                                    {pending.custodian ? 'Mis cobros en efectivo (custodia directa)' : 'Mi efectivo pendiente de rendición'}
+                                </h2>
                                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">
                                     {pending.payments.length} cobro{pending.payments.length === 1 ? '' : 's'} desde {format(new Date(pending.periodFrom), 'dd MMM HH:mm', { locale: es })}
                                 </p>
@@ -229,7 +237,9 @@ export default function CierresCajaPage() {
                         </div>
                         <div className="flex items-center gap-4">
                             <p className="text-2xl font-black tracking-tight text-stone-800 dark:text-white">{money(pending.total)}</p>
-                            {pending.pendingHandover ? (
+                            {pending.custodian ? (
+                                <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-3 py-2 rounded-xl uppercase tracking-widest">✓ Van directo a caja</span>
+                            ) : pending.pendingHandover ? (
                                 <span className="text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-950 px-3 py-2 rounded-xl uppercase tracking-widest">⏳ Entrega esperando confirmación</span>
                             ) : (
                                 <button
@@ -242,6 +252,12 @@ export default function CierresCajaPage() {
                             )}
                         </div>
                     </div>
+                    {pending.custodian && (
+                        <p className="mt-3 text-[11px] font-medium text-stone-400 leading-relaxed">
+                            Como encargado/a de caja, todo lo que cobrás (tus ventas o las de otros) entra directo a la caja que custodiás:
+                            no se rinde, se controla con el arqueo.
+                        </p>
+                    )}
 
                     {pending.payments.length > 0 && (
                         <div className="mt-5">
@@ -347,8 +363,24 @@ export default function CierresCajaPage() {
                     </div>
 
                     <div className="p-6 sm:p-8 bg-stone-50/50 dark:bg-stone-800/20 border-b border-stone-50 dark:border-stone-800">
-                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Saldo teórico actual</p>
-                        <p className="text-3xl font-black tracking-tight text-stone-800 dark:text-white mb-4">{theoretical != null ? money(theoretical) : '—'}</p>
+                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Esperado en caja ahora</p>
+                        <p className="text-3xl font-black tracking-tight text-stone-800 dark:text-white">{preview ? money(preview.expectedInDrawer) : '—'}</p>
+                        {preview && (
+                            <div className="mt-2 mb-4 text-[11px] font-bold text-stone-400 space-y-0.5">
+                                <p>Saldo teórico total: <b className="text-stone-600 dark:text-stone-300">{money(preview.globalTheoretical)}</b></p>
+                                {preview.vendorsHolding.length > 0 && (
+                                    <p className="flex items-center gap-1.5 flex-wrap">
+                                        − En poder de vendedores (sin rendir): <b className="text-amber-600">{money(preview.holdingTotal)}</b>
+                                        {preview.vendorsHolding.map(v => (
+                                            <span key={v.vendorId} className="text-[10px] font-black text-amber-700 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 rounded-full">
+                                                {v.vendorName}: {money(v.holding)}
+                                            </span>
+                                        ))}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                        {!preview && <div className="mb-4" />}
                         <div className="flex flex-col sm:flex-row gap-3">
                             <input
                                 type="number"
@@ -372,10 +404,10 @@ export default function CierresCajaPage() {
                                 {saving ? <Loader2 size={16} className="animate-spin" /> : 'Cerrar Arqueo'}
                             </button>
                         </div>
-                        {arqueoInput !== '' && theoretical != null && (
+                        {arqueoInput !== '' && preview != null && (
                             <p className="mt-3 text-xs font-bold text-stone-500">
-                                Diferencia: <b className={Math.round(parseFloat(arqueoInput) - theoretical) === 0 ? 'text-emerald-600' : 'text-red-600'}>
-                                    {money(parseFloat(arqueoInput) - theoretical)}
+                                Diferencia: <b className={Math.round(parseFloat(arqueoInput) - preview.expectedInDrawer) === 0 ? 'text-emerald-600' : 'text-red-600'}>
+                                    {money(parseFloat(arqueoInput) - preview.expectedInDrawer)}
                                 </b>
                             </p>
                         )}
@@ -395,7 +427,7 @@ export default function CierresCajaPage() {
                                             {diffBadge(c.difference)}
                                         </div>
                                         <p className="text-[10px] font-bold text-stone-400 mt-1">
-                                            Teórico: <b>{money(c.theoreticalTotal)}</b> · Contado: <b>{money(c.countedAmount)}</b>
+                                            Esperado en caja: <b>{money(c.theoreticalTotal)}</b> · Contado: <b>{money(c.countedAmount)}</b>
                                             {c.closedByName && <> · Cerró {c.closedByName}</>}
                                             {' '}· Período: {c.summary?.movementsCount ?? 0} mov. manuales, cobros {money(c.summary?.paymentsTotal)}
                                         </p>
@@ -469,7 +501,7 @@ export default function CierresCajaPage() {
                                         {[
                                             ['Contá ANTES de mirar los números', 'Recibí el efectivo y contalo sin mirar cuánto dice el sistema ni cuánto declaró el vendedor. Tu conteo independiente es el valor del doble control.'],
                                             ['"Contar y Confirmar"', 'Ingresá lo que contaste. El sistema compara solo contra lo cobrado según registros y lo declarado. Si difiere, queda sellado y administración recibe un email al instante.'],
-                                            ['Arqueo al cierre del día', 'Contá TODO el efectivo del local, ingresalo en "Arqueo de caja" y cerrá. Queda teórico, contado, diferencia y quién cerró. Hacelo a diario y antes/después de cada retiro grande.'],
+                                            ['Arqueo al cierre del día', 'Contá TODO el efectivo de la caja e ingresalo en "Arqueo de caja". El sistema compara contra el ESPERADO EN CAJA: el saldo teórico menos lo que siga en poder de vendedores sin rendir (te lo muestra desglosado). Tus propios cobros van directo a caja: no los rendís, se controlan acá. Hacelo a diario y antes/después de cada retiro grande.'],
                                         ].map(([t, d], i) => (
                                             <div key={i} className="flex gap-3">
                                                 <div className="w-7 h-7 rounded-full bg-primary text-white font-black text-sm flex items-center justify-center shrink-0">{i + 1}</div>

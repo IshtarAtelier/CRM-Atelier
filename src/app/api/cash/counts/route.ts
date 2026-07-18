@@ -11,13 +11,13 @@ export async function GET(request: Request) {
         if (!actor.id) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
         const canManage = await CashService.canManageCash(actor);
-        if (!canManage) return NextResponse.json({ canManage: false, counts: [], theoretical: null });
+        if (!canManage) return NextResponse.json({ canManage: false, counts: [], preview: null });
 
-        const [counts, balance] = await Promise.all([
+        const [counts, preview] = await Promise.all([
             CashService.listCashCounts(),
-            CashService.getCashBalance(),
+            CashService.getArqueoPreview(),
         ]);
-        return NextResponse.json({ canManage: true, counts, theoretical: balance.total });
+        return NextResponse.json({ canManage: true, counts, preview });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

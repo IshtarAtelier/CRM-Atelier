@@ -18,8 +18,8 @@ export const CashService = {
         // 1. Calcular el total de pagos en efectivo directamente en la DB (O(1) Memory)
         const paymentsAgg = await prisma.payment.aggregate({
             _sum: { amount: true },
-            where: { 
-                method: { in: ['EFECTIVO', 'CASH'] },
+            where: {
+                method: { in: CASH_METHODS },
                 order: { isDeleted: false }
             }
         });
@@ -43,8 +43,8 @@ export const CashService = {
 
         // 3. Cargar SÓLO los 50 movimientos más recientes para la Línea de Tiempo del Frontend
         const recentPayments = await prisma.payment.findMany({
-            where: { 
-                method: { in: ['EFECTIVO', 'CASH'] },
+            where: {
+                method: { in: CASH_METHODS },
                 order: { isDeleted: false }
             },
             include: { order: { include: { client: true, user: true } } },
@@ -207,8 +207,19 @@ export const CashService = {
     /**
      * Efectivo pendiente de rendición de un vendedor: cobros en efectivo que
      * registró desde su última rendición (o desde el inicio del circuito).
+     *
+     * Modelo de custodia: cada cobro en efectivo queda bajo custodia de QUIEN
+     * LO REGISTRÓ (Payment.createdById), sin importar de quién sea la venta.
+     * Los usuarios encargados de caja (cashManager) son la caja misma: sus
+     * cobros entran directo a custodia de caja y NO se rinden (custodian=true).
      */
     async getVendorPendingCash(vendorId: string) {
+        const user = await prisma.user.findUnique({
+            where: { id: vendorId },
+            select: { cashManager: true },
+        });
+        const custodian = !!user?.cashManager;
+
         const lastHandover = await prisma.cashHandover.findFirst({
             where: { vendorId },
             orderBy: { periodTo: 'desc' },
@@ -246,6 +257,7 @@ export const CashService = {
         }));
 
         return {
+            custodian,
             periodFrom,
             periodTo,
             total: items.reduce((sum, p) => sum + p.amount, 0),
@@ -255,33 +267,110 @@ export const CashService = {
         };
     },
 
+    /**
+     * Libro de custodia: cuánto efectivo está EN PODER de cada vendedor (no
+     * encargado) = todo lo que cobró desde el inicio del circuito, menos todo
+     * lo que ya entregó CONFIRMADO (se descuenta lo CONTADO por la encargada:
+     * si entregó de menos, la diferencia sigue figurando en su poder — la
+     * plata faltante nunca desaparece del libro, queda a nombre de alguien).
+     */
+    async getVendorsHolding() {
+        const cutoff = new Date(RENDICION_CUTOFF_ISO);
+
+        const [users, collected, delivered] = await Promise.all([
+            prisma.user.findMany({ select: { id: true, name: true, cashManager: true } }),
+            prisma.payment.groupBy({
+                by: ['createdById'],
+                _sum: { amount: true },
+                where: {
+                    createdById: { not: null },
+                    method: { in: CASH_METHODS },
+                    date: { gt: cutoff },
+                    order: { isDeleted: false },
+                },
+            }),
+            prisma.cashHandover.groupBy({
+                by: ['vendorId'],
+                _sum: { countedAmount: true },
+                where: { status: 'CONFIRMED' },
+            }),
+        ]);
+
+        const byUser = new Map(users.map(u => [u.id, u]));
+        const deliveredBy = new Map(delivered.map(d => [d.vendorId, d._sum.countedAmount || 0]));
+
+        const holdings: { vendorId: string; vendorName: string; holding: number }[] = [];
+        for (const c of collected) {
+            const u = byUser.get(c.createdById as string);
+            if (!u || u.cashManager) continue; // encargados = la caja misma
+            const holding = (c._sum.amount || 0) - (deliveredBy.get(u.id) || 0);
+            if (Math.round(holding) !== 0) {
+                holdings.push({ vendorId: u.id, vendorName: u.name, holding });
+            }
+        }
+        holdings.sort((a, b) => b.holding - a.holding);
+        return holdings;
+    },
+
+    /**
+     * Números del arqueo: el efectivo esperado EN LA CAJA no es el saldo
+     * teórico total — hay que descontar lo que todavía está en poder de
+     * vendedores sin rendir. Sin esto, todo arqueo daría "faltante" falso.
+     */
+    async getArqueoPreview() {
+        const [balance, vendorsHolding] = await Promise.all([
+            this.getCashBalance(),
+            this.getVendorsHolding(),
+        ]);
+        const holdingTotal = vendorsHolding.reduce((s, v) => s + v.holding, 0);
+        return {
+            globalTheoretical: balance.total,
+            vendorsHolding,
+            holdingTotal,
+            expectedInDrawer: balance.total - holdingTotal,
+        };
+    },
+
     /** El vendedor registra la entrega de efectivo (queda PENDING hasta que la encargada confirme). */
     async createHandover(actor: Actor, declaredAmount: number, notes?: string) {
         if (!actor.id) throw new Error('No se pudo identificar al vendedor.');
 
         const pending = await this.getVendorPendingCash(actor.id);
+        if (pending.custodian) {
+            throw new Error('Tus cobros ya quedan bajo tu custodia como encargado/a de caja: no se rinden, se controlan con el arqueo.');
+        }
         if (pending.pendingHandover) {
             throw new Error('Ya tenés una rendición esperando confirmación de la encargada. Esperá a que la confirme antes de registrar otra.');
         }
         if (pending.payments.length === 0) {
-            throw new Error('No tenés cobros en efectivo pendientes de rendición en este período.');
+            throw new Error('No tenés cobros en efectivo pendientes de rendición en este período. Ojo: los cobros quedan a nombre del usuario logueado al registrarlos — si cobraste con otra sesión abierta, figuran en el pendiente de ese usuario.');
         }
         if (!declaredAmount || declaredAmount <= 0) {
             throw new Error('El monto a entregar debe ser mayor a cero.');
         }
 
-        const handover = await prisma.cashHandover.create({
-            data: {
-                vendorId: actor.id,
-                vendorName: actor.name,
-                expectedAmount: pending.total,
-                declaredAmount,
-                periodFrom: pending.periodFrom,
-                periodTo: pending.periodTo,
-                payments: pending.payments as any,
-                notes: notes?.trim() || null,
-            },
-        });
+        let handover;
+        try {
+            handover = await prisma.cashHandover.create({
+                data: {
+                    vendorId: actor.id,
+                    vendorName: actor.name,
+                    expectedAmount: pending.total,
+                    declaredAmount,
+                    periodFrom: pending.periodFrom,
+                    periodTo: pending.periodTo,
+                    payments: pending.payments as any,
+                    notes: notes?.trim() || null,
+                },
+            });
+        } catch (e: any) {
+            // Índice único parcial (una PENDING por vendedor): dos clicks
+            // simultáneos no pueden duplicar la rendición.
+            if (e?.code === 'P2002') {
+                throw new Error('Ya tenés una rendición esperando confirmación de la encargada.');
+            }
+            throw e;
+        }
 
         logAudit({
             userId: actor.id,
@@ -305,8 +394,10 @@ export const CashService = {
 
         const difference = countedAmount - handover.expectedAmount;
 
-        const updated = await prisma.cashHandover.update({
-            where: { id },
+        // Guard de concurrencia: solo confirma si TODAVÍA está PENDING (un
+        // doble click o dos personas confirmando a la vez no pisan el conteo).
+        const result = await prisma.cashHandover.updateMany({
+            where: { id, status: 'PENDING' },
             data: {
                 status: 'CONFIRMED',
                 countedAmount,
@@ -317,6 +408,10 @@ export const CashService = {
                 ...(notes?.trim() ? { notes: [handover.notes, `Recepción: ${notes.trim()}`].filter(Boolean).join('\n') } : {}),
             },
         });
+        if (result.count === 0) {
+            throw new Error('Esta rendición ya fue confirmada por otra persona.');
+        }
+        const updated = await prisma.cashHandover.findUnique({ where: { id } });
 
         await logAudit({
             userId: actor.id,
@@ -355,7 +450,12 @@ export const CashService = {
         });
     },
 
-    /** Arqueo: conteo físico del efectivo en caja vs. saldo teórico del sistema. */
+    /**
+     * Arqueo: conteo físico del efectivo EN CAJA vs. lo que debería haber en
+     * caja. Clave: al saldo teórico total se le descuenta el efectivo que
+     * sigue en poder de vendedores sin rendir (getVendorsHolding) — si no,
+     * cada arqueo daría un "faltante" falso por plata que está en tránsito.
+     */
     async createCashCount(actor: Actor, countedAmount: number, notes?: string) {
         if (countedAmount == null || countedAmount < 0) throw new Error('Ingresá el monto contado.');
 
@@ -366,7 +466,7 @@ export const CashService = {
         const periodFrom = lastCount?.createdAt || new Date(RENDICION_CUTOFF_ISO);
         const periodTo = new Date();
 
-        const balance = await this.getCashBalance();
+        const preview = await this.getArqueoPreview();
 
         // Resumen del período para auditar diferencias sin revolver toda la caja
         const [periodPayments, periodIn, periodOut, movementsCount] = await Promise.all([
@@ -385,16 +485,21 @@ export const CashService = {
             prisma.cashMovement.count({ where: { createdAt: { gt: periodFrom, lte: periodTo } } }),
         ]);
 
-        const difference = countedAmount - balance.total;
+        const difference = countedAmount - preview.expectedInDrawer;
 
         const count = await prisma.cashCount.create({
             data: {
-                theoreticalTotal: balance.total,
+                // theoreticalTotal = lo esperado EN CAJA (ya sin lo que está en
+                // poder de vendedores); el teórico global queda en summary.
+                theoreticalTotal: preview.expectedInDrawer,
                 countedAmount,
                 difference,
                 periodFrom,
                 periodTo,
                 summary: {
+                    globalTheoretical: preview.globalTheoretical,
+                    vendorsHolding: preview.vendorsHolding,
+                    holdingTotal: preview.holdingTotal,
                     paymentsTotal: periodPayments._sum.amount || 0,
                     manualIn: periodIn._sum.amount || 0,
                     manualOut: periodOut._sum.amount || 0,
@@ -412,17 +517,28 @@ export const CashService = {
             action: 'CREATE',
             entityType: 'CASH_COUNT',
             entityId: count.id,
-            details: { theoreticalTotal: balance.total, countedAmount, difference },
+            details: {
+                expectedInDrawer: preview.expectedInDrawer,
+                globalTheoretical: preview.globalTheoretical,
+                holdingTotal: preview.holdingTotal,
+                countedAmount,
+                difference,
+            },
         });
 
         if (Math.round(difference) !== 0) {
+            const holdingLines = preview.vendorsHolding
+                .map(v => `  · ${v.vendorName}: $${Math.round(v.holding).toLocaleString('es-AR')}`)
+                .join('\n');
             sendEmail({
                 to: ADMIN_EMAIL,
                 subject: `⚠️ Arqueo de caja con diferencia de $${Math.abs(Math.round(difference)).toLocaleString('es-AR')}`,
                 text: `Se cerró un arqueo de caja CON DIFERENCIA:\n\n` +
-                    `Saldo teórico: $${Math.round(balance.total).toLocaleString('es-AR')}\n` +
+                    `Esperado en caja: $${Math.round(preview.expectedInDrawer).toLocaleString('es-AR')}\n` +
                     `Efectivo contado: $${Math.round(countedAmount).toLocaleString('es-AR')}\n` +
-                    `Diferencia (contado − teórico): $${Math.round(difference).toLocaleString('es-AR')}\n\n` +
+                    `Diferencia (contado − esperado): $${Math.round(difference).toLocaleString('es-AR')}\n\n` +
+                    `Saldo teórico total: $${Math.round(preview.globalTheoretical).toLocaleString('es-AR')}\n` +
+                    (holdingLines ? `En poder de vendedores (sin rendir):\n${holdingLines}\n\n` : '\n') +
                     `Cerró: ${actor.name}\n` +
                     `Período: ${periodFrom.toLocaleString('es-AR')} → ${periodTo.toLocaleString('es-AR')}`,
             }).catch(e => console.error('Error enviando email de diferencia en arqueo:', e));

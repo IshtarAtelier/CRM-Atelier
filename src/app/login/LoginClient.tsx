@@ -194,7 +194,7 @@ function LoginForm() {
 
                     <div className="mt-6 text-center">
                         <p className="text-xs text-foreground/40">
-                            Admin: ishtar | Vendedor: matias
+                            Sistema de gestión interno · Atelier Óptica
                         </p>
                     </div>
                 </div>

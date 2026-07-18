@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { CashService } from '@/services/cash.service';
-import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
 
 export const dynamic = 'force-dynamic';
@@ -12,14 +11,8 @@ export async function GET(request: Request) {
         // El saldo acumulado de la caja lo ven solo ADMIN y el/la encargado/a de
         // caja (User.cashManager, editable en Configuración → Usuarios). El resto
         // del staff ve cada movimiento con su monto real, pero sin totales.
-        let canViewTotals = actor.role === 'ADMIN';
-        if (!canViewTotals && actor.id) {
-            const user = await prisma.user.findUnique({
-                where: { id: actor.id },
-                select: { cashManager: true },
-            });
-            canViewTotals = !!user?.cashManager;
-        }
+        // Única fuente de verdad del permiso: CashService.canManageCash.
+        const canViewTotals = await CashService.canManageCash(actor);
 
         const balance = await CashService.getCashBalance();
 
