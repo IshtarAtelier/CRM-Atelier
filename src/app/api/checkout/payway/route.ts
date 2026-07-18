@@ -11,7 +11,7 @@ import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTrans
 import { recalculateItemPrice, effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
-import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
+import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
 
 function getArgentineStateCode(stateName: string): string {
   if (!stateName) return "C"; // fallback to CABA
@@ -137,6 +137,12 @@ function resolveCrystalProduct(item: any, crystals: any[]) {
 export async function POST(req: Request) {
   let globalRestoreStock: (() => Promise<void>) | null = null;
   let order: any = null;
+  // Se pone en true en cuanto Payway aprueba el cargo. Si después falla algo
+  // (p.ej. la DB), el catch NO debe cancelar la orden ni restaurar stock: la
+  // tarjeta ya se cobró. En su lugar deja la orden pagada y alerta a un humano.
+  let cardCharged = false;
+  let chargedTransactionId: string | null = null;
+  let chargedAmount = 0;
   try {
     const body = await req.json();
     const { customer, items, total } = body;
@@ -162,6 +168,19 @@ export async function POST(req: Request) {
     }
     if (isWholesaleUser && !customer.paymentMethod.includes('MAYORISTA')) {
       customer.paymentMethod = 'TRANSFER_MAYORISTA';
+    }
+
+    // Pedido mayorista: mínimo de piezas (validación de servidor — el cliente
+    // no es autoridad). Se cuenta el total de unidades del carrito.
+    if (isWholesaleUser || customer.paymentMethod.includes('MAYORISTA')) {
+      const totalPiezas = (Array.isArray(items) ? items : [])
+        .reduce((acc: number, it: any) => acc + (Number(it?.quantity) || 0), 0);
+      if (totalPiezas < WHOLESALE_MIN_PIECES) {
+        return NextResponse.json(
+          { error: `Los pedidos mayoristas requieren un mínimo de ${WHOLESALE_MIN_PIECES} piezas. Tu pedido tiene ${totalPiezas}.` },
+          { status: 400 }
+        );
+      }
     }
 
     const shippingMethodLabel = (() => {
@@ -246,6 +265,15 @@ export async function POST(req: Request) {
     const sanitizedItems = [];
 
     for (const item of items) {
+      // Cantidad: entero positivo y acotado. Sin esto, un qty negativo produce
+      // un ítem que resta del total (orden en $0) y un decrement:-qty que INFLA
+      // el stock; un qty gigante o decimal rompe el cálculo.
+      const qty = Number(item.quantity);
+      if (!Number.isInteger(qty) || qty < 1 || qty > 50) {
+        return NextResponse.json({ error: `Cantidad inválida para ${item.model || 'un producto'}.` }, { status: 400 });
+      }
+      item.quantity = qty;
+
       const safeProductId = item.productId && item.productId !== "unknown"
         ? item.productId.replace(/[^a-zA-Z0-9_-]/g, '')
         : undefined;
@@ -400,8 +428,11 @@ export async function POST(req: Request) {
 
     // Decrement stock in preparation
     const decrementedProducts: { id: string, quantity: number, prevStock: number }[] = [];
+    // Idempotente: consume la lista al restaurar (splice) para que dos llamadas
+    // — el path directo y el catch global — no repongan el stock dos veces.
     globalRestoreStock = async () => {
-      for (const dp of decrementedProducts) {
+      const toRestore = decrementedProducts.splice(0, decrementedProducts.length);
+      for (const dp of toRestore) {
         try {
           await prisma.product.update({
             where: { id: dp.id },
@@ -813,6 +844,9 @@ export async function POST(req: Request) {
 
     // PAGO APROBADO
     console.log("[PAYWAY APPROVED] Transacción exitosa:", paywayData.id);
+    cardCharged = true;
+    chargedTransactionId = paywayData.id;
+    chargedAmount = finalItemsTotal;
 
     // Wrap approved card payments in a Prisma transaction
     await prisma.$transaction(async (tx) => {
@@ -934,16 +968,57 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("[PAYWAY API ERROR]", error);
-    // Asegurarse de liberar stock si ocurre CUALQUIER error en la función
+
+    // Caso crítico: la tarjeta YA se cobró y falló algo después (típicamente la DB).
+    // Cancelar la orden y restaurar stock acá dejaría al cliente cobrado sin venta
+    // registrada. En su lugar dejamos rastro del cargo y alertamos a un humano para
+    // registrar la venta a mano o reversar el pago en Payway.
+    if (cardCharged) {
+      console.error(`[PAYWAY CRÍTICO] Cargo aprobado (tx ${chargedTransactionId}) pero falló el post-proceso. Requiere intervención manual.`);
+      if (order?.id) {
+        try {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: {
+              status: "WEB_PAID",
+              paid: chargedAmount,
+              labNotes: `[⚠️ COBRO OK, POST-PROCESO FALLÓ - REVISAR] tx Payway ${chargedTransactionId}: ${error?.message || 'Error interno'}\n\n` + (order.labNotes || '')
+            }
+          });
+        } catch (updateErr) {
+          console.error("Error marcando orden cobrada-con-fallo:", updateErr);
+        }
+      }
+      try {
+        const { sendEmail } = await import('@/lib/email');
+        const adminEmail = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
+        {
+          await sendEmail({
+            to: adminEmail,
+            subject: '⚠️ URGENTE: cobro Payway acreditado sin venta registrada',
+            html: `<p>Se aprobó un cargo en Payway (transacción <b>${chargedTransactionId}</b>) por <b>$${chargedAmount.toLocaleString('es-AR')}</b> pero falló el post-proceso.</p>
+                   <p>Orden: <b>${order?.id || 'sin crear'}</b>. Error: ${error?.message || 'desconocido'}.</p>
+                   <p>Verificá en Payway y registrá/anulá la venta manualmente. <b>No restaurar stock automáticamente.</b></p>`
+          });
+        }
+      } catch (mailErr) {
+        console.error("No se pudo enviar la alerta de cobro-sin-venta:", mailErr);
+      }
+      return NextResponse.json(
+        { error: 'Tu pago fue procesado, pero hubo un problema registrando la orden. Ya avisamos a nuestro equipo; te vamos a contactar a la brevedad.', paymentProcessed: true, transactionId: chargedTransactionId },
+        { status: 500 }
+      );
+    }
+
+    // Sin cargo: liberar stock y cancelar la orden si se había creado.
     if (globalRestoreStock) {
       await globalRestoreStock();
     }
-    // Si la orden ya había sido creada, la marcamos como cancelada y eliminada para que no aparezca en ventas
     if (order?.id) {
       try {
         await prisma.order.update({
           where: { id: order.id },
-          data: { 
+          data: {
             isDeleted: true,
             status: "CANCELED",
             labNotes: `[ERROR API PAYWAY]: ${error?.message || 'Error interno'}\n\n` + (order.labNotes || '')

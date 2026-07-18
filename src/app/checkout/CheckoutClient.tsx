@@ -11,7 +11,7 @@ import { CheckoutShippingForm } from "@/components/checkout/CheckoutShippingForm
 import { CheckoutPaymentOptions } from "@/components/checkout/CheckoutPaymentOptions";
 import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySidebar";
 import type { AppliedCoupon } from "@/components/checkout/CouponField";
-import { WHATSAPP_PHONE } from "@/lib/constants";
+import { WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
 import { toast } from "sonner";
 
@@ -274,6 +274,14 @@ export function CheckoutClient({
 
   const handlePaywaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Pedido mayorista: mínimo de piezas (el backend además lo re-valida).
+    if (isWholesale) {
+      const totalPiezas = items.reduce((acc, i) => acc + i.quantity, 0);
+      if (totalPiezas < WHOLESALE_MIN_PIECES) {
+        toast.error(`Los pedidos mayoristas requieren un mínimo de ${WHOLESALE_MIN_PIECES} piezas. Tu pedido tiene ${totalPiezas}.`);
+        return;
+      }
+    }
     // Candado anti doble-envío: bloquea reintentos instantáneos aunque React
     // todavía no haya re-renderizado el botón deshabilitado.
     if (payLockRef.current || isProcessing) return;

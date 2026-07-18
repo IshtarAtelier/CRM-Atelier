@@ -18,6 +18,11 @@ export const ATTENTION_CUTOFF_ISO = '2026-07-06T18:16:07.000Z';
 // sistema. La primera rendición de cada vendedor arranca desde acá.
 export const RENDICION_CUTOFF_ISO = '2026-07-17T00:00:00.000Z';
 
+// Pedido mayorista (canal ópticas / rol OPTICA): mínimo de piezas por pedido.
+// Se valida en el backend (payway/route.ts) y se refleja en el carrito y el
+// checkout. Cambiar acá el mínimo lo cambia en todos lados.
+export const WHOLESALE_MIN_PIECES = 10;
+
 // Conciliación de costos de laboratorio — inicio de la auditoría.
 // Verificado contra producción el 2026-07-15: primera venta del CRM el 7/4/2026,
 // primer pedido CON número de operación el 8/4/2026 18:54 (ART). La auditoría

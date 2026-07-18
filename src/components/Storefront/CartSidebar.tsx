@@ -2,6 +2,7 @@
 
 import { useCart, getItemUnitPrice } from "@/store/useCart";
 import { useIsWholesale, useWholesaleCartBackfill } from "@/hooks/useIsWholesale";
+import { WHOLESALE_MIN_PIECES } from "@/lib/constants";
 import { X, Trash2, ChevronRight, ShieldCheck, Truck, CreditCard, Building2, Handshake } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -149,13 +150,32 @@ export function CartSidebar() {
                   <span className="text-xl font-light">${getCartTotal(isWholesale).toLocaleString("es-AR")}</span>
                 </div>
 
-                <Link
-                  href="/checkout"
-                  onClick={() => setIsOpen(false)}
-                  className="w-full flex items-center justify-center gap-2 bg-black text-white px-6 py-4 text-xs font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
-                >
-                  {isWholesale ? "Finalizar Pedido Mayorista" : "Finalizar mi compra"} <ChevronRight className="w-4 h-4" />
-                </Link>
+                {(() => {
+                  const totalPiezas = items.reduce((acc, i) => acc + i.quantity, 0);
+                  const faltanPiezas = isWholesale && totalPiezas < WHOLESALE_MIN_PIECES;
+                  if (faltanPiezas) {
+                    return (
+                      <>
+                        <div className="mb-4 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded p-3 text-center font-semibold">
+                          Pedido mínimo mayorista: {WHOLESALE_MIN_PIECES} piezas.
+                          <br />Llevás {totalPiezas} — agregá {WHOLESALE_MIN_PIECES - totalPiezas} más para continuar.
+                        </div>
+                        <div className="w-full flex items-center justify-center gap-2 bg-stone-300 text-stone-500 px-6 py-4 text-xs font-black uppercase tracking-widest cursor-not-allowed select-none">
+                          Finalizar Pedido Mayorista <ChevronRight className="w-4 h-4" />
+                        </div>
+                      </>
+                    );
+                  }
+                  return (
+                    <Link
+                      href="/checkout"
+                      onClick={() => setIsOpen(false)}
+                      className="w-full flex items-center justify-center gap-2 bg-black text-white px-6 py-4 text-xs font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
+                    >
+                      {isWholesale ? "Finalizar Pedido Mayorista" : "Finalizar mi compra"} <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  );
+                })()}
 
                 {isWholesale ? (
                   <div className="mt-4 grid grid-cols-3 gap-2 border-t border-stone-200 pt-4">
