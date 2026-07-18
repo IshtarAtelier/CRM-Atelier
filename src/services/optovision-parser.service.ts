@@ -2,6 +2,9 @@ import PDFParser from 'pdf2json';
 
 export interface OptovisionInvoiceData {
     labOrderNumber: string | null;
+    /** TODOS los pedidos de la línea "Ped:" — Optovision a veces factura 2-3
+     *  juntos: "Ped: TI-7101568(587979) /TI-7101583(588049) /TI-7101638(588966)". */
+    labOrderNumbers: string[];
     subtotal: number | null;
     total: number | null;
     rawText: string;
@@ -28,9 +31,13 @@ export class OptovisionParserService {
                 clearTimeout(timeout);
                 const text = pdfParser.getRawTextContent();
                 
-                // 1. Extract Lab Order Number
-                const pedMatch = text.match(/Ped:.*?\((.*?)\)/);
-                const labOrderNumber = pedMatch ? pedMatch[1].trim() : null;
+                // 1. Extract Lab Order Number(s) — solo de la línea "Ped:", con
+                // 5+ dígitos (excluye el código postal "(1408)" de la dirección).
+                const pedLine = text.match(/Ped:[^\n]*/);
+                const labOrderNumbers = pedLine
+                    ? [...pedLine[0].matchAll(/\((\d{5,})\)/g)].map(m => m[1])
+                    : [];
+                const labOrderNumber = labOrderNumbers[0] ?? null;
                 
                 // 2. Extract Subtotal
                 const subtotalMatch = text.match(/Subtotal:\s*([0-9]+\.[0-9]+)/);
@@ -53,6 +60,7 @@ export class OptovisionParserService {
                 
                 resolve({
                     labOrderNumber,
+                    labOrderNumbers,
                     subtotal,
                     total,
                     rawText: text

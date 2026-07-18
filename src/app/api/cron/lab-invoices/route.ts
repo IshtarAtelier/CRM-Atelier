@@ -52,8 +52,42 @@ export async function GET(request: Request) {
             orderBy: [{ lab: 'asc' }, { labOrderNumber: 'asc' }],
         });
         if (newOrphans.length > 0) {
+            // Casos de POSTVENTA recientes sin nº de operación asignado: son los
+            // primeros candidatos a dueños de un pedido huérfano.
+            const openCases = await prisma.postSaleCase.findMany({
+                where: {
+                    createdAt: { gte: new Date(Date.now() - 60 * 86400000) },
+                    OR: [{ newOrderNumber: null }, { newOrderNumber: '' }],
+                },
+                select: {
+                    id: true, caseType: true, coverage: true,
+                    order: { select: { clientId: true, client: { select: { name: true } } } },
+                },
+            });
+            const tokensOf = (s: string) => new Set(
+                s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+                    .split(/[^a-z]+/).filter(w => w.length >= 3)
+            );
+
             const classified = await Promise.all(newOrphans.map(async (o) => {
                 const notes = o.notes || '';
+                const nameRaw = notes.match(/\(([^,)]{4,60})[,)]/)?.[1]?.trim() || '';
+                const nameTokens = tokensOf(nameRaw);
+
+                // 0) ¿Matchea un caso de postventa abierto SIN nº asignado? (lo más fuerte)
+                if (nameTokens.size > 0) {
+                    for (const c of openCases) {
+                        const ct = tokensOf(c.order?.client?.name || '');
+                        const inter = [...nameTokens].filter(t => ct.has(t)).length;
+                        if (inter >= 2 || (inter >= 1 && Math.min(nameTokens.size, ct.size) === 1)) {
+                            return {
+                                o, tipo: 'POSTVENTA', clientId: c.order?.clientId,
+                                detalle: `Caso de POSTVENTA de «${c.order?.client?.name}» SIN nº asignado (${c.caseType || 's/tipo'}${c.coverage ? `, ${c.coverage}` : ''}) — asignarle este pedido`,
+                            };
+                        }
+                    }
+                }
+
                 // 1) Señales de postventa: el portal lo marca reproceso o el nombre lo dice
                 if (/reproceso|reclamo|garant[ií]a|cambio\s+(de\s+)?(rx|cristal)/i.test(notes)) {
                     return { o, tipo: 'POSTVENTA', detalle: 'Posible caso de postventa sin nº de operación asignado' };

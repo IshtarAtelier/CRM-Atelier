@@ -82,9 +82,16 @@ export class LabCostReconciliationService {
             include: {
                 client: { select: { name: true } },
                 items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
+                postSaleCases: {
+                    select: { id: true, newOrderNumber: true, caseType: true, coverage: true, fault: true },
+                    orderBy: { createdAt: 'desc' as const },
+                },
             },
             orderBy: { createdAt: 'desc' },
         });
+
+        // ¿El número matcheó por POSTVENTA (reproceso) y no por la venta original?
+        const pvCase = order?.postSaleCases?.find((c: any) => c.newOrderNumber?.includes(cleanNumber)) || null;
 
         const existing = await prisma.labCostEntry.findUnique({
             where: { lab_labOrderNumber: { lab: input.lab, labOrderNumber: cleanNumber } },
@@ -106,7 +113,12 @@ export class LabCostReconciliationService {
             ? (input.invoiceDate ?? null)
             : (existing?.invoiceDate ?? input.invoiceDate ?? null);
 
-        const billedComparable = billedNet ?? billedTotal ?? null;
+        // Comparable por laboratorio: Optovision discrimina IVA y Atelier es
+        // monotributo (no lo recupera) → el costo real es el TOTAL c/IVA.
+        // Grupo Óptico factura a consumidor final → neto y total coinciden.
+        const billedComparable = input.lab === 'OPTOVISION'
+            ? (billedTotal ?? billedNet ?? null)
+            : (billedNet ?? billedTotal ?? null);
         const systemCost = order ? this.systemCostForLab(order, input.lab) : null;
 
         // Una venta puede tener varios pedidos de lab ("580841-580844"): el costo
@@ -137,7 +149,10 @@ export class LabCostReconciliationService {
         // fija en el detalle de la entrada, venga de la fuente que venga.
         const resolucion = RESOLUCIONES_CONOCIDAS[cleanNumber];
         const resolucionNote = resolucion && !baseNotes?.includes('RESUELTO') ? resolucion : null;
-        const notes = [resolucionNote, baseNotes, multiNote].filter(Boolean).join(' ') || null;
+        const pvNote = pvCase && !baseNotes?.includes('POSTVENTA (caso')
+            ? `Pedido de POSTVENTA (caso ${pvCase.caseType || 's/tipo'}${pvCase.coverage ? `, cobertura: ${pvCase.coverage}` : ''}).`
+            : null;
+        const notes = [resolucionNote, pvNote, baseNotes, multiNote].filter(Boolean).join(' ') || null;
 
         const data = {
             orderId: order?.id ?? null,
@@ -164,6 +179,17 @@ export class LabCostReconciliationService {
         if (isNewOvercost && order) {
             await this.sendOvercostAlert(entry, order).catch(err =>
                 console.error('[LabCost] Error enviando alerta de sobrecosto:', err)
+            );
+        }
+
+        // Auditoría de POSTVENTA: un reproceso debería venir sin cargo (garantía;
+        // Optovision los factura a ~$0). Si el pedido nació de un caso de postventa
+        // y la factura trae plata, alertar apenas aparece el importe.
+        const prevBilled = existing ? (existing.billedNet ?? existing.billedTotal ?? null) : null;
+        const billedChanged = (billedComparable ?? null) !== prevBilled;
+        if (pvCase && order && billedComparable !== null && billedComparable > 5000 && billedChanged) {
+            await this.sendChargedReworkAlert(entry, order, pvCase, billedComparable).catch(err =>
+                console.error('[LabCost] Error enviando alerta de reproceso cobrado:', err)
             );
         }
 
@@ -236,27 +262,37 @@ export class LabCostReconciliationService {
 
                     try {
                         const invoice = await OptovisionParserService.parseInvoice(attachment.content);
-                        if (!invoice.labOrderNumber) {
+                        const peds = invoice.labOrderNumbers;
+                        if (peds.length === 0) {
+                            // Compras de stock o consolidadas por remito: sin nº de
+                            // pedido, no se cruzan (quedan solo en el log).
                             summary.unparsed++;
-                            console.log(`[LabCost] PDF sin nº de pedido: ${attachment.filename}`);
+                            console.log(`[LabCost] PDF sin nº de pedido (stock/remito): ${attachment.filename}`);
                             continue;
                         }
 
-                        const entry = await this.upsertEntry({
-                            lab: 'OPTOVISION',
-                            labOrderNumber: invoice.labOrderNumber,
-                            billedNet: invoice.subtotal,
-                            billedTotal: invoice.total,
-                            source: 'IMAP_PDF',
-                            sourceFile: attachment.filename || 'factura.pdf',
-                            invoiceDate: parsed.date || null,
-                        });
+                        // Una factura puede agrupar 2-3 pedidos: se registra cada
+                        // uno con su parte proporcional del importe.
+                        for (const ped of peds) {
+                            const entry = await this.upsertEntry({
+                                lab: 'OPTOVISION',
+                                labOrderNumber: ped,
+                                billedNet: invoice.subtotal !== null ? invoice.subtotal / peds.length : null,
+                                billedTotal: invoice.total !== null ? invoice.total / peds.length : null,
+                                source: 'IMAP_PDF',
+                                sourceFile: attachment.filename || 'factura.pdf',
+                                invoiceDate: parsed.date || null,
+                                notes: peds.length > 1
+                                    ? `Factura compartida entre ${peds.length} pedidos (${peds.join(', ')}); importe prorrateado.`
+                                    : null,
+                            });
 
-                        if (entry) {
-                            summary.parsed++;
-                            summary.entries.push(entry.labOrderNumber);
-                            if (entry.status === 'OVERCOST') summary.overcost++;
-                            if (entry.status === 'UNMATCHED') summary.unmatched++;
+                            if (entry) {
+                                summary.parsed++;
+                                summary.entries.push(entry.labOrderNumber);
+                                if (entry.status === 'OVERCOST') summary.overcost++;
+                                if (entry.status === 'UNMATCHED') summary.unmatched++;
+                            }
                         }
                     } catch (err) {
                         summary.unparsed++;
@@ -424,6 +460,27 @@ export class LabCostReconciliationService {
             if (updated && updated.status !== 'UNMATCHED') rematched++;
         }
         return { checked: unmatched.length, rematched };
+    }
+
+    private static async sendChargedReworkAlert(entry: any, order: any, pvCase: any, billed: number) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
+        const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
+        await sendEmail({
+            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+            subject: `🚨 Reproceso de POSTVENTA facturado CON CARGO: pedido ${entry.labOrderNumber} (${fmt(billed)})`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
+                    <h2 style="color: #b91c1c;">🚨 Reproceso de postventa con cargo</h2>
+                    <p>El pedido <strong style="font-family: monospace;">${entry.labOrderNumber}</strong> nació de un caso de postventa de <strong>${order.client?.name || 'cliente'}</strong> y el laboratorio lo facturó por <strong>${fmt(billed)}</strong>. Los reprocesos en garantía deberían venir sin cargo — verificar con el laboratorio si correspondía garantía o nota de crédito.</p>
+                    <ul style="line-height: 1.7; font-size: 14px;">
+                        <li>Caso: ${pvCase.caseType || 'sin tipo'}${pvCase.coverage ? ` · cobertura: ${pvCase.coverage}` : ''}${pvCase.fault ? ` · falla: ${pvCase.fault}` : ''}</li>
+                        <li>Laboratorio: ${entry.lab === 'GRUPO_OPTICO' ? 'Grupo Óptico' : 'Optovision'}${entry.sourceFile ? ` · ${entry.sourceFile}` : ''}</li>
+                    </ul>
+                    <p><a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente</a> · <a href="${appUrl}/admin/laboratorio/costos">Ver conciliación</a></p>
+                </div>
+            `,
+        });
+        console.log(`[LabCost] Alerta de reproceso cobrado enviada: pedido ${entry.labOrderNumber} (${billed})`);
     }
 
     private static async sendOvercostAlert(entry: any, order: any) {
