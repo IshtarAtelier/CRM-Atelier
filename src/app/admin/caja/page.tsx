@@ -323,7 +323,7 @@ export default function CajaPage() {
                                         </p>
                                         {typeof m.balanceAfter === 'number' && (
                                             <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 tabular-nums">
-                                                Saldo: ${Math.round(m.balanceAfter).toLocaleString('es-AR')}
+                                                En caja: ${Math.round(m.balanceAfter).toLocaleString('es-AR')}
                                             </p>
                                         )}
                                     </div>
