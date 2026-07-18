@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
     ArrowLeft, Loader2, RefreshCw, Mail, Upload, X, FlaskConical,
-    AlertTriangle, CheckCircle2, HelpCircle, TrendingDown, CalendarDays, Download
+    AlertTriangle, CheckCircle2, HelpCircle, TrendingDown, CalendarDays, Download, History
 } from 'lucide-react';
 
 interface LabCostEntry {
@@ -49,6 +49,22 @@ interface ReportRow {
     invoicesFound: number;
     status: string;
     daysWaiting: number | null;
+}
+
+interface AuditRun {
+    id: string;
+    runAt: string;
+    trigger: string;
+    staleSources: string[];
+    totalEntries: number;
+    conVenta: number;
+    postventa: number;
+    sinVenta: number;
+    esperandoFact: number;
+    ok: number;
+    overcost: number;
+    undercost: number;
+    nuevosSinVenta: number;
 }
 
 interface MonthlyReport {
@@ -122,6 +138,7 @@ const fmtDate = (iso: string | null) => {
 export default function LabCostosPage() {
     const [entries, setEntries] = useState<LabCostEntry[]>([]);
     const [totals, setTotals] = useState<StatusTotal[]>([]);
+    const [auditRuns, setAuditRuns] = useState<AuditRun[]>([]);
     const [loading, setLoading] = useState(true);
     const [labFilter, setLabFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -149,6 +166,7 @@ export default function LabCostosPage() {
                 const data = await res.json();
                 setEntries(data.entries || []);
                 setTotals(data.totals || []);
+                setAuditRuns(data.auditRuns || []);
             }
         } catch (e) {
             console.error('Error cargando conciliación', e);
@@ -387,6 +405,62 @@ export default function LabCostosPage() {
                                         </tr>
                                     );
                                 })}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
+
+            {/* Registro de revisiones diarias (libro de auditoría) */}
+            <div className="bg-white rounded-xl border border-gray-200 mb-6">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                    <History size={18} className="text-indigo-600" />
+                    <h2 className="font-semibold text-gray-900">Registro de revisiones diarias</h2>
+                    <span className="text-xs text-gray-400">— constancia de que el control se ejecuta y cruza contra ventas y postventa</span>
+                </div>
+                <div className="overflow-x-auto">
+                    {auditRuns.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400 text-sm px-6">
+                            Todavía no corrió ninguna revisión. Cuando el cron diario se dé de alta, cada corrida deja acá su constancia.
+                        </div>
+                    ) : (
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-left text-xs text-gray-500 uppercase border-b border-gray-200">
+                                    <th className="px-4 py-2.5">Fecha/hora</th>
+                                    <th className="px-4 py-2.5">Origen</th>
+                                    <th className="px-4 py-2.5 text-right">Total</th>
+                                    <th className="px-4 py-2.5 text-right">Con venta</th>
+                                    <th className="px-4 py-2.5 text-right">Postventa</th>
+                                    <th className="px-4 py-2.5 text-right">Esperando factura</th>
+                                    <th className="px-4 py-2.5 text-right">Sin venta</th>
+                                    <th className="px-4 py-2.5 text-right">Sobrecostos</th>
+                                    <th className="px-4 py-2.5">Fuentes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {auditRuns.map(r => (
+                                    <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <td className="px-4 py-2.5 whitespace-nowrap text-gray-700">
+                                            {new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(r.runAt))}
+                                            {r.trigger === 'MANUAL' && <span className="ml-1 text-xs text-gray-400">(manual)</span>}
+                                        </td>
+                                        <td className="px-4 py-2.5 text-gray-500 text-xs">{r.trigger === 'CRON' ? 'Automático' : 'Manual'}</td>
+                                        <td className="px-4 py-2.5 text-right text-gray-900">{r.totalEntries}</td>
+                                        <td className="px-4 py-2.5 text-right text-green-700">{r.conVenta}</td>
+                                        <td className="px-4 py-2.5 text-right text-blue-700">{r.postventa}</td>
+                                        <td className="px-4 py-2.5 text-right text-gray-500">{r.esperandoFact}</td>
+                                        <td className={`px-4 py-2.5 text-right font-semibold ${r.sinVenta > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                                            {r.sinVenta}{r.nuevosSinVenta > 0 && <span className="text-red-600 text-xs"> (+{r.nuevosSinVenta})</span>}
+                                        </td>
+                                        <td className={`px-4 py-2.5 text-right ${r.overcost > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'}`}>{r.overcost}</td>
+                                        <td className="px-4 py-2.5">
+                                            {r.staleSources.length === 0
+                                                ? <span className="text-green-600 text-xs">✓ OK</span>
+                                                : <span className="text-red-600 text-xs" title={r.staleSources.join(', ')}>⚠ {r.staleSources.length} caída(s)</span>}
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     )}

@@ -309,6 +309,64 @@ export class LabCostReconciliationService {
     }
 
     /**
+     * Snapshot del estado del cruce en este momento: cuántos pedidos se
+     * corresponden con ventas, con postventa, y cuántos quedaron sin
+     * correspondencia. Base del registro de auditoría diario.
+     */
+    static async reconciliationSnapshot() {
+        const byStatus = await prisma.labCostEntry.groupBy({
+            by: ['status'],
+            _count: { _all: true },
+        });
+        const count = (s: string) => byStatus.find(b => b.status === s)?._count._all || 0;
+        // Postventa = entradas cuya nota las marca como pedido de postventa
+        // (upsertEntry las anota "Pedido de POSTVENTA (caso …)").
+        const postventa = await prisma.labCostEntry.count({
+            where: { notes: { contains: 'POSTVENTA (caso' } },
+        });
+        const ok = count('OK'), overcost = count('OVERCOST'), undercost = count('UNDERCOST');
+        const esperandoFact = count('PENDING'), sinVenta = count('UNMATCHED');
+        return {
+            totalEntries: ok + overcost + undercost + esperandoFact + sinVenta,
+            conVenta: ok + overcost + undercost + esperandoFact, // todo lo que matchea una venta
+            postventa,
+            sinVenta,
+            esperandoFact,
+            ok,
+            overcost,
+            undercost,
+        };
+    }
+
+    /**
+     * Graba una fila en el libro de auditoría (LabAuditRun): deja constancia de
+     * que la revisión diaria se ejecutó y con qué resultado. `providerResults` es
+     * lo que devuelve runAllProviders; `nuevosSinVenta` los huérfanos nuevos.
+     */
+    static async recordAuditRun(opts: {
+        trigger?: string;
+        providerResults: Record<string, any>;
+        staleSources?: string[];
+        nuevosSinVenta?: number;
+    }) {
+        const snap = await this.reconciliationSnapshot();
+        const providers: Record<string, any> = {};
+        for (const [k, v] of Object.entries(opts.providerResults)) {
+            if (k === 'health' || k === 'recheck') continue;
+            providers[k] = v;
+        }
+        return prisma.labAuditRun.create({
+            data: {
+                trigger: opts.trigger || 'CRON',
+                providers,
+                staleSources: opts.staleSources || [],
+                nuevosSinVenta: opts.nuevosSinVenta || 0,
+                ...snap,
+            },
+        });
+    }
+
+    /**
      * Registra pedidos vistos en el portal del laboratorio que no corresponden
      * a ninguna venta del sistema (pedidos huérfanos: plata gastada en el lab
      * sin venta que la respalde). Si la venta aparece después, el re-cruce

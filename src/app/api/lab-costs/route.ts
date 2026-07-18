@@ -43,7 +43,13 @@ export async function GET(request: Request) {
             _sum: { difference: true },
         });
 
-        return NextResponse.json({ entries, totals });
+        // Historial de revisiones diarias (libro de auditoría del control).
+        const auditRuns = await prisma.labAuditRun.findMany({
+            orderBy: { runAt: 'desc' },
+            take: 60,
+        });
+
+        return NextResponse.json({ entries, totals, auditRuns });
     } catch (error: any) {
         console.error('[lab-costs GET] Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

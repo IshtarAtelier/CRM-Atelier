@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runAllProviders, LAB_PROVIDERS } from '@/services/lab-providers';
+import { LabCostReconciliationService } from '@/services/lab-cost-reconciliation.service';
 import { sendEmail } from '@/lib/email';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 import { prisma } from '@/lib/db';
@@ -173,7 +174,16 @@ export async function GET(request: Request) {
             }).catch(err => console.error('[Cron lab-invoices] Error enviando alerta de salud:', err));
         }
 
-        return NextResponse.json({ ok: true, ...results, stale: stale.map(s => s.name) });
+        // Libro de auditoría: deja constancia de que la revisión diaria se
+        // ejecutó y con qué resultado (con venta / postventa / sin venta / etc.).
+        const auditRun = await LabCostReconciliationService.recordAuditRun({
+            trigger: 'CRON',
+            providerResults: results,
+            staleSources: stale.map(s => s.name),
+            nuevosSinVenta: newOrphans.length,
+        }).catch(err => { console.error('[Cron lab-invoices] Error grabando LabAuditRun:', err); return null; });
+
+        return NextResponse.json({ ok: true, ...results, stale: stale.map(s => s.name), auditRunId: auditRun?.id ?? null });
     } catch (error: any) {
         console.error('[Cron lab-invoices] Error:', error);
         return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 });

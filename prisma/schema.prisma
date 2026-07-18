@@ -765,6 +765,31 @@ model LabCostEntry {
   @@index([createdAt])
 }
 
+// Registro histórico de cada revisión diaria de conciliación de laboratorio.
+// Una fila por corrida del cron: deja constancia de que el cruce se hizo y con
+// qué resultado (cuántos pedidos se corresponden con ventas, con postventa, y
+// cuántos quedaron sin correspondencia). Es el "libro de auditoría" que permite
+// demostrar que el control se ejecuta a diario y ver la evolución en el tiempo.
+model LabAuditRun {
+  id            String   @id @default(cuid())
+  runAt         DateTime @default(now())
+  trigger       String   @default("CRON") // CRON | MANUAL
+  providers     Json // estado por proveedor: { OPTOVISION: {...}, GRUPO_OPTICO: {...} }
+  staleSources  String[] @default([]) // fuentes caídas 3+ días
+  totalEntries  Int      @default(0) // total de pedidos de lab en seguimiento
+  conVenta      Int      @default(0) // corresponden a una venta del sistema
+  postventa     Int      @default(0) // corresponden a un caso de postventa
+  sinVenta      Int      @default(0) // UNMATCHED — sin venta que los respalde
+  esperandoFact Int      @default(0) // PENDING — con venta, sin costo facturado aún
+  ok            Int      @default(0)
+  overcost      Int      @default(0)
+  undercost     Int      @default(0)
+  nuevosSinVenta Int     @default(0) // huérfanos nuevos detectados en esta corrida
+  notes         String?
+
+  @@index([runAt])
+}
+
 model PostSaleCase {
   id               String                  @id @default(cuid())
   orderId          String
