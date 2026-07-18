@@ -5,7 +5,7 @@ export type AuditEntityType =
     | 'ORDER' | 'CONTACT' | 'PAYMENT' | 'USER' | 'PRODUCT'
     | 'TASK' | 'PRESCRIPTION' | 'INVOICE' | 'EXPENSE' | 'DOCTOR_PAYMENT'
     | 'COUPON' | 'SETTING' | 'VENDOR_CASH'
-    | 'CASH_HANDOVER' | 'CASH_COUNT' | 'OTHER';
+    | 'CASH_HANDOVER' | 'CASH_COUNT' | 'OPTICA_LEAD' | 'OTHER';
 
 export async function logAudit(params: {
   userId?: string | null;

@@ -811,3 +811,35 @@ model PostSaleStatusHistory {
 
   @@index([caseId])
 }
+
+// Leads de ópticas para captación mayorista B2B (panel /admin/opticas,
+// acceso restringido: ADMIN o emails en OPTICAS_LEADS_EMAILS).
+model OpticaLead {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String?   // como se scrapeó/cargó
+  phoneWa       String?   // normalizado para wa.me (549...)
+  rating        Float?
+  reviewsCount  Int?
+  category      String?   // rubro que reporta Maps ("Óptica", "Optometrista"...)
+  address       String?
+  city          String?
+  province      String?
+  mapsUrl       String?
+  placeId       String?   @unique
+  website       String?
+  instagram     String?
+  status        String    @default("NUEVO") // NUEVO | CONTACTADO | RESPONDIO | CLIENTE | BLOCKLIST | OCULTO
+  hasWhatsapp   Boolean?  // null = sin verificar
+  notes         String?
+  contactedAt   DateTime?
+  contactedBy   String?
+  source        String?   // "maps" | "csv" | "manual"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+  @@index([city])
+  @@index([rating])
+  @@index([phoneWa])
+}
