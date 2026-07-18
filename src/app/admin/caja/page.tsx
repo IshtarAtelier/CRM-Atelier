@@ -243,12 +243,16 @@ export default function CajaPage() {
                                     <span>💰 En caja</span>
                                     <span className="font-black text-stone-700 dark:text-stone-200">${Math.round(custody.expectedInDrawer).toLocaleString('es-AR')}</span>
                                 </div>
-                                {custody.holdings.map(v => (
+                                {custody.holdings.length > 0 ? custody.holdings.map(v => (
                                     <div key={v.vendorId} className="flex items-center justify-between text-xs font-bold text-amber-600 dark:text-amber-400">
                                         <span>👤 {v.vendorName} (sin entregar)</span>
                                         <span className="font-black">${Math.round(v.holding).toLocaleString('es-AR')}</span>
                                     </div>
-                                ))}
+                                )) : (
+                                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                        ✓ Nadie tiene efectivo sin entregar
+                                    </p>
+                                )}
                             </div>
                         )}
                     </div>
