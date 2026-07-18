@@ -46,6 +46,12 @@ existen en el laboratorio y no responden a ninguna venta del sistema**.
 4. **Watchdog**: si una fuente lleva 3+ días sin corrida exitosa (estado en
    `SystemSetting: lab-provider:*:lastOkAt`), email de alerta — un pipeline caído
    en silencio es un agujero de auditoría.
+5. **Libro de auditoría** (`LabAuditRun`): cada corrida graba una fila con la
+   fecha, el estado de las fuentes y el snapshot del cruce (cuántos pedidos se
+   corresponden con ventas, con postventa, cuántos sin correspondencia, esperando
+   factura, sobrecostos y huérfanos nuevos). Deja constancia histórica de que el
+   control se ejecuta a diario; se ve en "Registro de revisiones diarias" en la
+   página y se consulta por `GET /api/lab-costs` (últimas 60 corridas).
 
 Cada paso tolera la falla de los demás. El sync de estado de SmartLab (cada 15 min)
 además registra huérfanos de los últimos 100 pedidos visibles, para latencia intra-día.
