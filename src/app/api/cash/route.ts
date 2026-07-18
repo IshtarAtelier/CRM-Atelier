@@ -32,9 +32,22 @@ export async function GET(request: Request) {
         // cuánto hay EN CAJA y cuánto sigue en poder de cada vendedor sin rendir.
         const holdings = await CashService.getVendorsHolding();
         const holdingTotal = holdings.reduce((s, v) => s + v.holding, 0);
+
+        // Saldo corrido estilo resumen bancario: cada movimiento lleva el saldo
+        // en que quedó la caja en ese momento. Se ancla en el total actual y se
+        // camina hacia atrás (la lista viene ordenada del más nuevo al más viejo),
+        // así es exacto aunque solo se muestren los últimos 50 movimientos.
+        let running = balance.total;
+        const movements = balance.movements.map((m: any) => {
+            const withBalance = { ...m, balanceAfter: running };
+            running -= m.type === 'IN' ? (m.amount || 0) : -(m.amount || 0);
+            return withBalance;
+        });
+
         return NextResponse.json({
             canViewTotals: true,
             ...balance,
+            movements,
             custody: {
                 holdings,
                 holdingTotal,

@@ -226,6 +226,8 @@ export interface CashMovement {
     user?: { name: string };
     /** Solo cobros de venta: vendedor de la orden (comisión), puede diferir de quien cobró. */
     seller?: string | null;
+    /** Saldo de caja en que quedó tras este movimiento (solo llega a ADMIN/encargada). */
+    balanceAfter?: number | null;
 }
 
 export function mapOrderPostSale(order: any): any {

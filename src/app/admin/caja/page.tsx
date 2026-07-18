@@ -316,10 +316,17 @@ export default function CajaPage() {
                                         </button>
                                     )}
 
-                                    {/* Amount */}
-                                    <p className={`text-lg font-black tracking-tight shrink-0 ${m.type === 'IN' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                        {m.type === 'IN' ? '+' : '-'}${(m.amount ?? 0).toLocaleString('es-AR')}
-                                    </p>
+                                    {/* Amount + saldo corrido (solo ADMIN/encargada) */}
+                                    <div className="shrink-0 text-right">
+                                        <p className={`text-lg font-black tracking-tight ${m.type === 'IN' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                            {m.type === 'IN' ? '+' : '-'}${(m.amount ?? 0).toLocaleString('es-AR')}
+                                        </p>
+                                        {typeof m.balanceAfter === 'number' && (
+                                            <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 tabular-nums">
+                                                Saldo: ${Math.round(m.balanceAfter).toLocaleString('es-AR')}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}
