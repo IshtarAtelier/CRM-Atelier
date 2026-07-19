@@ -223,25 +223,36 @@ export const CashService = {
         });
         const custodian = !!user?.cashManager;
 
-        const lastHandover = await prisma.cashHandover.findFirst({
-            where: { vendorId },
-            orderBy: { periodTo: 'desc' },
-            select: { periodTo: true },
-        });
         const pendingHandover = await prisma.cashHandover.findFirst({
             where: { vendorId, status: 'PENDING' },
             select: { id: true, declaredAmount: true, createdAt: true },
         });
 
-        const periodFrom = lastHandover?.periodTo || new Date(RENDICION_CUTOFF_ISO);
-        const periodTo = new Date();
+        const cutoff = new Date(RENDICION_CUTOFF_ISO);
+
+        // Pendiente = todos los cobros en efectivo del vendedor desde el corte
+        // MENOS los que ya están dentro de alguna rendición (PENDING o CONFIRMED).
+        // Es un modelo por ID de pago, no por ventana de tiempo: inmune a que la
+        // fecha del pago (00:00 del día) sea menor que el timestamp de la última
+        // rendición, que dejaba cobros de la tarde irrendibles para siempre.
+        const priorHandovers = await prisma.cashHandover.findMany({
+            where: { vendorId },
+            select: { payments: true },
+        });
+        const renderedIds = new Set<string>();
+        for (const h of priorHandovers) {
+            for (const p of (h.payments as any[]) || []) {
+                if (p?.id) renderedIds.add(p.id);
+            }
+        }
 
         const payments = await prisma.payment.findMany({
             where: {
                 createdById: vendorId,
                 method: { in: CASH_METHODS },
-                date: { gt: periodFrom, lte: periodTo },
+                date: { gt: cutoff },
                 order: { isDeleted: false },
+                ...(renderedIds.size ? { id: { notIn: Array.from(renderedIds) } } : {}),
             },
             select: {
                 id: true,
@@ -261,8 +272,8 @@ export const CashService = {
 
         return {
             custodian,
-            periodFrom,
-            periodTo,
+            periodFrom: cutoff,
+            periodTo: new Date(),
             total: items.reduce((sum, p) => sum + p.amount, 0),
             payments: items,
             // Si ya hay una rendición esperando confirmación, no se abre otra
@@ -306,8 +317,12 @@ export const CashService = {
         for (const c of collected) {
             const u = byUser.get(c.createdById as string);
             if (!u || u.cashManager) continue; // encargados = la caja misma
-            const holding = (c._sum.amount || 0) - (deliveredBy.get(u.id) || 0);
-            if (Math.round(holding) !== 0) {
+            // Clamp a 0: un holding negativo solo aparece si se borró/editó un pago
+            // que ya estaba dentro de una rendición confirmada (la encargada contó
+            // más de lo que hoy se le atribuye). Nunca debe INFLAR el esperado en
+            // caja — se trata como 0 y la diferencia real la caza el arqueo.
+            const holding = Math.max(0, (c._sum.amount || 0) - (deliveredBy.get(u.id) || 0));
+            if (Math.round(holding) > 0) {
                 holdings.push({ vendorId: u.id, vendorName: u.name, holding });
             }
         }
