@@ -12,12 +12,17 @@ export async function GET(request: Request) {
         if (!actor.id) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
         const canManage = await CashService.canManageCash(actor);
+        const viewer = {
+            role: actor.role || 'STAFF',
+            isOwner: actor.role === 'ADMIN',
+            isCashManager: canManage && actor.role !== 'ADMIN',
+        };
         const [pending, handovers] = await Promise.all([
             CashService.getVendorPendingCash(actor.id),
             CashService.listHandovers(canManage ? undefined : actor.id),
         ]);
 
-        return NextResponse.json({ canManage, pending, handovers });
+        return NextResponse.json({ canManage, viewer, pending, handovers });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -30,7 +35,12 @@ export async function POST(request: Request) {
         if (!actor.id) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
         const { declaredAmount, notes } = await request.json();
-        const handover = await CashService.createHandover(actor, Number(declaredAmount), notes);
+        const parsed = Number(declaredAmount);
+        if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 100_000_000) {
+            return NextResponse.json({ error: 'Ingresá un monto a entregar válido, mayor a cero.' }, { status: 400 });
+        }
+        const cleanNotes = notes ? String(notes).trim().slice(0, 500) : undefined;
+        const handover = await CashService.createHandover(actor, parsed, cleanNotes);
         return NextResponse.json(handover, { status: 201 });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 400 });

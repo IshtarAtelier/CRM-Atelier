@@ -45,6 +45,8 @@ type CashCount = {
 export default function CierresCajaPage() {
     const [loading, setLoading] = useState(true);
     const [canManage, setCanManage] = useState(false);
+    // Rol del que mira, para el chip de identidad (dueña / encargada / vendedor)
+    const [viewer, setViewer] = useState<{ role: string; isOwner: boolean; isCashManager: boolean } | null>(null);
     const [pending, setPending] = useState<any>(null);
     const [handovers, setHandovers] = useState<Handover[]>([]);
     const [counts, setCounts] = useState<CashCount[]>([]);
@@ -90,6 +92,7 @@ export default function CierresCajaPage() {
             const h = await hRes.json();
             if (hRes.ok) {
                 setCanManage(!!h.canManage);
+                setViewer(h.viewer || null);
                 setPending(h.pending);
                 setHandovers(h.handovers || []);
                 if (h.canManage) {
@@ -131,6 +134,24 @@ export default function CierresCajaPage() {
     };
 
     const confirmHandover = async (id: string) => {
+        // Confirmación con resumen: la rendición queda sellada para siempre.
+        const counted = parseFloat(countedInput);
+        if (!isFinite(counted) || counted < 0) {
+            notify('error', 'Ingresá el monto contado (0 o más).');
+            return;
+        }
+        const h = handovers.find(x => x.id === id);
+        if (h) {
+            const diff = Math.round(counted - h.expectedAmount);
+            const resumen =
+                `¿Confirmar la rendición de ${h.vendorName}?\n\n` +
+                `Según el sistema cobró: $${Math.round(h.expectedAmount).toLocaleString('es-AR')}\n` +
+                `Declaró entregar: $${Math.round(h.declaredAmount).toLocaleString('es-AR')}\n` +
+                `Vos contaste: $${Math.round(counted).toLocaleString('es-AR')}\n` +
+                `Resultado: ${diff === 0 ? '✓ Coincide' : `⚠️ Diferencia de $${diff.toLocaleString('es-AR')} (se avisa a administración por email)`}\n\n` +
+                `Una vez confirmada queda sellada y no se puede editar.`;
+            if (!window.confirm(resumen)) return;
+        }
         setSaving(true);
         try {
             const res = await fetch(`/api/cash/handovers/${id}`, {
@@ -151,6 +172,23 @@ export default function CierresCajaPage() {
     };
 
     const submitArqueo = async () => {
+        // Confirmación con resumen: el arqueo queda sellado, no puede ser un
+        // click accidental. Muestra esperado, contado y diferencia antes de cerrar.
+        const counted = parseFloat(arqueoInput);
+        if (!isFinite(counted) || counted < 0) {
+            notify('error', 'Ingresá un monto contado válido.');
+            return;
+        }
+        if (preview) {
+            const diff = Math.round(counted - preview.expectedInDrawer);
+            const resumen =
+                `¿Cerrar el arqueo?\n\n` +
+                `Esperado en caja: $${Math.round(preview.expectedInDrawer).toLocaleString('es-AR')}\n` +
+                `Contaste: $${Math.round(counted).toLocaleString('es-AR')}\n` +
+                `Diferencia: ${diff === 0 ? '$0 ✓ Coincide' : `$${diff.toLocaleString('es-AR')} ⚠️ (se avisa a administración por email)`}\n\n` +
+                `El arqueo queda sellado y no se puede editar.`;
+            if (!window.confirm(resumen)) return;
+        }
         setSaving(true);
         try {
             const res = await fetch('/api/cash/counts', {
@@ -210,6 +248,21 @@ export default function CierresCajaPage() {
                         <p className="text-stone-400 text-xs mt-1.5 font-medium">
                             Entregas de efectivo a la encargada de caja y cierres de lote
                         </p>
+                        {viewer && (
+                            <span className={`inline-block mt-2 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+                                viewer.isOwner
+                                    ? 'bg-stone-900 text-amber-400 dark:bg-white dark:text-amber-600'
+                                    : viewer.isCashManager
+                                        ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900'
+                                        : 'bg-stone-100 text-stone-500 border border-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700'
+                            }`}>
+                                {viewer.isOwner
+                                    ? '👑 Administración · confirmás y arqueás si hace falta'
+                                    : viewer.isCashManager
+                                        ? '💰 Encargada de caja · contá antes de confirmar'
+                                        : '💵 Vendedor · entregá tu efectivo con rendición'}
+                            </span>
+                        )}
                     </div>
                 </div>
                 <button
@@ -307,12 +360,21 @@ export default function CierresCajaPage() {
                                             )}
                                             {h.status === 'CONFIRMED' && diffBadge(h.difference)}
                                         </div>
-                                        <p className="text-[10px] font-bold text-stone-400 mt-1">
-                                            {format(new Date(h.createdAt), 'dd MMM, HH:mm', { locale: es })} · {h.payments?.length ?? 0} cobros ·
-                                            {' '}Sistema: <b>{money(h.expectedAmount)}</b> · Declarado: <b>{money(h.declaredAmount)}</b>
-                                            {h.countedAmount != null && <> · Contado: <b>{money(h.countedAmount)}</b></>}
-                                            {h.confirmedByName && <> · Recibió {h.confirmedByName}</>}
-                                        </p>
+                                        {canManage && h.status === 'PENDING' ? (
+                                            // Conteo ciego: la encargada NO ve los montos antes de contar,
+                                            // para que su conteo sea un control independiente de verdad.
+                                            <p className="text-[10px] font-bold text-amber-600 mt-1">
+                                                {format(new Date(h.createdAt), 'dd MMM, HH:mm', { locale: es })} · {h.payments?.length ?? 0} cobros ·
+                                                {' '}🙈 Montos ocultos — contá el efectivo primero y recién ahí confirmá.
+                                            </p>
+                                        ) : (
+                                            <p className="text-[10px] font-bold text-stone-400 mt-1">
+                                                {format(new Date(h.createdAt), 'dd MMM, HH:mm', { locale: es })} · {h.payments?.length ?? 0} cobros ·
+                                                {' '}Sistema: <b>{money(h.expectedAmount)}</b> · Declarado: <b>{money(h.declaredAmount)}</b>
+                                                {h.countedAmount != null && <> · Contado: <b>{money(h.countedAmount)}</b></>}
+                                                {h.confirmedByName && <> · Recibió {h.confirmedByName}</>}
+                                            </p>
+                                        )}
                                         {h.notes && <p className="text-[11px] text-stone-400 mt-1 whitespace-pre-line">{h.notes}</p>}
                                     </div>
 

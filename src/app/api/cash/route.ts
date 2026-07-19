@@ -16,9 +16,19 @@ export async function GET(request: Request) {
 
         const balance = await CashService.getCashBalance();
 
+        // Rol del que mira, para que la UI diga claro quién sos y qué te toca:
+        // ADMIN = dueña (ve todo) · canViewTotals sin ADMIN = encargada de caja
+        // · resto = vendedor (sin totales).
+        const viewer = {
+            role: actor.role || 'STAFF',
+            isOwner: actor.role === 'ADMIN',
+            isCashManager: canViewTotals && actor.role !== 'ADMIN',
+        };
+
         if (!canViewTotals) {
             return NextResponse.json({
                 canViewTotals: false,
+                viewer,
                 total: 0,
                 paymentsTotal: 0,
                 manualBalance: 0,
@@ -49,6 +59,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json({
             canViewTotals: true,
+            viewer,
             ...balance,
             movements,
             custody: {

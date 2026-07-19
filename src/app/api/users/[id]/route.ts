@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
+import { CashService } from '@/services/cash.service';
 
 // PATCH /api/users/[id] — Update user (name, role, password)
 export async function PATCH(
@@ -37,7 +38,26 @@ export async function PATCH(
             if (role) data.role = role;
             // Encargado de caja: habilita ver el saldo total de la caja en efectivo.
             // Solo ADMIN lo otorga (mismo criterio que el rol).
-            if (cashManager !== undefined) data.cashManager = !!cashManager;
+            if (cashManager !== undefined) {
+                // Blindaje del libro de custodia: pasar a encargado (o dejar de serlo)
+                // NO puede hacerse mientras la persona tenga efectivo sin conciliar,
+                // porque cambia retroactivamente de qué lado del libro está esa plata
+                // (queda huérfana o aparece un descuadre falso en el próximo arqueo).
+                const [holdingInfo, pending] = await Promise.all([
+                    CashService.getVendorsHolding(),
+                    CashService.getVendorPendingCash(id),
+                ]);
+                const myHolding = holdingInfo.find(h => h.vendorId === id)?.holding || 0;
+                const hasPending = !!pending.pendingHandover;
+                const custodyDirect = pending.custodian ? pending.total : 0;
+                const pendingCash = Math.round(myHolding) !== 0 || hasPending || Math.round(custodyDirect) !== 0;
+                if (pendingCash) {
+                    return NextResponse.json({
+                        error: 'Antes de cambiar el rol de caja, esta persona tiene que rendir/conciliar el efectivo que tiene a su nombre (o cerrar un arqueo). Regularizá la caja y volvé a intentar.',
+                    }, { status: 409 });
+                }
+                data.cashManager = !!cashManager;
+            }
         }
         // Casilla de avisos: la puede cambiar el ADMIN o el propio usuario.
         // String vacío la borra (vuelve a usarse la casilla compartida del local).

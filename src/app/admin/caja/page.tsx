@@ -37,6 +37,7 @@ export default function CajaPage() {
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
     const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
     const [labsConfig, setLabsConfig] = useState<{name: string}[]>([]);
     // Quién puede ver el saldo acumulado lo decide el server (ADMIN o encargado
@@ -51,6 +52,8 @@ export default function CajaPage() {
     // Cierres de caja por día (solo canViewTotals): con cuánto terminó cada noche
     const [dailyCloses, setDailyCloses] = useState<{ day: string; close: number; delta: number; inProgress: boolean }[]>([]);
     const [showCloses, setShowCloses] = useState(false);
+    // Rol del que mira, para el chip de identidad (dueña / encargada / vendedor)
+    const [viewer, setViewer] = useState<{ role: string; isOwner: boolean; isCashManager: boolean } | null>(null);
 
     useEffect(() => {
         fetchMovements();
@@ -75,6 +78,7 @@ export default function CajaPage() {
                 setCanViewTotals(!!json.canViewTotals);
                 setCustody(json.custody || null);
                 setDailyCloses(json.dailyCloses || []);
+                setViewer(json.viewer || null);
                 setBalances({
                     total: json.total || 0,
                     paymentsTotal: json.paymentsTotal || 0,
@@ -103,7 +107,17 @@ export default function CajaPage() {
     };
 
     const handleSaveMovement = async () => {
-        if (!amount || !reason) return;
+        const monto = parseFloat(amount);
+        if (!isFinite(monto) || monto <= 0) {
+            setErrorMessage('Ingresá un monto válido, mayor a cero.');
+            setTimeout(() => setErrorMessage(''), 4000);
+            return;
+        }
+        if (!reason.trim()) {
+            setErrorMessage('Escribí el motivo del movimiento.');
+            setTimeout(() => setErrorMessage(''), 4000);
+            return;
+        }
         setIsSaving(true);
         try {
             const userRes = await fetch('/api/auth/me');
@@ -138,15 +152,23 @@ export default function CajaPage() {
                 })
             });
 
+            const data = await res.json().catch(() => ({}));
             if (res.ok) {
                 setShowModal(false);
                 resetForm();
                 fetchMovements();
                 setSuccessMessage(movementType === 'IN' ? '✅ Ingreso registrado' : '✅ Egreso registrado');
                 setTimeout(() => setSuccessMessage(''), 3000);
+            } else {
+                // El movimiento NO se guardó: el modal queda abierto con los datos
+                // cargados para reintentar, y se avisa por qué falló.
+                setErrorMessage(data.error || 'No se pudo guardar el movimiento. Revisá los datos e intentá de nuevo.');
+                setTimeout(() => setErrorMessage(''), 5000);
             }
         } catch (error) {
             console.error('Error saving movement:', error);
+            setErrorMessage('No se pudo guardar (problema de conexión). El movimiento NO quedó registrado — reintentá.');
+            setTimeout(() => setErrorMessage(''), 5000);
         } finally {
             setIsSaving(false);
         }
@@ -174,6 +196,14 @@ export default function CajaPage() {
                 </div>
             )}
 
+            {/* Error Toast */}
+            {errorMessage && (
+                <div className="fixed top-6 right-6 z-[200] bg-red-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4 duration-300 max-w-sm">
+                    <AlertCircle size={20} className="shrink-0" />
+                    <span className="text-sm font-black">{errorMessage}</span>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 bg-white dark:bg-stone-900 p-6 sm:p-8 rounded-[2rem] border border-stone-100 dark:border-stone-800 shadow-sm">
                 <div>
@@ -186,6 +216,21 @@ export default function CajaPage() {
                     <p className="text-stone-400 text-xs mt-1.5 font-medium">
                         Registrá ingresos y egresos de efectivo
                     </p>
+                    {viewer && (
+                        <span className={`inline-block mt-2 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+                            viewer.isOwner
+                                ? 'bg-stone-900 text-amber-400 dark:bg-white dark:text-amber-600'
+                                : viewer.isCashManager
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900'
+                                    : 'bg-stone-100 text-stone-500 border border-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700'
+                        }`}>
+                            {viewer.isOwner
+                                ? '👑 Administración · ves y controlás todo'
+                                : viewer.isCashManager
+                                    ? '💰 Encargada de caja · custodiás el efectivo'
+                                    : '💵 Vendedor · rendís lo que cobrás'}
+                        </span>
+                    )}
                 </div>
                 <a
                     href="/admin/caja/cierres"
@@ -358,7 +403,7 @@ export default function CajaPage() {
                                         </p>
                                         {typeof m.balanceAfter === 'number' && (
                                             <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 tabular-nums">
-                                                En caja: ${Math.round(m.balanceAfter).toLocaleString('es-AR')}
+                                                Saldo total: ${Math.round(m.balanceAfter).toLocaleString('es-AR')}
                                             </p>
                                         )}
                                     </div>
@@ -472,8 +517,12 @@ export default function CajaPage() {
                                     <div className="grid grid-cols-2 gap-2">
                                         {CATEGORIES
                                             .filter(c => {
-                                                // For IN: show APORTE_EFECTIVO and OTRO
-                                                // For OUT: show GASTO_GENERAL, PAGO_LABORATORIO, OTRO
+                                                // 'VENTA' nunca es un movimiento manual: los cobros de
+                                                // ventas entran solos desde el pedido (cargarlos acá
+                                                // duplicaría la caja). Fuera en ambos modos.
+                                                if (c.key === 'VENTA') return false;
+                                                // Ingreso: solo aporte de efectivo u otro.
+                                                // Egreso: gasto general, pago laboratorio u otro.
                                                 if (movementType === 'IN') return c.key === 'APORTE_EFECTIVO' || c.key === 'OTRO';
                                                 return c.key !== 'APORTE_EFECTIVO';
                                             })

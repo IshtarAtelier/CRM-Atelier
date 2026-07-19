@@ -20,7 +20,12 @@ export async function PATCH(
 
         const { id } = await params;
         const { countedAmount, notes } = await request.json();
-        const handover = await CashService.confirmHandover(id, Number(countedAmount), actor, notes);
+        const parsed = Number(countedAmount);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100_000_000) {
+            return NextResponse.json({ error: 'Ingresá el monto contado (0 o más, sin ceros de más).' }, { status: 400 });
+        }
+        const cleanNotes = notes ? String(notes).trim().slice(0, 500) : undefined;
+        const handover = await CashService.confirmHandover(id, parsed, actor, cleanNotes);
         return NextResponse.json(handover);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 400 });
