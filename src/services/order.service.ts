@@ -1484,11 +1484,12 @@ export class OrderService {
         }
 
         // Estado previo para historizar transiciones (quién cambió qué estado)
-        let prevState: { labStatus: string | null; status: string } | null = null;
-        if (data.labStatus !== undefined || data.status !== undefined) {
+        // y el número de operación previo (para registrar altas/cambios/borrados).
+        let prevState: { labStatus: string | null; status: string; labOrderNumber: string | null } | null = null;
+        if (data.labStatus !== undefined || data.status !== undefined || data.labOrderNumber !== undefined) {
             prevState = await prisma.order.findUnique({
                 where: { id },
-                select: { labStatus: true, status: true }
+                select: { labStatus: true, status: true, labOrderNumber: true }
             });
         }
 
@@ -1567,6 +1568,35 @@ export class OrderService {
             }).catch(err => console.error('Error registrando cambio de estado en ficha:', err));
         }
 
+        // ── Historial: alta/cambio/borrado del N° de operación de laboratorio ──
+        // Queda registrado en la ficha quién lo tocó y con qué valor, para que un
+        // número borrado (aun sin querer) siempre pueda recuperarse del historial.
+        if (prevState && data.labOrderNumber !== undefined) {
+            const prevNum = (prevState.labOrderNumber || '').trim();
+            const newNum = (data.labOrderNumber || '').trim();
+            if (prevNum !== newNum) {
+                const shortId = id.slice(-4).toUpperCase();
+                const who = userName || 'Sistema';
+                let content: string;
+                if (!prevNum && newNum) {
+                    content = `🔢 ${who} cargó el N° de operación del pedido #${shortId}: ${newNum}`;
+                } else if (prevNum && !newNum) {
+                    content = `🔢 ${who} borró el N° de operación del pedido #${shortId} (era ${prevNum})`;
+                } else {
+                    content = `🔢 ${who} cambió el N° de operación del pedido #${shortId}: ${prevNum} → ${newNum}`;
+                }
+                await prisma.interaction.create({
+                    data: {
+                        clientId: order.clientId,
+                        type: 'SISTEMA',
+                        content,
+                        userId: userId || null,
+                        userName: who
+                    }
+                }).catch(err => console.error('Error registrando cambio de N° de operación en ficha:', err));
+            }
+        }
+
         // ── Auto-Task: Request Review when DELIVERED ──
         if (labStatus === 'DELIVERED') {
             const taskDescription = `Solicitar comentario a ${order.client.name}`;
@@ -1606,6 +1636,9 @@ export class OrderService {
                 ...(prevState ? {
                     from: { labStatus: prevState.labStatus, status: prevState.status },
                     to: { labStatus: data.labStatus ?? prevState.labStatus, status: data.status ?? prevState.status }
+                } : {}),
+                ...(prevState && data.labOrderNumber !== undefined && (prevState.labOrderNumber || '').trim() !== (data.labOrderNumber || '').trim() ? {
+                    labOrderNumber: { from: prevState.labOrderNumber || null, to: data.labOrderNumber || null }
                 } : {}),
                 orderType: order.orderType,
                 total: order.total

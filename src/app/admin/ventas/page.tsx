@@ -756,6 +756,22 @@ export default function VentasPage() {
     });
 
     const saveLabOrderNumber = async (orderId: string) => {
+        const order = orders.find(o => o.id === orderId);
+        const prevNum = (order?.labOrderNumber || '').trim();
+        const newNum = editValue.trim();
+
+        // Sin cambios reales: cerramos sin pegarle a la API
+        if (prevNum === newNum) { setEditingOrderNumber(null); return; }
+
+        // Si YA había un número cargado, confirmamos antes de pisarlo o borrarlo
+        // (es muy fácil borrarlo sin querer). Cargar uno nuevo desde vacío no molesta.
+        if (prevNum) {
+            const msg = newNum
+                ? `⚠️ El pedido ya tiene el N° de operación "${prevNum}".\n\n¿Seguro que querés cambiarlo por "${newNum}"?`
+                : `⚠️ Vas a BORRAR el N° de operación "${prevNum}".\n\n¿Estás seguro? Va a quedar registrado en el historial del cliente.`;
+            if (!confirm(msg)) return;
+        }
+
         await fetch(`/api/orders/${orderId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
