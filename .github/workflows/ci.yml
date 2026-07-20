@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - desarrollo
   pull_request:
     branches:
       - main
+      - desarrollo
 
 jobs:
   build-and-lint:
@@ -30,6 +32,14 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint
+
+      - name: Typecheck (tsc --noEmit)
+        run: npx tsc --noEmit
+
+      - name: Chequeos de negocio (factory gate + resiliencia de catálogo)
+        run: |
+          npm run check:gate
+          npm run check:catalog
 
       - name: Build Next.js app
         run: npm run build
