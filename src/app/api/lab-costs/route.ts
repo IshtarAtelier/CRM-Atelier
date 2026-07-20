@@ -49,7 +49,13 @@ export async function GET(request: Request) {
             take: 60,
         });
 
-        return NextResponse.json({ entries, totals, auditRuns });
+        // Cuenta corriente por lab: último resumen de cuenta recibido (deuda viva).
+        const statements = await prisma.labAccountStatement.findMany({
+            orderBy: { statementDate: 'desc' },
+            distinct: ['lab'],
+        });
+
+        return NextResponse.json({ entries, totals, auditRuns, statements });
     } catch (error: any) {
         console.error('[lab-costs GET] Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

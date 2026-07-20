@@ -241,44 +241,45 @@ export class LabCostReconciliationService {
     }
 
     /**
-     * Escanea la casilla IMAP buscando facturas PDF de Optovision de los últimos
-     * `sinceDays` días y registra cada una en la conciliación.
+     * Abre una conexión IMAP a Gmail probando las credenciales configuradas
+     * (IMAP dedicada primero, SMTP como respaldo — la misma app password sirve).
+     * Devuelve null si no hay credenciales; lanza si todas fallan.
      */
-    static async scanOptovisionInbox(sinceDays = 35) {
-        // Cadena de credenciales configuradas: primero la dedicada a IMAP y, si
-        // falla, la del SMTP (la misma app password de Gmail sirve para ambos).
+    private static async openImap(): Promise<any | null> {
         const candidates = [
             { user: process.env.IMAP_USER || process.env.EMAIL_USER, password: process.env.IMAP_PASSWORD },
             { user: process.env.EMAIL_USER, password: process.env.EMAIL_PASS },
         ].filter(c => c.user && c.password);
+        if (candidates.length === 0) return null;
 
-        if (candidates.length === 0) {
-            console.warn('[LabCost] Sin credenciales IMAP/EMAIL configuradas. Se omite el escaneo.');
-            return { skipped: true, reason: 'no_imap_password' };
-        }
-
-        let connection: any = null;
         let lastError: any = null;
         for (const cred of candidates) {
             try {
-                connection = await imaps.connect({
+                return await imaps.connect({
                     imap: {
-                        user: cred.user!,
-                        password: cred.password!,
-                        host: 'imap.gmail.com',
-                        port: 993,
-                        tls: true,
-                        tlsOptions: { rejectUnauthorized: false },
-                        authTimeout: 10000,
+                        user: cred.user!, password: cred.password!,
+                        host: 'imap.gmail.com', port: 993, tls: true,
+                        tlsOptions: { rejectUnauthorized: false }, authTimeout: 10000,
                     },
                 });
-                break;
             } catch (err: any) {
                 lastError = err;
-                console.warn(`[LabCost] IMAP no autenticó con ${cred.user}; probando la siguiente credencial configurada…`);
+                console.warn(`[LabCost] IMAP no autenticó con ${cred.user}; probando la siguiente credencial…`);
             }
         }
-        if (!connection) throw lastError || new Error('IMAP sin conexión');
+        throw lastError || new Error('IMAP sin conexión');
+    }
+
+    /**
+     * Escanea la casilla IMAP buscando facturas PDF de Optovision de los últimos
+     * `sinceDays` días y registra cada una en la conciliación.
+     */
+    static async scanOptovisionInbox(sinceDays = 35) {
+        const connection = await this.openImap();
+        if (!connection) {
+            console.warn('[LabCost] Sin credenciales IMAP/EMAIL configuradas. Se omite el escaneo.');
+            return { skipped: true, reason: 'no_imap_password' };
+        }
 
         const summary = { emails: 0, pdfs: 0, parsed: 0, unparsed: 0, overcost: 0, unmatched: 0, entries: [] as string[] };
 
@@ -350,6 +351,87 @@ export class LabCostReconciliationService {
 
         console.log(`[LabCost] Escaneo Optovision: ${JSON.stringify(summary)}`);
         return summary;
+    }
+
+    /**
+     * Escanea la casilla IMAP buscando el ÚLTIMO resumen de cuenta de Essilor
+     * ("Documentos Pendientes" de procesos@essilor.com.ar), lo parsea y guarda un
+     * snapshot de la cuenta corriente de Optovision (deuda total + saldo por
+     * factura). Cruza cada factura del resumen con los pedidos conocidos.
+     * Idempotente: no duplica si ya se guardó un resumen de esa fecha.
+     */
+    static async scanEssilorStatement(sinceDays = 20) {
+        const { parseEssilorStatement } = await import('./lab-providers/essilor-statement');
+        const connection = await this.openImap();
+        if (!connection) return { skipped: true, reason: 'no_imap_password' };
+
+        try {
+            await connection.openBox('INBOX');
+            const since = new Date();
+            since.setDate(since.getDate() - sinceDays);
+            const messages = await connection.search(
+                [['FROM', 'procesos@essilor.com.ar'], ['SINCE', since]],
+                { bodies: [''], markSeen: false }
+            );
+            if (messages.length === 0) return { skipped: true, reason: 'sin_resumen', emails: 0 };
+
+            // Tomar el MÁS RECIENTE (el resumen es acumulativo: el último manda).
+            let best: { date: Date; pdf: Buffer; filename: string } | null = null;
+            for (const msg of messages) {
+                const allPart = msg.parts.find((p: any) => p.which === '');
+                if (!allPart) continue;
+                const parsed = await simpleParser(allPart.body);
+                const pdf = (parsed.attachments || []).find((a: any) =>
+                    a.contentType === 'application/pdf' || /\.pdf$/i.test(a.filename || ''));
+                if (!pdf) continue;
+                const d = parsed.date || new Date(0);
+                if (!best || d > best.date) best = { date: d, pdf: pdf.content, filename: pdf.filename || 'resumen.pdf' };
+            }
+            if (!best) return { skipped: true, reason: 'sin_pdf', emails: messages.length };
+
+            const st = await parseEssilorStatement(best.pdf);
+            if (!st.rows.length || st.totalDebt === null) {
+                return { skipped: true, reason: 'no_parseado', emails: messages.length };
+            }
+
+            const statementDate = st.statementDate || best.date;
+            // Idempotencia: no re-guardar el mismo resumen (mismo día + mismo total).
+            const dup = await prisma.labAccountStatement.findFirst({
+                where: { lab: 'OPTOVISION', statementDate, totalDebt: st.totalDebt },
+            });
+
+            // Cruce factura → pedido → venta (best-effort, informativo).
+            const conocidas = await prisma.labCostEntry.findMany({
+                where: { lab: 'OPTOVISION', sourceFile: { not: null } },
+                select: { labOrderNumber: true, sourceFile: true },
+            });
+            const enSistema = new Set<string>();
+            for (const e of conocidas) {
+                const m = (e.sourceFile || '').match(/(\d{4})-?0*(\d{3,8})/);
+                if (m) enSistema.add(`${m[1]}-${m[2].padStart(8, '0')}`);
+            }
+            const rowsEnriquecidas = st.rows.map(r => ({
+                ...r, enSistema: enSistema.has(r.invoiceNumber),
+            }));
+            const sinFacturaEnSistema = rowsEnriquecidas.filter(r => !r.enSistema);
+
+            if (!dup) {
+                await prisma.labAccountStatement.create({
+                    data: {
+                        lab: 'OPTOVISION', statementDate, totalDebt: st.totalDebt,
+                        invoiceCount: st.rows.length, rows: rowsEnriquecidas as any,
+                        sourceFile: best.filename,
+                    },
+                });
+            }
+            return {
+                ok: true, emails: messages.length, statementDate,
+                totalDebt: st.totalDebt, invoiceCount: st.rows.length,
+                sinFacturaEnSistema: sinFacturaEnSistema.length, nuevo: !dup,
+            };
+        } finally {
+            connection.end();
+        }
     }
 
     /**
@@ -497,7 +579,15 @@ export class LabCostReconciliationService {
             .map(e => ({ lab: e.lab, labOrderNumber: e.labOrderNumber, cliente: e.order?.client?.name || '—', difference: e.difference }))
             .sort((a, b) => (b.difference || 0) - (a.difference || 0));
 
-        return { from, to, perLab, sobrecostosVigentes };
+        // Cuenta corriente (deuda) por lab según el último resumen recibido.
+        const statements = await prisma.labAccountStatement.findMany({
+            orderBy: { statementDate: 'desc' }, distinct: ['lab'],
+        });
+        const cuentaCorriente = statements.map(s => ({
+            lab: s.lab, totalDebt: s.totalDebt, statementDate: s.statementDate, invoiceCount: s.invoiceCount,
+        }));
+
+        return { from, to, perLab, sobrecostosVigentes, cuentaCorriente };
     }
 
     static async monthlyReport(year: number, month: number) {

@@ -307,6 +307,9 @@ model Order {
   prescriptionId         String?
   labStatus              String?        @default("NONE")
   labSentAt              DateTime?
+  // Quién apretó "enviar a fábrica" (denormalizado: sobrevive rename/borrado del usuario)
+  labSentBy              String?
+  labSentById            String?
   labNotes               String?
   labOrderNumber         String?
   discount               Float?         @default(0.0)
@@ -762,6 +765,24 @@ model LabCostEntry {
   @@unique([lab, labOrderNumber])
   @@index([status])
   @@index([orderId])
+  @@index([createdAt])
+}
+
+// Cuenta corriente de un laboratorio según su resumen de cuenta oficial
+// (Optovision/Essilor manda "Documentos Pendientes" por email). Un snapshot por
+// resumen recibido: deuda total al día + detalle por factura (serie-nro, importe
+// original, saldo). Es la fuente de verdad de la deuda; el detalle en JSON.
+model LabAccountStatement {
+  id            String   @id @default(cuid())
+  lab           String // OPTOVISION | GRUPO_OPTICO
+  statementDate DateTime // fecha "hasta" del resumen
+  totalDebt     Float // saldo total adeudado
+  invoiceCount  Int      @default(0)
+  rows          Json // [{ serie, nro, invoiceNumber, fecha, importe, saldo }]
+  sourceFile    String?
+  createdAt     DateTime @default(now())
+
+  @@index([lab, statementDate])
   @@index([createdAt])
 }
 

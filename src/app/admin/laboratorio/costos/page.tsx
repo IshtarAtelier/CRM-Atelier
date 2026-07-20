@@ -51,6 +51,16 @@ interface ReportRow {
     daysWaiting: number | null;
 }
 
+interface AccountStatement {
+    id: string;
+    lab: string;
+    statementDate: string;
+    totalDebt: number;
+    invoiceCount: number;
+    rows: Array<{ invoiceNumber: string; fecha: string | null; importe: number; saldo: number; enSistema?: boolean }>;
+    createdAt: string;
+}
+
 interface AuditRun {
     id: string;
     runAt: string;
@@ -139,6 +149,7 @@ export default function LabCostosPage() {
     const [entries, setEntries] = useState<LabCostEntry[]>([]);
     const [totals, setTotals] = useState<StatusTotal[]>([]);
     const [auditRuns, setAuditRuns] = useState<AuditRun[]>([]);
+    const [statements, setStatements] = useState<AccountStatement[]>([]);
     const [loading, setLoading] = useState(true);
     const [labFilter, setLabFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -167,6 +178,7 @@ export default function LabCostosPage() {
                 setEntries(data.entries || []);
                 setTotals(data.totals || []);
                 setAuditRuns(data.auditRuns || []);
+                setStatements(data.statements || []);
             }
         } catch (e) {
             console.error('Error cargando conciliación', e);
@@ -297,6 +309,27 @@ export default function LabCostosPage() {
                     <p className="text-sm text-gray-500">Cruce por nº de pedido: costo de lista del sistema vs. lo que facturó el lab</p>
                 </div>
             </div>
+
+            {/* Cuenta corriente por lab (último resumen de cuenta recibido) */}
+            {statements.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                    {statements.map(s => {
+                        const sinVenta = (s.rows || []).filter(r => r.enSistema === false).length;
+                        return (
+                            <div key={s.id} className="bg-white rounded-xl border border-indigo-200 p-4">
+                                <div className="flex items-center gap-2 text-indigo-700 text-sm font-medium">
+                                    <FlaskConical size={16} /> Cuenta corriente {LAB_LABELS[s.lab] || s.lab}
+                                </div>
+                                <div className="text-2xl font-bold text-gray-900 mt-1">{fmt(s.totalDebt)}</div>
+                                <div className="text-xs text-gray-400">
+                                    deuda al {fmtDate(s.statementDate)} · {s.invoiceCount} facturas
+                                    {sinVenta > 0 && <span className="text-amber-600"> · {sinVenta} sin venta en el sistema</span>}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Resumen */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">

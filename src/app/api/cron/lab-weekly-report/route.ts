@@ -67,9 +67,17 @@ export async function GET(request: Request) {
 
         const rango = `${from.toLocaleDateString('es-AR')} – ${to.toLocaleDateString('es-AR')}`;
         const sobre = rep.sobrecostosVigentes.slice(0, 10);
+        const cc = (rep.cuentaCorriente || []);
         const html = `
             <div style="font-family:Arial,sans-serif;max-width:920px;margin:0 auto;color:#1f2937">
                 <h2 style="color:#b45309">Reporte semanal de laboratorio (${rango})</h2>
+                ${cc.length ? `
+                <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:12px;margin-bottom:8px">
+                    <strong>Cuenta corriente (deuda al día):</strong>
+                    <ul style="margin:6px 0 0;font-size:13px;line-height:1.6">
+                        ${cc.map((c: any) => `<li>${LAB_LABELS[c.lab] || c.lab}: <strong>${fmt(c.totalDebt)}</strong> (${c.invoiceCount} facturas, al ${new Date(c.statementDate).toLocaleDateString('es-AR')})</li>`).join('')}
+                    </ul>
+                </div>` : ''}
                 ${sobre.length ? `
                 <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:8px">
                     <strong style="color:#b91c1c">${sobre.length} sobrecosto(s) vigente(s) a revisar:</strong>
