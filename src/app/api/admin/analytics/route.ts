@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
+import { getActorValidated } from '@/lib/session-revalidation';
 
 /**
  * KPIs del embudo web a partir de la analítica propia (AnalyticsEvent) + carritos
@@ -23,6 +24,13 @@ function parseRange(url: string) {
 
 export async function GET(request: Request) {
   try {
+    // Revalidación contra la DB: aunque el JWT sea válido, si el usuario fue
+    // borrado o degradado (o es OPTICA) se rechaza sin esperar a que expire el token.
+    const actor = await getActorValidated(request);
+    if (!actor.valid || !actor.role || !['ADMIN', 'STAFF'].includes(actor.role)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
+
     const { from, to } = parseRange(request.url);
     const range = { gte: from, lte: to };
 
