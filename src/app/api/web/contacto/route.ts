@@ -2,15 +2,24 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { normalizeArgentinePhone } from '@/services/contact.service';
+import { enforceRateLimit } from '@/lib/api-guard';
+import { webContactSchema, validateBody } from '@/lib/validation';
+
+// Evita inyección de HTML/markup en el email que recibe el admin.
+const esc = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { name, email, phone, subject, message } = body;
+    // Rate limit anti-spam: 5 consultas por minuto por IP.
+    const limited = enforceRateLimit(req, 'web-contacto', { limit: 5, windowMs: 60_000 });
+    if (limited) return limited;
 
-    if (!name || !email || !message) {
-      return NextResponse.json({ error: 'Nombre, email y consulta son requeridos.' }, { status: 400 });
-    }
+    const raw = await req.json().catch(() => null);
+    const result = validateBody(webContactSchema, raw);
+    if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });
+    const { name, email, phone, subject, message } = result.data;
 
     const normalizedPhone = phone ? normalizeArgentinePhone(phone) : null;
 
@@ -50,13 +59,13 @@ export async function POST(req: Request) {
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
         <h2 style="color: #333; border-bottom: 2px solid #000; padding-bottom: 10px; margin-top: 0;">📬 Nueva Consulta Web</h2>
-        <p><strong>De:</strong> ${name}</p>
-        <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-        ${phone ? `<p><strong>Teléfono/WhatsApp:</strong> <a href="https://wa.me/${normalizedPhone?.replace(/\D/g, '')}">${phone}</a></p>` : ''}
-        <p><strong>Asunto:</strong> ${subject || 'Sin asunto'}</p>
-        
+        <p><strong>De:</strong> ${esc(name)}</p>
+        <p><strong>Email:</strong> <a href="mailto:${esc(email)}">${esc(email)}</a></p>
+        ${phone ? `<p><strong>Teléfono/WhatsApp:</strong> <a href="https://wa.me/${(normalizedPhone || '').replace(/\D/g, '')}">${esc(phone)}</a></p>` : ''}
+        <p><strong>Asunto:</strong> ${esc(subject || 'Sin asunto')}</p>
+
         <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Mensaje / Consulta</h3>
-        <p style="white-space: pre-wrap; line-height: 1.6; color: #555; background: #fafafa; padding: 15px; border-radius: 4px; border: 1px solid #eee;">${message}</p>
+        <p style="white-space: pre-wrap; line-height: 1.6; color: #555; background: #fafafa; padding: 15px; border-radius: 4px; border: 1px solid #eee;">${esc(message)}</p>
         
         <div style="margin-top: 25px; font-size: 11px; color: #666; border-top: 1px solid #eee; padding-top: 15px;">
           Ficha del contacto creada/actualizada automáticamente en el CRM.
