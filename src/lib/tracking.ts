@@ -1,10 +1,56 @@
 /**
  * E-commerce Conversion Tracking Utility
- * Mapped to Meta Pixel (fbq) and Google Analytics (gtag)
+ * Espeja cada evento a TRES destinos:
+ *   1. Meta Pixel (fbq)          — client-side
+ *   2. Google Analytics (gtag)   — client-side (si NEXT_PUBLIC_GA_ID está seteado)
+ *   3. Analítica propia (/api/track) — fuente de verdad interna del embudo
+ *
+ * `purchase` se registra en la analítica propia del lado SERVIDOR (checkout),
+ * no acá, para no duplicar la conversión; acá solo se dispara a Meta/GA.
  */
+import { track } from '@/lib/client-analytics';
+
+export function trackViewContent(item: {
+  id: string | number;
+  name: string;
+  price: number;
+}) {
+  if (typeof window === 'undefined') return;
+  // Analítica propia
+  track('view_content', {
+    productId: String(item.id),
+    productName: item.name,
+    value: item.price,
+  });
+  // Meta Pixel
+  if ((window as any).fbq) {
+    (window as any).fbq('track', 'ViewContent', {
+      content_name: item.name,
+      content_ids: [String(item.id)],
+      content_type: 'product',
+      value: item.price,
+      currency: 'ARS',
+    });
+  }
+  // GA4
+  if ((window as any).gtag) {
+    (window as any).gtag('event', 'view_item', {
+      currency: 'ARS',
+      value: item.price,
+      items: [{ item_id: String(item.id), item_name: item.name, price: item.price }],
+    });
+  }
+}
 
 export function trackAddToCart(item: { id: string | number; name: string; price: number; quantity: number }) {
   if (typeof window !== "undefined") {
+    // Analítica propia
+    track('add_to_cart', {
+      productId: String(item.id),
+      productName: item.name,
+      value: item.price,
+      quantity: item.quantity,
+    });
     // Meta Pixel Event
     if ((window as any).fbq) {
       (window as any).fbq("track", "AddToCart", {
@@ -35,6 +81,11 @@ export function trackAddToCart(item: { id: string | number; name: string; price:
 
 export function trackInitiateCheckout(cartItems: any[], totalValue: number) {
   if (typeof window !== "undefined") {
+    // Analítica propia
+    track('begin_checkout', {
+      value: totalValue,
+      quantity: cartItems.length,
+    });
     // Meta Pixel Event
     if ((window as any).fbq) {
       (window as any).fbq("track", "InitiateCheckout", {
@@ -61,6 +112,7 @@ export function trackInitiateCheckout(cartItems: any[], totalValue: number) {
 
 export function trackPurchase(orderId: string, totalValue: number, cartItems: any[]) {
   if (typeof window !== "undefined") {
+    // (La analítica propia registra `purchase` server-side en el checkout.)
     // Meta Pixel Event
     if ((window as any).fbq) {
       (window as any).fbq("track", "Purchase", {

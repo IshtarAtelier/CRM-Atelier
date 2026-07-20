@@ -868,3 +868,44 @@ model OpticaLead {
   @@index([rating])
   @@index([phoneWa])
 }
+
+/// Eventos de analítica propia de la tienda (embudo web, tráfico y navegación).
+/// Fuente de verdad interna, independiente de Meta/GA. Se llena de forma
+/// asíncrona (sendBeacon → /api/track) para no tocar el critical path.
+model AnalyticsEvent {
+  id        String  @id @default(cuid())
+  /// page_view | view_content | add_to_cart | begin_checkout | add_contact | purchase | search | zone_view
+  type      String
+  /// id anónimo de visitante (cookie/localStorage), no PII
+  sessionId String
+  path      String?
+  referrer  String?
+
+  // Atribución (de dónde viene la visita)
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+
+  // Contexto de comercio
+  productId   String?
+  productName String?
+  value       Float?
+  currency    String? @default("ARS")
+  quantity    Int?
+  orderId     String?
+
+  // Contexto de cliente (no PII)
+  device  String? // mobile | tablet | desktop
+  meta    Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([sessionId])
+  @@index([productId])
+  @@index([createdAt])
+  @@index([utmSource, createdAt])
+  @@index([orderId])
+}

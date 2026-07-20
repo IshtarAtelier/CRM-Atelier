@@ -67,6 +67,7 @@ import { Toaster } from "sonner";
 import { TrackingScripts } from "@/components/Storefront/TrackingScripts";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { ChunkReloadGuard } from "@/components/ChunkReloadGuard";
+import AnalyticsTracker from "@/components/Storefront/AnalyticsTracker";
 
 export default function RootLayout({
   children,
@@ -91,6 +92,7 @@ export default function RootLayout({
           <Toaster position="top-right" richColors />
           <FloatingWhatsApp />
           <TrackingScripts />
+          <AnalyticsTracker />
           <ChunkReloadGuard />
         </ThemeProvider>
       </body>
