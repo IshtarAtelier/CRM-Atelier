@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import CouponsManager from '@/components/admin/CouponsManager';
+import AnalyticsDashboard from '@/components/admin/analytics/AnalyticsDashboard';
+import { LineChart } from 'lucide-react';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 import { getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial, getProductAttributes } from '@/utils/product-controllers';
@@ -72,7 +74,7 @@ interface BlogPost {
 }
 
 export default function WebManagementPage() {
-  const [activeTab, setActiveTab] = useState<'products' | 'blog' | 'config' | 'flyers' | 'coupons'>('products');
+  const [activeTab, setActiveTab] = useState<'analitica' | 'products' | 'blog' | 'config' | 'flyers' | 'coupons'>('analitica');
 
   // Flyer Builder states
   const [flyerTheme, setFlyerTheme] = useState<'cream' | 'obsidian' | 'rose'>('cream');
@@ -861,7 +863,17 @@ export default function WebManagementPage() {
       </header>
 
       {/* TABS CONTROLLER */}
-      <div className="flex border-b border-stone-200 dark:border-stone-800">
+      <div className="flex border-b border-stone-200 dark:border-stone-800 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('analitica')}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs font-bold uppercase tracking-widest transition-all ${
+            activeTab === 'analitica'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
+          }`}
+        >
+          <LineChart className="w-4 h-4" /> Analítica
+        </button>
         <button
           onClick={() => setActiveTab('products')}
           className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs font-bold uppercase tracking-widest transition-all ${
@@ -913,6 +925,9 @@ export default function WebManagementPage() {
           <Ticket className="w-4 h-4" /> Cupones
         </button>
       </div>
+
+      {/* TAB 0: ANALÍTICA (default — todo lo de la tienda arranca acá) */}
+      {activeTab === 'analitica' && <AnalyticsDashboard />}
 
       {/* TAB 1: PRODUCTS LIST */}
       {activeTab === 'products' && (
