@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import { SmartLabService } from '@/services/smartlab.service';
 import { env } from '@/env';
+import { verifyCronAuth } from '@/lib/cron-auth';
 import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 import { prisma } from '@/lib/db';
+import { GrupoOpticoProvider } from '@/services/lab-providers/grupo-optico.provider';
+import { LabCostReconciliationService } from '@/services/lab-cost-reconciliation.service';
+
+// Ventana del pase rápido de facturación: lo recién facturado aparece cuando el
+// pedido pasa a FINALIZADO en el portal; 14 días cubren de sobra ese desfase.
+const FAST_INVOICE_WINDOW_DAYS = 14;
 
 // Política de alertas: avisar recién cuando SmartLab lleva más de 12 horas
 // seguidas sin conexión, y repetir como máximo cada 12 horas si sigue caído.
@@ -37,11 +44,11 @@ function formatDowntime(ms: number): string {
 // Se llama desde un servicio externo (cron-job.org) cada 4 horas
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
-    const secret = searchParams.get('secret');
 
-    // Validar secret para evitar llamadas no autorizadas usando variables validadas
-    if (secret !== env.CRON_SECRET) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    // Auth por header Bearer (preferido) o ?secret= (fallback cron-job.org), tiempo constante.
+    const auth = verifyCronAuth(req);
+    if (!auth.ok) {
+        return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     try {
@@ -90,10 +97,32 @@ export async function GET(req: Request) {
             }
         }
 
+        // PASE RÁPIDO de conciliación de costos (pedido del administrador: revisión
+        // cada 10 minutos de todo lo NUEVO facturado por Grupo Óptico). Ventana
+        // corta del portal + PDF de comprobantes → completa importes de lo recién
+        // FINALIZADO, re-cruza pendientes y dispara las alertas inmediatas
+        // (diferencias de costo y pedidos sin venta ni postventa). Tolerante a
+        // fallas: nunca rompe el sync de estados que corre arriba.
+        let fastReconciliation: Record<string, unknown> | null = null;
+        if (!result.skipped) {
+            try {
+                const collect = await GrupoOpticoProvider.collect({ sinceDays: FAST_INVOICE_WINDOW_DAYS });
+                const recheck = await LabCostReconciliationService.recheckUnmatched();
+                const alerts = await LabCostReconciliationService.alertNewFindings();
+                fastReconciliation = { ...collect, recheck, alerts };
+                console.log(`[CRON SmartLab] Conciliación rápida: ${collect.withCost || 0} con costo, ` +
+                    `${recheck.rematched || 0} re-cruzados, ${alerts.alerted || 0} alerta(s) nueva(s)`);
+            } catch (fastErr) {
+                console.error('[CRON SmartLab] Conciliación rápida falló (el sync de estados salió bien):', fastErr);
+                fastReconciliation = { error: fastErr instanceof Error ? fastErr.message : String(fastErr) };
+            }
+        }
+
         return NextResponse.json({
             success: true,
             timestamp: new Date().toISOString(),
-            ...result
+            ...result,
+            fastReconciliation,
         });
     } catch (error: any) {
         console.error('[CRON SmartLab] Error:', error);

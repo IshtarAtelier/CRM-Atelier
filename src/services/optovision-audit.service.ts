@@ -20,10 +20,14 @@ export class OptovisionAuditService {
         // Para la búsqueda IMAP alcanza el primero; el match fino se hace por número.
         const cleanNumber = orderNumbers[0];
 
+        // Misma resolución de credenciales que openImap del servicio de
+        // conciliación: usuario+clave apareados (IMAP_* primero, EMAIL_* como
+        // fallback). Antes mezclaba EMAIL_USER con IMAP_PASSWORD → login fallido
+        // en cuanto las claves de las dos casillas no coincidían.
         const imapConfig = {
             imap: {
-                user: process.env.EMAIL_USER || 'crm.atelier.optica@gmail.com',
-                password: process.env.IMAP_PASSWORD || '', 
+                user: process.env.IMAP_USER || process.env.EMAIL_USER || 'crm.atelier.optica@gmail.com',
+                password: process.env.IMAP_PASSWORD || process.env.EMAIL_PASS || '',
                 host: 'imap.gmail.com',
                 port: 993,
                 tls: true,
