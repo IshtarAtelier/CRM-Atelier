@@ -18,7 +18,7 @@ interface ContactDetailProps {
     onEdit: (initialData: any) => void;
     onToggleFavorite: (id: string) => Promise<boolean>;
     onUpdatePriority: (id: string, stars: number) => Promise<boolean>;
-    onAddInteraction: (id: string, type: string, content: string, directedToId?: string | null) => Promise<boolean>;
+    onAddInteraction: (id: string, type: string, content: string, directedToId?: string | null, imageUrl?: string | null) => Promise<boolean>;
     onAddTask: (id: string, description: string, dueDate?: string) => Promise<boolean>;
     onUpdateTaskStatus: (id: string, taskId: string, status: string) => Promise<boolean>;
     onStatusChange: (id: string, status: string, userRole?: string) => Promise<boolean>;
@@ -249,7 +249,7 @@ export default function ContactDetail({
                                 contactCreatedAt={contact.createdAt}
                                 contactCreatedBy={contact.createdBy}
                                 interactions={contact.interactions || []}
-                                onAddInteraction={(content, directedToId) => onAddInteraction(contactId, 'NOTE', content, directedToId).then(() => fetchContact())}
+                                onAddInteraction={(content, directedToId, imageUrl) => onAddInteraction(contactId, 'NOTE', content, directedToId, imageUrl).then(() => fetchContact())}
                             />
                         </div>
                     )}

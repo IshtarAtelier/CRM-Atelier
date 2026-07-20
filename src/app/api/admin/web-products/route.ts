@@ -40,6 +40,10 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
     try {
+        // Vitrina pública en vivo (oferta/visibilidad/SEO): solo ADMIN.
+        if (request.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
         const body = await request.json();
         const {
             id, category, isFeatured, isActive, description, slug, seoTags, gender,

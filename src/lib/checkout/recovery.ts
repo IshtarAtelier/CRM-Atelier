@@ -8,7 +8,7 @@ const SANS = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 
 export interface RecoveryResult {
   sent: boolean;
-  skipped?: 'purchased' | 'no_email';
+  skipped?: 'purchased' | 'no_email' | 'already_processed';
   error?: string;
 }
 
@@ -60,31 +60,51 @@ export async function sendRecoveryEmailForSession(session: {
     return { sent: false, skipped: 'purchased' };
   }
 
-  const coupon = await getRecoveryCoupon();
-
-  const cartItems = Array.isArray(session.cartData) ? session.cartData as any[] : [];
-  const itemsHtml = cartItems.length
-    ? getClientItemsHtml(cartItems)
-    : `<tr><td style="padding: 16px 0; color: #8f897c; font-family: ${SANS}; font-size: 14px;">Tu selección de la tienda</td></tr>`;
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
-  const customerName = session.firstName || 'Cliente';
-
-  const result = await sendEmail({
-    to: session.email,
-    subject: coupon
-      ? `${customerName}, tu ${coupon.label} te espera ✦ Atelier Óptica`
-      : `${customerName}, tu selección te espera ✦ Atelier Óptica`,
-    html: getAbandonedCartHtml(customerName, itemsHtml, session.total || 0, `${appUrl}/checkout`, coupon),
+  // Reclamar la sesión ANTES de enviar: marca EMAIL_SENT de forma atómica y solo si
+  // seguía PENDING. Evita que dos corridas concurrentes (o un fallo silencioso del
+  // update posterior) reenvíen el email de recuperación al cliente.
+  const claimed = await prisma.checkoutSession.updateMany({
+    where: { id: session.id, status: 'PENDING' },
+    data: { status: 'EMAIL_SENT' }
   });
+  if (claimed.count === 0) return { sent: false, skipped: 'already_processed' };
 
-  if (result.success) {
-    await prisma.checkoutSession.update({
-      where: { id: session.id },
-      data: { status: 'EMAIL_SENT' }
-    }).catch(() => {});
-    return { sent: true };
+  // Ya reclamada como EMAIL_SENT: TODO lo que sigue (lookup de cupón, armado del HTML,
+  // envío) va en try/catch. Si algo tira (blip de DB al leer el cupón, o un item null en
+  // cartData), hay que revertir a PENDING; si no, la sesión quedaría EMAIL_SENT para
+  // siempre y el email de recuperación se perdería (el próximo cron ya no la reclama).
+  try {
+    const coupon = await getRecoveryCoupon();
+
+    // filter(Boolean): cartData es inyectable por el POST público; un elemento null
+    // rompería getClientItemsHtml (item.brand sobre null).
+    const cartItems = (Array.isArray(session.cartData) ? session.cartData as any[] : []).filter(Boolean);
+    const itemsHtml = cartItems.length
+      ? getClientItemsHtml(cartItems)
+      : `<tr><td style="padding: 16px 0; color: #8f897c; font-family: ${SANS}; font-size: 14px;">Tu selección de la tienda</td></tr>`;
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+    const customerName = session.firstName || 'Cliente';
+
+    const result = await sendEmail({
+      to: session.email,
+      subject: coupon
+        ? `${customerName}, tu ${coupon.label} te espera ✦ Atelier Óptica`
+        : `${customerName}, tu selección te espera ✦ Atelier Óptica`,
+      html: getAbandonedCartHtml(customerName, itemsHtml, session.total || 0, `${appUrl}/checkout`, coupon),
+    });
+
+    if (result.success) {
+      return { sent: true };
+    }
+  } catch (e) {
+    console.error('[recovery] error armando/enviando el email de recuperación:', e);
   }
 
+  // Envío fallido o excepción: revertir a PENDING para reintentar en la próxima corrida.
+  await prisma.checkoutSession.updateMany({
+    where: { id: session.id, status: 'EMAIL_SENT' },
+    data: { status: 'PENDING' }
+  }).catch((e) => console.error('[recovery] no se pudo revertir a PENDING:', e));
   return { sent: false, error: 'send_failed' };
 }

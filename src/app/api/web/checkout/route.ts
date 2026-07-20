@@ -6,6 +6,16 @@ import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 
 export async function POST(req: Request) {
     try {
+        // ⚠️ Endpoint legacy sin callers: creaba órdenes SALE con el `total`/`price`
+        // que mandaba el cliente, sin auth ni validación → cualquiera podía inyectar
+        // ventas con precio arbitrario. El checkout web real es /api/checkout/payway
+        // (recalcula precios server-side). Deshabilitado hasta que se recomponga el
+        // precio en el servidor. Solo se permite desde red interna con BOT_API_KEY.
+        const internalKey = req.headers.get('x-internal-key');
+        if (!process.env.BOT_API_KEY || internalKey !== process.env.BOT_API_KEY) {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const body = await req.json();
         const { customerName, whatsapp, productId, totalPrice, lensType, treatment, tintColor } = body;
 

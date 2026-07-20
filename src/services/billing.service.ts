@@ -58,6 +58,11 @@ export interface CreateInvoiceParams {
     actorName?: string | null;
 }
 
+// Órdenes con una facturación en curso: serializa emisiones concurrentes sobre la
+// misma orden (la validación anti doble-facturación corre antes de la llamada a
+// ARCA, que tarda segundos — sin esto, dos requests simultáneas emiten dos CAE reales).
+const invoicingInProgress = new Set<string>();
+
 export const BillingService = {
 
     /**
@@ -65,7 +70,13 @@ export const BillingService = {
      */
     async createInvoice(params: CreateInvoiceParams) {
         const { orderId, account = 'ISH', docTipo = 99, docNro = '0', puntoDeVenta, amount, items, issueDate, observations, actorId, actorName } = params;
- 
+
+        if (invoicingInProgress.has(orderId)) {
+            throw new Error('Ya hay una facturación en curso para esta orden. Esperá unos segundos y verificá las facturas emitidas antes de reintentar.');
+        }
+        invoicingInProgress.add(orderId);
+        try {
+
         // 1. Validar orden
         const order = await prisma.order.findUnique({
             where: { id: orderId },
@@ -180,7 +191,7 @@ export const BillingService = {
                     );
                     if (
                         voucherInfo &&
-                        voucherInfo.ImpTotal === totalAmount &&
+                        Math.abs(Number(voucherInfo.ImpTotal) - Number(totalAmount)) < 0.01 &&
                         Number(voucherInfo.DocNro) === (voucherData.DocNro || 0) &&
                         Number(voucherInfo.DocTipo) === (voucherData.DocTipo || 0)
                     ) {
@@ -198,10 +209,14 @@ export const BillingService = {
             }
 
             if (!recoveredFromAfip) {
-                // Emit normally if not recovered
+                // Emitir SIN reintento automático: createNextVoucher NO es idempotente.
+                // Si ARCA autoriza pero se pierde la respuesta (timeout), un reintento
+                // emitiría un SEGUNDO CAE real (doble facturación). Ante fallo transitorio
+                // dejamos que el error propague; un reintento manual entra por el bloque
+                // de recuperación (getVoucherInfo) que encuentra el comprobante ya emitido.
                 result = await retryWithBackoff<any>(
                     () => afip.ElectronicBilling.createNextVoucher(voucherData),
-                    { label: 'AFIP createNextVoucher', shouldRetry: shouldRetryAfip }
+                    { label: 'AFIP createNextVoucher', shouldRetry: () => false }
                 );
             }
         } catch (error: any) {
@@ -215,6 +230,16 @@ export const BillingService = {
 
         if (!result || !result.CAE) {
             throw new Error('ARCA no devolvió un código CAE. Verificá la configuración de la cuenta.');
+        }
+
+        // Fecha fiscal del comprobante (CbteFch): si se backdateó con issueDate, esa;
+        // si no, hoy. Es la fecha que cuenta AFIP para el tope mensual de monotributo.
+        let fiscalDate: Date;
+        if (issueDate && /^\d{4}-\d{2}-\d{2}$/.test(issueDate)) {
+            const [fy, fm, fd] = issueDate.split('-').map(Number);
+            fiscalDate = new Date(Date.UTC(fy, fm - 1, fd, 12));
+        } else {
+            fiscalDate = new Date();
         }
 
         // 5. Guardar en la DB (Transacción Atómica)
@@ -233,6 +258,7 @@ export const BillingService = {
                     docNumber: cleanDocNro,
                     billingAccount: account,
                     status: 'COMPLETED',
+                    fiscalDate,
                     observations: observations || null,
                     createdByName: actorName || null,
                 },
@@ -263,6 +289,9 @@ export const BillingService = {
             });
             return created;
         });
+        } finally {
+            invoicingInProgress.delete(orderId);
+        }
     },
 
     /**
@@ -512,14 +541,21 @@ export const BillingService = {
      * Esto asegura precisión literal sin depender de límites de paginación del frontend.
      */
     async getMonthlyStats() {
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        // Mes actual en hora argentina (UTC-3), sin depender del TZ del server:
+        // este total gatea el tope mensual de monotributo por cuenta.
+        const nowAr = new Date(Date.now() - 3 * 60 * 60 * 1000);
+        const startOfMonth = new Date(Date.UTC(nowAr.getUTCFullYear(), nowAr.getUTCMonth(), 1, 3));
         
         const stats = await prisma.invoice.groupBy({
             by: ['billingAccount'],
             where: {
                 status: 'COMPLETED',
-                createdAt: { gte: startOfMonth }
+                // Gatear por la fecha FISCAL (la que cuenta AFIP). Fallback a createdAt
+                // solo para filas históricas anteriores a la columna fiscalDate.
+                OR: [
+                    { fiscalDate: { gte: startOfMonth } },
+                    { AND: [{ fiscalDate: null }, { createdAt: { gte: startOfMonth } }] },
+                ],
             },
             _sum: {
                 totalAmount: true

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { calculateQuoteTotals } from '@/services/PricingService';
 
 // POST /api/orders/[id]/refresh-prices — Update order item prices to current product prices
 export async function POST(
@@ -30,6 +31,10 @@ export async function POST(
         for (const item of order.items) {
             const product = item.product;
             if (!product) continue; // Skip if product was deleted
+
+            // El par gratis de una promo 2x1 de cristales se guarda con price 0.
+            // No re-cotizarlo: subirlo a price/2 cobraría un cristal bonificado.
+            if (item.eye && item.price === 0) continue;
 
             // Crystals sold per eye have item.eye set. Their unit price is product price / 2
             let currentPrice = product.price;
@@ -64,15 +69,32 @@ export async function POST(
                 )
             );
 
-            // Recalculate total
-            const updatedItems = await tx.orderItem.findMany({ where: { orderId: id } });
-            const subtotal = updatedItems.reduce((s, i) => s + i.price * i.quantity, 0);
-            const discountPct = order.discount || 0;
-            const newTotal = subtotal - subtotal * (discountPct / 100);
+            // Recalcular con la MISMA fórmula que crea/edita presupuestos
+            // (calculateQuoteTotals): contempla markup, descuento por método,
+            // descuento especial y promos, y actualiza también subtotalWithMarkup.
+            // La fórmula anterior (subtotal − discount%) ignoraba todo eso y dejaba
+            // subtotalWithMarkup desincronizado → saldos y PDF inconsistentes.
+            const updatedItems = await tx.orderItem.findMany({
+                where: { orderId: id },
+                include: { product: true },
+            });
+            const totals = calculateQuoteTotals(
+                updatedItems,
+                order.markup || 0,
+                order.discountCash || 0,
+                updatedItems.map((i: any) => i.product).filter(Boolean),
+                order.specialDiscount || 0,
+            );
 
             await tx.order.update({
                 where: { id },
-                data: { total: newTotal },
+                data: {
+                    subtotalWithMarkup: totals.subtotalWithMarkup,
+                    total: totals.totalCash,
+                    specialDiscount: totals.specialDiscountAmount,
+                    appliedPromoName: totals.appliedPromoName,
+                    appliedPromoDiscount: totals.promoFrameDiscount,
+                },
             });
         });
 

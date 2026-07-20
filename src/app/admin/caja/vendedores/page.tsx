@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
     Wallet, Loader2, Plus, X, AlertCircle,
     ArrowUpRight, ArrowDownRight, ImageIcon,
@@ -10,6 +11,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 
 interface VendorSummary {
     id: string;
@@ -44,10 +46,11 @@ const getCategoryInfo = (key: string) => CATEGORIES.find(c => c.key === key) || 
 // ── Page ──────────────────────────────────
 
 export default function CajaVendedoresPage() {
+    const searchParams = useSearchParams();
     const [vendors, setVendors] = useState<VendorSummary[]>([]);
     const [entries, setEntries] = useState<VendorCashEntry[]>([]);
     const [isAdmin, setIsAdmin] = useState(false);
-    const [selectedVendorId, setSelectedVendorId] = useState<string>('');
+    const [selectedVendorId, setSelectedVendorId] = useState<string>(() => getUrlParam(searchParams, 'vendedor', ''));
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [movementType, setMovementType] = useState<'CREDITO' | 'DEBITO'>('CREDITO');
@@ -64,6 +67,13 @@ export default function CajaVendedoresPage() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+    useEffect(() => {
+        syncUrlParams('/admin/caja/vendedores', {
+            vendedor: selectedVendorId,
+        });
+    }, [selectedVendorId]);
 
     const fetchData = async () => {
         setLoading(true);

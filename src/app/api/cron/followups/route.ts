@@ -1,12 +1,22 @@
 import { spawn } from 'child_process';
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    
-    // Verificación básica para evitar que cualquiera lo dispare
-    if (searchParams.get('key') !== 'atelier2026') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Dispara un broadcast masivo de WhatsApp: mismo esquema de auth que auto-blog
+    // (CRON_SECRET por header Authorization, comparación en tiempo constante).
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : '';
+
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+        return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
+    }
+
+    const tokenBuf = Buffer.from(token);
+    const secretBuf = Buffer.from(cronSecret);
+    if (tokenBuf.length !== secretBuf.length || !crypto.timingSafeEqual(tokenBuf, secretBuf)) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     try {
@@ -16,12 +26,12 @@ export async function GET(request: Request) {
             detached: true,
             stdio: 'ignore'
         });
-        
+
         child.unref();
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             status: 'success',
-            message: '🚀 Bot de seguimiento masivo iniciado en segundo plano. Procesará los cierres de este mes.' 
+            message: '🚀 Bot de seguimiento masivo iniciado en segundo plano. Procesará los cierres de este mes.'
         });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

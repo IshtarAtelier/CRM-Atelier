@@ -62,14 +62,15 @@ export async function GET(request: Request) {
             year = parseInt(monthParam.slice(0, 4), 10);
             month = parseInt(monthParam.slice(5, 7), 10);
         } else {
-            const now = new Date();
-            if (now.getDate() <= 3) {
-                const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                year = prev.getFullYear();
-                month = prev.getMonth() + 1;
+            // "Hoy" en hora argentina (UTC-3), sin depender del TZ del server
+            const now = new Date(Date.now() - 3 * 60 * 60 * 1000);
+            if (now.getUTCDate() <= 3) {
+                const prev = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+                year = prev.getUTCFullYear();
+                month = prev.getUTCMonth() + 1;
             } else {
-                year = now.getFullYear();
-                month = now.getMonth() + 1;
+                year = now.getUTCFullYear();
+                month = now.getUTCMonth() + 1;
             }
         }
 
@@ -80,13 +81,32 @@ export async function GET(request: Request) {
         const to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
         const monthLabel = `${MONTH_NAMES[month - 1]} ${year}`;
 
+        // Idempotencia: no reenviar el cierre del mismo mes (el cron puede correr los días 1-3).
+        // ?force=1 permite reenviar a mano.
+        const force = searchParams.get('force') === '1' || searchParams.get('force') === 'true';
+        const sentKey = `month-close-sent:${year}-${String(month).padStart(2, '0')}`;
+        if (!force) {
+            const already = await prisma.systemSetting.findUnique({ where: { key: sentKey } });
+            if (already) {
+                return NextResponse.json({
+                    success: true,
+                    skipped: true,
+                    message: `El cierre de ${monthLabel} ya fue enviado (${already.value}). Usá ?force=1 para reenviar.`,
+                });
+            }
+        }
+
         const data = await ReportService.generateReportData(from, to);
         const s = data.summary;
 
         // ── Saldos pendientes con la fuente de verdad (PricingService):
         // el totalPending del reporte es lista − pagado y sobreestima el saldo
         // de quien pagó contado/transferencia con descuento.
-        const dateFilter = { gte: new Date(from), lte: new Date(`${to}T23:59:59.999`) };
+        // Límites del mes en hora argentina (UTC-3), igual que generateReportData
+        const dateFilter = {
+            gte: new Date(Date.UTC(year, month - 1, 1, 3)),
+            lte: new Date(Date.UTC(year, month, 1, 3) - 1),
+        };
         const monthOrders = await prisma.order.findMany({
             where: {
                 orderType: 'SALE',
@@ -377,6 +397,13 @@ export async function GET(request: Request) {
                 details: emailResult.error,
             }, { status: 500 });
         }
+
+        // Registrar el envío para no repetirlo en las corridas de los días siguientes
+        await prisma.systemSetting.upsert({
+            where: { key: sentKey },
+            update: { value: new Date().toISOString() },
+            create: { key: sentKey, value: new Date().toISOString() },
+        }).catch(e => console.error('[Cron Month-Close] No se pudo registrar idempotencia:', e));
 
         return NextResponse.json({
             success: true,

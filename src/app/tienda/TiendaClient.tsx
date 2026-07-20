@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
@@ -255,32 +254,37 @@ export function TiendaClient({
       <div className="w-full">
         {/* Image Container */}
         <div className="relative w-full h-[350px] md:h-[450px] lg:h-[550px] bg-stone-200 overflow-hidden">
-          {/* initial={false}: el primer render llega del SSR y debe pintar visible
-              (sin esto el HTML sale con opacity:0 hasta hidratar y arruina el LCP) */}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={activeCategory}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.6 }}
-              className="absolute inset-0"
-            >
-              <Image
-                src={CATEGORY_IMAGES[activeCategory] || CATEGORY_IMAGES["Todo"]}
-                alt={`Colección ${activeCategory}`}
-                fill
-                priority
-                className="object-cover object-center"
-                sizes="100vw"
-              />
-              <div className="absolute inset-0 bg-black/20" />
-            </motion.div>
-          </AnimatePresence>
-          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+          {/* LCP de /tienda. Imagen priority pura (sin framer-motion): el elemento
+              es estable en el HTML del servidor y el navegador lo cuenta como LCP
+              apenas descarga la imagen, sin depender de la hidratación de JS. El
+              fundido al cambiar de categoría es CSS puro (.hero-img-fade), que
+              arranca casi visible y no penaliza el LCP. */}
+          <div key={activeCategory} className="absolute inset-0">
+            <Image
+              src={CATEGORY_IMAGES[activeCategory] || CATEGORY_IMAGES["Todo"]}
+              alt={`Colección ${activeCategory}`}
+              fill
+              priority
+              fetchPriority="high"
+              quality={60}
+              className="object-cover object-center"
+              sizes="100vw"
+            />
+            <div className="absolute inset-0 bg-black/20" />
+          </div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 z-10 pointer-events-none">
              <p className="text-white text-5xl md:text-7xl font-serif text-center drop-shadow-2xl tracking-tight">
                 {activeCategory === "Todo" ? "Nueva Colección" : activeCategory}
              </p>
+             {/* Hero clickeable: lleva a la pieza destacada #1 (la grilla abre por isFeatured) */}
+             {displayedProducts.length > 0 && (displayedProducts[0].slug || displayedProducts[0].id) && (
+               <Link
+                 href={`/producto/${displayedProducts[0].slug || displayedProducts[0].id}`}
+                 className="pointer-events-auto border border-white/70 text-white hover:bg-white hover:text-black text-[11px] font-black uppercase tracking-[0.25em] px-8 py-3 rounded-full backdrop-blur-sm transition-all duration-300"
+               >
+                 Ver pieza destacada
+               </Link>
+             )}
           </div>
         </div>
 
@@ -397,15 +401,11 @@ export function TiendaClient({
           </div>
 
           {/* The skeleton is no longer needed since data is preloaded */}
-          {/* initial={false}: la grilla ya viaja en el HTML del servidor, no ocultarla */}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
+          {/* Grilla: la data ya viaja en el HTML del servidor. Fundido CSS puro
+              (.tienda-grid-fade) al cambiar de categoría, sin framer-motion. */}
+          <div
               key={activeCategory}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
+              className="tienda-grid-fade grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >
               {displayedProducts.length === 0 ? (
                 isRecoveringProducts ? (
@@ -446,8 +446,17 @@ export function TiendaClient({
                     <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
                       {/* Badges en la esquina superior derecha */}
                       <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 items-end">
+                        {/* El 🔥 es SOLO para ofertas promocionales diseñadas (salePrice cargado
+                            en el admin). El 15% por transferencia es beneficio estándar y va
+                            sin fuego, para que lo excepcional se destaque de verdad. */}
+                        {!isWholesale && p.salePrice != null && p.salePrice > 0 && p.salePrice < (p.price || 0) && (
+                          <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-sm shadow-md">
+                            Oferta -{Math.round((1 - p.salePrice / p.price) * 100)}% 🔥
+                          </span>
+                        )}
                         {p.stock !== undefined && p.stock > 0 && p.stock <= 3 && (
-                          <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
+                          /* Escasez en tono boutique: sin rojo ni parpadeo (leían "liquidación") */
+                          <span className="bg-stone-900/90 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-sm shadow-md backdrop-blur-sm">
                             Últimas {p.stock} u.
                           </span>
                         )}
@@ -461,7 +470,7 @@ export function TiendaClient({
                               src={imgUrl}
                               alt={`${p.brand} ${p.model}`}
                               fill
-                              priority={index < 4}
+                              loading="lazy"
                               sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
                               className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${
                                 ((p.model || '').toLowerCase().includes('tl3932 c3') || p.id === 'cmq5d11hf002rhy61fhvqs7nj')
@@ -482,12 +491,17 @@ export function TiendaClient({
                         )}
 
                         {hasSecondImage && secondImgUrl && (
+                          /* hidden en mobile: es la foto "puestos" que sólo aparece en
+                             hover de desktop. Con display:none + lazy, el navegador NO la
+                             descarga en mobile → ahorra ~medio catálogo de bytes de imagen
+                             en el celular (donde no hay hover). */
                           <Image unoptimized={String(secondImgUrl).startsWith('data:')}
                             src={secondImgUrl}
                             alt={`${p.brand} ${p.model} puestos`}
                             fill
+                            loading="lazy"
                             sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                            className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
+                            className="hidden md:block object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
                           />
                         )}
                       </div>
@@ -502,7 +516,7 @@ export function TiendaClient({
                       {/* Titanium Badge */}
                       {p.material === "Titanio" && (
                         <span className="absolute bottom-3 left-3 text-[10px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-800 shadow-md flex items-center gap-1.5 rounded-sm">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                           Titanio
                         </span>
                       )}
@@ -510,13 +524,9 @@ export function TiendaClient({
 
                     {/* Info */}
                     <div className="flex flex-col gap-1 mt-4 px-1 pb-4">
+                      {/* Titanio se muestra una sola vez (overlay sobre la foto), sin pill duplicada */}
                       <div className="flex items-center justify-between mb-0.5">
                         <h3 className="text-[10px] text-stone-500 font-black uppercase tracking-[0.20em]">{p.brand || 'ATELIER'}</h3>
-                        {p.material === "Titanio" && (
-                          <span className="text-[10px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
-                            Titanio
-                          </span>
-                        )}
                       </div>
                       <h2 className="text-xl font-serif tracking-tight text-black leading-tight mb-3 group-hover:text-stone-600 transition-colors">
                         {p.name || p.model}
@@ -560,7 +570,7 @@ export function TiendaClient({
                             </div>
                             <div className="flex flex-row flex-wrap gap-1 sm:flex-col sm:items-end">
                               <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
-                                {webSettings.web_promo_cash_discount}% OFF 🔥
+                                {webSettings.web_promo_cash_discount}% OFF
                               </span>
                               <span className="text-[10px] font-black uppercase tracking-widest text-stone-700 bg-stone-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
                                 Envío Gratis
@@ -578,8 +588,7 @@ export function TiendaClient({
                 );
               })
             )}
-            </motion.div>
-          </AnimatePresence>
+            </div>
         {currentPage < totalPages && (
           <div className="mt-12 flex justify-center w-full">
             <button 

@@ -8,8 +8,11 @@ import {
     CheckCircle2,
     Sparkles,
     AlertCircle,
-    AtSign
+    AtSign,
+    Image as ImageIcon,
+    X
 } from 'lucide-react';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -18,7 +21,7 @@ interface HistoryManagerProps {
     contactCreatedAt: string;
     contactCreatedBy?: string;
     interactions: any[];
-    onAddInteraction: (content: string, directedToId?: string | null) => Promise<void>;
+    onAddInteraction: (content: string, directedToId?: string | null, imageUrl?: string | null) => Promise<void>;
 }
 
 interface DirectableUser {
@@ -38,6 +41,9 @@ export default function HistoryManager({
     const [isSaving, setIsSaving] = useState(false);
     const [directedToId, setDirectedToId] = useState('');
     const [users, setUsers] = useState<DirectableUser[]>([]);
+    // Imagen adjunta a la anotación (se sube recién al registrar)
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     // Usuarios internos a los que se les puede dirigir la nota (se les avisa
     // por email). Se excluyen las cuentas de ópticas mayoristas.
@@ -52,13 +58,42 @@ export default function HistoryManager({
             .catch(() => setUsers([]));
     }, []);
 
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setImagePreview(reader.result as string);
+        reader.readAsDataURL(file);
+    };
+
+    const clearImage = () => {
+        setImageFile(null);
+        setImagePreview(null);
+    };
+
     const handleSubmit = async () => {
-        if (!newNote.trim()) return;
+        // Se puede registrar solo una imagen (sin texto) o texto con imagen.
+        if (!newNote.trim() && !imageFile) return;
         setIsSaving(true);
         try {
-            await onAddInteraction(newNote, directedToId || null);
+            let uploadedUrl: string | null = null;
+            if (imageFile) {
+                const formData = new FormData();
+                formData.append('file', imageFile);
+                const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    alert(`No se pudo subir la imagen: ${err.error || 'error desconocido'}. La anotación no se registró.`);
+                    return;
+                }
+                const data = await res.json();
+                uploadedUrl = data.url || data.fileUrl || null;
+            }
+            await onAddInteraction(newNote.trim() || '📎 Imagen adjunta', directedToId || null, uploadedUrl);
             setNewNote('');
             setDirectedToId('');
+            clearImage();
         } finally {
             setIsSaving(false);
         }
@@ -124,11 +159,35 @@ export default function HistoryManager({
                     />
                     <button
                         onClick={handleSubmit}
-                        disabled={isSaving || !newNote.trim()}
+                        disabled={isSaving || (!newNote.trim() && !imageFile)}
                         className="self-end px-6 py-4 bg-stone-900 text-white dark:bg-primary rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50"
                     >
                         {isSaving ? '...' : 'Registrar'}
                     </button>
+                </div>
+
+                {/* Adjuntar una imagen a la anotación (queda guardada en el historial) */}
+                <div className="flex items-center gap-3 mt-3 ml-1">
+                    <label className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-stone-900 border border-dashed border-stone-300 dark:border-stone-700 rounded-xl cursor-pointer hover:border-amber-400 transition-colors">
+                        <ImageIcon className="w-3.5 h-3.5 text-stone-400" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">
+                            {imageFile ? 'Cambiar imagen' : 'Adjuntar imagen'}
+                        </span>
+                        <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                    </label>
+                    {imagePreview && (
+                        <div className="flex items-center gap-2">
+                            <img src={imagePreview} alt="Vista previa" className="w-10 h-10 rounded-lg object-cover border border-stone-200 dark:border-stone-700" />
+                            <span className="text-[10px] font-medium text-stone-400 truncate max-w-[160px]">{imageFile?.name}</span>
+                            <button
+                                onClick={clearImage}
+                                className="p-1 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-400 transition-colors"
+                                title="Quitar imagen"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
                 </div>
                 {/* Dirigir la nota a un compañero: se le avisa por email con link a esta ficha */}
                 <div className="flex items-center gap-2 mt-3 ml-1">
@@ -204,6 +263,21 @@ export default function HistoryManager({
                                     </span>
                                 </div>
                                 <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-line">{interaction.content}</p>
+                                {interaction.imageUrl && (
+                                    <a
+                                        href={resolveStorageUrl(interaction.imageUrl)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-block mt-2"
+                                        title="Abrir imagen en tamaño completo"
+                                    >
+                                        <img
+                                            src={resolveStorageUrl(interaction.imageUrl)}
+                                            alt="Imagen adjunta"
+                                            className="max-h-48 rounded-xl border border-stone-200 dark:border-stone-700 hover:opacity-90 transition-opacity"
+                                        />
+                                    </a>
+                                )}
                             </div>
                         </div>
                     );

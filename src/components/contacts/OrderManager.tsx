@@ -100,6 +100,9 @@ export default function OrderManager({
                 body: JSON.stringify({
                     clientId: contactId,
                     items: quoteItems.map(i => ({
+                        // Mandar el id de la línea preexistente: el backend lo usa para
+                        // preservar la foto congelada y color/pd/height/prism al recrear.
+                        id: (i as any).id || undefined,
                         productId: i.product?.id || null,
                         quantity: i.quantity,
                         price: i.customPrice,
@@ -107,6 +110,16 @@ export default function OrderManager({
                         productBrandSnapshot: i.productBrandSnapshot || i.product?.brand || null,
                         productNameSnapshot: i.productNameSnapshot || i.product?.name || i.product?.model || null,
                         productCategorySnapshot: i.productCategorySnapshot || i.product?.category || null,
+                        // Fallback de snapshots congelados para líneas de producto borrado
+                        // (si el producto ya no existe, el backend no puede re-derivarlos).
+                        productCostSnapshot: (i as any).productCostSnapshot ?? undefined,
+                        laboratorySnapshot: (i as any).laboratorySnapshot ?? undefined,
+                        productTypeSnapshot: (i as any).productTypeSnapshot ?? undefined,
+                        productLensIndexSnapshot: (i as any).productLensIndexSnapshot ?? undefined,
+                        productUnitTypeSnapshot: (i as any).productUnitTypeSnapshot ?? undefined,
+                        productOriginSnapshot: (i as any).productOriginSnapshot ?? undefined,
+                        crystalColor: (i as any).crystalColor ?? null,
+                        crystalColorType: (i as any).crystalColorType ?? null,
                     })),
                     markup: quoteMarkup,
                     discountCash: quoteDiscountCash,
@@ -143,6 +156,9 @@ export default function OrderManager({
         if (order.orderType === 'SALE' && order.isLocked !== false) return;
 
         setQuoteItems((order.items || []).map((it: any, idx: number) => ({
+            // Mandar el id de la línea preexistente: el backend lo usa para NO re-estampar
+            // el snapshot de costo congelado al guardar (guard prevSnapById.get(item.id)).
+            id: it.id,
             product: it.product,
             quantity: it.quantity,
             customPrice: it.price,
@@ -150,7 +166,14 @@ export default function OrderManager({
             uid: Date.now() + idx,
             productBrandSnapshot: it.productBrandSnapshot,
             productNameSnapshot: it.productNameSnapshot,
-            productCategorySnapshot: it.productCategorySnapshot
+            productCategorySnapshot: it.productCategorySnapshot,
+            // Snapshots congelados: fallback si el producto fue borrado del catálogo
+            productCostSnapshot: it.productCostSnapshot,
+            laboratorySnapshot: it.laboratorySnapshot,
+            productTypeSnapshot: it.productTypeSnapshot,
+            productLensIndexSnapshot: it.productLensIndexSnapshot,
+            productUnitTypeSnapshot: it.productUnitTypeSnapshot,
+            productOriginSnapshot: it.productOriginSnapshot,
         })));
         setQuoteMarkup(order.markup || 0);
         setQuoteDiscountCash(order.discountCash ?? 20);

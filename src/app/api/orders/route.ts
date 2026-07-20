@@ -317,14 +317,21 @@ export async function GET(request: Request) {
         }
 
         if (dateFrom || dateTo) {
+            // Límites de día en hora argentina (UTC-3), sin depender del TZ del server:
+            // 'YYYY-MM-DD' → inicio 03:00 UTC / fin 02:59:59.999 UTC del día siguiente.
+            const isDateOnly = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
             const dateCond: any = {};
             if (dateFrom) {
-                dateCond.gte = new Date(dateFrom);
+                dateCond.gte = isDateOnly(dateFrom) ? new Date(`${dateFrom}T03:00:00.000Z`) : new Date(dateFrom);
             }
             if (dateTo) {
-                const toDate = new Date(dateTo);
-                toDate.setHours(23, 59, 59, 999);
-                dateCond.lte = toDate;
+                if (isDateOnly(dateTo)) {
+                    dateCond.lte = new Date(new Date(`${dateTo}T03:00:00.000Z`).getTime() + 24 * 60 * 60 * 1000 - 1);
+                } else {
+                    const toDate = new Date(dateTo);
+                    toDate.setHours(23, 59, 59, 999);
+                    dateCond.lte = toDate;
+                }
             }
             // Filtrar estrictamente por la fecha en que se pasó a venta / envío a fábrica (labSentAt)
             // Si es un presupuesto o venta sin procesar (labSentAt es null), usamos createdAt
@@ -400,7 +407,8 @@ export async function GET(request: Request) {
                             id: true,
                             content: true,
                             createdBy: true,
-                            createdAt: true
+                            createdAt: true,
+                            imageUrl: true
                         }
                     }
                 }

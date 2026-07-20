@@ -4,8 +4,12 @@ import { normalizeArgentinePhone } from '@/services/contact.service';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
+        // Normalización masiva de teléfonos + re-vinculación de chats: solo ADMIN.
+        if (request.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
         const clients = await prisma.client.findMany({
             where: { phone: { not: null } },
             select: { id: true, phone: true }

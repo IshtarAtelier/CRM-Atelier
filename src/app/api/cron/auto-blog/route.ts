@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { z } from 'zod';
+import crypto from 'crypto';
+import { sanitizeBlogHtml } from '@/lib/sanitize-blog';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow more time for AI generation
@@ -44,18 +46,19 @@ const BlogSchema = z.object({
 
 export async function GET(request: Request) {
     try {
-        const { searchParams } = new URL(request.url);
-        const secret = searchParams.get('secret');
-
         const authHeader = request.headers.get('Authorization');
-        const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+        const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : '';
 
         const cronSecret = process.env.CRON_SECRET;
         if (!cronSecret) {
             return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
         }
 
-        if (secret !== cronSecret && token !== cronSecret) {
+        // Solo por header Authorization (no ?secret= en la URL, que queda en logs/proxies)
+        // y comparación en tiempo constante.
+        const tokenBuf = Buffer.from(token);
+        const secretBuf = Buffer.from(cronSecret);
+        if (tokenBuf.length !== secretBuf.length || !crypto.timingSafeEqual(tokenBuf, secretBuf)) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
@@ -64,8 +67,24 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Falta API key de Google' }, { status: 500 });
         }
 
-        // 1. Pick a random topic that hasn't been written about recently (or just random for simplicity)
-        const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+        // 1. Elegir un tema NO cubierto: descartar los que ya tienen un post con slug equivalente.
+        const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const existingPosts = await prisma.blogPost.findMany({ select: { slug: true } });
+        const existingSlugs = existingPosts.map((p) => p.slug);
+        // El slug del post lo elige la IA y no siempre deriva del tema, así que el
+        // startsWith no alcanza para deduplicar. Registramos los temas ya cubiertos.
+        const coveredSetting = await prisma.systemSetting.findUnique({ where: { key: 'auto-blog-covered-topics' } });
+        let coveredTopics: string[] = [];
+        try { coveredTopics = coveredSetting ? JSON.parse(coveredSetting.value) : []; } catch { coveredTopics = []; }
+        const pendingTopics = topics.filter((t) => {
+            const base = slugify(t);
+            if (coveredTopics.includes(base)) return false;
+            return !existingSlugs.some((es) => es.startsWith(base));
+        });
+        if (pendingTopics.length === 0) {
+            return NextResponse.json({ success: true, message: 'No hay temas nuevos para generar' });
+        }
+        const randomTopic = pendingTopics[Math.floor(Math.random() * pendingTopics.length)];
         const randomImage = fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
 
         // 2. Call Gemini
@@ -114,16 +133,26 @@ Reglas estrictas:
                 excerpt: response.excerpt,
                 metaTitle: response.metaTitle,
                 metaDescription: response.metaDescription,
-                content: response.content,
+                content: sanitizeBlogHtml(response.content),
                 category: "Blog",
                 imageUrl: randomImage,
-                status: "PUBLISHED" // Se publica directamente
+                status: "DRAFT" // Borrador para revisión humana antes de publicar
             }
         });
 
+        // Marcar el tema como cubierto para no regenerarlo en próximas corridas
+        const topicBase = slugify(randomTopic);
+        if (!coveredTopics.includes(topicBase)) {
+            await prisma.systemSetting.upsert({
+                where: { key: 'auto-blog-covered-topics' },
+                update: { value: JSON.stringify([...coveredTopics, topicBase]) },
+                create: { key: 'auto-blog-covered-topics', value: JSON.stringify([topicBase]) },
+            }).catch((e) => console.error('[AutoBlog] No se pudo registrar el tema cubierto:', e));
+        }
+
         return NextResponse.json({
             success: true,
-            message: 'Artículo generado y publicado automáticamente',
+            message: 'Artículo generado como borrador (revisar antes de publicar)',
             post: {
                 id: post.id,
                 title: post.title,

@@ -5,6 +5,53 @@ import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
 import { retryWithBackoff } from '@/lib/retry-utils';
 import { notifyReceiptUploaded, notifyVendorsReceiptError, type DuplicatePaymentRef } from '@/lib/receipt-notify';
+import { formatDate } from '@/lib/format-date';
+
+/**
+ * Medios de pago con tarjeta / terminal (Payway, Naranja, Go Cuotas). El ticket
+ * imprime el CUIT de la TERMINAL del comercio, que no coincide con el CUIT de
+ * facturación AFIP (ISH/YANI) — por eso no se compara para no dar falsos positivos.
+ */
+const CARD_TERMINAL_METHODS = [
+    'PAY_WAY_6_ISH', 'PAY_WAY_6_YANI', 'PAY_WAY_3_ISH', 'PAY_WAY_3_YANI',
+    'NARANJA_Z_ISH', 'NARANJA_Z_YANI', 'GO_CUOTAS', 'GO_CUOTAS_ISH',
+    'CREDIT', 'CREDIT_3', 'CREDIT_6', 'DEBIT', 'PLAN_Z',
+];
+
+/**
+ * A partir de cuántos días de antigüedad (fecha del comprobante vs. hoy) se avisa
+ * "comprobante viejo". 10 días da margen para transferencias que el vendedor sube
+ * unos días después del pago, sin dejar de avisar por un comprobante claramente
+ * de otra venta. (Decisión del usuario, 2026-07-20.)
+ */
+const STALE_RECEIPT_DAYS = 10;
+
+/**
+ * Parsea una fecha impresa en un comprobante a un Date, de forma determinística
+ * (NO depende de cómo la IA interprete el formato). Soporta:
+ *  - Argentino día/mes/año: "17/07/26", "17/07/2026", "17-07-26" → 17-jul-2026
+ *    (nunca 2017: no confunde el día con el año; año de 2 dígitos → 2000+).
+ *  - ISO año-primero: "2026-07-17" → 17-jul-2026 (por si un comprobante lo imprime así).
+ * Ignora la hora que venga al lado. Devuelve null si no matchea o es inválida.
+ */
+export function parseArgentineReceiptDate(raw?: string | null): Date | null {
+    if (!raw) return null;
+    const s = String(raw);
+    const build = (day: number, month: number, year: number): Date | null => {
+        if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+        const d = new Date(year, month - 1, day);
+        return isNaN(d.getTime()) ? null : d;
+    };
+    // ISO (año primero, 4 dígitos): parsear directo sin invertir.
+    const iso = s.match(/(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})/);
+    if (iso) return build(parseInt(iso[3], 10), parseInt(iso[2], 10), parseInt(iso[1], 10));
+    // Argentino día/mes/año.
+    const m = s.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/);
+    if (!m) return null;
+    let year = parseInt(m[3], 10);
+    if (year < 100) year += 2000;
+    return build(parseInt(m[1], 10), parseInt(m[2], 10), year);
+}
 
 export class ReceiptAgentService {
     /**
@@ -74,7 +121,8 @@ Extrae la siguiente información y preséntala ESTRICTAMENTE en formato JSON pla
 {
   "amount": número decimal obtenido del comprobante, sin símbolos ni puntos de miles, usando punto para decimales,
   "cuit": "el CUIT o CUIL del DESTINATARIO (el que cobra el dinero, no el que paga) si aparece, sin guiones. Si no aparece pon null",
-  "date": "fecha del pago extraída del comprobante en formato YYYY-MM-DD. Si no aparece pon null",
+  "date_raw": "la fecha del pago EXACTAMENTE como aparece impresa en el comprobante, sin reinterpretar ni convertir (por ejemplo '17/07/26' o '17-07-2026'). Copiá los dígitos tal cual. Si no aparece pon null",
+  "date": "la misma fecha convertida a formato YYYY-MM-DD. IMPORTANTE: en los comprobantes argentinos la fecha viene en formato DÍA/MES/AÑO (dd/MM/aa o dd/MM/aaaa). Por ejemplo '17/07/26' es el 17 de julio de 2026 (NO 2017): el primer número es el día, no el año. Un año de dos dígitos como '26' significa 2026. Si no aparece pon null",
   "transaction_id": "El número de transferencia, Nro de Operación, ID de transacción, o código de autorización único del comprobante. Si no encuentras, devuelve null"
 }
 Solo devuelve el JSON, sin texto antes ni después.`;
@@ -126,11 +174,21 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 vendorIssues.push(`El comprobante está por $${extracted.amount.toLocaleString('es-AR')} pero el pago lo cargaron por $${expectedAmount.toLocaleString('es-AR')}.`);
             }
 
-            // B) Check CUIT
-            if (expectedCuit && extracted.cuit) {
-                if (!extracted.cuit.includes(expectedCuit.toString())) {
-                     errors.push(`CUIT de destino distinto. Se esperaba ${expectedCuit} y figura ${extracted.cuit}.`);
-                     vendorIssues.push(`La transferencia fue a otro CUIT: en el comprobante figura ${extracted.cuit} y tendría que ser ${expectedCuit}.`);
+            // B) Check CUIT — se compara solo si hay un CUIT de facturación esperado
+            // y NO es un ticket de tarjeta. Alcance real HOY: `expectedCuit` sale de
+            // detectBillingAccount(), que solo resuelve cuenta (ISH/YANI) para métodos
+            // de tarjeta, y esos se saltean acá porque el ticket imprime el CUIT de la
+            // TERMINAL del comercio, no el de AFIP (era la fuente del falso positivo).
+            // Las transferencias no están mapeadas a una cuenta → expectedCuit=null →
+            // este chequeo hoy NO dispara para ningún medio; queda listo para cuando se
+            // configure el CUIT de las cuentas de transferencia. Se coacciona a String
+            // por si la IA devuelve el CUIT como número.
+            const isCardTerminal = CARD_TERMINAL_METHODS.includes(method);
+            if (!isCardTerminal && expectedCuit && extracted.cuit) {
+                const extractedCuit = String(extracted.cuit);
+                if (!extractedCuit.includes(expectedCuit.toString())) {
+                     errors.push(`CUIT de destino distinto. Se esperaba ${expectedCuit} y figura ${extractedCuit}.`);
+                     vendorIssues.push(`La transferencia fue a otro CUIT: en el comprobante figura ${extractedCuit} y tendría que ser ${expectedCuit}.`);
                 }
             }
 
@@ -202,15 +260,24 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 }
             }
 
-            // D) Check Date (Must be very recent)
-            if (extracted.date) {
-                const docDate = new Date(extracted.date);
+            // D) Check Date — solo avisa si el comprobante es genuinamente VIEJO.
+            // Se parsea la fecha impresa de forma DETERMINÍSTICA (parseArgentineReceiptDate,
+            // acepta dd/MM/aa o ISO) para no depender de cómo la convierta la IA:
+            // "17/07/26" es 17-jul-2026, no 2017. A propósito NO se cae a
+            // `extracted.date` (la fecha que la IA ya convirtió): si la IA mal-sigla
+            // el año ahí, reintroduciría el falso positivo de "comprobante viejo".
+            // Si no se puede leer date_raw de forma confiable, NO se avisa: preferimos
+            // perder una detección antes que mandarle un falso positivo a los vendedores.
+            const receiptDate = parseArgentineReceiptDate(extracted.date_raw);
+            if (receiptDate && !isNaN(receiptDate.getTime())) {
                 const now = new Date();
-                const diffTime = Math.abs(now.getTime() - docDate.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-                if (diffDays > 5) {
-                    errors.push(`Fecha antigua. El comprobante indica la fecha ${extracted.date}.`);
-                    vendorIssues.push(`El comprobante es del ${extracted.date}, quedó viejo — fíjense que sea el que corresponde a esta venta.`);
+                // Solo el PASADO: una fecha futura es casi seguro un error de lectura,
+                // no un comprobante "viejo" — no tiene sentido avisar por eso.
+                const diffDays = Math.floor((now.getTime() - receiptDate.getTime()) / (1000 * 60 * 60 * 24));
+                if (diffDays > STALE_RECEIPT_DAYS) {
+                    const fechaFmt = formatDate(receiptDate);
+                    errors.push(`Fecha antigua. El comprobante indica la fecha ${fechaFmt}.`);
+                    vendorIssues.push(`El comprobante es del ${fechaFmt}, quedó viejo — fíjense que sea el que corresponde a esta venta.`);
                 }
             }
 

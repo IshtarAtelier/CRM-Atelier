@@ -89,7 +89,7 @@ Formato esperado:
    * Valida que los datos clínicos se mantengan dentro de rangos biológica y ópticamente realistas.
    * Si detecta valores fuera de rango, los limpia poniéndolos en null.
    */
-  private static validateAndCleanPrescription(data: PrescriptionData): PrescriptionData {
+  private static validateAndCleanPrescription(data: PrescriptionData): PrescriptionData | null {
     const cleanNum = (val: any, min: number, max: number): number | null => {
       if (val === null || val === undefined) return null;
       const num = Number(val);
@@ -118,6 +118,17 @@ Formato esperado:
 
     // Validar distancia pupilar: [40, 80]
     const distanciaPupilar = cleanNum(data.distanciaPupilar, 40, 80);
+
+    // Si la IA no devolvió NINGÚN dato clínico (respuesta {} = "no pude leer"), devolver
+    // null para que el orquestador dispare el mensaje "mandá otra foto" en vez de tratarlo
+    // como lectura exitosa (Object.keys() del objeto todo-null siempre daba length 5).
+    const tieneTipo = data.tipoLente != null && String(data.tipoLente).trim() !== '';
+    const hayDato = odEsfera !== null || oiEsfera !== null || odCilindro !== null || oiCilindro !== null ||
+        odEje !== null || oiEje !== null || adicion !== null || distanciaPupilar !== null || tieneTipo;
+    if (!hayDato) {
+        console.warn('[OcrAgent] La IA no devolvió datos clínicos legibles; se trata como receta ilegible.');
+        return null;
+    }
 
     return {
       od: {

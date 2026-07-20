@@ -14,6 +14,7 @@ import InvoiceModal from '@/components/billing/InvoiceModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import type { Order } from '@/types/orders';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+import { syncUrlParams, getUrlParam, getUrlBoolParam } from '@/lib/url-filters';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
@@ -38,12 +39,12 @@ export default function VentasPage() {
     const searchParams = useSearchParams();
     const orderIdParam = searchParams.get('id');
     const [orders, setOrders] = useState<Order[]>([]);
-    const [search, setSearch] = useState('');
-    const [filterLab, setFilterLab] = useState<string>('SENT');
-    const [filterBalance, setFilterBalance] = useState(false);
-    const [filterLaboratory, setFilterLaboratory] = useState<string>('ALL');
-    const [dateFrom, setDateFrom] = useState('');
-    const [dateTo, setDateTo] = useState('');
+    const [search, setSearch] = useState(() => getUrlParam(searchParams, 'q', ''));
+    const [filterLab, setFilterLab] = useState<string>(() => getUrlParam(searchParams, 'lab', 'SENT'));
+    const [filterBalance, setFilterBalance] = useState(() => getUrlBoolParam(searchParams, 'saldo'));
+    const [filterLaboratory, setFilterLaboratory] = useState<string>(() => getUrlParam(searchParams, 'laboratorio', 'ALL'));
+    const [dateFrom, setDateFrom] = useState(() => getUrlParam(searchParams, 'desde', ''));
+    const [dateTo, setDateTo] = useState(() => getUrlParam(searchParams, 'hasta', ''));
     const [editingOrderNumber, setEditingOrderNumber] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [userRole, setUserRole] = useState('STAFF');
@@ -69,6 +70,22 @@ export default function VentasPage() {
             setViewMode('VENTAS');
         }
     }, [searchParams]);
+
+    // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+    // webOnly (mode=WEB) no se toca acá: es de solo lectura, entra por sidebar.
+    useEffect(() => {
+        if (webOnly) return;
+        syncUrlParams('/admin/ventas', {
+            mode: viewMode === 'POST_VENTA' ? 'POST_VENTA' : undefined,
+            lab: filterLab !== 'SENT' ? filterLab : undefined,
+            saldo: filterBalance,
+            laboratorio: filterLaboratory !== 'ALL' ? filterLaboratory : undefined,
+            vendedor: filterSeller !== 'ALL' && filterSeller !== '__LOADING__' ? filterSeller : undefined,
+            q: search,
+            desde: dateFrom,
+            hasta: dateTo,
+        });
+    }, [viewMode, filterLab, filterBalance, filterLaboratory, filterSeller, search, dateFrom, dateTo, webOnly]);
 
     const [error, setError] = useState<string | null>(null);
     const [pageSize, setPageSize] = useState(20);
@@ -396,7 +413,11 @@ export default function VentasPage() {
                 setCurrentUserId(user.id || null);
                 setCurrentUserName(user.name || null);
                 // ADMIN siempre ve todos; STAFF ve sus propios pedidos por defecto
-                if (user.role === 'ADMIN') {
+                // (un link compartido con ?vendedor= pisa el default de rol)
+                const urlSeller = getUrlParam(searchParams, 'vendedor', '');
+                if (urlSeller) {
+                    setFilterSeller(urlSeller);
+                } else if (user.role === 'ADMIN') {
                     setFilterSeller('ALL');
                 } else {
                     setFilterSeller(user.id || 'ALL');
@@ -735,6 +756,22 @@ export default function VentasPage() {
     });
 
     const saveLabOrderNumber = async (orderId: string) => {
+        const order = orders.find(o => o.id === orderId);
+        const prevNum = (order?.labOrderNumber || '').trim();
+        const newNum = editValue.trim();
+
+        // Sin cambios reales: cerramos sin pegarle a la API
+        if (prevNum === newNum) { setEditingOrderNumber(null); return; }
+
+        // Si YA había un número cargado, confirmamos antes de pisarlo o borrarlo
+        // (es muy fácil borrarlo sin querer). Cargar uno nuevo desde vacío no molesta.
+        if (prevNum) {
+            const msg = newNum
+                ? `⚠️ El pedido ya tiene el N° de operación "${prevNum}".\n\n¿Seguro que querés cambiarlo por "${newNum}"?`
+                : `⚠️ Vas a BORRAR el N° de operación "${prevNum}".\n\n¿Estás seguro? Va a quedar registrado en el historial del cliente.`;
+            if (!confirm(msg)) return;
+        }
+
         await fetch(`/api/orders/${orderId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -1023,7 +1060,7 @@ export default function VentasPage() {
                     {/* View Switcher Pill */}
                     <div className="flex gap-1 p-1 bg-stone-100 dark:bg-stone-850 rounded-full border border-stone-200/50 dark:border-stone-700/50 backdrop-blur-sm self-start sm:self-center">
                         <button
-                            onClick={() => { setViewMode('VENTAS'); window.history.replaceState(null, '', '/admin/ventas?mode=VENTAS'); }}
+                            onClick={() => setViewMode('VENTAS')}
                             className={`py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
                                 viewMode === 'VENTAS'
                                     ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
@@ -1033,7 +1070,7 @@ export default function VentasPage() {
                             🛍️ Ventas
                         </button>
                         <button
-                            onClick={() => { setViewMode('POST_VENTA'); window.history.replaceState(null, '', '/admin/ventas?mode=POST_VENTA'); }}
+                            onClick={() => setViewMode('POST_VENTA')}
                             className={`py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
                                 viewMode === 'POST_VENTA'
                                     ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
@@ -1328,30 +1365,30 @@ export default function VentasPage() {
                                                 </a>
                                             </h3>
                                             <div className="flex flex-wrap gap-2 mt-1">
-                                                <span className={`px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
+                                                <span className={`px-2 py-0.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest ${labInfo.color}`}>
                                                     {labInfo.label}
                                                 </span>
                                                 {order.status === 'WEB_PENDING' && (
-                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-sky-100 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50 flex items-center gap-1 animate-pulse">
+                                                    <span className="px-2 py-0.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest bg-sky-100 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50 flex items-center gap-1 animate-pulse">
                                                         🌐 Venta Web · A Confirmar
                                                     </span>
                                                 )}
                                                 {order.status === 'WEB_PAID' && (
-                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1 animate-pulse">
+                                                    <span className="px-2 py-0.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1 animate-pulse">
                                                         🌐 Venta Web Pagada · A Confirmar
                                                     </span>
                                                 )}
                                                 {financials.progress >= 100 && (
-                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
+                                                    <span className="px-2 py-0.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
                                                 )}
                                                 {orderLabs.length > 0 && orderLabs.map(lab => (
-                                                    <span key={lab} className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 flex items-center gap-1">
+                                                    <span key={lab} className="px-2 py-0.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 flex items-center gap-1">
                                                         <FlaskConical className="w-2.5 h-2.5" />
                                                         {lab}
                                                     </span>
                                                 ))}
                                                 {order.user?.name && (
-                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
+                                                    <span className="px-2 py-0.5 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
                                                         <User className="w-2.5 h-2.5" />
                                                         {order.user.name}
                                                     </span>
@@ -1366,7 +1403,7 @@ export default function VentasPage() {
 
                                     {/* Payment Detail (Triple Saldo) */}
                                     <div className="flex flex-col gap-1.5 lg:border-l-2 lg:border-stone-100 lg:dark:border-stone-700 lg:pl-4 py-0.5">
-                                        <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
+                                        <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
                                         <div className="flex flex-wrap gap-2">
                                             {!financials.hasBalance ? (
                                                 <div className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800">
@@ -1375,16 +1412,16 @@ export default function VentasPage() {
                                             ) : (
                                                 <>
                                                     <div className="flex flex-col rounded-lg bg-emerald-50 dark:bg-emerald-900/10 px-2 py-1 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
-                                                        <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efvo</span>
-                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingCash.toLocaleString()}</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efvo</span>
+                                                        <span className="text-[10px] lg:text-[11px] font-black mt-0.5">${financials.remainingCash.toLocaleString()}</span>
                                                     </div>
                                                     <div className="flex flex-col rounded-lg bg-violet-50 dark:bg-violet-900/10 px-2 py-1 text-violet-600 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30">
-                                                        <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
-                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingTransfer.toLocaleString()}</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
+                                                        <span className="text-[10px] lg:text-[11px] font-black mt-0.5">${financials.remainingTransfer.toLocaleString()}</span>
                                                     </div>
                                                     <div className="flex flex-col rounded-lg bg-orange-50 dark:bg-orange-900/10 px-2 py-1 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30">
-                                                        <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
-                                                        <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingCard.toLocaleString()}</span>
+                                                        <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
+                                                        <span className="text-[10px] lg:text-[11px] font-black mt-0.5">${financials.remainingCard.toLocaleString()}</span>
                                                     </div>
                                                 </>
                                             )}
@@ -1459,9 +1496,9 @@ export default function VentasPage() {
                                             <div className="mt-3 bg-blue-50/80 dark:bg-blue-950/30 rounded-xl p-3 border border-blue-100 dark:border-blue-800/50">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <Factory className="w-3.5 h-3.5 text-blue-500" />
-                                                    <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
+                                                    <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
                                                     {order.smartLabDays != null && (
-                                                        <span className="ml-auto text-[8px] font-black text-amber-500">{order.smartLabDays}d en lab</span>
+                                                        <span className="ml-auto text-[9px] font-black text-amber-500">{order.smartLabDays}d en lab</span>
                                                     )}
                                                 </div>
                                                 {details.length > 1 ? (
@@ -1469,7 +1506,7 @@ export default function VentasPage() {
                                                         {details.map((d: any, i: number) => (
                                                             <div key={i}>
                                                                 <div className="flex items-center justify-between mb-0.5">
-                                                                    <span className="text-[8px] font-bold text-stone-500">
+                                                                    <span className="text-[9px] font-bold text-stone-500">
                                                                         🔹 {d.num}
                                                                     </span>
                                                                     <span className={`text-[9px] font-black ${d.progress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>
@@ -1482,7 +1519,7 @@ export default function VentasPage() {
                                                                         style={{ width: `${Math.min(100, d.progress)}%` }}
                                                                     />
                                                                 </div>
-                                                                <span className="text-[7px] font-bold text-stone-400">{d.sector}</span>
+                                                                <span className="text-[9px] font-bold text-stone-400">{d.sector}</span>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1535,7 +1572,7 @@ export default function VentasPage() {
                                             >
                                                 {order.labOrderNumber ? (
                                                     <div>
-                                                        <span className="text-[8px] lg:text-[9px] font-black text-stone-400 uppercase tracking-widest block">
+                                                        <span className="text-[9px] lg:text-[10px] font-black text-stone-400 uppercase tracking-widest block">
                                                             N° Op. Lab {orderLabs.length > 0 ? `(${orderLabs.join(', ')})` : ''}
                                                         </span>
                                                         <span className="text-xs lg:text-sm font-black text-stone-800 dark:text-white">{order.labOrderNumber}</span>

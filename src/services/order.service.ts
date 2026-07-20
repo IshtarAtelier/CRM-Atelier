@@ -89,6 +89,8 @@ const OrderUpdateSchema = z.object({
     postSaleCaseType: z.string().nullable().optional(),
     postSaleFault: z.string().nullable().optional(),
     postSaleCoverage: z.string().nullable().optional(),
+    // Imagen adjunta a la observación que se agrega en este PATCH
+    postSaleNoteImageUrl: z.string().nullable().optional(),
 }).passthrough();
 
 // export const dynamic = 'force-dynamic';
@@ -355,7 +357,7 @@ export class OrderService {
             isLocked, authorizedByAdmin,
             postSaleNotes, postSaleCost, postSaleResponsible,
             postSaleOrderOption, postSaleNewOrderNumber, postSaleStatus, postSaleRxData, postSaleCaseType,
-            postSaleFault, postSaleCoverage
+            postSaleFault, postSaleCoverage, postSaleNoteImageUrl
         } = body;
 
         const data: any = {};
@@ -442,6 +444,115 @@ export class OrderService {
         if (discountCard !== undefined) data.discountCard = discountCard;
         if (specialDiscount !== undefined) data.specialDiscount = specialDiscount;
 
+        // ── FACTORY GATE: Validate requirements before sending to lab ──
+        // Corre ANTES del ajuste de stock: si alguna validación tira, el stock
+        // todavía no se tocó (antes se ejecutaba después, y un throw acá dejaba el
+        // stock revertido/decrementado a medias de forma permanente).
+        const LAB_SENT_STATUSES = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+        if (labStatus && LAB_SENT_STATUSES.includes(labStatus)) {
+            // Fetch the full order with items, prescription, and payments
+            const orderForValidation = await prisma.order.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    total: true,
+                    paid: true,
+                    labStatus: true,
+                    authorizedByAdmin: true,
+                    prescriptionId: true,
+                    items: {
+                        select: {
+                            product: { select: { category: true, type: true, name: true } }
+                        }
+                    },
+                    prescription: {
+                        select: {
+                            imageUrl: true,
+                            heightOD: true,
+                            heightOI: true,
+                            distanceOD: true,
+                            distanceOI: true,
+                            pd: true,
+                        }
+                    },
+                    payments: {
+                        select: { amount: true, method: true, receiptUrl: true }
+                    },
+                    client: {
+                        select: { email: true, birthDate: true }
+                    }
+                }
+            });
+
+            if (orderForValidation) {
+                // Only validate when advancing FROM NONE (first time sending)
+                const currentLabStatus = orderForValidation.labStatus || 'NONE';
+                const isFirstSend = currentLabStatus === 'NONE';
+
+                if (isFirstSend) {
+                    const errors: string[] = [];
+
+                    // 0. Email validation (required for CAPI and billing)
+                    if (!orderForValidation.client?.email) {
+                        errors.push('El cliente debe tener un email registrado para enviar a fábrica (necesario para CAPI y facturación).');
+                    }
+
+                    // 0b. Birth date (dato obligatorio de la ficha para fabricar)
+                    if (!orderForValidation.client?.birthDate) {
+                        errors.push('El cliente debe tener la fecha de nacimiento cargada en su ficha para enviar a fábrica.');
+                    }
+
+                    // 1. Crystal validations
+                    const hasCrystals = orderForValidation.items.some((item: any) =>
+                        item.product?.category === 'Cristal' ||
+                        item.product?.type === 'Cristal' ||
+                        (item.product?.name || '').includes('Cristal')
+                    );
+
+                    if (hasCrystals) {
+                        // Must have prescription
+                        if (!orderForValidation.prescriptionId || !orderForValidation.prescription) {
+                            errors.push('El pedido incluye cristales pero no tiene receta seleccionada.');
+                        } else {
+                            const rx = orderForValidation.prescription;
+                            // Must have prescription photo
+                            if (!rx.imageUrl) {
+                                errors.push('Falta la foto de la receta adjunta.');
+                            }
+                            // Must have height (at least one eye)
+                            if (rx.heightOD == null && rx.heightOI == null) {
+                                errors.push('Falta cargar la Altura en la receta (OD y/o OI).');
+                            }
+                            // Must have DP (at least one field)
+                            const hasDP = rx.distanceOD != null || rx.distanceOI != null || rx.pd != null;
+                            if (!hasDP) {
+                                errors.push('Falta cargar la Distancia Pupilar (DP) en la receta.');
+                            }
+                        }
+                    }
+
+                    // 2. Payment validation: total paid must be >= 50% of order total
+                    const totalPaid = orderForValidation.paid || 0;
+                    const minRequired = (orderForValidation.total || 0) * 0.5;
+                    if (totalPaid < minRequired && !orderForValidation.authorizedByAdmin) {
+                        errors.push(`El pago ($${Math.round(totalPaid).toLocaleString()}) no cubre el 50% mínimo ($${Math.ceil(minRequired).toLocaleString()}) para enviar a fábrica.`);
+                    }
+
+                    // 3. All payments must have method specified
+                    const paymentsWithoutMethod = (orderForValidation.payments || []).filter(
+                        (p: any) => !p.method || p.method.trim() === ''
+                    );
+                    if (paymentsWithoutMethod.length > 0) {
+                        errors.push(`Hay ${paymentsWithoutMethod.length} pago(s) sin método de pago especificado.`);
+                    }
+
+                    if (errors.length > 0) {
+                        throw new Error(`No se puede enviar a fábrica:\n${errors.join('\n')}`);
+                    }
+                }
+            }
+        }
+
         if (items && Array.isArray(items)) {
             // Load prescription details if order has prescription (to sync with crystal items)
             let rxDetails: any = null;
@@ -512,12 +623,21 @@ export class OrderService {
                             data: { stock: { increment: oldItem.quantity } }
                         });
                     }
-                    // Apply new items stock
+                    // Apply new items stock. Como el stock de los ítems viejos ya se
+                    // devolvió arriba, acá se descuenta la cantidad COMPLETA del nuevo
+                    // ítem, condicionada a stock suficiente (gte). El updateMany atómico
+                    // cierra el TOCTOU del pre-chequeo stale: dos ediciones simultáneas
+                    // del último armazón no pueden dejar el stock en negativo.
                     for (const newItem of newStockItems) {
-                        await tx.product.update({
-                            where: { id: newItem.productId as string },
+                        const dec = await tx.product.updateMany({
+                            where: { id: newItem.productId as string, stock: { gte: newItem.quantity } },
                             data: { stock: { decrement: newItem.quantity } }
                         });
+                        if (dec.count === 0) {
+                            const dbProd = dbNewProducts.find(p => p.id === newItem.productId);
+                            const name = `${dbProd?.brand || ''} ${dbProd?.name || ''}`.trim() || 'un producto';
+                            throw new Error(`Stock insuficiente para ${name}: otra operación tomó las últimas unidades.`);
+                        }
                     }
                 }, { maxWait: 25000, timeout: 25000 });
             }
@@ -537,6 +657,9 @@ export class OrderService {
                     id: true, productId: true, productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                     productCostSnapshot: true, laboratorySnapshot: true, productTypeSnapshot: true,
                     productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
+                    // Datos de armado que carga el checkout web/payway (no el cotizador):
+                    // se preservan para que una edición de ítems no los borre.
+                    pdVal: true, heightVal: true, prismVal: true, crystalColor: true, crystalColorType: true,
                 },
             });
             const prevSnapById = new Map(existingSnapshots.map(e => [e.id, e]));
@@ -588,127 +711,31 @@ export class OrderService {
                         cylinderVal: isCrystal && rxDetails ? (isOD ? rxDetails.cylinderOD : rxDetails.cylinderOI) : (item.cylinderVal ?? null),
                         axisVal: isCrystal && rxDetails ? (isOD ? rxDetails.axisOD : rxDetails.axisOI) : (item.axisVal ?? null),
                         additionVal: isCrystal && rxDetails ? (isOD ? (rxDetails.additionOD ?? rxDetails.addition) : (rxDetails.additionOI ?? rxDetails.addition)) : (item.additionVal ?? null),
+                        // pd/height/prism y color: si el front no los reenvía, se toman de la
+                        // fila previa (los carga el checkout web) para no borrarlos al editar.
+                        pdVal: item.pdVal ?? prev?.pdVal ?? null,
+                        heightVal: item.heightVal ?? prev?.heightVal ?? null,
+                        prismVal: item.prismVal ?? prev?.prismVal ?? null,
                         ...snap,
-                        crystalColor: item.crystalColor || null,
-                        crystalColorType: item.crystalColorType || null,
+                        crystalColor: item.crystalColor ?? prev?.crystalColor ?? null,
+                        crystalColorType: item.crystalColorType ?? prev?.crystalColorType ?? null,
                     };
                 }),
             };
-        }
-
-        // ── FACTORY GATE: Validate requirements before sending to lab ──
-        const LAB_SENT_STATUSES = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
-        if (labStatus && LAB_SENT_STATUSES.includes(labStatus)) {
-            // Fetch the full order with items, prescription, and payments
-            const orderForValidation = await prisma.order.findUnique({
-                where: { id },
-                select: {
-                    id: true,
-                    total: true,
-                    paid: true,
-                    labStatus: true,
-                    authorizedByAdmin: true,
-                    prescriptionId: true,
-                    items: {
-                        select: {
-                            product: { select: { category: true, type: true, name: true } }
-                        }
-                    },
-                    prescription: {
-                        select: {
-                            imageUrl: true,
-                            heightOD: true,
-                            heightOI: true,
-                            distanceOD: true,
-                            distanceOI: true,
-                            pd: true,
-                        }
-                    },
-                    payments: {
-                        select: { amount: true, method: true, receiptUrl: true }
-                    },
-                    client: {
-                        select: { email: true, birthDate: true }
-                    }
-                }
-            });
-
-            if (orderForValidation) {
-                // Only validate when advancing FROM NONE (first time sending)
-                const currentLabStatus = orderForValidation.labStatus || 'NONE';
-                const isFirstSend = currentLabStatus === 'NONE';
-
-                if (isFirstSend) {
-                    const errors: string[] = [];
-
-                    // 0. Email validation (required for CAPI and billing)
-                    if (!orderForValidation.client?.email) {
-                        errors.push('El cliente debe tener un email registrado para enviar a fábrica (necesario para CAPI y facturación).');
-                    }
-
-                    // 0b. Birth date (dato obligatorio de la ficha para fabricar)
-                    if (!orderForValidation.client?.birthDate) {
-                        errors.push('El cliente debe tener la fecha de nacimiento cargada en su ficha para enviar a fábrica.');
-                    }
-
-                    // 1. Crystal validations
-                    const hasCrystals = orderForValidation.items.some((item: any) =>
-                        item.product?.category === 'Cristal' || 
-                        item.product?.type === 'Cristal' || 
-                        (item.product?.name || '').includes('Cristal')
-                    );
-
-                    if (hasCrystals) {
-                        // Must have prescription
-                        if (!orderForValidation.prescriptionId || !orderForValidation.prescription) {
-                            errors.push('El pedido incluye cristales pero no tiene receta seleccionada.');
-                        } else {
-                            const rx = orderForValidation.prescription;
-                            // Must have prescription photo
-                            if (!rx.imageUrl) {
-                                errors.push('Falta la foto de la receta adjunta.');
-                            }
-                            // Must have height (at least one eye)
-                            if (rx.heightOD == null && rx.heightOI == null) {
-                                errors.push('Falta cargar la Altura en la receta (OD y/o OI).');
-                            }
-                            // Must have DP (at least one field)
-                            const hasDP = rx.distanceOD != null || rx.distanceOI != null || rx.pd != null;
-                            if (!hasDP) {
-                                errors.push('Falta cargar la Distancia Pupilar (DP) en la receta.');
-                            }
-                        }
-                    }
-
-                    // 2. Payment validation: total paid must be >= 50% of order total
-                    const totalPaid = orderForValidation.paid || 0;
-                    const minRequired = (orderForValidation.total || 0) * 0.5;
-                    if (totalPaid < minRequired && !orderForValidation.authorizedByAdmin) {
-                        errors.push(`El pago ($${Math.round(totalPaid).toLocaleString()}) no cubre el 50% mínimo ($${Math.ceil(minRequired).toLocaleString()}) para enviar a fábrica.`);
-                    }
-
-                    // 3. All payments must have method specified
-                    const paymentsWithoutMethod = (orderForValidation.payments || []).filter(
-                        (p: any) => !p.method || p.method.trim() === ''
-                    );
-                    if (paymentsWithoutMethod.length > 0) {
-                        errors.push(`Hay ${paymentsWithoutMethod.length} pago(s) sin método de pago especificado.`);
-                    }
-
-                    if (errors.length > 0) {
-                        throw new Error(`No se puede enviar a fábrica:\n${errors.join('\n')}`);
-                    }
-                }
-            }
         }
 
         if (labStatus) {
             data.labStatus = labStatus;
             if (labStatus === 'SENT') {
                 data.labSentAt = new Date();
+                // El vendedor "dueño" de la venta es quien la envía a fábrica
+                data.labSentBy = userName || 'Sistema';
+                data.labSentById = userId || null;
             }
-            // Auto-complete order when lab marks as delivered
-            if (labStatus === 'DELIVERED') {
+            // Auto-complete order when lab marks as delivered.
+            // Solo las ventas (SALE) pasan a COMPLETED; un presupuesto (QUOTE) no debe
+            // quedar COMPLETED sin haber descontado stock ni convertido a venta.
+            if (labStatus === 'DELIVERED' && existingForGuard?.orderType === 'SALE') {
                 data.status = 'COMPLETED';
             }
         }
@@ -736,6 +763,8 @@ export class OrderService {
                     data.labStatus = 'IN_PROGRESS';
                     if (!fullOrder.labSentAt) {
                         data.labSentAt = new Date();
+                        data.labSentBy = userName || 'Sistema';
+                        data.labSentById = userId || null;
                     }
 
                     // Enviar mensaje automático de laboratorio procesado
@@ -846,7 +875,9 @@ export class OrderService {
                             status: true
                         }
                     },
-                    client: { select: { name: true, phone: true, email: true, dni: true, insurance: true, doctor: true } },
+                    client: { select: { id: true, name: true, phone: true, email: true, dni: true, insurance: true, doctor: true } },
+                    // Dueño de la venta: para dejar registrado en la ficha "de quién es la venta"
+                    user: { select: { name: true } },
                     items: {
                         select: {
                             quantity: true,
@@ -911,7 +942,8 @@ export class OrderService {
                                 caseId: activeCase.id,
                                 content: noteContent,
                                 // El autor es SIEMPRE el usuario logueado; "responsable" del caso es otro dato
-                                createdBy: userName || 'Sistema'
+                                createdBy: userName || 'Sistema',
+                                imageUrl: postSaleNoteImageUrl || null
                             }
                         });
                     }
@@ -925,6 +957,27 @@ export class OrderService {
                             changedBy: userName || 'Sistema'
                         }
                     });
+
+                    // Registrar el caso en el historial de la ficha del cliente:
+                    // queda la fecha (createdAt), quién lo cargó (userName) y de quién
+                    // es la venta (el vendedor dueño del pedido).
+                    if (currentOrderForPostSale.client?.id) {
+                        const loadedBy = userName || 'Sistema';
+                        const sellerName = currentOrderForPostSale.user?.name || 'vendedor no registrado';
+                        const shortId = id.slice(-4).toUpperCase();
+                        const caseDetail = postSaleCaseType ? ` — ${postSaleCaseType}` : '';
+                        const firstNote = (postSaleNotes || '').split('\n').map((l: string) => l.trim()).filter(Boolean).pop();
+                        const noteLine = firstNote ? `\n\n${firstNote}` : '';
+                        await prisma.interaction.create({
+                            data: {
+                                clientId: currentOrderForPostSale.client.id,
+                                type: 'POST_SALE_CASE',
+                                content: `🛡️ ${loadedBy} registró un caso de post-venta en el pedido #${shortId} (venta de ${sellerName})${caseDetail}.${noteLine}`,
+                                userId: userId || null,
+                                userName: loadedBy,
+                            },
+                        }).catch(err => console.error('Error al registrar interacción de post-venta:', err));
+                    }
 
                     // Notificación por email SIEMPRE que se registra un caso nuevo de post-venta,
                     // con la ficha completa del cliente, el pedido y el caso.
@@ -1009,7 +1062,7 @@ export class OrderService {
                         if (newAppendedNotes) {
                             appendedNoteText = newAppendedNotes;
                             const lines = newAppendedNotes.split('\n').filter((line: string) => line.trim() !== '');
-                            for (const line of lines) {
+                            for (const [i, line] of lines.entries()) {
                                 const match = line.match(/^\[(.*?)\]:\s*(.*)$/);
                                 const noteContent = match ? match[2] : line;
 
@@ -1018,7 +1071,9 @@ export class OrderService {
                                         caseId: activeCase.id,
                                         content: noteContent,
                                         // El autor es SIEMPRE el usuario logueado; "responsable" del caso es otro dato
-                                        createdBy: userName || 'Sistema'
+                                        createdBy: userName || 'Sistema',
+                                        // La imagen adjunta va en la última observación del lote (la recién escrita)
+                                        imageUrl: i === lines.length - 1 ? (postSaleNoteImageUrl || null) : null
                                     }
                                 });
                             }
@@ -1040,7 +1095,7 @@ export class OrderService {
                         changes.push(`<b>Responsable:</b> ${fmtVal(activeCase.responsible)} → ${fmtVal(postSaleResponsible)}`);
                     }
                     if (postSaleFault !== undefined && (postSaleFault || null) !== (activeCase.fault || null)) {
-                        changes.push(`<b>Culpa / origen:</b> ${fmtVal(activeCase.fault)} → ${fmtVal(postSaleFault)}`);
+                        changes.push(`<b>Responsable del error:</b> ${fmtVal(activeCase.fault)} → ${fmtVal(postSaleFault)}`);
                     }
                     if (postSaleCoverage !== undefined && (postSaleCoverage || null) !== (activeCase.coverage || null)) {
                         changes.push(`<b>Cobertura:</b> ${fmtVal(activeCase.coverage)} → ${fmtVal(postSaleCoverage)}`);
@@ -1180,6 +1235,20 @@ export class OrderService {
                     throw new Error('La ficha del contacto debe tener al menos nombre y teléfono para generar la venta');
                 }
 
+                // Convertir a SALE fija labStatus='SENT' salteando el Factory Gate del
+                // path de labStatus. Replicamos acá sus validaciones de ficha (email y
+                // fecha de nacimiento) para no mandar a fábrica un cliente incompleto.
+                const gateErrors: string[] = [];
+                if (!client?.email) {
+                    gateErrors.push('El cliente debe tener un email registrado para enviar a fábrica (necesario para CAPI y facturación).');
+                }
+                if (!client?.birthDate) {
+                    gateErrors.push('El cliente debe tener la fecha de nacimiento cargada en su ficha para enviar a fábrica.');
+                }
+                if (gateErrors.length > 0) {
+                    throw new Error(`No se puede convertir en venta:\n${gateErrors.join('\n')}`);
+                }
+
                 // Check: 50% minimum payment
                 const minRequired = (existingOrder.total || 0) * 0.5;
                 const totalPaid = existingOrder.paid || 0;
@@ -1187,8 +1256,24 @@ export class OrderService {
                     throw new Error(`Se requiere un pago mínimo del 50% ($${Math.ceil(minRequired).toLocaleString()}) para convertir en venta. Pagado: $${totalPaid.toLocaleString()}`);
                 }
 
+                // Si la conversión QUOTE→SALE trae ítems nuevos en el body, validar el
+                // gate contra ESOS (no solo los viejos de la DB): agregar cristales en la
+                // misma conversión no debe saltear receta/foto/altura/DP.
+                let gateItems = existingOrder.items;
+                if (Array.isArray(items) && items.length > 0) {
+                    const bodyProductIds = items.map((it: any) => it.productId).filter(Boolean);
+                    const bodyProducts = bodyProductIds.length > 0
+                        ? await prisma.product.findMany({
+                            where: { id: { in: bodyProductIds } },
+                            select: { id: true, type: true, category: true, name: true },
+                        })
+                        : [];
+                    const byId = new Map((bodyProducts || []).map((p: any) => [p.id, p]));
+                    gateItems = items.map((it: any) => ({ product: it.productId ? byId.get(it.productId) || null : null }));
+                }
+
                 // Check: if order has crystals, frame info must be set
-                const hasCrystals = existingOrder.items?.some((item: any) =>
+                const hasCrystals = gateItems?.some((item: any) =>
                     item.product?.type === 'Cristal' || item.product?.category === 'Cristal' || (item.product?.name || '').includes('Cristal')
                 );
 
@@ -1213,7 +1298,7 @@ export class OrderService {
                         if (!rx.imageUrl) {
                             saleErrors.push('Falta la foto de la receta adjunta.');
                         }
-                        const hasProgressiveOrMultifocal = existingOrder.items?.some((item: any) => {
+                        const hasProgressiveOrMultifocal = gateItems?.some((item: any) => {
                             const name = (item.product?.name || '').toLowerCase();
                             const type = (item.product?.type || '').toLowerCase();
                             const cat = (item.product?.category || '').toLowerCase();
@@ -1237,7 +1322,10 @@ export class OrderService {
                     }
                 }
 
-                const hasFramesInCart = existingOrder.items?.some((item: any) => {
+                // Usar gateItems (los del body si la conversión los trae, si no los de la DB):
+                // debe mirar el MISMO conjunto que hasCrystals, si no una conversión que agrega
+                // cristal+armazón juntos veía el cristal (body) pero no el armazón (DB) y rechazaba.
+                const hasFramesInCart = gateItems?.some((item: any) => {
                     const cat = (item.product?.category || '').toLowerCase();
                     return cat === 'frame' || cat === 'atelier' || cat === 'armazón de receta' || cat.includes('armazon') || cat.includes('armazón');
                 });
@@ -1284,24 +1372,44 @@ export class OrderService {
                 if (!labStatus) {
                     data.labStatus = 'SENT';
                     data.labSentAt = new Date();
+                    data.labSentBy = userName || 'Sistema';
+                    data.labSentById = userId || null;
                 }
             }
 
-            // Stock decrement: when converting to SALE, atomically decrement stock
+            // Stock decrement: when converting to SALE, atomically decrement stock.
             if (orderType === 'SALE') {
-                const orderForStock = await prisma.order.findUnique({
-                    where: { id },
-                    select: {
-                        items: {
-                            select: {
-                                productId: true,
-                                quantity: true,
-                                product: { select: { category: true, type: true, stock: true } }
+                // Si el mismo PATCH trae ítems nuevos (el vendedor cambió el armazón antes
+                // de confirmar la venta), el stock debe descontarse de ESOS ítems, no de los
+                // viejos de la DB (que ya se van a reemplazar). Antes se leían los viejos →
+                // se descontaba stock del armazón removido y el nuevo quedaba sin descontar.
+                let stockSourceItems: any[];
+                if (items && Array.isArray(items)) {
+                    const bodyProductIds = items.map((it: any) => it.productId).filter(Boolean);
+                    const bodyProducts = await prisma.product.findMany({
+                        where: { id: { in: bodyProductIds } },
+                        select: { id: true, category: true, type: true, stock: true }
+                    });
+                    stockSourceItems = items.map((it: any) => {
+                        const p = bodyProducts.find(bp => bp.id === it.productId);
+                        return { productId: it.productId, quantity: it.quantity, product: p ? { category: p.category, type: p.type, stock: p.stock } : null };
+                    });
+                } else {
+                    const orderForStock = await prisma.order.findUnique({
+                        where: { id },
+                        select: {
+                            items: {
+                                select: {
+                                    productId: true,
+                                    quantity: true,
+                                    product: { select: { category: true, type: true, stock: true } }
+                                }
                             }
                         }
-                    }
-                });
-                const stockItems = (orderForStock?.items || []).filter((item: any) => {
+                    });
+                    stockSourceItems = orderForStock?.items || [];
+                }
+                const stockItems = stockSourceItems.filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;
                     return !(cat === 'Cristal' || cat === 'Tratamiento' || cat === 'TRATAMIENTO' || (type || '').includes('Cristal'));
@@ -1484,11 +1592,12 @@ export class OrderService {
         }
 
         // Estado previo para historizar transiciones (quién cambió qué estado)
-        let prevState: { labStatus: string | null; status: string } | null = null;
-        if (data.labStatus !== undefined || data.status !== undefined) {
+        // y el número de operación previo (para registrar altas/cambios/borrados).
+        let prevState: { labStatus: string | null; status: string; labOrderNumber: string | null } | null = null;
+        if (data.labStatus !== undefined || data.status !== undefined || data.labOrderNumber !== undefined) {
             prevState = await prisma.order.findUnique({
                 where: { id },
-                select: { labStatus: true, status: true }
+                select: { labStatus: true, status: true, labOrderNumber: true }
             });
         }
 
@@ -1567,6 +1676,35 @@ export class OrderService {
             }).catch(err => console.error('Error registrando cambio de estado en ficha:', err));
         }
 
+        // ── Historial: alta/cambio/borrado del N° de operación de laboratorio ──
+        // Queda registrado en la ficha quién lo tocó y con qué valor, para que un
+        // número borrado (aun sin querer) siempre pueda recuperarse del historial.
+        if (prevState && data.labOrderNumber !== undefined) {
+            const prevNum = (prevState.labOrderNumber || '').trim();
+            const newNum = (data.labOrderNumber || '').trim();
+            if (prevNum !== newNum) {
+                const shortId = id.slice(-4).toUpperCase();
+                const who = userName || 'Sistema';
+                let content: string;
+                if (!prevNum && newNum) {
+                    content = `🔢 ${who} cargó el N° de operación del pedido #${shortId}: ${newNum}`;
+                } else if (prevNum && !newNum) {
+                    content = `🔢 ${who} borró el N° de operación del pedido #${shortId} (era ${prevNum})`;
+                } else {
+                    content = `🔢 ${who} cambió el N° de operación del pedido #${shortId}: ${prevNum} → ${newNum}`;
+                }
+                await prisma.interaction.create({
+                    data: {
+                        clientId: order.clientId,
+                        type: 'SISTEMA',
+                        content,
+                        userId: userId || null,
+                        userName: who
+                    }
+                }).catch(err => console.error('Error registrando cambio de N° de operación en ficha:', err));
+            }
+        }
+
         // ── Auto-Task: Request Review when DELIVERED ──
         if (labStatus === 'DELIVERED') {
             const taskDescription = `Solicitar comentario a ${order.client.name}`;
@@ -1606,6 +1744,9 @@ export class OrderService {
                 ...(prevState ? {
                     from: { labStatus: prevState.labStatus, status: prevState.status },
                     to: { labStatus: data.labStatus ?? prevState.labStatus, status: data.status ?? prevState.status }
+                } : {}),
+                ...(prevState && data.labOrderNumber !== undefined && (prevState.labOrderNumber || '').trim() !== (data.labOrderNumber || '').trim() ? {
+                    labOrderNumber: { from: prevState.labOrderNumber || null, to: data.labOrderNumber || null }
                 } : {}),
                 orderType: order.orderType,
                 total: order.total
@@ -1715,7 +1856,6 @@ function buildPostSaleCaseEmailHtml(opts: {
                                 <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                                     ${row('Tipo de caso', caseInfo.caseType, 'color: #1f2937; font-weight: bold;')}
                                     ${row('Responsable', caseInfo.responsible)}
-                                    ${row('Culpa / origen', caseInfo.fault)}
                                     ${row('Cobertura', caseInfo.coverage)}
                                     ${row('Costo Adicional', `$${caseInfo.cost || 0}`, 'color: #b91c1c; font-weight: bold;')}
                                     ${row('Opción en Lab', caseInfo.orderOption || 'No requiere', 'color: #1f2937; text-transform: uppercase; font-size: 12px; font-weight: bold;')}

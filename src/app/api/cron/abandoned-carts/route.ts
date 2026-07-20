@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendRecoveryEmailForSession } from '@/lib/checkout/recovery';
 
-// To verify Vercel Cron trigger
-const CRON_SECRET = process.env.CRON_SECRET || 'atelier-cron-secret-key-2026';
+// To verify Vercel Cron trigger — sin fallback: si falta el secret, el endpoint no abre
+const CRON_SECRET = process.env.CRON_SECRET;
 
 /**
  * Recuperación de carritos abandonados (SOLO tienda, por email).
@@ -14,8 +14,15 @@ const CRON_SECRET = process.env.CRON_SECRET || 'atelier-cron-secret-key-2026';
  */
 export async function GET(request: Request) {
   try {
+    if (!CRON_SECRET) {
+      return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
+    }
+    // El bypass de dev compara el hostname real, no un substring de la URL
+    // (request.url incluye el query string y sería falsificable con ?x=localhost).
+    const hostname = new URL(request.url).hostname;
+    const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${CRON_SECRET}` && !request.url.includes('localhost')) {
+    if (authHeader !== `Bearer ${CRON_SECRET}` && !isLocalDev) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

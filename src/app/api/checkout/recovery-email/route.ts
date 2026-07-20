@@ -1,9 +1,21 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { sendRecoveryEmailForSession } from '@/lib/checkout/recovery';
+import { decrypt } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
+    // Disparo MANUAL del email de recuperación: lo usa solo el panel admin
+    // (/admin/desarrollo/carritos). Requiere sesión interna — sin esto, al estar
+    // bajo /api/checkout/ (público en el middleware), cualquiera podía spammear
+    // emails brandeados de Atelier a la casilla de una sesión arbitraria.
+    const token = (await cookies()).get('session')?.value;
+    const payload = token ? await decrypt(token) : null;
+    if (!payload || payload.role === 'OPTICA') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
+
     const { sessionId } = await req.json();
 
     if (!sessionId) {

@@ -13,7 +13,8 @@ import { Camera, Share2, ChevronDown, Truck, Package, ShieldCheck, CreditCard, P
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
-import { trackAddToCart } from "@/lib/tracking";
+import { trackAddToCart, trackViewContent } from "@/lib/tracking";
+import ProductReviews from "@/components/Storefront/ProductReviews";
 
 // Carga diferida: el configurador (662 líneas) recién se monta cuando el cliente
 // abre el modal, y el diagrama vive dentro de un acordeón colapsado. Sacarlos del
@@ -138,6 +139,17 @@ export function ProductClient({
   const hasSale = saleRaw != null && saleRaw > 0 && saleRaw < listPrice;
   const effectivePrice = hasSale ? saleRaw : listPrice;
   const pctOff = hasSale ? Math.round((1 - saleRaw / listPrice) * 100) : 0;
+
+  // Analítica propia: vista de ficha de producto (una vez por producto cargado).
+  useEffect(() => {
+    if (!product?.id) return;
+    trackViewContent({
+      id: product.id,
+      name: `${product.brand || ''} ${product.model || ''}`.trim() || product.model,
+      price: effectivePrice,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   const getThumbnailLabel = (index: number) => {
     if (images[index]) {
@@ -763,6 +775,11 @@ export function ProductClient({
           </div>
         </div>
       )}
+
+      {/* Reseñas propias de este producto (moderadas) */}
+      <div className="max-w-3xl mx-auto px-6 lg:px-14 w-full">
+        <ProductReviews productId={product.id} />
+      </div>
 
       {/* Prueba social: reseñas reales de Google, pegadas al punto de decisión */}
       <GoogleReviews />

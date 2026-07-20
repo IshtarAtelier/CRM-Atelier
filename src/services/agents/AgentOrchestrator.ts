@@ -125,7 +125,8 @@ export class AgentOrchestrator {
         const activeOrder = await prisma.order.findFirst({
           where: {
             clientId: clientId,
-            status: { notIn: ['ENTREGADO', 'CANCELADO'] }
+            isDeleted: false,
+            status: { not: 'COMPLETED' }
           },
           orderBy: { createdAt: 'desc' }
         });
@@ -171,7 +172,7 @@ REGLAS:
       console.error('[AgentOrchestrator] Error:', error.message);
       return {
         intent: 'GENERAL_INQUIRY',
-        replyText: `Hola, disculpas por la demora. Tuvimos un pequeño inconveniente técnico al procesar tu consulta, pero en unos minutos un asesor humano de nuestro equipo te va a responder por este mismo canal. ¡Gracias!`
+        replyText: `¡Hola! Gracias por tu mensaje. En un ratito un asesor de nuestro equipo te responde por este mismo chat. 🙌`
       };
     }
   }

@@ -13,14 +13,15 @@ import { generateInvoicePDF } from '@/lib/invoice-generator';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import type { Order } from '@/types/orders';
+import { syncUrlParams, getUrlParam, getUrlBoolParam } from '@/lib/url-filters';
 
 export default function BillingPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState(searchParams?.get('search') || '');
-    const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'unbilled'>('pending');
+    const [searchTerm, setSearchTerm] = useState(() => getUrlParam(searchParams, 'q', ''));
+    const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'unbilled'>(() => getUrlParam(searchParams, 'tab', 'pending') as 'pending' | 'completed' | 'unbilled');
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
     const [userRole, setUserRole] = useState<string | null>(null);
@@ -45,6 +46,14 @@ export default function BillingPage() {
         loadUser();
         refreshData();
     }, []);
+
+    // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+    useEffect(() => {
+        syncUrlParams('/admin/facturacion', {
+            tab: activeTab !== 'pending' ? activeTab : undefined,
+            q: searchTerm,
+        });
+    }, [activeTab, searchTerm]);
 
     const refreshData = async () => {
         setLoading(true);

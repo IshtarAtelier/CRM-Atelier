@@ -27,7 +27,11 @@ export async function GET(request: Request) {
                         { id: orderId || undefined },
                         { labOrderNumber: orderNumber || undefined }
                     ],
-                    isDeleted: false
+                    isDeleted: false,
+                    // Binding de pertenencia: si el chat conoce su clientId, el pedido debe
+                    // ser de ese cliente. Evita que, vía inyección de prompt, el bot informe
+                    // el saldo/estado de un pedido ajeno consultando un orderId cualquiera.
+                    ...(clientId ? { clientId } : {})
                 },
                 include: {
                     client: true,

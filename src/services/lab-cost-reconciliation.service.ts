@@ -53,9 +53,20 @@ export class LabCostReconciliationService {
         if (relevant.length === 0) relevant = items.filter(i => /cristal/i.test(categoryOf(i)));
         if (relevant.length === 0) relevant = items;
 
+        // En una venta 2x1 el par gratis (cristal con price 0) le cuesta al lab SOLO el
+        // calibrado, no el costo de lista del cristal. Contarlo entero infla el systemCost
+        // y enmascara un sobrecosto real. Mismo criterio que report.service.
+        const is2x1 = (order.appliedPromoName || '').toLowerCase().includes('2x1')
+            || items.some((i: any) => /cristal/i.test(categoryOf(i)) && i.price === 0);
+        const CALIBRADO_COST = 15000 * 1.21; // fallback calibrado + IVA (igual que report.service)
+
         return relevant.reduce((total, item) => {
-            const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
             const perEyeHalf = item.eye ? 0.5 : 1;
+            const isCrystal = /cristal/i.test(categoryOf(item));
+            if (is2x1 && isCrystal && item.price === 0) {
+                return total + CALIBRADO_COST * perEyeHalf * (item.quantity || 1);
+            }
+            const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
             return total + cost * perEyeHalf * (item.quantity || 1);
         }, 0);
     }
@@ -203,27 +214,97 @@ export class LabCostReconciliationService {
                 data: { lab: input.lab, labOrderNumber: cleanNumber, ...data },
             });
 
-        // Alertar solo cuando el sobrecosto es nuevo (entrada nueva o que cambió
-        // de estado), para no repetir el mail en cada corrida del cron.
-        const isNewOvercost = status === 'OVERCOST' && (!existing || existing.status !== 'OVERCOST');
-        if (isNewOvercost && order && isPrimaryOfSale) {
-            await this.sendOvercostAlert(entry, order).catch(err =>
-                console.error('[LabCost] Error enviando alerta de sobrecosto:', err)
-            );
+        const prevBilled = existing ? (existing.billedNet ?? existing.billedTotal ?? null) : null;
+        const billedChanged = (billedComparable ?? null) !== prevBilled;
+        // "Llegó la factura": el pedido no tenía importe y ahora sí.
+        const facturaRecienLlegada = billedComparable !== null && prevBilled === null;
+
+        // OPTOVISION (pedidos de alto valor): avisar por CADA factura que ingresa,
+        // diga lo que diga (coincide / sobrecosto / menor). Cruza de quién es,
+        // asigna el monto e informa en el momento. Cubre también el sobrecosto,
+        // así que para Optovision no se manda además la alerta genérica.
+        if (input.lab === 'OPTOVISION' && order && facturaRecienLlegada && isPrimaryOfSale) {
+            await this.sendInvoiceArrivalAlert(entry, order, {
+                saleBilled, systemCost, status, difference, pvCase,
+                ventaCompleta, faltan: Math.max(0, orderNumbers.length - facturadosEnVenta),
+            }).then(() => this.markAlerted(entry.id, status))
+                .catch(err => console.error('[LabCost] Error enviando aviso de factura Optovision:', err));
+        } else {
+            // Resto de labs (Grupo Óptico): alerta solo cuando el sobrecosto es
+            // nuevo, una vez por venta, sin repetir en cada corrida.
+            const isNewOvercost = status === 'OVERCOST' && (!existing || existing.status !== 'OVERCOST');
+            if (isNewOvercost && order && isPrimaryOfSale) {
+                await this.sendOvercostAlert(entry, order)
+                    .then(() => this.markAlerted(entry.id, status))
+                    .catch(err => console.error('[LabCost] Error enviando alerta de sobrecosto:', err));
+            }
         }
 
         // Auditoría de POSTVENTA: un reproceso debería venir sin cargo (garantía;
         // Optovision los factura a ~$0). Si el pedido nació de un caso de postventa
         // y la factura trae plata, alertar apenas aparece el importe.
-        const prevBilled = existing ? (existing.billedNet ?? existing.billedTotal ?? null) : null;
-        const billedChanged = (billedComparable ?? null) !== prevBilled;
         if (pvCase && order && billedComparable !== null && billedComparable > 5000 && billedChanged) {
             await this.sendChargedReworkAlert(entry, order, pvCase, billedComparable).catch(err =>
                 console.error('[LabCost] Error enviando alerta de reproceso cobrado:', err)
             );
         }
 
+        // FACTURA = PEDIDO LISTO. Optovision no tiene portal, así que la factura por
+        // email es su única señal de "terminado en laboratorio" (regla del negocio).
+        // Cuando TODAS las operaciones de la venta ya tienen factura (ventaCompleta,
+        // p. ej. en un 2x1 el par real + el espejo), se marca el pedido como FINISHED
+        // y se genera la MISMA notificación LAB_READY que usa Grupo Óptico → cae en
+        // las mismas vistas de "Finalizados" y crons de retiro. Guardas: solo si el
+        // pedido no está ya finalizado/listo/entregado (no repite ni retrocede), y no
+        // avisa al cliente automáticamente (ese paso sigue siendo manual).
+        if (input.lab === 'OPTOVISION' && order && billedComparable !== null && ventaCompleta) {
+            const yaListo = ['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '');
+            if (!yaListo) {
+                await prisma.order.update({ where: { id: order.id }, data: { labStatus: 'FINISHED' } })
+                    .then(() => prisma.notification.create({
+                        data: {
+                            type: 'LAB_READY',
+                            message: `🏭 Pedido finalizado (facturado por Optovision) — ${order.client?.name ?? 'cliente'} (${orderNumbers.join(', ')})`,
+                            orderId: order.id,
+                            requestedBy: 'Conciliación Optovision',
+                            status: 'PENDING',
+                        },
+                    }))
+                    .catch(err => console.error('[LabCost] Error marcando pedido Optovision como finalizado:', err));
+            }
+        }
+
         return entry;
+    }
+
+    /**
+     * Abre una conexión IMAP a Gmail probando las credenciales configuradas
+     * (IMAP dedicada primero, SMTP como respaldo — la misma app password sirve).
+     * Devuelve null si no hay credenciales; lanza si todas fallan.
+     */
+    private static async openImap(): Promise<any | null> {
+        const candidates = [
+            { user: process.env.IMAP_USER || process.env.EMAIL_USER, password: process.env.IMAP_PASSWORD },
+            { user: process.env.EMAIL_USER, password: process.env.EMAIL_PASS },
+        ].filter(c => c.user && c.password);
+        if (candidates.length === 0) return null;
+
+        let lastError: any = null;
+        for (const cred of candidates) {
+            try {
+                return await imaps.connect({
+                    imap: {
+                        user: cred.user!, password: cred.password!,
+                        host: 'imap.gmail.com', port: 993, tls: true,
+                        tlsOptions: { rejectUnauthorized: false }, authTimeout: 10000,
+                    },
+                });
+            } catch (err: any) {
+                lastError = err;
+                console.warn(`[LabCost] IMAP no autenticó con ${cred.user}; probando la siguiente credencial…`);
+            }
+        }
+        throw lastError || new Error('IMAP sin conexión');
     }
 
     /**
@@ -231,40 +312,11 @@ export class LabCostReconciliationService {
      * `sinceDays` días y registra cada una en la conciliación.
      */
     static async scanOptovisionInbox(sinceDays = 35) {
-        // Cadena de credenciales configuradas: primero la dedicada a IMAP y, si
-        // falla, la del SMTP (la misma app password de Gmail sirve para ambos).
-        const candidates = [
-            { user: process.env.IMAP_USER || process.env.EMAIL_USER, password: process.env.IMAP_PASSWORD },
-            { user: process.env.EMAIL_USER, password: process.env.EMAIL_PASS },
-        ].filter(c => c.user && c.password);
-
-        if (candidates.length === 0) {
+        const connection = await this.openImap();
+        if (!connection) {
             console.warn('[LabCost] Sin credenciales IMAP/EMAIL configuradas. Se omite el escaneo.');
             return { skipped: true, reason: 'no_imap_password' };
         }
-
-        let connection: any = null;
-        let lastError: any = null;
-        for (const cred of candidates) {
-            try {
-                connection = await imaps.connect({
-                    imap: {
-                        user: cred.user!,
-                        password: cred.password!,
-                        host: 'imap.gmail.com',
-                        port: 993,
-                        tls: true,
-                        tlsOptions: { rejectUnauthorized: false },
-                        authTimeout: 10000,
-                    },
-                });
-                break;
-            } catch (err: any) {
-                lastError = err;
-                console.warn(`[LabCost] IMAP no autenticó con ${cred.user}; probando la siguiente credencial configurada…`);
-            }
-        }
-        if (!connection) throw lastError || new Error('IMAP sin conexión');
 
         const summary = { emails: 0, pdfs: 0, parsed: 0, unparsed: 0, overcost: 0, unmatched: 0, entries: [] as string[] };
 
@@ -336,6 +388,87 @@ export class LabCostReconciliationService {
 
         console.log(`[LabCost] Escaneo Optovision: ${JSON.stringify(summary)}`);
         return summary;
+    }
+
+    /**
+     * Escanea la casilla IMAP buscando el ÚLTIMO resumen de cuenta de Essilor
+     * ("Documentos Pendientes" de procesos@essilor.com.ar), lo parsea y guarda un
+     * snapshot de la cuenta corriente de Optovision (deuda total + saldo por
+     * factura). Cruza cada factura del resumen con los pedidos conocidos.
+     * Idempotente: no duplica si ya se guardó un resumen de esa fecha.
+     */
+    static async scanEssilorStatement(sinceDays = 20) {
+        const { parseEssilorStatement } = await import('./lab-providers/essilor-statement');
+        const connection = await this.openImap();
+        if (!connection) return { skipped: true, reason: 'no_imap_password' };
+
+        try {
+            await connection.openBox('INBOX');
+            const since = new Date();
+            since.setDate(since.getDate() - sinceDays);
+            const messages = await connection.search(
+                [['FROM', 'procesos@essilor.com.ar'], ['SINCE', since]],
+                { bodies: [''], markSeen: false }
+            );
+            if (messages.length === 0) return { skipped: true, reason: 'sin_resumen', emails: 0 };
+
+            // Tomar el MÁS RECIENTE (el resumen es acumulativo: el último manda).
+            let best: { date: Date; pdf: Buffer; filename: string } | null = null;
+            for (const msg of messages) {
+                const allPart = msg.parts.find((p: any) => p.which === '');
+                if (!allPart) continue;
+                const parsed = await simpleParser(allPart.body);
+                const pdf = (parsed.attachments || []).find((a: any) =>
+                    a.contentType === 'application/pdf' || /\.pdf$/i.test(a.filename || ''));
+                if (!pdf) continue;
+                const d = parsed.date || new Date(0);
+                if (!best || d > best.date) best = { date: d, pdf: pdf.content, filename: pdf.filename || 'resumen.pdf' };
+            }
+            if (!best) return { skipped: true, reason: 'sin_pdf', emails: messages.length };
+
+            const st = await parseEssilorStatement(best.pdf);
+            if (!st.rows.length || st.totalDebt === null) {
+                return { skipped: true, reason: 'no_parseado', emails: messages.length };
+            }
+
+            const statementDate = st.statementDate || best.date;
+            // Idempotencia: no re-guardar el mismo resumen (mismo día + mismo total).
+            const dup = await prisma.labAccountStatement.findFirst({
+                where: { lab: 'OPTOVISION', statementDate, totalDebt: st.totalDebt },
+            });
+
+            // Cruce factura → pedido → venta (best-effort, informativo).
+            const conocidas = await prisma.labCostEntry.findMany({
+                where: { lab: 'OPTOVISION', sourceFile: { not: null } },
+                select: { labOrderNumber: true, sourceFile: true },
+            });
+            const enSistema = new Set<string>();
+            for (const e of conocidas) {
+                const m = (e.sourceFile || '').match(/(\d{4})-?0*(\d{3,8})/);
+                if (m) enSistema.add(`${m[1]}-${m[2].padStart(8, '0')}`);
+            }
+            const rowsEnriquecidas = st.rows.map(r => ({
+                ...r, enSistema: enSistema.has(r.invoiceNumber),
+            }));
+            const sinFacturaEnSistema = rowsEnriquecidas.filter(r => !r.enSistema);
+
+            if (!dup) {
+                await prisma.labAccountStatement.create({
+                    data: {
+                        lab: 'OPTOVISION', statementDate, totalDebt: st.totalDebt,
+                        invoiceCount: st.rows.length, rows: rowsEnriquecidas as any,
+                        sourceFile: best.filename,
+                    },
+                });
+            }
+            return {
+                ok: true, emails: messages.length, statementDate,
+                totalDebt: st.totalDebt, invoiceCount: st.rows.length,
+                sinFacturaEnSistema: sinFacturaEnSistema.length, nuevo: !dup,
+            };
+        } finally {
+            connection.end();
+        }
     }
 
     /**
@@ -429,6 +562,77 @@ export class LabCostReconciliationService {
      * (por fecha de envío al lab, o de creación si nunca se envió), con costo
      * sistema, costo real facturado (si ya se cargó/escaneó) y diferencia.
      */
+    /**
+     * Resumen semanal de conciliación para ambos laboratorios: qué facturas
+     * ingresaron en la ventana (por invoiceDate), montos, y el estado GLOBAL
+     * vigente por lab (con venta / sin venta / esperando factura / sobrecostos).
+     * Es la base del email de fin de semana para llevar la tratativa al día.
+     */
+    static async weeklyReport(from: Date, to: Date) {
+        const entries = await prisma.labCostEntry.findMany({
+            include: { order: { select: { clientId: true, client: { select: { name: true } } } } },
+        });
+
+        const billedOf = (e: any) => e.lab === 'OPTOVISION'
+            ? (e.billedTotal ?? e.billedNet ?? null)
+            : (e.billedNet ?? e.billedTotal ?? null);
+
+        const perLab: Record<string, any> = {};
+        for (const lab of ['OPTOVISION', 'GRUPO_OPTICO']) {
+            const rows = entries.filter(e => e.lab === lab);
+            const nuevasSemana = rows.filter(e => e.invoiceDate && e.invoiceDate >= from && e.invoiceDate < to);
+            const facturadoSemana = nuevasSemana.reduce((t, e) => t + (billedOf(e) || 0), 0);
+            const count = (s: string) => rows.filter(e => e.status === s).length;
+            perLab[lab] = {
+                totalPedidos: rows.length,
+                facturasSemana: nuevasSemana.length,
+                facturadoSemana,
+                sinVenta: count('UNMATCHED'),
+                esperandoFactura: count('PENDING'),
+                ok: count('OK'),
+                sobrecostos: count('OVERCOST'),
+                menorCosto: count('UNDERCOST'),
+                // Cuenta corriente / facturado acumulado por lab (todo lo que tiene importe).
+                facturadoAcumulado: rows.reduce((t, e) => t + (billedOf(e) || 0), 0),
+                // Detalle de las facturas de la semana (para la tabla del email).
+                detalleSemana: nuevasSemana
+                    .sort((a, b) => (b.invoiceDate!.getTime()) - (a.invoiceDate!.getTime()))
+                    .map(e => ({
+                        labOrderNumber: e.labOrderNumber,
+                        cliente: e.order?.client?.name || (e.status === 'UNMATCHED' ? 'SIN VENTA' : '—'),
+                        clientId: e.order?.clientId || null,
+                        billed: billedOf(e),
+                        systemCost: e.systemCost,
+                        difference: e.difference,
+                        status: e.status,
+                        esPostventa: (e.notes || '').includes('POSTVENTA (caso'),
+                    })),
+            };
+        }
+
+        // Sobrecostos vigentes (para destacar arriba, sobre todo Optovision).
+        const sobrecostosVigentes = entries
+            .filter(e => e.status === 'OVERCOST')
+            .map(e => ({ lab: e.lab, labOrderNumber: e.labOrderNumber, cliente: e.order?.client?.name || '—', difference: e.difference }))
+            .sort((a, b) => (b.difference || 0) - (a.difference || 0));
+
+        // Cuenta corriente (deuda) por lab según el último resumen recibido.
+        const statements = await prisma.labAccountStatement.findMany({
+            orderBy: { statementDate: 'desc' }, distinct: ['lab'],
+        });
+        const cuentaCorriente = statements.map(s => ({
+            lab: s.lab, totalDebt: s.totalDebt, statementDate: s.statementDate, invoiceCount: s.invoiceCount,
+        }));
+
+        return { from, to, perLab, sobrecostosVigentes, cuentaCorriente };
+    }
+
+    // Include compartido por el reporte mensual y la búsqueda histórica.
+    private static readonly REPORT_INCLUDE = {
+        client: { select: { name: true } },
+        items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
+    } as const;
+
     static async monthlyReport(year: number, month: number) {
         // Límites del mes en hora argentina (UTC-3).
         const desde = new Date(Date.UTC(year, month - 1, 1, 3));
@@ -443,13 +647,57 @@ export class LabCostReconciliationService {
                     { labSentAt: null, createdAt: { gte: desde, lt: hasta } },
                 ],
             },
-            include: {
-                client: { select: { name: true } },
-                items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
-            },
+            include: this.REPORT_INCLUDE,
             orderBy: { createdAt: 'asc' },
         });
 
+        return this.assembleReport(orders, `${year}-${String(month).padStart(2, '0')}`);
+    }
+
+    /**
+     * Igual que el reporte mensual pero SIN acotar al mes: busca en todo el
+     * histórico por nombre de cliente o nº de pedido, y/o por un día puntual.
+     * Devuelve el mismo shape (month: 'historico') para reusar la misma tabla.
+     */
+    static async searchReport(query?: string, day?: string) {
+        const q = (query || '').trim();
+        const conds: any[] = [];
+
+        if (q) {
+            conds.push({
+                OR: [
+                    { client: { name: { contains: q, mode: 'insensitive' } } },
+                    { labOrderNumber: { contains: q, mode: 'insensitive' } },
+                ],
+            });
+        }
+        if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) {
+            const [y, mo, d] = day.split('-').map(Number);
+            const desde = new Date(Date.UTC(y, mo - 1, d, 3));
+            const hasta = new Date(Date.UTC(y, mo - 1, d + 1, 3));
+            conds.push({
+                OR: [
+                    { labSentAt: { gte: desde, lt: hasta } },
+                    { labSentAt: null, createdAt: { gte: desde, lt: hasta } },
+                ],
+            });
+        }
+
+        // Sin ningún criterio no barremos toda la base: devolvemos vacío.
+        if (conds.length === 0) return this.assembleReport([], 'historico');
+
+        const orders = await prisma.order.findMany({
+            where: { isDeleted: false, orderType: 'SALE', AND: conds },
+            include: this.REPORT_INCLUDE,
+            orderBy: { createdAt: 'desc' },
+            take: 1000,
+        });
+
+        return this.assembleReport(orders, 'historico');
+    }
+
+    /** Arma el reporte (filas + cruce con facturas + totales) a partir de un set de órdenes ya traído. */
+    private static async assembleReport(orders: any[], monthLabel: string) {
         const anyLab = /(optovision|grupo[\s\-]?[oó]ptico)/i;
         const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
 
@@ -485,10 +733,13 @@ export class LabCostReconciliationService {
         const entries = allNumbers.length > 0
             ? await prisma.labCostEntry.findMany({ where: { labOrderNumber: { in: allNumbers } } })
             : [];
-        const byNumber = new Map(entries.map(e => [e.labOrderNumber, e]));
+        // Clave por (lab, número): la unicidad de LabCostEntry es @@unique([lab,labOrderNumber])
+        // y dos labs pueden compartir el mismo número → keyear solo por número colapsaba
+        // entradas de labs distintos y cruzaba el pedido contra la factura del lab equivocado.
+        const byNumber = new Map(entries.map(e => [`${e.lab}:${e.labOrderNumber}`, e]));
 
         const report = rows.map(r => {
-            const matched = r.numbers.map((n: string) => byNumber.get(n)).filter(Boolean);
+            const matched = r.numbers.map((n: string) => byNumber.get(`${r.lab}:${n}`)).filter(Boolean);
             // Mismo comparable por laboratorio que upsertEntry: Optovision se compara
             // contra el TOTAL c/IVA (monotributo no lo recupera); el resto contra el neto.
             const billed = matched.length > 0
@@ -517,7 +768,7 @@ export class LabCostReconciliationService {
 
         const sum = (fn: (r: any) => number) => report.reduce((t, r) => t + fn(r), 0);
         return {
-            month: `${year}-${String(month).padStart(2, '0')}`,
+            month: monthLabel,
             rows: report,
             totals: {
                 operaciones: report.length,
@@ -558,6 +809,150 @@ export class LabCostReconciliationService {
             if (updated && updated.status !== entry.status) rematched++;
         }
         return { checked: pendientes.length, rematched };
+    }
+
+    /** Marca una entrada como ya alertada con su estado actual (dedupe de avisos). */
+    static async markAlerted(id: string, status: string) {
+        await prisma.labCostEntry.update({
+            where: { id },
+            data: { alertedAt: new Date(), alertedStatus: status },
+        }).catch(err => console.error('[LabCost] Error marcando alerta enviada:', err));
+    }
+
+    /**
+     * Barrido de ALERTAS INMEDIATAS (pedido del administrador: "cualquier
+     * diferencia de costo, y cualquier pedido sin venta ni postventa, avisar
+     * enseguida"). Junta todo hallazgo alertable que aún no se avisó — o cuyo
+     * estado cambió desde el último aviso (p. ej. un huérfano que al aparecer la
+     * venta pasó a OVERCOST) — y manda UN email con el detalle. Corre en el pase
+     * rápido (cada 10 min con el sync de SmartLab) y en el cron diario; el par
+     * alertedAt/alertedStatus garantiza que nada se avise dos veces ni se escape.
+     */
+    static async alertNewFindings() {
+        const candidatos = await prisma.labCostEntry.findMany({
+            where: { status: { in: ['UNMATCHED', 'OVERCOST', 'UNDERCOST'] } },
+            include: { order: { select: { id: true, clientId: true, client: { select: { name: true } } } } },
+            orderBy: [{ lab: 'asc' }, { createdAt: 'desc' }],
+        });
+        const findings = candidatos.filter(e => !e.alertedAt || e.alertedStatus !== e.status);
+        if (findings.length === 0) return { alerted: 0 };
+
+        // En local/desarrollo no se mandan emails (ruido al administrador con datos
+        // de la base local); tampoco se marca alertado, así prod avisa igual.
+        if (process.env.NODE_ENV !== 'production' && process.env.FORCE_LAB_ALERTS !== '1') {
+            console.log(`[LabCost] alertNewFindings: ${findings.length} hallazgo(s) (email omitido fuera de producción)`);
+            return { alerted: 0, skipped: findings.length };
+        }
+
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
+        const fmt = (n: number | null | undefined) => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
+        const LABS: Record<string, string> = { OPTOVISION: 'Optovision', GRUPO_OPTICO: 'Grupo Óptico' };
+        const META: Record<string, { label: string; color: string }> = {
+            UNMATCHED: { label: 'SIN VENTA NI POSTVENTA', color: '#b91c1c' },
+            OVERCOST: { label: 'SOBRECOSTO', color: '#c2410c' },
+            UNDERCOST: { label: 'Menor costo (a favor)', color: '#047857' },
+        };
+        const sinVenta = findings.filter(f => f.status === 'UNMATCHED').length;
+        const sobre = findings.filter(f => f.status === 'OVERCOST').length;
+        const partes = [
+            sinVenta ? `${sinVenta} sin venta` : null,
+            sobre ? `${sobre} sobrecosto${sobre > 1 ? 's' : ''}` : null,
+            findings.length - sinVenta - sobre ? `${findings.length - sinVenta - sobre} a favor` : null,
+        ].filter(Boolean).join(', ');
+
+        const rows = findings.map((f, i) => {
+            const m = META[f.status] || { label: f.status, color: '#374151' };
+            const cliente = f.order
+                ? `<a href="${appUrl}/admin/contactos?clientId=${f.order.clientId}">${f.order.client?.name || 'ver ficha'}</a>`
+                : '<span style="color:#b91c1c">—</span>';
+            const real = f.lab === 'OPTOVISION' ? (f.billedTotal ?? f.billedNet) : (f.billedNet ?? f.billedTotal);
+            return `<tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${f.labOrderNumber}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb">${LABS[f.lab] || f.lab}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb">${cliente}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right">${fmt(f.systemCost)}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;font-weight:bold">${fmt(real)}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;color:${(f.difference ?? 0) > 0 ? '#b91c1c' : '#047857'}">${f.difference != null ? fmt(f.difference) : '—'}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb"><span style="color:${m.color};font-weight:bold">${m.label}</span></td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;font-size:12px">${f.notes || '—'}</td>
+            </tr>`;
+        }).join('');
+
+        await sendEmail({
+            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+            subject: `🚨 Laboratorio: ${findings.length} hallazgo(s) nuevo(s) — ${partes}`,
+            html: `
+                <div style="font-family:Arial,sans-serif;max-width:960px;margin:0 auto;color:#1f2937">
+                    <h2 style="color:#b91c1c">🚨 Revisión de laboratorio: hallazgos nuevos</h2>
+                    <p>El control detectó <strong>${findings.length}</strong> hallazgo(s) que necesitan tu ojo: ${partes}.</p>
+                    <table style="border-collapse:collapse;width:100%;font-size:13px">
+                        <tr style="background:#111827;color:#fff">
+                            <th style="padding:8px;text-align:left">Nº operación</th><th style="padding:8px;text-align:left">Lab</th>
+                            <th style="padding:8px;text-align:left">Cliente</th><th style="padding:8px;text-align:right">Costo sistema</th>
+                            <th style="padding:8px;text-align:right">Costo real</th><th style="padding:8px;text-align:right">Dif.</th>
+                            <th style="padding:8px;text-align:left">Estado</th><th style="padding:8px;text-align:left">Detalle</th>
+                        </tr>${rows}
+                    </table>
+                    <p style="margin-top:14px"><a href="${appUrl}/admin/laboratorio/costos">Ver conciliación completa en el CRM</a></p>
+                </div>
+            `,
+        });
+        for (const f of findings) await this.markAlerted(f.id, f.status);
+        return { alerted: findings.length };
+    }
+
+    /**
+     * Aviso en el momento de que llegó una factura de Optovision: de quién es,
+     * el monto asignado y si coincide con el costo del sistema (o es más/menos).
+     * Contempla 2x1 (si falta el otro par, avisa que la comparación es parcial) y
+     * postventa. Es el "informame apenas entra" que pidió el usuario.
+     */
+    private static async sendInvoiceArrivalAlert(entry: any, order: any, ctx: {
+        saleBilled: number | null; systemCost: number | null; status: string;
+        difference: number | null; pvCase: any; ventaCompleta: boolean; faltan: number;
+    }) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
+        const fmt = (n: number | null | undefined) => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
+        const cliente = order.client?.name || 'cliente';
+        const propio = fmt(entry.billedNet ?? entry.billedTotal);
+
+        // Veredicto de la comparación (solo si la venta ya tiene todas sus facturas).
+        let veredicto: string; let color: string; let emoji: string;
+        if (!ctx.ventaCompleta) {
+            veredicto = `Comparación parcial: faltan ${ctx.faltan} factura(s) de esta venta (2x1) para el total.`;
+            color = '#6b7280'; emoji = '⏳';
+        } else if (ctx.status === 'OVERCOST') {
+            veredicto = `SOBRECOSTO: el lab cobró ${fmt(ctx.difference)} MÁS que el sistema.`;
+            color = '#b91c1c'; emoji = '🚨';
+        } else if (ctx.status === 'UNDERCOST') {
+            veredicto = `El lab cobró ${fmt(Math.abs(ctx.difference || 0))} MENOS que el sistema.`;
+            color = '#059669'; emoji = '✅';
+        } else {
+            veredicto = 'El costo COINCIDE con el sistema (dentro de tolerancia).';
+            color = '#059669'; emoji = '✅';
+        }
+        const pv = ctx.pvCase ? ` · ⚠️ Corresponde a un caso de POSTVENTA (${ctx.pvCase.caseType || 's/tipo'}${ctx.pvCase.coverage ? `, ${ctx.pvCase.coverage}` : ''}) — un reproceso en garantía debería venir sin cargo.` : '';
+
+        await sendEmail({
+            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+            subject: `${emoji} Factura Optovision: pedido ${entry.labOrderNumber} — ${cliente} (${propio})`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #1f2937;">
+                    <h2 style="color: ${color};">${emoji} Llegó una factura de Optovision</h2>
+                    <p><strong>Pedido ${entry.labOrderNumber}</strong> — <strong>${cliente}</strong></p>
+                    <table style="width:100%; border-collapse:collapse; margin:12px 0; font-size:14px;">
+                        <tr><td style="padding:8px; border:1px solid #ddd;">Costo facturado (este pedido)</td><td style="padding:8px; border:1px solid #ddd; text-align:right; font-weight:bold;">${propio}</td></tr>
+                        ${ctx.ventaCompleta ? `
+                        <tr><td style="padding:8px; border:1px solid #ddd;">Total facturado de la venta</td><td style="padding:8px; border:1px solid #ddd; text-align:right;">${fmt(ctx.saleBilled)}</td></tr>
+                        <tr><td style="padding:8px; border:1px solid #ddd;">Costo de lista del sistema</td><td style="padding:8px; border:1px solid #ddd; text-align:right;">${fmt(ctx.systemCost)}</td></tr>` : ''}
+                    </table>
+                    <p style="font-weight:bold; color:${color};">${veredicto}${pv}</p>
+                    ${entry.sourceFile ? `<p style="font-size:12px; color:#6b7280;">Factura: ${entry.sourceFile}</p>` : ''}
+                    <p style="margin-top:14px;"><a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente</a> · <a href="${appUrl}/admin/laboratorio/costos">Ver conciliación</a></p>
+                </div>
+            `,
+        });
+        console.log(`[LabCost] Aviso de factura Optovision enviado: pedido ${entry.labOrderNumber} (${propio}, ${entry.status})`);
     }
 
     private static async sendChargedReworkAlert(entry: any, order: any, pvCase: any, billed: number) {

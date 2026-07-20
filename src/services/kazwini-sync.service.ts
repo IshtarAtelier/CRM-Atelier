@@ -212,8 +212,18 @@ export const KazwiniSyncService = {
                             const category = detectCategory(item.catalogTitle || catalog.title);
                             const productName = `${brand} ${item.code} ${item.colorCode}`.trim();
                             const modelName = `${item.code} ${item.colorCode}`.trim();
+
+                            // No persistir un costo inválido: parseFloat(config.precio)||0 puede dar 0
+                            // si el precio viene ausente/no numérico, y ese $0 se congelaría en el
+                            // snapshot de la venta (100% ganancia). El resto de los caminos pasan por
+                            // requireValidCost; acá saltamos la variante en vez de abortar el batch.
+                            if (!Number.isFinite(item.cost) || item.cost <= 0) {
+                                console.warn(`[Kazwini Sync] Saltada variante "${productName}" por costo inválido (${item.cost}).`);
+                                continue;
+                            }
+
                             const priceUSD = item.cost * markupMultiplier;
-                            
+
                             // RULE: Minimum of 20 items in stock to show on web
                             const shouldPublish = item.stock >= 20;
 
