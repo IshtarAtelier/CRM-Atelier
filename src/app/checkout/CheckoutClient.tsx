@@ -103,6 +103,7 @@ export function CheckoutClient({
     cardExp: "",
     cardCvc: "",
     cardName: "",
+    cardType: "CREDIT",
     installments: "1"
   });
 
