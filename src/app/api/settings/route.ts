@@ -67,7 +67,8 @@ export async function GET(request: Request) {
 
         return NextResponse.json(responseData);
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('[settings GET] error:', error);
+        return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }
 
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, setting: { key: setting.key, value: JSON.parse(setting.value) } });
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('[settings POST] error:', error);
+        return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

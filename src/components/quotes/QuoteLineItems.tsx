@@ -29,7 +29,11 @@ export default function QuoteLineItems({
         const frames = items.filter(it => {
             const cat = (it.product?.category || it.productCategorySnapshot || '').toLowerCase();
             const type = (it.product?.type || it.productTypeSnapshot || '').toLowerCase();
-            return cat === 'FRAME' || cat === 'ATELIER' || cat === 'SUNGLASS' || type.includes('armazon') || type.includes('marco');
+            // cat ya está en minúsculas: comparar contra literales en minúsculas (antes
+            // se comparaba contra 'FRAME'/'ATELIER'/'SUNGLASS' → siempre false, y el badge
+            // "BONIFICADO 2x1" no aparecía si el armazón se identificaba por categoría).
+            return cat.includes('frame') || cat.includes('atelier') || cat.includes('sunglass') ||
+                   type.includes('armazon') || type.includes('marco');
         });
 
         if (frames.length < 2) return null;

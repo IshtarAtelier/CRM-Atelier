@@ -10,8 +10,12 @@ const TYPE_MAP: Record<string, string> = {
     'SOLAR': 'Cristal Solar',
 };
 
-export async function POST() {
+export async function POST(request: Request) {
     try {
+        // updateMany en lote sobre categorías/tipos/unitType: solo ADMIN.
+        if (request.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
         const log: string[] = [];
 
         // 1. Corregir category = 'LENS' → 'Cristal'

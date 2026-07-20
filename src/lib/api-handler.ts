@@ -17,9 +17,11 @@ export function withErrorHandler(handler: ApiHandler): ApiHandler {
     } catch (error: any) {
       console.error(`[API Error] ${req.method} ${req.url}:`, error);
       
-      const status = error.status || 500;
-      const message = error.message || 'Internal Server Error';
-      
+      const status = error.status || error.statusCode || 500;
+      // No filtrar detalle interno (esquema/infra) al cliente: los 5xx inesperados
+      // responden genérico; los 4xx deliberados (ApiError) conservan su mensaje.
+      const message = status >= 500 ? 'Error interno del servidor' : (error.message || 'Error');
+
       return NextResponse.json({ error: message }, { status });
     }
   };

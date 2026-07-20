@@ -29,7 +29,9 @@ export class LabAuditService {
                 return;
             }
 
-            const invoiceTotal = invoiceData.subtotal || invoiceData.total || 0;
+            // Atelier es monotributo y no recupera IVA → el costo real es el TOTAL c/IVA,
+            // no el subtotal neto (mismo criterio que LabCostReconciliationService).
+            const invoiceTotal = invoiceData.total || invoiceData.subtotal || 0;
             // Importe prorrateado por pedido (la factura agrupa N pedidos).
             const billedPerOrder = numbers.length > 0 ? invoiceTotal / numbers.length : invoiceTotal;
 

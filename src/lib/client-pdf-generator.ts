@@ -343,11 +343,13 @@ export async function generateClientPDF(client: any): Promise<{ base64: string, 
         const browsersPath = path.join(process.cwd(), '.playwright-browsers');
         process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
         const { chromium } = await import('playwright');
-        browser = await chromium.launch({ headless: true });
+        // timeout en el launch: si Chromium no arranca, fallamos rápido al fallback jsPDF.
+        browser = await chromium.launch({ headless: true, timeout: 15000 });
         const context = await browser.newContext();
         const page = await context.newPage();
-        
-        await page.setContent(html, { waitUntil: 'networkidle' });
+
+        // 'load' + timeout en vez de 'networkidle' (evita esperar fuentes externas).
+        await page.setContent(html, { waitUntil: 'load', timeout: 8000 });
         
         const pdfBuffer = await page.pdf({
             format: 'A4',
@@ -363,7 +365,11 @@ export async function generateClientPDF(client: any): Promise<{ base64: string, 
         return generateClientPDFWithJsPDF(client, filename);
     } finally {
         if (browser) {
-            await browser.close();
+            // No dejar que un close() colgado (Chromium wedged en Railway) bloquee la respuesta.
+            await Promise.race([
+                browser.close().catch(() => {}),
+                new Promise(r => setTimeout(r, 5000))
+            ]);
         }
     }
 }

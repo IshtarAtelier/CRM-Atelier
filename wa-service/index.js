@@ -32,6 +32,9 @@ const configPath = path.join(__dirname, 'agent_config.json');
 const app = express();
 const server = http.createServer(app);
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['*'];
+if (!process.env.CORS_ORIGINS) {
+    console.warn('⚠️ CORS_ORIGINS no configurado — Socket.IO acepta cualquier origen (*). Setealo en producción.');
+}
 const io = new Server(server, {
     cors: { origin: ALLOWED_ORIGINS }
 });
@@ -41,6 +44,18 @@ global.io = io;
 
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json({ limit: '10mb' }));
+
+// Auth del handshake de Socket.IO: el feed emite PII de clientes (mensajes, teléfonos,
+// leads) y el system prompt. Sin esto, cualquiera que alcance el host recibía todo.
+// Solo se EXIGE si WA_API_KEY está configurada (no rompe el modo legacy sin key).
+io.use((socket, next) => {
+    const key = process.env.WA_API_KEY;
+    if (!key) return next(); // modo legacy: sin key configurada, no bloquear
+    const token = (socket.handshake.auth && socket.handshake.auth.token) || socket.handshake.headers['x-api-key'];
+    if (token === key) return next();
+    console.warn('🔒 Socket.IO: conexión rechazada (token de auth inválido o ausente)');
+    return next(new Error('Unauthorized'));
+});
 
 io.on('connection', (socket) => {
     console.log('🔌 Nuevo cliente WebSocket conectado:', socket.id);
@@ -582,9 +597,15 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         if (result && result.messages) {
             for (const msg of result.messages) {
                 const isToolMsg = msg.tool_call_id !== undefined || (typeof msg.getType === 'function' && msg.getType() === 'tool') || msg._getType === 'tool';
-                if (isToolMsg && (msg.status === 'error' || (msg.content && (msg.content.includes('Error') || msg.content.includes('getaddrinfo') || msg.content.includes('ECONNREFUSED'))))) {
+                if (isToolMsg) {
                     const content = msg.content || '';
-                    if (content.includes('getaddrinfo') || content.includes('ECONNREFUSED') || content.includes('404') || content.includes('500') || content.includes('Network Error')) {
+                    // Señales fuertes de caída de API/red. NO usar bare '404'/'500': un
+                    // error de negocio con "$500" o pedido "#404" en el texto disparaba
+                    // el guardrail y abortaba el turno en falso.
+                    const networkErr = /getaddrinfo|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|socket hang up|Network Error|fetch failed/i.test(content);
+                    const httpErr = /\b(?:HTTP|status|c[oó]digo|code)\b[^0-9]{0,8}[45]\d\d\b/i.test(content)
+                        || /\b[45]\d\d\s+(?:Internal Server Error|Bad Gateway|Service Unavailable|Gateway Timeout|Not Found|Forbidden|Unauthorized)\b/i.test(content);
+                    if (msg.status === 'error' || networkErr || httpErr) {
                         hasApiError = true;
                         apiErrorMessage = content;
                         break;
@@ -747,6 +768,16 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             const messageBlocks = cleanResponseText.split('\n\n').map(b => b.trim()).filter(b => b.length > 0);
             
             for (let i = 0; i < messageBlocks.length; i++) {
+                // Re-verificar takeover ANTES de cada burbuja (la primera ya se chequeó
+                // arriba). Una respuesta multi-burbuja tarda 10-25s; si un humano toma la
+                // charla en el medio, el bot no debe seguir mandando encima.
+                if (i > 0) {
+                    const stillOn = await prisma.whatsAppChat.findUnique({ where: { id: chat.id }, select: { botEnabled: true } });
+                    if (!stillOn || !stillOn.botEnabled) {
+                        console.log(`  ✋ Takeover humano durante el envío (${chat.id}). Abortando burbujas restantes.`);
+                        break;
+                    }
+                }
                 let block = messageBlocks[i];
                 let mediaObj = null;
 
@@ -1237,18 +1268,23 @@ const handleMessage = async (msg) => {
         }
         } // fin !isMetaAdsMessage
 
-        // 2. Auto-vincular cliente del CRM por número de teléfono
-        if (!chat.clientId && realPhone && realPhone.length >= 8) {
-            const searchPhoneStr = realPhone.slice(-8).replace(/\D/g, '');
+        // 2. Auto-vincular cliente del CRM por número de teléfono.
+        // Match por los últimos 10 dígitos (código de área + número), exacto por sufijo.
+        // Antes se usaban 8 con LIKE %..%, que vinculaba a un cliente de otra provincia
+        // que compartía esos dígitos → el bot filtraba saldo/recetas ajenas. Si hay más
+        // de un match distinto, NO auto-vincular (ambiguo).
+        const realPhoneDigits = (realPhone || '').replace(/\D/g, '');
+        if (!chat.clientId && realPhoneDigits.length >= 8) {
+            const searchPhoneStr = realPhoneDigits.length >= 10 ? realPhoneDigits.slice(-10) : realPhoneDigits;
             if (searchPhoneStr.length >= 8) {
                 const rawDuplicates = await prisma.$queryRaw`
-                    SELECT id 
-                    FROM "Client" 
-                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${'%' + searchPhoneStr + '%'}
-                    LIMIT 1
+                    SELECT id
+                    FROM "Client"
+                    WHERE RIGHT(REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g'), ${searchPhoneStr.length}) = ${searchPhoneStr}
+                    LIMIT 2
                 `;
-                
-                if (rawDuplicates && rawDuplicates.length > 0) {
+
+                if (rawDuplicates && rawDuplicates.length === 1) {
                     const client = await prisma.client.findUnique({
                         where: { id: rawDuplicates[0].id },
                         include: { tags: true, prescriptions: true, interactions: { take: 5, orderBy: { createdAt: 'desc' } } }
@@ -1731,12 +1767,24 @@ if (!WA_API_KEY) {
     console.warn('⚠️ WARNING: WA_API_KEY not set. API endpoints are UNPROTECTED.');
 }
 function apiAuth(req, res, next) {
-    if (!WA_API_KEY) return next(); // Sin key configurada, permitir (modo legacy)
-    const key = req.headers['x-api-key'];
-    if (key !== WA_API_KEY) {
-        return res.status(401).json({ error: 'Unauthorized: Invalid API key' });
+    if (WA_API_KEY) {
+        const key = req.headers['x-api-key'];
+        if (key !== WA_API_KEY) {
+            return res.status(401).json({ error: 'Unauthorized: Invalid API key' });
+        }
+        return next();
     }
-    next();
+    // Sin key configurada (modo legacy): en producción NO dejamos abierto el endpoint
+    // que reescribe el prompt del bot (/api/agent = takeover total). El resto sigue
+    // permisivo para no romper el bot mientras se configura WA_API_KEY.
+    if (process.env.NODE_ENV === 'production') {
+        const p = req.path || '';
+        if (p === '/agent' || p.startsWith('/agent')) {
+            console.error('🔴 WA_API_KEY sin configurar en producción — bloqueando /api/agent.');
+            return res.status(503).json({ error: 'wa-service mal configurado: falta WA_API_KEY.' });
+        }
+    }
+    return next();
 }
 app.use('/api', apiAuth);
 

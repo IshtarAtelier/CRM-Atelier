@@ -125,6 +125,16 @@ export async function PATCH(req: NextRequest) {
     // 7. Firmar la mutación: quién movió el lead, a qué etapa y cuántas tareas
     // FOLLOWUP se cancelaron (mueve tags, chatLabels y tareas → trazabilidad obligatoria).
     const actor = getActor(req);
+    // Interaction firmada en la ficha del cliente (estándar del proyecto: timeline + logAudit)
+    await prisma.interaction.create({
+      data: {
+        clientId: leadId,
+        type: 'NOTE',
+        content: `${actor.name} movió el lead a la etapa "${targetStage}" desde el pipeline${cancelled.count ? ` (${cancelled.count} tarea/s de seguimiento canceladas)` : ''}`,
+        userId: actor.id || undefined,
+        userName: actor.name,
+      },
+    }).catch(console.error);
     await logAudit({
       userId: actor.id,
       userName: actor.name,

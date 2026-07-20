@@ -730,8 +730,10 @@ export class OrderService {
                 data.labSentBy = userName || 'Sistema';
                 data.labSentById = userId || null;
             }
-            // Auto-complete order when lab marks as delivered
-            if (labStatus === 'DELIVERED') {
+            // Auto-complete order when lab marks as delivered.
+            // Solo las ventas (SALE) pasan a COMPLETED; un presupuesto (QUOTE) no debe
+            // quedar COMPLETED sin haber descontado stock ni convertido a venta.
+            if (labStatus === 'DELIVERED' && existingForGuard?.orderType === 'SALE') {
                 data.status = 'COMPLETED';
             }
         }
@@ -1088,7 +1090,7 @@ export class OrderService {
                         changes.push(`<b>Responsable:</b> ${fmtVal(activeCase.responsible)} → ${fmtVal(postSaleResponsible)}`);
                     }
                     if (postSaleFault !== undefined && (postSaleFault || null) !== (activeCase.fault || null)) {
-                        changes.push(`<b>Culpa / origen:</b> ${fmtVal(activeCase.fault)} → ${fmtVal(postSaleFault)}`);
+                        changes.push(`<b>Responsable del error:</b> ${fmtVal(activeCase.fault)} → ${fmtVal(postSaleFault)}`);
                     }
                     if (postSaleCoverage !== undefined && (postSaleCoverage || null) !== (activeCase.coverage || null)) {
                         changes.push(`<b>Cobertura:</b> ${fmtVal(activeCase.coverage)} → ${fmtVal(postSaleCoverage)}`);
@@ -1249,8 +1251,24 @@ export class OrderService {
                     throw new Error(`Se requiere un pago mínimo del 50% ($${Math.ceil(minRequired).toLocaleString()}) para convertir en venta. Pagado: $${totalPaid.toLocaleString()}`);
                 }
 
+                // Si la conversión QUOTE→SALE trae ítems nuevos en el body, validar el
+                // gate contra ESOS (no solo los viejos de la DB): agregar cristales en la
+                // misma conversión no debe saltear receta/foto/altura/DP.
+                let gateItems = existingOrder.items;
+                if (Array.isArray(items) && items.length > 0) {
+                    const bodyProductIds = items.map((it: any) => it.productId).filter(Boolean);
+                    const bodyProducts = bodyProductIds.length > 0
+                        ? await prisma.product.findMany({
+                            where: { id: { in: bodyProductIds } },
+                            select: { id: true, type: true, category: true, name: true },
+                        })
+                        : [];
+                    const byId = new Map((bodyProducts || []).map((p: any) => [p.id, p]));
+                    gateItems = items.map((it: any) => ({ product: it.productId ? byId.get(it.productId) || null : null }));
+                }
+
                 // Check: if order has crystals, frame info must be set
-                const hasCrystals = existingOrder.items?.some((item: any) =>
+                const hasCrystals = gateItems?.some((item: any) =>
                     item.product?.type === 'Cristal' || item.product?.category === 'Cristal' || (item.product?.name || '').includes('Cristal')
                 );
 
@@ -1275,7 +1293,7 @@ export class OrderService {
                         if (!rx.imageUrl) {
                             saleErrors.push('Falta la foto de la receta adjunta.');
                         }
-                        const hasProgressiveOrMultifocal = existingOrder.items?.some((item: any) => {
+                        const hasProgressiveOrMultifocal = gateItems?.some((item: any) => {
                             const name = (item.product?.name || '').toLowerCase();
                             const type = (item.product?.type || '').toLowerCase();
                             const cat = (item.product?.category || '').toLowerCase();
@@ -1299,7 +1317,10 @@ export class OrderService {
                     }
                 }
 
-                const hasFramesInCart = existingOrder.items?.some((item: any) => {
+                // Usar gateItems (los del body si la conversión los trae, si no los de la DB):
+                // debe mirar el MISMO conjunto que hasCrystals, si no una conversión que agrega
+                // cristal+armazón juntos veía el cristal (body) pero no el armazón (DB) y rechazaba.
+                const hasFramesInCart = gateItems?.some((item: any) => {
                     const cat = (item.product?.category || '').toLowerCase();
                     return cat === 'frame' || cat === 'atelier' || cat === 'armazón de receta' || cat.includes('armazon') || cat.includes('armazón');
                 });
@@ -1830,7 +1851,6 @@ function buildPostSaleCaseEmailHtml(opts: {
                                 <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                                     ${row('Tipo de caso', caseInfo.caseType, 'color: #1f2937; font-weight: bold;')}
                                     ${row('Responsable', caseInfo.responsible)}
-                                    ${row('Culpa / origen', caseInfo.fault)}
                                     ${row('Cobertura', caseInfo.coverage)}
                                     ${row('Costo Adicional', `$${caseInfo.cost || 0}`, 'color: #b91c1c; font-weight: bold;')}
                                     ${row('Opción en Lab', caseInfo.orderOption || 'No requiere', 'color: #1f2937; text-transform: uppercase; font-size: 12px; font-weight: bold;')}

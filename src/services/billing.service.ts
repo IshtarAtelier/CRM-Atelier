@@ -191,7 +191,7 @@ export const BillingService = {
                     );
                     if (
                         voucherInfo &&
-                        voucherInfo.ImpTotal === totalAmount &&
+                        Math.abs(Number(voucherInfo.ImpTotal) - Number(totalAmount)) < 0.01 &&
                         Number(voucherInfo.DocNro) === (voucherData.DocNro || 0) &&
                         Number(voucherInfo.DocTipo) === (voucherData.DocTipo || 0)
                     ) {
@@ -209,10 +209,14 @@ export const BillingService = {
             }
 
             if (!recoveredFromAfip) {
-                // Emit normally if not recovered
+                // Emitir SIN reintento automático: createNextVoucher NO es idempotente.
+                // Si ARCA autoriza pero se pierde la respuesta (timeout), un reintento
+                // emitiría un SEGUNDO CAE real (doble facturación). Ante fallo transitorio
+                // dejamos que el error propague; un reintento manual entra por el bloque
+                // de recuperación (getVoucherInfo) que encuentra el comprobante ya emitido.
                 result = await retryWithBackoff<any>(
                     () => afip.ElectronicBilling.createNextVoucher(voucherData),
-                    { label: 'AFIP createNextVoucher', shouldRetry: shouldRetryAfip }
+                    { label: 'AFIP createNextVoucher', shouldRetry: () => false }
                 );
             }
         } catch (error: any) {
@@ -226,6 +230,16 @@ export const BillingService = {
 
         if (!result || !result.CAE) {
             throw new Error('ARCA no devolvió un código CAE. Verificá la configuración de la cuenta.');
+        }
+
+        // Fecha fiscal del comprobante (CbteFch): si se backdateó con issueDate, esa;
+        // si no, hoy. Es la fecha que cuenta AFIP para el tope mensual de monotributo.
+        let fiscalDate: Date;
+        if (issueDate && /^\d{4}-\d{2}-\d{2}$/.test(issueDate)) {
+            const [fy, fm, fd] = issueDate.split('-').map(Number);
+            fiscalDate = new Date(Date.UTC(fy, fm - 1, fd, 12));
+        } else {
+            fiscalDate = new Date();
         }
 
         // 5. Guardar en la DB (Transacción Atómica)
@@ -244,6 +258,7 @@ export const BillingService = {
                     docNumber: cleanDocNro,
                     billingAccount: account,
                     status: 'COMPLETED',
+                    fiscalDate,
                     observations: observations || null,
                     createdByName: actorName || null,
                 },
@@ -535,7 +550,12 @@ export const BillingService = {
             by: ['billingAccount'],
             where: {
                 status: 'COMPLETED',
-                createdAt: { gte: startOfMonth }
+                // Gatear por la fecha FISCAL (la que cuenta AFIP). Fallback a createdAt
+                // solo para filas históricas anteriores a la columna fiscalDate.
+                OR: [
+                    { fiscalDate: { gte: startOfMonth } },
+                    { AND: [{ fiscalDate: null }, { createdAt: { gte: startOfMonth } }] },
+                ],
             },
             _sum: {
                 totalAmount: true

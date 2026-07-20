@@ -23,8 +23,11 @@ export async function GET(request: NextRequest) {
                 return NextResponse.json({ error: 'No autorizado para el canal mayorista' }, { status: 403 });
             }
         }
-        const page = Number(request.nextUrl.searchParams.get('page') || 1);
-        const limit = Number(request.nextUrl.searchParams.get('limit') || 24);
+        // Saneo de paginación: evitar NaN/negativos que rompen skip/slice (?limit=abc, ?page=-5)
+        const pageRaw = parseInt(request.nextUrl.searchParams.get('page') || '', 10);
+        const limitRaw = parseInt(request.nextUrl.searchParams.get('limit') || '', 10);
+        const page = Number.isFinite(pageRaw) ? Math.max(1, pageRaw) : 1;
+        const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 24;
         const category = request.nextUrl.searchParams.get('category') || 'Todo';
         const brand = request.nextUrl.searchParams.get('brand') || '';
         const shape = request.nextUrl.searchParams.get('shape') || '';

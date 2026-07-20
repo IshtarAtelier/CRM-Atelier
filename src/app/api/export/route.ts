@@ -5,8 +5,14 @@ import { logAudit } from '@/lib/audit';
 
 function escapeCSV(val: any): string {
     if (val == null) return '';
-    const s = String(val);
-    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    let s = String(val);
+    // Anti CSV/formula injection: celdas de TEXTO que empiezan con = + - @ (o tab/CR)
+    // se prefijan con apóstrofo para que Excel/Sheets no las interprete como fórmula.
+    // Se excluyen los números para no corromper montos negativos legítimos (saldo, débitos).
+    if (typeof val !== 'number' && /^[=+\-@\t\r]/.test(s)) {
+        s = `'${s}`;
+    }
+    if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
         return `"${s.replace(/"/g, '""')}"`;
     }
     return s;
@@ -139,6 +145,6 @@ export async function GET(request: Request) {
         });
     } catch (error: any) {
         console.error('Export error:', error);
-        return NextResponse.json({ error: error.message || 'Error' }, { status: 500 });
+        return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

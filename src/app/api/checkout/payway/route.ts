@@ -432,10 +432,14 @@ export async function POST(req: Request) {
       }, { status: 409 });
     }
 
-    // 2. Encontrar usuario de sistema (o el primer admin disponible) para asignar la venta
-    let systemUser = await prisma.user.findFirst();
+    // 2. Encontrar usuario de sistema para asignar la venta. Preferir un ADMIN
+    // determinista (nunca una cuenta OPTICA/mayorista externa) para no contaminar
+    // reportes por vendedor ni la trazabilidad con un usuario arbitrario.
+    let systemUser = await prisma.user.findFirst({ where: { role: 'ADMIN' }, orderBy: { createdAt: 'asc' } })
+      || await prisma.user.findFirst({ where: { role: { not: 'OPTICA' } }, orderBy: { createdAt: 'asc' } })
+      || await prisma.user.findFirst({ orderBy: { createdAt: 'asc' } });
     if (customer.paymentMethod.includes('MAYORISTA')) {
-      systemUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } }) || systemUser;
+      systemUser = await prisma.user.findFirst({ where: { role: 'ADMIN' }, orderBy: { createdAt: 'asc' } }) || systemUser;
     }
     if (!systemUser) throw new Error("No system user found to assign order.");
 
@@ -627,17 +631,19 @@ export async function POST(req: Request) {
     const emailTotal = isTransfer ? finalItemsTotal * transferMultiplier : finalItemsTotal;
     const hasCrystals = sanitizedItems.some((item: any) => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
 
+    // Escapa HTML de campos del cliente (modelo/marca/color/receta) en el email de admin
+    const escHtml = (v: any) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     const itemsHtml = sanitizedItems.map((item: any) => `
       <tr>
         <td style="padding: 15px 0; border-bottom: 1px solid #eeeeee;">
-          <p style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #333;">${item.brand || 'ATELIER'}</p>
-          <p style="margin: 5px 0 0; font-size: 16px; color: #000;">${item.model}</p>
+          <p style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #333;">${escHtml(item.brand || 'ATELIER')}</p>
+          <p style="margin: 5px 0 0; font-size: 16px; color: #000;">${escHtml(item.model)}</p>
           ${item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color) ? `
             <p style="margin: 5px 0 0; font-size: 12px; color: #666;">
-              Cristales: ${item.lensConfig.lensType === "NONE" ? "Sin Aumento" : item.lensConfig.lensType} 
-              ${item.lensConfig.treatment ? `- ${item.lensConfig.treatment.replace(/_/g, ' ')}` : ''}
-              ${item.lensConfig.color ? `<br/>Tinte: ${item.lensConfig.color}` : ''}
-              ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${item.lensConfig.prescriptionFile}` : ''}
+              Cristales: ${item.lensConfig.lensType === "NONE" ? "Sin Aumento" : escHtml(item.lensConfig.lensType)}
+              ${item.lensConfig.treatment ? `- ${escHtml(item.lensConfig.treatment.replace(/_/g, ' '))}` : ''}
+              ${item.lensConfig.color ? `<br/>Tinte: ${escHtml(item.lensConfig.color)}` : ''}
+              ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${escHtml(item.lensConfig.prescriptionFile)}` : ''}
             </p>
           ` : ''}
         </td>

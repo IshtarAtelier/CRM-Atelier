@@ -18,15 +18,17 @@ export async function GET(request: Request) {
         const where: any = {};
         if (phone) {
             const phoneDigits = phone.replace(/\D/g, '');
-            const searchStr = phoneDigits.length > 8 ? phoneDigits.slice(-8) : phoneDigits;
+            // Los últimos 10 dígitos (código de área + número) identifican unívocamente
+            // en Argentina. Antes se usaban 8 con LIKE %..%, que matcheaba clientes de
+            // distinta provincia que compartían esos dígitos → cruce de fichas y fuga de PII.
+            const searchStr = phoneDigits.length >= 10 ? phoneDigits.slice(-10) : phoneDigits;
 
             let phoneMatchIds: string[] = [];
-            if (searchStr.length >= 4) {
-                const searchParam = `%${searchStr}%`;
+            if (searchStr.length >= 8) {
                 const rawSearch: any[] = await prisma.$queryRaw`
-                    SELECT id 
-                    FROM "Client" 
-                    WHERE REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g') LIKE ${searchParam}
+                    SELECT id
+                    FROM "Client"
+                    WHERE RIGHT(REGEXP_REPLACE(COALESCE(phone, ''), '\\D', '', 'g'), ${searchStr.length}) = ${searchStr}
                 `;
                 phoneMatchIds = rawSearch.map(d => d.id);
             }

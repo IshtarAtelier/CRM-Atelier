@@ -12,7 +12,11 @@ export async function GET(request: Request) {
         const fromParam = searchParams.get('from');
         const toParam = searchParams.get('to');
         const role = request.headers.get('x-user-role') || 'STAFF';
-        const isStaff = role === 'STAFF';
+        // Allowlist de finanzas: SOLO ADMIN y MANAGER ven saldos y PII financiera. Antes
+        // era denylist (solo STAFF bloqueado), así que OPTICA o cualquier rol nuevo veía
+        // globalPendingBalance/pendingBalances/totalPaidMonth sin estar autorizado.
+        const canSeeFinance = role === 'ADMIN' || role === 'MANAGER';
+        const isStaff = !canSeeFinance;
         
         let from = fromParam && fromParam !== '' ? fromParam : null;
         let to = toParam && toParam !== '' ? toParam : null;
@@ -22,7 +26,11 @@ export async function GET(request: Request) {
         const etiqueta = etiquetaParam && etiquetaParam !== '' ? etiquetaParam : null;
         const tipo = tipoParam && tipoParam !== '' ? tipoParam : null;
         const userIdParam = searchParams.get('userId');
-        const userId = userIdParam && userIdParam !== '' ? userIdParam : null;
+        const requestedUserId = userIdParam && userIdParam !== '' ? userIdParam : null;
+        // Un no-ADMIN solo puede ver SUS propias métricas personales; ignorar un
+        // ?userId= de otro vendedor (enumeración de desempeño ajeno).
+        const actorId = request.headers.get('x-user-id');
+        const userId = role === 'ADMIN' ? requestedUserId : (actorId || requestedUserId);
 
         const dateFilter: any = {};
         let hasDateFilter = false;
@@ -665,6 +673,6 @@ export async function GET(request: Request) {
         });
     } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

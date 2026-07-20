@@ -115,7 +115,7 @@ El formato de salida DEBE ser estrictamente un objeto JSON plano, sin backticks 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: adminPhone,
+          chatId: adminPhone.includes('@') ? adminPhone : `${adminPhone}@c.us`,
           message: waMessage
         }),
       });

@@ -854,6 +854,7 @@ export const ContactService = {
                 select: {
                     id: true,
                     orderType: true,
+                    isDeleted: true,
                     items: {
                         select: {
                             productId: true,
@@ -864,7 +865,9 @@ export const ContactService = {
                 },
             });
 
-            if (order?.orderType === 'SALE') {
+            // Idempotencia: si ya está borrada, no restaurar stock de nuevo (un doble
+            // borrado/concurrencia inflaría el stock por cada corrida).
+            if (order?.orderType === 'SALE' && !order.isDeleted) {
                 const stockItems = (order.items || []).filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;

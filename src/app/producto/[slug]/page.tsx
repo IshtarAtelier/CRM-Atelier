@@ -393,7 +393,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <ProductClient product={{ ...product, material }} variants={variants} similarProducts={relatedProducts} footer={<StorefrontFooter />} />
+      {/* key por producto: al navegar entre variantes de color (mismo componente,
+          distinto slug) fuerza el remonte y resetea activeImageIndex → evita renderizar
+          images[i] inexistente (foto rota) cuando la variante nueva tiene menos fotos. */}
+      <ProductClient key={product.id} product={{ ...product, material }} variants={variants} similarProducts={relatedProducts} footer={<StorefrontFooter />} />
     </>
   );
 }

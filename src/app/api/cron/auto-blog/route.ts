@@ -71,8 +71,14 @@ export async function GET(request: Request) {
         const slugify = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         const existingPosts = await prisma.blogPost.findMany({ select: { slug: true } });
         const existingSlugs = existingPosts.map((p) => p.slug);
+        // El slug del post lo elige la IA y no siempre deriva del tema, así que el
+        // startsWith no alcanza para deduplicar. Registramos los temas ya cubiertos.
+        const coveredSetting = await prisma.systemSetting.findUnique({ where: { key: 'auto-blog-covered-topics' } });
+        let coveredTopics: string[] = [];
+        try { coveredTopics = coveredSetting ? JSON.parse(coveredSetting.value) : []; } catch { coveredTopics = []; }
         const pendingTopics = topics.filter((t) => {
             const base = slugify(t);
+            if (coveredTopics.includes(base)) return false;
             return !existingSlugs.some((es) => es.startsWith(base));
         });
         if (pendingTopics.length === 0) {
@@ -133,6 +139,16 @@ Reglas estrictas:
                 status: "DRAFT" // Borrador para revisión humana antes de publicar
             }
         });
+
+        // Marcar el tema como cubierto para no regenerarlo en próximas corridas
+        const topicBase = slugify(randomTopic);
+        if (!coveredTopics.includes(topicBase)) {
+            await prisma.systemSetting.upsert({
+                where: { key: 'auto-blog-covered-topics' },
+                update: { value: JSON.stringify([...coveredTopics, topicBase]) },
+                create: { key: 'auto-blog-covered-topics', value: JSON.stringify([topicBase]) },
+            }).catch((e) => console.error('[AutoBlog] No se pudo registrar el tema cubierto:', e));
+        }
 
         return NextResponse.json({
             success: true,

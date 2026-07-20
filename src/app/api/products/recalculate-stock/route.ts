@@ -41,8 +41,10 @@ export async function POST(request: Request) {
             for (const item of order.items) {
                 const p = item.product;
                 if (!p) continue;
-                const isCrystal = p.category === 'Cristal' || (p.type || '').includes('Cristal');
-                if (isCrystal) continue;
+                // Los cristales y tratamientos no llevan control de stock (la venta tampoco
+                // se lo descuenta), así que el recálculo debe excluirlos igual.
+                const isStockExempt = p.category === 'Cristal' || p.category === 'Tratamiento' || p.category === 'TRATAMIENTO' || (p.type || '').includes('Cristal');
+                if (isStockExempt) continue;
 
                 soldMap.set(p.id, (soldMap.get(p.id) || 0) + item.quantity);
             }
@@ -53,6 +55,8 @@ export async function POST(request: Request) {
             where: {
                 NOT: [
                     { category: 'Cristal' },
+                    { category: 'Tratamiento' },
+                    { category: 'TRATAMIENTO' },
                 ],
             },
         });
@@ -60,8 +64,8 @@ export async function POST(request: Request) {
         const updates: { id: string; name: string; oldStock: number; soldQty: number; newStock: number }[] = [];
 
         for (const product of allProducts) {
-            const isCrystal = product.category === 'Cristal' || (product.type || '').includes('Cristal');
-            if (isCrystal) continue;
+            const isStockExempt = product.category === 'Cristal' || product.category === 'Tratamiento' || product.category === 'TRATAMIENTO' || (product.type || '').includes('Cristal');
+            if (isStockExempt) continue;
 
             const soldQty = soldMap.get(product.id) || 0;
             if (soldQty === 0) continue;

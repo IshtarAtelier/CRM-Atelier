@@ -32,6 +32,10 @@ export async function POST(
             const product = item.product;
             if (!product) continue; // Skip if product was deleted
 
+            // El par gratis de una promo 2x1 de cristales se guarda con price 0.
+            // No re-cotizarlo: subirlo a price/2 cobraría un cristal bonificado.
+            if (item.eye && item.price === 0) continue;
+
             // Crystals sold per eye have item.eye set. Their unit price is product price / 2
             let currentPrice = product.price;
             if (item.eye) {

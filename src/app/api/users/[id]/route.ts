@@ -143,6 +143,27 @@ export async function DELETE(
             );
         }
 
+        // Guard: no borrar un usuario con efectivo sin rendir (holding) o una rendición
+        // PENDING. Sus cobros sobreviven (Payment.createdById es un string sin FK) y
+        // seguirían inflando el esperado en caja → faltante fantasma en el arqueo.
+        const [holdings, pendingHandover] = await Promise.all([
+            CashService.getVendorsHolding(),
+            prisma.cashHandover.findFirst({ where: { vendorId: id, status: 'PENDING' } }),
+        ]);
+        const userHolding = holdings.find(h => h.vendorId === id);
+        if (userHolding && userHolding.holding > 0) {
+            return NextResponse.json(
+                { error: `No se puede eliminar: el usuario tiene $${Math.round(userHolding.holding).toLocaleString('es-AR')} en efectivo sin rendir. Conciliá su caja antes de borrarlo.` },
+                { status: 400 }
+            );
+        }
+        if (pendingHandover) {
+            return NextResponse.json(
+                { error: 'No se puede eliminar: el usuario tiene una rendición pendiente de confirmar.' },
+                { status: 400 }
+            );
+        }
+
         await prisma.user.delete({ where: { id } });
 
         // Auditoría con snapshot: el usuario desaparece pero queda quién era y quién lo borró

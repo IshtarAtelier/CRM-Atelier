@@ -81,6 +81,21 @@ export async function GET(request: Request) {
         const to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
         const monthLabel = `${MONTH_NAMES[month - 1]} ${year}`;
 
+        // Idempotencia: no reenviar el cierre del mismo mes (el cron puede correr los días 1-3).
+        // ?force=1 permite reenviar a mano.
+        const force = searchParams.get('force') === '1' || searchParams.get('force') === 'true';
+        const sentKey = `month-close-sent:${year}-${String(month).padStart(2, '0')}`;
+        if (!force) {
+            const already = await prisma.systemSetting.findUnique({ where: { key: sentKey } });
+            if (already) {
+                return NextResponse.json({
+                    success: true,
+                    skipped: true,
+                    message: `El cierre de ${monthLabel} ya fue enviado (${already.value}). Usá ?force=1 para reenviar.`,
+                });
+            }
+        }
+
         const data = await ReportService.generateReportData(from, to);
         const s = data.summary;
 
@@ -382,6 +397,13 @@ export async function GET(request: Request) {
                 details: emailResult.error,
             }, { status: 500 });
         }
+
+        // Registrar el envío para no repetirlo en las corridas de los días siguientes
+        await prisma.systemSetting.upsert({
+            where: { key: sentKey },
+            update: { value: new Date().toISOString() },
+            create: { key: sentKey, value: new Date().toISOString() },
+        }).catch(e => console.error('[Cron Month-Close] No se pudo registrar idempotencia:', e));
 
         return NextResponse.json({
             success: true,

@@ -154,7 +154,10 @@ export function CheckoutClient({
     const saved = localStorage.getItem("atelier-checkout-form");
     if (saved) {
       try {
-        setFormData(JSON.parse(saved));
+        // Merge sobre el estado previo: el guardado descarta los campos de tarjeta,
+        // así que reemplazar el objeto entero los dejaba undefined → inputs controlados
+        // pasan a no controlados y cardNumber.replace(undefined) tira TypeError.
+        setFormData(prev => ({ ...prev, ...JSON.parse(saved) }));
       } catch (e) {}
     }
     
@@ -342,13 +345,16 @@ export function CheckoutClient({
               body: JSON.stringify({ sessionId, status: 'COMPLETED' })
             }).catch(console.error);
             localStorage.removeItem("atelier-checkout-session-id");
-            clearIdempotencyKey();
           }
           try {
             trackPurchase(sessionId || crypto.randomUUID(), getCartTotal(isWholesale), items);
           } catch (e) {
             console.error("Purchase tracking error:", e);
           }
+          // SIEMPRE limpiar la key idempotente tras una compra exitosa (aunque no haya
+          // habido sessionId): si no, la próxima compra reusa la key vieja y el backend
+          // idempotente devuelve la orden anterior → no se crea la nueva.
+          clearIdempotencyKey();
           clearCart();
           setIsSuccess(true);
         } else {
@@ -463,13 +469,14 @@ export function CheckoutClient({
                   body: JSON.stringify({ sessionId, status: 'COMPLETED' })
                 }).catch(console.error);
                 localStorage.removeItem("atelier-checkout-session-id");
-            clearIdempotencyKey();
               }
               try {
                 trackPurchase(data.orderId || sessionId || crypto.randomUUID(), getCartTotal(isWholesale), items);
               } catch (e) {
                 console.error("Purchase tracking error:", e);
               }
+              // SIEMPRE limpiar la key idempotente tras la compra exitosa (ver rama TRANSFER).
+              clearIdempotencyKey();
               clearCart();
               setIsSuccess(true);
             } else {

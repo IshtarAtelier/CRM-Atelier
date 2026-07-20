@@ -11,6 +11,17 @@ const IVORY = '#f5f0e6';
 const MUTED = '#b3aca0';
 const HAIRLINE = '#2b2417';
 
+// Escapa HTML en campos provenientes del cliente (nombre, dirección, sucursal,
+// modelo/color/receta de ítems) para evitar inyección de HTML/links en los emails.
+function esc(v: any): string {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function waLink(message: string) {
   return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`;
 }
@@ -85,14 +96,14 @@ export function getClientItemsHtml(items: any[]) {
   return items.map((item: any) => `
     <tr>
       <td style="padding: 16px 0; border-bottom: 1px solid ${HAIRLINE};">
-        <p style="margin: 0; font-family: ${SANS}; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: ${GOLD};">${item.brand || 'ATELIER'}</p>
-        <p style="margin: 6px 0 0; font-family: ${SERIF}; font-size: 17px; color: ${IVORY};">${item.model}</p>
+        <p style="margin: 0; font-family: ${SANS}; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: ${GOLD};">${esc(item.brand || 'ATELIER')}</p>
+        <p style="margin: 6px 0 0; font-family: ${SERIF}; font-size: 17px; color: ${IVORY};">${esc(item.model)}</p>
         ${item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color) ? `
           <p style="margin: 6px 0 0; font-family: ${SANS}; font-size: 12px; line-height: 1.6; color: #8f897c;">
-            Cristales: ${item.lensConfig.lensType === "NONE" ? "Sin Aumento" : item.lensConfig.lensType}
-            ${item.lensConfig.treatment ? `- ${item.lensConfig.treatment.replace(/_/g, ' ')}` : ''}
-            ${item.lensConfig.color ? `<br/>Tinte: ${item.lensConfig.color}` : ''}
-            ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${item.lensConfig.prescriptionFile}` : ''}
+            Cristales: ${item.lensConfig.lensType === "NONE" ? "Sin Aumento" : esc(item.lensConfig.lensType)}
+            ${item.lensConfig.treatment ? `- ${esc(item.lensConfig.treatment.replace(/_/g, ' '))}` : ''}
+            ${item.lensConfig.color ? `<br/>Tinte: ${esc(item.lensConfig.color)}` : ''}
+            ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${esc(item.lensConfig.prescriptionFile)}` : ''}
           </p>
         ` : ''}
       </td>
@@ -134,7 +145,7 @@ export function getAbandonedCartHtml(
     <tr>
       <td align="center" style="padding: 40px 40px 0;">
         <p style="margin: 0; font-family: ${SANS}; font-size: 13px; font-weight: bold; letter-spacing: 6px; text-transform: uppercase; color: ${GOLD};">Tu carrito te espera</p>
-        <h1 style="margin: 20px 0 0; font-family: ${SERIF}; font-size: 38px; font-weight: normal; line-height: 1.2; color: ${IVORY};">Lo perfecto no se apura, ${firstName}.</h1>
+        <h1 style="margin: 20px 0 0; font-family: ${SERIF}; font-size: 38px; font-weight: normal; line-height: 1.2; color: ${IVORY};">Lo perfecto no se apura, ${esc(firstName)}.</h1>
         <p style="margin: 14px 0 0; font-family: ${SERIF}; font-size: 19px; font-style: italic; color: ${GOLD_SOFT};">Te guardamos tu selecci&oacute;n.</p>
         <p style="margin: 18px 0 0; font-family: ${SANS}; font-size: 14px; line-height: 1.9; color: ${MUTED};">
           Encontrar el anteojo justo lleva su tiempo.<br/>
@@ -201,7 +212,7 @@ export function getConfirmationHtml(customer: any, orderId: string, emailTotal: 
     <tr>
       <td align="center" style="padding: 40px 40px 0;">
         <p style="margin: 0; font-family: ${SANS}; font-size: 13px; font-weight: bold; letter-spacing: 6px; text-transform: uppercase; color: ${GOLD};">Pedido confirmado</p>
-        <h1 style="margin: 20px 0 0; font-family: ${SERIF}; font-size: 42px; font-weight: normal; line-height: 1.15; color: ${IVORY};">Gracias, ${customer.firstName}.</h1>
+        <h1 style="margin: 20px 0 0; font-family: ${SERIF}; font-size: 42px; font-weight: normal; line-height: 1.15; color: ${IVORY};">Gracias, ${esc(customer.firstName)}.</h1>
         <p style="margin: 14px 0 0; font-family: ${SERIF}; font-size: 19px; font-style: italic; color: ${GOLD_SOFT};">Tu pedido ya est&aacute; en marcha.</p>
         <p style="margin: 18px 0 0; font-family: ${SANS}; font-size: 14px; line-height: 1.9; color: ${MUTED};">
           Cada detalle se prepara en nuestro atelier con el mismo cuidado<br/>
@@ -234,7 +245,7 @@ export function getConfirmationHtml(customer: any, orderId: string, emailTotal: 
           <tr>
             <td style="padding: 22px 26px; font-family: ${SANS}; font-size: 13px; line-height: 2.1; color: #d8d2c4;">
               <span style="color: ${GOLD}; letter-spacing: 3px; font-size: 11px; text-transform: uppercase; font-weight: bold;">Tu env&iacute;o</span><br/>
-              <strong style="color: ${IVORY};">M&eacute;todo:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}<br/>
+              <strong style="color: ${IVORY};">M&eacute;todo:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${esc(customer.shippingBranch)})` : ''}<br/>
               <strong style="color: ${IVORY};">${customer.shippingMethod === 'LOCAL' ? 'Retiro:' : 'Tiempo de tr&aacute;nsito:'}</strong> ${customer.shippingMethod === 'LOCAL' ? 'Te avisamos por WhatsApp apenas tu pedido esté listo para retirar en nuestro atelier de Cerro de las Rosas.' : '3 a 5 días hábiles desde que se despacha.'}<br/>
               <strong style="color: ${IVORY};">Preparaci&oacute;n / despacho:</strong> ${hasCrystals ? '5 días hábiles por calibración y trabajo de laboratorio a medida.' : 'Despacho rápido dentro de los 2 días hábiles.'}
             </td>
@@ -263,12 +274,12 @@ export function getAdminHtml(customer: any, orderId: string, emailTotal: number,
 
       <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Datos del Cliente</h3>
       <ul style="list-style: none; padding: 0;">
-        <li><strong>Nombre:</strong> ${customer.firstName} ${customer.lastName}</li>
-        <li><strong>Email:</strong> ${customer.email}</li>
-        <li><strong>WhatsApp:</strong> ${customer.phone}</li>
-        <li><strong>DNI:</strong> ${customer.dni}</li>
-        <li><strong>Método de Envío:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${customer.shippingBranch})` : ''}</li>
-        ${customer.shippingMethod === 'LOCAL' ? '' : `<li><strong>Dirección:</strong> ${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}</li>`}
+        <li><strong>Nombre:</strong> ${esc(customer.firstName)} ${esc(customer.lastName)}</li>
+        <li><strong>Email:</strong> ${esc(customer.email)}</li>
+        <li><strong>WhatsApp:</strong> ${esc(customer.phone)}</li>
+        <li><strong>DNI:</strong> ${esc(customer.dni)}</li>
+        <li><strong>Método de Envío:</strong> ${shippingMethodLabel} ${customer.shippingBranch ? `(Sucursal: ${esc(customer.shippingBranch)})` : ''}</li>
+        ${customer.shippingMethod === 'LOCAL' ? '' : `<li><strong>Dirección:</strong> ${esc(customer.address)}, ${esc(customer.city)}, ${esc(customer.state)} ${esc(customer.zip)}</li>`}
       </ul>
 
       <h3 style="background: #f4f4f4; padding: 10px; margin-top: 20px;">Productos Comprados</h3>
@@ -289,7 +300,7 @@ export function getClientTransferHtml(customer: any, orderId: string, emailTotal
     <tr>
       <td align="center" style="padding: 40px 40px 0;">
         <p style="margin: 0; font-family: ${SANS}; font-size: 13px; font-weight: bold; letter-spacing: 6px; text-transform: uppercase; color: ${GOLD};">Instrucciones de pago</p>
-        <h1 style="margin: 20px 0 0; font-family: ${SERIF}; font-size: 38px; font-weight: normal; line-height: 1.15; color: ${IVORY};">Un &uacute;ltimo paso, ${customer.firstName}.</h1>
+        <h1 style="margin: 20px 0 0; font-family: ${SERIF}; font-size: 38px; font-weight: normal; line-height: 1.15; color: ${IVORY};">Un &uacute;ltimo paso, ${esc(customer.firstName)}.</h1>
         <p style="margin: 18px 0 0; font-family: ${SANS}; font-size: 14px; line-height: 1.9; color: ${MUTED};">
           Registramos tu pedido <span style="color: ${GOLD_SOFT};">#${shortId}</span> con &eacute;xito.<br/>
           Elegiste abonar por transferencia bancaria con descuento: el total a transferir es de
@@ -332,7 +343,7 @@ export function getClientTransferHtml(customer: any, orderId: string, emailTotal
 export function getClientWholesaleHtml(customer: any, orderId: string, emailTotal: number) {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-      <h2 style="color: #1e3a8a; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-top: 0;">¡Hola ${customer.firstName}!</h2>
+      <h2 style="color: #1e3a8a; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px; margin-top: 0;">¡Hola ${esc(customer.firstName)}!</h2>
       <p>Hemos registrado tu pedido mayorista <strong>#${orderId.slice(-4).toUpperCase()}</strong> de forma exitosa.</p>
       <p>El total a coordinar de tu compra mayorista es de <strong>$${emailTotal.toLocaleString('es-AR')}</strong>.</p>
 

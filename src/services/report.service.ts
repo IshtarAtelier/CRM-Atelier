@@ -434,7 +434,15 @@ export class ReportService {
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
         const invoicesWhere: any = { status: 'COMPLETED' };
-        if (from || to) invoicesWhere.createdAt = dateFilter;
+        // Gatear por fecha FISCAL (la que cuenta AFIP), igual que getMonthlyStats; fallback
+        // a createdAt solo para filas históricas sin fiscalDate. Antes filtraba por createdAt,
+        // así que una factura backdateada caía en el mes equivocado del panel/cierre.
+        if (from || to) {
+            invoicesWhere.OR = [
+                { fiscalDate: dateFilter },
+                { AND: [{ fiscalDate: null }, { createdAt: dateFilter }] },
+            ];
+        }
 
         const invoices = await prisma.invoice.findMany({ where: invoicesWhere });
 
@@ -458,14 +466,17 @@ export class ReportService {
                 const labName = item.laboratorySnapshot || item.product?.laboratory || null;
                 const type = item.productTypeSnapshot || item.product?.type || '';
                 if (labName && (cat.includes('CRISTAL') || type.includes('Cristal') || type.includes('Multifocal') || type.includes('Monofocal'))) {
-                    if (!labOrderIds[labName]) labOrderIds[labName] = new Set();
-                    labOrderIds[labName].add(order.id);
+                    // Key normalizada a mayúsculas: si el mismo lab aparece con casing
+                    // distinto entre ítems, el conteo de pedidos no debe subcontar.
+                    const labKey = labName.toUpperCase();
+                    if (!labOrderIds[labKey]) labOrderIds[labKey] = new Set();
+                    labOrderIds[labKey].add(order.id);
                 }
             }
         }
 
         const labStats = Object.values(labProfitStats)
-            .map(ls => ({ ...ls, ordersCount: labOrderIds[ls.laboratory]?.size || 0 }))
+            .map(ls => ({ ...ls, ordersCount: labOrderIds[ls.laboratory.toUpperCase()]?.size || 0 }))
             .sort((a, b) => b.revenue - a.revenue);
 
         // ── Objetivos por mes: cruza facturación mensual con MonthlyTarget ──

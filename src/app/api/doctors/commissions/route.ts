@@ -4,6 +4,10 @@ import { PLATFORM_COMMISSIONS, DOCTOR_COMMISSION_RATE } from '@/lib/constants';
 
 export async function GET(request: Request) {
     try {
+        // Financiero de comisiones médicas: solo ADMIN (igual que reports/lab-costs).
+        if (request.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
         const { searchParams } = new URL(request.url);
         const doctor = searchParams.get('doctor');
 

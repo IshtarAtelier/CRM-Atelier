@@ -239,6 +239,15 @@ export default function CheckoutModal({
         }
     }
 
+    // Teñido: si el pedido incluye un teñido, la fábrica necesita saber tipo y color.
+    // La intensidad queda opcional (no siempre aplica). Se gatea con needsFrameData
+    // porque los campos de teñido viven dentro de esa sección (SmartLab): exigirlos
+    // cuando la sección está oculta trabaría el botón sin forma de completarlos.
+    if (hasTinting && needsFrameData) {
+        if (!tintType.trim()) missingFields.push('Teñido: Tipo (compacto / degradé / según muestra)');
+        if (!tintColor.trim()) missingFields.push('Teñido: Color');
+    }
+
     const canConvert = missingFields.length === 0;
 
     // Tilde de autorización dentro del checkout (solo ADMIN). Persiste authorizedByAdmin
@@ -919,9 +928,9 @@ export default function CheckoutModal({
                                         )}
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Tipo</label>
-                                                <select 
-                                                    value={tintType} 
+                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Tipo {!tintType.trim() && <span className="text-red-500">*</span>}</label>
+                                                <select
+                                                    value={tintType}
                                                     onChange={e => setTintType(e.target.value)}
                                                     className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
                                                 >
@@ -932,9 +941,9 @@ export default function CheckoutModal({
                                                 </select>
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Color</label>
-                                                <select 
-                                                    value={tintColor} 
+                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Color {!tintColor.trim() && <span className="text-red-500">*</span>}</label>
+                                                <select
+                                                    value={tintColor}
                                                     onChange={e => setTintColor(e.target.value)}
                                                     className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
                                                 >

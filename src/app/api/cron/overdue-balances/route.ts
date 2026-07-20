@@ -2,26 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { PricingService } from '@/services/PricingService';
 import { sendEmail } from '@/lib/email';
+import { countBusinessDays } from '@/lib/business-days';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Calcula la cantidad de días hábiles entre dos fechas, excluyendo sábados y domingos.
- */
-function getBusinessDays(start: Date, end: Date): number {
-    let count = 0;
-    const curDate = new Date(start.getTime());
-    curDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(end.getTime());
-    endDate.setHours(0, 0, 0, 0);
-
-    while (curDate < endDate) {
-        curDate.setDate(curDate.getDate() + 1);
-        const dayOfWeek = curDate.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) count++;
-    }
-    return count;
-}
 
 export async function GET(request: Request) {
     try {
@@ -63,7 +46,7 @@ export async function GET(request: Request) {
             }
         });
 
-        const today = new Date();
+        const today = new Date(Date.now() - 3 * 60 * 60 * 1000); // hoy en hora Argentina (UTC-3)
         const results = [];
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
         const adminEmail = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
@@ -107,7 +90,7 @@ export async function GET(request: Request) {
             });
 
             // 3. Obtener días hábiles y límite
-            const bizDays = getBusinessDays(new Date(order.createdAt), today);
+            const bizDays = countBusinessDays(new Date(order.createdAt), today);
             const threshold = isStellest ? 25 : isMultifocal ? 15 : 4;
 
             // Si no pasó el tiempo programado, omitir
@@ -182,7 +165,7 @@ export async function GET(request: Request) {
                                                 </tr>
                                                 <tr>
                                                     <td style="padding-bottom: 8px; font-size: 12px; font-weight: 700; color: #a8a095; text-transform: uppercase;">Tipo de Pedido:</td>
-                                                    <td style="padding-bottom: 8px; font-size: 14px; color: #433831;">${isMultifocal ? 'Multifocal (Límite 15 días)' : 'Monofocal/Otro (Límite 4 días)'}</td>
+                                                    <td style="padding-bottom: 8px; font-size: 14px; color: #433831;">${isStellest ? 'Stellest (Límite 25 días)' : isMultifocal ? 'Multifocal (Límite 15 días)' : 'Monofocal/Otro (Límite 4 días)'}</td>
                                                 </tr>
                                             </table>
 

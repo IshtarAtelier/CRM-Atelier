@@ -973,6 +973,7 @@ const getProductCost: CopilotTool = {
         ],
       },
       select: { name: true, brand: true, cost: true, price: true, laboratory: true },
+      orderBy: { updatedAt: 'desc' },
       take: 8,
     });
     if (!products.length) return 'No se encontró ese producto.';
