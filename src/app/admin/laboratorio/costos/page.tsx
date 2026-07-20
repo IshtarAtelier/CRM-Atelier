@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
     ArrowLeft, Loader2, RefreshCw, Mail, Upload, X, FlaskConical,
-    AlertTriangle, CheckCircle2, HelpCircle, TrendingDown, CalendarDays, Download, History
+    AlertTriangle, CheckCircle2, HelpCircle, TrendingDown, CalendarDays, Download, History, Search
 } from 'lucide-react';
 import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 
@@ -169,6 +169,9 @@ export default function LabCostosPage() {
     const [reportMonth, setReportMonth] = useState(() => getUrlParam(searchParams, 'mes', previousMonth()));
     const [report, setReport] = useState<MonthlyReport | null>(null);
     const [reportLoading, setReportLoading] = useState(false);
+    // Filtros del reporte: búsqueda por cliente / nº de operación y día puntual
+    const [reportSearch, setReportSearch] = useState(() => getUrlParam(searchParams, 'q', ''));
+    const [reportDay, setReportDay] = useState(() => getUrlParam(searchParams, 'dia', ''));
 
     const fetchEntries = useCallback(async () => {
         setLoading(true);
@@ -256,19 +259,28 @@ export default function LabCostosPage() {
         }
     };
 
-    const fetchReport = useCallback(async (month: string) => {
+    const fetchReport = useCallback(async () => {
         setReportLoading(true);
         try {
-            const res = await fetch(`/api/lab-costs/report?month=${month}`);
+            const q = reportSearch.trim();
+            // Con búsqueda o día → todo el histórico; sin filtros → el mes elegido.
+            const url = (q || reportDay)
+                ? `/api/lab-costs/report?${new URLSearchParams({ ...(q && { search: q }), ...(reportDay && { day: reportDay }) }).toString()}`
+                : `/api/lab-costs/report?month=${reportMonth}`;
+            const res = await fetch(url);
             if (res.ok) setReport(await res.json());
         } catch (e) {
-            console.error('Error cargando reporte mensual', e);
+            console.error('Error cargando reporte', e);
         } finally {
             setReportLoading(false);
         }
-    }, []);
+    }, [reportMonth, reportSearch, reportDay]);
 
-    useEffect(() => { fetchReport(reportMonth); }, [reportMonth, fetchReport]);
+    // Debounce solo cuando se está tipeando la búsqueda (evita un fetch por tecla).
+    useEffect(() => {
+        const t = setTimeout(fetchReport, reportSearch.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [fetchReport, reportSearch]);
 
     // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
     useEffect(() => {
@@ -276,15 +288,21 @@ export default function LabCostosPage() {
             lab: labFilter,
             estado: statusFilter,
             mes: reportMonth !== previousMonth() ? reportMonth : undefined,
+            q: reportSearch.trim() || undefined,
+            dia: reportDay || undefined,
         });
-    }, [labFilter, statusFilter, reportMonth]);
+    }, [labFilter, statusFilter, reportMonth, reportSearch, reportDay]);
+
+    // El filtrado lo hace el servidor (mes o histórico); acá solo mostramos lo que vino.
+    const reportFiltered = Boolean(reportSearch.trim() || reportDay);
+    const rows = report?.rows || [];
 
     const downloadReportCsv = () => {
         if (!report) return;
         const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
         const lines = [
             'nro_operacion;cliente;fecha;laboratorio;costo_sistema;costo_real;diferencia;estado;dias_sin_factura;items',
-            ...report.rows.map(r => [
+            ...rows.map(r => [
                 esc(r.labOrderNumber || 'SIN NÚMERO'),
                 esc(r.cliente),
                 fmtDateAR(r.fecha),
@@ -377,9 +395,37 @@ export default function LabCostosPage() {
                         type="month"
                         value={reportMonth}
                         onChange={e => e.target.value && setReportMonth(e.target.value)}
+                        disabled={reportFiltered}
+                        title={reportFiltered ? 'Con búsqueda activa se muestra todo el histórico; limpiá los filtros para volver al mes' : undefined}
+                        className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <div className="relative">
+                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <input
+                            type="search"
+                            value={reportSearch}
+                            onChange={e => setReportSearch(e.target.value)}
+                            placeholder="Cliente o nº de operación…"
+                            className="pl-8 pr-3 py-1.5 rounded-lg border border-gray-300 text-sm bg-white w-56"
+                        />
+                    </div>
+                    <input
+                        type="date"
+                        value={reportDay}
+                        onChange={e => setReportDay(e.target.value)}
+                        title="Filtrar por día"
                         className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm bg-white"
                     />
-                    {report && report.rows.length > 0 && (
+                    {reportFiltered && (
+                        <button
+                            onClick={() => { setReportSearch(''); setReportDay(''); }}
+                            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100"
+                            title="Limpiar filtros"
+                        >
+                            <X size={14} /> Limpiar
+                        </button>
+                    )}
+                    {report && rows.length > 0 && (
                         <button
                             onClick={downloadReportCsv}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
@@ -390,6 +436,7 @@ export default function LabCostosPage() {
                     <div className="flex-1" />
                     {report && (
                         <div className="text-sm text-gray-500">
+                            {reportFiltered && <span className="text-indigo-600 font-medium">todo el histórico · </span>}
                             {report.totals.operaciones} operaciones · sistema <strong className="text-gray-900">{fmt(report.totals.costoSistema)}</strong>
                             {report.totals.conFactura > 0 && <> · real <strong className="text-gray-900">{fmt(report.totals.costoReal)}</strong> ({report.totals.conFactura} con factura)</>}
                             {report.totals.sinFactura > 0 && <> · {report.totals.sinFactura} sin factura</>}
@@ -402,8 +449,12 @@ export default function LabCostosPage() {
                         <div className="flex items-center justify-center py-10 text-gray-400">
                             <Loader2 className="animate-spin mr-2" size={18} /> Generando reporte…
                         </div>
-                    ) : !report || report.rows.length === 0 ? (
-                        <div className="text-center py-10 text-gray-400 text-sm">Sin operaciones de laboratorio en este mes.</div>
+                    ) : !report || rows.length === 0 ? (
+                        <div className="text-center py-10 text-gray-400 text-sm">
+                            {reportFiltered
+                                ? 'Ninguna operación de laboratorio coincide con la búsqueda en todo el histórico.'
+                                : 'Sin operaciones de laboratorio en este mes.'}
+                        </div>
                     ) : (
                         <table className="w-full text-sm">
                             <thead>
@@ -419,7 +470,7 @@ export default function LabCostosPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {report.rows.map(r => {
+                                {rows.map(r => {
                                     const meta = REPORT_STATUS_META[r.status] || { label: r.status, badge: 'bg-gray-100 text-gray-600' };
                                     // Sin factura hace más de 30 días: ya debería estar facturada — resaltar.
                                     const overdue = r.status === 'SIN_FACTURA' && (r.daysWaiting ?? 0) > 30;

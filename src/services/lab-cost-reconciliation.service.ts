@@ -590,6 +590,12 @@ export class LabCostReconciliationService {
         return { from, to, perLab, sobrecostosVigentes, cuentaCorriente };
     }
 
+    // Include compartido por el reporte mensual y la búsqueda histórica.
+    private static readonly REPORT_INCLUDE = {
+        client: { select: { name: true } },
+        items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
+    } as const;
+
     static async monthlyReport(year: number, month: number) {
         // Límites del mes en hora argentina (UTC-3).
         const desde = new Date(Date.UTC(year, month - 1, 1, 3));
@@ -604,13 +610,57 @@ export class LabCostReconciliationService {
                     { labSentAt: null, createdAt: { gte: desde, lt: hasta } },
                 ],
             },
-            include: {
-                client: { select: { name: true } },
-                items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
-            },
+            include: this.REPORT_INCLUDE,
             orderBy: { createdAt: 'asc' },
         });
 
+        return this.assembleReport(orders, `${year}-${String(month).padStart(2, '0')}`);
+    }
+
+    /**
+     * Igual que el reporte mensual pero SIN acotar al mes: busca en todo el
+     * histórico por nombre de cliente o nº de pedido, y/o por un día puntual.
+     * Devuelve el mismo shape (month: 'historico') para reusar la misma tabla.
+     */
+    static async searchReport(query?: string, day?: string) {
+        const q = (query || '').trim();
+        const conds: any[] = [];
+
+        if (q) {
+            conds.push({
+                OR: [
+                    { client: { name: { contains: q, mode: 'insensitive' } } },
+                    { labOrderNumber: { contains: q, mode: 'insensitive' } },
+                ],
+            });
+        }
+        if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) {
+            const [y, mo, d] = day.split('-').map(Number);
+            const desde = new Date(Date.UTC(y, mo - 1, d, 3));
+            const hasta = new Date(Date.UTC(y, mo - 1, d + 1, 3));
+            conds.push({
+                OR: [
+                    { labSentAt: { gte: desde, lt: hasta } },
+                    { labSentAt: null, createdAt: { gte: desde, lt: hasta } },
+                ],
+            });
+        }
+
+        // Sin ningún criterio no barremos toda la base: devolvemos vacío.
+        if (conds.length === 0) return this.assembleReport([], 'historico');
+
+        const orders = await prisma.order.findMany({
+            where: { isDeleted: false, orderType: 'SALE', AND: conds },
+            include: this.REPORT_INCLUDE,
+            orderBy: { createdAt: 'desc' },
+            take: 1000,
+        });
+
+        return this.assembleReport(orders, 'historico');
+    }
+
+    /** Arma el reporte (filas + cruce con facturas + totales) a partir de un set de órdenes ya traído. */
+    private static async assembleReport(orders: any[], monthLabel: string) {
         const anyLab = /(optovision|grupo[\s\-]?[oó]ptico)/i;
         const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
 
@@ -678,7 +728,7 @@ export class LabCostReconciliationService {
 
         const sum = (fn: (r: any) => number) => report.reduce((t, r) => t + fn(r), 0);
         return {
-            month: `${year}-${String(month).padStart(2, '0')}`,
+            month: monthLabel,
             rows: report,
             totals: {
                 operaciones: report.length,
