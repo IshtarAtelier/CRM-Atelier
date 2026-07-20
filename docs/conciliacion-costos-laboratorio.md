@@ -79,6 +79,30 @@ además registra huérfanos de los últimos 100 pedidos visibles, para latencia 
 5. Consumidor final / monotributo: el total del comprobante no discrimina IVA —
    el importe de línea ES el costo comparable contra el costo por par del CRM.
 
+## Avisos y reportes
+
+- **Aviso por cada factura de Optovision** (tiempo real, en cada corrida del cron):
+  al ingresar una factura nueva, cruza de quién es, asigna el monto e informa por
+  email — "llegó la factura del pedido X de [cliente]: costo real vs sistema →
+  coincide / sobrecosto / menor". Contempla 2x1 (comparación parcial si falta el
+  otro par) y postventa. Optovision (alto valor) avisa siempre; Grupo Óptico usa
+  la alerta de sobrecosto + el reporte.
+- **Digest diario** de pedidos sin venta (huérfanos), clasificado (postventa /
+  venta sin número / dudoso).
+- **Reporte semanal** (`/api/cron/lab-weekly-report`): fin de semana, ambos labs —
+  facturas de la semana con montos, estado global (con venta / sin venta /
+  esperando factura / sobrecostos), facturado acumulado por lab y sobrecostos
+  vigentes. Alta semanal en cron-job.org.
+- **Alerta de reproceso de postventa cobrado** (> $5.000): una garantía debería
+  venir sin cargo.
+- **Cuenta corriente Optovision** (revisión diaria): el resumen "Documentos
+  Pendientes" de `procesos@essilor.com.ar` es el estado de cuenta oficial (único
+  con el saldo/deuda real). El cron diario lo lee (`scanEssilorStatement`), guarda
+  un snapshot (`LabAccountStatement`: deuda total + saldo por factura + pagos
+  parciales) y cruza cada factura con los pedidos. Se ve como banner de deuda en
+  la página y en el reporte. Requiere reenviar `procesos@essilor.com.ar` a la
+  casilla del CRM (además de `procesos@optovisionsa.com.ar`).
+
 ## Estados de una entrada
 
 | Estado | Significado |
