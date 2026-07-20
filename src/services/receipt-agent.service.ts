@@ -19,23 +19,30 @@ const CARD_TERMINAL_METHODS = [
 ];
 
 /**
- * Parsea una fecha impresa en un comprobante argentino (formato día/mes/año:
- * "17/07/26", "17/07/2026", "17-07-26", con o sin hora al lado) a un Date.
- * Determinístico: NO depende de cómo la IA interprete el formato, así "17/07/26"
- * siempre es 17-jul-2026 y nunca 2017 (no confunde el día con el año). Año de 2
- * dígitos → 2000+. Devuelve null si no matchea o los valores son inválidos.
+ * Parsea una fecha impresa en un comprobante a un Date, de forma determinística
+ * (NO depende de cómo la IA interprete el formato). Soporta:
+ *  - Argentino día/mes/año: "17/07/26", "17/07/2026", "17-07-26" → 17-jul-2026
+ *    (nunca 2017: no confunde el día con el año; año de 2 dígitos → 2000+).
+ *  - ISO año-primero: "2026-07-17" → 17-jul-2026 (por si un comprobante lo imprime así).
+ * Ignora la hora que venga al lado. Devuelve null si no matchea o es inválida.
  */
 export function parseArgentineReceiptDate(raw?: string | null): Date | null {
     if (!raw) return null;
-    const m = String(raw).match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/);
+    const s = String(raw);
+    const build = (day: number, month: number, year: number): Date | null => {
+        if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+        const d = new Date(year, month - 1, day);
+        return isNaN(d.getTime()) ? null : d;
+    };
+    // ISO (año primero, 4 dígitos): parsear directo sin invertir.
+    const iso = s.match(/(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})/);
+    if (iso) return build(parseInt(iso[3], 10), parseInt(iso[2], 10), parseInt(iso[1], 10));
+    // Argentino día/mes/año.
+    const m = s.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/);
     if (!m) return null;
-    const day = parseInt(m[1], 10);
-    const month = parseInt(m[2], 10);
     let year = parseInt(m[3], 10);
     if (year < 100) year += 2000;
-    if (day < 1 || day > 31 || month < 1 || month > 12) return null;
-    const d = new Date(year, month - 1, day);
-    return isNaN(d.getTime()) ? null : d;
+    return build(parseInt(m[1], 10), parseInt(m[2], 10), year);
 }
 
 export class ReceiptAgentService {
