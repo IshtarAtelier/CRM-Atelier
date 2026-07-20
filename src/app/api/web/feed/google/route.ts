@@ -1,5 +1,6 @@
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { captureError } from '@/lib/logger';
 
 /**
  * Feed de productos para Google Merchant Center (Shopping / Performance Max).
@@ -55,7 +56,7 @@ export async function GET() {
     </item>`;
     }
   } catch (err) {
-    console.error('[feed/google] error:', err);
+    captureError(err, { scope: 'feed.google' });
   }
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

@@ -8,6 +8,7 @@
  * server-side en el checkout (evento `purchase`).
  */
 import { prisma } from '@/lib/db';
+import { captureError } from '@/lib/logger';
 
 export const ANALYTICS_EVENT_TYPES = [
   'page_view', // navegación general
@@ -122,7 +123,7 @@ export async function recordEvents(events: AnalyticsEventInput[]): Promise<numbe
     });
     return res.count;
   } catch (err) {
-    console.error('[analytics] recordEvents failed:', err);
+    captureError(err, { scope: 'analytics.recordEvents', count: events.length });
     return 0;
   }
 }
