@@ -959,6 +959,7 @@ export const ContactService = {
                     authorName: actor?.name || 'Sistema',
                     clientId,
                     clientName: client?.name || 'Cliente',
+                    noteContent: content,
                 });
             } catch (e) {
                 directedEmailSent = false;
