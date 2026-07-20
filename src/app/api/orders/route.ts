@@ -407,7 +407,8 @@ export async function GET(request: Request) {
                             id: true,
                             content: true,
                             createdBy: true,
-                            createdAt: true
+                            createdAt: true,
+                            imageUrl: true
                         }
                     }
                 }
