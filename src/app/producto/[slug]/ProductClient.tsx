@@ -14,6 +14,7 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { trackAddToCart, trackViewContent } from "@/lib/tracking";
+import ProductReviews from "@/components/Storefront/ProductReviews";
 
 // Carga diferida: el configurador (662 líneas) recién se monta cuando el cliente
 // abre el modal, y el diagrama vive dentro de un acordeón colapsado. Sacarlos del
@@ -774,6 +775,11 @@ export function ProductClient({
           </div>
         </div>
       )}
+
+      {/* Reseñas propias de este producto (moderadas) */}
+      <div className="max-w-3xl mx-auto px-6 lg:px-14 w-full">
+        <ProductReviews productId={product.id} />
+      </div>
 
       {/* Prueba social: reseñas reales de Google, pegadas al punto de decisión */}
       <GoogleReviews />
