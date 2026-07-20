@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { LAB_AUDIT_START_ISO } from '@/lib/constants';
-import { vendorGreeting } from '@/lib/vendor-email';
+import { vendorGreeting, notificationEmailFor, ISHTAR_INBOX, PERSONAL_FROM } from '@/lib/vendor-email';
 import { needsLabOperation } from '@/lib/lab-orders';
 
 export const dynamic = 'force-dynamic';
@@ -84,10 +84,12 @@ function buildEmail(greeting: string, orders: PendingOrder[]) {
  * (labOrderNumber) cargado. Sólo cuenta pedidos que realmente van al
  * laboratorio (tienen un cristal); las ventas de mostrador no llevan operación.
  *
- * El mail va a la casilla del local (VENDOR_ALERT_EMAILS), redactado en primera
- * persona como si lo mandara Ishtar, con copia oculta y reply-to a su Gmail —
- * mismo patrón que el aviso de comprobante con error. Se envía UNA sola vez por
- * pedido (queda registrado en Notification) para no repetir el aviso cada día.
+ * El mail va DIRIGIDO al vendedor dueño de la venta: a su casilla propia
+ * (User.notificationEmail) + Ishtar como destinatarios visibles; si el vendedor
+ * todavía no tiene casilla propia, cae en la compartida del local. Redactado en
+ * primera persona como si lo mandara Ishtar, con reply-to a su Gmail. Se envía
+ * UNA sola vez por pedido (queda registrado en Notification) para no repetir el
+ * aviso cada día.
  *
  * Alta en cron-job.org: GET diario a /api/cron/pedidos-sin-operacion?secret=CRON_SECRET
  * Modo previsualización (no envía nada): agregar &dry=1
@@ -126,7 +128,7 @@ export async function GET(request: Request) {
             },
             include: {
                 client: { select: { id: true, name: true } },
-                user: { select: { id: true, name: true, email: true } },
+                user: { select: { id: true, name: true, email: true, notificationEmail: true } },
                 items: {
                     select: {
                         productCategorySnapshot: true,
@@ -154,7 +156,7 @@ export async function GET(request: Request) {
         // Agrupar por vendedor conocido los que de verdad van a laboratorio,
         // no tienen nº de operación (re-chequeo con trim) y no se avisaron dentro
         // de la ventana de reintento.
-        const groups = new Map<string, { greeting: string; orders: PendingOrder[] }>();
+        const groups = new Map<string, { greeting: string; user: typeof candidates[number]['user']; orders: PendingOrder[] }>();
         let skippedNoVendor = 0;
         let skippedRecent = 0;
 
@@ -178,19 +180,26 @@ export async function GET(request: Request) {
             };
 
             const key = o.user!.id;
-            if (!groups.has(key)) groups.set(key, { greeting, orders: [] });
+            if (!groups.has(key)) groups.set(key, { greeting, user: o.user, orders: [] });
             groups.get(key)!.orders.push(entry);
         }
 
         const summaries: any[] = [];
 
-        for (const { greeting, orders } of groups.values()) {
+        for (const { greeting, user, orders } of groups.values()) {
             const { subject, html } = buildEmail(greeting, orders);
+
+            // Dirigido al vendedor dueño de la venta: si tiene casilla propia
+            // (User.notificationEmail) le llega a él + Ishtar; si todavía no la
+            // tiene, cae en la casilla compartida del local. Mismo patrón que
+            // el aviso de pedidos listos con saldo.
+            const vendorInbox = notificationEmailFor(user);
+            const to = vendorInbox === ISHTAR_INBOX ? ISHTAR_INBOX : `${vendorInbox}, ${ISHTAR_INBOX}`;
 
             if (dryRun) {
                 summaries.push({
                     greeting,
-                    to: process.env.VENDOR_ALERT_EMAILS || 'atelier.optica.cerro@gmail.com',
+                    to,
                     subject,
                     orders: orders.map(o => ({ venta: o.shortId, cliente: o.clientName, dias: o.days })),
                     html,
@@ -199,12 +208,9 @@ export async function GET(request: Request) {
             }
 
             const res = await sendEmail({
-                to: process.env.VENDOR_ALERT_EMAILS || 'atelier.optica.cerro@gmail.com',
-                from: process.env.PERSONAL_EMAIL_FROM || 'Ishtar - Atelier Óptica <ishtar@atelieroptica.com.ar>',
-                replyTo: process.env.PERSONAL_REPLY_TO || 'pisano.ishtar@gmail.com',
-                // Copia oculta a Ishtar: le queda en su casilla el mail exacto que
-                // salió a su nombre, y Gmail encadena ahí las respuestas.
-                bcc: process.env.PERSONAL_BCC || 'pisano.ishtar@gmail.com',
+                to,
+                from: PERSONAL_FROM,
+                replyTo: ISHTAR_INBOX,
                 subject,
                 html,
             });
