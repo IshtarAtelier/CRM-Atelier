@@ -89,6 +89,8 @@ const OrderUpdateSchema = z.object({
     postSaleCaseType: z.string().nullable().optional(),
     postSaleFault: z.string().nullable().optional(),
     postSaleCoverage: z.string().nullable().optional(),
+    // Imagen adjunta a la observación que se agrega en este PATCH
+    postSaleNoteImageUrl: z.string().nullable().optional(),
 }).passthrough();
 
 // export const dynamic = 'force-dynamic';
@@ -355,7 +357,7 @@ export class OrderService {
             isLocked, authorizedByAdmin,
             postSaleNotes, postSaleCost, postSaleResponsible,
             postSaleOrderOption, postSaleNewOrderNumber, postSaleStatus, postSaleRxData, postSaleCaseType,
-            postSaleFault, postSaleCoverage
+            postSaleFault, postSaleCoverage, postSaleNoteImageUrl
         } = body;
 
         const data: any = {};
@@ -911,7 +913,8 @@ export class OrderService {
                                 caseId: activeCase.id,
                                 content: noteContent,
                                 // El autor es SIEMPRE el usuario logueado; "responsable" del caso es otro dato
-                                createdBy: userName || 'Sistema'
+                                createdBy: userName || 'Sistema',
+                                imageUrl: postSaleNoteImageUrl || null
                             }
                         });
                     }
@@ -1009,7 +1012,7 @@ export class OrderService {
                         if (newAppendedNotes) {
                             appendedNoteText = newAppendedNotes;
                             const lines = newAppendedNotes.split('\n').filter((line: string) => line.trim() !== '');
-                            for (const line of lines) {
+                            for (const [i, line] of lines.entries()) {
                                 const match = line.match(/^\[(.*?)\]:\s*(.*)$/);
                                 const noteContent = match ? match[2] : line;
 
@@ -1018,7 +1021,9 @@ export class OrderService {
                                         caseId: activeCase.id,
                                         content: noteContent,
                                         // El autor es SIEMPRE el usuario logueado; "responsable" del caso es otro dato
-                                        createdBy: userName || 'Sistema'
+                                        createdBy: userName || 'Sistema',
+                                        // La imagen adjunta va en la última observación del lote (la recién escrita)
+                                        imageUrl: i === lines.length - 1 ? (postSaleNoteImageUrl || null) : null
                                     }
                                 });
                             }
