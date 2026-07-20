@@ -77,7 +77,9 @@ export async function DELETE(
         return NextResponse.json(deletedPayment);
     } catch (error: any) {
         console.error('Error deleting payment:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        // Error de blindaje de caja (cobro ya rendido) → 409, no 500
+        const status = /dentro de una rendición/.test(error.message || '') ? 409 : 500;
+        return NextResponse.json({ error: error.message }, { status });
     }
 }
 
@@ -134,6 +136,7 @@ export async function PUT(
         return NextResponse.json(updatedPayment);
     } catch (error: any) {
         console.error('Error updating payment:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const status = /dentro de una rendición/.test(error.message || '') ? 409 : 500;
+        return NextResponse.json({ error: error.message }, { status });
     }
 }

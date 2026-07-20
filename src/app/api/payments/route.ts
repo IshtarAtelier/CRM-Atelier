@@ -4,6 +4,9 @@ import { prisma } from '@/lib/db';
 import { ContactService } from '@/services/contact.service';
 import { getActor } from '@/lib/actor';
 import { digitsOnly, MIN_DIGITS_FOR_NUMERIC_MATCH } from '@/lib/payment-search';
+import { RENDICION_CUTOFF_ISO } from '@/lib/constants';
+
+const CASH_METHODS = ['EFECTIVO', 'CASH'];
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +69,21 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'El monto debe ser un número positivo' }, { status: 400 });
         }
 
+        // Blindaje del circuito de caja: un cobro EN EFECTIVO no se puede fechar
+        // antes del corte de rendiciones. Sin esto, un vendedor podía cargar el
+        // cobro con fecha vieja para que quede fuera de su pendiente de rendición
+        // (el circuito lo excluye) pero siga sumando al efectivo esperado en caja
+        // → faltante anónimo que caía sobre la encargada. Correcciones históricas
+        // legítimas se hacen por otra vía (no por este alta).
+        if (CASH_METHODS.includes(method) && date) {
+            const d = new Date(date);
+            if (!isNaN(d.getTime()) && d < new Date(RENDICION_CUTOFF_ISO)) {
+                return NextResponse.json({
+                    error: 'Un cobro en efectivo no puede tener fecha anterior al inicio del circuito de caja. Usá la fecha real del cobro.',
+                }, { status: 400 });
+            }
+        }
+
         const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl, date, getActor(request));
         return NextResponse.json(result);
     } catch (error: any) {
@@ -100,12 +118,19 @@ export async function GET(request: Request) {
             }
         }
 
+        // Límites de día en hora argentina (UTC-3), sin importar el TZ del server:
+        // 'YYYY-MM-DD' → inicio 03:00 UTC / fin 02:59:59.999 UTC del día siguiente.
         const dateFilter: any = {};
-        if (from) dateFilter.gte = new Date(from);
+        const isDateOnly = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
+        if (from) dateFilter.gte = isDateOnly(from) ? new Date(`${from}T03:00:00.000Z`) : new Date(from);
         if (to) {
-            const toDate = new Date(to);
-            toDate.setHours(23, 59, 59, 999);
-            dateFilter.lte = toDate;
+            if (isDateOnly(to)) {
+                dateFilter.lte = new Date(new Date(`${to}T03:00:00.000Z`).getTime() + 24 * 60 * 60 * 1000 - 1);
+            } else {
+                const toDate = new Date(to);
+                toDate.setHours(23, 59, 59, 999);
+                dateFilter.lte = toDate;
+            }
         }
         if (from || to) {
             whereClause.date = dateFilter;

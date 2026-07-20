@@ -240,7 +240,9 @@ export default function CajaPage() {
                 </a>
             </div>
 
-            {/* Action Buttons — Two big buttons */}
+            {/* Action Buttons — solo encargada/ADMIN (los movimientos manuales de
+                caja requieren cashManager; a un vendedor le darían 403). */}
+            {canViewTotals && (
             <div className="grid grid-cols-2 gap-4 mb-8">
                 <button
                     onClick={() => { setMovementType('IN'); setCategory('APORTE_EFECTIVO'); setShowModal(true); }}
@@ -264,6 +266,7 @@ export default function CajaPage() {
                     <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-1">Salida de Efectivo</p>
                 </button>
             </div>
+            )}
 
             {/* Cash Balance Summary */}
             {balances && canViewTotals && (

@@ -2025,6 +2025,17 @@ export const ContactService = {
 
             if (!payment) throw new Error('Pago no encontrado');
 
+            // Blindaje del libro de custodia: un cobro que ya está dentro de una
+            // rendición (pendiente o confirmada) no se puede borrar — descuadraría
+            // el arqueo o la rendición en silencio (holding fantasma / diferencia falsa).
+            const inHandover = await tx.$queryRaw<{ one: number }[]>`
+                SELECT 1 as one FROM "CashHandover"
+                WHERE payments @> ${JSON.stringify([{ id: paymentId }])}::jsonb
+                LIMIT 1`;
+            if (inHandover.length > 0) {
+                throw new Error('Este cobro ya está dentro de una rendición de caja: no se puede borrar. Si hubo un error, resolvelo con un ajuste de caja para no descuadrar el arqueo.');
+            }
+
             // Recalcular lo pagado con SUM atómico (evita paid negativo)
             const totalPaidAgg = await tx.payment.aggregate({
                 _sum: { amount: true },
@@ -2103,6 +2114,21 @@ export const ContactService = {
 
             if (!oldPayment) throw new Error('Pago no encontrado');
             if (!oldPayment.order) throw new Error('Orden asociada no encontrada');
+
+            // Blindaje del libro de custodia: si el cobro ya está dentro de una
+            // rendición CONFIRMADA, no se puede cambiar el monto ni el método
+            // (descuadraría el arqueo). Nota y comprobante sí se pueden editar.
+            const changesCashFacts = (updates.amount !== undefined && updates.amount !== oldPayment.amount)
+                || (updates.method !== undefined && updates.method !== oldPayment.method);
+            if (changesCashFacts) {
+                const inHandover = await tx.$queryRaw<{ one: number }[]>`
+                    SELECT 1 as one FROM "CashHandover"
+                    WHERE payments @> ${JSON.stringify([{ id: paymentId }])}::jsonb
+                    LIMIT 1`;
+                if (inHandover.length > 0) {
+                    throw new Error('Este cobro ya está dentro de una rendición de caja: no se puede cambiar su monto ni su método. Resolvé la diferencia con un ajuste de caja.');
+                }
+            }
 
             const orderId = oldPayment.orderId;
             const clientId = oldPayment.order.clientId;

@@ -28,7 +28,7 @@ export async function PATCH(
 
         const before = await prisma.user.findUnique({
             where: { id },
-            select: { name: true, role: true }
+            select: { name: true, role: true, cashManager: true }
         });
 
         const data: any = {};
@@ -38,25 +38,27 @@ export async function PATCH(
             if (role) data.role = role;
             // Encargado de caja: habilita ver el saldo total de la caja en efectivo.
             // Solo ADMIN lo otorga (mismo criterio que el rol).
-            if (cashManager !== undefined) {
-                // Blindaje del libro de custodia: pasar a encargado (o dejar de serlo)
-                // NO puede hacerse mientras la persona tenga efectivo sin conciliar,
-                // porque cambia retroactivamente de qué lado del libro está esa plata
-                // (queda huérfana o aparece un descuadre falso en el próximo arqueo).
+            const wantsCashManager = cashManager !== undefined ? !!cashManager : undefined;
+            const isChangingRole = wantsCashManager !== undefined && wantsCashManager !== !!before?.cashManager;
+            if (isChangingRole && wantsCashManager === true) {
+                // Solo al PROMOVER vendedor→encargada: su efectivo de vendedor tiene
+                // que estar rendido primero, si no queda huérfano (getVendorsHolding
+                // deja de contarlo al volverse cashManager). Al DEGRADAR no se bloquea:
+                // el efectivo del encargado se concilia por arqueo, no por rendición.
                 const [holdingInfo, pending] = await Promise.all([
                     CashService.getVendorsHolding(),
                     CashService.getVendorPendingCash(id),
                 ]);
                 const myHolding = holdingInfo.find(h => h.vendorId === id)?.holding || 0;
                 const hasPending = !!pending.pendingHandover;
-                const custodyDirect = pending.custodian ? pending.total : 0;
-                const pendingCash = Math.round(myHolding) !== 0 || hasPending || Math.round(custodyDirect) !== 0;
-                if (pendingCash) {
+                if (Math.round(myHolding) !== 0 || hasPending) {
                     return NextResponse.json({
-                        error: 'Antes de cambiar el rol de caja, esta persona tiene que rendir/conciliar el efectivo que tiene a su nombre (o cerrar un arqueo). Regularizá la caja y volvé a intentar.',
+                        error: 'Antes de nombrarla encargada de caja, esta persona tiene que rendir el efectivo que tiene a su nombre. Que rinda lo pendiente y volvé a intentar.',
                     }, { status: 409 });
                 }
-                data.cashManager = !!cashManager;
+            }
+            if (wantsCashManager !== undefined) {
+                data.cashManager = wantsCashManager;
             }
         }
         // Casilla de avisos: la puede cambiar el ADMIN o el propio usuario.
