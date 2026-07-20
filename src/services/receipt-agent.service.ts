@@ -6,6 +6,37 @@ import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
 import { retryWithBackoff } from '@/lib/retry-utils';
 import { notifyReceiptUploaded, notifyVendorsReceiptError, type DuplicatePaymentRef } from '@/lib/receipt-notify';
 
+/**
+ * Medios de pago con tarjeta / terminal (Payway, Naranja, Go Cuotas). El ticket
+ * imprime el CUIT de la TERMINAL del comercio, que no coincide con el CUIT de
+ * facturación AFIP (ISH/YANI) — por eso no se compara para no dar falsos positivos.
+ */
+const CARD_TERMINAL_METHODS = [
+    'PAY_WAY_6_ISH', 'PAY_WAY_6_YANI', 'PAY_WAY_3_ISH', 'PAY_WAY_3_YANI',
+    'NARANJA_Z_ISH', 'NARANJA_Z_YANI', 'GO_CUOTAS', 'GO_CUOTAS_ISH',
+    'CREDIT', 'CREDIT_3', 'CREDIT_6', 'DEBIT', 'PLAN_Z',
+];
+
+/**
+ * Parsea una fecha impresa en un comprobante argentino (formato día/mes/año:
+ * "17/07/26", "17/07/2026", "17-07-26", con o sin hora al lado) a un Date.
+ * Determinístico: NO depende de cómo la IA interprete el formato, así "17/07/26"
+ * siempre es 17-jul-2026 y nunca 2017 (no confunde el día con el año). Año de 2
+ * dígitos → 2000+. Devuelve null si no matchea o los valores son inválidos.
+ */
+export function parseArgentineReceiptDate(raw?: string | null): Date | null {
+    if (!raw) return null;
+    const m = String(raw).match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/);
+    if (!m) return null;
+    const day = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    let year = parseInt(m[3], 10);
+    if (year < 100) year += 2000;
+    if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+    const d = new Date(year, month - 1, day);
+    return isNaN(d.getTime()) ? null : d;
+}
+
 export class ReceiptAgentService {
     /**
      * Analiza asíncronamente un comprobante para buscar discrepancias (monto, CUIT, fecha, duplicación).
@@ -74,7 +105,8 @@ Extrae la siguiente información y preséntala ESTRICTAMENTE en formato JSON pla
 {
   "amount": número decimal obtenido del comprobante, sin símbolos ni puntos de miles, usando punto para decimales,
   "cuit": "el CUIT o CUIL del DESTINATARIO (el que cobra el dinero, no el que paga) si aparece, sin guiones. Si no aparece pon null",
-  "date": "fecha del pago extraída del comprobante en formato YYYY-MM-DD. Si no aparece pon null",
+  "date_raw": "la fecha del pago EXACTAMENTE como aparece impresa en el comprobante, sin reinterpretar ni convertir (por ejemplo '17/07/26' o '17-07-2026'). Copiá los dígitos tal cual. Si no aparece pon null",
+  "date": "la misma fecha convertida a formato YYYY-MM-DD. IMPORTANTE: en los comprobantes argentinos la fecha viene en formato DÍA/MES/AÑO (dd/MM/aa o dd/MM/aaaa). Por ejemplo '17/07/26' es el 17 de julio de 2026 (NO 2017): el primer número es el día, no el año. Un año de dos dígitos como '26' significa 2026. Si no aparece pon null",
   "transaction_id": "El número de transferencia, Nro de Operación, ID de transacción, o código de autorización único del comprobante. Si no encuentras, devuelve null"
 }
 Solo devuelve el JSON, sin texto antes ni después.`;
@@ -126,8 +158,12 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 vendorIssues.push(`El comprobante está por $${extracted.amount.toLocaleString('es-AR')} pero el pago lo cargaron por $${expectedAmount.toLocaleString('es-AR')}.`);
             }
 
-            // B) Check CUIT
-            if (expectedCuit && extracted.cuit) {
+            // B) Check CUIT — SOLO para transferencias bancarias. En los tickets
+            // de tarjeta (Payway/Naranja/Go Cuotas) el CUIT impreso es el de la
+            // TERMINAL del comercio, que legítimamente NO coincide con el CUIT de
+            // facturación AFIP (ISH/YANI) → era la fuente del falso positivo de CUIT.
+            const isCardTerminal = CARD_TERMINAL_METHODS.includes(method);
+            if (!isCardTerminal && expectedCuit && extracted.cuit) {
                 if (!extracted.cuit.includes(expectedCuit.toString())) {
                      errors.push(`CUIT de destino distinto. Se esperaba ${expectedCuit} y figura ${extracted.cuit}.`);
                      vendorIssues.push(`La transferencia fue a otro CUIT: en el comprobante figura ${extracted.cuit} y tendría que ser ${expectedCuit}.`);
@@ -202,15 +238,21 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 }
             }
 
-            // D) Check Date (Must be very recent)
-            if (extracted.date) {
-                const docDate = new Date(extracted.date);
+            // D) Check Date — solo avisa si el comprobante es genuinamente VIEJO.
+            // Se parsea la fecha impresa de forma determinística (formato argentino
+            // dd/MM/aa) para no depender de cómo la convierta la IA: "17/07/26" es
+            // 17-jul-2026, no 2017. Fallback al ISO que devuelve la IA.
+            const receiptDate = parseArgentineReceiptDate(extracted.date_raw)
+                || (extracted.date ? new Date(extracted.date) : null);
+            if (receiptDate && !isNaN(receiptDate.getTime())) {
                 const now = new Date();
-                const diffTime = Math.abs(now.getTime() - docDate.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                // Solo el PASADO: una fecha futura es casi seguro un error de lectura,
+                // no un comprobante "viejo" — no tiene sentido avisar por eso.
+                const diffDays = Math.floor((now.getTime() - receiptDate.getTime()) / (1000 * 60 * 60 * 24));
                 if (diffDays > 5) {
-                    errors.push(`Fecha antigua. El comprobante indica la fecha ${extracted.date}.`);
-                    vendorIssues.push(`El comprobante es del ${extracted.date}, quedó viejo — fíjense que sea el que corresponde a esta venta.`);
+                    const fechaFmt = formatDate(receiptDate);
+                    errors.push(`Fecha antigua. El comprobante indica la fecha ${fechaFmt}.`);
+                    vendorIssues.push(`El comprobante es del ${fechaFmt}, quedó viejo — fíjense que sea el que corresponde a esta venta.`);
                 }
             }
 
