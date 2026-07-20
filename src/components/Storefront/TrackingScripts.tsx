@@ -1,10 +1,16 @@
 "use client";
 
 import Script from "next/script";
+import { useConsent } from "@/components/Storefront/CookieConsent";
 
 export function TrackingScripts() {
   const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID;
   const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+  const consent = useConsent();
+
+  // Las cookies de marketing (Pixel/GA) solo cargan con consentimiento explícito.
+  // La analítica propia (sin cookies) va aparte y no depende de esto.
+  if (consent !== "granted") return null;
 
   return (
     <>
