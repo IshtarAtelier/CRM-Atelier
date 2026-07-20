@@ -13,7 +13,7 @@ import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySid
 import type { AppliedCoupon } from "@/components/checkout/CouponField";
 import { WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
-import { getSessionId } from "@/lib/client-analytics";
+import { getSessionId, track } from "@/lib/client-analytics";
 import { toast } from "sonner";
 
 // Clave de idempotencia del intento de compra: estable entre reintentos (timeout/
@@ -251,6 +251,8 @@ export function CheckoutClient({
             const data = await res.json();
             if (data.sessionId && !sessionId) {
               localStorage.setItem("atelier-checkout-session-id", data.sessionId);
+              // Etapa del embudo: dejó datos de contacto en el checkout (una vez).
+              track('add_contact', { value: getCartTotal(isWholesale) });
             }
           } catch (e) {
             console.error("Failed to sync checkout session", e);

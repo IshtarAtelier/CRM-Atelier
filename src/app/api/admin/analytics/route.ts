@@ -58,10 +58,11 @@ export async function GET(request: Request) {
       return rows.length;
     };
 
-    const [sViewContent, sAddToCart, sBeginCheckout, sPurchase] = await Promise.all([
+    const [sViewContent, sAddToCart, sBeginCheckout, sAddContact, sPurchase] = await Promise.all([
       sessionsAtStage('view_content'),
       sessionsAtStage('add_to_cart'),
       sessionsAtStage('begin_checkout'),
+      sessionsAtStage('add_contact'),
       sessionsAtStage('purchase'),
     ]);
 
@@ -139,6 +140,7 @@ export async function GET(request: Request) {
         viewedProduct: sViewContent,
         addedToCart: sAddToCart,
         beganCheckout: sBeginCheckout,
+        addedContact: sAddContact,
         purchased: sPurchase,
         // totales de eventos (por si interesa el volumen bruto)
         totals: {
