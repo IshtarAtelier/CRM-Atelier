@@ -21,7 +21,7 @@ import {
 import type { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
-import { POST_SALE_CASE_TYPES, POST_SALE_FAULTS, POST_SALE_COVERAGE } from '@/lib/constants/postSale';
+import { POST_SALE_CASE_TYPES, POST_SALE_RESPONSIBLES, POST_SALE_COVERAGE } from '@/lib/constants/postSale';
 
 export const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },
@@ -1152,34 +1152,26 @@ export function OrderDetailPanel({
 
                                     <div>
                                         <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Responsable (quién gestiona)
+                                            Responsable
                                         </label>
-                                        <input
-                                            type="text"
+                                        <select
                                             value={postSaleResponsible}
                                             onChange={(e) => setPostSaleResponsible(e.target.value)}
-                                            placeholder="Nombre del responsable"
-                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                        />
+                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
+                                        >
+                                            <option value="">Sin definir</option>
+                                            {POST_SALE_RESPONSIBLES.map(r => (
+                                                <option key={r} value={r}>{r}</option>
+                                            ))}
+                                            {/* Preserva un valor viejo que no esté en la lista actual */}
+                                            {postSaleResponsible && !(POST_SALE_RESPONSIBLES as readonly string[]).includes(postSaleResponsible) && (
+                                                <option value={postSaleResponsible}>{postSaleResponsible} (histórico)</option>
+                                            )}
+                                        </select>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Atribución (de quién fue el error)
-                                        </label>
-                                        <select
-                                            value={postSaleFault}
-                                            onChange={(e) => setPostSaleFault(e.target.value)}
-                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
-                                        >
-                                            <option value="">Sin definir</option>
-                                            {POST_SALE_FAULTS.map(f => (
-                                                <option key={f} value={f}>{f}</option>
-                                            ))}
-                                        </select>
-                                    </div>
                                     <div>
                                         <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
                                             Cobertura

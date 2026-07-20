@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+import { POST_SALE_RESPONSIBLES } from '@/lib/constants/postSale';
 import { PricingService } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
@@ -1042,15 +1043,21 @@ export default function QuoteSummary({
 
                                 <div>
                                     <label className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                        Responsabilidad
+                                        Responsable
                                     </label>
-                                    <input
-                                        type="text"
+                                    <select
                                         value={postSaleResponsible}
                                         onChange={(e) => setPostSaleResponsible(e.target.value)}
-                                        placeholder="Nombre del responsable"
-                                        className="w-full text-xs p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                    />
+                                        className="w-full text-xs p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
+                                    >
+                                        <option value="">Sin definir</option>
+                                        {POST_SALE_RESPONSIBLES.map(r => (
+                                            <option key={r} value={r}>{r}</option>
+                                        ))}
+                                        {postSaleResponsible && !(POST_SALE_RESPONSIBLES as readonly string[]).includes(postSaleResponsible) && (
+                                            <option value={postSaleResponsible}>{postSaleResponsible} (histórico)</option>
+                                        )}
+                                    </select>
                                 </div>
                             </div>
 

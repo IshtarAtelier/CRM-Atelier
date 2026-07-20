@@ -14,8 +14,8 @@ export const POST_SALE_CASE_TYPES = [
 
 export type PostSaleCaseType = typeof POST_SALE_CASE_TYPES[number];
 
-// Atribución de responsabilidad: ¿de quién fue el error?
-export const POST_SALE_FAULTS = ['Laboratorio', 'Óptica', 'Cliente', 'Médico'] as const;
+// Responsable del error de un caso de post-venta (opciones fijas, para reportes).
+export const POST_SALE_RESPONSIBLES = ['Cliente', 'Matías', 'Milena', 'Ishtar', 'Médico', 'Grupo Óptico', 'Optovisión', 'Proveedor (armazón)', 'Transporte / Correo'] as const;
 
 // Cobertura del caso: ¿lo cubre la óptica o va con cargo al cliente?
 export const POST_SALE_COVERAGE = ['Sin cargo', 'Con cargo'] as const;

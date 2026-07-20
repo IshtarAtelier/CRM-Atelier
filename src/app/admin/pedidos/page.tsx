@@ -1454,16 +1454,16 @@ export default function PedidosPage() {
                 const order = orders.find(o => o.id === expandedId);
                 if (!order) return null;
                 return (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setExpandedId(null)}>
+                    <div className="fixed inset-0 z-50 flex items-stretch sm:items-start justify-center p-0 sm:p-4 overflow-y-auto" onClick={() => setExpandedId(null)}>
                         {/* Backdrop */}
-                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-md" />
+                        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-md" />
 
                         {/* Modal Container */}
                         <div
-                            className="relative bg-white dark:bg-stone-900 rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto animate-in zoom-in-95 fade-in duration-200 border border-stone-200 dark:border-stone-800"
+                            className="relative bg-white dark:bg-stone-900 sm:rounded-[2.5rem] shadow-2xl w-full sm:max-w-6xl min-h-full sm:min-h-0 sm:my-4 overflow-y-auto animate-in zoom-in-95 fade-in duration-200 border-0 sm:border border-stone-200 dark:border-stone-800"
                             onClick={e => e.stopPropagation()}
                         >
-                            <div className="p-6 border-b border-stone-100 dark:border-stone-850 flex justify-between items-center bg-stone-50/50 dark:bg-stone-900/50">
+                            <div className="sticky top-0 z-10 p-6 border-b border-stone-100 dark:border-stone-850 flex justify-between items-center bg-stone-50/95 dark:bg-stone-900/95 backdrop-blur">
                                 <div>
                                     <h3 className="text-lg font-black text-stone-850 dark:text-stone-100 uppercase tracking-tight leading-tight">
                                         Detalle de Caso: {order.client.name}

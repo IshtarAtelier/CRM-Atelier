@@ -1976,11 +1976,11 @@ export default function VentasPage() {
                         if (!order) return null;
                         return (
                             <div
-                                className="fixed inset-0 z-[90] flex items-start justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
+                                className="fixed inset-0 z-[90] flex items-stretch sm:items-start justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
                                 onClick={() => setExpandedDetail(null)}
                             >
                                 <div
-                                    className="relative w-full max-w-3xl my-4 bg-white dark:bg-stone-850 rounded-3xl border-2 border-amber-200 dark:border-amber-900/50 shadow-2xl animate-in zoom-in-95 duration-200"
+                                    className="relative w-full sm:max-w-6xl min-h-full sm:min-h-0 sm:my-4 bg-white dark:bg-stone-850 sm:rounded-3xl border-0 sm:border-2 border-amber-200 dark:border-amber-900/50 shadow-2xl animate-in zoom-in-95 duration-200"
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     {/* Header sticky con cierre */}
