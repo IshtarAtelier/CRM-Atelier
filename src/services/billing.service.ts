@@ -58,6 +58,11 @@ export interface CreateInvoiceParams {
     actorName?: string | null;
 }
 
+// Órdenes con una facturación en curso: serializa emisiones concurrentes sobre la
+// misma orden (la validación anti doble-facturación corre antes de la llamada a
+// ARCA, que tarda segundos — sin esto, dos requests simultáneas emiten dos CAE reales).
+const invoicingInProgress = new Set<string>();
+
 export const BillingService = {
 
     /**
@@ -65,7 +70,13 @@ export const BillingService = {
      */
     async createInvoice(params: CreateInvoiceParams) {
         const { orderId, account = 'ISH', docTipo = 99, docNro = '0', puntoDeVenta, amount, items, issueDate, observations, actorId, actorName } = params;
- 
+
+        if (invoicingInProgress.has(orderId)) {
+            throw new Error('Ya hay una facturación en curso para esta orden. Esperá unos segundos y verificá las facturas emitidas antes de reintentar.');
+        }
+        invoicingInProgress.add(orderId);
+        try {
+
         // 1. Validar orden
         const order = await prisma.order.findUnique({
             where: { id: orderId },
@@ -263,6 +274,9 @@ export const BillingService = {
             });
             return created;
         });
+        } finally {
+            invoicingInProgress.delete(orderId);
+        }
     },
 
     /**
@@ -512,8 +526,10 @@ export const BillingService = {
      * Esto asegura precisión literal sin depender de límites de paginación del frontend.
      */
     async getMonthlyStats() {
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        // Mes actual en hora argentina (UTC-3), sin depender del TZ del server:
+        // este total gatea el tope mensual de monotributo por cuenta.
+        const nowAr = new Date(Date.now() - 3 * 60 * 60 * 1000);
+        const startOfMonth = new Date(Date.UTC(nowAr.getUTCFullYear(), nowAr.getUTCMonth(), 1, 3));
         
         const stats = await prisma.invoice.groupBy({
             by: ['billingAccount'],

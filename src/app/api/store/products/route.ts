@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { serverCache } from '@/lib/cache';
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
+import { decrypt } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,18 @@ export async function GET(request: NextRequest) {
     try {
         const channel = request.nextUrl.searchParams.get('channel');
         const isWholesale = channel === 'wholesale';
+
+        // El canal mayorista devuelve wholesalePrice (lista B2B): solo para ópticas
+        // logueadas o staff. Esta ruta es pública en el middleware, así que la
+        // identidad se valida acá con la cookie de sesión.
+        if (isWholesale) {
+            const token = request.cookies.get('session')?.value;
+            const payload = token ? await decrypt(token) : null;
+            const role = (payload?.role as string) || null;
+            if (!role || !['OPTICA', 'ADMIN', 'STAFF'].includes(role)) {
+                return NextResponse.json({ error: 'No autorizado para el canal mayorista' }, { status: 403 });
+            }
+        }
         const page = Number(request.nextUrl.searchParams.get('page') || 1);
         const limit = Number(request.nextUrl.searchParams.get('limit') || 24);
         const category = request.nextUrl.searchParams.get('category') || 'Todo';

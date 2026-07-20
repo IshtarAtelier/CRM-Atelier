@@ -100,6 +100,9 @@ export default function OrderManager({
                 body: JSON.stringify({
                     clientId: contactId,
                     items: quoteItems.map(i => ({
+                        // Mandar el id de la línea preexistente: el backend lo usa para
+                        // preservar la foto congelada y color/pd/height/prism al recrear.
+                        id: (i as any).id || undefined,
                         productId: i.product?.id || null,
                         quantity: i.quantity,
                         price: i.customPrice,
@@ -107,6 +110,8 @@ export default function OrderManager({
                         productBrandSnapshot: i.productBrandSnapshot || i.product?.brand || null,
                         productNameSnapshot: i.productNameSnapshot || i.product?.name || i.product?.model || null,
                         productCategorySnapshot: i.productCategorySnapshot || i.product?.category || null,
+                        crystalColor: (i as any).crystalColor ?? null,
+                        crystalColorType: (i as any).crystalColorType ?? null,
                     })),
                     markup: quoteMarkup,
                     discountCash: quoteDiscountCash,

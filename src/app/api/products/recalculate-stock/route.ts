@@ -1,12 +1,27 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 // POST /api/products/recalculate-stock
 // Recalculates stock for all non-crystal products based on sold quantities.
-// This one-time endpoint corrects stock for sales made before the stock 
+// This one-time endpoint corrects stock for sales made before the stock
 // decrement system was implemented.
-export async function POST() {
+// ⚠️ NO idempotente: cada corrida vuelve a restar TODO lo vendido histórico al
+// stock actual. Solo ADMIN y con confirmación explícita.
+export async function POST(request: Request) {
     try {
+        const role = request.headers.get('x-user-role');
+        if (role !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
+        const { searchParams } = new URL(request.url);
+        if (searchParams.get('confirm') !== 'yes') {
+            return NextResponse.json({
+                error: 'Endpoint destructivo y no idempotente: cada corrida resta de nuevo todas las ventas históricas al stock actual. Si estás seguro, repetí la llamada con ?confirm=yes.',
+            }, { status: 400 });
+        }
         // Get all SALE orders (not deleted) with their items
         const saleOrders = await prisma.order.findMany({
             where: {
@@ -74,6 +89,19 @@ export async function POST() {
                 )
             );
         }
+
+        const actor = getActor(request);
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'UPDATE',
+            entityType: 'PRODUCT',
+            entityId: 'recalculate-stock',
+            details: {
+                descripcion: `Recálculo masivo de stock (${updates.length} productos afectados)`,
+                updates: updates.map(u => ({ id: u.id, name: u.name, oldStock: u.oldStock, newStock: u.newStock })),
+            },
+        });
 
         return NextResponse.json({
             message: `Stock recalculado para ${updates.length} productos`,

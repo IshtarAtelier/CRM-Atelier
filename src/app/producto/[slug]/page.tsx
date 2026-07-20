@@ -79,9 +79,11 @@ const getProduct = cache(async (slug: string) => {
       };
     }
 
-    // 2) Fallback: buscar directamente por Product.id (para links del catálogo que usan el id)
-    const product = await prisma.product.findUnique({
-      where: { id: slug },
+    // 2) Fallback: buscar directamente por Product.id (para links del catálogo que usan el id).
+    // Exigimos publishToWeb: sin esto, un producto despublicado seguía siendo visible
+    // (con precio y wholesalePrice) entrando por /producto/<productId>.
+    const product = await prisma.product.findFirst({
+      where: { id: slug, publishToWeb: true },
     });
 
     if (!product) return null;

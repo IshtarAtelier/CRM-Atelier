@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { sanitizeBlogHtml } from '@/lib/sanitize-blog';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
                 title,
                 slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
                 excerpt: excerpt || '',
-                content,
+                content: sanitizeBlogHtml(content),
                 category,
                 imageUrl: imageUrl || null,
                 status: status || 'DRAFT',

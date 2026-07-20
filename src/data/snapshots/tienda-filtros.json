@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-15T14:49:56.543Z",
+  "generatedAt": "2026-07-18T16:39:24.152Z",
   "key": "tienda-filtros",
   "data": [
     {
@@ -35,14 +35,6 @@
       }
     },
     {
-      "name": "Niobe",
-      "product": {
-        "brand": "Atelier",
-        "model": "TL5207 C4",
-        "seoTags": "Cuadrado, Metal"
-      }
-    },
-    {
       "name": "Minerva C2",
       "product": {
         "brand": "Atelier",
@@ -59,11 +51,11 @@
       }
     },
     {
-      "name": "Helena C5",
+      "name": "Helios",
       "product": {
         "brand": "Atelier",
-        "model": "Q5205-C5",
-        "seoTags": "Cuadrado, Acetato"
+        "model": "TG2807 C1",
+        "seoTags": "Cuadrado, Titanio"
       }
     },
     {
@@ -99,6 +91,14 @@
       }
     },
     {
+      "name": "Venus C4",
+      "product": {
+        "brand": "Atelier",
+        "model": "P5787-C4",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
       "name": "Semele",
       "product": {
         "brand": "Atelier",
@@ -119,14 +119,6 @@
       "product": {
         "brand": "Atelier",
         "model": "TL5217 C4",
-        "seoTags": "Redondo, Metal"
-      }
-    },
-    {
-      "name": "Pandora C5",
-      "product": {
-        "brand": "Atelier",
-        "model": "HK011 C5",
         "seoTags": "Redondo, Metal"
       }
     },
@@ -168,6 +160,14 @@
         "brand": "Atelier",
         "model": "57202LJH-C1",
         "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Pandora C5",
+      "product": {
+        "brand": "Atelier",
+        "model": "HK011 C5",
+        "seoTags": "Redondo, Metal"
       }
     },
     {
@@ -395,14 +395,6 @@
       }
     },
     {
-      "name": "Gala C7",
-      "product": {
-        "brand": "Atelier",
-        "model": "Q5005-C7",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
       "name": "Frida C6",
       "product": {
         "brand": "Atelier",
@@ -447,22 +439,6 @@
       "product": {
         "brand": "Atelier",
         "model": "Q6013-C6",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
-      "name": "Helios",
-      "product": {
-        "brand": "Atelier",
-        "model": "TG2807 C1",
-        "seoTags": "Cuadrado, Titanio"
-      }
-    },
-    {
-      "name": "Atenea C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "P5783-C3",
         "seoTags": "Cuadrado, Acetato"
       }
     },
@@ -611,14 +587,6 @@
       }
     },
     {
-      "name": "Venus C4",
-      "product": {
-        "brand": "Atelier",
-        "model": "P5787-C4",
-        "seoTags": "Cuadrado, Acetato"
-      }
-    },
-    {
       "name": "Gala C3",
       "product": {
         "brand": "Atelier",
@@ -696,6 +664,38 @@
         "brand": "Atelier",
         "model": "TG2810 C1",
         "seoTags": "Cuadrado, Titanio"
+      }
+    },
+    {
+      "name": "Niobe",
+      "product": {
+        "brand": "Atelier",
+        "model": "TL5207 C4",
+        "seoTags": "Cuadrado, Metal"
+      }
+    },
+    {
+      "name": "Helena C5",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5205-C5",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Gala C7",
+      "product": {
+        "brand": "Atelier",
+        "model": "Q5005-C7",
+        "seoTags": "Cuadrado, Acetato"
+      }
+    },
+    {
+      "name": "Atenea C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "P5783-C3",
+        "seoTags": "Cuadrado, Acetato"
       }
     },
     {
@@ -835,19 +835,19 @@
       }
     },
     {
-      "name": "Nashira C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "FG1596 C3",
-        "seoTags": "fg1596 c3, nashira c3, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cat-Eye"
-      }
-    },
-    {
       "name": "Fénix C2",
       "product": {
         "brand": "Atelier",
         "model": "J853T19 C2",
         "seoTags": "j853t19 c2, fénix c2, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cuadrado"
+      }
+    },
+    {
+      "name": "Nashira C3",
+      "product": {
+        "brand": "Atelier",
+        "model": "FG1596 C3",
+        "seoTags": "fg1596 c3, nashira c3, lentes de sol, gafas de sol, anteojos de sol, optica cordoba, atelier optica, proteccion uv, unisex, premium, acetato, acetato italiano, mazzucchelli, Cat-Eye"
       }
     }
   ]

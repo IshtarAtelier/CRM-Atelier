@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 function escapeCSV(val: any): string {
     if (val == null) return '';
@@ -29,6 +31,12 @@ export async function GET(request: Request) {
 
         if (type === 'sales' && !isAdmin) {
             return NextResponse.json({ error: 'No autorizado para exportar ventas' }, { status: 403 });
+        }
+
+        // El export de contactos vuelca toda la PII de clientes (nombre, teléfono,
+        // email, médico, obra social): solo ADMIN, y queda auditado quién lo bajó.
+        if (type === 'contacts' && !isAdmin) {
+            return NextResponse.json({ error: 'No autorizado para exportar contactos' }, { status: 403 });
         }
 
         if (type === 'contacts') {
@@ -108,6 +116,19 @@ export async function GET(request: Request) {
 
         } else {
             return NextResponse.json({ error: 'Tipo inválido. Usar: contacts, products, sales' }, { status: 400 });
+        }
+
+        // Dejar rastro de quién exportó datos (PII de clientes o ventas).
+        if (type === 'contacts' || type === 'sales') {
+            const actor = getActor(request);
+            await logAudit({
+                userId: actor.id,
+                userName: actor.name,
+                action: 'EXPORT',
+                entityType: type === 'contacts' ? 'CONTACT' : 'ORDER',
+                entityId: `export-${type}`,
+                details: { descripcion: `Exportó ${type === 'contacts' ? 'la base de contactos (PII)' : 'el listado de ventas'} a CSV`, filename },
+            });
         }
 
         return new NextResponse(csv, {

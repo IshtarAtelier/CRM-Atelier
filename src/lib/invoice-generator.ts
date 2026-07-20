@@ -81,7 +81,19 @@ export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolea
     doc.setFontSize(9);
     doc.text(`NRO: ${invoice.pointOfSale.toString().padStart(4, '0')}-${invoice.voucherNumber.toString().padStart(8, '0')}`, (pageWidth / 2) + 15, 28);
     
-    const fecha = new Date(invoice.createdAt).toLocaleDateString('es-AR');
+    // Fecha en hora argentina (el CbteFch que recibe ARCA se calcula en ART).
+    // NOTA: para facturas backdateadas (issueDate < createdAt) la fecha fiscal real
+    // no se persiste hoy en el modelo Invoice — ver tarea de migración issueDate.
+    const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
+    const fechaArDate = new Date(new Date(invoice.createdAt).getTime() - AR_OFFSET_MS);
+    const fecha = fechaArDate.toLocaleDateString('es-AR', { timeZone: 'UTC' });
+    // caeExpiration se guarda como string 'yyyymmdd' de ARCA: new Date() directo da Invalid Date.
+    const parseAfipYmd = (s: string) => {
+        const str = String(s || '');
+        return /^\d{8}$/.test(str)
+            ? `${str.slice(6, 8)}/${str.slice(4, 6)}/${str.slice(0, 4)}`
+            : (s ? new Date(s).toLocaleDateString('es-AR') : '-');
+    };
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text(`Fecha de Emisión: ${fecha}`, (pageWidth / 2) + 15, 36);
@@ -112,14 +124,31 @@ export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolea
     doc.text(`Medio de Pago: Otro`, pageWidth - 60, 71);
 
     // --- 3. TABLA DE ÍTEMS (Diseño Premium sin líneas verticales) ---
-    const tableItems = invoice.order.items.map((it: any) => [
-        it.productId?.slice(-4).toUpperCase() || it.product?.id?.slice(-4).toUpperCase() || '-',
-        `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || 'Producto'}`.trim(),
-        it.quantity,
-        'unidades',
-        it.price.toLocaleString('es-AR', { minimumFractionDigits: 2 }),
-        (it.price * it.quantity).toLocaleString('es-AR', { minimumFractionDigits: 2 })
-    ]);
+    // Si la suma de los ítems de la orden NO coincide con el importe realmente
+    // facturado (factura parcial/seña, o markup aplicado al emitir), listar los
+    // ítems crudos daría un comprobante donde el detalle no suma el TOTAL con CAE.
+    // En ese caso colapsamos a una línea genérica por el total facturado (mismo
+    // criterio que la ruta server getInvoicePdfUrl).
+    const itemsSum = (invoice.order.items || []).reduce((s: number, it: any) => s + (it.price || 0) * (it.quantity || 1), 0);
+    const itemsMatchTotal = Math.abs(itemsSum - (invoice.totalAmount || 0)) <= 1;
+
+    const tableItems = itemsMatchTotal
+        ? invoice.order.items.map((it: any) => [
+            it.productId?.slice(-4).toUpperCase() || it.product?.id?.slice(-4).toUpperCase() || '-',
+            `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || 'Producto'}`.trim(),
+            it.quantity,
+            'unidades',
+            it.price.toLocaleString('es-AR', { minimumFractionDigits: 2 }),
+            (it.price * it.quantity).toLocaleString('es-AR', { minimumFractionDigits: 2 })
+        ])
+        : [[
+            '-',
+            'Productos y servicios de óptica',
+            1,
+            'unidad',
+            invoice.totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 }),
+            invoice.totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 })
+        ]];
 
     autoTable(doc, {
         startY: 90,
@@ -184,7 +213,7 @@ export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolea
     // QR - Browser compatible base64
     const qrJson = {
         ver: 1,
-        fecha: new Date(invoice.createdAt).toISOString().split('T')[0],
+        fecha: fechaArDate.toISOString().split('T')[0],
         cuit: parseInt(issuer.cuit),
         ptoVta: invoice.pointOfSale,
         tipoCmp: 11,
@@ -211,7 +240,7 @@ export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolea
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(`CAE: ${invoice.cae}`, pageWidth - 12, footerY + 15, { align: 'right' });
-    doc.text(`Vencimiento CAE: ${new Date(invoice.caeExpiration).toLocaleDateString('es-AR')}`, pageWidth - 12, footerY + 22, { align: 'right' });
+    doc.text(`Vencimiento CAE: ${parseAfipYmd(invoice.caeExpiration)}`, pageWidth - 12, footerY + 22, { align: 'right' });
     
     doc.setFontSize(7);
     doc.setTextColor(200, 200, 200);

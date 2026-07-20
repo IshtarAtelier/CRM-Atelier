@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import type { PipelineStageKey } from '@/types/leads';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,7 +113,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // 6. Cancel any pending FOLLOWUP tasks (the cron will regenerate if needed)
-    await prisma.clientTask.updateMany({
+    const cancelled = await prisma.clientTask.updateMany({
       where: {
         clientId: leadId,
         type: 'FOLLOWUP',
@@ -119,6 +121,22 @@ export async function PATCH(req: NextRequest) {
       },
       data: { status: 'CANCELLED' },
     });
+
+    // 7. Firmar la mutación: quién movió el lead, a qué etapa y cuántas tareas
+    // FOLLOWUP se cancelaron (mueve tags, chatLabels y tareas → trazabilidad obligatoria).
+    const actor = getActor(req);
+    await logAudit({
+      userId: actor.id,
+      userName: actor.name,
+      action: 'STATUS_CHANGE',
+      entityType: 'CONTACT',
+      entityId: leadId,
+      details: {
+        descripcion: `${actor.name} movió el lead a la etapa "${targetStage}" desde el pipeline`,
+        targetStage,
+        followupTasksCancelled: cancelled.count,
+      },
+    }).catch(console.error);
 
     return NextResponse.json({ success: true, stage: targetStage });
   } catch (error: any) {

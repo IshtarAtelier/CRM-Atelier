@@ -225,7 +225,7 @@ Respond ONLY with the raw JSON. No markdown.
                     }
                 }).catch((e) => console.error("Error creating human task:", e.message));
 
-                console.log(`  ✅ [Ficha Inteligente] Proactive followups paused. Rescheduled resume task and created human task for ${resumeDate.toLocaleDateString()}`);
+                console.log(`  ✅ [Ficha Inteligente] Proactive followups paused. Rescheduled resume task and created human task for ${resumeDate.toLocaleDateString('es-AR')}`);
             }
         }
 

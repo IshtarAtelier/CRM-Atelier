@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+// Formato de email razonable: evita inyectar direcciones basura/malformadas que
+// después el cron de carritos abandonados usaría para mandar emails brandeados.
+const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
 export async function POST(req: Request) {
   try {
     const data = await req.json();
     const { email, firstName, lastName, phone, cartData } = data;
+
+    if (email && !isValidEmail(email)) {
+      return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
+    }
 
     // Create a new CheckoutSession in the database
     const session = await prisma.checkoutSession.create({

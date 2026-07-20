@@ -62,14 +62,15 @@ export async function GET(request: Request) {
             year = parseInt(monthParam.slice(0, 4), 10);
             month = parseInt(monthParam.slice(5, 7), 10);
         } else {
-            const now = new Date();
-            if (now.getDate() <= 3) {
-                const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                year = prev.getFullYear();
-                month = prev.getMonth() + 1;
+            // "Hoy" en hora argentina (UTC-3), sin depender del TZ del server
+            const now = new Date(Date.now() - 3 * 60 * 60 * 1000);
+            if (now.getUTCDate() <= 3) {
+                const prev = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+                year = prev.getUTCFullYear();
+                month = prev.getUTCMonth() + 1;
             } else {
-                year = now.getFullYear();
-                month = now.getMonth() + 1;
+                year = now.getUTCFullYear();
+                month = now.getUTCMonth() + 1;
             }
         }
 
@@ -86,7 +87,11 @@ export async function GET(request: Request) {
         // ── Saldos pendientes con la fuente de verdad (PricingService):
         // el totalPending del reporte es lista − pagado y sobreestima el saldo
         // de quien pagó contado/transferencia con descuento.
-        const dateFilter = { gte: new Date(from), lte: new Date(`${to}T23:59:59.999`) };
+        // Límites del mes en hora argentina (UTC-3), igual que generateReportData
+        const dateFilter = {
+            gte: new Date(Date.UTC(year, month - 1, 1, 3)),
+            lte: new Date(Date.UTC(year, month, 1, 3) - 1),
+        };
         const monthOrders = await prisma.order.findMany({
             where: {
                 orderType: 'SALE',

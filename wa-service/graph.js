@@ -136,7 +136,7 @@ async function formatClientData(clientData, userPhone, userName, chatId, chatSum
   if (clientData.prescriptions && clientData.prescriptions.length > 0) {
     text += `\n\nRECETAS GUARDADAS (USAR ESTOS DATOS PARA COTIZAR SIN PEDIR FOTO DE NUEVO):`;
     clientData.prescriptions.forEach((p, i) => {
-      text += `\nReceta ${i + 1} (${new Date(p.date).toLocaleDateString()}): Tipo: ${p.tipoDeLente || 'N/A'}`;
+      text += `\nReceta ${i + 1} (${new Date(p.date).toLocaleDateString('es-AR')}): Tipo: ${p.tipoDeLente || 'N/A'}`;
       text += `\n- OD (Ojo Derecho): Esf ${p.odEsf || 0}, Cil ${p.odCil || 0}, Eje ${p.odEje || 0}, DIP ${p.odDip || '-'}`;
       text += `\n- OI (Ojo Izquierdo): Esf ${p.oiEsf || 0}, Cil ${p.oiCil || 0}, Eje ${p.oiEje || 0}, DIP ${p.oiDip || '-'}`;
       if (p.add) text += `\n- Adición: ${p.add}`;
@@ -166,7 +166,7 @@ async function formatClientData(clientData, userPhone, userName, chatId, chatSum
         text += `\n- Pedido N°: ${o.id}`;
         text += `\n  Tipo: ${o.orderType}`;
         text += `\n  Estado: ${o.labStatus || o.status}`;
-        text += `\n  Fecha: ${new Date(o.createdAt).toLocaleDateString()}`;
+        text += `\n  Fecha: ${new Date(o.createdAt).toLocaleDateString('es-AR')}`;
       });
     }
   } catch (err) {
@@ -176,7 +176,7 @@ async function formatClientData(clientData, userPhone, userName, chatId, chatSum
   if (clientData.interactions && clientData.interactions.length > 0) {
     text += `\n\nÚLTIMAS INTERACCIONES/HITOS:`;
     clientData.interactions.forEach(i => {
-      text += `\n- ${new Date(i.createdAt).toLocaleDateString()}: ${i.content}`;
+      text += `\n- ${new Date(i.createdAt).toLocaleDateString('es-AR')}: ${i.content}`;
     });
   }
   

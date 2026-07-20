@@ -118,26 +118,33 @@ export async function GET(req: Request) {
             if (shouldAlert) {
                 const subject = `⚠️ SmartLab lleva ${formatDowntime(downtimeMs)} sin conexión — Grupo Óptico`;
 
-                // Enviar alerta por Email
-                await sendEmail({
+                // Enviar alerta por Email. sendEmail no rechaza (devuelve {success:false}):
+                // hay que mirar el retorno, si no marcaríamos KEY_ALERTED_AT sin que
+                // saliera nada y la próxima alerta recién en 12 h.
+                const emailRes = await sendEmail({
                     to: 'pisano.ishtar@gmail.com',
                     subject,
                     text: `Atelier Óptica\n\nLa sincronización con el laboratorio Grupo Óptico lleva ${formatDowntime(downtimeMs)} sin funcionar (desde ${new Date(downSince).toLocaleString('es-AR')}).\n\nÚltimo error: ${errorMessage}\nFecha: ${new Date().toLocaleString('es-AR')}`,
                     html: `<h3 style="color: #d32f2f;">${subject}</h3><p>La sincronización con el laboratorio (Grupo Óptico) lleva <b>${formatDowntime(downtimeMs)}</b> sin funcionar (desde ${new Date(downSince).toLocaleString('es-AR')}).</p><p><b>Último error:</b> ${errorMessage}</p><p><b>Fecha:</b> ${new Date().toLocaleString('es-AR')}</p><p style="color:#888;font-size:12px;">Si sigue caído, recibirás otra alerta en 12 horas. Al recuperarse te llega un aviso de restablecido.</p>`
-                });
+                }).catch((err: any) => { console.error('[CRON SmartLab] Error email:', err); return { success: false } as any; });
 
                 // Enviar alerta por WhatsApp
-                await fetchWa('/api/send', {
+                const waRes = await fetchWa('/api/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         chatId: getAdminChatId(),
                         message: `⚠️ *Atelier Alerta - SmartLab*\n\nLa sincronización con el laboratorio (Grupo Óptico) lleva *${formatDowntime(downtimeMs)}* sin funcionar.\n\n*Último error:* ${errorMessage}\n\n_Si sigue caído, te aviso de nuevo en 12 hs._`
                     })
-                });
-                console.log('[CRON SmartLab] Alertas enviadas a Ishtar.');
+                }).then((r: any) => !!r?.ok).catch((err: any) => { console.error('[CRON SmartLab] Error WhatsApp:', err); return false; });
 
-                await setSetting(KEY_ALERTED_AT, new Date().toISOString());
+                // Solo registrar el envío si al menos un canal salió (si no, se reintenta).
+                if ((emailRes && emailRes.success) || waRes) {
+                    console.log('[CRON SmartLab] Alertas enviadas a Ishtar.');
+                    await setSetting(KEY_ALERTED_AT, new Date().toISOString());
+                } else {
+                    console.error('[CRON SmartLab] Alerta de caída NO entregada (email y WhatsApp fallaron): se reintentará.');
+                }
             } else {
                 const reason = downtimeMs < DOWN_ALERT_THRESHOLD_MS
                     ? `caído hace ${formatDowntime(downtimeMs)} (< 12 h, aún sin alertar)`

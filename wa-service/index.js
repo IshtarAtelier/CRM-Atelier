@@ -916,7 +916,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             axios.post(alertUrl, {
                 subject: '🚨 ALERTA: Crédito Agotado en Bot de WhatsApp (Gemini)',
                 message: 'El bot de WhatsApp intentó procesar un mensaje pero la solicitud fue rechazada por falta de créditos (Error 429: RESOURCE_EXHAUSTED).\n\nPor favor, recargá saldo en tu cuenta de Google Cloud / AI Studio para que el bot y el sistema vuelvan a funcionar.\n\nLink: https://aistudio.google.com/app/billing'
-            }).catch(e => console.error('Error enviando alerta de email:', e.message));
+            }, { headers: { 'x-api-key': process.env.BOT_API_KEY } }).catch(e => console.error('Error enviando alerta de email:', e.message));
         } else {
             // Cualquier otra falla (timeout de LLM, red, tool caída, etc.) se trata como
             // transitoria: silencio hacia el cliente, el bot queda activo y reintenta en el
@@ -940,7 +940,17 @@ const handleMessage = async (msg) => {
     }
 
     const waId = msg.from;
-    const contact = await msg.getContact();
+    // getContact() puede lanzar con contactos @lid en reconexiones; si el error
+    // sube, la promesa rechaza y el mensaje entrante se pierde (no se guarda ni
+    // se responde). Con fallback vacío el flujo sigue y el nombre/teléfono se
+    // resuelven después por otras fuentes.
+    let contact;
+    try {
+        contact = await msg.getContact();
+    } catch (contactErr) {
+        console.error(`  ⚠️ getContact() falló para ${waId}: ${contactErr.message}. Sigo con fallback.`);
+        contact = { pushname: '', name: '', number: '' };
+    }
 
     // ── Helper: validate that a string looks like a real phone number ──
     const isValidPhone = (str, currentWaId = '') => {
@@ -1125,11 +1135,17 @@ const handleMessage = async (msg) => {
                 console.log(`  📥 [Auto-Desarchivar] Chat de ${profileName || waId} desarchivado por nuevo mensaje entrante.`);
             }
             
-            // Si llega un mensaje de Meta Ads, reactivar el bot para responder al anuncio
-            if (isMetaAdsMessage) {
+            // Si llega un mensaje de Meta Ads, reactivar el bot para responder al anuncio.
+            // EXCEPCIÓN: si un humano ya tomó la charla ([SISTEMA - BOT APAGADO]), el bot
+            // NO debe volver a meterse aunque el cliente reingrese por el anuncio (mismo
+            // criterio que la rama "Meta Ads Session" de más abajo).
+            const tieneMarcaApagadoManualExistente = (chat?.chatLabels || []).includes('[SISTEMA - BOT APAGADO]');
+            if (isMetaAdsMessage && !tieneMarcaApagadoManualExistente) {
                 updateData.botEnabled = true;
                 chat.botEnabled = true; // Sincronizar localmente en memoria
                 console.log(`  🎯 [Meta Ads] Reactivando bot para chat existente de ${profileName || waId}.`);
+            } else if (isMetaAdsMessage) {
+                console.log(`  🚫 [Meta Ads] NO se reactiva el bot de ${profileName || waId}: un humano tomó la charla.`);
             }
             
             chat = await prisma.whatsAppChat.update({

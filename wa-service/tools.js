@@ -860,7 +860,9 @@ async function reportInvoiceRequest({ clientId }) {
 
 
 
-        const adminPhone = '3541215971@c.us';
+        // getAdminWaId normaliza con prefijo 549 y sufijo @c.us; el literal anterior
+        // ('3541215971@c.us') sin 549 se resolvía como +354 (Islandia) y la alerta se perdía.
+        const adminPhone = getAdminWaId();
         const baseUrl = process.env.CRM_API_URL ? process.env.CRM_API_URL.replace('/api/bot', '') : 'http://localhost:3000';
         const crmLink = `${baseUrl}/admin/contactos?id=${client.id}`;
         

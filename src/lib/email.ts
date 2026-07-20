@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { retryWithBackoff } from '@/lib/retry-utils';
 
 // ============================================================================
 // ENVÍO DE EMAILS
@@ -78,20 +79,26 @@ async function sendViaResend({ to, subject, text, html, attachments, from, reply
         }));
     }
 
-    const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-    });
+    // Reintenta ante errores transitorios (5xx / red). Un fallo puntual de Resend
+    // ya no pierde el email en silencio.
+    return await retryWithBackoff(async () => {
+        const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
 
-    const data = await res.json();
-    if (!res.ok) {
-        throw new Error(`Resend ${res.status}: ${data?.message || JSON.stringify(data)}`);
-    }
-    return data.id as string;
+        const data = await res.json();
+        if (!res.ok) {
+            const err: any = new Error(`Resend ${res.status}: ${data?.message || JSON.stringify(data)}`);
+            err.status = res.status; // permite a isTransientNetworkError reintentar 5xx
+            throw err;
+        }
+        return data.id as string;
+    }, { label: 'Resend sendEmail', maxRetries: 3 });
 }
 
 /**

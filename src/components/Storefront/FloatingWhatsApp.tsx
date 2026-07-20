@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useState, useEffect } from "react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
@@ -43,11 +42,8 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
       
       {/* Tooltip de Invitación tipo Chat Bubble */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ delay: 1, duration: 0.4 }}
-        className="relative bg-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-100 hidden sm:block pointer-events-auto mr-2"
+      <div
+        className="wa-tooltip-in relative bg-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-100 hidden sm:block pointer-events-auto mr-2"
       >
         <p className="text-[13px] font-bold text-stone-800 tracking-tight mb-0.5">
           ¿Necesitás ayuda? 👋
@@ -57,7 +53,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
         </p>
         {/* El piquito del globo (Tail) */}
         <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-b border-r border-stone-100 transform rotate-45 rounded-sm"></div>
-      </motion.div>
+      </div>
 
       {/* Botón Flotante con animación de pulso */}
       <a 

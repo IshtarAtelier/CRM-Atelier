@@ -1057,7 +1057,10 @@ export const ContactService = {
                         discountCash: true,
                         discountTransfer: true,
                         discountCard: true,
-                        subtotalWithMarkup: true
+                        subtotalWithMarkup: true,
+                        // Vendedor: quién envió a fábrica (labSentBy) con fallback a quién creó el pedido (user)
+                        labSentBy: true,
+                        user: { select: { name: true } }
                     },
                     where: { isDeleted: false },
                     orderBy: { createdAt: 'desc' }

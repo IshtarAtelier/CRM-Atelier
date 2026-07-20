@@ -8,17 +8,25 @@ interface BillingStat {
     count: number;
 }
 
+const AR_OFFSET_MS = 3 * 60 * 60 * 1000; // Argentina = UTC-3, sin importar el TZ del server
+
+// 'YYYY-MM-DD' → inicio de ese día en hora argentina (03:00 UTC)
+const arDayStart = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d)
+    ? new Date(`${d}T03:00:00.000Z`)
+    : new Date(d);
+
+// 'YYYY-MM-DD' → fin de ese día en hora argentina
+const arDayEnd = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d)
+    ? new Date(new Date(`${d}T03:00:00.000Z`).getTime() + 24 * 60 * 60 * 1000 - 1)
+    : (() => { const t = new Date(d); t.setHours(23, 59, 59, 999); return t; })();
+
 export class ReportService {
     static async generateReportData(from: string | null, to: string | null) {
         try {
-        // Build date filter
+        // Build date filter (límites de día en hora argentina)
         const dateFilter: any = {};
-        if (from) dateFilter.gte = new Date(from);
-        if (to) {
-            const toDate = new Date(to);
-            toDate.setHours(23, 59, 59, 999);
-            dateFilter.lte = toDate;
-        }
+        if (from) dateFilter.gte = arDayStart(from);
+        if (to) dateFilter.lte = arDayEnd(to);
 
         const whereClause: any = {
             orderType: 'SALE',
@@ -201,16 +209,17 @@ export class ReportService {
             const pSaleCost = order.postSaleCases.reduce((sum: number, c: any) => sum + (c.cost || 0), 0) || 0;
             totalPostSaleCosts += pSaleCost;
 
-            const date = new Date(order.labSentAt || order.createdAt);
-            const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+            // Mes calendario en hora argentina (UTC-3), no en el TZ del server
+            const date = new Date(new Date(order.labSentAt || order.createdAt).getTime() - AR_OFFSET_MS);
+            const monthKey = `${monthNames[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
             if (!monthlyStats[monthKey]) monthlyStats[monthKey] = { revenue: 0, cost: 0, profit: 0, orders: 0 };
             monthlyStats[monthKey].revenue += orderPaidReal;
             monthlyStats[monthKey].orders += 1;
             monthlyStats[monthKey].cost += pSaleCost;
 
-            const objKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const objKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
             if (!objectiveMonths[objKey]) {
-                objectiveMonths[objKey] = { year: date.getFullYear(), month: date.getMonth() + 1, label: monthKey, billed: 0, collected: 0, orders: 0, vendors: {} };
+                objectiveMonths[objKey] = { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, label: monthKey, billed: 0, collected: 0, orders: 0, vendors: {} };
             }
             const objMonth = objectiveMonths[objKey];
             objMonth.billed += listPrice;
@@ -315,7 +324,9 @@ export class ReportService {
                 });
 
                 const pName = `${brandVal} ${nameVal}`.trim() || 'Producto';
-                const pId = item.productId || 'dynamic-crystal';
+                // Los cristales dinámicos no tienen productId: agrupar por nombre+tipo para
+                // no colapsar monofocal/multifocal/etc. distintos en una sola fila "dynamic-crystal".
+                const pId = item.productId || `dynamic:${pName}|${typeVal || categoryVal || ''}`.toLowerCase();
                 if (!productStats[pId]) productStats[pId] = { name: pName, type: typeVal || categoryVal || '', qty: 0, revenue: 0, cost: 0 };
                 
                 if (!(is2x1Order && isCrystalItem && item.price === 0)) {
@@ -359,7 +370,8 @@ export class ReportService {
             const doctorName = order.client?.doctor;
             let doctorFee = 0;
             if (doctorName) {
-                const doctorNet = orderPaidReal - orderPlatformFee - specialDesc;
+                // orderPaidReal ya viene neto del descuento especial (el total guardado lo descuenta)
+                const doctorNet = orderPaidReal - orderPlatformFee;
                 doctorFee = Math.max(0, doctorNet * DOCTOR_COMMISSION_RATE);
                 totalDoctorFees += doctorFee;
             }
@@ -372,10 +384,11 @@ export class ReportService {
             monthlyStats[monthKey].platformFeeSum! += orderPlatformFee;
             monthlyStats[monthKey].doctorFeeSum! += doctorFee;
 
-            monthlyStats[monthKey].profit = monthlyStats[monthKey].revenue 
-                - monthlyStats[monthKey].cost 
-                - monthlyStats[monthKey].specialDescSum! 
-                - monthlyStats[monthKey].platformFeeSum! 
+            // El revenue mensual se basa en pagos reales, que ya vienen netos del
+            // descuento especial — no volver a restar specialDescSum acá.
+            monthlyStats[monthKey].profit = monthlyStats[monthKey].revenue
+                - monthlyStats[monthKey].cost
+                - monthlyStats[monthKey].platformFeeSum!
                 - monthlyStats[monthKey].doctorFeeSum!;
 
             const types = Array.from(orderProductTypes);
@@ -384,7 +397,7 @@ export class ReportService {
             else if (types.includes('CRISTAL')) orderTypeLabel = 'CRISTAL';
             else if (types.includes('ARMAZÓN')) orderTypeLabel = 'ARMAZÓN';
 
-            const saleNetProfit = orderPaidReal - orderCMV - orderPlatformFee - doctorFee - specialDesc;
+            const saleNetProfit = orderPaidReal - orderCMV - orderPlatformFee - doctorFee;
             salesDetail.push({
                 id: order.id.slice(-6),
                 fullId: order.id,
@@ -416,7 +429,8 @@ export class ReportService {
         }
 
         const totalCosts = totalCostFrames + totalCostLenses + totalCostOther + totalPostSaleCosts;
-        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts - totalMarketingCosts - totalSpecialDiscounts;
+        // totalRevenue son pagos reales (ya netos del descuento especial): no restar totalSpecialDiscounts.
+        const netProfit = totalRevenue - totalCosts - totalPlatformFees - totalDoctorFees - totalFixedCosts - totalMarketingCosts;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
         const invoicesWhere: any = { status: 'COMPLETED' };

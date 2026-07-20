@@ -64,7 +64,7 @@ export async function middleware(request: NextRequest) {
     const isCheckoutBypass = pathname.startsWith('/api/checkout/') && !(pathname === '/api/checkout/session' && request.method === 'GET');
     const isPublicGetApi = request.method === 'GET' && (pathname === '/api/settings' || pathname === '/api/reviews' || pathname === '/api/health');
     
-    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !isCheckoutBypass && !pathname.startsWith('/api/storage/view') && !pathname.startsWith('/api/admin/alert') && !isPublicGetApi) {
+    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/complaints') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !isCheckoutBypass && !pathname.startsWith('/api/storage/view') && !pathname.startsWith('/api/admin/alert') && !isPublicGetApi) {
         if (!token) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }
@@ -84,8 +84,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next({ request: { headers: sanitizedHeaders } });
     }
 
-    // Proteger rutas internas de bot (wa-service) o admin panel (incluyendo alertas de admin)
-    if (pathname.startsWith('/api/bot/') || pathname.startsWith('/api/whatsapp/') || pathname.startsWith('/api/admin/alert')) {
+    // Proteger rutas internas de bot (wa-service) o admin panel (incluyendo alertas
+    // de admin y reclamos post-venta que el bot registra con BOT_API_KEY). Aceptan
+    // API key (wa-service) O sesión no-OPTICA (panel).
+    if (pathname.startsWith('/api/bot/') || pathname.startsWith('/api/whatsapp/') || pathname.startsWith('/api/complaints') || pathname.startsWith('/api/admin/alert')) {
         const apiKey = request.headers.get('x-api-key');
         const validKey = process.env.BOT_API_KEY;
 
