@@ -203,20 +203,34 @@ export class LabCostReconciliationService {
                 data: { lab: input.lab, labOrderNumber: cleanNumber, ...data },
             });
 
-        // Alertar solo cuando el sobrecosto es nuevo (entrada nueva o que cambió
-        // de estado), para no repetir el mail en cada corrida del cron.
-        const isNewOvercost = status === 'OVERCOST' && (!existing || existing.status !== 'OVERCOST');
-        if (isNewOvercost && order && isPrimaryOfSale) {
-            await this.sendOvercostAlert(entry, order).catch(err =>
-                console.error('[LabCost] Error enviando alerta de sobrecosto:', err)
-            );
+        const prevBilled = existing ? (existing.billedNet ?? existing.billedTotal ?? null) : null;
+        const billedChanged = (billedComparable ?? null) !== prevBilled;
+        // "Llegó la factura": el pedido no tenía importe y ahora sí.
+        const facturaRecienLlegada = billedComparable !== null && prevBilled === null;
+
+        // OPTOVISION (pedidos de alto valor): avisar por CADA factura que ingresa,
+        // diga lo que diga (coincide / sobrecosto / menor). Cruza de quién es,
+        // asigna el monto e informa en el momento. Cubre también el sobrecosto,
+        // así que para Optovision no se manda además la alerta genérica.
+        if (input.lab === 'OPTOVISION' && order && facturaRecienLlegada && isPrimaryOfSale) {
+            await this.sendInvoiceArrivalAlert(entry, order, {
+                saleBilled, systemCost, status, difference, pvCase,
+                ventaCompleta, faltan: Math.max(0, orderNumbers.length - facturadosEnVenta),
+            }).catch(err => console.error('[LabCost] Error enviando aviso de factura Optovision:', err));
+        } else {
+            // Resto de labs (Grupo Óptico): alerta solo cuando el sobrecosto es
+            // nuevo, una vez por venta, sin repetir en cada corrida.
+            const isNewOvercost = status === 'OVERCOST' && (!existing || existing.status !== 'OVERCOST');
+            if (isNewOvercost && order && isPrimaryOfSale) {
+                await this.sendOvercostAlert(entry, order).catch(err =>
+                    console.error('[LabCost] Error enviando alerta de sobrecosto:', err)
+                );
+            }
         }
 
         // Auditoría de POSTVENTA: un reproceso debería venir sin cargo (garantía;
         // Optovision los factura a ~$0). Si el pedido nació de un caso de postventa
         // y la factura trae plata, alertar apenas aparece el importe.
-        const prevBilled = existing ? (existing.billedNet ?? existing.billedTotal ?? null) : null;
-        const billedChanged = (billedComparable ?? null) !== prevBilled;
         if (pvCase && order && billedComparable !== null && billedComparable > 5000 && billedChanged) {
             await this.sendChargedReworkAlert(entry, order, pvCase, billedComparable).catch(err =>
                 console.error('[LabCost] Error enviando alerta de reproceso cobrado:', err)
@@ -429,6 +443,63 @@ export class LabCostReconciliationService {
      * (por fecha de envío al lab, o de creación si nunca se envió), con costo
      * sistema, costo real facturado (si ya se cargó/escaneó) y diferencia.
      */
+    /**
+     * Resumen semanal de conciliación para ambos laboratorios: qué facturas
+     * ingresaron en la ventana (por invoiceDate), montos, y el estado GLOBAL
+     * vigente por lab (con venta / sin venta / esperando factura / sobrecostos).
+     * Es la base del email de fin de semana para llevar la tratativa al día.
+     */
+    static async weeklyReport(from: Date, to: Date) {
+        const entries = await prisma.labCostEntry.findMany({
+            include: { order: { select: { clientId: true, client: { select: { name: true } } } } },
+        });
+
+        const billedOf = (e: any) => e.lab === 'OPTOVISION'
+            ? (e.billedTotal ?? e.billedNet ?? null)
+            : (e.billedNet ?? e.billedTotal ?? null);
+
+        const perLab: Record<string, any> = {};
+        for (const lab of ['OPTOVISION', 'GRUPO_OPTICO']) {
+            const rows = entries.filter(e => e.lab === lab);
+            const nuevasSemana = rows.filter(e => e.invoiceDate && e.invoiceDate >= from && e.invoiceDate < to);
+            const facturadoSemana = nuevasSemana.reduce((t, e) => t + (billedOf(e) || 0), 0);
+            const count = (s: string) => rows.filter(e => e.status === s).length;
+            perLab[lab] = {
+                totalPedidos: rows.length,
+                facturasSemana: nuevasSemana.length,
+                facturadoSemana,
+                sinVenta: count('UNMATCHED'),
+                esperandoFactura: count('PENDING'),
+                ok: count('OK'),
+                sobrecostos: count('OVERCOST'),
+                menorCosto: count('UNDERCOST'),
+                // Cuenta corriente / facturado acumulado por lab (todo lo que tiene importe).
+                facturadoAcumulado: rows.reduce((t, e) => t + (billedOf(e) || 0), 0),
+                // Detalle de las facturas de la semana (para la tabla del email).
+                detalleSemana: nuevasSemana
+                    .sort((a, b) => (b.invoiceDate!.getTime()) - (a.invoiceDate!.getTime()))
+                    .map(e => ({
+                        labOrderNumber: e.labOrderNumber,
+                        cliente: e.order?.client?.name || (e.status === 'UNMATCHED' ? 'SIN VENTA' : '—'),
+                        clientId: e.order?.clientId || null,
+                        billed: billedOf(e),
+                        systemCost: e.systemCost,
+                        difference: e.difference,
+                        status: e.status,
+                        esPostventa: (e.notes || '').includes('POSTVENTA (caso'),
+                    })),
+            };
+        }
+
+        // Sobrecostos vigentes (para destacar arriba, sobre todo Optovision).
+        const sobrecostosVigentes = entries
+            .filter(e => e.status === 'OVERCOST')
+            .map(e => ({ lab: e.lab, labOrderNumber: e.labOrderNumber, cliente: e.order?.client?.name || '—', difference: e.difference }))
+            .sort((a, b) => (b.difference || 0) - (a.difference || 0));
+
+        return { from, to, perLab, sobrecostosVigentes };
+    }
+
     static async monthlyReport(year: number, month: number) {
         // Límites del mes en hora argentina (UTC-3).
         const desde = new Date(Date.UTC(year, month - 1, 1, 3));
@@ -558,6 +629,60 @@ export class LabCostReconciliationService {
             if (updated && updated.status !== entry.status) rematched++;
         }
         return { checked: pendientes.length, rematched };
+    }
+
+    /**
+     * Aviso en el momento de que llegó una factura de Optovision: de quién es,
+     * el monto asignado y si coincide con el costo del sistema (o es más/menos).
+     * Contempla 2x1 (si falta el otro par, avisa que la comparación es parcial) y
+     * postventa. Es el "informame apenas entra" que pidió el usuario.
+     */
+    private static async sendInvoiceArrivalAlert(entry: any, order: any, ctx: {
+        saleBilled: number | null; systemCost: number | null; status: string;
+        difference: number | null; pvCase: any; ventaCompleta: boolean; faltan: number;
+    }) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
+        const fmt = (n: number | null | undefined) => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
+        const cliente = order.client?.name || 'cliente';
+        const propio = fmt(entry.billedNet ?? entry.billedTotal);
+
+        // Veredicto de la comparación (solo si la venta ya tiene todas sus facturas).
+        let veredicto: string; let color: string; let emoji: string;
+        if (!ctx.ventaCompleta) {
+            veredicto = `Comparación parcial: faltan ${ctx.faltan} factura(s) de esta venta (2x1) para el total.`;
+            color = '#6b7280'; emoji = '⏳';
+        } else if (ctx.status === 'OVERCOST') {
+            veredicto = `SOBRECOSTO: el lab cobró ${fmt(ctx.difference)} MÁS que el sistema.`;
+            color = '#b91c1c'; emoji = '🚨';
+        } else if (ctx.status === 'UNDERCOST') {
+            veredicto = `El lab cobró ${fmt(Math.abs(ctx.difference || 0))} MENOS que el sistema.`;
+            color = '#059669'; emoji = '✅';
+        } else {
+            veredicto = 'El costo COINCIDE con el sistema (dentro de tolerancia).';
+            color = '#059669'; emoji = '✅';
+        }
+        const pv = ctx.pvCase ? ` · ⚠️ Corresponde a un caso de POSTVENTA (${ctx.pvCase.caseType || 's/tipo'}${ctx.pvCase.coverage ? `, ${ctx.pvCase.coverage}` : ''}) — un reproceso en garantía debería venir sin cargo.` : '';
+
+        await sendEmail({
+            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+            subject: `${emoji} Factura Optovision: pedido ${entry.labOrderNumber} — ${cliente} (${propio})`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #1f2937;">
+                    <h2 style="color: ${color};">${emoji} Llegó una factura de Optovision</h2>
+                    <p><strong>Pedido ${entry.labOrderNumber}</strong> — <strong>${cliente}</strong></p>
+                    <table style="width:100%; border-collapse:collapse; margin:12px 0; font-size:14px;">
+                        <tr><td style="padding:8px; border:1px solid #ddd;">Costo facturado (este pedido)</td><td style="padding:8px; border:1px solid #ddd; text-align:right; font-weight:bold;">${propio}</td></tr>
+                        ${ctx.ventaCompleta ? `
+                        <tr><td style="padding:8px; border:1px solid #ddd;">Total facturado de la venta</td><td style="padding:8px; border:1px solid #ddd; text-align:right;">${fmt(ctx.saleBilled)}</td></tr>
+                        <tr><td style="padding:8px; border:1px solid #ddd;">Costo de lista del sistema</td><td style="padding:8px; border:1px solid #ddd; text-align:right;">${fmt(ctx.systemCost)}</td></tr>` : ''}
+                    </table>
+                    <p style="font-weight:bold; color:${color};">${veredicto}${pv}</p>
+                    ${entry.sourceFile ? `<p style="font-size:12px; color:#6b7280;">Factura: ${entry.sourceFile}</p>` : ''}
+                    <p style="margin-top:14px;"><a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente</a> · <a href="${appUrl}/admin/laboratorio/costos">Ver conciliación</a></p>
+                </div>
+            `,
+        });
+        console.log(`[LabCost] Aviso de factura Optovision enviado: pedido ${entry.labOrderNumber} (${propio}, ${entry.status})`);
     }
 
     private static async sendChargedReworkAlert(entry: any, order: any, pvCase: any, billed: number) {
