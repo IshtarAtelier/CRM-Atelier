@@ -927,7 +927,7 @@ export const ContactService = {
         });
     },
 
-    async addInteraction(clientId: string, type: string, content: string, actor?: Actor, directedToId?: string | null) {
+    async addInteraction(clientId: string, type: string, content: string, actor?: Actor, directedToId?: string | null, imageUrl?: string | null) {
         // Nota dirigida: se guarda a quién va y se le avisa por email con link
         // a la ficha (su casilla propia o la compartida del local).
         const directedTo = directedToId
@@ -945,7 +945,8 @@ export const ContactService = {
                 userId: actor?.id || null,
                 userName: actor?.name || null,
                 directedToId: directedTo?.id || null,
-                directedToName: directedTo?.name || null
+                directedToName: directedTo?.name || null,
+                imageUrl: imageUrl || null
             }
         });
 

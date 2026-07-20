@@ -9,7 +9,7 @@ export async function POST(
     try {
         const { id } = await params;
         const body = await request.json();
-        const { type, content, directedToId } = body;
+        const { type, content, directedToId, imageUrl } = body;
 
         if (!content) {
             return NextResponse.json({ error: 'El contenido es obligatorio' }, { status: 400 });
@@ -17,7 +17,7 @@ export async function POST(
 
         // La nota queda firmada por el usuario logueado (quién la dejó); si va
         // dirigida a alguien, se le avisa por email con link a la ficha.
-        const interaction = await ContactService.addInteraction(id, type || 'NOTE', content, getActor(request), directedToId || null);
+        const interaction = await ContactService.addInteraction(id, type || 'NOTE', content, getActor(request), directedToId || null, imageUrl || null);
         return NextResponse.json(interaction);
     } catch (error) {
         console.error('Error adding interaction:', error);
