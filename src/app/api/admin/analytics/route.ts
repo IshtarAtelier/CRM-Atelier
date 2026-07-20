@@ -15,10 +15,13 @@ function parseRange(url: string) {
   const now = new Date();
   const defFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const from = searchParams.get('from') ? new Date(searchParams.get('from')!) : defFrom;
-  const toRaw = searchParams.get('to') ? new Date(searchParams.get('to')!) : now;
-  // incluir todo el día "to"
-  const to = new Date(toRaw.getTime());
-  if (!searchParams.get('to')) to.setTime(now.getTime());
+  const toParam = searchParams.get('to');
+  let to = toParam ? new Date(toParam) : now;
+  // "to" como fecha sola (YYYY-MM-DD) parsea a medianoche UTC y dejaría afuera
+  // todo lo ocurrido ESE día. Extender al final del día para incluirlo completo.
+  if (toParam && /^\d{4}-\d{2}-\d{2}$/.test(toParam)) {
+    to = new Date(to.getTime() + 24 * 60 * 60 * 1000 - 1);
+  }
   return { from, to };
 }
 
