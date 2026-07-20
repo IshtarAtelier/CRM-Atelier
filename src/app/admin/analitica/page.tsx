@@ -11,7 +11,7 @@ type Analytics = {
   traffic: { visits: number; uniqueVisitors: number; series: { day: string; visits: number; visitors: number }[] };
   funnel: {
     visitors: number; viewedProduct: number; addedToCart: number;
-    beganCheckout: number; purchased: number;
+    beganCheckout: number; addedContact: number; purchased: number;
     totals: Record<string, number>;
   };
   revenue: { orders: number; total: number };
@@ -124,6 +124,7 @@ export default function AnaliticaPage() {
               <FunnelBar label="Vieron un producto" value={f!.viewedProduct} base={f!.visitors} />
               <FunnelBar label="Agregaron al carrito" value={f!.addedToCart} base={f!.visitors} />
               <FunnelBar label="Iniciaron checkout" value={f!.beganCheckout} base={f!.visitors} />
+              <FunnelBar label="Dejaron contacto" value={f!.addedContact} base={f!.visitors} />
               <FunnelBar label="Compraron" value={f!.purchased} base={f!.visitors} highlight />
             </div>
             <p className="text-xs text-muted-foreground mt-3">
