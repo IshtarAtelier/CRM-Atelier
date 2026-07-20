@@ -17,9 +17,9 @@ export async function POST(req: Request) {
     if (limited) return limited;
 
     const raw = await req.json().catch(() => null);
-    const { data, error } = validateBody(webContactSchema, raw);
-    if (error) return NextResponse.json({ error }, { status: 400 });
-    const { name, email, phone, subject, message } = data;
+    const result = validateBody(webContactSchema, raw);
+    if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });
+    const { name, email, phone, subject, message } = result.data;
 
     const normalizedPhone = phone ? normalizeArgentinePhone(phone) : null;
 

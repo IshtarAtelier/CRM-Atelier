@@ -22,9 +22,9 @@ export type WebContactInput = z.infer<typeof webContactSchema>;
 export function validateBody<T>(
   schema: z.ZodType<T>,
   body: unknown,
-): { data: T; error?: undefined } | { data?: undefined; error: string } {
+): { success: true; data: T } | { success: false; error: string } {
   const parsed = schema.safeParse(body);
-  if (parsed.success) return { data: parsed.data };
+  if (parsed.success) return { success: true, data: parsed.data };
   const first = parsed.error.issues[0];
-  return { error: first ? first.message : 'Datos inválidos' };
+  return { success: false, error: first ? first.message : 'Datos inválidos' };
 }
