@@ -35,7 +35,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
       .catch(() => {});
   };
 
-  useEffect(() => { if (productId) load(); /* eslint-disable-next-line */ }, [productId]);
+  useEffect(() => { if (productId) load(); }, [productId]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
