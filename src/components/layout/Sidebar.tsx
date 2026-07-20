@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store } from "lucide-react";
+import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store, LineChart } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -69,6 +69,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/opticas", label: "↳ Captación Ópticas", icon: Store, adminOnly: true, isSubLink: true },
       { href: "/admin/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
       { href: "/admin/web", label: "Sitio Web", icon: ShoppingCart, adminOnly: true },
+      { href: "/admin/analitica", label: "↳ Analítica Web", icon: LineChart, adminOnly: true, isSubLink: true },
       { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
       { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
       { href: "/admin/ventas?mode=WEB", label: "↳ Ventas Web", icon: Globe, adminOnly: false, isSubLink: true },
