@@ -18,6 +18,14 @@ const CARD_TERMINAL_METHODS = [
 ];
 
 /**
+ * A partir de cuántos días de antigüedad (fecha del comprobante vs. hoy) se avisa
+ * "comprobante viejo". 10 días da margen para transferencias que el vendedor sube
+ * unos días después del pago, sin dejar de avisar por un comprobante claramente
+ * de otra venta. (Decisión del usuario, 2026-07-20.)
+ */
+const STALE_RECEIPT_DAYS = 10;
+
+/**
  * Parsea una fecha impresa en un comprobante a un Date, de forma determinística
  * (NO depende de cómo la IA interprete el formato). Soporta:
  *  - Argentino día/mes/año: "17/07/26", "17/07/2026", "17-07-26" → 17-jul-2026
@@ -265,7 +273,7 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 // Solo el PASADO: una fecha futura es casi seguro un error de lectura,
                 // no un comprobante "viejo" — no tiene sentido avisar por eso.
                 const diffDays = Math.floor((now.getTime() - receiptDate.getTime()) / (1000 * 60 * 60 * 24));
-                if (diffDays > 5) {
+                if (diffDays > STALE_RECEIPT_DAYS) {
                     const fechaFmt = formatDate(receiptDate);
                     errors.push(`Fecha antigua. El comprobante indica la fecha ${fechaFmt}.`);
                     vendorIssues.push(`El comprobante es del ${fechaFmt}, quedó viejo — fíjense que sea el que corresponde a esta venta.`);
