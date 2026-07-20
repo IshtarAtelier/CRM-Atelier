@@ -5,6 +5,7 @@ import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
 import { retryWithBackoff } from '@/lib/retry-utils';
 import { notifyReceiptUploaded, notifyVendorsReceiptError, type DuplicatePaymentRef } from '@/lib/receipt-notify';
+import { formatDate } from '@/lib/format-date';
 
 export class ReceiptAgentService {
     /**
@@ -74,7 +75,7 @@ Extrae la siguiente información y preséntala ESTRICTAMENTE en formato JSON pla
 {
   "amount": número decimal obtenido del comprobante, sin símbolos ni puntos de miles, usando punto para decimales,
   "cuit": "el CUIT o CUIL del DESTINATARIO (el que cobra el dinero, no el que paga) si aparece, sin guiones. Si no aparece pon null",
-  "date": "fecha del pago extraída del comprobante en formato YYYY-MM-DD. Si no aparece pon null",
+  "date": "fecha del pago extraída del comprobante. IMPORTANTE: en los comprobantes argentinos la fecha viene en formato DÍA/MES/AÑO (dd/MM/aa o dd/MM/aaaa). Por ejemplo '17/07/26' es el 17 de julio de 2026 (NO 2017): el primer número es el día, no el año. Un año de dos dígitos como '26' significa 2026. Convertí esa fecha y devolvela en formato YYYY-MM-DD. Si no aparece pon null",
   "transaction_id": "El número de transferencia, Nro de Operación, ID de transacción, o código de autorización único del comprobante. Si no encuentras, devuelve null"
 }
 Solo devuelve el JSON, sin texto antes ni después.`;
@@ -209,8 +210,9 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 const diffTime = Math.abs(now.getTime() - docDate.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
                 if (diffDays > 5) {
-                    errors.push(`Fecha antigua. El comprobante indica la fecha ${extracted.date}.`);
-                    vendorIssues.push(`El comprobante es del ${extracted.date}, quedó viejo — fíjense que sea el que corresponde a esta venta.`);
+                    const fechaFmt = formatDate(extracted.date);
+                    errors.push(`Fecha antigua. El comprobante indica la fecha ${fechaFmt}.`);
+                    vendorIssues.push(`El comprobante es del ${fechaFmt}, quedó viejo — fíjense que sea el que corresponde a esta venta.`);
                 }
             }
 
