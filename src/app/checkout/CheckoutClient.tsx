@@ -13,6 +13,7 @@ import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySid
 import type { AppliedCoupon } from "@/components/checkout/CouponField";
 import { WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
+import { getSessionId } from "@/lib/client-analytics";
 import { toast } from "sonner";
 
 export function CheckoutClient({ 
@@ -420,7 +421,8 @@ export function CheckoutClient({
               paymentToken: token,
               bin: bin,
               paymentMethodId: paymentMethodId,
-              deviceUniqueIdentifier: deviceFingerprint
+              deviceUniqueIdentifier: deviceFingerprint,
+              analyticsSessionId: getSessionId()
             })
           });
 
