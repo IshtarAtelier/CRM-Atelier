@@ -158,15 +158,21 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 vendorIssues.push(`El comprobante está por $${extracted.amount.toLocaleString('es-AR')} pero el pago lo cargaron por $${expectedAmount.toLocaleString('es-AR')}.`);
             }
 
-            // B) Check CUIT — SOLO para transferencias bancarias. En los tickets
-            // de tarjeta (Payway/Naranja/Go Cuotas) el CUIT impreso es el de la
-            // TERMINAL del comercio, que legítimamente NO coincide con el CUIT de
-            // facturación AFIP (ISH/YANI) → era la fuente del falso positivo de CUIT.
+            // B) Check CUIT — se compara solo si hay un CUIT de facturación esperado
+            // y NO es un ticket de tarjeta. Alcance real HOY: `expectedCuit` sale de
+            // detectBillingAccount(), que solo resuelve cuenta (ISH/YANI) para métodos
+            // de tarjeta, y esos se saltean acá porque el ticket imprime el CUIT de la
+            // TERMINAL del comercio, no el de AFIP (era la fuente del falso positivo).
+            // Las transferencias no están mapeadas a una cuenta → expectedCuit=null →
+            // este chequeo hoy NO dispara para ningún medio; queda listo para cuando se
+            // configure el CUIT de las cuentas de transferencia. Se coacciona a String
+            // por si la IA devuelve el CUIT como número.
             const isCardTerminal = CARD_TERMINAL_METHODS.includes(method);
             if (!isCardTerminal && expectedCuit && extracted.cuit) {
-                if (!extracted.cuit.includes(expectedCuit.toString())) {
-                     errors.push(`CUIT de destino distinto. Se esperaba ${expectedCuit} y figura ${extracted.cuit}.`);
-                     vendorIssues.push(`La transferencia fue a otro CUIT: en el comprobante figura ${extracted.cuit} y tendría que ser ${expectedCuit}.`);
+                const extractedCuit = String(extracted.cuit);
+                if (!extractedCuit.includes(expectedCuit.toString())) {
+                     errors.push(`CUIT de destino distinto. Se esperaba ${expectedCuit} y figura ${extractedCuit}.`);
+                     vendorIssues.push(`La transferencia fue a otro CUIT: en el comprobante figura ${extractedCuit} y tendría que ser ${expectedCuit}.`);
                 }
             }
 
@@ -239,11 +245,14 @@ Solo devuelve el JSON, sin texto antes ni después.`;
             }
 
             // D) Check Date — solo avisa si el comprobante es genuinamente VIEJO.
-            // Se parsea la fecha impresa de forma determinística (formato argentino
-            // dd/MM/aa) para no depender de cómo la convierta la IA: "17/07/26" es
-            // 17-jul-2026, no 2017. Fallback al ISO que devuelve la IA.
-            const receiptDate = parseArgentineReceiptDate(extracted.date_raw)
-                || (extracted.date ? new Date(extracted.date) : null);
+            // Se parsea la fecha impresa de forma DETERMINÍSTICA (parseArgentineReceiptDate,
+            // acepta dd/MM/aa o ISO) para no depender de cómo la convierta la IA:
+            // "17/07/26" es 17-jul-2026, no 2017. A propósito NO se cae a
+            // `extracted.date` (la fecha que la IA ya convirtió): si la IA mal-sigla
+            // el año ahí, reintroduciría el falso positivo de "comprobante viejo".
+            // Si no se puede leer date_raw de forma confiable, NO se avisa: preferimos
+            // perder una detección antes que mandarle un falso positivo a los vendedores.
+            const receiptDate = parseArgentineReceiptDate(extracted.date_raw);
             if (receiptDate && !isNaN(receiptDate.getTime())) {
                 const now = new Date();
                 // Solo el PASADO: una fecha futura es casi seguro un error de lectura,
