@@ -27,6 +27,7 @@ interface LabCostEntry {
         createdAt: string;
         client: { name: string } | null;
     } | null;
+    productos?: { productId: string | null; nombre: string; marca: string; costo: number | null }[];
 }
 
 interface StatusTotal {
@@ -577,6 +578,7 @@ export default function LabCostosPage() {
                                 <th className="px-4 py-3">Nº pedido</th>
                                 <th className="px-4 py-3">Lab</th>
                                 <th className="px-4 py-3">Cliente</th>
+                                <th className="px-4 py-3">Producto (ver/ajustar costo)</th>
                                 <th className="px-4 py-3">Fecha factura</th>
                                 <th className="px-4 py-3 text-right">Costo sistema</th>
                                 <th className="px-4 py-3 text-right">Costo facturado</th>
@@ -603,6 +605,23 @@ export default function LabCostosPage() {
                                             ) : (
                                                 <span className="text-gray-400" title={entry.notes || undefined}>sin venta</span>
                                             )}
+                                        </td>
+                                        <td className="px-4 py-3 text-xs">
+                                            {entry.productos && entry.productos.length > 0 ? (
+                                                <div className="flex flex-col gap-0.5">
+                                                    {entry.productos.map((p, i) => (
+                                                        p.productId ? (
+                                                            <Link key={i} href={`/admin/inventario?edit=${p.productId}`} target="_blank"
+                                                                className="text-indigo-600 hover:underline" title={`Costo cargado: ${fmt(p.costo)} — clic para ver/ajustar`}>
+                                                                {p.marca ? `${p.marca} ` : ''}{p.nombre}
+                                                                {p.costo != null && <span className="text-gray-400"> · {fmt(p.costo)}</span>}
+                                                            </Link>
+                                                        ) : (
+                                                            <span key={i} className="text-gray-500">{p.marca ? `${p.marca} ` : ''}{p.nombre}</span>
+                                                        )
+                                                    ))}
+                                                </div>
+                                            ) : <span className="text-gray-300">—</span>}
                                         </td>
                                         <td className="px-4 py-3 text-gray-600">{fmtDate(entry.invoiceDate)}</td>
                                         <td className="px-4 py-3 text-right text-gray-900">{fmt(entry.systemCost)}</td>

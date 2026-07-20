@@ -6,6 +6,22 @@ import { ProductService } from '@/services/product.service';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
 
+// GET /api/products/[id] — un producto por id (para deep-links, ej. abrir la
+// ficha del producto desde la conciliación de costos de laboratorio).
+export async function GET(
+    _request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const product = await prisma.product.findUnique({ where: { id } });
+        if (!product) return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
+        return NextResponse.json(product);
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
 export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }

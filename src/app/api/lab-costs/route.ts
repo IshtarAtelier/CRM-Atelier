@@ -29,11 +29,49 @@ export async function GET(request: Request) {
                         clientId: true,
                         createdAt: true,
                         client: { select: { name: true } },
+                        // Ítems para mostrar QUÉ producto es y linkear a su ficha
+                        // (poder revisar/ajustar el costo desde la conciliación).
+                        items: {
+                            select: {
+                                eye: true,
+                                productId: true,
+                                productNameSnapshot: true,
+                                productBrandSnapshot: true,
+                                productCategorySnapshot: true,
+                                productCostSnapshot: true,
+                                laboratorySnapshot: true,
+                                product: { select: { id: true, name: true, model: true, brand: true, cost: true, category: true, laboratory: true } },
+                            },
+                        },
                     },
                 },
             },
             orderBy: [{ invoiceDate: 'desc' }, { createdAt: 'desc' }],
             take: 500,
+        });
+
+        // Resumen de productos por entrada: solo los ítems del laboratorio de esa
+        // entrada (cristales), dedup por producto, con nombre, id (link) y costo.
+        const LAB_PAT: Record<string, RegExp> = {
+            OPTOVISION: /optovision/i, GRUPO_OPTICO: /grupo[\s\-]?[oó]ptico/i,
+        };
+        const entriesConProductos = entries.map((e: any) => {
+            const pat = LAB_PAT[e.lab];
+            const items: any[] = e.order?.items || [];
+            const labItems = pat ? items.filter(i => pat.test(i.laboratorySnapshot || i.product?.laboratory || '')) : [];
+            const rel = labItems.length ? labItems : items.filter(i => /cristal/i.test(i.productCategorySnapshot || i.product?.category || ''));
+            const byId = new Map<string, any>();
+            for (const i of (rel.length ? rel : items)) {
+                const pid = i.productId || i.product?.id || null;
+                const nombre = i.productNameSnapshot || i.product?.model || i.product?.name || 'Producto';
+                const marca = i.productBrandSnapshot || i.product?.brand || '';
+                const costo = i.productCostSnapshot ?? i.product?.cost ?? null;
+                const k = pid || nombre;
+                if (!byId.has(k)) byId.set(k, { productId: pid, nombre, marca, costo });
+            }
+            const productos = [...byId.values()];
+            const { items: _omit, ...orderRest } = e.order || {};
+            return { ...e, order: e.order ? orderRest : null, productos };
         });
 
         const totals = await prisma.labCostEntry.groupBy({
@@ -55,7 +93,7 @@ export async function GET(request: Request) {
             distinct: ['lab'],
         });
 
-        return NextResponse.json({ entries, totals, auditRuns, statements });
+        return NextResponse.json({ entries: entriesConProductos, totals, auditRuns, statements });
     } catch (error: any) {
         console.error('[lab-costs GET] Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

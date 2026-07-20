@@ -274,6 +274,19 @@ export default function InventarioPage() {
         setShowEditRanges(false);
     };
 
+    // Deep-link: /admin/inventario?edit=<productId> abre directo la ficha del
+    // producto (lo usa la conciliación de costos de lab para "entrar al producto"
+    // y revisar/ajustar el costo). Trae el producto por id, no depende del filtro.
+    useEffect(() => {
+        const editId = new URLSearchParams(window.location.search).get('edit');
+        if (!editId) return;
+        fetch(`/api/products/${editId}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(p => { if (p && p.id) startEdit(p as Product); })
+            .catch(() => {});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleSaveEdit = async () => {
         if (!editingProduct) return;
         const isEditCristal = checkCristal(editingProduct);
