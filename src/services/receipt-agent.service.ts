@@ -55,6 +55,65 @@ export function parseArgentineReceiptDate(raw?: string | null): Date | null {
 
 export class ReceiptAgentService {
     /**
+     * Extrae SOLO el nº de operación (transferencia / transacción) de un comprobante.
+     * Lo usa el pre-chequeo de duplicados de ContactService.addPayment de forma
+     * SINCRÓNICA (el vendedor espera la respuesta): ante un pago con mismo
+     * monto+medio+cliente que otro reciente, el nº de operación del comprobante
+     * nuevo es lo que decide si es realmente el mismo pago o dos pagos legítimos.
+     * Devuelve null si no hay archivo legible o la IA no encuentra un nº claro —
+     * en ese caso el que llama debe mantener el bloqueo (default seguro).
+     */
+    static async extractTransactionId(receiptUrl: string): Promise<string | null> {
+        try {
+            const buffer = await getFileBuffer(receiptUrl);
+            if (!buffer) return null;
+
+            let mimeType = 'image/jpeg';
+            if (receiptUrl.toLowerCase().endsWith('.png')) mimeType = 'image/png';
+            if (receiptUrl.toLowerCase().endsWith('.webp')) mimeType = 'image/webp';
+            if (receiptUrl.toLowerCase().endsWith('.pdf')) mimeType = 'application/pdf';
+
+            const model = new ChatVertexAI({
+                model: "gemini-2.5-flash",
+                location: "global",
+                maxOutputTokens: 256,
+                temperature: 0,
+            });
+
+            const systemPrompt = `Eres un auditor de pagos. Analiza el comprobante adjunto y devuelve ESTRICTAMENTE este JSON plano, sin texto antes ni después:
+{
+  "transaction_id": "El número de transferencia, Nro de Operación, ID de transacción, o código de autorización único del comprobante. Si no encuentras uno claro, devuelve null"
+}`;
+
+            const response = await retryWithBackoff(
+                () => model.invoke([
+                    new SystemMessage(systemPrompt),
+                    new HumanMessage({
+                        content: [
+                            { type: "text", text: "Extrae el número de operación de este comprobante." },
+                            {
+                                type: "image_url",
+                                image_url: { url: `data:${mimeType};base64,${buffer.toString('base64')}` }
+                            }
+                        ]
+                    })
+                ]),
+                { label: 'ReceiptDedup' }
+            );
+
+            const text = response.content.toString();
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return null;
+            const parsed = JSON.parse(jsonMatch[0]);
+            const tx = parsed?.transaction_id ? String(parsed.transaction_id).trim() : '';
+            return tx && tx.toLowerCase() !== 'null' ? tx : null;
+        } catch (e) {
+            console.error('[ReceiptAgent] extractTransactionId falló:', e);
+            return null;
+        }
+    }
+
+    /**
      * Analiza asíncronamente un comprobante para buscar discrepancias (monto, CUIT, fecha, duplicación).
      */
     static async analyzeReceipt(

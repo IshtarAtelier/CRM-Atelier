@@ -160,6 +160,35 @@ export interface ContactCreateData {
     createdBy?: string;
 }
 
+// ── Duplicados de pago: comparación por nº de operación ─────────
+// El bloqueo por monto+medio+cliente da falsos positivos cuando un cliente hace
+// dos pagos legítimos por el mismo importe (p.ej. dos señas iguales con días de
+// diferencia). La referencia canónica de cada pago desempata: si los números de
+// operación son claramente distintos, NO es un duplicado.
+
+/**
+ * Referencia canónica de un pago: prioriza el nº de operación verificado por la
+ * IA (tag [TX: ...] que estampa el auditor de comprobantes) y cae a la
+ * referencia tipeada por el vendedor. Null si no hay ninguna.
+ */
+function paymentReference(notes?: string | null): string | null {
+    if (!notes) return null;
+    const txMatch = notes.match(/\[TX:\s*(.+?)\]/);
+    const ref = (txMatch ? txMatch[1] : notes.replace(/\s*\[TX:.*?\]\s*/g, '')).trim();
+    return ref || null;
+}
+
+/**
+ * Dos referencias cuentan como EL MISMO pago si una contiene a la otra (mismo
+ * criterio de matching que usa el auditor de comprobantes al auto-corregir).
+ * Solo dos referencias claramente distintas levantan el bloqueo de duplicado;
+ * ante falta de datos (null) se mantiene el bloqueo.
+ */
+function referencesAreDistinct(a?: string | null, b?: string | null): boolean {
+    if (!a || !b) return false;
+    return !a.includes(b) && !b.includes(a);
+}
+
 export const ContactService = {
     async getAll(status?: string | null, search?: string | null, favoritesOnly?: boolean, interest?: string | null, location?: string | null, unattended?: boolean) {
         try {
@@ -1492,6 +1521,43 @@ export const ContactService = {
     async addPayment(orderId: string, amount: number, method: string, notes?: string, receiptUrl?: string, date?: Date | string, actor?: Actor) {
         // Nombre del vendedor que carga el pago — viaja a la ficha, los emails y el AuditLog
         const actorName = actor?.name || 'Sistema';
+
+        // Pre-chequeo de duplicado por monto+medio+cliente, FUERA de la transacción:
+        // puede requerir leer el comprobante nuevo con IA (segundos), demasiado lento
+        // para sostener el lock FOR UPDATE. Acá solo se junta la evidencia que permite
+        // NO bloquear un pago legítimo: dos números de operación claramente distintos.
+        // El bloqueo en sí sigue viviendo dentro de la transacción (default seguro).
+        let duplicateOverride: { newRef: string; oldRef: string; dupOrderId: string } | null = null;
+        {
+            const isCash = method === 'EFECTIVO' || method === 'CASH';
+            const isSplit = notes && (notes.toUpperCase().includes('DIVIDIDO') || notes.toUpperCase().includes('COMPARTIDO'));
+            if (!isCash && !isSplit) {
+                const orderForCheck = await prisma.order.findUnique({ where: { id: orderId }, select: { clientId: true } });
+                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                const potentialDup = orderForCheck ? await prisma.payment.findFirst({
+                    where: {
+                        amount, method,
+                        order: { clientId: orderForCheck.clientId },
+                        date: { gte: thirtyDaysAgo }
+                    },
+                    select: { notes: true, orderId: true }
+                }) : null;
+
+                const oldRef = potentialDup ? paymentReference(potentialDup.notes) : null;
+                if (potentialDup && oldRef) {
+                    // El nº de operación leído del comprobante nuevo es la evidencia
+                    // más fuerte; la referencia tipeada por el vendedor es el fallback.
+                    let newRef: string | null = null;
+                    if (receiptUrl) newRef = await ReceiptAgentService.extractTransactionId(receiptUrl);
+                    if (!newRef) newRef = paymentReference(notes);
+
+                    if (referencesAreDistinct(newRef, oldRef)) {
+                        duplicateOverride = { newRef: newRef!, oldRef, dupOrderId: potentialDup.orderId };
+                    }
+                }
+            }
+        }
+
         return await prisma.$transaction(async (tx) => {
             // Lock the order row using raw SQL FOR UPDATE to prevent race conditions on concurrent payments
             await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
@@ -1619,10 +1685,36 @@ export const ContactService = {
 
             // 3. Check for Duplicate amount and method for the SAME CLIENT
             // Excepción: Si el vendedor escribe "DIVIDIDO" o "COMPARTIDO" en la nota, se permite (pago dividido en varios pedidos).
+            // Excepción 2 (pre-chequeo de arriba): si los números de operación del
+            // comprobante nuevo y del pago existente son claramente distintos, son
+            // dos pagos legítimos del mismo importe → se permite y se deja rastro.
             const isSplitPayment = notes && (notes.toUpperCase().includes('DIVIDIDO') || notes.toUpperCase().includes('COMPARTIDO'));
-            
+
+            if (duplicateOverride) {
+                const clientName = order.client?.name || 'Cliente';
+                const infoMsg = `ℹ️ Pago de monto repetido PERMITIDO: $${amount.toLocaleString('es-AR')} (${method}) para ${clientName} coincide con otro pago reciente (Orden #${duplicateOverride.dupOrderId.slice(-4).toUpperCase()}), pero los números de operación difieren (nuevo: ${duplicateOverride.newRef} / anterior: ${duplicateOverride.oldRef}), así que se registró como un pago distinto.\n\n🧑 Cargado por: ${actorName}`;
+
+                await tx.notification.create({
+                    data: {
+                        type: 'RECEIPT_ERROR',
+                        message: infoMsg,
+                        orderId: orderId,
+                        requestedBy: actorName,
+                        status: 'PENDING'
+                    }
+                });
+
+                import('@/lib/email').then(({ sendEmail }) => {
+                    sendEmail({
+                        to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                        subject: 'ℹ️ Pago de monto repetido permitido (operaciones distintas)',
+                        text: infoMsg
+                    });
+                }).catch(console.error);
+            }
+
             let duplicateAmountMethod = null;
-            if (!isSplitPayment) {
+            if (!isSplitPayment && !duplicateOverride) {
                 const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
                 duplicateAmountMethod = await tx.payment.findFirst({
                     where: {
@@ -2288,7 +2380,14 @@ export const ContactService = {
                     }
                 });
 
-                if (duplicateAmountMethod) {
+                // Mismo desempate que en addPayment: si los números de operación de
+                // ambos pagos son claramente distintos, no es un duplicado real.
+                // (Acá alcanza con las referencias ya guardadas — sin IA, estamos
+                // dentro de la transacción.)
+                const editedRef = paymentReference(newNotes);
+                const dupRef = duplicateAmountMethod ? paymentReference(duplicateAmountMethod.notes) : null;
+
+                if (duplicateAmountMethod && !referencesAreDistinct(editedRef, dupRef)) {
                     const clientName = (await tx.client.findUnique({ where: { id: clientId }, select: { name: true } }))?.name || 'Cliente';
                     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
                     const clientLink = `${appUrl}/admin/contactos?id=${clientId}`;

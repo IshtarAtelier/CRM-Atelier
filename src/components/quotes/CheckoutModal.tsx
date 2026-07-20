@@ -6,7 +6,7 @@ import {
     Glasses, User, Receipt, ArrowRight,
     Loader2, History, Save,
     Image as ImageIcon,
-    FlaskConical
+    FlaskConical, Palette
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -224,12 +224,14 @@ export default function CheckoutModal({
 
         // Medidas del armazón para laboratorio (SmartLab)
         if (needsFrameData) {
+            if (!frameShape.trim()) missingFields.push('Armazón: Forma');
             if (!frameDetails.trim()) missingFields.push('Armazón: Detalles');
             if (!frameMeasurePte.trim()) missingFields.push('Armazón: medida Puente');
             if (!frameMeasureA.trim()) missingFields.push('Armazón: medida Ancho (A)');
             if (!frameMeasureB.trim()) missingFields.push('Armazón: medida Alto (B)');
             if (!frameMeasureEd.trim()) missingFields.push('Armazón: medida Diagonal (ED)');
             if (is2x1) {
+                if (!frameShape2.trim()) missingFields.push('2º armazón (promo 2x1): Forma');
                 if (!frameDetails2.trim()) missingFields.push('2º armazón (promo 2x1): Detalles');
                 if (!frameMeasurePte2.trim()) missingFields.push('2º armazón (promo 2x1): medida Puente');
                 if (!frameMeasureA2.trim()) missingFields.push('2º armazón (promo 2x1): medida Ancho (A)');
@@ -240,10 +242,10 @@ export default function CheckoutModal({
     }
 
     // Teñido: si el pedido incluye un teñido, la fábrica necesita saber tipo y color.
-    // La intensidad queda opcional (no siempre aplica). Se gatea con needsFrameData
-    // porque los campos de teñido viven dentro de esa sección (SmartLab): exigirlos
-    // cuando la sección está oculta trabaría el botón sin forma de completarlos.
-    if (hasTinting && needsFrameData) {
+    // La intensidad queda opcional (no siempre aplica). Se exige SIEMPRE que haya
+    // teñido — la sección de teñido es propia y se renderiza con la misma condición,
+    // así que nunca queda un requisito sin campo donde completarlo.
+    if (hasTinting) {
         if (!tintType.trim()) missingFields.push('Teñido: Tipo (compacto / degradé / según muestra)');
         if (!tintColor.trim()) missingFields.push('Teñido: Color');
     }
@@ -651,7 +653,7 @@ export default function CheckoutModal({
 
                             <div className="bg-blue-50/50 dark:bg-blue-950/20 border-2 border-blue-100 dark:border-blue-900/50 rounded-3xl p-6">
 
-                                        <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest block mb-4">Forma de Armazón (Opcional)</label>
+                                        <label className="text-[10px] font-black text-blue-500 uppercase tracking-widest block mb-4">Forma de Armazón {!frameShape.trim() && <span className="text-red-500">*</span>}</label>
                                         <div className="grid grid-cols-2 gap-x-12 gap-y-6 mb-8 max-w-sm mx-auto">
                                             {[
                                                 { id: 'ovalado', label: 'Ovalado', svg: <ellipse cx="12" cy="12" rx="10" ry="6" fill="none" stroke="currentColor" strokeWidth="2"/> },
@@ -817,7 +819,7 @@ export default function CheckoutModal({
                                     <div className="bg-orange-50/20 dark:bg-orange-950/10 border-2 border-orange-100 dark:border-orange-900/30 rounded-3xl p-6 mb-4 mt-6">
                                         <label className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest block mb-4">Segundo Armazón (Bonificado 2x1)</label>
                                         
-                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Forma de Armazón (Opcional)</label>
+                                        <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Forma de Armazón {!frameShape2.trim() && <span className="text-red-500">*</span>}</label>
                                         <div className="grid grid-cols-4 gap-x-3 gap-y-3 mb-6 max-w-md mx-auto">
                                             {[
                                                 { id: 'ovalado', label: 'Ovalado', svg: <ellipse cx="12" cy="12" rx="10" ry="6" fill="none" stroke="currentColor" strokeWidth="2"/> },
@@ -918,60 +920,6 @@ export default function CheckoutModal({
                                     </div>
                                 )}
 
-                                {hasTinting && (
-                                    <div className="mb-4 p-4 bg-white/50 dark:bg-stone-900/50 rounded-2xl border border-blue-100 dark:border-blue-800/50">
-                                        <h4 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-3">Opciones de Teñido</h4>
-                                        {!isOrganicoBlanco && (
-                                            <div className="mb-3 px-3 py-2 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 text-[9px] font-bold rounded-lg border border-amber-200 dark:border-amber-800/50">
-                                                ⚠️ Atención: Se recomienda aplicar teñidos únicamente sobre cristales "Orgánico Blanco".
-                                            </div>
-                                        )}
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Tipo {!tintType.trim() && <span className="text-red-500">*</span>}</label>
-                                                <select
-                                                    value={tintType}
-                                                    onChange={e => setTintType(e.target.value)}
-                                                    className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
-                                                >
-                                                    <option value="">Seleccionar...</option>
-                                                    <option value="Compacto">Compacto (Pleno)</option>
-                                                    <option value="Degradé">Degradé</option>
-                                                    <option value="Según Muestra">Según Muestra</option>
-                                                </select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Color {!tintColor.trim() && <span className="text-red-500">*</span>}</label>
-                                                <select
-                                                    value={tintColor}
-                                                    onChange={e => setTintColor(e.target.value)}
-                                                    className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
-                                                >
-                                                    <option value="">Seleccionar...</option>
-                                                    <option value="Gris">Gris</option>
-                                                    <option value="Marrón">Marrón</option>
-                                                    <option value="Verde G15">Verde G15</option>
-                                                    <option value="Rosa">Rosa</option>
-                                                    <option value="Amarillo">Amarillo</option>
-                                                    <option value="Naranja">Naranja</option>
-                                                    <option value="Rojo">Rojo</option>
-                                                    <option value="Otro">Otro (Aclarar en notas)</option>
-                                                </select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Intensidad</label>
-                                                <input 
-                                                    type="text"
-                                                    value={tintIntensity} 
-                                                    onChange={e => setTintIntensity(e.target.value)}
-                                                    placeholder="Ej: 10%, Medio..."
-                                                    className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
                                 <div className="space-y-2">
                                     <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Observaciones Adicionales (Opcional)</label>
                                     <textarea 
@@ -981,6 +929,67 @@ export default function CheckoutModal({
                                         rows={2}
                                         className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-4 py-3 rounded-xl text-xs font-medium focus:border-blue-500 outline-none resize-none"
                                     />
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* 3.6 SECCION TEÑIDO — sección propia (no anidada en SmartLab) para que
+                        se pueda completar SIEMPRE que el pedido incluya un teñido, aunque no
+                        sea un pedido de laboratorio. Tipo y Color son obligatorios. */}
+                    {hasTinting && (
+                        <section className="space-y-4">
+                            <h3 className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                                <Palette className="w-4 h-4" /> Opciones de Teñido
+                            </h3>
+                            <div className="p-6 bg-white/50 dark:bg-stone-900/50 rounded-3xl border-2 border-blue-100 dark:border-blue-800/50">
+                                {!isOrganicoBlanco && (
+                                    <div className="mb-4 px-3 py-2 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 text-[9px] font-bold rounded-lg border border-amber-200 dark:border-amber-800/50">
+                                        ⚠️ Atención: Se recomienda aplicar teñidos únicamente sobre cristales &quot;Orgánico Blanco&quot;.
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Tipo {!tintType.trim() && <span className="text-red-500">*</span>}</label>
+                                        <select
+                                            value={tintType}
+                                            onChange={e => setTintType(e.target.value)}
+                                            className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
+                                        >
+                                            <option value="">Seleccionar...</option>
+                                            <option value="Compacto">Compacto (Pleno)</option>
+                                            <option value="Degradé">Degradé</option>
+                                            <option value="Según Muestra">Según Muestra</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Color {!tintColor.trim() && <span className="text-red-500">*</span>}</label>
+                                        <select
+                                            value={tintColor}
+                                            onChange={e => setTintColor(e.target.value)}
+                                            className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
+                                        >
+                                            <option value="">Seleccionar...</option>
+                                            <option value="Gris">Gris</option>
+                                            <option value="Marrón">Marrón</option>
+                                            <option value="Verde G15">Verde G15</option>
+                                            <option value="Rosa">Rosa</option>
+                                            <option value="Amarillo">Amarillo</option>
+                                            <option value="Naranja">Naranja</option>
+                                            <option value="Rojo">Rojo</option>
+                                            <option value="Otro">Otro (Aclarar en notas)</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-bold text-stone-500 uppercase">Intensidad</label>
+                                        <input
+                                            type="text"
+                                            value={tintIntensity}
+                                            onChange={e => setTintIntensity(e.target.value)}
+                                            placeholder="Ej: 10%, Medio..."
+                                            className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </section>
