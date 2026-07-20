@@ -29,9 +29,15 @@ export class AdsService {
   }
 
   /**
-   * Sends an offline conversion (Purchase) to Meta Ads via the Conversions API.
+   * Núcleo de envío de un evento Purchase al Conversions API de Meta.
+   * No bloquea (fetch fire-and-forget) ni lanza: medir no rompe la venta.
+   * @param eventId  Para deduplicar con el Pixel client-side (mismo id en ambos lados).
    */
-  public static async sendOfflineConversion(order: OrderData) {
+  private static dispatchPurchase(
+    order: OrderData,
+    actionSource: 'physical_store' | 'website',
+    opts: { eventId?: string; eventSourceUrl?: string } = {},
+  ) {
     const metaToken = process.env.META_ACCESS_TOKEN;
     const pixelId = process.env.META_PIXEL_ID;
 
@@ -44,58 +50,71 @@ export class AdsService {
 
     try {
       const timeOfEvent = Math.floor((order.createdAt?.getTime() || Date.now()) / 1000);
-      
-      const userData: any = {};
-      
-      if (order.client.email) {
-        userData.em = [this.hashData(order.client.email)];
-      }
-      
-      if (order.client.phone) {
-        userData.ph = [this.hashData(this.normalizePhone(order.client.phone))];
-      }
 
-      const eventData = [
-        {
-          event_name: 'Purchase',
-          event_time: timeOfEvent,
-          action_source: 'physical_store',
-          user_data: userData,
-          custom_data: {
-            currency: 'ARS',
-            value: order.total,
-            order_id: order.id
-          }
-        }
-      ];
+      const userData: any = {};
+      if (order.client.email) userData.em = [this.hashData(order.client.email)];
+      if (order.client.phone) userData.ph = [this.hashData(this.normalizePhone(order.client.phone))];
+
+      const event: any = {
+        event_name: 'Purchase',
+        event_time: timeOfEvent,
+        action_source: actionSource,
+        user_data: userData,
+        custom_data: {
+          currency: 'ARS',
+          value: order.total,
+          order_id: order.id,
+        },
+      };
+      // event_id permite a Meta descartar el duplicado del Pixel (dedup client+server).
+      if (opts.eventId) event.event_id = opts.eventId;
+      if (opts.eventSourceUrl) event.event_source_url = opts.eventSourceUrl;
 
       const apiUrl = `https://graph.facebook.com/v19.0/${pixelId}/events`;
-      
+
       // Enviamos el request de forma asíncrona sin bloquear
       fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          data: eventData,
-          access_token: metaToken,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: [event], access_token: metaToken }),
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.error) {
-          console.error('[AdsService] Meta CAPI Error:', data.error);
-        } else {
-          console.log(`[AdsService] Conversión Offline enviada a Meta. Eventos procesados: ${data.events_received}`);
-        }
-      })
-      .catch(error => {
-        console.error('[AdsService] Excepción enviando a Meta CAPI:', error);
-      });
-
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.error) {
+            console.error('[AdsService] Meta CAPI Error:', data.error);
+          } else {
+            console.log(
+              `[AdsService] Conversión ${actionSource} enviada a Meta. Eventos procesados: ${data.events_received}`,
+            );
+          }
+        })
+        .catch((error) => {
+          console.error('[AdsService] Excepción enviando a Meta CAPI:', error);
+        });
     } catch (err) {
       console.error('[AdsService] Error general preparando evento CAPI:', err);
     }
+  }
+
+  /**
+   * Conversión offline (venta del local/CRM). action_source: physical_store.
+   */
+  public static async sendOfflineConversion(order: OrderData) {
+    this.dispatchPurchase(order, 'physical_store');
+  }
+
+  /**
+   * Conversión de una compra WEB (checkout online). action_source: website.
+   * Respaldo server-side del Pixel: resiste adblock/iOS/ITP. Usa event_id =
+   * order.id para deduplicar con el Purchase del Pixel del navegador.
+   */
+  public static async sendWebPurchase(
+    order: OrderData,
+    opts: { eventSourceUrl?: string } = {},
+  ) {
+    this.dispatchPurchase(order, 'website', {
+      eventId: order.id,
+      eventSourceUrl: opts.eventSourceUrl,
+    });
   }
 }

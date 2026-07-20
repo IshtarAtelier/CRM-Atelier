@@ -3,6 +3,12 @@ import { sendEmail } from '@/lib/email';
 
 export async function POST(request: Request) {
     try {
+        // Solo ADMIN: es un relay que envía correo con el dominio verificado del negocio.
+        // Sin gate, cualquier vendedor logueado podía mandar phishing firmado como la óptica.
+        if (request.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const body = await request.json();
         const { to, subject, text, html } = body;
 

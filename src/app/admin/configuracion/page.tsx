@@ -1412,7 +1412,7 @@ export default function ConfiguracionPage() {
                                     Último Backup
                                 </h3>
                                 <div className="space-y-2 text-sm">
-                                    <p className="flex justify-between"><span className="text-stone-500">Fecha:</span> <span className="font-mono">{new Date(backupStatus.latestBackup.lastModified).toLocaleString()}</span></p>
+                                    <p className="flex justify-between"><span className="text-stone-500">Fecha:</span> <span className="font-mono">{new Date(backupStatus.latestBackup.lastModified).toLocaleString('es-AR')}</span></p>
                                     <p className="flex justify-between"><span className="text-stone-500">Tamaño:</span> <span className="font-mono">{(backupStatus.latestBackup.size / 1024 / 1024).toFixed(2)} MB</span></p>
                                     <p className="flex justify-between"><span className="text-stone-500">Archivo:</span> <span className="font-mono text-[10px] text-stone-400 truncate ml-2 max-w-[150px]">{backupStatus.latestBackup.key.split('/').pop()}</span></p>
                                 </div>

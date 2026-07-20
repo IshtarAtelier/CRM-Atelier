@@ -22,13 +22,15 @@ export class GoogleContactsService {
 
             const waId = `${botPhone}@c.us`;
 
-            // 2. Generar el string VCard
-            const vcard = `BEGIN:VCARD
-VERSION:3.0
-FN:Cliente ${clientData.name}
-${clientData.phone ? `TEL;type=CELL;waid=${clientData.phone.replace(/[^0-9]/g, '')}:+${clientData.phone.replace(/[^0-9]/g, '')}` : ''}
-${clientData.email ? `EMAIL:${clientData.email}` : ''}
-END:VCARD`;
+            // 2. Generar el string VCard. Armado por líneas (sin blancos cuando falta
+            // teléfono/email) y unido con CRLF, como pide el estándar vCard: antes las
+            // líneas vacías entre FN: y END: hacían que algunos parsers lo rechazaran.
+            const vcardDigits = (clientData.phone || '').replace(/[^0-9]/g, '');
+            const vcardLines = ['BEGIN:VCARD', 'VERSION:3.0', `FN:Cliente ${clientData.name}`];
+            if (vcardDigits) vcardLines.push(`TEL;type=CELL;waid=${vcardDigits}:+${vcardDigits}`);
+            if (clientData.email) vcardLines.push(`EMAIL:${clientData.email}`);
+            vcardLines.push('END:VCARD');
+            const vcard = vcardLines.join('\r\n');
 
             const base64Vcard = Buffer.from(vcard).toString('base64');
 

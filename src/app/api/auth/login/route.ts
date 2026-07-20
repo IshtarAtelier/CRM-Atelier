@@ -6,8 +6,9 @@ import { checkRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(request: Request) {
     try {
-        const ip = request.headers.get('x-forwarded-for') || 'unknown-ip';
-        const rateLimit = checkRateLimit(`login-${ip}`, { limit: 10, windowMs: 15 * 60 * 1000 });
+        // IP del primer segmento del XFF (el que agrega el proxy de la plataforma).
+        const ip = (request.headers.get('x-forwarded-for') || 'unknown-ip').split(',')[0].trim() || 'unknown-ip';
+        const rateLimit = checkRateLimit(`login-ip-${ip}`, { limit: 10, windowMs: 15 * 60 * 1000 });
         if (!rateLimit.success) {
             return NextResponse.json({ error: 'Demasiados intentos fallidos. Intenta nuevamente en 15 minutos.' }, { status: 429 });
         }
@@ -19,6 +20,13 @@ export async function POST(request: Request) {
                 { error: 'El correo electrónico y la contraseña son requeridos.' },
                 { status: 400 }
             );
+        }
+
+        // Segundo bucket POR CUENTA: frena la fuerza bruta distribuida (muchas IPs
+        // rotadas contra un mismo email), que el límite por IP no alcanza a detener.
+        const acctLimit = checkRateLimit(`login-acct-${String(email).toLowerCase().trim()}`, { limit: 10, windowMs: 15 * 60 * 1000 });
+        if (!acctLimit.success) {
+            return NextResponse.json({ error: 'Demasiados intentos para esta cuenta. Intenta nuevamente en 15 minutos.' }, { status: 429 });
         }
 
 

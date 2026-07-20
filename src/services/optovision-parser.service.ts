@@ -12,6 +12,25 @@ export interface OptovisionInvoiceData {
 
 export class OptovisionParserService {
     /**
+     * Normaliza un importe en formato argentino a número.
+     * "45.360,00" (miles con '.', decimal con ',') → 45360.00
+     * "45.360"    (sin decimal: los '.' son separadores de miles) → 45360
+     * Antes se hacía parseFloat("45.360") = 45.36 → costo mil veces menor.
+     */
+    static parseARNumber(raw: string | null | undefined): number | null {
+        if (!raw) return null;
+        let s = String(raw).trim().replace(/\$/g, '').replace(/\s/g, '');
+        if (s.includes(',')) {
+            s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+            // Sin coma decimal: los puntos son separadores de miles.
+            s = s.replace(/\./g, '');
+        }
+        const n = parseFloat(s);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    /**
      * Parses a PDF buffer and extracts relevant invoice data.
      */
     static async parseInvoice(pdfBuffer: Buffer): Promise<OptovisionInvoiceData> {
@@ -39,10 +58,10 @@ export class OptovisionParserService {
                     : [];
                 const labOrderNumber = labOrderNumbers[0] ?? null;
                 
-                // 2. Extract Subtotal
-                const subtotalMatch = text.match(/Subtotal:\s*([0-9]+\.[0-9]+)/);
-                const subtotal = subtotalMatch ? parseFloat(subtotalMatch[1]) : null;
-                
+                // 2. Extract Subtotal (tolera miles con '.' y decimal con ',')
+                const subtotalMatch = text.match(/Subtotal:\s*\$?\s*([0-9][0-9.,]*)/);
+                const subtotal = subtotalMatch ? OptovisionParserService.parseARNumber(subtotalMatch[1]) : null;
+
                 // 3. Extract Total
                 let total = null;
                 const ivaLines = text.split('\n').filter(l => l.includes('IVA INSC.'));
@@ -51,9 +70,10 @@ export class OptovisionParserService {
                     const ivaIndex = lines.findIndex(l => l.includes('IVA INSC.'));
                     if (ivaIndex > 0) {
                         const previousLine = lines[ivaIndex - 1];
-                        const floats = previousLine.match(/[0-9]+\.[0-9]+/g);
-                        if (floats && floats.length > 0) {
-                            total = parseFloat(floats[floats.length - 1]);
+                        // Tokens numéricos completos (con miles/decimales), tomamos el último.
+                        const nums = previousLine.match(/[0-9][0-9.,]*[0-9]|[0-9]/g);
+                        if (nums && nums.length > 0) {
+                            total = OptovisionParserService.parseARNumber(nums[nums.length - 1]);
                         }
                     }
                 }

@@ -1,6 +1,16 @@
-const privateKey = 'd8fc0a2ba2404f3db7c7f92c5665a79c'; // Production private key
+import 'dotenv/config';
+
+// La clave privada de Payway se lee de entorno — NUNCA hardcodearla (queda en el
+// historial de git). Setear PAYWAY_PRIVATE_KEY en el .env local para correr esto.
+// IMPORTANTE: la clave que estaba embebida acá quedó expuesta en el historial y
+// debe ROTARSE desde el panel de Payway.
+const privateKey = process.env.PAYWAY_PRIVATE_KEY;
 
 async function main() {
+  if (!privateKey) {
+    console.error('Falta PAYWAY_PRIVATE_KEY en el entorno. Abortando.');
+    process.exit(1);
+  }
   const url = `https://live.decidir.com/api/v2/payments?offset=0&limit=5`;
   
   const res = await fetch(url, {

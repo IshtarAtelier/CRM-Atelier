@@ -16,6 +16,7 @@ wa-service/node_modules/
 
 # next.js
 /.next/
+/.next-perf/
 /out/
 
 # production

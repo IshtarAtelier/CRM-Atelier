@@ -33,11 +33,16 @@ export class GrupoOpticoProvider {
     static readonly providerName = 'GRUPO_OPTICO';
 
     /**
-     * Corre la recolección diaria. Pagina la API desde el pedido más nuevo hacia
-     * atrás y corta al llegar al inicio de la auditoría (LAB_AUDIT_START_ISO),
-     * así cada corrida refresca la era CRM completa (hoy ~3 páginas).
+     * Corre la recolección. Pagina la API desde el pedido más nuevo hacia atrás
+     * y corta al llegar al inicio de la auditoría (LAB_AUDIT_START_ISO), así la
+     * corrida diaria refresca la era CRM completa (hoy ~3 páginas).
+     *
+     * `sinceDays` = pase RÁPIDO (cada 10 min con el sync de SmartLab): solo la
+     * ventana reciente — alcanza para completar lo recién facturado (el portal
+     * asigna los importes cuando el pedido pasa a FINALIZADO) sin re-parsear
+     * toda la era en cada corrida. La pasada completa sigue siendo la diaria.
      */
-    static async collect() {
+    static async collect(opts: { sinceDays?: number } = {}) {
         const { chromium } = await import('playwright');
         const browser = await chromium.launch({
             headless: true,
@@ -53,7 +58,12 @@ export class GrupoOpticoProvider {
             await page.goto(`${PORTAL_BASE}/smartlab/laboratory/list`, { waitUntil: 'domcontentloaded' });
             await page.waitForTimeout(3000);
 
-            const auditStart = new Date(LAB_AUDIT_START_ISO);
+            // Corte: inicio de la era CRM, o la ventana corta del pase rápido
+            // (nunca antes del inicio de auditoría).
+            const eraStart = new Date(LAB_AUDIT_START_ISO);
+            const auditStart = opts.sinceDays
+                ? new Date(Math.max(eraStart.getTime(), Date.now() - opts.sinceDays * 86400000))
+                : eraStart;
             const clientId = process.env.SMARTLAB_CLIENT_ID || '2462';
             const orders: PortalOrder[] = [];
 

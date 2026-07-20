@@ -13,6 +13,15 @@ export async function GET(request: Request) {
         }
 
         const { searchParams } = new URL(request.url);
+        const search = (searchParams.get('search') || '').trim();
+        const day = (searchParams.get('day') || '').trim();
+
+        // Modo búsqueda: si viene texto o día, buscar en todo el histórico (sin acotar al mes).
+        if (search || day) {
+            const report = await LabCostReconciliationService.searchReport(search, day);
+            return NextResponse.json(report);
+        }
+
         const monthParam = searchParams.get('month') || '';
         const m = monthParam.match(/^(\d{4})-(\d{2})$/);
         if (!m) {

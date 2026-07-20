@@ -82,8 +82,9 @@ export async function POST(request: Request) {
         const vendorId = isAdmin && body.vendorId ? String(body.vendorId) : actor.id;
 
         const amount = Number(body.amount);
-        if (!type || !reason || !Number.isFinite(amount) || amount <= 0) {
-            return NextResponse.json({ error: 'Faltan campos obligatorios (type, amount > 0, reason)' }, { status: 400 });
+        const MAX_AMOUNT = 100_000_000; // mismo tope que /api/cash/movement, /handovers y /counts
+        if (!type || !reason || !Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT) {
+            return NextResponse.json({ error: 'Faltan campos obligatorios (type, amount entre 0 y 100.000.000, reason)' }, { status: 400 });
         }
         if (!VALID_TYPES.includes(type)) {
             return NextResponse.json({ error: `Tipo inválido. Valores permitidos: ${VALID_TYPES.join(', ')}` }, { status: 400 });

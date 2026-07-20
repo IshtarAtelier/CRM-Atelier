@@ -35,7 +35,12 @@ function LoginForm() {
                 if (data.user) {
                     localStorage.setItem('user', JSON.stringify(data.user));
                 }
-                if (data.user && data.user.role === 'OPTICA') {
+                // Las ópticas SIEMPRE van a la tienda (con sus precios mayoristas).
+                // Y quien entra por la puerta "Acceso Mayorista" también va a la
+                // tienda aunque tenga otro rol: esa puerta es del canal de venta,
+                // no del CRM (un admin ahí ve precios minoristas — los precios
+                // los define el ROL del usuario, no la página de ingreso).
+                if (data.user && (data.user.role === 'OPTICA' || isMayorista)) {
                     router.push("/tienda");
                 } else {
                     router.push("/admin");

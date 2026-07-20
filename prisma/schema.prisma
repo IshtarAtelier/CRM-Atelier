@@ -163,6 +163,8 @@ model Interaction {
   // ficha). Denormalizado igual que el actor.
   directedToId   String?
   directedToName String?
+  // Imagen adjunta a la nota (comprobante, foto del lente, etc.)
+  imageUrl       String?
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
@@ -297,6 +299,9 @@ model Order {
   id                     String         @id @default(cuid())
   clientId               String
   userId                 String
+  // Clave de idempotencia del checkout web: evita crear/cobrar dos veces la misma
+  // compra ante reintentos (timeout de red, reintento manual). Único a nivel DB.
+  idempotencyKey         String?        @unique
   status                 String         @default("PENDING")
   total                  Float          @default(0.0)
   paid                   Float          @default(0.0)
@@ -406,6 +411,10 @@ model Invoice {
   billingAccount String   @default("ISH")
   status         String   @default("COMPLETED")
   createdAt      DateTime @default(now())
+  // Fecha FISCAL del comprobante (CbteFch en ARCA). Puede diferir de createdAt si
+  // se backdatea la emisión; el tope mensual de monotributo se mide por esta fecha,
+  // no por createdAt. Nullable para filas históricas anteriores a la columna.
+  fiscalDate     DateTime?
   observations   String?
   // Actor: qué usuario emitió la factura en ARCA
   createdByName  String?
@@ -413,6 +422,7 @@ model Invoice {
 
   @@index([orderId])
   @@index([cae])
+  @@index([fiscalDate])
 }
 
 model OrderItem {
@@ -677,6 +687,9 @@ model BlogPost {
   status          String   @default("DRAFT")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  // La home/listado del blog filtra por status='PUBLISHED' ordenado por date desc.
+  @@index([status, date])
 }
 
 model SocialContent {
@@ -758,6 +771,12 @@ model LabCostEntry {
   invoiceDate    DateTime?
   status         String    @default("UNMATCHED") // UNMATCHED | OK | OVERCOST | UNDERCOST
   notes          String?
+  // Alerta inmediata: cuándo y con qué estado se avisó este hallazgo por email.
+  // Se re-alerta solo si el estado cambia a otro alertable (p. ej. UNMATCHED que
+  // al aparecer la venta se convierte en OVERCOST). Evita duplicados entre el
+  // pase rápido (cada 10 min) y el cron diario.
+  alertedAt      DateTime?
+  alertedStatus  String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   order          Order?    @relation(fields: [orderId], references: [id])
@@ -840,6 +859,8 @@ model PostSaleNote {
   caseId         String
   content        String
   createdBy      String?
+  // Imagen adjunta a la observación del caso (foto del lente, comprobante, etc.)
+  imageUrl       String?
   createdAt      DateTime     @default(now())
   postSaleCase   PostSaleCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
@@ -888,4 +909,60 @@ model OpticaLead {
   @@index([city])
   @@index([rating])
   @@index([phoneWa])
+}
+
+/// Eventos de analítica propia de la tienda (embudo web, tráfico y navegación).
+/// Fuente de verdad interna, independiente de Meta/GA. Se llena de forma
+/// asíncrona (sendBeacon → /api/track) para no tocar el critical path.
+model AnalyticsEvent {
+  id        String  @id @default(cuid())
+  /// page_view | view_content | add_to_cart | begin_checkout | add_contact | purchase | search | zone_view
+  type      String
+  /// id anónimo de visitante (cookie/localStorage), no PII
+  sessionId String
+  path      String?
+  referrer  String?
+
+  // Atribución (de dónde viene la visita)
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+
+  // Contexto de comercio
+  productId   String?
+  productName String?
+  value       Float?
+  currency    String? @default("ARS")
+  quantity    Int?
+  orderId     String?
+
+  // Contexto de cliente (no PII)
+  device  String? // mobile | tablet | desktop
+  meta    Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([sessionId])
+  @@index([productId])
+  @@index([createdAt])
+  @@index([utmSource, createdAt])
+  @@index([orderId])
+}
+
+/// Reseñas de clientes por producto. Nacen sin aprobar (moderación anti-spam) y
+/// solo se muestran las aprobadas. Desacoplado de Product (sin FK) a propósito.
+model ProductReview {
+  id         String   @id @default(cuid())
+  productId  String
+  authorName String
+  rating     Int // 1..5
+  comment    String
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([productId, approved])
+  @@index([approved, createdAt])
 }

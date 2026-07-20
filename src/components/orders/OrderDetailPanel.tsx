@@ -16,12 +16,13 @@ import {
     Layers,
     Search,
     ChevronRight,
-    ChevronUp
+    ChevronUp,
+    Image as ImageIcon
 } from 'lucide-react';
 import type { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
-import { POST_SALE_CASE_TYPES, POST_SALE_FAULTS, POST_SALE_COVERAGE } from '@/lib/constants/postSale';
+import { POST_SALE_CASE_TYPES, POST_SALE_RESPONSIBLES, POST_SALE_COVERAGE } from '@/lib/constants/postSale';
 
 export const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },
@@ -115,6 +116,9 @@ export function OrderDetailPanel({
     const [newNoteText, setNewNoteText] = useState('');
     const [isSavingPostSale, setIsSavingPostSale] = useState(false);
     const [showPostSaleForm, setShowPostSaleForm] = useState(false);
+    // Imagen adjunta a la observación del caso (se sube al guardar)
+    const [noteImageFile, setNoteImageFile] = useState<File | null>(null);
+    const [noteImagePreview, setNoteImagePreview] = useState<string | null>(null);
 
     const [pair1Faulty, setPair1Faulty] = useState(true);
     const [pair2Faulty, setPair2Faulty] = useState(false);
@@ -237,18 +241,50 @@ export function OrderDetailPanel({
         }
     };
 
+    const handleNoteImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setNoteImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setNoteImagePreview(reader.result as string);
+        reader.readAsDataURL(file);
+    };
+
+    const clearNoteImage = () => {
+        setNoteImageFile(null);
+        setNoteImagePreview(null);
+    };
+
     const handleSavePostSale = async () => {
         setIsSavingPostSale(true);
         try {
+            // Si adjuntaron una imagen sin escribir nada, igual queda una observación
+            const noteText = newNoteText.trim() || (noteImageFile ? '📎 Imagen adjunta' : '');
+
+            // La imagen se sube recién acá; si falla, no se guarda nada
+            let uploadedNoteImage: string | null = null;
+            if (noteImageFile) {
+                const formData = new FormData();
+                formData.append('file', noteImageFile);
+                const up = await fetch('/api/upload', { method: 'POST', body: formData });
+                if (!up.ok) {
+                    const err = await up.json().catch(() => ({}));
+                    alert(`⚠️ No se pudo subir la imagen: ${err.error || 'error desconocido'}. No se guardaron los cambios.`);
+                    return;
+                }
+                const upData = await up.json();
+                uploadedNoteImage = upData.url || upData.fileUrl || null;
+            }
+
             let finalNotes = order.postSaleNotes;
-            if (newNoteText.trim()) {
+            if (noteText) {
                 const formattedDate = new Date().toLocaleDateString('es-AR', {
                     day: '2-digit',
                     month: '2-digit',
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                const newEntry = `[${formattedDate}]: ${newNoteText.trim()}`;
+                const newEntry = `[${formattedDate}]: ${noteText}`;
                 finalNotes = order.postSaleNotes ? `${order.postSaleNotes}\n${newEntry}` : newEntry;
             }
 
@@ -274,10 +310,12 @@ export function OrderDetailPanel({
                     postSaleOrderOption: postSaleOrderOption || null,
                     postSaleNewOrderNumber: postSaleOrderOption === 'DIFFERENT' ? (postSaleNewOrderNumber || null) : null,
                     postSaleRxData: postSaleOrderOption === 'DIFFERENT' ? JSON.stringify(payloadRxData) : null,
+                    postSaleNoteImageUrl: uploadedNoteImage,
                 }),
             });
             if (res.ok) {
                 setNewNoteText('');
+                clearNoteImage();
                 if (onRefresh) onRefresh();
                 alert('✓ Cambios de post venta guardados.');
             } else {
@@ -1122,6 +1160,32 @@ export function OrderDetailPanel({
                                                 </div>
                                             );
                                         })()}
+
+                                        {/* Imágenes adjuntas a las observaciones del caso */}
+                                        {(() => {
+                                            const notesWithImage = ((order as any).postSaleCases?.[0]?.notesList || [])
+                                                .filter((n: any) => n.imageUrl);
+                                            if (notesWithImage.length === 0) return null;
+                                            return (
+                                                <div className="flex flex-wrap gap-2 pt-2 border-t border-stone-200/20">
+                                                    {notesWithImage.map((n: any) => (
+                                                        <a
+                                                            key={n.id}
+                                                            href={resolveStorageUrl(n.imageUrl)}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            title="Abrir imagen en tamaño completo"
+                                                        >
+                                                            <img
+                                                                src={resolveStorageUrl(n.imageUrl)}
+                                                                alt="Adjunto del caso"
+                                                                className="w-14 h-14 rounded-lg object-cover border border-stone-200 dark:border-stone-700 hover:opacity-90 transition-opacity"
+                                                            />
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
@@ -1134,6 +1198,29 @@ export function OrderDetailPanel({
                                         placeholder="Escribir un comentario o actualización de estado de garantía..."
                                         className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all resize-none dark:text-stone-200"
                                     />
+
+                                    {/* Adjuntar una imagen a la observación (foto del lente, comprobante, etc.) */}
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <label className="flex items-center gap-1.5 px-2.5 py-1.5 bg-stone-50 dark:bg-stone-900 border border-dashed border-stone-300 dark:border-stone-700 rounded-xl cursor-pointer hover:border-amber-400 transition-colors">
+                                            <ImageIcon className="w-3.5 h-3.5 text-stone-400" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">
+                                                {noteImageFile ? 'Cambiar imagen' : 'Adjuntar imagen'}
+                                            </span>
+                                            <input type="file" accept="image/*" onChange={handleNoteImageSelect} className="hidden" />
+                                        </label>
+                                        {noteImagePreview && (
+                                            <>
+                                                <img src={noteImagePreview} alt="Vista previa" className="w-9 h-9 rounded-lg object-cover border border-stone-200 dark:border-stone-700" />
+                                                <button
+                                                    onClick={clearNoteImage}
+                                                    className="p-1 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-400 transition-colors"
+                                                    title="Quitar imagen"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
@@ -1152,34 +1239,26 @@ export function OrderDetailPanel({
 
                                     <div>
                                         <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Responsable (quién gestiona)
+                                            Responsable
                                         </label>
-                                        <input
-                                            type="text"
+                                        <select
                                             value={postSaleResponsible}
                                             onChange={(e) => setPostSaleResponsible(e.target.value)}
-                                            placeholder="Nombre del responsable"
-                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                        />
+                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
+                                        >
+                                            <option value="">Sin definir</option>
+                                            {POST_SALE_RESPONSIBLES.map(r => (
+                                                <option key={r} value={r}>{r}</option>
+                                            ))}
+                                            {/* Preserva un valor viejo que no esté en la lista actual */}
+                                            {postSaleResponsible && !(POST_SALE_RESPONSIBLES as readonly string[]).includes(postSaleResponsible) && (
+                                                <option value={postSaleResponsible}>{postSaleResponsible} (histórico)</option>
+                                            )}
+                                        </select>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Atribución (de quién fue el error)
-                                        </label>
-                                        <select
-                                            value={postSaleFault}
-                                            onChange={(e) => setPostSaleFault(e.target.value)}
-                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
-                                        >
-                                            <option value="">Sin definir</option>
-                                            {POST_SALE_FAULTS.map(f => (
-                                                <option key={f} value={f}>{f}</option>
-                                            ))}
-                                        </select>
-                                    </div>
                                     <div>
                                         <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
                                             Cobertura

@@ -854,6 +854,7 @@ export const ContactService = {
                 select: {
                     id: true,
                     orderType: true,
+                    isDeleted: true,
                     items: {
                         select: {
                             productId: true,
@@ -864,7 +865,9 @@ export const ContactService = {
                 },
             });
 
-            if (order?.orderType === 'SALE') {
+            // Idempotencia: si ya está borrada, no restaurar stock de nuevo (un doble
+            // borrado/concurrencia inflaría el stock por cada corrida).
+            if (order?.orderType === 'SALE' && !order.isDeleted) {
                 const stockItems = (order.items || []).filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;
@@ -924,7 +927,7 @@ export const ContactService = {
         });
     },
 
-    async addInteraction(clientId: string, type: string, content: string, actor?: Actor, directedToId?: string | null) {
+    async addInteraction(clientId: string, type: string, content: string, actor?: Actor, directedToId?: string | null, imageUrl?: string | null) {
         // Nota dirigida: se guarda a quién va y se le avisa por email con link
         // a la ficha (su casilla propia o la compartida del local).
         const directedTo = directedToId
@@ -942,7 +945,8 @@ export const ContactService = {
                 userId: actor?.id || null,
                 userName: actor?.name || null,
                 directedToId: directedTo?.id || null,
-                directedToName: directedTo?.name || null
+                directedToName: directedTo?.name || null,
+                imageUrl: imageUrl || null
             }
         });
 
@@ -1058,7 +1062,10 @@ export const ContactService = {
                         discountCash: true,
                         discountTransfer: true,
                         discountCard: true,
-                        subtotalWithMarkup: true
+                        subtotalWithMarkup: true,
+                        // Vendedor: quién envió a fábrica (labSentBy) con fallback a quién creó el pedido (user)
+                        labSentBy: true,
+                        user: { select: { name: true } }
                     },
                     where: { isDeleted: false },
                     orderBy: { createdAt: 'desc' }

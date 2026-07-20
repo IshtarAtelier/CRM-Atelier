@@ -132,9 +132,14 @@ export function detectBillingAccount(payments: { method: string }[]): BillingAcc
 }
 
 /**
- * Formatea una fecha en el formato que usa ARCA (yyyymmdd)
+ * Formatea una fecha en el formato que usa ARCA (yyyymmdd), tomando el día
+ * calendario en HORA ARGENTINA (UTC-3, sin horario de verano). Antes usaba
+ * getTimezoneOffset() del server (UTC en Railway → offset 0): una venta emitida
+ * a la tarde/noche argentina (21:00–23:59 ART) quedaba con el CbteFch del día
+ * UTC siguiente, y a fin de mes en el mes fiscal siguiente.
  */
 export function formatAfipDate(date: Date = new Date()): number {
-    const d = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+    const AR_OFFSET_MS = 3 * 60 * 60 * 1000;
+    const d = new Date(date.getTime() - AR_OFFSET_MS);
     return parseInt(d.toISOString().split('T')[0].replace(/-/g, ''));
 }

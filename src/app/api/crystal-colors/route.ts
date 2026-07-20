@@ -24,6 +24,9 @@ export async function GET() {
 // POST — Create a new crystal color
 export async function POST(req: Request) {
     try {
+        if (req.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
         const body = await req.json();
         const { name, category, hexColor, sortOrder } = body;
 

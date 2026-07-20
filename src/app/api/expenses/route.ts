@@ -33,9 +33,10 @@ export async function GET(request: Request) {
             }
         });
 
-        // Calcular dinámicamente los costos de laboratorio
-        const startDate = new Date(y, m - 1, 1);
-        const endDate = new Date(y, m, 1); // 1er día del mes siguiente
+        // Calcular dinámicamente los costos de laboratorio.
+        // Límites del mes en hora argentina (UTC-3), independiente del TZ del server.
+        const startDate = new Date(Date.UTC(y, m - 1, 1, 3));
+        const endDate = new Date(Date.UTC(y, m, 1, 3)); // 1er día del mes siguiente
 
         const orders = await prisma.order.findMany({
             where: {
@@ -50,30 +51,24 @@ export async function GET(request: Request) {
                 id: true,
                 items: {
                     select: {
-                        productId: true,
                         productCostSnapshot: true,
-                        laboratorySnapshot: true
+                        laboratorySnapshot: true,
+                        eye: true,
+                        quantity: true
                     }
                 }
             }
         });
 
         const labCosts = new Map<string, number>();
-        
+
         for (const order of orders) {
-            const processedProducts = new Set<string>();
             for (const item of order.items) {
                 if (item.laboratorySnapshot && item.productCostSnapshot) {
                     const lab = item.laboratorySnapshot.trim();
-                    const prodId = item.productId || 'unknown';
-                    
-                    // Solo sumar el costo una vez por pedido y producto (para evitar duplicar OD y OI)
-                    if (!processedProducts.has(prodId)) {
-                        processedProducts.add(prodId);
-                        
-                        const currentSum = labCosts.get(lab) || 0;
-                        labCosts.set(lab, currentSum + item.productCostSnapshot);
-                    }
+                    // El snapshot de costo de cristales es POR PAR: cada ojo (OD/OI) aporta la mitad
+                    const itemCost = item.productCostSnapshot * (item.eye ? 0.5 : 1) * (item.quantity || 1);
+                    labCosts.set(lab, (labCosts.get(lab) || 0) + itemCost);
                 }
             }
         }

@@ -342,12 +342,12 @@ export default function AddPaymentModal({
                             />
                         </div>
                         <div className="space-y-2">
-                            <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Referencia {method !== 'CASH' && <span className="text-red-400">*</span>}</label>
+                            <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Referencia {(method !== 'CASH' && method !== 'EFECTIVO') && <span className="text-red-400">*</span>}</label>
                             <input
                                 type="text"
                                 value={reference}
                                 onChange={(e) => setReference(e.target.value)}
-                                placeholder={method !== 'CASH' ? "Obligatorio: N° Comprobante" : "N° Comprobante, etc"}
+                                placeholder={(method !== 'CASH' && method !== 'EFECTIVO') ? "Obligatorio: N° Comprobante" : "N° Comprobante, etc"}
                                 className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                             />
                         </div>

@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
 
 
 export async function POST(request: Request) {
     let browser;
     try {
+        const actor = getActor(request);
         const body = await request.json();
         const { orderId } = body;
 
@@ -89,17 +91,18 @@ export async function POST(request: Request) {
         // 4. Preparar Payload para su API interna (smartlab-api-v2)
         const smartLabPayload = {
             lensTypeId: lensTypeId,
-            rightEyeFarSpherical: odItem?.sphereVal || null,
-            rightEyeFarCylindrical: odItem?.cylinderVal || null,
-            rightEyeFarAxis: odItem?.axisVal || null,
-            rightEyeAddition: odItem?.additionVal || null,
-            rightEyeInterpupillaryDistance: order.labPdOd || null,
-            
-            leftEyeFarSpherical: oiItem?.sphereVal || null,
-            leftEyeFarCylindrical: oiItem?.cylinderVal || null,
-            leftEyeFarAxis: oiItem?.axisVal || null,
-            leftEyeAddition: oiItem?.additionVal || null,
-            leftEyeInterpupillaryDistance: order.labPdOi || null,
+            // `?? null` y no `|| null`: 0 es un valor válido de graduación (Esf 0.00, eje 0°)
+            rightEyeFarSpherical: odItem?.sphereVal ?? null,
+            rightEyeFarCylindrical: odItem?.cylinderVal ?? null,
+            rightEyeFarAxis: odItem?.axisVal ?? null,
+            rightEyeAddition: odItem?.additionVal ?? null,
+            rightEyeInterpupillaryDistance: order.labPdOd ?? null,
+
+            leftEyeFarSpherical: oiItem?.sphereVal ?? null,
+            leftEyeFarCylindrical: oiItem?.cylinderVal ?? null,
+            leftEyeFarAxis: oiItem?.axisVal ?? null,
+            leftEyeAddition: oiItem?.additionVal ?? null,
+            leftEyeInterpupillaryDistance: order.labPdOi ?? null,
             
             calibrated: 1,
             diameter: order.labDiameter || null,
@@ -139,7 +142,9 @@ export async function POST(request: Request) {
                 labStatus: 'IN_PROGRESS',
                 // Si la API devuelve un ID interno, lo guardamos, sino usamos un placeholder o la referencia local
                 labOrderNumber: responseData.id ? `SML-${responseData.id}` : `Borrador-${order.id.slice(-4).toUpperCase()}`,
-                labSentAt: order.labSentAt || new Date()
+                labSentAt: order.labSentAt || new Date(),
+                // Registrar quién apretó "enviar a fábrica" (solo en el primer envío)
+                ...(order.labSentAt ? {} : { labSentBy: actor.name, labSentById: actor.id })
             }
         });
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { fetchWa } from '@/lib/wa-config';
 import { normalizeArgentinePhone } from '@/services/contact.service';
+import { PricingService } from '@/services/PricingService';
 
 // POST /api/orders/[id]/notify-ready
 export async function POST(
@@ -14,7 +15,7 @@ export async function POST(
         // 1. Obtener la orden con cliente
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            include: { client: true }
+            include: { client: true, payments: true }
         });
 
         if (!order) {
@@ -34,15 +35,18 @@ export async function POST(
         const waId = chat ? chat.waId : `${formattedPhone}@c.us`;
         const chatIdForBot = chat ? chat.id : waId; // Si hay chat mandamos el ID interno, sino mandamos el waId
 
-        // 3. Calcular saldo y armar mensaje
-        const saldo = (order.subtotalWithMarkup || order.total || 0) - (order.paid || 0);
+        // 3. Calcular saldo y armar mensaje. Usamos calculateOrderFinancials (la misma
+        // fuente que el PDF y el bot): el saldo nominal subtotal−paid ignoraba la
+        // equivalencia por método (quien pagó en efectivo/transferencia con descuento
+        // veía un saldo inflado que no coincidía con el resto del sistema).
+        const financials = PricingService.calculateOrderFinancials(order);
         const shortName = order.client.name.split(' ')[0];
-        
+
         let msgText = `¡Hola ${shortName}! Te escribimos de *Atelier Óptica* 😊\n\n`;
         msgText += `Tus anteojos ya están listos esperándote en el local (Tejeda 4380).\n\n`;
-        
-        if (saldo > 0) {
-            msgText += `Te recordamos que tenés un saldo pendiente de *$${saldo.toLocaleString()}*.\n`;
+
+        if (financials.hasBalance) {
+            msgText += `Te recordamos que tenés un saldo pendiente de *$${financials.remainingList.toLocaleString()}*.\n`;
         } else {
             msgText += `¡Ya está todo abonado! ✅\n`;
         }

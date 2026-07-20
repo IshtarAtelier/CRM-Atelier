@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+import { POST_SALE_RESPONSIBLES } from '@/lib/constants/postSale';
 import { PricingService } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
@@ -268,7 +269,7 @@ export default function QuoteSummary({
                     </div>
                     <div className="text-right">
                         <p className="text-sm font-black text-stone-800 dark:text-white">${total.toLocaleString()}</p>
-                        <p className={`text-[8px] font-black uppercase tracking-widest ${isPaid ? 'text-emerald-500' : 'text-amber-500'}`}>
+                        <p className={`text-[9px] font-black uppercase tracking-widest ${isPaid ? 'text-emerald-500' : 'text-amber-500'}`}>
                             {isPaid ? 'PAGADO' : `SALDO: $${pending.toLocaleString()}`}
                         </p>
                     </div>
@@ -308,6 +309,8 @@ export default function QuoteSummary({
     const isSale = order.orderType === 'SALE' || order.orderType === 'MAYORISTA';
     const isQuote = !isSale;
     const isLockedSale = isSale && order.isLocked !== false;
+    // Vendedor de la venta: quien la envió a fábrica; si todavía no se envió, quien la creó
+    const sellerName = order.labSentBy || order.user?.name || null;
     
     // Integración con PricingService
     const financials = PricingService.calculateOrderFinancials(order);
@@ -458,14 +461,15 @@ export default function QuoteSummary({
                                 {contact.name || 'Cliente'} 
                             </span>
                             {isSale && (
-                                <span className={`px-2 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-widest ${labInfo.color}`}>
+                                <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${labInfo.color}`}>
                                     {labInfo.label}
                                 </span>
                             )}
                         </div>
-                        <span className="text-[9px] font-bold text-stone-400 block">
+                        <span className="text-[11px] font-bold text-stone-400 block">
                             Venta #{order.id.slice(-4).toUpperCase()}
                             {order.labOrderNumber ? ` · Pedido: ${order.labOrderNumber}` : ''}
+                            {sellerName ? ` · ${sellerName}` : ''}
                             {` · ${dateStr} · ${order.items?.length || 0} items`}
                         </span>
                     </div>
@@ -482,20 +486,20 @@ export default function QuoteSummary({
                 {financials.hasBalance && (
                     <div className="hidden md:flex items-center gap-2 px-4 border-l border-stone-100 dark:border-stone-700 ml-4">
                         <div className="flex flex-col text-left mr-2">
-                            <span className="text-[7px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
+                            <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <div className="bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 rounded-lg flex items-center gap-1 border border-emerald-100 dark:border-emerald-900/50">
-                                <Banknote className="w-2.5 h-2.5 text-emerald-500" />
-                                <span className="text-[9px] font-black text-emerald-600">${financials.remainingCash.toLocaleString()}</span>
+                                <Banknote className="w-3 h-3 text-emerald-500" />
+                                <span className="text-[11px] font-black text-emerald-600">${financials.remainingCash.toLocaleString()}</span>
                             </div>
                             <div className="bg-violet-50 dark:bg-violet-950/30 px-2 py-1 rounded-lg flex items-center gap-1 border border-violet-100 dark:border-violet-900/50">
-                                <ArrowRightLeft className="w-2.5 h-2.5 text-violet-500" />
-                                <span className="text-[9px] font-black text-violet-600">${financials.remainingTransfer.toLocaleString()}</span>
+                                <ArrowRightLeft className="w-3 h-3 text-violet-500" />
+                                <span className="text-[11px] font-black text-violet-600">${financials.remainingTransfer.toLocaleString()}</span>
                             </div>
                             <div className="bg-orange-50 dark:bg-orange-950/30 px-2 py-1 rounded-lg flex items-center gap-1 border border-orange-100 dark:border-orange-900/50">
-                                <CreditCard className="w-2.5 h-2.5 text-orange-500" />
-                                <span className="text-[9px] font-black text-orange-600">${financials.remainingCard.toLocaleString()}</span>
+                                <CreditCard className="w-3 h-3 text-orange-500" />
+                                <span className="text-[11px] font-black text-orange-600">${financials.remainingCard.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
@@ -512,10 +516,10 @@ export default function QuoteSummary({
                                 <div className="flex items-center justify-between mb-1">
                                     <div className="flex items-center gap-1.5">
                                         <Factory className="w-3 h-3 text-blue-500" />
-                                        <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
+                                        <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
                                     </div>
                                     {order.smartLabDays != null && (
-                                        <span className="text-[7px] font-black text-amber-500">{order.smartLabDays}d</span>
+                                        <span className="text-[9px] font-black text-amber-500">{order.smartLabDays}d</span>
                                     )}
                                 </div>
                                 {details.length > 1 ? (
@@ -523,20 +527,20 @@ export default function QuoteSummary({
                                         {details.map((d: any, i: number) => (
                                             <div key={i}>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-[7px] font-bold text-stone-500">🔹 {d.num?.slice(-5)}</span>
-                                                    <span className={`text-[8px] font-black ${d.progress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>{d.progress}%</span>
+                                                    <span className="text-[9px] font-bold text-stone-500">🔹 {d.num?.slice(-5)}</span>
+                                                    <span className={`text-[9px] font-black ${d.progress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>{d.progress}%</span>
                                                 </div>
                                                 <div className="h-1 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden">
                                                     <div className={`h-full rounded-full ${d.progress >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, d.progress)}%` }} />
                                                 </div>
-                                                <span className="text-[6px] font-bold text-stone-400 truncate block max-w-[120px]">{d.sector}</span>
+                                                <span className="text-[9px] font-bold text-stone-400 truncate block max-w-[120px]">{d.sector}</span>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
                                     <>
                                         <div className="flex items-center justify-between mb-0.5">
-                                            <span className="text-[7px] font-bold text-stone-500 truncate max-w-[80px]">{order.smartLabSector || '\u2014'}</span>
+                                            <span className="text-[9px] font-bold text-stone-500 truncate max-w-[80px]">{order.smartLabSector || '\u2014'}</span>
                                             <span className={`text-[9px] font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>{order.smartLabProgress}%</span>
                                         </div>
                                         <div className="h-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-full overflow-hidden">
@@ -551,7 +555,7 @@ export default function QuoteSummary({
 
                 <div className="flex items-center gap-4 mt-2 sm:mt-0">
                     <div className="text-right sr-only sm:not-sr-only">
-                        <span className="text-[12px] font-black text-stone-900 dark:text-stone-100">${financials.totalCash.toLocaleString()}</span>
+                        <span className="text-sm font-black text-stone-900 dark:text-stone-100">${financials.totalCash.toLocaleString()}</span>
                         <div className="h-1 w-full bg-stone-100 dark:bg-stone-700 rounded-full mt-1 overflow-hidden">
                             <div className="h-full bg-emerald-500" style={{ width: `${financials.progress}%` }}></div>
                         </div>
@@ -578,6 +582,11 @@ export default function QuoteSummary({
                             {isSale && order.labOrderNumber && (
                                 <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                                     Pedido: {order.labOrderNumber}
+                                </span>
+                            )}
+                            {sellerName && (
+                                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">
+                                    Vendedor: {sellerName}
                                 </span>
                             )}
                             {order.isDeleted && <span className="text-[10px] font-black bg-red-500 text-white px-2 py-0.5 rounded-lg">ELIMINADO</span>}
@@ -636,7 +645,7 @@ export default function QuoteSummary({
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <div>
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">
                                     Forma / Aro
                                 </label>
                                 <input
@@ -648,7 +657,7 @@ export default function QuoteSummary({
                                 />
                             </div>
                             <div>
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">
                                     Horizontal (A)
                                 </label>
                                 <input
@@ -660,7 +669,7 @@ export default function QuoteSummary({
                                 />
                             </div>
                             <div>
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">
                                     Vertical (B)
                                 </label>
                                 <input
@@ -672,7 +681,7 @@ export default function QuoteSummary({
                                 />
                             </div>
                             <div>
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">
                                     Puente (Pte / DBL)
                                 </label>
                                 <input
@@ -684,7 +693,7 @@ export default function QuoteSummary({
                                 />
                             </div>
                             <div>
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">
                                     Diagonal (ED / EDC)
                                 </label>
                                 <input
@@ -696,7 +705,7 @@ export default function QuoteSummary({
                                 />
                             </div>
                             <div className="col-span-2 sm:col-span-3">
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">
                                     Detalles / Notas del Armazón
                                 </label>
                                 <input
@@ -729,19 +738,19 @@ export default function QuoteSummary({
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                             <div className="bg-white/60 dark:bg-stone-800/60 rounded-xl p-3 text-center">
-                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">Progreso</span>
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">Progreso</span>
                                 <span className={`text-lg font-black ${order.smartLabProgress >= 100 ? 'text-emerald-500' : 'text-blue-600'}`}>{order.smartLabProgress}%</span>
                             </div>
                             <div className="bg-white/60 dark:bg-stone-800/60 rounded-xl p-3 text-center">
-                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">Sector</span>
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">Sector</span>
                                 <span className="text-[11px] font-black text-stone-700 dark:text-stone-200 leading-tight">{order.smartLabSector || '—'}</span>
                             </div>
                             <div className="bg-white/60 dark:bg-stone-800/60 rounded-xl p-3 text-center">
-                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">Ingreso Lab</span>
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">Ingreso Lab</span>
                                 <span className="text-[11px] font-black text-stone-700 dark:text-stone-200">{order.smartLabEntryDate || '—'}</span>
                             </div>
                             <div className="bg-white/60 dark:bg-stone-800/60 rounded-xl p-3 text-center">
-                                <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">Días en Lab</span>
+                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">Días en Lab</span>
                                 <span className="text-lg font-black text-amber-500">{order.smartLabDays ?? '—'}</span>
                             </div>
                         </div>
@@ -752,7 +761,7 @@ export default function QuoteSummary({
                             />
                         </div>
                         {order.smartLabLastSync && (
-                            <p className="text-[8px] font-bold text-stone-400 text-right mt-2">
+                            <p className="text-[9px] font-bold text-stone-400 text-right mt-2">
                                 Última sync: {new Date(order.smartLabLastSync).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                             </p>
                         )}
@@ -829,7 +838,7 @@ export default function QuoteSummary({
                                 <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Abonado Real: ${order.paid.toLocaleString()}</span>
                                 <button 
                                     onClick={() => setShowPaymentsList(!showPaymentsList)}
-                                    className="px-2 py-0.5 bg-stone-100 dark:bg-stone-800 rounded-lg text-[8px] font-black text-stone-500 uppercase tracking-widest hover:bg-primary/10 hover:text-primary transition-all flex items-center gap-1"
+                                    className="px-2 py-0.5 bg-stone-100 dark:bg-stone-800 rounded-lg text-[9px] font-black text-stone-500 uppercase tracking-widest hover:bg-primary/10 hover:text-primary transition-all flex items-center gap-1"
                                 >
                                     <History className="w-2.5 h-2.5" />
                                     {showPaymentsList ? 'Ocultar' : 'Ver Detalles'}
@@ -883,7 +892,7 @@ export default function QuoteSummary({
                                                     </div>
                                                     <div>
                                                         <p className="text-[10px] font-black text-stone-800 dark:text-white uppercase">${paymentValue.amount.toLocaleString()}</p>
-                                                        <p className="text-[8px] font-bold text-stone-400">
+                                                        <p className="text-[9px] font-bold text-stone-400">
                                                             {getPaymentLabel(paymentValue.method)} · {format(new Date(paymentValue.date), "d MMM HH:mm", { locale: es })}
                                                         </p>
                                                     </div>
@@ -1006,7 +1015,7 @@ export default function QuoteSummary({
                                     })()}
                                 </div>
 
-                                <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                <label className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
                                     Agregar Nueva Observación / Actualización
                                 </label>
                                 <textarea
@@ -1020,7 +1029,7 @@ export default function QuoteSummary({
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                    <label className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
                                         Costo Adicional ($)
                                     </label>
                                     <input
@@ -1033,21 +1042,27 @@ export default function QuoteSummary({
                                 </div>
 
                                 <div>
-                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                        Responsabilidad
+                                    <label className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                        Responsable
                                     </label>
-                                    <input
-                                        type="text"
+                                    <select
                                         value={postSaleResponsible}
                                         onChange={(e) => setPostSaleResponsible(e.target.value)}
-                                        placeholder="Nombre del responsable"
-                                        className="w-full text-xs p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                    />
+                                        className="w-full text-xs p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
+                                    >
+                                        <option value="">Sin definir</option>
+                                        {POST_SALE_RESPONSIBLES.map(r => (
+                                            <option key={r} value={r}>{r}</option>
+                                        ))}
+                                        {postSaleResponsible && !(POST_SALE_RESPONSIBLES as readonly string[]).includes(postSaleResponsible) && (
+                                            <option value={postSaleResponsible}>{postSaleResponsible} (histórico)</option>
+                                        )}
+                                    </select>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                <label className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
                                     ¿Requiere procesar en laboratorio?
                                 </label>
                                 <select
@@ -1063,7 +1078,7 @@ export default function QuoteSummary({
 
                             {postSaleOrderOption === 'DIFFERENT' && (
                                 <div>
-                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                    <label className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
                                         Nuevo Número de Pedido / OP
                                     </label>
                                     <input

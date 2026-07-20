@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 function escapeCSV(val: any): string {
     if (val == null) return '';
-    const s = String(val);
-    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    let s = String(val);
+    // Anti CSV/formula injection: celdas de TEXTO que empiezan con = + - @ (o tab/CR)
+    // se prefijan con apóstrofo para que Excel/Sheets no las interprete como fórmula.
+    // Se excluyen los números para no corromper montos negativos legítimos (saldo, débitos).
+    if (typeof val !== 'number' && /^[=+\-@\t\r]/.test(s)) {
+        s = `'${s}`;
+    }
+    if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
         return `"${s.replace(/"/g, '""')}"`;
     }
     return s;
@@ -29,6 +37,12 @@ export async function GET(request: Request) {
 
         if (type === 'sales' && !isAdmin) {
             return NextResponse.json({ error: 'No autorizado para exportar ventas' }, { status: 403 });
+        }
+
+        // El export de contactos vuelca toda la PII de clientes (nombre, teléfono,
+        // email, médico, obra social): solo ADMIN, y queda auditado quién lo bajó.
+        if (type === 'contacts' && !isAdmin) {
+            return NextResponse.json({ error: 'No autorizado para exportar contactos' }, { status: 403 });
         }
 
         if (type === 'contacts') {
@@ -110,6 +124,19 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Tipo inválido. Usar: contacts, products, sales' }, { status: 400 });
         }
 
+        // Dejar rastro de quién exportó datos (PII de clientes o ventas).
+        if (type === 'contacts' || type === 'sales') {
+            const actor = getActor(request);
+            await logAudit({
+                userId: actor.id,
+                userName: actor.name,
+                action: 'EXPORT',
+                entityType: type === 'contacts' ? 'CONTACT' : 'ORDER',
+                entityId: `export-${type}`,
+                details: { descripcion: `Exportó ${type === 'contacts' ? 'la base de contactos (PII)' : 'el listado de ventas'} a CSV`, filename },
+            });
+        }
+
         return new NextResponse(csv, {
             headers: {
                 'Content-Type': 'text/csv; charset=utf-8',
@@ -118,6 +145,6 @@ export async function GET(request: Request) {
         });
     } catch (error: any) {
         console.error('Export error:', error);
-        return NextResponse.json({ error: error.message || 'Error' }, { status: 500 });
+        return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

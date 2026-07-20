@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { Filter, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductFiltersProps {
   availableBrands: string[];
@@ -124,18 +123,16 @@ export function ProductFilters({
         Filtrar y Ordenar
       </button>
 
-      {/* Contenedor de Filtros (Sidebar en Desktop, Modal en Mobile) */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-            className="lg:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
-          />
-        )}
-      </AnimatePresence>
+      {/* Contenedor de Filtros (Sidebar en Desktop, Modal en Mobile).
+          Backdrop con fade CSS puro — se sacó framer-motion para que la librería
+          no viaje en el bundle inicial de /tienda (eran ~40 KiB, casi todo sin usar
+          hasta que el visitante abre los filtros). */}
+      {isOpen && (
+        <div
+          onClick={() => setIsOpen(false)}
+          className="lg:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm animate-[backdropFade_0.2s_ease-out]"
+        />
+      )}
 
       <div 
         className={`

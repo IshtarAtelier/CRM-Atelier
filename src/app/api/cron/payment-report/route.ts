@@ -61,17 +61,21 @@ export async function GET(request: Request) {
                 endDate.setHours(23, 59, 59, 999);
             }
         } else {
-            const today = new Date();
-            const dayOfMonth = today.getDate();
+            // Todo en hora Argentina (UTC-3): 00:00 ART = 03:00 UTC. Evita que cerca de
+            // medianoche el bucketing del mes se corra un día respecto de ART.
+            const today = new Date(Date.now() - 3 * 60 * 60 * 1000);
+            const dayOfMonth = today.getUTCDate();
+            const y = today.getUTCFullYear();
+            const m = today.getUTCMonth();
 
             if (dayOfMonth === 1) {
                 // First of the month: Report the entire previous month
-                startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1, 0, 0, 0, 0);
-                endDate = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
+                startDate = new Date(Date.UTC(y, m - 1, 1, 3, 0, 0, 0));
+                endDate = new Date(Date.UTC(y, m, 1, 3, 0, 0, 0) - 1);
             } else {
                 // Mid month (e.g. 15th) or manual trigger: Report current month from 1st to today
-                startDate = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
-                endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+                startDate = new Date(Date.UTC(y, m, 1, 3, 0, 0, 0));
+                endDate = new Date(Date.UTC(y, m + 1, 1, 3, 0, 0, 0) - 1);
             }
         }
 

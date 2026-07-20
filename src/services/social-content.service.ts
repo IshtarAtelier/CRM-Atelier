@@ -300,16 +300,20 @@ export async function generateSocialImage(contentId: string) {
     const { GoogleGenAI } = await import('@google/genai');
     
     let ai;
+    // Path del archivo temporal de credenciales, a nivel de función para poder BORRARLO
+    // en el finally (antes quedaba en /tmp para siempre → fuga de credenciales + acumulación).
+    let credsPath: string | null = null;
+    let fsMod: typeof import('fs') | null = null;
     if (process.env.GOOGLE_VERTEX_AI_WEB_CREDENTIALS) {
-        const fs = await import('fs');
+        fsMod = await import('fs');
         const os = await import('os');
         const path = await import('path');
-        const credsPath = path.join(os.tmpdir(), `vertex-creds-${Date.now()}.json`);
-        
+        credsPath = path.join(os.tmpdir(), `vertex-creds-${Date.now()}.json`);
+
         try {
             // Parse and stringify to ensure it's valid JSON and handle any escaping issues from env vars
             const creds = JSON.parse(process.env.GOOGLE_VERTEX_AI_WEB_CREDENTIALS);
-            fs.writeFileSync(credsPath, JSON.stringify(creds));
+            fsMod.writeFileSync(credsPath, JSON.stringify(creds));
             process.env.GOOGLE_APPLICATION_CREDENTIALS = credsPath;
             
             // Delete the API key temporarily to force Vertex AI usage
@@ -331,44 +335,51 @@ export async function generateSocialImage(contentId: string) {
         ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
     }
 
-    let response;
     try {
-        response = await ai.models.generateImages({
-            model: 'imagen-3.0-generate-002',
-            prompt: content.imagePrompt,
-            config: {
-                numberOfImages: 1,
-                aspectRatio: (content.format === 'STORY' || content.format === 'REEL') ? '9:16' : '1:1'
-            }
-        });
-    } catch (error: any) {
-        const { handleAIError } = await import('@/lib/ai-error-handler');
+        let response;
         try {
-            await handleAIError(error, 'Generación de Imagen IA (Social Media)');
-        } catch (handledError) {
-            // Ignorar
+            response = await ai.models.generateImages({
+                model: 'imagen-3.0-generate-002',
+                prompt: content.imagePrompt,
+                config: {
+                    numberOfImages: 1,
+                    aspectRatio: (content.format === 'STORY' || content.format === 'REEL') ? '9:16' : '1:1'
+                }
+            });
+        } catch (error: any) {
+            const { handleAIError } = await import('@/lib/ai-error-handler');
+            try {
+                await handleAIError(error, 'Generación de Imagen IA (Social Media)');
+            } catch (handledError) {
+                // Ignorar
+            }
+            throw error;
         }
-        throw error;
+
+        if (!response.generatedImages || response.generatedImages.length === 0) {
+            throw new Error('No se pudo generar la imagen');
+        }
+
+        const imageData = response.generatedImages[0].image;
+        if (!imageData?.imageBytes) throw new Error('Imagen sin datos');
+
+        // Save to storage
+        const { uploadFile } = await import('@/lib/storage');
+        const buffer = Buffer.from(imageData.imageBytes, 'base64');
+        const key = `social/${contentId}-${Date.now()}.png`;
+        await uploadFile(buffer, key, 'image/png');
+
+        // Update record
+        await prisma.socialContent.update({
+            where: { id: contentId },
+            data: { imageUrl: key }
+        });
+
+        return { imageUrl: key };
+    } finally {
+        // Borrar el archivo temporal de credenciales pase lo que pase.
+        if (credsPath && fsMod) {
+            try { fsMod.unlinkSync(credsPath); } catch { /* ignore */ }
+        }
     }
-
-    if (!response.generatedImages || response.generatedImages.length === 0) {
-        throw new Error('No se pudo generar la imagen');
-    }
-
-    const imageData = response.generatedImages[0].image;
-    if (!imageData?.imageBytes) throw new Error('Imagen sin datos');
-
-    // Save to storage
-    const { uploadFile } = await import('@/lib/storage');
-    const buffer = Buffer.from(imageData.imageBytes, 'base64');
-    const key = `social/${contentId}-${Date.now()}.png`;
-    await uploadFile(buffer, key, 'image/png');
-
-    // Update record
-    await prisma.socialContent.update({
-        where: { id: contentId },
-        data: { imageUrl: key }
-    });
-
-    return { imageUrl: key };
 }

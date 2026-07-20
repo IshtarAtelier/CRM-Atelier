@@ -80,10 +80,25 @@ export async function validateCoupon(rawCode: string, subtotal: number): Promise
  */
 export async function incrementCouponUsage(code: string): Promise<void> {
     try {
-        await prisma.coupon.update({
-            where: { code: code.trim().toUpperCase() },
+        const normalized = code.trim().toUpperCase();
+        const coupon = await prisma.coupon.findUnique({ where: { code: normalized }, select: { maxUses: true } });
+        if (!coupon) return;
+        if (coupon.maxUses == null) {
+            await prisma.coupon.update({
+                where: { code: normalized },
+                data: { usedCount: { increment: 1 } },
+            });
+            return;
+        }
+        // Incremento atómico condicionado: solo si aún hay usos disponibles. Evita
+        // superar maxUses en checkouts concurrentes (dos válidos que ven usedCount igual).
+        const result = await prisma.coupon.updateMany({
+            where: { code: normalized, usedCount: { lt: coupon.maxUses } },
             data: { usedCount: { increment: 1 } },
         });
+        if (result.count === 0) {
+            console.warn('[coupons] Cupón', normalized, 'ya alcanzó su límite de usos; no se incrementó.');
+        }
     } catch (err: any) {
         console.error('[coupons] No se pudo incrementar usedCount para', code, err?.message);
     }

@@ -2,6 +2,15 @@ import { prisma } from '@/lib/db';
 import { autoCorrectBrand, autoCorrectLab, autoCorrectIndex } from '@/utils/product-controllers';
 import { requireValidCost } from '@/lib/product-cost-guard';
 
+// Parseo numérico defensivo: null y string vacío → null, y NaN nunca se persiste.
+// (Un caller no-UI que mande "" en sphereMin dejaba NaN, que rompe el filtro de
+// compatibilidad de "arma tus lentes" porque toda comparación con NaN es false.)
+const toFloatOrNull = (v: any): number | null => {
+    if (v == null || v === '') return null;
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+};
+
 export const ProductService = {
     async getAll() {
         return await prisma.product.findMany({
@@ -32,18 +41,18 @@ export const ProductService = {
                 type: data.type,
                 category: data.category,
                 price: parseFloat(data.price) || 0,
-                wholesalePrice: data.wholesalePrice != null ? parseFloat(data.wholesalePrice) : 0,
+                wholesalePrice: parseFloat(data.wholesalePrice) || 0,
                 cost: requireValidCost(data.cost, data.name || data.model),
                 stock: parseInt(data.stock) || 0,
                 lensIndex: autoCorrectIndex(data.lensIndex),
                 unitType: data.unitType || 'UNIDAD',
                 laboratory: autoCorrectLab(data.laboratory),
-                sphereMin: data.sphereMin != null ? parseFloat(data.sphereMin) : null,
-                sphereMax: data.sphereMax != null ? parseFloat(data.sphereMax) : null,
-                cylinderMin: data.cylinderMin != null ? parseFloat(data.cylinderMin) : null,
-                cylinderMax: data.cylinderMax != null ? parseFloat(data.cylinderMax) : null,
-                additionMin: data.additionMin != null ? parseFloat(data.additionMin) : null,
-                additionMax: data.additionMax != null ? parseFloat(data.additionMax) : null,
+                sphereMin: toFloatOrNull(data.sphereMin),
+                sphereMax: toFloatOrNull(data.sphereMax),
+                cylinderMin: toFloatOrNull(data.cylinderMin),
+                cylinderMax: toFloatOrNull(data.cylinderMax),
+                additionMin: toFloatOrNull(data.additionMin),
+                additionMax: toFloatOrNull(data.additionMax),
                 is2x1: data.is2x1 === true,
                 publishToWeb: data.publishToWeb === true,
                 publishToWholesale: data.publishToWholesale === true,
@@ -80,12 +89,12 @@ export const ProductService = {
                 lensIndex: data.lensIndex !== undefined ? autoCorrectIndex(data.lensIndex) : undefined,
                 unitType: data.unitType !== undefined ? data.unitType : undefined,
                 laboratory: data.laboratory !== undefined ? autoCorrectLab(data.laboratory) : undefined,
-                sphereMin: data.sphereMin !== undefined ? (data.sphereMin != null ? parseFloat(data.sphereMin) : null) : undefined,
-                sphereMax: data.sphereMax !== undefined ? (data.sphereMax != null ? parseFloat(data.sphereMax) : null) : undefined,
-                cylinderMin: data.cylinderMin !== undefined ? (data.cylinderMin != null ? parseFloat(data.cylinderMin) : null) : undefined,
-                cylinderMax: data.cylinderMax !== undefined ? (data.cylinderMax != null ? parseFloat(data.cylinderMax) : null) : undefined,
-                additionMin: data.additionMin !== undefined ? (data.additionMin != null ? parseFloat(data.additionMin) : null) : undefined,
-                additionMax: data.additionMax !== undefined ? (data.additionMax != null ? parseFloat(data.additionMax) : null) : undefined,
+                sphereMin: data.sphereMin !== undefined ? toFloatOrNull(data.sphereMin) : undefined,
+                sphereMax: data.sphereMax !== undefined ? toFloatOrNull(data.sphereMax) : undefined,
+                cylinderMin: data.cylinderMin !== undefined ? toFloatOrNull(data.cylinderMin) : undefined,
+                cylinderMax: data.cylinderMax !== undefined ? toFloatOrNull(data.cylinderMax) : undefined,
+                additionMin: data.additionMin !== undefined ? toFloatOrNull(data.additionMin) : undefined,
+                additionMax: data.additionMax !== undefined ? toFloatOrNull(data.additionMax) : undefined,
                 is2x1: data.is2x1 !== undefined ? Boolean(data.is2x1) : undefined,
                 publishToWeb: data.publishToWeb !== undefined ? Boolean(data.publishToWeb) : undefined,
                 publishToWholesale: data.publishToWholesale !== undefined ? Boolean(data.publishToWholesale) : undefined,
@@ -124,18 +133,18 @@ export const ProductService = {
                     type: item.type,
                     category: item.category,
                     price: parseFloat(item.price) || 0,
-                    wholesalePrice: item.wholesalePrice != null ? parseFloat(item.wholesalePrice) : 0,
+                    wholesalePrice: parseFloat(item.wholesalePrice) || 0,
                     cost: requireValidCost(item.cost, item.name || item.model),
                     stock: parseInt(item.stock) || 0,
                     lensIndex: autoCorrectIndex(item.lensIndex),
                     unitType: item.unitType || 'UNIDAD',
                     laboratory: autoCorrectLab(item.laboratory),
-                    sphereMin: item.sphereMin != null ? parseFloat(item.sphereMin) : null,
-                    sphereMax: item.sphereMax != null ? parseFloat(item.sphereMax) : null,
-                    cylinderMin: item.cylinderMin != null ? parseFloat(item.cylinderMin) : null,
-                    cylinderMax: item.cylinderMax != null ? parseFloat(item.cylinderMax) : null,
-                    additionMin: item.additionMin != null ? parseFloat(item.additionMin) : null,
-                    additionMax: item.additionMax != null ? parseFloat(item.additionMax) : null,
+                    sphereMin: toFloatOrNull(item.sphereMin),
+                    sphereMax: toFloatOrNull(item.sphereMax),
+                    cylinderMin: toFloatOrNull(item.cylinderMin),
+                    cylinderMax: toFloatOrNull(item.cylinderMax),
+                    additionMin: toFloatOrNull(item.additionMin),
+                    additionMax: toFloatOrNull(item.additionMax),
                     is2x1: item.is2x1 === true,
                     publishToWeb: item.publishToWeb === true,
                     publishToWholesale: item.publishToWholesale === true,
@@ -199,7 +208,9 @@ async function syncToWebProduct(p: any) {
                 category: category,
                 imageUrl: images[0] || null,
                 images: images,
-                isActive: true,
+                // Coherente con la rama update (isActive: stock>0): no publicar como
+                // activo un producto sin stock. Antes el alta lo activaba siempre.
+                isActive: p.stock > 0,
                 isFeatured: false
             }
         });

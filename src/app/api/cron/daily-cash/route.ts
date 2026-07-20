@@ -27,6 +27,7 @@ export async function GET(request: Request) {
 
         const today = new Date();
         const dateStr = today.toLocaleDateString('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
             weekday: 'long',
             year: 'numeric',
             month: 'long',

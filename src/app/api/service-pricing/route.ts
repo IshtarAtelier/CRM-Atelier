@@ -27,6 +27,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        // Config de precios: solo ADMIN (igual que fixed-costs/targets/billing/products).
+        if (request.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
+
         const body = await request.json();
         const { name, description, category, subcategory, priceCash, priceCredit, creditMonths, active, notes, sortOrder } = body;
 

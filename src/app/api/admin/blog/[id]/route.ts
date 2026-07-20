@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { sanitizeBlogHtml } from '@/lib/sanitize-blog';
 
 export async function PATCH(
     request: Request,
@@ -33,7 +34,7 @@ export async function PATCH(
                 ...(title !== undefined ? { title } : {}),
                 ...(slug !== undefined ? { slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, '-') } : {}),
                 ...(excerpt !== undefined ? { excerpt } : {}),
-                ...(content !== undefined ? { content } : {}),
+                ...(content !== undefined ? { content: sanitizeBlogHtml(content) } : {}),
                 ...(category !== undefined ? { category } : {}),
                 ...(imageUrl !== undefined ? { imageUrl } : {}),
                 ...(status !== undefined ? { status } : {}),

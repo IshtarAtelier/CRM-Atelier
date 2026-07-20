@@ -5,6 +5,9 @@ import { logAudit } from '@/lib/audit';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
+        if (request.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
         const body = await request.json();
         const { id } = await params;
 
@@ -59,6 +62,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
+        if (request.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
         const { id } = await params;
         const previo = await prisma.servicePricing.findUnique({ where: { id } });
         await prisma.servicePricing.delete({

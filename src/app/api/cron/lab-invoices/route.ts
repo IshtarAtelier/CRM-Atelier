@@ -154,8 +154,17 @@ export async function GET(request: Request) {
                         <p style="margin-top:14px"><a href="${appUrl}/admin/laboratorio/costos">Ver conciliación completa en el CRM</a></p>
                     </div>
                 `,
+            }).then(async () => {
+                // El digest ya los avisó: marcarlos para que el barrido de alertas
+                // inmediatas (pase rápido de 10 min) no los repita.
+                for (const o of newOrphans) await LabCostReconciliationService.markAlerted(o.id, o.status);
             }).catch(err => console.error('[Cron lab-invoices] Error enviando digest de huérfanos:', err));
         }
+
+        // Barrido de alertas inmediatas: diferencias de costo y huérfanos que no
+        // entraron en el digest de esta corrida (mismo dedupe que el pase rápido).
+        results.alerts = await LabCostReconciliationService.alertNewFindings()
+            .catch((err: any) => ({ error: err?.message }));
 
         // Watchdog: proveedores caídos hace STALE_DAYS o más
         const stale = LAB_PROVIDERS

@@ -12,6 +12,8 @@ import { recalculateItemPrice, effectiveFramePrice } from '@/lib/checkout/checko
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
+import { AdsService } from '@/services/ads.service';
+import { recordServerEvent } from '@/lib/analytics';
 
 function getArgentineStateCode(stateName: string): string {
   if (!stateName) return "C"; // fallback to CABA
@@ -385,6 +387,29 @@ export async function POST(req: Request) {
       throw new Error("No se pudo obtener o crear el cliente.");
     }
 
+    // IDEMPOTENCIA DURA: si el mismo intento (misma idempotencyKey) ya generó una
+    // orden, no volver a crear ni cobrar. Cubre el reintento por timeout de red o
+    // reintento manual del usuario, más allá del guard heurístico por total/tiempo.
+    const idempotencyKey: string | null = typeof body.idempotencyKey === 'string' && body.idempotencyKey.trim()
+      ? body.idempotencyKey.trim().slice(0, 80)
+      : null;
+    if (idempotencyKey) {
+      const existing = await prisma.order.findUnique({
+        where: { idempotencyKey },
+        select: { id: true, status: true },
+      });
+      if (existing) {
+        if (['WEB_PAID', 'PAID'].includes(existing.status)) {
+          // Ya se procesó y cobró: responder éxito sin volver a cobrar.
+          return NextResponse.json({ success: true, orderId: existing.id, message: 'Pago ya procesado', idempotent: true });
+        }
+        // Orden en curso con la misma clave: no duplicar el cobro.
+        return NextResponse.json({
+          error: 'Tu pedido ya se está procesando. No volvimos a cobrarte.',
+        }, { status: 409 });
+      }
+    }
+
     // GUARD ANTI DOBLE COBRO: si este mismo cliente ya generó una orden web por el
     // mismo total en los últimos 2 minutos (doble click / reintento), NO crear otra
     // orden ni volver a cobrar la tarjeta.
@@ -407,10 +432,14 @@ export async function POST(req: Request) {
       }, { status: 409 });
     }
 
-    // 2. Encontrar usuario de sistema (o el primer admin disponible) para asignar la venta
-    let systemUser = await prisma.user.findFirst();
+    // 2. Encontrar usuario de sistema para asignar la venta. Preferir un ADMIN
+    // determinista (nunca una cuenta OPTICA/mayorista externa) para no contaminar
+    // reportes por vendedor ni la trazabilidad con un usuario arbitrario.
+    let systemUser = await prisma.user.findFirst({ where: { role: 'ADMIN' }, orderBy: { createdAt: 'asc' } })
+      || await prisma.user.findFirst({ where: { role: { not: 'OPTICA' } }, orderBy: { createdAt: 'asc' } })
+      || await prisma.user.findFirst({ orderBy: { createdAt: 'asc' } });
     if (customer.paymentMethod.includes('MAYORISTA')) {
-      systemUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } }) || systemUser;
+      systemUser = await prisma.user.findFirst({ where: { role: 'ADMIN' }, orderBy: { createdAt: 'asc' } }) || systemUser;
     }
     if (!systemUser) throw new Error("No system user found to assign order.");
 
@@ -575,6 +604,7 @@ export async function POST(req: Request) {
         data: {
           clientId: client.id,
           userId: systemUser.id,
+          idempotencyKey: idempotencyKey ?? undefined,
           status: "WEB_PENDING",
           // Las ventas web nacen en "Falta procesar": así aparecen en la solapa
           // y el contador por defecto de Ventas Web, sin quedar sueltas en "Todas".
@@ -601,17 +631,19 @@ export async function POST(req: Request) {
     const emailTotal = isTransfer ? finalItemsTotal * transferMultiplier : finalItemsTotal;
     const hasCrystals = sanitizedItems.some((item: any) => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
 
+    // Escapa HTML de campos del cliente (modelo/marca/color/receta) en el email de admin
+    const escHtml = (v: any) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     const itemsHtml = sanitizedItems.map((item: any) => `
       <tr>
         <td style="padding: 15px 0; border-bottom: 1px solid #eeeeee;">
-          <p style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #333;">${item.brand || 'ATELIER'}</p>
-          <p style="margin: 5px 0 0; font-size: 16px; color: #000;">${item.model}</p>
+          <p style="margin: 0; font-size: 14px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #333;">${escHtml(item.brand || 'ATELIER')}</p>
+          <p style="margin: 5px 0 0; font-size: 16px; color: #000;">${escHtml(item.model)}</p>
           ${item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color) ? `
             <p style="margin: 5px 0 0; font-size: 12px; color: #666;">
-              Cristales: ${item.lensConfig.lensType === "NONE" ? "Sin Aumento" : item.lensConfig.lensType} 
-              ${item.lensConfig.treatment ? `- ${item.lensConfig.treatment.replace(/_/g, ' ')}` : ''}
-              ${item.lensConfig.color ? `<br/>Tinte: ${item.lensConfig.color}` : ''}
-              ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${item.lensConfig.prescriptionFile}` : ''}
+              Cristales: ${item.lensConfig.lensType === "NONE" ? "Sin Aumento" : escHtml(item.lensConfig.lensType)}
+              ${item.lensConfig.treatment ? `- ${escHtml(item.lensConfig.treatment.replace(/_/g, ' '))}` : ''}
+              ${item.lensConfig.color ? `<br/>Tinte: ${escHtml(item.lensConfig.color)}` : ''}
+              ${item.lensConfig.prescriptionFile ? `<br/>Receta: ${escHtml(item.lensConfig.prescriptionFile)}` : ''}
             </p>
           ` : ''}
         </td>
@@ -958,6 +990,26 @@ export async function POST(req: Request) {
     await notifyLowStockCrossing(decrementedProducts);
     // Red de seguridad: avisar si alguna línea quedó con costo $0.
     notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (pago Payway):', err));
+
+    // Medición (fuera del critical path, no bloquea ni lanza):
+    // 1) Conversión propia del embudo, atada a la sesión anónima del visitante.
+    recordServerEvent({
+      type: 'purchase',
+      sessionId: body.analyticsSessionId || `web-${order.id}`,
+      value: finalItemsTotal,
+      orderId: order.id,
+      meta: { channel: 'web', paymentMethod: 'TARJETA' },
+    });
+    // 2) Meta CAPI server-side (respaldo del Pixel; event_id = order.id deduplica).
+    AdsService.sendWebPurchase(
+      {
+        id: order.id,
+        total: finalItemsTotal,
+        client: { email: customer.email, phone: customer.phone, name: `${customer.firstName} ${customer.lastName}` },
+        createdAt: order.createdAt,
+      },
+      { eventSourceUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar'}/checkout` },
+    );
 
     return NextResponse.json({
       success: true,

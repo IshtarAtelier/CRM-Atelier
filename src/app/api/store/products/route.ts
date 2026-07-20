@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { serverCache } from '@/lib/cache';
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
+import { decrypt } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +11,23 @@ export async function GET(request: NextRequest) {
     try {
         const channel = request.nextUrl.searchParams.get('channel');
         const isWholesale = channel === 'wholesale';
-        const page = Number(request.nextUrl.searchParams.get('page') || 1);
-        const limit = Number(request.nextUrl.searchParams.get('limit') || 24);
+
+        // El canal mayorista devuelve wholesalePrice (lista B2B): solo para ópticas
+        // logueadas o staff. Esta ruta es pública en el middleware, así que la
+        // identidad se valida acá con la cookie de sesión.
+        if (isWholesale) {
+            const token = request.cookies.get('session')?.value;
+            const payload = token ? await decrypt(token) : null;
+            const role = (payload?.role as string) || null;
+            if (!role || !['OPTICA', 'ADMIN', 'STAFF'].includes(role)) {
+                return NextResponse.json({ error: 'No autorizado para el canal mayorista' }, { status: 403 });
+            }
+        }
+        // Saneo de paginación: evitar NaN/negativos que rompen skip/slice (?limit=abc, ?page=-5)
+        const pageRaw = parseInt(request.nextUrl.searchParams.get('page') || '', 10);
+        const limitRaw = parseInt(request.nextUrl.searchParams.get('limit') || '', 10);
+        const page = Number.isFinite(pageRaw) ? Math.max(1, pageRaw) : 1;
+        const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 24;
         const category = request.nextUrl.searchParams.get('category') || 'Todo';
         const brand = request.nextUrl.searchParams.get('brand') || '';
         const shape = request.nextUrl.searchParams.get('shape') || '';

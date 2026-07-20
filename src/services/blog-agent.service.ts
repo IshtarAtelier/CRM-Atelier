@@ -3,6 +3,7 @@ import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { prisma } from '@/lib/db';
 import { fetchWa } from '@/lib/wa-config';
+import { sanitizeBlogHtml } from '@/lib/sanitize-blog';
 
 const parser = new Parser();
 
@@ -35,14 +36,14 @@ Debe ser elegante, sumamente profesional, de tono editorial independiente pero c
 
 DIRECTIVAS DE REDACCIÓN Y SEÑALES 2025/2026:
 1. **E-E-A-T Explícito (Experiencia y Autoridad):**
-   Al final del artículo (dentro del campo "content" en formato HTML), debes incluir un bloque estilizado de autoría y revisión médica:
+   Al final del artículo (dentro del campo "content" en formato HTML), debes incluir un bloque estilizado de autoría (SIN atribuir revisión médica a ninguna persona):
    - Un div con borde y fondo suave (ej. \`<div class="eeat-author border-t border-black/10 mt-8 pt-4 text-xs text-[#555] italic">...</div>\`).
-   - Firma del experto: "Escrito y revisado por Matías Turchi, Especialista en Lentes Progresivos y Director Técnico de Atelier Óptica (M.P. 1234)".
-   - Fecha de revisión médica reciente (ej: Junio 2026).
+   - Autoría genérica del equipo: "Redactado por el equipo de Atelier Óptica, tu óptica boutique en el Cerro de las Rosas, Córdoba."
+   - PROHIBIDO inventar: NO incluyas matrículas profesionales (M.P.), fechas de "revisión médica", ni nombres de profesionales específicos, ni atribuyas la revisión a nadie.
    - Descargo de responsabilidad médica profesional (Medical Disclaimer): "Este contenido es únicamente educativo e informativo y no sustituye la consulta o diagnóstico con un profesional médico oftalmólogo."
 
 2. **Estructura GEO (SearchGPT y Perplexity):**
-   - Redacta el contenido estructurando afirmaciones fuertes basadas en evidencia y citando fuentes médicas o científicas prestigiosas (ej: "Según datos de la Organización Mundial de la Salud (OMS)..." o "Estudios publicados por la Academia Americana de Oftalmología [AAO] demuestran...").
+   - Redactá con afirmaciones claras y útiles, pero NO inventes ni cites estudios, estadísticas ni fuentes (nada de "según la OMS/AAO/estudios demuestran") salvo que la noticia de origen las aporte textualmente. Ante la duda, escribí sin cifras.
    - Al final de la nota (justo antes del bloque E-E-A-T), agrega una sección de Preguntas Frecuentes (FAQ) con etiquetas <h3> y respuestas muy breves y directas (de 1 o 2 oraciones máximo) que los motores de búsqueda por IA puedan extraer fácilmente como snippets.
 
 3. **Sugerencias de Contenido Multimedia:**
@@ -97,7 +98,7 @@ El formato de salida DEBE ser estrictamente un objeto JSON plano, sin backticks 
         excerpt: articleData.excerpt,
         metaTitle: articleData.metaTitle,
         metaDescription: articleData.metaDescription,
-        content: articleData.content,
+        content: sanitizeBlogHtml(articleData.content),
         category: articleData.category,
         imageUrl: assignedImage,
         status: "DRAFT",
@@ -114,7 +115,7 @@ El formato de salida DEBE ser estrictamente un objeto JSON plano, sin backticks 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: adminPhone,
+          chatId: adminPhone.includes('@') ? adminPhone : `${adminPhone}@c.us`,
           message: waMessage
         }),
       });

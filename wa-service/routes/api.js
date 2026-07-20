@@ -287,9 +287,10 @@ function createApiRouter(deps) {
     router.post('/send', async (req, res) => {
         const { chatId, message, media, senderName } = req.body;
         // media: { base64: string, mimetype: string, filename?: string }
+        // waId/dbChatId hoisteados fuera del try para poder limpiar botReplyingTo en el catch.
+        let waId = chatId;
+        let dbChatId = null;
         try {
-            let waId = chatId;
-            let dbChatId = null;
 
             if (!chatId.includes('@c.us') && !chatId.includes('@lid')) {
                 const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
@@ -417,10 +418,14 @@ function createApiRouter(deps) {
             // Solo enviamos una respuesta exitosa, y handleMessageCreate se ocupará del DB y broadcast.
             
             if (dbChatId) broadcastChatUpdate(dbChatId);
-            
+
             res.json({ success: true });
-        } catch (e) { 
-            res.status(500).json({ error: e.message }); 
+        } catch (e) {
+            // Si sendMessage (o cualquier paso) lanzó, hay que limpiar el flag igual:
+            // dejarlo puesto haría que todo mensaje humano posterior en ese chat se
+            // clasifique como "bot respondiendo" y la intervención humana no apague el bot.
+            try { if (waId) botReplyingTo.delete(waId); } catch (_) {}
+            res.status(500).json({ error: e.message });
         }
     });
 
@@ -485,10 +490,23 @@ function createApiRouter(deps) {
             if (!botEnabled) {
                 // Usar disableBotForChatById para consistencia (genera handoff, cancela timers)
                 await disableBotForChatById(id, 'API patch CRM (Vendedor desactivó el bot)');
+                // Marca permanente [SISTEMA - BOT APAGADO]: sin ella el Auto-Resume de 24hs
+                // (index.js) reenciende el bot en una charla que el vendedor tomó a mano.
+                // El PATCH general de /chats/:id ya la agrega; este toggle también debe hacerlo.
+                try {
+                    const chatRow = await prisma.whatsAppChat.findUnique({ where: { id } });
+                    const labels = [...(chatRow?.chatLabels || [])];
+                    if (!labels.includes('[SISTEMA - BOT APAGADO]')) {
+                        labels.push('[SISTEMA - BOT APAGADO]');
+                        await prisma.whatsAppChat.update({ where: { id }, data: { chatLabels: labels } });
+                    }
+                } catch (labelErr) {
+                    console.error('Error marcando apagado permanente en toggle de bot:', labelErr.message);
+                }
                 const chat = await prisma.whatsAppChat.findUnique({ where: { id } });
                 res.json({ id: chat.id, waId: chat.waId, botEnabled: chat.botEnabled });
             } else {
-                const chatCheck = await prisma.whatsAppChat.findUnique({ 
+                const chatCheck = await prisma.whatsAppChat.findUnique({
                     where: { id },
                     include: { client: { include: { tags: true } } }
                 });
@@ -497,9 +515,14 @@ function createApiRouter(deps) {
                     return res.status(403).json({ error: 'No se puede activar el bot porque el cliente tiene la etiqueta Cancelar Bot. Quítela primero para habilitarlo.' });
                 }
 
+                // Al reactivar manualmente, quitar la etiqueta de apagado (si estaba)
+                const existingLabels = Array.isArray(chatCheck.chatLabels) ? chatCheck.chatLabels : [];
                 const chat = await prisma.whatsAppChat.update({
                     where: { id },
-                    data: { botEnabled: true }
+                    data: {
+                        botEnabled: true,
+                        chatLabels: existingLabels.filter(l => l !== '[SISTEMA - BOT APAGADO]')
+                    }
                 });
                 console.log(`  🤖 Bot ▶️ Activado para chat ${chat.waId}`);
                 broadcastChatUpdate(chat.id);

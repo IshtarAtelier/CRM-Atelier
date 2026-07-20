@@ -12,7 +12,11 @@ export async function GET(request: Request) {
         const fromParam = searchParams.get('from');
         const toParam = searchParams.get('to');
         const role = request.headers.get('x-user-role') || 'STAFF';
-        const isStaff = role === 'STAFF';
+        // Allowlist de finanzas: SOLO ADMIN y MANAGER ven saldos y PII financiera. Antes
+        // era denylist (solo STAFF bloqueado), así que OPTICA o cualquier rol nuevo veía
+        // globalPendingBalance/pendingBalances/totalPaidMonth sin estar autorizado.
+        const canSeeFinance = role === 'ADMIN' || role === 'MANAGER';
+        const isStaff = !canSeeFinance;
         
         let from = fromParam && fromParam !== '' ? fromParam : null;
         let to = toParam && toParam !== '' ? toParam : null;
@@ -22,7 +26,11 @@ export async function GET(request: Request) {
         const etiqueta = etiquetaParam && etiquetaParam !== '' ? etiquetaParam : null;
         const tipo = tipoParam && tipoParam !== '' ? tipoParam : null;
         const userIdParam = searchParams.get('userId');
-        const userId = userIdParam && userIdParam !== '' ? userIdParam : null;
+        const requestedUserId = userIdParam && userIdParam !== '' ? userIdParam : null;
+        // Un no-ADMIN solo puede ver SUS propias métricas personales; ignorar un
+        // ?userId= de otro vendedor (enumeración de desempeño ajeno).
+        const actorId = request.headers.get('x-user-id');
+        const userId = role === 'ADMIN' ? requestedUserId : (actorId || requestedUserId);
 
         const dateFilter: any = {};
         let hasDateFilter = false;
@@ -119,14 +127,6 @@ export async function GET(request: Request) {
             });
         }
 
-        const startOfToday = new Date();
-        startOfToday.setHours(0,0,0,0);
-        const startOfWeek = new Date();
-        const dayOfWeek = startOfWeek.getDay();
-        const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-        startOfWeek.setDate(diffToMonday);
-        startOfWeek.setHours(0,0,0,0);
-
         // ── Nuevos contactos subidos al sistema ──
         // Contador independiente del período/filtro del dashboard: mide el ingreso de
         // leads nuevos al CRM. El número principal (sinceCutoff) acumula desde el
@@ -160,11 +160,13 @@ export async function GET(request: Request) {
         let todaySold = 0;
         let weekSold = 0;
 
+        // "Hoy"/"esta semana" en hora argentina (mismos límites ART que newContacts),
+        // no en UTC del server — si no, "vendido hoy" arrancaba a las 21:00 ART de ayer.
         const totalSoldMonth = currentMonthOrders.reduce((acc: number, order: any) => {
             const price = order.subtotalWithMarkup || order.total || 0;
             const orderDate = new Date(order.labSentAt || order.createdAt);
-            if (orderDate >= startOfToday) todaySold += price;
-            if (orderDate >= startOfWeek) weekSold += price;
+            if (orderDate >= startOfDayART) todaySold += price;
+            if (orderDate >= startOfWeekART) weekSold += price;
             return acc + price;
         }, 0);
         const totalPaidMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + (order.paid || 0), 0);
@@ -538,9 +540,10 @@ export async function GET(request: Request) {
             ];
         }
         
-        if (etiqueta !== null || tipo !== null) {
-            orderFunnelWhere.clientId = { in: filteredClientIds };
-        }
+        // Cohorte consistente: contar quotes/sales SOLO de los clientes del período
+        // (mismo cohorte que el denominador contactsCreated). Sin esto, un mes con
+        // ventas a clientes de meses anteriores daba saleRate > 100%.
+        orderFunnelWhere.clientId = { in: filteredClientIds };
 
         const [contactsCreated, quotesCreated, salesCreated] = await Promise.all([
             prisma.client.count({ where: clientWhere }),
@@ -670,6 +673,6 @@ export async function GET(request: Request) {
         });
     } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

@@ -49,9 +49,15 @@ export default function CheckoutModal({
     const [clientForm, setClientForm] = useState({
         dni: contact.dni || '',
         address: contact.address || '',
-        phone: contact.phone || ''
+        phone: contact.phone || '',
+        email: contact.email || '',
+        birthDate: contact.birthDate ? new Date(contact.birthDate).toISOString().slice(0, 10) : ''
     });
-    const isClientDataComplete = clientForm.dni && clientForm.address && clientForm.phone;
+    // Datos exigidos por el servidor para convertir en venta (order.service.ts QUOTE→SALE):
+    // teléfono + email + fecha de nacimiento son bloqueantes para enviar a fábrica.
+    // DNI y dirección los pide el negocio (facturación/envío). Se validan todos acá
+    // para que el modal no habilite el botón y luego el servidor lo rechace.
+    const isClientDataComplete = clientForm.dni && clientForm.address && clientForm.phone && clientForm.email && clientForm.birthDate;
     const [isEditingClient, setIsEditingClient] = useState(!isClientDataComplete);
 
     // Repaso Final: Usar PricingService para consistencia total
@@ -170,29 +176,79 @@ export default function CheckoutModal({
         return isMT && promoRegex.test(str);
     });
 
-    const isFrameDataComplete = !needsFrameData || (
-        frameDetails.trim() !== '' &&
-        frameMeasurePte.trim() !== '' &&
-        frameMeasureA.trim() !== '' &&
-        frameMeasureB.trim() !== '' &&
-        frameMeasureEd.trim() !== '' &&
-        (frameSource !== 'USUARIO' || (userFrameBrand.trim() !== '' || userFrameModel.trim() !== '')) &&
-        (!is2x1 || (
-            frameDetails2.trim() !== '' &&
-            frameMeasurePte2.trim() !== '' &&
-            frameMeasureA2.trim() !== '' &&
-            frameMeasureB2.trim() !== '' &&
-            frameMeasureEd2.trim() !== ''
-        ))
-    );
-
     // La autorización del administrador (seña < mínimo) habilita el envío igual
     // que en el gate del servidor (order.service.ts: QUOTE→SALE). Sin este bypass
     // el botón queda deshabilitado aunque el pedido esté autorizado.
     const isAuthorized = localAuthorized;
-    const canConvert = depositClearsFactoryGate({ paid, total, authorizedByAdmin: isAuthorized }) &&
-                       isClientDataComplete &&
-                       (!hasCrystals || (selectedRxId && isFrameDataComplete));
+
+    // Receta seleccionada (trae imageUrl / DP / altura desde la ficha del cliente).
+    const selectedRx = contact.prescriptions?.find((r: any) => r.id === selectedRxId);
+
+    // ── Checklist de faltantes ──────────────────────────────────────────────
+    // Reproduce EXACTAMENTE los requisitos bloqueantes del servidor
+    // (order.service.ts, rama orderType === 'SALE'). Sirve para dos cosas:
+    //  1) gatear el botón (canConvert = sin faltantes), y
+    //  2) mostrarle al vendedor el cartel con el/los campo/s exacto/s que faltan.
+    // Cualquier cambio de reglas en el servidor debe reflejarse acá.
+    const missingFields: string[] = [];
+
+    // Ficha del cliente
+    if (!clientForm.dni?.trim()) missingFields.push('DNI / CUIT del cliente');
+    if (!clientForm.phone?.trim()) missingFields.push('Teléfono del cliente');
+    if (!clientForm.address?.trim()) missingFields.push('Dirección del cliente');
+    if (!clientForm.email?.trim()) missingFields.push('Email del cliente (necesario para enviar a fábrica)');
+    if (!clientForm.birthDate) missingFields.push('Fecha de nacimiento del cliente (necesaria para enviar a fábrica)');
+
+    // Seña mínima (50% del total, salvo autorización de admin)
+    if (!depositClearsFactoryGate({ paid, total, authorizedByAdmin: isAuthorized })) {
+        missingFields.push(`Seña mínima del 50% ($${minRequired.toLocaleString()}) — abonado $${paid.toLocaleString()}`);
+    }
+
+    // Requisitos por cristales
+    if (hasCrystals) {
+        if (!selectedRxId) {
+            missingFields.push('Seleccionar una receta');
+        } else if (selectedRx) {
+            if (!selectedRx.imageUrl) missingFields.push('Foto de la receta adjunta');
+            const hasDP = selectedRx.distanceOD != null || selectedRx.distanceOI != null || selectedRx.pd != null;
+            if (!hasDP) missingFields.push('Distancia Pupilar (DP) en la receta');
+            if (isMultifocal && selectedRx.heightOD == null && selectedRx.heightOI == null) {
+                missingFields.push('Altura (OD y/o OI) en la receta — obligatoria para multifocal/progresivo');
+            }
+        }
+
+        // Armazón del usuario: al menos marca o modelo
+        if (frameSource === 'USUARIO' && !userFrameBrand.trim() && !userFrameModel.trim()) {
+            missingFields.push('Marca o modelo del armazón del usuario');
+        }
+
+        // Medidas del armazón para laboratorio (SmartLab)
+        if (needsFrameData) {
+            if (!frameDetails.trim()) missingFields.push('Armazón: Detalles');
+            if (!frameMeasurePte.trim()) missingFields.push('Armazón: medida Puente');
+            if (!frameMeasureA.trim()) missingFields.push('Armazón: medida Ancho (A)');
+            if (!frameMeasureB.trim()) missingFields.push('Armazón: medida Alto (B)');
+            if (!frameMeasureEd.trim()) missingFields.push('Armazón: medida Diagonal (ED)');
+            if (is2x1) {
+                if (!frameDetails2.trim()) missingFields.push('2º armazón (promo 2x1): Detalles');
+                if (!frameMeasurePte2.trim()) missingFields.push('2º armazón (promo 2x1): medida Puente');
+                if (!frameMeasureA2.trim()) missingFields.push('2º armazón (promo 2x1): medida Ancho (A)');
+                if (!frameMeasureB2.trim()) missingFields.push('2º armazón (promo 2x1): medida Alto (B)');
+                if (!frameMeasureEd2.trim()) missingFields.push('2º armazón (promo 2x1): medida Diagonal (ED)');
+            }
+        }
+    }
+
+    // Teñido: si el pedido incluye un teñido, la fábrica necesita saber tipo y color.
+    // La intensidad queda opcional (no siempre aplica). Se gatea con needsFrameData
+    // porque los campos de teñido viven dentro de esa sección (SmartLab): exigirlos
+    // cuando la sección está oculta trabaría el botón sin forma de completarlos.
+    if (hasTinting && needsFrameData) {
+        if (!tintType.trim()) missingFields.push('Teñido: Tipo (compacto / degradé / según muestra)');
+        if (!tintColor.trim()) missingFields.push('Teñido: Color');
+    }
+
+    const canConvert = missingFields.length === 0;
 
     // Tilde de autorización dentro del checkout (solo ADMIN). Persiste authorizedByAdmin
     // en la orden, igual que el checkbox de la tarjeta del presupuesto.
@@ -447,32 +503,51 @@ export default function CheckoutModal({
                                 <p className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2">
                                     <AlertCircle className="w-4 h-4" /> Faltan datos obligatorios para la venta
                                 </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">DNI / CUIT</label>
-                                        <input 
-                                            value={clientForm.dni} 
+                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">DNI / CUIT {!clientForm.dni?.trim() && <span className="text-red-500">*</span>}</label>
+                                        <input
+                                            value={clientForm.dni}
                                             onChange={e => setClientForm(p => ({...p, dni: e.target.value}))}
                                             className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold"
                                             placeholder="Documento"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Teléfono</label>
-                                        <input 
-                                            value={clientForm.phone} 
+                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Teléfono {!clientForm.phone?.trim() && <span className="text-red-500">*</span>}</label>
+                                        <input
+                                            value={clientForm.phone}
                                             onChange={e => setClientForm(p => ({...p, phone: e.target.value}))}
                                             className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold"
                                             placeholder="WhatsApp"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Dirección</label>
-                                        <input 
-                                            value={clientForm.address} 
+                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Dirección {!clientForm.address?.trim() && <span className="text-red-500">*</span>}</label>
+                                        <input
+                                            value={clientForm.address}
                                             onChange={e => setClientForm(p => ({...p, address: e.target.value}))}
                                             className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold"
                                             placeholder="Calle y Nro"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Email {!clientForm.email?.trim() && <span className="text-red-500">*</span>}</label>
+                                        <input
+                                            type="email"
+                                            value={clientForm.email}
+                                            onChange={e => setClientForm(p => ({...p, email: e.target.value}))}
+                                            className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold"
+                                            placeholder="correo@ejemplo.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Fecha de Nacimiento {!clientForm.birthDate && <span className="text-red-500">*</span>}</label>
+                                        <input
+                                            type="date"
+                                            value={clientForm.birthDate}
+                                            onChange={e => setClientForm(p => ({...p, birthDate: e.target.value}))}
+                                            className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold"
                                         />
                                     </div>
                                 </div>
@@ -486,7 +561,7 @@ export default function CheckoutModal({
                             </div>
                         ) : (
                             <div className="flex items-center justify-between p-6 bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-100 dark:border-emerald-900/50 rounded-3xl">
-                                <div className="flex gap-6">
+                                <div className="flex flex-wrap gap-x-6 gap-y-3">
                                     <div>
                                         <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">DNI</p>
                                         <p className="text-sm font-bold text-stone-800 dark:text-white">{contact.dni || 'No registrado'}</p>
@@ -494,6 +569,14 @@ export default function CheckoutModal({
                                     <div>
                                         <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Dirección</p>
                                         <p className="text-sm font-bold text-stone-800 dark:text-white">{contact.address || 'No registrada'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Email</p>
+                                        <p className="text-sm font-bold text-stone-800 dark:text-white">{contact.email || 'No registrado'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Nacimiento</p>
+                                        <p className="text-sm font-bold text-stone-800 dark:text-white">{contact.birthDate ? format(new Date(contact.birthDate), 'dd/MM/yyyy') : 'No registrada'}</p>
                                     </div>
                                 </div>
                                 <button onClick={() => setIsEditingClient(true)} className="text-[10px] font-black text-stone-400 hover:text-stone-900 uppercase tracking-widest">Editar</button>
@@ -845,9 +928,9 @@ export default function CheckoutModal({
                                         )}
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Tipo</label>
-                                                <select 
-                                                    value={tintType} 
+                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Tipo {!tintType.trim() && <span className="text-red-500">*</span>}</label>
+                                                <select
+                                                    value={tintType}
                                                     onChange={e => setTintType(e.target.value)}
                                                     className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
                                                 >
@@ -858,9 +941,9 @@ export default function CheckoutModal({
                                                 </select>
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Color</label>
-                                                <select 
-                                                    value={tintColor} 
+                                                <label className="text-[9px] font-bold text-stone-500 uppercase">Color {!tintColor.trim() && <span className="text-red-500">*</span>}</label>
+                                                <select
+                                                    value={tintColor}
                                                     onChange={e => setTintColor(e.target.value)}
                                                     className="w-full bg-white dark:bg-stone-900 border border-blue-200 dark:border-blue-800/50 px-3 py-2 rounded-xl text-xs font-medium focus:border-blue-500 outline-none"
                                                 >
@@ -990,6 +1073,22 @@ export default function CheckoutModal({
                     {error && (
                         <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 text-xs font-black uppercase flex items-center gap-2">
                             <AlertCircle className="w-4 h-4" /> {error}
+                        </div>
+                    )}
+                    {!canConvert && missingFields.length > 0 && (
+                        <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-950/20 rounded-2xl border-2 border-amber-200 dark:border-amber-900/50">
+                            <p className="text-[11px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                Falta{missingFields.length > 1 ? 'n' : ''} {missingFields.length} dato{missingFields.length > 1 ? 's' : ''} para confirmar la venta
+                            </p>
+                            <ul className="space-y-1">
+                                {missingFields.map((field, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-xs font-bold text-amber-800 dark:text-amber-300">
+                                        <span className="text-amber-500 mt-0.5">•</span>
+                                        <span>{field}</span>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     )}
                     <div className="flex flex-col sm:flex-row gap-4">

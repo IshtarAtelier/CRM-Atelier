@@ -6,6 +6,9 @@ const prisma = new PrismaClient();
 // PATCH — Update a crystal color
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
+        if (req.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
         const { id } = await params;
         const body = await req.json();
         const { name, category, hexColor, sortOrder, active } = body;
@@ -38,6 +41,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 // DELETE — Remove a crystal color
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
+        if (req.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
         const { id } = await params;
         await prisma.crystalColor.delete({ where: { id } });
         return NextResponse.json({ success: true });

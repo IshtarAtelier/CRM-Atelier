@@ -12,15 +12,22 @@ export class OptovisionAuditService {
     static async checkOptovisionBillingAndAlert(orderId: string, labOrderNumber: string) {
         if (!labOrderNumber) return;
 
-        // Clean up number to extract only digits (e.g. "580841")
-        const match = labOrderNumber.match(/\d+/);
-        if (!match) return;
-        const cleanNumber = match[0];
+        // Extraer TODOS los pedidos (5+ dígitos) de la venta: puede facturar varios
+        // juntos ("580841-580844"). Antes match(/\d+/) tomaba solo el primero y los
+        // otros nunca se verificaban.
+        const orderNumbers = labOrderNumber.match(/\d{5,}/g) || (labOrderNumber.match(/\d+/) || []);
+        if (orderNumbers.length === 0) return;
+        // Para la búsqueda IMAP alcanza el primero; el match fino se hace por número.
+        const cleanNumber = orderNumbers[0];
 
+        // Misma resolución de credenciales que openImap del servicio de
+        // conciliación: usuario+clave apareados (IMAP_* primero, EMAIL_* como
+        // fallback). Antes mezclaba EMAIL_USER con IMAP_PASSWORD → login fallido
+        // en cuanto las claves de las dos casillas no coincidían.
         const imapConfig = {
             imap: {
-                user: process.env.EMAIL_USER || 'crm.atelier.optica@gmail.com',
-                password: process.env.IMAP_PASSWORD || '', 
+                user: process.env.IMAP_USER || process.env.EMAIL_USER || 'crm.atelier.optica@gmail.com',
+                password: process.env.IMAP_PASSWORD || process.env.EMAIL_PASS || '',
                 host: 'imap.gmail.com',
                 port: 993,
                 tls: true,
@@ -65,9 +72,18 @@ export class OptovisionAuditService {
                     for (const attachment of parsed.attachments) {
                         if (attachment.contentType === 'application/pdf') {
                             const invoice = await OptovisionParserService.parseInvoice(attachment.content);
-                            
-                            // Check if invoice number matches cleanNumber
-                            if (invoice.labOrderNumber?.includes(cleanNumber) || invoice.rawText.includes(cleanNumber)) {
+
+                            // Match PRECISO: alguno de los pedidos de la venta tiene que
+                            // aparecer como pedido facturado (labOrderNumbers, parseados de
+                            // la línea "Ped:") o entre paréntesis en el texto crudo, con la
+                            // forma "(NNNNN)". Antes rawText.includes(número) matcheaba los
+                            // mismos dígitos dentro de un importe, un CUIT u otro pedido →
+                            // falsos "ya facturado".
+                            const billedNums = invoice.labOrderNumbers || [];
+                            const isMatch = orderNumbers.some((n: string) =>
+                                billedNums.includes(n) || new RegExp(`\\(${n}\\)`).test(invoice.rawText)
+                            );
+                            if (isMatch) {
                                 billedInvoiceFile = attachment.filename || 'factura.pdf';
                                 billedTotal = invoice.total || invoice.subtotal || 0;
                                 break;

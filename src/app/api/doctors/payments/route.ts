@@ -5,6 +5,10 @@ import { logAudit } from '@/lib/audit';
 
 export async function POST(request: Request) {
     try {
+        // Egreso real (pago a médico): solo ADMIN, como expenses. El DELETE ya lo exige.
+        if (request.headers.get('x-user-role') !== 'ADMIN') {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+        }
         const body = await request.json();
         const { doctorName, amount, method, notes, receiptUrl } = body;
 

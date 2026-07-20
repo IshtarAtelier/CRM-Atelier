@@ -75,8 +75,13 @@ const NAME_MAPPING = {
   "BC3063-C1": "Pegaso C1"
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Reescritura en lote del catálogo: solo ADMIN. (Muta por GET, así que sin gate
+    // un link bastaba para dispararlo.)
+    if (request.headers.get('x-user-role') !== 'ADMIN') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    }
     let updatedProducts = 0;
     let updatedWebProducts = 0;
 

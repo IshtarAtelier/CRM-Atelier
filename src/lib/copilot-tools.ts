@@ -477,9 +477,9 @@ const updateClientInfo: CopilotTool = {
     },
     required: ['clientId'],
   },
-  execute: async (args) => {
+  execute: async (args, ctx) => {
     const { clientId, ...data } = args;
-    
+
     const updateData: Record<string, any> = {};
     for (const [key, val] of Object.entries(data)) {
       if (val !== undefined && val !== null && val !== '') {
@@ -491,11 +491,43 @@ const updateClientInfo: CopilotTool = {
       return 'No se especificaron datos para actualizar.';
     }
 
+    // Foto previa para el detalle de auditoría (qué cambió).
+    const previo = await prisma.client.findUnique({
+      where: { id: clientId as string },
+      select: { name: true, phone: true, email: true, dni: true, insurance: true, doctor: true, address: true, interest: true, status: true },
+    });
+
     const updated = await prisma.client.update({
       where: { id: clientId as string },
       data: updateData,
       select: { name: true, phone: true, email: true, dni: true, insurance: true, doctor: true },
     });
+
+    // Trazabilidad: toda mutación de ficha vía Copilot queda firmada en ficha y AuditLog.
+    const copilotActor = `${ctx?.userName || 'Usuario'} (vía Copilot)`;
+    const campos = Object.keys(updateData).join(', ');
+    prisma.interaction.create({
+      data: {
+        clientId: clientId as string,
+        type: 'SISTEMA',
+        content: `✏️ ${copilotActor} actualizó datos de ${updated.name} (${campos})`,
+        userId: ctx?.userId || null,
+        userName: copilotActor,
+      },
+    }).catch(err => console.error('Error registrando update de cliente (Copilot):', err));
+
+    logAudit({
+      userId: ctx?.userId || null,
+      userName: copilotActor,
+      action: 'UPDATE',
+      entityType: 'CONTACT',
+      entityId: clientId as string,
+      details: {
+        descripcion: `Actualización de ficha vía Copilot (${campos})`,
+        before: previo,
+        after: updateData,
+      },
+    }).catch(console.error);
 
     return `Datos de ${updated.name} actualizados exitosamente: ` + JSON.stringify(updated);
   },
@@ -941,6 +973,7 @@ const getProductCost: CopilotTool = {
         ],
       },
       select: { name: true, brand: true, cost: true, price: true, laboratory: true },
+      orderBy: { updatedAt: 'desc' },
       take: 8,
     });
     if (!products.length) return 'No se encontró ese producto.';

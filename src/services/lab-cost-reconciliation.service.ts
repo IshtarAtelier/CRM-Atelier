@@ -53,9 +53,20 @@ export class LabCostReconciliationService {
         if (relevant.length === 0) relevant = items.filter(i => /cristal/i.test(categoryOf(i)));
         if (relevant.length === 0) relevant = items;
 
+        // En una venta 2x1 el par gratis (cristal con price 0) le cuesta al lab SOLO el
+        // calibrado, no el costo de lista del cristal. Contarlo entero infla el systemCost
+        // y enmascara un sobrecosto real. Mismo criterio que report.service.
+        const is2x1 = (order.appliedPromoName || '').toLowerCase().includes('2x1')
+            || items.some((i: any) => /cristal/i.test(categoryOf(i)) && i.price === 0);
+        const CALIBRADO_COST = 15000 * 1.21; // fallback calibrado + IVA (igual que report.service)
+
         return relevant.reduce((total, item) => {
-            const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
             const perEyeHalf = item.eye ? 0.5 : 1;
+            const isCrystal = /cristal/i.test(categoryOf(item));
+            if (is2x1 && isCrystal && item.price === 0) {
+                return total + CALIBRADO_COST * perEyeHalf * (item.quantity || 1);
+            }
+            const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
             return total + cost * perEyeHalf * (item.quantity || 1);
         }, 0);
     }
@@ -216,15 +227,16 @@ export class LabCostReconciliationService {
             await this.sendInvoiceArrivalAlert(entry, order, {
                 saleBilled, systemCost, status, difference, pvCase,
                 ventaCompleta, faltan: Math.max(0, orderNumbers.length - facturadosEnVenta),
-            }).catch(err => console.error('[LabCost] Error enviando aviso de factura Optovision:', err));
+            }).then(() => this.markAlerted(entry.id, status))
+                .catch(err => console.error('[LabCost] Error enviando aviso de factura Optovision:', err));
         } else {
             // Resto de labs (Grupo Óptico): alerta solo cuando el sobrecosto es
             // nuevo, una vez por venta, sin repetir en cada corrida.
             const isNewOvercost = status === 'OVERCOST' && (!existing || existing.status !== 'OVERCOST');
             if (isNewOvercost && order && isPrimaryOfSale) {
-                await this.sendOvercostAlert(entry, order).catch(err =>
-                    console.error('[LabCost] Error enviando alerta de sobrecosto:', err)
-                );
+                await this.sendOvercostAlert(entry, order)
+                    .then(() => this.markAlerted(entry.id, status))
+                    .catch(err => console.error('[LabCost] Error enviando alerta de sobrecosto:', err));
             }
         }
 
@@ -235,6 +247,31 @@ export class LabCostReconciliationService {
             await this.sendChargedReworkAlert(entry, order, pvCase, billedComparable).catch(err =>
                 console.error('[LabCost] Error enviando alerta de reproceso cobrado:', err)
             );
+        }
+
+        // FACTURA = PEDIDO LISTO. Optovision no tiene portal, así que la factura por
+        // email es su única señal de "terminado en laboratorio" (regla del negocio).
+        // Cuando TODAS las operaciones de la venta ya tienen factura (ventaCompleta,
+        // p. ej. en un 2x1 el par real + el espejo), se marca el pedido como FINISHED
+        // y se genera la MISMA notificación LAB_READY que usa Grupo Óptico → cae en
+        // las mismas vistas de "Finalizados" y crons de retiro. Guardas: solo si el
+        // pedido no está ya finalizado/listo/entregado (no repite ni retrocede), y no
+        // avisa al cliente automáticamente (ese paso sigue siendo manual).
+        if (input.lab === 'OPTOVISION' && order && billedComparable !== null && ventaCompleta) {
+            const yaListo = ['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '');
+            if (!yaListo) {
+                await prisma.order.update({ where: { id: order.id }, data: { labStatus: 'FINISHED' } })
+                    .then(() => prisma.notification.create({
+                        data: {
+                            type: 'LAB_READY',
+                            message: `🏭 Pedido finalizado (facturado por Optovision) — ${order.client?.name ?? 'cliente'} (${orderNumbers.join(', ')})`,
+                            orderId: order.id,
+                            requestedBy: 'Conciliación Optovision',
+                            status: 'PENDING',
+                        },
+                    }))
+                    .catch(err => console.error('[LabCost] Error marcando pedido Optovision como finalizado:', err));
+            }
         }
 
         return entry;
@@ -590,6 +627,12 @@ export class LabCostReconciliationService {
         return { from, to, perLab, sobrecostosVigentes, cuentaCorriente };
     }
 
+    // Include compartido por el reporte mensual y la búsqueda histórica.
+    private static readonly REPORT_INCLUDE = {
+        client: { select: { name: true } },
+        items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
+    } as const;
+
     static async monthlyReport(year: number, month: number) {
         // Límites del mes en hora argentina (UTC-3).
         const desde = new Date(Date.UTC(year, month - 1, 1, 3));
@@ -604,13 +647,57 @@ export class LabCostReconciliationService {
                     { labSentAt: null, createdAt: { gte: desde, lt: hasta } },
                 ],
             },
-            include: {
-                client: { select: { name: true } },
-                items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
-            },
+            include: this.REPORT_INCLUDE,
             orderBy: { createdAt: 'asc' },
         });
 
+        return this.assembleReport(orders, `${year}-${String(month).padStart(2, '0')}`);
+    }
+
+    /**
+     * Igual que el reporte mensual pero SIN acotar al mes: busca en todo el
+     * histórico por nombre de cliente o nº de pedido, y/o por un día puntual.
+     * Devuelve el mismo shape (month: 'historico') para reusar la misma tabla.
+     */
+    static async searchReport(query?: string, day?: string) {
+        const q = (query || '').trim();
+        const conds: any[] = [];
+
+        if (q) {
+            conds.push({
+                OR: [
+                    { client: { name: { contains: q, mode: 'insensitive' } } },
+                    { labOrderNumber: { contains: q, mode: 'insensitive' } },
+                ],
+            });
+        }
+        if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) {
+            const [y, mo, d] = day.split('-').map(Number);
+            const desde = new Date(Date.UTC(y, mo - 1, d, 3));
+            const hasta = new Date(Date.UTC(y, mo - 1, d + 1, 3));
+            conds.push({
+                OR: [
+                    { labSentAt: { gte: desde, lt: hasta } },
+                    { labSentAt: null, createdAt: { gte: desde, lt: hasta } },
+                ],
+            });
+        }
+
+        // Sin ningún criterio no barremos toda la base: devolvemos vacío.
+        if (conds.length === 0) return this.assembleReport([], 'historico');
+
+        const orders = await prisma.order.findMany({
+            where: { isDeleted: false, orderType: 'SALE', AND: conds },
+            include: this.REPORT_INCLUDE,
+            orderBy: { createdAt: 'desc' },
+            take: 1000,
+        });
+
+        return this.assembleReport(orders, 'historico');
+    }
+
+    /** Arma el reporte (filas + cruce con facturas + totales) a partir de un set de órdenes ya traído. */
+    private static async assembleReport(orders: any[], monthLabel: string) {
         const anyLab = /(optovision|grupo[\s\-]?[oó]ptico)/i;
         const labOf = (item: any) => item.laboratorySnapshot || item.product?.laboratory || '';
 
@@ -646,10 +733,13 @@ export class LabCostReconciliationService {
         const entries = allNumbers.length > 0
             ? await prisma.labCostEntry.findMany({ where: { labOrderNumber: { in: allNumbers } } })
             : [];
-        const byNumber = new Map(entries.map(e => [e.labOrderNumber, e]));
+        // Clave por (lab, número): la unicidad de LabCostEntry es @@unique([lab,labOrderNumber])
+        // y dos labs pueden compartir el mismo número → keyear solo por número colapsaba
+        // entradas de labs distintos y cruzaba el pedido contra la factura del lab equivocado.
+        const byNumber = new Map(entries.map(e => [`${e.lab}:${e.labOrderNumber}`, e]));
 
         const report = rows.map(r => {
-            const matched = r.numbers.map((n: string) => byNumber.get(n)).filter(Boolean);
+            const matched = r.numbers.map((n: string) => byNumber.get(`${r.lab}:${n}`)).filter(Boolean);
             // Mismo comparable por laboratorio que upsertEntry: Optovision se compara
             // contra el TOTAL c/IVA (monotributo no lo recupera); el resto contra el neto.
             const billed = matched.length > 0
@@ -678,7 +768,7 @@ export class LabCostReconciliationService {
 
         const sum = (fn: (r: any) => number) => report.reduce((t, r) => t + fn(r), 0);
         return {
-            month: `${year}-${String(month).padStart(2, '0')}`,
+            month: monthLabel,
             rows: report,
             totals: {
                 operaciones: report.length,
@@ -719,6 +809,96 @@ export class LabCostReconciliationService {
             if (updated && updated.status !== entry.status) rematched++;
         }
         return { checked: pendientes.length, rematched };
+    }
+
+    /** Marca una entrada como ya alertada con su estado actual (dedupe de avisos). */
+    static async markAlerted(id: string, status: string) {
+        await prisma.labCostEntry.update({
+            where: { id },
+            data: { alertedAt: new Date(), alertedStatus: status },
+        }).catch(err => console.error('[LabCost] Error marcando alerta enviada:', err));
+    }
+
+    /**
+     * Barrido de ALERTAS INMEDIATAS (pedido del administrador: "cualquier
+     * diferencia de costo, y cualquier pedido sin venta ni postventa, avisar
+     * enseguida"). Junta todo hallazgo alertable que aún no se avisó — o cuyo
+     * estado cambió desde el último aviso (p. ej. un huérfano que al aparecer la
+     * venta pasó a OVERCOST) — y manda UN email con el detalle. Corre en el pase
+     * rápido (cada 10 min con el sync de SmartLab) y en el cron diario; el par
+     * alertedAt/alertedStatus garantiza que nada se avise dos veces ni se escape.
+     */
+    static async alertNewFindings() {
+        const candidatos = await prisma.labCostEntry.findMany({
+            where: { status: { in: ['UNMATCHED', 'OVERCOST', 'UNDERCOST'] } },
+            include: { order: { select: { id: true, clientId: true, client: { select: { name: true } } } } },
+            orderBy: [{ lab: 'asc' }, { createdAt: 'desc' }],
+        });
+        const findings = candidatos.filter(e => !e.alertedAt || e.alertedStatus !== e.status);
+        if (findings.length === 0) return { alerted: 0 };
+
+        // En local/desarrollo no se mandan emails (ruido al administrador con datos
+        // de la base local); tampoco se marca alertado, así prod avisa igual.
+        if (process.env.NODE_ENV !== 'production' && process.env.FORCE_LAB_ALERTS !== '1') {
+            console.log(`[LabCost] alertNewFindings: ${findings.length} hallazgo(s) (email omitido fuera de producción)`);
+            return { alerted: 0, skipped: findings.length };
+        }
+
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
+        const fmt = (n: number | null | undefined) => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
+        const LABS: Record<string, string> = { OPTOVISION: 'Optovision', GRUPO_OPTICO: 'Grupo Óptico' };
+        const META: Record<string, { label: string; color: string }> = {
+            UNMATCHED: { label: 'SIN VENTA NI POSTVENTA', color: '#b91c1c' },
+            OVERCOST: { label: 'SOBRECOSTO', color: '#c2410c' },
+            UNDERCOST: { label: 'Menor costo (a favor)', color: '#047857' },
+        };
+        const sinVenta = findings.filter(f => f.status === 'UNMATCHED').length;
+        const sobre = findings.filter(f => f.status === 'OVERCOST').length;
+        const partes = [
+            sinVenta ? `${sinVenta} sin venta` : null,
+            sobre ? `${sobre} sobrecosto${sobre > 1 ? 's' : ''}` : null,
+            findings.length - sinVenta - sobre ? `${findings.length - sinVenta - sobre} a favor` : null,
+        ].filter(Boolean).join(', ');
+
+        const rows = findings.map((f, i) => {
+            const m = META[f.status] || { label: f.status, color: '#374151' };
+            const cliente = f.order
+                ? `<a href="${appUrl}/admin/contactos?clientId=${f.order.clientId}">${f.order.client?.name || 'ver ficha'}</a>`
+                : '<span style="color:#b91c1c">—</span>';
+            const real = f.lab === 'OPTOVISION' ? (f.billedTotal ?? f.billedNet) : (f.billedNet ?? f.billedTotal);
+            return `<tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${f.labOrderNumber}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb">${LABS[f.lab] || f.lab}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb">${cliente}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right">${fmt(f.systemCost)}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;font-weight:bold">${fmt(real)}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;color:${(f.difference ?? 0) > 0 ? '#b91c1c' : '#047857'}">${f.difference != null ? fmt(f.difference) : '—'}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb"><span style="color:${m.color};font-weight:bold">${m.label}</span></td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;font-size:12px">${f.notes || '—'}</td>
+            </tr>`;
+        }).join('');
+
+        await sendEmail({
+            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+            subject: `🚨 Laboratorio: ${findings.length} hallazgo(s) nuevo(s) — ${partes}`,
+            html: `
+                <div style="font-family:Arial,sans-serif;max-width:960px;margin:0 auto;color:#1f2937">
+                    <h2 style="color:#b91c1c">🚨 Revisión de laboratorio: hallazgos nuevos</h2>
+                    <p>El control detectó <strong>${findings.length}</strong> hallazgo(s) que necesitan tu ojo: ${partes}.</p>
+                    <table style="border-collapse:collapse;width:100%;font-size:13px">
+                        <tr style="background:#111827;color:#fff">
+                            <th style="padding:8px;text-align:left">Nº operación</th><th style="padding:8px;text-align:left">Lab</th>
+                            <th style="padding:8px;text-align:left">Cliente</th><th style="padding:8px;text-align:right">Costo sistema</th>
+                            <th style="padding:8px;text-align:right">Costo real</th><th style="padding:8px;text-align:right">Dif.</th>
+                            <th style="padding:8px;text-align:left">Estado</th><th style="padding:8px;text-align:left">Detalle</th>
+                        </tr>${rows}
+                    </table>
+                    <p style="margin-top:14px"><a href="${appUrl}/admin/laboratorio/costos">Ver conciliación completa en el CRM</a></p>
+                </div>
+            `,
+        });
+        for (const f of findings) await this.markAlerted(f.id, f.status);
+        return { alerted: findings.length };
     }
 
     /**

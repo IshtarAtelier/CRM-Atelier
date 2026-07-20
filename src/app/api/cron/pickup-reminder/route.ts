@@ -72,19 +72,21 @@ export async function GET(request: Request) {
                 continue;
             }
 
-            // Actualizar estado de la orden a READY (Terminado)
-            await prisma.order.update({
-                where: { id: order.id },
-                data: { labStatus: 'READY' }
-            });
-            // Update order object for BotService if it checks it
-            order.labStatus = 'READY';
-
-            // Si llegamos acá, el pedido sigue en FINISHED (ahora READY) y pasaron 24 hs.
-            // Enviar WhatsApp al cliente informando saldo, dirección y horarios.
+            // Enviar PRIMERO el WhatsApp al cliente (saldo, dirección, horarios).
+            // Recién si el envío sale bien movemos la orden a READY y marcamos la
+            // notificación. Si falla, dejamos labStatus=FINISHED y la notificación
+            // PENDING para que la próxima corrida lo reintente (antes se marcaba
+            // READY antes de enviar → un envío fallido dejaba al cliente sin avisar
+            // y la corrida siguiente lo resolvía como "estado inválido").
             const sent = await BotService.notifyOrderReady(order);
 
             if (sent) {
+                await prisma.order.update({
+                    where: { id: order.id },
+                    data: { labStatus: 'READY' }
+                });
+                order.labStatus = 'READY';
+
                 // Modificar la notificación en lugar de resolverla para que el vendedor
                 // sepa que el cliente ya fue avisado y lo pase a entregado cuando venga.
                 const updatedMessage = notif.message.replace('Pedido finalizado en laboratorio', '🛍️ Cliente notificado (Listo para Retirar)');
@@ -95,8 +97,9 @@ export async function GET(request: Request) {
 
                 results.push({ orderId: order.id, status: 'Sent & Notification Updated' });
             } else {
-                // Si falla el envío (ej: número de WhatsApp inválido), lo dejamos pendiente
-                results.push({ orderId: order.id, status: 'Failed to send' });
+                // Envío fallido (ej: WhatsApp caído / número inválido): se reintenta
+                // en la próxima corrida (la orden sigue FINISHED, la notif PENDING).
+                results.push({ orderId: order.id, status: 'Failed to send - will retry' });
             }
         }
 

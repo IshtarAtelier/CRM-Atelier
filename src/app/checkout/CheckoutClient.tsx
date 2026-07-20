@@ -13,7 +13,28 @@ import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySid
 import type { AppliedCoupon } from "@/components/checkout/CouponField";
 import { WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
+import { getSessionId, track } from "@/lib/client-analytics";
 import { toast } from "sonner";
+
+// Clave de idempotencia del intento de compra: estable entre reintentos (timeout/
+// reintento manual) para que el server no cobre dos veces. Se limpia al confirmar.
+const IDEM_KEY = "atelier-idempotency-key";
+function getIdempotencyKey(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    let k = localStorage.getItem(IDEM_KEY);
+    if (!k) {
+      k = (crypto?.randomUUID?.() || `idem-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      localStorage.setItem(IDEM_KEY, k);
+    }
+    return k;
+  } catch {
+    return `idem-${Date.now()}`;
+  }
+}
+function clearIdempotencyKey() {
+  try { localStorage.removeItem(IDEM_KEY); } catch { /* noop */ }
+}
 
 export function CheckoutClient({ 
   paywayConfig, 
@@ -133,7 +154,10 @@ export function CheckoutClient({
     const saved = localStorage.getItem("atelier-checkout-form");
     if (saved) {
       try {
-        setFormData(JSON.parse(saved));
+        // Merge sobre el estado previo: el guardado descarta los campos de tarjeta,
+        // así que reemplazar el objeto entero los dejaba undefined → inputs controlados
+        // pasan a no controlados y cardNumber.replace(undefined) tira TypeError.
+        setFormData(prev => ({ ...prev, ...JSON.parse(saved) }));
       } catch (e) {}
     }
     
@@ -230,6 +254,8 @@ export function CheckoutClient({
             const data = await res.json();
             if (data.sessionId && !sessionId) {
               localStorage.setItem("atelier-checkout-session-id", data.sessionId);
+              // Etapa del embudo: dejó datos de contacto en el checkout (una vez).
+              track('add_contact', { value: getCartTotal(isWholesale) });
             }
           } catch (e) {
             console.error("Failed to sync checkout session", e);
@@ -304,7 +330,9 @@ export function CheckoutClient({
             items: items,
             total: getCartTotal(isWholesale),
             couponCode: appliedCoupon?.code || null,
-            paymentToken: null
+            paymentToken: null,
+            analyticsSessionId: getSessionId(),
+            idempotencyKey: getIdempotencyKey()
           })
         });
 
@@ -323,6 +351,10 @@ export function CheckoutClient({
           } catch (e) {
             console.error("Purchase tracking error:", e);
           }
+          // SIEMPRE limpiar la key idempotente tras una compra exitosa (aunque no haya
+          // habido sessionId): si no, la próxima compra reusa la key vieja y el backend
+          // idempotente devuelve la orden anterior → no se crea la nueva.
+          clearIdempotencyKey();
           clearCart();
           setIsSuccess(true);
         } else {
@@ -420,7 +452,9 @@ export function CheckoutClient({
               paymentToken: token,
               bin: bin,
               paymentMethodId: paymentMethodId,
-              deviceUniqueIdentifier: deviceFingerprint
+              deviceUniqueIdentifier: deviceFingerprint,
+              analyticsSessionId: getSessionId(),
+              idempotencyKey: getIdempotencyKey()
             })
           });
 
@@ -441,6 +475,8 @@ export function CheckoutClient({
               } catch (e) {
                 console.error("Purchase tracking error:", e);
               }
+              // SIEMPRE limpiar la key idempotente tras la compra exitosa (ver rama TRANSFER).
+              clearIdempotencyKey();
               clearCart();
               setIsSuccess(true);
             } else {

@@ -151,11 +151,14 @@ export async function generateReceiptPDF(payment: any, order: any, contact: any)
         const browsersPath = path.join(process.cwd(), '.playwright-browsers');
         process.env.PLAYWRIGHT_BROWSERS_PATH = browsersPath;
         const { chromium } = await import('playwright');
-        browser = await chromium.launch({ headless: true });
+        // timeout en el launch: si Chromium no arranca, fallamos rápido al fallback jsPDF.
+        browser = await chromium.launch({ headless: true, timeout: 15000 });
         const context = await browser.newContext();
         const page = await context.newPage();
-        
-        await page.setContent(html, { waitUntil: 'networkidle' });
+
+        // 'load' + timeout en vez de 'networkidle': no esperar el @import de fuentes externo,
+        // que con red degradada sumaba ~30s antes de caer al fallback.
+        await page.setContent(html, { waitUntil: 'load', timeout: 8000 });
         
         const pdfBuffer = await page.pdf({
             format: 'A4',
@@ -171,7 +174,11 @@ export async function generateReceiptPDF(payment: any, order: any, contact: any)
         return generateReceiptPDFWithJsPDF(payment, order, contact, filename);
     } finally {
         if (browser) {
-            await browser.close();
+            // No dejar que un close() colgado (Chromium wedged en Railway) bloquee la respuesta.
+            await Promise.race([
+                browser.close().catch(() => {}),
+                new Promise(r => setTimeout(r, 5000))
+            ]);
         }
     }
 }
