@@ -674,6 +674,9 @@ model BlogPost {
   status          String   @default("DRAFT")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  // La home/listado del blog filtra por status='PUBLISHED' ordenado por date desc.
+  @@index([status, date])
 }
 
 model SocialContent {
