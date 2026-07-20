@@ -297,6 +297,9 @@ model Order {
   id                     String         @id @default(cuid())
   clientId               String
   userId                 String
+  // Clave de idempotencia del checkout web: evita crear/cobrar dos veces la misma
+  // compra ante reintentos (timeout de red, reintento manual). Único a nivel DB.
+  idempotencyKey         String?        @unique
   status                 String         @default("PENDING")
   total                  Float          @default(0.0)
   paid                   Float          @default(0.0)
