@@ -5,10 +5,12 @@
 // de WhatsApp con mensaje precargado (el envío lo dispara siempre un humano).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Star, MapPin, MessageCircle, Check, Ban, RotateCcw, Search,
   Upload, Copy, ShieldAlert, Store, Phone, X,
 } from "lucide-react";
+import { syncUrlParams, getUrlParam, getUrlBoolParam } from "@/lib/url-filters";
 
 const DEFAULT_TPL =
   "Hola! Soy Ishtar de Atelier Óptica (Córdoba). Somos importadores directos de armazones y cristales y abrimos un canal mayorista para ópticas, con precios netos por unidad y sin mínimos. Si te interesa te paso el catálogo con precios. Saludos!";
@@ -22,6 +24,7 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
 };
 
 export default function OpticasLeadsPage() {
+  const searchParams = useSearchParams();
   const [leads, setLeads] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [totalPages, setTotalPages] = useState(1);
@@ -30,13 +33,20 @@ export default function OpticasLeadsPage() {
   const [forbidden, setForbidden] = useState(false);
 
   // Filtros (q/city se debouncean para no disparar un fetch por tecla)
-  const [status, setStatus] = useState("");
-  const [qInput, setQInput] = useState("");
-  const [cityInput, setCityInput] = useState("");
+  const [status, setStatus] = useState(() => getUrlParam(searchParams, "estado", ""));
+  const [qInput, setQInput] = useState(() => getUrlParam(searchParams, "q", ""));
+  const [cityInput, setCityInput] = useState(() => getUrlParam(searchParams, "ciudad", ""));
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
-  const [minRating, setMinRating] = useState(0);
-  const [onlyWa, setOnlyWa] = useState(true);
+  const [minRating, setMinRating] = useState(() => Number(getUrlParam(searchParams, "rating", "0")));
+  // Default = true (a diferencia del resto de los booleans de la URL): si el
+  // parámetro no está presente, arranca tildado como siempre. Se guarda como
+  // string 'false' (no boolean) para que syncUrlParams no lo descarte, porque
+  // su regla de "omitir default" está pensada para booleans con default=false.
+  const [onlyWa, setOnlyWa] = useState(() => {
+    const raw = searchParams.get("soloWa");
+    return raw === null ? true : getUrlBoolParam(searchParams, "soloWa");
+  });
   // Descarta respuestas viejas que lleguen después de una más nueva
   const fetchSeq = useRef(0);
 
@@ -170,6 +180,17 @@ export default function OpticasLeadsPage() {
       { label: "Blocklist", value: by.BLOCKLIST ?? 0, cls: "text-red-500" },
     ];
   }, [stats]);
+
+  // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+  useEffect(() => {
+    syncUrlParams('/admin/opticas', {
+      estado: status,
+      q: qInput,
+      ciudad: cityInput,
+      rating: minRating || undefined,
+      soloWa: onlyWa ? undefined : 'false',
+    });
+  }, [status, qInput, cityInput, minRating, onlyWa]);
 
   if (forbidden) {
     return (

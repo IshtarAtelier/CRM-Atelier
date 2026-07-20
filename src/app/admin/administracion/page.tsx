@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
     ArrowUpRight, ArrowDownRight, ArrowRightLeft, ImageIcon, Trash2, History, Pencil,
     CreditCard, Banknote, Wallet, Plus, RefreshCw, ChevronDown, Search, DollarSign,
@@ -11,6 +12,7 @@ import { es } from 'date-fns/locale';
 import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
 import FileDropZone from '@/components/ui/FileDropZone';
 import type { CashMovement } from '@/types/orders';
+import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 
 // ── Types ─────────────────────────────────────
 
@@ -150,15 +152,16 @@ function getPresetDates(preset: string): { from: string; to: string } {
 // ── Page ──────────────────────────────────
 
 export default function AdministracionPage() {
+    const searchParams = useSearchParams();
     const [data, setData] = useState<PaymentsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [dateFrom, setDateFrom] = useState('');
-    const [dateTo, setDateTo] = useState('');
-    const [activePreset, setActivePreset] = useState('month');
-    const [selectedMethod, setSelectedMethod] = useState<string>('');
+    const [dateFrom, setDateFrom] = useState(() => getUrlParam(searchParams, 'desde', ''));
+    const [dateTo, setDateTo] = useState(() => getUrlParam(searchParams, 'hasta', ''));
+    const [activePreset, setActivePreset] = useState(() => getUrlParam(searchParams, 'periodo', 'month'));
+    const [selectedMethod, setSelectedMethod] = useState<string>(() => getUrlParam(searchParams, 'metodo', ''));
     const [expandedGroup, setExpandedGroup] = useState<string>('');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(() => getUrlParam(searchParams, 'q', ''));
     const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
     const [cashData, setCashData] = useState<CashData | null>(null);
     const [showMovementModal, setShowMovementModal] = useState(false);
@@ -166,7 +169,7 @@ export default function AdministracionPage() {
     const [movementReason, setMovementReason] = useState('');
     const [movementReceiptUrl, setMovementReceiptUrl] = useState('');
     const [isSavingMovement, setIsSavingMovement] = useState(false);
-    const [activeTab, setActiveTab] = useState<'payments' | 'history'>('payments');
+    const [activeTab, setActiveTab] = useState<'payments' | 'history'>(() => getUrlParam(searchParams, 'tab', 'payments') === 'history' ? 'history' : 'payments');
 
     // Edit Payment State
     const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null);
@@ -178,11 +181,20 @@ export default function AdministracionPage() {
     const [isSavingEdit, setIsSavingEdit] = useState(false);
 
     useEffect(() => {
-        const preset = getPresetDates('month');
-        setDateFrom(preset.from);
-        setDateTo(preset.to);
-        fetchPayments(preset.from, preset.to);
+        // Si la URL ya trae un período explícito (link compartido), respetamos esas
+        // fechas; si no, calculamos el preset activo (por defecto "month", igual que antes).
+        let from = dateFrom;
+        let to = dateTo;
+        if (activePreset !== 'custom') {
+            const preset = getPresetDates(activePreset);
+            from = preset.from;
+            to = preset.to;
+            setDateFrom(from);
+            setDateTo(to);
+        }
+        fetchPayments(from || undefined, to || undefined, selectedMethod || undefined, searchQuery || undefined);
         fetchCashData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchCashData = async () => {
@@ -258,6 +270,18 @@ export default function AdministracionPage() {
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery]);
+
+    // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+    useEffect(() => {
+        syncUrlParams('/admin/administracion', {
+            desde: dateFrom,
+            hasta: dateTo,
+            periodo: activePreset !== 'month' ? activePreset : undefined,
+            metodo: selectedMethod,
+            q: searchQuery,
+            tab: activeTab !== 'payments' ? activeTab : undefined,
+        });
+    }, [dateFrom, dateTo, activePreset, selectedMethod, searchQuery, activeTab]);
 
     const handleDeletePayment = async (paymentId: string) => {
         if (!confirm('¿Estás seguro que querés eliminar este pago? Esta acción no se puede deshacer.')) return;

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, User, ArrowRight, CheckCircle2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import DashboardActions from "@/components/dashboard/DashboardActions";
 import DashboardObjectives from "@/components/dashboard/DashboardObjectives";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 
 interface AbandonedCart {
   id: string;
@@ -183,13 +185,14 @@ function PieChart3D({ data, showValues = false }: PieChart3DProps) {
 }
 
 export default function Home() {
+  const searchParams = useSearchParams();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [periodLabel, setPeriodLabel] = useState('Este Mes');
-  const [funnelEtiqueta, setFunnelEtiqueta] = useState('ALL');
-  const [funnelTipo, setFunnelTipo] = useState('ALL');
-  const [dateFrom, setDateFrom] = useState<string | undefined>();
-  const [dateTo, setDateTo] = useState<string | undefined>();
+  const [funnelEtiqueta, setFunnelEtiqueta] = useState(() => getUrlParam(searchParams, 'etiqueta', 'ALL'));
+  const [funnelTipo, setFunnelTipo] = useState(() => getUrlParam(searchParams, 'tipo', 'ALL'));
+  const [dateFrom, setDateFrom] = useState<string | undefined>(() => getUrlParam(searchParams, 'desde', '') || undefined);
+  const [dateTo, setDateTo] = useState<string | undefined>(() => getUrlParam(searchParams, 'hasta', '') || undefined);
   const [userRole, setUserRole] = useState('STAFF');
   const [userId, setUserId] = useState<string | undefined>();
   const [dolarBlue, setDolarBlue] = useState<number | null>(null);
@@ -234,6 +237,16 @@ export default function Home() {
   useEffect(() => {
     fetchDashboard(dateFrom, dateTo, funnelEtiqueta, funnelTipo);
   }, [dateFrom, dateTo, funnelEtiqueta, funnelTipo, userId]);
+
+  // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+  useEffect(() => {
+    syncUrlParams('/admin', {
+      desde: dateFrom,
+      hasta: dateTo,
+      etiqueta: funnelEtiqueta !== 'ALL' ? funnelEtiqueta : undefined,
+      tipo: funnelTipo !== 'ALL' ? funnelTipo : undefined,
+    });
+  }, [dateFrom, dateTo, funnelEtiqueta, funnelTipo]);
 
   const fetchDashboard = async (from?: string, to?: string, etiqueta?: string, tipo?: string) => {
     setLoading(true);

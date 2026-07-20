@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
     FileText, TrendingUp, DollarSign, Package, ArrowDown, RefreshCw, AlertCircle, Save, CheckCircle2,
     Users, ShoppingCart, Percent, Send, UserX
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { syncUrlParams, getUrlParam, getUrlBoolParam } from '@/lib/url-filters';
 
 import { KPICard } from '@/components/admin/reports/KPICard';
 import { CostRow as ProfitLossChart } from '@/components/admin/reports/ProfitLossChart';
@@ -132,11 +134,12 @@ function getPresetDates(preset: string): { from: string; to: string } {
 const STORAGE_KEY = 'atelier_reportes_state';
 
 export default function ReportsDashboard() {
+    const searchParams = useSearchParams();
     const [data, setData] = useState<ReportData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [dateFrom, setDateFrom] = useState('');
-    const [dateTo, setDateTo] = useState('');
-    const [activePreset, setActivePreset] = useState('month');
+    const [dateFrom, setDateFrom] = useState(() => getUrlParam(searchParams, 'desde', ''));
+    const [dateTo, setDateTo] = useState(() => getUrlParam(searchParams, 'hasta', ''));
+    const [activePreset, setActivePreset] = useState(() => getUrlParam(searchParams, 'periodo', 'month'));
     const [saved, setSaved] = useState(false);
     const [dolarBlue, setDolarBlue] = useState<number | null>(null);
 
@@ -151,8 +154,14 @@ export default function ReportsDashboard() {
             .catch(() => { });
     }, []);
 
-    // Restore saved state or default to current month
+    // Restore saved state or default to current month.
+    // Un link compartido (?desde=/&hasta=/&periodo=) tiene prioridad sobre el localStorage.
     useEffect(() => {
+        const urlHasFilters = !!(searchParams.get('desde') || searchParams.get('hasta') || searchParams.get('periodo'));
+        if (urlHasFilters) {
+            fetchReport(dateFrom, dateTo);
+            return;
+        }
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (raw) {
@@ -177,6 +186,15 @@ export default function ReportsDashboard() {
         if (dateFrom && dateTo) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({ dateFrom, dateTo, activePreset }));
         }
+    }, [dateFrom, dateTo, activePreset]);
+
+    // Cualquier combinación de estos filtros queda reflejada en la URL (link compartible).
+    useEffect(() => {
+        syncUrlParams('/admin/reportes', {
+            desde: dateFrom,
+            hasta: dateTo,
+            periodo: activePreset !== 'month' ? activePreset : undefined,
+        });
     }, [dateFrom, dateTo, activePreset]);
 
     const fetchReport = async (from?: string, to?: string) => {

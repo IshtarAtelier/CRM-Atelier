@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
     Package, Clock, CheckCircle2, Search, Download,
     Save, X, Eye, ArrowRight, Hash,
@@ -15,6 +16,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Order } from '@/types/orders';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 
 // ── Lab Status Config ─────────────────────────────
 
@@ -35,10 +37,11 @@ function getNextStatus(current: string): string | null {
 // ── Main Page ─────────────────────────────────────
 
 export default function PedidosPage() {
+    const searchParams = useSearchParams();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
-    const [filterStatus, setFilterStatus] = useState('SENT');
+    const [search, setSearch] = useState(() => getUrlParam(searchParams, 'q', ''));
+    const [filterStatus, setFilterStatus] = useState(() => getUrlParam(searchParams, 'estado', 'SENT'));
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export default function PedidosPage() {
     const [currentUserName, setCurrentUserName] = useState<string | null>(null);
     const [filterSeller, setFilterSeller] = useState<string>('__LOADING__');
 
-    const [viewMode, setViewMode] = useState<'LAB_ORDERS' | 'POST_VENTA'>('LAB_ORDERS');
+    const [viewMode, setViewMode] = useState<'LAB_ORDERS' | 'POST_VENTA'>(() => getUrlParam(searchParams, 'modo', 'LAB_ORDERS') === 'POST_VENTA' ? 'POST_VENTA' : 'LAB_ORDERS');
 
     const PIPELINE_COLUMNS = [
         { key: 'SENT', label: 'Reportados / Pendientes', color: 'border-amber-400/80 bg-amber-500/10 text-amber-600' },
@@ -183,7 +186,11 @@ export default function PedidosPage() {
                 setCurrentUserId(user.id || null);
                 setCurrentUserName(user.name || null);
                 // ADMIN siempre ve todos; STAFF ve sus propios pedidos por defecto
-                if (user.role === 'ADMIN') {
+                // (un link compartido con ?vendedor= pisa el default de rol)
+                const urlSeller = getUrlParam(searchParams, 'vendedor', '');
+                if (urlSeller) {
+                    setFilterSeller(urlSeller);
+                } else if (user.role === 'ADMIN') {
                     setFilterSeller('ALL');
                 } else {
                     setFilterSeller(user.id || 'ALL');
@@ -846,6 +853,16 @@ export default function PedidosPage() {
 
         return { crystalAverages, labAverages, generalAvg };
     }, [orders]);
+
+    // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+    useEffect(() => {
+        syncUrlParams('/admin/pedidos', {
+            q: search,
+            estado: filterStatus !== 'SENT' ? filterStatus : undefined,
+            vendedor: filterSeller !== 'ALL' && filterSeller !== '__LOADING__' ? filterSeller : undefined,
+            modo: viewMode !== 'LAB_ORDERS' ? viewMode : undefined,
+        });
+    }, [search, filterStatus, filterSeller, viewMode]);
 
     // ── Render ─────────────────────────────────
 

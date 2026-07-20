@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, CheckCircle2, Zap, Camera, Clock, Database, Layers } from "lucide-react";
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
@@ -14,6 +15,7 @@ import { autoCorrectLab, getSelectedShapeFromTags, getSelectedMaterialFromTags, 
 import { PRODUCT_CATEGORIES as SHARED_CATEGORIES } from '@/lib/constants';
 import { normalizeLensOrigin, LENS_ORIGIN } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
+import { syncUrlParams, getUrlParam, getUrlBoolParam } from '@/lib/url-filters';
 const PRODUCT_CATEGORIES = [
     { id: 'ALL', label: 'Todos' },
     ...SHARED_CATEGORIES
@@ -22,19 +24,20 @@ const PRODUCT_CATEGORIES = [
 
 
 export default function InventarioPage() {
-    const [searchQuery, setSearchQuery] = useState('');
+    const searchParams = useSearchParams();
+    const [searchQuery, setSearchQuery] = useState(() => getUrlParam(searchParams, 'q', ''));
     const [showForm, setShowForm] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState('ALL');
-    const [onlyWeb, setOnlyWeb] = useState(false);
-    const [selectedSubtype, setSelectedSubtype] = useState('');
-    const [selectedOrigin, setSelectedOrigin] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState(() => getUrlParam(searchParams, 'categoria', 'ALL'));
+    const [onlyWeb, setOnlyWeb] = useState(() => getUrlBoolParam(searchParams, 'web'));
+    const [selectedSubtype, setSelectedSubtype] = useState(() => getUrlParam(searchParams, 'subtipo', ''));
+    const [selectedOrigin, setSelectedOrigin] = useState(() => getUrlParam(searchParams, 'origen', ''));
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, publishToWholesale: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
     const [savingEdit, setSavingEdit] = useState(false);
-    const [selectedBrand, setSelectedBrand] = useState('');
-    const [selectedLab, setSelectedLab] = useState('');
+    const [selectedBrand, setSelectedBrand] = useState(() => getUrlParam(searchParams, 'marca', ''));
+    const [selectedLab, setSelectedLab] = useState(() => getUrlParam(searchParams, 'laboratorio', ''));
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [userRole, setUserRole] = useState('STAFF');
@@ -286,6 +289,19 @@ export default function InventarioPage() {
             .catch(() => {});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+    useEffect(() => {
+        syncUrlParams('/admin/inventario', {
+            q: searchQuery,
+            categoria: selectedCategory !== 'ALL' ? selectedCategory : undefined,
+            subtipo: selectedSubtype,
+            web: onlyWeb,
+            origen: selectedOrigin,
+            marca: selectedBrand,
+            laboratorio: selectedLab,
+        });
+    }, [searchQuery, selectedCategory, selectedSubtype, onlyWeb, selectedOrigin, selectedBrand, selectedLab]);
 
     const handleSaveEdit = async () => {
         if (!editingProduct) return;

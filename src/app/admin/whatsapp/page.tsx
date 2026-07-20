@@ -14,6 +14,7 @@ import { TestChatModal } from '@/components/ui/TestChatModal';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { BotPricingSection } from '@/components/config/BotPricingSection';
+import { syncUrlParams, getUrlParam, getUrlBoolParam } from '@/lib/url-filters';
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 const CHAT_LABEL_OPTIONS = [
@@ -128,6 +129,7 @@ interface Message {
 
 // ── Main Component ────────────────────────────────
 function WhatsAppPageContent() {
+    const searchParams = useSearchParams();
     const [status, setStatus] = useState<{ connected: boolean; phone: string | null; qr: string | null; agentEnabled: boolean }>({
         connected: false, phone: null, qr: null, agentEnabled: false
     });
@@ -149,10 +151,13 @@ function WhatsAppPageContent() {
     const [showTestChat, setShowTestChat] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
     const [loadingStatus, setLoadingStatus] = useState(true);
-    const [filterLabel, setFilterLabel] = useState<string | null>(null);
-    const [readFilter, setReadFilter] = useState<'ALL' | 'UNREAD' | 'READ'>('ALL');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showArchived, setShowArchived] = useState(false);
+    const [filterLabel, setFilterLabel] = useState<string | null>(() => {
+        const v = getUrlParam(searchParams, 'etiqueta', '');
+        return v || null;
+    });
+    const [readFilter, setReadFilter] = useState<'ALL' | 'UNREAD' | 'READ'>(() => getUrlParam(searchParams, 'estado', 'ALL') as 'ALL' | 'UNREAD' | 'READ');
+    const [searchQuery, setSearchQuery] = useState(() => getUrlParam(searchParams, 'q', ''));
+    const [showArchived, setShowArchived] = useState(() => getUrlBoolParam(searchParams, 'archivados'));
     const [showLabelPicker, setShowLabelPicker] = useState(false);
     const [showFollowUpMenu, setShowFollowUpMenu] = useState(false);
     const [showQuickReplies, setShowQuickReplies] = useState(false);
@@ -359,7 +364,6 @@ function WhatsAppPageContent() {
     const knownClientIds = useRef<Set<string>>(new Set());
     const initialLoadRef = useRef(true);
 
-    const searchParams = useSearchParams();
     const urlPhone = searchParams.get('phone');
     const handledUrlPhoneRef = useRef(false);
 
@@ -784,6 +788,16 @@ function WhatsAppPageContent() {
             lastScrollChatIdRef.current = selectedChatRef.current.id;
         }
     }, [messages]);
+
+    // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+    useEffect(() => {
+        syncUrlParams('/admin/whatsapp', {
+            q: searchQuery,
+            estado: readFilter !== 'ALL' ? readFilter : undefined,
+            etiqueta: filterLabel,
+            archivados: showArchived,
+        });
+    }, [searchQuery, readFilter, filterLabel, showArchived]);
 
     // ── Select chat ───────────────────────────────
     const selectChat = async (chat: Chat) => {

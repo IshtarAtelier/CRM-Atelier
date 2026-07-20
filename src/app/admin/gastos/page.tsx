@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-    ChevronLeft, ChevronRight, TrendingDown, Plus, 
-    AlertCircle, Building2, Megaphone, 
+import { useSearchParams } from 'next/navigation';
+import {
+    ChevronLeft, ChevronRight, TrendingDown, Plus,
+    AlertCircle, Building2, Megaphone,
     Truck, Receipt, Loader2, Copy, Trash2
 } from 'lucide-react';
+import { syncUrlParams, getUrlParam, getUrlBoolParam } from '@/lib/url-filters';
 
 const MONTHS = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -174,15 +176,36 @@ function AddExpenseRow({ type, month, year, onAdd }: { type: string, month: numb
 }
 
 export default function GastosPage() {
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const searchParams = useSearchParams();
+    const [currentDate, setCurrentDate] = useState(() => {
+        const mesParam = getUrlParam(searchParams, 'mes', '');
+        const match = mesParam.match(/^(\d{4})-(\d{1,2})$/);
+        if (match) {
+            const y = parseInt(match[1], 10);
+            const m = parseInt(match[2], 10);
+            if (!isNaN(y) && !isNaN(m) && m >= 1 && m <= 12) {
+                return new Date(y, m - 1, 1);
+            }
+        }
+        return new Date();
+    });
     const [expenses, setExpenses] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    
+
     const selectedMonth = currentDate.getMonth() + 1;
     const selectedYear = currentDate.getFullYear();
 
     useEffect(() => {
         fetchExpenses(selectedMonth, selectedYear);
+    }, [selectedMonth, selectedYear]);
+
+    // Mes/año seleccionado queda reflejado en la URL (link compartible).
+    useEffect(() => {
+        const now = new Date();
+        const isDefaultMonth = selectedMonth === now.getMonth() + 1 && selectedYear === now.getFullYear();
+        syncUrlParams('/admin/gastos', {
+            mes: isDefaultMonth ? undefined : `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`,
+        });
     }, [selectedMonth, selectedYear]);
 
     const fetchExpenses = async (m: number, y: number, autoGenerate = true) => {

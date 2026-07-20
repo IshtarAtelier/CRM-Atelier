@@ -5,6 +5,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Users, UserPlus, CheckCircle2, UserCheck, Loader2 } from "lucide-react";
 import { useContacts } from '@/hooks/useContacts';
 import { ContactStatus } from '@/types/contacts';
+import { syncUrlParams, getUrlParam, getUrlBoolParam } from '@/lib/url-filters';
 
 // Modular Components
 import ContactForm from '@/components/contacts/ContactForm';
@@ -20,11 +21,11 @@ function ContactosPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
-    const [activeTab, setActiveTab] = useState<ContactStatus>('ALL');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [selectedInterest, setSelectedInterest] = useState('ALL');
-    const [locationFilter, setLocationFilter] = useState('ALL');
-    const [showUnattendedOnly, setShowUnattendedOnly] = useState(false);
+    const [activeTab, setActiveTab] = useState<ContactStatus>(() => getUrlParam(searchParams, 'estado', 'ALL') as ContactStatus);
+    const [searchQuery, setSearchQuery] = useState(() => getUrlParam(searchParams, 'q', ''));
+    const [selectedInterest, setSelectedInterest] = useState(() => getUrlParam(searchParams, 'interes', 'ALL'));
+    const [locationFilter, setLocationFilter] = useState(() => getUrlParam(searchParams, 'zona', 'ALL'));
+    const [showUnattendedOnly, setShowUnattendedOnly] = useState(() => getUrlBoolParam(searchParams, 'sinAtender'));
     const [currentUserRole, setCurrentUserRole] = useState('STAFF');
     
     const [showForm, setShowForm] = useState(false);
@@ -111,6 +112,17 @@ function ContactosPageContent() {
             .catch(() => { });
         return () => { cancelled = true; };
     }, [contacts]);
+
+    // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+    useEffect(() => {
+        syncUrlParams('/admin/contactos', {
+            estado: activeTab !== 'ALL' ? activeTab : undefined,
+            q: searchQuery,
+            interes: selectedInterest !== 'ALL' ? selectedInterest : undefined,
+            zona: locationFilter !== 'ALL' ? locationFilter : undefined,
+            sinAtender: showUnattendedOnly,
+        });
+    }, [activeTab, searchQuery, selectedInterest, locationFilter, showUnattendedOnly]);
 
     // Con el filtro activo, mostrar primero los más urgentes (más antiguos sin atender).
     const visibleContacts = showUnattendedOnly

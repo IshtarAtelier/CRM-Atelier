@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Globe, 
+import { useSearchParams } from 'next/navigation';
+import {
+  Globe,
   BookOpen, 
   Search, 
   Plus, 
@@ -28,6 +29,7 @@ import CouponsManager from '@/components/admin/CouponsManager';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 import { getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial, getProductAttributes } from '@/utils/product-controllers';
+import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 
 interface WebProduct {
   id: string;
@@ -72,7 +74,8 @@ interface BlogPost {
 }
 
 export default function WebManagementPage() {
-  const [activeTab, setActiveTab] = useState<'products' | 'blog' | 'config' | 'flyers' | 'coupons'>('products');
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'products' | 'blog' | 'config' | 'flyers' | 'coupons'>(() => getUrlParam(searchParams, 'tab', 'products') as 'products' | 'blog' | 'config' | 'flyers' | 'coupons');
 
   // Flyer Builder states
   const [flyerTheme, setFlyerTheme] = useState<'cream' | 'obsidian' | 'rose'>('cream');
@@ -103,11 +106,11 @@ export default function WebManagementPage() {
   // Products states
   const [products, setProducts] = useState<WebProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [productSearch, setProductSearch] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string>("ALL");
-  const [filterGender, setFilterGender] = useState<string>("ALL");
-  const [filterShape, setFilterShape] = useState<string>("ALL");
-  const [filterMaterial, setFilterMaterial] = useState<string>("ALL");
+  const [productSearch, setProductSearch] = useState(() => getUrlParam(searchParams, 'q', ''));
+  const [filterCategory, setFilterCategory] = useState<string>(() => getUrlParam(searchParams, 'categoria', 'ALL'));
+  const [filterGender, setFilterGender] = useState<string>(() => getUrlParam(searchParams, 'genero', 'ALL'));
+  const [filterShape, setFilterShape] = useState<string>(() => getUrlParam(searchParams, 'forma', 'ALL'));
+  const [filterMaterial, setFilterMaterial] = useState<string>(() => getUrlParam(searchParams, 'material', 'ALL'));
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [editingProduct, setEditingProduct] = useState<WebProduct | null>(null);
   const [savingProduct, setSavingProduct] = useState(false);
@@ -477,6 +480,18 @@ export default function WebManagementPage() {
     loadPosts();
     loadWebConfig();
   }, []);
+
+  // Cualquier combinación de filtros/tab queda reflejada en la URL (link compartible).
+  useEffect(() => {
+    syncUrlParams('/admin/web', {
+      tab: activeTab !== 'products' ? activeTab : undefined,
+      q: productSearch,
+      categoria: filterCategory !== 'ALL' ? filterCategory : undefined,
+      genero: filterGender !== 'ALL' ? filterGender : undefined,
+      forma: filterShape !== 'ALL' ? filterShape : undefined,
+      material: filterMaterial !== 'ALL' ? filterMaterial : undefined,
+    });
+  }, [activeTab, productSearch, filterCategory, filterGender, filterShape, filterMaterial]);
 
   const loadWebConfig = async () => {
     setLoadingConfig(true);

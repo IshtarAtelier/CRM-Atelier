@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
     ArrowLeft, Loader2, RefreshCw, Mail, Upload, X, FlaskConical,
     AlertTriangle, CheckCircle2, HelpCircle, TrendingDown, CalendarDays, Download, History
 } from 'lucide-react';
+import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 
 interface LabCostEntry {
     id: string;
@@ -147,13 +149,14 @@ const fmtDate = (iso: string | null) => {
 };
 
 export default function LabCostosPage() {
+    const searchParams = useSearchParams();
     const [entries, setEntries] = useState<LabCostEntry[]>([]);
     const [totals, setTotals] = useState<StatusTotal[]>([]);
     const [auditRuns, setAuditRuns] = useState<AuditRun[]>([]);
     const [statements, setStatements] = useState<AccountStatement[]>([]);
     const [loading, setLoading] = useState(true);
-    const [labFilter, setLabFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
+    const [labFilter, setLabFilter] = useState(() => getUrlParam(searchParams, 'lab', ''));
+    const [statusFilter, setStatusFilter] = useState(() => getUrlParam(searchParams, 'estado', ''));
     const [busy, setBusy] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
 
@@ -163,7 +166,7 @@ export default function LabCostosPage() {
     const [importText, setImportText] = useState('');
 
     // Reporte mensual
-    const [reportMonth, setReportMonth] = useState(previousMonth());
+    const [reportMonth, setReportMonth] = useState(() => getUrlParam(searchParams, 'mes', previousMonth()));
     const [report, setReport] = useState<MonthlyReport | null>(null);
     const [reportLoading, setReportLoading] = useState(false);
 
@@ -266,6 +269,15 @@ export default function LabCostosPage() {
     }, []);
 
     useEffect(() => { fetchReport(reportMonth); }, [reportMonth, fetchReport]);
+
+    // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+    useEffect(() => {
+        syncUrlParams('/admin/laboratorio/costos', {
+            lab: labFilter,
+            estado: statusFilter,
+            mes: reportMonth !== previousMonth() ? reportMonth : undefined,
+        });
+    }, [labFilter, statusFilter, reportMonth]);
 
     const downloadReportCsv = () => {
         if (!report) return;
