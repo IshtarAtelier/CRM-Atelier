@@ -16,6 +16,14 @@ export const webContactSchema = z.object({
 });
 export type WebContactInput = z.infer<typeof webContactSchema>;
 
+export const productReviewSchema = z.object({
+  productId: trimmed(60).min(1, 'Producto requerido'),
+  authorName: trimmed(80).min(2, 'Nombre requerido'),
+  rating: z.coerce.number().int().min(1, 'Puntaje 1-5').max(5, 'Puntaje 1-5'),
+  comment: trimmed(2000).min(3, 'Comentario muy corto'),
+});
+export type ProductReviewInput = z.infer<typeof productReviewSchema>;
+
 /**
  * Valida un body con un esquema zod. Devuelve { data } o { error } con el detalle.
  */

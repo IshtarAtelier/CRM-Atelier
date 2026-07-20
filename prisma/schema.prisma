@@ -936,3 +936,18 @@ model AnalyticsEvent {
   @@index([utmSource, createdAt])
   @@index([orderId])
 }
+
+/// Reseñas de clientes por producto. Nacen sin aprobar (moderación anti-spam) y
+/// solo se muestran las aprobadas. Desacoplado de Product (sin FK) a propósito.
+model ProductReview {
+  id         String   @id @default(cuid())
+  productId  String
+  authorName String
+  rating     Int // 1..5
+  comment    String
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([productId, approved])
+  @@index([approved, createdAt])
+}
