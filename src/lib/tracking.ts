@@ -113,13 +113,14 @@ export function trackInitiateCheckout(cartItems: any[], totalValue: number) {
 export function trackPurchase(orderId: string, totalValue: number, cartItems: any[]) {
   if (typeof window !== "undefined") {
     // (La analítica propia registra `purchase` server-side en el checkout.)
-    // Meta Pixel Event
+    // Meta Pixel Event. El 4º arg { eventID } deduplica con el evento server-side
+    // del Conversions API (AdsService.sendWebPurchase usa event_id = order.id).
     if ((window as any).fbq) {
       (window as any).fbq("track", "Purchase", {
         value: totalValue,
         currency: "ARS",
         transaction_id: orderId,
-      });
+      }, { eventID: orderId });
     }
     // Google Analytics 4 Event
     if ((window as any).gtag) {

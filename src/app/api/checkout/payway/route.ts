@@ -12,6 +12,8 @@ import { recalculateItemPrice, effectiveFramePrice } from '@/lib/checkout/checko
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
+import { AdsService } from '@/services/ads.service';
+import { recordServerEvent } from '@/lib/analytics';
 
 function getArgentineStateCode(stateName: string): string {
   if (!stateName) return "C"; // fallback to CABA
@@ -958,6 +960,26 @@ export async function POST(req: Request) {
     await notifyLowStockCrossing(decrementedProducts);
     // Red de seguridad: avisar si alguna línea quedó con costo $0.
     notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (pago Payway):', err));
+
+    // Medición (fuera del critical path, no bloquea ni lanza):
+    // 1) Conversión propia del embudo, atada a la sesión anónima del visitante.
+    recordServerEvent({
+      type: 'purchase',
+      sessionId: body.analyticsSessionId || `web-${order.id}`,
+      value: finalItemsTotal,
+      orderId: order.id,
+      meta: { channel: 'web', paymentMethod: 'TARJETA' },
+    });
+    // 2) Meta CAPI server-side (respaldo del Pixel; event_id = order.id deduplica).
+    AdsService.sendWebPurchase(
+      {
+        id: order.id,
+        total: finalItemsTotal,
+        client: { email: customer.email, phone: customer.phone, name: `${customer.firstName} ${customer.lastName}` },
+        createdAt: order.createdAt,
+      },
+      { eventSourceUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar'}/checkout` },
+    );
 
     return NextResponse.json({
       success: true,
