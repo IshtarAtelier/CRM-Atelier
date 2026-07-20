@@ -387,6 +387,29 @@ export async function POST(req: Request) {
       throw new Error("No se pudo obtener o crear el cliente.");
     }
 
+    // IDEMPOTENCIA DURA: si el mismo intento (misma idempotencyKey) ya generó una
+    // orden, no volver a crear ni cobrar. Cubre el reintento por timeout de red o
+    // reintento manual del usuario, más allá del guard heurístico por total/tiempo.
+    const idempotencyKey: string | null = typeof body.idempotencyKey === 'string' && body.idempotencyKey.trim()
+      ? body.idempotencyKey.trim().slice(0, 80)
+      : null;
+    if (idempotencyKey) {
+      const existing = await prisma.order.findUnique({
+        where: { idempotencyKey },
+        select: { id: true, status: true },
+      });
+      if (existing) {
+        if (['WEB_PAID', 'PAID'].includes(existing.status)) {
+          // Ya se procesó y cobró: responder éxito sin volver a cobrar.
+          return NextResponse.json({ success: true, orderId: existing.id, message: 'Pago ya procesado', idempotent: true });
+        }
+        // Orden en curso con la misma clave: no duplicar el cobro.
+        return NextResponse.json({
+          error: 'Tu pedido ya se está procesando. No volvimos a cobrarte.',
+        }, { status: 409 });
+      }
+    }
+
     // GUARD ANTI DOBLE COBRO: si este mismo cliente ya generó una orden web por el
     // mismo total en los últimos 2 minutos (doble click / reintento), NO crear otra
     // orden ni volver a cobrar la tarjeta.
@@ -577,6 +600,7 @@ export async function POST(req: Request) {
         data: {
           clientId: client.id,
           userId: systemUser.id,
+          idempotencyKey: idempotencyKey ?? undefined,
           status: "WEB_PENDING",
           // Las ventas web nacen en "Falta procesar": así aparecen en la solapa
           // y el contador por defecto de Ventas Web, sin quedar sueltas en "Todas".

@@ -16,6 +16,26 @@ import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
 import { getSessionId } from "@/lib/client-analytics";
 import { toast } from "sonner";
 
+// Clave de idempotencia del intento de compra: estable entre reintentos (timeout/
+// reintento manual) para que el server no cobre dos veces. Se limpia al confirmar.
+const IDEM_KEY = "atelier-idempotency-key";
+function getIdempotencyKey(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    let k = localStorage.getItem(IDEM_KEY);
+    if (!k) {
+      k = (crypto?.randomUUID?.() || `idem-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      localStorage.setItem(IDEM_KEY, k);
+    }
+    return k;
+  } catch {
+    return `idem-${Date.now()}`;
+  }
+}
+function clearIdempotencyKey() {
+  try { localStorage.removeItem(IDEM_KEY); } catch { /* noop */ }
+}
+
 export function CheckoutClient({ 
   paywayConfig, 
   initialSettings, 
@@ -305,7 +325,9 @@ export function CheckoutClient({
             items: items,
             total: getCartTotal(isWholesale),
             couponCode: appliedCoupon?.code || null,
-            paymentToken: null
+            paymentToken: null,
+            analyticsSessionId: getSessionId(),
+            idempotencyKey: getIdempotencyKey()
           })
         });
 
@@ -318,6 +340,7 @@ export function CheckoutClient({
               body: JSON.stringify({ sessionId, status: 'COMPLETED' })
             }).catch(console.error);
             localStorage.removeItem("atelier-checkout-session-id");
+            clearIdempotencyKey();
           }
           try {
             trackPurchase(sessionId || crypto.randomUUID(), getCartTotal(isWholesale), items);
@@ -422,7 +445,8 @@ export function CheckoutClient({
               bin: bin,
               paymentMethodId: paymentMethodId,
               deviceUniqueIdentifier: deviceFingerprint,
-              analyticsSessionId: getSessionId()
+              analyticsSessionId: getSessionId(),
+              idempotencyKey: getIdempotencyKey()
             })
           });
 
@@ -437,6 +461,7 @@ export function CheckoutClient({
                   body: JSON.stringify({ sessionId, status: 'COMPLETED' })
                 }).catch(console.error);
                 localStorage.removeItem("atelier-checkout-session-id");
+            clearIdempotencyKey();
               }
               try {
                 trackPurchase(data.orderId || sessionId || crypto.randomUUID(), getCartTotal(isWholesale), items);
