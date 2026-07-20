@@ -5,7 +5,7 @@ import {
     Wallet, Loader2, Plus, X, AlertCircle,
     ArrowUpRight, ArrowDownRight, ImageIcon,
     History, Banknote, Building2, PiggyBank, MoreHorizontal,
-    CheckCircle2
+    CheckCircle2, Scale
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -17,6 +17,7 @@ const CATEGORIES = [
     { key: 'GASTO_GENERAL', label: 'Gasto General', icon: Banknote, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950' },
     { key: 'PAGO_LABORATORIO', label: 'Pago Laboratorio', icon: Building2, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950' },
     { key: 'APORTE_EFECTIVO', label: 'Aporte de Efectivo', icon: PiggyBank, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950' },
+    { key: 'AJUSTE_CAJA', label: 'Ajuste de Caja', icon: Scale, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950' },
     { key: 'OTRO', label: 'Otro', icon: MoreHorizontal, color: 'text-stone-500', bg: 'bg-stone-50 dark:bg-stone-800' },
 ];
 
@@ -524,8 +525,10 @@ export default function CajaPage() {
                                                 // ventas entran solos desde el pedido (cargarlos acá
                                                 // duplicaría la caja). Fuera en ambos modos.
                                                 if (c.key === 'VENTA') return false;
-                                                // Ingreso: solo aporte de efectivo u otro.
-                                                // Egreso: gasto general, pago laboratorio u otro.
+                                                // 'AJUSTE_CAJA' (conciliación / puesta a cero): solo ADMIN.
+                                                if (c.key === 'AJUSTE_CAJA') return !!viewer?.isOwner;
+                                                // Ingreso: aporte de efectivo, otro (+ ajuste si admin).
+                                                // Egreso: gasto general, pago laboratorio, otro (+ ajuste si admin).
                                                 if (movementType === 'IN') return c.key === 'APORTE_EFECTIVO' || c.key === 'OTRO';
                                                 return c.key !== 'APORTE_EFECTIVO';
                                             })

@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { CashService } from '@/services/cash.service';
 import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 // Cota superior de cordura: ningún movimiento manual legítimo de una óptica
 // supera esto. Frena typos (agregar ceros de más) y payloads maliciosos que
 // corromperían el saldo global y dispararían los emails de alerta.
 const MAX_AMOUNT = 100_000_000;      // $100 millones
 const MAX_REASON = 500;
-const VALID_CATEGORIES = ['GASTO_GENERAL', 'PAGO_LABORATORIO', 'APORTE_EFECTIVO', 'OTRO'];
+// AJUSTE_CAJA = ajuste de conciliación (puesta a cero, corrección de descuadre).
+// Es la única categoría reservada a ADMIN: la encargada cuenta y marca la
+// diferencia en el arqueo, pero NO la puede "hacer desaparecer" con un ajuste
+// (separación de funciones). El resto de las categorías las usa la encargada.
+const VALID_CATEGORIES = ['GASTO_GENERAL', 'PAGO_LABORATORIO', 'APORTE_EFECTIVO', 'AJUSTE_CAJA', 'OTRO'];
 
 export async function POST(request: Request) {
     try {
@@ -50,6 +55,13 @@ export async function POST(request: Request) {
 
         const cleanCategory = VALID_CATEGORIES.includes(category) ? category : 'OTRO';
 
+        // Los ajustes de caja (conciliación / puesta a cero) SOLO los hace ADMIN.
+        // La encargada custodia y marca la diferencia; el ajuste lo aplica quien
+        // controla — separación de funciones.
+        if (cleanCategory === 'AJUSTE_CAJA' && actor.role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Los ajustes de caja solo los puede registrar la administración. La encargada marca la diferencia en el arqueo; el ajuste lo aplica el admin.' }, { status: 403 });
+        }
+
         const movement = await CashService.registerMovement({
             type,
             amount: parsedAmount,
@@ -59,6 +71,18 @@ export async function POST(request: Request) {
             category: cleanCategory,
             laboratory: cleanCategory === 'PAGO_LABORATORIO' && laboratory ? String(laboratory).slice(0, 120) : undefined,
         });
+
+        // Todo ajuste de caja queda firmado en la auditoría (quién, cuánto, por qué).
+        if (cleanCategory === 'AJUSTE_CAJA') {
+            await logAudit({
+                userId: actor.id,
+                userName: actor.name,
+                action: 'CREATE',
+                entityType: 'CASH_MOVEMENT',
+                entityId: (movement as any).id,
+                details: { ajuste: true, type, amount: parsedAmount, reason: cleanReason },
+            });
+        }
 
         return NextResponse.json(movement);
     } catch (error: any) {

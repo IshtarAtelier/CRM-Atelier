@@ -1,11 +1,11 @@
 import { prisma } from '@/lib/db';
 
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'LOGIN' | 'OTHER';
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'LOGIN' | 'EXPORT' | 'OTHER';
 export type AuditEntityType =
     | 'ORDER' | 'CONTACT' | 'PAYMENT' | 'USER' | 'PRODUCT'
     | 'TASK' | 'PRESCRIPTION' | 'INVOICE' | 'EXPENSE' | 'DOCTOR_PAYMENT'
     | 'COUPON' | 'SETTING' | 'VENDOR_CASH'
-    | 'CASH_HANDOVER' | 'CASH_COUNT' | 'OPTICA_LEAD' | 'OTHER';
+    | 'CASH_HANDOVER' | 'CASH_COUNT' | 'CASH_MOVEMENT' | 'OPTICA_LEAD' | 'OTHER';
 
 export async function logAudit(params: {
   userId?: string | null;
