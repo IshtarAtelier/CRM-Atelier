@@ -644,7 +644,7 @@ export function ProductClient({
                     >
                       <div className="pb-6">
                         <ul className="text-xs text-stone-600 space-y-2 list-disc pl-4">
-                          <li>Tenés 30 días para realizar cambios si el armazón no te convence.</li>
+                          <li>Tenés 10 días hábiles para realizar cambios si el armazón no te convence, sin ningún desperfecto.</li>
                           <li>Garantía de adaptación total en cristales multifocales.</li>
                           <li>Para iniciar un cambio, contactanos por WhatsApp con tu número de orden.</li>
                         </ul>
