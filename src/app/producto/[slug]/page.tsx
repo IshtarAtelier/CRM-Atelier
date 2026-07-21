@@ -142,11 +142,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const plainDescription = rawDescription.replace(/\s+/g, ' ').trim();
   const description = plainDescription.length > 160 ? `${plainDescription.slice(0, 157).trimEnd()}…` : plainDescription;
 
-  const imageUrl = product.imagenesCatalogo && product.imagenesCatalogo.length > 0 
-    ? resolveStorageUrl(product.imagenesCatalogo[0])
+  // getProduct ya resuelve imagenesCatalogo priorizando la galería web.
+  const rawImage = product.imagenesCatalogo?.[0] || '';
+  const imageUrl = rawImage
+    ? resolveStorageUrl(rawImage)
     : ((product as any).mockImage || '/images/og-image.jpg');
 
-  const absoluteImageUrl = imageUrl.startsWith('http') ? imageUrl : `https://atelieroptica.com.ar${imageUrl}`;
+  // Un data-URI no sirve como og:image (los crawlers de WhatsApp/Facebook solo
+  // siguen URLs); en ese caso mostramos la imagen genérica en vez de armar una
+  // URL inválida concatenándole el dominio.
+  const SITE = 'https://atelieroptica.com.ar';
+  const absoluteImageUrl = imageUrl.startsWith('data:')
+    ? `${SITE}/images/og-image.jpg`
+    : imageUrl.startsWith('http')
+      ? imageUrl
+      : `${SITE}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
 
   return {
     // absolute: evita que el template del layout ("%s | Atelier Óptica") vuelva a agregar la marca
