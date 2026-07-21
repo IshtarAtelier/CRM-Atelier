@@ -7,11 +7,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Star, MapPin, MessageCircle, Check, Ban, RotateCcw, Search,
-  Upload, Copy, ShieldAlert, Store, Phone, X,
+  Upload, Copy, ShieldAlert, Store, Phone, X, Eye,
 } from "lucide-react";
+import { formatDateTime } from "@/lib/format-date";
 
+// {link} se resuelve en waLink() al link tracker /mayorista/catalogo?lead=<id>
+// (mismo origin donde corre el panel). Ojo: NO decir "sin mínimos" — el
+// checkout mayorista exige WHOLESALE_MIN_PIECES=10 (payway/route.ts), una
+// plantilla que prometa "sin mínimos" manda al lead a un error en el carrito.
 const DEFAULT_TPL =
-  "Hola! Soy Ishtar de Atelier Óptica (Córdoba). Somos importadores directos de armazones y cristales y abrimos un canal mayorista para ópticas, con precios netos por unidad y sin mínimos. Si te interesa te paso el catálogo con precios. Saludos!";
+  "Hola! Soy Ishtar de Atelier Óptica (Córdoba). Somos importadores directos de armazones y cristales y abrimos un canal mayorista para ópticas, con precios netos por unidad (mínimo 10 piezas por pedido). Te dejo el catálogo completo con precios: {link}";
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   NUEVO: { label: "Nuevo", cls: "bg-blue-50 text-blue-700 border-blue-200" },
@@ -97,8 +102,13 @@ export default function OpticasLeadsPage() {
     if (res.ok) fetchLeads();
   };
 
+  const catalogLink = (lead: any) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://atelieroptica.com.ar";
+    return `${origin}/mayorista/catalogo?lead=${lead.id}`;
+  };
+
   const waLink = (lead: any) => {
-    const msg = tpl.replaceAll("{nombre}", lead.name);
+    const msg = tpl.replaceAll("{nombre}", lead.name).replaceAll("{link}", catalogLink(lead));
     return `https://wa.me/${lead.phoneWa}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -168,6 +178,7 @@ export default function OpticasLeadsPage() {
       { label: "Respondieron", value: by.RESPONDIO ?? 0, cls: "text-emerald-700" },
       { label: "Clientes", value: by.CLIENTE ?? 0, cls: "text-emerald-800" },
       { label: "Blocklist", value: by.BLOCKLIST ?? 0, cls: "text-red-500" },
+      { label: "Vieron el catálogo", value: stats.catalogViews?.uniqueSessions ?? 0, cls: "text-violet-600" },
     ];
   }, [stats]);
 
@@ -208,7 +219,7 @@ export default function OpticasLeadsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mb-5">
         {statCards.map(c => (
           <div key={c.label} className="bg-white border border-stone-200 rounded-xl px-3 py-3 text-center">
             <p className={`text-2xl font-black ${c.cls}`}>{c.value}</p>
@@ -222,7 +233,7 @@ export default function OpticasLeadsPage() {
         <div className="bg-white border border-stone-200 rounded-xl p-4 mb-5">
           <div className="flex justify-between items-center mb-2">
             <p className="text-xs font-black uppercase tracking-widest text-stone-500">
-              Mensaje de invitación — usá {"{nombre}"} para el nombre de la óptica
+              Mensaje de invitación — usá {"{nombre}"} para el nombre de la óptica y {"{link}"} para el catálogo (se arma solo, distinto por óptica)
             </p>
             <button onClick={() => setShowTpl(false)}><X className="w-4 h-4 text-stone-400" /></button>
           </div>
@@ -318,6 +329,12 @@ export default function OpticasLeadsPage() {
                       className="text-[11px] text-blue-600 hover:underline inline-flex items-center gap-1">
                       <MapPin className="w-3 h-3" /> ver en Maps ↗
                     </a>
+                    {lead.catalogViews > 0 && (
+                      <p title={`Última vez: ${formatDateTime(lead.catalogViewedAt)}`}
+                        className="text-[11px] text-violet-600 font-semibold inline-flex items-center gap-1 mt-0.5">
+                        <Eye className="w-3 h-3" /> Vio el catálogo{lead.catalogViews > 1 ? ` (${lead.catalogViews}x)` : ""}
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {lead.phone ? (

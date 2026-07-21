@@ -18,7 +18,9 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     return () => clearTimeout(timer);
   }, []);
 
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/login")) {
+  // /mayorista/catalogo ya trae su propia barra de CTA con WhatsApp fija abajo
+  // (mismo ancho de pantalla): la burbuja flotante quedaba superpuesta arriba.
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/login") || pathname?.startsWith("/mayorista")) {
     return null;
   }
 

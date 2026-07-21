@@ -19,6 +19,7 @@ export const ANALYTICS_EVENT_TYPES = [
   'begin_checkout', // entró al checkout
   'add_contact', // dejó email/teléfono en el checkout
   'purchase', // compra confirmada (server-side)
+  'wholesale_catalog_view', // abrió el link del catálogo mayorista (/mayorista/catalogo)
 ] as const;
 
 export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];

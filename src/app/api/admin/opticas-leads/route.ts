@@ -41,7 +41,13 @@ export async function GET(request: NextRequest) {
 
         // Stats globales del embudo (sin filtros de la vista, pero sin OCULTO:
         // los ocultos no cuentan en ningún tablero). total = suma de estados.
-        const [leads, totalCount, stats, conWa] = await Promise.all([
+        //
+        // catalogViewRows: eventos `wholesale_catalog_view` del link de
+        // /mayorista/catalogo (ver CatalogViewTracker). Se traen todos (volumen
+        // bajo, es una campaña de outreach manual, no tráfico de tienda) y se
+        // agregan acá en JS por leadId — un filtro por JSON path en el WHERE
+        // por cada lead de la página sería N queries; así es 1 sola.
+        const [leads, totalCount, stats, conWa, catalogViewRows] = await Promise.all([
             prisma.opticaLead.findMany({
                 where,
                 orderBy: [{ createdAt: 'desc' }],
@@ -51,17 +57,41 @@ export async function GET(request: NextRequest) {
             prisma.opticaLead.count({ where }),
             prisma.opticaLead.groupBy({ by: ['status'], where: { status: { not: 'OCULTO' } }, _count: { _all: true } }),
             prisma.opticaLead.count({ where: { phoneWa: { not: null }, status: { not: 'OCULTO' } } }),
+            prisma.analyticsEvent.findMany({
+                where: { type: 'wholesale_catalog_view' },
+                select: { meta: true, sessionId: true, createdAt: true },
+                orderBy: { createdAt: 'desc' },
+                take: 5000,
+            }),
         ]);
         const byStatus: Record<string, number> = {};
         let total = 0;
         for (const s of stats) { byStatus[s.status] = s._count._all; total += s._count._all; }
 
+        const viewsByLead = new Map<string, { count: number; lastAt: Date }>();
+        const uniqueSessions = new Set<string>();
+        for (const row of catalogViewRows) {
+            uniqueSessions.add(row.sessionId);
+            const leadId = (row.meta as any)?.leadId;
+            if (typeof leadId !== 'string' || !leadId) continue;
+            const cur = viewsByLead.get(leadId);
+            if (cur) cur.count++;
+            else viewsByLead.set(leadId, { count: 1, lastAt: row.createdAt });
+        }
+        const leadsWithViews = leads.map((l) => {
+            const v = viewsByLead.get(l.id);
+            return { ...l, catalogViews: v?.count ?? 0, catalogViewedAt: v?.lastAt ?? null };
+        });
+
         return NextResponse.json({
-            leads,
+            leads: leadsWithViews,
             totalCount,
             page,
             totalPages: Math.max(1, Math.ceil(totalCount / limit)),
-            stats: { total, conWa, byStatus },
+            stats: {
+                total, conWa, byStatus,
+                catalogViews: { total: catalogViewRows.length, uniqueSessions: uniqueSessions.size },
+            },
         });
     } catch (e: any) {
         console.error('opticas-leads GET error:', e);
