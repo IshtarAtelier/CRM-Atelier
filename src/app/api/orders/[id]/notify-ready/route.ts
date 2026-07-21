@@ -46,7 +46,7 @@ export async function POST(
         } else {
             msgText += `¡Ya está todo abonado! ✅\n`;
         }
-        msgText += `\nTe esperamos de Lunes a Viernes de 9:00 a 13:30 y de 16:00 a 19:30, o Sábados de 10:00 a 14:00.`;
+        msgText += `\nTe esperamos de Lunes a Viernes de 8:00 a 20:00, o Sábados de 9:00 a 17:00.`;
 
         // 4. Enviar usando el microservicio wa-service
         const res = await fetchWa('/api/send', {

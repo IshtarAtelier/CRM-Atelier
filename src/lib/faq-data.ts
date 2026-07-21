@@ -61,7 +61,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
       },
       {
         q: "¿Tienen garantía los cristales multifocales?",
-        a: "Sí. Todos nuestros cristales multifocales Varilux tienen garantía de adaptación. Si no te adaptás dentro de los primeros 30 días, te cambiamos los cristales sin costo. Es requisito presentar una nueva receta emitida por tu oftalmólogo, y entre ambas recetas no deben pasar más de 90 días.",
+        a: "Sí. Todos nuestros cristales multifocales Varilux, y los cristales Super Blue de monofocales, tienen garantía de adaptación. Si no te adaptás dentro de los primeros 30 días, te cambiamos los cristales sin costo. Es requisito presentar una nueva receta emitida por tu oftalmólogo, y entre ambas recetas no deben pasar más de 90 días. Los demás cristales monofocales no tienen garantía de adaptación.",
       },
       {
         q: "¿Qué es un cristal con filtro de luz azul y para qué sirve?",

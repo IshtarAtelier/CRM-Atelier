@@ -65,15 +65,30 @@ export default function PoliticasDeCambioPage() {
           <section className="bg-white dark:bg-stone-900 rounded-3xl p-8 lg:p-10 border border-stone-200 dark:border-stone-800 shadow-sm">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary flex-shrink-0">
+                <Glasses className="w-6 h-6" />
+              </div>
+              <h2 className="text-2xl font-bold text-stone-900 dark:text-white">Garantía de Adaptación en Cristales Super Blue</h2>
+            </div>
+            <p className="mb-4">
+              Los cristales monofocales estándar no cuentan con garantía de adaptación. Como excepción, los cristales <strong>Super Blue</strong> (monofocales con filtro de luz azul) sí tienen esta garantía, en las mismas condiciones que los multifocales.
+            </p>
+            <p>
+              Si el paciente no logra adaptarse dentro de los primeros 30 días, nos comprometemos a reemplazar los cristales sin costo adicional. Para hacer efectiva esta garantía, será indispensable la presentación de una nueva receta emitida por el médico oftalmólogo tratante (no deben transcurrir más de 90 días entre ambas recetas).
+            </p>
+          </section>
+
+          <section className="bg-white dark:bg-stone-900 rounded-3xl p-8 lg:p-10 border border-stone-200 dark:border-stone-800 shadow-sm">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary flex-shrink-0">
                 <RefreshCcw className="w-6 h-6" />
               </div>
               <h2 className="text-2xl font-bold text-stone-900 dark:text-white">Anteojos de Sol y Armazones (Sin graduación)</h2>
             </div>
             <p className="mb-4">
-              Para productos estándar como anteojos de sol sin receta o armazones de venta libre, aceptamos cambios o devoluciones dentro de los 10 días corridos desde la recepción del producto. 
+              Para productos estándar como anteojos de sol sin receta o armazones de venta libre, aceptamos cambios o devoluciones dentro de los 10 días hábiles desde la recepción del producto, conforme al derecho de arrepentimiento previsto en la normativa de defensa del consumidor.
             </p>
             <p>
-              El producto debe ser devuelto en perfectas condiciones, sin indicios de uso, con sus etiquetas intactas y en su estuche/empaque original. Los costos de envío por devoluciones de productos estándar corren por cuenta del cliente, salvo en casos de fallas de fábrica comprobables.
+              El producto debe ser devuelto sin ningún desperfecto: en perfectas condiciones, sin indicios de uso, con sus etiquetas intactas y en su estuche/empaque original. Los costos de envío por devoluciones de productos estándar corren por cuenta del cliente, salvo en casos de fallas de fábrica comprobables.
             </p>
           </section>
 

@@ -342,12 +342,11 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
                     <div className="flex flex-wrap gap-2">
                       <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
                         <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-0.5">Lun – Vie</p>
-                        <p className="text-sm font-medium text-white/80">9:00 – 13:30</p>
-                        <p className="text-sm font-medium text-white/80">16:00 – 19:30</p>
+                        <p className="text-sm font-medium text-white/80">8:00 – 20:00</p>
                       </div>
                       <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
                         <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-0.5">Sábados</p>
-                        <p className="text-sm font-medium text-white/80">10:00 – 14:00</p>
+                        <p className="text-sm font-medium text-white/80">9:00 – 17:00</p>
                       </div>
                     </div>
                   </div>
