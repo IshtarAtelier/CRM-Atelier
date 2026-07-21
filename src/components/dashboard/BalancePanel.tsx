@@ -71,10 +71,14 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                     orders.map(order => {
                         const balance = order.balance || (order.total - order.paid);
                         const bizDays = getBusinessDays(new Date(order.createdAt), today);
-                        
-                        // Lógica de alerta: Multifocales 15, Monofocales 4
-                        const limit = order.isMultifocal ? 15 : 4;
-                        const isOverdue = bizDays > limit;
+
+                        // Semáforo de plazo, calculado en el server por pedido y
+                        // laboratorio (labTiming). Rojo = algún cristal pasado de
+                        // tiempo · Verde = en fabricación dentro de plazo · Blanco
+                        // = sin nada esperando al laboratorio.
+                        const timing = order.labTiming ?? 'normal';
+                        const isOverdue = timing === 'vencido';
+                        const isInTime = timing === 'en-plazo';
 
                         let displayBalance = order.remainingCash ?? balance;
                         let activeColorClass = 'text-emerald-600 dark:text-emerald-400';
@@ -91,11 +95,17 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                                 key={order.id}
                                 href={`/admin/contactos?clientId=${order.clientId}`}
                                 onClick={onClose}
-                                className="w-full flex items-center gap-4 p-5 bg-white dark:bg-stone-800 rounded-[2.5rem] border border-stone-100 dark:border-stone-700 hover:border-emerald-500/30 dark:hover:border-emerald-400/20 hover:shadow-xl transition-all text-left group relative overflow-hidden"
+                                className={`w-full flex items-center gap-4 p-5 rounded-[2.5rem] border hover:shadow-xl transition-all text-left group relative overflow-hidden ${
+                                    isOverdue
+                                        ? 'bg-red-50/60 dark:bg-red-950/20 border-red-200 dark:border-red-900/40 hover:border-red-400'
+                                        : isInTime
+                                            ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40 hover:border-emerald-400'
+                                            : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
+                                }`}
                             >
-                                <div className={`absolute top-0 left-0 w-1.5 h-full ${isOverdue ? 'bg-red-500' : 'bg-emerald-500/20 group-hover:bg-emerald-500'} transition-colors`} />
+                                <div className={`absolute top-0 left-0 w-1.5 h-full ${isOverdue ? 'bg-red-500' : isInTime ? 'bg-emerald-500' : 'bg-stone-200 dark:bg-stone-600'} transition-colors`} />
 
-                                <div className={`w-12 h-12 ${isOverdue ? 'bg-red-50 dark:bg-red-950/30 text-red-600' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600'} rounded-2xl flex items-center justify-center group-hover:bg-opacity-100 group-hover:scale-110 transition-all shrink-0`}>
+                                <div className={`w-12 h-12 ${isOverdue ? 'bg-red-100 dark:bg-red-950/40 text-red-600' : isInTime ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600' : 'bg-stone-100 dark:bg-stone-700 text-stone-500'} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all shrink-0`}>
                                     <User className="w-6 h-6" />
                                 </div>
 
@@ -114,6 +124,12 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                                     <p className={`text-[10px] font-bold mt-1 uppercase tracking-wider ${isOverdue ? 'text-red-500' : 'text-stone-500'}`}>
                                         Pedido del {format(new Date(order.createdAt), "d 'de' MMM", { locale: es })} ({bizDays} {bizDays === 1 ? 'día' : 'días'} hábiles)
                                     </p>
+
+                                    {(isOverdue || isInTime) && (
+                                        <p className={`text-[10px] font-bold mt-1 uppercase tracking-wider ${isOverdue ? 'text-red-600' : 'text-emerald-600'}`}>
+                                            {isOverdue ? 'Pasado de tiempo' : 'En fabricación, en tiempo'}
+                                        </p>
+                                    )}
 
                                     {/* Breakdown de otras formas de pago */}
                                     <div className="mt-2.5 flex flex-wrap gap-1">

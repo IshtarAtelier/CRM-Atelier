@@ -8,6 +8,8 @@ import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 import { logAudit } from '@/lib/audit';
 import type { Actor } from '@/lib/actor';
 import { notifyDirectedNote } from '@/lib/note-notify';
+import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
+import { calculateEstimatedDays } from '@/lib/business-days';
 
 
 // Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
@@ -2583,9 +2585,22 @@ export const ContactService = {
             let lastOrderDate = new Date(0);
             let isMultifocal = false;
 
+            const now = new Date();
+            // Estado de plazo del cliente: manda el peor de sus pedidos.
+            // 'vencido' = algún cristal pasó su tiempo de confección
+            // 'en-plazo' = hay cristales en fabricación, todos dentro de plazo
+            // 'normal'  = nada esperando al laboratorio
+            let hasOverdue = false;
+            let hasInProgress = false;
+
             client.orders.forEach(order => {
                 // Sumamos los totales solo de las VENTAS
                 if (order.orderType === 'SALE') {
+                    const estDays = calculateEstimatedDays(itemsForEstimation(order.items));
+                    const dueKind = balanceDueKind(order, estDays, now);
+                    if (dueKind === 'vencido') hasOverdue = true;
+                    else if (dueKind === null) hasInProgress = true;
+
                     const financials = PricingService.calculateOrderFinancials(order);
                     totalRemainingCash += financials.remainingCash;
                     totalRemainingTransfer += financials.remainingTransfer;
@@ -2630,6 +2645,8 @@ export const ContactService = {
                 remainingTransfer: totalRemainingTransfer,
                 remainingCard: totalRemainingCard,
                 isMultifocal,
+                // Semáforo de plazo del laboratorio (pinta la ficha en el panel).
+                labTiming: hasOverdue ? 'vencido' : hasInProgress ? 'en-plazo' : 'normal',
                 createdAt: lastOrderDate.getTime() > 0 ? lastOrderDate : new Date()
             };
         })

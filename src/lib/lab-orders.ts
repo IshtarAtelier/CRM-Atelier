@@ -1,3 +1,5 @@
+import { addBusinessDays } from './business-days';
+
 /**
  * Heurísticas sobre pedidos de laboratorio, tolerantes a productos borrados
  * (usan los snapshots de OrderItem como fallback del producto vivo).
@@ -38,6 +40,41 @@ export function labNameFor(items: ItemLike[]): string | null {
         if (lab) return lab;
     }
     return null;
+}
+
+/**
+ * Motivo por el que el saldo de un pedido ya es reclamable.
+ *   · 'sin-lab'   → no lleva cristal: corre desde la venta.
+ *   · 'fabricado' → el laboratorio lo dio por terminado (FINISHED/READY/DELIVERED).
+ *   · 'vencido'   → no está finalizado, pero ya pasó el plazo del cristal.
+ *   · null        → todavía en fabricación y en plazo: no se reclama.
+ */
+export type BalanceDueKind = 'sin-lab' | 'fabricado' | 'vencido';
+
+/**
+ * ¿El saldo de este pedido ya es reclamable, y por qué?
+ *
+ * Un pedido de laboratorio no debería figurar como saldo pendiente mientras el
+ * cristal todavía se está haciendo y está en plazo: el cliente paga contra
+ * entrega y aparecer antes genera reclamos por algo que aún no está.
+ *
+ * Pasado el plazo sí aparece, esté finalizado o no — que el lab se haya
+ * atrasado no es motivo para perderle el rastro al saldo.
+ */
+export function balanceDueKind(
+    order: { labStatus?: string | null; labSentAt?: Date | string | null; items?: ItemLike[] },
+    estimatedDays: number,
+    now: Date = new Date()
+): BalanceDueKind | null {
+    const items = order.items || [];
+    if (!needsLabOperation(items)) return 'sin-lab';
+
+    const status = order.labStatus || 'NONE';
+    if (status === 'FINISHED' || status === 'READY' || status === 'DELIVERED') return 'fabricado';
+
+    // Sin fecha de envío no hay plazo que haya vencido.
+    if (!order.labSentAt) return null;
+    return now >= addBusinessDays(new Date(order.labSentAt), estimatedDays) ? 'vencido' : null;
 }
 
 /** Adapta los items para calculateEstimatedDays: si el producto fue borrado,
