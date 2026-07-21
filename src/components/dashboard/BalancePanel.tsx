@@ -33,7 +33,7 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
     const today = new Date();
 
     return (
-        <div className="fixed top-24 right-8 bottom-24 w-96 bg-white/80 dark:bg-stone-900/80 backdrop-blur-2xl z-[100] rounded-[3rem] shadow-huge border border-stone-200/50 dark:border-stone-800/50 flex flex-col overflow-hidden animate-in slide-in-from-right-8 duration-500">
+        <div className="fixed top-24 right-8 bottom-24 w-[30rem] max-w-[calc(100vw-4rem)] bg-white/80 dark:bg-stone-900/80 backdrop-blur-2xl z-[100] rounded-[3rem] shadow-huge border border-stone-200/50 dark:border-stone-800/50 flex flex-col overflow-hidden animate-in slide-in-from-right-8 duration-500">
             <header className="p-8 border-b border-stone-100 dark:border-stone-800 flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/30">
                 <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
                     <Banknote className="w-6 h-6 animate-pulse" />
@@ -95,7 +95,7 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                                 key={order.id}
                                 href={`/admin/contactos?clientId=${order.clientId}`}
                                 onClick={onClose}
-                                className={`w-full flex items-center gap-4 p-5 rounded-[2.5rem] border hover:shadow-xl transition-all text-left group relative overflow-hidden ${
+                                className={`w-full flex items-center gap-5 p-7 rounded-[2.5rem] border hover:shadow-xl transition-all text-left group relative overflow-hidden ${
                                     isOverdue
                                         ? 'bg-red-50/60 dark:bg-red-950/20 border-red-200 dark:border-red-900/40 hover:border-red-400'
                                         : isInTime
@@ -105,46 +105,46 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                             >
                                 <div className={`absolute top-0 left-0 w-1.5 h-full ${isOverdue ? 'bg-red-500' : isInTime ? 'bg-emerald-500' : 'bg-stone-200 dark:bg-stone-600'} transition-colors`} />
 
-                                <div className={`w-12 h-12 ${isOverdue ? 'bg-red-100 dark:bg-red-950/40 text-red-600' : isInTime ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600' : 'bg-stone-100 dark:bg-stone-700 text-stone-500'} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all shrink-0`}>
-                                    <User className="w-6 h-6" />
+                                <div className={`w-14 h-14 ${isOverdue ? 'bg-red-100 dark:bg-red-950/40 text-red-600' : isInTime ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600' : 'bg-stone-100 dark:bg-stone-700 text-stone-500'} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-all shrink-0`}>
+                                    <User className="w-7 h-7" />
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-black text-stone-800 dark:text-stone-200 text-sm truncate tracking-tight uppercase mb-1">
+                                    <p className="font-black text-stone-800 dark:text-stone-200 text-base truncate tracking-tight uppercase mb-1">
                                         {order.client?.name || 'Cliente'}
                                     </p>
                                     <div className="flex items-baseline gap-2">
-                                        <p className={`text-lg font-black ${isOverdue ? 'text-red-600' : activeColorClass} tracking-tighter`}>
+                                        <p className={`text-2xl font-black ${isOverdue ? 'text-red-600' : activeColorClass} tracking-tighter`}>
                                             ${displayBalance.toLocaleString('es-AR')}
                                         </p>
                                         <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
                                             de Saldo
                                         </p>
                                     </div>
-                                    <p className={`text-[10px] font-bold mt-1 uppercase tracking-wider ${isOverdue ? 'text-red-500' : 'text-stone-500'}`}>
+                                    <p className={`text-[11px] font-bold mt-1 uppercase tracking-wider ${isOverdue ? 'text-red-500' : 'text-stone-500'}`}>
                                         Pedido del {format(new Date(order.createdAt), "d 'de' MMM", { locale: es })} ({bizDays} {bizDays === 1 ? 'día' : 'días'} hábiles)
                                     </p>
 
                                     {(isOverdue || isInTime) && (
-                                        <p className={`text-[10px] font-bold mt-1 uppercase tracking-wider ${isOverdue ? 'text-red-600' : 'text-emerald-600'}`}>
+                                        <p className={`text-[11px] font-bold mt-1 uppercase tracking-wider ${isOverdue ? 'text-red-600' : 'text-emerald-600'}`}>
                                             {isOverdue ? 'Pasado de tiempo' : 'En fabricación, en tiempo'}
                                         </p>
                                     )}
 
                                     {/* Breakdown de otras formas de pago */}
-                                    <div className="mt-2.5 flex flex-wrap gap-1">
+                                    <div className="mt-3 flex flex-wrap gap-1.5">
                                         {viewMode !== 'cash' && (
-                                            <span className="text-[8px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 px-1.5 py-0.5 rounded-lg">
+                                            <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 px-2 py-1 rounded-lg">
                                                 Efec: ${(order.remainingCash ?? 0).toLocaleString('es-AR')}
                                             </span>
                                         )}
                                         {viewMode !== 'transfer' && (
-                                            <span className="text-[8px] font-black uppercase tracking-wider bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30 px-1.5 py-0.5 rounded-lg">
+                                            <span className="text-[9px] font-black uppercase tracking-wider bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30 px-2 py-1 rounded-lg">
                                                 Transf: ${(order.remainingTransfer ?? 0).toLocaleString('es-AR')}
                                             </span>
                                         )}
                                         {viewMode !== 'card' && (
-                                            <span className="text-[8px] font-black uppercase tracking-wider bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30 px-1.5 py-0.5 rounded-lg">
+                                            <span className="text-[9px] font-black uppercase tracking-wider bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30 px-2 py-1 rounded-lg">
                                                 Tarjeta: ${(order.remainingCard ?? 0).toLocaleString('es-AR')}
                                             </span>
                                         )}
