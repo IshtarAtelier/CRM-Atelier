@@ -120,7 +120,10 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
   return {
     /** Colecciones del carrusel del home + total del catálogo. */
     async home() {
-      const [destacados, sol, receta, nuevos, count] = await Promise.all([
+      // OJO: Product.category mete clip-ons y sol juntos bajo "Lentes de Sol".
+      // La distinción real está en WebProduct.category ("Clip-On" vs "Sol"), que
+      // es la que usa el admin — filtrar por la del Product mezcla las dos solapas.
+      const [destacados, clipon, sol, receta, nuevos, count] = await Promise.all([
         prisma.webProduct.findMany({
           where: {
             isActive: true,
@@ -132,7 +135,13 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
           take: 24, // margen para la dedup de variantes
         }),
         prisma.webProduct.findMany({
-          where: { isActive: true, product: { publishToWeb: true, category: "Lentes de Sol" } },
+          where: { isActive: true, category: "Clip-On", product: { publishToWeb: true } },
+          select: HOME_SELECT,
+          orderBy: { createdAt: "desc" },
+          take: 24,
+        }),
+        prisma.webProduct.findMany({
+          where: { isActive: true, category: "Sol", product: { publishToWeb: true } },
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24,
@@ -153,7 +162,7 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
           where: { isActive: true, product: { publishToWeb: true, category: { not: "Cristal" } } },
         }),
       ]);
-      return { destacados, sol, receta, nuevos, count };
+      return { destacados, clipon, sol, receta, nuevos, count };
     },
 
     /** Metadatos del sidebar de filtros de /tienda (marcas/formas/materiales). */

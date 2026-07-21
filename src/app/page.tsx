@@ -59,6 +59,7 @@ export default async function Home() {
   const dbWebProducts = homeData.destacados;
   const carouselData = {
     destacados: formatProducts(homeData.destacados, resolveStorageUrl),
+    clipon: formatProducts(homeData.clipon || [], resolveStorageUrl),
     sol: formatProducts(homeData.sol, resolveStorageUrl),
     receta: formatProducts(homeData.receta, resolveStorageUrl),
     nuevos: formatProducts(homeData.nuevos, resolveStorageUrl),

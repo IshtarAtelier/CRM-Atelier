@@ -24,6 +24,7 @@ interface CarouselProduct {
 interface Props {
   collections: {
     destacados: CarouselProduct[];
+    clipon: CarouselProduct[];
     sol: CarouselProduct[];
     receta: CarouselProduct[];
     nuevos: CarouselProduct[];
@@ -31,7 +32,7 @@ interface Props {
   totalCount: number;
 }
 
-type TabKey = 'destacados' | 'sol' | 'receta' | 'nuevos';
+type TabKey = 'destacados' | 'clipon' | 'sol' | 'receta' | 'nuevos';
 
 export function HomeProductCarousel({ collections, totalCount }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('destacados');
@@ -115,7 +116,8 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
       <div className="flex gap-4 px-5 mb-8 w-full max-w-7xl mx-auto overflow-x-auto no-scrollbar">
         {[
           { key: 'destacados', label: 'Destacados' },
-          { key: 'sol', label: 'ClipOn' },
+          { key: 'clipon', label: 'ClipOn' },
+          { key: 'sol', label: 'Sol' },
           { key: 'receta', label: 'Receta' },
           { key: 'nuevos', label: 'Nuevos' }
         ].map(tab => (
@@ -150,10 +152,12 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                   carrusel auto-scrolleado esa capa de composición NO se pintaba en prod
                   (cards en gris vacío). El fondo blanco funde las fotos igual de limpio. */}
               <div className="bg-white aspect-square overflow-hidden border-r border-[#e5e5e5] relative">
-                {/* Badge Urgencia / Escasez */}
+                {/* Escasez — discreto y sin animación: el rojo con pulso rompía
+                    la estética sobria del resto de la tienda. */}
                 {item.stock != null && item.stock > 0 && item.stock <= 3 && (
-                  <span className="absolute top-3 right-3 z-10 bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
-                    Últimas {item.stock} u.
+                  <span className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-stone-700 text-[10px] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-sm border border-stone-200">
+                    <span className="w-1 h-1 rounded-full bg-[#c8a55c]" />
+                    Últimas {item.stock}
                   </span>
                 )}
 
