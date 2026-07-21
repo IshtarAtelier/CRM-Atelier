@@ -71,6 +71,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/web", label: "Sitio Web", icon: ShoppingCart, adminOnly: true },
       { href: "/admin/web/analitica", label: "↳ Analítica Web", icon: LineChart, adminOnly: true, isSubLink: true },
       { href: "/admin/web/resenas", label: "↳ Reseñas", icon: Star, adminOnly: true, isSubLink: true },
+      { href: "/admin/web/carritos", label: "↳ Carritos Abandonados", icon: ShoppingCart, adminOnly: true, isSubLink: true },
       // Atajo: las ventas web viven en el mismo circuito que el resto (misma
       // pantalla de Ventas/Laboratorio filtrada). No se duplica la vista, solo
       // el acceso — por eso este link repite el href del sublink de Ventas.

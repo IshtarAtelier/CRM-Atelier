@@ -9,7 +9,7 @@ export default function DesarrolloPage() {
       title: "Carritos Abandonados",
       description: "Gestión de ventas pendientes y recuperación.",
       icon: ShoppingCart,
-      href: "/admin/desarrollo/carritos",
+      href: "/admin/web/carritos",
       bgLight: "bg-amber-500/10",
       textLight: "text-amber-500",
       bgGlow: "bg-amber-500/5",
