@@ -909,7 +909,7 @@ function CotizadorPageContent() {
                                                                 : <span className="text-[10px] font-bold text-stone-300 dark:text-stone-600">—</span>}
                                                         </td>
                                                         <td className="px-4 py-2.5">
-                                                            <p className="text-xs font-semibold truncate max-w-xs xl:max-w-sm">{product.name || '—'}</p>
+                                                            <p className="text-xs font-semibold whitespace-normal break-words">{product.name || '—'}</p>
                                                         </td>
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs">${Math.round(pTotal).toLocaleString()}</td>
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs text-emerald-650">${Math.round(pCash).toLocaleString()}</td>
@@ -958,8 +958,10 @@ function CotizadorPageContent() {
                                                                  const imgUrl = resolveStorageUrl(product.imagenesCatalogo?.[0] || product.rawImageUrls?.[0] || null);
                                                                  if (imgUrl) {
                                                                      return (
-                                                                         <Image unoptimized 
-                                                                             src={imgUrl} 
+                                                                         <Image unoptimized
+                                                                             width={32}
+                                                                             height={32}
+                                                                             src={imgUrl}
                                                                              alt={product.name || ''} 
                                                                              className="w-8 h-8 object-contain rounded-lg border border-stone-200 dark:border-stone-850 bg-stone-50 dark:bg-stone-900 shadow-sm shrink-0" 
                                                                          />
