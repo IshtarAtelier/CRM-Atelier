@@ -67,7 +67,7 @@ export async function StorefrontFooter() {
             <Link href="/politicas-de-privacidad" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Políticas de Privacidad</Link>
             <div className="mt-4">
               <p className="text-[10px] uppercase tracking-widest font-bold text-stone-300 mb-2">Corporativo</p>
-              <Link href="/login?type=mayorista" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0 text-[#c8a55c]">Acceso Mayoristas</Link>
+              <Link href="/mayorista/ingreso" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0 text-[#c8a55c]">Acceso Mayoristas</Link>
             </div>
           </div>
 

@@ -55,6 +55,24 @@ export async function middleware(request: NextRequest) {
                 return NextResponse.redirect(new URL('/admin', request.url));
             }
         }
+        // Links viejos al login mayorista (?type=mayorista) van a la puerta
+        // propia del área: /mayorista/ingreso (branding del canal, no del CRM).
+        if (request.nextUrl.searchParams.get('type') === 'mayorista') {
+            return NextResponse.redirect(new URL('/mayorista/ingreso', request.url));
+        }
+        return NextResponse.next({ request: { headers: sanitizedHeaders } });
+    }
+
+    // Puerta del área mayorista: una óptica ya logueada pasa directo a la
+    // tienda. Cuentas del equipo NO se redirigen al CRM desde acá — esta
+    // página es del canal mayorista, el CRM tiene su propio /login.
+    if (pathname === '/mayorista/ingreso') {
+        if (token) {
+            const payload = await decrypt(token);
+            if (payload?.role === 'OPTICA') {
+                return NextResponse.redirect(new URL('/tienda', request.url));
+            }
+        }
         return NextResponse.next({ request: { headers: sanitizedHeaders } });
     }
 

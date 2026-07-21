@@ -174,14 +174,22 @@ export default async function CatalogoMayoristaPage({
         <p className="text-sm text-center sm:text-left">
           ¿Te interesa vender esta colección? Pedí tu usuario y accedé con tus precios.
         </p>
-        <a
-          href={waLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 bg-[#c8a55c] text-[#141110] font-semibold px-5 py-2.5 rounded-full text-sm hover:bg-[#d6bfae] transition-colors"
-        >
-          Pedí tu usuario mayorista
-        </a>
+        <div className="shrink-0 flex items-center gap-4">
+          <a
+            href="/mayorista/ingreso"
+            className="text-sm text-[#c8a55c] hover:underline whitespace-nowrap"
+          >
+            Ya tengo usuario
+          </a>
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-[#c8a55c] text-[#141110] font-semibold px-5 py-2.5 rounded-full text-sm hover:bg-[#d6bfae] transition-colors"
+          >
+            Pedí tu usuario mayorista
+          </a>
+        </div>
       </div>
     </div>
   );
