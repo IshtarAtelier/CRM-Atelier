@@ -30,6 +30,7 @@ export interface HomeWebProductRow {
 /** Conjunto de colecciones que alimentan el carrusel del home. */
 export interface HomeSourceData {
   destacados: HomeWebProductRow[];
+  clipon: HomeWebProductRow[];
   sol: HomeWebProductRow[];
   receta: HomeWebProductRow[];
   nuevos: HomeWebProductRow[];
@@ -40,6 +41,7 @@ export function countProducts(data: HomeSourceData | null | undefined): number {
   if (!data) return 0;
   return (
     (data.destacados?.length || 0) +
+    (data.clipon?.length || 0) +
     (data.sol?.length || 0) +
     (data.receta?.length || 0) +
     (data.nuevos?.length || 0)
