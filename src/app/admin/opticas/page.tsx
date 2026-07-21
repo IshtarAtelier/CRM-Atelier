@@ -16,7 +16,7 @@ import { formatDateTime } from "@/lib/format-date";
 // checkout mayorista exige WHOLESALE_MIN_PIECES=10 (payway/route.ts), una
 // plantilla que prometa "sin mínimos" manda al lead a un error en el carrito.
 const DEFAULT_TPL =
-  "Hola! Soy Ishtar de Atelier Óptica (Córdoba). Somos importadores directos de armazones y cristales y abrimos un canal mayorista para ópticas, con precios netos por unidad (mínimo 10 piezas por pedido). Te dejo el catálogo completo con precios: {link}";
+  "Hola! Soy Ishtar de Atelier Óptica (Córdoba). Somos importadores directos de armazones y cristales y abrimos un canal mayorista para ópticas, con precios netos por unidad (mínimo 10 piezas por pedido). Cada pieza ya tiene foto y ficha cargada, lista para el carrito. Te dejo el catálogo completo con precios: {link}";
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   NUEVO: { label: "Nuevo", cls: "bg-blue-50 text-blue-700 border-blue-200" },

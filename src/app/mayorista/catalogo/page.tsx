@@ -92,11 +92,12 @@ export default async function CatalogoMayoristaPage({
             Armazones de diseño en acetato italiano Mazzucchelli, metal y titanio.
             Precios netos por unidad, pensados para revender.
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
             <StatPill label={`Mínimo ${WHOLESALE_MIN_PIECES} piezas`} sub="por pedido, mezclás modelos" />
             <StatPill label="Precios netos" sub="pensados para revender" />
             <StatPill label="Stock real" sub="en Córdoba, entrega ya" />
             <StatPill label={`${products.length || '—'} modelos`} sub="disponibles hoy" />
+            <StatPill label="Ficha completa" sub="foto y datos de cada pieza, listas para el carrito" />
           </div>
         </div>
       </header>
