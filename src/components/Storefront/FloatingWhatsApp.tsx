@@ -24,7 +24,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     return null;
   }
 
-  let defaultText = "¡Hola Atelier! Me gustaría hacer una consulta.";
+  let defaultText = "Los vi en la nueva web de Atelier, quisiera que me asesoren.";
   
   if (productName) {
     defaultText = `¡Hola! Tengo dudas sobre el modelo ${productName} y me gustaría recibir asesoramiento.`;
