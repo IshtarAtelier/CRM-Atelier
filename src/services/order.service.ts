@@ -1484,11 +1484,11 @@ export class OrderService {
         }
 
         // Estado previo para historizar transiciones (quién cambió qué estado)
-        let prevState: { labStatus: string | null; status: string } | null = null;
-        if (data.labStatus !== undefined || data.status !== undefined) {
+        let prevState: { labStatus: string | null; status: string; labOrderNumber: string | null } | null = null;
+        if (data.labStatus !== undefined || data.status !== undefined || data.labOrderNumber !== undefined) {
             prevState = await prisma.order.findUnique({
                 where: { id },
-                select: { labStatus: true, status: true }
+                select: { labStatus: true, status: true, labOrderNumber: true }
             });
         }
 
@@ -1565,6 +1565,42 @@ export class OrderService {
                     userName: userName || 'Sistema'
                 }
             }).catch(err => console.error('Error registrando cambio de estado en ficha:', err));
+        }
+
+        // ── Historial: número de operación del laboratorio ──
+        // Se registra tanto el alta como la corrección posterior: el nº de operación
+        // es lo que ata el pedido al lab, y sin esto no quedaba rastro de quién lo cargó.
+        if (prevState && data.labOrderNumber !== undefined) {
+            const prevNumber = (prevState.labOrderNumber || '').trim();
+            const newNumber = (data.labOrderNumber || '').trim();
+            if (prevNumber !== newNumber) {
+                const who = userName || 'Sistema';
+                const shortId = id.slice(-4).toUpperCase();
+                const content = !prevNumber
+                    ? `🏭 ${who} asignó el N° de operación ${newNumber} al pedido #${shortId}`
+                    : !newNumber
+                        ? `🏭 ${who} borró el N° de operación (era ${prevNumber}) del pedido #${shortId}`
+                        : `🏭 ${who} cambió el N° de operación del pedido #${shortId}: ${prevNumber} → ${newNumber}`;
+
+                await prisma.interaction.create({
+                    data: {
+                        clientId: order.clientId,
+                        type: 'SISTEMA',
+                        content,
+                        userId: userId || null,
+                        userName: who
+                    }
+                }).catch(err => console.error('Error registrando N° de operación en ficha:', err));
+
+                logAudit({
+                    userId: userId || null,
+                    userName: who,
+                    action: 'UPDATE',
+                    entityType: 'ORDER',
+                    entityId: id,
+                    details: { field: 'labOrderNumber', from: prevNumber || null, to: newNumber || null }
+                }).catch(err => console.error('Error logging audit de N° de operación:', err));
+            }
         }
 
         // ── Auto-Task: Request Review when DELIVERED ──

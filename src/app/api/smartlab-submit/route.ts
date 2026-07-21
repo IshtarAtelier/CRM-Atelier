@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getActor } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 
 export async function POST(request: Request) {
@@ -132,16 +134,44 @@ export async function POST(request: Request) {
         const responseData = await apiResponse.json();
         console.log('Borrador creado en SmartLab:', responseData);
 
+        const labOrderNumber = responseData.id
+            ? `SML-${responseData.id}`
+            : `Borrador-${order.id.slice(-4).toUpperCase()}`;
+
         // Actualizar el estado en nuestra BD
         await prisma.order.update({
             where: { id: orderId },
             data: {
                 labStatus: 'IN_PROGRESS',
                 // Si la API devuelve un ID interno, lo guardamos, sino usamos un placeholder o la referencia local
-                labOrderNumber: responseData.id ? `SML-${responseData.id}` : `Borrador-${order.id.slice(-4).toUpperCase()}`,
+                labOrderNumber,
                 labSentAt: order.labSentAt || new Date()
             }
         });
+
+        // Este envío escribe el nº de operación sin pasar por OrderService, así que
+        // registra su propio rastro (firmado como Sistema: lo dispara la integración).
+        const actor = getActor(request);
+        if (order.clientId && order.labOrderNumber !== labOrderNumber) {
+            await prisma.interaction.create({
+                data: {
+                    clientId: order.clientId,
+                    type: 'SISTEMA',
+                    content: `🏭 ${actor.name} envió el pedido #${order.id.slice(-4).toUpperCase()} a SmartLab y le asignó el N° de operación ${labOrderNumber}`,
+                    userId: actor.id,
+                    userName: actor.name
+                }
+            }).catch(err => console.error('Error registrando envío a SmartLab en ficha:', err));
+
+            logAudit({
+                userId: actor.id,
+                userName: actor.name,
+                action: 'UPDATE',
+                entityType: 'ORDER',
+                entityId: order.id,
+                details: { field: 'labOrderNumber', from: order.labOrderNumber || null, to: labOrderNumber, source: 'smartlab-submit' }
+            }).catch(err => console.error('Error logging audit de SmartLab:', err));
+        }
 
         return NextResponse.json({
             success: true,
