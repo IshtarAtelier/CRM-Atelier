@@ -65,6 +65,19 @@ const getTypeConfig = (type: string | null, category?: string | null) => {
     }
 };
 
+// Rango de fabricación de un cristal (esférico / cilindro), p. ej. "+6 a -10 · Cil ±6"
+const formatDiopter = (v: number) => `${v > 0 ? '+' : ''}${Number.isInteger(v) ? v : v.toFixed(2)}`;
+const formatLensRange = (p: Product): string | null => {
+    if (p.sphereMin == null || p.sphereMax == null) return null;
+    let range = `${formatDiopter(p.sphereMax)} a ${formatDiopter(p.sphereMin)}`;
+    if (p.cylinderMin != null && p.cylinderMax != null) {
+        range += Math.abs(p.cylinderMin) === Math.abs(p.cylinderMax)
+            ? ` · Cil ±${Math.abs(p.cylinderMax)}`
+            : ` · Cil ${formatDiopter(p.cylinderMin)} a ${formatDiopter(p.cylinderMax)}`;
+    }
+    return range;
+};
+
 const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"];
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 
@@ -875,6 +888,7 @@ function CotizadorPageContent() {
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[70px]">Índice</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[100px]">Origen</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Descripción</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[140px]">Rango</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px]">Lista</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px] text-emerald-600 dark:text-emerald-400">Efectivo</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px] text-violet-600 dark:text-violet-400">Transf.</th>
@@ -910,6 +924,9 @@ function CotizadorPageContent() {
                                                         </td>
                                                         <td className="px-4 py-2.5">
                                                             <p className="text-xs font-semibold whitespace-normal break-words">{product.name || '—'}</p>
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-center">
+                                                            <span className="text-[10px] font-semibold text-stone-500 dark:text-stone-400 whitespace-nowrap">{formatLensRange(product) || '—'}</span>
                                                         </td>
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs">${Math.round(pTotal).toLocaleString()}</td>
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs text-emerald-650">${Math.round(pCash).toLocaleString()}</td>
