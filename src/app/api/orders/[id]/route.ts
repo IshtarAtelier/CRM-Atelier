@@ -67,7 +67,8 @@ export async function PATCH(
             error.message.includes('stock disponible') ||
             error.message.includes('receta') ||
             error.message.includes('armazón') ||
-            error.message.includes('No se puede enviar a fábrica')) {
+            error.message.includes('No se puede enviar a fábrica') ||
+            error.message.includes('No se puede procesar el pedido sin N° de operación')) {
             status = 400;
         } else if (error.message.includes('No se pueden modificar los ítems de una venta')) {
             status = 403;

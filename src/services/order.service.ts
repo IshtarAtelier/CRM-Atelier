@@ -13,6 +13,7 @@ import { AdsService } from '@/services/ads.service';
 import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { logAudit } from '@/lib/audit';
+import { alertDuplicateLabOrderNumber } from '@/lib/duplicate-lab-order-alert';
 import { addBusinessDays, calculateEstimatedDays } from '@/lib/business-days';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
@@ -705,6 +706,26 @@ export class OrderService {
         }
 
         if (labStatus) {
+            // "Procesado" significa que el laboratorio ya lo tomó, y eso siempre
+            // viene con un nº de operación. Sin él, el pedido queda sin forma de
+            // cruzarse con la factura del lab ni de reclamarse.
+            if (labStatus === 'IN_PROGRESS') {
+                const numeroEntrante = labOrderNumber !== undefined
+                    ? (labOrderNumber || '').trim()
+                    : null;
+                let numeroFinal = numeroEntrante;
+                if (numeroFinal === null) {
+                    const actualOrder = await prisma.order.findUnique({
+                        where: { id },
+                        select: { labOrderNumber: true },
+                    });
+                    numeroFinal = (actualOrder?.labOrderNumber || '').trim();
+                }
+                if (!numeroFinal) {
+                    throw new Error('No se puede procesar el pedido sin N° de operación: cargá el número que devolvió el laboratorio.');
+                }
+            }
+
             data.labStatus = labStatus;
             if (labStatus === 'SENT') {
                 data.labSentAt = new Date();
@@ -1605,6 +1626,14 @@ export class OrderService {
                     entityId: id,
                     details: { field: 'labOrderNumber', from: prevNumber || null, to: newNumber || null }
                 }).catch(err => console.error('Error logging audit de N° de operación:', err));
+
+                // Un mismo nº de operación en dos pedidos rompe la conciliación de
+                // costos (cruza factura del lab por ese número). No se bloquea
+                // —a veces es legítimo— pero nunca puede pasar en silencio.
+                if (newNumber) {
+                    alertDuplicateLabOrderNumber({ orderId: id, labOrderNumber: newNumber, actorName: who })
+                        .catch(err => console.error('Error en alerta de N° repetido:', err));
+                }
             }
         }
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
+import { alertDuplicateLabOrderNumber } from '@/lib/duplicate-lab-order-alert';
 
 
 export async function POST(request: Request) {
@@ -171,6 +172,9 @@ export async function POST(request: Request) {
                 entityId: order.id,
                 details: { field: 'labOrderNumber', from: order.labOrderNumber || null, to: labOrderNumber, source: 'smartlab-submit' }
             }).catch(err => console.error('Error logging audit de SmartLab:', err));
+
+            alertDuplicateLabOrderNumber({ orderId: order.id, labOrderNumber, actorName: actor.name })
+                .catch(err => console.error('Error en alerta de N° repetido:', err));
         }
 
         return NextResponse.json({
