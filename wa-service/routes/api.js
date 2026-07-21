@@ -69,12 +69,49 @@ function createApiRouter(deps) {
     });
 
     // ── GET /chats ─────────────────────────────────
+    // La lista del buzón sólo necesita un puñado de campos por chat y una
+    // vista previa corta del último mensaje. Evitamos traer el `content`
+    // completo (algunos mensajes de audio guardan base64 de cientos de KB)
+    // y todas las columnas del cliente, que hacían pesada y lenta la carga.
     router.get('/chats', async (req, res) => {
-        let chats = await prisma.whatsAppChat.findMany({
-            include: { client: true, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
+        const chats = await prisma.whatsAppChat.findMany({
             orderBy: { lastMessageAt: 'desc' },
+            select: {
+                id: true,
+                clientId: true,
+                waId: true,
+                profileName: true,
+                lastMessageAt: true,
+                status: true,
+                unreadCount: true,
+                botEnabled: true,
+                archived: true,
+                chatLabels: true,
+                realPhone: true,
+                chatSummary: true,
+                lastFollowUpAt: true,
+                client: { select: { id: true, name: true, phone: true, isFavorite: true } },
+                messages: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { direction: true, type: true, content: true, createdAt: true },
+                },
+            },
         });
 
+        // Truncamos la vista previa: para audio/imagen el front muestra un
+        // rótulo fijo, así que no hace falta el cuerpo; para texto alcanza un
+        // recorte corto para el preview del buzón.
+        for (const chat of chats) {
+            const last = chat.messages[0];
+            if (last) {
+                if (last.type === 'TEXT') {
+                    last.content = last.content.slice(0, 200);
+                } else {
+                    last.content = '';
+                }
+            }
+        }
 
         res.json(chats);
     });

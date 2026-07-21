@@ -1,29 +1,54 @@
 import { NextResponse } from 'next/server';
 
-import { fetchWa } from '@/lib/wa-config';
 import { prisma } from '@/lib/db';
 
 // GET /api/whatsapp/chats — listar chats
+// Lee DIRECTO de la base (compartida con wa-service): antes esto proxied a
+// wa-service (browser → Next → Express en Railway → misma DB), sumando un hop
+// de red, reintentos con backoff y hasta 100s de timeout cuando el servicio
+// estaba ocupado con la sesión de WhatsApp. Como es una lectura pura, el hop
+// no aportaba nada. wa-service queda solo para lo que sí necesita la sesión
+// (enviar, sincronizar, estado).
+// Además la lista trae solo los campos que usa el buzón y una preview corta
+// del último mensaje (sin arrastrar base64 de audios ni todo el cliente).
 export async function GET() {
     try {
-        const res = await fetchWa('/api/chats', { cache: 'no-store' });
-        const data = await res.json();
+        const chats = await prisma.whatsAppChat.findMany({
+            orderBy: { lastMessageAt: 'desc' },
+            select: {
+                id: true,
+                clientId: true,
+                waId: true,
+                profileName: true,
+                lastMessageAt: true,
+                status: true,
+                unreadCount: true,
+                botEnabled: true,
+                archived: true,
+                chatLabels: true,
+                realPhone: true,
+                chatSummary: true,
+                lastFollowUpAt: true,
+                client: { select: { id: true, name: true, phone: true, isFavorite: true } },
+                messages: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { direction: true, type: true, content: true, createdAt: true },
+                },
+            },
+        });
 
-        // Solo retornamos la data directamente sin hacer queries por cada chat
-        return NextResponse.json(data);
-    } catch (err: any) {
-        console.warn('[Next.js Chats GET] Falló conexión con wa-service, sirviendo desde DB local como fallback:', err.message);
-        try {
-            // Servir desde la base de datos local como plan de contingencia
-            const localChats = await prisma.whatsAppChat.findMany({
-                include: { client: true, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
-                orderBy: { lastMessageAt: 'desc' }
-            });
-            return NextResponse.json(localChats);
-        } catch (dbErr) {
-            console.error('[Next.js Chats GET Fallback] Error crítico al obtener chats de DB local:', dbErr);
-            return NextResponse.json([]);
+        // Preview corta: para audio/imagen el front muestra un rótulo fijo,
+        // para texto alcanza un recorte para el preview del buzón.
+        for (const chat of chats) {
+            const last = chat.messages[0];
+            if (last) last.content = last.type === 'TEXT' ? last.content.slice(0, 200) : '';
         }
+
+        return NextResponse.json(chats);
+    } catch (err) {
+        console.error('[Next.js Chats GET] Error al obtener chats de la DB:', err);
+        return NextResponse.json([]);
     }
 }
 
@@ -93,4 +118,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Error al iniciar chat: ' + error.message }, { status: 500 });
     }
 }
-
