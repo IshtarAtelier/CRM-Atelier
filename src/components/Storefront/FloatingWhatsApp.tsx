@@ -2,7 +2,7 @@
 
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useState, useEffect } from "react";
-import { WHATSAPP_PHONE } from "@/lib/constants";
+import { buildWhatsAppUrl, currentPageUrl } from "@/lib/whatsapp-link";
 import { usePathname } from "next/navigation";
 
 export function FloatingWhatsApp({ message, productName }: { message?: string; productName?: string } = {}) {
@@ -33,8 +33,15 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     defaultText = "¡Hola Atelier! Me gustaría recibir asesoramiento para armar mis lentes.";
   }
 
-  const WHATSAPP_MESSAGE = encodeURIComponent(defaultText);
-  const WHATSAPP_URL = `https://wa.me/${WHATSAPP_PHONE}?text=${WHATSAPP_MESSAGE}`;
+  // En ficha de producto y tienda mandamos también el link de la página: WhatsApp
+  // arma la previsualización con la foto, así el asesor ve qué está mirando.
+  const sharesPageUrl = Boolean(
+    productName || pathname?.includes("/producto/") || pathname?.includes("/tienda")
+  );
+
+  const WHATSAPP_URL = buildWhatsAppUrl(defaultText, {
+    pageUrl: sharesPageUrl ? currentPageUrl(pathname || "") : undefined,
+  });
 
   if (!isVisible) return null;
 

@@ -2,6 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { buildWhatsAppUrl, currentPageUrl } from "@/lib/whatsapp-link";
 
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
@@ -714,11 +715,12 @@ export function ProductClient({
 
             <div className="mt-4 flex flex-col items-center gap-3">
               <a 
-                href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(
-                  isWholesale 
+                href={buildWhatsAppUrl(
+                  isWholesale
                     ? `¡Hola! Soy de la óptica ${currentUser?.name || ''} y quiero consultar por el anteojo mayorista ${product.brand || ''} ${product.model || ''} por $${(product.wholesalePrice || product.price || 0).toLocaleString("es-AR")}.`
-                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round(effectivePrice * (1 - cashDiscount / 100)).toLocaleString("es-AR")} por transferencia o $${effectivePrice.toLocaleString("es-AR")} en cuotas. ¿Me pasarían los datos de pago?`
-                )}`}
+                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round(effectivePrice * (1 - cashDiscount / 100)).toLocaleString("es-AR")} por transferencia o $${effectivePrice.toLocaleString("es-AR")} en cuotas. ¿Me pasarían los datos de pago?`,
+                  { pageUrl: currentPageUrl(`/producto/${product.slug}`), phone: whatsappPhoneId }
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 border-2 border-[#1b4332] text-[#1b4332] hover:bg-[#1b4332] hover:text-white text-xs font-black uppercase tracking-widest py-3.5 rounded-sm transition-all duration-300"
@@ -727,7 +729,10 @@ export function ProductClient({
               </a>
 
               <a 
-                href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Tengo una consulta sobre el modelo ${product.brand || ''} ${product.model || ''}`)}`}
+                href={buildWhatsAppUrl(
+                  `¡Hola! Tengo una consulta sobre el modelo ${product.brand || ''} ${product.model || ''}`,
+                  { pageUrl: currentPageUrl(`/producto/${product.slug}`), phone: whatsappPhoneId }
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-stone-500 font-bold uppercase tracking-widest hover:text-black transition-colors flex items-center justify-center gap-1.5"
