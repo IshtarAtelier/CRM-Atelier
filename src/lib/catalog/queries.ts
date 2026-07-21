@@ -147,7 +147,7 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
           take: 24,
         }),
         prisma.webProduct.findMany({
-          where: { isActive: true, product: { publishToWeb: true, category: "Armazón de Receta" } },
+          where: { isActive: true, category: "Receta", product: { publishToWeb: true } },
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24,
