@@ -25,22 +25,12 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const isCloudEnabled = !!process.env.FIREBASE_PROJECT_ID;
-        console.log('[View Route] isCloudEnabled:', isCloudEnabled, 'key:', key);
-        
-        if (isCloudEnabled && !key.startsWith('local://')) {
-            console.log('[View Route] Entering cloud redirect for key:', key);
-            const { getSignedUrl } = await import('@/lib/storage');
-            const signedUrl = await getSignedUrl(key);
-            console.log('[View Route] Redirecting to signedUrl:', signedUrl);
-            const absoluteUrl = new URL(signedUrl, req.url).toString();
-            return NextResponse.redirect(absoluteUrl, { status: 307 });
-        }
-        console.log('[View Route] Bypassed cloud redirect, falling back to local for key:', key);
-
-        // Si es local, buscar y retornar el buffer directamente
-        const lookupKey = key.startsWith('local://') ? key : `local://${key}`;
-        const buffer = await getFileBuffer(lookupKey);
+        // Nota: NO redirigir (307) a la URL firmada de Firebase — el optimizador de
+        // imágenes de Next.js resuelve rutas relativas invocando este handler en
+        // proceso (sin seguir redirects), así que espera bytes + 200, no un 3xx.
+        // Devolver siempre el buffer directo funciona igual para <img> normal y
+        // para /_next/image.
+        const buffer = await getFileBuffer(key);
 
         if (!buffer) {
             return new NextResponse('File not found', { status: 404 });
