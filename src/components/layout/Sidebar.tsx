@@ -71,6 +71,10 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/web", label: "Sitio Web", icon: ShoppingCart, adminOnly: true },
       { href: "/admin/web/analitica", label: "↳ Analítica Web", icon: LineChart, adminOnly: true, isSubLink: true },
       { href: "/admin/web/resenas", label: "↳ Reseñas", icon: Star, adminOnly: true, isSubLink: true },
+      // Atajo: las ventas web viven en el mismo circuito que el resto (misma
+      // pantalla de Ventas/Laboratorio filtrada). No se duplica la vista, solo
+      // el acceso — por eso este link repite el href del sublink de Ventas.
+      { href: "/admin/ventas?mode=WEB", label: "↳ Ventas de la Tienda", icon: Globe, adminOnly: true, isSubLink: true },
       { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
       { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
       { href: "/admin/ventas?mode=WEB", label: "↳ Ventas Web", icon: Globe, adminOnly: false, isSubLink: true },
@@ -125,7 +129,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
 
           return (
             <Link
-              key={link.href}
+              key={link.label}
               href={link.href}
               title={isCollapsed ? link.label : undefined}
               className={`relative flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 group ${
