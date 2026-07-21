@@ -363,6 +363,26 @@ function WhatsAppPageContent() {
     const urlPhone = searchParams.get('phone');
     const handledUrlPhoneRef = useRef(false);
 
+    // ── Cache local del buzón ─────────────────────
+    // Pinta la última lista conocida al instante al abrir la pantalla,
+    // mientras llega la fresca del servidor (que la pisa al responder).
+    // Solo alimenta el render inicial: las notificaciones de leads nuevos
+    // siguen ancladas al primer fetch real (initialLoadRef), así la cache
+    // no dispara avisos falsos.
+    const INBOX_CACHE_KEY = 'wa-inbox-cache-v1';
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem(INBOX_CACHE_KEY);
+            if (raw) {
+                const cached = JSON.parse(raw);
+                if (Array.isArray(cached) && cached.length > 0) {
+                    setChats(prev => (prev.length === 0 ? cached : prev));
+                }
+            }
+        } catch { /* cache corrupta o storage lleno: ignorar */ }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // ── Fetch chats ───────────────────────────────
     const fetchChats = useCallback(async () => {
         try {
@@ -402,6 +422,9 @@ function WhatsAppPageContent() {
                     return tb - ta;
                 });
                 setChats(sorted);
+
+                // Actualizar la cache local para el próximo arranque instantáneo
+                try { localStorage.setItem(INBOX_CACHE_KEY, JSON.stringify(sorted)); } catch { /* storage lleno: ignorar */ }
 
                 // Auto-select chat from URL parameter if present
                 if (urlPhone && !handledUrlPhoneRef.current) {
@@ -1432,16 +1455,17 @@ function WhatsAppPageContent() {
                 </div>
             )}
 
-            {!status.connected ? (
+            {/* El buzón se muestra de una: mientras el status de wa-service está
+                en vuelo (loadingStatus) asumimos conectado y pintamos la lista
+                (los chats vienen de la DB, no dependen de la sesión). La pantalla
+                de desconectado/QR aparece solo cuando el status YA respondió que
+                no hay sesión — antes tapaba todo hasta 100s si wa-service estaba
+                ocupado, y eso se percibía como "tarda en traer las conversaciones". */}
+            {!status.connected && !loadingStatus ? (
                 /* ── PANTALLA DE DESCONECTADO PREMIUM ── */
                 <div className="flex-1 overflow-y-auto p-4 lg:p-12 flex items-center justify-center">
                     <div className="bg-white/70 dark:bg-stone-900/70 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-white/10 p-12 text-center max-w-lg shadow-2xl">
-                        {loadingStatus ? (
-                            <div>
-                                <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin mx-auto mb-6 shadow-lg shadow-emerald-500/20" />
-                                <p className="text-base font-black tracking-tight text-stone-800 dark:text-white">Estableciendo enlace neural...</p>
-                            </div>
-                        ) : status.qr ? (
+                        {status.qr ? (
                             <div className="animate-in zoom-in-95 duration-500">
                                 <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20">
                                     <QrCode className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
