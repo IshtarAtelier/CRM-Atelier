@@ -534,7 +534,10 @@ export class LabCostReconciliationService {
                     imap: {
                         user: cred.user!, password: cred.password!,
                         host: 'imap.gmail.com', port: 993, tls: true,
-                        tlsOptions: { rejectUnauthorized: false }, authTimeout: 10000,
+                        // servername: node-imap no manda SNI al upgradear el socket a TLS
+                        // y Gmail ya lo exige (sin SNI responde un cert self-signed
+                        // "No SNI provided - please fix your client").
+                        tlsOptions: { servername: 'imap.gmail.com', rejectUnauthorized: false }, authTimeout: 10000,
                     },
                 });
             } catch (err: any) {
