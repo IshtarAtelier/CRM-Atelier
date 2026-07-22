@@ -4,18 +4,24 @@ import { useState } from "react";
 import { CheckCircle2, Phone, MapPin, Instagram, Sparkles, Clock, UserCheck, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
-export function ContactoClient({ 
-  whatsappPhoneId, 
-  phone, 
+export function ContactoClient({
+  whatsappPhoneId,
+  phone,
   address,
   locality,
-  mapsUrl
-}: { 
-  whatsappPhoneId: string; 
-  phone: string; 
+  mapsUrl,
+  hours,
+  rating,
+  reviewCount
+}: {
+  whatsappPhoneId: string;
+  phone: string;
   address: string;
   locality: string;
   mapsUrl: string;
+  hours?: string;
+  rating?: number;
+  reviewCount?: number;
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -80,6 +86,16 @@ export function ContactoClient({
         <p className="text-stone-500 leading-relaxed text-sm md:text-base">
           Escribinos para coordinar un turno de atención personalizada en nuestro local o para resolver cualquier duda sobre tus cristales, recetas o armazones.
         </p>
+        {!!reviewCount && reviewCount > 0 && (
+          <div className="flex md:justify-center mt-5">
+            <div className="inline-flex items-center gap-2 bg-[#c8a55c]/5 border border-[#c8a55c]/20 rounded-full px-4 py-2">
+              <span className="text-[#c8a55c] text-sm tracking-tight">★★★★★</span>
+              <span className="text-stone-700 text-[10px] font-bold uppercase tracking-[0.15em]">
+                {(rating || 5).toFixed(1)} en Google · {reviewCount} Reseñas
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row gap-10 xl:gap-16 items-stretch">
@@ -283,7 +299,7 @@ export function ContactoClient({
       </div>
 
       {/* Info de contacto tradicional e Info del Local en footer-like section */}
-      <div className="border-t border-stone-100 pt-16 grid grid-cols-1 md:grid-cols-3 gap-10">
+      <div className="border-t border-stone-100 pt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
         <div className="flex gap-4">
           <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-center flex-shrink-0 text-stone-800">
             <Phone className="w-4 h-4" />
@@ -295,6 +311,18 @@ export function ContactoClient({
             </a>
           </div>
         </div>
+
+        {hours && (
+          <div className="flex gap-4">
+            <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-center flex-shrink-0 text-stone-800">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-[11px] font-bold uppercase tracking-widest text-stone-500 mb-1">Horarios</h4>
+              <p className="text-stone-800 font-medium text-sm leading-snug">{hours}</p>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-4">
           <div className="w-10 h-10 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-center flex-shrink-0 text-stone-800">
