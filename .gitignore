@@ -77,3 +77,8 @@ backups/
 /prisma/_match_results.json
 .playwright-browsers/
 .claude/
+
+# Ads (scripts/ads) — nunca commitear logs ni info de tokens
+scripts/ads/meta_api.log
+scripts/ads/token_info.json
+scripts/ads/out/
