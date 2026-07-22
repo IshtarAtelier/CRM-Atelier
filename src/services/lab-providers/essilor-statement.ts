@@ -28,10 +28,14 @@ export interface ParsedStatement {
 }
 
 const dec = (s: string) => { try { return decodeURIComponent(s); } catch { return s; } };
-// Montos formato argentino "1.056.829,96"
+// Montos en los DOS formatos que emite Essilor según el documento (mismo caso
+// que las facturas de Optovision, verificado con PDFs reales):
+//   "1.056.829,96" (AR)  y  "1056829.96" (decimal con punto).
 const money = (s: string): number | null => {
-    const m = String(s).trim().match(/^\d{1,3}(\.\d{3})*,\d{2}$/);
-    return m ? parseFloat(s.replace(/\./g, '').replace(',', '.')) : null;
+    const t = String(s).trim();
+    if (/^\d{1,3}(\.\d{3})*,\d{2}$/.test(t)) return parseFloat(t.replace(/\./g, '').replace(',', '.'));
+    if (/^\d+\.\d{2}$/.test(t)) return parseFloat(t);
+    return null;
 };
 const parseDdMmYyyy = (s: string): Date | null => {
     const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})/);
