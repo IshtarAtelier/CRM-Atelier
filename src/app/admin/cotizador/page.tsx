@@ -107,6 +107,9 @@ function CotizadorPageContent() {
     const [discountCash, setDiscountCash] = useState(20);
     const [discountTransfer, setDiscountTransfer] = useState(15);
     const [discountCard, setDiscountCard] = useState(0);
+    const [specialDiscount, setSpecialDiscount] = useState(0);
+    // El descuento especial solo lo puede dar el admin; el resto ni ve el campo.
+    const [userRole, setUserRole] = useState('STAFF');
     const [cartExpanded, setCartExpanded] = useState(false);
     const [frameSource, setFrameSource] = useState<'OPTICA' | 'USUARIO' | null>(null);
     const [userFrameData, setUserFrameData] = useState({ brand: '', model: '', notes: '' });
@@ -144,6 +147,22 @@ function CotizadorPageContent() {
     const contactSearchRef = useRef<HTMLInputElement>(null);
 
     // Initial load
+    // Rol del usuario: habilita el descuento especial (solo admin)
+    useEffect(() => {
+        (async () => {
+            try {
+                const cached = localStorage.getItem('user');
+                if (cached) { setUserRole(JSON.parse(cached).role || 'STAFF'); return; }
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const user = await res.json();
+                    localStorage.setItem('user', JSON.stringify(user));
+                    setUserRole(user.role || 'STAFF');
+                }
+            } catch { }
+        })();
+    }, []);
+
     // Fetch doctors for the new contact form
     useEffect(() => {
         fetch('/api/doctors').then(res => res.json()).then(data => { if (Array.isArray(data)) setDoctors(data); }).catch((err) => console.error("Error fetching doctors:", err));
@@ -193,7 +212,8 @@ function CotizadorPageContent() {
                         setDiscountCash(quote.discountCash ?? 20);
                         setDiscountTransfer(quote.discountTransfer ?? 15);
                         setDiscountCard(quote.discountCard ?? 0);
-                        
+                        setSpecialDiscount(quote.specialDiscount ?? 0);
+
                         // Set frame source — API returns individual fields, not an object
                         if (quote.frameSource) setFrameSource(quote.frameSource);
                         setUserFrameData({
@@ -427,7 +447,7 @@ function CotizadorPageContent() {
     };
 
     // Calculate totals including 2x1 promo frame discount
-    const quoteTotals = calculateQuoteTotals(quoteItems, markup, discountCash, products);
+    const quoteTotals = calculateQuoteTotals(quoteItems, markup, discountCash, products, specialDiscount);
     const totalWithMarkup = quoteTotals.subtotalWithMarkup;
     const totalCash = quoteTotals.totalCash;
     const totalList = quoteTotals.subtotal;
@@ -482,6 +502,7 @@ function CotizadorPageContent() {
                     discountCard,
                     total: Math.round(totalCash),
                     subtotalWithMarkup: Math.round(totalWithMarkup),
+                    specialDiscount: quoteTotals.specialDiscountAmount,
                     frameSource,
                     userFrameBrand: frameSource === 'USUARIO' ? userFrameData.brand : null,
                     userFrameModel: frameSource === 'USUARIO' ? userFrameData.model : null,
@@ -650,7 +671,8 @@ function CotizadorPageContent() {
         setDiscountCash(quote.discountCash ?? 20);
         setDiscountTransfer(quote.discountTransfer ?? 15);
         setDiscountCard(quote.discountCard ?? 0);
-        
+        setSpecialDiscount(quote.specialDiscount ?? 0);
+
         if (quote.frameSource) setFrameSource(quote.frameSource);
         setUserFrameData({
             brand: quote.userFrameBrand || '',
@@ -664,6 +686,7 @@ function CotizadorPageContent() {
     const handleCancelEdit = () => {
         setEditingQuoteId(null);
         setQuoteItems([]);
+        setSpecialDiscount(0);
         setPendingContact(null);
         router.replace('/admin/cotizador');
     };
@@ -685,7 +708,7 @@ function CotizadorPageContent() {
                 </h1>
                 {quoteItems.length > 0 && (
                     <button
-                        onClick={() => { setQuoteItems([]); setMarkup(0); setFrameSource(null); setEditingQuoteId(null); router.replace('/admin/cotizador'); }}
+                        onClick={() => { setQuoteItems([]); setMarkup(0); setSpecialDiscount(0); setFrameSource(null); setEditingQuoteId(null); router.replace('/admin/cotizador'); }}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-stone-400 hover:text-red-500 bg-stone-50 dark:bg-stone-800 rounded-lg border border-stone-100 dark:border-stone-700 transition-all hover:border-red-200 uppercase tracking-wider"
                     >
                         <RotateCcw className="w-3 h-3" /> Limpiar
@@ -1035,6 +1058,9 @@ function CotizadorPageContent() {
                                     setDiscountTransfer={setDiscountTransfer}
                                     discountCard={discountCard}
                                     setDiscountCard={setDiscountCard}
+                                    specialDiscount={specialDiscount}
+                                    setSpecialDiscount={setSpecialDiscount}
+                                    currentUserRole={userRole}
                                     frameSource={frameSource}
                                     setFrameSource={setFrameSource}
                                     userFrameData={userFrameData}
@@ -1227,6 +1253,9 @@ function CotizadorPageContent() {
                                         setDiscountTransfer={setDiscountTransfer}
                                         discountCard={discountCard}
                                         setDiscountCard={setDiscountCard}
+                                        specialDiscount={specialDiscount}
+                                        setSpecialDiscount={setSpecialDiscount}
+                                        currentUserRole={userRole}
                                         frameSource={frameSource}
                                         setFrameSource={setFrameSource}
                                         userFrameData={userFrameData}

@@ -422,7 +422,10 @@ export default function PedidosPage() {
     const sendOrderWhatsApp = async (order: Order) => {
         const items = order.items || [];
         const orderTotal = order.subtotalWithMarkup || order.total || 0;
-        const saldo = orderTotal - (order.paid || 0);
+        // Lo cobrado en efectivo/transferencia vale más en precio de lista que su
+        // importe nominal: restarlo derecho inventaba un saldo inexistente.
+        const financials = PricingService.calculateOrderFinancials(order);
+        const saldo = financials.hasBalance ? financials.remainingCash : 0;
         const labStepLabel = getLabStep(order.labStatus || 'NONE').label;
         const lines = items.map(it => `• ${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''} x${it.quantity} — $${(it.price * it.quantity).toLocaleString()}`);
 
@@ -436,7 +439,7 @@ export default function PedidosPage() {
         text += `\n\n———————————————`;
         text += `\n*Total:* $${orderTotal.toLocaleString()}`;
         text += `\n*Abonado:* $${(order.paid || 0).toLocaleString()}`;
-        if (saldo > 0) text += `\n*Saldo pendiente:* $${saldo.toLocaleString()}`;
+        if (saldo > 0) text += `\n*Saldo pendiente:* $${saldo.toLocaleString()} (en efectivo)`;
         text += `\n\n⏱️ *Tiempo estimado de confección:* 7 a 10 días hábiles`;
         if (order.labNotes) text += `\n\n📝 *Observaciones:* ${order.labNotes}`;
 

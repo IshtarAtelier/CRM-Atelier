@@ -345,6 +345,20 @@ export class OrderService {
             }
         }
 
+        // ── Guard: el descuento especial es una excepción que solo da el admin ──
+        // El campo se oculta en la UI para el resto, pero el cotizador lo manda
+        // siempre (en 0): solo rechazamos cuando el valor efectivamente cambia.
+        if (body.specialDiscount !== undefined && role !== 'ADMIN') {
+            const currentForDiscount = await prisma.order.findUnique({
+                where: { id },
+                select: { specialDiscount: true }
+            });
+            const actual = currentForDiscount?.specialDiscount || 0;
+            if (Math.round(body.specialDiscount || 0) !== Math.round(actual)) {
+                throw new Error('Solo el administrador puede aplicar o modificar el descuento especial.');
+            }
+        }
+
         const { 
             labStatus, labNotes, orderType, labOrderNumber, 
             frameSource, userFrameBrand, userFrameModel, userFrameNotes, 
@@ -429,7 +443,7 @@ export class OrderService {
                 );
 
                 data.subtotalWithMarkup = totals.subtotalWithMarkup;
-                data.specialDiscount = totals.specialDiscountAmount;
+                data.specialDiscount = Math.round(totals.specialDiscountAmount);
                 data.total = totals.totalCash;
                 data.appliedPromoName = totals.appliedPromoName;
                 data.appliedPromoDiscount = totals.promoFrameDiscount;
@@ -443,7 +457,14 @@ export class OrderService {
         if (discountCash !== undefined) data.discountCash = discountCash;
         if (discountTransfer !== undefined) data.discountTransfer = discountTransfer;
         if (discountCard !== undefined) data.discountCard = discountCard;
-        if (specialDiscount !== undefined) data.specialDiscount = specialDiscount;
+        // OJO: `data.specialDiscount` ya viene del recálculo de arriba, topeado al
+        // subtotal. Pisarlo acá con el valor crudo guardaba un descuento mayor al
+        // que el precio realmente absorbió (el subtotal se clampea en 0, el campo
+        // no) y los reportes contaban un descuento que nunca se dio. Solo lo
+        // escribimos cuando no hubo recálculo que lo definiera.
+        if (specialDiscount !== undefined && data.specialDiscount === undefined) {
+            data.specialDiscount = Math.max(0, specialDiscount);
+        }
 
         if (items && Array.isArray(items)) {
             // Load prescription details if order has prescription (to sync with crystal items)

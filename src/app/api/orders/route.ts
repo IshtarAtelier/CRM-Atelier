@@ -32,6 +32,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Usuario no autenticado' }, { status: 401 });
         }
 
+        // El descuento especial es una excepción: la UI lo oculta al vendedor,
+        // pero sin este chequeo el campo entraba igual por la API.
+        const role = headersList.get('x-user-role') || 'STAFF';
+        if ((specialDiscount || 0) > 0 && role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Solo el administrador puede aplicar el descuento especial.' }, { status: 403 });
+        }
+
         // Fetch all products in the cart for snapshot saving and total calculations
         const productIds = items.map((it: any) => it.productId).filter(Boolean);
         const dbProducts = await prisma.product.findMany({
@@ -151,7 +158,8 @@ export async function POST(request: Request) {
                     discountCash: discountCash || 0,
                     discountTransfer: discountTransfer || 0,
                     discountCard: discountCard || 0,
-                    specialDiscount: specialDiscount || 0,
+                    // El monto ya topeado al subtotal, no el crudo del cliente.
+                    specialDiscount: Math.round(totals.specialDiscountAmount || 0),
                     subtotalWithMarkup: Math.round(finalSubtotalWithMarkup),
                     orderType: 'QUOTE',
                     labStatus: 'NONE',
@@ -457,10 +465,33 @@ export async function GET(request: Request) {
         ];
 
         if (hasBalance) {
+            // Espejo en SQL de PricingService.calculateOrderFinancials: un pago en
+            // efectivo o por transferencia ya vino con su descuento, así que cancela
+            // MÁS precio de lista que su importe nominal. La versión vieja restaba el
+            // nominal contra el precio de lista y marcaba con saldo a ventas que
+            // estaban saldadas (justamente los "saldos que no existen").
             const rawIds: {id: string}[] = await prisma.$queryRaw`
-                SELECT id
-                FROM "Order"
-                WHERE "isDeleted" = false AND COALESCE(NULLIF("subtotalWithMarkup", 0), "total", 0) - COALESCE("paid", 0) > 500
+                SELECT o.id
+                FROM "Order" o
+                LEFT JOIN LATERAL (
+                    SELECT COALESCE(SUM(
+                        CASE
+                            WHEN UPPER(TRIM(p.method)) IN ('CASH', 'EFECTIVO', 'EFVO')
+                                 AND (1 - COALESCE(o."discountCash", 20) / 100.0) > 0
+                                THEN p.amount / (1 - COALESCE(o."discountCash", 20) / 100.0)
+                            WHEN (UPPER(TRIM(p.method)) LIKE '%TRANSF%' OR UPPER(TRIM(p.method)) LIKE '%DEPOSITO%')
+                                 AND (1 - COALESCE(o."discountTransfer", 15) / 100.0) > 0
+                                THEN p.amount / (1 - COALESCE(o."discountTransfer", 15) / 100.0)
+                            ELSE p.amount
+                        END
+                    ), 0) AS eq
+                    FROM "Payment" p
+                    WHERE p."orderId" = o.id
+                ) pay ON TRUE
+                WHERE o."isDeleted" = false
+                  AND COALESCE(NULLIF(o."subtotalWithMarkup", 0), o."total", 0)
+                      - (CASE WHEN pay.eq = 0 AND COALESCE(o."paid", 0) > 0 THEN COALESCE(o."paid", 0) ELSE pay.eq END)
+                      > 1000
             `;
             const candidateIds = rawIds.map(r => r.id);
             
