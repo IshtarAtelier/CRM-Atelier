@@ -31,8 +31,11 @@ export async function PATCH(
             const isLabReadyMark = action === 'MARK_DELIVERED' && notification.type === 'LAB_READY';
             const isReceiptErrorDismiss = action === 'APPROVED' && notification.type === 'RECEIPT_ERROR';
             const isReceiptErrorDeleteRequest = action === 'REQUEST_DELETE_RECEIPT' && notification.type === 'RECEIPT_ERROR';
-            
-            if (!isLabReadyMark && !isReceiptErrorDismiss && !isReceiptErrorDeleteRequest) {
+            // El vendedor puede cerrar el aviso de "corroborar con el laboratorio"
+            // (LAB_CHECK) una vez que verificó el pedido — solo marca resuelto.
+            const isLabCheckResolve = action === 'APPROVED' && notification.type === 'LAB_CHECK';
+
+            if (!isLabReadyMark && !isReceiptErrorDismiss && !isReceiptErrorDeleteRequest && !isLabCheckResolve) {
                 return NextResponse.json({ error: 'Solo el administrador puede gestionar estas solicitudes' }, { status: 403 });
             }
         }

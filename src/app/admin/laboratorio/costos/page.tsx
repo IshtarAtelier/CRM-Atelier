@@ -749,9 +749,15 @@ export default function LabCostosPage() {
                                                 <div className="flex flex-col gap-1 items-start">
                                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${orderMeta.cls}`}>{orderMeta.label}</span>
                                                     {enCamino && estimadoListo && (
-                                                        <span className="text-[10px] text-blue-600 font-medium" title="La factura de Optovision llega ~5 días hábiles antes de que el pedido esté terminado">
-                                                            🚚 en camino · listo ~{estimadoListo.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
-                                                        </span>
+                                                        estimadoListo <= new Date() ? (
+                                                            <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 font-semibold" title="Pasaron 5+ días hábiles desde la factura: el pedido ya debería estar terminado — corroborar con el laboratorio y actualizar el estado">
+                                                                ⚠️ ya debería estar terminado · corroborar
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[10px] text-blue-600 font-medium" title="La factura de Optovision llega ~5 días hábiles antes de que el pedido esté terminado">
+                                                                🚚 en camino · listo ~{estimadoListo.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                                            </span>
+                                                        )
                                                     )}
                                                 </div>
                                             ) : <span className="text-gray-300">—</span>}

@@ -401,15 +401,15 @@ export class LabCostReconciliationService {
     }
 
     /**
-     * Promoción a FINISHED de los pedidos de Optovision facturados: la factura
-     * llega unos días hábiles ANTES de que el pedido esté terminado, así que un
-     * pedido se marca finalizado recién cuando (a) TODAS las operaciones de su
-     * venta tienen factura y (b) la última factura ya tiene 5+ días hábiles
-     * (margen pedido por el administrador, "por si acaso").
-     * Corre en cada pase (10 min y diario). Garantías anti-retroactivo: solo mira
-     * entradas creadas DESPUÉS del backfill inicial de Optovision (las históricas
-     * jamás promueven, aunque su labStatus haya quedado desactualizado) y nunca
-     * repite ni retrocede estados (FINISHED/READY/DELIVERED quedan como están).
+     * Aviso de CORROBORACIÓN para pedidos de Optovision facturados (regla del
+     * administrador): la factura llega unos días hábiles antes de que el pedido
+     * esté terminado. Cuando (a) TODAS las operaciones de la venta tienen factura
+     * y (b) la última factura ya tiene 5+ días hábiles, el pedido YA DEBERÍA
+     * estar terminado — pero NO se marca solo: se genera una notificación
+     * "corroborar con el laboratorio" (tipo LAB_CHECK, una sola vez por venta) y
+     * el estado lo cambia un humano cuando confirma. Corre en cada pase (10 min
+     * y diario). Garantías anti-retroactivo: solo entradas creadas DESPUÉS del
+     * backfill inicial de Optovision; FINISHED/READY/DELIVERED no se tocan.
      */
     static async promoteFinishedOptovision() {
         const flag = await prisma.systemSetting.findUnique({
@@ -480,22 +480,27 @@ export class LabCostReconciliationService {
             const ultima = Math.max(...facturadas.map(t => (t.invoiceDate ?? t.createdAt).getTime()));
             if (habilesDesde(new Date(ultima)) < OPTOVISION_DIAS_FACTURA_A_LISTO) continue;
 
-            await prisma.order.update({ where: { id: orderId }, data: { labStatus: 'FINISHED' } })
-                .then(() => prisma.notification.create({
-                    data: {
-                        type: 'LAB_READY',
-                        // El texto arranca igual que el de SmartLab: el cron de
-                        // retiro lo reescribe con replace de ese prefijo exacto.
-                        message: `🏭 Pedido finalizado en laboratorio (facturado por Optovision hace 5+ días hábiles) — ${order.client?.name ?? 'cliente'} (${nums.join(', ')})`,
-                        orderId,
-                        requestedBy: 'Conciliación Optovision',
-                        status: 'PENDING',
-                    },
-                }))
+            // Una sola vez por venta: si ya existe el aviso de corroboración
+            // (pendiente o resuelto), no se repite.
+            const yaAvisado = await prisma.notification.findFirst({
+                where: { type: 'LAB_CHECK', orderId },
+                select: { id: true },
+            });
+            if (yaAvisado) continue;
+
+            await prisma.notification.create({
+                data: {
+                    type: 'LAB_CHECK',
+                    message: `🔎 Optovision: facturado hace 5+ días hábiles — YA DEBERÍA ESTAR TERMINADO. Corroborar con el laboratorio y actualizar el estado — ${order.client?.name ?? 'cliente'} (${nums.join(', ')})`,
+                    orderId,
+                    requestedBy: 'Conciliación Optovision',
+                    status: 'PENDING',
+                },
+            })
                 .then(() => { promoted++; })
-                .catch(err => console.error('[LabCost] Error promoviendo pedido Optovision a finalizado:', err));
+                .catch(err => console.error('[LabCost] Error creando aviso de corroboración Optovision:', err));
         }
-        if (promoted > 0) console.log(`[LabCost] ${promoted} pedido(s) de Optovision promovidos a FINISHED (5+ días hábiles de facturados).`);
+        if (promoted > 0) console.log(`[LabCost] ${promoted} aviso(s) de corroboración Optovision creados (facturado hace 5+ días hábiles).`);
         return { promoted };
     }
 
