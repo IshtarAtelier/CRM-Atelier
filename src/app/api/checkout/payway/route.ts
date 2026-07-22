@@ -1018,7 +1018,12 @@ export async function POST(req: Request) {
       sessionId: body.analyticsSessionId || `web-${order.id}`,
       value: finalItemsTotal,
       orderId: order.id,
-      meta: { channel: 'web', paymentMethod: 'TARJETA' },
+      meta: {
+        channel: 'web',
+        paymentMethod: 'TARJETA',
+        ...(body.adsMatch?.gclid ? { gclid: body.adsMatch.gclid } : {}),
+        ...(body.adsMatch?.fbc ? { fbc: body.adsMatch.fbc } : {}),
+      },
     });
     // 2) Meta CAPI server-side (respaldo del Pixel; event_id = order.id deduplica).
     AdsService.sendWebPurchase(
@@ -1028,7 +1033,15 @@ export async function POST(req: Request) {
         client: { email: customer.email, phone: customer.phone, name: `${customer.firstName} ${customer.lastName}` },
         createdAt: order.createdAt,
       },
-      { eventSourceUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar'}/checkout` },
+      {
+        eventSourceUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar'}/checkout`,
+        matchData: {
+          fbc: typeof body.adsMatch?.fbc === 'string' ? body.adsMatch.fbc.slice(0, 500) : null,
+          fbp: typeof body.adsMatch?.fbp === 'string' ? body.adsMatch.fbp.slice(0, 100) : null,
+          clientIp: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
+          userAgent: req.headers.get('user-agent'),
+        },
+      },
     );
 
     return NextResponse.json({

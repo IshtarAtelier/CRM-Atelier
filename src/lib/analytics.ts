@@ -129,8 +129,55 @@ export async function recordEvents(events: AnalyticsEventInput[]): Promise<numbe
   }
 }
 
-/** Registra un único evento server-side (fire-and-forget). */
+/**
+ * Registra un único evento server-side (fire-and-forget).
+ *
+ * Si el evento no trae atribución (caso típico: `purchase`, que el server graba
+ * conociendo solo el sessionId), hereda las UTM del último evento de esa sesión
+ * que las tenga. Así la compra queda autocontenida y los reportes de ads pueden
+ * agrupar por utmCampaign directo, sin joins frágiles por sesión.
+ */
 export function recordServerEvent(event: AnalyticsEventInput): void {
   const clean = sanitizeEvents([event]);
-  if (clean.length) void recordEvents(clean);
+  if (!clean.length) return;
+  void (async () => {
+    const e = clean[0];
+    try {
+      if (!e.utmSource && !e.utmCampaign && e.sessionId) {
+        const select = {
+          utmSource: true,
+          utmMedium: true,
+          utmCampaign: true,
+          utmContent: true,
+          utmTerm: true,
+          referrer: true,
+        } as const;
+        // Regla canónica de atribución (igual en attribution_report y el cron
+        // ads-report): último evento CON campaña; si la sesión nunca tuvo
+        // utm_campaign, último evento con al menos utm_source.
+        const attr =
+          (await prisma.analyticsEvent.findFirst({
+            where: { sessionId: e.sessionId, utmCampaign: { not: null } },
+            orderBy: { createdAt: 'desc' },
+            select,
+          })) ??
+          (await prisma.analyticsEvent.findFirst({
+            where: { sessionId: e.sessionId, utmSource: { not: null } },
+            orderBy: { createdAt: 'desc' },
+            select,
+          }));
+        if (attr) {
+          e.utmSource = e.utmSource ?? attr.utmSource;
+          e.utmMedium = e.utmMedium ?? attr.utmMedium;
+          e.utmCampaign = e.utmCampaign ?? attr.utmCampaign;
+          e.utmContent = e.utmContent ?? attr.utmContent;
+          e.utmTerm = e.utmTerm ?? attr.utmTerm;
+          e.referrer = e.referrer ?? attr.referrer;
+        }
+      }
+    } catch (err) {
+      captureError(err, { scope: 'analytics.attribution-inherit' });
+    }
+    await recordEvents(clean);
+  })();
 }

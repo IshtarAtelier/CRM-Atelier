@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { Search, Plus } from 'lucide-react';
-import { safePrice } from '@/lib/promo-utils';
+import { safePrice, isCrystal } from '@/lib/promo-utils';
+import { formatLensRange } from '@/lib/lens-range';
 
 interface CartSearchProps {
     searchQuery: string;
@@ -44,6 +45,11 @@ export default function CartSearch({
                                 <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mt-0.5">
                                     {p.type || p.category} {p.lensIndex ? `· Índ: ${p.lensIndex}` : ''}
                                 </p>
+                                {isCrystal(p) && formatLensRange(p) && (
+                                    <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                        {formatLensRange(p)}
+                                    </p>
+                                )}
                             </div>
                             <div className="flex items-center gap-3">
                                 <span className="text-xs font-bold text-primary">${safePrice(p.price).toLocaleString()}</span>

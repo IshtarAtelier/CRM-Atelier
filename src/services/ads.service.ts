@@ -13,6 +13,18 @@ interface OrderData {
   createdAt?: Date;
 }
 
+/**
+ * Señales de matching del navegador (cookies del Pixel + red). Cuantas más
+ * lleguen, mejor atribuye Meta la conversión al click del anuncio — fbc/fbp
+ * son las de mayor peso. Van en texto plano (así lo exige CAPI), no se hashean.
+ */
+interface MatchData {
+  fbc?: string | null;
+  fbp?: string | null;
+  clientIp?: string | null;
+  userAgent?: string | null;
+}
+
 export class AdsService {
   /**
    * Hashes a string using SHA-256 as required by Meta CAPI.
@@ -36,7 +48,11 @@ export class AdsService {
   private static dispatchPurchase(
     order: OrderData,
     actionSource: 'physical_store' | 'website',
-    opts: { eventId?: string; eventSourceUrl?: string } = {},
+    opts: {
+      eventId?: string;
+      eventSourceUrl?: string;
+      matchData?: MatchData;
+    } = {},
   ) {
     const metaToken = process.env.META_ACCESS_TOKEN;
     const pixelId = process.env.META_PIXEL_ID;
@@ -54,6 +70,11 @@ export class AdsService {
       const userData: any = {};
       if (order.client.email) userData.em = [this.hashData(order.client.email)];
       if (order.client.phone) userData.ph = [this.hashData(this.normalizePhone(order.client.phone))];
+      const match = opts.matchData;
+      if (match?.fbc) userData.fbc = match.fbc;
+      if (match?.fbp) userData.fbp = match.fbp;
+      if (match?.clientIp) userData.client_ip_address = match.clientIp;
+      if (match?.userAgent) userData.client_user_agent = match.userAgent;
 
       const event: any = {
         event_name: 'Purchase',
@@ -70,7 +91,8 @@ export class AdsService {
       if (opts.eventId) event.event_id = opts.eventId;
       if (opts.eventSourceUrl) event.event_source_url = opts.eventSourceUrl;
 
-      const apiUrl = `https://graph.facebook.com/v19.0/${pixelId}/events`;
+      // v24.0: la Marketing API rechaza versiones viejas desde jun-2026 (#2635).
+      const apiUrl = `https://graph.facebook.com/v24.0/${pixelId}/events`;
 
       // Enviamos el request de forma asíncrona sin bloquear
       fetch(apiUrl, {
@@ -110,11 +132,12 @@ export class AdsService {
    */
   public static async sendWebPurchase(
     order: OrderData,
-    opts: { eventSourceUrl?: string } = {},
+    opts: { eventSourceUrl?: string; matchData?: MatchData } = {},
   ) {
     this.dispatchPurchase(order, 'website', {
       eventId: order.id,
       eventSourceUrl: opts.eventSourceUrl,
+      matchData: opts.matchData,
     });
   }
 }

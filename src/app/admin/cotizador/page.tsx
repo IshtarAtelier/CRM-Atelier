@@ -48,6 +48,7 @@ import {
 import type { Product } from '@/types/orders';
 import { normalizeLensOrigin, lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
+import { formatLensRange } from '@/lib/lens-range';
 import Image from "next/image";
 
 const getTypeConfig = (type: string | null, category?: string | null) => {
@@ -875,6 +876,7 @@ function CotizadorPageContent() {
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[70px]">Índice</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[100px]">Origen</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Descripción</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[140px]">Rango</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px]">Lista</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px] text-emerald-600 dark:text-emerald-400">Efectivo</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px] text-violet-600 dark:text-violet-400">Transf.</th>
@@ -910,6 +912,9 @@ function CotizadorPageContent() {
                                                         </td>
                                                         <td className="px-4 py-2.5">
                                                             <p className="text-xs font-semibold whitespace-normal break-words">{product.name || '—'}</p>
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-center">
+                                                            <span className="text-[10px] font-semibold text-stone-500 dark:text-stone-400 whitespace-nowrap">{formatLensRange(product) || '—'}</span>
                                                         </td>
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs">${Math.round(pTotal).toLocaleString()}</td>
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs text-emerald-650">${Math.round(pCash).toLocaleString()}</td>

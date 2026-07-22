@@ -13,7 +13,7 @@ import { CheckoutSummarySidebar } from "@/components/checkout/CheckoutSummarySid
 import type { AppliedCoupon } from "@/components/checkout/CouponField";
 import { WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from "@/lib/constants";
 import { trackInitiateCheckout, trackPurchase } from "@/lib/tracking";
-import { getSessionId, track } from "@/lib/client-analytics";
+import { getAdsMatchData, getSessionId, track } from "@/lib/client-analytics";
 import { toast } from "sonner";
 
 // Clave de idempotencia del intento de compra: estable entre reintentos (timeout/
@@ -329,6 +329,7 @@ export function CheckoutClient({
             couponCode: appliedCoupon?.code || null,
             paymentToken: null,
             analyticsSessionId: getSessionId(),
+            adsMatch: getAdsMatchData(),
             idempotencyKey: getIdempotencyKey()
           })
         });
@@ -453,6 +454,7 @@ export function CheckoutClient({
               paymentMethodId: paymentMethodId,
               deviceUniqueIdentifier: deviceFingerprint,
               analyticsSessionId: getSessionId(),
+              adsMatch: getAdsMatchData(),
               idempotencyKey: getIdempotencyKey()
             })
           });

@@ -19,6 +19,10 @@ type Attribution = {
   utmContent?: string;
   utmTerm?: string;
   referrer?: string;
+  fbclid?: string;
+  gclid?: string;
+  /** Epoch ms en que se vio el fbclid (para reconstruir fbc si no hay cookie _fbc). */
+  fbclidAt?: number;
 };
 
 function uuid(): string {
@@ -52,20 +56,41 @@ function detectDevice(): string {
   return 'desktop';
 }
 
-/** Captura UTMs de la URL en la primera visita y los persiste (first-touch). */
+/**
+ * Captura UTMs de la URL en la primera visita y los persiste (first-touch).
+ * Los click ids de ads (fbclid/gclid) son la excepción: se actualizan en CADA
+ * visita que los traiga (last-touch), como exige el matching de Meta/Google.
+ */
 export function captureAttribution(): Attribution {
   if (typeof window === 'undefined') return {};
   try {
-    const existing = localStorage.getItem(ATTR_KEY);
-    if (existing) return JSON.parse(existing) as Attribution;
-
     const params = new URLSearchParams(window.location.search);
+    const fbclid = params.get('fbclid') || undefined;
+    const gclid = params.get('gclid') || undefined;
+
+    const existing = localStorage.getItem(ATTR_KEY);
+    if (existing) {
+      const attr = JSON.parse(existing) as Attribution;
+      if (fbclid || gclid) {
+        if (fbclid) {
+          attr.fbclid = fbclid;
+          attr.fbclidAt = Date.now();
+        }
+        if (gclid) attr.gclid = gclid;
+        localStorage.setItem(ATTR_KEY, JSON.stringify(attr));
+      }
+      return attr;
+    }
+
     const attr: Attribution = {
       utmSource: params.get('utm_source') || undefined,
       utmMedium: params.get('utm_medium') || undefined,
       utmCampaign: params.get('utm_campaign') || undefined,
       utmContent: params.get('utm_content') || undefined,
       utmTerm: params.get('utm_term') || undefined,
+      fbclid,
+      fbclidAt: fbclid ? Date.now() : undefined,
+      gclid,
       referrer:
         document.referrer && !document.referrer.includes(window.location.host)
           ? document.referrer
@@ -76,6 +101,32 @@ export function captureAttribution(): Attribution {
       localStorage.setItem(ATTR_KEY, JSON.stringify(attr));
     }
     return attr;
+  } catch {
+    return {};
+  }
+}
+
+function readCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+/**
+ * Datos de matching para Meta CAPI / Google, para adjuntar al checkout.
+ * fbc/fbp salen de las cookies del Pixel; si no hay _fbc (adblock, Pixel
+ * bloqueado) se reconstruye desde el fbclid persistido (formato oficial
+ * fb.1.<timestamp>.<fbclid>).
+ */
+export function getAdsMatchData(): { fbc?: string; fbp?: string; gclid?: string } {
+  if (typeof window === 'undefined') return {};
+  try {
+    const attr = captureAttribution();
+    let fbc = readCookie('_fbc');
+    if (!fbc && attr.fbclid) {
+      fbc = `fb.1.${attr.fbclidAt ?? Date.now()}.${attr.fbclid}`;
+    }
+    return { fbc, fbp: readCookie('_fbp'), gclid: attr.gclid };
   } catch {
     return {};
   }
@@ -115,7 +166,14 @@ export function track(type: string, props: TrackProps = {}): void {
       value: props.value ?? null,
       quantity: props.quantity ?? null,
       orderId: props.orderId ?? null,
-      meta: props.meta ?? null,
+      meta:
+        props.meta || attr.fbclid || attr.gclid
+          ? {
+              ...(attr.fbclid ? { fbclid: attr.fbclid } : {}),
+              ...(attr.gclid ? { gclid: attr.gclid } : {}),
+              ...(props.meta ?? {}),
+            }
+          : null,
     };
 
     const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });

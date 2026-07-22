@@ -21,6 +21,51 @@ const esc = (s: string) =>
 
 const priceStr = (n: number) => `${n.toFixed(2)} ARS`;
 
+/**
+ * URL de imagen ABSOLUTA apta para Merchant Center, o '' si el producto no
+ * tiene ninguna. Reglas de Google: nada de data URIs, nada de rutas relativas
+ * y nada de AVIF (WebP sí) — por eso los .avif de public/ tienen su copia
+ * .webp generada por scripts/ads/convert_feed_images.js.
+ */
+function feedImage(images: string[] | undefined): string {
+  for (const raw of images || []) {
+    let resolved = resolveStorageUrl(raw);
+    if (!resolved || resolved.startsWith('data:')) continue;
+    resolved = resolved.replace(/\.avif$/i, '.webp');
+    if (resolved.startsWith('http')) return resolved;
+    if (resolved.startsWith('/')) return `${APP_URL}${resolved}`;
+  }
+  return '';
+}
+
+/**
+ * Categoría de la taxonomía de Google. Define en qué búsquedas compite el
+ * producto, así que un armazón de receta NO puede ir como anteojo de sol.
+ *   178 = Apparel & Accessories > Clothing Accessories > Sunglasses
+ *   524 = Health & Beauty > Personal Care > Vision Care > Eyeglasses
+ * Los clip-on se declaran como sol: el uso que se busca es el de sol.
+ */
+function googleCategory(category: string | null): string {
+  const c = (category || '').toLowerCase();
+  return c.includes('sol') || c.includes('clip') ? '178' : '524';
+}
+
+/**
+ * Descripción con las palabras que la gente busca ("anteojos de sol",
+ * "armazón para lentes recetados"): Google matchea la query contra el texto
+ * del ítem, así que un "— Sol." pelado desperdicia el espacio.
+ */
+function describe(title: string, category: string | null): string {
+  const c = (category || '').toLowerCase();
+  if (c.includes('clip')) {
+    return `${title}: armazón para lentes recetados con clip-on de sol magnético. Óptica Atelier, Córdoba.`;
+  }
+  if (c.includes('sol')) {
+    return `${title}: anteojos de sol con protección UV. Se pueden graduar con tu receta. Óptica Atelier, Córdoba.`;
+  }
+  return `${title}: armazón para anteojos recetados. Cristales a medida (monofocales y multifocales). Óptica Atelier, Córdoba.`;
+}
+
 export async function GET() {
   let items = '';
   try {
@@ -30,7 +75,7 @@ export async function GET() {
       // Solo armazones/sol con precio e imagen (los cristales no van a Shopping).
       if (p.category === 'Cristal') continue;
       if (!p.price || p.price <= 0) continue;
-      const img = p.imagenesCatalogo?.[0] ? resolveStorageUrl(p.imagenesCatalogo[0]) : '';
+      const img = feedImage(p.imagenesCatalogo);
       if (!img) continue;
 
       const title = `${p.brand} ${p.model}`.trim();
@@ -42,7 +87,7 @@ export async function GET() {
     <item>
       <g:id>${esc(p.id)}</g:id>
       <g:title>${esc(title)}</g:title>
-      <g:description>${esc(`${title} — ${p.category || 'Anteojos'}. Óptica Atelier.`)}</g:description>
+      <g:description>${esc(describe(title, p.category))}</g:description>
       <g:link>${esc(link)}</g:link>
       <g:image_link>${esc(img)}</g:image_link>
       <g:availability>${available}</g:availability>
@@ -51,7 +96,7 @@ export async function GET() {
       <g:brand>${esc(p.brand)}</g:brand>
       <g:condition>new</g:condition>
       <g:identifier_exists>false</g:identifier_exists>
-      <g:google_product_category>178</g:google_product_category>
+      <g:google_product_category>${googleCategory(p.category)}</g:google_product_category>
       <g:product_type>${esc(p.category || 'Anteojos')}</g:product_type>
     </item>`;
     }
