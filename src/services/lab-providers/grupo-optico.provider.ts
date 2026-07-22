@@ -146,7 +146,11 @@ export class GrupoOpticoProvider {
                 console.log(`[GrupoOptico] Comprobantes parseados: ${res.stats.invoices} | ` +
                     `líneas con pedido $${Math.round(res.stats.attributedSum).toLocaleString('es-AR')} | ` +
                     `sin pedido $${Math.round(res.stats.unattributedSum).toLocaleString('es-AR')} ` +
-                    `(repartido $${Math.round(res.stats.distributedSum).toLocaleString('es-AR')})`);
+                    `(repartido $${Math.round(res.stats.distributedSum).toLocaleString('es-AR')}) | ` +
+                    `con descuento de cuenta: ${res.stats.conDescuento}/${res.stats.invoices}` +
+                    `${res.stats.descuentoPromedio !== null ? ` (promedio ${Math.round((1 - res.stats.descuentoPromedio) * 100)}% off)` : ''}`);
+                summary.comprobantesConDescuento = res.stats.conDescuento;
+                summary.descuentoPromedio = res.stats.descuentoPromedio;
             } catch (err: any) {
                 console.error('[GrupoOptico] No se pudo obtener el PDF de facturas (se sigue sin importes):', err);
                 // Dejar constancia en el resumen: si esto falla corrida tras corrida,

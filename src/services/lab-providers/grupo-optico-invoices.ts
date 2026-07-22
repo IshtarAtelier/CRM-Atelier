@@ -29,8 +29,10 @@ import PDFParser from 'pdf2json';
 export interface ParsedInvoice {
     invoiceNumber: string;                  // "0004-00339862" (normalizado sin ceros extra del pto. de venta)
     total: number | null;                   // Total del comprobante (0 en remitos X)
-    attributed: Map<string, number>;        // nº de pedido → suma de sus líneas
-    unattributed: number;                   // suma de líneas sin nº de pedido
+    faImporte: number | null;               // "<FA> Importe:" = lo que REALMENTE se cobra (con descuento)
+    descuento: number | null;               // factor aplicado (0.80 = 20% de descuento)
+    attributed: Map<string, number>;        // nº de pedido → suma de sus líneas YA con descuento
+    unattributed: number;                   // suma de líneas sin nº de pedido (ya con descuento)
 }
 
 const API_BASE = 'https://grupooptico.dyndns.info/smartlab-api-v2/public/index.php';
@@ -106,7 +108,7 @@ export function parseInvoicePdf(pdfBuffer: Buffer): Promise<ParsedInvoice[]> {
                         if (ped && imp) { xPedido = ped.x; xImporte = imp.x; yHeader = Number(y); break; }
                     }
 
-                    const inv: ParsedInvoice = { invoiceNumber: '', total: null, attributed: new Map(), unattributed: 0 };
+                    const inv: ParsedInvoice = { invoiceNumber: '', total: null, faImporte: null, descuento: null, attributed: new Map(), unattributed: 0 };
                     for (const [yKey, cellsRaw] of Object.entries(rows)) {
                         const y = Number(yKey);
                         const cells = cellsRaw.sort((a, b) => a.x - b.x);
@@ -118,6 +120,11 @@ export function parseInvoicePdf(pdfBuffer: Buffer): Promise<ParsedInvoice[]> {
                         }
                         const tm = joined.match(/Total\s*\$\s*(\d{1,3}(?:\.\d{3})*,\d{2})/);
                         if (tm) inv.total = money(tm[1]);
+                        // Recuadro "<FA> Importe: $ 14.657,60": lo que el lab COBRA de
+                        // verdad por este comprobante — el Sub Total de las líneas viene
+                        // SIN el descuento de cuenta (habitualmente 20%).
+                        const fm = joined.match(/Importe:\s*\$?\s*(\d{1,3}(?:\.\d{3})*,\d{2})/);
+                        if (fm) inv.faImporte = money(fm[1]);
 
                         // Zona de detalle: entre el encabezado y el pie (Sub Total ~y=41)
                         if (y <= yHeader + 0.3 || y >= 40) continue;
@@ -132,6 +139,26 @@ export function parseInvoicePdf(pdfBuffer: Buffer): Promise<ParsedInvoice[]> {
                         const ped = cells.find(c => /^80\d{6}$/.test(c.s) && Math.abs(c.x - xPedido) < 3);
                         if (ped) inv.attributed.set(ped.s, (inv.attributed.get(ped.s) || 0) + importe);
                         else inv.unattributed += importe;
+                    }
+
+                    // DESCUENTO DE CUENTA (dato del administrador, 22/7): el lab agrupa
+                    // varios pedidos en el comprobante y sobre ese Sub Total aplica un
+                    // descuento (en general 20%). El costo REAL es el "Importe" del
+                    // recuadro <FA>, no la suma de las líneas. Se prorratea ese descuento
+                    // sobre cada pedido — así el factor sale del propio comprobante y no
+                    // hay que hardcodear el 20% (puede variar por acuerdo comercial).
+                    const sumaLineas = [...inv.attributed.values()].reduce((a, b) => a + b, 0) + inv.unattributed;
+                    if (inv.faImporte !== null && sumaLineas > 0) {
+                        const f = inv.faImporte / sumaLineas;
+                        // Guarda: solo descuentos plausibles (hasta 70% off). Si el <FA>
+                        // agrupa varios comprobantes el factor daría >1 → se ignora.
+                        if (f >= 0.3 && f <= 1.001) {
+                            inv.descuento = Math.round(f * 10000) / 10000;
+                            for (const [ped, monto] of inv.attributed) {
+                                inv.attributed.set(ped, Math.round(monto * f * 100) / 100);
+                            }
+                            inv.unattributed = Math.round(inv.unattributed * f * 100) / 100;
+                        }
                     }
                     if (inv.invoiceNumber) out.push(inv);
                 }
@@ -156,9 +183,9 @@ export async function buildPedidoAmountMap(
     from: Date,
     to: Date,
     pedidoInvoices: Map<string, string[]>, // nº pedido → nº de facturas (de la API)
-): Promise<{ amounts: Map<string, number>; stats: { invoices: number; attributedSum: number; unattributedSum: number; distributedSum: number } }> {
+): Promise<{ amounts: Map<string, number>; stats: { invoices: number; attributedSum: number; unattributedSum: number; distributedSum: number; conDescuento: number; descuentoPromedio: number | null } }> {
     const amounts = new Map<string, number>();
-    const stats = { invoices: 0, attributedSum: 0, unattributedSum: 0, distributedSum: 0 };
+    const stats = { invoices: 0, attributedSum: 0, unattributedSum: 0, distributedSum: 0, conDescuento: 0, descuentoPromedio: null as number | null };
 
     const pdf = await downloadInvoicePdf(page, clientId, from, to);
     if (!pdf) return { amounts, stats };
@@ -174,7 +201,9 @@ export async function buildPedidoAmountMap(
         }
     }
 
+    const factores: number[] = [];
     for (const inv of invoices) {
+        if (inv.descuento !== null) { stats.conDescuento++; factores.push(inv.descuento); }
         for (const [ped, sum] of inv.attributed) {
             amounts.set(ped, (amounts.get(ped) || 0) + sum);
             stats.attributedSum += sum;
@@ -194,6 +223,9 @@ export async function buildPedidoAmountMap(
                 }
             }
         }
+    }
+    if (factores.length > 0) {
+        stats.descuentoPromedio = Math.round((factores.reduce((a, b) => a + b, 0) / factores.length) * 10000) / 10000;
     }
     return { amounts, stats };
 }
