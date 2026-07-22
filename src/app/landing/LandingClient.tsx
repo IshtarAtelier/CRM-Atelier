@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Star, X, Glasses } from "lucide-react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { captureAttribution } from "@/lib/client-analytics";
 import { CAMPAIGNS, type LandingProduct } from "@/lib/landing/campaigns";
 
 // ── Créditos de obra para los retratos editoriales (mismo espíritu que FilmmakerReel) ──
@@ -128,6 +129,9 @@ export function LandingClient({
 
   // Captura de UTMs del anuncio + exit intent
   useEffect(() => {
+    // Persiste UTMs + fbclid/gclid en la atribución compartida (ate_attr),
+    // así la conversión se atribuye aunque el cliente compre días después.
+    captureAttribution();
     try {
       const p = new URLSearchParams(window.location.search);
       const utmSource = p.get("utm_source");
