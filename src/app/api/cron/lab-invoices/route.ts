@@ -53,7 +53,12 @@ export async function GET(request: Request) {
                 where: { key: LabCostReconciliationService.backfillKey(lab) },
             });
             if (yaHecho?.value) continue;
-            if (results[lab]?.ok === true) {
+            // El backfill de un lab está completo solo si su corrida terminó bien
+            // Y con los importes cargados: para Grupo Óptico, un portal que responde
+            // pero con el PDF de comprobantes caído (invoiceError) deja los costos
+            // sin ingresar — marcar el flag ahí haría que los importes históricos
+            // entren "ruidosos" en la corrida siguiente.
+            if (results[lab]?.ok === true && !results[lab]?.invoiceError) {
                 await prisma.systemSetting.upsert({
                     where: { key: LabCostReconciliationService.backfillKey(lab) },
                     update: { value: new Date().toISOString() },

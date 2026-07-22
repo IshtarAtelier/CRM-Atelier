@@ -56,8 +56,9 @@ export async function downloadInvoicePdf(page: any, clientId: string, from: Date
     const url = `${API_BASE}/laboratory/order/invoice?cl=${clientId}&t=2&c=1&s=${toDdMmYyyy(from)}&e=${toDdMmYyyy(to)}`;
     const result: { status: number; b64: string; size: number } = await page.evaluate(async (u: string) => {
         // Tope duro: el PDF puede pesar; sin señal, un stall del portal cuelga el
-        // evaluate (y el Chromium) para siempre.
-        const r = await fetch(u, { credentials: 'include', signal: AbortSignal.timeout(90000) });
+        // evaluate (y el Chromium) para siempre. 5 minutos: el PDF de la era CRM
+        // completa (meses de comprobantes) tarda más de 90s en generarse.
+        const r = await fetch(u, { credentials: 'include', signal: AbortSignal.timeout(300000) });
         if (!r.ok) return { status: r.status, b64: '', size: 0 };
         const buf = await r.arrayBuffer();
         const bytes = new Uint8Array(buf);
