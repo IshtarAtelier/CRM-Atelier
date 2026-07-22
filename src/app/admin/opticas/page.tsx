@@ -16,15 +16,15 @@ import { formatDateTime } from "@/lib/format-date";
 // checkout mayorista exige WHOLESALE_MIN_PIECES=10 (payway/route.ts), una
 // plantilla que prometa "sin mínimos" manda al lead a un error en el carrito.
 const DEFAULT_TPL =
-  "Hola {nombre}! Soy Ishtar, de Atelier Óptica (Cerro de las Rosas, Córdoba). Te escribo de óptica a óptica 👓\n\n" +
-  "Abrimos un canal mayorista para colegas: importamos directo armazones de diseño —acetato italiano Mazzucchelli, metal y titanio— y te los dejamos a *precio neto por unidad*, pensados para revender.\n\n" +
+  "Hola {nombre}! Te escribo de *Cápsula Escarlata*, una marca de armazones de diseño de autor. Abrimos un canal mayorista para ópticas y quería mostrarte la colección 👓\n\n" +
+  "Trabajamos acetato italiano y titanio, con diseños exclusivos, a *precio neto por unidad* pensados para revender.\n\n" +
   "El número que importa: te salen desde $32.000 y se venden al público entre $80.000 y $160.000 según la zona. Margen de *2,5x o más*, y el precio final lo ponés vos.\n\n" +
   "• Desde 10 piezas, mezclando los modelos que quieras (sin cajas cerradas)\n" +
-  "• Stock real en Córdoba, entrega ya\n" +
+  "• Stock disponible, entrega inmediata y envíos a todo el país\n" +
   "• Cada modelo con foto y ficha, pedís online con tu usuario 24/7\n" +
   "• Garantía de 30 días\n\n" +
   "Mirá el catálogo completo con todos los precios acá 👇\n{link}\n\n" +
-  "Te atiendo yo directamente, no un call center. Un saludo!";
+  "Cualquier cosa te contesto por acá. Saludos!";
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   NUEVO: { label: "Nuevo", cls: "bg-blue-50 text-blue-700 border-blue-200" },

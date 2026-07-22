@@ -15,7 +15,7 @@ export default function IngresoMayoristaClient() {
   const [isLoading, setIsLoading] = useState(false);
 
   const waLink = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(
-    'Hola! Quiero pedir mi usuario mayorista de Atelier Óptica.',
+    'Hola! Quiero pedir mi usuario mayorista de Cápsula Escarlata.',
   )}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,7 +49,7 @@ export default function IngresoMayoristaClient() {
     <div className="min-h-screen bg-[#141110] text-[#faf8f5] flex flex-col justify-center px-6 py-12">
       <div className="w-full max-w-md mx-auto">
         <p className="text-xs tracking-[0.2em] uppercase text-[#c8a55c] mb-3 text-center">
-          Atelier Óptica · Córdoba
+          Cápsula Escarlata
         </p>
         <h1 className="font-serif text-3xl md:text-4xl font-bold text-center mb-2">
           Área <span className="italic text-[#c8a55c]">Mayorista</span>

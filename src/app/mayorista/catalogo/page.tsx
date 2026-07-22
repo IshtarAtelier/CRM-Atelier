@@ -15,9 +15,11 @@ const FEATURED_NAMES = ['Artemis', 'Teseo C4', 'Orión C1', 'Iris C3'];
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Canal Mayorista para Ópticas',
+  // title.absolute: sin esto el layout root le agrega "| Atelier Óptica" y
+  // rompe la marca del canal. El área mayorista es Cápsula Escarlata a secas.
+  title: { absolute: 'Cápsula Escarlata · Catálogo Mayorista' },
   description:
-    'Catálogo mayorista de Atelier Óptica: armazones de diseño con precios netos por unidad para ópticas de Córdoba y el interior.',
+    'Catálogo mayorista Cápsula Escarlata: armazones de diseño de autor con precios netos por unidad para ópticas.',
   robots: { index: false, follow: false }, // no es contenido para buscar: son precios netos B2B
 };
 
@@ -81,7 +83,7 @@ export default async function CatalogoMayoristaPage({
     }, {});
 
   const waMsg = encodeURIComponent(
-    'Hola! Vi el catálogo mayorista de Atelier Óptica y quiero pedir mi usuario.',
+    'Hola! Vi el catálogo mayorista de Cápsula Escarlata y quiero pedir mi usuario.',
   );
   const waLink = `https://wa.me/${WHATSAPP_PHONE}?text=${waMsg}`;
 
@@ -93,19 +95,19 @@ export default async function CatalogoMayoristaPage({
         <div className="max-w-5xl mx-auto grid lg:grid-cols-5 gap-10 items-center">
           <div className="lg:col-span-3">
             <p className="text-xs tracking-[0.2em] uppercase text-[#c8a55c] mb-4">
-              Atelier Óptica · Córdoba
+              Cápsula Escarlata
             </p>
             <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4">
-              Canal Mayorista <span className="italic text-[#c8a55c]">para Ópticas</span>
+              Diseño de autor <span className="italic text-[#c8a55c]">para tu óptica</span>
             </h1>
             <p className="text-[#d8d3cb] max-w-xl mb-8">
-              Armazones de diseño en acetato italiano Mazzucchelli, metal y titanio.
+              Armazones de diseño en acetato italiano, metal y titanio.
               Precios netos por unidad, pensados para revender.
             </p>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <StatPill label={`Mínimo ${WHOLESALE_MIN_PIECES} piezas`} sub="por pedido, mezclás modelos" />
               <StatPill label="Precios netos" sub="pensados para revender" />
-              <StatPill label="Stock real" sub="en Córdoba, entrega ya" />
+              <StatPill label="Stock disponible" sub="entrega inmediata" />
               <StatPill label={`${products.length || '—'} modelos`} sub="disponibles hoy" />
               <StatPill
                 label="Ficha completa"
@@ -114,11 +116,11 @@ export default async function CatalogoMayoristaPage({
               />
             </div>
           </div>
-          {/* Misma imagen editorial del hero de atelieroptica.com.ar — la marca que ya conocen */}
+          {/* Pieza editorial de la colección — abre con impacto de marca. */}
           <div className="hidden lg:block lg:col-span-2 relative aspect-[4/5] rounded-2xl overflow-hidden">
             <Image
               src="/images/editorial/filmmaker-frida.webp"
-              alt="La Frida — carey oversized, edición de autor Atelier Óptica"
+              alt="Armazón de diseño de autor — carey oversized, colección Cápsula Escarlata"
               fill
               sizes="(min-width: 1024px) 30vw, 0px"
               className="object-cover"

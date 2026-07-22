@@ -5,8 +5,9 @@ import IngresoMayoristaClient from './IngresoMayoristaClient';
 // CRM interno: otra URL, otro branding (negro/dorado del canal), otro texto.
 // Las ópticas nunca deberían ver nada que diga "Sistema de Gestión y CRM".
 export const metadata: Metadata = {
-  title: 'Ingreso Mayorista | Atelier Óptica',
-  description: 'Acceso al portal mayorista de Atelier Óptica para ópticas y distribuidores.',
+  // absolute: sin esto el layout root agrega "| Atelier Óptica" al tab.
+  title: { absolute: 'Ingreso Mayorista · Cápsula Escarlata' },
+  description: 'Acceso al portal mayorista Cápsula Escarlata para ópticas y distribuidores.',
   robots: { index: false, follow: false },
 };
 
