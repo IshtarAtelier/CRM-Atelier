@@ -412,17 +412,27 @@ export async function POST(req: Request) {
     if (idempotencyKey) {
       const existing = await prisma.order.findUnique({
         where: { idempotencyKey },
-        select: { id: true, status: true },
+        select: { id: true, status: true, isDeleted: true },
       });
       if (existing) {
         if (['WEB_PAID', 'PAID'].includes(existing.status)) {
           // Ya se procesó y cobró: responder éxito sin volver a cobrar.
           return NextResponse.json({ success: true, orderId: existing.id, message: 'Pago ya procesado', idempotent: true });
         }
-        // Orden en curso con la misma clave: no duplicar el cobro.
-        return NextResponse.json({
-          error: 'Tu pedido ya se está procesando. No volvimos a cobrarte.',
-        }, { status: 409 });
+        if (existing.status === 'CANCELED' || existing.isDeleted) {
+          // Intento anterior terminó rechazado/cancelado: liberar la key para que
+          // este reintento (p. ej. con otra tarjeta) pueda crear una orden nueva.
+          // Sin esto, la orden CANCELED retiene la key y el cliente queda 409 para siempre.
+          await prisma.order.update({
+            where: { id: existing.id },
+            data: { idempotencyKey: null },
+          });
+        } else {
+          // Orden en curso con la misma clave: no duplicar el cobro.
+          return NextResponse.json({
+            error: 'Tu pedido ya se está procesando. No volvimos a cobrarte.',
+          }, { status: 409 });
+        }
       }
     }
 

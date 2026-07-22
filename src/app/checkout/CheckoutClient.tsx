@@ -342,8 +342,10 @@ export function CheckoutClient({
               body: JSON.stringify({ sessionId, status: 'COMPLETED' })
             }).catch(console.error);
             localStorage.removeItem("atelier-checkout-session-id");
-            clearIdempotencyKey();
           }
+          // Siempre, tenga o no session de recuperación: una key ya consumida que
+          // sobrevive haría que la PRÓXIMA compra responda "idempotent" sin cobrar.
+          clearIdempotencyKey();
           try {
             trackPurchase(sessionId || crypto.randomUUID(), getCartTotal(isWholesale), items);
           } catch (e) {
@@ -352,6 +354,9 @@ export function CheckoutClient({
           clearCart();
           setIsSuccess(true);
         } else {
+          // Respuesta terminal del server: rotar la key para que el próximo intento
+          // sea un intento nuevo. El 409 (pedido aún procesándose) conserva la key.
+          if (res.status !== 409) clearIdempotencyKey();
           toast.error(formData.paymentMethod.includes('MAYORISTA') ? "Error generando pedido mayorista." : "Error generando orden de transferencia.");
         }
         return;
@@ -463,8 +468,10 @@ export function CheckoutClient({
                   body: JSON.stringify({ sessionId, status: 'COMPLETED' })
                 }).catch(console.error);
                 localStorage.removeItem("atelier-checkout-session-id");
-            clearIdempotencyKey();
               }
+              // Siempre, tenga o no session de recuperación: una key ya consumida que
+              // sobrevive haría que la PRÓXIMA compra responda "idempotent" sin cobrar.
+              clearIdempotencyKey();
               try {
                 trackPurchase(data.orderId || sessionId || crypto.randomUUID(), getCartTotal(isWholesale), items);
               } catch (e) {
@@ -473,10 +480,17 @@ export function CheckoutClient({
               clearCart();
               setIsSuccess(true);
             } else {
+              // Rechazo terminal: rotar la key para que el reintento (otra tarjeta)
+              // no choque contra la orden CANCELED que retiene la key vieja.
+              clearIdempotencyKey();
               toast.error(data.error || "El pago fue rechazado por la tarjeta.");
             }
           } else {
             const errorData = await res.json();
+            // 409 = pedido aún en curso: conservar la key. Cualquier otro error
+            // terminal (pago rechazado, validación) rota la key para desbloquear
+            // el próximo intento.
+            if (res.status !== 409) clearIdempotencyKey();
             toast.error(errorData.error || "Error procesando el pago. Revisá los fondos e intentá de nuevo.");
           }
         } catch (callbackError: any) {
