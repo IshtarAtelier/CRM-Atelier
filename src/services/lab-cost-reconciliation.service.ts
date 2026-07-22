@@ -28,6 +28,10 @@ export interface LabCostInput {
 // Tolerancia en pesos para diferencias de redondeo entre lista y factura.
 const TOLERANCE = 100;
 
+// Optovision factura unos días antes de terminar el pedido: recién a los N días
+// hábiles de la factura se lo da por terminado (5 = margen "por si acaso").
+const OPTOVISION_DIAS_FACTURA_A_LISTO = 5;
+
 // Qué ítems de la orden pertenecen a cada laboratorio (el resto de la orden
 // —armazón, accesorios— no lo factura el lab y no debe entrar en el cruce).
 const LAB_ITEM_PATTERNS: Record<string, RegExp> = {
@@ -379,11 +383,11 @@ export class LabCostReconciliationService {
 
         // FACTURA = PEDIDO MÁS CERCA (regla del negocio, corregida por el
         // administrador): cuando Optovision factura, al pedido todavía le faltan
-        // ~3 días hábiles para estar terminado — NO está listo. Acá solo se
+        // ~5 días hábiles para estar terminado — NO está listo. Acá solo se
         // adelanta el estado a "Procesado" (IN_PROGRESS) si venía más atrás; la
         // promoción a FINISHED (con su notificación LAB_READY y el circuito de
         // retiro) la hace promoteFinishedOptovision() recién cuando pasaron los
-        // 3 días hábiles desde la factura. Guardas: solo cuando la factura RECIÉN
+        // 5 días hábiles desde la factura. Guardas: solo cuando la factura RECIÉN
         // llega (persistente vía el importe guardado), sin reprocesos, sin backfill.
         if (input.lab === 'OPTOVISION' && order && !pvEntry && facturaRecienLlegada && !quiet) {
             const previa = order.labStatus || 'NONE';
@@ -398,9 +402,10 @@ export class LabCostReconciliationService {
 
     /**
      * Promoción a FINISHED de los pedidos de Optovision facturados: la factura
-     * llega ~3 días hábiles ANTES de que el pedido esté terminado, así que un
+     * llega unos días hábiles ANTES de que el pedido esté terminado, así que un
      * pedido se marca finalizado recién cuando (a) TODAS las operaciones de su
-     * venta tienen factura y (b) la última factura ya tiene 3+ días hábiles.
+     * venta tienen factura y (b) la última factura ya tiene 5+ días hábiles
+     * (margen pedido por el administrador, "por si acaso").
      * Corre en cada pase (10 min y diario). Garantías anti-retroactivo: solo mira
      * entradas creadas DESPUÉS del backfill inicial de Optovision (las históricas
      * jamás promueven, aunque su labStatus haya quedado desactualizado) y nunca
@@ -470,10 +475,10 @@ export class LabCostReconciliationService {
             const facturadas = todas.filter(t => t.billedTotal !== null || t.billedNet !== null);
             if (facturadas.length < nums.length) continue;
 
-            // 3+ días hábiles desde la ÚLTIMA factura de la venta (fecha del email
+            // 5+ días hábiles desde la ÚLTIMA factura de la venta (fecha del email
             // de la factura; si no la hay, cuándo la registramos).
             const ultima = Math.max(...facturadas.map(t => (t.invoiceDate ?? t.createdAt).getTime()));
-            if (habilesDesde(new Date(ultima)) < 3) continue;
+            if (habilesDesde(new Date(ultima)) < OPTOVISION_DIAS_FACTURA_A_LISTO) continue;
 
             await prisma.order.update({ where: { id: orderId }, data: { labStatus: 'FINISHED' } })
                 .then(() => prisma.notification.create({
@@ -481,7 +486,7 @@ export class LabCostReconciliationService {
                         type: 'LAB_READY',
                         // El texto arranca igual que el de SmartLab: el cron de
                         // retiro lo reescribe con replace de ese prefijo exacto.
-                        message: `🏭 Pedido finalizado en laboratorio (facturado por Optovision hace 3+ días hábiles) — ${order.client?.name ?? 'cliente'} (${nums.join(', ')})`,
+                        message: `🏭 Pedido finalizado en laboratorio (facturado por Optovision hace 5+ días hábiles) — ${order.client?.name ?? 'cliente'} (${nums.join(', ')})`,
                         orderId,
                         requestedBy: 'Conciliación Optovision',
                         status: 'PENDING',
@@ -490,7 +495,7 @@ export class LabCostReconciliationService {
                 .then(() => { promoted++; })
                 .catch(err => console.error('[LabCost] Error promoviendo pedido Optovision a finalizado:', err));
         }
-        if (promoted > 0) console.log(`[LabCost] ${promoted} pedido(s) de Optovision promovidos a FINISHED (3+ días hábiles de facturados).`);
+        if (promoted > 0) console.log(`[LabCost] ${promoted} pedido(s) de Optovision promovidos a FINISHED (5+ días hábiles de facturados).`);
         return { promoted };
     }
 
@@ -1216,7 +1221,7 @@ export class LabCostReconciliationService {
                         <tr><td style="padding:8px; border:1px solid #ddd;">Costo de lista del sistema</td><td style="padding:8px; border:1px solid #ddd; text-align:right;">${fmt(ctx.systemCost)}</td></tr>` : ''}
                     </table>
                     <p style="font-weight:bold; color:${color};">${veredicto}${pv}</p>
-                    <p style="font-size:13px; color:#374151;">📦 La factura llega unos <strong>3 días hábiles antes</strong> de que el pedido esté terminado: todavía no está listo, pero está en camino.</p>
+                    <p style="font-size:13px; color:#374151;">📦 La factura llega unos <strong>5 días hábiles antes</strong> de que el pedido esté terminado: todavía no está listo, pero está en camino.</p>
                     ${entry.sourceFile ? `<p style="font-size:12px; color:#6b7280;">Factura: ${entry.sourceFile}</p>` : ''}
                     <p style="margin-top:14px;"><a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente</a> · <a href="${appUrl}/admin/laboratorio/costos">Ver conciliación</a></p>
                 </div>

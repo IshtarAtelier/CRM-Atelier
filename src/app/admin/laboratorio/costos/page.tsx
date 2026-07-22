@@ -36,7 +36,7 @@ interface LabCostEntry {
 }
 
 // Estado del pedido en el laboratorio, visto desde la conciliación. Para
-// Optovision, la factura llega ~3 días hábiles ANTES de que el pedido esté
+// Optovision, la factura llega ~5 días hábiles ANTES de que el pedido esté
 // terminado: "facturado" = en camino, con fecha estimada de listo.
 const ORDER_LAB_LABELS: Record<string, { label: string; cls: string }> = {
     NONE: { label: 'Sin enviar', cls: 'bg-gray-100 text-gray-500' },
@@ -683,14 +683,14 @@ export default function LabCostosPage() {
                                 const meta = STATUS_META[entry.status] || { label: entry.status, badge: 'bg-gray-100 text-gray-600' };
                                 const billed = entry.billedNet ?? entry.billedTotal;
                                 // Optovision facturado pero todavía no terminado: la
-                                // factura llega ~3 días hábiles antes → mostrar la
+                                // factura llega ~5 días hábiles antes → mostrar la
                                 // fecha estimada de "listo".
                                 const labSt = entry.order?.labStatus || 'NONE';
                                 const orderMeta = ORDER_LAB_LABELS[labSt] || ORDER_LAB_LABELS.NONE;
                                 const enCamino = entry.lab === 'OPTOVISION' && entry.order && billed != null
                                     && !['FINISHED', 'READY', 'DELIVERED'].includes(labSt);
                                 const estimadoListo = enCamino
-                                    ? addBusinessDays(new Date(entry.invoiceDate || entry.createdAt), 3)
+                                    ? addBusinessDays(new Date(entry.invoiceDate || entry.createdAt), 5)
                                     : null;
                                 return (
                                     <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
@@ -749,7 +749,7 @@ export default function LabCostosPage() {
                                                 <div className="flex flex-col gap-1 items-start">
                                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${orderMeta.cls}`}>{orderMeta.label}</span>
                                                     {enCamino && estimadoListo && (
-                                                        <span className="text-[10px] text-blue-600 font-medium" title="La factura de Optovision llega ~3 días hábiles antes de que el pedido esté terminado">
+                                                        <span className="text-[10px] text-blue-600 font-medium" title="La factura de Optovision llega ~5 días hábiles antes de que el pedido esté terminado">
                                                             🚚 en camino · listo ~{estimadoListo.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
                                                         </span>
                                                     )}
