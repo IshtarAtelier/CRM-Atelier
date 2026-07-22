@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function ObrasSocialesPage() {
   return (
     <div className="bg-[#faf8f5] text-black min-h-screen flex flex-col">
-      <StorefrontNavbar theme="dark" />
+      <StorefrontNavbar theme="light" />
       
       <main className="flex-grow pt-32 pb-16">
         <section className="px-6 mb-16">
