@@ -69,7 +69,7 @@ const getTypeConfig = (type: string | null, category?: string | null) => {
 const formatDiopter = (v: number) => `${v > 0 ? '+' : ''}${Number.isInteger(v) ? v : v.toFixed(2)}`;
 const formatLensRange = (p: Product): string | null => {
     if (p.sphereMin == null || p.sphereMax == null) return null;
-    let range = `${formatDiopter(p.sphereMax)} a ${formatDiopter(p.sphereMin)}`;
+    let range = `Esf ${formatDiopter(p.sphereMax)} a ${formatDiopter(p.sphereMin)}`;
     if (p.cylinderMin != null && p.cylinderMax != null) {
         range += Math.abs(p.cylinderMin) === Math.abs(p.cylinderMax)
             ? ` · Cil ±${Math.abs(p.cylinderMax)}`
