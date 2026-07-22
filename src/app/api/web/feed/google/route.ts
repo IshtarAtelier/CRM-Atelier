@@ -21,6 +21,23 @@ const esc = (s: string) =>
 
 const priceStr = (n: number) => `${n.toFixed(2)} ARS`;
 
+/**
+ * URL de imagen ABSOLUTA apta para Merchant Center, o '' si el producto no
+ * tiene ninguna. Reglas de Google: nada de data URIs, nada de rutas relativas
+ * y nada de AVIF (WebP sí) — por eso los .avif de public/ tienen su copia
+ * .webp generada por scripts/ads/convert_feed_images.js.
+ */
+function feedImage(images: string[] | undefined): string {
+  for (const raw of images || []) {
+    let resolved = resolveStorageUrl(raw);
+    if (!resolved || resolved.startsWith('data:')) continue;
+    resolved = resolved.replace(/\.avif$/i, '.webp');
+    if (resolved.startsWith('http')) return resolved;
+    if (resolved.startsWith('/')) return `${APP_URL}${resolved}`;
+  }
+  return '';
+}
+
 export async function GET() {
   let items = '';
   try {
@@ -30,7 +47,7 @@ export async function GET() {
       // Solo armazones/sol con precio e imagen (los cristales no van a Shopping).
       if (p.category === 'Cristal') continue;
       if (!p.price || p.price <= 0) continue;
-      const img = p.imagenesCatalogo?.[0] ? resolveStorageUrl(p.imagenesCatalogo[0]) : '';
+      const img = feedImage(p.imagenesCatalogo);
       if (!img) continue;
 
       const title = `${p.brand} ${p.model}`.trim();
