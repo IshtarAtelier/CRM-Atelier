@@ -9,6 +9,7 @@ import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
+import { CristalesShowcase } from "@/components/Storefront/CristalesShowcase";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 const CATEGORIES = ["Todo", "Receta", "Sol", "Clip-On", "Contacto", "Cristales"];
@@ -420,7 +421,11 @@ export function TiendaClient({
               transition={{ duration: 0.3 }}
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >
-              {displayedProducts.length === 0 ? (
+              {activeCategory === "Cristales" ? (
+                /* Los cristales no son productos de vitrina: mostramos las mismas
+                   opciones del configurador de /arma-tus-lentes con precios en vivo */
+                <CristalesShowcase />
+              ) : displayedProducts.length === 0 ? (
                 isRecoveringProducts ? (
                   /* Show skeleton cards while recovering products — never show empty */
                   <>{Array.from({ length: 8 }).map((_, i) => (
@@ -457,15 +462,6 @@ export function TiendaClient({
                   >
                     {/* Imagen */}
                     <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
-                      {/* Badges en la esquina superior derecha */}
-                      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 items-end">
-                        {p.stock !== undefined && p.stock > 0 && p.stock <= 3 && (
-                          <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
-                            Últimas {p.stock} u.
-                          </span>
-                        )}
-                      </div>
-
                       {/* Contenedor de imágenes con efecto zoom */}
                       <div className="absolute inset-0 transition-transform duration-700 ease-out md:group-hover:scale-110">
                         {imgUrl ? (
