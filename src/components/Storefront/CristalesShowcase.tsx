@@ -71,51 +71,51 @@ export function CristalesShowcase() {
 
   return (
     <div className="col-span-full">
-      <div className="mb-10 text-center max-w-xl mx-auto">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-400 mb-3">Cristales a medida</p>
-        <p className="text-2xl font-serif text-stone-900 mb-2">Elegí tu tratamiento ideal</p>
+      <div className="mb-12 text-center max-w-xl mx-auto">
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#c8a55c] mb-3">Cristales a medida</p>
+        <p className="text-3xl font-serif text-stone-900 mb-2">Elegí tu tratamiento ideal</p>
         <p className="text-sm text-stone-500">
           Todos nuestros cristales se calibran con tu receta. Elegí una opción y armá tus lentes completos con el armazón que quieras.
         </p>
       </div>
 
-      <div className="space-y-14">
+      <div className="space-y-16">
         {GRUPOS.map(grupo => (
           <section key={grupo.tipo}>
-            <div className="mb-5">
-              <h3 className="text-lg font-serif text-stone-900">{grupo.tipo}</h3>
-              <p className="text-xs text-stone-500 italic">{grupo.desc}</p>
+            <div className="mb-6">
+              <h3 className="text-xl font-serif text-stone-900">{grupo.tipo}</h3>
+              <p className="text-xs text-stone-500 italic mt-0.5">{grupo.desc}</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
               {grupo.opciones.map(op => (
                 <Link
                   key={op.titulo}
                   href="/arma-tus-lentes"
-                  className="group relative border border-stone-200 rounded-2xl p-6 bg-white hover:border-black hover:shadow-lg transition-all duration-300 flex flex-col"
+                  className="group relative border border-stone-200 rounded-[28px] p-7 bg-white hover:border-[#c8a55c] hover:shadow-xl hover:shadow-[#c8a55c]/10 transition-all duration-300 flex flex-col"
                 >
                   {op.badge && (
-                    <span className="absolute -top-2.5 right-4 bg-black text-white text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
+                    <span className="absolute -top-3 right-6 bg-[#c8a55c] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
                       {op.badge}
                     </span>
                   )}
-                  <p className="text-sm font-bold text-stone-900 mb-3">{op.titulo}</p>
-                  <ul className="space-y-1.5 mb-5 flex-1">
+                  <p className="font-serif text-lg text-stone-900 mb-3">{op.titulo}</p>
+                  <ul className="space-y-1.5 mb-6 flex-1">
                     {op.features.map(f => (
                       <li key={f} className="text-xs text-stone-500 flex items-start gap-2">
                         <span className="text-emerald-600 mt-px">✓</span>{f}
                       </li>
                     ))}
                   </ul>
-                  <div className="flex items-end justify-between gap-3">
+                  <div className="flex items-end justify-between gap-3 pt-5 border-t border-stone-100">
                     <div>
                       <p className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Desde</p>
                       {pricing ? (
-                        <p className="text-lg font-serif text-stone-900">${op.precio(pricing).toLocaleString("es-AR")}</p>
+                        <p className="text-xl font-serif text-stone-900">${op.precio(pricing).toLocaleString("es-AR")}</p>
                       ) : (
                         <div className="h-6 w-20 bg-stone-100 rounded animate-pulse mt-1" />
                       )}
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover:text-black transition-colors whitespace-nowrap">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 group-hover:text-[#c8a55c] transition-colors whitespace-nowrap">
                       Armar mis lentes →
                     </span>
                   </div>
@@ -126,10 +126,10 @@ export function CristalesShowcase() {
         ))}
       </div>
 
-      <div className="mt-14 text-center">
+      <div className="mt-16 text-center">
         <Link
           href="/arma-tus-lentes"
-          className="inline-block bg-black text-white px-10 py-4 text-[11px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors rounded-full"
+          className="inline-block bg-stone-900 text-white px-10 py-4 text-[11px] font-black uppercase tracking-widest hover:bg-[#c8a55c] shadow-lg shadow-stone-900/10 hover:shadow-xl hover:shadow-[#c8a55c]/25 transition-all duration-300 rounded-full"
         >
           Armá tus lentes completos
         </Link>
