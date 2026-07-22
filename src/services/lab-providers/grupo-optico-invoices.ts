@@ -37,6 +37,16 @@ export interface ParsedInvoice {
 
 const API_BASE = 'https://grupooptico.dyndns.info/smartlab-api-v2/public/index.php';
 
+/**
+ * Descuento de cuenta vigente con Grupo Óptico (0.80 = 20% off), confirmado por
+ * el administrador el 22/7/2026. SOLO se usa como respaldo para los remitos X,
+ * que llegan sin el recuadro "<FA> Importe" (todavía no facturados) pero al
+ * facturarse llevan el mismo descuento. Cuando el comprobante SÍ trae su
+ * importe final, manda ese — el factor se calcula del propio PDF y este valor
+ * no interviene. Si el acuerdo comercial cambia, actualizar acá.
+ */
+const DESCUENTO_CUENTA_DEFAULT = 0.80;
+
 /** Normaliza "00004-00339862" → "0004-00339862" (la API usa 4 dígitos de pto. de venta). */
 export function normalizeInvoiceNumber(n: string): string {
     const [pv, num] = n.split('-');
@@ -148,17 +158,26 @@ export function parseInvoicePdf(pdfBuffer: Buffer): Promise<ParsedInvoice[]> {
                     // sobre cada pedido — así el factor sale del propio comprobante y no
                     // hay que hardcodear el 20% (puede variar por acuerdo comercial).
                     const sumaLineas = [...inv.attributed.values()].reduce((a, b) => a + b, 0) + inv.unattributed;
-                    if (inv.faImporte !== null && sumaLineas > 0) {
-                        const f = inv.faImporte / sumaLineas;
+                    let f: number | null = null;
+                    if (inv.faImporte !== null && inv.faImporte > 0 && sumaLineas > 0) {
+                        const cand = inv.faImporte / sumaLineas;
                         // Guarda: solo descuentos plausibles (hasta 70% off). Si el <FA>
                         // agrupa varios comprobantes el factor daría >1 → se ignora.
-                        if (f >= 0.3 && f <= 1.001) {
-                            inv.descuento = Math.round(f * 10000) / 10000;
-                            for (const [ped, monto] of inv.attributed) {
-                                inv.attributed.set(ped, Math.round(monto * f * 100) / 100);
-                            }
-                            inv.unattributed = Math.round(inv.unattributed * f * 100) / 100;
+                        if (cand >= 0.3 && cand <= 1.001) f = cand;
+                    } else if (sumaLineas > 0) {
+                        // REMITOS X (mercadería de stock a cuenta corriente): llegan con
+                        // "<FA> Importe: $0" porque todavía no están facturados, pero al
+                        // facturarse llevan el mismo descuento de cuenta (confirmado por
+                        // el administrador el 22/7). Sin el <FA> no hay factor propio →
+                        // se usa el vigente de la cuenta.
+                        f = DESCUENTO_CUENTA_DEFAULT;
+                    }
+                    if (f !== null) {
+                        inv.descuento = Math.round(f * 10000) / 10000;
+                        for (const [ped, monto] of inv.attributed) {
+                            inv.attributed.set(ped, Math.round(monto * f * 100) / 100);
                         }
+                        inv.unattributed = Math.round(inv.unattributed * f * 100) / 100;
                     }
                     if (inv.invoiceNumber) out.push(inv);
                 }
