@@ -46,7 +46,7 @@ const GRUPOS: {
     desc: "Para ver a todas las distancias sin cambiar de anteojos.",
     opciones: [
       { titulo: "Diseño Digital ONE", features: ["Campo visual amplio", "Transición natural"], precio: p => p.MULTIFOCAL.SMART_FREE },
-      { titulo: "Varilux Premium", badge: "PREMIUM 👑", features: ["La experiencia visual definitiva", "Sin esfuerzo"], precio: p => p.MULTIFOCAL.VARILUX },
+      { titulo: "Varilux Premium", badge: "PREMIUM 👑", features: ["La experiencia visual definitiva", "2x1 en cristales y armazones"], precio: p => p.MULTIFOCAL.VARILUX },
       { titulo: "Multi Fotocromático", features: ["Tecnología digital", "Se oscurece al sol"], precio: p => p.MULTIFOCAL.FOTOCROMATICO },
     ],
   },

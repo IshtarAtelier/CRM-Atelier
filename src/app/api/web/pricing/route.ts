@@ -35,6 +35,14 @@ export async function GET() {
                 matches = matches.filter(p => p.type === config.type);
             }
 
+            // Exclusiones (ej. "Mi Primer Varilux": tiene restricciones de
+            // adición y no puede ser el precio "desde" que muestra la web)
+            if (config.excludeKeywords && config.excludeKeywords.length > 0) {
+                matches = matches.filter(p =>
+                    !config.excludeKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
+                );
+            }
+
             // Exact Name Match
             if (config.exactMatchName) {
                 const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());

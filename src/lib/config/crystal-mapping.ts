@@ -57,8 +57,11 @@ export const CrystalMapping = {
     },
     VARILUX: {
       type: "Cristal Multifocal",
-      matchKeywords: ["varilux", "physio", "comfort max", "stylis"], 
-      exactMatchName: "SMART FREE - Stylis Blanco 2x1"
+      // Solo familias Varilux reales: "stylis" solo arrastraba Kodak/Smart Free
+      // a los candidatos. "Mi Primer Varilux" queda excluido: tiene
+      // restricciones de adición y no puede ser el precio "desde" de la web.
+      matchKeywords: ["varilux", "physio", "comfort max"],
+      excludeKeywords: ["mi primer"],
     },
     FOTOCROMATICO: {
       type: "Cristal Multifocal",

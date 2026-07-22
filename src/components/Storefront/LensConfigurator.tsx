@@ -354,7 +354,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                       {lensType === "MULTIFOCAL" && (
                         <>
                           <OptionCard selected={treatment === "SMART_FREE"} onClick={() => { setTreatment("SMART_FREE"); setStep(4); }} title="Diseño Digital ONE" desc="Campo visual amplio y transición natural." price={`+$${(PRICING.MULTIFOCAL.SMART_FREE || 0).toLocaleString('es-AR')}`} />
-                          <OptionCard selected={treatment === "VARILUX"} onClick={() => { setTreatment("VARILUX"); setStep(4); }} title="Varilux Premium" desc="La experiencia visual definitiva sin esfuerzo." price={`+$${(PRICING.MULTIFOCAL.VARILUX || 0).toLocaleString('es-AR')}`} />
+                          <OptionCard selected={treatment === "VARILUX"} onClick={() => { setTreatment("VARILUX"); setStep(4); }} title="Varilux Premium" desc="La experiencia visual definitiva. Incluye 2x1 en cristales y armazones." price={`+$${(PRICING.MULTIFOCAL.VARILUX || 0).toLocaleString('es-AR')}`} />
                           <OptionCard selected={treatment === "FOTOCROMATICO"} onClick={() => { setTreatment("FOTOCROMATICO"); setStep(4); }} title="Multi Fotocromático" desc="Tecnología digital que se oscurece al sol." price={`+$${(PRICING.MULTIFOCAL.FOTOCROMATICO || 0).toLocaleString('es-AR')}`} />
                         </>
                       )}
