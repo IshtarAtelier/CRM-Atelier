@@ -46,7 +46,14 @@ export class GrupoOpticoProvider {
         const { chromium } = await import('playwright');
         const browser = await chromium.launch({
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+            args: [
+                '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu',
+                // El servidor del lab (dyndns casero) negocia mal HTTP/2 desde el
+                // contenedor: tira ERR_HTTP2_PROTOCOL_ERROR corrida tras corrida,
+                // mientras que desde Argentina responde bien. Forzar HTTP/1.1
+                // evita el problema sin tocar nada más.
+                '--disable-http2',
+            ],
         });
 
         const summary: Record<string, any> = { pages: 0, seen: 0, anulados: 0, preCrm: 0, registered: 0, unmatched: 0, overcost: 0, withCost: 0 };
