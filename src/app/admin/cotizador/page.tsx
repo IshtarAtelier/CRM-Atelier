@@ -48,6 +48,7 @@ import {
 import type { Product } from '@/types/orders';
 import { normalizeLensOrigin, lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
+import { formatLensRange } from '@/lib/lens-range';
 import Image from "next/image";
 
 const getTypeConfig = (type: string | null, category?: string | null) => {
@@ -63,22 +64,6 @@ const getTypeConfig = (type: string | null, category?: string | null) => {
         case 'Joyería': return { icon: Gem, label: 'Joyería', color: 'bg-rose-50 text-rose-600 border-rose-200' };
         default: return { icon: Box, label: 'Otros', color: 'bg-stone-50 text-stone-400 border-stone-200' };
     }
-};
-
-// Rango de fabricación de un cristal (esférico / cilindro), p. ej. "+6 a -10 · Cil ±6"
-const formatDiopter = (v: number) => `${v > 0 ? '+' : ''}${Number.isInteger(v) ? v : v.toFixed(2)}`;
-const formatLensRange = (p: Product): string | null => {
-    if (p.sphereMin == null || p.sphereMax == null) return null;
-    let range = `Esf ${formatDiopter(p.sphereMax)} a ${formatDiopter(p.sphereMin)}`;
-    if (p.cylinderMin != null && p.cylinderMax != null) {
-        range += Math.abs(p.cylinderMin) === Math.abs(p.cylinderMax)
-            ? ` · Cil ±${Math.abs(p.cylinderMax)}`
-            : ` · Cil ${formatDiopter(p.cylinderMin)} a ${formatDiopter(p.cylinderMax)}`;
-    }
-    if (p.additionMin != null && p.additionMax != null) {
-        range += ` · Ad ${formatDiopter(p.additionMin)}–${formatDiopter(p.additionMax)}`;
-    }
-    return range;
 };
 
 const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"];
