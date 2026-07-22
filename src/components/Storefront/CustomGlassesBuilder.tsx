@@ -100,7 +100,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           treatment: "VARILUX",
           secondPair2x1: true,
           color: null,
-          prescriptionFile: "Misma receta del primer par (coordinar por WhatsApp si difiere)"
+          prescriptionFile: "Misma receta del primer par (la promo 2x1 es siempre con la misma receta)"
         },
         quantity: 1
       });
