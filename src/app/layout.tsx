@@ -92,7 +92,12 @@ export default function RootLayout({
           </div>
           <Toaster position="top-right" richColors />
           <FloatingWhatsApp />
-          <TrackingScripts />
+          {/* IDs resueltos en el servidor: ver la nota en TrackingScripts sobre
+              por qué no se leen con process.env del lado del cliente. */}
+          <TrackingScripts
+            gaId={process.env.NEXT_PUBLIC_GA_ID}
+            pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID}
+          />
           <AnalyticsTracker />
           <CookieConsent />
           <ChunkReloadGuard />

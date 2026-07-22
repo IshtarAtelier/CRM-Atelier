@@ -3,9 +3,25 @@
 import Script from "next/script";
 import { useConsent } from "@/components/Storefront/CookieConsent";
 
-export function TrackingScripts() {
-  const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID;
-  const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+interface TrackingScriptsProps {
+  /** Medición de GA4 (G-XXXXXXXXXX). Lo resuelve el layout en el servidor. */
+  gaId?: string;
+  /** Píxel de Meta. Idem. */
+  pixelId?: string;
+}
+
+/**
+ * Los IDs llegan por props desde el layout (servidor) en vez de leerse acá con
+ * process.env. Motivo: `NEXT_PUBLIC_*` se incrusta al COMPILAR, y el caché de
+ * build de Next no se invalida cuando solo cambia una variable de entorno —
+ * el 22/7/2026 se cargó NEXT_PUBLIC_GA_ID en Railway, se redeployó dos veces
+ * (una forzada desde el fuente) y el bundle siguió saliendo con el valor viejo
+ * porque ningún archivo había cambiado. Leyéndolo en el servidor, alcanza con
+ * reiniciar para que tome un valor nuevo.
+ */
+export function TrackingScripts({ gaId, pixelId }: TrackingScriptsProps) {
+  const GA_MEASUREMENT_ID = gaId || process.env.NEXT_PUBLIC_GA_ID;
+  const META_PIXEL_ID = pixelId || process.env.NEXT_PUBLIC_META_PIXEL_ID;
   const consent = useConsent();
 
   // Las cookies de marketing (Pixel/GA) solo cargan con consentimiento explícito.
