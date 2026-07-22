@@ -127,7 +127,10 @@ export async function GET(req: Request) {
                     .catch((err: any) => { console.error('[CRON SmartLab] Escaneo rápido Optovision falló:', err); return { error: err?.message }; });
                 const collect = await GrupoOpticoProvider.collect({ sinceDays: FAST_INVOICE_WINDOW_DAYS });
                 const recheck = await LabCostReconciliationService.recheckUnmatched();
-                const alerts = await LabCostReconciliationService.alertNewFindings();
+                // Cada 10 minutos solo salen los pedidos SIN VENTA (lo que hay que
+                // resolver en el momento). Las facturas nuevas y las diferencias
+                // de costo se juntan en el resumen del cron diario.
+                const alerts = await LabCostReconciliationService.alertNewFindings({ modo: 'urgente' });
                 // Pedidos de Optovision facturados hace 3+ días hábiles → FINISHED
                 // (la factura llega unos días antes de que el pedido esté listo).
                 const promoted = await LabCostReconciliationService.promoteFinishedOptovision()
