@@ -21,6 +21,34 @@ export const metadata: Metadata = {
   description:
     'Catálogo mayorista Cápsula Escarlata: armazones de diseño de autor con precios netos por unidad para ópticas.',
   robots: { index: false, follow: false }, // no es contenido para buscar: son precios netos B2B
+  // openGraph/twitter/icons propios: sin esto se heredan los del layout root
+  // (og:siteName "Atelier Óptica", og:image y favicon de Atelier) y el preview
+  // del link en WhatsApp — el único canal por el que se manda — delata la marca.
+  openGraph: {
+    type: 'website',
+    locale: 'es_AR',
+    siteName: 'Cápsula Escarlata',
+    title: 'Cápsula Escarlata · Catálogo Mayorista',
+    description: 'Armazones de diseño de autor con precios netos por unidad para ópticas.',
+    images: [
+      {
+        url: '/images/editorial/filmmaker-frida.webp',
+        width: 1200,
+        height: 630,
+        alt: 'Cápsula Escarlata',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Cápsula Escarlata · Catálogo Mayorista',
+    description: 'Armazones de diseño de autor con precios netos por unidad para ópticas.',
+    images: ['/images/editorial/filmmaker-frida.webp'],
+  },
+  // Ícono neutro (monograma CE inline): pisa el logo PWA de Atelier del root.
+  icons: {
+    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Ctext x='16' y='22' font-family='Georgia,serif' font-size='14' fill='%23c8a55c' text-anchor='middle'%3ECE%3C/text%3E%3C/svg%3E",
+  },
 };
 
 type WholesaleProduct = {
