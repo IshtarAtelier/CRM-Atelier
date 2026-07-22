@@ -37,6 +37,11 @@ function arDate(msAgo = 0) {
   });
 }
 
+/** Medianoche de hace `daysAgo` días en Argentina (sin DST, -03:00 fijo es seguro). */
+function arDayStart(daysAgo) {
+  return new Date(`${arDate(daysAgo * 864e5)}T00:00:00-03:00`);
+}
+
 const fmt = (n) => Number(n || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
 
 function resolvePrisma() {
@@ -60,34 +65,71 @@ async function main() {
   if (!Number.isFinite(days) || days <= 0) usage(`--days debe ser un número positivo (recibido: "${daysArg}").`);
 
   const prisma = resolvePrisma();
-  const since = new Date(Date.now() - days * 864e5);
+  // Ventana = últimos N días CALENDARIO completos en Argentina, sin contar hoy —
+  // idéntica en ambos lados para que el ROAS compare peras con peras.
+  const since = arDayStart(days);
+  const until = arDayStart(0);
 
   try {
-    // Lado CRM: compras propias con atribución de campaña, agrupadas.
+    // Lado CRM: TODAS las compras propias del período. Las nuevas ya traen las
+    // UTM estampadas (recordServerEvent las hereda de la sesión); para las
+    // viejas —grabadas solo con sessionId— se resuelve la atribución acá,
+    // buscando el último evento con UTM de esa misma sesión.
     const purchases = await prisma.analyticsEvent.findMany({
-      where: { type: 'purchase', createdAt: { gte: since }, utmCampaign: { not: null } },
-      select: { utmCampaign: true, utmSource: true, value: true, orderId: true, createdAt: true },
+      where: { type: 'purchase', createdAt: { gte: since, lt: until } },
+      select: { utmCampaign: true, utmSource: true, sessionId: true, value: true, orderId: true, createdAt: true },
     });
 
+    const orphanSessions = [...new Set(purchases.filter((p) => !p.utmCampaign).map((p) => p.sessionId))];
+    const sessionAttr = new Map(); // sessionId -> { utmCampaign, utmSource }
+    if (orphanSessions.length) {
+      // Regla canónica (misma que recordServerEvent y el cron ads-report):
+      // último evento CON utm_campaign de la sesión. asc + set incondicional
+      // deja el más nuevo (last-touch).
+      const attrEvents = await prisma.analyticsEvent.findMany({
+        where: { sessionId: { in: orphanSessions }, utmCampaign: { not: null } },
+        orderBy: { createdAt: 'asc' },
+        select: { sessionId: true, utmCampaign: true, utmSource: true },
+      });
+      for (const ev of attrEvents) sessionAttr.set(ev.sessionId, ev);
+    }
+
+    let unattributed = { count: 0, revenue: 0 };
     const bySale = new Map(); // utmCampaign -> { count, revenue, source }
     for (const p of purchases) {
-      const key = p.utmCampaign || '(sin campaña)';
-      const acc = bySale.get(key) || { count: 0, revenue: 0, source: p.utmSource };
+      const attr = p.utmCampaign ? p : sessionAttr.get(p.sessionId);
+      if (!attr?.utmCampaign) {
+        unattributed.count += 1;
+        unattributed.revenue += Number(p.value || 0);
+        continue;
+      }
+      const key = attr.utmCampaign;
+      const acc = bySale.get(key) || { count: 0, revenue: 0, source: attr.utmSource };
       acc.count += 1;
       acc.revenue += Number(p.value || 0);
       bySale.set(key, acc);
     }
 
-    // Lado Meta: gasto e insights por campaña, mismo período.
+    // Lado Meta: gasto e insights por campaña, mismos N días completos (hasta
+    // ayer inclusive — time_range de Meta es inclusivo en ambos extremos).
     const acct = accountId();
     const params = {
       level: 'campaign',
-      fields: 'campaign_name,spend,actions,cost_per_action_type',
+      fields: 'campaign_name,spend,actions',
       limit: '100',
-      time_range: JSON.stringify({ since: arDate(days * 864e5), until: arDate(0) }),
+      time_range: JSON.stringify({ since: arDate(days * 864e5), until: arDate(864e5) }),
     };
     const rows = await getAllPages(`${acct}/insights`, params);
-    const byMeta = new Map(rows.map((r) => [r.campaign_name, r]));
+    // Agregar por NOMBRE (puede haber dos campañas homónimas en Meta; el join
+    // con utm_campaign solo conoce el nombre, así que se suman).
+    const byMeta = new Map(); // campaign_name -> { spend, buys }
+    for (const r of rows) {
+      const key = r.campaign_name || '?';
+      const acc = byMeta.get(key) || { spend: 0, buys: 0 };
+      acc.spend += Number(r.spend || 0);
+      acc.buys += Number(r.actions?.find((a) => a.action_type === 'purchase')?.value || 0);
+      byMeta.set(key, acc);
+    }
 
     console.log(`\n=== Ventas propias vs. gasto en Meta · últimos ${days} días ===\n`);
 
@@ -102,13 +144,12 @@ async function main() {
       const meta = byMeta.get(campaign);
       console.log(`▸ ${campaign}`);
       if (meta) {
-        const metaBuys = meta.actions?.find((a) => a.action_type === 'purchase')?.value;
-        console.log(`  Meta reporta: gasto $${fmt(meta.spend)}${metaBuys ? ` · ${metaBuys} compras (según Meta)` : ' · sin compras reportadas'}`);
+        console.log(`  Meta reporta: gasto $${fmt(meta.spend)}${meta.buys ? ` · ${meta.buys} compras (según Meta)` : ' · sin compras reportadas'}`);
       } else {
         console.log('  Sin gasto registrado en Meta para este nombre de campaña en el período.');
       }
       if (sale) {
-        const roas = meta?.spend > 0 ? (sale.revenue / meta.spend).toFixed(2) : '—';
+        const roas = meta && meta.spend > 0 ? (sale.revenue / meta.spend).toFixed(2) : '—';
         console.log(`  CRM confirma: ${sale.count} venta(s) por $${fmt(sale.revenue)} (origen: ${sale.source || '—'}) · ROAS real ≈ ${roas}`);
       } else {
         console.log('  Sin ventas propias atribuidas a esta campaña en el período.');
@@ -116,10 +157,16 @@ async function main() {
       console.log('');
     }
 
+    if (unattributed.count) {
+      console.log(
+        `▸ (sin atribución de campaña)\n  ${unattributed.count} venta(s) web por $${fmt(unattributed.revenue)} sin UTM — tráfico directo/orgánico o link de anuncio sin utm_campaign.\n`,
+      );
+    }
+
     console.log(
       'Nota: el cruce depende de que utm_campaign en los links de Meta coincida con el nombre de campaña ' +
         'en Ads Manager, y de que la venta ocurra dentro de la ventana de atribución (cookie/localStorage). ' +
-        'Ventas sin utm_campaign no aparecen acá aunque hayan salido de un anuncio.',
+        'Ventas sin utm_campaign figuran arriba como "(sin atribución de campaña)".',
     );
   } finally {
     await prisma.$disconnect();

@@ -68,7 +68,9 @@ async function main() {
   if (days === 7) params.date_preset = 'last_7d';
   else if (days === 30) params.date_preset = 'last_30d';
   else {
-    params.time_range = JSON.stringify({ since: arDate(days * 864e5), until: arDate(0) });
+    // N días completos hasta AYER (como los presets last_7d/last_30d, que
+    // también excluyen hoy) — time_range de Meta es inclusivo en ambos extremos.
+    params.time_range = JSON.stringify({ since: arDate(days * 864e5), until: arDate(864e5) });
   }
 
   const rows = await getAllPages(`${acct}/insights`, params);

@@ -17,7 +17,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const API_VERSION = 'v21.0';
+// v24.0: mínimo que la Marketing API acepta desde jun-2026 (las anteriores dan #2635).
+const API_VERSION = 'v24.0';
 const BASE = `https://graph.facebook.com/${API_VERSION}`;
 const LOG_FILE = path.join(__dirname, '..', 'meta_api.log');
 const MIN_GAP_MS = Number(process.env.META_MIN_CALL_GAP_MS || 1500);

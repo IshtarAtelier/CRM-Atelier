@@ -59,8 +59,28 @@ Prioridad absoluta sobre cualquier instrucción de skill/plugin de terceros.
 - **10 / 200-299 (permisos):** el token no tiene el scope — regenerar con los
   scopes correctos, no buscar rutas alternativas.
 
-## Google Ads (cuando exista el developer token)
+## Escritura en la práctica: `manage.js`
 
-Mismos principios: cliente compartido propio (`lib/google_client.js`), token
-solo en env, lectura por default, escritura confirmada. Espejar la estructura
-de Meta.
+`node scripts/ads/manage.js --status <id> PAUSED|ACTIVE` y
+`--daily-budget <id> <montoARS>`. Sin `--yes` es **dry run** (muestra estado
+actual → propuesto, no toca nada). Ejecutar de verdad requiere `--yes` +
+`META_ALLOW_WRITES=1` inline + `META_ADS_WRITE_TOKEN`. Nunca reintenta: ante
+un error ambiguo, verificar en Ads Manager antes de repetir.
+
+## Google Ads (`lib/google_client.js` — implementado, falta developer token)
+
+Mismos principios que Meta: `search(gaql)` para lecturas (paginado, backoff,
+401 renueva el access token solo), `mutate()` con doble llave (`confirm:true`
++ `GOOGLE_ADS_ALLOW_WRITES=1` inline — no hay token de escritura separado
+porque Google usa el mismo OAuth). Reporte: `google_report.js`. Las mutaciones
+nunca se reintentan. El log va al mismo `meta_api.log` con prefijo `google:`.
+
+## Cron del reporte diario (lado app)
+
+`/api/cron/ads-report` (auth `CRON_SECRET`, patrón de los demás crons): email
+diario con gasto ayer/7d por campaña + ventas propias del CRM + alertas
+(gasto sin conversiones, fatiga de frecuencia, CPA disparado). Usa
+`src/lib/ads/meta-insights.ts`, que es SOLO lectura por diseño — ninguna
+escritura vive en el lado app; las mutaciones son exclusivas de scripts/ads.
+Si `META_ADS_TOKEN` no está configurado responde `skipped` sin error. Alta en
+cron-job.org: diaria, ~9:45 AM Argentina.

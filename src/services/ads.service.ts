@@ -91,7 +91,8 @@ export class AdsService {
       if (opts.eventId) event.event_id = opts.eventId;
       if (opts.eventSourceUrl) event.event_source_url = opts.eventSourceUrl;
 
-      const apiUrl = `https://graph.facebook.com/v19.0/${pixelId}/events`;
+      // v24.0: la Marketing API rechaza versiones viejas desde jun-2026 (#2635).
+      const apiUrl = `https://graph.facebook.com/v24.0/${pixelId}/events`;
 
       // Enviamos el request de forma asíncrona sin bloquear
       fetch(apiUrl, {
