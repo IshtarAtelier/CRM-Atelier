@@ -180,8 +180,11 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
                 const res = await fetch(`/api/products/${item.match.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         cost: item.extracted.costoFinal,
+                        // El pelado de la lista, para que la ficha del producto no quede con
+                        // un baseCost viejo que al editar recalcularía el costo hacia atrás.
+                        baseCost: item.extracted.precioLista,
                         price: finalPrice
                     }),
                 });

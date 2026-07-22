@@ -12,6 +12,8 @@ export interface Product {
     stock: number;
     price: number;
     cost: number;
+    /** Costo pelado (lista del lab, sin calibrado ni IVA). Null en los productos que nunca pasaron por la fórmula. */
+    baseCost?: number | null;
     wholesalePrice: number;
     lensIndex: string | null;
     unitType: string | null;

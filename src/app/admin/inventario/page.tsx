@@ -193,15 +193,21 @@ export default function InventarioPage() {
         const lab = findLabConfig(labsConfig, editForm.laboratory);
         const is2x1 = editForm.is2x1 || editForm.name.toLowerCase().includes('2x1');
         const { calibrado, iva, final } = breakdownLensCost(hasBase ? base : 0, lab, { is2x1, skipCalibrado: isTreatment });
+        // Solo derivamos el costo si REALMENTE se puede aplicar la fórmula: con costo
+        // pelado cargado y con la config del lab a mano. Si los labs todavía no
+        // cargaron (fetch en vuelo o caído) o el lab no tiene calibrado/IVA, el costo
+        // guardado no se toca — pisarlo con el pelado lo dejaría por debajo del real.
+        const canApply = hasBase && !!lab;
         return {
             isCristal,
             hasBase,
             hasLabFormula: !!lab,
+            labsLoaded: labsConfig.length > 0,
+            canApply,
             calibrado,
             iva,
             is2x1,
-            // Sin costo pelado cargado (productos viejos) el campo final queda editable a mano.
-            final: hasBase && lab ? final : (hasBase ? Math.round(base) : editForm.cost),
+            final: canApply ? final : editForm.cost,
         };
     }, [editingProduct, editForm.baseCost, editForm.cost, editForm.laboratory, editForm.is2x1, editForm.name, labsConfig]);
 
@@ -270,7 +276,7 @@ export default function InventarioPage() {
             type: p.type || '',
             stock: p.stock,
             cost: p.cost,
-            baseCost: (p as any).baseCost != null ? String((p as any).baseCost) : '',
+            baseCost: p.baseCost != null ? String(p.baseCost) : '',
             price: p.price,
             wholesalePrice: (p as any).wholesalePrice || 0,
             lensIndex: p.lensIndex || '',
@@ -995,30 +1001,34 @@ export default function InventarioPage() {
                                         <p className="text-[9px] font-bold text-stone-400 ml-3">
                                             {editCost.hasBase ? 'Precio de lista, sin calibrado ni IVA' : 'Vacío: el costo queda como está'}
                                         </p>
+
                                     </div>
                                     {/* Derivado y de solo lectura si hay pelado cargado. Si no hay pelado
                                         (productos viejos), es el costo tal cual está guardado: se muestra
                                         como "Costo" a secas, sin dar a entender que salió de una fórmula. */}
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3 flex items-center gap-1">
-                                            {editCost.hasBase ? <><Zap className="w-3 h-3 text-amber-500" /> Costo final ($)</> : 'Costo ($)'}
+                                            {editCost.canApply ? <><Zap className="w-3 h-3 text-amber-500" /> Costo final ($)</> : 'Costo ($)'}
                                         </label>
                                         <input
                                             type="number"
                                             min={0}
-                                            readOnly={editCost.hasBase}
+                                            readOnly={editCost.canApply}
                                             value={editCost.final}
                                             onChange={e => setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 })}
-                                            className={`w-full px-5 py-4 border rounded-2xl font-black text-sm outline-none ${editCost.hasBase ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400 cursor-not-allowed' : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 focus:border-primary'}`}
+                                            className={`w-full px-5 py-4 border rounded-2xl font-black text-sm outline-none ${editCost.canApply ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400 cursor-not-allowed' : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 focus:border-primary'}`}
                                         />
-                                        {editCost.hasBase ? (
-                                            editCost.hasLabFormula ? (
-                                                <p className="text-[9px] font-bold text-amber-600 ml-3">
-                                                    + calibrado ${editCost.calibrado.toLocaleString('es-AR')}{editCost.is2x1 && ' (2x1, doble)'} + IVA {editCost.iva}%
-                                                </p>
-                                            ) : (
-                                                <p className="text-[9px] font-bold text-stone-400 ml-3">{editForm.laboratory || 'El lab'} no tiene calibrado/IVA cargado</p>
-                                            )
+                                        {editCost.canApply ? (
+                                            <p className="text-[9px] font-bold text-amber-600 ml-3">
+                                                + calibrado ${editCost.calibrado.toLocaleString('es-AR')}{editCost.is2x1 && ' (2x1, doble)'} + IVA {editCost.iva}%
+                                                <span className="text-stone-400"> · vaciá el pelado para editarlo a mano</span>
+                                            </p>
+                                        ) : editCost.hasBase ? (
+                                            <p className="text-[9px] font-bold text-red-500 ml-3">
+                                                {editCost.labsLoaded
+                                                    ? `${editForm.laboratory || 'El lab'} no tiene calibrado/IVA cargado — el costo queda como está`
+                                                    : 'Cargando la config de laboratorios… el costo queda como está'}
+                                            </p>
                                         ) : (
                                             <p className="text-[9px] font-bold text-stone-400 ml-3">Costo guardado, sin fórmula aplicada</p>
                                         )}
