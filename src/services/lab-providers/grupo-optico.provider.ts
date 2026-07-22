@@ -57,10 +57,25 @@ export class GrupoOpticoProvider {
             // tumbar el contenedor. Todo lo que espere, espera con tope.
             page.setDefaultTimeout(60000);
             page.setDefaultNavigationTimeout(60000);
-            await this.login(page);
 
-            // La app debe estar cargada para que fetch() comparta la sesión.
-            await page.goto(`${PORTAL_BASE}/smartlab/laboratory/list`, { waitUntil: 'domcontentloaded' });
+            // El portal (dyndns casero) tira errores transitorios de red
+            // (ERR_HTTP2_PROTOCOL_ERROR y similares): un reintento con pausa
+            // resuelve la mayoría sin esperar a la próxima corrida.
+            let lastErr: any = null;
+            for (let intento = 1; intento <= 2; intento++) {
+                try {
+                    await this.login(page);
+                    // La app debe estar cargada para que fetch() comparta la sesión.
+                    await page.goto(`${PORTAL_BASE}/smartlab/laboratory/list`, { waitUntil: 'domcontentloaded' });
+                    lastErr = null;
+                    break;
+                } catch (err) {
+                    lastErr = err;
+                    console.warn(`[GrupoOptico] Login/carga del portal falló (intento ${intento}/2):`, err);
+                    if (intento < 2) await new Promise(r => setTimeout(r, 15000));
+                }
+            }
+            if (lastErr) throw lastErr;
             await page.waitForTimeout(3000);
 
             // Corte: inicio de la era CRM, o la ventana corta del pase rápido

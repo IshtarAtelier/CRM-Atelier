@@ -674,6 +674,15 @@ export class LabCostReconciliationService {
             if (!st.rows.length || st.totalDebt === null) {
                 return { skipped: true, reason: 'no_parseado', emails: messages.length };
             }
+            // Guarda de cordura: un resumen real de Optovision trae decenas de
+            // facturas y una deuda de millones. Si el parseo devuelve 1-2 filas
+            // con un total de monedas es que el layout del PDF cambió y se está
+            // leyendo cualquier cosa (pasó el 22/7: "deuda $40,30") — mejor no
+            // guardar un dato falso en la cuenta corriente y avisar por el log.
+            if (st.rows.length < 5 && st.totalDebt < 100000) {
+                console.error(`[LabCost] Resumen Essilor SOSPECHOSO (filas=${st.rows.length}, total=${st.totalDebt}): no se guarda; revisar el parser.`);
+                return { skipped: true, reason: 'parse_sospechoso', filas: st.rows.length, total: st.totalDebt };
+            }
 
             const statementDate = st.statementDate || best.date;
             // Idempotencia: no re-guardar el mismo resumen (mismo día + mismo total).
