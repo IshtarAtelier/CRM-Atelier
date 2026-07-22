@@ -92,6 +92,13 @@ export const DEFAULT_MONTHLY_TARGETS = {
     target3: 30000000, // Elite
 };
 
+// Excedente de cobro: cuánto puede superar lo cobrado al precio de lista antes
+// de disparar un aviso. El precio de lista YA es el precio tarjeta (efectivo y
+// transferencia pagan menos), así que un cobro por encima de la lista solo se
+// explica por un recargo real de financiación o por un comprobante mal cargado.
+// La tolerancia absorbe redondeos y diferencias de centavos del posnet.
+export const OVERPAYMENT_TOLERANCE = 1000;
+
 // ISH POSNET Threshold Monitoring
 export const ISH_POSNET_THRESHOLD = 8500000;
 export const ISH_POSNET_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH'];

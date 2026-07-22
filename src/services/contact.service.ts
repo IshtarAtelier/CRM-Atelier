@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { CashService } from './cash.service';
-import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO } from '@/lib/constants';
+import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
@@ -141,6 +141,79 @@ export async function syncContactSourceTag(clientId: string, contactSource: stri
             console.error(`[Contact Tag Sync] Error syncing tag "${tagName}" for client ${clientId}:`, err);
         }
     }
+}
+
+/**
+ * Aviso de excedente de cobro.
+ *
+ * El precio de lista de una venta (subtotalWithMarkup) YA es el precio tarjeta:
+ * efectivo y transferencia pagan menos, nunca más. Por eso, que la suma de los
+ * cobros supere la lista solo tiene dos explicaciones, y ninguna la puede
+ * resolver el sistema solo:
+ *   1) recargo real por financiación en cuotas → hay que reflejarlo editando el pedido
+ *   2) comprobante cargado de más / al cliente equivocado → hay que borrar el cobro
+ *
+ * Antes el sistema elegía siempre la (1) y reescribía el precio de la venta en
+ * silencio. Ahora registra el cobro (la plata entró: el cobro nunca se pierde) y
+ * deja el aviso accionable: notificación, email al admin y renglón en la ficha.
+ */
+const OVERPAYMENT_ALERT_PREFIX = '💸 COBRADO DE MÁS:';
+
+async function alertOverpayment(
+    tx: any,
+    params: {
+        orderId: string;
+        clientId: string;
+        clientName: string;
+        listPrice: number;
+        newPaid: number;
+        actor?: Actor;
+        actorName: string;
+        context: string;
+    }
+) {
+    const { orderId, clientId, clientName, listPrice, newPaid, actor, actorName, context } = params;
+    const excess = newPaid - listPrice;
+    if (listPrice <= 0 || excess <= OVERPAYMENT_TOLERANCE) return;
+
+    // Un excedente sin resolver no se re-avisa con cada cobro nuevo: mientras el
+    // aviso anterior siga pendiente, alcanza con ese.
+    const alreadyOpen = await tx.notification.findFirst({
+        where: { type: 'RECEIPT_ERROR', orderId, status: 'PENDING', message: { startsWith: OVERPAYMENT_ALERT_PREFIX } },
+        select: { id: true }
+    });
+    if (alreadyOpen) return;
+
+    const orderRef = `#${orderId.slice(-4).toUpperCase()}`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+    const msg = `${OVERPAYMENT_ALERT_PREFIX} la venta ${orderRef} de ${clientName} vale $${listPrice.toLocaleString('es-AR')} y ya tiene cobrados $${newPaid.toLocaleString('es-AR')} ($${excess.toLocaleString('es-AR')} de más) tras el ${context}.\n\nEl valor de la venta NO se modificó. Si fue un comprobante cargado por error, borrá ese cobro; si es un recargo real por financiación, editá el pedido para que el precio lo refleje.`;
+
+    await tx.notification.create({
+        data: {
+            type: 'RECEIPT_ERROR',
+            message: `${msg}\n\n🧑 Cargado por: ${actorName}`,
+            orderId,
+            requestedBy: actorName,
+            status: 'PENDING'
+        }
+    });
+
+    // Queda en la ficha del cliente: el vendedor lo ve sin depender del email.
+    await tx.interaction.create({
+        data: {
+            clientId,
+            type: 'SISTEMA',
+            content: `⚠️ Lo cobrado en la venta ${orderRef} supera su valor en $${excess.toLocaleString('es-AR')} (valor $${listPrice.toLocaleString('es-AR')}, cobrado $${newPaid.toLocaleString('es-AR')}). Revisar si sobra un comprobante.`,
+            userId: actor?.id || null,
+            userName: actorName
+        }
+    });
+
+    sendEmail({
+        to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+        subject: `💸 Cobro por encima del valor de la venta (${clientName})`,
+        text: `${msg}\n\n🧑 Cargado por: ${actorName}\n\nFicha del cliente: ${appUrl}/admin/contactos?id=${clientId}`
+    }).catch(console.error);
 }
 
 export interface ContactCreateData {
@@ -1672,21 +1745,27 @@ export const ContactService = {
                 }
             });
 
-            const orderUpdateData: any = { paid: { increment: amount } };
-            
-            // Regla automática: Si el cliente paga en cuotas y excede el total original (efectivo),
-            // actualizamos el total de la venta para que la contabilidad y el dashboard reflejen el recargo.
-            if (newPaid > currentTotal) {
-                orderUpdateData.total = newPaid;
-                const currentSubtotal = order.subtotalWithMarkup || 0;
-                if (newPaid > currentSubtotal) {
-                    orderUpdateData.subtotalWithMarkup = newPaid;
-                }
-            }
-
+            // El valor de la venta NO se toca al cobrar: sale de los ítems del pedido.
+            // Antes, cualquier cobro que superara el total reescribía el precio de la
+            // operación (total y subtotalWithMarkup pasaban a valer lo pagado): un
+            // comprobante cargado de más redefinía la venta en silencio, y borrar el
+            // pago tampoco la devolvía a su valor. Ahora se registra el cobro y, si
+            // hay excedente, se avisa para que lo resuelva una persona (recargo real
+            // de financiación → editar el pedido; error → borrar el comprobante).
             await tx.order.update({
                 where: { id: orderId },
-                data: orderUpdateData
+                data: { paid: { increment: amount } }
+            });
+
+            await alertOverpayment(tx, {
+                orderId,
+                clientId: order.clientId,
+                clientName: order.client?.name || 'Cliente',
+                listPrice: order.subtotalWithMarkup || currentTotal,
+                newPaid,
+                actor,
+                actorName,
+                context: `cobro de $${amount.toLocaleString('es-AR')} (${method})`,
             });
 
 
@@ -1793,7 +1872,6 @@ export const ContactService = {
             }
 
             const priorPaid = order.paid || 0;
-            const finalTotal = newPaid > currentTotal ? newPaid : currentTotal;
             const isSena = priorPaid === 0;
 
             const updatedOrder = await tx.order.findUnique({
@@ -1825,7 +1903,10 @@ export const ContactService = {
                 clientPhone: order.client?.phone,
                 clientId: order.clientId,
                 isSena,
-                totalOperacion: finalTotal,
+                // El valor de la operación es el de la venta (precio de lista), no lo
+                // cobrado: si sobra un comprobante, el aviso al admin no debe repetir
+                // el monto inflado como si fuera el precio.
+                totalOperacion: financials.listPrice,
                 hasBalance: financials.hasBalance,
                 remainingCash: financials.remainingCash,
                 remainingTransfer: financials.remainingTransfer,
@@ -2111,6 +2192,7 @@ export const ContactService = {
                             clientId: true,
                             total: true,
                             subtotalWithMarkup: true,
+                            client: { select: { name: true } },
                             invoices: {
                                 where: { status: 'COMPLETED' },
                                 select: { id: true, billingAccount: true }
@@ -2321,21 +2403,24 @@ export const ContactService = {
                 });
                 
                 const recalculatedPaid = totalPaidAgg._sum.amount || 0;
-                const orderUpdateData: any = { paid: recalculatedPaid };
-                const currentTotal = oldPayment.order.total || 0;
-                
-                // Regla automática: Si el pago total editado supera el total original de la venta, actualizamos el total.
-                if (recalculatedPaid > currentTotal) {
-                    orderUpdateData.total = recalculatedPaid;
-                    const currentSubtotal = oldPayment.order.subtotalWithMarkup || 0;
-                    if (recalculatedPaid > currentSubtotal) {
-                        orderUpdateData.subtotalWithMarkup = recalculatedPaid;
-                    }
-                }
 
+                // Igual que en el alta: editar un cobro nunca redefine el precio de la
+                // venta (eso sale de los ítems del pedido). Si el editado deja lo
+                // cobrado por encima de la lista, se avisa en vez de reescribir.
                 await tx.order.update({
                     where: { id: orderId },
-                    data: orderUpdateData
+                    data: { paid: recalculatedPaid }
+                });
+
+                await alertOverpayment(tx, {
+                    orderId,
+                    clientId,
+                    clientName: oldPayment.order.client?.name || 'Cliente',
+                    listPrice: oldPayment.order.subtotalWithMarkup || oldPayment.order.total || 0,
+                    newPaid: recalculatedPaid,
+                    actor,
+                    actorName,
+                    context: `edición de un cobro a $${updateData.amount.toLocaleString('es-AR')}`,
                 });
             }
 
