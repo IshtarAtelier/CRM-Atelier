@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -174,9 +174,18 @@ export function TiendaClient({
     setCurrentPage(1);
   }, [activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, sortParam, isWholesale]);
 
-  // Load products from API based on current filters and page
+  // Load products from API based on current filters and page.
+  // El skip del fetch inicial solo vale para la PRIMERA corrida del efecto:
+  // si el usuario filtra y después vuelve a "Todo" (o borra la búsqueda), el
+  // estado vuelve a ser el default pero products tiene la grilla filtrada —
+  // sin este ref, el early-return dejaba la pestaña "Todo" mostrando solo
+  // los productos del filtro anterior.
+  const isFirstEffectRunRef = useRef(true);
   useEffect(() => {
     let active = true;
+
+    const isFirstRun = isFirstEffectRunRef.current;
+    isFirstEffectRunRef.current = false;
 
     // Check if it's the initial server load (page 1, no filters, not wholesale)
     const isFirstRenderWithInitialData =
@@ -190,7 +199,7 @@ export function TiendaClient({
       sortParam === "recientes" &&
       !isWholesale;
 
-    if (isFirstRenderWithInitialData && products.length > 0) {
+    if (isFirstRun && isFirstRenderWithInitialData && products.length > 0) {
       return;
     }
 
@@ -535,19 +544,34 @@ export function TiendaClient({
                       
                       {isWholesale ? (
                         <div className="pt-3 flex flex-col gap-1">
-                          <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-max">
-                            Precio Mayorista
-                          </span>
-                          <div className="flex items-center gap-2 animate-in fade-in">
-                            <p className="text-lg font-black text-blue-600 tracking-tight">
-                              ${(p.wholesalePrice || p.price || 0).toLocaleString("es-AR")}
-                            </p>
-                            {p.wholesalePrice < p.price && (
-                              <p className="text-xs font-medium text-stone-500 line-through decoration-1">
-                                ${(p.price || 0).toLocaleString("es-AR")} (P. Lista)
+                          {/* Sin wholesalePrice cargado (> 0) el backend cobra retail:
+                              no etiquetar el precio de lista como "Mayorista". */}
+                          {p.wholesalePrice > 0 ? (
+                            <>
+                              <span className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded w-max">
+                                Precio Mayorista
+                              </span>
+                              <div className="flex items-center gap-2 animate-in fade-in">
+                                <p className="text-lg font-black text-blue-600 tracking-tight">
+                                  ${(p.wholesalePrice || 0).toLocaleString("es-AR")}
+                                </p>
+                                {p.wholesalePrice < p.price && (
+                                  <p className="text-xs font-medium text-stone-500 line-through decoration-1">
+                                    ${(p.price || 0).toLocaleString("es-AR")} (P. Lista)
+                                  </p>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2 animate-in fade-in">
+                              <p className="text-lg font-black text-stone-900 tracking-tight">
+                                ${(p.price || 0).toLocaleString("es-AR")}
                               </p>
-                            )}
-                          </div>
+                              <span className="text-[9px] font-medium uppercase text-stone-400">
+                                P. Lista
+                              </span>
+                            </div>
+                          )}
                         </div>
                       ) : (() => {
                         // Precio idéntico al del home: siempre sobre el precio de lista
