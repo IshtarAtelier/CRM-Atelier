@@ -9,6 +9,7 @@ import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
+import { CristalesShowcase } from "@/components/Storefront/CristalesShowcase";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 const CATEGORIES = ["Todo", "Receta", "Sol", "Clip-On", "Contacto", "Cristales"];
@@ -407,7 +408,11 @@ export function TiendaClient({
               transition={{ duration: 0.3 }}
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >
-              {displayedProducts.length === 0 ? (
+              {activeCategory === "Cristales" ? (
+                /* Los cristales no son productos de vitrina: mostramos las mismas
+                   opciones del configurador de /arma-tus-lentes con precios en vivo */
+                <CristalesShowcase />
+              ) : displayedProducts.length === 0 ? (
                 isRecoveringProducts ? (
                   /* Show skeleton cards while recovering products — never show empty */
                   <>{Array.from({ length: 8 }).map((_, i) => (
