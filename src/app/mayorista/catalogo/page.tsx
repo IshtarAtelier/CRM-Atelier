@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   // rompe la marca del canal. El área mayorista es Cápsula Escarlata a secas.
   title: { absolute: 'Cápsula Escarlata · Catálogo Mayorista' },
   description:
-    'Catálogo mayorista Cápsula Escarlata: armazones de diseño de autor con precios netos por unidad para ópticas.',
+    'Catálogo mayorista Cápsula Escarlata: colección boutique y curada de diseño de autor y modelos en tendencia, con precios netos por unidad para ópticas.',
   robots: { index: false, follow: false }, // no es contenido para buscar: son precios netos B2B
   // openGraph/twitter/icons propios: sin esto se heredan los del layout root
   // (og:siteName "Atelier Óptica", og:image y favicon de Atelier) y el preview
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     locale: 'es_AR',
     siteName: 'Cápsula Escarlata',
     title: 'Cápsula Escarlata · Catálogo Mayorista',
-    description: 'Armazones de diseño de autor con precios netos por unidad para ópticas.',
+    description: 'Colección boutique y curada: diseño de autor y modelos en tendencia, con precios netos por unidad para ópticas.',
     images: [
       {
         url: '/images/editorial/filmmaker-frida.webp',
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Cápsula Escarlata · Catálogo Mayorista',
-    description: 'Armazones de diseño de autor con precios netos por unidad para ópticas.',
+    description: 'Colección boutique y curada: diseño de autor y modelos en tendencia, con precios netos por unidad para ópticas.',
     images: ['/images/editorial/filmmaker-frida.webp'],
   },
   // Ícono neutro (monograma CE inline): pisa el logo PWA de Atelier del root.
@@ -129,8 +129,9 @@ export default async function CatalogoMayoristaPage({
               Diseño de autor <span className="italic text-[#c8a55c]">para tu óptica</span>
             </h1>
             <p className="text-[#d8d3cb] max-w-xl mb-8">
-              Armazones de diseño en acetato italiano, metal y titanio.
-              Precios netos por unidad, pensados para revender.
+              Una colección boutique y curada: modelos en tendencia en acetato
+              italiano, metal y titanio. Precios netos por unidad, pensados para
+              revender.
             </p>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <StatPill label="Oficina en Córdoba" sub="retirás sin cargo" />

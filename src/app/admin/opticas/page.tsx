@@ -16,7 +16,7 @@ import { formatDateTime } from "@/lib/format-date";
 // checkout mayorista exige WHOLESALE_MIN_PIECES=10 (payway/route.ts), una
 // plantilla que prometa "sin mínimos" manda al lead a un error en el carrito.
 const DEFAULT_TPL =
-  "Hola {nombre}! Te escribo de *Cápsula Escarlata* — armazones de diseño de autor a precio mayorista para ópticas 👓\n\n" +
+  "Hola {nombre}! Te escribo de *Cápsula Escarlata* — una colección boutique y curada: diseño de autor y modelos en tendencia, a precio mayorista para ópticas 👓\n\n" +
   "Comprás desde *$32.000* y se venden al público entre $80.000 y $160.000: *2,5x o más de margen*, y el precio lo ponés vos.\n\n" +
   "Oficina en Córdoba (retirás sin cargo), envíos a todo el país y cambio inmediato ante fallas.\n\n" +
   "Mirá el catálogo completo con precios acá 👇\n{link}";

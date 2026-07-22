@@ -19,8 +19,8 @@ export function WholesaleFooter() {
             CÁPSULA ESCARLATA
           </p>
           <p className="text-[13px] text-stone-400 max-w-xs leading-relaxed">
-            Armazones de diseño de autor. Canal mayorista para ópticas — precios
-            netos por unidad.
+            Colección boutique y curada: diseño de autor y modelos en tendencia.
+            Canal mayorista para ópticas — precios netos por unidad.
           </p>
           <p className="text-[12px] text-stone-500 max-w-xs leading-relaxed mt-3">
             Oficina en Córdoba · retiros sin cargo · envíos a todo el país ·
