@@ -250,6 +250,7 @@ model Product {
   laboratory            String?
   price                 Float        @default(0.0)
   cost                  Float        @default(0.0)
+  baseCost              Float?       // Costo "pelado": lo que factura el lab de lista, ANTES de sumar calibrado e IVA. `cost` es siempre el final.
   sphereMin             Float?
   sphereMax             Float?
   cylinderMin           Float?

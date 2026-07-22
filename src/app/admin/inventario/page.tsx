@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, CheckCircle2, Zap, Camera, Clock, Database, Layers } from "lucide-react";
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
@@ -13,6 +13,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { autoCorrectLab, getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial } from '@/utils/product-controllers';
 import { PRODUCT_CATEGORIES as SHARED_CATEGORIES } from '@/lib/constants';
 import { normalizeLensOrigin, LENS_ORIGIN } from '@/lib/lens-origin';
+import { breakdownLensCost, findLabConfig } from '@/lib/lens-cost';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 const PRODUCT_CATEGORIES = [
     { id: 'ALL', label: 'Todos' },
@@ -31,7 +32,7 @@ export default function InventarioPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, publishToWholesale: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
+    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, baseCost: '' as string, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, publishToWholesale: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
     const [savingEdit, setSavingEdit] = useState(false);
     const [selectedBrand, setSelectedBrand] = useState('');
     const [selectedLab, setSelectedLab] = useState('');
@@ -180,6 +181,30 @@ export default function InventarioPage() {
         || p.type?.startsWith('Cristal')
         || ['MONOFOCAL','MULTIFOCAL','BIFOCAL','OCUPACIONAL'].includes(p.type?.toUpperCase() || '');
 
+    // Costo del cristal en edición: el costo pelado es lo único que se tipea y el final
+    // se deriva de él. Al ser derivado y no un botón que pisa el mismo campo, la fórmula
+    // se aplica exactamente una vez por más que se toque mil veces.
+    const editCost = useMemo(() => {
+        const isCristal = !!editingProduct && checkCristal(editingProduct);
+        const isTreatment = editingProduct?.category === 'Tratamiento';
+        const raw = String(editForm.baseCost ?? '').trim();
+        const base = raw !== '' ? parseFloat(raw) : NaN;
+        const hasBase = Number.isFinite(base) && base > 0;
+        const lab = findLabConfig(labsConfig, editForm.laboratory);
+        const is2x1 = editForm.is2x1 || editForm.name.toLowerCase().includes('2x1');
+        const { calibrado, iva, final } = breakdownLensCost(hasBase ? base : 0, lab, { is2x1, skipCalibrado: isTreatment });
+        return {
+            isCristal,
+            hasBase,
+            hasLabFormula: !!lab,
+            calibrado,
+            iva,
+            is2x1,
+            // Sin costo pelado cargado (productos viejos) el campo final queda editable a mano.
+            final: hasBase && lab ? final : (hasBase ? Math.round(base) : editForm.cost),
+        };
+    }, [editingProduct, editForm.baseCost, editForm.cost, editForm.laboratory, editForm.is2x1, editForm.name, labsConfig]);
+
     // Helper: determinar si el producto maneja stock propio o se pide a laboratorio (Todos los cristales son de lab)
     const isRequestedToLab = (p: { category?: string; type?: string | null; origin?: string | null }) => 
         checkCristal(p) || p.category === 'Tratamiento';
@@ -245,6 +270,7 @@ export default function InventarioPage() {
             type: p.type || '',
             stock: p.stock,
             cost: p.cost,
+            baseCost: (p as any).baseCost != null ? String((p as any).baseCost) : '',
             price: p.price,
             wholesalePrice: (p as any).wholesalePrice || 0,
             lensIndex: p.lensIndex || '',
@@ -304,6 +330,10 @@ export default function InventarioPage() {
             const payload = {
                 ...editForm,
                 ...normalizedFields,
+                // El costo que se guarda es SIEMPRE el final; el pelado queda como respaldo
+                // para poder recalcular sin volver a aplicarle la fórmula al final.
+                baseCost: editCost.hasBase ? parseFloat(String(editForm.baseCost)) : null,
+                cost: editCost.final,
                 sphereMin: editForm.sphereMin !== '' ? parseFloat(editForm.sphereMin) : null,
                 sphereMax: editForm.sphereMax !== '' ? parseFloat(editForm.sphereMax) : null,
                 cylinderMin: editForm.cylinderMin !== '' ? parseFloat(editForm.cylinderMin) : null,
@@ -949,29 +979,51 @@ export default function InventarioPage() {
                                         <input type="number" min={0} value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: parseInt(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                     </div>
                                 )}
-                                {isAdmin && (
-                                <div className="space-y-1 relative">
-                                    <div className="flex items-center justify-between mr-2">
-                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Costo ($)</label>
-                                        {checkCristal(editingProduct) && editForm.laboratory && (
-                                            <button 
-                                                type="button"
-                                                onClick={() => {
-                                                    const lab = labsConfig.find(l => l.name === editForm.laboratory);
-                                                    const calibrado = lab?.calibrado || 0;
-                                                    const iva = lab?.iva || 0;
-                                                    const is2x1 = editForm.is2x1 || editForm.name.toLowerCase().includes('2x1');
-                                                    const calibradoTotal = is2x1 ? (calibrado * 2) : calibrado;
-                                                    const finalCost = Math.round(((parseFloat(String(editForm.cost)) || 0) + calibradoTotal) * (1 + iva / 100));
-                                                    setEditForm({ ...editForm, cost: finalCost });
-                                                }}
-                                                className="text-[9px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
-                                                title="Ingresa el Costo Base pelado y presiona aquí para aplicar la fórmula del Laboratorio (Suma Calibrados + IVA)"
-                                            >
-                                                <Zap className="w-3 h-3" /> Calcular Final
-                                            </button>
+                                {isAdmin && editCost.isCristal && (
+                                <div className="col-span-2 grid grid-cols-2 gap-5">
+                                    {/* Costo pelado: lo único que se tipea. El final se deriva solo. */}
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Costo pelado ($)</label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            placeholder="Lista del lab"
+                                            value={editForm.baseCost}
+                                            onChange={e => setEditForm({ ...editForm, baseCost: e.target.value })}
+                                            className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary"
+                                        />
+                                        <p className="text-[9px] font-bold text-stone-400 ml-3">Precio de lista, sin calibrado ni IVA</p>
+                                    </div>
+                                    {/* Costo final: derivado, no editable mientras haya pelado cargado. */}
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3 flex items-center gap-1">
+                                            <Zap className="w-3 h-3 text-amber-500" /> Costo final ($)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            readOnly={editCost.hasBase}
+                                            value={editCost.final}
+                                            onChange={e => setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 })}
+                                            className={`w-full px-5 py-4 border rounded-2xl font-black text-sm outline-none ${editCost.hasBase ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400 cursor-not-allowed' : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700 focus:border-primary'}`}
+                                        />
+                                        {editCost.hasBase ? (
+                                            editCost.hasLabFormula ? (
+                                                <p className="text-[9px] font-bold text-amber-600 ml-3">
+                                                    + calibrado ${editCost.calibrado.toLocaleString('es-AR')}{editCost.is2x1 && ' (2x1, doble)'} + IVA {editCost.iva}%
+                                                </p>
+                                            ) : (
+                                                <p className="text-[9px] font-bold text-stone-400 ml-3">{editForm.laboratory || 'El lab'} no tiene calibrado/IVA cargado</p>
+                                            )
+                                        ) : (
+                                            <p className="text-[9px] font-bold text-stone-400 ml-3">Cargá el pelado y se calcula solo</p>
                                         )}
                                     </div>
+                                </div>
+                                )}
+                                {isAdmin && !editCost.isCristal && (
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Costo ($)</label>
                                     <input type="number" min={0} value={editForm.cost} onChange={e => setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
                                 )}
