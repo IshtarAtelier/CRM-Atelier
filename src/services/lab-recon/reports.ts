@@ -253,46 +253,89 @@ export async function assembleReport(orders: any[], monthLabel: string) {
     // entradas de labs distintos y cruzaba el pedido contra la factura del lab equivocado.
     const byNumber = new Map(entries.map(e => [`${e.lab}:${e.labOrderNumber}`, e]));
 
-    const report = rows.map(r => {
-        const matched = r.numbers.map((n: string) => byNumber.get(`${r.lab}:${n}`)).filter(Boolean);
-        // Mismo comparable por laboratorio que upsertEntry: Optovision se compara
-        // contra el TOTAL c/IVA (monotributo no lo recupera); el resto contra el neto.
-        const billed = matched.length > 0
-            ? matched.reduce((t: number, e: any) => t + (r.lab === 'OPTOVISION'
-                ? (e.billedTotal ?? e.billedNet ?? 0)
-                : (e.billedNet ?? e.billedTotal ?? 0)), 0)
+    // UNA FILA POR PEDIDO, no por venta (pedido del administrador el 22/7).
+    // En un 2x1 la venta tiene DOS operaciones y sumarlas escondía la verdad: si
+    // llegó solo la factura del par gratis ($20) y falta la del par caro, la suma
+    // se leía como "el lab cobró $1.283.754 menos" — un ahorro que no existe.
+    // Separadas se ve lo que pasa de verdad: una facturada y la otra pendiente.
+    // El COSTO REAL es exacto por pedido (cada uno tiene su propia factura). El
+    // COSTO SISTEMA y la DIFERENCIA son de la VENTA (los cristales se cargan por
+    // par y el lab no dice qué par fue a qué operación), así que se muestran una
+    // sola vez, en la primera fila del grupo, y la diferencia solo cuando ya
+    // están TODAS las facturas de esa venta.
+    const report = rows.flatMap(r => {
+        const pedidos: string[] = r.numbers.length > 0 ? r.numbers : [];
+        const matched = pedidos.map((n: string) => byNumber.get(`${r.lab}:${n}`)).filter(Boolean);
+        const billedDe = (e: any) => r.lab === 'OPTOVISION'
+            ? (e.billedTotal ?? e.billedNet ?? null)
+            : (e.billedNet ?? e.billedTotal ?? null);
+
+        const saleBilled = matched.length > 0
+            ? matched.reduce((t: number, e: any) => t + (billedDe(e) ?? 0), 0)
             : null;
-        const difference = billed !== null ? Math.round(billed - r.systemCost) : null;
-        const status = !r.labOrderNumber ? 'SIN_NUMERO'
+        const ventaCompleta = pedidos.length > 0 && matched.length >= pedidos.length;
+        // La diferencia solo tiene sentido con la venta entera facturada.
+        const difference = ventaCompleta && saleBilled !== null
+            ? Math.round(saleBilled - r.systemCost)
+            : null;
+        const saleStatus = !r.labOrderNumber ? 'SIN_NUMERO'
             : matched.length === 0 ? 'SIN_FACTURA'
-                : difference! > TOLERANCE ? 'OVERCOST'
-                    : difference! < -TOLERANCE ? 'UNDERCOST' : 'OK';
-        return {
+                : !ventaCompleta ? 'PARCIAL'
+                    : difference! > TOLERANCE ? 'OVERCOST'
+                        : difference! < -TOLERANCE ? 'UNDERCOST' : 'OK';
+        const dias = Math.max(0, Math.floor((Date.now() - new Date(r.fecha).getTime()) / 86400000));
+
+        const base = {
             ...r,
-            billed: billed !== null ? Math.round(billed) : null,
+            multiPedido: pedidos.length > 1,
+            ventaPedidos: pedidos,
+            ventaCompleta,
+            saleBilled: saleBilled !== null ? Math.round(saleBilled) : null,
             difference,
+            status: saleStatus,
             invoicesFound: matched.length,
-            status,
-            // Antigüedad de lo pendiente: días desde el envío al lab sin factura,
-            // para detectar operaciones que ya deberían estar facturadas.
-            daysWaiting: status === 'SIN_FACTURA' || status === 'SIN_NUMERO'
-                ? Math.max(0, Math.floor((Date.now() - new Date(r.fecha).getTime()) / 86400000))
-                : null,
+            daysWaiting: saleStatus === 'SIN_FACTURA' || saleStatus === 'SIN_NUMERO' || saleStatus === 'PARCIAL' ? dias : null,
         };
+
+        // Venta sin número de operación: una sola fila, no hay nada que desglosar.
+        if (pedidos.length === 0) {
+            return [{ ...base, pedido: null, billed: null, pedidoFacturado: false, primeraDeLaVenta: true }];
+        }
+
+        return pedidos.map((n: string, i: number) => {
+            const e: any = byNumber.get(`${r.lab}:${n}`);
+            const propio = e ? billedDe(e) : null;
+            return {
+                ...base,
+                // Cada fila es UN pedido con SU costo real.
+                pedido: n,
+                labOrderNumber: n,
+                billed: propio !== null ? Math.round(propio) : null,
+                pedidoFacturado: propio !== null,
+                // El costo de sistema y la diferencia son de la venta: se muestran
+                // una sola vez para no dar a entender que se suman.
+                primeraDeLaVenta: i === 0,
+                systemCost: i === 0 ? r.systemCost : null,
+            };
+        });
     });
 
-    const sum = (fn: (r: any) => number) => report.reduce((t, r) => t + fn(r), 0);
+    // Los totales se cuentan por VENTA (una fila por venta), no por fila del
+    // desglose: si no, un 2x1 contaría su costo de sistema dos veces.
+    const ventas = report.filter((r: any) => r.primeraDeLaVenta);
+    const sumVentas = (fn: (r: any) => number) => ventas.reduce((t, r) => t + fn(r), 0);
     return {
         month: monthLabel,
         rows: report,
         totals: {
-            operaciones: report.length,
-            costoSistema: sum(r => r.systemCost),
-            costoReal: sum(r => r.billed || 0),
-            conFactura: report.filter(r => r.invoicesFound > 0).length,
-            sinFactura: report.filter(r => r.status === 'SIN_FACTURA').length,
-            sinNumero: report.filter(r => r.status === 'SIN_NUMERO').length,
-            sobrecostos: report.filter(r => r.status === 'OVERCOST').length,
+            operaciones: ventas.length,
+            costoSistema: sumVentas(r => r.systemCost || 0),
+            costoReal: sumVentas(r => r.saleBilled || 0),
+            conFactura: ventas.filter(r => r.invoicesFound > 0).length,
+            sinFactura: ventas.filter(r => r.status === 'SIN_FACTURA').length,
+            parciales: ventas.filter(r => r.status === 'PARCIAL').length,
+            sinNumero: ventas.filter(r => r.status === 'SIN_NUMERO').length,
+            sobrecostos: ventas.filter(r => r.status === 'OVERCOST').length,
         },
     };
 }

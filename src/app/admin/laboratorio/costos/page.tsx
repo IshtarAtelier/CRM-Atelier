@@ -66,6 +66,9 @@ interface StatusTotal {
     _sum: { difference: number | null };
 }
 
+// Una fila POR PEDIDO. En un 2x1 la venta aporta varias filas seguidas: la
+// primera trae el costo de la venta y el veredicto, las siguientes solo su
+// propia factura (sumarlas escondía los casos donde falta una).
 interface ReportRow {
     orderId: string;
     clientId: string;
@@ -73,9 +76,18 @@ interface ReportRow {
     fecha: string;
     labOrderNumber: string | null;
     lab: string;
-    systemCost: number;
     items: string[];
+    // De ESTE pedido
+    pedido: string | null;
     billed: number | null;
+    pedidoFacturado: boolean;
+    // De la VENTA (solo con valor en la primera fila del grupo)
+    primeraDeLaVenta: boolean;
+    multiPedido: boolean;
+    ventaPedidos: string[];
+    ventaCompleta: boolean;
+    systemCost: number | null;
+    saleBilled: number | null;
     difference: number | null;
     invoicesFound: number;
     status: string;
@@ -138,6 +150,7 @@ interface MonthlyReport {
         costoReal: number;
         conFactura: number;
         sinFactura: number;
+        parciales?: number;
         sinNumero: number;
         sobrecostos: number;
     };
@@ -150,6 +163,7 @@ const REPORT_STATUS_META: Record<string, { label: string; badge: string }> = {
         OK: { label: 'OK', badge: 'bg-green-100 text-green-700' },
     },
     SIN_FACTURA: { label: 'Sin factura', badge: 'bg-gray-100 text-gray-600' },
+    PARCIAL: { label: 'Falta una factura del 2x1', badge: 'bg-blue-100 text-blue-700' },
     SIN_NUMERO: { label: 'Sin nº pedido', badge: 'bg-orange-100 text-orange-700' },
 };
 
@@ -353,18 +367,19 @@ export default function LabCostosPage() {
         if (!report) return;
         const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
         const lines = [
-            'nro_operacion;cliente;fecha;laboratorio;costo_sistema;costo_real;diferencia;estado;dias_sin_factura;items',
+            'nro_operacion;cliente;fecha;laboratorio;costo_sistema_venta;costo_real_pedido;diferencia_venta;estado;dias_sin_factura;operaciones_de_la_venta;items',
             ...rows.map(r => [
-                esc(r.labOrderNumber || 'SIN NÚMERO'),
-                esc(r.cliente),
-                fmtDateAR(r.fecha),
-                LAB_LABELS[r.lab] || r.lab,
-                r.systemCost,
-                r.billed ?? '',
-                r.difference ?? '',
-                REPORT_STATUS_META[r.status]?.label || r.status,
-                r.daysWaiting ?? '',
-                esc(r.items.join(' | ')),
+                esc(r.pedido || 'SIN NÚMERO'),
+                esc(r.primeraDeLaVenta ? r.cliente : `↳ ${r.cliente}`),
+                r.primeraDeLaVenta ? fmtDateAR(r.fecha) : '',
+                r.primeraDeLaVenta ? (LAB_LABELS[r.lab] || r.lab) : '',
+                r.systemCost ?? '',
+                r.pedidoFacturado ? r.billed : 'SIN FACTURA',
+                r.primeraDeLaVenta ? (r.difference ?? '') : '',
+                r.primeraDeLaVenta ? (REPORT_STATUS_META[r.status]?.label || r.status) : '',
+                r.primeraDeLaVenta ? (r.daysWaiting ?? '') : '',
+                r.multiPedido ? esc(r.ventaPedidos.join(' + ')) : '',
+                r.primeraDeLaVenta ? esc(r.items.join(' | ')) : '',
             ].join(';')),
         ];
         // BOM para que Excel abra el CSV con acentos bien.
@@ -579,9 +594,10 @@ export default function LabCostosPage() {
                     {report && (
                         <div className="text-sm text-gray-500">
                             {reportFiltered && <span className="text-indigo-600 font-medium">todo el histórico · </span>}
-                            {report.totals.operaciones} operaciones · sistema <strong className="text-gray-900">{fmt(report.totals.costoSistema)}</strong>
+                            {report.totals.operaciones} ventas ({rows.length} operaciones de lab) · sistema <strong className="text-gray-900">{fmt(report.totals.costoSistema)}</strong>
                             {report.totals.conFactura > 0 && <> · real <strong className="text-gray-900">{fmt(report.totals.costoReal)}</strong> ({report.totals.conFactura} con factura)</>}
                             {report.totals.sinFactura > 0 && <> · {report.totals.sinFactura} sin factura</>}
+                            {(report.totals.parciales ?? 0) > 0 && <span className="text-blue-600"> · {report.totals.parciales} con una factura pendiente del 2x1</span>}
                             {report.totals.sinNumero > 0 && <span className="text-orange-600"> · {report.totals.sinNumero} sin nº</span>}
                         </div>
                     )}
@@ -612,34 +628,62 @@ export default function LabCostosPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {rows.map(r => {
+                                {rows.map((r, idx) => {
                                     const meta = REPORT_STATUS_META[r.status] || { label: r.status, badge: 'bg-gray-100 text-gray-600' };
                                     // Sin factura hace más de 30 días: ya debería estar facturada — resaltar.
-                                    const overdue = r.status === 'SIN_FACTURA' && (r.daysWaiting ?? 0) > 30;
+                                    const overdue = (r.status === 'SIN_FACTURA' || r.status === 'PARCIAL') && (r.daysWaiting ?? 0) > 30;
+                                    // Las filas de una misma venta (2x1) van pegadas: la primera abre el
+                                    // grupo con el costo de la venta, las siguientes solo su propio pedido.
+                                    const ultimaDelGrupo = !rows[idx + 1] || rows[idx + 1].primeraDeLaVenta;
                                     return (
-                                        <tr key={r.orderId} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <tr
+                                            key={`${r.orderId}-${r.pedido ?? 'sn'}`}
+                                            className={`hover:bg-gray-50 ${ultimaDelGrupo ? 'border-b border-gray-200' : ''} ${
+                                                r.multiPedido ? (r.primeraDeLaVenta ? 'bg-indigo-50/40' : 'bg-indigo-50/20') : ''}`}
+                                        >
                                             <td className="px-4 py-2.5 font-mono text-gray-900" title={r.items.join(' | ')}>
-                                                {r.labOrderNumber || <span className="text-orange-600 font-sans">sin número</span>}
+                                                {r.multiPedido && !r.primeraDeLaVenta && <span className="text-gray-300 mr-1">↳</span>}
+                                                {r.pedido || <span className="text-orange-600 font-sans">sin número</span>}
+                                                {r.multiPedido && r.primeraDeLaVenta && (
+                                                    <span className="ml-2 text-[10px] font-sans font-semibold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded">
+                                                        2x1 · {r.ventaPedidos.length} operaciones
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-4 py-2.5">
-                                                <Link href={`/admin/contactos?clientId=${r.clientId}`} className="text-indigo-600 hover:underline">{r.cliente}</Link>
+                                                {r.primeraDeLaVenta
+                                                    ? <Link href={`/admin/contactos?clientId=${r.clientId}`} className="text-indigo-600 hover:underline">{r.cliente}</Link>
+                                                    : <span className="text-gray-300">↳ misma venta</span>}
                                             </td>
-                                            <td className="px-4 py-2.5 text-gray-600">{fmtDateAR(r.fecha)}</td>
-                                            <td className="px-4 py-2.5 text-gray-600">{LAB_LABELS[r.lab] || r.lab}</td>
-                                            <td className="px-4 py-2.5 text-right text-gray-900">{fmt(r.systemCost)}</td>
-                                            <td className="px-4 py-2.5 text-right text-gray-900">{fmt(r.billed)}</td>
+                                            <td className="px-4 py-2.5 text-gray-600">{r.primeraDeLaVenta ? fmtDateAR(r.fecha) : ''}</td>
+                                            <td className="px-4 py-2.5 text-gray-600">{r.primeraDeLaVenta ? (LAB_LABELS[r.lab] || r.lab) : ''}</td>
+                                            <td className="px-4 py-2.5 text-right text-gray-900">
+                                                {r.primeraDeLaVenta ? fmt(r.systemCost) : <span className="text-gray-300">—</span>}
+                                                {r.multiPedido && r.primeraDeLaVenta && (
+                                                    <span className="block text-[10px] text-gray-400 font-normal">de la venta</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-2.5 text-right text-gray-900">
+                                                {r.pedidoFacturado
+                                                    ? fmt(r.billed)
+                                                    : <span className="text-orange-500 text-xs">sin factura</span>}
+                                            </td>
                                             <td className={`px-4 py-2.5 text-right font-semibold ${
                                                 r.difference === null ? 'text-gray-400'
                                                     : r.difference > 100 ? 'text-red-600'
                                                         : r.difference < -100 ? 'text-emerald-600' : 'text-gray-500'
                                             }`}>
-                                                {r.difference === null ? '—' : (r.difference > 0 ? '+' : '') + fmt(r.difference)}
+                                                {!r.primeraDeLaVenta ? '' : r.difference === null
+                                                    ? <span className="text-gray-400" title="La diferencia se calcula recién cuando llegaron TODAS las facturas de la venta">—</span>
+                                                    : (r.difference > 0 ? '+' : '') + fmt(r.difference)}
                                             </td>
                                             <td className="px-4 py-2.5 whitespace-nowrap">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${overdue ? 'bg-red-100 text-red-700' : meta.badge}`}>
-                                                    {meta.label}
-                                                    {r.daysWaiting !== null && ` · ${r.daysWaiting}d`}
-                                                </span>
+                                                {r.primeraDeLaVenta && (
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${overdue ? 'bg-red-100 text-red-700' : meta.badge}`}>
+                                                        {meta.label}
+                                                        {r.daysWaiting !== null && ` · ${r.daysWaiting}d`}
+                                                    </span>
+                                                )}
                                             </td>
                                         </tr>
                                     );
