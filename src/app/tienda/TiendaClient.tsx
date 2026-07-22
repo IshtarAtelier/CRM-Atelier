@@ -449,15 +449,6 @@ export function TiendaClient({
                   >
                     {/* Imagen */}
                     <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
-                      {/* Badges en la esquina superior derecha */}
-                      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1 items-end">
-                        {p.stock !== undefined && p.stock > 0 && p.stock <= 3 && (
-                          <span className="bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded shadow-md animate-pulse">
-                            Últimas {p.stock} u.
-                          </span>
-                        )}
-                      </div>
-
                       {/* Contenedor de imágenes con efecto zoom */}
                       <div className="absolute inset-0 transition-transform duration-700 ease-out md:group-hover:scale-110">
                         {imgUrl ? (
