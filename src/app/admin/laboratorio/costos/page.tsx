@@ -238,6 +238,30 @@ export default function LabCostosPage() {
     const [reportSearch, setReportSearch] = useState(() => getUrlParam(searchParams, 'q', ''));
     const [reportDay, setReportDay] = useState(() => getUrlParam(searchParams, 'dia', ''));
 
+    // Números de operación de la venta, POR SEPARADO (regla del administrador):
+    // una venta 2x1 lleva varios ("580841-580844") y cada uno se muestra como
+    // chip propio; el resaltado es el pedido de ESTA factura. En postventa, el
+    // pedido del caso va resaltado y los de la venta original en gris.
+    const opChips = (g: StatementGemelo) => {
+        const nums = g.ventaPedidos?.match(/\d{4,}/g) || [];
+        const todos = nums.length ? nums : [g.pedido];
+        const chip = (n: string, actual: boolean) => (
+            <span
+                key={n}
+                className={`ml-1 px-1 py-0.5 rounded font-mono text-[11px] ${actual
+                    ? 'bg-indigo-100 text-indigo-800 font-semibold'
+                    : 'bg-gray-100 text-gray-500'}`}
+                title={actual ? 'Pedido de esta factura' : 'Otro pedido de la misma venta'}
+            >{n}</span>
+        );
+        return (
+            <>
+                {todos.map(n => chip(n, n === g.pedido))}
+                {!todos.includes(g.pedido) && chip(g.pedido, true)}
+            </>
+        );
+    };
+
     const fetchEntries = useCallback(async () => {
         setLoading(true);
         try {
@@ -466,14 +490,16 @@ export default function LabCostosPage() {
                                                                 <span>
                                                                     <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">Venta</span>
                                                                     <span className="text-gray-600"> {r.gemelo.cliente || ''}</span>
-                                                                    <span className="text-gray-400"> · pedido {r.gemelo.pedido}</span>
+                                                                    <span className="text-gray-400"> ·</span>
+                                                                    {opChips(r.gemelo)}
                                                                 </span>
                                                             )}
                                                             {r.gemelo?.tipo === 'POSTVENTA' && (
                                                                 <span>
                                                                     <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">Postventa</span>
                                                                     <span className="text-gray-600"> {r.gemelo.cliente || ''}</span>
-                                                                    <span className="text-gray-400"> · pedido {r.gemelo.pedido}</span>
+                                                                    <span className="text-gray-400"> ·</span>
+                                                                    {opChips(r.gemelo)}
                                                                 </span>
                                                             )}
                                                             {r.gemelo?.tipo === 'SIN_VENTA' && (
