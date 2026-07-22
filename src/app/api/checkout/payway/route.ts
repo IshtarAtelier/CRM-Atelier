@@ -262,6 +262,18 @@ export async function POST(req: Request) {
       }
     };
 
+    // Promo 2x1 Varilux: los ítems marcados secondPair2x1 van sin cargo
+    // (armazón + cristales), pero SOLO si el pedido incluye al menos un
+    // Varilux pago por cada segundo par. El flag viene del cliente, así que
+    // acá se valida el apareo antes de regalar nada.
+    const paidVariluxQty = items.reduce((acc: number, it: any) =>
+      acc + (it.lensConfig?.treatment === 'VARILUX' && !it.lensConfig?.secondPair2x1 ? Number(it.quantity) || 0 : 0), 0);
+    const freePairQty = items.reduce((acc: number, it: any) =>
+      acc + (it.lensConfig?.secondPair2x1 ? Number(it.quantity) || 0 : 0), 0);
+    if (freePairQty > paidVariluxQty) {
+      return NextResponse.json({ error: "El segundo par sin cargo requiere un Varilux en el pedido (promo 2x1)." }, { status: 400 });
+    }
+
     // Recalculate prices and verify total
     let recalculatedItemsTotal = 0;
     const sanitizedItems = [];
@@ -291,7 +303,11 @@ export async function POST(req: Request) {
         throw new Error(`Producto no encontrado en la base de datos: ${item.model}`);
       }
 
-      const calculatedPrice = recalculateItemPrice(item, dbProduct, isWholesaleUser, PRICING);
+      // Segundo par de la promo 2x1 Varilux (apareo ya validado arriba):
+      // armazón + cristales sin cargo, no se recalcula contra la DB.
+      const calculatedPrice = item.lensConfig?.secondPair2x1
+        ? 0
+        : recalculateItemPrice(item, dbProduct, isWholesaleUser, PRICING);
 
       recalculatedItemsTotal += calculatedPrice * item.quantity;
 

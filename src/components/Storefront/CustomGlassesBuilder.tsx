@@ -73,14 +73,41 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
   const [selectedBrand, setSelectedBrand] = useState("Todas");
   const [selectedVariantIds, setSelectedVariantIds] = useState<Record<string, string>>({});
   const [visibleCount, setVisibleCount] = useState(12);
+  // Promo 2x1 Varilux: tras agregar el primer par, la grilla pasa a modo
+  // "elegí tu segundo armazón sin cargo" (el próximo click agrega gratis).
+  const [secondFramePending, setSecondFramePending] = useState(false);
 
   useEffect(() => {
     setVisibleCount(12);
   }, [searchQuery, selectedBrand]);
-  
-  const { setIsOpen: setCartOpen } = useCart();
+
+  const { addItem, setIsOpen: setCartOpen } = useCart();
 
   const handleSelect = (product: Product) => {
+    if (secondFramePending) {
+      // Segundo armazón de la promo: va directo al carrito en $0 con sus
+      // cristales incluidos (el server valida el apareo con el Varilux pago).
+      addItem({
+        productId: product.id,
+        brand: product.brand,
+        model: `${product.model} — 2º par sin cargo (2x1 Varilux)`,
+        price: 0,
+        basePrice: 0,
+        wholesaleBasePrice: 0,
+        image: (product.imagenesCatalogo.length > 0 ? resolveStorageUrl(product.imagenesCatalogo[0]) : "") || product.mockImage || "/images/placeholder.svg",
+        lensConfig: {
+          lensType: "MULTIFOCAL",
+          treatment: "VARILUX",
+          secondPair2x1: true,
+          color: null,
+          prescriptionFile: "Misma receta del primer par (coordinar por WhatsApp si difiere)"
+        },
+        quantity: 1
+      });
+      setSecondFramePending(false);
+      setCartOpen(true);
+      return;
+    }
     setSelectedProduct(product);
     setConfiguratorStep(1);
     if (window.innerWidth < 1024) {
@@ -221,6 +248,14 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
         onSuccess={() => {
           setIsMobileConfigOpen(false);
           setCartOpen(true);
+        }}
+        onTwoForOne={() => {
+          // Primer Varilux agregado: liberar el configurador y pasar la
+          // grilla a modo "segundo armazón sin cargo".
+          setSelectedProduct(null);
+          setConfiguratorStep(1);
+          setIsMobileConfigOpen(false);
+          setSecondFramePending(true);
         }}
       />
     </motion.div>
@@ -372,10 +407,26 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           <div className="absolute top-20 -left-20 w-[300px] h-[300px] rounded-full bg-[#c8a55c]/[0.03] blur-[100px] pointer-events-none" />
           <div className="absolute bottom-40 right-0 w-[200px] h-[200px] rounded-full bg-[#c8a55c]/[0.02] blur-[80px] pointer-events-none" />
 
+          {/* Banner promo 2x1: el próximo armazón que toque va gratis al carrito */}
+          {secondFramePending && (
+            <div className="mx-6 lg:mx-10 mt-4 shrink-0 relative z-10 flex items-center justify-between gap-3 bg-black text-white rounded-2xl px-5 py-4 shadow-lg">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[#d4af37] mb-0.5">Promo 2x1 Varilux activada</p>
+                <p className="text-sm font-serif">Elegí tu segundo armazón — va sin cargo, cristales incluidos.</p>
+              </div>
+              <button
+                onClick={() => { setSecondFramePending(false); setCartOpen(true); }}
+                className="shrink-0 text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors"
+              >
+                Elegir después
+              </button>
+            </div>
+          )}
+
           <div className="p-6 lg:p-10 pb-3 flex justify-between items-end shrink-0 relative z-10">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c8a55c] mb-1">Paso 1</p>
-              <h1 className="text-xl font-serif tracking-tight text-[#1a1714]">Elegí tu Armazón</h1>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c8a55c] mb-1">{secondFramePending ? "Promo 2x1" : "Paso 1"}</p>
+              <h1 className="text-xl font-serif tracking-tight text-[#1a1714]">{secondFramePending ? "Elegí tu Segundo Armazón" : "Elegí tu Armazón"}</h1>
             </div>
             <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 bg-stone-100 border border-stone-200/80 px-2.5 py-1 rounded-full">
               {groupedProducts.length} {groupedProducts.length === 1 ? 'modelo' : 'modelos'}
