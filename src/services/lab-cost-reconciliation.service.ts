@@ -30,6 +30,17 @@ export interface LabCostInput {
 // Tolerancia en pesos para diferencias de redondeo entre lista y factura.
 const TOLERANCE = 100;
 
+// Umbral de "monto grueso" para los EMAILS de diferencia de costo (regla del
+// administrador): las diferencias chicas no merecen mail — quedan visibles en
+// la página de conciliación — y solo alertan las que superan este monto, en
+// cualquier dirección. Los HUÉRFANOS (pedido sin venta NI postventa) alertan
+// SIEMPRE con todo su detalle, de ambos labs: eso no se filtra por monto.
+// Ajustable sin tocar código: env LAB_ALERT_MIN_DIFF (pesos).
+const ALERT_MIN_DIFF = (() => {
+    const v = Number(process.env.LAB_ALERT_MIN_DIFF);
+    return Number.isFinite(v) && v > 0 ? v : 20000;
+})();
+
 // Optovision factura unos días antes de terminar el pedido: recién a los N días
 // hábiles de la factura se lo da por terminado (5 = margen "por si acaso").
 const OPTOVISION_DIAS_FACTURA_A_LISTO = 5;
@@ -324,15 +335,16 @@ export class LabCostReconciliationService {
         // "Llegó la factura": el pedido no tenía importe y ahora sí.
         const facturaRecienLlegada = billedComparable !== null && prevBilled === null;
 
-        // OPTOVISION (pedidos de alto valor): avisar por CADA factura que ingresa,
-        // diga lo que diga (coincide / sobrecosto / menor). Cruza de quién es,
-        // asigna el monto e informa en el momento. Cubre también el sobrecosto,
-        // así que para Optovision no se manda además la alerta genérica.
+        // Emails de diferencia de costo: SOLO montos gruesos (regla del
+        // administrador). La factura de Optovision que coincide o difiere poco
+        // ya no avisa — queda en la página de conciliación; alerta únicamente
+        // cuando la diferencia (en cualquier dirección) supera ALERT_MIN_DIFF.
         // Los reprocesos (pvEntry) no entran acá: su auditoría es la alerta de
         // reproceso cobrado, más abajo. Al avisar una venta multi-pedido se marcan
         // también sus hermanos con el MISMO estado a nivel venta: el hallazgo es
         // uno solo — sin esto, el par $0 del 2x1 reaparecía después como fila
         // suelta en el barrido (email duplicado por la misma venta).
+        const diffGruesa = difference !== null && Math.abs(difference) >= ALERT_MIN_DIFF;
         const markSale = async () => {
             if (multiPedido && order) {
                 await prisma.labCostEntry.updateMany({
@@ -343,7 +355,7 @@ export class LabCostReconciliationService {
                 await this.markAlerted(entry.id, status);
             }
         };
-        if (input.lab === 'OPTOVISION' && order && !pvEntry && !quiet && facturaRecienLlegada && isPrimaryOfSale) {
+        if (input.lab === 'OPTOVISION' && order && !pvEntry && !quiet && facturaRecienLlegada && isPrimaryOfSale && diffGruesa) {
             await this.sendInvoiceArrivalAlert(entry, order, {
                 saleBilled, systemCost, status, difference, pvCase,
                 ventaCompleta, faltan: Math.max(0, orderNumbers.length - facturadosEnVenta),
@@ -351,9 +363,9 @@ export class LabCostReconciliationService {
                 .catch(err => console.error('[LabCost] Error enviando aviso de factura Optovision:', err));
         } else {
             // Resto de labs (Grupo Óptico): alerta solo cuando el sobrecosto es
-            // nuevo, una vez por venta, sin repetir en cada corrida.
+            // nuevo Y grueso, una vez por venta, sin repetir en cada corrida.
             const isNewOvercost = status === 'OVERCOST' && (!existing || existing.status !== 'OVERCOST');
-            if (isNewOvercost && order && !quiet && isPrimaryOfSale) {
+            if (isNewOvercost && diffGruesa && order && !quiet && isPrimaryOfSale) {
                 await this.sendOvercostAlert(entry, order)
                     .then(ok => { if (ok) return markSale(); })
                     .catch(err => console.error('[LabCost] Error enviando alerta de sobrecosto:', err));
@@ -1160,6 +1172,15 @@ export class LabCostReconciliationService {
         const nuevos = candidatos.filter(e => !quietPorLab[e.lab] && (!e.alertedAt || e.alertedStatus !== e.status));
         if (nuevos.length === 0) return { alerted: 0 };
 
+        // Regla del administrador: los HUÉRFANOS (sin venta ni postventa) alertan
+        // SIEMPRE, de ambos labs; las diferencias de costo solo si son GRUESAS
+        // (≥ ALERT_MIN_DIFF en cualquier dirección). Las chicas se marcan como
+        // vistas SIN email — quedan en la página de conciliación, no en la casilla.
+        const esGrueso = (e: any) => e.status === 'UNMATCHED'
+            || (e.difference !== null && Math.abs(e.difference) >= ALERT_MIN_DIFF);
+        const relevantes = nuevos.filter(esGrueso);
+        const chicos = nuevos.filter(e => !esGrueso(e));
+
         // Una venta con varios pedidos (2x1) estampa el estado a NIVEL VENTA en
         // todas sus entradas hermanas: informar UNA fila por venta (la de mayor
         // importe; a igualdad, menor nº) y marcar el resto como alertado junto
@@ -1168,7 +1189,7 @@ export class LabCostReconciliationService {
         const porVenta = new Map<string, any[]>();
         const findings: any[] = [];
         const suprimidos: any[] = [];
-        for (const e of nuevos) {
+        for (const e of relevantes) {
             if (!e.orderId) { findings.push(e); continue; }
             const key = `${e.lab}:${e.orderId}`;
             if (!porVenta.has(key)) porVenta.set(key, []);
@@ -1183,9 +1204,13 @@ export class LabCostReconciliationService {
         // En local/desarrollo no se mandan emails (ruido al administrador con datos
         // de la base local); tampoco se marca alertado, así prod avisa igual.
         if (!this.emailsEnabled()) {
-            console.log(`[LabCost] alertNewFindings: ${findings.length} hallazgo(s) (email omitido fuera de producción)`);
-            return { alerted: 0, skipped: findings.length };
+            console.log(`[LabCost] alertNewFindings: ${findings.length} hallazgo(s), ${chicos.length} silenciado(s) por monto chico (email omitido fuera de producción)`);
+            return { alerted: 0, skipped: findings.length, silenciados: chicos.length };
         }
+        // Las diferencias chicas se estampan acá (en prod): sin esto quedarían
+        // como "pendientes de alertar" y se re-evaluarían en cada corrida.
+        for (const c of chicos) await this.markAlerted(c.id, c.status);
+        if (findings.length === 0) return { alerted: 0, silenciados: chicos.length };
 
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
         const fmt = (n: number | null | undefined) => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
@@ -1254,9 +1279,11 @@ export class LabCostReconciliationService {
 
     /**
      * Aviso en el momento de que llegó una factura de Optovision: de quién es,
-     * el monto asignado y si coincide con el costo del sistema (o es más/menos).
+     * el monto asignado y la diferencia contra el costo del sistema.
      * Contempla 2x1 (si falta el otro par, avisa que la comparación es parcial) y
-     * postventa. Es el "informame apenas entra" que pidió el usuario.
+     * postventa. Desde el ajuste de ruido pedido por el administrador, solo se
+     * dispara cuando la diferencia es GRUESA (≥ ALERT_MIN_DIFF): las facturas
+     * que coinciden o difieren poco quedan en la página de conciliación.
      */
     private static async sendInvoiceArrivalAlert(entry: any, order: any, ctx: {
         saleBilled: number | null; systemCost: number | null; status: string;
