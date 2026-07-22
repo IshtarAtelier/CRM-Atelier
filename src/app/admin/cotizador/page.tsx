@@ -75,6 +75,9 @@ const formatLensRange = (p: Product): string | null => {
             ? ` · Cil ±${Math.abs(p.cylinderMax)}`
             : ` · Cil ${formatDiopter(p.cylinderMin)} a ${formatDiopter(p.cylinderMax)}`;
     }
+    if (p.additionMin != null && p.additionMax != null) {
+        range += ` · Ad ${formatDiopter(p.additionMin)}–${formatDiopter(p.additionMax)}`;
+    }
     return range;
 };
 
