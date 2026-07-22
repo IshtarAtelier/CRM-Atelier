@@ -17,6 +17,7 @@ import { formatDateTime } from "@/lib/format-date";
 // plantilla que prometa "sin mínimos" manda al lead a un error en el carrito.
 const DEFAULT_TPL =
   "Hola {nombre}! Te escribo de *Cápsula Escarlata* — una colección boutique y curada: diseño de autor y modelos en tendencia, a precio mayorista para ópticas 👓\n\n" +
+  "Trabajamos *acetato italiano* (denso, no se decolora y ajusta perfecto en caliente) y *titanio* (ultraliviano, hipoalergénico, no se oxida). Es calidad que el cliente nota apenas se lo prueba, y eso te lo hace fácil de vender.\n\n" +
   "Comprás desde *$32.000* y se venden al público entre $80.000 y $160.000: *2,5x o más de margen*, y el precio lo ponés vos.\n\n" +
   "Oficina en Córdoba (retirás sin cargo), envíos a todo el país y cambio inmediato ante fallas.\n\n" +
   "Mirá el catálogo completo con precios acá 👇\n{link}";
