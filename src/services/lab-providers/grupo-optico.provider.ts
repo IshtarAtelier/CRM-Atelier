@@ -62,17 +62,19 @@ export class GrupoOpticoProvider {
             // (ERR_HTTP2_PROTOCOL_ERROR y similares): un reintento con pausa
             // resuelve la mayoría sin esperar a la próxima corrida.
             let lastErr: any = null;
-            for (let intento = 1; intento <= 2; intento++) {
+            const INTENTOS = 3;
+            for (let intento = 1; intento <= INTENTOS; intento++) {
                 try {
                     await this.login(page);
                     // La app debe estar cargada para que fetch() comparta la sesión.
                     await page.goto(`${PORTAL_BASE}/smartlab/laboratory/list`, { waitUntil: 'domcontentloaded' });
                     lastErr = null;
+                    if (intento > 1) console.log(`[GrupoOptico] Portal OK en el intento ${intento}.`);
                     break;
                 } catch (err) {
                     lastErr = err;
-                    console.warn(`[GrupoOptico] Login/carga del portal falló (intento ${intento}/2):`, err);
-                    if (intento < 2) await new Promise(r => setTimeout(r, 15000));
+                    console.warn(`[GrupoOptico] Login/carga del portal falló (intento ${intento}/${INTENTOS}):`, err);
+                    if (intento < INTENTOS) await new Promise(r => setTimeout(r, 20000));
                 }
             }
             if (lastErr) throw lastErr;
@@ -202,8 +204,11 @@ export class GrupoOpticoProvider {
         const user = process.env.SMARTLAB_USER || 'pisano.ishtar@gmail.com';
         const pass = process.env.SMARTLAB_PASSWORD || 'atelier';
 
-        await page.goto(`${PORTAL_BASE}/smartlab/auth/authSmartlab/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        await page.waitForSelector('input', { timeout: 15000 });
+        await page.goto(`${PORTAL_BASE}/smartlab/auth/authSmartlab/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        // El portal es un dyndns casero y la app tarda en hidratar; desde el
+        // contenedor (Singapur) los 15s originales se agotaban seguido y la
+        // corrida entera se perdía. 45s da margen sin colgar el pase.
+        await page.waitForSelector('input', { timeout: 45000 });
         const inputs = await page.$$('input');
         if (inputs.length < 2) throw new Error('No se encontraron los campos de login de SmartLab.');
         await page.waitForTimeout(1500);
