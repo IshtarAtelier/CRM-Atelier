@@ -18,9 +18,12 @@ interface ConfiguratorProps {
   cartItemId?: string;
   onSuccess?: () => void;
   onStepChange?: (step: number) => void;
+  /** Se llama en vez de onSuccess al agregar un Varilux nuevo (promo 2x1):
+      el contenedor pasa a elegir el segundo armazón sin cargo. */
+  onTwoForOne?: () => void;
 }
 
-export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, category, onColorChange, productInfo, cartItemId, onSuccess, onStepChange }: ConfiguratorProps) {
+export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, category, onColorChange, productInfo, cartItemId, onSuccess, onStepChange, onTwoForOne }: ConfiguratorProps) {
   const [webSettings, setWebSettings] = useState({
     web_promo_cash_discount: 15,
     web_promo_installments: "6 cuotas sin interés"
@@ -565,7 +568,10 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
                 },
                 quantity: 1
               });
-              if (onSuccess) onSuccess();
+              // Varilux incluye 2x1: en vez de cerrar, pasar a elegir el
+              // segundo armazón sin cargo (si el contenedor lo soporta).
+              if (treatment === "VARILUX" && onTwoForOne) onTwoForOne();
+              else if (onSuccess) onSuccess();
             }
           }}
           className="w-full py-5 bg-black text-white font-bold uppercase tracking-[0.2em] text-[12px] hover:bg-black/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex justify-center items-center gap-2 rounded-full shadow-lg"
