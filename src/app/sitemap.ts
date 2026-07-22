@@ -118,12 +118,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       where: { status: 'PUBLISHED' },
       select: { slug: true, updatedAt: true }
     });
-    dbBlogRoutes = blogPosts.map((post) => ({
-      url: `${baseUrl}/blog/${post.slug}`,
-      lastModified: post.updatedAt,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    }));
+    dbBlogRoutes = blogPosts
+      // Los artículos importados de Tienda Nube conservan en la DB su slug con
+      // sufijo hash y siguen PUBLISHED, pero /blog/[slug] los redirige (301) a
+      // su versión con slug limpio, que también está en este sitemap. Un sitemap
+      // debe listar solo destinos finales: declararlos hacía que Google los
+      // rastreara y los contara como "Página con redirección" (17 casos en el
+      // aviso de Search Console del 18/7/2026). Mismo criterio que usa
+      // HASH_SUFFIX_REGEX en src/app/blog/[slug]/page.tsx.
+      .filter((post) => !/-[0-9a-f]{12}$/.test(post.slug))
+      .map((post) => ({
+        url: `${baseUrl}/blog/${post.slug}`,
+        lastModified: post.updatedAt,
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      }));
   } catch (error) {
     console.error("Error fetching sitemap blog routes from DB:", error);
   }
