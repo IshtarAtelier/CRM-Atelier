@@ -117,7 +117,7 @@ export function ProductFilters({
       {/* Botón flotante para móviles */}
       <button 
         onClick={() => setIsOpen(true)}
-        className="lg:hidden w-full flex items-center justify-center gap-2 bg-stone-900 text-white py-4 font-bold tracking-widest text-xs uppercase mb-8 rounded-full"
+        className="lg:hidden w-full flex items-center justify-center gap-2 bg-stone-900 text-white py-4 font-bold tracking-widest text-xs uppercase mb-8 rounded-full hover:bg-[#c8a55c] transition-colors duration-300"
       >
         <Filter className="w-4 h-4" />
         Filtrar y Ordenar
@@ -153,7 +153,7 @@ export function ProductFilters({
 
               {/* Sección Ordenar */}
               <div>
-                <h3 className="text-xs font-bold text-stone-900 dark:text-stone-200 uppercase tracking-[0.2em] mb-4">
+                <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4">
                   Ordenar por
                 </h3>
                 <div className="flex flex-col gap-3">
@@ -164,8 +164,8 @@ export function ProductFilters({
                     { id: 'mayor_precio', label: 'Mayor Precio' },
                   ].map((option) => (
                     <label key={option.id} className="flex items-center gap-3 cursor-pointer group">
-                      <div className={`w-4 h-4 rounded-full border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${currentSort === option.id ? 'border-black dark:border-white' : 'group-hover:border-stone-500'}`}>
-                        {currentSort === option.id && <div className="w-2 h-2 bg-black dark:bg-white rounded-full" />}
+                      <div className={`w-4 h-4 rounded-full border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${currentSort === option.id ? 'border-[#c8a55c]' : 'group-hover:border-stone-500'}`}>
+                        {currentSort === option.id && <div className="w-2 h-2 bg-[#c8a55c] rounded-full" />}
                       </div>
                       <input 
                         type="radio" 
@@ -175,7 +175,7 @@ export function ProductFilters({
                         onChange={(e) => handleFilterChange('orden', e.target.value)}
                         className="hidden" 
                       />
-                      <span className={`text-sm ${currentSort === option.id ? 'font-medium text-black dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
+                      <span className={`text-sm ${currentSort === option.id ? 'font-semibold text-[#8a6d3b] dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
                         {option.label}
                       </span>
                     </label>
@@ -185,7 +185,7 @@ export function ProductFilters({
 
               {/* Sección Género */}
               <div>
-                <h3 className="text-xs font-bold text-stone-900 dark:text-stone-200 uppercase tracking-[0.2em] mb-4 border-t lg:border-none pt-8 lg:pt-0">
+                <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                   Género
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -193,8 +193,8 @@ export function ProductFilters({
                     onClick={() => handleFilterChange('genero', '')}
                     className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
                       !currentGender
-                        ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 shadow-md scale-[1.02]'
-                        : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
+                        ? 'border-[#c8a55c] bg-[#c8a55c] text-white shadow-md shadow-[#c8a55c]/20 scale-[1.02]'
+                        : 'border-stone-200 hover:border-[#c8a55c]/50 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                     }`}
                   >
                     Todos
@@ -225,7 +225,7 @@ export function ProductFilters({
               {/* Sección Forma */}
               {availableShapes.length > 0 && (
                 <div>
-                  <h3 className="text-xs font-bold text-stone-900 dark:text-stone-200 uppercase tracking-[0.2em] mb-4 border-t lg:border-none pt-8 lg:pt-0">
+                  <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                     Forma
                   </h3>
                   <div className="grid grid-cols-2 gap-2 pr-1">
@@ -234,8 +234,8 @@ export function ProductFilters({
                       onClick={() => handleFilterChange('forma', '')}
                       className={`group flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-center transition-all duration-300 ${
                         !currentShape
-                          ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 dark:border-stone-50 shadow-md scale-[1.02]'
-                          : 'border-stone-200 hover:border-stone-400 bg-white text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
+                          ? 'border-[#c8a55c] bg-[#c8a55c] text-white shadow-md shadow-[#c8a55c]/20 scale-[1.02]'
+                          : 'border-stone-200 hover:border-[#c8a55c]/50 bg-white text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                       }`}
                     >
                       <div className="w-8 h-4 flex items-center justify-center opacity-70 group-hover:opacity-100 mb-1">
@@ -275,7 +275,7 @@ export function ProductFilters({
               {/* Sección Material */}
               {availableMaterials.length > 0 && (
                 <div>
-                  <h3 className="text-xs font-bold text-stone-900 dark:text-stone-200 uppercase tracking-[0.2em] mb-4 border-t lg:border-none pt-8 lg:pt-0">
+                  <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                     Material
                   </h3>
                   <div className="flex flex-wrap gap-2">
@@ -312,13 +312,13 @@ export function ProductFilters({
               {/* Sección Marca */}
               {availableBrands.length > 1 && (
                 <div>
-                  <h3 className="text-xs font-bold text-stone-900 dark:text-stone-200 uppercase tracking-[0.2em] mb-4 border-t lg:border-none pt-8 lg:pt-0">
+                  <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
                     Marca
                   </h3>
                   <div className="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                     {/* Opción Todas */}
                     <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={`w-4 h-4 rounded border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${!currentBrand ? 'bg-black border-black text-white dark:bg-white dark:border-white dark:text-stone-950' : 'group-hover:border-stone-500'}`}>
+                      <div className={`w-4 h-4 rounded border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${!currentBrand ? 'bg-[#c8a55c] border-[#c8a55c] text-white' : 'group-hover:border-stone-500'}`}>
                         {!currentBrand && <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                       </div>
                       <input 
@@ -329,7 +329,7 @@ export function ProductFilters({
                         onChange={() => handleFilterChange('marca', '')}
                         className="hidden" 
                       />
-                      <span className={`text-base tracking-wide ${!currentBrand ? 'font-bold text-black dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
+                      <span className={`text-base tracking-wide ${!currentBrand ? 'font-bold text-[#8a6d3b] dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
                         Todas las Marcas
                       </span>
                     </label>
@@ -337,7 +337,7 @@ export function ProductFilters({
                     {/* Lista de Marcas */}
                     {availableBrands.map((brand) => (
                       <label key={brand} className="flex items-center gap-3 cursor-pointer group">
-                        <div className={`w-5 h-5 rounded border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${currentBrand === brand ? 'bg-black border-black text-white dark:bg-white dark:border-white dark:text-stone-950' : 'group-hover:border-stone-500'}`}>
+                        <div className={`w-5 h-5 rounded border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${currentBrand === brand ? 'bg-[#c8a55c] border-[#c8a55c] text-white' : 'group-hover:border-stone-500'}`}>
                           {currentBrand === brand && <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                         </div>
                         <input 
@@ -348,7 +348,7 @@ export function ProductFilters({
                           onChange={() => handleFilterChange('marca', brand)}
                           className="hidden" 
                         />
-                        <span className={`text-base tracking-wide ${currentBrand === brand ? 'font-bold text-black dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
+                        <span className={`text-base tracking-wide ${currentBrand === brand ? 'font-bold text-[#8a6d3b] dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
                           {brand}
                         </span>
                       </label>
@@ -361,7 +361,7 @@ export function ProductFilters({
               {(currentBrand || currentShape || currentMaterial || currentGender || currentSort !== 'recientes') && (
                 <button 
                   onClick={clearFilters}
-                  className="mt-4 text-xs font-bold text-stone-400 hover:text-black dark:hover:text-white uppercase tracking-[0.1em] transition-colors self-start"
+                  className="mt-4 text-xs font-bold text-stone-400 hover:text-[#8a6d3b] dark:hover:text-white uppercase tracking-[0.1em] transition-colors self-start"
                 >
                   Limpiar Filtros
                 </button>
