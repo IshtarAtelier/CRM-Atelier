@@ -992,12 +992,16 @@ export default function InventarioPage() {
                                             onChange={e => setEditForm({ ...editForm, baseCost: e.target.value })}
                                             className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary"
                                         />
-                                        <p className="text-[9px] font-bold text-stone-400 ml-3">Precio de lista, sin calibrado ni IVA</p>
+                                        <p className="text-[9px] font-bold text-stone-400 ml-3">
+                                            {editCost.hasBase ? 'Precio de lista, sin calibrado ni IVA' : 'Vacío: el costo queda como está'}
+                                        </p>
                                     </div>
-                                    {/* Costo final: derivado, no editable mientras haya pelado cargado. */}
+                                    {/* Derivado y de solo lectura si hay pelado cargado. Si no hay pelado
+                                        (productos viejos), es el costo tal cual está guardado: se muestra
+                                        como "Costo" a secas, sin dar a entender que salió de una fórmula. */}
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3 flex items-center gap-1">
-                                            <Zap className="w-3 h-3 text-amber-500" /> Costo final ($)
+                                            {editCost.hasBase ? <><Zap className="w-3 h-3 text-amber-500" /> Costo final ($)</> : 'Costo ($)'}
                                         </label>
                                         <input
                                             type="number"
@@ -1016,7 +1020,7 @@ export default function InventarioPage() {
                                                 <p className="text-[9px] font-bold text-stone-400 ml-3">{editForm.laboratory || 'El lab'} no tiene calibrado/IVA cargado</p>
                                             )
                                         ) : (
-                                            <p className="text-[9px] font-bold text-stone-400 ml-3">Cargá el pelado y se calcula solo</p>
+                                            <p className="text-[9px] font-bold text-stone-400 ml-3">Costo guardado, sin fórmula aplicada</p>
                                         )}
                                     </div>
                                 </div>
