@@ -152,15 +152,6 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                   carrusel auto-scrolleado esa capa de composición NO se pintaba en prod
                   (cards en gris vacío). El fondo blanco funde las fotos igual de limpio. */}
               <div className="bg-white aspect-square overflow-hidden border-r border-[#e5e5e5] relative">
-                {/* Escasez — discreto y sin animación: el rojo con pulso rompía
-                    la estética sobria del resto de la tienda. */}
-                {item.stock != null && item.stock > 0 && item.stock <= 3 && (
-                  <span className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-stone-700 text-[10px] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-sm border border-stone-200">
-                    <span className="w-1 h-1 rounded-full bg-[#c8a55c]" />
-                    Últimas {item.stock}
-                  </span>
-                )}
-
                 {/* Titanium Badge */}
                 {isTitanium && (
                   <span className="absolute bottom-3 left-3 text-[10px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-700 shadow-md flex items-center gap-1.5 rounded-sm">
