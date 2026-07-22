@@ -136,8 +136,8 @@ export function ProductFilters({
 
       <div 
         className={`
-          fixed lg:relative inset-y-0 left-0 z-50 w-4/5 max-w-sm lg:w-full lg:max-w-none 
-          bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 lg:px-2 lg:py-0 
+          fixed lg:relative inset-y-0 left-0 z-50 lg:z-0 w-4/5 max-w-sm lg:w-full lg:max-w-none
+          bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 lg:px-2 lg:py-0
           overflow-y-auto lg:overflow-visible flex-col gap-10
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0 flex' : '-translate-x-full lg:translate-x-0 hidden lg:flex'}
