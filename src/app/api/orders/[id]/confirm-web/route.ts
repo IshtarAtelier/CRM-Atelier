@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { ContactService } from '@/services/contact.service';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export async function POST(
 
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            select: { id: true, status: true, total: true, paid: true }
+            select: { id: true, status: true, total: true, paid: true, clientId: true }
         });
         if (!order) {
             return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
@@ -79,6 +80,28 @@ export async function POST(
             where: { orderId, type: 'WEB_SALE', status: 'PENDING' },
             data: { status: 'APPROVED', resolvedBy: userName }
         });
+
+        // Trazabilidad: la transición WEB_*→PENDING es la confirmación humana de
+        // la venta. addPayment ya deja su propio rastro cuando hay transferencia
+        // por acreditar, pero una tarjeta (WEB_PAID) sin saldo pendiente no pasa
+        // por ahí — sin esto esa confirmación no quedaba firmada en ningún lado.
+        prisma.interaction.create({
+            data: {
+                clientId: order.clientId,
+                type: 'SISTEMA',
+                content: `✅ Venta Web #${orderId.slice(-4).toUpperCase()} confirmada por ${userName}.`,
+                userId: actor.id,
+                userName
+            }
+        }).catch(err => console.error('Error creando Interaction de confirmación web:', err));
+        logAudit({
+            userId: actor.id,
+            userName,
+            action: 'STATUS_CHANGE',
+            entityType: 'ORDER',
+            entityId: orderId,
+            details: { from: order.status, to: 'PENDING' }
+        }).catch(err => console.error('Error en logAudit de confirmación web:', err));
 
         return NextResponse.json({ success: true, order: updated });
     } catch (error: any) {
