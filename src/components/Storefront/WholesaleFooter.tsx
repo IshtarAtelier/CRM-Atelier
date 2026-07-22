@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { WHATSAPP_PHONE } from "@/lib/constants";
+import { WHOLESALE_WHATSAPP_PHONE } from "@/lib/constants";
 
 // Footer del canal mayorista — marca Cápsula Escarlata, sin NINGÚN dato de
 // Atelier (dirección, redes, local, blog, obras sociales). Solo lo útil para
 // una óptica. Se muestra a sesiones OPTICA en /tienda y demás páginas públicas.
 export function WholesaleFooter() {
-  const waLink = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(
+  const waLink = `https://wa.me/${WHOLESALE_WHATSAPP_PHONE}?text=${encodeURIComponent(
     "Hola! Consulta sobre el canal mayorista de Cápsula Escarlata.",
   )}`;
   return (
@@ -21,6 +21,10 @@ export function WholesaleFooter() {
           <p className="text-[13px] text-stone-400 max-w-xs leading-relaxed">
             Armazones de diseño de autor. Canal mayorista para ópticas — precios
             netos por unidad.
+          </p>
+          <p className="text-[12px] text-stone-500 max-w-xs leading-relaxed mt-3">
+            Oficina en Córdoba · retiros sin cargo · envíos a todo el país ·
+            cambio inmediato ante fallas.
           </p>
         </div>
         <div className="flex flex-col gap-2">

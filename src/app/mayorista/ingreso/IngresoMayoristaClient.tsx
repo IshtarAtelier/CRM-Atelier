@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
-import { WHATSAPP_PHONE } from '@/lib/constants';
+import { WHOLESALE_WHATSAPP_PHONE } from '@/lib/constants';
 
 export default function IngresoMayoristaClient() {
   const router = useRouter();
@@ -14,7 +14,7 @@ export default function IngresoMayoristaClient() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const waLink = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(
+  const waLink = `https://wa.me/${WHOLESALE_WHATSAPP_PHONE}?text=${encodeURIComponent(
     'Hola! Quiero pedir mi usuario mayorista de Cápsula Escarlata.',
   )}`;
 

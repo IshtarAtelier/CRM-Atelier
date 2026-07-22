@@ -1,6 +1,12 @@
 // WhatsApp phone number (single source of truth for all storefront pages)
 export const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5493518685644';
 
+// WhatsApp del CANAL MAYORISTA (Cápsula Escarlata). Separado del número del
+// negocio a propósito: todo el contacto del área mayorista (catálogo, ingreso,
+// botón flotante, footer, plantilla de outreach) va a este número, no al de
+// Atelier. Normalizado wa.me (549 + área + número).
+export const WHOLESALE_WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHOLESALE_WHATSAPP_PHONE || '5493541215971';
+
 // Destinatarios de las alertas internas (nuevas ventas web, stock bajo, etc.).
 // Single source of truth: no hardcodear estos correos en cada endpoint.
 export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';

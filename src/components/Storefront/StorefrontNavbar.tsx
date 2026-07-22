@@ -431,7 +431,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                           )}
                         </div>
                         <div className="flex flex-col justify-center">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-stone-500 dark:text-stone-400">{p.brand || 'ATELIER'}</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-stone-500 dark:text-stone-400">{isOptica ? 'Cápsula Escarlata' : (p.brand || 'ATELIER')}</span>
                           <span className="text-sm font-medium text-stone-850 dark:text-stone-100 leading-tight group-hover:text-black dark:group-hover:text-white transition-colors">
                             {p.name || p.model}
                           </span>

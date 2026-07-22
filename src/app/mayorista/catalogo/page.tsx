@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import { prisma } from '@/lib/db';
 import { rethrowUnlessBuild } from '@/lib/db-guard';
-import { WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from '@/lib/constants';
+import { WHOLESALE_WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from '@/lib/constants';
 import CatalogViewTracker from '@/components/Mayorista/CatalogViewTracker';
 
 // Pedido a mano (Ishtar, 21/7): estas piezas van primero, en este orden.
@@ -113,7 +113,7 @@ export default async function CatalogoMayoristaPage({
   const waMsg = encodeURIComponent(
     'Hola! Vi el catálogo mayorista de Cápsula Escarlata y quiero pedir mi usuario.',
   );
-  const waLink = `https://wa.me/${WHATSAPP_PHONE}?text=${waMsg}`;
+  const waLink = `https://wa.me/${WHOLESALE_WHATSAPP_PHONE}?text=${waMsg}`;
 
   return (
     <div className="min-h-screen bg-[#faf8f5] dark:bg-[#1c1917] pb-20">
@@ -133,13 +133,13 @@ export default async function CatalogoMayoristaPage({
               Precios netos por unidad, pensados para revender.
             </p>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <StatPill label={`Mínimo ${WHOLESALE_MIN_PIECES} piezas`} sub="por pedido, mezclás modelos" />
-              <StatPill label="Precios netos" sub="pensados para revender" />
-              <StatPill label="Stock disponible" sub="entrega inmediata" />
-              <StatPill label={`${products.length || '—'} modelos`} sub="disponibles hoy" />
+              <StatPill label="Oficina en Córdoba" sub="retirás sin cargo" />
+              <StatPill label="Envíos a todo el país" sub="a coordinar" />
+              <StatPill label="Cambio inmediato" sub="ante fallas de fábrica" />
+              <StatPill label={`Mínimo ${WHOLESALE_MIN_PIECES} piezas`} sub="mezclás los modelos que quieras" />
               <StatPill
-                label="Ficha completa"
-                sub="foto y datos de cada pieza, listas para el carrito"
+                label={`${products.length || '—'} modelos con precio neto`}
+                sub="cada uno con foto y ficha, listos para el carrito"
                 className="col-span-2"
               />
             </div>
@@ -212,7 +212,7 @@ export default async function CatalogoMayoristaPage({
               <div className="grid sm:grid-cols-3 gap-5 max-w-3xl mx-auto mb-10 text-left">
                 <Step n="1" t="Escribinos por WhatsApp" d="Te atiende una persona, no un bot." />
                 <Step n="2" t="Te creamos tu usuario" d="Acceso exclusivo para tu óptica." />
-                <Step n="3" t="Comprás online 24/7" d="Tus precios netos, desde 10 piezas." />
+                <Step n="3" t="Comprás y coordinás" d="Retirás en Córdoba sin cargo o te enviamos a todo el país." />
               </div>
               <a
                 href={waLink}

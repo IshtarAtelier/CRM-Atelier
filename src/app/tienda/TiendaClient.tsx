@@ -531,7 +531,7 @@ export function TiendaClient({
                     {/* Info */}
                     <div className="flex flex-col gap-1 mt-4 px-1 pb-4">
                       <div className="flex items-center justify-between mb-0.5">
-                        <h3 className="text-[10px] text-stone-500 font-black uppercase tracking-[0.20em]">{p.brand || 'ATELIER'}</h3>
+                        <h3 className="text-[10px] text-stone-500 font-black uppercase tracking-[0.20em]">{isWholesale ? 'Cápsula Escarlata' : (p.brand || 'ATELIER')}</h3>
                         {p.material === "Titanio" && (
                           <span className="text-[10px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
                             Titanio
@@ -629,7 +629,7 @@ export function TiendaClient({
         
         {displayedProducts.length > 0 && (
           <p className="mt-8 text-center text-[10px] text-stone-300 uppercase tracking-widest font-bold">
-            Mostrando {displayedProducts.length} de {totalCount} {totalCount === 1 ? "modelo" : "modelos"} · Atelier Óptica
+            Mostrando {displayedProducts.length} de {totalCount} {totalCount === 1 ? "modelo" : "modelos"} · {isWholesale ? "Cápsula Escarlata" : "Atelier Óptica"}
           </p>
         )}
         </div>

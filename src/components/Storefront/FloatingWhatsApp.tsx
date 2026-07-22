@@ -4,10 +4,15 @@ import { motion } from "framer-motion";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useState, useEffect } from "react";
 import { buildWhatsAppUrl, currentPageUrl } from "@/lib/whatsapp-link";
+import { WHOLESALE_WHATSAPP_PHONE } from "@/lib/constants";
 import { usePathname } from "next/navigation";
 
 export function FloatingWhatsApp({ message, productName }: { message?: string; productName?: string } = {}) {
   const [isVisible, setIsVisible] = useState(false);
+  // Óptica logueada (mayorista): el botón usa el número y el tono de Cápsula
+  // Escarlata, no los de Atelier. Señal = localStorage 'user' (la cookie es
+  // httpOnly). Ver el patrón en StorefrontNavbar.
+  const [isOptica, setIsOptica] = useState(false);
   const pathname = usePathname();
 
   // Solo mostrar después de un par de segundos para que no sea intrusivo al cargar la página
@@ -18,6 +23,13 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored && JSON.parse(stored)?.role === "OPTICA") setIsOptica(true);
+    } catch { /* noop */ }
+  }, []);
+
   // /mayorista/catalogo ya trae su propia barra de CTA con WhatsApp fija abajo
   // (mismo ancho de pantalla): la burbuja flotante quedaba superpuesta arriba.
   if (pathname?.startsWith("/admin") || pathname?.startsWith("/login") || pathname?.startsWith("/mayorista")) {
@@ -25,8 +37,13 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   }
 
   let defaultText = "Los vi en la nueva web de Atelier, quisiera que me asesoren.";
-  
-  if (productName) {
+
+  if (isOptica) {
+    // Óptica en la tienda mayorista: tono y marca Cápsula Escarlata.
+    defaultText = productName
+      ? `Hola! Consulta mayorista sobre el modelo ${productName} (Cápsula Escarlata).`
+      : "Hola! Consulta sobre el canal mayorista de Cápsula Escarlata.";
+  } else if (productName) {
     defaultText = `¡Hola! Tengo dudas sobre el modelo ${productName} y me gustaría recibir asesoramiento.`;
   } else if (message) {
     defaultText = message;
@@ -44,6 +61,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
 
   const WHATSAPP_URL = buildWhatsAppUrl(defaultText, {
     pageUrl: sharesPageUrl ? currentPageUrl(pathname || "") : undefined,
+    ...(isOptica ? { phone: WHOLESALE_WHATSAPP_PHONE } : {}),
   });
 
   if (!isVisible) return null;

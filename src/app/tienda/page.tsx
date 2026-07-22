@@ -105,10 +105,15 @@ export default async function TiendaPage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }}
-      />
+      {/* El JSON-LD nombra Atelier (SEO minorista). Para una óptica no se
+          emite: la página es noindex y no debe filtrar la marca ni en el
+          HTML oculto. */}
+      {!isOptica && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }}
+        />
+      )}
       <TiendaClient
         initialProducts={mappedInitialProducts}
         initialTotalCount={initialTotalCount}
