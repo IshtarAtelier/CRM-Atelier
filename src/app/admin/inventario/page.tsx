@@ -34,8 +34,9 @@ export default function InventarioPage() {
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, baseCost: '' as string, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, publishToWholesale: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
     const [savingEdit, setSavingEdit] = useState(false);
-    // ¿El costo final sigue a la fórmula? Se prende al tocar el pelado, se apaga al escribir el final a mano.
-    const [costAutoSync, setCostAutoSync] = useState(false);
+    // Hay un cálculo pendiente: se escribió el pelado y todavía no se aplicó al final.
+    // Se consume al salir del campo o al guardar — una sola vez, nunca en loop.
+    const [costCalcPending, setCostCalcPending] = useState(false);
     const [selectedBrand, setSelectedBrand] = useState('');
     const [selectedLab, setSelectedLab] = useState('');
     const [importing, setImporting] = useState(false);
@@ -216,13 +217,17 @@ export default function InventarioPage() {
         };
     }, [editingProduct, editForm.baseCost, editForm.cost, editForm.laboratory, editForm.is2x1, editForm.name, labsConfig]);
 
-    // Autocompletado del costo final: se activa recién cuando el usuario toca el pelado
-    // (arranca apagado al abrir la ficha, así abrir y guardar nunca cambia un costo por
-    // su cuenta) y se apaga en cuanto el usuario escribe el final a mano.
-    useEffect(() => {
-        if (!costAutoSync || editCost.suggested == null) return;
-        setEditForm(prev => (prev.cost === editCost.suggested ? prev : { ...prev, cost: editCost.suggested as number }));
-    }, [costAutoSync, editCost.suggested]);
+    // El cálculo se dispara UNA vez por carga del pelado: al terminar de escribirlo
+    // (blur) o al guardar. No corre en cada tecla ni se puede volver a aplicar sobre
+    // un costo ya calculado — la fórmula lee siempre el pelado, nunca el final.
+    const setCostFromFormula = () => {
+        setCostCalcPending(false);
+        if (editCost.suggested == null) return;
+        setEditForm(prev => ({ ...prev, cost: editCost.suggested as number }));
+    };
+    // Al salir del pelado (o al apretar Enter): si quedó un cálculo pendiente, se aplica
+    // y se consume. Sin pendiente no hace nada — tocar de nuevo no vuelve a calcular.
+    const applyPendingCostCalc = () => { if (costCalcPending) setCostFromFormula(); };
 
     // Helper: determinar si el producto maneja stock propio o se pide a laboratorio (Todos los cristales son de lab)
     const isRequestedToLab = (p: { category?: string; type?: string | null; origin?: string | null }) => 
@@ -318,8 +323,8 @@ export default function InventarioPage() {
         });
         setShowEditRanges(false);
         // Al abrir mostramos el costo tal cual está guardado: nada se recalcula solo
-        // hasta que el usuario toque el pelado.
-        setCostAutoSync(false);
+        // hasta que el usuario escriba el pelado.
+        setCostCalcPending(false);
     };
 
     const handleSaveEdit = async () => {
@@ -355,8 +360,10 @@ export default function InventarioPage() {
                 // Se guarda el costo final tal cual quedó en pantalla (sugerido por la
                 // fórmula o pisado a mano) y el pelado como respaldo, para poder recalcular
                 // sin volver a aplicarle la fórmula a un costo que ya la tenía aplicada.
+                // Si se apretó Guardar con el pelado recién escrito y el cálculo todavía
+                // pendiente, se aplica acá — nunca se guarda un pelado nuevo con el costo viejo.
                 baseCost: editCost.hasBase ? parseFloat(String(editForm.baseCost)) : null,
-                cost: editForm.cost,
+                cost: costCalcPending && editCost.suggested != null ? editCost.suggested : editForm.cost,
                 sphereMin: editForm.sphereMin !== '' ? parseFloat(editForm.sphereMin) : null,
                 sphereMax: editForm.sphereMax !== '' ? parseFloat(editForm.sphereMax) : null,
                 cylinderMin: editForm.cylinderMin !== '' ? parseFloat(editForm.cylinderMin) : null,
@@ -1004,7 +1011,7 @@ export default function InventarioPage() {
                                 )}
                                 {isAdmin && editCost.isCristal && (
                                 <div className="col-span-2 grid grid-cols-2 gap-5">
-                                    {/* Costo pelado: al tocarlo se completa solo el final. */}
+                                    {/* Costo pelado: al terminar de escribirlo se calcula el final, una vez. */}
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Costo pelado ($)</label>
                                         <input
@@ -1012,15 +1019,17 @@ export default function InventarioPage() {
                                             min={0}
                                             placeholder="Lista del lab"
                                             value={editForm.baseCost}
-                                            onChange={e => { setEditForm({ ...editForm, baseCost: e.target.value }); setCostAutoSync(true); }}
+                                            onChange={e => { setEditForm({ ...editForm, baseCost: e.target.value }); setCostCalcPending(true); }}
+                                            onBlur={applyPendingCostCalc}
+                                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyPendingCostCalc(); } }}
                                             className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary"
                                         />
                                         <p className="text-[9px] font-bold text-stone-400 ml-3">
                                             {editCost.hasBase ? 'Precio de lista, sin calibrado ni IVA' : 'Vacío: el costo queda como está'}
                                         </p>
                                     </div>
-                                    {/* Costo final: editable siempre. La fórmula lo completa sola apenas se
-                                        carga el pelado, pero es una sugerencia — se puede pisar a mano. */}
+                                    {/* Costo final: editable siempre. La fórmula lo completa una sola vez
+                                        al terminar de cargar el pelado; después manda lo que haya acá. */}
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3 flex items-center gap-1">
                                             {editCost.canApply ? <><Zap className="w-3 h-3 text-amber-500" /> Costo final ($)</> : 'Costo ($)'}
@@ -1029,11 +1038,15 @@ export default function InventarioPage() {
                                             type="number"
                                             min={0}
                                             value={editForm.cost}
-                                            onChange={e => { setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 }); setCostAutoSync(false); }}
+                                            onChange={e => { setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 }); setCostCalcPending(false); }}
                                             className={`w-full px-5 py-4 border rounded-2xl font-black text-sm outline-none focus:border-primary ${editCost.matchesFormula ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400' : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700'}`}
                                         />
                                         {editCost.canApply ? (
-                                            editCost.matchesFormula ? (
+                                            costCalcPending ? (
+                                                <p className="text-[9px] font-bold text-amber-600 ml-3">
+                                                    Al salir del campo queda en ${editCost.suggested?.toLocaleString('es-AR')}
+                                                </p>
+                                            ) : editCost.matchesFormula ? (
                                                 <p className="text-[9px] font-bold text-amber-600 ml-3">
                                                     + calibrado ${editCost.calibrado.toLocaleString('es-AR')}{editCost.is2x1 && ' (2x1, doble)'} + IVA {editCost.iva}%
                                                     <span className="text-stone-400"> · podés modificarlo</span>
@@ -1043,7 +1056,7 @@ export default function InventarioPage() {
                                                     A mano. La fórmula da ${editCost.suggested?.toLocaleString('es-AR')}
                                                     <button
                                                         type="button"
-                                                        onClick={() => setCostAutoSync(true)}
+                                                        onClick={setCostFromFormula}
                                                         className="ml-1 text-amber-600 hover:text-amber-700 underline underline-offset-2"
                                                     >
                                                         usar ese
