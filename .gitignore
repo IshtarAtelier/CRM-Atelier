@@ -58,6 +58,8 @@ dev.db*
 prisma/dev.db*
 prisma/atelier.db
 backups/
+# Reversas de scripts de mantenimiento (llevan IDs de clientes reales)
+scripts/maintenance/reversa-*.json
 /storage
 
 # scratch files

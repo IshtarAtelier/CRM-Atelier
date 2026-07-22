@@ -103,7 +103,15 @@ export function normalizeContactSource(source: string | null | undefined): strin
         lower === 'ig'
     ) {
         return 'Meta';
-    } else if (lower.includes('ya es cliente') || lower === 'cliente' || lower === 'antiguo') {
+    } else if (
+        lower.includes('ya es cliente') ||
+        lower === 'cliente' ||
+        lower === 'antiguo' ||
+        // "Importado" no es un canal de captación: son los clientes que vinieron
+        // de la migración del sistema anterior, o sea que ya eran clientes.
+        lower === 'importado' ||
+        lower === 'importados'
+    ) {
         return 'Ya es Cliente';
     }
     return clean;
