@@ -66,7 +66,7 @@ const QUICK_REPLIES = [
     { label: 'Receta', text: '¿Me podés compartir tu receta óptica para ayudarte mejor?' },
     { label: 'Turno', text: '¿Querés coordinar un turno para una consulta en el local? 📍' },
     { label: 'Dirección', text: '📍 Nos encontrás en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n\nTe dejo la ubicación para que llegues fácil 👉 https://g.co/kgs/5Jp7D4e' },
-    { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 8 a 20hs. Sábados de 9 a 17hs.\n\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n👉 https://g.co/kgs/5Jp7D4e\n\nCuándo te queda cómodo que te esperemos?' },
+    { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 9 a 13:30 y de 16 a 19:30hs. Sábados de 10 a 14hs.\n\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n👉 https://g.co/kgs/5Jp7D4e\n\nCuándo te queda cómodo que te esperemos?' },
     { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar!' },
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
     { label: 'Pedir reseña', text: 'Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶' },
@@ -493,7 +493,7 @@ function WhatsAppPageContent() {
 
 <contexto>
   DIRECCIÓN: José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.
-  HORARIOS: Lunes a Viernes de 8 a 20hs. Sábados de 9 a 17hs.
+  HORARIOS: Lunes a Viernes de 9 a 13:30 y de 16 a 19:30hs. Sábados de 10 a 14hs.
   Google Maps: https://g.co/kgs/5Jp7D4e (enviá este link UNA SOLA VEZ en toda la conversación, no lo repitas).
   Somos la óptica mejor calificada en Google. Cuando pases la dirección, incluí el link de Maps y animá a leer las reseñas.
   INSTRUCCIÓN DE LA ÓPTICA: [INSTRUCCIONES_CUSTOM]

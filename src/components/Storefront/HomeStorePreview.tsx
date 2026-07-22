@@ -73,11 +73,11 @@ export async function HomeStorePreview() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-stone-200">Lunes a Viernes</p>
-                      <p className="text-sm text-stone-400">08:00 - 20:00 hs</p>
+                      <p className="text-sm text-stone-400">09:00-13:30 y 16:00-19:30 hs</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-stone-200">Sábados</p>
-                      <p className="text-sm text-stone-400">09:00 - 17:00 hs</p>
+                      <p className="text-sm text-stone-400">10:00 - 14:00 hs</p>
                     </div>
                   </div>
                 </div>
