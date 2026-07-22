@@ -14,6 +14,7 @@ import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
 import { AdsService } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
+import { logAudit } from '@/lib/audit';
 
 function getArgentineStateCode(stateName: string): string {
   if (!stateName) return "C"; // fallback to CABA
@@ -628,6 +629,28 @@ export async function POST(req: Request) {
     }
 
     console.log("[PAYWAY CHECKOUT] Ficha de venta creada en CRM:", order.id);
+
+    // Trazabilidad (regla del proyecto): toda mutación de negocio deja Interaction
+    // firmada + AuditLog. La compra web no tenía ninguna de las dos — no aparecía
+    // en el timeline del cliente ni en auditoría.
+    const checkoutActorName = 'Sistema (Payway)';
+    prisma.interaction.create({
+      data: {
+        clientId: client.id,
+        type: 'SISTEMA',
+        content: `🌐 Compra web registrada por ${checkoutActorName} — Orden #${order.id.slice(-4).toUpperCase()} por $${order.total.toLocaleString('es-AR')} (${customer.paymentMethod}).`,
+        userId: null,
+        userName: checkoutActorName
+      }
+    }).catch(err => console.error('Error creando Interaction de compra web:', err));
+    logAudit({
+      userId: null,
+      userName: checkoutActorName,
+      action: 'CREATE',
+      entityType: 'ORDER',
+      entityId: order.id,
+      details: { orderType: order.orderType, paymentMethod: customer.paymentMethod, total: order.total }
+    }).catch(err => console.error('Error en logAudit de compra web:', err));
 
     // 4. Enviar email de confirmación (asincrónico, usando sendEmail centralizado)
     const isTransfer = customer.paymentMethod === 'TRANSFER';
