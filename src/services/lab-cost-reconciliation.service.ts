@@ -377,43 +377,121 @@ export class LabCostReconciliationService {
             }
         }
 
-        // FACTURA = PEDIDO LISTO. Optovision no tiene portal, así que la factura por
-        // email es su única señal de "terminado en laboratorio" (regla del negocio).
-        // Cuando TODAS las operaciones de la venta ya tienen factura (ventaCompleta,
-        // p. ej. en un 2x1 el par real + el espejo), se marca el pedido como FINISHED
-        // y se genera la MISMA notificación LAB_READY que usa Grupo Óptico → cae en
-        // las mismas vistas de "Finalizados" y crons de retiro (que al día siguiente
-        // le avisa al cliente por WhatsApp que puede retirar). Guardas: solo si el
-        // pedido no está ya finalizado/listo/entregado (no repite ni retrocede), los
-        // reprocesos no re-finalizan la venta, y SOLO cuando la factura RECIÉN llega
-        // (facturaRecienLlegada, persistente vía el importe guardado): el escaneo
-        // diario re-lee la misma ventana de 35 días todos los días — sin esta
-        // condición, cada re-lectura de una factura vieja volvería a flipear pedidos
-        // ya retirados (el silencio del backfill solo cubre la primera corrida) y el
-        // cron de retiro WhatsApearía "listo para retirar" a clientes de hace un mes.
-        // En el 2x1 sigue disparando exactamente una vez: con la ÚLTIMA factura que
-        // llega, que es la que completa la venta.
-        if (input.lab === 'OPTOVISION' && order && !pvEntry && facturaRecienLlegada && ventaCompleta
-            && !quiet) {
-            const yaListo = ['FINISHED', 'READY', 'DELIVERED'].includes(order.labStatus || '');
-            if (!yaListo) {
-                await prisma.order.update({ where: { id: order.id }, data: { labStatus: 'FINISHED' } })
-                    .then(() => prisma.notification.create({
-                        data: {
-                            type: 'LAB_READY',
-                            // El texto arranca igual que el de SmartLab: el cron de
-                            // retiro lo reescribe con replace de ese prefijo exacto.
-                            message: `🏭 Pedido finalizado en laboratorio (facturado por Optovision) — ${order!.client?.name ?? 'cliente'} (${orderNumbers.join(', ')})`,
-                            orderId: order!.id,
-                            requestedBy: 'Conciliación Optovision',
-                            status: 'PENDING',
-                        },
-                    }))
-                    .catch(err => console.error('[LabCost] Error marcando pedido Optovision como finalizado:', err));
+        // FACTURA = PEDIDO MÁS CERCA (regla del negocio, corregida por el
+        // administrador): cuando Optovision factura, al pedido todavía le faltan
+        // ~3 días hábiles para estar terminado — NO está listo. Acá solo se
+        // adelanta el estado a "Procesado" (IN_PROGRESS) si venía más atrás; la
+        // promoción a FINISHED (con su notificación LAB_READY y el circuito de
+        // retiro) la hace promoteFinishedOptovision() recién cuando pasaron los
+        // 3 días hábiles desde la factura. Guardas: solo cuando la factura RECIÉN
+        // llega (persistente vía el importe guardado), sin reprocesos, sin backfill.
+        if (input.lab === 'OPTOVISION' && order && !pvEntry && facturaRecienLlegada && !quiet) {
+            const previa = order.labStatus || 'NONE';
+            if (previa === 'NONE' || previa === 'SENT') {
+                await prisma.order.update({ where: { id: order.id }, data: { labStatus: 'IN_PROGRESS' } })
+                    .catch(err => console.error('[LabCost] Error adelantando pedido Optovision a Procesado:', err));
             }
         }
 
         return entry;
+    }
+
+    /**
+     * Promoción a FINISHED de los pedidos de Optovision facturados: la factura
+     * llega ~3 días hábiles ANTES de que el pedido esté terminado, así que un
+     * pedido se marca finalizado recién cuando (a) TODAS las operaciones de su
+     * venta tienen factura y (b) la última factura ya tiene 3+ días hábiles.
+     * Corre en cada pase (10 min y diario). Garantías anti-retroactivo: solo mira
+     * entradas creadas DESPUÉS del backfill inicial de Optovision (las históricas
+     * jamás promueven, aunque su labStatus haya quedado desactualizado) y nunca
+     * repite ni retrocede estados (FINISHED/READY/DELIVERED quedan como están).
+     */
+    static async promoteFinishedOptovision() {
+        const flag = await prisma.systemSetting.findUnique({
+            where: { key: this.backfillKey('OPTOVISION') },
+        });
+        if (!flag?.value) return { promoted: 0, reason: 'backfill_pendiente' };
+        const backfillAt = new Date(flag.value);
+        if (isNaN(backfillAt.getTime())) return { promoted: 0, reason: 'flag_invalido' };
+
+        // Candidatas: entradas post-backfill, con venta y con importe.
+        const entradas = await prisma.labCostEntry.findMany({
+            where: {
+                lab: 'OPTOVISION',
+                createdAt: { gt: backfillAt },
+                orderId: { not: null },
+                OR: [{ billedTotal: { not: null } }, { billedNet: { not: null } }],
+                order: { is: { isDeleted: false, labStatus: { in: ['NONE', 'SENT', 'IN_PROGRESS'] } } },
+            },
+            include: {
+                order: {
+                    select: {
+                        id: true, labStatus: true, labOrderNumber: true,
+                        client: { select: { name: true } },
+                    },
+                },
+            },
+        });
+        if (entradas.length === 0) return { promoted: 0 };
+
+        // Días hábiles (lun-vie) COMPLETOS transcurridos desde una fecha.
+        const habilesDesde = (desde: Date): number => {
+            let count = 0;
+            const d = new Date(desde);
+            d.setHours(0, 0, 0, 0);
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            while (d < hoy) {
+                d.setDate(d.getDate() + 1);
+                const dow = d.getDay();
+                if (dow !== 0 && dow !== 6) count++;
+            }
+            return count;
+        };
+
+        const porVenta = new Map<string, typeof entradas>();
+        for (const e of entradas) {
+            if (!porVenta.has(e.orderId!)) porVenta.set(e.orderId!, []);
+            porVenta.get(e.orderId!)!.push(e);
+        }
+
+        let promoted = 0;
+        for (const [orderId, grupo] of porVenta) {
+            const order = grupo[0].order!;
+            const nums = order.labOrderNumber?.match(/\d{4,}/g) || [];
+            if (nums.length === 0) continue;
+
+            // TODAS las operaciones de la venta tienen que estar facturadas (las
+            // entradas pueden ser pre o post backfill: mirar la DB completa).
+            const todas = await prisma.labCostEntry.findMany({
+                where: { lab: 'OPTOVISION', orderId, labOrderNumber: { in: nums } },
+                select: { labOrderNumber: true, billedNet: true, billedTotal: true, invoiceDate: true, createdAt: true },
+            });
+            const facturadas = todas.filter(t => t.billedTotal !== null || t.billedNet !== null);
+            if (facturadas.length < nums.length) continue;
+
+            // 3+ días hábiles desde la ÚLTIMA factura de la venta (fecha del email
+            // de la factura; si no la hay, cuándo la registramos).
+            const ultima = Math.max(...facturadas.map(t => (t.invoiceDate ?? t.createdAt).getTime()));
+            if (habilesDesde(new Date(ultima)) < 3) continue;
+
+            await prisma.order.update({ where: { id: orderId }, data: { labStatus: 'FINISHED' } })
+                .then(() => prisma.notification.create({
+                    data: {
+                        type: 'LAB_READY',
+                        // El texto arranca igual que el de SmartLab: el cron de
+                        // retiro lo reescribe con replace de ese prefijo exacto.
+                        message: `🏭 Pedido finalizado en laboratorio (facturado por Optovision hace 3+ días hábiles) — ${order.client?.name ?? 'cliente'} (${nums.join(', ')})`,
+                        orderId,
+                        requestedBy: 'Conciliación Optovision',
+                        status: 'PENDING',
+                    },
+                }))
+                .then(() => { promoted++; })
+                .catch(err => console.error('[LabCost] Error promoviendo pedido Optovision a finalizado:', err));
+        }
+        if (promoted > 0) console.log(`[LabCost] ${promoted} pedido(s) de Optovision promovidos a FINISHED (3+ días hábiles de facturados).`);
+        return { promoted };
     }
 
     /**
@@ -1138,6 +1216,7 @@ export class LabCostReconciliationService {
                         <tr><td style="padding:8px; border:1px solid #ddd;">Costo de lista del sistema</td><td style="padding:8px; border:1px solid #ddd; text-align:right;">${fmt(ctx.systemCost)}</td></tr>` : ''}
                     </table>
                     <p style="font-weight:bold; color:${color};">${veredicto}${pv}</p>
+                    <p style="font-size:13px; color:#374151;">📦 La factura llega unos <strong>3 días hábiles antes</strong> de que el pedido esté terminado: todavía no está listo, pero está en camino.</p>
                     ${entry.sourceFile ? `<p style="font-size:12px; color:#6b7280;">Factura: ${entry.sourceFile}</p>` : ''}
                     <p style="margin-top:14px;"><a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente</a> · <a href="${appUrl}/admin/laboratorio/costos">Ver conciliación</a></p>
                 </div>

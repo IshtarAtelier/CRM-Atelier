@@ -116,7 +116,11 @@ export async function GET(req: Request) {
                 const collect = await GrupoOpticoProvider.collect({ sinceDays: FAST_INVOICE_WINDOW_DAYS });
                 const recheck = await LabCostReconciliationService.recheckUnmatched();
                 const alerts = await LabCostReconciliationService.alertNewFindings();
-                fastReconciliation = { ...collect, recheck, alerts };
+                // Pedidos de Optovision facturados hace 3+ días hábiles → FINISHED
+                // (la factura llega unos días antes de que el pedido esté listo).
+                const promoted = await LabCostReconciliationService.promoteFinishedOptovision()
+                    .catch((err: any) => { console.error('[CRON SmartLab] promoteFinishedOptovision:', err); return { promoted: 0 }; });
+                fastReconciliation = { ...collect, recheck, alerts, promoted };
 
                 // Red de seguridad: el backfill (y con él, TODO el régimen de
                 // alertas) depende de que el cron diario corra — y su alta en

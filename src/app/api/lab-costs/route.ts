@@ -28,6 +28,7 @@ export async function GET(request: Request) {
                         id: true,
                         clientId: true,
                         createdAt: true,
+                        labStatus: true,
                         client: { select: { name: true } },
                         // Ítems para mostrar QUÉ producto es y linkear a su ficha
                         // (poder revisar/ajustar el costo desde la conciliación).

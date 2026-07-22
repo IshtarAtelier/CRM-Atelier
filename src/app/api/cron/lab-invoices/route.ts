@@ -201,6 +201,11 @@ export async function GET(request: Request) {
         results.alerts = await LabCostReconciliationService.alertNewFindings()
             .catch((err: any) => ({ error: err?.message }));
 
+        // Pedidos de Optovision facturados hace 3+ días hábiles → FINISHED (la
+        // factura llega unos días antes de que el pedido esté terminado).
+        results.promoted = await LabCostReconciliationService.promoteFinishedOptovision()
+            .catch((err: any) => ({ error: err?.message }));
+
         // Watchdog: proveedores caídos hace STALE_DAYS o más. El pipeline de
         // importes de Grupo Óptico cuenta aparte: el portal puede responder bien
         // (pedidos registrados, "corrida exitosa") con el PDF de comprobantes roto

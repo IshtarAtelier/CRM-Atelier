@@ -23,13 +23,40 @@ interface LabCostEntry {
     status: string;
     notes: string | null;
     createdAt: string;
+    alertedAt: string | null;
+    alertedStatus: string | null;
     order: {
         id: string;
         clientId: string;
         createdAt: string;
+        labStatus: string | null;
         client: { name: string } | null;
     } | null;
     productos?: { productId: string | null; nombre: string; marca: string; costo: number | null }[];
+}
+
+// Estado del pedido en el laboratorio, visto desde la conciliación. Para
+// Optovision, la factura llega ~3 días hábiles ANTES de que el pedido esté
+// terminado: "facturado" = en camino, con fecha estimada de listo.
+const ORDER_LAB_LABELS: Record<string, { label: string; cls: string }> = {
+    NONE: { label: 'Sin enviar', cls: 'bg-gray-100 text-gray-500' },
+    SENT: { label: 'En laboratorio', cls: 'bg-amber-100 text-amber-700' },
+    IN_PROGRESS: { label: 'Procesado', cls: 'bg-blue-100 text-blue-700' },
+    FINISHED: { label: 'Terminado', cls: 'bg-emerald-100 text-emerald-700' },
+    READY: { label: 'Listo p/ retirar', cls: 'bg-emerald-100 text-emerald-700' },
+    DELIVERED: { label: 'Entregado', cls: 'bg-indigo-100 text-indigo-700' },
+};
+
+// Suma N días hábiles (lun-vie) a una fecha.
+function addBusinessDays(from: Date, days: number): Date {
+    const d = new Date(from);
+    let left = days;
+    while (left > 0) {
+        d.setDate(d.getDate() + 1);
+        const dow = d.getDay();
+        if (dow !== 0 && dow !== 6) left--;
+    }
+    return d;
 }
 
 interface StatusTotal {
@@ -647,6 +674,7 @@ export default function LabCostosPage() {
                                 <th className="px-4 py-3 text-right">Costo facturado</th>
                                 <th className="px-4 py-3 text-right">Diferencia</th>
                                 <th className="px-4 py-3">Estado</th>
+                                <th className="px-4 py-3">Pedido</th>
                                 <th className="px-4 py-3">Origen</th>
                             </tr>
                         </thead>
@@ -654,6 +682,16 @@ export default function LabCostosPage() {
                             {entries.map(entry => {
                                 const meta = STATUS_META[entry.status] || { label: entry.status, badge: 'bg-gray-100 text-gray-600' };
                                 const billed = entry.billedNet ?? entry.billedTotal;
+                                // Optovision facturado pero todavía no terminado: la
+                                // factura llega ~3 días hábiles antes → mostrar la
+                                // fecha estimada de "listo".
+                                const labSt = entry.order?.labStatus || 'NONE';
+                                const orderMeta = ORDER_LAB_LABELS[labSt] || ORDER_LAB_LABELS.NONE;
+                                const enCamino = entry.lab === 'OPTOVISION' && entry.order && billed != null
+                                    && !['FINISHED', 'READY', 'DELIVERED'].includes(labSt);
+                                const estimadoListo = enCamino
+                                    ? addBusinessDays(new Date(entry.invoiceDate || entry.createdAt), 3)
+                                    : null;
                                 return (
                                     <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
                                         <td className="px-4 py-3 font-mono font-medium text-gray-900" title={entry.notes || undefined}>
@@ -697,7 +735,26 @@ export default function LabCostosPage() {
                                             {entry.difference === null ? '—' : (entry.difference > 0 ? '+' : '') + fmt(entry.difference)}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${meta.badge}`}>{meta.label}</span>
+                                            <div className="flex flex-col gap-1 items-start">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${meta.badge}`}>{meta.label}</span>
+                                                {entry.alertedAt && ['UNMATCHED', 'OVERCOST', 'UNDERCOST'].includes(entry.alertedStatus || '') && (
+                                                    <span className="text-[10px] text-gray-400" title={`Avisado por email el ${fmtDate(entry.alertedAt)}`}>
+                                                        ✉️ avisado {fmtDate(entry.alertedAt)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {entry.order ? (
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${orderMeta.cls}`}>{orderMeta.label}</span>
+                                                    {enCamino && estimadoListo && (
+                                                        <span className="text-[10px] text-blue-600 font-medium" title="La factura de Optovision llega ~3 días hábiles antes de que el pedido esté terminado">
+                                                            🚚 en camino · listo ~{estimadoListo.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : <span className="text-gray-300">—</span>}
                                         </td>
                                         <td className="px-4 py-3 text-xs text-gray-500" title={entry.sourceFile || ''}>
                                             {SOURCE_LABELS[entry.source] || entry.source}
