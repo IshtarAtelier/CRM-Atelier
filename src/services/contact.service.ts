@@ -850,7 +850,18 @@ export const ContactService = {
 
     async deleteOrder(orderId: string, reason: string) {
         return await prisma.$transaction(async (tx) => {
-            // FIX: Restore stock for SALE orders before soft-deleting
+            // Claim atómico: solo la PRIMERA eliminación restaura stock y borra pagos.
+            // Un doble click, un reintento, o una orden que el checkout ya canceló
+            // (pago rechazado → isDeleted=true con stock ya restaurado) no vuelven
+            // a inflar el stock.
+            const claimed = await tx.order.updateMany({
+                where: { id: orderId, isDeleted: false },
+                data: { isDeleted: true, deletedReason: reason, paid: 0 }
+            });
+            if (claimed.count === 0) {
+                return await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+            }
+
             const order = await tx.order.findUnique({
                 where: { id: orderId },
                 select: {
@@ -866,7 +877,9 @@ export const ContactService = {
                 },
             });
 
-            if (order?.orderType === 'SALE') {
+            // El checkout web descuenta stock tanto para ventas retail (SALE) como
+            // para pedidos MAYORISTA: ambos deben devolverlo al eliminarse.
+            if (order && (order.orderType === 'SALE' || order.orderType === 'MAYORISTA')) {
                 const stockItems = (order.items || []).filter((item: any) => {
                     const cat = item.product?.category;
                     const type = item.product?.type;
@@ -886,15 +899,7 @@ export const ContactService = {
                 where: { orderId }
             });
 
-            // Marcar como eliminado lógica y resetear lo pagado
-            return await tx.order.update({
-                where: { id: orderId },
-                data: {
-                    isDeleted: true,
-                    deletedReason: reason,
-                    paid: 0
-                }
-            });
+            return await tx.order.findUniqueOrThrow({ where: { id: orderId } });
         }, { maxWait: 25000, timeout: 25000 });
     },
 
