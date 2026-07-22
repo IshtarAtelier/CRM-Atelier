@@ -126,7 +126,10 @@ export class PricingService {
     static calculateOrderFinancials(order: any): OrderFinancials {
         const discCash = order.discountCash ?? 20;
         const discTrans = order.discountTransfer ?? 15;
-        const listPrice = order.subtotalWithMarkup || 0;
+        // Las ventas web se crean sin subtotalWithMarkup (no pasan por el markup del
+        // cotizador); sin este fallback, listPrice caía a 0 y toda venta web figuraba
+        // "PAGADO" con saldo 0 sin importar cuánto se pagó en realidad.
+        const listPrice = order.subtotalWithMarkup || order.total || 0;
 
         // Totales base
         const totalCash = Math.round(listPrice * (1 - discCash / 100));

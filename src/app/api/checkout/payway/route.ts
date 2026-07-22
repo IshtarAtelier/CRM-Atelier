@@ -341,11 +341,14 @@ export async function POST(req: Request) {
     // 1. Encontrar o crear cliente
     const normalizedPhone = normalizeArgentinePhone(customer.phone);
     
+    // OJO: un email/dni vacío como `{ email: undefined }` no filtra nada para
+    // Prisma (lo ignora), así que esa rama del OR matchearía cualquier cliente.
+    // Solo se incluye cada condición si el dato realmente vino en el body.
     let client = await prisma.client.findFirst({
       where: {
         OR: [
-          { phone: normalizedPhone },
-          { email: customer.email },
+          ...(normalizedPhone ? [{ phone: normalizedPhone }] : []),
+          ...(customer.email ? [{ email: customer.email }] : []),
           ...(customer.dni ? [{ dni: customer.dni }] : [])
         ]
       }
@@ -726,6 +729,21 @@ export async function POST(req: Request) {
         subject: `💼 Compra Mayorista Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
         html: adminWholesaleHtml
       }).catch(err => console.error("Error admin wholesale email:", err));
+
+      // Notificación en el sistema: nueva venta mayorista pendiente de confirmación
+      try {
+        await prisma.notification.create({
+          data: {
+            type: "WEB_SALE",
+            message: `Nuevo Pedido Mayorista #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${emailTotal.toLocaleString('es-AR')}.`,
+            orderId: order.id,
+            requestedBy: "Sistema (Web)",
+            status: "PENDING"
+          }
+        });
+      } catch (notifErr) {
+        console.error("Error creando notificación de pedido mayorista:", notifErr);
+      }
 
       await notifyLowStockCrossing(decrementedProducts);
       notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (mayorista web):', err));

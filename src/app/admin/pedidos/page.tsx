@@ -204,9 +204,11 @@ export default function PedidosPage() {
     const fetchOrders = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/orders');
+            // type=SALE filtra en el server ANTES del take:100: sin esto los
+            // presupuestos (labSentAt null, mismo orden nulls-first) llenaban
+            // el cupo y las ventas reales quedaban afuera.
+            const res = await fetch('/api/orders?type=SALE');
             const data = await res.json();
-            // Only confirmed sales (SALE), not quotes, not deleted
             const sales = (data || []).filter(
                 (o: Order) => o.orderType === 'SALE' && !o.isDeleted
             );

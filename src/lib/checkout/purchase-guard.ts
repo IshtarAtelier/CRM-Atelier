@@ -11,7 +11,10 @@ import { normalizeArgentinePhone } from '@/services/contact.service';
  *  - CONFIRMED:   venta confirmada en el CRM
  *  - COMPLETED:   venta cerrada / vendido
  */
-export const CLOSED_ORDER_STATUSES = ['WEB_PENDING', 'WEB_PAID', 'CONFIRMED', 'COMPLETED'];
+// 'PENDING' es el status al que confirm-web pasa la orden tras la revisión humana
+// (ver src/app/api/orders/[id]/confirm-web/route.ts) — sin él, alguien que ya
+// compró y fue confirmado seguía recibiendo el email de carrito abandonado.
+export const CLOSED_ORDER_STATUSES = ['WEB_PENDING', 'WEB_PAID', 'PENDING', 'CONFIRMED', 'COMPLETED'];
 
 /**
  * Devuelve true si la persona (identificada por email o teléfono) ya tiene una

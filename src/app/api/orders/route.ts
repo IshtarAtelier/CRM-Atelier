@@ -282,9 +282,10 @@ export async function GET(request: Request) {
 
         if (webPending) {
             andConditions.push({ status: { in: ['WEB_PENDING', 'WEB_PAID'] } });
-        }
-
-        if (typeFilter) {
+            // Las ventas mayoristas también nacen WEB_PENDING/WEB_PAID: si no se
+            // incluyen acá, no hay ninguna pantalla del panel que las liste.
+            andConditions.push({ orderType: { in: ['SALE', 'MAYORISTA'] } });
+        } else if (typeFilter) {
             andConditions.push({ orderType: typeFilter });
         }
 

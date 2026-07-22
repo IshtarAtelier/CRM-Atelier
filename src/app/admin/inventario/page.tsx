@@ -829,11 +829,11 @@ export default function InventarioPage() {
                                             />
                                         ) : (
                                             <button
-                                                onClick={() => { setEditingMarkup(p.id); setEditMarkupValue((p.price / p.cost).toFixed(2)); }}
-                                                className={`text-[11px] font-black px-2 py-0.5 rounded-lg cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all ${(p.price / p.cost) >= 2.4 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400' : (p.price / p.cost) >= 1.5 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'}`}
+                                                onClick={() => { setEditingMarkup(p.id); setEditMarkupValue(p.cost > 0 ? (p.price / p.cost).toFixed(2) : ''); }}
+                                                className={`text-[11px] font-black px-2 py-0.5 rounded-lg cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all ${p.cost > 0 && (p.price / p.cost) >= 2.4 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400' : p.cost > 0 && (p.price / p.cost) >= 1.5 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'}`}
                                                 title="Click para editar markup"
                                             >
-                                                ×{(p.price / p.cost).toFixed(2)}
+                                                {p.cost > 0 ? `×${(p.price / p.cost).toFixed(2)}` : 'SIN COSTO'}
                                             </button>
                                         )
                                     ) : <span className="text-stone-300">—</span>}</div>}
