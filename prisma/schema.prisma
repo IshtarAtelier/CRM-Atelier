@@ -312,6 +312,9 @@ model Order {
   prescriptionId         String?
   labStatus              String?        @default("NONE")
   labSentAt              DateTime?
+  // Quién apretó "enviar a fábrica" (denormalizado: sobrevive rename/borrado del usuario)
+  labSentBy              String?
+  labSentById            String?
   labNotes               String?
   labOrderNumber         String?
   discount               Float?         @default(0.0)
@@ -408,6 +411,10 @@ model Invoice {
   billingAccount String   @default("ISH")
   status         String   @default("COMPLETED")
   createdAt      DateTime @default(now())
+  // Fecha FISCAL del comprobante (CbteFch en ARCA). Puede diferir de createdAt si
+  // se backdatea la emisión; el tope mensual de monotributo se mide por esta fecha,
+  // no por createdAt. Nullable para filas históricas anteriores a la columna.
+  fiscalDate     DateTime?
   observations   String?
   // Actor: qué usuario emitió la factura en ARCA
   createdByName  String?
@@ -415,6 +422,7 @@ model Invoice {
 
   @@index([orderId])
   @@index([cae])
+  @@index([fiscalDate])
 }
 
 model OrderItem {
@@ -763,6 +771,12 @@ model LabCostEntry {
   invoiceDate    DateTime?
   status         String    @default("UNMATCHED") // UNMATCHED | OK | OVERCOST | UNDERCOST
   notes          String?
+  // Alerta inmediata: cuándo y con qué estado se avisó este hallazgo por email.
+  // Se re-alerta solo si el estado cambia a otro alertable (p. ej. UNMATCHED que
+  // al aparecer la venta se convierte en OVERCOST). Evita duplicados entre el
+  // pase rápido (cada 10 min) y el cron diario.
+  alertedAt      DateTime?
+  alertedStatus  String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   order          Order?    @relation(fields: [orderId], references: [id])
@@ -770,6 +784,24 @@ model LabCostEntry {
   @@unique([lab, labOrderNumber])
   @@index([status])
   @@index([orderId])
+  @@index([createdAt])
+}
+
+// Cuenta corriente de un laboratorio según su resumen de cuenta oficial
+// (Optovision/Essilor manda "Documentos Pendientes" por email). Un snapshot por
+// resumen recibido: deuda total al día + detalle por factura (serie-nro, importe
+// original, saldo). Es la fuente de verdad de la deuda; el detalle en JSON.
+model LabAccountStatement {
+  id            String   @id @default(cuid())
+  lab           String // OPTOVISION | GRUPO_OPTICO
+  statementDate DateTime // fecha "hasta" del resumen
+  totalDebt     Float // saldo total adeudado
+  invoiceCount  Int      @default(0)
+  rows          Json // [{ serie, nro, invoiceNumber, fecha, importe, saldo }]
+  sourceFile    String?
+  createdAt     DateTime @default(now())
+
+  @@index([lab, statementDate])
   @@index([createdAt])
 }
 

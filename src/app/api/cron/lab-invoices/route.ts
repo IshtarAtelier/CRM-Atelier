@@ -4,6 +4,7 @@ import { LabCostReconciliationService } from '@/services/lab-cost-reconciliation
 import { sendEmail } from '@/lib/email';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 import { prisma } from '@/lib/db';
+import { verifyCronAuth } from '@/lib/cron-auth';
 
 const LAB_LABELS: Record<string, string> = { OPTOVISION: 'Optovision', GRUPO_OPTICO: 'Grupo Óptico' };
 
@@ -28,28 +29,62 @@ const STALE_DAYS = 3;
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
-        const secret = searchParams.get('secret');
-        const authHeader = request.headers.get('Authorization');
-        const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-
-        const cronSecret = process.env.CRON_SECRET;
-        if (!cronSecret) {
-            return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
-        }
-        if (secret !== cronSecret && token !== cronSecret) {
-            return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        const auth = verifyCronAuth(request);
+        if (!auth.ok) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
         }
 
         const days = Math.min(parseInt(searchParams.get('days') || '35', 10) || 35, 365);
         const runStart = new Date();
-        const results = await runAllProviders({ days });
+
+        // PRIMERA CORRIDA EN PRODUCCIÓN = BACKFILL SILENCIOSO, POR PROVEEDOR: el
+        // lab sin backfill registra y cruza todo su histórico (35 días de facturas
+        // / toda la era CRM del portal) sin emails ni flips de estado — todo queda
+        // marcado como ya alertado (lo decide upsertEntry vía isQuietLab). El flag
+        // de cada lab se setea SOLO si SU corrida terminó bien: si IMAP falla el
+        // día del estreno, el histórico de Optovision sigue en silencio hasta que
+        // su backfill de verdad ocurra — con un flag global, esa falla parcial
+        // soltaba el aluvión retroactivo completo al día siguiente.
+        const results: Record<string, any> = await runAllProviders({ days });
+
+        const backfilled: string[] = [];
+        for (const lab of LabCostReconciliationService.BACKFILL_LABS) {
+            const yaHecho = await prisma.systemSetting.findUnique({
+                where: { key: LabCostReconciliationService.backfillKey(lab) },
+            });
+            if (yaHecho?.value) continue;
+            if (results[lab]?.ok === true) {
+                await prisma.systemSetting.upsert({
+                    where: { key: LabCostReconciliationService.backfillKey(lab) },
+                    update: { value: new Date().toISOString() },
+                    create: { key: LabCostReconciliationService.backfillKey(lab), value: new Date().toISOString() },
+                });
+                backfilled.push(lab);
+            } else {
+                console.warn(`[Cron lab-invoices] Backfill de ${lab} NO completado (corrida fallida/salteada): sigue en modo silencioso.`);
+            }
+        }
+        if (backfilled.length > 0) {
+            LabCostReconciliationService.invalidateBackfillCache();
+            results.backfill = backfilled;
+            console.log(`[Cron lab-invoices] Backfill inicial completado en silencio para: ${backfilled.join(', ')}. Desde ahora, sus hallazgos nuevos alertan.`);
+        }
+
+        // Cuenta corriente de Optovision: leer el último resumen de cuenta de
+        // Essilor ("Documentos Pendientes") y snapshotear la deuda. Tolerante:
+        // si no hay resumen o falla el parseo, no rompe el resto de la revisión.
+        results.essilorStatement = await LabCostReconciliationService.scanEssilorStatement()
+            .catch((err: any) => { console.error('[Cron lab-invoices] Resumen Essilor:', err); return { error: err?.message }; });
 
         // Digest diario pedido por el administrador: cada pedido/factura NUEVO sin
         // venta en el sistema se informa por email URGENTE, clasificado para el
         // triage: posible postventa sin número / posible venta sin número (con el
         // cliente detectado) / dudoso a revisar con urgencia.
+        // Solo los que NADIE avisó todavía: el pase rápido de 10 min puede haber
+        // alertado un huérfano mientras esta corrida estaba en curso (y el
+        // backfill inicial los deja todos marcados) — sin este filtro, doble email.
         const newOrphans = await prisma.labCostEntry.findMany({
-            where: { status: 'UNMATCHED', createdAt: { gte: runStart } },
+            where: { status: 'UNMATCHED', createdAt: { gte: runStart }, alertedAt: null },
             orderBy: [{ lab: 'asc' }, { labOrderNumber: 'asc' }],
         });
         if (newOrphans.length > 0) {
@@ -148,13 +183,38 @@ export async function GET(request: Request) {
                         <p style="margin-top:14px"><a href="${appUrl}/admin/laboratorio/costos">Ver conciliación completa en el CRM</a></p>
                     </div>
                 `,
+            }).then(async (res: any) => {
+                // sendEmail nunca lanza: devuelve success=false si no salió. Solo
+                // si el digest efectivamente salió se marcan como avisados (para
+                // que el pase rápido de 10 min no los repita); si falló, quedan
+                // sin marcar y el próximo barrido los reintenta.
+                if (!res?.success) {
+                    console.error('[Cron lab-invoices] El digest de huérfanos NO salió; se reintenta en la próxima corrida.');
+                    return;
+                }
+                for (const o of newOrphans) await LabCostReconciliationService.markAlerted(o.id, o.status);
             }).catch(err => console.error('[Cron lab-invoices] Error enviando digest de huérfanos:', err));
         }
 
-        // Watchdog: proveedores caídos hace STALE_DAYS o más
+        // Barrido de alertas inmediatas: diferencias de costo y huérfanos que no
+        // entraron en el digest de esta corrida (mismo dedupe que el pase rápido).
+        results.alerts = await LabCostReconciliationService.alertNewFindings()
+            .catch((err: any) => ({ error: err?.message }));
+
+        // Watchdog: proveedores caídos hace STALE_DAYS o más. El pipeline de
+        // importes de Grupo Óptico cuenta aparte: el portal puede responder bien
+        // (pedidos registrados, "corrida exitosa") con el PDF de comprobantes roto
+        // — sin esto, los costos dejarían de llegar con el semáforo en verde.
         const stale = LAB_PROVIDERS
             .map(p => ({ name: p.name, description: p.description, days: results.health?.[p.name] ?? null }))
             .filter(p => p.days === null || p.days >= STALE_DAYS);
+        if (results.GRUPO_OPTICO?.invoiceError && !stale.some(s => s.name === 'GRUPO_OPTICO')) {
+            stale.push({
+                name: 'GRUPO_OPTICO (importes)',
+                description: `PDF de comprobantes falló: ${results.GRUPO_OPTICO.invoiceError}`,
+                days: null,
+            });
+        }
 
         if (stale.length > 0) {
             const items = stale.map(p =>

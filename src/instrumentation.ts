@@ -1,7 +1,9 @@
-// Cron automático SmartLab — corre cada 15 minutos de 8am a 20pm (Argentina, UTC-3)
+// Cron automático SmartLab — corre cada 10 minutos de 8am a 20pm (Argentina, UTC-3).
+// Además del sync de estados, cada corrida hace el pase rápido de conciliación de
+// costos de Grupo Óptico (importes nuevos + alertas inmediatas) — ver la ruta.
 export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
-        const INTERVAL_MS = 15 * 60 * 1000; // 15 minutos
+        const INTERVAL_MS = 10 * 60 * 1000; // 10 minutos (pedido: revisión cada 10 min)
 
         const isBusinessHours = () => {
             const now = new Date();
@@ -26,6 +28,9 @@ export async function register() {
                 const res = await fetch(`${baseUrl}/api/cron/smartlab-sync?secret=${cronSecret}`, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
+                    // Tope de 9,5 min: un sync colgado no debe pisarse con el
+                    // siguiente disparo del intervalo ni quedar esperando eterno.
+                    signal: AbortSignal.timeout(9.5 * 60 * 1000),
                 });
                 if (!res.ok) {
                     const body = await res.text();
@@ -49,6 +54,6 @@ export async function register() {
             setInterval(runSync, INTERVAL_MS);
         }, 30000);
 
-        console.log('[CRON SmartLab] Programado: cada 15 minutos, 8am-20pm ARG');
+        console.log('[CRON SmartLab] Programado: cada 10 minutos, 8am-20pm ARG');
     }
 }

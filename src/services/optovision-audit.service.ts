@@ -12,15 +12,31 @@ export class OptovisionAuditService {
     static async checkOptovisionBillingAndAlert(orderId: string, labOrderNumber: string) {
         if (!labOrderNumber) return;
 
-        // Clean up number to extract only digits (e.g. "580841")
-        const match = labOrderNumber.match(/\d+/);
-        if (!match) return;
-        const cleanNumber = match[0];
+        // Extraer TODOS los pedidos (5+ dígitos) de la venta: puede facturar varios
+        // juntos ("580841-580844"). Antes match(/\d+/) tomaba solo el primero y los
+        // otros nunca se verificaban.
+        const orderNumbers = labOrderNumber.match(/\d{5,}/g) || (labOrderNumber.match(/\d+/) || []);
+        if (orderNumbers.length === 0) return;
+        // Para la búsqueda IMAP alcanza el primero; el match fino se hace por número.
+        const cleanNumber = orderNumbers[0];
 
+        // Misma resolución de credenciales que openImap del servicio de
+        // conciliación: usuario+clave APAREADOS POR CASILLA (la dupla IMAP_* si
+        // está completa; si no, la dupla EMAIL_*). Los fallbacks por separado
+        // mezclaban el usuario de una casilla con la clave de la otra.
+        const cred = process.env.IMAP_USER && process.env.IMAP_PASSWORD
+            ? { user: process.env.IMAP_USER, password: process.env.IMAP_PASSWORD }
+            : (process.env.EMAIL_USER && process.env.EMAIL_PASS
+                ? { user: process.env.EMAIL_USER, password: process.env.EMAIL_PASS }
+                : null);
+        if (!cred) {
+            console.warn("[Optovision Audit] No IMAP credentials found in environment. Skipping check.");
+            return;
+        }
         const imapConfig = {
             imap: {
-                user: process.env.EMAIL_USER || 'crm.atelier.optica@gmail.com',
-                password: process.env.IMAP_PASSWORD || '', 
+                user: cred.user,
+                password: cred.password,
                 host: 'imap.gmail.com',
                 port: 993,
                 tls: true,
@@ -29,56 +45,64 @@ export class OptovisionAuditService {
             }
         };
 
-        if (!imapConfig.imap.password) {
-            console.warn("[Optovision Audit] No IMAP password found in environment. Skipping check.");
-            return;
-        }
-
         try {
             console.log(`[Optovision Audit] Searching IMAP for order: ${cleanNumber}`);
             const connection = await imaps.connect(imapConfig);
-            await connection.openBox('INBOX');
-
-            // Search for emails from procesos@optovisionsa.com.ar containing the order number
-            const searchCriteria = [
-                ['FROM', 'procesos@optovisionsa.com.ar'],
-                ['TEXT', cleanNumber]
-            ];
-
-            const fetchOptions = {
-                bodies: [''],
-                markSeen: false
-            };
-
-            const messages = await connection.search(searchCriteria, fetchOptions);
-            console.log(`[Optovision Audit] Found ${messages.length} email candidates containing "${cleanNumber}"`);
 
             let billedInvoiceFile: string | null = null;
             let billedTotal = 0;
+            try {
+                await connection.openBox('INBOX');
 
-            for (const msg of messages) {
-                const allPart = msg.parts.find((p: any) => p.which === '');
-                if (!allPart) continue;
+                // Search for emails from procesos@optovisionsa.com.ar containing the order number
+                const searchCriteria = [
+                    ['FROM', 'procesos@optovisionsa.com.ar'],
+                    ['TEXT', cleanNumber]
+                ];
 
-                const parsed = await simpleParser(allPart.body);
-                if (parsed.attachments && parsed.attachments.length > 0) {
-                    for (const attachment of parsed.attachments) {
-                        if (attachment.contentType === 'application/pdf') {
-                            const invoice = await OptovisionParserService.parseInvoice(attachment.content);
-                            
-                            // Check if invoice number matches cleanNumber
-                            if (invoice.labOrderNumber?.includes(cleanNumber) || invoice.rawText.includes(cleanNumber)) {
-                                billedInvoiceFile = attachment.filename || 'factura.pdf';
-                                billedTotal = invoice.total || invoice.subtotal || 0;
-                                break;
+                const fetchOptions = {
+                    bodies: [''],
+                    markSeen: false
+                };
+
+                const messages = await connection.search(searchCriteria, fetchOptions);
+                console.log(`[Optovision Audit] Found ${messages.length} email candidates containing "${cleanNumber}"`);
+
+                for (const msg of messages) {
+                    const allPart = msg.parts.find((p: any) => p.which === '');
+                    if (!allPart) continue;
+
+                    const parsed = await simpleParser(allPart.body);
+                    if (parsed.attachments && parsed.attachments.length > 0) {
+                        for (const attachment of parsed.attachments) {
+                            if (attachment.contentType === 'application/pdf') {
+                                const invoice = await OptovisionParserService.parseInvoice(attachment.content);
+
+                                // Match PRECISO: alguno de los pedidos de la venta tiene que
+                                // aparecer como pedido facturado (labOrderNumbers, parseados de
+                                // la línea "Ped:") o entre paréntesis en el texto crudo, con la
+                                // forma "(NNNNN)". Antes rawText.includes(número) matcheaba los
+                                // mismos dígitos dentro de un importe, un CUIT u otro pedido →
+                                // falsos "ya facturado".
+                                const billedNums = invoice.labOrderNumbers || [];
+                                const isMatch = orderNumbers.some((n: string) =>
+                                    billedNums.includes(n) || new RegExp(`\\(${n}\\)`).test(invoice.rawText)
+                                );
+                                if (isMatch) {
+                                    billedInvoiceFile = attachment.filename || 'factura.pdf';
+                                    billedTotal = invoice.total || invoice.subtotal || 0;
+                                    break;
+                                }
                             }
                         }
                     }
+                    if (billedInvoiceFile) break;
                 }
-                if (billedInvoiceFile) break;
+            } finally {
+                // La conexión se cierra pase lo que pase: sin esto, cada error de
+                // parseo dejaba un socket IMAP abierto contra Gmail.
+                try { connection.end(); } catch { /* ya cerrada */ }
             }
-
-            connection.end();
 
             if (billedInvoiceFile) {
                 console.log(`[Optovision Audit] ALERT: Order ${cleanNumber} has already been billed!`);

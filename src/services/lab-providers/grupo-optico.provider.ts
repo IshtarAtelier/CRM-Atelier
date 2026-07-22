@@ -33,27 +33,42 @@ export class GrupoOpticoProvider {
     static readonly providerName = 'GRUPO_OPTICO';
 
     /**
-     * Corre la recolección diaria. Pagina la API desde el pedido más nuevo hacia
-     * atrás y corta al llegar al inicio de la auditoría (LAB_AUDIT_START_ISO),
-     * así cada corrida refresca la era CRM completa (hoy ~3 páginas).
+     * Corre la recolección. Pagina la API desde el pedido más nuevo hacia atrás
+     * y corta al llegar al inicio de la auditoría (LAB_AUDIT_START_ISO), así la
+     * corrida diaria refresca la era CRM completa (hoy ~3 páginas).
+     *
+     * `sinceDays` = pase RÁPIDO (cada 10 min con el sync de SmartLab): solo la
+     * ventana reciente — alcanza para completar lo recién facturado (el portal
+     * asigna los importes cuando el pedido pasa a FINALIZADO) sin re-parsear
+     * toda la era en cada corrida. La pasada completa sigue siendo la diaria.
      */
-    static async collect() {
+    static async collect(opts: { sinceDays?: number } = {}) {
         const { chromium } = await import('playwright');
         const browser = await chromium.launch({
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
         });
 
-        const summary = { pages: 0, seen: 0, anulados: 0, preCrm: 0, registered: 0, unmatched: 0, overcost: 0, withCost: 0 };
+        const summary: Record<string, any> = { pages: 0, seen: 0, anulados: 0, preCrm: 0, registered: 0, unmatched: 0, overcost: 0, withCost: 0 };
         try {
             const page = await browser.newContext().then(c => c.newPage());
+            // Sin timeout, un stall del portal deja este Chromium colgado para
+            // siempre — y el pase corre cada 10 min: browsers acumulados hasta
+            // tumbar el contenedor. Todo lo que espere, espera con tope.
+            page.setDefaultTimeout(60000);
+            page.setDefaultNavigationTimeout(60000);
             await this.login(page);
 
             // La app debe estar cargada para que fetch() comparta la sesión.
             await page.goto(`${PORTAL_BASE}/smartlab/laboratory/list`, { waitUntil: 'domcontentloaded' });
             await page.waitForTimeout(3000);
 
-            const auditStart = new Date(LAB_AUDIT_START_ISO);
+            // Corte: inicio de la era CRM, o la ventana corta del pase rápido
+            // (nunca antes del inicio de auditoría).
+            const eraStart = new Date(LAB_AUDIT_START_ISO);
+            const auditStart = opts.sinceDays
+                ? new Date(Math.max(eraStart.getTime(), Date.now() - opts.sinceDays * 86400000))
+                : eraStart;
             const clientId = process.env.SMARTLAB_CLIENT_ID || '2462';
             const orders: PortalOrder[] = [];
 
@@ -62,7 +77,9 @@ export class GrupoOpticoProvider {
                     `&isClient=1&isSeller=0&userId=${clientId}&sellerId=0` +
                     `&search=&invoiceNumber=&sector=0&client=null&invoice=0&lensType=0&calibratedBy=0&zone=0`;
                 const res: any = await page.evaluate(async (u) => {
-                    const r = await fetch(u, { credentials: 'include' });
+                    // AbortSignal.timeout: un fetch que el portal nunca responde
+                    // colgaría el evaluate (y el browser) indefinidamente.
+                    const r = await fetch(u, { credentials: 'include', signal: AbortSignal.timeout(45000) });
                     if (!r.ok) return { error: r.status };
                     return await r.json();
                 }, url);
@@ -72,11 +89,12 @@ export class GrupoOpticoProvider {
                 if (rows.length === 0) break;
                 summary.pages = current;
 
-                let reachedPreCrm = false;
+                let vigentesEnPagina = 0;
                 for (const r of rows) {
                     const fecha = new Date((r.FechaRegistro || '').replace(' ', 'T'));
                     if (isNaN(fecha.getTime())) continue;
-                    if (fecha < auditStart) { reachedPreCrm = true; summary.preCrm++; continue; }
+                    if (fecha < auditStart) { summary.preCrm++; continue; }
+                    vigentesEnPagina++;
                     const invoiceNumbers = (r.invoices || [])
                         .map((i: any) => i?.number)
                         .filter((n: any): n is string => typeof n === 'string' && n.length > 0);
@@ -90,7 +108,12 @@ export class GrupoOpticoProvider {
                         rework: !!r.is_rework || r.Reclamo === '1',
                     });
                 }
-                if (reachedPreCrm) break; // la API viene ordenada de más nuevo a más viejo
+                // La API viene ordenada de más nuevo a más viejo, pero un reproceso
+                // puede aparecer con su FechaRegistro ORIGINAL en medio de una
+                // página: cortar en la primera fila vieja saltearía páginas enteras
+                // de pedidos vigentes. Se corta recién cuando la página completa
+                // quedó fuera de la ventana.
+                if (vigentesEnPagina === 0) break;
                 await page.waitForTimeout(400);
             }
 
@@ -109,8 +132,12 @@ export class GrupoOpticoProvider {
                     `líneas con pedido $${Math.round(res.stats.attributedSum).toLocaleString('es-AR')} | ` +
                     `sin pedido $${Math.round(res.stats.unattributedSum).toLocaleString('es-AR')} ` +
                     `(repartido $${Math.round(res.stats.distributedSum).toLocaleString('es-AR')})`);
-            } catch (err) {
+            } catch (err: any) {
                 console.error('[GrupoOptico] No se pudo obtener el PDF de facturas (se sigue sin importes):', err);
+                // Dejar constancia en el resumen: si esto falla corrida tras corrida,
+                // los pedidos se registran pero NUNCA llegan importes y el watchdog
+                // vería todo verde — el cron diario lo reporta como fuente degradada.
+                summary.invoiceError = err?.message || 'Error obteniendo comprobantes';
             }
 
             for (const o of orders) {
@@ -118,8 +145,10 @@ export class GrupoOpticoProvider {
                 if (o.anulado) { summary.anulados++; continue; }
 
                 // Costo real = suma de las líneas de detalle del pedido (par completo).
+                // OJO: 0 es un importe VÁLIDO (el par gratis del 2x1 se factura $0);
+                // tratarlo como "sin factura" dejaba esas ventas PENDING para siempre.
                 const raw = pedidoAmounts.get(o.num);
-                const billed: number | null = raw ? Math.round(raw * 100) / 100 : null;
+                const billed: number | null = raw != null ? Math.round(raw * 100) / 100 : null;
 
                 const detail = [o.cliente, `ingreso ${o.fecha.slice(0, 16)}`, o.rework ? 'REPROCESO' : null]
                     .filter(Boolean).join(', ');
@@ -132,6 +161,10 @@ export class GrupoOpticoProvider {
                     source: 'SCRAPER',
                     sourceFile: o.factura ? `Fact ${o.factura}` : null,
                     notes: `Pedido visto en el portal del laboratorio (${detail}).`,
+                    // Pase rápido (ventana corta): solo COMPLETA importes faltantes;
+                    // los ya registrados por la pasada completa no se pisan (el
+                    // reparto de líneas con menos comprobantes daría otro número).
+                    preferExistingBilling: !!opts.sinceDays,
                 });
                 if (entry) {
                     summary.registered++;

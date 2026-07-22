@@ -55,7 +55,9 @@ const money = (s: string): number | null => {
 export async function downloadInvoicePdf(page: any, clientId: string, from: Date, to: Date): Promise<Buffer | null> {
     const url = `${API_BASE}/laboratory/order/invoice?cl=${clientId}&t=2&c=1&s=${toDdMmYyyy(from)}&e=${toDdMmYyyy(to)}`;
     const result: { status: number; b64: string; size: number } = await page.evaluate(async (u: string) => {
-        const r = await fetch(u, { credentials: 'include' });
+        // Tope duro: el PDF puede pesar; sin señal, un stall del portal cuelga el
+        // evaluate (y el Chromium) para siempre.
+        const r = await fetch(u, { credentials: 'include', signal: AbortSignal.timeout(90000) });
         if (!r.ok) return { status: r.status, b64: '', size: 0 };
         const buf = await r.arrayBuffer();
         const bytes = new Uint8Array(buf);

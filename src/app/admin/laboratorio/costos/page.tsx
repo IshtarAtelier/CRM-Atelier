@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
     ArrowLeft, Loader2, RefreshCw, Mail, Upload, X, FlaskConical,
-    AlertTriangle, CheckCircle2, HelpCircle, TrendingDown, CalendarDays, Download, History
+    AlertTriangle, CheckCircle2, HelpCircle, TrendingDown, CalendarDays, Download, History, Search
 } from 'lucide-react';
+import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 
 interface LabCostEntry {
     id: string;
@@ -27,6 +29,7 @@ interface LabCostEntry {
         createdAt: string;
         client: { name: string } | null;
     } | null;
+    productos?: { productId: string | null; nombre: string; marca: string; costo: number | null }[];
 }
 
 interface StatusTotal {
@@ -49,6 +52,16 @@ interface ReportRow {
     invoicesFound: number;
     status: string;
     daysWaiting: number | null;
+}
+
+interface AccountStatement {
+    id: string;
+    lab: string;
+    statementDate: string;
+    totalDebt: number;
+    invoiceCount: number;
+    rows: Array<{ invoiceNumber: string; fecha: string | null; importe: number; saldo: number; enSistema?: boolean }>;
+    createdAt: string;
 }
 
 interface AuditRun {
@@ -136,12 +149,14 @@ const fmtDate = (iso: string | null) => {
 };
 
 export default function LabCostosPage() {
+    const searchParams = useSearchParams();
     const [entries, setEntries] = useState<LabCostEntry[]>([]);
     const [totals, setTotals] = useState<StatusTotal[]>([]);
     const [auditRuns, setAuditRuns] = useState<AuditRun[]>([]);
+    const [statements, setStatements] = useState<AccountStatement[]>([]);
     const [loading, setLoading] = useState(true);
-    const [labFilter, setLabFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
+    const [labFilter, setLabFilter] = useState(() => getUrlParam(searchParams, 'lab', ''));
+    const [statusFilter, setStatusFilter] = useState(() => getUrlParam(searchParams, 'estado', ''));
     const [busy, setBusy] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
 
@@ -151,9 +166,12 @@ export default function LabCostosPage() {
     const [importText, setImportText] = useState('');
 
     // Reporte mensual
-    const [reportMonth, setReportMonth] = useState(previousMonth());
+    const [reportMonth, setReportMonth] = useState(() => getUrlParam(searchParams, 'mes', previousMonth()));
     const [report, setReport] = useState<MonthlyReport | null>(null);
     const [reportLoading, setReportLoading] = useState(false);
+    // Filtros del reporte: búsqueda por cliente / nº de operación y día puntual
+    const [reportSearch, setReportSearch] = useState(() => getUrlParam(searchParams, 'q', ''));
+    const [reportDay, setReportDay] = useState(() => getUrlParam(searchParams, 'dia', ''));
 
     const fetchEntries = useCallback(async () => {
         setLoading(true);
@@ -167,6 +185,7 @@ export default function LabCostosPage() {
                 setEntries(data.entries || []);
                 setTotals(data.totals || []);
                 setAuditRuns(data.auditRuns || []);
+                setStatements(data.statements || []);
             }
         } catch (e) {
             console.error('Error cargando conciliación', e);
@@ -240,26 +259,50 @@ export default function LabCostosPage() {
         }
     };
 
-    const fetchReport = useCallback(async (month: string) => {
+    const fetchReport = useCallback(async () => {
         setReportLoading(true);
         try {
-            const res = await fetch(`/api/lab-costs/report?month=${month}`);
+            const q = reportSearch.trim();
+            // Con búsqueda o día → todo el histórico; sin filtros → el mes elegido.
+            const url = (q || reportDay)
+                ? `/api/lab-costs/report?${new URLSearchParams({ ...(q && { search: q }), ...(reportDay && { day: reportDay }) }).toString()}`
+                : `/api/lab-costs/report?month=${reportMonth}`;
+            const res = await fetch(url);
             if (res.ok) setReport(await res.json());
         } catch (e) {
-            console.error('Error cargando reporte mensual', e);
+            console.error('Error cargando reporte', e);
         } finally {
             setReportLoading(false);
         }
-    }, []);
+    }, [reportMonth, reportSearch, reportDay]);
 
-    useEffect(() => { fetchReport(reportMonth); }, [reportMonth, fetchReport]);
+    // Debounce solo cuando se está tipeando la búsqueda (evita un fetch por tecla).
+    useEffect(() => {
+        const t = setTimeout(fetchReport, reportSearch.trim() ? 350 : 0);
+        return () => clearTimeout(t);
+    }, [fetchReport, reportSearch]);
+
+    // Cualquier combinación de filtros queda reflejada en la URL (link compartible).
+    useEffect(() => {
+        syncUrlParams('/admin/laboratorio/costos', {
+            lab: labFilter,
+            estado: statusFilter,
+            mes: reportMonth !== previousMonth() ? reportMonth : undefined,
+            q: reportSearch.trim() || undefined,
+            dia: reportDay || undefined,
+        });
+    }, [labFilter, statusFilter, reportMonth, reportSearch, reportDay]);
+
+    // El filtrado lo hace el servidor (mes o histórico); acá solo mostramos lo que vino.
+    const reportFiltered = Boolean(reportSearch.trim() || reportDay);
+    const rows = report?.rows || [];
 
     const downloadReportCsv = () => {
         if (!report) return;
         const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
         const lines = [
             'nro_operacion;cliente;fecha;laboratorio;costo_sistema;costo_real;diferencia;estado;dias_sin_factura;items',
-            ...report.rows.map(r => [
+            ...rows.map(r => [
                 esc(r.labOrderNumber || 'SIN NÚMERO'),
                 esc(r.cliente),
                 fmtDateAR(r.fecha),
@@ -298,6 +341,27 @@ export default function LabCostosPage() {
                 </div>
             </div>
 
+            {/* Cuenta corriente por lab (último resumen de cuenta recibido) */}
+            {statements.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                    {statements.map(s => {
+                        const sinVenta = (s.rows || []).filter(r => r.enSistema === false).length;
+                        return (
+                            <div key={s.id} className="bg-white rounded-xl border border-indigo-200 p-4">
+                                <div className="flex items-center gap-2 text-indigo-700 text-sm font-medium">
+                                    <FlaskConical size={16} /> Cuenta corriente {LAB_LABELS[s.lab] || s.lab}
+                                </div>
+                                <div className="text-2xl font-bold text-gray-900 mt-1">{fmt(s.totalDebt)}</div>
+                                <div className="text-xs text-gray-400">
+                                    deuda al {fmtDate(s.statementDate)} · {s.invoiceCount} facturas
+                                    {sinVenta > 0 && <span className="text-amber-600"> · {sinVenta} sin venta en el sistema</span>}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
             {/* Resumen */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                 <div className="bg-white rounded-xl border border-red-200 p-4">
@@ -331,9 +395,37 @@ export default function LabCostosPage() {
                         type="month"
                         value={reportMonth}
                         onChange={e => e.target.value && setReportMonth(e.target.value)}
+                        disabled={reportFiltered}
+                        title={reportFiltered ? 'Con búsqueda activa se muestra todo el histórico; limpiá los filtros para volver al mes' : undefined}
+                        className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <div className="relative">
+                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <input
+                            type="search"
+                            value={reportSearch}
+                            onChange={e => setReportSearch(e.target.value)}
+                            placeholder="Cliente o nº de operación…"
+                            className="pl-8 pr-3 py-1.5 rounded-lg border border-gray-300 text-sm bg-white w-56"
+                        />
+                    </div>
+                    <input
+                        type="date"
+                        value={reportDay}
+                        onChange={e => setReportDay(e.target.value)}
+                        title="Filtrar por día"
                         className="px-3 py-1.5 rounded-lg border border-gray-300 text-sm bg-white"
                     />
-                    {report && report.rows.length > 0 && (
+                    {reportFiltered && (
+                        <button
+                            onClick={() => { setReportSearch(''); setReportDay(''); }}
+                            className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100"
+                            title="Limpiar filtros"
+                        >
+                            <X size={14} /> Limpiar
+                        </button>
+                    )}
+                    {report && rows.length > 0 && (
                         <button
                             onClick={downloadReportCsv}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
@@ -344,6 +436,7 @@ export default function LabCostosPage() {
                     <div className="flex-1" />
                     {report && (
                         <div className="text-sm text-gray-500">
+                            {reportFiltered && <span className="text-indigo-600 font-medium">todo el histórico · </span>}
                             {report.totals.operaciones} operaciones · sistema <strong className="text-gray-900">{fmt(report.totals.costoSistema)}</strong>
                             {report.totals.conFactura > 0 && <> · real <strong className="text-gray-900">{fmt(report.totals.costoReal)}</strong> ({report.totals.conFactura} con factura)</>}
                             {report.totals.sinFactura > 0 && <> · {report.totals.sinFactura} sin factura</>}
@@ -356,8 +449,12 @@ export default function LabCostosPage() {
                         <div className="flex items-center justify-center py-10 text-gray-400">
                             <Loader2 className="animate-spin mr-2" size={18} /> Generando reporte…
                         </div>
-                    ) : !report || report.rows.length === 0 ? (
-                        <div className="text-center py-10 text-gray-400 text-sm">Sin operaciones de laboratorio en este mes.</div>
+                    ) : !report || rows.length === 0 ? (
+                        <div className="text-center py-10 text-gray-400 text-sm">
+                            {reportFiltered
+                                ? 'Ninguna operación de laboratorio coincide con la búsqueda en todo el histórico.'
+                                : 'Sin operaciones de laboratorio en este mes.'}
+                        </div>
                     ) : (
                         <table className="w-full text-sm">
                             <thead>
@@ -373,7 +470,7 @@ export default function LabCostosPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {report.rows.map(r => {
+                                {rows.map(r => {
                                     const meta = REPORT_STATUS_META[r.status] || { label: r.status, badge: 'bg-gray-100 text-gray-600' };
                                     // Sin factura hace más de 30 días: ya debería estar facturada — resaltar.
                                     const overdue = r.status === 'SIN_FACTURA' && (r.daysWaiting ?? 0) > 30;
@@ -544,6 +641,7 @@ export default function LabCostosPage() {
                                 <th className="px-4 py-3">Nº pedido</th>
                                 <th className="px-4 py-3">Lab</th>
                                 <th className="px-4 py-3">Cliente</th>
+                                <th className="px-4 py-3">Producto (ver/ajustar costo)</th>
                                 <th className="px-4 py-3">Fecha factura</th>
                                 <th className="px-4 py-3 text-right">Costo sistema</th>
                                 <th className="px-4 py-3 text-right">Costo facturado</th>
@@ -570,6 +668,23 @@ export default function LabCostosPage() {
                                             ) : (
                                                 <span className="text-gray-400" title={entry.notes || undefined}>sin venta</span>
                                             )}
+                                        </td>
+                                        <td className="px-4 py-3 text-xs">
+                                            {entry.productos && entry.productos.length > 0 ? (
+                                                <div className="flex flex-col gap-0.5">
+                                                    {entry.productos.map((p, i) => (
+                                                        p.productId ? (
+                                                            <Link key={i} href={`/admin/inventario?edit=${p.productId}`} target="_blank"
+                                                                className="text-indigo-600 hover:underline" title={`Costo cargado: ${fmt(p.costo)} — clic para ver/ajustar`}>
+                                                                {p.marca ? `${p.marca} ` : ''}{p.nombre}
+                                                                {p.costo != null && <span className="text-gray-400"> · {fmt(p.costo)}</span>}
+                                                            </Link>
+                                                        ) : (
+                                                            <span key={i} className="text-gray-500">{p.marca ? `${p.marca} ` : ''}{p.nombre}</span>
+                                                        )
+                                                    ))}
+                                                </div>
+                                            ) : <span className="text-gray-300">—</span>}
                                         </td>
                                         <td className="px-4 py-3 text-gray-600">{fmtDate(entry.invoiceDate)}</td>
                                         <td className="px-4 py-3 text-right text-gray-900">{fmt(entry.systemCost)}</td>

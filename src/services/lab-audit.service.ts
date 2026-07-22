@@ -14,40 +14,51 @@ export class LabAuditService {
     static async auditInvoice(pdfBuffer: Buffer, fileName: string) {
         try {
             const invoiceData = await OptovisionParserService.parseInvoice(pdfBuffer);
-            
-            if (!invoiceData.labOrderNumber) {
+
+            // Optovision suele facturar 2-3 pedidos juntos en una misma factura: hay
+            // que auditar CADA pedido contra su propia orden, prorrateando el importe
+            // facturado. Antes se comparaba el subtotal COMPLETO de la factura contra
+            // el costo estimado de UNA sola orden → falsa "Alerta de Sobrecosto" y los
+            // pedidos 2 y 3 quedaban sin auditar.
+            const numbers = invoiceData.labOrderNumbers?.length
+                ? invoiceData.labOrderNumbers
+                : (invoiceData.labOrderNumber ? [invoiceData.labOrderNumber] : []);
+
+            if (numbers.length === 0) {
                 console.log(`[Audit] Could not find labOrderNumber in ${fileName}`);
                 return;
             }
-            
-            // Find the order in the database
-            const orders = await prisma.order.findMany({
-                where: { 
-                    labOrderNumber: { contains: invoiceData.labOrderNumber },
-                    isDeleted: false
-                },
-                include: {
-                    items: {
-                        include: { product: true }
+
+            // Atelier es monotributo y no recupera IVA → el costo real es el TOTAL c/IVA,
+            // no el subtotal neto (mismo criterio que LabCostReconciliationService).
+            const invoiceTotal = invoiceData.total || invoiceData.subtotal || 0;
+            // Importe prorrateado por pedido (la factura agrupa N pedidos).
+            const billedPerOrder = numbers.length > 0 ? invoiceTotal / numbers.length : invoiceTotal;
+
+            for (const num of numbers) {
+                const orders = await prisma.order.findMany({
+                    where: {
+                        labOrderNumber: { contains: num },
+                        isDeleted: false
                     },
-                    client: true
+                    include: {
+                        items: { include: { product: true } },
+                        client: true
+                    }
+                });
+
+                if (orders.length === 0) {
+                    console.log(`[Audit] No order found matching labOrderNumber: ${num}`);
+                    continue;
                 }
-            });
-            
-            if (orders.length === 0) {
-                console.log(`[Audit] No order found matching labOrderNumber: ${invoiceData.labOrderNumber}`);
-                return;
-            }
-            
-            // In case of multiple matching orders (unlikely but possible), audit them all
-            for (const order of orders) {
-                const estimatedCost = PricingService.calculateEstimatedCost(order);
-                const billedCost = invoiceData.subtotal || invoiceData.total || 0;
-                
-                console.log(`[Audit] Order ${order.id} (${order.client?.name}) - Estimated: $${estimatedCost} | Billed: $${billedCost}`);
-                
-                if (billedCost > estimatedCost + this.TOLERANCE) {
-                    await this.sendAlert(order, invoiceData, estimatedCost, billedCost, fileName);
+
+                for (const order of orders) {
+                    const estimatedCost = PricingService.calculateEstimatedCost(order);
+                    console.log(`[Audit] Order ${order.id} (${order.client?.name}) pedido ${num} - Estimated: $${estimatedCost} | Billed (prorrateado): $${billedPerOrder}`);
+
+                    if (billedPerOrder > estimatedCost + this.TOLERANCE) {
+                        await this.sendAlert(order, { ...invoiceData, labOrderNumber: num }, estimatedCost, billedPerOrder, fileName);
+                    }
                 }
             }
             

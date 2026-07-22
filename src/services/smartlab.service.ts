@@ -34,7 +34,14 @@ export class SmartLabService {
             
             if (lastSyncOrder?.smartLabLastSync) {
                 const minsSinceLastSync = (Date.now() - lastSyncOrder.smartLabLastSync.getTime()) / 60000;
-                if (minsSinceLastSync < 14) { // Use 14 just in case to allow 15m intervals safely
+                // 5 min: el guard compara contra el FIN del sync anterior (el
+                // timestamp se estampa al terminar) y un sync tarda 2-4 min. Con
+                // 14 —e incluso con 8— el disparo de los 10 min caía adentro de la
+                // ventana y se salteaba una corrida sí y una no ("cada 10 minutos"
+                // terminaba siendo cada 20). Con 5 hay margen para syncs de hasta
+                // ~4 min sin perder la cadencia real de 10; el solapamiento
+                // verdadero lo previene isSyncing.
+                if (minsSinceLastSync < 5) {
                     console.log(`[SmartLab Sync] Omitido. La última sincronización fue hace ${Math.round(minsSinceLastSync)} mins.`);
                     isSyncing = false;
                     return { skipped: true, reason: 'too_soon' };
@@ -516,38 +523,46 @@ export class SmartLabService {
                             `<li><b>Pedido ${o.num}</b>: Paciente "<i>${o.client}</i>", ingresado el ${o.dateStr} (<b>${o.days} días trabado</b>, progreso ${o.progress}, sector "${o.sector}")</li>`
                         ).join('');
 
-                        // Enviar Email
-                        await sendEmail({
+                        // Enviar Email. sendEmail NUNCA rechaza (devuelve {success:false}),
+                        // así que hay que mirar el retorno: si marcáramos los pedidos como
+                        // notificados sin que saliera nada, esta tanda quedaría silenciada
+                        // para siempre y consumiría la ventana diaria.
+                        const emailRes = await sendEmail({
                             to: 'pisano.ishtar@gmail.com',
                             subject: '⚠️ Alerta SmartLab — Pedidos trabados en ingreso/validación',
                             text: `Atelier Óptica\n\nSe detectaron nuevos pedidos con más de 2 días de demora en el ingreso/validación:\n\n${orderDetailsText}\n\nPor favor, verifica el estado en SmartLab.`,
                             html: `<h3 style="color: #d32f2f;">⚠️ Alerta de Pedidos Trabados</h3><p>Se detectaron nuevos pedidos con más de 2 días de demora en el ingreso/validación en SmartLab:</p><ul>${orderDetailsHtml}</ul><p>Por favor, realiza el seguimiento con el laboratorio.</p>`
-                        }).catch(err => console.error('Error enviando email de alerta stuck orders:', err));
+                        }).catch(err => { console.error('Error enviando email de alerta stuck orders:', err); return { success: false } as any; });
 
                         // Enviar WhatsApp
-                        await fetchWa('/api/send', {
+                        const waRes = await fetchWa('/api/send', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 chatId: getAdminChatId(),
                                 message: `⚠️ *Atelier Alerta - Pedidos Trabados en SmartLab*\n\nSe detectaron nuevos pedidos demorados en el ingreso/validación:\n\n${orderDetailsText}\n\n_Por favor, realiza el seguimiento con el laboratorio._`
                             })
-                        }).catch(err => console.error('Error enviando WhatsApp de alerta stuck orders:', err));
+                        }).then((r: any) => !!r?.ok).catch(err => { console.error('Error enviando WhatsApp de alerta stuck orders:', err); return false; });
 
-                        const updatedNotifiedNums = [...notifiedNums, ...newStuckOrders.map(o => o.num)];
-                        await prisma.systemSetting.upsert({
-                            where: { key: 'smartlab_notified_stuck_orders' },
-                            update: { value: JSON.stringify(updatedNotifiedNums) },
-                            create: { key: 'smartlab_notified_stuck_orders', value: JSON.stringify(updatedNotifiedNums) }
-                        });
-                        notifiedNums = updatedNotifiedNums;
+                        const alertDelivered = (emailRes && emailRes.success) || waRes;
+                        if (alertDelivered) {
+                            const updatedNotifiedNums = [...notifiedNums, ...newStuckOrders.map(o => o.num)];
+                            await prisma.systemSetting.upsert({
+                                where: { key: 'smartlab_notified_stuck_orders' },
+                                update: { value: JSON.stringify(updatedNotifiedNums) },
+                                create: { key: 'smartlab_notified_stuck_orders', value: JSON.stringify(updatedNotifiedNums) }
+                            });
+                            notifiedNums = updatedNotifiedNums;
 
-                        const nowIso = new Date().toISOString();
-                        await prisma.systemSetting.upsert({
-                            where: { key: 'smartlab_stuck_alert_last_at' },
-                            update: { value: nowIso },
-                            create: { key: 'smartlab_stuck_alert_last_at', value: nowIso }
-                        });
+                            const nowIso = new Date().toISOString();
+                            await prisma.systemSetting.upsert({
+                                where: { key: 'smartlab_stuck_alert_last_at' },
+                                update: { value: nowIso },
+                                create: { key: 'smartlab_stuck_alert_last_at', value: nowIso }
+                            });
+                        } else {
+                            console.error('[SmartLab Sync] No se pudo entregar la alerta de trabados (email y WhatsApp fallaron): NO se marcan como notificados para reintentar.');
+                        }
                     }
 
                     // Limpieza de pedidos que ya salieron de trabados
