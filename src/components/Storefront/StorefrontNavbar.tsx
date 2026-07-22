@@ -201,8 +201,13 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                 </button>
     
                 {isExploreOpen && (
+                    // Wrapper invisible con pt-3 en vez de mt-3 en el menú: el hueco de
+                    // 12px entre el botón y el menú queda DENTRO del área con hover
+                    // trackeado (en vez de ser un espacio "muerto" de otro elemento),
+                    // así el mouse no dispara mouseleave al bajar hacia el menú.
+                    <div className="absolute top-full left-0 pt-3 w-[280px]">
                     <div
-                      className="nav-drop-in absolute top-full left-0 mt-3 w-[280px] bg-[#0f0e0c] shadow-2xl shadow-black/40 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-xl"
+                      className="nav-drop-in bg-[#0f0e0c] shadow-2xl shadow-black/40 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-xl"
                     >
                       {/* Mobile-only links */}
                       <div className="lg:hidden border-b border-white/10 py-2 px-2">
@@ -267,6 +272,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                           <ChevronRight className="w-3 h-3 opacity-50 ml-auto group-hover:translate-x-0.5 transition-transform" />
                         </Link>
                       </div>
+                    </div>
                     </div>
                   )}
               </div>
