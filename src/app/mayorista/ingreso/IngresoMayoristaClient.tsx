@@ -130,7 +130,7 @@ export default function IngresoMayoristaClient() {
             </a>
           </p>
           <p className="text-sm text-[#a89e91]">
-            <Link href="/mayorista/catalogo" className="text-[#c8a55c] hover:underline">
+            <Link href="/capsulaescarlata" className="text-[#c8a55c] hover:underline">
               Ver el catálogo mayorista →
             </Link>
           </p>

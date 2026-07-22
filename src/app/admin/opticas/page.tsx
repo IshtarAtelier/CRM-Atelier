@@ -11,14 +11,14 @@ import {
 } from "lucide-react";
 import { formatDateTime } from "@/lib/format-date";
 
-// {link} se resuelve en waLink() al link tracker /mayorista/catalogo?lead=<id>
+// {link} se resuelve en waLink() al link corto /capsulaescarlata?r=<código>
 // (mismo origin donde corre el panel). Ojo: NO decir "sin mínimos" — el
 // checkout mayorista exige WHOLESALE_MIN_PIECES=10 (payway/route.ts), una
 // plantilla que prometa "sin mínimos" manda al lead a un error en el carrito.
 const DEFAULT_TPL =
   "Hola {nombre}! Te escribo de *Cápsula Escarlata* — una colección boutique y curada: diseño de autor y modelos en tendencia, a precio mayorista para ópticas 👓\n\n" +
   "Trabajamos *acetato italiano* (denso, no se decolora y ajusta perfecto en caliente) y *titanio* (ultraliviano, hipoalergénico, no se oxida). Es calidad que el cliente nota apenas se lo prueba, y eso te lo hace fácil de vender.\n\n" +
-  "Comprás desde *$32.000* y se venden al público entre $80.000 y $160.000: *2,5x o más de margen*, y el precio lo ponés vos.\n\n" +
+  "Comprás desde *$29.000* y se venden al público entre $80.000 y $160.000: *2,5x o más de margen*, y el precio lo ponés vos.\n\n" +
   "Oficina en Córdoba (retirás sin cargo), envíos a todo el país y cambio inmediato ante fallas.\n\n" +
   "Mirá el catálogo completo con precios acá 👇\n{link}";
 
@@ -106,9 +106,12 @@ export default function OpticasLeadsPage() {
     if (res.ok) fetchLeads();
   };
 
+  // Link corto y con la marca del canal: /capsulaescarlata?r=<8 últimos del id>.
+  // El código corto lo resuelve la página al lead real (ver resolveLeadByCode);
+  // los 8 caracteres finales de un cuid son únicos de sobra para este volumen.
   const catalogLink = (lead: any) => {
     const origin = typeof window !== "undefined" ? window.location.origin : "https://atelieroptica.com.ar";
-    return `${origin}/mayorista/catalogo?lead=${lead.id}`;
+    return `${origin}/capsulaescarlata?r=${String(lead.id).slice(-8)}`;
   };
 
   const waLink = (lead: any) => {

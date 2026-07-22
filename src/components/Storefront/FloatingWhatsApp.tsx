@@ -30,9 +30,14 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     } catch { /* noop */ }
   }, []);
 
-  // /mayorista/catalogo ya trae su propia barra de CTA con WhatsApp fija abajo
-  // (mismo ancho de pantalla): la burbuja flotante quedaba superpuesta arriba.
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/login") || pathname?.startsWith("/mayorista")) {
+  // El catálogo (/capsulaescarlata) ya trae su propia barra de CTA con WhatsApp
+  // fija abajo (mismo ancho de pantalla): la burbuja flotante quedaba superpuesta.
+  if (
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/login") ||
+    pathname?.startsWith("/mayorista") ||
+    pathname?.startsWith("/capsulaescarlata")
+  ) {
     return null;
   }
 

@@ -16,7 +16,7 @@ export default function CatalogViewTracker({ leadId }: { leadId: string | null }
     if (fired.current) return;
     fired.current = true;
     track('wholesale_catalog_view', {
-      path: '/mayorista/catalogo',
+      path: '/capsulaescarlata',
       meta: leadId ? { leadId } : undefined,
     });
   }, [leadId]);
