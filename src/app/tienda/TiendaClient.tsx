@@ -22,6 +22,19 @@ const CATEGORY_IMAGES: Record<string, string> = {
   "Cristales": "/images/banners/cristales.png"
 };
 
+// Portada del canal mayorista: las mismas piezas editoriales del home
+// (el reel cinematográfico de la portada pública), para que la óptica
+// entre a una vitrina con la identidad de la marca, no a los banners de
+// promo minorista.
+const CATEGORY_IMAGES_WHOLESALE: Record<string, string> = {
+  "Todo": "/images/editorial/filmmaker-frida.webp",
+  "Receta": "/images/editorial/monalisa.webp",
+  "Sol": "/images/editorial/filmmaker-venus.webp",
+  "Clip-On": "/images/editorial/filmmaker-dali.webp",
+  "Contacto": "/images/editorial/filmmaker-pearl.webp",
+  "Cristales": "/images/editorial/filmmaker-dali.webp"
+};
+
 // Removed duplicated isXlProduct function
 
 type FiltrosUrl = {
@@ -267,7 +280,7 @@ export function TiendaClient({
               className="absolute inset-0"
             >
               <Image
-                src={CATEGORY_IMAGES[activeCategory] || CATEGORY_IMAGES["Todo"]}
+                src={(isWholesale ? CATEGORY_IMAGES_WHOLESALE : CATEGORY_IMAGES)[activeCategory] || (isWholesale ? CATEGORY_IMAGES_WHOLESALE : CATEGORY_IMAGES)["Todo"]}
                 alt={`Colección ${activeCategory}`}
                 fill
                 priority

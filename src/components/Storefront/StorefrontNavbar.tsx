@@ -69,6 +69,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
       });
   }, []);
 
+  // Óptica logueada (mayorista): su navegación se reduce a la tienda.
+  const isOptica = currentUser?.role === 'OPTICA';
+
   useEffect(() => {
     // Si el servidor ya pasó los settings, no hay nada que buscar (y evitamos
     // el re-render tardío de la barra de anuncios que degradaba el LCP)
@@ -169,6 +172,10 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                   Tienda
                   <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-current transition-all duration-300 group-hover:w-full opacity-80"></span>
                 </Link>
+                {/* Cuentas OPTICA (mayoristas) solo compran armazones: no ven
+                    Cristales, Lentes a Medida ni el menú Explorar (blog, local,
+                    etc.) — su experiencia es la tienda y nada más. */}
+                {!isOptica && (
                 <Link
                   href="/cristales-opticos"
                   className={`relative group text-[11px] lg:text-[13px] leading-none font-medium ${activeTextColorClass} hidden lg:block transition-colors`}
@@ -177,6 +184,8 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                   Cristales
                   <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-current transition-all duration-300 group-hover:w-full opacity-80"></span>
                 </Link>
+                )}
+                {!isOptica && (
                 <Link
                   href="/arma-tus-lentes"
                   className={`relative group text-[13px] leading-none font-bold ${activeTextColorClass} hidden lg:block transition-colors`}
@@ -185,8 +194,10 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                   Lentes a Medida
                   <span className={`absolute -bottom-1 left-0 h-[2px] bg-primary transition-all duration-300 opacity-80 ${pathname === '/arma-tus-lentes' ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
                 </Link>
-    
-              <div 
+                )}
+
+              {!isOptica && (
+              <div
                 className="relative"
                 onMouseEnter={() => setIsExploreOpen(true)}
                 onMouseLeave={() => setIsExploreOpen(false)}
@@ -270,9 +281,10 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                     </div>
                   )}
               </div>
+              )}
             </nav>
           </div>
-          
+
           {/* Centro: Texto logo */}
           <div className="flex-shrink-0 flex justify-center items-center z-10 px-2">
             <Link
