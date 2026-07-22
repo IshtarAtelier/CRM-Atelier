@@ -9,6 +9,7 @@ import { logAudit } from '@/lib/audit';
 import type { Actor } from '@/lib/actor';
 import { notifyDirectedNote } from '@/lib/note-notify';
 import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
+import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
 import { calculateEstimatedDays } from '@/lib/business-days';
 
 
@@ -1732,6 +1733,12 @@ export const ContactService = {
                 throw new Error(msg);
             }
 
+            // Fecha del pago: si la que llega es inverosímil (el OCR de los tickets
+            // de tarjeta llegó a dar vuelta día y año), se descarta y queda la de
+            // carga. Si no, el pago se cae de todos los reportes por rango de fecha.
+            const fechaPedida = date ? new Date(date) : null;
+            const fechaDescartada = fechaPedida && !isPlausiblePaymentDate(fechaPedida) ? fechaPedida : null;
+
             const payment = await tx.payment.create({
                 data: {
                     orderId,
@@ -1741,9 +1748,22 @@ export const ContactService = {
                     receiptUrl,
                     createdById: actor?.id || null,
                     createdByName: actorName,
-                    ...(date ? { date: new Date(date) } : {})
+                    ...(fechaPedida && !fechaDescartada ? { date: fechaPedida } : {})
                 }
             });
+
+            if (fechaDescartada) {
+                logAudit({
+                    userId: actor?.id, userName: actorName,
+                    action: 'UPDATE', entityType: 'PAYMENT', entityId: payment.id,
+                    details: {
+                        motivo: 'Fecha de comprobante inverosímil: se descartó y quedó la fecha de carga.',
+                        fechaRecibida: formatDate(fechaDescartada),
+                        fechaGuardada: formatDate(payment.date),
+                        orderId, amount, method,
+                    },
+                }).catch(console.error);
+            }
 
             // El valor de la venta NO se toca al cobrar: sale de los ítems del pedido.
             // Antes, cualquier cobro que superara el total reescribía el precio de la

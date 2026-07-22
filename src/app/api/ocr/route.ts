@@ -73,7 +73,7 @@ Responde SOLO con el JSON, sin texto alrededor, sin comillas de código ni forma
             prompt = `Analiza este comprobante de pago o transferencia bancaria. Extrae ÚNICAMENTE:
 - amount: el monto final transferido o pagado (número sin símbolos, sin formato de miles).
 - reference: el identificador principal del comprobante. En tickets de PayWay/posnet, usar el "N° de operación" del voucher. En comprobantes de transferencia bancaria, usar el "N° de operación" o "N° de transferencia". En otros casos, el número de comprobante o código de referencia (string).
-- date: la fecha del comprobante si está visible (formato YYYY-MM-DD).
+- date: la fecha del comprobante si está visible, devuelta en formato YYYY-MM-DD. OJO: los comprobantes argentinos la imprimen día primero (dd/mm/aa o dd/mm/aaaa). El PRIMER número es el día y el ÚLTIMO el año: "22/07/26" es 2026-07-22, NO 2022-07-26. Si el año viene de dos dígitos, anteponerle "20".
 - payway_owner: si el comprobante es un ticket/voucher de PayWay (posnet/tarjeta), identifica el titular comparando con estos datos:
   * ISHTAR: N° Establecimiento 82671397, Terminales 16770672 o 16328313, CUIT 23386152314
   * YANI: N° Establecimiento 33173675, Terminal 16726469, CUIT 27425128138
