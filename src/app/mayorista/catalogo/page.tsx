@@ -166,6 +166,33 @@ export default async function CatalogoMayoristaPage({
                 </div>
               </section>
             ))}
+
+            {/* Cierre de venta: invita a pedir el usuario. Deja explícito que
+                el alta la hacemos nosotros (no hay auto-registro): la óptica
+                pide, un admin crea la cuenta. */}
+            <section className="mt-16 border-t border-[#e8e2db] dark:border-[#44403c] pt-14 text-center">
+              <p className="text-xs tracking-[0.2em] uppercase text-[#c8a55c] mb-3">Cómo empezar</p>
+              <h2 className="font-serif text-2xl md:text-3xl font-bold text-[#433831] dark:text-[#fafaf9] mb-3">
+                Pedí tu usuario y comprá con estos precios
+              </h2>
+              <p className="text-[#6b5d52] dark:text-[#a89e91] max-w-xl mx-auto mb-10">
+                El acceso es exclusivo para ópticas. Nos escribís, te creamos tu usuario
+                y entrás al portal a comprar online con tus precios netos, cuando quieras.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-5 max-w-3xl mx-auto mb-10 text-left">
+                <Step n="1" t="Escribinos por WhatsApp" d="Te atiende una persona, no un bot." />
+                <Step n="2" t="Te creamos tu usuario" d="Acceso exclusivo para tu óptica." />
+                <Step n="3" t="Comprás online 24/7" d="Tus precios netos, desde 10 piezas." />
+              </div>
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block bg-[#c8a55c] text-[#141110] font-semibold px-8 py-3.5 rounded-full text-sm hover:bg-[#d6bfae] transition-colors"
+              >
+                Pedí tu usuario mayorista
+              </a>
+            </section>
           </>
         )}
       </main>
@@ -242,6 +269,18 @@ function StatPill({
     <div className={`border border-[#3a332c] rounded-lg px-3 py-2.5 ${className ?? ''}`}>
       <p className="font-semibold text-[#faf8f5]">{label}</p>
       <p className="text-[#a89e91] text-xs">{sub}</p>
+    </div>
+  );
+}
+
+function Step({ n, t, d }: { n: string; t: string; d: string }) {
+  return (
+    <div className="rounded-xl border border-[#e8e2db] dark:border-[#44403c] bg-white dark:bg-[#292524] p-5">
+      <div className="w-8 h-8 rounded-full bg-[#c8a55c] text-[#141110] font-bold flex items-center justify-center mb-3">
+        {n}
+      </div>
+      <p className="font-semibold text-[#433831] dark:text-[#fafaf9] mb-1">{t}</p>
+      <p className="text-sm text-[#6b5d52] dark:text-[#a89e91]">{d}</p>
     </div>
   );
 }
