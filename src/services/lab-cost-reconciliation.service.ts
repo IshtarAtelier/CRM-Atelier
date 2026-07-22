@@ -4,6 +4,8 @@ import { prisma } from '../lib/db';
 import { OptovisionParserService } from './optovision-parser.service';
 import { sendEmail } from '../lib/email';
 import { RESOLUCIONES_CONOCIDAS } from './lab-providers/resoluciones';
+import { logAudit } from '../lib/audit';
+import { notificationEmailFor, ISHTAR_INBOX, firstName } from '../lib/vendor-email';
 
 export type LabName = 'OPTOVISION' | 'GRUPO_OPTICO';
 
@@ -148,7 +150,7 @@ export class LabCostReconciliationService {
                 client: { select: { name: true } },
                 items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
                 postSaleCases: {
-                    select: { id: true, newOrderNumber: true, caseType: true, coverage: true, fault: true },
+                    select: { id: true, newOrderNumber: true, caseType: true, coverage: true, fault: true, cost: true },
                     orderBy: { createdAt: 'desc' as const },
                 },
             },
@@ -379,6 +381,17 @@ export class LabCostReconciliationService {
                     .catch(err => { console.error('[LabCost] Error enviando alerta de reproceso cobrado:', err); return false; });
                 if (ok) await stamp();
             }
+        }
+
+        // COSTO DEL CASO DE POSTVENTA: con la factura del lab ya se conoce el
+        // costo real del caso → se completa el campo Costo del caso (sin pisar
+        // lo cargado a mano), se deja nota firmada en el caso y se le avisa por
+        // email al vendedor que lo cargó, con copia a Ishtar. Solo cuando el
+        // importe RECIÉN llega (así lo histórico pre-feature no dispara nada) y
+        // fuera del backfill. Vale para ambos labs.
+        if (pvCase && order && billedComparable !== null && facturaRecienLlegada && !quiet) {
+            await this.completePostSaleCost(entry, order, pvCase, billedComparable, cleanNumber)
+                .catch(err => console.error('[LabCost] Error completando costo de postventa:', err));
         }
 
         // FACTURA = PEDIDO MÁS CERCA (regla del negocio, corregida por el
@@ -638,6 +651,57 @@ export class LabCostReconciliationService {
     }
 
     /**
+     * CONTROL DE COBERTURA de la cuenta corriente: cruza cada factura del
+     * resumen (serie-nro) con la conciliación — factura → pedido → venta o caso
+     * de postventa. La regla del negocio: CADA número de operación de la cuenta
+     * corriente tiene que tener su gemelo en el sistema (una venta o una
+     * postventa que lo respalde); lo que no lo tiene queda marcado SIN gemelo.
+     * Lo usa el escaneo del resumen (snapshot) y la página de costos (en vivo,
+     * así el cruce se refresca a medida que entran facturas y ventas).
+     */
+    static async crossStatementRows(lab: string, rows: any[]) {
+        const conocidas = await prisma.labCostEntry.findMany({
+            where: { lab, sourceFile: { not: null } },
+            select: {
+                labOrderNumber: true, sourceFile: true, notes: true,
+                order: { select: { labOrderNumber: true, client: { select: { name: true } } } },
+            },
+        });
+        // Una factura puede agrupar 2-3 pedidos → mapa factura → entradas.
+        const porFactura = new Map<string, typeof conocidas>();
+        for (const e of conocidas) {
+            const m = (e.sourceFile || '').match(/(\d{4})-?0*(\d{3,8})/);
+            if (!m) continue;
+            const k = `${m[1]}-${m[2].padStart(8, '0')}`;
+            if (!porFactura.has(k)) porFactura.set(k, []);
+            porFactura.get(k)!.push(e);
+        }
+        const enriched = rows.map((r: any) => {
+            const entries = porFactura.get(r.invoiceNumber) || [];
+            const best = entries.find(e => e.order) || entries[0] || null;
+            const esPostventa = !!best?.notes?.includes('POSTVENTA (caso');
+            return {
+                ...r,
+                enSistema: entries.length > 0,
+                gemelo: best ? {
+                    pedido: best.labOrderNumber,
+                    tipo: best.order ? (esPostventa ? 'POSTVENTA' : 'VENTA') : 'SIN_VENTA',
+                    cliente: best.order?.client?.name ?? null,
+                    ventaPedidos: best.order?.labOrderNumber ?? null,
+                } : null,
+            };
+        });
+        const cuenta = (t: string) => enriched.filter((r: any) => r.gemelo?.tipo === t).length;
+        const conVenta = cuenta('VENTA'), conPostventa = cuenta('POSTVENTA');
+        return {
+            rows: enriched,
+            conVenta,
+            conPostventa,
+            sinGemelo: enriched.length - conVenta - conPostventa,
+        };
+    }
+
+    /**
      * Escanea la casilla IMAP buscando el ÚLTIMO resumen de cuenta de Essilor
      * ("Documentos Pendientes" de procesos@essilor.com.ar), lo parsea y guarda un
      * snapshot de la cuenta corriente de Optovision (deuda total + saldo por
@@ -693,20 +757,10 @@ export class LabCostReconciliationService {
                 where: { lab: 'OPTOVISION', statementDate, totalDebt: st.totalDebt },
             });
 
-            // Cruce factura → pedido → venta (best-effort, informativo).
-            const conocidas = await prisma.labCostEntry.findMany({
-                where: { lab: 'OPTOVISION', sourceFile: { not: null } },
-                select: { labOrderNumber: true, sourceFile: true },
-            });
-            const enSistema = new Set<string>();
-            for (const e of conocidas) {
-                const m = (e.sourceFile || '').match(/(\d{4})-?0*(\d{3,8})/);
-                if (m) enSistema.add(`${m[1]}-${m[2].padStart(8, '0')}`);
-            }
-            const rowsEnriquecidas = st.rows.map(r => ({
-                ...r, enSistema: enSistema.has(r.invoiceNumber),
-            }));
-            const sinFacturaEnSistema = rowsEnriquecidas.filter(r => !r.enSistema);
+            // Cruce de cobertura: factura → pedido → venta/postventa (gemelo).
+            const cruce = await this.crossStatementRows('OPTOVISION', st.rows);
+            const rowsEnriquecidas = cruce.rows;
+            const sinFacturaEnSistema = rowsEnriquecidas.filter((r: any) => !r.enSistema);
 
             if (!dup) {
                 await prisma.labAccountStatement.create({
@@ -716,10 +770,19 @@ export class LabCostReconciliationService {
                         sourceFile: best.filename,
                     },
                 });
+            } else {
+                // Mismo resumen: refrescar el cruce guardado (las facturas y
+                // ventas pueden haber entrado DESPUÉS de guardar el snapshot).
+                await prisma.labAccountStatement.update({
+                    where: { id: dup.id },
+                    data: { rows: rowsEnriquecidas as any },
+                }).catch(err => console.error('[LabCost] Error refrescando cruce del resumen:', err));
             }
             return {
                 ok: true, emails: messages.length, statementDate,
                 totalDebt: st.totalDebt, invoiceCount: st.rows.length,
+                conVenta: cruce.conVenta, conPostventa: cruce.conPostventa,
+                sinGemelo: cruce.sinGemelo,
                 sinFacturaEnSistema: sinFacturaEnSistema.length, nuevo: !dup,
             };
         } finally {
@@ -1250,6 +1313,88 @@ export class LabCostReconciliationService {
         }
         console.log(`[LabCost] Aviso de factura Optovision enviado: pedido ${entry.labOrderNumber} (${propio}, ${entry.status})`);
         return true;
+    }
+
+    /**
+     * Completa el costo del caso de postventa con lo que facturó el lab, deja
+     * nota firmada en el caso y avisa por email al vendedor que cargó el caso
+     * (con copia a Ishtar). Reglas: un costo cargado a mano NO se pisa (la nota
+     * deja asentada la diferencia), y $0 también informa (garantía sin cargo).
+     */
+    private static async completePostSaleCost(entry: any, order: any, pvCase: any, billed: number, pedido: string) {
+        const costo = Math.round(billed * 100) / 100;
+        const labLabel = entry.lab === 'GRUPO_OPTICO' ? 'Grupo Óptico' : 'Optovision';
+        const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
+
+        const costoManual = (pvCase.cost ?? 0) > 0;
+        const completar = !costoManual && costo > 0;
+        if (completar) {
+            await prisma.postSaleCase.update({ where: { id: pvCase.id }, data: { cost: costo } });
+        }
+
+        const detalleFactura = `${labLabel}, pedido ${pedido}${entry.sourceFile ? `, ${entry.sourceFile}` : ''}`;
+        const content = costo > 0
+            ? (completar
+                ? `Costo del caso completado automáticamente: ${fmt(costo)} según lo facturado por el laboratorio (${detalleFactura}).`
+                : `El laboratorio facturó ${fmt(costo)} por el pedido de este caso (${detalleFactura}). El caso ya tenía cargado ${fmt(pvCase.cost)} a mano; se conserva ese valor.`)
+            : `El laboratorio facturó el pedido de este caso SIN CARGO (garantía) — ${detalleFactura}.`;
+        await prisma.postSaleNote.create({
+            data: { caseId: pvCase.id, content, createdBy: 'Sistema' },
+        });
+        logAudit({
+            userName: 'Sistema', action: 'UPDATE', entityType: 'ORDER', entityId: order.id,
+            details: { evento: 'costo_postventa', caseId: pvCase.id, pedido, lab: entry.lab, costo, completado: completar },
+        }).catch(console.error);
+
+        if (!this.emailsEnabled()) return;
+        // Vendedor que cargó el caso: quien hizo el primer movimiento del
+        // historial (o la primera nota humana). Si no se resuelve a un usuario
+        // con casilla propia, el aviso va a la casilla compartida del local.
+        const [hist, primeraNota] = await Promise.all([
+            prisma.postSaleStatusHistory.findFirst({
+                where: { caseId: pvCase.id }, orderBy: { createdAt: 'asc' }, select: { changedBy: true },
+            }),
+            prisma.postSaleNote.findFirst({
+                where: { caseId: pvCase.id, createdBy: { not: 'Sistema' } },
+                orderBy: { createdAt: 'asc' }, select: { createdBy: true },
+            }),
+        ]);
+        const cargadoPor = [hist?.changedBy, primeraNota?.createdBy]
+            .find(n => n && n !== 'Sistema') || null;
+        const user = cargadoPor
+            ? await prisma.user.findFirst({
+                where: { name: cargadoPor },
+                select: { id: true, name: true, email: true, notificationEmail: true },
+            })
+            : null;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
+        const res: any = await sendEmail({
+            to: notificationEmailFor(user),
+            bcc: ISHTAR_INBOX,
+            subject: `Costo del caso de postventa de ${order.client?.name || 'cliente'}: ${costo > 0 ? fmt(costo) : 'sin cargo'}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
+                    <p>Hola${cargadoPor ? ` ${firstName(cargadoPor)}` : ''},</p>
+                    <p>Ya tenemos el costo del caso de postventa de <strong>${order.client?.name || 'cliente'}</strong> que cargaste:
+                    el laboratorio facturó <strong>${costo > 0 ? fmt(costo) : 'sin cargo (garantía)'}</strong> por el pedido
+                    <strong style="font-family: monospace;">${pedido}</strong> (${labLabel}).</p>
+                    <ul style="line-height: 1.7; font-size: 14px;">
+                        <li>Caso: ${pvCase.caseType || 'sin tipo'}${pvCase.coverage ? ` · cobertura: ${pvCase.coverage}` : ''}${pvCase.fault ? ` · falla: ${pvCase.fault}` : ''}</li>
+                        <li>${completar
+                            ? 'El costo quedó cargado automáticamente en el caso.'
+                            : (costoManual
+                                ? `El caso ya tenía cargado ${fmt(pvCase.cost)} a mano; se conservó ese valor.`
+                                : 'Sin cargo: no había costo que completar.')}</li>
+                    </ul>
+                    <p><a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente</a></p>
+                </div>
+            `,
+        });
+        if (!res?.success) {
+            console.error(`[LabCost] Aviso de costo de postventa NO salió (caso ${pvCase.id}, pedido ${pedido}).`);
+        } else {
+            console.log(`[LabCost] Costo de postventa informado: caso ${pvCase.id}, pedido ${pedido}, ${costo}`);
+        }
     }
 
     private static async sendChargedReworkAlert(entry: any, order: any, pvCase: any, billed: number): Promise<boolean> {

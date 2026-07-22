@@ -88,13 +88,40 @@ export async function GET(request: Request) {
             take: 60,
         });
 
-        // Cuenta corriente por lab: último resumen de cuenta recibido (deuda viva).
-        const statements = await prisma.labAccountStatement.findMany({
+        // Cuenta corriente por lab: último resumen de cuenta recibido (deuda
+        // viva), con el cruce factura → venta/postventa recalculado EN VIVO
+        // (las facturas y ventas pueden entrar después del snapshot).
+        const statementsRaw = await prisma.labAccountStatement.findMany({
             orderBy: { statementDate: 'desc' },
             distinct: ['lab'],
         });
+        const statements = await Promise.all(statementsRaw.map(async (s) => {
+            const cruce = await LabCostReconciliationService
+                .crossStatementRows(s.lab, (s.rows as any[]) || [])
+                .catch(() => null);
+            return cruce
+                ? { ...s, rows: cruce.rows, conVenta: cruce.conVenta, conPostventa: cruce.conPostventa, sinGemelo: cruce.sinGemelo }
+                : s;
+        }));
 
-        return NextResponse.json({ entries: entriesConProductos, totals, auditRuns, statements });
+        // Cobertura por lab: cuántos pedidos registrados tienen su gemelo en el
+        // sistema (venta o postventa) y cuántos quedaron huérfanos. Es el cuadro
+        // de "todo cubierto": para Grupo Óptico (sin resumen de cuenta) el barrido
+        // del portal trae TODOS los pedidos, así que esta ES su cuenta corriente.
+        const coberturaEntries = await prisma.labCostEntry.findMany({
+            select: { lab: true, orderId: true, notes: true, status: true },
+        });
+        const cobertura: Record<string, { total: number; conVenta: number; postventa: number; sinVenta: number; esperandoFactura: number }> = {};
+        for (const e of coberturaEntries) {
+            const c = (cobertura[e.lab] ||= { total: 0, conVenta: 0, postventa: 0, sinVenta: 0, esperandoFactura: 0 });
+            c.total++;
+            if (!e.orderId) c.sinVenta++;
+            else if (e.notes?.includes('POSTVENTA (caso')) c.postventa++;
+            else c.conVenta++;
+            if (e.status === 'PENDING') c.esperandoFactura++;
+        }
+
+        return NextResponse.json({ entries: entriesConProductos, totals, auditRuns, statements, cobertura });
     } catch (error: any) {
         console.error('[lab-costs GET] Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

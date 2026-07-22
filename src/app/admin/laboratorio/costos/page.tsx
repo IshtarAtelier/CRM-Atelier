@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
     ArrowLeft, Loader2, RefreshCw, Mail, Upload, X, FlaskConical,
-    AlertTriangle, CheckCircle2, HelpCircle, TrendingDown, CalendarDays, Download, History, Search
+    AlertTriangle, CheckCircle2, HelpCircle, TrendingDown, CalendarDays, Download, History, Search,
+    ChevronDown, ChevronUp
 } from 'lucide-react';
 import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 
@@ -81,14 +82,35 @@ interface ReportRow {
     daysWaiting: number | null;
 }
 
+// Gemelo de una factura de la cuenta corriente en nuestro sistema: la venta o
+// el caso de postventa que la respalda (regla: TODA operación debe tener uno).
+interface StatementGemelo {
+    pedido: string;
+    tipo: 'VENTA' | 'POSTVENTA' | 'SIN_VENTA';
+    cliente: string | null;
+    ventaPedidos: string | null;
+}
+
 interface AccountStatement {
     id: string;
     lab: string;
     statementDate: string;
     totalDebt: number;
     invoiceCount: number;
-    rows: Array<{ invoiceNumber: string; fecha: string | null; importe: number; saldo: number; enSistema?: boolean }>;
+    rows: Array<{ invoiceNumber: string; fecha: string | null; importe: number; saldo: number; enSistema?: boolean; gemelo?: StatementGemelo | null }>;
+    conVenta?: number;
+    conPostventa?: number;
+    sinGemelo?: number;
     createdAt: string;
+}
+
+// Cobertura de un lab: cuántos de sus pedidos registrados tienen gemelo.
+interface LabCobertura {
+    total: number;
+    conVenta: number;
+    postventa: number;
+    sinVenta: number;
+    esperandoFactura: number;
 }
 
 interface AuditRun {
@@ -181,6 +203,8 @@ export default function LabCostosPage() {
     const [totals, setTotals] = useState<StatusTotal[]>([]);
     const [auditRuns, setAuditRuns] = useState<AuditRun[]>([]);
     const [statements, setStatements] = useState<AccountStatement[]>([]);
+    const [cobertura, setCobertura] = useState<Record<string, LabCobertura>>({});
+    const [openStatement, setOpenStatement] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [labFilter, setLabFilter] = useState(() => getUrlParam(searchParams, 'lab', ''));
     const [statusFilter, setStatusFilter] = useState(() => getUrlParam(searchParams, 'estado', ''));
@@ -213,6 +237,7 @@ export default function LabCostosPage() {
                 setTotals(data.totals || []);
                 setAuditRuns(data.auditRuns || []);
                 setStatements(data.statements || []);
+                setCobertura(data.cobertura || {});
             }
         } catch (e) {
             console.error('Error cargando conciliación', e);
@@ -368,24 +393,114 @@ export default function LabCostosPage() {
                 </div>
             </div>
 
-            {/* Cuenta corriente por lab (último resumen de cuenta recibido) */}
-            {statements.length > 0 && (
+            {/* Cuenta corriente por lab: cada factura del resumen con su GEMELO en
+                el sistema (venta o postventa que la respalda). Para el lab sin
+                resumen (Grupo Óptico) la cobertura sale del barrido del portal,
+                que trae TODOS los pedidos. */}
+            {(statements.length > 0 || Object.keys(cobertura).length > 0) && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                     {statements.map(s => {
-                        const sinVenta = (s.rows || []).filter(r => r.enSistema === false).length;
+                        const conVenta = s.conVenta ?? (s.rows || []).filter(r => r.gemelo?.tipo === 'VENTA').length;
+                        const conPostventa = s.conPostventa ?? (s.rows || []).filter(r => r.gemelo?.tipo === 'POSTVENTA').length;
+                        const sinGemelo = s.sinGemelo ?? ((s.rows || []).length - conVenta - conPostventa);
+                        const abierto = openStatement === s.id;
                         return (
-                            <div key={s.id} className="bg-white rounded-xl border border-indigo-200 p-4">
+                            <div key={s.id} className={`bg-white rounded-xl border border-indigo-200 p-4 ${abierto ? 'sm:col-span-2' : ''}`}>
                                 <div className="flex items-center gap-2 text-indigo-700 text-sm font-medium">
                                     <FlaskConical size={16} /> Cuenta corriente {LAB_LABELS[s.lab] || s.lab}
+                                    <button
+                                        onClick={() => setOpenStatement(abierto ? null : s.id)}
+                                        className="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-indigo-600 hover:bg-indigo-50"
+                                    >
+                                        {abierto ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                        {abierto ? 'Cerrar' : 'Cuadro completo'}
+                                    </button>
                                 </div>
                                 <div className="text-2xl font-bold text-gray-900 mt-1">{fmt(s.totalDebt)}</div>
                                 <div className="text-xs text-gray-400">
                                     deuda al {fmtDate(s.statementDate)} · {s.invoiceCount} facturas
-                                    {sinVenta > 0 && <span className="text-amber-600"> · {sinVenta} sin venta en el sistema</span>}
                                 </div>
+                                <div className="text-xs mt-1">
+                                    <span className="text-green-700">{conVenta} con venta</span>
+                                    <span className="text-gray-400"> · </span>
+                                    <span className="text-purple-700">{conPostventa} postventa</span>
+                                    <span className="text-gray-400"> · </span>
+                                    {sinGemelo > 0
+                                        ? <span className="text-red-600 font-semibold">{sinGemelo} SIN gemelo en el sistema</span>
+                                        : <span className="text-green-700 font-medium">todo cubierto ✓</span>}
+                                </div>
+                                {abierto && (
+                                    <div className="mt-3 overflow-x-auto max-h-96 overflow-y-auto border-t border-gray-100 pt-2">
+                                        <table className="w-full text-xs">
+                                            <thead>
+                                                <tr className="text-left text-gray-400">
+                                                    <th className="py-1 pr-3 font-medium">Factura</th>
+                                                    <th className="py-1 pr-3 font-medium">Fecha</th>
+                                                    <th className="py-1 pr-3 font-medium text-right">Saldo</th>
+                                                    <th className="py-1 font-medium">Gemelo en el sistema</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(s.rows || []).map(r => (
+                                                    <tr key={r.invoiceNumber} className="border-t border-gray-50">
+                                                        <td className="py-1.5 pr-3 font-mono text-gray-700">{r.invoiceNumber}</td>
+                                                        <td className="py-1.5 pr-3 text-gray-500">{r.fecha || '—'}</td>
+                                                        <td className="py-1.5 pr-3 text-right text-gray-700">{fmt(r.saldo)}</td>
+                                                        <td className="py-1.5">
+                                                            {r.gemelo?.tipo === 'VENTA' && (
+                                                                <span>
+                                                                    <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">Venta</span>
+                                                                    <span className="text-gray-600"> {r.gemelo.cliente || ''}</span>
+                                                                    <span className="text-gray-400"> · pedido {r.gemelo.pedido}</span>
+                                                                </span>
+                                                            )}
+                                                            {r.gemelo?.tipo === 'POSTVENTA' && (
+                                                                <span>
+                                                                    <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">Postventa</span>
+                                                                    <span className="text-gray-600"> {r.gemelo.cliente || ''}</span>
+                                                                    <span className="text-gray-400"> · pedido {r.gemelo.pedido}</span>
+                                                                </span>
+                                                            )}
+                                                            {r.gemelo?.tipo === 'SIN_VENTA' && (
+                                                                <span>
+                                                                    <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">Factura sin venta</span>
+                                                                    <span className="text-gray-400"> pedido {r.gemelo.pedido}</span>
+                                                                </span>
+                                                            )}
+                                                            {!r.gemelo && (
+                                                                <span className="px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-semibold">Sin gemelo — factura nunca ingresada</span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
+                    {Object.entries(cobertura)
+                        .filter(([labName]) => !statements.some(s => s.lab === labName))
+                        .map(([labName, c]) => (
+                            <div key={labName} className="bg-white rounded-xl border border-indigo-200 p-4">
+                                <div className="flex items-center gap-2 text-indigo-700 text-sm font-medium">
+                                    <FlaskConical size={16} /> Cobertura {LAB_LABELS[labName] || labName} (portal)
+                                </div>
+                                <div className="text-2xl font-bold text-gray-900 mt-1">{c.total} pedidos</div>
+                                <div className="text-xs text-gray-400">el barrido del portal trae todos los pedidos: esta es su cuenta corriente</div>
+                                <div className="text-xs mt-1">
+                                    <span className="text-green-700">{c.conVenta} con venta</span>
+                                    <span className="text-gray-400"> · </span>
+                                    <span className="text-purple-700">{c.postventa} postventa</span>
+                                    <span className="text-gray-400"> · </span>
+                                    {c.sinVenta > 0
+                                        ? <span className="text-red-600 font-semibold">{c.sinVenta} SIN venta en el sistema</span>
+                                        : <span className="text-green-700 font-medium">todo cubierto ✓</span>}
+                                    {c.esperandoFactura > 0 && <span className="text-blue-600"> · {c.esperandoFactura} esperando factura</span>}
+                                </div>
+                            </div>
+                        ))}
                 </div>
             )}
 
