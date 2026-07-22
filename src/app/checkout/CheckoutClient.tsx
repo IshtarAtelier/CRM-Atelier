@@ -539,7 +539,7 @@ export function CheckoutClient({
                 href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Acabo de realizar una compra web y ya hice la transferencia. Adjunto mi comprobante.`)}`}
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="block w-full text-center bg-emerald-600 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-colors"
+                className="block w-full text-center bg-stone-900 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors"
               >
                 Enviar Comprobante por WhatsApp
               </a>
@@ -557,7 +557,7 @@ export function CheckoutClient({
                 href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Acabo de registrar un pedido mayorista en la web y me gustaría coordinar el pago.`)}`}
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="block w-full text-center bg-blue-600 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-colors"
+                className="block w-full text-center bg-stone-900 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors"
               >
                 Coordinar Pago por WhatsApp
               </a>
@@ -568,13 +568,13 @@ export function CheckoutClient({
             <div className="bg-green-50 text-green-900 border border-green-200 rounded-lg p-4 mb-8 text-sm">
               <p className="font-medium mb-1">¿Tenés alguna duda con tu pedido?</p>
               <p className="text-green-700/80 mb-2">Escribinos directamente a nuestro canal de soporte.</p>
-              <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-4 hover:text-green-600 transition-colors">
+              <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-4 hover:text-[#8a6d3b] transition-colors">
                 Contactar por WhatsApp ({whatsappPhoneId})
               </a>
             </div>
           )}
 
-          <Link href="/tienda" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-stone-800 transition-colors">
+          <Link href="/tienda" className="inline-block bg-stone-900 text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors">
             Volver a la Tienda
           </Link>
         </div>
@@ -589,7 +589,7 @@ export function CheckoutClient({
         <StorefrontNavbar theme="light" />
         <div className="text-center mt-32">
           <h2 className="text-2xl font-light mb-4">Tu carrito está vacío</h2>
-          <Link href="/tienda" className="inline-block border border-black px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+          <Link href="/tienda" className="inline-block bg-stone-900 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors">
             Volver a la Tienda
           </Link>
         </div>
