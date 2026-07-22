@@ -107,6 +107,28 @@ async function main() {
   console.log(`\n=== TAREAS COMPLETADAS (${tasks.length}) ===`);
   tasks.forEach(t => console.log(`${hs(t.completedAt)} | ${t.completedBy || '(s/d)'} | ${t.status} | ${t.client?.name || ''} | ${(t.description || '').slice(0, 100)}`));
 
+  // 5bis) Clientes dados de alta hoy
+  const clients = await prisma.client.findMany({
+    where: { createdAt: { gte: start, lte: end } },
+    orderBy: { createdAt: 'asc' },
+    select: { name: true, createdBy: true, createdAt: true, contactSource: true, status: true, isDeleted: true },
+  });
+  console.log(`\n=== CLIENTES DADOS DE ALTA HOY (${clients.length}) ===`);
+  const cByUser = {};
+  clients.forEach(c => { const k = c.createdBy || 'Sistema'; cByUser[k] = (cByUser[k] || 0) + 1; });
+  Object.entries(cByUser).sort((a, b) => b[1] - a[1]).forEach(([k, v]) => console.log(`   ${v} — ${k}`));
+  clients.forEach(c => console.log(`${hs(c.createdAt)} | ${c.createdBy || 'Sistema'} | ${c.name} | ${c.contactSource || 's/origen'} | ${c.status}${c.isDeleted ? ' | BORRADO' : ''}`));
+
+  // 5ter) Seguimientos de cierre finalizados (quedan como Interaction NOTE)
+  const cierres = await prisma.interaction.findMany({
+    where: { createdAt: { gte: start, lte: end }, content: { contains: 'Seguimiento finalizado' } },
+    select: { userName: true, content: true, client: { select: { name: true } } },
+  });
+  const cierreBy = {};
+  cierres.forEach(i => { const k = i.userName || '(s/d)'; cierreBy[k] = (cierreBy[k] || 0) + 1; });
+  console.log(`\n=== SEGUIMIENTOS/CIERRES FINALIZADOS (${cierres.length}) ===`);
+  Object.entries(cierreBy).forEach(([k, v]) => console.log(`   ${v} — ${k}`));
+
   // 6) Movimientos de caja
   const cash = await prisma.cashMovement.findMany({
     where: { createdAt: { gte: start, lte: end } },
