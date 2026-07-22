@@ -13,6 +13,11 @@ import { LabCostReconciliationService } from '@/services/lab-cost-reconciliation
 // lentos (la pasada diaria completa cubre cualquier cola más vieja).
 const FAST_INVOICE_WINDOW_DAYS = 21;
 
+// Ventana del pase rápido del EMAIL de Optovision: alcanza con lo reciente (las
+// facturas nuevas se procesan a los minutos de llegar); 3 días cubren fines de
+// semana largos. La pasada diaria (35 días) es la red de seguridad.
+const FAST_OPTOVISION_EMAIL_DAYS = 3;
+
 // Política de alertas: avisar recién cuando SmartLab lleva más de 12 horas
 // seguidas sin conexión, y repetir como máximo cada 12 horas si sigue caído.
 // El estado se persiste en SystemSetting para sobrevivir redeploys.
@@ -113,6 +118,13 @@ export async function GET(req: Request) {
                 // El modo silencioso pre-backfill lo decide upsertEntry por lab
                 // (isQuietLab): hasta que el cron diario complete el backfill de un
                 // lab, sus entradas se estampan sin alertar. Acá solo se corre.
+                // LECTURA CONSTANTE DE AMBOS LABS (pedido del administrador): cada
+                // 10 minutos se leen los emails nuevos de Optovision Y el portal de
+                // Grupo Óptico. Los costos se registran en la conciliación, y todo
+                // huérfano (de cualquiera de los dos) dispara la alerta inmediata.
+                // Tolerante: si el IMAP falla, el resto del pase sigue.
+                const optoScan = await LabCostReconciliationService.scanOptovisionInbox(FAST_OPTOVISION_EMAIL_DAYS)
+                    .catch((err: any) => { console.error('[CRON SmartLab] Escaneo rápido Optovision falló:', err); return { error: err?.message }; });
                 const collect = await GrupoOpticoProvider.collect({ sinceDays: FAST_INVOICE_WINDOW_DAYS });
                 const recheck = await LabCostReconciliationService.recheckUnmatched();
                 const alerts = await LabCostReconciliationService.alertNewFindings();
@@ -120,7 +132,7 @@ export async function GET(req: Request) {
                 // (la factura llega unos días antes de que el pedido esté listo).
                 const promoted = await LabCostReconciliationService.promoteFinishedOptovision()
                     .catch((err: any) => { console.error('[CRON SmartLab] promoteFinishedOptovision:', err); return { promoted: 0 }; });
-                fastReconciliation = { ...collect, recheck, alerts, promoted };
+                fastReconciliation = { ...collect, optovision: optoScan, recheck, alerts, promoted };
 
                 // Red de seguridad: el backfill (y con él, TODO el régimen de
                 // alertas) depende de que el cron diario corra — y su alta en
