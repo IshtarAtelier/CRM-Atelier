@@ -727,18 +727,6 @@ export function ProductClient({
               >
                 <WhatsAppIcon className="w-4 h-4 fill-current" /> Comprar directo por WhatsApp
               </a>
-
-              <a 
-                href={buildWhatsAppUrl(
-                  `¡Hola! Tengo una consulta sobre el modelo ${product.brand || ''} ${product.model || ''}`,
-                  { pageUrl: currentPageUrl(`/producto/${product.slug}`), phone: whatsappPhoneId }
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-stone-500 font-bold uppercase tracking-widest hover:text-black transition-colors flex items-center justify-center gap-1.5"
-              >
-                <WhatsAppIcon className="w-3.5 h-3.5 fill-current" /> Escribinos por WhatsApp
-              </a>
             </div>
           </div>
         </div>
