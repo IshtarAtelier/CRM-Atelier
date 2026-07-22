@@ -254,7 +254,9 @@ export function TiendaClient({
       <div className="pt-28 pb-8 bg-white border-b border-stone-100">
         <div className="max-w-[1600px] mx-auto px-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-500 mb-2">Atelier Óptica</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-500 mb-2">
+              {isWholesale ? "Cápsula Escarlata" : "Atelier Óptica"}
+            </p>
             <h1 className="text-4xl md:text-5xl font-serif">
               Tienda — Anteojos de diseño
             </h1>

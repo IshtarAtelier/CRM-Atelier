@@ -285,14 +285,16 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
             </nav>
           </div>
 
-          {/* Centro: Texto logo */}
+          {/* Centro: Texto logo. Para ópticas (mayorista) es Cápsula Escarlata,
+              la marca del canal — nunca ven Atelier. El link va a /tienda (su
+              home), no a / (la home minorista de Atelier). */}
           <div className="flex-shrink-0 flex justify-center items-center z-10 px-2">
             <Link
-              href="/"
+              href={isOptica ? "/tienda" : "/"}
               className={`text-[11px] sm:text-[14px] md:text-[16px] leading-none font-bold tracking-[0.05em] sm:tracking-[0.10em] md:tracking-[0.15em] ${activeTextColorClass} drop-shadow-md text-center whitespace-nowrap`}
               style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
             >
-              ATELIER ÓPTICA
+              {isOptica ? "CÁPSULA ESCARLATA" : "ATELIER ÓPTICA"}
             </Link>
           </div>
   

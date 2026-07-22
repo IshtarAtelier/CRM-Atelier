@@ -3,6 +3,11 @@ import Image from "next/image";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { getWebSettings } from "@/lib/web-settings";
 
+// Nota: este footer NO se rebrandea para ópticas — se usa en páginas públicas
+// minoristas (home, blog, etc.) que la óptica no visita (el middleware la limita
+// a /tienda, que usa StorefrontFooterStatic, ese sí con footer Cápsula Escarlata).
+// Meterle cookies()/next/headers acá rompía el build: FaqClient lo importa como
+// client component.
 export async function StorefrontFooter() {
   let webSettings: any = null;
   try {

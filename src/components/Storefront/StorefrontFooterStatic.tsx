@@ -1,8 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { WholesaleFooter } from "./WholesaleFooter";
 
-export function StorefrontFooterStatic() {
+// isWholesale lo resuelve quien renderiza el footer (la page /tienda lo detecta
+// server-side por la cookie de sesión). Se pasa como prop en vez de leer
+// next/headers acá, porque este componente también lo importan client
+// components (FaqClient, landing) y next/headers rompería el build ahí.
+export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: boolean }) {
+  // Óptica (mayorista): footer neutro de Cápsula Escarlata, sin datos de Atelier.
+  if (isWholesale) return <WholesaleFooter />;
+
   const addressLine = "José Luis de Tejeda 4380";
   const localityLine = "Cerro de las Rosas, Córdoba";
   const mapsUrl = "https://www.google.com/maps/search/?api=1&query=Atelier+Optica+Cordoba+Jose+Luis+de+Tejeda+4380";
