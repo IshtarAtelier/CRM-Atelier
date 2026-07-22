@@ -383,19 +383,34 @@ export function ProductClient({
                 transition={{ delay: 0.4, duration: 0.8 }}
                 className="mb-6 flex flex-col gap-1"
               >
-                <span className="text-xs font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded w-max">
-                  Precio Mayorista Ópticas
-                </span>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-black text-blue-600">
-                    ${(product.wholesalePrice || product.price || 0).toLocaleString("es-AR")}
-                  </span>
-                  {product.wholesalePrice < product.price && (
-                    <span className="text-sm font-medium text-stone-500 line-through">
-                      ${(product.price || 0).toLocaleString("es-AR")} (P. Lista)
+                {/* Sin wholesalePrice cargado (> 0) el backend cobra retail:
+                    no etiquetar el precio de lista como "Mayorista". */}
+                {product.wholesalePrice > 0 ? (
+                  <>
+                    <span className="text-xs font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded w-max">
+                      Precio Mayorista Ópticas
                     </span>
-                  )}
-                </div>
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-3xl font-black text-blue-600">
+                        ${(product.wholesalePrice || 0).toLocaleString("es-AR")}
+                      </span>
+                      {product.wholesalePrice < product.price && (
+                        <span className="text-sm font-medium text-stone-500 line-through">
+                          ${(product.price || 0).toLocaleString("es-AR")} (P. Lista)
+                        </span>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-3xl font-black text-stone-900">
+                      ${(product.price || 0).toLocaleString("es-AR")}
+                    </span>
+                    <span className="text-xs font-medium uppercase text-stone-400">
+                      P. Lista
+                    </span>
+                  </div>
+                )}
               </motion.div>
             ) : (
               <>
