@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { cache } from 'react';
-import { redirect, permanentRedirect } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { rethrowUnlessBuild } from '@/lib/db-guard';
 import { getProductAttributes } from '@/utils/product-controllers';
@@ -198,29 +198,30 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   if (!product) {
     // Producto discontinuado que ya no existe (y no es un renombrado conocido de
-    // LEGACY_SLUGS). En vez de servir un soft-404 (HTTP 200 con "Producto no
-    // encontrado" — que Google penaliza y desperdicia crawl), redirigimos a la
-    // categoría más afín para no perder al visitante ni ensuciar el índice.
-    // Redirect TEMPORAL (307), no permanente: si el producto se reactiva más
-    // adelante, el link vuelve a funcionar sin quedar "pegado" en cachés/Google.
-    // getProduct ya relanza ante fallo de DB (rethrowUnlessBuild), así que acá
-    // null == genuinamente inexistente, nunca un problema transitorio de base.
-    const s = resolvedParams.slug.toLowerCase();
-    const esSol = s.includes('lentes-de-sol') || s.includes('sunglass');
-    redirect(esSol ? '/lentes-de-sol' : '/tienda');
+    // LEGACY_SLUGS): 404 REAL, que es lo que Google espera de una ficha que se
+    // dio de baja. Redirigir a /tienda parecía más amable pero Google lo cuenta
+    // como soft-404 igual (redirect a página genérica), y encima acá ni siquiera
+    // llegaba a ser un 307: como la ruta streamea, el status ya salía 200 y el
+    // salto terminaba en un <meta refresh> — el peor de los dos mundos.
+    // El visitante no queda en la nada: not-found.tsx de esta ruta ofrece las
+    // categorías. getProduct ya relanza ante fallo de DB (rethrowUnlessBuild),
+    // así que null == genuinamente inexistente, nunca un problema transitorio.
+    notFound();
   }
 
   // Get material from product attributes
   const { material } = getProductAttributes((product as any).modelCode || product.model, (product as any).seoTags);
 
-  // 1) Sibling variants query
-  let variants: any[] = [];
-  try {
-    const baseModel = product.modelCode 
-      ? product.modelCode.split(/[\s-]/)[0] 
-      : product.model?.split(/[\s-]/)[0];
-      
-    if (baseModel && baseModel.length > 2) {
+  // Las dos consultas secundarias (variantes y relacionados) no dependen entre
+  // sí: van en paralelo. Antes eran secuenciales y sumaban sus latencias al
+  // TTFB, que ahora pesa más porque la ruta ya no streamea (ver nota del 404).
+  const variantsPromise = (async (): Promise<any[]> => {
+    try {
+      const baseModel = product.modelCode
+        ? product.modelCode.split(/[\s-]/)[0]
+        : product.model?.split(/[\s-]/)[0];
+
+      if (!baseModel || baseModel.length <= 2) return [];
       const siblings = await prisma.webProduct.findMany({
         where: {
           isActive: true,
@@ -231,8 +232,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         },
         include: { product: true }
       });
-      
-      variants = siblings
+
+      return siblings
         .filter(s => {
           const { material: siblingMaterial } = getProductAttributes(s.product.model, s.product.seoTags);
           return siblingMaterial === material;
@@ -247,38 +248,42 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             imageUrl: s.images.length > 0 ? s.images[0] : (s.product.imagenesCatalogo?.[0] || null)
           };
         });
+    } catch (err) {
+      console.error("Error fetching variants:", err);
+      return [];
     }
-  } catch (err) {
-    console.error("Error fetching variants:", err);
-  }
+  })();
 
-  // 2) Related products query
-  let relatedProducts: any[] = [];
-  try {
-    const siblings = await prisma.webProduct.findMany({
-      where: {
-        isActive: true,
-        category: product.category,
-        productId: { not: product.id },
-        product: { publishToWeb: true }
-      },
-      include: { product: true },
-      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
-      take: 4
-    });
-    relatedProducts = siblings.map(wp => ({
-      id: wp.product.id,
-      brand: wp.product.brand || 'ATELIER',
-      model: wp.name || wp.product.model || '',
-      price: wp.product.price,
-      salePrice: wp.product.salePrice,
-      wholesalePrice: wp.product.wholesalePrice,
-      slug: wp.slug,
-      imageUrl: wp.images.length > 0 ? wp.images[0] : (wp.product.imagenesCatalogo?.[0] || '/images/placeholder.svg')
-    }));
-  } catch (err) {
-    console.error("Error fetching related products:", err);
-  }
+  const relatedPromise = (async (): Promise<any[]> => {
+    try {
+      const siblings = await prisma.webProduct.findMany({
+        where: {
+          isActive: true,
+          category: product.category,
+          productId: { not: product.id },
+          product: { publishToWeb: true }
+        },
+        include: { product: true },
+        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        take: 4
+      });
+      return siblings.map(wp => ({
+        id: wp.product.id,
+        brand: wp.product.brand || 'ATELIER',
+        model: wp.name || wp.product.model || '',
+        price: wp.product.price,
+        salePrice: wp.product.salePrice,
+        wholesalePrice: wp.product.wholesalePrice,
+        slug: wp.slug,
+        imageUrl: wp.images.length > 0 ? wp.images[0] : (wp.product.imagenesCatalogo?.[0] || '/images/placeholder.svg')
+      }));
+    } catch (err) {
+      console.error("Error fetching related products:", err);
+      return [];
+    }
+  })();
+
+  const [variants, relatedProducts] = await Promise.all([variantsPromise, relatedPromise]);
 
   // Resolve all product images to absolute URLs
   const resolveAbsolute = (url: string) => {
