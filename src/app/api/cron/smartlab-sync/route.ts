@@ -18,6 +18,17 @@ const FAST_INVOICE_WINDOW_DAYS = 21;
 // semana largos. La pasada diaria (35 días) es la red de seguridad.
 const FAST_OPTOVISION_EMAIL_DAYS = 3;
 
+// Recuperación del portal de Grupo Óptico: si la pasada COMPLETA lleva más de
+// estas horas sin salir bien (el portal caído, o el cron diario que no corrió),
+// el próximo pase que lo encuentre en pie hace una completa en vez de la corta.
+// 20 h < 24 h del ciclo diario: si el diario funcionó, esto nunca se dispara.
+const FULL_CATCHUP_HOURS = 20;
+
+// Sello de la última pasada COMPLETA exitosa de Grupo Óptico. Es la misma clave
+// que escribe runAllProviders en el cron diario (lab-providers/index.ts), así
+// que ambos caminos comparten el mismo reloj.
+const GO_LAST_OK_KEY = 'lab-provider:GRUPO_OPTICO:lastOkAt';
+
 // Política de alertas: avisar recién cuando SmartLab lleva más de 12 horas
 // seguidas sin conexión, y repetir como máximo cada 12 horas si sigue caído.
 // El estado se persiste en SystemSetting para sobrevivir redeploys.
@@ -125,7 +136,38 @@ export async function GET(req: Request) {
                 // Tolerante: si el IMAP falla, el resto del pase sigue.
                 const optoScan = await LabCostReconciliationService.scanOptovisionInbox(FAST_OPTOVISION_EMAIL_DAYS)
                     .catch((err: any) => { console.error('[CRON SmartLab] Escaneo rápido Optovision falló:', err); return { error: err?.message }; });
-                const collect = await GrupoOpticoProvider.collect({ sinceDays: FAST_INVOICE_WINDOW_DAYS });
+
+                // RECUPERACIÓN AUTOMÁTICA: el portal del lab es un dyndns casero y
+                // se cae seguido. Mientras esté caído, cada intento falla; pero
+                // apenas responde —en cualquiera de los ~72 intentos del día— hay
+                // que recuperar TODO lo que se perdió, no solo la ventana corta.
+                // Si la pasada COMPLETA (la del cron diario, que es la que estampa
+                // lastOkAt) lleva más de 20 h sin salir bien, este pase hace una
+                // completa en vez de la rápida y estampa el sello. Así el sistema
+                // se pone al día solo, sin esperar al día siguiente.
+                const ultimaCompleta = await getSetting(GO_LAST_OK_KEY);
+                const horasSinCompleta = ultimaCompleta
+                    ? (Date.now() - new Date(ultimaCompleta).getTime()) / 3600000
+                    : Infinity;
+                const alDia = horasSinCompleta <= FULL_CATCHUP_HOURS;
+                // Aislado: el portal de Grupo caído NO puede dejar ciego al resto
+                // del pase (los avisos de pedidos sin venta de Optovision y la
+                // promoción de pedidos facturados tienen que salir igual).
+                const collect: any = await GrupoOpticoProvider.collect(
+                    alDia ? { sinceDays: FAST_INVOICE_WINDOW_DAYS } : {},
+                ).catch((err: any) => {
+                    console.error('[CRON SmartLab] Portal de Grupo Óptico no respondió (se reintenta en la próxima corrida):', err?.message || err);
+                    return { error: err?.message || 'portal sin respuesta' };
+                });
+                if (!alDia && !collect?.error && !collect?.invoiceError) {
+                    // La recuperación salió bien y CON importes: sella la pasada
+                    // completa para no repetirla cada 10 minutos.
+                    await setSetting(GO_LAST_OK_KEY, new Date().toISOString());
+                    console.log(`[CRON SmartLab] Grupo Óptico recuperado: pasada COMPLETA tras ${
+                        horasSinCompleta === Infinity ? 'nunca' : `${Math.round(horasSinCompleta)} h`} sin una exitosa.`);
+                }
+                (collect as any).modo = alDia ? `rápido (${FAST_INVOICE_WINDOW_DAYS} días)` : 'COMPLETO (recuperación)';
+
                 const recheck = await LabCostReconciliationService.recheckUnmatched();
                 // Cada 10 minutos solo salen los pedidos SIN VENTA (lo que hay que
                 // resolver en el momento). Las facturas nuevas y las diferencias
