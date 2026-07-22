@@ -76,6 +76,38 @@ async function clasificarHuerfanos(huerfanos: any[]) {
                 };
             }
         }
+        // FACTURA SIN Nº DE PEDIDO (emitida contra remito): el papel no dice a qué
+        // pedido corresponde ni trae el nombre del cliente, así que se busca la
+        // venta candidata por IMPORTE — una que esté esperando factura y cuyo costo
+        // de sistema se parezca al facturado. Es una SUGERENCIA para asignar a
+        // mano: el sistema no la asigna solo.
+        if ((o.notes || '').includes('SIN nº de pedido')) {
+            const importe = o.lab === 'OPTOVISION'
+                ? (o.billedTotal ?? o.billedNet)
+                : (o.billedNet ?? o.billedTotal);
+            if (importe) {
+                const candidatas = await prisma.labCostEntry.findMany({
+                    where: {
+                        lab: o.lab, status: 'PENDING', orderId: { not: null },
+                        billedNet: null, billedTotal: null,
+                        systemCost: { gte: importe * 0.75, lte: importe * 1.35 },
+                    },
+                    include: { order: { select: { clientId: true, labOrderNumber: true, client: { select: { name: true } } } } },
+                    take: 4,
+                }).catch(() => [] as any[]);
+                if (candidatas.length > 0) {
+                    const lista = candidatas
+                        .map((c: any) => `${c.labOrderNumber} (${c.order?.client?.name || 's/cliente'}, sistema $${Math.round(c.systemCost || 0).toLocaleString('es-AR')})`)
+                        .join(' · ');
+                    return {
+                        id: o.id, tipo: 'VENTA_SIN_NUMERO',
+                        clientId: candidatas.length === 1 ? candidatas[0].order?.clientId : null,
+                        detalle: `Factura sin nº de pedido. ${candidatas.length === 1 ? 'Candidata' : `${candidatas.length} candidatas`} por importe: ${lista} — confirmar y asignar`,
+                    };
+                }
+            }
+            return { id: o.id, tipo: 'DUDOSO', clientId: null, detalle: 'Factura SIN nº de pedido y sin venta parecida esperando: revisar con el laboratorio' };
+        }
         return { id: o.id, tipo: 'DUDOSO', clientId: null, detalle: 'DUDOSO — sin cliente ni postventa que lo explique: revisar con urgencia' };
     }));
 }

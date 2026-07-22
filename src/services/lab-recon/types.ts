@@ -23,6 +23,13 @@ export interface LabCostInput {
      * entre la corrida de 10 min y la diaria). Solo completa lo que falta.
      */
     preferExistingBilling?: boolean;
+    /**
+     * `labOrderNumber` es una CLAVE LITERAL, no un nº de pedido del que haya que
+     * extraer los dígitos. Se usa para las facturas emitidas contra REMITO (sin
+     * nº de pedido): se registran con la clave "S/PEDIDO 3008-00063271" para que
+     * el importe quede a la vista en vez de descartarse en silencio.
+     */
+    claveLiteral?: boolean;
 }
 
 /** Tolerancia en pesos para diferencias de redondeo entre lista y factura. */

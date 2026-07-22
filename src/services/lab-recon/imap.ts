@@ -60,6 +60,47 @@ export async function openImap(): Promise<any | null> {
     throw lastError || new Error('IMAP sin conexión');
 }
 
+/**
+ * Abre la carpeta que contiene TODO el correo, no solo la bandeja de entrada.
+ *
+ * POR QUÉ (hallazgo del 22/7/2026): la casilla tiene filtros que archivan
+ * facturas en carpetas ("Optovision - Laboratorio", "Opto", "Essilor Facturas").
+ * Leyendo solo INBOX se perdían 30 de 104 emails de Optovision y 13 de 106 de
+ * Essilor — casi un tercio de las facturas nunca entraba al cruce, y sus pedidos
+ * figuraban como "sin factura" cuando en realidad el lab SÍ había facturado.
+ *
+ * "Todos los mensajes" de Gmail incluye la bandeja, lo archivado y cualquier
+ * carpeta, así que un filtro nuevo o una carpeta nueva no vuelven a romperlo.
+ * Se detecta por el atributo especial \All (independiente del idioma de la
+ * cuenta); si no aparece, se prueban los nombres conocidos y por último INBOX.
+ */
+export async function openAllMail(connection: any): Promise<string> {
+    const candidatos: string[] = [];
+    try {
+        const boxes = await connection.getBoxes();
+        const buscar = (nodo: any, prefijo = '') => {
+            for (const [nombre, info] of Object.entries<any>(nodo || {})) {
+                const ruta = prefijo ? `${prefijo}${info.delimiter || '/'}${nombre}` : nombre;
+                const attrs: string[] = info?.attribs || [];
+                if (attrs.includes('\\All')) candidatos.push(ruta);
+                if (info?.children) buscar(info.children, ruta);
+            }
+        };
+        buscar(boxes);
+    } catch { /* si getBoxes falla, se van a probar los nombres conocidos */ }
+
+    for (const box of [...candidatos, '[Gmail]/Todos', '[Gmail]/All Mail', 'INBOX']) {
+        try {
+            await connection.openBox(box);
+            if (box === 'INBOX') {
+                console.warn('[LabCost] No se encontró "Todos los mensajes": se lee solo la bandeja de entrada — las facturas archivadas en carpetas NO se van a ver.');
+            }
+            return box;
+        } catch { /* probar el siguiente */ }
+    }
+    throw new Error('No se pudo abrir ninguna carpeta de correo');
+}
+
 
 /**
  * Escanea la casilla IMAP buscando facturas PDF de Optovision de los últimos
@@ -72,10 +113,10 @@ export async function scanOptovisionInbox(sinceDays = 35) {
         return { skipped: true, reason: 'no_imap_password' };
     }
 
-    const summary = { emails: 0, pdfs: 0, parsed: 0, unparsed: 0, overcost: 0, unmatched: 0, entries: [] as string[] };
+    const summary: Record<string, any> = { emails: 0, pdfs: 0, parsed: 0, unparsed: 0, sinPedidoRegistradas: 0, overcost: 0, unmatched: 0, entries: [] as string[] };
 
     try {
-        await connection.openBox('INBOX');
+        await openAllMail(connection);
 
         const since = new Date();
         since.setDate(since.getDate() - sinceDays);
@@ -101,10 +142,45 @@ export async function scanOptovisionInbox(sinceDays = 35) {
                     const invoice = await OptovisionParserService.parseInvoice(attachment.content);
                     const peds = invoice.labOrderNumbers;
                     if (peds.length === 0) {
-                        // Compras de stock o consolidadas por remito: sin nº de
-                        // pedido, no se cruzan (quedan solo en el log).
+                        // FACTURA SIN Nº DE PEDIDO. Optovision emite de dos formas: la
+                        // habitual dice "Ped: TI-7101093(580841)", pero otras las emite
+                        // contra un REMITO y ahí NO figura el pedido. Hasta el 22/7 esas
+                        // se descartaban con una línea de log — invisibles. Así se
+                        // perdían de vista importes grandes (p. ej. FA_3008-00063271 por
+                        // $438.072, que era el par caro de un 2x1 y figuraba como "sin
+                        // factura"). Ahora se registran con una clave propia para que
+                        // aparezcan como pedido SIN VENTA y entren en el aviso: es plata
+                        // facturada que hay que asignar a mano a la venta que
+                        // corresponda (el papel no trae el nombre del cliente, así que
+                        // el sistema no puede adivinarlo — avisa y decidís vos).
                         summary.unparsed++;
-                        console.log(`[LabCost] PDF sin nº de pedido (stock/remito): ${attachment.filename}`);
+                        const total = invoice.total ?? invoice.subtotal ?? null;
+                        const nroFactura = (invoice.rawText || '').match(/FACTURA N°\s*([\d]{4})\s*-?\s*([\d]{6,})/);
+                        const remito = (invoice.rawText || '').match(/\b(E\d)\s+(\d{5,})\b/);
+                        const clave = nroFactura
+                            ? `S/PEDIDO ${nroFactura[1]}-${nroFactura[2]}`
+                            : `S/PEDIDO ${(attachment.filename || 'factura').replace(/\.pdf$/i, '')}`;
+
+                        if (total !== null && total > 0) {
+                            const entry = await upsertEntry({
+                                lab: 'OPTOVISION',
+                                labOrderNumber: clave,
+                                claveLiteral: true,
+                                billedNet: invoice.subtotal,
+                                billedTotal: invoice.total,
+                                source: 'IMAP_PDF',
+                                sourceFile: attachment.filename || 'factura.pdf',
+                                invoiceDate: parsed.date || null,
+                                notes: `Factura SIN nº de pedido${remito ? ` — emitida contra el remito ${remito[1]}-${remito[2]}` : ''}. `
+                                    + 'El comprobante no dice a qué pedido corresponde: hay que asignarlo a mano a la venta que lo espera.',
+                            });
+                            if (entry) {
+                                summary.sinPedidoRegistradas = (summary.sinPedidoRegistradas || 0) + 1;
+                                console.log(`[LabCost] Factura SIN pedido registrada: ${clave} ($${Math.round(total).toLocaleString('es-AR')}) — ${attachment.filename}`);
+                            }
+                        } else {
+                            console.log(`[LabCost] PDF sin nº de pedido ni importe (se ignora): ${attachment.filename}`);
+                        }
                         continue;
                     }
 
@@ -216,7 +292,7 @@ export async function scanEssilorStatement(sinceDays = 20) {
     if (!connection) return { skipped: true, reason: 'no_imap_password' };
 
     try {
-        await connection.openBox('INBOX');
+        await openAllMail(connection);
         const since = new Date();
         since.setDate(since.getDate() - sinceDays);
         const messages = await connection.search(

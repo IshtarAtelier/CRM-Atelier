@@ -2,6 +2,7 @@ import imaps from 'imap-simple';
 import { simpleParser } from 'mailparser';
 import { prisma } from '../lib/db';
 import { OptovisionParserService } from './optovision-parser.service';
+import { openAllMail } from './lab-recon/imap';
 import { sendEmail } from '../lib/email';
 
 export class OptovisionAuditService {
@@ -52,7 +53,7 @@ export class OptovisionAuditService {
             let billedInvoiceFile: string | null = null;
             let billedTotal = 0;
             try {
-                await connection.openBox('INBOX');
+                await openAllMail(connection);
 
                 // Search for emails from procesos@optovisionsa.com.ar containing the order number
                 const searchCriteria = [

@@ -67,7 +67,9 @@ export function systemCostForLab(order: any, lab: string): number {
  * Devuelve la entrada resultante.
  */
 export async function upsertEntry(input: LabCostInput) {
-    const cleanNumber = (input.labOrderNumber.match(/\d{4,}/) || [input.labOrderNumber.trim()])[0];
+    const cleanNumber = input.claveLiteral
+        ? input.labOrderNumber.trim()
+        : (input.labOrderNumber.match(/\d{4,}/) || [input.labOrderNumber.trim()])[0];
     if (!cleanNumber) return null;
 
     // Backfill pendiente para este lab → modo silencioso (ver arriba).
