@@ -221,8 +221,11 @@ export default function InventarioPage() {
     // (blur) o al guardar. No corre en cada tecla ni se puede volver a aplicar sobre
     // un costo ya calculado — la fórmula lee siempre el pelado, nunca el final.
     const setCostFromFormula = () => {
-        setCostCalcPending(false);
+        // Si todavía no se puede calcular (labs sin cargar), el pendiente NO se consume:
+        // queda para el próximo intento o para el guardado, así nunca se guarda un
+        // costo pelado nuevo junto al costo final viejo.
         if (editCost.suggested == null) return;
+        setCostCalcPending(false);
         setEditForm(prev => ({ ...prev, cost: editCost.suggested as number }));
     };
     // Al salir del pelado (o al apretar Enter): si quedó un cálculo pendiente, se aplica
