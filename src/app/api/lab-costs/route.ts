@@ -20,8 +20,30 @@ export async function GET(request: Request) {
         if (lab) where.lab = lab;
         if (status) where.status = status;
 
+        // Período REAL (regla del administrador): mes AAAA-MM elegido, o los
+        // últimos 30 días por defecto — el listado, las tarjetas de resumen y
+        // la cobertura nunca suman todo el histórico.
+        const periodo = searchParams.get('periodo');
+        let desde: Date, hasta: Date;
+        if (periodo && /^\d{4}-\d{2}$/.test(periodo)) {
+            const [y, m] = periodo.split('-').map(Number);
+            desde = new Date(Date.UTC(y, m - 1, 1));
+            hasta = new Date(Date.UTC(y, m, 1));
+        } else {
+            hasta = new Date();
+            desde = new Date(Date.now() - 30 * 86400000);
+        }
+        // La "fecha" de una entrada es la de su factura; si todavía no tiene
+        // factura, la fecha en que se registró el pedido.
+        const enPeriodo = {
+            OR: [
+                { invoiceDate: { gte: desde, lt: hasta } },
+                { invoiceDate: null, createdAt: { gte: desde, lt: hasta } },
+            ],
+        };
+
         const entries = await prisma.labCostEntry.findMany({
-            where,
+            where: { AND: [where, enPeriodo] },
             include: {
                 order: {
                     select: {
@@ -75,9 +97,12 @@ export async function GET(request: Request) {
             return { ...e, order: e.order ? orderRest : null, productos };
         });
 
+        // Tarjetas de resumen: SIEMPRE del período filtrado, por lab Y por tipo
+        // de situación (dos cuadros en la pantalla, uno por laboratorio). No se
+        // les aplica el filtro de lab: los dos cuadros se ven completos siempre.
         const totals = await prisma.labCostEntry.groupBy({
-            by: ['status'],
-            where: lab ? { lab } : undefined,
+            by: ['lab', 'status'],
+            where: enPeriodo,
             _count: { _all: true },
             _sum: { difference: true },
         });
@@ -108,7 +133,9 @@ export async function GET(request: Request) {
         // sistema (venta o postventa) y cuántos quedaron huérfanos. Es el cuadro
         // de "todo cubierto": para Grupo Óptico (sin resumen de cuenta) el barrido
         // del portal trae TODOS los pedidos, así que esta ES su cuenta corriente.
+        // También acotada al período (no suma todo el histórico).
         const coberturaEntries = await prisma.labCostEntry.findMany({
+            where: enPeriodo,
             select: { lab: true, orderId: true, notes: true, status: true },
         });
         const cobertura: Record<string, { total: number; conVenta: number; postventa: number; sinVenta: number; esperandoFactura: number }> = {};
@@ -121,7 +148,10 @@ export async function GET(request: Request) {
             if (e.status === 'PENDING') c.esperandoFactura++;
         }
 
-        return NextResponse.json({ entries: entriesConProductos, totals, auditRuns, statements, cobertura });
+        return NextResponse.json({
+            entries: entriesConProductos, totals, auditRuns, statements, cobertura,
+            periodo: { desde, hasta, mes: periodo && /^\d{4}-\d{2}$/.test(periodo) ? periodo : null },
+        });
     } catch (error: any) {
         console.error('[lab-costs GET] Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

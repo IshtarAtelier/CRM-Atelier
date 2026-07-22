@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
     ArrowLeft, Loader2, RefreshCw, Mail, Upload, X, FlaskConical,
-    AlertTriangle, CheckCircle2, HelpCircle, TrendingDown, CalendarDays, Download, History, Search,
+    CalendarDays, Download, History, Search,
     ChevronDown, ChevronUp
 } from 'lucide-react';
 import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
@@ -61,6 +61,7 @@ function addBusinessDays(from: Date, days: number): Date {
 }
 
 interface StatusTotal {
+    lab: string;
     status: string;
     _count: { _all: number };
     _sum: { difference: number | null };
@@ -222,6 +223,9 @@ export default function LabCostosPage() {
     const [loading, setLoading] = useState(true);
     const [labFilter, setLabFilter] = useState(() => getUrlParam(searchParams, 'lab', ''));
     const [statusFilter, setStatusFilter] = useState(() => getUrlParam(searchParams, 'estado', ''));
+    // Período del resumen y del listado: mes AAAA-MM elegido, o '' = últimos
+    // 30 días (default). Nunca "todo el histórico".
+    const [periodoMes, setPeriodoMes] = useState(() => getUrlParam(searchParams, 'periodo', ''));
     const [busy, setBusy] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
 
@@ -268,6 +272,7 @@ export default function LabCostosPage() {
             const params = new URLSearchParams();
             if (labFilter) params.set('lab', labFilter);
             if (statusFilter) params.set('status', statusFilter);
+            if (periodoMes) params.set('periodo', periodoMes);
             const res = await fetch(`/api/lab-costs?${params.toString()}`);
             if (res.ok) {
                 const data = await res.json();
@@ -282,7 +287,7 @@ export default function LabCostosPage() {
         } finally {
             setLoading(false);
         }
-    }, [labFilter, statusFilter]);
+    }, [labFilter, statusFilter, periodoMes]);
 
     useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
@@ -377,11 +382,12 @@ export default function LabCostosPage() {
         syncUrlParams('/admin/laboratorio/costos', {
             lab: labFilter,
             estado: statusFilter,
+            periodo: periodoMes || undefined,
             mes: reportMonth !== previousMonth() ? reportMonth : undefined,
             q: reportSearch.trim() || undefined,
             dia: reportDay || undefined,
         });
-    }, [labFilter, statusFilter, reportMonth, reportSearch, reportDay]);
+    }, [labFilter, statusFilter, periodoMes, reportMonth, reportSearch, reportDay]);
 
     // El filtrado lo hace el servidor (mes o histórico); acá solo mostramos lo que vino.
     const reportFiltered = Boolean(reportSearch.trim() || reportDay);
@@ -415,8 +421,23 @@ export default function LabCostosPage() {
         URL.revokeObjectURL(a.href);
     };
 
-    const countFor = (status: string) => totals.find(t => t.status === status)?._count._all || 0;
-    const overcostSum = totals.find(t => t.status === 'OVERCOST')?._sum.difference || 0;
+    // Resumen por lab + situación, del PERÍODO filtrado (nunca todo el histórico).
+    const cellFor = (labName: string, status: string) => {
+        const t = totals.find(x => x.lab === labName && x.status === status);
+        return { count: t?._count._all || 0, sum: t?._sum.difference || 0 };
+    };
+    const totalLab = (labName: string) => totals.filter(t => t.lab === labName).reduce((n, t) => n + t._count._all, 0);
+    const periodoLabel = periodoMes
+        ? new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${periodoMes}-15T00:00:00Z`))
+        : 'últimos 30 días';
+    // Situaciones del resumen, en orden de gravedad.
+    const SITUACIONES: { status: string; label: string; sub: string; cls: string; conMonto?: boolean }[] = [
+        { status: 'UNMATCHED', label: 'Sin venta', sub: 'huérfanos: sin venta ni postventa', cls: 'text-amber-700' },
+        { status: 'OVERCOST', label: 'Sobrecosto', sub: 'el lab cobró de más', cls: 'text-red-600', conMonto: true },
+        { status: 'UNDERCOST', label: 'Menor costo', sub: 'el lab cobró menos', cls: 'text-emerald-600', conMonto: true },
+        { status: 'PENDING', label: 'Esperando factura', sub: 'con venta, sin costo facturado aún', cls: 'text-blue-600' },
+        { status: 'OK', label: 'OK', sub: 'dentro de tolerancia', cls: 'text-green-600' },
+    ];
 
     return (
         <div className="p-4 lg:p-8 max-w-7xl mx-auto">
@@ -529,7 +550,7 @@ export default function LabCostosPage() {
                                     <FlaskConical size={16} /> Cobertura {LAB_LABELS[labName] || labName} (portal)
                                 </div>
                                 <div className="text-2xl font-bold text-gray-900 mt-1">{c.total} pedidos</div>
-                                <div className="text-xs text-gray-400">el barrido del portal trae todos los pedidos: esta es su cuenta corriente</div>
+                                <div className="text-xs text-gray-400">pedidos de {periodoLabel} según el portal (su cuenta corriente)</div>
                                 <div className="text-xs mt-1">
                                     <span className="text-green-700">{c.conVenta} con venta</span>
                                     <span className="text-gray-400"> · </span>
@@ -545,28 +566,65 @@ export default function LabCostosPage() {
                 </div>
             )}
 
-            {/* Resumen */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                <div className="bg-white rounded-xl border border-red-200 p-4">
-                    <div className="flex items-center gap-2 text-red-600 text-sm font-medium"><AlertTriangle size={16} /> Sobrecostos</div>
-                    <div className="text-2xl font-bold text-gray-900 mt-1">{countFor('OVERCOST')}</div>
-                    <div className="text-xs text-red-600 font-medium">{fmt(overcostSum)} de más</div>
-                </div>
-                <div className="bg-white rounded-xl border border-green-200 p-4">
-                    <div className="flex items-center gap-2 text-green-600 text-sm font-medium"><CheckCircle2 size={16} /> OK</div>
-                    <div className="text-2xl font-bold text-gray-900 mt-1">{countFor('OK')}</div>
-                    <div className="text-xs text-gray-400">dentro de tolerancia</div>
-                </div>
-                <div className="bg-white rounded-xl border border-emerald-200 p-4">
-                    <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium"><TrendingDown size={16} /> Menor costo</div>
-                    <div className="text-2xl font-bold text-gray-900 mt-1">{countFor('UNDERCOST')}</div>
-                    <div className="text-xs text-gray-400">el lab cobró menos</div>
-                </div>
-                <div className="bg-white rounded-xl border border-amber-200 p-4">
-                    <div className="flex items-center gap-2 text-amber-600 text-sm font-medium"><HelpCircle size={16} /> Sin venta</div>
-                    <div className="text-2xl font-bold text-gray-900 mt-1">{countFor('UNMATCHED')}</div>
-                    <div className="text-xs text-gray-400">pedidos/facturas sin venta en el sistema</div>
-                </div>
+            {/* Resumen del período: dos cuadros, uno por laboratorio, agrupado
+                por tipo de situación. El selector de período manda sobre las
+                tarjetas, la cobertura y el listado (default: últimos 30 días). */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+                <CalendarDays size={16} className="text-indigo-600" />
+                <span className="text-sm font-medium text-gray-700">Período:</span>
+                <button
+                    onClick={() => setPeriodoMes('')}
+                    className={`px-3 py-1.5 rounded-lg text-sm border ${!periodoMes
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                >
+                    Últimos 30 días
+                </button>
+                <input
+                    type="month"
+                    value={periodoMes}
+                    onChange={e => setPeriodoMes(e.target.value)}
+                    className={`px-3 py-1.5 rounded-lg border text-sm bg-white ${periodoMes ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-gray-300'}`}
+                    title="Elegir un mes puntual"
+                />
+                <span className="text-xs text-gray-400">mostrando {periodoLabel} — tarjetas, cobertura y listado</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                {(['OPTOVISION', 'GRUPO_OPTICO'] as const).map(labName => (
+                    <div key={labName} className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                                <FlaskConical size={16} className="text-indigo-600" /> {LAB_LABELS[labName]}
+                            </div>
+                            <div className="text-xs text-gray-400">{totalLab(labName)} pedidos en {periodoLabel}</div>
+                        </div>
+                        <div className="divide-y divide-gray-50">
+                            {SITUACIONES.map(s => {
+                                const { count, sum } = cellFor(labName, s.status);
+                                const activo = labFilter === labName && statusFilter === s.status;
+                                return (
+                                    <button
+                                        key={s.status}
+                                        onClick={() => {
+                                            if (activo) { setLabFilter(''); setStatusFilter(''); }
+                                            else { setLabFilter(labName); setStatusFilter(s.status); }
+                                        }}
+                                        className={`w-full flex items-center justify-between py-1.5 px-2 rounded-lg text-left hover:bg-gray-50 ${activo ? 'bg-indigo-50 ring-1 ring-indigo-200' : ''}`}
+                                        title={`${s.sub} — click para ${activo ? 'quitar el filtro' : 'filtrar el listado'}`}
+                                    >
+                                        <span className={`text-sm font-medium ${s.cls}`}>{s.label}</span>
+                                        <span className="flex items-baseline gap-2">
+                                            {s.conMonto && count > 0 && (
+                                                <span className={`text-xs ${s.cls}`}>{fmt(Math.abs(sum))}</span>
+                                            )}
+                                            <span className={`text-lg font-bold ${count > 0 ? 'text-gray-900' : 'text-gray-300'}`}>{count}</span>
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {/* Reporte mensual */}
