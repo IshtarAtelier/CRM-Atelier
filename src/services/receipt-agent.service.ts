@@ -5,6 +5,7 @@ import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
 import { retryWithBackoff } from '@/lib/retry-utils';
 import { notifyReceiptUploaded, notifyVendorsReceiptError, type DuplicatePaymentRef } from '@/lib/receipt-notify';
+import { formatDate } from '@/lib/format-date';
 
 /**
  * Medios de pago con tarjeta / terminal (Payway, Naranja, Go Cuotas). El ticket
