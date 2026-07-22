@@ -87,6 +87,7 @@ async function main() {
     console.log(`\nAnalizando ${orders.length} pedido(s)${CLIENT_IDS.length || ORDER_IDS.length ? ' (filtrados)' : ' con cobros'}\n`);
 
     const inflated = [];
+    const onlyCashTotal = [];
     const noItems = [];
 
     for (const o of orders) {
@@ -98,8 +99,19 @@ async function main() {
         const storedList = o.subtotalWithMarkup || o.total || 0;
         const listGap = storedList - exp.subtotalWithMarkup;
         const totalGap = (o.total || 0) - exp.total;
-        if (listGap > TOLERANCE || totalGap > TOLERANCE) {
+
+        // Solo se repara el VALOR DE LISTA inflado: es el que se muestra como precio
+        // de la venta y el que usan reportes y dashboard. Y solo hacia abajo — si la
+        // reconstrucción diera MÁS que lo guardado, la diferencia tiene otra causa
+        // (ítems o precios editados después) y subir el precio de una venta cerrada
+        // sería peor que el bug.
+        if (listGap > TOLERANCE && exp.total <= (o.total || 0)) {
             inflated.push({ order: o, expected: exp, listGap, totalGap });
+        } else if (totalGap > TOLERANCE) {
+            // El precio de lista está intacto y solo `total` (precio contado) quedó
+            // en lo efectivamente cobrado — pasa cuando se paga con tarjeta el precio
+            // de lista. No se toca: no altera lo que se ve ni lo que reportan.
+            onlyCashTotal.push({ order: o, expected: exp, totalGap });
         }
     }
 
@@ -109,8 +121,13 @@ async function main() {
         console.log('');
     }
 
+    if (onlyCashTotal.length) {
+        const suma = onlyCashTotal.reduce((s, r) => s + r.totalGap, 0);
+        console.log(`ℹ️  ${onlyCashTotal.length} pedido(s) con el precio de lista intacto y solo el total contado movido a lo cobrado (${money(suma)} en total). No se tocan.\n`);
+    }
+
     if (!inflated.length) {
-        console.log('✅ Ningún pedido con el valor inflado por cobros.\n');
+        console.log('✅ Ningún pedido con el valor de lista inflado por cobros.\n');
         return;
     }
 
