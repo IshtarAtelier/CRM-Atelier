@@ -41,8 +41,9 @@ const prisma = PROD
     ? new PrismaClient({ datasources: { db: { url: process.env.PROD_DATABASE_URL } } })
     : new PrismaClient();
 
-// Autorizado por la dueña el 22/07/2026. El motivo queda en la auditoría y en
-// la ficha del cliente: es la explicación de por qué esa venta valió menos.
+// Autorizado por la dueña el 22/07/2026 (los 3 primeros) y el 27/07/2026
+// (Lucas y Zulma). El motivo queda en la auditoría y en la ficha del cliente:
+// es la explicación de por qué esa venta valió menos.
 const EXCEPCIONES = [
     {
         id: 'cmqmhkita007x25b1oz775mzu', // #5MZU
@@ -58,6 +59,16 @@ const EXCEPCIONES = [
         id: 'cmr9e3k9m006lvns75s2wrgzq', // #RGZQ
         cliente: 'Maria Andrea Robert',
         motivo: 'Se igualó el presupuesto de multifocales de otra óptica para cerrar la venta.',
+    },
+    {
+        id: 'cmr13p3g10030ae8x5s8cr56h', // #R56H
+        cliente: 'Lucas Ceballos',
+        motivo: 'Se igualó el presupuesto de multifocales de otra óptica para cerrar la venta.',
+    },
+    {
+        id: 'cmrm39oyj003j2t5qvfky4iey', // #4IEY
+        cliente: 'Zulma Moreno',
+        motivo: 'Lo cobrado se registró como transferencia cuando correspondía a efectivo; la clienta no adeuda el saldo. Confirmado por la dueña el 27/07/2026.',
     },
 ];
 
