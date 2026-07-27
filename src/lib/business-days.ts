@@ -108,11 +108,11 @@ export function calculateEstimatedDays(items: any[]): number {
         const typeStr = (product.type || '').toUpperCase();
         const fullStr = `${typeStr} ${nameStr} ${modelStr} ${brandStr}`;
 
-        // 25 días hábiles: Cristales Stellest (proceso especial de importación/fabricación)
-        if (fullStr.includes('STELLEST')) {
+        // 25 días hábiles: Stellest y XR Design Varilux (procesos especiales)
+        if (fullStr.includes('STELLEST') || fullStr.includes('XR DESIGN')) {
             return 25;
         }
-        
+
         // 10 a 15 días: Multifocales, ocupacionales y bifocales
         if (typeStr.includes('MULTIFOCAL') || typeStr.includes('OCUPACIONAL') || typeStr.includes('BIFOCAL')) {
             return 15; // Tomamos el máximo del rango (15 días) para estar seguros
