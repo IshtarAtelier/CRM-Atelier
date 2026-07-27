@@ -635,7 +635,8 @@ export class OrderService {
                     prescriptionId: true,
                     items: {
                         select: {
-                            product: { select: { category: true, type: true, name: true } }
+                            product: { select: { category: true, type: true, name: true } },
+                            eye: true
                         }
                     },
                     prescription: {
@@ -692,9 +693,23 @@ export class OrderService {
                             if (!rx.imageUrl) {
                                 errors.push('Falta la foto de la receta adjunta.');
                             }
-                            // Must have height (at least one eye)
-                            if (rx.heightOD == null && rx.heightOI == null) {
-                                errors.push('Falta cargar la Altura en la receta (OD y/o OI).');
+                            // Alturas obligatorias por cada ojo con cristal
+                            const crystalEyes = new Set(
+                                orderForValidation.items
+                                    .filter((item: any) =>
+                                        item.product?.category === 'Cristal' ||
+                                        item.product?.type === 'Cristal' ||
+                                        (item.product?.name || '').includes('Cristal'))
+                                    .map((item: any) => item.eye)
+                                    .filter(Boolean)
+                            );
+                            const needsHeightOD = crystalEyes.has('OD') || crystalEyes.size === 0;
+                            const needsHeightOI = crystalEyes.has('OI') || crystalEyes.size === 0;
+                            if (needsHeightOD && rx.heightOD == null) {
+                                errors.push('Falta cargar la Altura del OD en la receta.');
+                            }
+                            if (needsHeightOI && rx.heightOI == null) {
+                                errors.push('Falta cargar la Altura del OI en la receta.');
                             }
                             // Must have DP (at least one field)
                             const hasDP = rx.distanceOD != null || rx.distanceOI != null || rx.pd != null;
@@ -1196,7 +1211,8 @@ export class OrderService {
                         items: {
                             select: {
                                 product: { select: { type: true, category: true, brand: true, model: true, name: true, stock: true } },
-                                quantity: true
+                                quantity: true,
+                                eye: true
                             }
                         },
                         payments: true,
@@ -1221,10 +1237,19 @@ export class OrderService {
                     throw new Error('Esta operación ya fue confirmada como venta anteriormente.');
                 }
 
-                // Check: client must have name and phone at minimum
+                // Check: la ficha del cliente debe estar completa para poder vender.
+                // Estos datos son obligatorios para facturación (DNI/dirección), CAPI
+                // (email) y fabricación (fecha de nacimiento).
                 const client = existingOrder.client;
-                if (!client?.name || !client?.phone) {
-                    throw new Error('La ficha del contacto debe tener al menos nombre y teléfono para generar la venta');
+                const missingClientFields: string[] = [];
+                if (!client?.name?.trim()) missingClientFields.push('nombre');
+                if (!client?.phone?.trim()) missingClientFields.push('teléfono');
+                if (!client?.email?.trim()) missingClientFields.push('email');
+                if (!client?.birthDate) missingClientFields.push('fecha de nacimiento');
+                if (!client?.dni?.trim()) missingClientFields.push('DNI');
+                if (!client?.address?.trim()) missingClientFields.push('dirección');
+                if (missingClientFields.length > 0) {
+                    throw new Error(`La ficha del contacto debe tener ${missingClientFields.join(', ')} para generar la venta.`);
                 }
 
                 // Check: 50% minimum payment
@@ -1260,19 +1285,24 @@ export class OrderService {
                         if (!rx.imageUrl) {
                             saleErrors.push('Falta la foto de la receta adjunta.');
                         }
-                        const hasProgressiveOrMultifocal = existingOrder.items?.some((item: any) => {
-                            const name = (item.product?.name || '').toLowerCase();
-                            const type = (item.product?.type || '').toLowerCase();
-                            const cat = (item.product?.category || '').toLowerCase();
-                            return name.includes('multifocal') || name.includes('progresivo') || name.includes('ocupacional') ||
-                                   type.includes('multifocal') || type.includes('progresivo') || type.includes('ocupacional') ||
-                                   cat.includes('multifocal') || cat.includes('progresivo') || cat.includes('ocupacional');
-                        });
-
-                        if (hasProgressiveOrMultifocal) {
-                            if (rx.heightOD == null && rx.heightOI == null) {
-                                saleErrors.push('Falta cargar la Altura en la receta (OD y/o OI) para cristales progresivos/ocupacionales.');
-                            }
+                        // Alturas obligatorias para TODO pedido con cristales, por cada
+                        // ojo que lleva cristal (los cristales por ojo tienen item.eye).
+                        const crystalEyes = new Set(
+                            (existingOrder.items || [])
+                                .filter((item: any) =>
+                                    item.product?.type === 'Cristal' ||
+                                    item.product?.category === 'Cristal' ||
+                                    (item.product?.name || '').includes('Cristal'))
+                                .map((item: any) => item.eye)
+                                .filter(Boolean)
+                        );
+                        const needsHeightOD = crystalEyes.has('OD') || crystalEyes.size === 0;
+                        const needsHeightOI = crystalEyes.has('OI') || crystalEyes.size === 0;
+                        if (needsHeightOD && rx.heightOD == null) {
+                            saleErrors.push('Falta cargar la Altura del OD en la receta.');
+                        }
+                        if (needsHeightOI && rx.heightOI == null) {
+                            saleErrors.push('Falta cargar la Altura del OI en la receta.');
                         }
                         const hasDP = rx.distanceOD != null || rx.distanceOI != null || rx.pd != null;
                         if (!hasDP) {

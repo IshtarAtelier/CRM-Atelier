@@ -49,9 +49,13 @@ export default function CheckoutModal({
     const [clientForm, setClientForm] = useState({
         dni: contact.dni || '',
         address: contact.address || '',
-        phone: contact.phone || ''
+        phone: contact.phone || '',
+        email: contact.email || '',
+        // El server devuelve ISO completo; el <input type="date"> necesita YYYY-MM-DD
+        birthDate: contact.birthDate ? String(contact.birthDate).slice(0, 10) : ''
     });
-    const isClientDataComplete = clientForm.dni && clientForm.address && clientForm.phone;
+    const isClientDataComplete = !!(clientForm.dni?.trim() && clientForm.address?.trim() &&
+        clientForm.phone?.trim() && clientForm.email?.trim() && clientForm.birthDate);
     const [isEditingClient, setIsEditingClient] = useState(!isClientDataComplete);
 
     // Repaso Final: Usar PricingService para consistencia total
@@ -186,13 +190,37 @@ export default function CheckoutModal({
         ))
     );
 
+    // Completitud de la receta: foto + DP + alturas por cada ojo con cristal.
+    // Espeja el gate del servidor (order.service.ts: QUOTE→SALE) para que el botón
+    // no habilite algo que el servidor va a rechazar. No aplica a lentes de contacto.
+    const selectedRx = contact.prescriptions?.find((r: any) => r.id === selectedRxId);
+    const crystalEyes = new Set(
+        (order.items || [])
+            .filter((it: any) => {
+                const str = `${it.product?.type || ''} ${it.product?.category || ''} ${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
+                return str.includes('cristal') || str.includes('monofocal') || str.includes('multifocal') || str.includes('bifocal') || str.includes('progresivo') || str.includes('ocupacional');
+            })
+            .map((it: any) => it.eye)
+            .filter(Boolean)
+    );
+    const needsHeightOD = crystalEyes.has('OD') || crystalEyes.size === 0;
+    const needsHeightOI = crystalEyes.has('OI') || crystalEyes.size === 0;
+    const isRxComplete = !hasCrystals || isContactLens || !!(
+        selectedRx &&
+        selectedRx.imageUrl &&
+        (selectedRx.distanceOD != null || selectedRx.distanceOI != null || selectedRx.pd != null) &&
+        (!needsHeightOD || selectedRx.heightOD != null) &&
+        (!needsHeightOI || selectedRx.heightOI != null)
+    );
+
     // La autorización del administrador (seña < mínimo) habilita el envío igual
     // que en el gate del servidor (order.service.ts: QUOTE→SALE). Sin este bypass
     // el botón queda deshabilitado aunque el pedido esté autorizado.
     const isAuthorized = localAuthorized;
     const canConvert = depositClearsFactoryGate({ paid, total, authorizedByAdmin: isAuthorized }) &&
                        isClientDataComplete &&
-                       (!hasCrystals || (selectedRxId && isFrameDataComplete));
+                       (!hasCrystals || (selectedRxId && isFrameDataComplete)) &&
+                       isRxComplete;
 
     // Tilde de autorización dentro del checkout (solo ADMIN). Persiste authorizedByAdmin
     // en la orden, igual que el checkbox de la tarjeta del presupuesto.
@@ -449,30 +477,50 @@ export default function CheckoutModal({
                                 </p>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">DNI / CUIT</label>
-                                        <input 
-                                            value={clientForm.dni} 
+                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">DNI / CUIT <span className="text-red-500">*</span></label>
+                                        <input
+                                            value={clientForm.dni}
                                             onChange={e => setClientForm(p => ({...p, dni: e.target.value}))}
                                             className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold"
                                             placeholder="Documento"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Teléfono</label>
-                                        <input 
-                                            value={clientForm.phone} 
+                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Teléfono <span className="text-red-500">*</span></label>
+                                        <input
+                                            value={clientForm.phone}
                                             onChange={e => setClientForm(p => ({...p, phone: e.target.value}))}
                                             className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold"
                                             placeholder="WhatsApp"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Dirección</label>
-                                        <input 
-                                            value={clientForm.address} 
+                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Dirección <span className="text-red-500">*</span></label>
+                                        <input
+                                            value={clientForm.address}
                                             onChange={e => setClientForm(p => ({...p, address: e.target.value}))}
                                             className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold"
                                             placeholder="Calle y Nro"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Email <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="email"
+                                            value={clientForm.email}
+                                            onChange={e => setClientForm(p => ({...p, email: e.target.value}))}
+                                            className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold"
+                                            placeholder="correo@ejemplo.com"
+                                        />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="text-[9px] font-black text-stone-400 uppercase block mb-1">Fecha de Nacimiento <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="date"
+                                            max={new Date().toISOString().slice(0, 10)}
+                                            value={clientForm.birthDate}
+                                            onChange={e => setClientForm(p => ({...p, birthDate: e.target.value}))}
+                                            className="w-full bg-white dark:bg-stone-900 border border-amber-200 dark:border-stone-700 p-3 rounded-xl text-sm font-bold"
                                         />
                                     </div>
                                 </div>
