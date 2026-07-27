@@ -83,8 +83,11 @@ export class PricingService {
         const markupAmount = subtotal * (safePrice(markup) / 100);
         let subtotalWithMarkup = subtotal + markupAmount;
         
-        // Aplicar el descuento especial como valor exacto
-        const validSpecialDiscount = Math.min(subtotalWithMarkup, safePrice(specialDiscount));
+        // Aplicar el descuento especial como valor exacto.
+        // El piso en 0 es defensivo: un descuento negativo (STAFF malicioso o
+        // typo) INFLARÍA la venta en vez de descontarla. Se topea entre 0 y el
+        // subtotal, así ningún llamador puede pasar un valor fuera de rango.
+        const validSpecialDiscount = Math.min(subtotalWithMarkup, Math.max(0, safePrice(specialDiscount)));
         subtotalWithMarkup = subtotalWithMarkup - validSpecialDiscount;
 
         const totalCash = subtotalWithMarkup * (1 - safePrice(discountCash) / 100);

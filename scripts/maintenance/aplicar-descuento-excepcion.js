@@ -129,7 +129,9 @@ async function main() {
 
         const nuevoDescuento = Math.round(Math.min(withMarkup, Math.max(0, hueco)));
         const nuevoSubtotal = Math.round(withMarkup - nuevoDescuento);
-        const nuevoTotal = Math.round(nuevoSubtotal * (1 - (o.discountCash || 0) / 100));
+        // `?? 20` (no `|| 0`) para que coincida con el default que usa
+        // listEquivalentPaid y PricingService cuando discountCash es null.
+        const nuevoTotal = Math.round(nuevoSubtotal * (1 - (o.discountCash ?? 20) / 100));
         const saldoAntes = Math.max(0, (o.subtotalWithMarkup || o.total || 0) - eqPaid);
         const saldoDespues = Math.max(0, nuevoSubtotal - eqPaid);
 

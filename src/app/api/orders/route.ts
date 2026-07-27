@@ -33,9 +33,12 @@ export async function POST(request: Request) {
         }
 
         // El descuento especial es una excepción: la UI lo oculta al vendedor,
-        // pero sin este chequeo el campo entraba igual por la API.
+        // pero sin este chequeo el campo entraba igual por la API. Se pisa a un
+        // número ≥ 0: un valor negativo esquivaba el chequeo `> 0` e INFLABA la
+        // venta (el POST no pasa por el Zod que sí valida el PATCH).
         const role = headersList.get('x-user-role') || 'STAFF';
-        if ((specialDiscount || 0) > 0 && role !== 'ADMIN') {
+        const cleanSpecialDiscount = Math.max(0, Number(specialDiscount) || 0);
+        if (cleanSpecialDiscount > 0 && role !== 'ADMIN') {
             return NextResponse.json({ error: 'Solo el administrador puede aplicar el descuento especial.' }, { status: 403 });
         }
 
@@ -74,11 +77,11 @@ export async function POST(request: Request) {
         }
 
         const totals = calculateQuoteTotals(
-            cartItems, 
-            markup || 0, 
-            discountCash || 0, 
+            cartItems,
+            markup || 0,
+            discountCash || 0,
             allProducts,
-            specialDiscount || 0
+            cleanSpecialDiscount
         );
 
         const finalSubtotalWithMarkup = totals.subtotalWithMarkup;
