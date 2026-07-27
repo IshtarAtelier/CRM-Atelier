@@ -36,20 +36,20 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">DNI</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">DNI <span className="text-primary">*</span></label>
                     <div className="relative group">
                         <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
                         <label htmlFor="input-3" className="sr-only">Número de documento</label>
-<input id="input-3" type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="Número de documento" value={formData.dni} onChange={(e) => setFormData({ ...formData, dni: e.target.value })} />
+<input id="input-3" required type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="Número de documento" value={formData.dni} onChange={(e) => setFormData({ ...formData, dni: e.target.value })} />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">Fecha de Nacimiento</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">Fecha de Nacimiento <span className="text-primary">*</span></label>
                     <div className="relative group">
                         <Cake className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
                         <label htmlFor="input-birthdate" className="sr-only">Fecha de nacimiento</label>
-<input id="input-birthdate" type="date" max={new Date().toISOString().slice(0, 10)} className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" value={formData.birthDate || ''} onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} />
+<input id="input-birthdate" required type="date" max={new Date().toISOString().slice(0, 10)} className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" value={formData.birthDate || ''} onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} />
                     </div>
                     <p className="text-[10px] font-bold text-stone-400 ml-1">Obligatoria para enviar pedidos a fábrica</p>
                 </div>
@@ -95,20 +95,20 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">Email</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">Email <span className="text-primary">*</span></label>
                     <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
                         <label htmlFor="input-5" className="sr-only">correo@ejemplo.com</label>
-<input id="input-5" type="email" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="correo@ejemplo.com" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+<input id="input-5" required type="email" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="correo@ejemplo.com" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1">Dirección / Localidad</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">Dirección / Localidad <span className="text-primary">*</span></label>
                     <div className="relative group">
                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 group-focus-within:text-primary transition-colors" />
                         <label htmlFor="input-6" className="sr-only">Calle, Número, Localidad</label>
-<input id="input-6" type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="Calle, Número, Localidad" value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
+<input id="input-6" required type="text" className="w-full pl-12 pr-4 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" placeholder="Calle, Número, Localidad" value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
                     </div>
                 </div>
             </div>

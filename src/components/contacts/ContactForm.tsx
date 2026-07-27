@@ -71,8 +71,17 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !formData.phone || !formData.contactSource || !formData.interest) {
-            alert('Por favor completa los campos obligatorios (*)');
+        const faltantes: string[] = [];
+        if (!formData.name?.trim()) faltantes.push('Nombre');
+        if (!formData.phone?.trim()) faltantes.push('Teléfono');
+        if (!formData.contactSource) faltantes.push('Origen / Canal');
+        if (!formData.interest) faltantes.push('Tipo de producto');
+        if (!formData.email?.trim()) faltantes.push('Email');
+        if (!formData.birthDate) faltantes.push('Fecha de nacimiento');
+        if (!formData.dni?.trim()) faltantes.push('DNI');
+        if (!formData.address?.trim()) faltantes.push('Dirección');
+        if (faltantes.length > 0) {
+            alert(`Faltan datos obligatorios (*):\n\n• ${faltantes.join('\n• ')}`);
             return;
         }
         if (isHighTicket && !followUpTask.trim()) {
