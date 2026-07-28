@@ -93,7 +93,10 @@ export default async function TiendaPage() {
     url: 'https://atelieroptica.com.ar/tienda',
     mainEntity: {
       '@type': 'ItemList',
-      numberOfItems: initialTotalCount,
+      // Tiene que coincidir con los ítems que efectivamente se enumeran abajo,
+      // no con el total del catálogo: declarar 113 y listar 24 es una
+      // inconsistencia que Google marca al validar el dato estructurado.
+      numberOfItems: mappedInitialProducts.length,
       itemListElement: mappedInitialProducts.map((p: any, i: number) => ({
         '@type': 'ListItem',
         position: i + 1,

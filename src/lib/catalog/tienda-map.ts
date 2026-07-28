@@ -28,6 +28,10 @@ export interface MappedWebProduct {
   shape: string;
   material: string;
   gender: string;
+  /** Campos que solo consume el feed de Google/Meta, no la grilla. */
+  mpn: string | null;
+  ageGroup: string | null;
+  description: string | null;
 }
 
 const CACHE_KEY = "store-products-mapped:web";
@@ -56,6 +60,9 @@ function mapRow(wp: CatalogRow): MappedWebProduct {
     shape: isXl ? "XL" : (shape || "Otros"),
     material: material || "Acetato",
     gender: wp.product.gender || "Unisex",
+    mpn: wp.product.mpn || null,
+    ageGroup: wp.product.ageGroup || null,
+    description: wp.product.seoDescription || null,
   };
 }
 

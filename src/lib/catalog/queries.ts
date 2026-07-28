@@ -58,6 +58,11 @@ export const TIENDA_SELECT = {
       stock: true,
       imagenesCatalogo: true,
       gender: true,
+      // mpn / ageGroup / seoDescription no los usa la grilla: los necesita el
+      // feed de Google y Meta, que se arma sobre este mismo catálogo cacheado.
+      mpn: true,
+      ageGroup: true,
+      seoDescription: true,
     },
   },
 } as const;

@@ -38,6 +38,30 @@ const CATEGORY_IMAGES_WHOLESALE: Record<string, string> = {
 
 // Removed duplicated isXlProduct function
 
+/**
+ * Texto alternativo de las fotos de la grilla. Antes decía marca + nombre
+ * ("Cápsula Escarlata Frida C3"), que para Google Imágenes y para un lector de
+ * pantalla no describe nada: repite lo que ya está escrito al lado. Con la
+ * forma y el material —que ya vienen mapeados para los filtros— se arma una
+ * frase que sí dice qué se está viendo.
+ */
+function altGrilla(p: { model?: string; category?: string | null; shape?: string; material?: string }): string {
+  const tipo = p.category === 'Sol' ? 'anteojos de sol'
+    : p.category === 'Clip-On' ? 'anteojos de sol clip-on'
+    : 'armazón de receta';
+  // "forma cuadrada", no "forma cuadrado": los valores del filtro vienen en
+  // masculino porque califican al armazón, y acá califican a la forma.
+  const FEMENINO: Record<string, string> = { Cuadrado: 'cuadrada', Redondo: 'redonda' };
+  const forma = p.shape && p.shape !== 'Otros'
+    ? (FEMENINO[p.shape] ?? p.shape.toLowerCase())
+    : null;
+  const rasgos = [
+    p.material ? `de ${p.material.toLowerCase()}` : null,
+    forma ? `forma ${forma}` : null,
+  ].filter(Boolean).join(', ');
+  return [`${p.model} —`, tipo, rasgos].filter(Boolean).join(' ');
+}
+
 type FiltrosUrl = {
   brand: string;
   shape: string;
@@ -479,7 +503,7 @@ export function TiendaClient({
                           <div className="absolute inset-0 flex items-center justify-center">
                             <Image unoptimized={String(imgUrl).startsWith('data:')}
                               src={imgUrl}
-                              alt={`${p.brand} ${p.model}`}
+                              alt={altGrilla(p)}
                               fill
                               priority={index < 4}
                               sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
@@ -504,7 +528,7 @@ export function TiendaClient({
                         {hasSecondImage && secondImgUrl && (
                           <Image unoptimized={String(secondImgUrl).startsWith('data:')}
                             src={secondImgUrl}
-                            alt={`${p.brand} ${p.model} puestos`}
+                            alt={`${altGrilla(p)} — puestos`}
                             fill
                             sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
                             className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
