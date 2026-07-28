@@ -2,9 +2,49 @@ const { prisma } = require('../db');
 const { checkEligibility } = require('./eligibility');
 const { isBusinessHours } = require('../shared/business-hours');
 
+// Ventanas abiertas por día, en minutos desde la medianoche (hora de Argentina).
+// Repartimos los envíos a lo largo de TODA la jornada (9 a 19), no amontonados a la tarde.
+const OPEN_WINDOWS_AR = {
+    weekday: [[9 * 60, 13 * 60 + 30], [16 * 60, 19 * 60]], // 9:00–13:30 y 16:00–19:00
+    saturday: [[10 * 60, 14 * 60]],                        // 10:00–14:00
+};
+
+/**
+ * Calcula un vencimiento aleatorio repartido a lo largo del día de HOY,
+ * dentro del horario comercial de Argentina (UTC-3, sin horario de verano).
+ * Distribuye de forma uniforme sobre los minutos realmente abiertos, así que
+ * la siesta (13:30–16:00) no genera un pico de envíos al reabrir.
+ */
+function pickSpreadDueDate(now) {
+    // Día de la semana en horario argentino
+    const argNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+    const day = argNow.getDay(); // 0 = Domingo, 6 = Sábado
+
+    if (day === 0) return null; // Domingo cerrado: sin ventana hoy
+
+    const windows = day === 6 ? OPEN_WINDOWS_AR.saturday : OPEN_WINDOWS_AR.weekday;
+
+    // Elegir un minuto al azar proporcional al tamaño de cada ventana abierta
+    const totalOpen = windows.reduce((sum, [start, end]) => sum + (end - start), 0);
+    let pick = Math.floor(Math.random() * totalOpen);
+    let targetMinAR = windows[windows.length - 1][1];
+    for (const [start, end] of windows) {
+        const size = end - start;
+        if (pick < size) { targetMinAR = start + pick; break; }
+        pick -= size;
+    }
+
+    // Convertir el minuto AR a un instante absoluto: AR = UTC-3 ⇒ UTC = AR + 180 min.
+    // Durante la jornada (12–22 UTC) el día UTC coincide con el día AR, sin corrimiento.
+    const due = new Date(now);
+    due.setUTCHours(0, 0, 0, 0);
+    due.setUTCMinutes(targetMinAR + 180);
+    return due;
+}
+
 /**
  * Escanea presupuestos pendientes y CREA tareas en el calendario del CRM
- * para que el Humano las vea o el Bot las ejecute a la tarde.
+ * para que el Humano las vea o el Bot las ejecute repartidas durante el día.
  */
 async function generateFollowUpTasks() {
     console.log('\n[Task Generator] Iniciando generación de tareas de seguimiento...');
@@ -53,13 +93,12 @@ async function generateFollowUpTasks() {
                 const existingTask = client.tasks.find(t => t.description === taskDesc);
                 
                 if (!existingTask) {
-                    // Calcular dueDate: Hoy a las 18:00 hs
-                    const dueDate = new Date();
-                    dueDate.setHours(18, 0, 0, 0);
+                    // Vencimiento aleatorio repartido a lo largo del día (9 a 19, hora AR)
+                    let dueDate = pickSpreadDueDate(now);
 
-                    // Si ya son más de las 18:00, poner la tarea vencida ahora mismo
-                    if (now > dueDate) {
-                        dueDate.setTime(now.getTime());
+                    // Domingo (sin ventana) o si el horario sorteado ya pasó: vence ahora
+                    if (!dueDate || now > dueDate) {
+                        dueDate = new Date(now.getTime());
                     }
 
                     await prisma.clientTask.create({
@@ -73,7 +112,8 @@ async function generateFollowUpTasks() {
                         }
                     });
 
-                    console.log(`  ✅ [Task Gen] Tarea creada: ${client.name} -> ${followUpType} (Vence: ${dueDate.getHours()}:00)`);
+                    const dueAR = dueDate.toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
+                    console.log(`  ✅ [Task Gen] Tarea creada: ${client.name} -> ${followUpType} (Vence: ${dueAR} AR)`);
                     tasksCreated++;
                 }
             }
