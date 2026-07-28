@@ -91,6 +91,14 @@ const nextConfig: NextConfig = {
         destination: '/lentes-de-sol',
         permanent: true,
       },
+      // El G7013 C1 estaba cargado dos veces: quedó publicado Artemis y se
+      // despublicó Halley. Su URL ya estaba indexada, así que en vez de un 404
+      // la mandamos a la ficha que sobrevive.
+      {
+        source: '/producto/halley-c1',
+        destination: '/producto/atelier-artemis-tendencia',
+        permanent: true,
+      },
       {
         source: '/blog/posts/lentes-filtro-luz-azul-home-office-cordoba-atelier-optica-85679646df21',
         destination: '/blog/filtro-azul-pantallas',
