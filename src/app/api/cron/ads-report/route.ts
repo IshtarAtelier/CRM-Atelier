@@ -5,6 +5,9 @@ import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 import {
   metaAdsConfigured,
   fetchCampaignInsights,
+  fetchSpendByTag,
+  dolarBlue,
+  adTag,
   actionValue,
   type InsightRow,
 } from '@/lib/ads/meta-insights';
@@ -83,7 +86,8 @@ function aggregateByName(rows: InsightRow[]): Map<string, CampaignAgg> {
   for (const r of rows) {
     const key = r.campaign_name || '?';
     const acc = out.get(key) || { spend: 0, buys: 0, msgs: 0 };
-    acc.spend += Number(r.spend || 0);
+    // spendArs ya viene normalizado a pesos (las cuentas en USD se convierten).
+    acc.spend += r.spendArs ?? Number(r.spend || 0);
     acc.buys += actionValue(r, 'purchase');
     acc.msgs += Number(
       r.actions?.find((a) => a.action_type.includes('messaging_conversation_started'))?.value || 0,
@@ -114,6 +118,85 @@ function campaignRow(
     </tr>`;
 }
 
+interface TagRoas {
+  tag: string;
+  gasto: number;
+  chats: number;
+  compraron: number;
+  ventas: number;
+  facturado: number;
+}
+
+/**
+ * Retorno real por anuncio: lo que Meta cobró contra lo que se facturó.
+ *
+ * El puente es la etiqueta del anuncio ([metaFlor], [metaClip]…): el texto
+ * pre-cargado que llega por WhatsApp la trae, así que se sabe qué anuncio
+ * trajo cada conversación y qué compró después ese cliente. Es el único cruce
+ * que dice si la pauta se paga sola — Meta solo informa conversaciones.
+ */
+async function roasPorAnuncio(desde: Date, hasta: Date, rate: number): Promise<TagRoas[]> {
+  const gasto = await fetchSpendByTag('last_7d', rate);
+
+  const chats = await prisma.whatsAppChat.findMany({
+    where: { createdAt: { gte: desde, lt: hasta } },
+    select: {
+      clientId: true,
+      messages: {
+        where: { direction: 'INBOUND' },
+        orderBy: { createdAt: 'asc' },
+        take: 1,
+        select: { content: true },
+      },
+    },
+  });
+
+  const porTag = new Map<string, { chats: number; clientes: Set<string> }>();
+  for (const c of chats) {
+    const tag = adTag(c.messages[0]?.content);
+    if (!tag) continue;
+    const g = porTag.get(tag) || { chats: 0, clientes: new Set<string>() };
+    g.chats++;
+    if (c.clientId) g.clientes.add(c.clientId);
+    porTag.set(tag, g);
+  }
+
+  const ids = [...new Set([...porTag.values()].flatMap((g) => [...g.clientes]))];
+  const ventas = ids.length
+    ? await prisma.order.findMany({
+        where: { clientId: { in: ids }, createdAt: { gte: desde, lt: hasta } },
+        select: { clientId: true, total: true },
+      })
+    : [];
+
+  const porCliente = new Map<string, { n: number; monto: number }>();
+  for (const v of ventas) {
+    if (!v.clientId) continue;
+    const p = porCliente.get(v.clientId) || { n: 0, monto: 0 };
+    p.n++;
+    p.monto += Number(v.total || 0);
+    porCliente.set(v.clientId, p);
+  }
+
+  const tags = new Set([...gasto.keys(), ...porTag.keys()]);
+  const filas: TagRoas[] = [];
+  for (const tag of tags) {
+    const g = porTag.get(tag);
+    let compraron = 0, ventasN = 0, facturado = 0;
+    for (const cid of g?.clientes || []) {
+      const v = porCliente.get(cid);
+      if (v) { compraron++; ventasN += v.n; facturado += v.monto; }
+    }
+    filas.push({
+      tag,
+      gasto: gasto.get(tag)?.gasto || 0,
+      chats: g?.chats || 0,
+      compraron, ventas: ventasN, facturado,
+    });
+  }
+  return filas.filter((f) => f.gasto > 0 || f.facturado > 0).sort((a, b) => b.facturado - a.facturado);
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -135,9 +218,11 @@ export async function GET(request: Request) {
 
     // Secuencial a propósito: mismo principio "sin paralelismo" que los
     // scripts de ads imponen con su cola serializada.
-    const yesterdayRows = await fetchCampaignInsights('yesterday');
-    const weekRows = await fetchCampaignInsights('last_7d');
+    const rate = await dolarBlue();
+    const yesterdayRows = await fetchCampaignInsights('yesterday', rate);
+    const weekRows = await fetchCampaignInsights('last_7d', rate);
     const crmWeek = await crmSalesByCampaign(arDayStart(7), arDayStart(0));
+    const roas = await roasPorAnuncio(arDayStart(7), arDayStart(0), rate);
 
     const yMap = aggregateByName(yesterdayRows);
     const wMap = aggregateByName(weekRows);
@@ -191,6 +276,49 @@ export async function GET(request: Request) {
       .join('');
     const unattributed = crmWeek.get('(sin atribución)');
 
+    // Tabla de retorno real: qué facturó cada anuncio contra lo que costó.
+    const roasTotal = roas.reduce(
+      (a, f) => ({ gasto: a.gasto + f.gasto, chats: a.chats + f.chats, compraron: a.compraron + f.compraron, facturado: a.facturado + f.facturado }),
+      { gasto: 0, chats: 0, compraron: 0, facturado: 0 },
+    );
+    const roasHtml = roas.length
+      ? `
+        <h3 style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;margin:22px 0 6px;border-bottom:2px solid #9e7f65;padding-bottom:5px;">Qué devolvió cada anuncio</h3>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr style="border-bottom:1px solid #e6ded6;">
+            <th style="text-align:left;padding:5px 4px;font-size:11px;text-transform:uppercase;">Anuncio</th>
+            <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Costó</th>
+            <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Chats</th>
+            <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Clientes</th>
+            <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Facturó</th>
+            <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">×</th>
+          </tr>
+          ${roas
+            .map((f) => {
+              const x = f.gasto > 0 ? f.facturado / f.gasto : null;
+              const alerta = f.gasto > 0 && f.chats === 0;
+              return `<tr style="border-bottom:1px dotted #f0eae4;${alerta ? 'background:#fdf6ec;' : ''}">
+            <td style="padding:6px 4px;font-size:12px;font-weight:600;color:#433831;">${f.tag}${alerta ? ' ⚠️' : ''}</td>
+            <td style="padding:6px 4px;text-align:right;font-size:12px;color:#706359;white-space:nowrap;">${money(f.gasto)}</td>
+            <td style="padding:6px 4px;text-align:right;font-size:12px;color:#706359;">${f.chats || '—'}</td>
+            <td style="padding:6px 4px;text-align:right;font-size:12px;color:#706359;">${f.compraron || '—'}</td>
+            <td style="padding:6px 4px;text-align:right;font-size:12px;font-weight:600;color:#433831;white-space:nowrap;">${f.facturado ? money(f.facturado) : '—'}</td>
+            <td style="padding:6px 4px;text-align:right;font-size:12px;font-weight:800;color:${x && x >= 10 ? '#1a7d4b' : x && x >= 1 ? '#706359' : '#b45309'};">${x != null ? x.toFixed(0) + '×' : '—'}</td>
+          </tr>`;
+            })
+            .join('')}
+          <tr style="border-top:2px solid #9e7f65;">
+            <td style="padding:7px 4px;font-size:12px;font-weight:800;">TOTAL</td>
+            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:700;white-space:nowrap;">${money(roasTotal.gasto)}</td>
+            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:700;">${roasTotal.chats}</td>
+            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:700;">${roasTotal.compraron}</td>
+            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:800;white-space:nowrap;">${money(roasTotal.facturado)}</td>
+            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:800;color:#1a7d4b;">${roasTotal.gasto > 0 ? (roasTotal.facturado / roasTotal.gasto).toFixed(0) + '×' : '—'}</td>
+          </tr>
+        </table>
+        <p style="font-size:10px;color:#a89c90;margin:6px 0 0;">Se cruza por la etiqueta del anuncio que llega en el primer mensaje de WhatsApp. Es facturación, no ganancia. ⚠️ = gastó sin traer una sola conversación.</p>`
+      : '';
+
     const html = `
       <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;color:#433831;">
         <h2 style="font-size:18px;border-bottom:2px solid #9e7f65;padding-bottom:8px;">📊 Ads — reporte diario</h2>
@@ -203,6 +331,7 @@ export async function GET(request: Request) {
             : '<p style="font-size:12px;color:#706359;">Sin alertas: las campañas están dentro de sus parámetros normales.</p>'
         }
         <p style="font-size:13px;">Gasto de ayer: <b>${money(spendYesterday)}</b> · últimos 7 días: <b>${money(spendWeek)}</b></p>
+        ${roasHtml}
         <table style="width:100%;border-collapse:collapse;margin-top:8px;">
           <tr style="border-bottom:2px solid #9e7f65;">
             <th style="text-align:left;padding:6px 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Campaña</th>
@@ -234,6 +363,14 @@ export async function GET(request: Request) {
       spendWeek,
       campaigns: allNames.length,
       alerts: alerts.length,
+      // Resumen del cruce anuncio↔ventas, para verificar sin abrir el email.
+      roas: {
+        gasto: Math.round(roasTotal.gasto),
+        chats: roasTotal.chats,
+        clientes: roasTotal.compraron,
+        facturado: Math.round(roasTotal.facturado),
+        x: roasTotal.gasto > 0 ? Number((roasTotal.facturado / roasTotal.gasto).toFixed(1)) : null,
+      },
     });
   } catch (error) {
     console.error('[CRON ads-report] Error:', error);
