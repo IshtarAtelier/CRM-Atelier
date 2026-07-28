@@ -1051,6 +1051,15 @@ const handleMessage = async (msg) => {
     // no debe activar la auto-exclusión por la palabra "baja").
     const META_TAG_REGEX = /\[meta[^\]]*\]/i;
     const isMetaAdsMessage = META_TAG_REGEX.test(body);
+    // Etiqueta normalizada ([metaFlor] → "flor"), misma forma que adTag() en
+    // src/lib/ads/meta-insights.ts. Se persiste en WhatsAppChat.adTag / Client.adTag
+    // para que la atribución no dependa de que el historial de mensajes sobreviva.
+    let metaAdTag = null;
+    if (isMetaAdsMessage) {
+        const m = body.match(/\[\s*meta([^\]]*?)\s*\]/i);
+        const tag = m && m[1] ? m[1].trim().toLowerCase().replace(/\s+/g, '') : '';
+        metaAdTag = tag || null;
+    }
     const originalBody = body; // Preservar body original (con tag) para guardar en DB
     // Limpiar el tag del body para que no interfiera con detecciones de negativos, 
     // post-venta, hostilidad, etc. El tag original ya fue evaluado arriba.
@@ -1136,6 +1145,22 @@ const handleMessage = async (msg) => {
                 where: { id: chat.id },
                 data: updateData,
             });
+        }
+
+        // ── Persistencia de la etiqueta del anuncio (primer toque) ──
+        // Se graba apenas llega el prefill; updateMany con adTag: null garantiza que
+        // una etiqueta ya grabada nunca se pisa. Nunca bloquea el turno del bot.
+        if (metaAdTag) {
+            prisma.whatsAppChat.updateMany({
+                where: { id: chat.id, adTag: null },
+                data: { adTag: metaAdTag }
+            }).catch(e => console.error('Error persistiendo adTag en chat:', e.message));
+            if (chat.clientId) {
+                prisma.client.updateMany({
+                    where: { id: chat.clientId, adTag: null },
+                    data: { adTag: metaAdTag }
+                }).catch(e => console.error('Error persistiendo adTag en cliente:', e.message));
+            }
         }
 
         // ── Determinación de "Meta Ads Session" ──

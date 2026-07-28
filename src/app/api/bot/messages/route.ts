@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { prefillAdTag } from '@/lib/ads/ad-tag';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +78,25 @@ export async function POST(request: Request) {
                 status: 'SENT'
             }
         });
+
+        // Persistir la etiqueta del anuncio si viene en el prefill (primer toque:
+        // una etiqueta ya grabada nunca se pisa). El wa-service hace lo mismo en su
+        // ingestión directa; esto cubre lo que entre por esta ruta.
+        if (direction === 'INBOUND' && !chat.adTag) {
+            const tag = prefillAdTag(content);
+            if (tag) {
+                await prisma.whatsAppChat.updateMany({
+                    where: { id: chat.id, adTag: null },
+                    data: { adTag: tag }
+                });
+                if (chat.clientId) {
+                    await prisma.client.updateMany({
+                        where: { id: chat.clientId, adTag: null },
+                        data: { adTag: tag }
+                    });
+                }
+            }
+        }
 
         // Update chat
         await prisma.whatsAppChat.update({

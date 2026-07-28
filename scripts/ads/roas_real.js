@@ -88,13 +88,16 @@ async function ventasPorEtiqueta(prisma) {
     where: { createdAt: { gte: desde } },
     select: {
       clientId: true,
+      adTag: true,
       messages: { where: { direction: 'INBOUND' }, orderBy: { createdAt: 'asc' }, take: 1, select: { content: true } },
     },
   });
 
   const acc = {};
   for (const c of chats) {
-    const k = clave(c.messages[0]?.content);
+    // La columna persistida en la ingestión manda; el parseo del primer mensaje
+    // queda como respaldo (chats previos a la columna o etiquetas por producto).
+    const k = c.adTag || clave(c.messages[0]?.content);
     if (!k) continue;
     (acc[k] ||= { chats: 0, clientes: new Set() });
     acc[k].chats++;

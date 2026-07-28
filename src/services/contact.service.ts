@@ -12,6 +12,7 @@ import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
 import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
 import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/lib/payment-card';
 import { calculateEstimatedDays } from '@/lib/business-days';
+import { syncAdTagFromChats } from '@/lib/ads/ad-tag';
 
 
 // Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
@@ -535,6 +536,7 @@ export const ContactService = {
                         data: { clientId: createdClient.id }
                     });
                     console.log(`[Contact Create Sync] Linked unlinked chats to new client ${createdClient.id}`);
+                    await syncAdTagFromChats(createdClient.id);
                 }
             } catch (syncErr) {
                 console.error('[Contact Create Sync] Error auto-linking chats:', syncErr);

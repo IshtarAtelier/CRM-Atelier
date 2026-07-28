@@ -135,6 +135,28 @@ interface TagRoas {
  * trajo cada conversación y qué compró después ese cliente. Es el único cruce
  * que dice si la pauta se paga sola — Meta solo informa conversaciones.
  */
+/**
+ * Barrido de respaldo: copia la etiqueta persistida en los chats a Client.adTag
+ * para los clientes que se vincularon por caminos que no propagan en el momento
+ * (cambio de teléfono, merge, fix-phones, pipeline). Primer toque: el chat más
+ * viejo gana y un adTag ya grabado nunca se pisa.
+ */
+async function barridoAdTagClientes(): Promise<void> {
+  try {
+    await prisma.$executeRaw`
+      UPDATE "Client" c SET "adTag" = t."adTag"
+      FROM (
+        SELECT DISTINCT ON ("clientId") "clientId", "adTag"
+        FROM "WhatsAppChat"
+        WHERE "clientId" IS NOT NULL AND "adTag" IS NOT NULL
+        ORDER BY "clientId", "createdAt" ASC
+      ) t
+      WHERE c.id = t."clientId" AND c."adTag" IS NULL`;
+  } catch (e) {
+    console.error('[Ads Report] Error en barrido adTag → clientes:', e);
+  }
+}
+
 async function roasPorAnuncio(desde: Date, hasta: Date, rate: number): Promise<TagRoas[]> {
   const gasto = await fetchSpendByTag('last_7d', rate);
 
@@ -142,6 +164,7 @@ async function roasPorAnuncio(desde: Date, hasta: Date, rate: number): Promise<T
     where: { createdAt: { gte: desde, lt: hasta } },
     select: {
       clientId: true,
+      adTag: true,
       messages: {
         where: { direction: 'INBOUND' },
         orderBy: { createdAt: 'asc' },
@@ -153,7 +176,9 @@ async function roasPorAnuncio(desde: Date, hasta: Date, rate: number): Promise<T
 
   const porTag = new Map<string, { chats: number; clientes: Set<string> }>();
   for (const c of chats) {
-    const tag = adTag(c.messages[0]?.content);
+    // La columna persistida manda; el parseo del primer mensaje queda como
+    // respaldo para chats anteriores a la columna (o etiquetas deducidas por producto).
+    const tag = c.adTag || adTag(c.messages[0]?.content);
     if (!tag) continue;
     const g = porTag.get(tag) || { chats: 0, clientes: new Set<string>() };
     g.chats++;
@@ -222,6 +247,7 @@ export async function GET(request: Request) {
     const yesterdayRows = await fetchCampaignInsights('yesterday', rate);
     const weekRows = await fetchCampaignInsights('last_7d', rate);
     const crmWeek = await crmSalesByCampaign(arDayStart(7), arDayStart(0));
+    await barridoAdTagClientes();
     const roas = await roasPorAnuncio(arDayStart(7), arDayStart(0), rate);
 
     const yMap = aggregateByName(yesterdayRows);

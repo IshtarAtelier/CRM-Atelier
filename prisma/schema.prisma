@@ -47,6 +47,7 @@ model Client {
   updatedAt     DateTime       @updatedAt
   wantsInvoice  Boolean?
   metaLid       String?
+  adTag         String?
   createdBy     String?        @default("Sistema")
   isDeleted     Boolean        @default(false)
   tasks         ClientTask[]
@@ -65,6 +66,7 @@ model Client {
   @@index([createdAt])
   @@index([dni])
   @@index([isDeleted])
+  @@index([adTag])
 }
 
 model CashMovement {
@@ -511,6 +513,7 @@ model WhatsAppChat {
   realPhone      String?
   chatSummary    String?
   lastFollowUpAt DateTime?
+  adTag          String?
   client         Client?           @relation(fields: [clientId], references: [id])
   messages       WhatsAppMessage[]
 
