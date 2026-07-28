@@ -10,6 +10,7 @@ import HistoryManager from './HistoryManager';
 import TaskManager from './TaskManager';
 import PrescriptionManager from './PrescriptionManager';
 import OrderManager from './OrderManager';
+import PostSaleTab from './PostSaleTab';
 import HitosPanel from './HitosPanel';
 
 interface ContactDetailProps {
@@ -45,7 +46,7 @@ export default function ContactDetail({
 }: ContactDetailProps) {
     const [contact, setContact] = useState<Contact | null>(null);
     const [loading, setLoading] = useState(true);
-    const [activeSection, setActiveSection] = useState<'history' | 'tasks' | 'prescription' | 'budget' | 'sales'>('history');
+    const [activeSection, setActiveSection] = useState<'history' | 'tasks' | 'prescription' | 'budget' | 'sales' | 'postsale'>('history');
     const [currentUserRole, setCurrentUserRole] = useState(propUserRole || 'STAFF');
     const [pendingConvertOrderId, setPendingConvertOrderId] = useState<string | null>(null);
     const [convertSuccess, setConvertSuccess] = useState(false);
@@ -278,8 +279,12 @@ export default function ContactDetail({
                         />
                     )}
 
+                    {activeSection === 'postsale' && (
+                        <PostSaleTab contact={contact} onRefresh={fetchContact} />
+                    )}
+
                     {(activeSection === 'budget' || activeSection === 'sales') && (
-                        <OrderManager 
+                        <OrderManager
                             contactId={contactId}
                             contact={contact}
                             prescriptions={contact.prescriptions || []}

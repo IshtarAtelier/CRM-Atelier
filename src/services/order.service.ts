@@ -919,7 +919,8 @@ export class OrderService {
                     labOrderNumber: true,
                     createdAt: true,
                     total: true,
-                    id: true
+                    id: true,
+                    clientId: true
                 }
             });
 
@@ -942,9 +943,19 @@ export class OrderService {
                 });
 
                 if (!activeCase) {
+                    // Snapshot del contexto de la venta: si la venta se borra, el caso
+                    // conserva a qué cliente y a qué venta pertenecía.
+                    const orderLabelSnapshot = [
+                        `Venta #${currentOrderForPostSale.id.slice(-4).toUpperCase()}`,
+                        currentOrderForPostSale.labOrderNumber ? `Pedido ${currentOrderForPostSale.labOrderNumber}` : null,
+                        currentOrderForPostSale.total != null ? `$${Number(currentOrderForPostSale.total).toLocaleString('es-AR')}` : null
+                    ].filter(Boolean).join(' · ');
+
                     activeCase = await prisma.postSaleCase.create({
                         data: {
                             orderId: id,
+                            clientId: currentOrderForPostSale.clientId || null,
+                            orderLabel: orderLabelSnapshot,
                             status: resolvedStatus || 'SENT',
                             cost: postSaleCost !== undefined && postSaleCost !== null ? Number(postSaleCost) : 0.0,
                             newOrderNumber: postSaleNewOrderNumber || null,
@@ -1029,6 +1040,10 @@ export class OrderService {
                 } else {
                     // Update existing active case
                     const caseData: any = {};
+                    // Backfill del vínculo directo al cliente en casos viejos (blindaje).
+                    if (!(activeCase as any).clientId && currentOrderForPostSale.clientId) {
+                        caseData.clientId = currentOrderForPostSale.clientId;
+                    }
                     if (resolvedStatus !== undefined) caseData.status = resolvedStatus;
                     if (postSaleCost !== undefined && postSaleCost !== null) caseData.cost = Number(postSaleCost);
                     if (postSaleNotes !== undefined) caseData.notes = postSaleNotes;

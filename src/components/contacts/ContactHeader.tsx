@@ -4,7 +4,7 @@ import React from 'react';
 import { 
     User, Heart, Pencil, Calculator, Star, X, 
     Phone, Mail, FileText, MapPin, Building2, Share2, Tag,
-    History, CheckCircle2, Receipt, Trash2, Cake
+    History, CheckCircle2, Receipt, Trash2, Cake, LifeBuoy
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { useRouter } from 'next/navigation';
@@ -285,12 +285,15 @@ export default function ContactHeader({
 
             {/* Navigation Tabs */}
             <nav className="flex gap-2 pb-3 overflow-x-auto no-scrollbar">
-                {[
-                    { id: 'history', label: 'Historial', icon: History },
-                    { id: 'tasks', label: 'Tareas', icon: CheckCircle2 },
-                    { id: 'prescription', label: 'Receta / Clínica', icon: FileText },
-                    { id: 'budget', label: 'Presupuestos', icon: Calculator },
-                    { id: 'sales', label: 'Ventas', icon: Receipt }
+                {(() => {
+                    const postSaleCount = (contact?.postSaleCases || []).length;
+                    return [
+                    { id: 'history', label: 'Historial', icon: History, badge: 0 },
+                    { id: 'tasks', label: 'Tareas', icon: CheckCircle2, badge: 0 },
+                    { id: 'prescription', label: 'Receta / Clínica', icon: FileText, badge: 0 },
+                    { id: 'budget', label: 'Presupuestos', icon: Calculator, badge: 0 },
+                    { id: 'sales', label: 'Ventas', icon: Receipt, badge: 0 },
+                    { id: 'postsale', label: 'Post Venta', icon: LifeBuoy, badge: postSaleCount }
                 ].map(tab => {
                     const Icon = tab.icon;
                     const isActive = activeSection === tab.id;
@@ -305,9 +308,15 @@ export default function ContactHeader({
                         >
                             <Icon className="w-4 h-4" />
                             {tab.label}
+                            {tab.badge > 0 && (
+                                <span className={`ml-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-rose-600 text-white'}`}>
+                                    {tab.badge}
+                                </span>
+                            )}
                         </button>
                     );
-                })}
+                });
+                })()}
             </nav>
         </header>
     );

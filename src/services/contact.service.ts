@@ -1151,6 +1151,37 @@ export const ContactService = {
                     },
                     where: { isDeleted: false },
                     orderBy: { createdAt: 'desc' }
+                },
+                // Casos de post-venta del cliente. Se consultan por clientId (no vía
+                // el pedido) para que sigan visibles aunque la venta haya sido borrada.
+                postSaleCases: {
+                    orderBy: { createdAt: 'desc' },
+                    select: {
+                        id: true,
+                        orderId: true,
+                        orderLabel: true,
+                        status: true,
+                        cost: true,
+                        newOrderNumber: true,
+                        notes: true,
+                        orderOption: true,
+                        responsible: true,
+                        caseType: true,
+                        fault: true,
+                        coverage: true,
+                        createdAt: true,
+                        order: { select: { id: true, total: true, createdAt: true, labOrderNumber: true } },
+                        notesList: {
+                            orderBy: { createdAt: 'asc' },
+                            select: {
+                                id: true,
+                                content: true,
+                                createdBy: true,
+                                createdAt: true,
+                                imageUrl: true
+                            }
+                        }
+                    }
                 }
             }
         });
