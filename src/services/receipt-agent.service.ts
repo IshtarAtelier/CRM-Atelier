@@ -53,7 +53,125 @@ export function parseArgentineReceiptDate(raw?: string | null): Date | null {
     return build(parseInt(m[1], 10), parseInt(m[2], 10), year);
 }
 
+import {
+    collectReferenceIds,
+    crossCheckReadings,
+    readerSystemPrompt,
+    readerUserPrompt,
+    referencesMatch,
+    verifierSystemPrompt,
+    type ReceiptReading
+} from '@/lib/receipt-references';
+
 export class ReceiptAgentService {
+    private static visionModel() {
+        return new ChatVertexAI({
+            model: "gemini-2.5-flash",
+            location: "global",
+            maxOutputTokens: 2048,
+            temperature: 0,
+        });
+    }
+
+    /** Pide el JSON a Gemini y lo parsea; null si no se pudo interpretar. */
+    private static async askVision(systemPrompt: string, userText: string, mimeType: string, base64Data: string, label: string): Promise<string | null> {
+        try {
+            const response = await retryWithBackoff(
+                () => this.visionModel().invoke([
+                    new SystemMessage(systemPrompt),
+                    new HumanMessage({
+                        content: [
+                            { type: "text", text: userText },
+                            { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Data}` } }
+                        ]
+                    })
+                ]),
+                { label }
+            );
+            return response.content.toString();
+        } catch (err: any) {
+            console.error(`[ReceiptAgent] ${label} falló:`, err?.message || err);
+            return null;
+        }
+    }
+
+    /**
+     * Una lectura completa del comprobante. Se corre DOS veces con consignas
+     * redactadas distinto ('principal' y 'supervisor') para que los dos lectores
+     * no compartan el mismo sesgo: lo que uno malinterprete, el otro lo desmiente.
+     */
+    private static async readReceipt(mimeType: string, base64Data: string, role: 'principal' | 'supervisor'): Promise<ReceiptReading | null> {
+        const text = await this.askVision(
+            readerSystemPrompt(role),
+            readerUserPrompt(role),
+            mimeType,
+            base64Data,
+            `ReceiptAgent:${role}`
+        );
+        if (!text) return null;
+
+        try {
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return null;
+            const parsed = JSON.parse(jsonMatch[0]);
+            const amount = typeof parsed.amount === 'number'
+                ? parsed.amount
+                : (typeof parsed.amount === 'string' && parsed.amount.trim() ? Number(parsed.amount) : null);
+            return {
+                amount: amount != null && Number.isFinite(amount) ? amount : null,
+                cuit: typeof parsed.cuit === 'string' && parsed.cuit.trim() ? parsed.cuit.trim() : null,
+                date: typeof parsed.date === 'string' && parsed.date.trim() ? parsed.date.trim() : null,
+                ids: collectReferenceIds(parsed)
+            };
+        } catch (e) {
+            console.error(`[ReceiptAgent] No se pudo parsear el JSON del lector ${role}:`, e, text);
+            return null;
+        }
+    }
+
+    /**
+     * Control final antes de mandar un mail firmado por Ishtar: mira otra vez el
+     * comprobante y confirma o descarta cada observación por separado. Ante la
+     * mínima duda descarta, así nunca sale un reclamo equivocado a su nombre.
+     * Devuelve null si la verificación no pudo correr (entonces no se manda nada).
+     */
+    private static async verifyIssues(
+        mimeType: string,
+        base64Data: string,
+        ctx: { clientName: string; loadedAmount: number; issues: string[] }
+    ): Promise<{ confirmada: boolean; motivo: string }[] | null> {
+        const listado = ctx.issues.map((issue, i) => `${i + 1}. ${issue}`).join('\n');
+
+        const text = await this.askVision(
+            verifierSystemPrompt(ctx),
+            `Observaciones a verificar:\n${listado}`,
+            mimeType,
+            base64Data,
+            'ReceiptAgent:verificador'
+        );
+        if (!text) return null;
+
+        try {
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return null;
+            const parsed = JSON.parse(jsonMatch[0]);
+            const raw = Array.isArray(parsed?.verificaciones) ? parsed.verificaciones : null;
+            // Si el verificador no devolvió un veredicto por observación, no se
+            // manda nada: preferimos un aviso al admin antes que un mail dudoso.
+            if (!raw || raw.length !== ctx.issues.length) {
+                console.error('[ReceiptAgent] El verificador devolvió una lista incompleta:', text);
+                return null;
+            }
+            return raw.map((v: any) => ({
+                confirmada: v?.confirmada === true,
+                motivo: typeof v?.motivo === 'string' ? v.motivo : ''
+            }));
+        } catch (e) {
+            console.error('[ReceiptAgent] No se pudo parsear el JSON del verificador:', e, text);
+            return null;
+        }
+    }
+
     /**
      * Analiza asíncronamente un comprobante para buscar discrepancias (monto, CUIT, fecha, duplicación).
      */
@@ -108,56 +226,22 @@ export class ReceiptAgentService {
                 expectedCuit = getBillingAccountConfig(account).cuit;
             }
 
-            // 3. Prompt Gemini (Vertex AI)
-            const model = new ChatVertexAI({
-                model: "gemini-2.5-flash",
-                location: "global",
-                maxOutputTokens: 2048,
-                temperature: 0,
-            });
+            // 3. DOS lecturas independientes del mismo comprobante (Gemini Vertex).
+            // El mail a los vendedores sale firmado por Ishtar: un dato mal leído
+            // por OCR la deja mandando una acusación falsa. Por eso ningún dato se
+            // usa para acusar si los dos lectores no leyeron lo mismo.
+            const [primaryRead, supervisorRead] = await Promise.all([
+                this.readReceipt(mimeType, base64Data, 'principal'),
+                this.readReceipt(mimeType, base64Data, 'supervisor')
+            ]);
 
-            const systemPrompt = `Eres un experto auditor de pagos. Analiza el comprobante adjunto.
-Extrae la siguiente información y preséntala ESTRICTAMENTE en formato JSON plano:
-{
-  "amount": número decimal obtenido del comprobante, sin símbolos ni puntos de miles, usando punto para decimales,
-  "cuit": "el CUIT o CUIL del DESTINATARIO (el que cobra el dinero, no el que paga) si aparece, sin guiones. Si no aparece pon null",
-  "date_raw": "la fecha del pago EXACTAMENTE como aparece impresa en el comprobante, sin reinterpretar ni convertir (por ejemplo '17/07/26' o '17-07-2026'). Copiá los dígitos tal cual. Si no aparece pon null",
-  "date": "la misma fecha convertida a formato YYYY-MM-DD. IMPORTANTE: en los comprobantes argentinos la fecha viene en formato DÍA/MES/AÑO (dd/MM/aa o dd/MM/aaaa). Por ejemplo '17/07/26' es el 17 de julio de 2026 (NO 2017): el primer número es el día, no el año. Un año de dos dígitos como '26' significa 2026. Si no aparece pon null",
-  "transaction_id": "El número de transferencia, Nro de Operación, ID de transacción, o código de autorización único del comprobante. Si no encuentras, devuelve null"
-}
-Solo devuelve el JSON, sin texto antes ni después.`;
+            if (!primaryRead) throw new Error('Error al interpretar respuesta de IA');
 
-            // Use unified retry logic for transient OAuth/network errors
-            const response = await retryWithBackoff(
-                () => model.invoke([
-                     new SystemMessage(systemPrompt),
-                     new HumanMessage({
-                        content: [
-                            { type: "text", text: "Por favor, analiza este comprobante según las instrucciones." },
-                            { 
-                                type: "image_url", 
-                                image_url: { url: `data:${mimeType};base64,${base64Data}` }
-                            }
-                        ]
-                     })
-                ]),
-                { label: 'ReceiptAgent' }
-            );
+            console.log(`[ReceiptAgent] Lecturas para payment ${paymentId}:`, { primaryRead, supervisorRead });
 
-            // 4. Parse the response
-            let extracted: any = {};
-            try {
-                const text = response.content.toString();
-                const jsonMatch = text.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    extracted = JSON.parse(jsonMatch[0]);
-                }
-            } catch (e) {
-                console.error('[ReceiptAgent] Failed to parse AI JSON:', e, response.content);
-                throw new Error('Error al interpretar respuesta de IA');
-            }
-
-            console.log(`[ReceiptAgent] Extracted for payment ${paymentId}:`, extracted);
+            // 4. Cruce de las dos lecturas: solo pasa lo que ambas vieron igual.
+            const agreed = crossCheckReadings(primaryRead, supervisorRead);
+            const extracted = agreed.values;
 
             // 5. Validation Rules
             const errors: string[] = [];
@@ -166,6 +250,10 @@ Solo devuelve el JSON, sin texto antes ni después.`;
             const vendorIssues: string[] = [];
             // Pagos anteriores con el mismo nº de operación → links a ambas fichas
             const duplicateRefs: DuplicatePaymentRef[] = [];
+
+            // Lo que los dos lectores leyeron distinto no se audita: queda como
+            // aviso para el admin, nunca como reclamo a un vendedor.
+            errors.push(...agreed.disagreements);
 
             // A) Check Amount
             const tolerance = 5; // 5 pesos de tolerancia por errores de redondeo o carga
@@ -192,60 +280,60 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 }
             }
 
-            // C) Auto-correct Transaction ID + Check Duplicates
-            let isDuplicate = false;
-            if (extracted.transaction_id) {
-                const extractedTx = extracted.transaction_id.trim();
-                const txString = `[TX: ${extractedTx}]`;
+            // C) Check Transaction ID + Check Duplicates
+            // Un comprobante trae VARIOS identificadores (Mercado Pago: "Número de
+            // operación" Y "Código de identificación"). El vendedor puede tipear
+            // cualquiera de ellos y estar en lo correcto, así que se compara contra
+            // todos y se etiquetan todos para el chequeo de duplicados.
+            const extractedIds = extracted.ids;
+            if (extractedIds.length > 0) {
+                const extractedTx = extractedIds[0];
+                const tags = extractedIds.map(id => `[TX: ${id}]`).join(' ');
 
-                // Fetch current payment to compare the user-typed notes vs. AI-extracted TX
-                const currentPayment = await prisma.payment.findUnique({ where: { id: paymentId } });
+                // Fetch current payment to compare the user-typed notes vs. AI-extracted IDs
+                const currentPayment = await prisma.payment.findUnique({
+                    where: { id: paymentId },
+                    select: { notes: true }
+                });
                 const userTypedNotes = (currentPayment?.notes || '').trim();
 
                 // Strip any previous [TX: ...] tag from notes for clean comparison
                 const userReference = userTypedNotes.replace(/\s*\[TX:.*?\]\s*/g, '').trim();
 
-                // AUTO-CORRECT: If the user typed a different reference than what the image shows, overwrite it
-                const referenceMatchesExtracted = userReference === extractedTx 
-                    || userReference.includes(extractedTx) 
-                    || extractedTx.includes(userReference);
+                const referenceMatchesExtracted = extractedIds.some(id => referencesMatch(userReference, id));
 
-                if (userReference && !referenceMatchesExtracted) {
-                    // The user typed something wrong — correct it with the AI-extracted value
-                    errors.push(`Referencia corregida: El usuario cargó "${userReference}" pero el comprobante dice "${extractedTx}". Se actualizó automáticamente.`);
-                    vendorIssues.push(`Cargaron la referencia "${userReference}" pero en el comprobante figura "${extractedTx}" (ya la corregí yo, fíjense la próxima).`);
-                    
-                    await prisma.payment.update({
-                        where: { id: paymentId },
-                        data: { notes: `${extractedTx} ${txString}` }
-                    });
-                } else {
-                    // Notes match or were empty — just append the [TX: ...] tag for dedup tracking
-                    const newNotes = userReference
-                        ? `${userReference} ${txString}`
-                        : txString;
-
-                    await prisma.payment.update({
-                        where: { id: paymentId },
-                        data: { notes: newNotes }
-                    });
+                // Solo se reclama una referencia cuando los DOS lectores listaron
+                // identificadores y en ninguno de los dos aparece la que se cargó.
+                if (userReference && !referenceMatchesExtracted && agreed.bothListedIds) {
+                    // Se avisa, pero NO se pisa lo que cargó la persona: si la IA leyó
+                    // mal, la corrección automática destruiría el dato bueno.
+                    const listado = extractedIds.map(id => `"${id}"`).join(' ni ');
+                    errors.push(`Referencia distinta: se cargó "${userReference}" y en el comprobante figura ${listado}. Revisar a mano — NO se modificó el pago.`);
+                    vendorIssues.push(`Cargaron la referencia "${userReference}" y en el comprobante no la encuentro: ahí figura ${listado}. ¿Se fijan cuál corresponde y la corrigen?`);
                 }
+
+                // La referencia tipeada se conserva siempre; los [TX: ...] se agregan
+                // al final solo para el rastreo de duplicados.
+                await prisma.payment.update({
+                    where: { id: paymentId },
+                    data: { notes: userReference ? `${userReference} ${tags}` : tags },
+                    select: { id: true }
+                });
 
                 // Check for duplicate transactions across other payments
                 const duplicates = await prisma.payment.findMany({
                     where: {
-                        notes: { contains: txString },
-                        id: { not: paymentId }
+                        id: { not: paymentId },
+                        OR: extractedIds.map(id => ({ notes: { contains: `[TX: ${id}]` } }))
                     },
-                    include: {
-                        order: {
-                            include: { client: true }
-                        }
+                    select: {
+                        id: true,
+                        orderId: true,
+                        order: { select: { client: { select: { id: true, name: true } } } }
                     }
                 });
 
                 if (duplicates.length > 0) {
-                    isDuplicate = true;
                     duplicateRefs.push(...duplicates.map(d => ({
                         clientName: d.order?.client?.name || 'Cliente Desconocido',
                         clientId: d.order?.client?.id,
@@ -281,7 +369,30 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                 }
             }
 
-            // 6. Report if errors
+            // 6. Supervisor final: antes de tocar nada, vuelve a mirar el comprobante
+            // y confirma o descarta UNA POR UNA las observaciones. Solo sale a los
+            // vendedores lo que queda confirmado — el mail va firmado por Ishtar.
+            let confirmedIssues: string[] = [];
+            if (vendorIssues.length > 0) {
+                const verdicts = await this.verifyIssues(mimeType, base64Data, {
+                    clientName,
+                    loadedAmount: expectedAmount,
+                    issues: vendorIssues
+                });
+
+                if (!verdicts) {
+                    errors.push('El segundo control no pudo verificar las observaciones — NO se envió el mail a los vendedores, revisar a mano.');
+                } else {
+                    confirmedIssues = vendorIssues.filter((_, i) => verdicts[i]?.confirmada);
+                    verdicts.forEach((v, i) => {
+                        if (!v?.confirmada) {
+                            errors.push(`Observación descartada por el supervisor (no se le mandó a nadie): "${vendorIssues[i]}" — ${v?.motivo || 'no se pudo comprobar contra el comprobante'}.`);
+                        }
+                    });
+                }
+            }
+
+            // 7. Report if errors
             if (errors.length > 0) {
                 const alertMsg = `ERROR IA en Comprobante (${clientName}${uploadedByName ? `, cargado por ${uploadedByName}` : ''}): ${errors.join(' ')}`;
 
@@ -294,26 +405,29 @@ Solo devuelve el JSON, sin texto antes ni después.`;
                         status: 'PENDING'
                     }
                 });
+            } else {
+                 console.log(`[ReceiptAgent] Payment ${paymentId} check passed successfully.`);
+            }
 
-                // Mail a los vendedores como si lo mandara Ishtar pidiendo corregir la carga
+            // Mail a los vendedores como si lo mandara Ishtar pidiendo corregir la carga
+            if (confirmedIssues.length > 0) {
                 await notifyVendorsReceiptError({
                     clientName,
                     clientId: orderInfo?.client?.id,
                     orderId,
                     amount: expectedAmount,
                     receiptUrl,
-                    issues: vendorIssues.length > 0 ? vendorIssues : errors,
-                    duplicateRefs
+                    issues: confirmedIssues,
+                    // El duplicado se nombra solo si esa observación sobrevivió a la verificación.
+                    duplicateRefs: confirmedIssues.some(i => i.includes('ya estaba cargado en otro pago')) ? duplicateRefs : []
                 });
-            } else {
-                 console.log(`[ReceiptAgent] Payment ${paymentId} check passed successfully.`);
             }
 
             // Email único al admin: comprobante adjunto + veredicto de la auditoría
             adminEmailSent = true;
             await notifyReceiptUploaded({
                 ...emailBase,
-                reference: extracted.transaction_id || null,
+                reference: extractedIds.join(' · ') || null,
                 auditErrors: errors,
                 duplicateRefs
             });
