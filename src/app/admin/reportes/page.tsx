@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-    FileText, TrendingUp, DollarSign, Package, ArrowDown, RefreshCw, AlertCircle, Save, CheckCircle2,
+    FileText, TrendingUp, DollarSign, Package, ArrowDown, RefreshCw, AlertCircle,
     Users, ShoppingCart, Percent, Send, UserX
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -131,8 +131,6 @@ function getPresetDates(preset: string): { from: string; to: string } {
 
 // ── Page ──────────────────────────────────
 
-const STORAGE_KEY = 'atelier_reportes_state';
-
 export default function ReportsDashboard() {
     const searchParams = useSearchParams();
     const [data, setData] = useState<ReportData | null>(null);
@@ -140,7 +138,6 @@ export default function ReportsDashboard() {
     const [dateFrom, setDateFrom] = useState(() => getUrlParam(searchParams, 'desde', ''));
     const [dateTo, setDateTo] = useState(() => getUrlParam(searchParams, 'hasta', ''));
     const [activePreset, setActivePreset] = useState(() => getUrlParam(searchParams, 'periodo', 'month'));
-    const [saved, setSaved] = useState(false);
     const [dolarBlue, setDolarBlue] = useState<number | null>(null);
 
     // Cotización blue (venta) para mostrar equivalentes en USD
@@ -154,39 +151,23 @@ export default function ReportsDashboard() {
             .catch(() => { });
     }, []);
 
-    // Restore saved state or default to current month.
-    // Un link compartido (?desde=/&hasta=/&periodo=) tiene prioridad sobre el localStorage.
+    // Un link compartido (?desde=&hasta=&periodo=) tiene prioridad. Si no hay
+    // filtros en la URL, siempre arranca en el mes actual — nunca restaura un
+    // rango viejo guardado en localStorage (eso hacía que vendedores nuevos
+    // del mes en curso, ej. altas del mismo mes, no aparecieran en Métricas
+    // por Vendedor).
     useEffect(() => {
         const urlHasFilters = !!(searchParams.get('desde') || searchParams.get('hasta') || searchParams.get('periodo'));
         if (urlHasFilters) {
             fetchReport(dateFrom, dateTo);
             return;
         }
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                const s = JSON.parse(raw);
-                if (s.dateFrom && s.dateTo) {
-                    setDateFrom(s.dateFrom);
-                    setDateTo(s.dateTo);
-                    setActivePreset(s.activePreset || '');
-                    fetchReport(s.dateFrom, s.dateTo);
-                    return;
-                }
-            }
-        } catch { }
         const { from, to } = getPresetDates('month');
         setDateFrom(from);
         setDateTo(to);
+        setActivePreset('month');
         fetchReport(from, to);
     }, []);
-
-    // Auto-save filters to localStorage
-    useEffect(() => {
-        if (dateFrom && dateTo) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ dateFrom, dateTo, activePreset }));
-        }
-    }, [dateFrom, dateTo, activePreset]);
 
     // Cualquier combinación de estos filtros queda reflejada en la URL (link compartible).
     useEffect(() => {
@@ -290,20 +271,6 @@ export default function ReportsDashboard() {
                             className="p-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 hover:shadow-primary/40"
                         >
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        </button>
-                        <button
-                            onClick={() => {
-                                localStorage.setItem(STORAGE_KEY, JSON.stringify({ dateFrom, dateTo, activePreset }));
-                                setSaved(true);
-                                setTimeout(() => setSaved(false), 2500);
-                            }}
-                            className={`p-2 rounded-xl transition-all flex items-center gap-1.5 ${saved
-                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-                                : 'bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-600'
-                            }`}
-                            title="Guardar filtros para no perderlos"
-                        >
-                            {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                         </button>
                     </div>
                 </div>
