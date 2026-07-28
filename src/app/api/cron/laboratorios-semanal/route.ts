@@ -62,14 +62,16 @@ export async function GET(request: Request) {
         const secciones: string[] = [];
 
         for (const lab of LABS) {
-            // FECHA DE CORTE. Optovisión trae la fecha del comprobante; Grupo
-            // Óptico llega por el portal y NO tiene fecha de factura (0 de 284 en
-            // producción al 28/7/2026), así que filtrar por `invoiceDate` en la
-            // base lo dejaba afuera del email entero. Se usa, en orden: la fecha
-            // de la factura, la de ingreso que el portal escribe en la nota, y
-            // como último recurso el alta en el sistema. El filtro va en memoria
-            // —son unos cientos de filas— porque esa cascada no se puede expresar
-            // en el `where`.
+            // FECHA DE CORTE. Para Optovisión es la del comprobante; para Grupo
+            // Óptico, la de ingreso del pedido al laboratorio (el portal no expone
+            // la de emisión). Las dos viven en `invoiceDate`.
+            //
+            // La cascada es para las filas viejas: hasta el 28/7/2026 la fecha de
+            // Grupo Óptico se escribía solo dentro de la nota y la columna quedaba
+            // vacía en las 284 filas que había. Se rellenan solas en el próximo
+            // barrido del portal; mientras tanto, la fecha se lee de la nota. El
+            // filtro va en memoria —son unos cientos de filas— porque esa cascada
+            // no se puede expresar en el `where`.
             const todas = await prisma.labCostEntry.findMany({
                 where: { lab },
                 select: {
