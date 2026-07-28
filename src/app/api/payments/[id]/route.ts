@@ -116,7 +116,11 @@ export async function PUT(
             method: body.method,
             amount: body.amount ? Number(body.amount) : undefined,
             notes: body.notes,
-            receiptUrl: body.receiptUrl
+            receiptUrl: body.receiptUrl,
+            cardMode: body.cardMode,
+            batchNumber: body.batchNumber,
+            couponNumber: body.couponNumber,
+            authNumber: body.authNumber
         }, actor);
 
         // Si se subió una nueva imagen de comprobante y no es efectivo, re-disparamos el agente de IA

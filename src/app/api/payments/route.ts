@@ -27,6 +27,11 @@ async function buildSearchWhere(q: string, fromDate: Date | null, toDate: Date |
         { notes: { contains: query, mode: 'insensitive' } },
         { orderId: { contains: query, mode: 'insensitive' } },
         { order: { client: { name: { contains: query, mode: 'insensitive' } } } },
+        // Cobros presenciales con tarjeta: el número que tiene a mano quien busca
+        // es el del cupón, y no vive en `notes`.
+        { batchNumber: { contains: query, mode: 'insensitive' } },
+        { couponNumber: { contains: query, mode: 'insensitive' } },
+        { authNumber: { contains: query, mode: 'insensitive' } },
     ];
 
     const qDigits = digitsOnly(query);
@@ -45,6 +50,8 @@ async function buildSearchWhere(q: string, fromDate: Date | null, toDate: Date |
             LEFT JOIN "Client" c ON c.id = o."clientId"
             WHERE o."isDeleted" = false ${dateFilter} AND (
                 regexp_replace(coalesce(p.notes, ''), '\\D', '', 'g') LIKE ${pattern}
+                OR regexp_replace(coalesce(p."couponNumber", ''), '\\D', '', 'g') LIKE ${pattern}
+                OR regexp_replace(coalesce(p."authNumber", ''), '\\D', '', 'g') LIKE ${pattern}
                 OR trunc(p.amount)::bigint::text LIKE ${pattern}
                 OR regexp_replace(coalesce(c.phone, ''), '\\D', '', 'g') LIKE ${pattern}
             )`;
@@ -190,6 +197,12 @@ export async function GET(request: Request) {
             method: p.method,
             notes: p.notes,
             receiptUrl: p.receiptUrl,
+            // Voucher de tarjeta: administración necesita saber si el cobro fue
+            // presencial o por link de pago (el comprobante es distinto).
+            cardMode: p.cardMode,
+            batchNumber: p.batchNumber,
+            couponNumber: p.couponNumber,
+            authNumber: p.authNumber,
             clientName: p.order?.client?.name || 'Sin cliente',
             clientPhone: p.order?.client?.phone || '',
             orderId: p.orderId,

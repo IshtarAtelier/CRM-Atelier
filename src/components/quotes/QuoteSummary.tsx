@@ -19,8 +19,7 @@ import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 // Modular Components
 import QuoteLineItems from './QuoteLineItems';
 import { lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
-import { describeCardVoucher } from '@/lib/payment-card';
-import { stripTxTags } from '@/lib/receipt-references';
+import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
@@ -967,12 +966,7 @@ export default function QuoteSummary({
                                                         <p className="text-[8px] font-bold text-stone-400">
                                                             {getPaymentLabel(paymentValue.method)} · {format(new Date(paymentValue.date), "d MMM HH:mm", { locale: es })}
                                                         </p>
-                                                        {(describeCardVoucher(paymentValue) || stripTxTags(paymentValue.notes)) && (
-                                                            <p className="text-[8px] font-bold text-stone-400 mt-0.5">
-                                                                {describeCardVoucher(paymentValue) || `Ref. ${stripTxTags(paymentValue.notes)}`}
-                                                                {paymentValue.cardMode === 'LINK' && ' · Link de pago'}
-                                                            </p>
-                                                        )}
+                                                        <PaymentVoucherInfo payment={paymentValue} className="mt-0.5" />
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-1">

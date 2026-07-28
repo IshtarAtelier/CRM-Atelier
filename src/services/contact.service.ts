@@ -2308,6 +2308,12 @@ export const ContactService = {
         amount?: number;
         notes?: string | null;
         receiptUrl?: string | null;
+        // Voucher de tarjeta: se corrige desde administración (los cobros
+        // cargados antes del selector no tienen el modo).
+        cardMode?: string | null;
+        batchNumber?: string | null;
+        couponNumber?: string | null;
+        authNumber?: string | null;
     }, actor?: Actor) {
         const isAutoBillingMethod = (m: string) => m.toUpperCase().includes('PAY_WAY');
         const actorName = actor?.name || 'Administrador';
@@ -2389,6 +2395,20 @@ export const ContactService = {
             if (updates.receiptUrl !== undefined && updates.receiptUrl !== oldPayment.receiptUrl) {
                 changes.push(`Comprobante reemplazado`);
                 updateData.receiptUrl = updates.receiptUrl;
+            }
+
+            // Voucher de tarjeta: presencial (lote/cupón/autorización) o link de pago.
+            const camposVoucher: { campo: 'cardMode' | 'batchNumber' | 'couponNumber' | 'authNumber'; etiqueta: string }[] = [
+                { campo: 'cardMode', etiqueta: 'Cómo se cobró' },
+                { campo: 'batchNumber', etiqueta: 'Nº de lote' },
+                { campo: 'couponNumber', etiqueta: 'Nº de cupón' },
+                { campo: 'authNumber', etiqueta: 'Nº de autorización' }
+            ];
+            for (const { campo, etiqueta } of camposVoucher) {
+                const nuevo = updates[campo];
+                if (nuevo === undefined || nuevo === oldPayment[campo]) continue;
+                changes.push(`${etiqueta}: ${oldPayment[campo] || 'sin dato'} → ${nuevo || 'sin dato'}`);
+                updateData[campo] = nuevo;
             }
 
             // Si no hay cambios reales, retornar el pago sin tocar nada

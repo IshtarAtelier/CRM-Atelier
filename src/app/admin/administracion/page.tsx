@@ -11,6 +11,8 @@ import { es } from 'date-fns/locale';
 import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
 import FileDropZone from '@/components/ui/FileDropZone';
 import type { CashMovement } from '@/types/orders';
+import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
+import { isCardMethod, type CardMode } from '@/lib/payment-card';
 
 // ── Types ─────────────────────────────────────
 
@@ -21,6 +23,10 @@ interface PaymentRecord {
     method: string;
     notes: string | null;
     receiptUrl: string | null;
+    cardMode: string | null;
+    batchNumber: string | null;
+    couponNumber: string | null;
+    authNumber: string | null;
     clientName: string;
     clientPhone: string;
     orderId: string;
@@ -175,6 +181,12 @@ export default function AdministracionPage() {
     const [editNotes, setEditNotes] = useState('');
     const [editReceiptUrl, setEditReceiptUrl] = useState<string | null>(null);
     const [editFile, setEditFile] = useState<File | null>(null);
+    // Voucher de tarjeta: se puede corregir desde acá (los cobros viejos no
+    // tienen el modo cargado y hay que poder completarlo).
+    const [editCardMode, setEditCardMode] = useState<CardMode | ''>('');
+    const [editBatch, setEditBatch] = useState('');
+    const [editCoupon, setEditCoupon] = useState('');
+    const [editAuth, setEditAuth] = useState('');
     const [isSavingEdit, setIsSavingEdit] = useState(false);
 
     useEffect(() => {
@@ -320,7 +332,13 @@ export default function AdministracionPage() {
                     method: editMethod,
                     amount: Number(editAmount),
                     notes: editNotes,
-                    receiptUrl: finalReceiptUrl
+                    receiptUrl: finalReceiptUrl,
+                    ...(isCardMethod(editMethod) ? {
+                        cardMode: editCardMode || null,
+                        batchNumber: editCardMode === 'PRESENCIAL' ? editBatch.trim() || null : null,
+                        couponNumber: editCardMode === 'PRESENCIAL' ? editCoupon.trim() || null : null,
+                        authNumber: editCardMode === 'PRESENCIAL' ? editAuth.trim() || null : null
+                    } : {})
                 })
             });
 
@@ -760,11 +778,7 @@ export default function AdministracionPage() {
                                                                 <info.icon size={12} />
                                                                 {info.label}
                                                             </div>
-                                                            {p.notes && (
-                                                                <span className="text-[9px] font-bold text-stone-500 max-w-[120px] truncate" title={p.notes}>
-                                                                    Ref: {p.notes}
-                                                                </span>
-                                                            )}
+                                                            <PaymentVoucherInfo payment={p} className="max-w-[160px]" />
                                                         </div>
                                                     </td>
                                                     <td className="px-8 py-5">
@@ -802,6 +816,10 @@ export default function AdministracionPage() {
                                                                     setEditNotes(p.notes || '');
                                                                     setEditReceiptUrl(p.receiptUrl);
                                                                     setEditFile(null);
+                                                                    setEditCardMode((p.cardMode as CardMode) || '');
+                                                                    setEditBatch(p.batchNumber || '');
+                                                                    setEditCoupon(p.couponNumber || '');
+                                                                    setEditAuth(p.authNumber || '');
                                                                 }}
                                                                 className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all shadow-sm"
                                                                 title="Editar Pago"
@@ -1022,6 +1040,56 @@ export default function AdministracionPage() {
                                         className="w-full bg-stone-50 dark:bg-stone-800 border-none rounded-2xl py-4 px-6 text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all"
                                     />
                                 </div>
+
+                                {isCardMethod(editMethod) && (
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block px-1">¿Cómo se cobró?</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {([
+                                                { id: 'PRESENCIAL' as CardMode, label: 'Presencial (posnet)' },
+                                                { id: 'LINK' as CardMode, label: 'Link de pago' }
+                                            ]).map(opt => (
+                                                <button
+                                                    key={opt.id}
+                                                    type="button"
+                                                    onClick={() => setEditCardMode(opt.id)}
+                                                    className={`p-3 rounded-2xl border-2 transition-all text-[10px] font-black uppercase tracking-tighter ${
+                                                        editCardMode === opt.id
+                                                            ? 'border-primary bg-primary/5 text-primary'
+                                                            : 'border-stone-100 dark:border-stone-800 text-stone-400 hover:border-stone-200'
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {editCardMode === 'PRESENCIAL' && (
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={editBatch}
+                                                    onChange={(e) => setEditBatch(e.target.value)}
+                                                    placeholder="Lote"
+                                                    className="w-full bg-stone-50 dark:bg-stone-800 border-none rounded-2xl py-3 px-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={editCoupon}
+                                                    onChange={(e) => setEditCoupon(e.target.value)}
+                                                    placeholder="Cupón"
+                                                    className="w-full bg-stone-50 dark:bg-stone-800 border-none rounded-2xl py-3 px-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={editAuth}
+                                                    onChange={(e) => setEditAuth(e.target.value)}
+                                                    placeholder="Autorización"
+                                                    className="w-full bg-stone-50 dark:bg-stone-800 border-none rounded-2xl py-3 px-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-6">
