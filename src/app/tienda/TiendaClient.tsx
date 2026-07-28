@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
@@ -12,7 +12,13 @@ import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { CristalesShowcase } from "@/components/Storefront/CristalesShowcase";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
-const CATEGORIES = ["Todo", "Receta", "Sol", "Clip-On", "Contacto", "Cristales"];
+// "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
+// devolvía una grilla vacía. Tienen su propia página, así que ahora llevan ahí.
+const CATEGORIES = ["Todo", "Receta", "Sol", "Clip-On"];
+const CATEGORIAS_CON_PAGINA_PROPIA: { nombre: string; href: string }[] = [
+  { nombre: "Contacto", href: "/lentes-de-contacto" },
+  { nombre: "Cristales", href: "/cristales-opticos" },
+];
 
 const CATEGORY_IMAGES: Record<string, string> = {
   "Todo": "/images/banners/todo.png",
@@ -63,6 +69,7 @@ function altGrilla(p: { model?: string; category?: string | null; shape?: string
 }
 
 type FiltrosUrl = {
+  category: string;
   brand: string;
   shape: string;
   material: string;
@@ -78,6 +85,7 @@ function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosUrl) => void
 
   useEffect(() => {
     onChange({
+      category: searchParams.get('categoria') || 'Todo',
       brand: searchParams.get('marca') || '',
       shape: searchParams.get('forma') || '',
       material: searchParams.get('material') || '',
@@ -90,6 +98,7 @@ function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosUrl) => void
 }
 
 export function TiendaClient({ 
+  initialCategory = 'Todo',
   initialProducts,
   initialTotalCount = 0,
   availableBrands = [],
@@ -97,6 +106,7 @@ export function TiendaClient({
   availableMaterials = [],
   footer
 }: { 
+  initialCategory?: string;
   initialProducts: any[];
   initialTotalCount?: number;
   availableBrands?: string[];
@@ -104,17 +114,37 @@ export function TiendaClient({
   availableMaterials?: string[];
   footer?: React.ReactNode;
 }) {
-  const [activeCategory, setActiveCategory] = useState("Todo");
+  const router = useRouter();
+  const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(24);
 
   const [urlFilters, setUrlFilters] = useState<FiltrosUrl>({
+    // Llega resuelta del servidor: si arrancara en 'Todo' y cambiara al
+    // hidratar, la grilla —que se anima con key={activeCategory} en modo
+    // "wait"— se quedaba mostrando el set anterior.
+    category: initialCategory,
     brand: '',
     shape: '',
     material: '',
     gender: '',
     sort: 'recientes',
   });
+
+  // La categoría vivía en un useState suelto: la grilla cambiaba pero la URL
+  // seguía siendo /tienda, así que "la tienda filtrada en sol" no tenía
+  // dirección — no se podía compartir por WhatsApp, ni mandar un anuncio ahí,
+  // ni indexarla. Los otros cinco filtros ya viajaban en la URL (los escribe
+  // ProductFilters); esta era la única excepción.
+  const activeCategory = urlFilters.category;
+  const setActiveCategory = (cat: string) => {
+    const params = new URLSearchParams(window.location.search);
+    if (cat && cat !== 'Todo') params.set('categoria', cat);
+    else params.delete('categoria');
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
   const filterBrand = urlFilters.brand;
   const filterShape = urlFilters.shape;
   const filterMaterial = urlFilters.material;
@@ -214,7 +244,7 @@ export function TiendaClient({
     // Check if it's the initial server load (page 1, no filters, not wholesale)
     const isFirstRenderWithInitialData =
       currentPage === 1 &&
-      activeCategory === "Todo" &&
+      activeCategory === initialCategory &&
       searchQuery === "" &&
       !filterBrand &&
       !filterShape &&
@@ -359,6 +389,15 @@ export function TiendaClient({
                   {cat}
                 </button>
               ))}
+              {CATEGORIAS_CON_PAGINA_PROPIA.map(({ nombre, href }) => (
+                <Link
+                  key={nombre}
+                  href={href}
+                  className="shrink-0 text-[10px] md:text-[11px] font-black uppercase tracking-widest px-5 md:px-6 py-2.5 md:py-3 rounded-full transition-all duration-300 bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-black"
+                >
+                  {nombre}
+                </Link>
+              ))}
               {activeCategory !== "Todo" && (
                 <button
                   onClick={() => setActiveCategory("Todo")}
@@ -447,12 +486,17 @@ export function TiendaClient({
 
           {/* The skeleton is no longer needed since data is preloaded */}
           {/* initial={false}: la grilla ya viaja en el HTML del servidor, no ocultarla */}
-          <AnimatePresence mode="wait" initial={false}>
+          {/* Sin `mode="wait"` ni `key`: con los dos, al cambiar de categoría el
+              bloque viejo tenía que terminar su animación de salida antes de
+              montar el nuevo, y en la práctica no la terminaba nunca — la
+              grilla quedaba congelada en la categoría anterior aunque el fetch
+              ya hubiera traído los productos correctos. Apretar "Sol" o
+              "Clip-On" no cambiaba nada en pantalla. La transición ahora la
+              hace el propio contenedor, sin desmontarlo. */}
+          <AnimatePresence initial={false}>
             <motion.div
-              key={activeCategory}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >

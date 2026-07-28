@@ -47,8 +47,20 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function TiendaPage() {
+export default async function TiendaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const isOptica = await isOpticaSession();
+
+  // La categoría se resuelve en el servidor, no después de hidratar. Dos
+  // motivos: el HTML sale ya con los productos de la categoría (antes /tienda
+  // servía siempre los mismos 24, mezclados), y el cliente no tiene que pasar
+  // de "Todo" a la categoría real — ese cambio de estado dejaba la grilla
+  // trabada, porque se anima con `key={activeCategory}` en modo "wait".
+  const params = await searchParams;
+  const categoriaPedida = typeof params.categoria === 'string' ? params.categoria : 'Todo';
 
   // 1) Metadatos del sidebar de filtros — fuente resiliente (vivo → memoria →
   //    snapshot): nunca lanza y nunca llega vacía. Ver src/lib/catalog/.
@@ -83,8 +95,12 @@ export default async function TiendaPage() {
   // fallback resiliente por debajo — la tienda nunca renderiza vacía.
   const { products: catalog } = await getMappedWebCatalog();
 
-  const mappedInitialProducts = catalog.slice(0, 24);
-  const initialTotalCount = catalog.length;
+  const catalogoDeLaCategoria = categoriaPedida === 'Todo'
+    ? catalog
+    : catalog.filter((p) => (p.category || '').toLowerCase() === categoriaPedida.toLowerCase());
+
+  const mappedInitialProducts = catalogoDeLaCategoria.slice(0, 24);
+  const initialTotalCount = catalogoDeLaCategoria.length;
 
   const collectionLd = {
     '@context': 'https://schema.org',
@@ -118,6 +134,7 @@ export default async function TiendaPage() {
         />
       )}
       <TiendaClient
+        initialCategory={categoriaPedida}
         initialProducts={mappedInitialProducts}
         initialTotalCount={initialTotalCount}
         availableBrands={availableBrands}

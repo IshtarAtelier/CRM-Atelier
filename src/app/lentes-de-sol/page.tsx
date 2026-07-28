@@ -36,16 +36,18 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
   const filterGender = typeof resolvedParams.genero === 'string' ? resolvedParams.genero : undefined;
 
   // Base Where Clause
+  // Los cristales no son armazones: si a uno le queda la categoría web de
+  // sol, aparece en la grilla mezclado entre los marcos. Pasó con un
+  // Essilor Orma de $280.000 listado en /receta.
   const whereClause: any = { 
     category: { contains: "Sol", mode: "insensitive" },
-    isActive: true
+    isActive: true,
+    product: { category: { not: 'Cristal' } }
   };
 
   // Add Brand Filter if exists
   if (filterBrand) {
-    whereClause.product = {
-      brand: { equals: filterBrand, mode: "insensitive" }
-    };
+    whereClause.product.brand = { equals: filterBrand, mode: "insensitive" };
   }
 
   // Determine Sort Order
@@ -71,7 +73,7 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
       }),
       // Prisma doesn't support distinct easily on nested relations, so we fetch all active sol products to extract brands
       prisma.webProduct.findMany({
-        where: { category: { contains: "Sol", mode: "insensitive" }, isActive: true },
+        where: { category: { contains: "Sol", mode: "insensitive" }, isActive: true, product: { category: { not: 'Cristal' } } },
         select: { name: true, product: { select: { brand: true, model: true } } }
       })
     ]);
@@ -193,7 +195,9 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
     url: 'https://atelieroptica.com.ar/lentes-de-sol',
     mainEntity: {
       '@type': 'ItemList',
-      numberOfItems: filteredProducts.length,
+      // Los que se enumeran, no el total: declarar 89 y listar 20 es una
+      // inconsistencia que Google marca al validar el dato estructurado.
+      numberOfItems: Math.min(filteredProducts.length, 20),
       itemListElement: filteredProducts.slice(0, 20).map((p, i) => {
         const img = p.imagenesCatalogo && p.imagenesCatalogo.length > 0
           ? resolveStorageUrl(p.imagenesCatalogo[0])
