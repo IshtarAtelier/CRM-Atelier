@@ -1,6 +1,6 @@
-import { WHATSAPP_PHONE } from '@/lib/constants';
+import { WHATSAPP_PHONE, STORE_ORIGIN } from '@/lib/constants';
 
-const APP_ORIGIN = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
+const APP_ORIGIN = STORE_ORIGIN;
 const LOGO_URL = `${APP_ORIGIN}/images/logo-negro.png`;
 // Imagen editorial de encabezado (La Gioconda con anteojos, del home).
 const HERO_URL = `${APP_ORIGIN}/images/editorial/monalisa.webp`;

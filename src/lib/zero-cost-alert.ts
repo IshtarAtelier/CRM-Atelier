@@ -66,7 +66,7 @@ export async function notifyZeroCostSale(orderId: string): Promise<void> {
         `;
         const text = `Venta de ${clientName} con ${offenders.length} línea(s) a costo $0: ` +
             offenders.map(it => `${it.productNameSnapshot || it.product?.name || '(sin nombre)'} (${money(it.price * it.quantity)})`).join(', ') +
-            `. ${APP_URL}/admin/ventas?orderId=${order.id}`;
+            `. ${APP_URL}/admin/ventas?id=${order.id}`;
 
         await sendEmail({
             to: ADMIN_ALERT_EMAILS,

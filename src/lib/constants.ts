@@ -7,6 +7,11 @@ export const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5493518
 // Atelier. Normalizado wa.me (549 + área + número).
 export const WHOLESALE_WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHOLESALE_WHATSAPP_PHONE || '5493541215971';
 
+// Origen público de la tienda: TODO link que vea un cliente (mails de checkout,
+// carrito abandonado, fichas de producto) tiene que salir con el dominio propio,
+// nunca con la URL interna de Railway. Los links de gestión (CRM) van aparte.
+export const STORE_ORIGIN = (process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar').replace(/\/$/, '');
+
 // Destinatarios de las alertas internas (nuevas ventas web, stock bajo, etc.).
 // Single source of truth: no hardcodear estos correos en cada endpoint.
 export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
