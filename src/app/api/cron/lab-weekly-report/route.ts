@@ -11,6 +11,26 @@ const STATUS_LABEL: Record<string, string> = {
     OK: 'OK', OVERCOST: 'Sobrecosto', UNDERCOST: 'Menor costo', PENDING: 'Esperando factura', UNMATCHED: 'Sin venta',
 };
 const fmt = (n: number | null | undefined) => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
+const fmtFecha = (d: Date | string | null | undefined) => d
+    ? new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' })
+    : null;
+// Las tres claves con las que se le reclama al laboratorio —nº de operación,
+// comprobante y fecha— van SIEMPRE, en todas las filas: si una factura no trae
+// el nº de pedido (Optovision factura remitos y reprocesos sin él) se dice así
+// con todas las letras, en vez de mostrar el nº de comprobante como si fuera
+// el de operación o dejar la celda vacía.
+const ES_PEDIDO = /^\d{5,}$/;
+const faltante = (t: string) => `<span style="color:#b91c1c">${t}</span>`;
+const nroOperacion = (r: any) => ES_PEDIDO.test(String(r.labOrderNumber || '').trim())
+    ? String(r.labOrderNumber).trim()
+    : faltante('la factura no trae nº');
+const comprobante = (r: any) => {
+    const m = String(r.labOrderNumber || '').match(/\d{4}-\d{4,8}/) || String(r.sourceFile || '').match(/\d{4}-\d{4,8}/);
+    if (m) return m[0];
+    return r.sourceFile ? String(r.sourceFile).replace(/\.pdf$/i, '') : faltante('sin comprobante');
+};
+const fechaFila = (r: any) => fmtFecha(r.invoiceDate)
+    || `${fmtFecha(r.createdAt) || 's/fecha'} <span style="color:#6b7280">(alta)</span>`;
 
 /**
  * Reporte SEMANAL de conciliación de laboratorio (ambos labs). Pensado para
@@ -40,7 +60,9 @@ export async function GET(request: Request) {
             const d = rep.perLab[lab];
             const filas = d.detalleSemana.map((r: any, i: number) => `
                 <tr style="background:${i % 2 === 0 ? '#fff' : '#f9fafb'}">
-                    <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${r.labOrderNumber}</td>
+                    <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${nroOperacion(r)}</td>
+                    <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${comprobante(r)}</td>
+                    <td style="padding:6px 8px;border:1px solid #e5e7eb;white-space:nowrap">${fechaFila(r)}</td>
                     <td style="padding:6px 8px;border:1px solid #e5e7eb">${r.clientId ? `<a href="${appUrl}/admin/contactos?clientId=${r.clientId}">${r.cliente}</a>` : r.cliente}${r.esPostventa ? ' · <span style="color:#1d4ed8">postventa</span>' : ''}</td>
                     <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;font-weight:bold">${fmt(r.billed)}</td>
                     <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right">${fmt(r.systemCost)}</td>
@@ -58,7 +80,8 @@ export async function GET(request: Request) {
                 ${d.detalleSemana.length ? `
                 <table style="border-collapse:collapse;width:100%;font-size:13px">
                     <tr style="background:#111827;color:#fff">
-                        <th style="padding:8px;text-align:left">Nº pedido</th><th style="padding:8px;text-align:left">Cliente</th>
+                        <th style="padding:8px;text-align:left">Nº operación</th><th style="padding:8px;text-align:left">Comprobante</th>
+                        <th style="padding:8px;text-align:left">Fecha</th><th style="padding:8px;text-align:left">Cliente</th>
                         <th style="padding:8px;text-align:right">Facturado</th><th style="padding:8px;text-align:right">Sistema</th>
                         <th style="padding:8px;text-align:right">Dif.</th><th style="padding:8px;text-align:left">Estado</th>
                     </tr>${filas}
@@ -82,7 +105,7 @@ export async function GET(request: Request) {
                 <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;margin-bottom:8px">
                     <strong style="color:#b91c1c">${sobre.length} sobrecosto(s) vigente(s) a revisar:</strong>
                     <ul style="margin:6px 0 0;font-size:13px;line-height:1.6">
-                        ${sobre.map((s: any) => `<li>${LAB_LABELS[s.lab] || s.lab} · pedido ${s.labOrderNumber} (${s.cliente}): <strong style="color:#b91c1c">+${fmt(s.difference)}</strong></li>`).join('')}
+                        ${sobre.map((s: any) => `<li>${LAB_LABELS[s.lab] || s.lab} · operación ${nroOperacion(s)} · comprobante ${comprobante(s)} · ${fechaFila(s)} (${s.cliente}): <strong style="color:#b91c1c">+${fmt(s.difference)}</strong></li>`).join('')}
                     </ul>
                 </div>` : '<p style="color:#059669">✅ Sin sobrecostos vigentes.</p>'}
                 ${labBlock('OPTOVISION')}

@@ -247,18 +247,49 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
         DUDOSO: 'background:#fee2e2;color:#b91c1c;font-weight:bold',
     };
 
+    // TODA fila lleva SIEMPRE las tres claves con las que se reclama al lab:
+    // nº de operación, comprobante y fecha. Ninguna puede quedar vacía en unas
+    // filas y llena en otras — el administrador reclama con esos tres datos, y
+    // una fila incompleta obliga a ir a buscarlos a mano al PDF.
+    //
+    // Cuando la factura NO trae nº de pedido (Optovision factura remitos y
+    // reprocesos sin él), el registro guarda el nº de comprobante como clave —
+    // por eso la columna "Nº operación" venía mostrando "S/PEDIDO 3008-00069150"
+    // o, en las entradas viejas, la serie pelada ("3008"). Eso no es un nº de
+    // operación: se dice explícitamente que la factura no lo trae y el
+    // comprobante se muestra en su propia columna.
+    const ES_PEDIDO = /^\d{5,}$/;
+    const comprobanteDe = (f: any): string | null => {
+        const m = String(f.labOrderNumber || '').match(/\d{4}-\d{4,8}/)
+            || String(f.sourceFile || '').match(/\d{4}-\d{4,8}/);
+        if (m) return m[0];
+        return f.sourceFile ? String(f.sourceFile).replace(/\.pdf$/i, '') : null;
+    };
+    const faltante = (texto: string) => `<span style="color:#b91c1c">${texto}</span>`;
+
     const rows = findings.map((f, i) => {
         const m = META[f.status] || { label: f.status, color: '#374151' };
         const cliente = f.order
             ? `<a href="${appUrl}/admin/contactos?clientId=${f.order.clientId}">${f.order.client?.name || 'ver ficha'}</a>`
             : '<span style="color:#b91c1c">—</span>';
+        const nroOperacion = ES_PEDIDO.test(String(f.labOrderNumber || '').trim())
+            ? String(f.labOrderNumber).trim()
+            : faltante('la factura no trae nº');
+        const comprobante = comprobanteDe(f) || faltante('sin comprobante');
+        // Siempre una fecha: la de la factura y, si el comprobante no la trajo,
+        // la del alta en el sistema aclarada como tal (nunca un guión).
+        const fecha = f.invoiceDate
+            ? fmtFecha(f.invoiceDate)
+            : `${fmtFecha(f.createdAt)} <span style="color:#6b7280">(alta)</span>`;
         const real = f.lab === 'OPTOVISION' ? (f.billedTotal ?? f.billedNet) : (f.billedNet ?? f.billedTotal);
         const t: any = triage.get(f.id);
         const ultima = t
             ? `<span style="padding:2px 8px;border-radius:10px;${BADGE[t.tipo] || ''}">${t.detalle}</span>${t.clientId ? ` <a href="${appUrl}/admin/contactos?clientId=${t.clientId}">ver ficha</a>` : ''}`
             : (f.notes || '—');
         return `<tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
-            <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${f.labOrderNumber}</td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${nroOperacion}</td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${comprobante}</td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb;white-space:nowrap">${fecha}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb">${LABS[f.lab] || f.lab}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb">${cliente}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right">${fmt(f.systemCost)}</td>
@@ -291,7 +322,8 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
                 ${pendientes > 0 ? `<p style="background:#fef3c7;border-left:4px solid #f59e0b;padding:10px 12px;font-size:13px">Se movieron <strong>${total}</strong> en total: acá van los <strong>${MAX_FILAS} más importantes</strong> y los otros <strong>${pendientes}</strong> salen en el próximo resumen (no se pierde ninguno). Están todos en <a href="${appUrl}/admin/laboratorio/costos">la pantalla de conciliación</a>.</p>` : ''}
                 <table style="border-collapse:collapse;width:100%;font-size:13px">
                     <tr style="background:#111827;color:#fff">
-                        <th style="padding:8px;text-align:left">Nº operación</th><th style="padding:8px;text-align:left">Lab</th>
+                        <th style="padding:8px;text-align:left">Nº operación</th><th style="padding:8px;text-align:left">Comprobante</th>
+                        <th style="padding:8px;text-align:left">Fecha</th><th style="padding:8px;text-align:left">Lab</th>
                         <th style="padding:8px;text-align:left">Cliente</th><th style="padding:8px;text-align:right">Costo sistema</th>
                         <th style="padding:8px;text-align:right">Costo real</th><th style="padding:8px;text-align:right">Dif.</th>
                         <th style="padding:8px;text-align:left">Estado</th><th style="padding:8px;text-align:left">Detalle</th>
@@ -392,10 +424,10 @@ export async function sendChargedReworkAlert(entry: any, order: any, pvCase: any
                 <p style="margin:16px 0 4px;font-weight:bold">Lo que facturó el laboratorio:</p>
                 <table style="border-collapse:collapse;width:100%;font-size:13px">
                     ${fila('Laboratorio', entry.lab === 'GRUPO_OPTICO' ? 'Grupo Óptico' : 'Optovisión')}
-                    ${fila('Nº de operación del reproceso', `<span style="font-family:monospace">${entry.labOrderNumber}</span>`)}
+                    ${fila('Nº de operación del reproceso', `<span style="font-family:monospace">${/^\d{5,}$/.test(String(entry.labOrderNumber || '').trim()) ? entry.labOrderNumber : '<span style="color:#b91c1c">la factura no trae nº</span>'}</span>`)}
                     ${fila('Importe facturado', `<strong style="color:#b91c1c">${fmt(billed)}</strong>`)}
-                    ${fila('Comprobante', entry.sourceFile || '—')}
-                    ${fila('Fecha de factura', fecha(entry.invoiceDate))}
+                    ${fila('Comprobante', entry.sourceFile || '<span style="color:#b91c1c">sin comprobante</span>')}
+                    ${fila('Fecha de factura', entry.invoiceDate ? fecha(entry.invoiceDate) : `${fecha(entry.createdAt)} <span style="color:#6b7280">(alta en el sistema)</span>`)}
                     ${fila('Venta original', `<span style="font-family:monospace">${order.labOrderNumber || '—'}</span>`)}
                 </table>
 
