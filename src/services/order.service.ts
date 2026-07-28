@@ -92,6 +92,10 @@ const OrderUpdateSchema = z.object({
     postSaleCoverage: z.string().nullable().optional(),
     // Imagen adjunta a la observación que se agrega en este PATCH
     postSaleNoteImageUrl: z.string().nullable().optional(),
+    // Observación única a agregar (append server-side, sin reconstruir el string
+    // completo desde el cliente). Evita duplicar notas si el cliente tiene un
+    // snapshot desactualizado. Es el camino preferido para sumar una observación.
+    postSaleNoteEntry: z.string().nullable().optional(),
 }).passthrough();
 
 // export const dynamic = 'force-dynamic';
@@ -372,8 +376,15 @@ export class OrderService {
             isLocked, authorizedByAdmin,
             postSaleNotes, postSaleCost, postSaleResponsible,
             postSaleOrderOption, postSaleNewOrderNumber, postSaleStatus, postSaleRxData, postSaleCaseType,
-            postSaleFault, postSaleCoverage, postSaleNoteImageUrl
+            postSaleFault, postSaleCoverage, postSaleNoteImageUrl, postSaleNoteEntry
         } = body;
+
+        // Observación única a agregar en este PATCH (camino preferido, sin que el
+        // cliente reconstruya el historial). Se estampa server-side.
+        const noteEntryText = (postSaleNoteEntry || '').toString().trim();
+        const stampedNoteEntry = noteEntryText
+            ? `[${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}]: ${noteEntryText}`
+            : '';
 
         const data: any = {};
         if (isLocked !== undefined) data.isLocked = isLocked;
@@ -894,7 +905,7 @@ export class OrderService {
         if (userFrameNotes !== undefined) data.userFrameNotes = userFrameNotes;
         // Post-Sale status initialization and email notification check
         // Post-Sale status initialization and email notification check
-        if (postSaleNotes !== undefined || postSaleCost !== undefined || postSaleResponsible !== undefined || postSaleOrderOption !== undefined || postSaleStatus !== undefined || postSaleRxData !== undefined || postSaleNewOrderNumber !== undefined || postSaleCaseType !== undefined || postSaleFault !== undefined || postSaleCoverage !== undefined) {
+        if (postSaleNotes !== undefined || postSaleCost !== undefined || postSaleResponsible !== undefined || postSaleOrderOption !== undefined || postSaleStatus !== undefined || postSaleRxData !== undefined || postSaleNewOrderNumber !== undefined || postSaleCaseType !== undefined || postSaleFault !== undefined || postSaleCoverage !== undefined || noteEntryText) {
             const currentOrderForPostSale = await prisma.order.findUnique({
                 where: { id },
                 select: {
@@ -959,7 +970,7 @@ export class OrderService {
                             status: resolvedStatus || 'SENT',
                             cost: postSaleCost !== undefined && postSaleCost !== null ? Number(postSaleCost) : 0.0,
                             newOrderNumber: postSaleNewOrderNumber || null,
-                            notes: postSaleNotes || null,
+                            notes: stampedNoteEntry || postSaleNotes || null,
                             orderOption: postSaleOrderOption || null,
                             responsible: postSaleResponsible || null,
                             caseType: postSaleCaseType || null,
@@ -969,8 +980,18 @@ export class OrderService {
                         }
                     });
 
-                    // Add note if notes are present
-                    if (postSaleNotes) {
+                    // Observación inicial. Preferir la entry única (append server-side);
+                    // si no, extraer del string reconstruido (camino legacy del tablero).
+                    if (noteEntryText) {
+                        await prisma.postSaleNote.create({
+                            data: {
+                                caseId: activeCase.id,
+                                content: noteEntryText,
+                                createdBy: userName || 'Sistema',
+                                imageUrl: postSaleNoteImageUrl || null
+                            }
+                        });
+                    } else if (postSaleNotes) {
                         const lines = postSaleNotes.split('\n').filter((line: string) => line.trim() !== '');
                         const lastLine = lines[lines.length - 1] || postSaleNotes;
                         const match = lastLine.match(/^\[(.*?)\]:\s*(.*)$/);
@@ -1047,6 +1068,11 @@ export class OrderService {
                     if (resolvedStatus !== undefined) caseData.status = resolvedStatus;
                     if (postSaleCost !== undefined && postSaleCost !== null) caseData.cost = Number(postSaleCost);
                     if (postSaleNotes !== undefined) caseData.notes = postSaleNotes;
+                    // Append server-side de la observación única (camino preferido): se
+                    // suma al historial existente, sin depender del snapshot del cliente.
+                    if (noteEntryText) {
+                        caseData.notes = (activeCase.notes ? `${activeCase.notes}\n` : '') + stampedNoteEntry;
+                    }
                     if (postSaleOrderOption !== undefined) caseData.orderOption = postSaleOrderOption;
                     if (postSaleResponsible !== undefined) caseData.responsible = postSaleResponsible;
                     if (postSaleCaseType !== undefined) caseData.caseType = postSaleCaseType;
@@ -1075,7 +1101,18 @@ export class OrderService {
 
                     // Extract and create new note entry if notes were updated/appended
                     let appendedNoteText = '';
-                    if (postSaleNotes !== undefined && postSaleNotes !== activeCase.notes) {
+                    if (noteEntryText) {
+                        // Camino preferido: UNA sola observación, sin riesgo de duplicar.
+                        appendedNoteText = noteEntryText;
+                        await prisma.postSaleNote.create({
+                            data: {
+                                caseId: activeCase.id,
+                                content: noteEntryText,
+                                createdBy: userName || 'Sistema',
+                                imageUrl: postSaleNoteImageUrl || null
+                            }
+                        });
+                    } else if (postSaleNotes !== undefined && postSaleNotes !== activeCase.notes) {
                         const oldNotes = activeCase.notes || '';
                         let newAppendedNotes = postSaleNotes;
                         if (postSaleNotes.startsWith(oldNotes)) {

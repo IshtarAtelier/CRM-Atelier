@@ -2851,6 +2851,14 @@ export const ContactService = {
                 data: { clientId: targetId }
             });
 
+            // 3.b Transferir casos de post-venta (van ligados al cliente por clientId).
+            // Sin esto, al borrar el cliente origen su clientId quedaría en null
+            // (FK SetNull) y los casos desaparecerían de la ficha. Blindaje.
+            await tx.postSaleCase.updateMany({
+                where: { clientId: sourceId },
+                data: { clientId: targetId }
+            });
+
             // 4. Transferir Recetas
             await tx.prescription.updateMany({
                 where: { clientId: sourceId },

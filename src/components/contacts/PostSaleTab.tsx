@@ -47,11 +47,6 @@ async function uploadImage(file: File): Promise<string | null> {
     } catch { return null; }
 }
 
-/** Formatea la marca de tiempo de una observación, igual que el tablero. */
-function stamp(): string {
-    return new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
-
 /**
  * Solapa de Post Venta en la ficha del cliente.
  * - Lista TODOS los casos del cliente (consultados por clientId: sobreviven aunque
@@ -192,9 +187,10 @@ function CaseCard({ c, onRefresh }: { c: PostSaleCase; onRefresh: () => void }) 
                     )}
                 </div>
 
-                {/* Agregar observación (solo si la venta sigue existiendo) */}
-                {c.orderId ? (
-                    <AddNote caseNotes={c.notes || ''} orderId={c.orderId} onSaved={onRefresh} />
+                {/* Agregar observación (solo si la venta sigue existiendo).
+                    Misma señal que CaseContext: la relación `order` cargada. */}
+                {c.order ? (
+                    <AddNote orderId={c.order.id} onSaved={onRefresh} />
                 ) : (
                     <p className="text-[9px] font-bold text-stone-400 italic pt-1">
                         La venta original fue eliminada: el caso queda como registro histórico (solo lectura).
@@ -206,7 +202,7 @@ function CaseCard({ c, onRefresh }: { c: PostSaleCase; onRefresh: () => void }) 
 }
 
 /** Form inline para sumar una observación a un caso existente. */
-function AddNote({ caseNotes, orderId, onSaved }: { caseNotes: string; orderId: string; onSaved: () => void }) {
+function AddNote({ orderId, onSaved }: { orderId: string; onSaved: () => void }) {
     const [text, setText] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [saving, setSaving] = useState(false);
@@ -216,15 +212,17 @@ function AddNote({ caseNotes, orderId, onSaved }: { caseNotes: string; orderId: 
         setSaving(true);
         try {
             let imageUrl: string | null = null;
-            if (file) imageUrl = await uploadImage(file);
+            if (file) {
+                imageUrl = await uploadImage(file);
+                if (!imageUrl) { alert('No se pudo subir la foto. Reintentá o guardá la observación sin foto.'); return; }
+            }
 
-            const entry = `[${stamp()}]: ${text.trim()}`;
-            const updatedNotes = caseNotes ? `${caseNotes}\n${entry}` : entry;
-
+            // Se manda SOLO la observación nueva; el server la estampa y la agrega
+            // al historial (append-only, sin reconstruir desde un snapshot viejo).
             const res = await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ postSaleNotes: updatedNotes, postSaleNoteImageUrl: imageUrl })
+                body: JSON.stringify({ postSaleNoteEntry: text.trim(), postSaleNoteImageUrl: imageUrl })
             });
             if (res.ok) { setText(''); setFile(null); onSaved(); }
             else { const d = await res.json().catch(() => ({})); alert(`Error: ${d.error || 'No se pudo guardar'}`); }
@@ -289,8 +287,15 @@ function NewCaseForm({ sales, onCancel, onSaved }: { sales: any[]; onCancel: () 
         setSaving(true);
         try {
             let imageUrl: string | null = null;
-            if (file) imageUrl = await uploadImage(file);
-            const entry = notes.trim() ? `[${stamp()}]: ${notes.trim()}` : '';
+            if (file) {
+                imageUrl = await uploadImage(file);
+                if (!imageUrl) { alert('No se pudo subir la foto. Reintentá o abrí el caso sin foto.'); return; }
+            }
+
+            // Si hay foto pero no se escribió observación, se sintetiza una para que
+            // la imagen tenga a qué observación adjuntarse (no quede huérfana).
+            const entryText = notes.trim() || (imageUrl ? 'Foto adjunta' : '');
+            const costNum = Number(cost);
 
             const res = await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
@@ -299,10 +304,10 @@ function NewCaseForm({ sales, onCancel, onSaved }: { sales: any[]; onCancel: () 
                     postSaleCaseType: caseType,
                     postSaleFault: fault || null,
                     postSaleCoverage: coverage || null,
-                    postSaleCost: cost ? Number(cost) : 0,
+                    postSaleCost: Number.isFinite(costNum) ? costNum : 0,
                     postSaleResponsible: responsible || null,
                     postSaleStatus: 'SENT',
-                    postSaleNotes: entry || null,
+                    postSaleNoteEntry: entryText || null,
                     postSaleNoteImageUrl: imageUrl
                 })
             });
