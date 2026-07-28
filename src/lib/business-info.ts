@@ -20,6 +20,13 @@ export const BUSINESS_INFO = {
   mapsUrl: "https://www.google.com/maps?cid=14830223812501661125",
   entityId: "https://atelieroptica.com.ar/#optica",
   hours: "Lunes a Viernes de 9:00 a 13:30 y de 16:00 a 19:30. Sábados de 10:00 a 14:00",
+  /**
+   * Mismos horarios que `hours`, con el formato de viñetas que usan los mensajes
+   * de WhatsApp al cliente. Existe para que ese bloque no se vuelva a copiar a
+   * mano: ya pasó que quedara desactualizado en un lugar y el bot mandara
+   * horarios inventados.
+   */
+  hoursWhatsAppBlock: "*Horarios:*\n   • Lunes a viernes de 9:00 a 13:30 y de 16:00 a 19:30\n   • Sábados de 10:00 a 14:00 hs",
   /** Mismos horarios que `hours`, en formato schema.org — mantener sincronizados. */
   openingHoursSpecification: [
     {

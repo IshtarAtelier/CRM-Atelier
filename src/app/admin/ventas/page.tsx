@@ -14,6 +14,7 @@ import InvoiceModal from '@/components/billing/InvoiceModal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import type { Order } from '@/types/orders';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+import { BUSINESS_INFO } from '@/lib/business-info';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
@@ -1671,7 +1672,7 @@ export default function VentasPage() {
                                                     }
                                                     msg += `*Dirección:* José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n`;
                                                     msg += `*Ubicación:* https://share.google/j2ZT7ReboDLt7onCp\n`;
-                                                    msg += `*Horarios:*\n   • Lunes a viernes de 9:00 a 13:30 y de 16:00 a 19:30\n   • Sábados de 10:00 a 14:00 hs\n\n`;
+                                                    msg += `${BUSINESS_INFO.hoursWhatsAppBlock}\n\n`;
                                                     msg += `¡Te esperamos! Muchas gracias.\n`;
                                                     msg += `\n_La óptica mejor calificada en Google Business 5/5_`;
                                                     const phone = formatPhoneForWhatsApp(order.client?.phone);
