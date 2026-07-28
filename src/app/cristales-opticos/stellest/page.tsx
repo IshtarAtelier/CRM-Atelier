@@ -114,7 +114,8 @@ export default function StellestPage() {
         </div>
       </section>
 
-      <CristalCTA 
+      <CristalCTA
+        pathname="/cristales-opticos/stellest" 
         title="El futuro de sus ojos comienza hoy"
         description={
           <>

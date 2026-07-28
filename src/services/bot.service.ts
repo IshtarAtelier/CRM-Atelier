@@ -4,6 +4,7 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { fetchWa } from '@/lib/wa-config';
 import { PricingService } from './PricingService';
 import { normalizeArgentinePhone } from './contact.service';
+import { BUSINESS_INFO } from '@/lib/business-info';
 
 export class BotService {
     /**
@@ -174,7 +175,7 @@ export class BotService {
             }
             message += `*Dirección:* José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba\n`;
             message += `*Ubicación:* https://share.google/j2ZT7ReboDLt7onCp\n`;
-            message += `*Horarios:*\n   • Lunes a viernes de 8:00 a 20:00\n   • Sábados de 9:00 a 17:00 hs\n\n`;
+            message += `${BUSINESS_INFO.hoursWhatsAppBlock}\n\n`;
             message += `¡Te esperamos! Muchas gracias.\n`;
 
             const formattedPhone = normalizeArgentinePhone(clientPhone);

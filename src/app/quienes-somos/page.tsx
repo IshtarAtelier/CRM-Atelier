@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { Sparkles, Eye, MapPin, Heart } from 'lucide-react';
+import { WHATSAPP_PHONE } from '@/lib/constants';
+import { buildWhatsAppUrl } from '@/lib/whatsapp-link';
 
 export const metadata: Metadata = {
   title: "Quiénes Somos",
@@ -120,9 +122,17 @@ export default function QuienesSomosPage() {
         {/* Cierre */}
         <div className="text-center pt-8">
           <h3 className="text-2xl font-bold text-stone-900 dark:text-white mb-4">Te acompañamos a descubrir tu visión del mundo</h3>
-          <p className="text-stone-600 dark:text-stone-400 max-w-xl mx-auto">
+          <p className="text-stone-600 dark:text-stone-400 max-w-xl mx-auto mb-8">
             Desde el primer momento, estamos acá para ayudarte, asesorarte y acompañarte en cada paso. Porque en Atelier Óptica, tu visión es nuestra obra maestra.
           </p>
+          <a
+            href={buildWhatsAppUrl("¡Hola! Quiero conocer más sobre Atelier Óptica y recibir asesoramiento.", { phone: WHATSAPP_PHONE })}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block bg-stone-900 text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors rounded-full"
+          >
+            Hablar con un Asesor
+          </a>
         </div>
 
       </div>

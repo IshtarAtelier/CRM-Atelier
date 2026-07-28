@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function ObrasSocialesPage() {
   return (
     <div className="bg-[#faf8f5] text-black min-h-screen flex flex-col">
-      <StorefrontNavbar theme="dark" />
+      <StorefrontNavbar theme="light" />
       
       <main className="flex-grow pt-32 pb-16">
         <section className="px-6 mb-16">
@@ -88,7 +88,8 @@ export default function ObrasSocialesPage() {
           </div>
         </section>
 
-        <CristalCTA 
+        <CristalCTA
+        pathname="/obras-sociales" 
           title="¿Tenés dudas sobre tu receta o cobertura?"
           description="Mandanos una foto de la orden médica y te pasamos un presupuesto detallado con las distintas gamas de cristales para que puedas presentarlo a tu prepaga."
           buttonText="Presupuestar por WhatsApp"

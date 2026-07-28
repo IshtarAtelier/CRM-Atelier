@@ -70,7 +70,10 @@ export async function PATCH(
             error.message.includes('No se puede enviar a fábrica') ||
             error.message.includes('No se puede procesar el pedido sin N° de operación')) {
             status = 400;
-        } else if (error.message.includes('No se pueden modificar los ítems de una venta')) {
+        } else if (error.message.includes('No se pueden modificar los ítems de una venta') ||
+            error.message.includes('Solo el administrador') ||
+            error.message.includes('La venta está bloqueada')) {
+            // Rechazos de autorización: el candado funcionó, no es un error del server.
             status = 403;
         } else if (error.message.includes('Pedido no encontrado')) {
             status = 404;

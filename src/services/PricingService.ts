@@ -83,8 +83,11 @@ export class PricingService {
         const markupAmount = subtotal * (safePrice(markup) / 100);
         let subtotalWithMarkup = subtotal + markupAmount;
         
-        // Aplicar el descuento especial como valor exacto
-        const validSpecialDiscount = Math.min(subtotalWithMarkup, safePrice(specialDiscount));
+        // Aplicar el descuento especial como valor exacto.
+        // El piso en 0 es defensivo: un descuento negativo (STAFF malicioso o
+        // typo) INFLARÍA la venta en vez de descontarla. Se topea entre 0 y el
+        // subtotal, así ningún llamador puede pasar un valor fuera de rango.
+        const validSpecialDiscount = Math.min(subtotalWithMarkup, Math.max(0, safePrice(specialDiscount)));
         subtotalWithMarkup = subtotalWithMarkup - validSpecialDiscount;
 
         const totalCash = subtotalWithMarkup * (1 - safePrice(discountCash) / 100);
@@ -126,7 +129,10 @@ export class PricingService {
     static calculateOrderFinancials(order: any): OrderFinancials {
         const discCash = order.discountCash ?? 20;
         const discTrans = order.discountTransfer ?? 15;
-        const listPrice = order.subtotalWithMarkup || 0;
+        // Las ventas web se crean sin subtotalWithMarkup (no pasan por el markup del
+        // cotizador); sin este fallback, listPrice caía a 0 y toda venta web figuraba
+        // "PAGADO" con saldo 0 sin importar cuánto se pagó en realidad.
+        const listPrice = order.subtotalWithMarkup || order.total || 0;
 
         // Totales base
         const totalCash = Math.round(listPrice * (1 - discCash / 100));

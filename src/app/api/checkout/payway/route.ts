@@ -14,6 +14,7 @@ import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
 import { AdsService } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
+import { logAudit } from '@/lib/audit';
 
 function getArgentineStateCode(stateName: string): string {
   if (!stateName) return "C"; // fallback to CABA
@@ -357,11 +358,14 @@ export async function POST(req: Request) {
     // 1. Encontrar o crear cliente
     const normalizedPhone = normalizeArgentinePhone(customer.phone);
     
+    // OJO: un email/dni vacío como `{ email: undefined }` no filtra nada para
+    // Prisma (lo ignora), así que esa rama del OR matchearía cualquier cliente.
+    // Solo se incluye cada condición si el dato realmente vino en el body.
     let client = await prisma.client.findFirst({
       where: {
         OR: [
-          { phone: normalizedPhone },
-          { email: customer.email },
+          ...(normalizedPhone ? [{ phone: normalizedPhone }] : []),
+          ...(customer.email ? [{ email: customer.email }] : []),
           ...(customer.dni ? [{ dni: customer.dni }] : [])
         ]
       }
@@ -648,6 +652,28 @@ export async function POST(req: Request) {
 
     console.log("[PAYWAY CHECKOUT] Ficha de venta creada en CRM:", order.id);
 
+    // Trazabilidad (regla del proyecto): toda mutación de negocio deja Interaction
+    // firmada + AuditLog. La compra web no tenía ninguna de las dos — no aparecía
+    // en el timeline del cliente ni en auditoría.
+    const checkoutActorName = 'Sistema (Payway)';
+    prisma.interaction.create({
+      data: {
+        clientId: client.id,
+        type: 'SISTEMA',
+        content: `🌐 Compra web registrada por ${checkoutActorName} — Orden #${order.id.slice(-4).toUpperCase()} por $${order.total.toLocaleString('es-AR')} (${customer.paymentMethod}).`,
+        userId: null,
+        userName: checkoutActorName
+      }
+    }).catch(err => console.error('Error creando Interaction de compra web:', err));
+    logAudit({
+      userId: null,
+      userName: checkoutActorName,
+      action: 'CREATE',
+      entityType: 'ORDER',
+      entityId: order.id,
+      details: { orderType: order.orderType, paymentMethod: customer.paymentMethod, total: order.total }
+    }).catch(err => console.error('Error en logAudit de compra web:', err));
+
     // 4. Enviar email de confirmación (asincrónico, usando sendEmail centralizado)
     const isTransfer = customer.paymentMethod === 'TRANSFER';
     const emailTotal = isTransfer ? finalItemsTotal * transferMultiplier : finalItemsTotal;
@@ -746,6 +772,21 @@ export async function POST(req: Request) {
         subject: `💼 Compra Mayorista Web - $${emailTotal.toLocaleString('es-AR')} - ${customer.firstName} ${customer.lastName}`,
         html: adminWholesaleHtml
       }).catch(err => console.error("Error admin wholesale email:", err));
+
+      // Notificación en el sistema: nueva venta mayorista pendiente de confirmación
+      try {
+        await prisma.notification.create({
+          data: {
+            type: "WEB_SALE",
+            message: `Nuevo Pedido Mayorista #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${emailTotal.toLocaleString('es-AR')}.`,
+            orderId: order.id,
+            requestedBy: "Sistema (Web)",
+            status: "PENDING"
+          }
+        });
+      } catch (notifErr) {
+        console.error("Error creando notificación de pedido mayorista:", notifErr);
+      }
 
       await notifyLowStockCrossing(decrementedProducts);
       notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (mayorista web):', err));

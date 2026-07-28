@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { getCommissionRate, DOCTOR_COMMISSION_RATE } from '@/lib/constants';
 import { getDolarBlueVenta, resolveTargetsFromRow } from '@/lib/targets';
+import { PricingService } from '@/services/PricingService';
 
 interface BillingStat {
     account: string;
@@ -180,7 +181,10 @@ export class ReportService {
             totalSpecialDiscounts += specialDesc;
 
             const listPrice = order.subtotalWithMarkup || order.total || 0;
-            totalPending += Math.max(0, listPrice - orderPaidReal);
+            // El cobro en efectivo/transferencia ya viene con descuento aplicado:
+            // vale más en precio de lista que su importe nominal. Restar el nominal
+            // contra el precio de lista inflaba el pendiente con saldos que no existen.
+            totalPending += PricingService.calculateOrderFinancials(order).remainingList;
 
             if (order.subtotalWithMarkup && order.subtotalWithMarkup > 0) {
                 const itemSubtotal = order.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);

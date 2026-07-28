@@ -99,7 +99,8 @@ export default function XperioPage() {
         </div>
       </section>
 
-      <CristalCTA 
+      <CristalCTA
+        pathname="/cristales-opticos/xperio" 
         title="Armá tu lente de sol ideal"
         description={
           <>

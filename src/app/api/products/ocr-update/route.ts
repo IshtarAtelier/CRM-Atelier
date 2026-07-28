@@ -5,6 +5,7 @@ import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { retryWithBackoff } from '@/lib/retry-utils';
+import { breakdownLensCost } from '@/lib/lens-cost';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,7 +149,6 @@ Devuelve SOLO un JSON válido con esta estructura:
         });
 
         // 4. Try to match extracted items with existing products
-        const ivaMultiplier = 1 + (iva / 100);
 
         const matches = extracted.map(item => {
             // Build search terms from the extracted item
@@ -199,8 +199,13 @@ Devuelve SOLO un JSON válido con esta estructura:
 
             // Calculate cost based on matched product's 2x1 status
             const cantCristales = (bestMatch && bestScore >= 3 && bestMatch.is2x1) ? 2 : 1;
-            const calibradoTotal = calibrado * cantCristales;
-            const costoFinal = Math.round((item.precio + calibradoTotal) * ivaMultiplier);
+            // Misma fórmula que el alta y la edición (src/lib/lens-cost.ts): el costo
+            // pelado de lista + calibrado (doble si es 2x1), todo con IVA.
+            const { calibrado: calibradoTotal, final: costoFinal } = breakdownLensCost(
+                item.precio,
+                { name: laboratory, calibrado, iva },
+                { is2x1: cantCristales === 2 },
+            );
 
             // Calculate current markup and suggested new price
             const matched = bestScore >= 3 ? bestMatch : null;

@@ -87,6 +87,7 @@ export default function EyezenPage() {
       </section>
 
       <CristalCTA
+        pathname="/cristales-opticos/eyezen"
         title="Descansá la vista sin dejar de mirar la pantalla"
         description={
           <>

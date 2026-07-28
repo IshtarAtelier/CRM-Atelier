@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { fetchWa } from '@/lib/wa-config';
+import { PricingService } from '@/services/PricingService';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 
 // POST /api/orders/[id]/notify-ready
@@ -14,7 +15,7 @@ export async function POST(
         // 1. Obtener la orden con cliente
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            include: { client: true }
+            include: { client: true, payments: { select: { amount: true, method: true } } }
         });
 
         if (!order) {
@@ -34,19 +35,24 @@ export async function POST(
         const waId = chat ? chat.waId : `${formattedPhone}@c.us`;
         const chatIdForBot = chat ? chat.id : waId; // Si hay chat mandamos el ID interno, sino mandamos el waId
 
-        // 3. Calcular saldo y armar mensaje
-        const saldo = (order.subtotalWithMarkup || order.total || 0) - (order.paid || 0);
+        // 3. Calcular saldo y armar mensaje.
+        // El saldo NO es `precio de lista − cobrado`: lo que se pagó en efectivo o
+        // por transferencia ya vino con su descuento, así que vale más en precio de
+        // lista. Restando el importe nominal salía un saldo que no existía y se lo
+        // mandábamos al cliente.
+        const financials = PricingService.calculateOrderFinancials(order);
         const shortName = order.client.name.split(' ')[0];
-        
+
         let msgText = `¡Hola ${shortName}! Te escribimos de *Atelier Óptica* 😊\n\n`;
         msgText += `Tus anteojos ya están listos esperándote en el local (Tejeda 4380).\n\n`;
-        
-        if (saldo > 0) {
-            msgText += `Te recordamos que tenés un saldo pendiente de *$${saldo.toLocaleString()}*.\n`;
+
+        if (financials.hasBalance) {
+            msgText += `Te recordamos que queda un saldo de *$${financials.remainingCash.toLocaleString('es-AR')}* abonando en efectivo `;
+            msgText += `(o $${financials.remainingTransfer.toLocaleString('es-AR')} por transferencia).\n`;
         } else {
             msgText += `¡Ya está todo abonado! ✅\n`;
         }
-        msgText += `\nTe esperamos de Lunes a Viernes de 8:00 a 20:00, o Sábados de 9:00 a 17:00.`;
+        msgText += `\nTe esperamos de Lunes a Viernes de 9:00 a 13:30 y de 16:00 a 19:30, o Sábados de 10:00 a 14:00.`;
 
         // 4. Enviar usando el microservicio wa-service
         const res = await fetchWa('/api/send', {

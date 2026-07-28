@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Package, Loader2, AlertCircle, ArrowUpRight, Trash2, ShoppingBag, CheckSquare, Square, X, Pencil, Save, CheckCircle2, Zap, Camera, Clock, Database, Layers } from "lucide-react";
 import { Product } from '@/hooks/useProducts';
 import ProductForm from '@/components/inventory/ProductForm';
@@ -13,6 +13,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { autoCorrectLab, getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial } from '@/utils/product-controllers';
 import { PRODUCT_CATEGORIES as SHARED_CATEGORIES } from '@/lib/constants';
 import { normalizeLensOrigin, LENS_ORIGIN } from '@/lib/lens-origin';
+import { breakdownLensCost, findLabConfig } from '@/lib/lens-cost';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 const PRODUCT_CATEGORIES = [
     { id: 'ALL', label: 'Todos' },
@@ -31,8 +32,11 @@ export default function InventarioPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, publishToWholesale: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
+    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, baseCost: '' as string, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, publishToWholesale: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
     const [savingEdit, setSavingEdit] = useState(false);
+    // Hay un cálculo pendiente: se escribió el pelado y todavía no se aplicó al final.
+    // Se consume al salir del campo o al guardar — una sola vez, nunca en loop.
+    const [costCalcPending, setCostCalcPending] = useState(false);
     const [selectedBrand, setSelectedBrand] = useState('');
     const [selectedLab, setSelectedLab] = useState('');
     const [importing, setImporting] = useState(false);
@@ -180,6 +184,54 @@ export default function InventarioPage() {
         || p.type?.startsWith('Cristal')
         || ['MONOFOCAL','MULTIFOCAL','BIFOCAL','OCUPACIONAL'].includes(p.type?.toUpperCase() || '');
 
+    // Costo del cristal en edición: se tipea el pelado y el final se sugiere solo.
+    // El final es un campo editable — la fórmula completa el número, pero se puede
+    // pisar a mano si ese producto tiene algo diferencial.
+    const editCost = useMemo(() => {
+        const isCristal = !!editingProduct && checkCristal(editingProduct);
+        const isTreatment = editingProduct?.category === 'Tratamiento';
+        const raw = String(editForm.baseCost ?? '').trim();
+        const base = raw !== '' ? parseFloat(raw) : NaN;
+        const hasBase = Number.isFinite(base) && base > 0;
+        const lab = findLabConfig(labsConfig, editForm.laboratory);
+        const is2x1 = editForm.is2x1 || editForm.name.toLowerCase().includes('2x1');
+        const { calibrado, iva, final } = breakdownLensCost(hasBase ? base : 0, lab, { is2x1, skipCalibrado: isTreatment });
+        // Solo hay sugerencia si REALMENTE se puede aplicar la fórmula: con costo
+        // pelado cargado y con la config del lab a mano. Si los labs todavía no
+        // cargaron (fetch en vuelo o caído) o el lab no tiene calibrado/IVA, el costo
+        // guardado no se toca — pisarlo con el pelado lo dejaría por debajo del real.
+        const canApply = hasBase && !!lab;
+        return {
+            isCristal,
+            hasBase,
+            hasLabFormula: !!lab,
+            labsLoaded: labsConfig.length > 0,
+            canApply,
+            calibrado,
+            iva,
+            is2x1,
+            suggested: canApply ? final : null,
+            // El costo en pantalla es exactamente el que da la fórmula (recién sugerido o
+            // ya guardado así). Si no coincide, es porque alguien lo puso a mano.
+            matchesFormula: canApply && Math.round(editForm.cost) === final,
+        };
+    }, [editingProduct, editForm.baseCost, editForm.cost, editForm.laboratory, editForm.is2x1, editForm.name, labsConfig]);
+
+    // El cálculo se dispara UNA vez por carga del pelado: al terminar de escribirlo
+    // (blur) o al guardar. No corre en cada tecla ni se puede volver a aplicar sobre
+    // un costo ya calculado — la fórmula lee siempre el pelado, nunca el final.
+    const setCostFromFormula = () => {
+        // Si todavía no se puede calcular (labs sin cargar), el pendiente NO se consume:
+        // queda para el próximo intento o para el guardado, así nunca se guarda un
+        // costo pelado nuevo junto al costo final viejo.
+        if (editCost.suggested == null) return;
+        setCostCalcPending(false);
+        setEditForm(prev => ({ ...prev, cost: editCost.suggested as number }));
+    };
+    // Al salir del pelado (o al apretar Enter): si quedó un cálculo pendiente, se aplica
+    // y se consume. Sin pendiente no hace nada — tocar de nuevo no vuelve a calcular.
+    const applyPendingCostCalc = () => { if (costCalcPending) setCostFromFormula(); };
+
     // Helper: determinar si el producto maneja stock propio o se pide a laboratorio (Todos los cristales son de lab)
     const isRequestedToLab = (p: { category?: string; type?: string | null; origin?: string | null }) => 
         checkCristal(p) || p.category === 'Tratamiento';
@@ -245,6 +297,7 @@ export default function InventarioPage() {
             type: p.type || '',
             stock: p.stock,
             cost: p.cost,
+            baseCost: p.baseCost != null ? String(p.baseCost) : '',
             price: p.price,
             wholesalePrice: (p as any).wholesalePrice || 0,
             lensIndex: p.lensIndex || '',
@@ -272,6 +325,9 @@ export default function InventarioPage() {
             origin: normalizeLensOrigin(p.origin) || LENS_ORIGIN.LABORATORIO,
         });
         setShowEditRanges(false);
+        // Al abrir mostramos el costo tal cual está guardado: nada se recalcula solo
+        // hasta que el usuario escriba el pelado.
+        setCostCalcPending(false);
     };
 
     const handleSaveEdit = async () => {
@@ -304,6 +360,13 @@ export default function InventarioPage() {
             const payload = {
                 ...editForm,
                 ...normalizedFields,
+                // Se guarda el costo final tal cual quedó en pantalla (sugerido por la
+                // fórmula o pisado a mano) y el pelado como respaldo, para poder recalcular
+                // sin volver a aplicarle la fórmula a un costo que ya la tenía aplicada.
+                // Si se apretó Guardar con el pelado recién escrito y el cálculo todavía
+                // pendiente, se aplica acá — nunca se guarda un pelado nuevo con el costo viejo.
+                baseCost: editCost.hasBase ? parseFloat(String(editForm.baseCost)) : null,
+                cost: costCalcPending && editCost.suggested != null ? editCost.suggested : editForm.cost,
                 sphereMin: editForm.sphereMin !== '' ? parseFloat(editForm.sphereMin) : null,
                 sphereMax: editForm.sphereMax !== '' ? parseFloat(editForm.sphereMax) : null,
                 cylinderMin: editForm.cylinderMin !== '' ? parseFloat(editForm.cylinderMin) : null,
@@ -800,11 +863,11 @@ export default function InventarioPage() {
                                             />
                                         ) : (
                                             <button
-                                                onClick={() => { setEditingMarkup(p.id); setEditMarkupValue((p.price / p.cost).toFixed(2)); }}
-                                                className={`text-[11px] font-black px-2 py-0.5 rounded-lg cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all ${(p.price / p.cost) >= 2.4 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400' : (p.price / p.cost) >= 1.5 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'}`}
+                                                onClick={() => { setEditingMarkup(p.id); setEditMarkupValue(p.cost > 0 ? (p.price / p.cost).toFixed(2) : ''); }}
+                                                className={`text-[11px] font-black px-2 py-0.5 rounded-lg cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all ${p.cost > 0 && (p.price / p.cost) >= 2.4 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400' : p.cost > 0 && (p.price / p.cost) >= 1.5 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'}`}
                                                 title="Click para editar markup"
                                             >
-                                                ×{(p.price / p.cost).toFixed(2)}
+                                                {p.cost > 0 ? `×${(p.price / p.cost).toFixed(2)}` : 'SIN COSTO'}
                                             </button>
                                         )
                                     ) : <span className="text-stone-300">—</span>}</div>}
@@ -949,29 +1012,75 @@ export default function InventarioPage() {
                                         <input type="number" min={0} value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: parseInt(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                     </div>
                                 )}
-                                {isAdmin && (
-                                <div className="space-y-1 relative">
-                                    <div className="flex items-center justify-between mr-2">
-                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Costo ($)</label>
-                                        {checkCristal(editingProduct) && editForm.laboratory && (
-                                            <button 
-                                                type="button"
-                                                onClick={() => {
-                                                    const lab = labsConfig.find(l => l.name === editForm.laboratory);
-                                                    const calibrado = lab?.calibrado || 0;
-                                                    const iva = lab?.iva || 0;
-                                                    const is2x1 = editForm.is2x1 || editForm.name.toLowerCase().includes('2x1');
-                                                    const calibradoTotal = is2x1 ? (calibrado * 2) : calibrado;
-                                                    const finalCost = Math.round(((parseFloat(String(editForm.cost)) || 0) + calibradoTotal) * (1 + iva / 100));
-                                                    setEditForm({ ...editForm, cost: finalCost });
-                                                }}
-                                                className="text-[9px] font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
-                                                title="Ingresa el Costo Base pelado y presiona aquí para aplicar la fórmula del Laboratorio (Suma Calibrados + IVA)"
-                                            >
-                                                <Zap className="w-3 h-3" /> Calcular Final
-                                            </button>
+                                {isAdmin && editCost.isCristal && (
+                                <div className="col-span-2 grid grid-cols-2 gap-5">
+                                    {/* Costo pelado: al terminar de escribirlo se calcula el final, una vez. */}
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Costo pelado ($)</label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            placeholder="Lista del lab"
+                                            value={editForm.baseCost}
+                                            onChange={e => { setEditForm({ ...editForm, baseCost: e.target.value }); setCostCalcPending(true); }}
+                                            onBlur={applyPendingCostCalc}
+                                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyPendingCostCalc(); } }}
+                                            className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary"
+                                        />
+                                        <p className="text-[9px] font-bold text-stone-400 ml-3">
+                                            {editCost.hasBase ? 'Precio de lista, sin calibrado ni IVA' : 'Vacío: el costo queda como está'}
+                                        </p>
+                                    </div>
+                                    {/* Costo final: editable siempre. La fórmula lo completa una sola vez
+                                        al terminar de cargar el pelado; después manda lo que haya acá. */}
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3 flex items-center gap-1">
+                                            {editCost.canApply ? <><Zap className="w-3 h-3 text-amber-500" /> Costo final ($)</> : 'Costo ($)'}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={editForm.cost}
+                                            onChange={e => { setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 }); setCostCalcPending(false); }}
+                                            className={`w-full px-5 py-4 border rounded-2xl font-black text-sm outline-none focus:border-primary ${editCost.matchesFormula ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400' : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700'}`}
+                                        />
+                                        {editCost.canApply ? (
+                                            costCalcPending ? (
+                                                <p className="text-[9px] font-bold text-amber-600 ml-3">
+                                                    Al salir del campo queda en ${editCost.suggested?.toLocaleString('es-AR')}
+                                                </p>
+                                            ) : editCost.matchesFormula ? (
+                                                <p className="text-[9px] font-bold text-amber-600 ml-3">
+                                                    + calibrado ${editCost.calibrado.toLocaleString('es-AR')}{editCost.is2x1 && ' (2x1, doble)'} + IVA {editCost.iva}%
+                                                    <span className="text-stone-400"> · podés modificarlo</span>
+                                                </p>
+                                            ) : (
+                                                <p className="text-[9px] font-bold text-stone-500 ml-3">
+                                                    A mano. La fórmula da ${editCost.suggested?.toLocaleString('es-AR')}
+                                                    <button
+                                                        type="button"
+                                                        onClick={setCostFromFormula}
+                                                        className="ml-1 text-amber-600 hover:text-amber-700 underline underline-offset-2"
+                                                    >
+                                                        usar ese
+                                                    </button>
+                                                </p>
+                                            )
+                                        ) : editCost.hasBase ? (
+                                            <p className="text-[9px] font-bold text-red-500 ml-3">
+                                                {editCost.labsLoaded
+                                                    ? `${editForm.laboratory || 'El lab'} no tiene calibrado/IVA cargado — cargalo a mano`
+                                                    : 'Cargando la config de laboratorios… cargalo a mano'}
+                                            </p>
+                                        ) : (
+                                            <p className="text-[9px] font-bold text-stone-400 ml-3">Costo guardado, sin fórmula aplicada</p>
                                         )}
                                     </div>
+                                </div>
+                                )}
+                                {isAdmin && !editCost.isCristal && (
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-3">Costo ($)</label>
                                     <input type="number" min={0} value={editForm.cost} onChange={e => setEditForm({ ...editForm, cost: parseFloat(e.target.value) || 0 })} className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl font-bold text-sm outline-none focus:border-primary" />
                                 </div>
                                 )}

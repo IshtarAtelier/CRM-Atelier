@@ -52,13 +52,20 @@ function PieChart3D({ data, showValues = false }: PieChart3DProps) {
   const total = data.reduce((sum, item) => sum + item.count, 0);
   if (total === 0) return <div className="text-center py-16 text-[10px] uppercase font-bold text-stone-400">Sin datos</div>;
 
+  // Un solo marrón (el de la marca) y de ahí en más tonos bien separados entre sí:
+  // con tres marrones seguidos las porciones se confundían a simple vista. Son 10
+  // para que las 8 categorías de etiquetas no tengan que repetir color.
   const COLORS = [
-    '#a38067', // primary warm brown
-    '#8c6d58', // dark chocolate
-    '#bfa08a', // light sand
-    '#6b7280', // grey
-    '#3b82f6', // blue
-    '#10b981', // emerald
+    '#a38067', // marrón de marca
+    '#3b82f6', // azul
+    '#10b981', // verde
+    '#f59e0b', // ámbar
+    '#8b5cf6', // violeta
+    '#ef4444', // rojo
+    '#0891b2', // cian
+    '#ec4899', // rosa
+    '#65a30d', // oliva
+    '#64748b', // gris
   ];
 
   let accumulatedPercent = 0;

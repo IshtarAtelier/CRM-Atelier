@@ -197,9 +197,11 @@ export default function PedidosPage() {
     const fetchOrders = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/orders');
+            // type=SALE filtra en el server ANTES del take:100: sin esto los
+            // presupuestos (labSentAt null, mismo orden nulls-first) llenaban
+            // el cupo y las ventas reales quedaban afuera.
+            const res = await fetch('/api/orders?type=SALE');
             const data = await res.json();
-            // Only confirmed sales (SALE), not quotes, not deleted
             const sales = (data || []).filter(
                 (o: Order) => o.orderType === 'SALE' && !o.isDeleted
             );
@@ -420,7 +422,10 @@ export default function PedidosPage() {
     const sendOrderWhatsApp = async (order: Order) => {
         const items = order.items || [];
         const orderTotal = order.subtotalWithMarkup || order.total || 0;
-        const saldo = orderTotal - (order.paid || 0);
+        // Lo cobrado en efectivo/transferencia vale más en precio de lista que su
+        // importe nominal: restarlo derecho inventaba un saldo inexistente.
+        const financials = PricingService.calculateOrderFinancials(order);
+        const saldo = financials.hasBalance ? financials.remainingCash : 0;
         const labStepLabel = getLabStep(order.labStatus || 'NONE').label;
         const lines = items.map(it => `• ${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''} x${it.quantity} — $${(it.price * it.quantity).toLocaleString()}`);
 
@@ -434,7 +439,14 @@ export default function PedidosPage() {
         text += `\n\n———————————————`;
         text += `\n*Total:* $${orderTotal.toLocaleString()}`;
         text += `\n*Abonado:* $${(order.paid || 0).toLocaleString()}`;
-        if (saldo > 0) text += `\n*Saldo pendiente:* $${saldo.toLocaleString()}`;
+        if (saldo > 0) {
+            // El total va en precio de lista y lo abonado en su importe nominal, pero
+            // el saldo ya viene con el descuento del medio de pago: los tres números no
+            // cierran como resta y el cliente lo nota. Se aclara en el mismo mensaje.
+            text += `\n*Saldo pendiente:* $${saldo.toLocaleString()} abonando en efectivo`;
+            text += ` (o $${financials.remainingTransfer.toLocaleString()} por transferencia)`;
+            text += `\n_El saldo ya tiene aplicado el descuento por el medio de pago._`;
+        }
         text += `\n\n⏱️ *Tiempo estimado de confección:* 7 a 10 días hábiles`;
         if (order.labNotes) text += `\n\n📝 *Observaciones:* ${order.labNotes}`;
 

@@ -21,9 +21,10 @@ export default function WicueLandingPage() {
           {/* Fondo de Video / Imagen Cinemática */}
           <div className="absolute inset-0 z-0 bg-stone-900">
             <Image
-              src="/images/landing/ray_ban_meta.png" 
-              alt="Ray-Ban Meta Smart Glasses" 
-              className="w-full h-full object-cover opacity-40 mix-blend-luminosity"
+              src="/images/landing/ray_ban_meta.png"
+              alt="Ray-Ban Meta Smart Glasses"
+              fill
+              className="object-cover opacity-40 mix-blend-luminosity"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
           </div>
@@ -106,9 +107,10 @@ export default function WicueLandingPage() {
         {/* FULL WIDTH IMAGE / VIDEO BANNER */}
         <section className="relative py-40 flex items-center justify-center bg-stone-900 overflow-hidden">
            <Image
-              src="/images/landing/wicue_glasses.png" 
-              alt="Lifestyle Wicue" 
-              className="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay"
+              src="/images/landing/wicue_glasses.png"
+              alt="Lifestyle Wicue"
+              fill
+              className="object-cover opacity-50 mix-blend-overlay"
             />
             <div className="relative z-10 text-center max-w-3xl px-6">
               <h2 className="text-4xl md:text-6xl font-serif italic mb-6">El Futuro de la Óptica</h2>

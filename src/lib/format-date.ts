@@ -31,6 +31,26 @@ export function formatDateTime(input: Date | string | number | null | undefined)
     return format(d, 'dd/MM/yyyy HH:mm');
 }
 
+/**
+ * Valida la fecha que se le pone a un pago. Devuelve `null` si es inverosímil,
+ * para que el llamador use el default (el momento en que se carga el pago).
+ *
+ * Los comprobantes de Payway/Naranja imprimen la fecha como dd/mm/aa y el OCR la
+ * devolvía con el día y el año dados vuelta: un ticket del 22/07/26 se guardaba
+ * como "2022-07-26". El monto quedaba bien imputado, pero el pago desaparecía de
+ * todo reporte por rango de fechas (caja, cierre de mes, conciliación). Acá no se
+ * adivina la fecha correcta: se descarta la basura y se avisa.
+ */
+export function isPlausiblePaymentDate(input: Date | string | number, hoy = new Date()): boolean {
+    const d = input instanceof Date ? input : new Date(input);
+    if (isNaN(d.getTime())) return false;
+    // Un pago no puede ser de más de un año atrás ni del futuro (más allá del
+    // margen de zona horaria de un día).
+    const piso = new Date(hoy.getTime() - 366 * 24 * 60 * 60 * 1000);
+    const techo = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);
+    return d >= piso && d <= techo;
+}
+
 /** Fecha larga en español, siempre día primero: "26 de julio de 2017". */
 export function formatDateLong(input: Date | string | number | null | undefined): string {
     if (input === null || input === undefined || input === '') return '';

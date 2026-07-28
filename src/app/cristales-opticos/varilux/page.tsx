@@ -113,7 +113,8 @@ export default function VariluxPage() {
 
       <VariluxQuiz />
 
-      <CristalCTA 
+      <CristalCTA
+        pathname="/cristales-opticos/varilux" 
         title="Centro Varilux Expert: Precisión en la toma de medidas para Multifocales"
         description={
           <>

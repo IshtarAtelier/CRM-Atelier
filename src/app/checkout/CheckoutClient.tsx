@@ -519,7 +519,7 @@ export function CheckoutClient({
         <StorefrontNavbar theme="light" />
         <div className="text-center mt-32 max-w-md mx-auto px-5 mb-32">
           <ShieldCheck className="w-16 h-16 mx-auto mb-6 text-emerald-500" />
-          <h2 className=" font-serif">¡Gracias por tu compra!</h2>
+          <h2 className="text-3xl md:text-4xl font-serif text-stone-950 mb-3">¡Gracias por tu compra!</h2>
           <p className="text-stone-500 mb-8 leading-relaxed">
             {formData.paymentMethod === 'TRANSFER' 
               ? "Hemos registrado tu pedido con éxito."
@@ -547,7 +547,7 @@ export function CheckoutClient({
                 href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Acabo de realizar una compra web y ya hice la transferencia. Adjunto mi comprobante.`)}`}
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="block w-full text-center bg-emerald-600 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-700 transition-colors"
+                className="block w-full text-center bg-stone-900 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors"
               >
                 Enviar Comprobante por WhatsApp
               </a>
@@ -565,7 +565,7 @@ export function CheckoutClient({
                 href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Acabo de registrar un pedido mayorista en la web y me gustaría coordinar el pago.`)}`}
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="block w-full text-center bg-blue-600 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-colors"
+                className="block w-full text-center bg-stone-900 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors"
               >
                 Coordinar Pago por WhatsApp
               </a>
@@ -576,13 +576,13 @@ export function CheckoutClient({
             <div className="bg-green-50 text-green-900 border border-green-200 rounded-lg p-4 mb-8 text-sm">
               <p className="font-medium mb-1">¿Tenés alguna duda con tu pedido?</p>
               <p className="text-green-700/80 mb-2">Escribinos directamente a nuestro canal de soporte.</p>
-              <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-4 hover:text-green-600 transition-colors">
+              <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-4 hover:text-[#8a6d3b] transition-colors">
                 Contactar por WhatsApp ({whatsappPhoneId})
               </a>
             </div>
           )}
 
-          <Link href="/tienda" className="inline-block bg-black text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-stone-800 transition-colors">
+          <Link href="/tienda" className="inline-block bg-stone-900 text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors">
             Volver a la Tienda
           </Link>
         </div>
@@ -597,7 +597,7 @@ export function CheckoutClient({
         <StorefrontNavbar theme="light" />
         <div className="text-center mt-32">
           <h2 className="text-2xl font-light mb-4">Tu carrito está vacío</h2>
-          <Link href="/tienda" className="inline-block border border-black px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+          <Link href="/tienda" className="inline-block bg-stone-900 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors">
             Volver a la Tienda
           </Link>
         </div>
@@ -614,7 +614,7 @@ export function CheckoutClient({
         {/* IZQUIERDA: Formulario de Checkout */}
         <div className="lg:col-span-7 flex flex-col gap-10">
           <div>
-            <h1 className=" font-serif">
+            <h1 className="text-3xl md:text-4xl font-serif text-stone-950 mb-2">
               Finalizá tu compra
             </h1>
             <p className="text-stone-500 text-sm">Completá tus datos para finalizar la compra de forma segura.</p>

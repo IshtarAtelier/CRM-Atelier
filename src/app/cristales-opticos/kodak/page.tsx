@@ -87,7 +87,8 @@ export default function KodakPage() {
         </div>
       </section>
 
-      <CristalCTA 
+      <CristalCTA
+        pathname="/cristales-opticos/kodak" 
         title="Probá la diferencia de un multifocal HD"
         description={
           <>

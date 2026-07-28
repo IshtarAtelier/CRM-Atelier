@@ -5,6 +5,7 @@ import { X, Save, Package, Layers, DollarSign, Plus, Upload, Database, ChevronDo
 import { PRODUCT_CATEGORIES } from '@/lib/constants';
 
 import { autoCorrectLab, getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial } from '@/utils/product-controllers';
+import { computeFinalLensCost, findLabConfig } from '@/lib/lens-cost';
 
 interface ProductFormProps {
     onClose: () => void;
@@ -78,14 +79,12 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
             .catch(err => console.error('Error fetching labs:', err));
     }, []);
 
-    const getFinalCost = (listCost: number, labName: string) => {
-        const config = labConfigs.find(l => l.name.toUpperCase() === (labName || '').toUpperCase());
-        if (config) {
-            const calibradoAmount = selectedCategory === 'Tratamiento' ? 0 : config.calibrado;
-            return Math.round((listCost + calibradoAmount) * (1 + config.iva / 100));
-        }
-        return listCost;
-    };
+    // El costo que se tipea es SIEMPRE el pelado (lista del lab); el final se deriva.
+    const getFinalCost = (listCost: number, labName: string, is2x1 = false) =>
+        computeFinalLensCost(listCost, findLabConfig(labConfigs, labName), {
+            is2x1,
+            skipCalibrado: selectedCategory === 'Tratamiento',
+        });
 
     const activeCategory = PRODUCT_CATEGORIES.find(c => c.id === selectedCategory);
     const hasSubtypes = !!(activeCategory?.subtypes?.length);
@@ -119,7 +118,8 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 category: selectedCategory,
                 price: formData.price,
                 wholesalePrice: formData.wholesalePrice,
-                cost: isCristal ? getFinalCost(formData.cost, formData.laboratory) : formData.cost,
+                cost: isCristal ? getFinalCost(formData.cost, formData.laboratory, formData.is2x1) : formData.cost,
+                baseCost: isCristal ? formData.cost : null,
                 stock: isRequestedToLab ? 0 : formData.stock,
                 lensIndex: isCristal ? formData.lensIndex : null,
                 unitType: isCristal ? 'PAR' : 'UNIDAD',
@@ -239,6 +239,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                     price: Number(item.price) || 0,
                     wholesalePrice: Number(item.wholesalePrice) || 0,
                     cost: isAdmin ? (isCristal ? getFinalCost(Number(item.cost) || 0, item.laboratory) : Number(item.cost) || 0) : 0,
+                    baseCost: isAdmin && isCristal ? (Number(item.cost) || null) : null,
                     stock: 0,
                     unitType: 'PAR',
                     laboratory: item.laboratory,
@@ -492,7 +493,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                             {isAdmin && (
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-4">
-                                    {isCristal ? 'Costo de Lista ($) *' : 'Costo ($) *'}
+                                    {isCristal ? 'Costo pelado / de lista ($) *' : 'Costo ($) *'}
                                 </label>
                                 <div className="relative group">
                                     <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-primary transition-colors" />
@@ -504,7 +505,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 </div>
                                 {isCristal && formData.cost > 0 && formData.laboratory && labConfigs.some(l => l.name.toUpperCase() === formData.laboratory.toUpperCase()) && (
                                     <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-4 animate-in fade-in">
-                                        Costo Final: ${getFinalCost(formData.cost, formData.laboratory).toLocaleString()} (incluye calibrado e IVA)
+                                        Costo Final: ${getFinalCost(formData.cost, formData.laboratory, formData.is2x1).toLocaleString()} (incluye calibrado{formData.is2x1 && ' ×2 por el 2x1'} e IVA)
                                     </p>
                                 )}
                             </div>

@@ -9,6 +9,7 @@ import { logAudit } from '@/lib/audit';
 import type { Actor } from '@/lib/actor';
 import { notifyDirectedNote } from '@/lib/note-notify';
 import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
+import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
 import { calculateEstimatedDays } from '@/lib/business-days';
 
 
@@ -102,7 +103,15 @@ export function normalizeContactSource(source: string | null | undefined): strin
         lower === 'ig'
     ) {
         return 'Meta';
-    } else if (lower.includes('ya es cliente') || lower === 'cliente' || lower === 'antiguo') {
+    } else if (
+        lower.includes('ya es cliente') ||
+        lower === 'cliente' ||
+        lower === 'antiguo' ||
+        // "Importado" no es un canal de captación: son los clientes que vinieron
+        // de la migración del sistema anterior, o sea que ya eran clientes.
+        lower === 'importado' ||
+        lower === 'importados'
+    ) {
         return 'Ya es Cliente';
     }
     return clean;
@@ -1138,7 +1147,24 @@ export const ContactService = {
                         discountCash: true,
                         discountTransfer: true,
                         discountCard: true,
-                        subtotalWithMarkup: true
+                        subtotalWithMarkup: true,
+                        // Facturas emitidas en ARCA: la ficha del cliente permite
+                        // facturar (solo ADMIN) y abrir el PDF sin pasar por /admin/ventas.
+                        // Select angosto: solo lo que la tarjeta muestra o necesita para
+                        // saber cuánto queda sin facturar.
+                        invoices: {
+                            select: {
+                                id: true,
+                                cae: true,
+                                caeExpiration: true,
+                                voucherNumber: true,
+                                pointOfSale: true,
+                                totalAmount: true,
+                                status: true,
+                                createdAt: true,
+                            },
+                            orderBy: { createdAt: 'desc' },
+                        }
                     },
                     where: { isDeleted: false },
                     orderBy: { createdAt: 'desc' }
@@ -1763,6 +1789,12 @@ export const ContactService = {
                 throw new Error(msg);
             }
 
+            // Fecha del pago: si la que llega es inverosímil (el OCR de los tickets
+            // de tarjeta llegó a dar vuelta día y año), se descarta y queda la de
+            // carga. Si no, el pago se cae de todos los reportes por rango de fecha.
+            const fechaPedida = date ? new Date(date) : null;
+            const fechaDescartada = fechaPedida && !isPlausiblePaymentDate(fechaPedida) ? fechaPedida : null;
+
             const payment = await tx.payment.create({
                 data: {
                     orderId,
@@ -1772,9 +1804,22 @@ export const ContactService = {
                     receiptUrl,
                     createdById: actor?.id || null,
                     createdByName: actorName,
-                    ...(date ? { date: new Date(date) } : {})
+                    ...(fechaPedida && !fechaDescartada ? { date: fechaPedida } : {})
                 }
             });
+
+            if (fechaDescartada) {
+                logAudit({
+                    userId: actor?.id, userName: actorName,
+                    action: 'UPDATE', entityType: 'PAYMENT', entityId: payment.id,
+                    details: {
+                        motivo: 'Fecha de comprobante inverosímil: se descartó y quedó la fecha de carga.',
+                        fechaRecibida: formatDate(fechaDescartada),
+                        fechaGuardada: formatDate(payment.date),
+                        orderId, amount, method,
+                    },
+                }).catch(console.error);
+            }
 
             // El valor de la venta NO se toca al cobrar: sale de los ítems del pedido.
             // Antes, cualquier cobro que superara el total reescribía el precio de la
