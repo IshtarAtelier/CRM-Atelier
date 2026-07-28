@@ -83,7 +83,8 @@ export default function UrgenciasPage() {
           </div>
         </section>
 
-        <CristalCTA 
+        <CristalCTA
+        pathname="/urgencias" 
           title="Resolvemos tu problema hoy"
           description="Mandanos una foto de la rotura de tus anteojos o pasanos tu receta por WhatsApp para que te confirmemos si tenemos stock para armarte el lente express."
           buttonText="Consultar Urgencia por WhatsApp"

@@ -439,7 +439,14 @@ export default function PedidosPage() {
         text += `\n\n———————————————`;
         text += `\n*Total:* $${orderTotal.toLocaleString()}`;
         text += `\n*Abonado:* $${(order.paid || 0).toLocaleString()}`;
-        if (saldo > 0) text += `\n*Saldo pendiente:* $${saldo.toLocaleString()} (en efectivo)`;
+        if (saldo > 0) {
+            // El total va en precio de lista y lo abonado en su importe nominal, pero
+            // el saldo ya viene con el descuento del medio de pago: los tres números no
+            // cierran como resta y el cliente lo nota. Se aclara en el mismo mensaje.
+            text += `\n*Saldo pendiente:* $${saldo.toLocaleString()} abonando en efectivo`;
+            text += ` (o $${financials.remainingTransfer.toLocaleString()} por transferencia)`;
+            text += `\n_El saldo ya tiene aplicado el descuento por el medio de pago._`;
+        }
         text += `\n\n⏱️ *Tiempo estimado de confección:* 7 a 10 días hábiles`;
         if (order.labNotes) text += `\n\n📝 *Observaciones:* ${order.labNotes}`;
 

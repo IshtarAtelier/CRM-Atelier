@@ -85,6 +85,7 @@ export default function SuperBluePage() {
       </section>
 
       <CristalCTA
+        pathname="/cristales-opticos/super-blue"
         title="Un cristal más fino, sin cambiar de presupuesto drásticamente"
         description={
           <>

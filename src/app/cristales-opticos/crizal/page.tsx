@@ -105,7 +105,8 @@ export default function CrizalPage() {
         </div>
       </section>
 
-      <CristalCTA 
+      <CristalCTA
+        pathname="/cristales-opticos/crizal" 
         title="¿Por qué rechazar un Antirreflejo Genérico?"
         description={
           <>

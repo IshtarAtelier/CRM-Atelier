@@ -140,7 +140,8 @@ export default function TransitionsPage() {
         </div>
       </section>
 
-      <CristalCTA 
+      <CristalCTA
+        pathname="/cristales-opticos/transitions" 
         title="El fin de cargar con dos anteojos"
         description={
           <>

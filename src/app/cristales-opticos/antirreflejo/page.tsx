@@ -85,6 +85,7 @@ export default function AntirreflejoPage() {
       </section>
 
       <CristalCTA
+        pathname="/cristales-opticos/antirreflejo"
         title="El cristal correcto para empezar, sin vueltas"
         description={
           <>

@@ -88,7 +88,8 @@ export default function ObrasSocialesPage() {
           </div>
         </section>
 
-        <CristalCTA 
+        <CristalCTA
+        pathname="/obras-sociales" 
           title="¿Tenés dudas sobre tu receta o cobertura?"
           description="Mandanos una foto de la orden médica y te pasamos un presupuesto detallado con las distintas gamas de cristales para que puedas presentarlo a tu prepaga."
           buttonText="Presupuestar por WhatsApp"

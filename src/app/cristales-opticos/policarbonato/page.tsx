@@ -86,6 +86,7 @@ export default function PolicarbonatoPage() {
       </section>
 
       <CristalCTA
+        pathname="/cristales-opticos/policarbonato"
         title="Resistencia real para el día a día"
         description={
           <>

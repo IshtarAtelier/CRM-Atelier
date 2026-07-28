@@ -104,7 +104,8 @@ export default function MyoFixPage() {
         </div>
       </section>
 
-      <CristalCTA 
+      <CristalCTA
+        pathname="/cristales-opticos/myofix" 
         title="Un tratamiento a tiempo cambia su futuro"
         description={
           <>

@@ -86,7 +86,8 @@ export default function BlueUvPage() {
         </div>
       </section>
 
-      <CristalCTA 
+      <CristalCTA
+        pathname="/cristales-opticos/blue-uv" 
         title="Terminá tu día de trabajo sin agotamiento"
         description={
           <>
