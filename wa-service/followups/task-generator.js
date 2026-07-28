@@ -1,6 +1,5 @@
 const { prisma } = require('../db');
 const { checkEligibility } = require('./eligibility');
-const { isBusinessHours } = require('../shared/business-hours');
 
 // Ventanas abiertas por día, en minutos desde la medianoche (hora de Argentina).
 // Repartimos los envíos a lo largo de TODA la jornada (9 a 19), no amontonados a la tarde.
@@ -16,9 +15,13 @@ const OPEN_WINDOWS_AR = {
  * la siesta (13:30–16:00) no genera un pico de envíos al reabrir.
  */
 function pickSpreadDueDate(now) {
-    // Día de la semana en horario argentino
-    const argNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
-    const day = argNow.getDay(); // 0 = Domingo, 6 = Sábado
+    // Fecha y día en hora argentina: corremos el instante 3 horas y leemos los
+    // campos en UTC. El día que sale de acá es el MISMO que después se usa para
+    // anclar la medianoche, así que no puede pasar que se elija la ventana de un
+    // día y el vencimiento caiga en otro (corriendo a la noche, el día UTC ya no
+    // es el día AR).
+    const ar = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const day = ar.getUTCDay(); // 0 = Domingo, 6 = Sábado
 
     if (day === 0) return null; // Domingo cerrado: sin ventana hoy
 
@@ -34,12 +37,10 @@ function pickSpreadDueDate(now) {
         pick -= size;
     }
 
-    // Convertir el minuto AR a un instante absoluto: AR = UTC-3 ⇒ UTC = AR + 180 min.
-    // Durante la jornada (12–22 UTC) el día UTC coincide con el día AR, sin corrimiento.
-    const due = new Date(now);
-    due.setUTCHours(0, 0, 0, 0);
-    due.setUTCMinutes(targetMinAR + 180);
-    return due;
+    // Convertir el minuto AR a un instante absoluto anclando la medianoche del
+    // MISMO día argentino que eligió la ventana: AR = UTC-3 ⇒ 00:00 AR = 03:00 UTC.
+    const midnightAR = Date.UTC(ar.getUTCFullYear(), ar.getUTCMonth(), ar.getUTCDate(), 3, 0, 0, 0);
+    return new Date(midnightAR + targetMinAR * 60 * 1000);
 }
 
 /**
