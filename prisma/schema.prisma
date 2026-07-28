@@ -318,6 +318,9 @@ model Order {
   labSentBy              String?
   labSentById            String?
   labNotes               String?
+  // Observación que escribe el vendedor y SALE EN EL PDF que recibe el cliente
+  // al procesarse el pedido. Distinta de labNotes (esa va al laboratorio).
+  clientNote             String?
   labOrderNumber         String?
   discount               Float?         @default(0.0)
   markup                 Float?         @default(0.0)

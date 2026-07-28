@@ -56,6 +56,7 @@ const OrderUpdateSchema = z.object({
     // Lab fields
     labStatus: z.string().optional(),
     labNotes: z.string().nullable().optional(),
+    clientNote: z.string().nullable().optional(),
     labOrderNumber: z.string().nullable().optional(),
     labColor: z.string().nullable().optional(),
     labTreatment: z.string().nullable().optional(),
@@ -203,6 +204,7 @@ export class OrderService {
                 // Lab fields
                 labOrderNumber: true,
                 labNotes: true,
+                clientNote: true,
                 labSentAt: true,
                 labColor: true,
                 labTreatment: true,
@@ -364,7 +366,7 @@ export class OrderService {
         }
 
         const { 
-            labStatus, labNotes, orderType, labOrderNumber, 
+            labStatus, labNotes, clientNote, orderType, labOrderNumber, 
             frameSource, userFrameBrand, userFrameModel, userFrameNotes, 
             labColor, labTreatment, labDiameter, labPdOd, labPdOi, 
             frameA, frameB, frameDbl, frameEdc, smartLabScreenshot,
@@ -784,6 +786,7 @@ export class OrderService {
         }
 
         if (labNotes !== undefined) data.labNotes = labNotes;
+        if (clientNote !== undefined) data.clientNote = clientNote;
         if (labOrderNumber !== undefined) {
             data.labOrderNumber = labOrderNumber;
             // Auto-set status to IN_PROGRESS (Procesado) when operation number is loaded

@@ -110,6 +110,8 @@ export interface Order {
     labStatus?: string;
     labSentAt?: string;
     labNotes?: string;
+    /** Observación del vendedor que sale en el PDF del cliente. */
+    clientNote?: string;
     labOrderNumber?: string;
     frameSource?: string | null;
     userFrameBrand?: string | null;

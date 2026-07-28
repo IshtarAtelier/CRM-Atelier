@@ -750,6 +750,7 @@ export default function PedidosPage() {
         try {
             const bodyMap: Record<string, string> = {
                 notes: 'labNotes',
+                clientNote: 'clientNote',
                 color: 'labColor',
                 treatment: 'labTreatment',
                 diameter: 'labDiameter',
@@ -1760,6 +1761,26 @@ export default function PedidosPage() {
                                         />
                                         {(labFields[`${order.id}_notes`] ?? order.labNotes) ? <CopyBtn value={labFields[`${order.id}_notes`] ?? order.labNotes ?? ''} field="obs" /> : null}
                                         {savingField === `${order.id}_notes` && <Loader2 className="w-4 h-4 text-blue-500 animate-spin mt-2" />}
+                                    </div>
+                                </div>
+
+                                {/* Observación para el cliente: sale en el PDF que recibe por WhatsApp */}
+                                <div className="border-2 border-emerald-100 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/20 rounded-2xl p-4">
+                                    <label className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-1">
+                                        📄 Observación para el cliente
+                                    </label>
+                                    <p className="text-[9px] font-bold text-emerald-700/70 dark:text-emerald-500/70 mb-2">
+                                        Sale impresa en el PDF que le llega por WhatsApp cuando se procesa el pedido.
+                                    </p>
+                                    <div className="flex items-start gap-2">
+                                        <textarea
+                                            value={labFields[`${order.id}_clientNote`] ?? order.clientNote ?? ''}
+                                            onChange={e => setLabFields(prev => ({ ...prev, [`${order.id}_clientNote`]: e.target.value }))}
+                                            onBlur={e => saveLabField(order.id, 'clientNote', e.target.value)}
+                                            placeholder="Ej: Te dejamos el estuche rígido sin cargo. Cualquier ajuste, pasá y te lo hacemos."
+                                            className="flex-1 px-3 py-2 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl text-sm font-medium focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none bg-white dark:bg-stone-900 transition-all min-h-[60px] resize-y"
+                                        />
+                                        {savingField === `${order.id}_clientNote` && <Loader2 className="w-4 h-4 text-emerald-500 animate-spin mt-2" />}
                                     </div>
                                 </div>
 

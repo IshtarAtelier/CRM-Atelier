@@ -6,6 +6,18 @@ import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
 import fs from 'fs';
 import path from 'path';
 
+/**
+ * La observación del vendedor es texto libre que va a parar al HTML del PDF:
+ * se escapa para que un "<" o un "&" no rompan el documento.
+ */
+function escapeHtml(value: string) {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 function getOrderHtml(order: any, client: any): string {
     const isSale = order.orderType === 'SALE';
     
@@ -293,6 +305,13 @@ function getOrderHtml(order: any, client: any): string {
         </div>
     ` : ''}
 
+    ${order.clientNote && String(order.clientNote).trim() ? `
+        <div style="margin-top: 22px; border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 14px 16px; background: #fffcf9; page-break-inside: avoid; break-inside: avoid;">
+            <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; letter-spacing: 2px; margin-bottom: 6px;">OBSERVACIONES</div>
+            <div style="font-size: 12px; font-weight: 600; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(String(order.clientNote).trim())}</div>
+        </div>
+    ` : ''}
+
     <div class='footer'>Atelier Óptica · Tejeda 4380 · Profesionalismo Ética y Diseño · ${format(new Date(), "yyyy")}</div>
 </body>
 </html>`;
@@ -577,6 +596,20 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         y += 22;
     }
     
+    // --- OBSERVACIONES PARA EL CLIENTE ---
+    const clientNote = order.clientNote ? String(order.clientNote).trim() : '';
+    if (clientNote) {
+        const lineas = doc.splitTextToSize(clientNote, cw - 8);
+        const altura = 10 + lineas.length * 4;
+        doc.setDrawColor(...brandBeige); doc.setLineWidth(0.5);
+        doc.roundedRect(m, y, cw, altura, 2, 2);
+        doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+        doc.text('OBSERVACIONES', m + 4, y + 5);
+        doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...darkText);
+        doc.text(lineas, m + 4, y + 11);
+        y += altura + 6;
+    }
+
     // --- FOOTER ---
     doc.setDrawColor(...brandBeige); doc.setLineWidth(0.5);
     doc.line(m, y, pw - m, y);
