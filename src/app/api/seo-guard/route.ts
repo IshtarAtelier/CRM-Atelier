@@ -14,22 +14,28 @@ export const dynamic = 'force-dynamic';
 const BASE = process.env.SEO_GUARD_BASE || 'https://atelieroptica.com.ar';
 
 type Check = {
-  path: string;          // ruta legada a probar (relativa a BASE) o URL absoluta
-  expect?: string[];     // pathname final aceptado: match exacto, o prefijo si no es '/'
-  expectHost?: string;   // host final exigido (canonicalización www → apex)
-  why: string;           // qué protege, para leer la falla en el JSON de alerta
+  path: string;            // ruta legada a probar (relativa a BASE) o URL absoluta
+  expect?: string[];       // pathname final aceptado: match exacto, o prefijo si no es '/'
+  expectHost?: string;     // host final exigido (canonicalización www → apex)
+  expectStatus?: number[]; // status finales aceptados (default: solo 200)
+  why: string;             // qué protege, para leer la falla en el JSON de alerta
 };
 
 const CHECKS: Check[] = [
   // — Estructura vieja de Tienda Nube —
   { path: '/productos', expect: ['/tienda'], why: 'listado TN /productos → /tienda' },
-  { path: '/productos/las-oreiro-7335-c2-lentes-de-sol', why: 'producto TN indexado (redirige a ficha o categoría, jamás soft-404)' },
+  // Un modelo dado de baja tiene que terminar en la ficha real (200) o en un 404
+  // REAL — nunca en un 200 que dice "Producto no encontrado". Esperar un redirect
+  // acá era la expectativa vieja: /producto/[slug] devuelve 404 a propósito desde
+  // 8b52c99b (redirigir a una categoría genérica Google lo cuenta como soft-404
+  // igual, y not-found.tsx ya le da salida al visitante).
+  { path: '/productos/las-oreiro-7335-c2-lentes-de-sol', expect: ['/producto/'], expectStatus: [200, 404], why: 'producto TN indexado (ficha real o 404 real, jamás soft-404)' },
   { path: '/lentes-de-sol/page/18', expect: ['/lentes-de-sol'], why: 'paginación TN (Soft 404 en GSC 7/2026)' },
   { path: '/vulk-y-rusty', expect: ['/lentes-de-sol'], why: 'landing TN de marcas Vulk/Rusty (404 en GSC 7/2026)' },
   { path: '/blog/posts/legacy-cualquiera-seo-guard', expect: ['/blog'], why: 'posts TN /blog/posts/* → blog nuevo' },
   { path: '/politicas', expect: ['/politicas-de-cambio'], why: 'ruta vieja de políticas' },
-  // — Anti soft-404: un slug inexistente debe REDIRIGIR, nunca 200 "no encontrado" —
-  { path: '/producto/slug-inexistente-seo-guard', expect: ['/tienda', '/lentes-de-sol'], why: 'producto borrado redirige (fix soft-404)' },
+  // — Anti soft-404: un slug inexistente debe dar 404 REAL, nunca 200 "no encontrado" —
+  { path: '/producto/slug-inexistente-seo-guard', expectStatus: [404], why: 'producto borrado da 404 real (no soft-404)' },
   // — Canonicalización de host: los links viejos con www deben caer en el apex —
   { path: 'https://www.atelieroptica.com.ar/', expect: ['/'], expectHost: 'atelieroptica.com.ar', why: 'www → apex (Instagram/links viejos)' },
 ];
@@ -61,7 +67,10 @@ async function runCheck(check: Check) {
   const finalUrl = new URL(url);
   const fail = (reason: string) => ({ ok: false as const, path: check.path, why: check.why, reason, finalUrl: url, status: res?.status, hops });
 
-  if (!res || res.status !== 200) return fail(`status final ${res?.status ?? 'sin respuesta'}`);
+  const okStatuses = check.expectStatus ?? [200];
+  if (!res || !okStatuses.includes(res.status)) {
+    return fail(`status final ${res?.status ?? 'sin respuesta'} (se esperaba ${okStatuses.join(' | ')})`);
+  }
   if (hops > MAX_HOPS) return fail('bucle de redirects (demasiados saltos)');
   if (check.expectHost && finalUrl.hostname !== check.expectHost) {
     return fail(`host final inesperado: ${finalUrl.hostname} (se esperaba ${check.expectHost})`);
@@ -70,10 +79,15 @@ async function runCheck(check: Check) {
   if (check.expect && !check.expect.some((p) => finalUrl.pathname === p || (p !== '/' && finalUrl.pathname.startsWith(p)))) {
     return fail(`destino inesperado: ${finalUrl.pathname} (se esperaba ${check.expect.join(' | ')})`);
   }
-  // Un 200 en /producto/ solo cuenta si es una ficha real (anti soft-404)
-  if (finalUrl.pathname.startsWith('/producto/')) {
+  // Un 200 en /producto/ solo cuenta si es una ficha real. Si trae el cartel de
+  // "no está en el catálogo" con status 200, es soft-404: el 404 se rompió.
+  // (Los textos son los de producto/[slug]/not-found.tsx; el primero es el viejo,
+  // se deja por si alguna ruta todavía lo usa.)
+  if (res.status === 200 && finalUrl.pathname.startsWith('/producto/')) {
     const body = await res.text();
-    if (body.includes('Producto no encontrado')) return fail('soft-404: 200 con "Producto no encontrado"');
+    const marcas = ['Producto no encontrado', 'Modelo no disponible', 'ya no está en nuestro catálogo'];
+    const encontrada = marcas.find((m) => body.includes(m));
+    if (encontrada) return fail(`soft-404: 200 con "${encontrada}"`);
   }
 
   return { ok: true as const, path: check.path, finalUrl: url, hops };
