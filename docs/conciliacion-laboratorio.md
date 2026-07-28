@@ -1,122 +1,133 @@
-# Conciliación con laboratorios — auditoría y modelo propuesto
+# Conciliación con Optovisión — investigación y plan
 
-Auditoría del 28/7/2026, sobre Optovisión (Essilor). Verificada contra los PDF
-reales de la casilla (`FA_3008-00062896`, `FA_3008-00069150`) y el código de
-`src/services/lab-recon/`.
+Auditoría del 28/7/2026. Base de evidencia: **las 56 facturas** que Optovisión
+mandó por email entre el 1/3/2026 y el 28/7/2026, bajadas y parseadas una por
+una, más el código de `src/services/lab-recon/` y el portal de pedidos.
 
-## Las tres reglas del negocio que el sistema tiene que respetar
+## 1. Cómo factura Optovisión, con números
 
-1. Una factura puede incluir **más de un pedido**.
-2. Cada pedido tiene que quedar **relacionado con una venta (o un caso de postventa)** del sistema.
-3. Si la factura **no dice a qué pedido corresponde**, eso no es un error a esconder:
-   es un aviso para preguntarle al laboratorio, y la respuesta hay que guardarla.
+Hay **tres formas** de comprobante. El sistema entiende bien una sola:
 
-## Cómo factura Optovisión (verificado sobre los PDF)
-
-Hay **dos formas** de comprobante, y el sistema hoy solo entiende bien una:
-
-**(a) Factura por pedido(s)** — `FA_3008-00062896`, $1.056.829,90:
-encabezado `Ped: TI-7101568(587979) /TI-7101583(588049) /TI-7101638(588966)` y el
-detalle **por artículo**, no por pedido:
-
-| Artículo | Descripción | Cant | Importe |
+| Forma | Cómo se identifica el pedido | Facturas | ¿Hoy funciona? |
 |---|---|---|---|
-| 5522_540_77 | Varilux Physio 3.0 Orma Blue UV | 2 | 364.314,24 |
-| 5522_540_77 | Varilux Comfort Max 3.0 Orma Blue UV | 2 | 283.054,24 |
-| TRA_TRA_FUV_UNI | Tratamiento Crizal Forte Uv | 4 | 129.591,00 |
-| 3522_SAPPHD_946 | Orma Blue UV Crizal Sapphire HR | 2 | 62.352,00 |
-| KL_COM_ORG_STK_1/2 | Cal Stock Org Común | 2 | 5.715,36 |
-| KL_COM_ORG_MUL_1/2 | Cal Multifocal Org Común | 4 | 28.386,30 |
+| **A** | `Ped: TI-7101568(587979)` — nº entre paréntesis | 48 | Sí |
+| **B** | `Ped: TM-3578630` — **sin** paréntesis | 4 | **No**: el parser exige paréntesis |
+| **C** | Sin línea `Ped:`. Solo la tabla de remito | 4 | **No**: no hay pedido en el papel |
 
-**(b) Factura contra remito** — `FA_3008-00069150`, $575.952,61: no hay línea
-`Ped:` ni artículos. El detalle es una sola línea: `Remito E3 92257 · 23/07/2026 ·
-importe 569.506,44 · desc. −93.512,55 · total 475.993,89`. El pedido vive en el
-remito, no en la factura. (Este es el caso que resultó ser el pedido
-**595000/7102030, Varilux XR Design Orma Blanco**, confirmado con el laboratorio.)
+De las 48 de la forma A, **45 traen un solo pedido**; 2 traen dos y 1 trae tres.
+El multi‑pedido es el 5% de los casos, pero cae justo en las facturas caras.
 
-## Qué está mal hoy
+Lo que **sí** trae el 100% de las facturas: nº de comprobante, fecha de emisión,
+**vencimiento**, CAE, neto/IVA/total y **número de remito** (`E3‑00084770`,
+`E4‑00064303`…). Nada de eso se guarda hoy.
 
-1. **La factura no existe como dato.** La unidad es el pedido (`LabCostEntry`,
-   clave `lab + labOrderNumber`). Del comprobante solo sobrevive el nombre del
-   archivo en `sourceFile`. No se puede responder "¿qué me facturaron en la
-   3008‑00062896?" ni "¿esta factura ya la pagué?".
-2. **El prorrateo inventa números.** Cuando la factura agrupa varios pedidos, el
-   importe se divide **en partes iguales** (`invoice.total / peds.length`). En la
-   62896 eso le asigna $352.277 a cada uno de los tres pedidos, cuando las líneas
-   reales van de $5.715 a $364.314. De ahí salieron el "+$173.192 de sobrecosto" y
-   el "−$947.273 de ahorro" del cruce del 18/7: los dos son artefactos del reparto.
-   Las líneas del PDF, que son la verdad, se descartan.
-3. **Las facturas sin pedido se disfrazan de pedido.** Se registran con la clave
-   inventada `S/PEDIDO 3008-00069150`, que ocupa la columna "Nº operación" y
-   contamina el total de huérfanos ($3,7M en 82 "pedidos sin venta", donde hay
-   mezcladas dos cosas distintas).
-4. **No hay forma de resolverlas desde el CRM.** No existe ninguna acción
-   "asignar esta factura al pedido X": el único camino manual es una importación
-   CSV por nº de pedido. Una huérfana queda huérfana para siempre salvo que se
-   toque la base a mano.
-5. **La consulta al laboratorio no se guarda en ningún lado.** "Pregunté y me
-   dijeron que la 3008‑00063271 es el 588062" hoy vive en el WhatsApp. Sin fecha,
-   sin quién preguntó, sin respaldo para el reclamo.
-6. **Datos del comprobante que están en el PDF y se tiran**: nº de factura,
-   fecha de emisión, **vencimiento (VTO)**, CAE, neto/IVA/total, remito, y el PDF
-   mismo. `invoiceDate` guarda la fecha del **email**, no la del comprobante.
-7. **El resumen de cuenta vive aparte.** `LabAccountStatement.rows` es un JSON sin
-   vínculo con las facturas ni los pedidos: el cruce factura ↔ deuda se rehace a
-   mano cada vez y no hay estado "pagada" ni "en reclamo".
+## 2. Los seis defectos, en orden de plata
 
-Grupo Óptico, en cambio, **ya está una generación adelante**: su parser
-(`grupo-optico-invoices.ts`) lee el detalle **línea por línea con su nº de pedido**
-y reparte explícitamente las líneas que vienen sin pedido. El modelo de abajo es,
-en buena medida, llevar Optovisión a ese nivel y unificar a los dos.
+**a) El formato `TM-` se ignora → 4 facturas dadas por huérfanas que no lo son.**
+$200.962 c/IVA, todas identificables sin preguntarle nada a nadie:
 
-## El modelo que conviene
+| Factura | Fecha | Pedido en el papel | Importe c/IVA |
+|---|---|---|---|
+| 3008‑00049804 | 25/03 | `TM-3551646` | $56.983,49 |
+| 3025‑00036353 | 06/05 | `TM-3551647` | $47.486,44 |
+| 3025‑00044882 | 10/07 | `TM-3578630` | $48.246,32 |
+| 3025‑00045490 | 15/07 | `TM-3578631` | $48.246,32 |
 
-**`LabInvoice` — el comprobante** (lo que el lab te reclama)
-`lab · serie · nro (3008-00069150) · tipo (FACTURA/REMITO/NC) · fechaEmisión ·
-vencimiento · CAE · neto · iva · total · remito · pdf · estado`
+Son pedidos de **stock**, y los números coinciden con ventas que el CRM tiene
+cargadas como "sin factura recibida". El dato estaba en el PDF todo el tiempo.
 
-Estado: `SIN_IDENTIFICAR → IDENTIFICADA → CONCILIADA → PAGADA`, más `EN_RECLAMO`.
-Campos de gestión: **fecha de consulta al laboratorio, quién consultó y qué
-contestó** (la respuesta que hoy se pierde).
+**b) El remito nunca se guarda, y lo que se guarda como remito está mal.**
+El código busca `\b(E\d)\s+(\d{5,})\b`, que engancha el `E3 00084770` del
+encabezado (el remito de la factura, sí, pero sin distinguirlo) y **no** encuentra
+el remito real de las facturas de la forma C, porque ahí viene pegado al importe
+(`435446.44E3   85079`) y el `\b` no matchea. Resultado: justo donde el remito es
+la única pista, se pierde.
 
-**`LabInvoiceLine` — la línea del PDF**
-`artículo · descripción · cantidad · unitario · descuento · importe ·
-labOrderNumber (si se pudo atribuir) · atribuidoPor: PDF | REMITO | LAB | MANUAL ·
-quién y cuándo`
+**c) El prorrateo en partes iguales inventa importes.** En `3008-00062896`
+(3 pedidos, $1.056.829,90) el sistema le asigna **$352.276,63 a cada uno**. Los
+importes reales, deducidos del detalle por artículo, son:
 
-**`LabCostEntry` — el pedido** sigue siendo la unidad de cruce contra la venta,
-pero su importe facturado pasa a ser **la suma de sus líneas** (no un prorrateo), y
-la relación factura↔pedido queda como lo que es: muchos a muchos, a través de las
-líneas.
+| Pedido | Neto | Con IVA |
+|---|---|---|
+| el del Varilux Physio | 443.302,89 | **536.396,50** |
+| el del Varilux Comfort Max | 362.042,89 | **438.071,90** |
+| el del Sapphire HR | 68.067,36 | **82.361,51** |
 
-## El flujo
+Suma = subtotal del PDF, exacto. El "+$173.192 de sobrecosto" y el "−$947.273 de
+ahorro" del cruce del 18/7 son artefactos del reparto, no plata.
 
-1. **Ingesta**: la factura se guarda **entera y siempre** (cabecera + líneas + PDF).
-   Ninguna se descarta ni se resume a un promedio.
-2. **Atribución en cascada**:
-   a. Encabezado `Ped:` con un solo pedido → todo a ese pedido.
-   b. Encabezado con varios → repartir **por artículo**, cruzando la descripción de
-      la línea contra los ítems de cada venta candidata. Lo que no cierre queda
-      marcado `A_REVISAR` — nunca un prorrateo silencioso.
-   c. Sin `Ped:` → buscar por **remito**; si no aparece, `SIN_IDENTIFICAR`.
-3. **Bandeja "Facturas a identificar"** en `/admin/laboratorio/costos`: importe,
-   fecha, remito, PDF a la vista, botón **Asignar pedido** y campo **respuesta del
-   laboratorio**. Al asignar se recalcula el cruce y queda firmado en el AuditLog.
-4. **Dos alertas distintas** (hoy son una sola bolsa):
-   - *Factura sin indicación de pedido* → "preguntale al lab", con remito, importe
-     y fecha listos para la consulta.
-   - *Pedido facturado sin venta en el sistema* → lo que ya avisa hoy.
-5. **Cuenta corriente**: cada fila del resumen de Essilor matchea por serie‑nro con
-   su `LabInvoice`. Tablero: conciliado / a identificar / en reclamo / pagado, y
-   los **vencimientos** para no pagar tarde.
+**d) La factura no existe como dato.** La unidad es el pedido; del comprobante
+solo sobrevive el nombre del archivo en `sourceFile`. No se puede responder "¿qué
+me facturaron en la 62896?" ni "¿esta ya la pagué?". El PDF tampoco se guarda.
 
-## Etapas
+**e) Las facturas sin pedido se disfrazan de pedido** (clave inventada
+`S/PEDIDO 3008-00069150` ocupando la columna "Nº operación") y **no hay forma de
+resolverlas desde el CRM**: no existe ninguna acción "asignar al pedido X".
 
-- **Etapa 1** — bandeja de facturas a identificar + acción "asignar pedido" con la
-  respuesta del laboratorio; guardar remito, fecha de emisión y vencimiento del
-  PDF. Con esto se cargan hoy mismo los dos casos ya resueltos
-  (`3008-00069150 → 595000`, `3008-00063271 → 588062`) y dejan de ser ruido.
-- **Etapa 2** — `LabInvoice` + `LabInvoiceLine`, migración de lo existente, y
-  **muerte del prorrateo** (atribución por artículo, lo dudoso marcado).
-- **Etapa 3** — cruce con el resumen de cuenta, estados de pago y reclamo,
-  vencimientos, y el tablero completo de la cuenta corriente.
+**f) La respuesta del laboratorio no se guarda en ningún lado.** "Pregunté y me
+dijeron que la 63271 es el 588062" queda en el WhatsApp: sin fecha, sin quién
+preguntó, sin respaldo para el reclamo.
+
+## 3. Las únicas 4 que hay que consultarle al laboratorio
+
+Son las de la forma C. Con el remito ya extraído, la consulta es de diez segundos:
+
+| Factura | Fecha | Remito | Importe c/IVA | Pedido |
+|---|---|---|---|---|
+| 3008‑00052707 | 13/04 | `E3-71459` | $237.163,79 | **falta preguntar** |
+| 3008‑00063271 | 19/06 | `E3-85079` | $438.071,90 | 588062 ✅ |
+| 3008‑00067549 | 17/07 | `E4-65290` | $17.173,71 | **falta preguntar** |
+| 3008‑00069150 | 24/07 | `E3-92257` | $575.952,61 | 595000 ✅ |
+
+Cuatro en cinco meses. Ese es el volumen real del problema.
+
+## 4. El portal: no conviene automatizarlo
+
+`optovision.com.ar/oves/` es una aplicación vieja — VBScript en el cliente, MD5
+en el navegador, formularios por GET, sin API. Automatizarla sería scraping
+frágil, y habría que guardar las credenciales para que un proceso las use.
+Con cuatro consultas cada cinco meses, **no se justifica**. El email con el PDF
+sigue siendo la fuente confiable; el portal queda como consulta manual.
+
+## 5. El plan
+
+**Etapa 0 — arreglar el parseo (chico, esta semana).**
+Aceptar el formato `TM-`; extraer el remito de verdad (y distinguirlo del código
+de cuenta); guardar fecha de emisión, vencimiento y CAE **del PDF** en vez de la
+fecha del email. Las 4 huérfanas falsas se resuelven solas y las 4 reales pasan a
+mostrar su remito. *Ya hecho de esta etapa: nº de operación, comprobante y fecha
+en todas las filas de los avisos.*
+
+**Etapa 1 — la factura como entidad.**
+`LabInvoice` (serie‑nro, tipo, fecha, vencimiento, CAE, neto/IVA/total, remito,
+PDF guardado, estado) + `LabInvoiceLine` (artículo, cantidad, unitario, importe,
+pedido si se pudo atribuir, y **cómo** se atribuyó: PDF / remito / respuesta del
+lab / a mano). El pedido (`LabCostEntry`) sigue siendo la unidad de cruce contra
+la venta, pero su importe pasa a ser **la suma de sus líneas**.
+
+**Etapa 2 — la bandeja "Facturas a identificar".**
+Pantalla con importe, fecha, remito y PDF a la vista, botón **Asignar pedido** y
+campo **respuesta del laboratorio** (con fecha y quién consultó, firmado en el
+AuditLog). Y separar las dos alertas que hoy van en la misma bolsa:
+*factura sin identificar* (preguntale al lab) ≠ *pedido facturado sin venta*.
+
+**Etapa 3 — matar el prorrateo.**
+Atribución por artículo: cada línea de cristal con `Cant 2` es un par, o sea un
+pedido; las líneas compartidas (tratamientos, calibrados) se reparten por par
+según el tipo — multifocal con los multifocales, stock con los de stock. Se cruza
+la descripción contra los ítems de cada venta candidata. Lo que no cierre contra
+el subtotal queda marcado *a revisar*; nunca un reparto silencioso.
+
+**Etapa 4 — la cuenta corriente cruzada.**
+Cada fila del resumen de Essilor matchea por serie‑nro con su factura. Tablero:
+conciliado / a identificar / en reclamo / pagado, con los vencimientos a la vista
+para no pagar tarde. Ese es el resumen completo y curado.
+
+## 6. Lo que queda pendiente de decisión
+
+- Cargar en producción los dos mapeos ya confirmados
+  (`3008-00069150 → 595000`, `3008-00063271 → 588062`).
+- Preguntarle al laboratorio por las dos facturas que faltan
+  (remitos `E3-71459` y `E4-65290`).
+- Qué hacer con Grupo Óptico ahora que el lab activo es solo Optovisión: apagar
+  su barrido y sus alertas conservando el histórico, o dejarlo como está.
