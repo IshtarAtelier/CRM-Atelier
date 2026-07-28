@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Save, X, AlertTriangle, Check, Loader2 } from 'lucide-react';
+import { Save, X, AlertTriangle, Check, Loader2, Ban, ExternalLink } from 'lucide-react';
 
 /**
  * Campo del N° de operación con chequeo EN VIVO de duplicados.
@@ -29,9 +29,19 @@ interface Props {
 
 type Estado = 'idle' | 'checking' | 'libre' | 'duplicado' | 'error';
 
+interface Conflicto {
+    numero: string;
+    tipo: 'VENTA' | 'POSTVENTA';
+    orderId: string | null;
+    orderShort: string;
+    cliente: string;
+    labSentAt: string | null;
+}
+
 export default function LabNumberEditor({ value, onChange, orderId, onSave, onCancel, saving, tone = 'blue' }: Props) {
     const [estado, setEstado] = useState<Estado>('idle');
     const [mensaje, setMensaje] = useState('');
+    const [conflictos, setConflictos] = useState<Conflicto[]>([]);
     const inicial = useRef(value);
 
     useEffect(() => {
@@ -39,7 +49,7 @@ export default function LabNumberEditor({ value, onChange, orderId, onSave, onCa
         // Sin número que valga la pena chequear, o el mismo con el que se abrió
         // el campo (no se está duplicando nada: ya es de este pedido).
         if (!/\d{4,}/.test(texto) || texto === (inicial.current || '').trim()) {
-            setEstado('idle'); setMensaje('');
+            setEstado('idle'); setMensaje(''); setConflictos([]);
             return;
         }
         setEstado('checking');
@@ -49,9 +59,11 @@ export default function LabNumberEditor({ value, onChange, orderId, onSave, onCa
                 if (!res.ok) throw new Error('check falló');
                 const data = await res.json();
                 setEstado(data.duplicado ? 'duplicado' : 'libre');
+                setConflictos(Array.isArray(data.conflictos) ? data.conflictos : []);
                 setMensaje(data.mensaje || '');
             } catch {
                 // No decir "libre" sin haber podido verificar.
+                setConflictos([]);
                 setEstado('error');
                 setMensaje('No se pudo verificar si el número está repetido. Al guardar, el sistema lo vuelve a controlar.');
             }
@@ -60,6 +72,7 @@ export default function LabNumberEditor({ value, onChange, orderId, onSave, onCa
     }, [value, orderId]);
 
     const bloqueado = estado === 'duplicado' || estado === 'checking' || !!saving;
+    const numerosRepetidos = [...new Set(conflictos.map(c => c.numero))];
     const btn = tone === 'emerald' ? 'bg-emerald-500' : 'bg-blue-500';
     const borde = estado === 'duplicado'
         ? 'border-red-400 dark:border-red-600 focus:ring-red-500/20'
@@ -88,13 +101,18 @@ export default function LabNumberEditor({ value, onChange, orderId, onSave, onCa
                         {estado === 'duplicado' && <AlertTriangle className="w-4 h-4 text-red-500" />}
                     </span>
                 </div>
+                {/* Bloqueado por duplicado NO es lo mismo que "esperá un segundo":
+                    el candado se ve distinto del botón atenuado del chequeo. */}
                 <button
                     onClick={() => { if (!bloqueado) onSave(); }}
                     disabled={bloqueado}
+                    aria-label={estado === 'duplicado' ? 'No se puede guardar: el número está repetido' : 'Guardar'}
                     title={estado === 'duplicado' ? 'No se puede guardar: el número está repetido' : 'Guardar'}
-                    className={`p-2 ${btn} text-white rounded-xl transition-all ${bloqueado ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105'}`}
+                    className={`p-2 rounded-xl transition-all text-white ${estado === 'duplicado'
+                        ? 'bg-stone-300 dark:bg-stone-600 cursor-not-allowed'
+                        : `${btn} ${bloqueado ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105'}`}`}
                 >
-                    <Save className="w-4 h-4" />
+                    {estado === 'duplicado' ? <Ban className="w-4 h-4" /> : <Save className="w-4 h-4" />}
                 </button>
                 <button
                     onClick={onCancel}
@@ -104,14 +122,48 @@ export default function LabNumberEditor({ value, onChange, orderId, onSave, onCa
                 </button>
             </div>
 
+            {/* El cartel se lee en tres golpes: qué número está repetido y que no
+                se puede guardar · dónde está usado (una línea por lugar, con link
+                a esa venta) · qué hacer. Nada de párrafos corridos: con dos
+                conflictos se vuelve un bloque que nadie lee. */}
             {estado === 'duplicado' && (
                 <div id={`dup-${orderId}`} role="alert"
-                    className="mt-2 flex items-start gap-2 rounded-xl border-2 border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/30 px-3 py-2">
-                    <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                    <div className="text-[11px] leading-snug">
-                        <p className="font-black text-red-700 dark:text-red-300 uppercase tracking-wide">Ese número ya está usado</p>
-                        <p className="text-red-700/90 dark:text-red-300/90 mt-0.5">{mensaje}</p>
+                    className="mt-2 rounded-xl border-2 border-red-300 dark:border-red-800/70 bg-red-50 dark:bg-red-950/30 overflow-hidden">
+                    <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/40 px-3 py-2">
+                        <AlertTriangle className="w-[18px] h-[18px] text-red-600 dark:text-red-400 shrink-0" />
+                        <p className="text-[13px] font-black text-red-700 dark:text-red-300 leading-tight">
+                            {numerosRepetidos.length === 1
+                                ? <>El N° <span className="font-mono">{numerosRepetidos[0]}</span> ya está usado</>
+                                : <>Estos números ya están usados: <span className="font-mono">{numerosRepetidos.join(', ')}</span></>}
+                            {' — '}no se puede guardar
+                        </p>
                     </div>
+
+                    <ul className="px-3 py-2 space-y-1">
+                        {conflictos.map((c, i) => (
+                            <li key={`${c.numero}-${c.orderId}-${i}`} className="text-xs text-red-800 dark:text-red-200 leading-snug">
+                                <span className="font-mono font-bold">{c.numero}</span>
+                                <span className="opacity-70"> · </span>
+                                {c.tipo === 'POSTVENTA' ? 'postventa de ' : 'venta de '}
+                                <strong>{c.cliente}</strong>
+                                <span className="opacity-70"> · #{c.orderShort}</span>
+                                {c.labSentAt && (
+                                    <span className="opacity-70"> · a fábrica el {new Date(c.labSentAt).toLocaleDateString('es-AR')}</span>
+                                )}
+                                {c.orderId && (
+                                    <a href={`/admin/ventas?orderId=${c.orderId}`} target="_blank" rel="noopener noreferrer"
+                                        className="ml-1.5 inline-flex items-center gap-0.5 font-bold underline underline-offset-2 hover:no-underline">
+                                        ver <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+
+                    <p className="px-3 pb-2 text-[11px] text-red-700/80 dark:text-red-300/80 leading-snug">
+                        Poné el número que corresponde a este pedido, o corregí el de la otra venta.
+                        El costo del laboratorio se cruza por este número: repetido, la factura se cuelga de la venta equivocada.
+                    </p>
                 </div>
             )}
             {estado === 'error' && (
