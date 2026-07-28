@@ -1147,7 +1147,24 @@ export const ContactService = {
                         discountCash: true,
                         discountTransfer: true,
                         discountCard: true,
-                        subtotalWithMarkup: true
+                        subtotalWithMarkup: true,
+                        // Facturas emitidas en ARCA: la ficha del cliente permite
+                        // facturar (solo ADMIN) y abrir el PDF sin pasar por /admin/ventas.
+                        // Select angosto: solo lo que la tarjeta muestra o necesita para
+                        // saber cuánto queda sin facturar.
+                        invoices: {
+                            select: {
+                                id: true,
+                                cae: true,
+                                caeExpiration: true,
+                                voucherNumber: true,
+                                pointOfSale: true,
+                                totalAmount: true,
+                                status: true,
+                                createdAt: true,
+                            },
+                            orderBy: { createdAt: 'desc' },
+                        }
                     },
                     where: { isDeleted: false },
                     orderBy: { createdAt: 'desc' }
