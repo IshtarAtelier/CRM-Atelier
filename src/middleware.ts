@@ -169,13 +169,19 @@ export async function middleware(request: NextRequest) {
 
     // Proteger rutas de administración (/admin)
     if (isAdminRoute) {
+        // El destino viaja en ?next= para no perderlo: los mails de alerta linkean
+        // fichas y ventas concretas, y quien los abre desde el celular suele estar
+        // deslogueado. Sin esto terminaba en el dashboard y tenía que buscar a mano.
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('next', pathname + request.nextUrl.search);
+
         if (!token) {
-            return NextResponse.redirect(new URL('/login', request.url));
+            return NextResponse.redirect(loginUrl);
         }
 
         const payload = await decrypt(token);
         if (!payload) {
-            return NextResponse.redirect(new URL('/login', request.url));
+            return NextResponse.redirect(loginUrl);
         }
 
         if (payload.role === 'OPTICA') {
