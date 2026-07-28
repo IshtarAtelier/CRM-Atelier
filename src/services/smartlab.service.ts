@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
+import { CRM_ORIGIN } from '@/lib/constants';
 import { LabCostReconciliationService } from './lab-cost-reconciliation.service';
 
 interface ScrapedDetail {
@@ -530,8 +531,8 @@ export class SmartLabService {
                         const emailRes = await sendEmail({
                             to: 'pisano.ishtar@gmail.com',
                             subject: '⚠️ Alerta SmartLab — Pedidos trabados en ingreso/validación',
-                            text: `Atelier Óptica\n\nSe detectaron nuevos pedidos con más de 2 días de demora en el ingreso/validación:\n\n${orderDetailsText}\n\nPor favor, verifica el estado en SmartLab.`,
-                            html: `<h3 style="color: #d32f2f;">⚠️ Alerta de Pedidos Trabados</h3><p>Se detectaron nuevos pedidos con más de 2 días de demora en el ingreso/validación en SmartLab:</p><ul>${orderDetailsHtml}</ul><p>Por favor, realiza el seguimiento con el laboratorio.</p>`
+                            text: `Atelier Óptica\n\nSe detectaron nuevos pedidos con más de 2 días de demora en el ingreso/validación:\n\n${orderDetailsText}\n\nPor favor, verifica el estado en SmartLab.\n\nPedidos en el CRM: ${CRM_ORIGIN}/admin/pedidos`,
+                            html: `<h3 style="color: #d32f2f;">⚠️ Alerta de Pedidos Trabados</h3><p>Se detectaron nuevos pedidos con más de 2 días de demora en el ingreso/validación en SmartLab:</p><ul>${orderDetailsHtml}</ul><p>Por favor, realiza el seguimiento con el laboratorio.</p><p style="margin-top:20px;text-align:center;"><a href="${CRM_ORIGIN}/admin/pedidos" style="display:inline-block;padding:12px 24px;background-color:#d32f2f;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;">Ver pedidos en el CRM</a></p>`
                         }).catch(err => { console.error('Error enviando email de alerta stuck orders:', err); return { success: false } as any; });
 
                         // Enviar WhatsApp

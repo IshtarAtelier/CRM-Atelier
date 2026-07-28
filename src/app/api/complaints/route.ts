@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { prisma } from '@/lib/db';
+import { CRM_ORIGIN } from '@/lib/constants';
 
 const BOT_API_KEY = process.env.BOT_API_KEY;
 
@@ -40,6 +41,9 @@ export async function POST(req: Request) {
             <h3>Detalles del inconveniente:</h3>
             <p style="white-space: pre-wrap;">${details}</p>
             <hr />
+            <p style="margin-top: 24px; text-align: center;">
+                <a href="${CRM_ORIGIN}/admin/contactos?clientId=${client.id}&section=postsale" style="display: inline-block; padding: 12px 24px; background-color: #d97706; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">Abrir la ficha del cliente</a>
+            </p>
             <p><em>Este mensaje fue generado automáticamente por el asistente virtual. Por favor, comunícate con el cliente a la brevedad.</em></p>
         `;
 

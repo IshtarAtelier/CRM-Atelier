@@ -12,6 +12,11 @@ export const WHOLESALE_WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHOLESALE_WHATSA
 // nunca con la URL interna de Railway. Los links de gestión (CRM) van aparte.
 export const STORE_ORIGIN = (process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar').replace(/\/$/, '');
 
+// Origen de las pantallas de gestión: los links de las alertas internas
+// (/admin/...). Misma app que la tienda; se separa del origen público para que
+// cambiar uno no arrastre al otro cuando no hay NEXT_PUBLIC_APP_URL seteada.
+export const CRM_ORIGIN = (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, '');
+
 // Destinatarios de las alertas internas (nuevas ventas web, stock bajo, etc.).
 // Single source of truth: no hardcodear estos correos en cada endpoint.
 export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';

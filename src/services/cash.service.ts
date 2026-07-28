@@ -1,10 +1,15 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { logAudit } from '@/lib/audit';
-import { RENDICION_CUTOFF_ISO } from '@/lib/constants';
+import { RENDICION_CUTOFF_ISO, CRM_ORIGIN } from '@/lib/constants';
 import type { Actor } from '@/lib/actor';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
+
+// Pantallas de caja: ninguna lee filtros por URL, así que el aviso linkea la
+// pantalla y listo (un ?search= inventado no filtraría nada).
+const CAJA_LINK = `${CRM_ORIGIN}/admin/caja`;
+const CAJA_VENDEDORES_LINK = `${CRM_ORIGIN}/admin/caja/vendedores`;
 
 // Métodos de pago que son efectivo físico en caja (mismo criterio que getCashBalance)
 const CASH_METHODS = ['EFECTIVO', 'CASH'];
@@ -112,7 +117,8 @@ export const CashService = {
                     `Categoría: ${catLabel}\n` +
                     `Motivo: ${reason}${labLine}\n` +
                     `Registrado por: ${movement.user.name}\n` +
-                    `Fecha: ${movement.createdAt.toLocaleString('es-AR')}`
+                    `Fecha: ${movement.createdAt.toLocaleString('es-AR')}\n\n` +
+                    `Caja: ${CAJA_LINK}`
                 });
             } catch (e) {
                 console.error('Error enviando email de egreso:', e);
@@ -171,7 +177,8 @@ export const CashService = {
                         subject: urgency,
                         text: `El saldo de efectivo en caja ha superado los límites establecidos.\n\n` +
                         `Saldo actual: $${balance.total.toLocaleString('es-AR')}\n\n` +
-                        `Por motivos de seguridad, se requiere realizar un retiro a la brevedad.`
+                        `Por motivos de seguridad, se requiere realizar un retiro a la brevedad.\n\n` +
+                        `Caja: ${CAJA_LINK}`
                     });
                 } catch (e) {
                     console.error('Error enviando email de alerta de caja:', e);
@@ -506,7 +513,8 @@ export const CashService = {
                     `Diferencia (contado − sistema): $${Math.round(difference).toLocaleString('es-AR')}\n\n` +
                     `Confirmó: ${actor.name}\n` +
                     `Período: ${handover.periodFrom.toLocaleString('es-AR')} → ${handover.periodTo.toLocaleString('es-AR')}\n` +
-                    `Cobros incluidos: ${(handover.payments as any[])?.length ?? 0}`,
+                    `Cobros incluidos: ${(handover.payments as any[])?.length ?? 0}\n\n` +
+                    `Rendiciones por vendedor: ${CAJA_VENDEDORES_LINK}`,
             }).catch(e => console.error('Error enviando email de diferencia en rendición:', e));
         }
 
@@ -611,7 +619,8 @@ export const CashService = {
                     `Saldo teórico total: $${Math.round(preview.globalTheoretical).toLocaleString('es-AR')}\n` +
                     (holdingLines ? `En poder de vendedores (sin rendir):\n${holdingLines}\n\n` : '\n') +
                     `Cerró: ${actor.name}\n` +
-                    `Período: ${periodFrom.toLocaleString('es-AR')} → ${periodTo.toLocaleString('es-AR')}`,
+                    `Período: ${periodFrom.toLocaleString('es-AR')} → ${periodTo.toLocaleString('es-AR')}\n\n` +
+                    `Caja: ${CAJA_LINK}`,
             }).catch(e => console.error('Error enviando email de diferencia en arqueo:', e));
         }
 
