@@ -60,7 +60,7 @@ export async function notifyZeroCostSale(orderId: string): Promise<void> {
                 <ul style="line-height: 1.6;">${rows}</ul>
                 <p>Cargale el costo real al producto en el catálogo (y corregí esta venta si hace falta).</p>
                 <p style="margin-top: 16px;">
-                    <a href="${APP_URL}/admin/ventas?orderId=${order.id}" style="display: inline-block; padding: 12px 24px; background-color: #d97706; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">Ver pedido en CRM</a>
+                    <a href="${APP_URL}/admin/ventas?id=${order.id}" style="display: inline-block; padding: 12px 24px; background-color: #d97706; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">Ver pedido en CRM</a>
                 </p>
             </div>
         `;
