@@ -27,6 +27,8 @@ interface ContactDetailProps {
     onDeleteContact?: (id: string) => Promise<boolean>;
     autoStartQuote?: boolean;
     currentUserRole?: string;
+    /** Solapa a abrir al entrar (ej: los mails de post-venta linkean a 'postsale'). */
+    initialSection?: 'history' | 'tasks' | 'prescription' | 'budget' | 'sales' | 'postsale';
 }
 
 export default function ContactDetail({
@@ -42,11 +44,12 @@ export default function ContactDetail({
     onDeleteOrder,
     onDeleteContact,
     autoStartQuote,
-    currentUserRole: propUserRole
+    currentUserRole: propUserRole,
+    initialSection
 }: ContactDetailProps) {
     const [contact, setContact] = useState<Contact | null>(null);
     const [loading, setLoading] = useState(true);
-    const [activeSection, setActiveSection] = useState<'history' | 'tasks' | 'prescription' | 'budget' | 'sales' | 'postsale'>('history');
+    const [activeSection, setActiveSection] = useState<'history' | 'tasks' | 'prescription' | 'budget' | 'sales' | 'postsale'>(initialSection || 'history');
     const [currentUserRole, setCurrentUserRole] = useState(propUserRole || 'STAFF');
     const [pendingConvertOrderId, setPendingConvertOrderId] = useState<string | null>(null);
     const [convertSuccess, setConvertSuccess] = useState(false);

@@ -10,6 +10,12 @@ function LoginForm() {
     const searchParams = useSearchParams();
     const isMayorista = searchParams.get("type") === "mayorista";
 
+    // Destino que dejó el middleware al patearnos acá (link de un mail de alerta,
+    // por ejemplo). Solo se acepta una ruta interna de /admin: cualquier otra cosa
+    // ("//sitio.com", "https://…") se ignora para no volverlo un redirect abierto.
+    const nextParam = searchParams.get("next");
+    const safeNext = nextParam && /^\/admin(\/|\?|$)/.test(nextParam) ? nextParam : null;
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -38,7 +44,7 @@ function LoginForm() {
                 if (data.user && data.user.role === 'OPTICA') {
                     router.push("/tienda");
                 } else {
-                    router.push("/admin");
+                    router.push(safeNext || "/admin");
                 }
                 router.refresh(); // Force a full reload to apply middleware redirects properly
             } else {
@@ -178,7 +184,7 @@ function LoginForm() {
                                             if (data.user) {
                                                 localStorage.setItem('user', JSON.stringify(data.user));
                                             }
-                                            router.push("/admin");
+                                            router.push(safeNext || "/admin");
                                         } else {
                                             setError("Error bypass local");
                                         }

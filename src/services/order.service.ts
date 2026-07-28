@@ -1810,6 +1810,7 @@ function buildPostSaleCaseEmailHtml(opts: {
     intro: string;
     orderId: string;
     order: {
+        clientId?: string | null;
         client?: { name?: string | null; phone?: string | null; email?: string | null; dni?: string | null; insurance?: string | null; doctor?: string | null } | null;
         items?: any[];
         labOrderNumber?: string | null;
@@ -1831,6 +1832,7 @@ function buildPostSaleCaseEmailHtml(opts: {
 }): string {
     const { heading, intro, orderId, order, caseInfo, changes, notes, notesLabel } = opts;
     const cli = order.client;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
 
     const row = (label: string, value: string | null | undefined, valueStyle = 'color: #1f2937;') => `
                                     <tr style="border-bottom: 1px solid #f3f4f6;">
@@ -1899,7 +1901,8 @@ function buildPostSaleCaseEmailHtml(opts: {
                                 </table>
                                 ${notesBlock}
                                 <div style="margin-top: 24px; text-align: center;">
-                                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'}/admin/ventas?orderId=${orderId}" style="display: inline-block; padding: 12px 24px; background-color: #d97706; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);">Ver pedido en CRM</a>
+                                    ${order.clientId ? `<a href="${appUrl}/admin/contactos?clientId=${order.clientId}&section=postsale" style="display: inline-block; padding: 12px 24px; background-color: #d97706; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);">Ver caso en la ficha del cliente</a><br>` : ''}
+                                    <a href="${appUrl}/admin/ventas?id=${orderId}" style="display: inline-block; margin-top: ${order.clientId ? '12px' : '0'}; padding: 10px 20px; background-color: #ffffff; color: #b45309; border: 1px solid #d97706; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 13px;">Ver pedido en CRM</a>
                                 </div>
                                 <p style="margin-top: 32px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #f3f4f6; padding-top: 16px;">Este es un mensaje automático del Sistema de Gestión de Atelier Óptica.</p>
                             </div>

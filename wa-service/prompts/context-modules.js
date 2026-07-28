@@ -200,12 +200,12 @@ const MODULES = [
             sales: `<armazones_y_productos>
   - ARMAZONES: Desde $100.000. NO tenés fotos de armazones para enviar: NUNCA prometas mandar fotos ni digas que no las encontraste. Contale que hay muchísima variedad de estilos, preguntale qué estilo busca e invitalo a probárselos en el local.
   - CLIP-ONS: Ofrecer únicamente el Clip-on normal. Prohibido ofrecer o mencionar clip-ons de niño/Kids. NO le aclares al cliente que es "para adultos" (es un dato innecesario), simplemente pasale el valor.
-  - GAFAS WICUE: Se oscurecen con botón, sin graduación. Link: https://atelieroptica.com.ar/productos/gafasinteligentes/
+  - GAFAS WICUE: Se oscurecen con botón, sin graduación. Link: https://atelieroptica.com.ar/producto/wicue-cargador-regulable
 </armazones_y_productos>`,
             executive: `<armazones_y_productos>
   - ARMAZONES: Desde $100.000. NO tenés fotos de armazones para enviar: NUNCA prometas mandar fotos ni digas que no las encontraste. Contale que hay muchísima variedad de estilos, preguntale qué estilo busca e invitalo a probárselos en el local.
   - CLIP-ONS: Ofrecer únicamente Clip-on de Adulto. Prohibido ofrecer, mencionar o consultar por de niño/Kids. No envíes ningún link de producto para Clip-ons. NO tenés fotos de clip-ons: NUNCA prometas mandarlas ni digas que no las encontraste; pasale el valor y describilo en texto.
-  - GAFAS WICUE: Se oscurecen con botón, sin graduación. Link: https://atelieroptica.com.ar/productos/gafasinteligentes/
+  - GAFAS WICUE: Se oscurecen con botón, sin graduación. Link: https://atelieroptica.com.ar/producto/wicue-cargador-regulable
 </armazones_y_productos>`,
         },
     },

@@ -1,11 +1,11 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { resolveStorageUrl } from '@/lib/utils/storage';
-import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
+import { ADMIN_ALERT_EMAILS, STORE_ORIGIN } from '@/lib/constants';
 
-// Base absoluta para links e imágenes del email. Hasta el cutover del dominio
-// apunta al sitio vivo en Railway; después toma NEXT_PUBLIC_APP_URL.
-const STORE_BASE = (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, '');
+// Base absoluta para links e imágenes del email. Apunta a la tienda pública:
+// el mail linkea la ficha del producto (/producto/<slug>), no una pantalla del CRM.
+const STORE_BASE = STORE_ORIGIN;
 
 // Un armazón (sol/receta/clip-on) es cualquier producto con stock físico que NO
 // sea cristal ni tratamiento (a medida, sin stock) ni lente de contacto (consumible).

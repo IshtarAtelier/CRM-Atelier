@@ -77,14 +77,14 @@ export async function alertDuplicateLabOrderNumber(params: {
                 <p>Si es un error, corregí el que corresponda. Si los dos comparten pedido de laboratorio
                    a propósito, ignorá este aviso — queda registrado en la ficha de cada cliente.</p>
                 <p style="margin-top: 16px;">
-                    <a href="${APP_URL}/admin/ventas?orderId=${params.orderId}" style="display: inline-block; padding: 12px 24px; background-color: #dc2626; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">Ver el pedido en el CRM</a>
+                    <a href="${APP_URL}/admin/ventas?id=${params.orderId}" style="display: inline-block; padding: 12px 24px; background-color: #dc2626; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">Ver el pedido en el CRM</a>
                 </p>
             </div>
         `;
 
         const text = `N° de operación ${numero} repetido. ${params.actorName} lo cargó en #${shortActual} (${nombreActual}), ` +
             `pero ya estaba en: ${otros.map(o => `#${o.id.slice(-4).toUpperCase()} (${o.client?.name || 'Cliente'})`).join(', ')}. ` +
-            `${APP_URL}/admin/ventas?orderId=${params.orderId}`;
+            `${APP_URL}/admin/ventas?id=${params.orderId}`;
 
         await sendEmail({
             to: ADMIN_ALERT_EMAILS,

@@ -1,6 +1,12 @@
-import { WHATSAPP_PHONE } from '@/lib/constants';
+import { WHATSAPP_PHONE, STORE_ORIGIN, CRM_ORIGIN } from '@/lib/constants';
 
-const APP_ORIGIN = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
+const APP_ORIGIN = STORE_ORIGIN;
+
+/** Link a la venta dentro del CRM. Solo para los mails internos (los del cliente
+ *  nunca ven /admin). La pantalla de ventas lee `id`: con `orderId` no abre nada. */
+function crmOrderLink(orderId: string) {
+  return `${CRM_ORIGIN}/admin/ventas?id=${orderId}`;
+}
 const LOGO_URL = `${APP_ORIGIN}/images/logo-negro.png`;
 // Imagen editorial de encabezado (La Gioconda con anteojos, del home).
 const HERO_URL = `${APP_ORIGIN}/images/editorial/monalisa.webp`;
@@ -301,8 +307,8 @@ export function getAdminHtml(customer: any, orderId: string, emailTotal: number,
         ${itemsHtml}
       </table>
 
-      <div style="margin-top: 30px; padding: 15px; background: #e8f5e9; border-left: 5px solid #4caf50;">
-        <p style="margin: 0;"><strong>Ingresá al CRM</strong> para ver y gestionar la ficha completa.</p>
+      <div style="margin-top: 30px; text-align: center;">
+        <a href="${crmOrderLink(orderId)}" style="display: inline-block; padding: 12px 24px; background-color: #1f2937; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">Abrir la venta en el CRM</a>
       </div>
     </div>
   `;
@@ -402,6 +408,10 @@ export function getAdminWholesaleHtml(customer: any, orderId: string, emailTotal
       <div style="margin-top: 30px; padding: 15px; background: #eff6ff; border-left: 5px solid #3b82f6;">
         <p style="margin: 0; font-weight: bold;">Acción requerida:</p>
         <p style="margin: 5px 0 0 0; font-size: 13px;">Comunicate con el cliente para cobrar y acordar el despacho de la mercadería.</p>
+      </div>
+
+      <div style="margin-top: 24px; text-align: center;">
+        <a href="${crmOrderLink(orderId)}" style="display: inline-block; padding: 12px 24px; background-color: #1e3a8a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">Abrir el pedido en el CRM</a>
       </div>
     </div>
   `;

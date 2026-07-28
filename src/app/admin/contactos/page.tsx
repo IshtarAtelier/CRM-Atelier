@@ -30,6 +30,9 @@ function ContactosPageContent() {
     const [showForm, setShowForm] = useState(false);
     const [editingContactData, setEditingContactData] = useState<any | null>(null);
     const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+    // Solapa inicial de la ficha, pedida por URL (?section=postsale desde los mails de post-venta).
+    // Se consume una sola vez: al elegir otro contacto vuelve a abrir en Historial.
+    const [initialSection, setInitialSection] = useState<'history' | 'tasks' | 'prescription' | 'budget' | 'sales' | 'postsale' | undefined>(undefined);
     const [autoStartQuote, setAutoStartQuote] = useState(false);
     const [showFavorites, setShowFavorites] = useState(false);
     const [showRxAlert, setShowRxAlert] = useState(true);
@@ -59,6 +62,11 @@ function ContactosPageContent() {
     useEffect(() => {
         const clientId = searchParams.get('clientId');
         const idParam = searchParams.get('id');
+        const section = searchParams.get('section');
+        const validSections = ['history', 'tasks', 'prescription', 'budget', 'sales', 'postsale'];
+        if (section && validSections.includes(section)) {
+            setInitialSection(section as any);
+        }
         if (clientId) {
             setSelectedContactId(clientId);
         } else if (idParam) {
@@ -91,6 +99,7 @@ function ContactosPageContent() {
     // Sync URL with selected contact
     const selectContact = useCallback((id: string | null) => {
         setSelectedContactId(id);
+        setInitialSection(undefined);
         if (id) {
             window.history.replaceState(null, '', `${pathname}?id=${id}`);
         } else {
@@ -257,6 +266,7 @@ function ContactosPageContent() {
                     }}
                     autoStartQuote={autoStartQuote}
                     currentUserRole={currentUserRole}
+                    initialSection={initialSection}
                 />
             )}
 

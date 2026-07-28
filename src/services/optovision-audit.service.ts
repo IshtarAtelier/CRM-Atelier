@@ -4,6 +4,7 @@ import { prisma } from '../lib/db';
 import { OptovisionParserService } from './optovision-parser.service';
 import { openAllMail } from './lab-recon/imap';
 import { sendEmail } from '../lib/email';
+import { CRM_ORIGIN } from '../lib/constants';
 
 export class OptovisionAuditService {
     /**
@@ -112,8 +113,14 @@ export class OptovisionAuditService {
                 
                 const orderData = await prisma.order.findUnique({
                     where: { id: orderId },
-                    select: { client: { select: { name: true } } }
+                    select: { clientId: true, client: { select: { name: true } } }
                 });
+
+                // El aviso es sobre un caso de post-venta: el link cae en la solapa
+                // Post Venta de la ficha, no en el listado de ventas.
+                const caseLink = orderData?.clientId
+                    ? `${CRM_ORIGIN}/admin/contactos?clientId=${orderData.clientId}&section=postsale`
+                    : `${CRM_ORIGIN}/admin/ventas?id=${orderId}`;
 
                 const html = `
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 2px solid #dc2626; border-radius: 12px; padding: 24px; background-color: #ffffff; color: #1f2937;">
@@ -141,6 +148,9 @@ export class OptovisionAuditService {
                             <p style="margin: 0; color: #991b1b; font-size: 13px; line-height: 1.5; font-weight: bold;">
                                 ⚠️ Atención: El pedido ya fue cobrado por el laboratorio. Iniciar un reproceso podría generar costos adicionales duplicados si no se gestiona como nota de crédito/garantía.
                             </p>
+                        </div>
+                        <div style="margin-top: 24px; text-align: center;">
+                            <a href="${caseLink}" style="display: inline-block; padding: 12px 24px; background-color: #dc2626; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">Ver el caso en la ficha del cliente</a>
                         </div>
                         <p style="margin-top: 32px; font-size: 11px; color: #9ca3af; text-align: center; border-top: 1px solid #f3f4f6; padding-top: 16px;">Atelier Óptica - Módulo de Auditoría de Laboratorio</p>
                     </div>

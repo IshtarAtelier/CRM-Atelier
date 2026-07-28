@@ -3,6 +3,7 @@ import { sendEmail } from '@/lib/email';
 import { getAbandonedCartHtml, getClientItemsHtml } from '@/lib/checkout/checkout-emails';
 import { hasClosedOrder } from '@/lib/checkout/purchase-guard';
 import { getWebSettings } from '@/lib/web-settings';
+import { STORE_ORIGIN } from '@/lib/constants';
 
 const SANS = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 
@@ -67,7 +68,8 @@ export async function sendRecoveryEmailForSession(session: {
     ? getClientItemsHtml(cartItems)
     : `<tr><td style="padding: 16px 0; color: #8f897c; font-family: ${SANS}; font-size: 14px;">Tu selección de la tienda</td></tr>`;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+  // Mail al cliente: el botón vuelve a la tienda pública, nunca a la URL de Railway.
+  const appUrl = STORE_ORIGIN;
   const customerName = session.firstName || 'Cliente';
 
   const result = await sendEmail({

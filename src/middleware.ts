@@ -80,7 +80,10 @@ export async function middleware(request: NextRequest) {
     // Las rutas de bot (/api/bot/) tienen su propia validación de API KEY abajo
     // Las rutas públicas del e-commerce (store, web, checkout) no requieren auth
     const isCheckoutBypass = pathname.startsWith('/api/checkout/') && !(pathname === '/api/checkout/session' && request.method === 'GET');
-    const isPublicGetApi = request.method === 'GET' && (pathname === '/api/settings' || pathname === '/api/reviews' || pathname === '/api/health');
+    // /api/seo-guard va acá por el mismo motivo que /api/health: lo consulta un
+    // monitor externo (cron-job.org) que no tiene sesión. Sin esto devolvía 401
+    // siempre y la alerta de links legados rotos nunca podía dispararse.
+    const isPublicGetApi = request.method === 'GET' && (pathname === '/api/settings' || pathname === '/api/reviews' || pathname === '/api/health' || pathname === '/api/seo-guard');
     
     if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !isCheckoutBypass && !pathname.startsWith('/api/storage/view') && !pathname.startsWith('/api/admin/alert') && !isPublicGetApi) {
         if (!token) {
@@ -166,13 +169,19 @@ export async function middleware(request: NextRequest) {
 
     // Proteger rutas de administración (/admin)
     if (isAdminRoute) {
+        // El destino viaja en ?next= para no perderlo: los mails de alerta linkean
+        // fichas y ventas concretas, y quien los abre desde el celular suele estar
+        // deslogueado. Sin esto terminaba en el dashboard y tenía que buscar a mano.
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('next', pathname + request.nextUrl.search);
+
         if (!token) {
-            return NextResponse.redirect(new URL('/login', request.url));
+            return NextResponse.redirect(loginUrl);
         }
 
         const payload = await decrypt(token);
         if (!payload) {
-            return NextResponse.redirect(new URL('/login', request.url));
+            return NextResponse.redirect(loginUrl);
         }
 
         if (payload.role === 'OPTICA') {
