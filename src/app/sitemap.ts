@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/faq',
     '/contacto',
     '/nuestro-local',
+    '/optica-cordoba',
     '/lentes-de-sol',
     '/receta',
     '/lentes-de-contacto',

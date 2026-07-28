@@ -56,6 +56,17 @@ export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: 
             <Link href="/urgencias" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Urgencias 24h</Link>
           </div>
 
+          {/* Guías (interlinking SEO: las mismas en StorefrontFooter) */}
+          <div className="flex flex-col gap-1 md:gap-3">
+            <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Guías</p>
+            <Link href="/optica-cordoba" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Óptica en Córdoba</Link>
+            <Link href="/blog/guia-armazones-segun-rostro" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Armazones según tu rostro</Link>
+            <Link href="/blog/guia-precios-multifocales-argentina" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Precios de Multifocales</Link>
+            <Link href="/blog/control-miopia-infantil-lentes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Control de Miopía Infantil</Link>
+            <Link href="/blog/lentes-polarizados-vs-comunes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Polarizados vs. Comunes</Link>
+            <Link href="/blog/guia-cristales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Guía de Cristales</Link>
+          </div>
+
           {/* Ubicación */}
           <div className="flex flex-col gap-3">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Visitanos</p>
