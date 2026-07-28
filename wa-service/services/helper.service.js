@@ -2,20 +2,9 @@
  * Date and Helper Services
  */
 
-function isBusinessHours(date) {
-    const argDate = new Date(date.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
-    const day = argDate.getDay(); // 0 = Domingo, 6 = Sábado
-    const hour = argDate.getHours();
-    const minute = argDate.getMinutes();
-    const timeDecimal = hour + minute / 60; // Ej: 13:30 = 13.5
-
-    if (day === 0) return false; // Domingo cerrado
-    if (day === 6) {
-        return timeDecimal >= 10 && timeDecimal < 14; // Sábado 10:00 - 14:00
-    }
-    // Lunes a Viernes: 9:00 - 13:30 y 16:00 - 19:30
-    return (timeDecimal >= 9 && timeDecimal < 13.5) || (timeDecimal >= 16 && timeDecimal < 19.5);
-}
+// Reexportado del módulo compartido: antes había una copia con los horarios
+// duplicados a mano y quedó desactualizada. Una sola fuente de verdad.
+const { isBusinessHours } = require('../shared/business-hours');
 
 function getNextBusinessMorning(baseDate = new Date()) {
     const argDate = new Date(baseDate.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));

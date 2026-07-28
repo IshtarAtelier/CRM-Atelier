@@ -17,10 +17,10 @@ function isBusinessHours(date = new Date()) {
 
     if (day === 0) return false; // Domingo cerrado
     if (day === 6) {
-        return timeDecimal >= 10 && timeDecimal < 14; // Sábado 10:00 - 14:00
+        return timeDecimal >= 9 && timeDecimal < 17; // Sábado 9:00 - 17:00
     }
-    // Lunes a Viernes: 9:00 - 13:30 y 16:00 - 19:30
-    return (timeDecimal >= 9 && timeDecimal < 13.5) || (timeDecimal >= 16 && timeDecimal < 19.5);
+    // Lunes a Viernes: 8:00 - 20:00 (corrido, sin siesta)
+    return timeDecimal >= 8 && timeDecimal < 20;
 }
 
 module.exports = { isBusinessHours };

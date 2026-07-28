@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { fetchWa } from '@/lib/wa-config';
 import { PricingService } from '@/services/PricingService';
 import { normalizeArgentinePhone } from '@/services/contact.service';
+import { BUSINESS_INFO } from '@/lib/business-info';
 
 // POST /api/orders/[id]/notify-ready
 export async function POST(
@@ -52,7 +53,7 @@ export async function POST(
         } else {
             msgText += `¡Ya está todo abonado! ✅\n`;
         }
-        msgText += `\nTe esperamos de Lunes a Viernes de 9:00 a 13:30 y de 16:00 a 19:30, o Sábados de 10:00 a 14:00.`;
+        msgText += `\nTe esperamos ${BUSINESS_INFO.hours}.`;
 
         // 4. Enviar usando el microservicio wa-service
         const res = await fetchWa('/api/send', {

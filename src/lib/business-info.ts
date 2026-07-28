@@ -19,36 +19,30 @@ export const BUSINESS_INFO = {
   youtubeUrl: "https://www.youtube.com/@AtelierOptica",
   mapsUrl: "https://www.google.com/maps?cid=14830223812501661125",
   entityId: "https://atelieroptica.com.ar/#optica",
-  hours: "Lunes a Viernes de 9:00 a 13:30 y de 16:00 a 19:30. Sábados de 10:00 a 14:00",
+  hours: "Lunes a Viernes de 8:00 a 20:00. Sábados de 9:00 a 17:00",
   /**
    * Mismos horarios que `hours`, con el formato de viñetas que usan los mensajes
    * de WhatsApp al cliente. Existe para que ese bloque no se vuelva a copiar a
    * mano: ya pasó que quedara desactualizado en un lugar y el bot mandara
    * horarios inventados.
    */
-  hoursWhatsAppBlock: "*Horarios:*\n   • Lunes a viernes de 9:00 a 13:30 y de 16:00 a 19:30\n   • Sábados de 10:00 a 14:00 hs",
+  hoursWhatsAppBlock: "*Horarios:*\n   • Lunes a viernes de 8:00 a 20:00\n   • Sábados de 9:00 a 17:00 hs",
   /** Mismos horarios que `hours`, en formato schema.org — mantener sincronizados. */
   openingHoursSpecification: [
     {
       "@type": "OpeningHoursSpecification",
       dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      opens: "09:00",
-      closes: "13:30",
-    },
-    {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      opens: "16:00",
-      closes: "19:30",
+      opens: "08:00",
+      closes: "20:00",
     },
     {
       "@type": "OpeningHoursSpecification",
       dayOfWeek: ["Saturday"],
-      opens: "10:00",
-      closes: "14:00",
+      opens: "09:00",
+      closes: "17:00",
     },
   ],
-  appointmentSlots: "de 9:00 a 13:30 o de 16:00 a 19:30 (Lunes a Viernes), o de 10:00 a 14:00 (Sábados)",
+  appointmentSlots: "de 8:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 (Sábados)",
   discountCashPercent: 20,
   discountTransferPercent: 15,
   installmentsPromo: "3 o 6 cuotas sin interés con tarjeta",

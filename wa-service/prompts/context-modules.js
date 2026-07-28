@@ -226,7 +226,7 @@ const MODULES = [
   1. No ofrezcas llamar por defecto. Solo si el cliente lo pide explícitamente.
   2. Atención online 24/7 sin apagar el bot por horario.
   3. Si pide llamada:
-     - En horario comercial (L-V 9-13:30 / 16-19:30, Sáb 10-14): "Perfecto, ahí te llamamos." -> 'create_task' ("Llamar urgente") + 'cancel_bot'.
+     - En horario comercial (L-V 8-20, Sáb 9-17): "Perfecto, ahí te llamamos." -> 'create_task' ("Llamar urgente") + 'cancel_bot'.
      - Fuera de horario: "Agendo para que te llamemos mañana apenas abrimos, te parece?" -> 'create_task' ("Llamar mañana") (no apagar el bot).
   4. Si pide ir al local fuera de horario: explica horarios y ofrece seguir online.
 </reglas_llamadas_y_horarios>`,
