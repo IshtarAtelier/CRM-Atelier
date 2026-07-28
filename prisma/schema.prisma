@@ -467,6 +467,14 @@ model Payment {
   date          DateTime @default(now())
   notes         String?
   receiptUrl    String?
+  // Datos del voucher de tarjeta. Un cobro presencial (posnet) y uno por link de
+  // pago traen datos DISTINTOS en el comprobante: el ticket del posnet imprime
+  // lote, cupón y autorización; el link de pago trae un nº de operación. Por eso
+  // se guarda el modo además de los números.
+  cardMode      String? // 'PRESENCIAL' | 'LINK'
+  batchNumber   String? // Nro. de lote (solo presencial)
+  couponNumber  String? // Nro. de cupón (solo presencial)
+  authNumber    String? // Nro. de autorización (solo presencial)
   // Actor: qué usuario cargó el pago (denormalizado; 'Sistema (Payway)' en web)
   createdById   String?
   createdByName String?

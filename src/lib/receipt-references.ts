@@ -17,6 +17,18 @@ export interface ReceiptReading {
     cuit: string | null;
     date: string | null;
     ids: string[];
+    /** Datos del cupón cuando es un ticket de posnet. */
+    batchNumber: string | null;
+    couponNumber: string | null;
+    authNumber: string | null;
+}
+
+/**
+ * Saca las etiquetas `[TX: ...]` que el auditor agrega al final de las notas para
+ * rastrear duplicados, y deja solo lo que escribió la persona.
+ */
+export function stripTxTags(notes?: string | null) {
+    return (notes || '').replace(/\s*\[TX:.*?\]\s*/g, ' ').trim();
 }
 
 /** Deja solo letras y números en mayúscula: "170.029-330 395" → "170029330395". */
@@ -48,6 +60,28 @@ export function digitsOnly(value: string) {
     return value.replace(/\D/g, '');
 }
 
+/**
+ * ¿Son el mismo número del cupón? Los ceros a la izquierda no cuentan: el ticket
+ * imprime "011" y la persona escribe "11", y es el mismo lote.
+ */
+export function sameVoucherNumber(a?: string | null, b?: string | null) {
+    const na = normalizeRef(a || '').replace(/^0+/, '');
+    const nb = normalizeRef(b || '').replace(/^0+/, '');
+    if (!na || !nb) return false;
+    return na === nb;
+}
+
+/**
+ * Identificadores lo bastante largos como para etiquetar un pago y buscar
+ * duplicados con ellos. Un nº de lote ("011") o de cupón ("0172") se repite todos
+ * los días en cualquier terminal: usarlos para detectar duplicados sería fabricar
+ * falsos positivos. Para los cobros presenciales, la clave es el trío completo
+ * (ver `cardVoucherKey` en payment-card.ts).
+ */
+export function strongIds(ids: string[]) {
+    return ids.filter(id => normalizeRef(id).length >= 8);
+}
+
 /** Une los identificadores de las dos lecturas sin repetir (comparando normalizado). */
 export function mergeIds(a: string[], b: string[]): string[] {
     const seen = new Set<string>();
@@ -77,7 +111,10 @@ export function collectReferenceIds(extracted: any): string[] {
         if (typeof value !== 'string') continue;
         const id = value.trim();
         const key = normalizeRef(id);
-        if (key.length < 5 || seen.has(key)) continue;
+        // Se aceptan números cortos (un nº de lote es "011") porque el vendedor
+        // puede haber tipeado cualquiera de ellos como referencia; lo que NO se
+        // hace con los cortos es buscar duplicados (ver `strongIds`).
+        if (key.length < 3 || seen.has(key)) continue;
         seen.add(key);
         ids.push(id);
     }
@@ -96,7 +133,11 @@ export function crossCheckReadings(primary: ReceiptReading, supervisor: ReceiptR
 
     if (!supervisor) {
         disagreements.push('El segundo lector OCR no pudo leer el comprobante: se revisó con una sola lectura y no se le reclamó nada a nadie.');
-        return { values: { amount: null, cuit: null, date: null, ids }, disagreements, bothListedIds: false };
+        return {
+            values: { amount: null, cuit: null, date: null, ids, batchNumber: null, couponNumber: null, authNumber: null },
+            disagreements,
+            bothListedIds: false
+        };
     }
 
     let amount: number | null = null;
@@ -128,8 +169,26 @@ export function crossCheckReadings(primary: ReceiptReading, supervisor: ReceiptR
         }
     }
 
+    // Datos del cupón: solo valen si los dos lectores leyeron el mismo número.
+    const voucherField = (campo: 'batchNumber' | 'couponNumber' | 'authNumber', etiqueta: string) => {
+        const a = primary[campo];
+        const b = supervisor[campo];
+        if (!a || !b) return null;
+        if (sameVoucherNumber(a, b)) return a;
+        disagreements.push(`Los dos lectores leyeron distinto el ${etiqueta} del ticket (${a} vs ${b}): no se auditó ese dato.`);
+        return null;
+    };
+
     return {
-        values: { amount, cuit, date, ids },
+        values: {
+            amount,
+            cuit,
+            date,
+            ids,
+            batchNumber: voucherField('batchNumber', 'nº de lote'),
+            couponNumber: voucherField('couponNumber', 'nº de cupón'),
+            authNumber: voucherField('authNumber', 'nº de autorización')
+        },
         disagreements,
         bothListedIds: primary.ids.length > 0 && supervisor.ids.length > 0
     };
@@ -140,7 +199,10 @@ const CAMPOS_JSON = `{
   "cuit": "el CUIT o CUIL del DESTINATARIO (el que cobra, no el que paga), sin guiones. Si no aparece o no se lee con claridad, null",
   "date": "fecha del pago en formato YYYY-MM-DD. Si no aparece o no se lee con claridad, null",
   "transaction_id": "el identificador principal: el Número de operación si aparece, si no el número de transferencia o comprobante. Si no hay, null",
-  "reference_ids": ["TODOS los identificadores que figuran en el comprobante, uno por elemento, transcriptos tal cual: número de operación, código de identificación, número de comprobante, ID de transacción, código de autorización. Un mismo comprobante suele traer DOS o MÁS y hay que listarlos todos. NO incluyas CBU, CVU, alias, CUIT/CUIL, importes, fechas ni números de tarjeta. Si no hay ninguno, []"]
+  "reference_ids": ["TODOS los identificadores que figuran en el comprobante, uno por elemento, transcriptos tal cual: número de operación, código de identificación, número de comprobante, ID de transacción, número de lote, número de cupón y número/código de autorización. Un mismo comprobante suele traer DOS o MÁS y hay que listarlos todos. NO incluyas CBU, CVU, alias, CUIT/CUIL, número de establecimiento o terminal, importes, fechas ni números de tarjeta. Si no hay ninguno, []"],
+  "batch_number": "si es un ticket de posnet, el Nro. de lote transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"011\\"). Si no aparece, null",
+  "coupon_number": "si es un ticket de posnet, el Nro. de cupón transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"0172\\"). Si no aparece, null",
+  "auth_number": "si es un ticket de posnet, el Nro. de autorización transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"007956\\"). Si no aparece, null"
 }`;
 
 /**

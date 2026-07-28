@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { PricingService } from '@/services/PricingService';
 import FileDropZone from '@/components/ui/FileDropZone';
+import { isCardMethod, type CardMode } from '@/lib/payment-card';
 
 interface AddPaymentModalProps {
     orderId: string;
@@ -87,6 +88,12 @@ export default function AddPaymentModal({
     const [amount, setAmount] = useState('');
     const [method, setMethod] = useState('EFECTIVO');
     const [reference, setReference] = useState('');
+    // Voucher de tarjeta: el ticket del posnet y el comprobante del link de pago
+    // traen datos distintos, así que primero se elige cuál de los dos es.
+    const [cardMode, setCardMode] = useState<CardMode>('PRESENCIAL');
+    const [batchNumber, setBatchNumber] = useState('');
+    const [couponNumber, setCouponNumber] = useState('');
+    const [authNumber, setAuthNumber] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -134,6 +141,8 @@ export default function AddPaymentModal({
 
     const isCashMethod = method === 'CASH' || method === 'EFECTIVO';
     const requiresReceipt = !isCashMethod;
+    const isCard = isCardMethod(method);
+    const isPresencial = isCard && cardMode === 'PRESENCIAL';
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -142,7 +151,14 @@ export default function AddPaymentModal({
             return;
         }
 
-        if (!isCashMethod && !reference.trim()) {
+        // En un ticket de posnet no hay "nº de comprobante": lo que identifica el
+        // cobro es el cupón + la autorización.
+        if (isPresencial) {
+            if (!couponNumber.trim() || !authNumber.trim()) {
+                setError('Cargá el Nro. de cupón y el Nro. de autorización que figuran en el ticket del posnet');
+                return;
+            }
+        } else if (!isCashMethod && !reference.trim()) {
             setError('Es obligatorio ingresar el Nro. de Comprobante / Referencia para métodos electrónicos');
             return;
         }
@@ -199,7 +215,13 @@ export default function AddPaymentModal({
                     method,
                     notes: reference.trim() || undefined,
                     date: new Date(date).toISOString(),
-                    receiptUrl
+                    receiptUrl,
+                    ...(isCard ? {
+                        cardMode,
+                        batchNumber: isPresencial ? batchNumber.trim() || undefined : undefined,
+                        couponNumber: isPresencial ? couponNumber.trim() || undefined : undefined,
+                        authNumber: isPresencial ? authNumber.trim() || undefined : undefined
+                    } : {})
                 })
             });
 
@@ -330,6 +352,80 @@ export default function AddPaymentModal({
                         </div>
                     )}
 
+                    {/* Cómo se cobró con la tarjeta: el comprobante es distinto en cada caso */}
+                    {isCard && (
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
+                                ¿Cómo se cobró?
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                {([
+                                    { id: 'PRESENCIAL' as CardMode, label: 'Presencial (posnet)', hint: 'Ticket con lote y cupón' },
+                                    { id: 'LINK' as CardMode, label: 'Link de pago', hint: 'Comprobante con nº de operación' }
+                                ]).map((opt) => {
+                                    const isSelected = cardMode === opt.id;
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            onClick={() => setCardMode(opt.id)}
+                                            className={`flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all ${
+                                                isSelected
+                                                    ? 'bg-stone-900 border-stone-900 text-white dark:bg-white dark:border-white dark:text-stone-900 shadow-lg'
+                                                    : 'bg-stone-50 dark:bg-stone-900/40 border-stone-100 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:border-stone-300'
+                                            }`}
+                                        >
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-center">{opt.label}</span>
+                                            <span className={`text-[8px] font-bold ${isSelected ? 'opacity-70' : 'text-stone-400'}`}>{opt.hint}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Datos del cupón del posnet */}
+                    {isPresencial && (
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="space-y-2">
+                                <label htmlFor="payment-batch" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Lote</label>
+                                <input
+                                    id="payment-batch"
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={batchNumber}
+                                    onChange={(e) => setBatchNumber(e.target.value)}
+                                    placeholder="011"
+                                    className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="payment-coupon" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Cupón <span className="text-red-400">*</span></label>
+                                <input
+                                    id="payment-coupon"
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={couponNumber}
+                                    onChange={(e) => setCouponNumber(e.target.value)}
+                                    placeholder="0172"
+                                    className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="payment-auth" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Autorización <span className="text-red-400">*</span></label>
+                                <input
+                                    id="payment-auth"
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={authNumber}
+                                    onChange={(e) => setAuthNumber(e.target.value)}
+                                    placeholder="007956"
+                                    className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Fecha y Referencia */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -342,12 +438,14 @@ export default function AddPaymentModal({
                             />
                         </div>
                         <div className="space-y-2">
-                            <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Referencia {method !== 'CASH' && <span className="text-red-400">*</span>}</label>
+                            <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
+                                Referencia {!isCashMethod && !isPresencial && <span className="text-red-400">*</span>}
+                            </label>
                             <input
                                 type="text"
                                 value={reference}
                                 onChange={(e) => setReference(e.target.value)}
-                                placeholder={method !== 'CASH' ? "Obligatorio: N° Comprobante" : "N° Comprobante, etc"}
+                                placeholder={isPresencial ? 'Opcional' : !isCashMethod ? 'Obligatorio: N° Comprobante' : 'N° Comprobante, etc'}
                                 className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                             />
                         </div>
@@ -375,6 +473,12 @@ export default function AddPaymentModal({
                                         if (data.amount != null) setAmount(data.amount.toString());
                                         if (data.reference != null) setReference(data.reference);
                                         if (data.date != null) setDate(data.date);
+                                        // Datos del cupón: si el ticket trae lote/cupón, es un cobro presencial
+                                        if (data.card_mode === 'PRESENCIAL' || data.card_mode === 'LINK') setCardMode(data.card_mode);
+                                        else if (data.coupon_number || data.batch_number) setCardMode('PRESENCIAL');
+                                        if (data.batch_number != null) setBatchNumber(String(data.batch_number));
+                                        if (data.coupon_number != null) setCouponNumber(String(data.coupon_number));
+                                        if (data.auth_number != null) setAuthNumber(String(data.auth_number));
                                         // Auto-select method based on OCR
                                         if (data.is_mypime_6) {
                                             if (data.payway_owner === 'ISHTAR') setMethod('PAY_WAY_6_ISH');

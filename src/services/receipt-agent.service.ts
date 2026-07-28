@@ -59,9 +59,13 @@ import {
     readerSystemPrompt,
     readerUserPrompt,
     referencesMatch,
+    sameVoucherNumber,
+    stripTxTags,
+    strongIds,
     verifierSystemPrompt,
     type ReceiptReading
 } from '@/lib/receipt-references';
+import { cardVoucherKey } from '@/lib/payment-card';
 
 export class ReceiptAgentService {
     private static visionModel() {
@@ -117,11 +121,15 @@ export class ReceiptAgentService {
             const amount = typeof parsed.amount === 'number'
                 ? parsed.amount
                 : (typeof parsed.amount === 'string' && parsed.amount.trim() ? Number(parsed.amount) : null);
+            const texto = (v: any) => (typeof v === 'string' && v.trim() ? v.trim() : typeof v === 'number' ? String(v) : null);
             return {
                 amount: amount != null && Number.isFinite(amount) ? amount : null,
                 cuit: typeof parsed.cuit === 'string' && parsed.cuit.trim() ? parsed.cuit.trim() : null,
                 date: typeof parsed.date === 'string' && parsed.date.trim() ? parsed.date.trim() : null,
-                ids: collectReferenceIds(parsed)
+                ids: collectReferenceIds(parsed),
+                batchNumber: texto(parsed.batch_number),
+                couponNumber: texto(parsed.coupon_number),
+                authNumber: texto(parsed.auth_number)
             };
         } catch (e) {
             console.error(`[ReceiptAgent] No se pudo parsear el JSON del lector ${role}:`, e, text);
@@ -286,19 +294,44 @@ export class ReceiptAgentService {
             // cualquiera de ellos y estar en lo correcto, así que se compara contra
             // todos y se etiquetan todos para el chequeo de duplicados.
             const extractedIds = extracted.ids;
+
+            // Fetch current payment to compare what the vendor loaded vs. the receipt
+            const currentPayment = await prisma.payment.findUnique({
+                where: { id: paymentId },
+                select: { notes: true, cardMode: true, batchNumber: true, couponNumber: true, authNumber: true }
+            });
+
+            // C bis) Cupón de posnet: cada número cargado se compara con el que
+            // leyeron los dos lectores. Los ceros a la izquierda no cuentan.
+            const camposCupon: { campo: 'batchNumber' | 'couponNumber' | 'authNumber'; etiqueta: string }[] = [
+                { campo: 'batchNumber', etiqueta: 'lote' },
+                { campo: 'couponNumber', etiqueta: 'cupón' },
+                { campo: 'authNumber', etiqueta: 'autorización' }
+            ];
+            for (const { campo, etiqueta } of camposCupon) {
+                const cargado = currentPayment?.[campo];
+                const enTicket = extracted[campo];
+                if (!cargado || !enTicket) continue; // sin acuerdo de los dos lectores no se audita
+                if (!sameVoucherNumber(cargado, enTicket)) {
+                    errors.push(`Nº de ${etiqueta} distinto: se cargó "${cargado}" y en el ticket dice "${enTicket}".`);
+                    vendorIssues.push(`El nº de ${etiqueta} no me coincide: cargaron "${cargado}" y en el ticket veo "${enTicket}".`);
+                }
+            }
+
             if (extractedIds.length > 0) {
                 const extractedTx = extractedIds[0];
-                const tags = extractedIds.map(id => `[TX: ${id}]`).join(' ');
 
-                // Fetch current payment to compare the user-typed notes vs. AI-extracted IDs
-                const currentPayment = await prisma.payment.findUnique({
-                    where: { id: paymentId },
-                    select: { notes: true }
-                });
+                // Para buscar duplicados solo sirven los identificadores largos: un
+                // nº de lote o de cupón se repite todos los días. En los cobros
+                // presenciales la clave es el trío lote+cupón+autorización.
+                const voucherKey = cardVoucherKey(currentPayment);
+                const dedupIds = [...strongIds(extractedIds), ...(voucherKey ? [voucherKey] : [])];
+                const tags = dedupIds.map(id => `[TX: ${id}]`).join(' ');
+
                 const userTypedNotes = (currentPayment?.notes || '').trim();
 
                 // Strip any previous [TX: ...] tag from notes for clean comparison
-                const userReference = userTypedNotes.replace(/\s*\[TX:.*?\]\s*/g, '').trim();
+                const userReference = stripTxTags(userTypedNotes);
 
                 const referenceMatchesExtracted = extractedIds.some(id => referencesMatch(userReference, id));
 
@@ -314,17 +347,18 @@ export class ReceiptAgentService {
 
                 // La referencia tipeada se conserva siempre; los [TX: ...] se agregan
                 // al final solo para el rastreo de duplicados.
+                const nuevasNotas = [userReference, tags].filter(Boolean).join(' ').trim();
                 await prisma.payment.update({
                     where: { id: paymentId },
-                    data: { notes: userReference ? `${userReference} ${tags}` : tags },
+                    data: { notes: nuevasNotas || null },
                     select: { id: true }
                 });
 
                 // Check for duplicate transactions across other payments
-                const duplicates = await prisma.payment.findMany({
+                const duplicates = dedupIds.length === 0 ? [] : await prisma.payment.findMany({
                     where: {
                         id: { not: paymentId },
-                        OR: extractedIds.map(id => ({ notes: { contains: `[TX: ${id}]` } }))
+                        OR: dedupIds.map(id => ({ notes: { contains: `[TX: ${id}]` } }))
                     },
                     select: {
                         id: true,

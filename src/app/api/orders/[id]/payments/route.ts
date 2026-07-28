@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
 import { getActor } from '@/lib/actor';
+import { isCardMethod } from '@/lib/payment-card';
 import { z } from 'zod';
 
 const PaymentSchema = z.object({
@@ -9,6 +10,12 @@ const PaymentSchema = z.object({
     notes: z.string().nullable().optional(),
     receiptUrl: z.string().nullable().optional(),
     date: z.string().nullable().optional(),
+    // Voucher de tarjeta: presencial trae lote/cupón/autorización, el link de
+    // pago trae el nº de operación en `notes`.
+    cardMode: z.enum(['PRESENCIAL', 'LINK']).nullable().optional(),
+    batchNumber: z.string().nullable().optional(),
+    couponNumber: z.string().nullable().optional(),
+    authNumber: z.string().nullable().optional(),
 });
 
 export const dynamic = 'force-dynamic';
@@ -29,13 +36,22 @@ export async function POST(
             }, { status: 400 });
         }
 
-        const { amount, method, notes, receiptUrl, date } = validation.data;
+        const { amount, method, notes, receiptUrl, date, cardMode, batchNumber, couponNumber, authNumber } = validation.data;
 
         // Validation: Non-cash payments MUST include a receipt photo
         const isCash = method === 'EFECTIVO' || method === 'CASH';
         if (!isCash && !receiptUrl) {
             return NextResponse.json({
                 error: 'Para métodos electrónicos (transferencia, tarjeta, etc.) es obligatorio cargar la foto del comprobante.'
+            }, { status: 400 });
+        }
+
+        // Un cobro presencial con tarjeta sin cupón ni autorización no se puede
+        // cruzar después contra la liquidación: se exigen acá también, no solo
+        // en la pantalla.
+        if (isCardMethod(method) && cardMode === 'PRESENCIAL' && (!couponNumber?.trim() || !authNumber?.trim())) {
+            return NextResponse.json({
+                error: 'En un cobro presencial con tarjeta hay que cargar el Nro. de cupón y el Nro. de autorización que figuran en el ticket.'
             }, { status: 400 });
         }
 
@@ -47,6 +63,12 @@ export async function POST(
             notes ?? undefined,
             receiptUrl ?? undefined,
             date ?? undefined,
+            isCardMethod(method) ? {
+                cardMode: cardMode ?? null,
+                batchNumber: batchNumber?.trim() || null,
+                couponNumber: couponNumber?.trim() || null,
+                authNumber: authNumber?.trim() || null
+            } : undefined,
             getActor(request)
         );
 

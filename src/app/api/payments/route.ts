@@ -84,7 +84,7 @@ export async function POST(request: Request) {
             }
         }
 
-        const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl, date, getActor(request));
+        const result = await ContactService.addPayment(orderId, amount, method, notes, receiptUrl, date, undefined, getActor(request));
         return NextResponse.json(result);
     } catch (error: any) {
         console.error('Error creating payment:', error);

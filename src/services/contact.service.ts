@@ -10,6 +10,7 @@ import type { Actor } from '@/lib/actor';
 import { notifyDirectedNote } from '@/lib/note-notify';
 import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
 import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
+import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/lib/payment-card';
 import { calculateEstimatedDays } from '@/lib/business-days';
 
 
@@ -1619,7 +1620,7 @@ export const ContactService = {
         return deleted;
     },
 
-    async addPayment(orderId: string, amount: number, method: string, notes?: string, receiptUrl?: string, date?: Date | string, actor?: Actor) {
+    async addPayment(orderId: string, amount: number, method: string, notes?: string, receiptUrl?: string, date?: Date | string, card?: CardVoucherDetails, actor?: Actor) {
         // Nombre del vendedor que carga el pago — viaja a la ficha, los emails y el AuditLog
         const actorName = actor?.name || 'Sistema';
         return await prisma.$transaction(async (tx) => {
@@ -1747,10 +1748,50 @@ export const ContactService = {
                 }
             }
 
+            // 2 bis. Mismo cupón de tarjeta ya cargado: lote + cupón + autorización
+            // identifican un cobro presencial sin ambigüedad. Se avisa, no se
+            // bloquea (el sistema audita, decide una persona).
+            const voucherKey = cardVoucherKey(card);
+            let voucherTwin: { id: string; orderId: string } | null = null;
+            if (voucherKey && card) {
+                voucherTwin = await tx.payment.findFirst({
+                    where: {
+                        batchNumber: card.batchNumber || null,
+                        couponNumber: card.couponNumber || null,
+                        authNumber: card.authNumber || null,
+                        NOT: { authNumber: null }
+                    },
+                    select: { id: true, orderId: true }
+                });
+
+                if (voucherTwin) {
+                    const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
+                    const warningMsg = `⚠️ CUPÓN REPETIDO: el cobro de $${amount.toLocaleString('es-AR')} de ${clientName} tiene el mismo cupón de tarjeta (${describeCardVoucher(card)}) que un pago ya cargado en la venta #${voucherTwin.orderId.slice(-4).toUpperCase()}.\n\n🧑 Cargado por: ${actorName}`;
+
+                    await tx.notification.create({
+                        data: {
+                            type: 'RECEIPT_ERROR',
+                            message: warningMsg,
+                            orderId: orderId,
+                            requestedBy: actorName,
+                            status: 'PENDING'
+                        }
+                    });
+
+                    import('@/lib/email').then(({ sendEmail }) => {
+                        sendEmail({
+                            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                            subject: '⚠️ Alerta: cupón de tarjeta repetido',
+                            text: warningMsg
+                        });
+                    }).catch(console.error);
+                }
+            }
+
             // 3. Check for Duplicate amount and method for the SAME CLIENT
             // Excepción: Si el vendedor escribe "DIVIDIDO" o "COMPARTIDO" en la nota, se permite (pago dividido en varios pedidos).
             const isSplitPayment = notes && (notes.toUpperCase().includes('DIVIDIDO') || notes.toUpperCase().includes('COMPARTIDO'));
-            
+
             let duplicateAmountMethod = null;
             if (!isSplitPayment) {
                 const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -1769,6 +1810,16 @@ export const ContactService = {
                         order: true
                     }
                 });
+            }
+
+            // Dos cobros del mismo monto y método al mismo cliente NO son el mismo
+            // cobro si los cupones son distintos: ahí hay evidencia dura de que son
+            // dos operaciones y bloquear sería frenar una venta legítima.
+            if (duplicateAmountMethod && voucherKey) {
+                const otroCupon = cardVoucherKey(duplicateAmountMethod);
+                if (otroCupon && otroCupon !== voucherKey) {
+                    duplicateAmountMethod = null;
+                }
             }
 
             if (duplicateAmountMethod) {
@@ -1802,6 +1853,10 @@ export const ContactService = {
                     method,
                     notes,
                     receiptUrl,
+                    cardMode: card?.cardMode || null,
+                    batchNumber: card?.batchNumber || null,
+                    couponNumber: card?.couponNumber || null,
+                    authNumber: card?.authNumber || null,
                     createdById: actor?.id || null,
                     createdByName: actorName,
                     ...(fechaPedida && !fechaDescartada ? { date: fechaPedida } : {})
@@ -1851,7 +1906,7 @@ export const ContactService = {
                 data: {
                     clientId: order.clientId,
                     type: 'SISTEMA',
-                    content: `💰 ${actorName} registró un pago por $${amount.toLocaleString('es-AR')} (${method}).${notes ? ` Ref: ${notes}` : ''}`,
+                    content: `💰 ${actorName} registró un pago por $${amount.toLocaleString('es-AR')} (${method}).${notes ? ` Ref: ${notes}` : ''}${describeCardVoucher(card) ? ` ${describeCardVoucher(card)}` : ''}`,
                     userId: actor?.id || null,
                     userName: actorName
                 }
