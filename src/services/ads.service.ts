@@ -91,31 +91,43 @@ export class AdsService {
       if (opts.eventId) event.event_id = opts.eventId;
       if (opts.eventSourceUrl) event.event_source_url = opts.eventSourceUrl;
 
-      // v24.0: la Marketing API rechaza versiones viejas desde jun-2026 (#2635).
-      const apiUrl = `https://graph.facebook.com/v24.0/${pixelId}/events`;
-
-      // Enviamos el request de forma asíncrona sin bloquear
-      fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: [event], access_token: metaToken }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.error) {
-            console.error('[AdsService] Meta CAPI Error:', data.error);
-          } else {
-            console.log(
-              `[AdsService] Conversión ${actionSource} enviada a Meta. Eventos procesados: ${data.events_received}`,
-            );
-          }
-        })
-        .catch((error) => {
-          console.error('[AdsService] Excepción enviando a Meta CAPI:', error);
-        });
+      this.postToMeta(event, `Conversión ${actionSource}`);
     } catch (err) {
       console.error('[AdsService] Error general preparando evento CAPI:', err);
     }
+  }
+
+  /**
+   * Transporte al Conversions API. Fire-and-forget: no se `await`-ea nunca desde
+   * una ruta de venta ni de medición.
+   */
+  private static postToMeta(event: Record<string, unknown>, label: string) {
+    const metaToken = process.env.META_ACCESS_TOKEN;
+    const pixelId = process.env.META_PIXEL_ID;
+    if (!metaToken || !pixelId) return;
+
+    // v24.0: la Marketing API rechaza versiones viejas desde jun-2026 (#2635).
+    const apiUrl = `https://graph.facebook.com/v24.0/${pixelId}/events`;
+
+    // Enviamos el request de forma asíncrona sin bloquear
+    fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: [event], access_token: metaToken }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.error) {
+          console.error('[AdsService] Meta CAPI Error:', data.error);
+        } else {
+          console.log(
+            `[AdsService] ${label} enviada a Meta. Eventos procesados: ${data.events_received}`,
+          );
+        }
+      })
+      .catch((error) => {
+        console.error('[AdsService] Excepción enviando a Meta CAPI:', error);
+      });
   }
 
   /**
@@ -139,5 +151,70 @@ export class AdsService {
       eventSourceUrl: opts.eventSourceUrl,
       matchData: opts.matchData,
     });
+  }
+
+  /**
+   * Evento de embudo (ViewContent / AddToCart / InitiateCheckout) por CAPI.
+   *
+   * Por qué también server-side y no solo con el Pixel: el navegador pierde
+   * eventos por adblock, iOS/ITP y pestañas que se cierran antes de que dispare
+   * el script. El server manda siempre, y `eventId` (el mismo que usó el Pixel)
+   * hace que Meta cuente UNO solo cuando llegan los dos.
+   *
+   * No lleva email ni teléfono: en el embudo previo a la compra todavía no hay
+   * datos del cliente. El matching se apoya en fbp/fbc + IP + user-agent.
+   */
+  public static async sendWebFunnelEvent(
+    eventName: 'ViewContent' | 'AddToCart' | 'InitiateCheckout',
+    opts: {
+      eventId?: string;
+      eventSourceUrl?: string;
+      matchData?: MatchData;
+      value?: number | null;
+      contentIds?: string[];
+      contentName?: string | null;
+      numItems?: number | null;
+      eventTime?: Date;
+    } = {},
+  ) {
+    const metaToken = process.env.META_ACCESS_TOKEN;
+    const pixelId = process.env.META_PIXEL_ID;
+    if (!metaToken || !pixelId) return;
+
+    try {
+      const match = opts.matchData;
+      const userData: any = {};
+      if (match?.fbc) userData.fbc = match.fbc;
+      if (match?.fbp) userData.fbp = match.fbp;
+      if (match?.clientIp) userData.client_ip_address = match.clientIp;
+      if (match?.userAgent) userData.client_user_agent = match.userAgent;
+
+      // Sin ninguna señal del navegador el evento no matchea con nadie: Meta lo
+      // recibe y lo descarta. Preferimos no mandarlo antes que ensuciar el pixel.
+      if (!Object.keys(userData).length) return;
+
+      const customData: any = { currency: 'ARS' };
+      if (typeof opts.value === 'number' && opts.value > 0) customData.value = opts.value;
+      if (opts.contentIds?.length) {
+        customData.content_ids = opts.contentIds;
+        customData.content_type = 'product';
+      }
+      if (opts.contentName) customData.content_name = opts.contentName;
+      if (typeof opts.numItems === 'number' && opts.numItems > 0) customData.num_items = opts.numItems;
+
+      const event: Record<string, unknown> = {
+        event_name: eventName,
+        event_time: Math.floor((opts.eventTime?.getTime() || Date.now()) / 1000),
+        action_source: 'website',
+        user_data: userData,
+        custom_data: customData,
+      };
+      if (opts.eventId) event.event_id = opts.eventId;
+      if (opts.eventSourceUrl) event.event_source_url = opts.eventSourceUrl;
+
+      this.postToMeta(event, eventName);
+    } catch (err) {
+      console.error('[AdsService] Error preparando evento de embudo CAPI:', err);
+    }
   }
 }

@@ -63,19 +63,60 @@ function googleCategory(category: string | null): string {
 }
 
 /**
+ * Título con el sustantivo por el que la gente busca adelante. El nombre de la
+ * tienda es una estrella ("Antares", "Vega") y la marca es "Cápsula Escarlata":
+ * los dos juntos no matchean NINGUNA búsqueda real, así que el título arranca
+ * por el tipo de producto y deja marca y modelo detrás (Google corta a 150).
+ */
+function feedTitle(brand: string, model: string, category: string | null): string {
+  const c = (category || '').toLowerCase();
+  const noun = c.includes('clip')
+    ? 'Armazón con clip-on de sol'
+    : c.includes('sol')
+      ? 'Anteojos de sol'
+      : 'Armazón para lentes recetados';
+  return `${noun} ${brand} ${model}`.trim().slice(0, 150);
+}
+
+/**
+ * Agrupa los colores de un mismo modelo ("Dionisio C2" y "Dionisio C3" son el
+ * mismo armazón). Sin esto las plataformas los tratan como productos sin relación
+ * y compiten entre ellos en la misma subasta.
+ */
+function itemGroupId(model: string, slug: string): string {
+  const base = model.replace(/\s*[-–]?\s*C\s*\d+\s*$/i, '').trim();
+  return (base || slug).toLowerCase().replace(/\s+/g, '-');
+}
+
+/**
+ * Género en el vocabulario de las plataformas. OJO: el dato de origen viene
+ * sucio (la auditoría del catálogo del 27/7 encontró ~40 fichas con el género
+ * mal cargado); esto lo traduce fielmente, no lo corrige.
+ */
+function feedGender(gender: string | null): string {
+  const g = (gender || '').toLowerCase();
+  if (g.startsWith('hombre') || g.startsWith('masc') || g === 'male') return 'male';
+  if (g.startsWith('mujer') || g.startsWith('fem') || g === 'female') return 'female';
+  return 'unisex';
+}
+
+/**
  * Descripción con las palabras que la gente busca ("anteojos de sol",
  * "armazón para lentes recetados"): las plataformas matchean la consulta
  * contra el texto del ítem, así que un "— Sol." pelado desperdicia el espacio.
  */
-function describe(title: string, category: string | null): string {
+function describe(name: string, category: string | null): string {
   const c = (category || '').toLowerCase();
+  // Condiciones reales de la tienda: entran acá porque son parte de lo que la
+  // gente compara en el listado de Shopping, no solo en la ficha.
+  const promo = 'Envío gratis a todo el país, 6 cuotas sin interés y 15% off por transferencia.';
   if (c.includes('clip')) {
-    return `${title}: armazón para lentes recetados con clip-on de sol magnético. Óptica Atelier, Córdoba.`;
+    return `${name}: armazón para lentes recetados con clip-on de sol magnético. ${promo} Óptica Atelier, Córdoba.`;
   }
   if (c.includes('sol')) {
-    return `${title}: anteojos de sol con protección UV. Se pueden graduar con tu receta. Óptica Atelier, Córdoba.`;
+    return `${name}: anteojos de sol con protección UV. Se pueden graduar con tu receta. ${promo} Óptica Atelier, Córdoba.`;
   }
-  return `${title}: armazón para anteojos recetados. Cristales a medida (monofocales y multifocales). Óptica Atelier, Córdoba.`;
+  return `${name}: armazón para anteojos recetados. Cristales a medida (monofocales y multifocales). ${promo} Óptica Atelier, Córdoba.`;
 }
 
 /** Arma el XML completo del feed para la plataforma pedida. */
@@ -93,26 +134,39 @@ export async function buildProductFeed(platform: FeedPlatform): Promise<string> 
       const img = feedImage(p.imagenesCatalogo);
       if (!img) continue;
 
-      const title = `${p.brand} ${p.model}`.trim();
+      const name = `${p.brand} ${p.model}`.trim();
+      const title = feedTitle(p.brand, p.model, p.category);
       const link = `${APP_URL}/producto/${p.slug}`;
       const available = (p.stock ?? 0) > 0 ? cfg.inStock : cfg.outOfStock;
       const hasSale = p.salePrice && p.salePrice > 0 && p.salePrice < p.price;
+      // El código de modelo del fabricante es el único identificador real que
+      // tenemos (no hay código de barras): con mpn + marca el producto deja de
+      // ser "sin identificar" y compite mejor.
+      const mpn = (p.modelCode || '').trim();
 
       items += `
     <item>
       <g:id>${esc(p.id)}</g:id>
       <g:title>${esc(title)}</g:title>
-      <g:description>${esc(describe(title, p.category))}</g:description>
+      <g:description>${esc(describe(name, p.category))}</g:description>
       <g:link>${esc(link)}</g:link>
       <g:image_link>${esc(img)}</g:image_link>
       <g:availability>${available}</g:availability>
       <g:price>${priceStr(p.price)}</g:price>${hasSale ? `
       <g:sale_price>${priceStr(p.salePrice as number)}</g:sale_price>` : ''}
       <g:brand>${esc(p.brand)}</g:brand>
-      <g:condition>new</g:condition>
-      <g:identifier_exists>false</g:identifier_exists>
+      <g:condition>new</g:condition>${mpn ? `
+      <g:mpn>${esc(mpn)}</g:mpn>` : ''}
+      <g:identifier_exists>${mpn ? 'true' : 'false'}</g:identifier_exists>
+      <g:item_group_id>${esc(itemGroupId(p.model, p.slug))}</g:item_group_id>
       <g:google_product_category>${googleCategory(p.category)}</g:google_product_category>
       <g:product_type>${esc(p.category || 'Anteojos')}</g:product_type>
+      <g:gender>${feedGender(p.gender)}</g:gender>
+      <g:age_group>adult</g:age_group>
+      <g:shipping>
+        <g:country>AR</g:country>
+        <g:price>0.00 ARS</g:price>
+      </g:shipping>
     </item>`;
     }
   } catch (err) {

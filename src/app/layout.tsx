@@ -96,7 +96,8 @@ export default function RootLayout({
               por qué no se leen con process.env del lado del cliente. */}
           <TrackingScripts
             gaId={process.env.NEXT_PUBLIC_GA_ID}
-            adsId={process.env.NEXT_PUBLIC_GOOGLE_ADS_TAG_ID}
+            adsId={process.env.NEXT_PUBLIC_GOOGLE_ADS_TAG_ID || process.env.GOOGLE_ADS_CONVERSION_ID}
+            adsPurchaseLabel={process.env.GOOGLE_ADS_CONVERSION_LABEL}
             pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID}
           />
           <AnalyticsTracker />

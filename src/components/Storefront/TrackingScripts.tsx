@@ -8,6 +8,14 @@ interface TrackingScriptsProps {
   gaId?: string;
   /** Etiqueta de Google Ads (G-/AW-XXXXXXXX) para medir conversiones de las campañas. Idem. */
   adsId?: string;
+  /**
+   * Etiqueta de la acción de conversión "Compra web" de Google Ads (la parte
+   * después de la barra en `AW-123456789/AbC-D_efGh`). Sin esto, Google Ads
+   * recibe pageviews pero NINGUNA compra: Shopping y PMax no pueden pujar por
+   * conversiones. Se saca de Google Ads → Objetivos → Conversiones → la acción
+   * → "Configurar la etiqueta" → "Instalar manualmente".
+   */
+  adsPurchaseLabel?: string;
   /** Píxel de Meta. Idem. */
   pixelId?: string;
 }
@@ -21,25 +29,44 @@ interface TrackingScriptsProps {
  * porque ningún archivo había cambiado. Leyéndolo en el servidor, alcanza con
  * reiniciar para que tome un valor nuevo.
  */
-export function TrackingScripts({ gaId, adsId, pixelId }: TrackingScriptsProps) {
+export function TrackingScripts({ gaId, adsId, adsPurchaseLabel, pixelId }: TrackingScriptsProps) {
   const GA_MEASUREMENT_ID = gaId || process.env.NEXT_PUBLIC_GA_ID;
   const GOOGLE_ADS_ID = adsId || process.env.NEXT_PUBLIC_GOOGLE_ADS_TAG_ID;
+  const GOOGLE_ADS_PURCHASE_LABEL =
+    adsPurchaseLabel || process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL;
   const META_PIXEL_ID = pixelId || process.env.NEXT_PUBLIC_META_PIXEL_ID;
   const consent = useConsent();
 
   // Las cookies de marketing (Pixel/GA/Ads) solo cargan con consentimiento explícito.
   // La analítica propia (sin cookies) va aparte y no depende de esto.
+  //
+  // Los Script van con strategy="afterInteractive", NO "lazyOnload": lazyOnload
+  // espera el evento `load` de la ventana, que en esta pantalla ya pasó cuando
+  // el visitante toca "Aceptar" — el evento no vuelve a dispararse y los scripts
+  // no se inyectaban nunca. Resultado: la visita entera en la que aceptaba se
+  // perdía (recién medía si recargaba la página).
   if (consent !== "granted") return null;
 
   // Un solo gtag.js alcanza para GA4 y Google Ads: se carga una vez con
   // cualquiera de los dos IDs y después se hace un gtag('config', …) por destino.
   const primaryGtagId = GA_MEASUREMENT_ID || GOOGLE_ADS_ID;
+  // El destino de la conversión de compra queda colgado de window para que
+  // trackPurchase() lo use sin volver a leer env del lado del cliente (mismo
+  // motivo que los IDs: se resuelven en el servidor). Solo se publica si hay
+  // etiqueta AW- Y label: un `send_to` a medias no registra nada en Google Ads.
+  const purchaseSendTo =
+    GOOGLE_ADS_ID && GOOGLE_ADS_ID.startsWith("AW-") && GOOGLE_ADS_PURCHASE_LABEL
+      ? `${GOOGLE_ADS_ID}/${GOOGLE_ADS_PURCHASE_LABEL}`
+      : null;
   const gtagInit = [
     "window.dataLayer = window.dataLayer || [];",
     "function gtag(){window.dataLayer.push(arguments);}",
     "gtag('js', new Date());",
     GA_MEASUREMENT_ID ? `gtag('config', '${GA_MEASUREMENT_ID}');` : null,
     GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}');` : null,
+    purchaseSendTo
+      ? `window.__ateAdsConversions = { purchase: '${purchaseSendTo}' };`
+      : null,
   ]
     .filter(Boolean)
     .join("\n");
@@ -51,9 +78,9 @@ export function TrackingScripts({ gaId, adsId, pixelId }: TrackingScriptsProps) 
         <>
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${primaryGtagId}`}
-            strategy="lazyOnload"
+            strategy="afterInteractive"
           />
-          <Script id="google-gtag" strategy="lazyOnload">
+          <Script id="google-gtag" strategy="afterInteractive">
             {gtagInit}
           </Script>
         </>
@@ -61,7 +88,7 @@ export function TrackingScripts({ gaId, adsId, pixelId }: TrackingScriptsProps) 
 
       {/* Meta Pixel */}
       {META_PIXEL_ID && (
-        <Script id="meta-pixel" strategy="lazyOnload">
+        <Script id="meta-pixel" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s)
             {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
