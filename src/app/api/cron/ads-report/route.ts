@@ -122,9 +122,13 @@ interface TagRoas {
   tag: string;
   gasto: number;
   chats: number;
-  compraron: number;
-  ventas: number;
-  facturado: number;
+  /** Clientes que recibieron al menos un presupuesto (orden en cualquier estado no borrado). */
+  presupuestados: number;
+  presupuestado: number;
+  /** Clientes con al menos una venta REAL: plata cobrada o pedido en laboratorio. */
+  cierres: number;
+  facturadoReal: number;
+  cobrado: number;
 }
 
 /**
@@ -187,19 +191,38 @@ async function roasPorAnuncio(desde: Date, hasta: Date, rate: number): Promise<T
   }
 
   const ids = [...new Set([...porTag.values()].flatMap((g) => [...g.clientes]))];
-  const ventas = ids.length
+  // Órdenes vivas del período. OJO: acá conviven dos cosas MUY distintas —
+  // presupuestos (PDF que manda el bot/vendedora, sin plata) y ventas reales.
+  // Auditoría 28/7: contar Order.total a secas infló el "ROAS" contando
+  // presupuestos LOST y PENDING sin un peso como facturación.
+  const ordenes = ids.length
     ? await prisma.order.findMany({
-        where: { clientId: { in: ids }, createdAt: { gte: desde, lt: hasta } },
-        select: { clientId: true, total: true },
+        where: { clientId: { in: ids }, createdAt: { gte: desde, lt: hasta }, isDeleted: false },
+        select: {
+          clientId: true,
+          total: true,
+          paid: true,
+          labStatus: true,
+          status: true,
+          payments: { select: { amount: true } },
+        },
       })
     : [];
 
-  const porCliente = new Map<string, { n: number; monto: number }>();
-  for (const v of ventas) {
+  const porCliente = new Map<string, { presupuesto: number; real: number; cobrado: number }>();
+  for (const v of ordenes) {
     if (!v.clientId) continue;
-    const p = porCliente.get(v.clientId) || { n: 0, monto: 0 };
-    p.n++;
-    p.monto += Number(v.total || 0);
+    const p = porCliente.get(v.clientId) || { presupuesto: 0, real: 0, cobrado: 0 };
+    p.presupuesto += Number(v.total || 0);
+    const cobrado =
+      v.payments.reduce((s, pay) => s + Number(pay.amount || 0), 0) || Number(v.paid || 0);
+    const esVentaReal =
+      !['LOST', 'CANCELED'].includes(v.status || '') &&
+      (cobrado > 0 || (v.labStatus && v.labStatus !== 'NONE'));
+    if (esVentaReal) {
+      p.real += Number(v.total || 0);
+      p.cobrado += cobrado;
+    }
     porCliente.set(v.clientId, p);
   }
 
@@ -207,19 +230,23 @@ async function roasPorAnuncio(desde: Date, hasta: Date, rate: number): Promise<T
   const filas: TagRoas[] = [];
   for (const tag of tags) {
     const g = porTag.get(tag);
-    let compraron = 0, ventasN = 0, facturado = 0;
+    let presupuestados = 0, presupuestado = 0, cierres = 0, facturadoReal = 0, cobrado = 0;
     for (const cid of g?.clientes || []) {
       const v = porCliente.get(cid);
-      if (v) { compraron++; ventasN += v.n; facturado += v.monto; }
+      if (!v) continue;
+      if (v.presupuesto > 0) { presupuestados++; presupuestado += v.presupuesto; }
+      if (v.real > 0 || v.cobrado > 0) { cierres++; facturadoReal += v.real; cobrado += v.cobrado; }
     }
     filas.push({
       tag,
       gasto: gasto.get(tag)?.gasto || 0,
       chats: g?.chats || 0,
-      compraron, ventas: ventasN, facturado,
+      presupuestados, presupuestado, cierres, facturadoReal, cobrado,
     });
   }
-  return filas.filter((f) => f.gasto > 0 || f.facturado > 0).sort((a, b) => b.facturado - a.facturado);
+  return filas
+    .filter((f) => f.gasto > 0 || f.presupuestado > 0 || f.facturadoReal > 0)
+    .sort((a, b) => b.facturadoReal - a.facturadoReal || b.presupuestado - a.presupuestado);
 }
 
 export async function GET(request: Request) {
@@ -302,10 +329,19 @@ export async function GET(request: Request) {
       .join('');
     const unattributed = crmWeek.get('(sin atribución)');
 
-    // Tabla de retorno real: qué facturó cada anuncio contra lo que costó.
+    // Tabla de retorno real: presupuestos ≠ ventas. Solo cuenta como venta lo
+    // que tiene plata cobrada o pedido en laboratorio (auditoría 28/7).
     const roasTotal = roas.reduce(
-      (a, f) => ({ gasto: a.gasto + f.gasto, chats: a.chats + f.chats, compraron: a.compraron + f.compraron, facturado: a.facturado + f.facturado }),
-      { gasto: 0, chats: 0, compraron: 0, facturado: 0 },
+      (a, f) => ({
+        gasto: a.gasto + f.gasto,
+        chats: a.chats + f.chats,
+        presupuestados: a.presupuestados + f.presupuestados,
+        presupuestado: a.presupuestado + f.presupuestado,
+        cierres: a.cierres + f.cierres,
+        facturadoReal: a.facturadoReal + f.facturadoReal,
+        cobrado: a.cobrado + f.cobrado,
+      }),
+      { gasto: 0, chats: 0, presupuestados: 0, presupuestado: 0, cierres: 0, facturadoReal: 0, cobrado: 0 },
     );
     const roasHtml = roas.length
       ? `
@@ -315,21 +351,23 @@ export async function GET(request: Request) {
             <th style="text-align:left;padding:5px 4px;font-size:11px;text-transform:uppercase;">Anuncio</th>
             <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Costó</th>
             <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Chats</th>
-            <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Clientes</th>
-            <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Facturó</th>
+            <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Presup.</th>
+            <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Cierres</th>
+            <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">Vendió</th>
             <th style="text-align:right;padding:5px 4px;font-size:11px;text-transform:uppercase;">×</th>
           </tr>
           ${roas
             .map((f) => {
-              const x = f.gasto > 0 ? f.facturado / f.gasto : null;
+              const x = f.gasto > 0 && f.facturadoReal > 0 ? f.facturadoReal / f.gasto : null;
               const alerta = f.gasto > 0 && f.chats === 0;
               return `<tr style="border-bottom:1px dotted #f0eae4;${alerta ? 'background:#fdf6ec;' : ''}">
             <td style="padding:6px 4px;font-size:12px;font-weight:600;color:#433831;">${f.tag}${alerta ? ' ⚠️' : ''}</td>
             <td style="padding:6px 4px;text-align:right;font-size:12px;color:#706359;white-space:nowrap;">${money(f.gasto)}</td>
             <td style="padding:6px 4px;text-align:right;font-size:12px;color:#706359;">${f.chats || '—'}</td>
-            <td style="padding:6px 4px;text-align:right;font-size:12px;color:#706359;">${f.compraron || '—'}</td>
-            <td style="padding:6px 4px;text-align:right;font-size:12px;font-weight:600;color:#433831;white-space:nowrap;">${f.facturado ? money(f.facturado) : '—'}</td>
-            <td style="padding:6px 4px;text-align:right;font-size:12px;font-weight:800;color:${x && x >= 10 ? '#1a7d4b' : x && x >= 1 ? '#706359' : '#b45309'};">${x != null ? x.toFixed(0) + '×' : '—'}</td>
+            <td style="padding:6px 4px;text-align:right;font-size:12px;color:#706359;">${f.presupuestados || '—'}</td>
+            <td style="padding:6px 4px;text-align:right;font-size:12px;color:#706359;">${f.cierres || '—'}</td>
+            <td style="padding:6px 4px;text-align:right;font-size:12px;font-weight:600;color:#433831;white-space:nowrap;">${f.facturadoReal ? money(f.facturadoReal) : '—'}</td>
+            <td style="padding:6px 4px;text-align:right;font-size:12px;font-weight:800;color:${x && x >= 3 ? '#1a7d4b' : x && x >= 1 ? '#706359' : '#b45309'};">${x != null ? x.toFixed(1) + '×' : '—'}</td>
           </tr>`;
             })
             .join('')}
@@ -337,12 +375,13 @@ export async function GET(request: Request) {
             <td style="padding:7px 4px;font-size:12px;font-weight:800;">TOTAL</td>
             <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:700;white-space:nowrap;">${money(roasTotal.gasto)}</td>
             <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:700;">${roasTotal.chats}</td>
-            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:700;">${roasTotal.compraron}</td>
-            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:800;white-space:nowrap;">${money(roasTotal.facturado)}</td>
-            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:800;color:#1a7d4b;">${roasTotal.gasto > 0 ? (roasTotal.facturado / roasTotal.gasto).toFixed(0) + '×' : '—'}</td>
+            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:700;">${roasTotal.presupuestados}</td>
+            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:700;">${roasTotal.cierres}</td>
+            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:800;white-space:nowrap;">${money(roasTotal.facturadoReal)}</td>
+            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:800;color:#1a7d4b;">${roasTotal.gasto > 0 && roasTotal.facturadoReal > 0 ? (roasTotal.facturadoReal / roasTotal.gasto).toFixed(1) + '×' : '—'}</td>
           </tr>
         </table>
-        <p style="font-size:10px;color:#a89c90;margin:6px 0 0;">Se cruza por la etiqueta del anuncio que llega en el primer mensaje de WhatsApp. Es facturación, no ganancia. ⚠️ = gastó sin traer una sola conversación.</p>`
+        <p style="font-size:10px;color:#a89c90;margin:6px 0 0;">Presup. = clientes que recibieron presupuesto (${money(roasTotal.presupuestado)} presupuestados en total). Cierre = venta con plata cobrada o pedido en laboratorio — cobrado hasta hoy: ${money(roasTotal.cobrado)}. "Vendió" es facturación de esas ventas reales, no ganancia. ⚠️ = gastó sin traer una sola conversación.</p>`
       : '';
 
     const html = `
@@ -393,9 +432,14 @@ export async function GET(request: Request) {
       roas: {
         gasto: Math.round(roasTotal.gasto),
         chats: roasTotal.chats,
-        clientes: roasTotal.compraron,
-        facturado: Math.round(roasTotal.facturado),
-        x: roasTotal.gasto > 0 ? Number((roasTotal.facturado / roasTotal.gasto).toFixed(1)) : null,
+        presupuestados: roasTotal.presupuestados,
+        presupuestado: Math.round(roasTotal.presupuestado),
+        cierres: roasTotal.cierres,
+        facturadoReal: Math.round(roasTotal.facturadoReal),
+        cobrado: Math.round(roasTotal.cobrado),
+        x: roasTotal.gasto > 0 && roasTotal.facturadoReal > 0
+          ? Number((roasTotal.facturadoReal / roasTotal.gasto).toFixed(1))
+          : null,
       },
     });
   } catch (error) {

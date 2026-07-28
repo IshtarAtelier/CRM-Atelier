@@ -105,25 +105,37 @@ async function ventasPorEtiqueta(prisma) {
   }
 
   const ids = [...new Set(Object.values(acc).flatMap(g => [...g.clientes]))];
-  const ventas = ids.length
+  // Órdenes vivas del período. Acá conviven presupuestos (PDF sin plata) y
+  // ventas reales — auditoría 28/7: contar Order.total a secas contaba
+  // presupuestos LOST/PENDING como facturación (el falso "70×").
+  // Venta REAL = plata cobrada (payments/paid) o pedido en laboratorio.
+  const ordenes = ids.length
     ? await prisma.order.findMany({
-        where: { clientId: { in: ids }, createdAt: { gte: desde } },
-        select: { clientId: true, total: true },
+        where: { clientId: { in: ids }, createdAt: { gte: desde }, isDeleted: false },
+        select: {
+          clientId: true, total: true, paid: true, labStatus: true, status: true,
+          payments: { select: { amount: true } },
+        },
       })
     : [];
 
   const porCliente = {};
-  for (const v of ventas) {
-    (porCliente[v.clientId] ||= { n: 0, monto: 0 });
-    porCliente[v.clientId].n++;
-    porCliente[v.clientId].monto += Number(v.total || 0);
+  for (const v of ordenes) {
+    const p = (porCliente[v.clientId] ||= { presupuesto: 0, real: 0, cobrado: 0, nReales: 0 });
+    p.presupuesto += Number(v.total || 0);
+    const cobrado = v.payments.reduce((s, x) => s + Number(x.amount || 0), 0) || Number(v.paid || 0);
+    const esReal = !['LOST', 'CANCELED'].includes(v.status || '') &&
+      (cobrado > 0 || (v.labStatus && v.labStatus !== 'NONE'));
+    if (esReal) { p.real += Number(v.total || 0); p.cobrado += cobrado; p.nReales++; }
   }
 
   for (const g of Object.values(acc)) {
-    g.compraron = 0; g.ventas = 0; g.facturado = 0;
+    g.presupuestados = 0; g.presupuestado = 0; g.cierres = 0; g.facturadoReal = 0; g.cobrado = 0;
     for (const cid of g.clientes) {
       const v = porCliente[cid];
-      if (v) { g.compraron++; g.ventas += v.n; g.facturado += v.monto; }
+      if (!v) continue;
+      if (v.presupuesto > 0) { g.presupuestados++; g.presupuestado += v.presupuesto; }
+      if (v.nReales > 0) { g.cierres++; g.facturadoReal += v.real; g.cobrado += v.cobrado; }
     }
   }
   return acc;
@@ -142,49 +154,52 @@ async function ventasPorEtiqueta(prisma) {
   const claves = [...new Set([...Object.keys(gasto), ...Object.keys(ventas)])];
   const filas = claves.map(k => {
     const g = gasto[k] || { gasto: 0, convMeta: 0 };
-    const v = ventas[k] || { chats: 0, compraron: 0, ventas: 0, facturado: 0 };
+    const v = ventas[k] || { chats: 0, presupuestados: 0, presupuestado: 0, cierres: 0, facturadoReal: 0, cobrado: 0 };
     return {
       k, gasto: g.gasto, convMeta: g.convMeta,
-      chats: v.chats, compraron: v.compraron, ventas: v.ventas, facturado: v.facturado,
-      roas: g.gasto > 0 ? v.facturado / g.gasto : null,
-      cac: v.compraron > 0 ? g.gasto / v.compraron : null,
+      chats: v.chats, presupuestados: v.presupuestados, presupuestado: v.presupuestado,
+      cierres: v.cierres, facturadoReal: v.facturadoReal, cobrado: v.cobrado,
+      roas: g.gasto > 0 && v.facturadoReal > 0 ? v.facturadoReal / g.gasto : null,
     };
-  }).sort((a, b) => b.facturado - a.facturado);
+  }).sort((a, b) => b.facturadoReal - a.facturadoReal || b.presupuestado - a.presupuestado);
 
   const $ = n => '$' + Math.round(n).toLocaleString('es-AR');
   const pad = (s, n) => String(s).padEnd(n);
   const num = (s, n) => String(s).padStart(n);
 
-  console.log(`\n═══ RETORNO REAL POR ANUNCIO · últimos ${dias} días (dólar $${rate}) ═══\n`);
-  console.log(pad('ANUNCIO', 18) + num('gasto', 11) + num('chats', 7) + num('clientes', 9) + num('facturado', 14) + num('ROAS', 8) + num('costo x cliente', 16));
-  console.log('─'.repeat(83));
+  console.log(`\n═══ RETORNO REAL POR ANUNCIO · últimos ${dias} días (dólar $${rate}) ═══`);
+  console.log(`    Cierre = venta con plata cobrada o pedido en laboratorio. Presup. = clientes presupuestados.\n`);
+  console.log(pad('ANUNCIO', 18) + num('gasto', 11) + num('chats', 7) + num('presup.', 9) + num('cierres', 9) + num('vendió', 13) + num('cobrado', 12) + num('ROAS', 7));
+  console.log('─'.repeat(86));
 
-  const T = { gasto: 0, chats: 0, compraron: 0, ventas: 0, facturado: 0 };
+  const T = { gasto: 0, chats: 0, presupuestados: 0, presupuestado: 0, cierres: 0, facturadoReal: 0, cobrado: 0 };
   for (const f of filas) {
-    if (!f.gasto && !f.facturado) continue;
+    if (!f.gasto && !f.presupuestado && !f.facturadoReal) continue;
     console.log(
-      pad(f.k, 18) + num($(f.gasto), 11) + num(f.chats, 7) + num(f.compraron, 9) +
-      num($(f.facturado), 14) + num(f.roas != null ? f.roas.toFixed(1) + 'x' : '—', 8) +
-      num(f.cac != null ? $(f.cac) : '—', 16)
+      pad(f.k, 18) + num($(f.gasto), 11) + num(f.chats, 7) + num(f.presupuestados || '—', 9) +
+      num(f.cierres || '—', 9) + num(f.facturadoReal ? $(f.facturadoReal) : '—', 13) +
+      num(f.cobrado ? $(f.cobrado) : '—', 12) + num(f.roas != null ? f.roas.toFixed(1) + 'x' : '—', 7)
     );
-    T.gasto += f.gasto; T.chats += f.chats; T.compraron += f.compraron;
-    T.ventas += f.ventas; T.facturado += f.facturado;
+    T.gasto += f.gasto; T.chats += f.chats; T.presupuestados += f.presupuestados;
+    T.presupuestado += f.presupuestado; T.cierres += f.cierres;
+    T.facturadoReal += f.facturadoReal; T.cobrado += f.cobrado;
   }
 
-  console.log('─'.repeat(83));
+  console.log('─'.repeat(86));
   console.log(
-    pad('TOTAL', 18) + num($(T.gasto), 11) + num(T.chats, 7) + num(T.compraron, 9) +
-    num($(T.facturado), 14) + num(T.gasto > 0 ? (T.facturado / T.gasto).toFixed(1) + 'x' : '—', 8) +
-    num(T.compraron > 0 ? $(T.gasto / T.compraron) : '—', 16)
+    pad('TOTAL', 18) + num($(T.gasto), 11) + num(T.chats, 7) + num(T.presupuestados, 9) +
+    num(T.cierres, 9) + num($(T.facturadoReal), 13) + num($(T.cobrado), 12) +
+    num(T.gasto > 0 && T.facturadoReal > 0 ? (T.facturadoReal / T.gasto).toFixed(1) + 'x' : '—', 7)
   );
 
   if (T.chats) {
-    console.log(`\n  ${T.ventas} ventas · cierre ${(T.compraron / T.chats * 100).toFixed(1)}% de las conversaciones` +
-      (T.compraron ? ` · ticket promedio ${$(T.facturado / T.compraron)}` : ''));
-    console.log(`  Por cada peso invertido volvieron ${$(T.facturado / T.gasto)} en facturación.`);
+    console.log(`\n  ${T.presupuestados} de ${T.chats} chats recibieron presupuesto (${$(T.presupuestado)} presupuestados).`);
+    console.log(`  Cierres REALES: ${T.cierres} (${(T.cierres / T.chats * 100).toFixed(1)}% de los chats) → ${$(T.facturadoReal)} vendido, ${$(T.cobrado)} cobrado.`);
+    if (T.facturadoReal > 0 && T.gasto > 0) console.log(`  Por cada peso invertido volvieron ${(T.facturadoReal / T.gasto).toFixed(2)} en ventas reales.`);
   }
-  console.log('\n  Atribución: primer mensaje del chat con la etiqueta del anuncio, y ventas');
-  console.log('  de ese cliente dentro de la ventana. Es facturación, no ganancia.\n');
+  console.log('\n  Atribución: etiqueta persistida en el chat (o parseo del primer mensaje como');
+  console.log('  respaldo) + órdenes de ese cliente en la ventana. Venta real exige plata');
+  console.log('  cobrada o laboratorio — un presupuesto NO es una venta. No es ganancia.\n');
 
   await prisma.$disconnect();
 })();
