@@ -33,7 +33,7 @@ function check(nombre, condicion) {
 const OPERACION = '170029330395';
 const IDENTIFICACION = '76V4MR2Z87VYP0WE9DEZOL';
 /** Lectura vacía: los tests le pisan solo lo que les importa. */
-const SIN_CUPON = { amount: null, cuit: null, date: null, ids: [], batchNumber: null, couponNumber: null, authNumber: null };
+const SIN_CUPON = { amount: null, cuit: null, date: null, dateRaw: null, ids: [], batchNumber: null, couponNumber: null, authNumber: null };
 
 console.log('\nCaso Veronica Serlin (Mercado Pago con dos identificadores)');
 {
@@ -62,8 +62,8 @@ console.log('\nDescarte de basura en la lectura');
 
 console.log('\nCruce de las dos lecturas OCR');
 {
-    const a = { ...SIN_CUPON, amount: 166774, cuit: '30716850090', date: '2026-07-28', ids: [OPERACION] };
-    const b = { ...SIN_CUPON, amount: 166774, cuit: '30-71685009-0', date: '2026-07-28', ids: [IDENTIFICACION] };
+    const a = { ...SIN_CUPON, amount: 166774, cuit: '30716850090', dateRaw: '28/07/26', date: '2026-07-28', ids: [OPERACION] };
+    const b = { ...SIN_CUPON, amount: 166774, cuit: '30-71685009-0', dateRaw: '28/07/26', date: '2026-07-28', ids: [IDENTIFICACION] };
     const r = crossCheckReadings(a, b);
     check('coincidiendo, el monto queda habilitado para auditar', r.values.amount === 166774);
     check('el CUIT con y sin guiones es el mismo', r.values.cuit === '30716850090');
@@ -73,11 +73,11 @@ console.log('\nCruce de las dos lecturas OCR');
     check('las dos lecturas listaron identificadores', r.bothListedIds === true);
 }
 {
-    const a = { ...SIN_CUPON, amount: 166774, cuit: null, date: '2026-07-28', ids: [OPERACION] };
-    const b = { ...SIN_CUPON, amount: 16677, cuit: null, date: '2026-07-21', ids: [OPERACION] };
+    const a = { ...SIN_CUPON, amount: 166774, cuit: null, dateRaw: '28/07/26', date: '2026-07-28', ids: [OPERACION] };
+    const b = { ...SIN_CUPON, amount: 16677, cuit: null, dateRaw: '21/07/26', date: '2026-07-21', ids: [OPERACION] };
     const r = crossCheckReadings(a, b);
     check('montos distintos → NO se audita el monto', r.values.amount === null);
-    check('fechas distintas → NO se audita la fecha', r.values.date === null);
+    check('fechas distintas → NO se audita la fecha', r.values.dateRaw === null && r.values.date === null);
     check('los desacuerdos quedan anotados para el admin', r.disagreements.length === 2);
 }
 {
@@ -138,6 +138,22 @@ check('solo etiquetas → vacío', stripTxTags('[TX: 170029330395]') === '');
 console.log('\nIdentificadores fuertes (para duplicados)');
 check('un nº de operación largo sirve', strongIds([OPERACION, IDENTIFICACION]).length === 2);
 check('un nº de autorización de 6 dígitos no', strongIds(['007956']).length === 0);
+
+console.log('\nFecha impresa (blindaje del falso positivo de "comprobante viejo")');
+{
+    const a = { ...SIN_CUPON, dateRaw: '17/07/26', date: '2026-07-17', ids: [OPERACION] };
+    const b = { ...SIN_CUPON, dateRaw: '17-07-26', date: '2026-07-17', ids: [OPERACION] };
+    const r = crossCheckReadings(a, b);
+    check('la fecha impresa pasa aunque cambien los separadores', r.values.dateRaw === '17/07/26');
+    check('sin desacuerdos por el guión', r.disagreements.length === 0);
+}
+{
+    const a = { ...SIN_CUPON, dateRaw: '17/07/26', ids: [OPERACION] };
+    const b = { ...SIN_CUPON, dateRaw: '11/07/26', ids: [OPERACION] };
+    const r = crossCheckReadings(a, b);
+    check('fechas impresas distintas → NO se audita la fecha', r.values.dateRaw === null);
+    check('y queda anotado para el admin', r.disagreements.length === 1);
+}
 
 console.log('');
 if (fallos > 0) {

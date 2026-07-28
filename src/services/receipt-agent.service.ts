@@ -126,6 +126,7 @@ export class ReceiptAgentService {
                 amount: amount != null && Number.isFinite(amount) ? amount : null,
                 cuit: typeof parsed.cuit === 'string' && parsed.cuit.trim() ? parsed.cuit.trim() : null,
                 date: typeof parsed.date === 'string' && parsed.date.trim() ? parsed.date.trim() : null,
+                dateRaw: texto(parsed.date_raw),
                 ids: collectReferenceIds(parsed),
                 batchNumber: texto(parsed.batch_number),
                 couponNumber: texto(parsed.coupon_number),
@@ -390,7 +391,7 @@ export class ReceiptAgentService {
             // el año ahí, reintroduciría el falso positivo de "comprobante viejo".
             // Si no se puede leer date_raw de forma confiable, NO se avisa: preferimos
             // perder una detección antes que mandarle un falso positivo a los vendedores.
-            const receiptDate = parseArgentineReceiptDate(extracted.date_raw);
+            const receiptDate = parseArgentineReceiptDate(extracted.dateRaw);
             if (receiptDate && !isNaN(receiptDate.getTime())) {
                 const now = new Date();
                 // Solo el PASADO: una fecha futura es casi seguro un error de lectura,

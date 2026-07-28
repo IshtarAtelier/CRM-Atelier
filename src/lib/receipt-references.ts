@@ -16,6 +16,8 @@ export interface ReceiptReading {
     amount: number | null;
     cuit: string | null;
     date: string | null;
+    /** La fecha TAL CUAL está impresa ("17/07/26"), sin convertir. */
+    dateRaw: string | null;
     ids: string[];
     /** Datos del cupón cuando es un ticket de posnet. */
     batchNumber: string | null;
@@ -134,7 +136,7 @@ export function crossCheckReadings(primary: ReceiptReading, supervisor: ReceiptR
     if (!supervisor) {
         disagreements.push('El segundo lector OCR no pudo leer el comprobante: se revisó con una sola lectura y no se le reclamó nada a nadie.');
         return {
-            values: { amount: null, cuit: null, date: null, ids, batchNumber: null, couponNumber: null, authNumber: null },
+            values: { amount: null, cuit: null, date: null, dateRaw: null, ids, batchNumber: null, couponNumber: null, authNumber: null },
             disagreements,
             bothListedIds: false
         };
@@ -160,13 +162,20 @@ export function crossCheckReadings(primary: ReceiptReading, supervisor: ReceiptR
         }
     }
 
-    let date: string | null = null;
-    if (primary.date && supervisor.date) {
-        if (primary.date === supervisor.date) {
-            date = primary.date;
+    // La fecha se audita a partir de la IMPRESA (dateRaw), que se parsea después
+    // de forma determinística; `date` queda solo como referencia informativa.
+    let dateRaw: string | null = null;
+    if (primary.dateRaw && supervisor.dateRaw) {
+        if (normalizeRef(primary.dateRaw) === normalizeRef(supervisor.dateRaw)) {
+            dateRaw = primary.dateRaw;
         } else {
-            disagreements.push(`Los dos lectores leyeron fechas distintas (${primary.date} vs ${supervisor.date}): no se auditó la fecha.`);
+            disagreements.push(`Los dos lectores leyeron fechas distintas en el comprobante (${primary.dateRaw} vs ${supervisor.dateRaw}): no se auditó la fecha.`);
         }
+    }
+
+    let date: string | null = null;
+    if (primary.date && supervisor.date && primary.date === supervisor.date) {
+        date = primary.date;
     }
 
     // Datos del cupón: solo valen si los dos lectores leyeron el mismo número.
@@ -184,6 +193,7 @@ export function crossCheckReadings(primary: ReceiptReading, supervisor: ReceiptR
             amount,
             cuit,
             date,
+            dateRaw,
             ids,
             batchNumber: voucherField('batchNumber', 'nº de lote'),
             couponNumber: voucherField('couponNumber', 'nº de cupón'),
@@ -197,7 +207,8 @@ export function crossCheckReadings(primary: ReceiptReading, supervisor: ReceiptR
 const CAMPOS_JSON = `{
   "amount": número decimal del importe pagado, sin símbolos ni puntos de miles, usando punto para decimales. Si no se lee con claridad, null,
   "cuit": "el CUIT o CUIL del DESTINATARIO (el que cobra, no el que paga), sin guiones. Si no aparece o no se lee con claridad, null",
-  "date": "fecha del pago en formato YYYY-MM-DD. Si no aparece o no se lee con claridad, null",
+  "date_raw": "la fecha del pago EXACTAMENTE como está impresa en el comprobante, sin reinterpretar ni convertir (por ejemplo '17/07/26' o '17-07-2026'). Copiá los dígitos tal cual. Si no aparece, null",
+  "date": "la misma fecha en formato YYYY-MM-DD. OJO: los comprobantes argentinos la imprimen DÍA/MES/AÑO, así que '17/07/26' es 2026-07-17 (NO 2017). Si no aparece o no se lee con claridad, null",
   "transaction_id": "el identificador principal: el Número de operación si aparece, si no el número de transferencia o comprobante. Si no hay, null",
   "reference_ids": ["TODOS los identificadores que figuran en el comprobante, uno por elemento, transcriptos tal cual: número de operación, código de identificación, número de comprobante, ID de transacción, número de lote, número de cupón y número/código de autorización. Un mismo comprobante suele traer DOS o MÁS y hay que listarlos todos. NO incluyas CBU, CVU, alias, CUIT/CUIL, número de establecimiento o terminal, importes, fechas ni números de tarjeta. Si no hay ninguno, []"],
   "batch_number": "si es un ticket de posnet, el Nro. de lote transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"011\\"). Si no aparece, null",
