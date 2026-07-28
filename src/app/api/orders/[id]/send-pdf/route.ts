@@ -77,12 +77,34 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
                 const responseText = await res.text();
                 console.error('[send-pdf] Media send failed (sin fallback a link para evitar duplicados):', res.status, responseText.substring(0, 200));
+
+                // 503 = el wa-service garantiza que el mensaje nunca salió (sesión
+                // reconectando). Ahí sí podemos decirle al vendedor que reintente
+                // tranquilo, sin la duda de "¿le habrá llegado igual?".
+                if (res.status === 503 && responseText.includes('notSent')) {
+                    return NextResponse.json(
+                        { error: 'WhatsApp se está reconectando: NO se envió nada. Esperá unos segundos y reintentá.' },
+                        { status: 503 }
+                    );
+                }
+
                 return NextResponse.json(
                     { error: `El bot no pudo adjuntar el PDF (${res.status}). Verificá si le llegó al cliente antes de reintentar.` },
                     { status: 502 }
                 );
             } catch (mediaErr: any) {
                 console.error('[send-pdf] Media send network error:', mediaErr.message);
+
+                // fetchWa reintenta los 503 y, si se agotan, tira el error con el
+                // status pegado. Sigue siendo "no se envió nada": el wa-service
+                // corta antes de tocar WhatsApp.
+                if (mediaErr?.status === 503) {
+                    return NextResponse.json(
+                        { error: 'WhatsApp se está reconectando: NO se envió nada. Esperá unos segundos y reintentá.' },
+                        { status: 503 }
+                    );
+                }
+
                 return NextResponse.json(
                     { error: `Error de red enviando el PDF: ${mediaErr.message}. Verificá si le llegó al cliente antes de reintentar.` },
                     { status: 502 }

@@ -498,7 +498,13 @@ export default function QuoteSummary({
             } else {
                 const errData = await sendRes.json().catch(() => ({}));
                 console.error('[WhatsApp PDF] Error:', sendRes.status, errData);
-                alert(`❌ Error al enviar PDF (${sendRes.status}): ${errData?.error || 'Error desconocido'}`);
+                // 503 = garantía de que no salió nada: no hay que sembrar la duda
+                // de "fijate si le llegó", alcanza con reintentar.
+                if (sendRes.status === 503) {
+                    alert(`⏳ ${errData?.error || 'WhatsApp se está reconectando: NO se envió nada. Esperá unos segundos y reintentá.'}`);
+                } else {
+                    alert(`❌ Error al enviar PDF (${sendRes.status}): ${errData?.error || 'Error desconocido'}`);
+                }
             }
         } catch (err: any) {
             if (err?.name === 'AbortError') {

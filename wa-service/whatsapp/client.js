@@ -5,6 +5,10 @@ const antiBanQueue = require('./anti-ban');
 let waClient = null;
 let qrCode = null;
 let isReady = false;
+// Último estado reportado por WhatsApp Web (CONNECTED, OPENING, PAIRING...).
+// `isReady` sigue significando "el cliente arrancó" (lo usa el keep-alive para
+// saber si tiene que vigilar); este estado dice si REALMENTE se puede enviar.
+let connectionState = null;
 let connectedPhone = null;
 let _onMessage = null;
 let keepAliveFailCount = 0;
@@ -160,6 +164,7 @@ async function startClient(attempt = 1) {
 
     waClient.on('ready', () => {
         isReady = true;
+        connectionState = 'CONNECTED';
         qrCode = null;
         keepAliveFailCount = 0; // Resetear contador de fallos
         connectedPhone = waClient.info?.wid?.user || 'desconocido';
@@ -208,6 +213,7 @@ async function startClient(attempt = 1) {
 
     waClient.on('disconnected', (reason) => {
         isReady = false;
+        connectionState = 'DISCONNECTED';
         clearKeepAlive();
         console.log('❌ WhatsApp desconectado:', reason);
         if (_onStatusChange) _onStatusChange(getStatus());
@@ -216,7 +222,11 @@ async function startClient(attempt = 1) {
     });
 
     // Detectar cambios de estado intermedios (OPENING, PAIRING, UNPAIRED, etc.)
+    // Mientras el estado no sea CONNECTED, la sesión NO puede enviar: sendMessage
+    // se queda colgado hasta el timeout duro (90s con media). Registramos el estado
+    // para cortar los envíos al instante en vez de trabar la cola 90s por mensaje.
     waClient.on('change_state', (state) => {
+        connectionState = state;
         console.log(`📱 [WA State Change] ${state}`);
         if (state === 'CONFLICT' || state === 'UNLAUNCHED') {
             console.warn(`⚠️ Estado conflictivo detectado: ${state}. Esperando resolución...`);
@@ -227,6 +237,7 @@ async function startClient(attempt = 1) {
     waClient.on('auth_failure', (msg) => {
         console.error('❌ Fallo de autenticación de WhatsApp:', msg);
         isReady = false;
+        connectionState = 'UNPAIRED';
         clearKeepAlive();
         // Eliminar datos de sesión corruptos para forzar re-escaneo de QR
         const authSessionPath = path.join(sessionDataPath, 'session');
@@ -291,12 +302,36 @@ async function startClient(attempt = 1) {
     }
 }
 
+// ¿La sesión puede enviar AHORA? No alcanza con que el cliente haya arrancado:
+// si WhatsApp Web está reconectando (OPENING/PAIRING), sendMessage se cuelga.
+function canSend() {
+    return !!waClient && isReady && (connectionState === null || connectionState === 'CONNECTED');
+}
+
+// Espera corta para absorber parpadeos de conexión de pocos segundos, en vez de
+// rechazar de entrada un envío que se iba a poder hacer igual.
+async function waitUntilSendable(maxWaitMs = 10000) {
+    const deadline = Date.now() + maxWaitMs;
+    while (!canSend() && Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 1000));
+    }
+    return canSend();
+}
+
 function getStatus() {
-    return { isReady, qrCode, connectedPhone };
+    return { isReady: canSend(), qrCode, connectedPhone, state: connectionState };
 }
 
 async function sendMessage(waId, content, media = null, options = {}) {
-    if (!waClient || !isReady) throw new Error('WhatsApp not connected');
+    if (!canSend() && !(await waitUntilSendable())) {
+        // Mensaje explícito: el caller (CRM o bot) necesita poder decirle al
+        // vendedor que NO se envió nada, sin la duda de "¿le habrá llegado?".
+        throw new Error(
+            connectionState && connectionState !== 'CONNECTED'
+                ? `WhatsApp reconectando (${connectionState}): no se envió nada`
+                : 'WhatsApp not connected'
+        );
+    }
 
     // Identificar si es un mensaje proactivo/seguimiento automático
     const isProactive = options.isProactive !== undefined ? options.isProactive : (
@@ -318,7 +353,7 @@ async function sendMessage(waId, content, media = null, options = {}) {
 }
 
 async function sendTypingState(waId) {
-    if (!waClient || !isReady) return;
+    if (!canSend()) return;
     try {
         const chat = await waClient.getChatById(waId);
         await chat.sendStateTyping();

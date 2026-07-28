@@ -324,8 +324,8 @@ function createApiRouter(deps) {
     router.post('/send', async (req, res) => {
         const { chatId, message, media, senderName } = req.body;
         // media: { base64: string, mimetype: string, filename?: string }
+        let waId = chatId; // fuera del try: el catch necesita limpiar botReplyingTo
         try {
-            let waId = chatId;
             let dbChatId = null;
 
             if (!chatId.includes('@c.us') && !chatId.includes('@lid')) {
@@ -350,8 +350,13 @@ function createApiRouter(deps) {
                 }
             }
             
+            // No cortamos acá por estado: sendMessage tiene su propia espera corta
+            // para absorber parpadeos de reconexión, y si igual no se puede tira un
+            // error explícito que mapeamos abajo a 503 (garantía de "no se envió").
             const status = getStatus();
-            if (!status.isReady) return res.status(400).json({ error: 'WhatsApp not connected' });
+            if (!status.isReady) {
+                console.warn(`[Bot API] /send con sesión no lista (estado: ${status.state || 'desconocido'}). Esperando reconexión...`);
+            }
 
             let sent;
             let mediaUrl = null;
@@ -456,8 +461,15 @@ function createApiRouter(deps) {
             if (dbChatId) broadcastChatUpdate(dbChatId);
             
             res.json({ success: true });
-        } catch (e) { 
-            res.status(500).json({ error: e.message }); 
+        } catch (e) {
+            // Sesión caída/reconectando: el mensaje NUNCA llegó a WhatsApp, así que
+            // el CRM puede decirle al vendedor que reintente sin miedo a duplicar.
+            const notConnected = /WhatsApp reconectando|WhatsApp not connected/i.test(e.message || '');
+            if (notConnected) {
+                botReplyingTo.delete(waId);
+                return res.status(503).json({ error: e.message, notSent: true });
+            }
+            res.status(500).json({ error: e.message });
         }
     });
 
