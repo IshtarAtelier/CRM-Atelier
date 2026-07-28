@@ -62,18 +62,39 @@ export async function GET(request: Request) {
         const secciones: string[] = [];
 
         for (const lab of LABS) {
-            // El corte es por fecha de FACTURA: la que figura en el comprobante y
-            // en el resumen de cuenta, no la del día en que se procesó.
-            const entradas = await prisma.labCostEntry.findMany({
-                where: { lab, invoiceDate: { gte: desde, lte: hasta } },
+            // FECHA DE CORTE. Optovisión trae la fecha del comprobante; Grupo
+            // Óptico llega por el portal y NO tiene fecha de factura (0 de 284 en
+            // producción al 28/7/2026), así que filtrar por `invoiceDate` en la
+            // base lo dejaba afuera del email entero. Se usa, en orden: la fecha
+            // de la factura, la de ingreso que el portal escribe en la nota, y
+            // como último recurso el alta en el sistema. El filtro va en memoria
+            // —son unos cientos de filas— porque esa cascada no se puede expresar
+            // en el `where`.
+            const todas = await prisma.labCostEntry.findMany({
+                where: { lab },
                 select: {
                     labOrderNumber: true, invoiceDate: true, sourceFile: true, notes: true,
                     billedNet: true, billedTotal: true, systemCost: true, difference: true,
-                    status: true, orderId: true,
+                    status: true, orderId: true, createdAt: true,
                     order: { select: { clientId: true, labOrderNumber: true, client: { select: { name: true } } } },
                 },
-                orderBy: { invoiceDate: 'asc' },
             });
+
+            // "ingreso 2026-05-05 09:49" y "ingreso 13-07-26 09:52": el portal
+            // escribe los dos formatos según la pantalla de la que salió.
+            const fechaIngreso = (notes: string | null): Date | null => {
+                const iso = (notes || '').match(/ingreso (\d{4})-(\d{2})-(\d{2})/);
+                if (iso) return new Date(`${iso[1]}-${iso[2]}-${iso[3]}T12:00:00`);
+                const ar = (notes || '').match(/ingreso (\d{2})-(\d{2})-(\d{2})\b/);
+                if (ar) return new Date(`20${ar[3]}-${ar[2]}-${ar[1]}T12:00:00`);
+                return null;
+            };
+            const fechaRef = (e: typeof todas[number]) =>
+                e.invoiceDate ?? fechaIngreso(e.notes) ?? e.createdAt;
+
+            const entradas = todas
+                .filter(e => { const f = fechaRef(e); return f >= desde && f <= hasta; })
+                .sort((a, b) => fechaRef(a).getTime() - fechaRef(b).getTime());
 
             // Optovisión discrimina IVA y Atelier es monotributo (no lo recupera):
             // su costo real es el TOTAL. Grupo Óptico factura a consumidor final.
@@ -87,6 +108,18 @@ export async function GET(request: Request) {
             };
             const esOperacion = (e: typeof entradas[number]) => /^\d{5,}$/.test(String(e.labOrderNumber || '').trim());
             const esPostventa = (e: typeof entradas[number]) => (e.notes || '').includes('POSTVENTA (caso');
+
+            // El portal de Grupo Óptico manda el nombre del cliente con cada
+            // pedido ("Pedido visto en el portal del laboratorio (NOMBRE, ingreso
+            // …)"). Ese nombre es la pista que permite encontrarle la venta a un
+            // huérfano. Si un pedido viene SIN nombre, eso mismo es un problema:
+            // no hay con qué buscarlo, y hay que preguntarle al laboratorio.
+            const nombrePortal = (e: typeof entradas[number]): string | null => {
+                const dentro = (e.notes || '').match(/portal del laboratorio \(([^)]*)\)/)?.[1] || '';
+                const primero = dentro.split(',')[0].trim();
+                if (!primero || /^ingreso\b/i.test(primero) || /^reproceso$/i.test(primero)) return null;
+                return primero;
+            };
 
             const sinRespaldo = entradas.filter(e => e.status === 'UNMATCHED');
             const enPostventa = entradas.filter(esPostventa);
@@ -114,18 +147,33 @@ export async function GET(request: Request) {
                     ${filas.join('')}
                 </table>` : `<p style="font-size:13px;color:#059669;margin:0">✅ ${vacio}</p>`}`;
 
+            // Grupo Óptico trae el nombre del portal: se muestra, porque es con lo
+            // que se busca la venta. Optovisión no lo manda nunca, así que en su
+            // cuadro esa columna sería una fila de guiones.
+            const conNombre = lab === 'GRUPO_OPTICO';
             const filasSinRespaldo = sinRespaldo.map((e, i) => `
                 <tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
                     <td style="${BD};font-family:monospace;font-weight:bold">${esOperacion(e) ? e.labOrderNumber : '<span style="color:#b91c1c">la factura no trae nº</span>'}</td>
-                    <td style="${BD};white-space:nowrap">${fmtFecha(e.invoiceDate)}</td>
+                    <td style="${BD};white-space:nowrap">${fmtFecha(fechaRef(e))}</td>
                     <td style="${BD};font-family:monospace;font-size:12px">${comprobante(e)}</td>
+                    ${conNombre ? `<td style="${BD}">${nombrePortal(e) || '<span style="color:#b91c1c;font-weight:bold">sin nombre</span>'}</td>` : ''}
+                    <td style="${BD};text-align:right;font-weight:bold">${fmtARS(facturado(e))}</td>
+                </tr>`);
+
+            // Cuadro extra de Grupo Óptico: pedidos que el portal mandó sin nombre.
+            const sinNombre = conNombre ? entradas.filter(e => !nombrePortal(e)) : [];
+            const filasSinNombre = sinNombre.map((e, i) => `
+                <tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
+                    <td style="${BD};font-family:monospace">${e.labOrderNumber}</td>
+                    <td style="${BD};white-space:nowrap">${fmtFecha(fechaRef(e))}</td>
+                    <td style="${BD}">${e.order ? ficha(e.order.clientId, e.order.client?.name || 'ver ficha') : '<span style="color:#b91c1c">sin venta en el sistema</span>'}</td>
                     <td style="${BD};text-align:right;font-weight:bold">${fmtARS(facturado(e))}</td>
                 </tr>`);
 
             const filasDiferencias = diferencias.map((e, i) => `
                 <tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
                     <td style="${BD};font-family:monospace">${e.labOrderNumber}</td>
-                    <td style="${BD};white-space:nowrap">${fmtFecha(e.invoiceDate)}</td>
+                    <td style="${BD};white-space:nowrap">${fmtFecha(fechaRef(e))}</td>
                     <td style="${BD}">${ficha(e.order?.clientId, e.order?.client?.name || '—')}</td>
                     <td style="${BD};text-align:right">${fmtARS(e.systemCost)}</td>
                     <td style="${BD};text-align:right;font-weight:bold">${fmtARS(facturado(e))}</td>
@@ -140,7 +188,7 @@ export async function GET(request: Request) {
                 return `
                 <tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
                     <td style="${BD};font-family:monospace">${e.labOrderNumber}</td>
-                    <td style="${BD};white-space:nowrap">${fmtFecha(e.invoiceDate)}</td>
+                    <td style="${BD};white-space:nowrap">${fmtFecha(fechaRef(e))}</td>
                     <td style="${BD}">${ficha(e.order?.clientId, e.order?.client?.name || '—')}</td>
                     <td style="${BD};font-size:12px">${c?.caseType || 'sin tipo'}${c?.coverage ? ` · ${c.coverage}` : ''}</td>
                     <td style="${BD};text-align:right">${cargado != null ? fmtARS(cargado) : '<span style="color:#b45309">sin costo cargado</span>'}</td>
@@ -154,6 +202,7 @@ export async function GET(request: Request) {
             resumen[lab] = {
                 facturadas: entradas.length, sinRespaldo: sinRespaldo.length,
                 diferencias: diferencias.length, postventa: enPostventa.length,
+                sinNombre: sinNombre.length,
                 montoSinRespaldo: Math.round(totalSinRespaldo),
             };
 
@@ -164,21 +213,27 @@ export async function GET(request: Request) {
                 ${cuadro(
                 `1 · Facturado sin nada que lo respalde${sinRespaldo.length ? ` — ${fmtARS(totalSinRespaldo)}` : ''}`,
                 'Operaciones que el laboratorio facturó y que no figuran en el sistema: ni como venta, ni como caso de post venta.',
-                ['N° operación', 'Fecha factura', 'Comprobante', 'Importe'],
+                ['N° operación', 'Fecha', 'Comprobante', ...(conNombre ? ['Nombre en el portal'] : []), 'Importe'],
                 filasSinRespaldo,
                 'Todo lo facturado tiene su trabajo en el sistema.')}
                 ${cuadro(
                 '2 · Diferencias de costo',
                 'Lo que cobró el laboratorio contra el costo cargado en el sistema.',
-                ['N° operación', 'Fecha factura', 'Cliente', 'Costo sistema', 'Facturado', 'Diferencia'],
+                ['N° operación', 'Fecha', 'Cliente', 'Costo sistema', 'Facturado', 'Diferencia'],
                 filasDiferencias,
                 'Sin diferencias de costo.')}
                 ${cuadro(
                 '3 · Encontradas en Post Venta',
                 'Reprocesos con su caso cargado. Si el caso figura en $0 y el laboratorio lo cobró, era garantía y hay que reclamarlo.',
-                ['N° operación', 'Fecha factura', 'Cliente', 'Caso', 'Costo del caso', 'Facturado', ''],
+                ['N° operación', 'Fecha', 'Cliente', 'Caso', 'Costo del caso', 'Facturado', ''],
                 filasPostventa,
-                'Ninguna operación corresponde a un caso de post venta.')}`);
+                'Ninguna operación corresponde a un caso de post venta.')}
+                ${conNombre ? cuadro(
+                    `4 · Pedidos que el portal mandó sin nombre${sinNombre.length ? ` — ${sinNombre.length}` : ''}`,
+                    'Grupo Óptico manda el nombre del cliente con cada pedido, y es con lo que se le busca la venta a un huérfano. Sin nombre no hay por dónde empezar: hay que pedírselo al laboratorio.',
+                    ['N° operación', 'Fecha', 'Venta en el sistema', 'Importe'],
+                    filasSinNombre,
+                    'Todos los pedidos del portal vinieron con nombre.') : ''}`);
         }
 
         const rango = `${fmtFecha(desde)} al ${fmtFecha(hasta)}`;
@@ -190,7 +245,7 @@ export async function GET(request: Request) {
             <div style="font-family:Arial,sans-serif;max-width:780px;margin:0 auto;color:#1f2937">
                 <h2 style="margin-bottom:4px">Laboratorios — revisión semanal</h2>
                 <p style="margin:0;color:#4b5563;font-size:13px">
-                    Facturas del <strong>${rango}</strong>. Las fechas son las de emisión de la factura.</p>
+                    Movimientos del <strong>${rango}</strong>. La fecha es la de la factura; si el laboratorio no la manda —Grupo Óptico llega por el portal— se usa la de ingreso del pedido.</p>
                 ${secciones.join('')}
                 <p style="margin-top:24px;font-size:13px">
                     <a href="${appUrl}/admin/laboratorio/costos">Ver la conciliación completa en el CRM</a></p>
