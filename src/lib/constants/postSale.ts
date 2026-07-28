@@ -37,3 +37,18 @@ export function caseTypeStyle(type?: string | null): string {
     if (!type) return POST_SALE_CASE_TYPE_STYLES['Otro'];
     return POST_SALE_CASE_TYPE_STYLES[type] || POST_SALE_CASE_TYPE_STYLES['Otro'];
 }
+
+// Etiqueta legible del estado del caso (mismo pipeline que el tablero de Post Venta).
+export const POST_SALE_STATUS_LABELS: Record<string, string> = {
+    'PENDING': 'Reportado / Pendiente',
+    'SENT': 'Reportado / Pendiente',
+    'IN_PROGRESS': 'En Laboratorio',
+    'FINISHED': 'Finalizado (Lab)',
+    'READY': 'Listo p/ Retirar',
+    'DELIVERED': 'Entregado / Cerrado',
+};
+
+export function postSaleStatusLabel(status?: string | null): string {
+    if (!status) return POST_SALE_STATUS_LABELS['SENT'];
+    return POST_SALE_STATUS_LABELS[status] || status;
+}

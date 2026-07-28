@@ -54,6 +54,7 @@ model Client {
   orders        Order[]
   prescriptions Prescription[]
   whatsappChats WhatsAppChat[]
+  postSaleCases PostSaleCase[]
   tags          Tag[]          @relation("ClientToTag")
 
   @@index([status])
@@ -832,7 +833,13 @@ model LabAuditRun {
 
 model PostSaleCase {
   id               String                  @id @default(cuid())
-  orderId          String
+  // Blindaje: un caso de post-venta NO se pierde nunca. Por eso guarda su propio
+  // clientId y un snapshot del contexto de la venta, y el orderId es opcional con
+  // onDelete: SetNull — si se hace hard-delete de la venta, el caso sobrevive
+  // (queda huérfano de Order pero sigue ligado al cliente y visible en su ficha).
+  orderId          String?
+  clientId         String?
+  orderLabel       String?
   status           String                  @default("SENT")
   cost             Float                   @default(0.0)
   newOrderNumber   String?
@@ -846,11 +853,13 @@ model PostSaleCase {
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
 
-  order            Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order            Order?                  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  client           Client?                 @relation(fields: [clientId], references: [id], onDelete: SetNull)
   notesList        PostSaleNote[]
   statusHistory    PostSaleStatusHistory[]
 
   @@index([orderId])
+  @@index([clientId])
   @@index([status])
 }
 
