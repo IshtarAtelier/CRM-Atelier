@@ -219,7 +219,7 @@ def patch_content_page(domain):
         optician_find = '"@type": "Optician",'
         optician_replace = """"@type": "Optician",
       "telephone": "+5493518685644",
-      "openingHours": "Mo-Fr 09:00-19:00, Sa 09:00-13:00",
+      "openingHours": "Mo-Fr 08:00-20:00, Sa 09:00-17:00",
       "geo": {
         "@type": "GeoCoordinates",
         "latitude": -31.372584,

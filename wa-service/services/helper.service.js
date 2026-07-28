@@ -6,9 +6,14 @@
 // duplicados a mano y quedó desactualizada. Una sola fuente de verdad.
 const { isBusinessHours } = require('../shared/business-hours');
 
+// Hora de apertura según el día (Argentina): L-V abre 8:00, Sábado 9:00.
+function openingHourFor(argDate) {
+    return argDate.getDay() === 6 ? '09' : '08';
+}
+
 function getNextBusinessMorning(baseDate = new Date()) {
     const argDate = new Date(baseDate.toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
-    
+
     let found = false;
     while (!found) {
         argDate.setDate(argDate.getDate() + 1);
@@ -17,13 +22,13 @@ function getNextBusinessMorning(baseDate = new Date()) {
             found = true;
         }
     }
-    
+
     const year = argDate.getFullYear();
     const month = argDate.getMonth();
     const date = argDate.getDate();
-    
+
     const pad = (n) => String(n).padStart(2, '0');
-    const isoString = `${year}-${pad(month + 1)}-${pad(date)}T09:00:00-03:00`;
+    const isoString = `${year}-${pad(month + 1)}-${pad(date)}T${openingHourFor(argDate)}:00:00-03:00`;
     return new Date(isoString);
 }
 
@@ -55,14 +60,14 @@ function getNextWeekdayDate(dayName, baseDate = new Date()) {
     }
 
     argDate.setDate(argDate.getDate() + daysToAdd);
-    
+
     const year = argDate.getFullYear();
     const month = argDate.getMonth();
     const date = argDate.getDate();
-    
-    // Devolver la fecha a las 9:00 AM de Argentina (UTC-3)
+
+    // Devolver la fecha a la hora de apertura de ese día, en Argentina (UTC-3)
     const pad = (n) => String(n).padStart(2, '0');
-    const isoString = `${year}-${pad(month + 1)}-${pad(date)}T09:00:00-03:00`;
+    const isoString = `${year}-${pad(month + 1)}-${pad(date)}T${openingHourFor(argDate)}:00:00-03:00`;
     return new Date(isoString);
 }
 

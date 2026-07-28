@@ -1,18 +1,19 @@
 const { prisma } = require('../db');
 const { checkEligibility } = require('./eligibility');
 
-// Ventanas abiertas por día, en minutos desde la medianoche (hora de Argentina).
-// Repartimos los envíos a lo largo de TODA la jornada (9 a 19), no amontonados a la tarde.
+// Ventana de ENVÍO de seguimientos, en minutos desde la medianoche (hora de Argentina).
+// A propósito más angosta que el horario real del local (L–V 8–20, Sáb 9–17): se
+// decidió mantenerla así aunque el local abra más temprano/tarde (ver commit b5408434).
+// El local ya no tiene siesta (atiende corrido), así que cada ventana es un solo tramo.
 const OPEN_WINDOWS_AR = {
-    weekday: [[9 * 60, 13 * 60 + 30], [16 * 60, 19 * 60]], // 9:00–13:30 y 16:00–19:00
-    saturday: [[10 * 60, 14 * 60]],                        // 10:00–14:00
+    weekday: [[9 * 60, 19 * 60]],  // 9:00–19:00 corrido
+    saturday: [[10 * 60, 16 * 60]], // 10:00–16:00 (mismo margen de 1h que el de semana)
 };
 
 /**
  * Calcula un vencimiento aleatorio repartido a lo largo del día de HOY,
- * dentro del horario comercial de Argentina (UTC-3, sin horario de verano).
- * Distribuye de forma uniforme sobre los minutos realmente abiertos, así que
- * la siesta (13:30–16:00) no genera un pico de envíos al reabrir.
+ * dentro de la ventana de envío de arriba (Argentina, UTC-3, sin horario de verano).
+ * Distribuye de forma uniforme sobre los minutos de la ventana, sin picos.
  */
 function pickSpreadDueDate(now) {
     // Fecha y día en hora argentina: corremos el instante 3 horas y leemos los

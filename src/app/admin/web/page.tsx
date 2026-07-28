@@ -1594,7 +1594,7 @@ export default function WebManagementPage() {
                               setFlyerRequirements([
                                 'Mañana lunes el local permanecerá cerrado.',
                                 'Atención online activa en nuestra web.',
-                                'Reabrimos el martes de 09:00 a 19:00 hs.',
+                                'Reabrimos el martes de 08:00 a 20:00 hs.',
                                 '¡Que disfruten el fin de semana!'
                               ]);
                             }
