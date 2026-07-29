@@ -8,6 +8,7 @@ import { staticPosts } from '@/lib/static-blog-posts';
 import { prisma } from '@/lib/db';
 import { seoKeywords } from '@/lib/seo-keywords';
 import { SeoAccordion } from '@/components/blog/SeoAccordion';
+import { categoriasConPosts } from '@/lib/blog-categorias';
 
 export const revalidate = 300;
 
@@ -55,6 +56,8 @@ export default async function BlogPage() {
     ...mappedDbPosts,
     ...staticPosts.filter(sp => !mappedDbPosts.some(dp => dp.slug === sp.slug))
   ];
+
+  const categorias = await categoriasConPosts();
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20">
       <StorefrontNavbar theme="light" />
@@ -124,6 +127,10 @@ export default async function BlogPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-stone-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
                 <div className="p-6 lg:p-8 flex-1 flex flex-col relative bg-white dark:bg-stone-900 h-full">
+                  {/* La categoría es un cartel dentro de la tarjeta, que ya es
+                      un <Link> al post: no puede ir otro <Link> anidado. Se
+                      navega con el href del contenedor de la grilla — ver el
+                      listado de categorías al pie de la página. */}
                   <div className="flex items-center gap-2 mb-3 -mt-10 lg:-mt-12 relative z-10">
                     <span className="text-[10px] font-black uppercase tracking-widest text-white bg-primary px-3 py-1.5 rounded-full shadow-lg">
                       {post.category}
@@ -175,6 +182,28 @@ export default async function BlogPage() {
           }, [] as React.ReactNode[])}
         </div>
       </div>
+
+      {/* Cada categoría con su propia dirección: sirve para mandar por WhatsApp
+          "todo lo que escribimos de Pediatría" en un solo link, y Google indexa
+          una sección por tema en vez de 51 notas sueltas. */}
+      {categorias.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-20">
+          <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-400 mb-5">
+            Explorá por tema
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {categorias.map(c => (
+              <Link
+                key={c.slug}
+                href={`/blog/categoria/${c.slug}`}
+                className="text-xs font-bold px-4 py-2 rounded-full border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-300 hover:border-primary hover:text-primary transition-colors"
+              >
+                {c.nombre} <span className="text-stone-400">({c.cantidad})</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <SeoAccordion keywords={seoKeywords} />
 

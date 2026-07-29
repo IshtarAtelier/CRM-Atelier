@@ -92,10 +92,15 @@ export function ProductFilters({
   const currentGender = searchParams.get('genero') || '';
 
   // Helper to update URL params cleanly
+  // Un filtro puesto en su valor por defecto no cambia nada de lo que se ve, así
+  // que no tiene por qué ocupar lugar en la URL: el link que se comparte queda
+  // corto y legible. Sin esto, elegir "Más recientes" agregaba ?orden=recientes.
+  const VALOR_POR_DEFECTO: Record<string, string> = { orden: 'recientes' };
+
   const createQueryString = useCallback(
     (name: string, value: string) => {
       const params = new URLSearchParams(searchParams.toString());
-      if (value) {
+      if (value && value !== VALOR_POR_DEFECTO[name]) {
         params.set(name, value);
       } else {
         params.delete(name);
@@ -106,7 +111,8 @@ export function ProductFilters({
   );
 
   const handleFilterChange = (name: string, value: string) => {
-    router.push(`${pathname}?${createQueryString(name, value)}`, { scroll: false });
+    const qs = createQueryString(name, value);
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
   const clearFilters = () => {

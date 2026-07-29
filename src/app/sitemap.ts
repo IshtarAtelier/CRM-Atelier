@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
+import { categoriasConPosts } from '@/lib/blog-categorias';
 import { seoKeywords } from '@/lib/seo-keywords';
 
 export const dynamic = 'force-dynamic';
@@ -139,6 +140,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Error fetching sitemap blog routes from DB:", error);
   }
 
+  // Secciones del blog por tema (/blog/categoria/salud-visual). Son pocas y
+  // agrupan las 51 notas por asunto: Google indexa una página por tema en vez de
+  // depender de que llegue a cada nota suelta.
+  let categoriaRoutes: any[] = [];
+  try {
+    const categorias = await categoriasConPosts();
+    categoriaRoutes = categorias.map((c) => ({
+      url: `${baseUrl}/blog/categoria/${c.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.6,
+    }));
+  } catch (error) {
+    console.error('Error armando las categorías del blog para el sitemap:', error);
+  }
+
   // Fetch dynamic products
   let productRoutes: any[] = [];
   try {
@@ -173,6 +190,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...physicalBlogRoutes,
     ...fallbackBlogRoutes,
     ...dbBlogRoutes,
+    ...categoriaRoutes,
     ...productRoutes,
     ...seoKeywordRoutes,
   ]) {
