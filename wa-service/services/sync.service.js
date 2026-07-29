@@ -3,6 +3,7 @@
  */
 
 const { getFileExtension } = require('../utils');
+const { resolveWaMessageId } = require('../shared/message-id');
 
 async function downloadAndUploadMediaForSyncMessage(deps, msg, dbMessageId, chatId) {
     const { prisma, broadcastChatUpdate } = deps;
@@ -31,7 +32,7 @@ async function downloadAndUploadMediaForSyncMessage(deps, msg, dbMessageId, chat
             if (!Array.isArray(global.mediaCache[chatId])) {
                 global.mediaCache[chatId] = [];
             }
-            const cacheItem = { waMessageId: msg.id._serialized, base64: mediaBase64, mimeType: mediaMime, timestamp: Date.now() };
+            const cacheItem = { waMessageId: resolveWaMessageId(msg), base64: mediaBase64, mimeType: mediaMime, timestamp: Date.now() };
             global.mediaCache[chatId].push(cacheItem);
             
             setTimeout(() => {
@@ -225,8 +226,11 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                 for (const msg of messages) {
                     if (msg.type === 'e2e_notification') continue; // Ignorar notificaciones de cifrado
                     
+                    // Sin ctx: el id sale del propio mensaje (msg.to / msg.from + timestamp),
+                    // que es lo mismo que usan el listener en vivo y la caché de media.
+                    const syncWaMessageId = resolveWaMessageId(msg);
                     const existingMsg = await prisma.whatsAppMessage.findUnique({
-                        where: { waMessageId: msg.id._serialized }
+                        where: { waMessageId: syncWaMessageId }
                     });
 
                     let dbMsg = existingMsg;
@@ -256,7 +260,7 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
                                 direction: msg.fromMe ? 'OUTBOUND' : 'INBOUND',
                                 type: msgType,
                                 content: msg.body || ((msg.hasMedia || ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(msg.type)) ? '[Media/Documento]' : ''),
-                                waMessageId: msg.id._serialized,
+                                waMessageId: syncWaMessageId,
                                 senderName: senderNameValue,
                                 createdAt: new Date(msg.timestamp * 1000)
                             }
@@ -290,6 +294,21 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
         console.log('✅ Sincronización de chats y mensajes completada.');
     } catch (err) {
         console.error('❌ Error en syncRecentChatsAndMessages:', err);
+        // Que la sincronización entera falle con WhatsApp conectado significa que la capa
+        // inyectada de whatsapp-web.js quedó desfasada de WhatsApp Web. Eso rompe en silencio
+        // el guardado de mensajes y la descarga de fotos/audios: el 14/7/2026 pasó dos semanas
+        // sin que nadie se enterara. Avisa por email, una vez por arranque para no spamear.
+        if (!global.syncFailureAlerted) {
+            global.syncFailureAlerted = true;
+            const { notifyAdminDown } = require('../whatsapp/client');
+            notifyAdminDown(
+                'WhatsApp: la sincronización falla (posible desfasaje de versión)',
+                `WhatsApp figura conectado pero getChats() falla: ${err?.message || err}\n\n` +
+                `Mientras dure, el buzón puede perder salientes y no bajar fotos ni audios.\n` +
+                `Revisar el pin WA_WEB_VERSION en wa-service/whatsapp/client.js contra ` +
+                `https://github.com/wppconnect-team/wa-version/tree/main/html`
+            ).catch(() => {});
+        }
     } finally {
         global.isSyncingWhatsApp = false;
     }

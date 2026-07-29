@@ -12,6 +12,7 @@ const { isBusinessHours } = require('../shared/business-hours');
 const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
 const { generateFollowUpMessage } = require('../followups/message-generator');
 const { runOutputGuardrail } = require('../services/ai.service');
+const { resolveWaMessageId, rememberBotMessage } = require('../shared/message-id');
 
 // Pool de variantes de RESPALDO: solo se usa si la generación personalizada falla.
 // Reglas: una sola pregunta por mensaje, sin referencias temporales fijas ("ayer"),
@@ -160,38 +161,22 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, 
                     const sent = await sendMessage(chat.waId, selectedText, null, { isProactive: true });
 
                     // Registrar como mensaje del bot para que el listener de salientes lo ignore
-                    if (sent && sent.id && sent.id._serialized) {
-                        if (!global.botMessageIds) global.botMessageIds = new Set();
-                        global.botMessageIds.add(sent.id._serialized);
-                        setTimeout(() => global.botMessageIds.delete(sent.id._serialized), 10 * 60 * 1000);
-                    }
+                    rememberBotMessage(sent, selectedText);
 
-                    if (sent && sent.id && sent.id._serialized) {
-                        await prisma.whatsAppMessage.upsert({
-                            where: { waMessageId: sent.id._serialized },
-                            update: { senderName: 'Bot' },
-                            create: {
-                                chatId: chat.id,
-                                direction: 'OUTBOUND',
-                                type: 'TEXT',
-                                content: selectedText,
-                                waMessageId: sent.id._serialized,
-                                senderName: 'Bot',
-                                status: 'SENT'
-                            }
-                        });
-                    } else {
-                        await prisma.whatsAppMessage.create({
-                            data: {
-                                chatId: chat.id,
-                                direction: 'OUTBOUND',
-                                type: 'TEXT',
-                                content: selectedText,
-                                senderName: 'Bot',
-                                status: 'SENT'
-                            }
-                        });
-                    }
+                    const waMessageId = resolveWaMessageId(sent, { waId: chat.waId, direction: 'OUTBOUND', content: selectedText });
+                    await prisma.whatsAppMessage.upsert({
+                        where: { waMessageId },
+                        update: { senderName: 'Bot' },
+                        create: {
+                            chatId: chat.id,
+                            direction: 'OUTBOUND',
+                            type: 'TEXT',
+                            content: selectedText,
+                            waMessageId,
+                            senderName: 'Bot',
+                            status: 'SENT'
+                        }
+                    });
 
                     // Actualizar timestamps
                     await prisma.whatsAppChat.update({
