@@ -9,6 +9,14 @@ export interface StaticBlogPost {
 
 export const staticPosts: StaticBlogPost[] = [
   {
+    slug: 'optica-mejor-calificada-cordoba',
+    title: 'Por qué somos la óptica mejor calificada de Córdoba',
+    excerpt: 'Laboratorio propio, medición Essilor Expert, garantía de adaptación de 30 días y asesoramiento sin apuro: las seis cosas que explican nuestras reseñas en Google.',
+    date: '2026-07-28',
+    category: 'Nuestra Óptica',
+    imageUrl: '/images/blog/fachada-ladrillo.webp'
+  },
+  {
     slug: 'ray-ban-meta-smart-glasses-cordoba',
     title: 'Ray-Ban Meta: Los anteojos inteligentes que graban tu vida ya están en Córdoba',
     excerpt: 'No tienen pantallas molestas. Graban videos en alta definición, sacan fotos, reproducen música y tienen Inteligencia Artificial integrada. Conseguilos en Atelier.',

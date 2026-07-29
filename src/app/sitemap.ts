@@ -62,6 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/blog/materiales-armazones-acetato-tr90',
     '/blog/matias-turchi',
     '/blog/mitos-lentes-contacto',
+    '/blog/optica-mejor-calificada-cordoba',
     '/blog/peligros-anteojos-pregraduados-farmacia',
     '/blog/por-que-no-pegar-anteojos-la-gotita',
     '/blog/sintomas-presbicia-soluciones',
