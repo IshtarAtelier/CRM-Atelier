@@ -618,6 +618,32 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         y += 22;
     }
     
+    // --- DETALLES DE LABORATORIO (armazón, medidas, teñido) ---
+    const labFrame = describeLabFrameDetails(order);
+    if (!labFrame.isEmpty) {
+        const lineasLab: string[] = [];
+        if (labFrame.origin) lineasLab.push(`Armazón: ${labFrame.origin}`);
+        labFrame.pairs.forEach((pair, i) => {
+            if (pair.isEmpty) return;
+            const partes = [pair.shape ? `Forma: ${pair.shape}` : '', pair.measurements || '', pair.details || ''].filter(Boolean);
+            if (partes.length === 0) return;
+            lineasLab.push(`${i === 1 ? 'Par 2 (bonificado)' : 'Medidas del armazón'}: ${partes.join('  ·  ')}`);
+        });
+        if (labFrame.tint) {
+            lineasLab.push(`Tratamiento: ${labFrame.tint.text}${labFrame.tint.ambiguousPair ? ' (confirmar a qué par corresponde)' : ''}`);
+        }
+
+        const lineas = lineasLab.flatMap(l => doc.splitTextToSize(l, cw - 8));
+        const altura = 10 + lineas.length * 4;
+        doc.setDrawColor(...brandBeige); doc.setLineWidth(0.5);
+        doc.roundedRect(m, y, cw, altura, 2, 2);
+        doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+        doc.text('DETALLES DE LABORATORIO', m + 4, y + 5);
+        doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...darkText);
+        doc.text(lineas, m + 4, y + 11);
+        y += altura + 6;
+    }
+
     // --- OBSERVACIONES PARA EL CLIENTE ---
     const clientNote = order.clientNote ? String(order.clientNote).trim() : '';
     if (clientNote) {
