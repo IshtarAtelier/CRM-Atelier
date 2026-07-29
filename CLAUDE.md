@@ -118,6 +118,53 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
 - **Importe repetido al centavo no es doble facturación** — suele ser el mismo
   cristal a precio de lista.
 
+## Arquitectura: cómo se agrega código sin pudrir el sistema
+Reglas para que el proyecto escale sin volverse un mazacote.
+- **La lógica de negocio vive en `src/services/`, no en las rutas.** Una ruta API
+  valida, llama al service y responde. Si una ruta tiene un `prisma.` con lógica
+  de negocio adentro, está mal ubicada.
+- **Cálculo de plata: SOLO en `PricingService`.** Prohibido re-implementar
+  totales, saldos o markups en un componente o ruta — cada copia divergió alguna
+  vez y costó plata real.
+- **Un dato que se muestra en más de un lugar se arma en UN helper de `src/lib/`**
+  y todas las pantallas leen de ahí (patrón `lab-frame-summary.ts`: ficha, venta
+  y PDF muestran lo mismo porque lo calcula un solo lugar). Si vas a copiar un
+  bloque de JSX/lógica a una segunda pantalla, frená y extraé el helper.
+- **Componentes compartidos en `src/components/<dominio>/`**; un componente que
+  solo usa una página vive junto a esa página.
+- **Constantes con nombre en `src/lib/constants/`** — nada de números mágicos ni
+  strings repetidos (teléfonos, cutoffs, orígenes: ya viven ahí).
+- **Toda integración externa (SmartLab, Payway, Meta, Resend, AFIP) se toca a
+  través de su service** — nunca `fetch` directo desde una ruta o componente.
+- **Schema Prisma**: todo campo nuevo llega por migración commiteada, nunca
+  editando la DB a mano. Borrar columnas: primero dejar de leerlas en el código,
+  deploy, y recién después la migración que las borra (el deploy viejo sigue
+  corriendo durante el rollout).
+- **Errores**: las páginas públicas usan `rethrowUnlessBuild` (`db-guard.ts`);
+  el bot nunca muestra errores al cliente (calla y reintenta); los crons avisan
+  por email, no autocorrigen.
+
+## Higiene del repo (mantenerlo sin basura)
+- **Ramas**: borrar la rama local después de que su trabajo llegue a `origin/main`
+  (`git branch -d` avisa solo si falta algo). Objetivo: <10 ramas vivas. Las
+  `backup/*` y `rescate/*` tienen fecha en el nombre o en el commit — pasados
+  30 días sin reclamos, pedir OK y borrarlas.
+- **Un experimento que no va a ninguna parte se borra**, no se stashea. El stash
+  es para interrupciones de minutos, no almacenamiento — si vale, commit en una
+  rama con nombre; si no, se tira.
+- **Nada de archivos generados en git**: `.next*`, `tsconfig.tsbuildinfo`,
+  dumps de DB, `node_modules`. Si aparece uno nuevo recurrente, va al `.gitignore`.
+- **Los datos/entregables pesados** (JSON de fichas, listas de precios, PDFs de
+  labs) van en `scripts/maintenance/<tema>/` con un README que diga qué son y
+  cómo se aplican — nunca sueltos.
+- **Auditoría mensual** (o cuando algo se sienta sucio): `git status`,
+  `git stash list`, `git worktree list`, `git branch -vv`, ramas mergeadas
+  (`git branch --merged origin/main`), y tamaño de la carpeta. Todo lo que no se
+  pueda explicar en una frase, se investiga o se borra.
+- **Scripts one-off**: si se corrió una vez y no se va a repetir, se borra tras
+  commitear el resultado. Si se puede repetir, nombre descriptivo + comentario
+  de qué hace y contra qué base pega.
+
 ## Trampas conocidas
 - **`npx prisma generate` SIEMPRE desde `atelier/`.** Corrido desde otra carpeta,
   toda ficha de cliente tira 500.
