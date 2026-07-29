@@ -25,6 +25,32 @@ LOCAL (localhost:3000, base local) → rama `desarrollo` → testear → merge a
 - Rama de trabajo: **`desarrollo`**. Producción se despliega desde **`main`** (Railway auto-deploy).
 - Solo mergear a `main` cuando está testeado en local.
 
+## 🔴 Una sesión a la vez (IMPORTANTE)
+El daño más caro de este proyecto no fueron bugs: fue trabajo perdido por dos
+sesiones editando la misma carpeta. Los stashes `estado-parcial-mezclado-NO-USAR`
+y `wip-otra-sesion` son la cicatriz.
+- **Una sola sesión tocando `proyectos/atelier` por vez.** Para trabajar en
+  paralelo, `git worktree add` en otra carpeta — nunca dos sesiones acá.
+- **Un solo `npm run dev` prendido.** Varios en puertos distintos generan
+  `.next-<nombre>` que después ensucian el `tsconfig.json`.
+- **Commitear seguido, sin preguntar.** Commit no publica. Lo no commiteado es
+  lo único que se pierde cuando otra sesión hace checkout o stash.
+- Al abrir sesión: `git status && git stash list && git worktree list`. Si hay
+  trabajo ajeno sin guardar, commitearlo ANTES de tocar nada.
+- Al cerrar un worktree: `git worktree remove` — la rama y sus commits sobreviven,
+  solo se va la carpeta. Lo único en riesgo es lo no commiteado.
+- Push a `main`, merge y deploy: **solo con OK explícito del usuario.**
+
+## Dónde va cada cosa
+- `src/` — la app. Nada temporal acá.
+- `scripts/checks/` — scripts de auditoría y diagnóstico (solo leen).
+- `scripts/maintenance/` — scripts que escriben en la base. Nombre explícito.
+- `docs/` — documentación (runbooks, pasos de deploy, notas de lanzamiento).
+- `prisma/`, `wa-service/` — schema y bot de WhatsApp.
+- **La raíz es solo configuración.** Nada de `*.tmp.js`, `probe*.mjs`, `dump*.mjs`
+  ni scripts de un rato. Si sirve, va a `scripts/` con nombre que diga qué hace;
+  si no sirve, se borra.
+
 ## Comandos
 - `npm run dev` — levanta localhost:3000 (usa base local)
 - `docker compose up -d db` — levanta Postgres local (contenedor `atelier-postgres`, puerto 5432)
@@ -66,8 +92,43 @@ AuditLog y emails/WhatsApp que la mencionen.
   borrado o con rol degradado sigue operando con los permisos viejos hasta que
   expira). No resuelto — evaluar antes de cualquier cambio a la duración del token.
 
+## 🔴 Reglas de negocio que el código no dice
+Cada una nació de un dato mal calculado en producción. No deducirlas del código.
+- **Los costos de cristales son POR PAR**: `item.eye ? cost / 2 : cost`. Grupo
+  Óptico factura por línea, nunca el total del comprobante.
+- **El saldo NUNCA es lista − cobrado.** Hay que convertir cada pago a su
+  equivalente de lista; la resta directa inventó 76 saldos fantasma en prod.
+- **Un cobro de más no redefine el precio de la venta.** Nada debe pisar
+  `total` / `subtotalWithMarkup` con lo pagado.
+- **`Order.paid` NO prueba que se haya cobrado.** La venta real se mide por filas
+  de `Payment` o por `labStatus`. Hay filas con `paid` y cero pagos.
+- **Vendedor de una venta = quien la envió a fábrica** (`labSentBy`).
+- **Nombres de la tienda = estelar + color.** La marca (ej. Cápsula Escarlata) va
+  en el campo marca, nunca en el nombre.
+- **Fechas visibles en dd/MM/yyyy** vía `src/lib/format-date.ts`. No tocar el ISO interno.
+- **Links en mails y notificaciones**: `/admin/ventas?id=` (nunca `?orderId=`).
+  Lo que ve el cliente sale de `STORE_ORIGIN`.
+- **Un comprobante trae VARIOS identificadores** (Mercado Pago tiene nº de
+  operación Y código de identificación). Comparar contra uno solo acusa en falso.
+- **Importe repetido al centavo no es doble facturación** — suele ser el mismo
+  cristal a precio de lista.
+
+## Trampas conocidas
+- **`npx prisma generate` SIEMPRE desde `atelier/`.** Corrido desde otra carpeta,
+  toda ficha de cliente tira 500.
+- **Prisma contra producción exige `select` explícito**, también en los `update`:
+  el schema local está adelantado y devolver la fila entera revienta.
+- **El 404 de una ficha de producto inexistente es a propósito.** No "arreglarlo".
+- Una ruta que hace 404 o redirige no puede tener `loading.tsx` (soft-404 en Google).
+- El horario que responde el bot vive en `SystemSetting.bot_prompt`, no en el
+  código. Tocar los prompts y deployar NO cambia lo que contesta.
+- Qué falta deployar se mide con `git cherry -v origin/main`, no contra el `main` local.
+
 ## Pendientes / notas
 - Token de GitHub en texto plano en `.git/config` (remote origin) — conviene rotar
   y pasar a credential helper.
-- ~40 ramas locales `subagent-*` (restos de corridas viejas) — se pueden borrar.
-- Muchos scripts one-off en la raíz — conviene mover a `scripts/` o borrar.
+- Contraseña de la base de PRODUCCIÓN hardcodeada en `scripts/utils/` — rotar en Railway.
+- Ramas `rescate/*`: son 3 stashes viejos convertidos en ramas para que no se
+  pierdan. Revisar qué sobrevive y borrarlas.
+- Queda 1 rama `subagent-*` sin mergear (`Unused-Code---Dependency-Cleaner`) —
+  revisar antes de borrar con `-D`.
