@@ -30,16 +30,12 @@
     }
   },
   "include": [
+    "next-env.d.ts",
     "**/*.mts",
     "**/*.ts",
     "**/*.tsx",
-    ".next-banner/types/**/*.ts",
-    ".next-cupon/types/**/*.ts",
-    ".next-horarios/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts",
-    ".next-cta/types/**/*.ts"
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
