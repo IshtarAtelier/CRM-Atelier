@@ -1687,17 +1687,39 @@ const handleMessage = async (msg) => {
                 const sentReceipt = await sendMessage(waId, receiptConfirmation, null, { isProactive: false });
                 setTimeout(() => botReplyingTo.delete(waId), 3000);
 
-                await prisma.whatsAppMessage.create({
-                    data: {
+                // Este confirmación quedaba fuera del arreglo del renombre `$1`: leía
+                // solo `_serialized` y, al no encontrarlo, inventaba un id con la hora
+                // (`receipt_<ms>`). Dos ids distintos para el mismo mensaje ⇒ el
+                // listener message_create lo volvía a grabar y salía duplicado.
+                const receiptWaMessageId = resolveWaMessageId(sentReceipt, {
+                    waId,
+                    direction: 'OUTBOUND',
+                    content: receiptConfirmation,
+                });
+
+                const receiptTwin = isLocalWaMessageId(receiptWaMessageId)
+                    ? await findRecentTwin(prisma, {
                         chatId: chat.id,
                         direction: 'OUTBOUND',
-                        type: 'TEXT',
                         content: receiptConfirmation,
-                        waMessageId: sentReceipt?.id?._serialized || `receipt_${Date.now()}`,
-                        senderName: 'Bot',
-                        status: 'SENT'
-                    }
-                });
+                    })
+                    : null;
+
+                if (!receiptTwin) {
+                    await prisma.whatsAppMessage.upsert({
+                        where: { waMessageId: receiptWaMessageId },
+                        update: {},
+                        create: {
+                            chatId: chat.id,
+                            direction: 'OUTBOUND',
+                            type: 'TEXT',
+                            content: receiptConfirmation,
+                            waMessageId: receiptWaMessageId,
+                            senderName: 'Bot',
+                            status: 'SENT'
+                        }
+                    });
+                }
 
                 await disableBotForChatById(chat.id, 'Detección automática de comprobante de pago');
 
