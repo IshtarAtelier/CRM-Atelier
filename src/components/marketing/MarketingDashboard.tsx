@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-    Megaphone, Target, TrendingUp, DollarSign, Users, 
+import {
+    Megaphone, Target, TrendingUp, DollarSign, Users,
     MousePointerClick, Search, RefreshCw, BarChart3, AlertCircle, Loader2
 } from 'lucide-react';
 
@@ -10,10 +10,24 @@ export function MarketingDashboard() {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
     const [error, setError] = useState('');
+    const [userRole, setUserRole] = useState<string | null>(null);
 
     useEffect(() => {
         fetchDashboardData();
+        fetchUserRole();
     }, []);
+
+    const fetchUserRole = async () => {
+        try {
+            const res = await fetch('/api/users/me');
+            if (res.ok) {
+                const user = await res.json();
+                setUserRole(user.role);
+            }
+        } catch (err) {
+            console.error('Error fetching user role:', err);
+        }
+    };
 
     const fetchDashboardData = async () => {
         setLoading(true);
@@ -88,6 +102,7 @@ export function MarketingDashboard() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {userRole === 'ADMIN' && (
                 <div className="bg-white dark:bg-[#1C1816] border border-stone-200 dark:border-white/5 rounded-3xl p-6 shadow-sm">
                     <div className="flex justify-between items-start mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
@@ -100,7 +115,9 @@ export function MarketingDashboard() {
                         <p className="text-xs font-bold text-stone-500 mt-2">Google: ${data.googleSpent.toLocaleString()} | Meta: ${data.metaSpent.toLocaleString()}</p>
                     </div>
                 </div>
+                )}
 
+                {userRole === 'ADMIN' && (
                 <div className="bg-white dark:bg-[#1C1816] border border-stone-200 dark:border-white/5 rounded-3xl p-6 shadow-sm">
                     <div className="flex justify-between items-start mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
@@ -113,7 +130,9 @@ export function MarketingDashboard() {
                         <p className="text-xs font-bold text-emerald-500 mt-2">Facturación Bruta: ${data.totalSales.toLocaleString()}</p>
                     </div>
                 </div>
+                )}
 
+                {userRole === 'ADMIN' && (
                 <div className="bg-white dark:bg-[#1C1816] border border-stone-200 dark:border-white/5 rounded-3xl p-6 shadow-sm">
                     <div className="flex justify-between items-start mb-4">
                         <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
@@ -126,6 +145,7 @@ export function MarketingDashboard() {
                         <p className="text-xs font-bold text-stone-500 mt-2">Gasto Total / {data.ordersCount} ventas reales</p>
                     </div>
                 </div>
+                )}
 
                 <div className="bg-gradient-to-br from-indigo-500 to-purple-600 border border-indigo-400 rounded-3xl p-6 shadow-lg shadow-indigo-500/20 text-white">
                     <div className="flex justify-between items-start mb-4">
@@ -142,7 +162,8 @@ export function MarketingDashboard() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                {/* Atribución por Origen */}
+                {/* Atribución por Origen — Solo Admin */}
+                {userRole === 'ADMIN' && (
                 <div className="bg-white dark:bg-[#1C1816] border border-stone-200 dark:border-white/5 rounded-3xl p-6 xl:col-span-1 shadow-sm">
                     <div className="flex items-center gap-2 mb-8">
                         <Megaphone className="w-5 h-5 text-stone-500" />
@@ -168,6 +189,7 @@ export function MarketingDashboard() {
                         ))}
                     </div>
                 </div>
+                )}
 
                 {/* Rendimiento de Campañas */}
                 <div className="bg-white dark:bg-[#1C1816] border border-stone-200 dark:border-white/5 rounded-3xl p-6 xl:col-span-2 shadow-sm">

@@ -74,7 +74,27 @@ interface BlogPost {
 }
 
 export default function WebManagementPage() {
-  const [activeTab, setActiveTab] = useState<'analitica' | 'products' | 'blog' | 'config' | 'flyers' | 'coupons'>('analitica');
+  const [activeTab, setActiveTab] = useState<'analitica' | 'products' | 'blog' | 'config' | 'flyers' | 'coupons'>('products');
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchUserRole();
+  }, []);
+
+  const fetchUserRole = async () => {
+    try {
+      const res = await fetch('/api/users/me');
+      if (res.ok) {
+        const user = await res.json();
+        setUserRole(user.role);
+        if (user.role === 'ADMIN') {
+          setActiveTab('analitica');
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching user role:', err);
+    }
+  };
 
   // Flyer Builder states
   const [flyerTheme, setFlyerTheme] = useState<'cream' | 'obsidian' | 'rose'>('cream');
@@ -864,6 +884,7 @@ export default function WebManagementPage() {
 
       {/* TABS CONTROLLER */}
       <div className="flex border-b border-stone-200 dark:border-stone-800 overflow-x-auto">
+        {userRole === 'ADMIN' && (
         <button
           onClick={() => setActiveTab('analitica')}
           className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs font-bold uppercase tracking-widest transition-all ${
@@ -874,6 +895,7 @@ export default function WebManagementPage() {
         >
           <LineChart className="w-4 h-4" /> Analítica
         </button>
+        )}
         <button
           onClick={() => setActiveTab('products')}
           className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs font-bold uppercase tracking-widest transition-all ${
@@ -927,7 +949,7 @@ export default function WebManagementPage() {
       </div>
 
       {/* TAB 0: ANALÍTICA (default — todo lo de la tienda arranca acá) */}
-      {activeTab === 'analitica' && <AnalyticsDashboard />}
+      {activeTab === 'analitica' && userRole === 'ADMIN' && <AnalyticsDashboard />}
 
       {/* TAB 1: PRODUCTS LIST */}
       {activeTab === 'products' && (
