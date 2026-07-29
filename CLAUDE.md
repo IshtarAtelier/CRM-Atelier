@@ -24,6 +24,11 @@ LOCAL (localhost:3000, base local) → rama `desarrollo` → testear → merge a
 ```
 - Rama de trabajo: **`desarrollo`**. Producción se despliega desde **`main`** (Railway auto-deploy).
 - Solo mergear a `main` cuando está testeado en local.
+- **La verdad es `origin/main`, nunca el `main` local.** El 28/7 el main local
+  estaba 191 commits atrás de producción (cicatriz de sesiones cruzadas; el
+  estado viejo quedó en `backup/main-local-28jul`). Antes de armar un deploy:
+  `git fetch origin` y construir SIEMPRE sobre `origin/main`. Qué falta deployar
+  se mide con `git cherry -v origin/main`.
 
 ## 🔴 Una sesión a la vez (IMPORTANTE)
 El daño más caro de este proyecto no fueron bugs: fue trabajo perdido por dos
