@@ -123,7 +123,10 @@ async function ventasPorEtiqueta(prisma) {
   for (const v of ordenes) {
     const p = (porCliente[v.clientId] ||= { presupuesto: 0, real: 0, cobrado: 0, nReales: 0 });
     p.presupuesto += Number(v.total || 0);
-    const cobrado = v.payments.reduce((s, x) => s + Number(x.amount || 0), 0) || Number(v.paid || 0);
+    // Solo pagos REGISTRADOS. `Order.paid` no sirve de respaldo: hay filas con
+    // paid = total × 1,25 y cero pagos detrás (residuo del arreglo del ratchet),
+    // que se colaban como cierres reales.
+    const cobrado = v.payments.reduce((s, x) => s + Number(x.amount || 0), 0);
     const esReal = !['LOST', 'CANCELED'].includes(v.status || '') &&
       (cobrado > 0 || (v.labStatus && v.labStatus !== 'NONE'));
     if (esReal) { p.real += Number(v.total || 0); p.cobrado += cobrado; p.nReales++; }

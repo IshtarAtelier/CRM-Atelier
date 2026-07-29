@@ -214,8 +214,12 @@ async function roasPorAnuncio(desde: Date, hasta: Date, rate: number): Promise<T
     if (!v.clientId) continue;
     const p = porCliente.get(v.clientId) || { presupuesto: 0, real: 0, cobrado: 0 };
     p.presupuesto += Number(v.total || 0);
-    const cobrado =
-      v.payments.reduce((s, pay) => s + Number(pay.amount || 0), 0) || Number(v.paid || 0);
+    // Solo cuentan los pagos REGISTRADOS. `Order.paid` no sirve como respaldo:
+    // quedan filas con `paid` = total × 1,25 sin ninguna fila de pago detrás
+    // (residuo del arreglo del ratchet, que baja `total` y no toca `paid`), y
+    // usarlas como evidencia inventaba cierres. De 168 órdenes con pagos reales
+    // en 90 días, 165 tienen `paid` coherente — no se pierde nada al exigir la fila.
+    const cobrado = v.payments.reduce((s, pay) => s + Number(pay.amount || 0), 0);
     const esVentaReal =
       !['LOST', 'CANCELED'].includes(v.status || '') &&
       (cobrado > 0 || (v.labStatus && v.labStatus !== 'NONE'));
