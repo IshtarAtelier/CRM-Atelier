@@ -1,10 +1,59 @@
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { HumanMessage } = require("@langchain/core/messages");
 const { prisma } = require('./db');
-const { addTagToClient, convertIntoLead, updateClientData, reportInvoiceRequest } = require('./tools');
+const { addTagToClient, convertIntoLead, updateClientData, reportInvoiceRequest, isPhrase } = require('./tools');
 const { withTimeout } = require('./utils');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reglas de creación de ficha desde una conversación de WhatsApp.
+//
+// Historia: un commit de SEO (c8d2b3ba) borró de acá toda la creación de fichas
+// y la reemplazó por un `return` temprano. Resultado: entre junio y julio de 2026
+// el extractor no creó NINGUNA ficha y —peor— tampoco enriqueció los chats sin
+// ficha (sin resumen, sin etiquetas, sin detectar postergaciones), porque el
+// `return` cortaba antes de todo lo demás.
+//
+// Regla actual: se crea la ficha con NOMBRE válido + TELÉFONO válido. No se exige
+// intención de compra: un contacto con nombre y teléfono ya vale, y el origen se
+// completa solo. Ante la duda NO se crea (mejor ninguna ficha que una basura).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Nombres que no son nombres: vacíos, genéricos, con muchos dígitos o frases. */
+function esNombreValido(nombre) {
+    if (!nombre || typeof nombre !== 'string') return false;
+    const limpio = nombre.trim();
+    if (limpio.length < 2) return false;
+
+    // "3541215971", "cliente 12345": si tiene 5+ dígitos es un teléfono disfrazado
+    if ((limpio.match(/\d/g) || []).length >= 5) return false;
+
+    const generico = limpio.toLowerCase();
+    if (['contacto nuevo wa', 'contacto nuevo', 'cliente', 'desconocido', '-', 'sin nombre'].includes(generico)) return false;
+
+    // "hola quiero info de multifocales" no es un nombre
+    if (isPhrase(limpio)) return false;
+
+    return true;
+}
+
+/** El teléfono del chat, ya normalizado. null si es un @lid falso o basura. */
+function telefonoValido(chatInfo, waId) {
+    const real = chatInfo?.realPhone;
+    if (real) {
+        const d = String(real).replace(/\D/g, '');
+        return d.length >= 8 && d.length <= 15 ? real : null;
+    }
+
+    // Sin realPhone, un chat @lid NO tiene teléfono: el id de Meta parece un
+    // número (15 dígitos) pero no lo es. Mandarlo crearía una ficha incontactable.
+    const id = String(waId || '');
+    if (id.includes('@lid')) return null;
+
+    const digitos = id.split('@')[0].replace(/\D/g, '');
+    return digitos.length >= 8 && digitos.length <= 15 ? digitos : null;
+}
 
 let passiveModelInstance = null;
 
@@ -69,7 +118,10 @@ Conversación reciente:
 ${conversationText}
 
 Your task is to return a strictly valid JSON object with the following fields:
-1. "clientName": string or null.
+1. "clientName": string or null. El nombre REAL de la persona (nombre de pila y/o
+   apellido), tal como lo dijo en la charla. Si solo se saludó y nunca dijo su
+   nombre, devolvé null — NO inventes, NO uses frases como "Hola quiero info",
+   NO uses el número de teléfono, NO uses el nombre del negocio.
 2. "interestTag": string or null.
 3. "insurance": string or null.
 4. "summary": string or null.
@@ -100,9 +152,52 @@ Respond ONLY with the raw JSON. No markdown.
 
         let currentClientId = chatInfo.clientId;
 
+        // 1. Sin ficha vinculada: intentar crearla con nombre + teléfono válidos.
+        //    Si no se puede, seguimos igual con el enriquecimiento del chat (resumen,
+        //    postergaciones): antes acá había un `return` que dejaba mudo al extractor.
         if (!currentClientId) {
-            console.log("  👤 [Ficha Inteligente] Omitiendo extracción: no existe ficha vinculada (la ficha solo se crea al registrar una receta).");
-            return;
+            const nombreCharla = parsed.clientName;
+            const nombre = esNombreValido(nombreCharla)
+                ? nombreCharla.trim()
+                : (esNombreValido(profileName) ? profileName.trim() : null);
+            const telefono = telefonoValido(chatInfo, waId);
+
+            if (!nombre || !telefono) {
+                console.log(`  👤 [Ficha Inteligente] Todavía sin ficha: ${!nombre ? 'falta un nombre real' : 'teléfono no utilizable'}. Se sigue con resumen y etiquetas del chat.`);
+            } else {
+                console.log(`  👤 [Ficha Inteligente] Creando ficha: ${nombre} (${telefono})`);
+                // contactSource null a propósito: convertIntoLead llama a
+                // detectContactSourceFromChat, que resuelve @lid → Meta, plantillas
+                // [meta...], "vi su anuncio en Google", "me recomendó" → Referido.
+                const alta = await convertIntoLead({
+                    phone: telefono,
+                    name: nombre,
+                    contactSource: null,
+                    interest: parsed.interestTag || 'Otros',
+                    insurance: parsed.insurance || null,
+                    chatId,
+                }).catch(e => {
+                    console.error('  ❌ [Ficha Inteligente] Error creando ficha:', e.message);
+                    return null;
+                });
+
+                if (alta && alta.success && alta.contact) {
+                    currentClientId = alta.contact.id;
+                    console.log(`  ✅ [Ficha Inteligente] Ficha creada: ${currentClientId} · origen ${alta.contact.contactSource || 'WhatsApp'}`);
+                    if (global.io) {
+                        global.io.emit('lead_created', {
+                            id: currentClientId,
+                            name: nombre,
+                            phone: telefono,
+                            interest: parsed.interestTag || 'No especificado',
+                            source: alta.contact.contactSource || 'WhatsApp',
+                        });
+                    }
+                } else if (alta && alta.error) {
+                    // convertIntoLead ya filtra nombres/teléfonos inválidos por su cuenta
+                    console.log(`  ⏭️ [Ficha Inteligente] No se creó la ficha: ${alta.error}`);
+                }
+            }
         }
 
         // 2. Si ya hay cliente (o se acaba de crear), actualizar datos
@@ -230,9 +325,13 @@ Respond ONLY with the raw JSON. No markdown.
         }
 
         // 3. Evaluar si pidió Factura
-        if (parsed.invoiceRequested) {
+        // Sin ficha no hay a quién asociarle el pedido de factura: antes esto era
+        // inalcanzable por el `return` de arriba; ahora hay que blindarlo.
+        if (parsed.invoiceRequested && currentClientId) {
             console.log(`  🚨 [Ficha Inteligente] Solicitud de Factura detectada para ${currentClientId}`);
-            await reportInvoiceRequest({ clientId: currentClientId });
+            await reportInvoiceRequest({ clientId: currentClientId }).catch(e => console.error('Error reportInvoiceRequest pasivo:', e.message));
+        } else if (parsed.invoiceRequested) {
+            console.log('  🚨 [Ficha Inteligente] Pidió factura pero el chat todavía no tiene ficha. Queda en el resumen del chat.');
         }
 
         // 4. Actualizar el chatSummary (PROTEGIDO: no sobreescribir resúmenes ricos del agente)

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { esMismaPersona } from '@/lib/nombre-personas';
 import { prisma } from '@/lib/db';
 import { ContactService } from '@/services/contact.service';
 
@@ -85,12 +86,10 @@ export async function POST(request: Request) {
                         const existingName = parsedError.existingClient.name || '';
                         const newName = data.name || '';
                         
-                        const cleanStr = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
-                        const cleanExisting = cleanStr(existingName);
-                        const cleanNew = cleanStr(newName);
-                        
-                        // Si los nombres son distintos, forzar la creación de la nueva ficha en lugar de sobrescribir
-                        if (cleanExisting !== cleanNew && !cleanExisting.includes(cleanNew) && !cleanNew.includes(cleanExisting)) {
+                        // Mismo teléfono: o es la misma persona (duplicado) o es la familia
+                        // compartiendo la línea. esMismaPersona() tolera typos y orden
+                        // invertido sin fusionar hermanos — ver src/lib/nombre-personas.ts
+                        if (!esMismaPersona(existingName, newName)) {
                             console.log(`[Bot Bridge] Shared phone but different names: "${existingName}" vs "${newName}". Force creating new client.`);
                             const created = await ContactService.create({
                                 createdBy: 'Agente Bot',
