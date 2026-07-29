@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     url: "https://atelieroptica.com.ar/tienda",
     images: [
       {
-        url: "/images/blog/mostrador-marmol.webp",
+        url: "/images/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Colección Atelier Óptica",

@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     description: 'Colección boutique y curada: diseño de autor y modelos en tendencia, con precios netos por unidad para ópticas.',
     images: [
       {
-        url: '/images/editorial/filmmaker-frida.webp',
+        url: '/images/og/mayorista.jpg',
         width: 1200,
         height: 630,
         alt: 'Cápsula Escarlata',

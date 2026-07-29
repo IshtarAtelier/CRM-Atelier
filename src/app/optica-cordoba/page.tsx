@@ -55,7 +55,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       images: [
         {
-          url: "/images/blog/fachada-ladrillo.webp",
+          url: "/images/og/nuestro-local.jpg",
           width: 1200,
           height: 630,
           alt: "Fachada de Atelier Óptica en el Cerro de las Rosas, Córdoba",

@@ -37,7 +37,10 @@ export async function generateMetadata(
             description: descripcion,
             type: 'website',
             url: `${SITIO}/blog/categoria/${categoria}`,
-            images: [{ url: grupo.posts[0]?.imageUrl || '/images/blog/blog1_header.png', width: 1200, height: 630, alt: titulo }],
+            // La foto de la primera nota puede ser vertical o cuadrada: al
+            // compartir el link, WhatsApp la recorta y sale cualquier cosa. Se
+            // usa la única imagen del sitio que ya está en 1200×630.
+            images: [{ url: '/images/og-image.jpg', width: 1200, height: 630, alt: titulo }],
         },
     };
 }

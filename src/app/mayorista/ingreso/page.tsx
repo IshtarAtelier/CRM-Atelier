@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     description: 'Acceso al portal mayorista para ópticas y distribuidores.',
     images: [
       {
-        url: '/images/editorial/filmmaker-frida.webp',
+        url: '/images/og/mayorista.jpg',
         width: 1200,
         height: 630,
         alt: 'Cápsula Escarlata',

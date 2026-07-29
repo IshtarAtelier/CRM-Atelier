@@ -42,7 +42,12 @@ export async function generateMetadata(): Promise<Metadata> {
       description: 'Descubrí nuestra colección completa de anteojos de diseño. Marcos premium seleccionados a mano.',
       url: 'https://atelieroptica.com.ar/tienda',
       type: 'website',
-      images: [{ url: '/images/blog/mostrador-marmol.webp', width: 1200, height: 630, alt: 'Colección de anteojos de diseño' }],
+      // La misma imagen que el home: el ATELIER grabado en la varilla. Es la
+      // única del sitio que ya viene en 1200×630 (el formato que usan WhatsApp,
+      // Instagram y Facebook). La anterior —mostrador-marmol— es vertical
+      // (1600×2842) aunque el código declarara 1200×630: al compartir el link,
+      // WhatsApp la recortaba y se veían las flores y el frasco de caramelos.
+      images: [{ url: '/images/og-image.jpg', width: 1200, height: 630, alt: 'Anteojos Atelier Óptica' }],
     },
   };
 }

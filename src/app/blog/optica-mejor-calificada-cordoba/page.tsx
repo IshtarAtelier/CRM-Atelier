@@ -44,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
       url: PAGE_URL,
       title,
       description,
-      images: [{ url: '/images/blog/fachada-ladrillo.webp', width: 1200, height: 630, alt: 'Fachada de Atelier Óptica en el Cerro de las Rosas, Córdoba' }],
+      images: [{ url: '/images/og/nuestro-local.jpg', width: 1200, height: 630, alt: 'Fachada de Atelier Óptica en el Cerro de las Rosas, Córdoba' }],
     },
   };
 }

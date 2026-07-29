@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: `https://atelieroptica.com.ar/blog/busquedas/${query}`,
       images: [
         {
-          url: "/images/blog/blog1_header.png", // Usa una imagen genérica potente
+          url: "/images/og-image.jpg", // Usa una imagen genérica potente
           width: 1200,
           height: 630,
           alt: title,

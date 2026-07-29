@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     url: "https://atelieroptica.com.ar/blog/faq",
     images: [
       {
-        url: "/images/blog/blog1_header.png",
+        url: "/images/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "FAQ Salud Visual",
