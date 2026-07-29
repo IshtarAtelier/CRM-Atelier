@@ -286,8 +286,9 @@ class AntiBanQueue {
             try {
                 if (targetWaId.includes('@c.us')) {
                     const numberId = await this.client.getNumberId(targetWaId);
-                    if (numberId && numberId._serialized) {
-                        targetWaId = numberId._serialized;
+                    const numberWaId = serializedId(numberId);
+                    if (numberWaId) {
+                        targetWaId = numberWaId;
                     } else {
                         reject(new Error('El número no está registrado en WhatsApp o es inválido'));
                         return;

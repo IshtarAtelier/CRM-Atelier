@@ -27,9 +27,20 @@ function normalizeContent(content) {
     return String(content || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+/**
+ * Id serializado de un chat/mensaje/contacto.
+ * En julio de 2026 WhatsApp Web renombró internamente `_serialized` a `$1`
+ * (https://github.com/wwebjs/whatsapp-web.js/pull/201832). whatsapp-web.js 1.34.7
+ * todavía lee solo `_serialized`, así que leemos los dos.
+ */
+function serializedId(idLike) {
+    const value = idLike?._serialized ?? idLike?.$1;
+    return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
 /** ¿WhatsApp nos dio el id real del mensaje? */
 function hasRealWaMessageId(msg) {
-    return typeof msg?.id?._serialized === 'string' && msg.id._serialized.length > 0;
+    return serializedId(msg?.id) !== null;
 }
 
 /**
@@ -38,7 +49,8 @@ function hasRealWaMessageId(msg) {
  * @param {object} ctx { waId, direction, content, timestamp (en segundos) }
  */
 function resolveWaMessageId(msg, ctx = {}) {
-    if (hasRealWaMessageId(msg)) return msg.id._serialized;
+    const real = serializedId(msg?.id);
+    if (real) return real;
 
     const waId = ctx.waId || msg?.to || msg?.from || 'desconocido';
     const seconds = Number(ctx.timestamp || msg?.timestamp || Math.floor(Date.now() / 1000));
@@ -82,7 +94,7 @@ function rememberBotMessage(sent, content) {
     if (!global.botMessageIds) global.botMessageIds = new Set();
     if (!global.botMessageContents) global.botMessageContents = new Map();
 
-    const id = sent?.id?._serialized;
+    const id = serializedId(sent?.id);
     if (id) {
         global.botMessageIds.add(id);
         setTimeout(() => global.botMessageIds.delete(id), BOT_MEMORY_TTL_MS);
@@ -97,7 +109,7 @@ function rememberBotMessage(sent, content) {
 
 /** ¿Este saliente lo mandó el bot (y no una persona)? */
 function wasSentByBot(msg) {
-    const id = msg?.id?._serialized;
+    const id = serializedId(msg?.id);
     if (id && global.botMessageIds && global.botMessageIds.has(id)) return true;
 
     const key = normalizeContent(msg?.body);
@@ -105,6 +117,7 @@ function wasSentByBot(msg) {
 }
 
 module.exports = {
+    serializedId,
     resolveWaMessageId,
     hasRealWaMessageId,
     isLocalWaMessageId,
