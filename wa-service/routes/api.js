@@ -364,6 +364,14 @@ function createApiRouter(deps) {
             
             // Trackear que el CRM está enviando para que no haya race condition
             botReplyingTo.add(waId);
+            // …y CON NOMBRE: el eco de message_create firma con esto en vez de "Bot".
+            // Expira solo (el eco puede llegar después de que esta request termine).
+            if (global.crmSendingTo) {
+                global.crmSendingTo.set(waId, senderName || 'CRM');
+                setTimeout(() => {
+                    if (global.crmSendingTo.get(waId) === (senderName || 'CRM')) global.crmSendingTo.delete(waId);
+                }, 90000);
+            }
 
             if (media?.base64) {
                 sent = await sendMessage(waId, message, media, { isProactive: false, isAutomated: false });

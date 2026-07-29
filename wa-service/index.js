@@ -116,6 +116,11 @@ const passiveDebounceTimers = new Map();
 global.botReplyingTo = new Set();
 const botReplyingTo = global.botReplyingTo; // Trackear cuando el bot está enviando para evitar race conditions
 
+// waId → nombre del usuario del CRM que está enviando en este momento. Sin esto,
+// el eco de un envío del CRM veía botReplyingTo activo y firmaba "Bot" aunque lo
+// hubiera mandado un vendedor logueado. Lo setea POST /send y expira solo.
+global.crmSendingTo = new Map();
+
 // ── Contador de errores consecutivos por chat (auto-disable tras 3 fallos) ──
 const chatErrorCounts = new Map();
 
@@ -288,13 +293,22 @@ const handleMessageCreate = async (msg) => {
                     }
                 }
                 
+                // Quién firma el saliente:
+                // 1. auto-respuesta de Meta → 'Meta (Auto-Reply)'
+                // 2. un usuario del CRM está enviando a este número → SU nombre
+                //    (antes este caso caía en 'Bot' por compartir la marca botReplyingTo)
+                // 3. el bot (seguimientos, respuestas) → 'Bot'
+                // 4. nadie de los anteriores → se tipeó desde el celular → 'Celular'
+                const crmSenderName = global.crmSendingTo?.get(waId);
                 let senderNameVal;
                 if (isMetaAutoReply) {
                     senderNameVal = 'Meta (Auto-Reply)';
+                } else if (crmSenderName) {
+                    senderNameVal = crmSenderName;
                 } else if (isBotReplying) {
                     senderNameVal = 'Bot';
                 } else {
-                    senderNameVal = 'Humano';
+                    senderNameVal = 'Celular';
                 }
 
                 const content = msg.body || '[Media/Documento]';
