@@ -24,7 +24,48 @@ const SHARED_SET_ID = process.env.GOOGLE_ADS_NEGATIVE_SET_ID || '11042611019';
 // BROAD: nombres distintivos, no tapan ninguna búsqueda legítima de óptica.
 // PHRASE: palabras comunes (torre, soler, galileo, elvira) donde una amplia sí
 // taparía búsquedas buenas.
+// Segunda tanda (90 días de datos): el resto de las ópticas y clínicas de
+// Córdoba que aparecían en los temas de búsqueda de la PMax.
+const SEGUNDA_TANDA = [
+  // nombres propios distintivos → amplia
+  ['onnis', 'BROAD'],
+  ['lazzarini', 'BROAD'],
+  ['amuchastegui', 'BROAD'],
+  ['rapilent', 'BROAD'],
+  ['popoff', 'BROAD'],
+  ['molinari', 'BROAD'],
+  ['ferrario', 'BROAD'],
+  ['almiron', 'BROAD'],
+  ['crillon', 'BROAD'],
+  ['bulacio', 'BROAD'],
+  ['biolab', 'BROAD'],
+  // combinaciones (la palabra suelta es común) → frase
+  ['rizzi lauret', 'PHRASE'],
+  ['mega lent', 'PHRASE'],
+  ['mostaza sanchez', 'PHRASE'],
+  ['testi quiros', 'PHRASE'],
+  ['optica arguello', 'PHRASE'],
+  ['optica vision', 'PHRASE'],
+  ['optica lens', 'PHRASE'],
+  ['optica palacios', 'PHRASE'],
+  ['optica italia', 'PHRASE'],
+  ['optica valencia', 'PHRASE'],
+  ['optica mys', 'PHRASE'],
+  ['optica la esmeralda', 'PHRASE'],
+  ['optica campos', 'PHRASE'],
+  ['optica santa lucia', 'PHRASE'],
+  ['optica rudi', 'PHRASE'],
+  ['optica lara', 'PHRASE'],
+  ['optica uepc', 'PHRASE'],
+  ['ioc cordoba', 'PHRASE'],
+  ['sof cordoba', 'PHRASE'],
+  ['clinica de ojos', 'PHRASE'],
+  ['oftalmo alta gracia', 'PHRASE'],
+  ['mas vision dinosaurio', 'PHRASE'],
+];
+
 const TERMINOS = [
+  ...SEGUNDA_TANDA,
   ['visualizar', 'BROAD'],
   ['praga', 'BROAD'],
   ['unilent', 'BROAD'],
