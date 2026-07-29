@@ -26,7 +26,7 @@ const { checkAndSendSalesFollowUps } = require('./sales-followups');
 const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups');
 const { TAGS_SIN_BOT, getFileExtension, getAdminWaId } = require('./utils');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
-const { resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
+const { serializedId, resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -1843,7 +1843,8 @@ server.listen(PORT, '0.0.0.0', async () => {
             onUnreadCount: async (chat) => {
                 try {
                     if (chat.unreadCount === 0) {
-                        const waId = chat.id._serialized;
+                        const waId = serializedId(chat.id);
+                        if (!waId) return;
                         await prisma.whatsAppChat.updateMany({
                             where: { waId },
                             data: { unreadCount: 0 }
