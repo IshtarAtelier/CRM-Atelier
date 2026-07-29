@@ -15,7 +15,7 @@
  *   node scripts/ads/backfill_ad_tags.js --prod --aplicar   (escribe en PRODUCCIÓN)
  */
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 
 const usarProd = process.argv.includes('--prod');
 const aplicar = process.argv.includes('--aplicar');
@@ -52,21 +52,38 @@ async function main() {
     ) m ON true
     WHERE c."adTag" IS NULL`;
 
-  let chatsEtiquetados = 0;
+  const pares = [];
   const porTag = {};
   for (const c of candidatos) {
     const tag = etiquetaPrefill(c.content);
     if (!tag) continue;
-    chatsEtiquetados++;
+    pares.push({ id: c.id, tag });
     porTag[tag] = (porTag[tag] || 0) + 1;
-    if (aplicar) {
-      await prisma.whatsAppChat.updateMany({ where: { id: c.id, adTag: null }, data: { adTag: tag } });
-    }
   }
 
-  console.log(`Chats con etiqueta en el primer mensaje y adTag vacío: ${chatsEtiquetados}`);
+  console.log(`Chats con etiqueta en el primer mensaje y adTag vacío: ${pares.length}`);
   for (const [tag, n] of Object.entries(porTag).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${tag.padEnd(20)} ${n}`);
+  }
+
+  // Un solo UPDATE por lote (VALUES) en vez de un round-trip por chat: contra
+  // Railway/Singapur, 353 llamadas secuenciales agotan la conexión a mitad de
+  // camino (P1017, "server has closed the connection"). adTag IS NULL hace que
+  // retomar un backfill cortado sea seguro: los lotes ya aplicados se saltean.
+  if (aplicar && pares.length) {
+    const LOTE = 100;
+    for (let i = 0; i < pares.length; i += LOTE) {
+      const lote = pares.slice(i, i + LOTE);
+      const values = Prisma.join(
+        lote.map((p) => Prisma.sql`(${p.id}::text, ${p.tag}::text)`),
+        ', '
+      );
+      await prisma.$executeRaw`
+        UPDATE "WhatsAppChat" AS c SET "adTag" = v.tag
+        FROM (VALUES ${values}) AS v(id, tag)
+        WHERE c.id = v.id AND c."adTag" IS NULL`;
+      console.log(`  lote ${Math.floor(i / LOTE) + 1}: ${lote.length} chats grabados`);
+    }
   }
 
   // 2. Copia a los clientes vinculados (solo los que no tienen adTag).
