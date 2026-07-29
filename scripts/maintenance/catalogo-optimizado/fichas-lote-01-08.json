@@ -1,0 +1,2554 @@
+[
+  {
+    "slug": "victoria-c1",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Negro brillante",
+      "detalles": "Frente de acetato macizo con aro de líneas quebradas: el borde superior sube en punta sobre la sien, por encima de la línea del puente, y el inferior baja en ángulo del lado nasal. Frente ancho y plano, varillas anchas de acetato negro. Logo del proveedor impreso sobre el cristal de muestra.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón cat eye mujer, anteojos negros de acetato, armazones recetados, óptica Cerro de las Rosas, anteojos de receta Córdoba, comprar anteojos de receta online, anteojos en 6 cuotas sin interés",
+    "seoTitle": "Victoria C1 Cat Eye Acetato Negro",
+    "seoDescription": "Armazón de receta cat eye en acetato negro, calibre 51 mm. Envío gratis a todo el país, 6 cuotas sin interés y garantía de 30 días.",
+    "description": "Armazón de receta en acetato negro brillante con frente cat eye de líneas quebradas: el aro sube en punta hacia la sien y baja en ángulo del lado del puente. El negro pleno es el más fácil de combinar de la línea Victoria y funciona tanto en rostros redondos como cuadrados, porque las diagonales rompen la horizontal de la cara. Frente ancho y plano, varillas de acetato de buen espesor. Medidas 51-18-146 mm. Se arma con cristales monofocales o multifocales: mandanos la receta por WhatsApp.",
+    "imageAlts": [
+      "Anteojos de receta cat eye de acetato negro Victoria C1, vista de frente",
+      "Armazón de receta cat eye negro Victoria C1, otra vista del acetato",
+      "Anteojos de receta negros cat eye Victoria C1, vista adicional del armazón"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q6013-C1",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Hexagonal",
+        "realidad": "Cat-Eye. El aro remata en punta levantada sobre la sien, por encima de la línea del puente. Además el mismo modelo Q6013 está cargado como Cat-Eye en C4 y C6 y como Hexagonal en C1 y C5: el filtro de forma devuelve resultados incoherentes para las cuatro variantes del mismo armazón.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description / metaDescription",
+        "tiendaDice": "Ambas dicen la misma línea: 'Anteojos de receta de acetato modelo Victoria C1 por Atelier. Envío a todo el país.'",
+        "realidad": "Descripción de 82 caracteres, duplicada literal en la meta y con la misma plantilla en C4, C5 y C6 cambiando sólo el código de color. No describe forma, color ni medidas.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "'Cápsula Escarlata Victoria C1', '- vista 2', '- vista 3', más códigos sueltos 'C6', 'C4', 'C5', 'C1'",
+        "realidad": "Los alts exponen el nombre del canal mayorista Cápsula Escarlata en la tienda retail y no describen el armazón. Los códigos sueltos de color no son texto alternativo válido.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q6013-C1, derivado del modelCode. Sin MPN el producto no valida en Merchant Center.",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Modelo Q6013 en cuatro colores (C1, C4, C5, C6): mismo frente, misma medida 51-18-146. La forma correcta para los cuatro es Cat-Eye. Es el único de los cuatro con tres fotos cargadas; los otros tienen una sola."
+  },
+  {
+    "slug": "victoria-c4",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Jaspeado multicolor: azul petróleo, bordó y ocre sobre base oscura",
+      "detalles": "Veteado irregular tipo mármol que corre por el frente y sigue por las varillas hasta las puntas. Aro con quiebre en punta sobre la sien y ángulo bajo del lado del puente. Varillas anchas en el codo que se afinan hacia el final.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón ojo de gato, anteojos de acetato multicolor, armazones para receta, anteojos recetados Córdoba, óptica en Córdoba, comprar armazones online Argentina, armazones online envío a todo el país",
+    "seoTitle": "Victoria C4 Cat Eye Multicolor",
+    "seoDescription": "Anteojos de receta cat eye de acetato jaspeado en azul, bordó y ocre. Calibre 51 mm, envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El mismo frente cat eye angular de la línea Victoria, acá en un acetato jaspeado que mezcla azul petróleo, bordó y ocre en vetas irregulares: no hay dos frentes con el mismo dibujo. Es la opción para quien quiere que el armazón se vea y funcione como accesorio, no como algo que se disimula. El veteado sigue por las varillas hasta las puntas, y el frente ancho apoya bien en rostros medianos a grandes. Medidas 51-18-146 mm. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "imageAlts": [
+      "Anteojos de receta cat eye de acetato jaspeado azul, bordó y ocre, vista tres cuartos"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q6013-C4",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Cat-Eye",
+        "realidad": "Cat-Eye. Coincide con la foto; se deja como está.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "description / metaDescription",
+        "tiendaDice": "'Anteojos de receta de acetato modelo Victoria C4 por Atelier. Envío a todo el país.'",
+        "realidad": "Texto plantilla idéntico al de C1, C5 y C6 salvo el código. No menciona el jaspeado multicolor, que es todo el atractivo de esta variante.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "'Cápsula Escarlata Victoria C4' más códigos sueltos y alts de otros modelos (Dionisio C2, Teseo C4, Poseidon C3)",
+        "realidad": "El alt filtra el nombre del canal mayorista y arrastra alts de productos ajenos. Debe describir este armazón y su color.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q6013-C4",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Color de mayor rotación visual de la línea; conviene priorizarlo en la foto de portada de la grilla. Una sola imagen cargada: falta la vista de frente que sí tiene C1."
+  },
+  {
+    "slug": "victoria-c5",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Jaspeado violeta y verde profundo sobre base oscura",
+      "detalles": "Veteado en manchas violeta y verde botella que continúa sobre las varillas. Mismo aro quebrado con punta levantada en la sien y ángulo inferior del lado nasal. Varillas anchas que se afinan hacia el codo.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón cat eye mujer, anteojos violeta de acetato, marcos de anteojos, óptica zona norte Córdoba, armazones Córdoba capital, anteojos de receta en cuotas sin interés, armazón con cristales incluidos",
+    "seoTitle": "Victoria C5 Cat Eye Violeta",
+    "seoDescription": "Armazón de receta cat eye de acetato jaspeado violeta y verde, calibre 51 mm. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "Acetato jaspeado en violeta y verde profundo sobre base oscura, con el frente cat eye de ángulos marcados de la línea Victoria. El violeta levanta la mirada en pieles claras y acompaña bien al pelo castaño u oscuro; el corte diagonal del aro afina la zona de los pómulos. Las varillas repiten el veteado y se afinan hacia el codo para que el armazón no cargue peso sobre la oreja. Calibre 51 mm, puente 18 mm, varillas 146 mm. Consultanos por el armado con cristales multifocales.",
+    "imageAlts": [
+      "Anteojos de receta cat eye de acetato jaspeado violeta y verde, vista tres cuartos"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q6013-C5",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Hexagonal",
+        "realidad": "Cat-Eye, igual que las otras tres variantes del Q6013: el aro termina en punta levantada sobre la sien. Cargado como Hexagonal, este color queda fuera del filtro cat eye donde sí aparecen C4 y C6.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description / metaDescription",
+        "tiendaDice": "'Anteojos de receta de acetato modelo Victoria C5 por Atelier. Envío a todo el país.'",
+        "realidad": "Plantilla duplicada entre las cuatro variantes. No nombra el jaspeado violeta y verde, que es el único dato que diferencia esta ficha de la de C1.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "'Cápsula Escarlata Victoria C5' más códigos sueltos y alts de otros modelos",
+        "realidad": "Marca mayorista expuesta en retail y alt sin descripción del producto.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q6013-C5",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "El violeta y el verde son casi del mismo valor tonal: en la miniatura de la grilla se lee como 'oscuro jaspeado'. Vale una segunda foto con más luz para que se distinga de C4."
+  },
+  {
+    "slug": "victoria-c6",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Negro por fuera con interior crema (bicolor laminado)",
+      "detalles": "Frente y cara externa de las varillas en negro; la cara interna de las varillas es crema, y el contraste se ve en el borde superior del frente y en las puntas. Aro con punta levantada en la sien y quiebre inferior junto al puente. Varillas rectas y anchas que se afinan sobre el final.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón ojo de gato negro, anteojos bicolor de acetato, armazones recetados, óptica Cerro de las Rosas, anteojos de receta Córdoba, comprar anteojos de receta online, armazón con cristales incluidos",
+    "seoTitle": "Victoria C6 Cat Eye Negro Crema",
+    "seoDescription": "Anteojos de receta cat eye de acetato negro con interior crema, calibre 51 mm. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "Bicolor: frente y cara externa de las varillas en acetato negro, interior en crema. El contraste aparece cada vez que te los sacás y suaviza el cat eye angular, que en negro pleno queda más severo. Buena elección si buscás un armazón de receta clásico pero con un guiño. El aro sube en punta hacia la sien y cae en ángulo junto al puente; varillas rectas y anchas que se afinan sobre el final. Medidas 51-18-146 mm. Tres o seis cuotas sin interés y 15% off por transferencia.",
+    "imageAlts": [
+      "Anteojos de receta cat eye de acetato negro con interior crema, vista tres cuartos"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q6013-C6",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Cat-Eye",
+        "realidad": "Cat-Eye. Coincide con la foto; se deja como está.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "'C6' (sólo el código de fábrica)",
+        "realidad": "Negro con interior crema. El código crudo no sirve como filtro de color ni como dato de venta; C1 también es negro y en la grilla los dos se ven iguales hasta que se abre la ficha.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description / metaDescription",
+        "tiendaDice": "'Anteojos de receta de acetato modelo Victoria C6 por Atelier. Envío a todo el país.'",
+        "realidad": "Plantilla duplicada. Omite el laminado bicolor, que es la única diferencia real contra el C1.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q6013-C6",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Es el hermano directo del C1: mismo negro de frente, distinto interior. Las descripciones quedaron escritas para que se distingan entre sí y no compitan como contenido duplicado."
+  },
+  {
+    "slug": "clotho-c4",
+    "visto": {
+      "forma": "Redondo",
+      "material": "Metal",
+      "color": "Dorado rosado con aro en malva apagado",
+      "detalles": "Aro completo redondo tipo panto, varilla metálica fina y recta con terminales de acetato transparente ambarino. Puente recto y plaquetas nasales sobre brazo regulable. Bisagra soldada sobre una pieza chata en el extremo del frente.",
+      "confianza": "alta"
+    },
+    "seoTags": "Redondo, Metal, anteojos de receta, anteojos redondos de metal, armazón dorado de metal, armazones para receta, anteojos recetados Córdoba, óptica en Córdoba, armazón de metal liviano, comprar anteojos de receta online",
+    "seoTitle": "Clotho Anteojos Redondos Metal",
+    "seoDescription": "Armazón de receta redondo de metal dorado con aro malva, calibre 52 mm. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "Armazón de receta redondo de metal fino en dorado rosado, con el aro pintado en un malva apagado que le saca frialdad al metal. Es el redondo clásico tipo panto: aro completo, puente recto y varillas rectas rematadas en terminales de acetato transparente, que no marcan detrás de la oreja. Le queda bien a rostros cuadrados o de mandíbula marcada, porque la curva compensa los ángulos. Trae plaquetas nasales regulables, así que el calce se puede corregir en el local. Calibre 52 mm, puente 18 mm, varillas 145 mm.",
+    "imageAlts": [
+      "Anteojos de receta redondos de metal dorado con aro malva, vista tres cuartos"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "M7239-C4",
+    "discrepancias": [
+      {
+        "campo": "forma y material",
+        "tiendaDice": "Redondo / Metal",
+        "realidad": "Redondo / Metal. Coincide con la foto; se deja como está.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "'aleación metálica ultraliviana y de alta resistencia a la corrosión', 'almohadillas nasales de silicona hipoalergénica', 'terminales de acetato suave', 'diseño premium impecable'",
+        "realidad": "Ninguna de esas afirmaciones se puede verificar en la foto ni en los datos del producto: no consta la aleación, ni que las plaquetas sean de silicona hipoalergénica, ni ensayo de corrosión. Sí se ve el aro completo de metal, las plaquetas regulables y los terminales de acetato transparente. Además el texto arranca con la frase de plantilla 'encarna el minimalismo moderno y la finura estética', repetida en otros productos del catálogo.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "vacío (null)",
+        "realidad": "Dorado rosado con aro malva. Sin color cargado el armazón no aparece en ningún filtro de color.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "'Cápsula Escarlata Clotho' y, en la misma lista, nombres de personas: 'Julieta Foppoli', 'CLAUDIA SONIA GUZMAN', 'Vale Contreras'",
+        "realidad": "Hay nombres propios de clientas mezclados con los alts del producto (probable arrastre de testimonios en la misma página). Además se expone el nombre del canal mayorista en retail.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "nombre / modelCode",
+        "tiendaDice": "nombre 'Clotho' sin variante, modelCode 'M7239 C4' con espacio",
+        "realidad": "El slug es clotho-c4 pero el nombre no lleva la variante; el modelCode usa espacio en vez de guión. MPN normalizado: M7239-C4.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "El aro no es dorado uniforme: la varilla y el puente son dorado rosado y el contorno del aro está tomado en malva. Es un detalle de venta que hoy no figura en ninguna parte de la ficha."
+  },
+  {
+    "slug": "osiris-c4",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Acetato",
+      "color": "Gris humo translúcido",
+      "detalles": "Acetato transparente ahumado con esquinas apenas redondeadas y frente alto. Remaches metálicos con forma de rombo en el extremo del frente, sobre la bisagra, y alma metálica visible por dentro de la varilla. Puente recto y ancho, varillas gruesas y rectas.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cuadrado, Acetato, anteojos de receta, anteojos cuadrados de acetato, anteojos transparentes de acetato, armazones recetados, óptica Cerro de las Rosas, anteojos de receta Córdoba, armazón para multifocal, armazones online envío a todo el país",
+    "seoTitle": "Osiris Anteojos Cuadrados Gris",
+    "seoDescription": "Anteojos de receta cuadrados de acetato gris translúcido, calibre 52 mm. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "Armazón cuadrado de acetato traslúcido gris humo: al dejar pasar la luz pesa menos en la cara que un negro pleno y no endurece los rasgos. Las esquinas están apenas redondeadas y el frente es alto, con buen espacio vertical para cristales multifocales. En construcción se ven los remaches metálicos sobre el frente y el alma metálica dentro de las varillas, que son gruesas y bien rectas. Unisex, con 22 mm de puente para quienes necesitan más apoyo nasal. Medidas 52-22-145 mm.",
+    "imageAlts": [
+      "Anteojos de receta cuadrados de acetato gris translúcido, vista tres cuartos"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "FD88821-C4",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Redondo",
+        "realidad": "Cuadrado. El frente es rectangular de esquinas apenas suavizadas, con lados superior e inferior rectos. Cargado como Redondo aparece en el filtro equivocado y no sale cuando alguien busca anteojos cuadrados de acetato.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "nombre del producto",
+        "tiendaDice": "'Cápsula escarlata FD88821-C4'",
+        "realidad": "El nombre visible es la marca mayorista más el SKU crudo, mientras el título de la página y el slug dicen 'Osiris'. Debería llamarse Osiris C4: hoy el cliente ve un código de fábrica y el canal mayorista donde debería ir el nombre del modelo.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "'acetato de celulosa premium de alta densidad', 'cuerpo pulido a mano que otorga un brillo excepcional', 'calidad premium de nivel óptico'",
+        "realidad": "Afirmaciones no verificables: no consta el tipo de acetato, ni pulido manual, ni ninguna certificación de calidad. Sí es verificable el alma metálica en las varillas, que se ve a través del acetato traslúcido. El párrafo además repite plantilla usada en otros productos del catálogo.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "marca",
+        "tiendaDice": "'Cápsula escarlata' (minúscula) mientras el resto del lote usa 'Cápsula Escarlata'",
+        "realidad": "Inconsistencia de mayúsculas en el mismo campo entre productos, y en ambos casos es el nombre del canal mayorista publicado en la tienda retail.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "FD88821-C4",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Puente de 22 mm y calibre 52: es de los más anchos del lote, buen candidato para rostros grandes. El frente alto lo hace apto para multifocal, dato que la ficha vieja no aprovechaba."
+  },
+  {
+    "slug": "orfeo-c1",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Metal",
+      "color": "Negro mate",
+      "detalles": "Browline de metal: ceja superior ancha en lámina y aro inferior finísimo. Frente rectangular, puente recto con plaquetas regulables, varillas rectas de metal con terminales de acetato negro y bisagra metálica visible. Todo el metal en negro mate, sin brillos.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cuadrado, Metal, anteojos de receta, armazón de metal negro, anteojos rectangulares de metal, armazones para receta, armazón negro mate, óptica Cerro de las Rosas, anteojos de receta en cuotas sin interés, armazón con cristales incluidos",
+    "seoTitle": "Orfeo C1 Armazón Metal Negro Mate",
+    "seoDescription": "Armazón de receta Orfeo C1: metal negro mate, frente browline y plaquetas regulables. Calce 52-18-140, envío gratis y 6 cuotas sin interés.",
+    "description": "El Orfeo C1 es un armazón de receta de metal en negro mate, con frente rectangular estilo browline: la ceja superior es una lámina ancha y el aro se afina hasta casi desaparecer en el borde inferior. Ese contraste levanta la mirada y le sienta bien a rostros ovalados o cuadrados que buscan algo sobrio para usar todos los días. Las varillas rectas cierran en terminales de acetato negro y el puente lleva plaquetas regulables, así que apoya sin marcar. Calce 52-18-140, apto para cristales monofocales y multifocales.",
+    "imageAlts": [
+      "Armazón de receta Orfeo C1 de metal negro mate con frente browline, vista de tres cuartos"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "YX05-C1",
+    "discrepancias": [
+      {
+        "campo": "material (texto de la ficha)",
+        "tiendaDice": "La descripción y la meta dicen \"anteojos de receta de acetato\"",
+        "realidad": "El armazón es 100% de metal (browline metálico con terminales de acetato). El texto declara mal el material.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "genero",
+        "tiendaDice": "Masculino",
+        "realidad": "Diseño browline neutro de talle medio (52-18-140), sin rasgos de género marcados: corresponde Unisex. Además queda inconsistente con Orfeo C2 y C3, que hoy están cargados como multi-género.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "null (vacío)",
+        "realidad": "El modelCode es YX05 C1 → mpn YX05-C1",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts cargados para 1 sola imagen, con textos sueltos (\"C3\", \"C4\", \"C1\", \"C2\") y alts de otros productos (Dionisio C2, Teseo C4, Poseidon C3)",
+        "realidad": "El producto tiene una única imagen; corresponde un solo alt descriptivo",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Modelo YX05 en 4 colores (C1 a C4). Forma y material de storeDice son correctos. No se afirma ninguna tecnología de cristal porque no consta en los datos."
+  },
+  {
+    "slug": "orfeo-c2",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Metal",
+      "color": "Plateado pulido",
+      "detalles": "Mismo browline del modelo: ceja superior ancha y aro inferior muy fino, en metal plateado brillante. Tramo grabado con textura fina sobre la varilla, junto a la bisagra. Terminales de acetato negro y plaquetas regulables en el puente.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cuadrado, Metal, anteojos de receta, anteojos rectangulares de metal, armazones para receta, armazón de metal plateado, marcos de anteojos, óptica Cerro de las Rosas, comprar armazones online Argentina, armazón con cristales incluidos",
+    "seoTitle": "Orfeo C2 Armazón Metal Plateado",
+    "seoDescription": "Armazón de receta Orfeo C2 en metal plateado pulido, frente browline y varillas grabadas. Calce 52-18-140 con envío gratis a todo el país.",
+    "description": "Misma arquitectura browline del Orfeo, ahora en metal plateado pulido: la ceja superior refleja la luz y el aro inferior, finísimo, deja que el cristal mande. Es la versión más luminosa de la línea y funciona bien con pelo oscuro y pieles frías, tanto en la oficina como fuera de ella. Antes del terminal de acetato negro, la varilla trae un tramo grabado con textura fina que recién se nota al ponérselo. Medidas 52-18-140: un armazón de receta cómodo para graduar en monofocal o multifocal.",
+    "imageAlts": [
+      "Armazón de receta Orfeo C2 de metal plateado con frente browline y varillas grabadas"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "YX05-C2",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "\"Masculino, Femenino, Unisex\" (lista múltiple)",
+        "realidad": "El campo admite un único valor; una lista invalida el dato para Google Shopping. Corresponde Unisex.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "material (texto de la ficha)",
+        "tiendaDice": "La descripción y la meta dicen \"anteojos de receta de acetato\"",
+        "realidad": "Es un armazón de metal plateado; solo los terminales de las varillas son de acetato",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "null (vacío)",
+        "realidad": "El modelCode es YX05 C2 → mpn YX05-C2",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 imagen, incluyendo alts de otros modelos (Dionisio C2, Teseo C4, Poseidon C3) y textos sueltos \"C1\"-\"C4\"",
+        "realidad": "Una sola imagen, un solo alt descriptivo",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Variante plateada del YX05. Forma (Cuadrado) y material (Metal) de storeDice son correctos."
+  },
+  {
+    "slug": "orfeo-c3",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Metal",
+      "color": "Dorado champagne",
+      "detalles": "Browline en metal dorado cálido, de acabado satinado más que espejado. Ceja superior ancha, aro inferior muy delgado, grabado texturado en la varilla junto a la bisagra y terminales de acetato marrón oscuro. Plaquetas regulables sobre el puente.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cuadrado, Metal, anteojos de receta, anteojos dorados de metal, armazones recetados, anteojos rectangulares de metal, lentes recetados, óptica zona norte Córdoba, anteojos de receta en 6 cuotas, armazones online envío a todo el país",
+    "seoTitle": "Orfeo C3 Armazón Metal Dorado",
+    "seoDescription": "Armazón de receta Orfeo C3 en metal dorado con terminales marrones y frente browline. Calce 52-18-140, 6 cuotas sin interés y envío gratis.",
+    "description": "El Orfeo C3 lleva el frente browline a un dorado champagne cálido, más discreto que un dorado espejado y fácil de combinar con carey, marrones y verdes. La ceja superior ancha marca la línea de la mirada y el aro fino del contorno inferior lo mantiene liviano en la cara. Las varillas doradas rematan en terminales de acetato marrón oscuro y muestran un grabado texturado junto a la bisagra. Con 52-18-140 es un armazón de receta de talle medio, cómodo para uso diario y para cristales multifocales.",
+    "imageAlts": [
+      "Armazón de receta Orfeo C3 de metal dorado con terminales de acetato marrón, vista lateral"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "YX05-C3",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "\"Masculino, Femenino, Unisex\" (lista múltiple)",
+        "realidad": "Debe ser un único valor. Corresponde Unisex.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "material (texto de la ficha)",
+        "tiendaDice": "La descripción y la meta dicen \"anteojos de receta de acetato\"",
+        "realidad": "Es metal dorado; el acetato aparece solo en los terminales de las varillas",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "null (vacío)",
+        "realidad": "El modelCode es YX05 C3 → mpn YX05-C3",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 imagen, con alts de otros productos y códigos de color sueltos",
+        "realidad": "Una sola imagen, un solo alt descriptivo",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Variante dorada del YX05, la única de la serie con terminales marrones (las otras usan terminales al tono). Forma y material de storeDice son correctos."
+  },
+  {
+    "slug": "orfeo-c4",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Metal",
+      "color": "Azul marino mate",
+      "detalles": "Browline de metal en azul marino mate, frente y varillas del mismo tono. Ceja superior ancha, aro inferior reducido al mínimo, terminales de acetato azul y plaquetas regulables en el puente. El azul es tan profundo que a contraluz se lee casi negro.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cuadrado, Metal, anteojos de receta, armazones para receta, anteojos rectangulares de metal, armazón azul de metal, anteojos recetados, óptica Cerro de las Rosas, anteojos recetados envío a todo el país, armazón más cristales precio",
+    "seoTitle": "Orfeo C4 Armazón Metal Azul Mate",
+    "seoDescription": "Armazón de receta Orfeo C4 en metal azul marino mate, frente browline y plaquetas regulables. Calce 52-18-140 con envío gratis a todo el país.",
+    "description": "Azul marino mate de punta a punta: el Orfeo C4 es el más jugado de la serie sin dejar de ser sobrio, porque el tono profundo se lee casi como un negro hasta que le pega la luz. Repite el frente rectangular browline, con la ceja superior ancha y el aro inferior reducido al mínimo, una combinación que afina rostros redondos y suaviza los angulosos. Las varillas terminan en acetato azul y el puente tiene plaquetas regulables para ajustar la altura del calce. Medidas 52-18-140, listo para graduar.",
+    "imageAlts": [
+      "Armazón de receta Orfeo C4 de metal azul marino mate con terminales de acetato azul"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "YX05-C4",
+    "discrepancias": [
+      {
+        "campo": "material (texto de la ficha)",
+        "tiendaDice": "La descripción y la meta dicen \"anteojos de receta de acetato\"",
+        "realidad": "Es un armazón de metal azul marino mate",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "genero",
+        "tiendaDice": "Masculino",
+        "realidad": "Mismo diseño neutro que el resto de la serie; corresponde Unisex e igualarlo con C2 y C3",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "null (vacío)",
+        "realidad": "El modelCode es YX05 C4 → mpn YX05-C4",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 imagen, con alts de otros modelos y códigos de color sueltos",
+        "realidad": "Una sola imagen, un solo alt descriptivo",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Variante azul del YX05. Forma (Cuadrado) y material (Metal) de storeDice son correctos. Las 4 variantes comparten calce 52-18-140."
+  },
+  {
+    "slug": "clipon-sol-ateliers-venice-7018-",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Metal",
+      "color": "Dorado",
+      "detalles": "Frente cat-eye geométrico de metal dorado, con la punta superior externa levantada y una barra recta que cruza por encima del puente. Aro fino, varillas de metal delgadas con terminales transparentes. Viene con clip de sol de lente oscura y contorno claro que se monta sobre el frente.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Metal, anteojos clip on, armazón con clip on, anteojos de receta con clip on, clip on ojo de gato para mujer, armazón clip on dorado de metal, anteojos clip on 2 en 1, óptica Cerro de las Rosas, comprar anteojos clip on online",
+    "seoTitle": "Venice C5 Clip On Cat Eye Dorado",
+    "seoDescription": "Venice C5: armazón de receta cat eye de metal dorado con clip on de sol oscuro. Dos anteojos en uno, 54-16-140 y envío gratis a todo el país.",
+    "description": "El Venice C5 resuelve dos anteojos en uno: un armazón de receta cat eye de metal dorado y su clip on de sol, con lente oscura y contorno claro, que se monta sobre el frente cuando salís a la calle. El frente es amplio y geométrico, con la punta superior externa levantada y una barra recta que cruza por encima del puente, un dibujo que estiliza rostros redondos y de mandíbula marcada. Las varillas son de metal fino y cierran en terminales transparentes. Mide 54-16-140 y se gradúa con la receta que traigas.",
+    "imageAlts": [
+      "Armazón de receta cat eye de metal dorado Venice C5 con su clip on de sol oscuro apoyado al lado"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "7018-C5",
+    "discrepancias": [
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "Entre los alts hay nombres propios de personas: \"Julieta Foppoli\", \"CLAUDIA SONIA GUZMAN\", \"Vale Contreras\"",
+        "realidad": "Parecen datos personales de clientas filtrados al alt de imagen de un producto público. Hay que sacarlos ya: además de no describir nada, expone nombres reales en el HTML de la tienda.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "seoTitle",
+        "tiendaDice": "\"Ateliers Venice C5 | Lentes de Sol Premium | Estilo Único | Atelier Óptica Córdoba\" (80 caracteres)",
+        "realidad": "Excede el largo útil, repite \"Atelier\" dos veces y lo etiqueta como lente de sol cuando es un armazón de receta con clip on",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "descripción y meta (idioma)",
+        "tiendaDice": "\"Descubre los lentes Clip on... ¡Compra ahora y disfruta de envío gratis...\"",
+        "realidad": "Español neutro/peninsular, contra la regla de la casa (castellano argentino). Además description y metaDescription son idénticas.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "null (vacío)",
+        "realidad": "Armazón dorado con clip de sol oscuro de contorno claro",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "null (vacío)",
+        "realidad": "El modelCode es 7018 C5 → mpn 7018-C5",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Forma (Cat-Eye), material (Metal) y género (Femenino) de storeDice coinciden con la foto. NO se afirma que el clip sea imantado ni polarizado: no se puede verificar en la imagen ni consta en los datos, aunque el banco de keywords lo sugiera. Si el proveedor lo confirma, conviene agregarlo después. El slug termina en guión (\"...venice-7018-\"), probablemente por un modelCode con espacio final al generarlo."
+  },
+  {
+    "slug": "orion-c1",
+    "visto": {
+      "forma": "Redondo",
+      "material": "Metal",
+      "color": "Dorado",
+      "detalles": "Frente ovalado de metal dorado, aro fino y de talle chico. El contorno superior y el puente están trabajados con filetes paralelos que dan relieve. Varillas de metal dorado que se ensanchan al medio y terminan en acetato carey. Plaquetas regulables.",
+      "confianza": "alta"
+    },
+    "seoTags": "Redondo, Metal, anteojos de receta, anteojos redondos de metal, armazones ovalados, armazón dorado de metal, armazones recetados, óptica Cerro de las Rosas, comprar anteojos de receta online, armazón con cristales incluidos",
+    "seoTitle": "Orión C1 Armazón Redondo Dorado",
+    "seoDescription": "Armazón de receta Orión C1 redondo de metal dorado con terminales carey. Calce 52-19-140, envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El Orión C1 es un armazón de receta de metal dorado con frente redondeado de aire vintage, del tipo que se usaba en los ochenta y volvió para quedarse. Su tamaño contenido y el aro fino lo vuelven ideal para rostros chicos o angostos, y el dorado cálido levanta el tono de la piel sin llamar demasiado la atención. Mirá el detalle: el contorno superior y el puente están trabajados con filetes paralelos, y las varillas terminan en acetato carey que rompe el monocromo. Calce 52-19-140, apto para monofocal o multifocal.",
+    "imageAlts": [
+      "Armazón de receta Orión C1 redondo de metal dorado con terminales de acetato carey",
+      "Orión C1 dorado, detalle del frente redondo y el puente con filetes paralelos",
+      "Varilla del armazón Orión C1 en metal dorado con terminal de acetato carey"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "G7012-C1",
+    "discrepancias": [
+      {
+        "campo": "marca / foto",
+        "tiendaDice": "marca cargada: \"Atelier\"",
+        "realidad": "La foto publicada muestra el logo KAZWINI grabado sobre el frente y la varilla, y una etiqueta KAZWINI sobre el cristal. Es la foto del proveedor, no una foto propia. NO borrar la imagen (el producto quedaría sin foto): decidir si se retoca, se reemplaza por foto propia o se deja.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description vs metaDescription",
+        "tiendaDice": "Ambos campos tienen exactamente el mismo texto de una línea",
+        "realidad": "La description de venta y la meta de Google tienen que ser distintas; duplicarlas desperdicia la ficha y suma contenido duplicado",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "null (vacío)",
+        "realidad": "El modelCode es G7012 C1 → mpn G7012-C1",
+        "gravedad": "media"
+      },
+      {
+        "campo": "edadMin",
+        "tiendaDice": "null (vacío)",
+        "realidad": "Armazón de adulto (52-19-140); el resto del lote tiene edadMin 18",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts cargados para 3 imágenes; los 5 extra pertenecen a otros productos (Dionisio C2, Teseo C4, Poseidon C3, Q5205-C3)",
+        "realidad": "Corresponden 3 alts, uno por imagen",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Forma (Redondo), material (Metal) y género (Unisex) de storeDice coinciden con la foto; el frente es estrictamente ovalado, pero dentro del vocabulario cerrado Redondo es el valor correcto. En los textos no se menciona KAZWINI por ser proveedor interno."
+  },
+  {
+    "slug": "helena-c2",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Negro con frente texturado",
+      "detalles": "Frente de acetato negro brillante con las esquinas externas levantadas; el borde superior del aro lleva un grabado punteado que apaga el brillo en esa franja. Varillas negras plenas, anchas en el arranque, con emblema metálico sobre la bisagra. Es el mismo molde Q5205 que los otros Helena.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón ojo de gato, anteojos cat eye para mujer, armazones recetados, anteojos negros de receta, óptica Cerro de las Rosas, anteojos de receta Córdoba, comprar anteojos de receta online",
+    "seoTitle": "Helena C2 Cat Eye Acetato Negro",
+    "seoDescription": "Anteojos de receta cat eye de acetato negro con frente texturado. Calibre 52 mm, envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "Armazón cat eye de acetato negro con un detalle que recién se ve de cerca: el borde superior del frente lleva un grabado punteado que corta el brillo liso del resto del cuerpo. Las esquinas externas levantadas estiran la mirada, así que le queda bien a los rostros redondos u ovalados que quieren un anteojo de receta con carácter sin irse a un cat eye exagerado. Las varillas son negro pleno, anchas en el arranque y con el emblema metálico sobre la bisagra. Calibre 52 mm, puente 19 mm y varillas de 145 mm.",
+    "imageAlts": [
+      "Armazón de receta cat eye de acetato negro Helena C2, vista tres cuartos",
+      "Anteojos de receta cat eye negros Helena C2 con frente texturado"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q5205-C2",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Cuadrado",
+        "realidad": "Cat-Eye. Las esquinas externas del frente suben claramente y es el mismo molde Q5205 que C3, C4 y C5, todos cargados como Cat-Eye. Hoy este color aparece en el filtro equivocado.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C2",
+        "realidad": "Negro con textura punteada en el borde superior del frente. El código de color solo no le dice nada al cliente ni a Google.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q5205-C2 (surge de modelCode)",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Texto plantilla idéntico en los cuatro Helena; afirma \"acetato de celulosa premium de alta densidad\", \"pulido a mano\" y \"alma metálica interna\", nada de eso verificable, y usa \"patillas\" (España) en vez de varillas.",
+        "realidad": "Descripción reescrita, única de este color y sin afirmaciones no verificables.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 2 imágenes, con la marca repetida (\"Cápsula escarlata Cápsula escarlata Q5205-C2\") y alts que pertenecen a otros productos (Dionisio C2).",
+        "realidad": "2 alts, uno por imagen, describiendo forma, material y color.",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Foto con logo KAZWINI en el cristal (proveedor interno): no se menciona en el texto y la imagen no se toca. La segunda imagen es un try-on, por eso su alt es genérico de frente. Precio $160.000."
+  },
+  {
+    "slug": "helena-c3",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Topo (gris amarronado) con varillas crema",
+      "detalles": "Bicolor mate: frente topo y varillas color crema/marfil. Aro de buen espesor, esquinas externas levantadas, arranque de varilla ancho que se afina hacia la puntera. Sin apliques metálicos a la vista.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón ojo de gato, anteojos cat eye para mujer, armazones para receta, armazón bicolor topo y crema, anteojos de receta Córdoba, óptica Cerro de las Rosas, armazones online envío a todo el país",
+    "seoTitle": "Helena C3 Cat Eye Topo y Crema",
+    "seoDescription": "Armazón cat eye de acetato en topo y crema para anteojos de receta. Calibre 52 mm, envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El mismo cat eye de acetato, esta vez en dos tonos: frente topo, ese gris amarronado que funciona como neutro cálido, y varillas color crema que aclaran todo el conjunto. Es una combinación suave, ideal para quien quiere un armazón para receta con forma marcada pero sin el contraste duro del negro; se lleva muy bien con rostros redondos o cuadrados. El acetato tiene cuerpo: se nota en el espesor del aro y en el arranque ancho de las varillas. Calibre 52 mm, puente 19 mm, varillas 145 mm.",
+    "imageAlts": [
+      "Armazón cat eye de acetato topo con varillas crema Helena C3"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q5205-C3",
+    "discrepancias": [
+      {
+        "campo": "color",
+        "tiendaDice": "C3",
+        "realidad": "Bicolor: frente topo (gris amarronado) y varillas crema. Falta el nombre comercial del color.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q5205-C3 (surge de modelCode)",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Misma plantilla, palabra por palabra, que los otros tres Helena y que decenas de fichas del catálogo. Google lo lee como contenido duplicado.",
+        "realidad": "Descripción propia de la combinación topo y crema.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 sola imagen, la mayoría de otros modelos (Dionisio C2, Teseo C4, Poseidón C3) y algunos que son solo el código de color.",
+        "realidad": "1 alt, el único que corresponde a la imagen cargada.",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Forma, material y género de la tienda coinciden con lo que se ve. Foto con logo KAZWINI en el cristal, no se menciona. Precio $160.000."
+  },
+  {
+    "slug": "helena-c4",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Verde muy oscuro (a primera vista negro)",
+      "detalles": "Acetato brillante, parejo, sin apliques. Las esquinas externas suben apenas menos que en el C2. Emblema metálico chico junto a la bisagra y varillas del mismo verde, más anchas en el arranque.",
+      "confianza": "media"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón ojo de gato, anteojos cat eye para mujer, armazones recetados, armazón verde oscuro, anteojos recetados Córdoba, óptica zona norte Córdoba, anteojos de receta en 6 cuotas",
+    "seoTitle": "Helena C4 Cat Eye Verde Oscuro",
+    "seoDescription": "Anteojos de receta cat eye de acetato verde oscuro, sobrios y fáciles de llevar. Calibre 52 mm, envío gratis y 6 cuotas sin interés.",
+    "description": "Verde muy oscuro, de esos que a primera vista pasan por negro y recién bajo la luz muestran el fondo botella. Es el cat eye de acetato de la línea Helena, con las esquinas externas apenas levantadas y un aro parejo, brillante, sin apliques. Buena opción para quien quiere un armazón de receta sobrio para todos los días pero no quiere repetir el negro de siempre; acompaña bien a los rostros redondos y a los ovalados. Las varillas siguen el mismo verde y llevan el emblema metálico junto a la bisagra. Calibre 52 mm, puente 19 mm, varillas 145 mm.",
+    "imageAlts": [
+      "Armazón de receta cat eye de acetato verde oscuro Helena C4"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q5205-C4",
+    "discrepancias": [
+      {
+        "campo": "color",
+        "tiendaDice": "C4",
+        "realidad": "Verde muy oscuro, casi negro. Conviene confirmarlo con el armazón en mano antes de publicarlo, porque en foto el verde se confunde con negro.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q5205-C4 (surge de modelCode)",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Texto plantilla idéntico al de C2, C3 y C5; solo cambia el código de modelo.",
+        "realidad": "Descripción propia del verde oscuro.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 imagen, con alts de otros productos y códigos de color sueltos.",
+        "realidad": "1 alt descriptivo.",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Es el único de los cuatro Helena donde el color pide confirmación física: si en mano resulta negro y no verde, hay que corregir título, descripción y alt. Precio $160.000."
+  },
+  {
+    "slug": "helena-c5",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Blanco hueso con filo negro (acetato laminado)",
+      "detalles": "Acetato de dos napas: cara blanca sobre base negra, así que el canto del aro dibuja una línea oscura alrededor de todo el frente. Las varillas son blancas con el canto superior negro y la puntera oscura. El más gráfico de la línea.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón ojo de gato, anteojos cat eye para mujer, armazón blanco y negro, armazones recetados, óptica Cerro de las Rosas, anteojos de receta Córdoba, armazón con cristales incluidos",
+    "seoTitle": "Helena C5 Cat Eye Blanco y Negro",
+    "seoDescription": "Armazón cat eye de acetato blanco con filo negro para anteojos de receta. Calibre 52 mm, envío gratis y 6 cuotas sin interés.",
+    "description": "Acetato laminado en dos capas: el frente es blanco hueso y el filo del aro deja ver la napa negra de abajo, así que el contorno queda dibujado con una línea fina y oscura. Las varillas repiten el juego, blancas con el canto superior negro. Es el más gráfico de los Helena y el que mejor funciona para quien busca un anteojo de receta que se note, sobre todo en rostros redondos o de mandíbula ancha, porque el cat eye levanta las esquinas. Calibre 52 mm, puente 19 mm, varillas 145 mm.",
+    "imageAlts": [
+      "Armazón cat eye de acetato blanco con filo negro Helena C5"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q5205-C5",
+    "discrepancias": [
+      {
+        "campo": "color",
+        "tiendaDice": "C5",
+        "realidad": "Bicolor blanco hueso con filo y canto negros (acetato laminado). Es el color más vendible de la línea y hoy la ficha no lo nombra.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q5205-C5 (surge de modelCode)",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Misma plantilla que los otros Helena; no menciona el laminado bicolor, que es justamente lo que distingue a este color.",
+        "realidad": "Descripción propia del blanco con filo negro.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 imagen, varios de otros modelos.",
+        "realidad": "1 alt descriptivo.",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Forma, material y género coinciden con lo visto. Foto con logo KAZWINI, no se menciona. Precio $160.000."
+  },
+  {
+    "slug": "clip-on-genova-7036-c2-lentes-de-sol-armazon",
+    "visto": {
+      "forma": "Hexagonal",
+      "material": "Metal",
+      "color": "Dorado con varillas negras",
+      "detalles": "Frente de varilla metálica fina, facetado, con lados rectos y puente recto. Varillas negras con un tramo dorado y una franja bicolor junto a la bisagra, punteras curvas. Viene con dos clips de sol: uno gris ahumado y uno amarillo. No se puede verificar en la foto si el enganche es imantado ni si los cristales son polarizados.",
+      "confianza": "alta"
+    },
+    "seoTags": "Hexagonal, Metal, anteojos clip on, clip on para anteojos recetados, armazón con clip on, anteojos clip on 2 en 1, armazón clip on dorado, anteojos clip on Córdoba, óptica Cerro de las Rosas, comprar anteojos clip on online",
+    "seoTitle": "Clip On Génova C2 Metal Dorado",
+    "seoDescription": "Armazón clip on hexagonal de metal dorado con dos clips de sol, gris y amarillo. Calibre 49 mm, envío gratis y 6 cuotas sin interés.",
+    "description": "Armazón hexagonal de metal dorado que viene con dos clips de sol intercambiables: uno gris ahumado para el día a día y otro amarillo, de alto contraste, para luz baja. El frente es de varilla fina y facetada, con lados rectos que le dan una silueta angulosa, distinta al redondo clásico. Las varillas son negras, con un tramo dorado y una franja bicolor junto a la bisagra, y terminan en punteras curvas. Sirve como anteojo de receta y como anteojo de sol sin cambiar de armazón. Calibre 49 mm, puente 18 mm, varillas 143 mm.",
+    "imageAlts": [
+      "Armazón clip on hexagonal de metal dorado Génova C2 con clips de sol gris y amarillo"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "7036-C2",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "Unisex, Masculino, Femenino",
+        "realidad": "Unisex. El valor múltiple invalida el dato estructurado para Google y rompe el filtro de género.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "seoTitle",
+        "tiendaDice": "\"Clip-On Génova 7036 C2 Lentes de Sol | Calidad Premium y Envío Gratis | Atelier Óptica Córdoba\" (93 caracteres, con \"Atelier Óptica Córdoba\" ya escrito adentro)",
+        "realidad": "El sistema agrega \" | Atelier Óptica Córdoba\" solo, así que hoy sale duplicado y truncado en Google.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Es exactamente el mismo texto que la meta descripción, en español neutro (\"Descubre\", \"Protege tus ojos\"), y no describe el armazón: no dice que es hexagonal, ni dorado, ni que trae dos clips.",
+        "realidad": "Descripción propia, con forma, material, color, los dos clips y las medidas.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "categoría / posicionamiento",
+        "tiendaDice": "Se vende como \"Lentes de Sol\"",
+        "realidad": "Es un armazón de receta con clips de sol (2 en 1). Vendido solo como lentes de sol pierde toda la búsqueda de \"clip on para anteojos recetados\".",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "7036-C2 (surge de modelCode \"7036 C2\")",
+        "gravedad": "media"
+      },
+      {
+        "campo": "ageGroup",
+        "tiendaDice": "edadMin vacío",
+        "realidad": "Adulto",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "Entre los alts cargados aparecen nombres propios de personas: \"Julieta Foppoli\", \"CLAUDIA SONIA GUZMAN\", \"Vale Contreras\", además de alts de otros modelos.",
+        "realidad": "1 alt descriptivo del armazón. Los nombres de personas no deberían estar en atributos alt públicos; conviene revisar de dónde salen en todo el catálogo.",
+        "gravedad": "alta"
+      }
+    ],
+    "notas": "No afirmo \"imantado\", \"polarizado\" ni \"UV400\" porque no se verifican en la foto; si el proveedor lo confirma, son keywords fuertes para sumar después. En la foto se ven cuatro cristales sueltos, que son los dos clips (dos pares). Precio $195.000."
+  },
+  {
+    "slug": "olimpia-c1",
+    "visto": {
+      "forma": "Redondo",
+      "material": "Acetato",
+      "color": "Carey oscuro con varillas de metal negro",
+      "detalles": "Construcción combinada: frente redondo tipo panto en carey oscuro (marrón profundo con vetas rojizas) y varillas finas de metal negro con un grabado en líneas cerca de la bisagra. En el aro izquierdo viene impreso P5786 48-19-140.",
+      "confianza": "media"
+    },
+    "seoTags": "Redondo, Acetato, anteojos de receta, armazones carey, armazones recetados, armazón unisex para receta, anteojos de receta Córdoba, óptica Cerro de las Rosas, comprar armazones online Argentina, armazón para multifocal",
+    "seoTitle": "Olimpia C1 Redondo Carey",
+    "seoDescription": "Anteojos de receta redondos en carey con varillas de metal negro. Calibre 48 mm, envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "Redondo de perfil suave, con el frente en carey oscuro, fondo marrón profundo con vetas rojizas, y varillas finas de metal negro que dejan el apoyo liviano sobre la oreja. Es un armazón de receta unisex de los que no cansan: el calibre 48 mm lo mantiene chico y prolijo, así que funciona bien en rostros angostos y en caras cuadradas, donde la curva del aro suaviza los ángulos. Cerca de la bisagra lleva un grabado en líneas finas que corta el negro de la varilla. Puente 19 mm, varillas 140 mm.",
+    "imageAlts": [
+      "Armazón de receta redondo carey con varillas de metal negro Olimpia C1",
+      "Anteojos de receta redondos carey Olimpia C1, detalle de la varilla"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "P5786-C1",
+    "discrepancias": [
+      {
+        "campo": "material",
+        "tiendaDice": "Acetato",
+        "realidad": "Construcción combinada: frente plástico tipo acetato (carey) pero varillas de metal negro. Dejo Acetato en seoTags porque el filtro admite un solo material y el frente manda, pero el dato de la tienda esconde media construcción del armazón.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C1",
+        "realidad": "Carey oscuro con varillas negras. Falta el nombre comercial del color.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "P5786-C1 (surge de modelCode, y coincide con el P5786 impreso en el aro)",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Misma plantilla que los Helena; afirma \"alma metálica interna en las patillas\", cuando en este modelo las varillas son directamente de metal, y usa \"patillas\" en vez de varillas.",
+        "realidad": "Descripción propia del carey con varillas de metal.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 2 imágenes, con la marca duplicada y alts de otros modelos (Dionisio, Teseo, Poseidón, Q5205-C3) y un nombre de persona.",
+        "realidad": "2 alts, uno por imagen.",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Forma Redondo y género Unisex de la tienda coinciden con lo visto. El único punto abierto es el material del frente: parece acetato por el espesor y el brillo del carey, pero convendría confirmar con el proveedor si es acetato o TR90 antes de dar el dato por cerrado. Precio $160.000."
+  },
+  {
+    "slug": "diana-c2",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Metal",
+      "color": "Dorado con varillas bordó",
+      "detalles": "Aro fino de metal dorado; la barra superior se prolonga por fuera del aro y forma el vértice cat-eye. Puente doble con plaquetas regulables. Terminal dorado con cartucho nervado y un escudito central; varillas bordó de codo curvo.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Metal, anteojos de receta, armazón cat eye mujer, anteojos dorados de metal, armazones recetados, óptica Cerro de las Rosas, anteojos de receta Córdoba, comprar armazones online Argentina",
+    "seoTitle": "Anteojos Cat Eye Dorados Diana C2",
+    "seoDescription": "Armazón Diana C2 cat eye de metal dorado con varillas bordó. Anteojos de receta para mujer, 53-18-140, con envío gratis a todo el país.",
+    "description": "El Diana C2 es un armazón cat eye de metal dorado: el aro superior se prolonga en una barra fina que levanta la punta del ojo y estira la mirada. Las varillas bordó aportan el contraste de color y arrancan en un terminal dorado cincelado con un escudito en el centro. Es un anteojo de receta femenino y liviano, ideal para rostros redondos u ovalados que no quieren el volumen del acetato. Calibre 53-18-140, con plaquetas regulables. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "imageAlts": [
+      "Armazón de receta Diana C2 cat eye de metal dorado con varillas bordó, vista tres cuartos",
+      "Anteojos de receta Diana C2 dorados, detalle del frente cat eye y el puente de metal",
+      "Armazón Diana C2 de metal dorado, detalle de la varilla bordó y el terminal cincelado"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "TL3932-C2",
+    "discrepancias": [
+      {
+        "campo": "description / seoDescription (material)",
+        "tiendaDice": "\"Anteojos de receta de acetato modelo Diana C2\"",
+        "realidad": "Es un armazón de METAL: aro y frente metálicos dorados. No hay acetato en el frente. El texto contradice al propio campo material de la tienda (Metal).",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "El modelCode es TL3932 C2 → mpn TL3932-C2. Sin mpn, el ítem queda degradado en el feed de Google Merchant y Meta.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "\"C2\" (código de fábrica)",
+        "realidad": "Dorado con varillas bordó. El código de color no es buscable ni entendible para el cliente.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 3 imágenes, con textos de otros productos (\"Cápsula Escarlata Dionisio C2\") y alts sueltos \"C2\", \"C3\", \"C4\"",
+        "realidad": "Son 3 imágenes de este armazón; los alts deben describir este producto. Los alts cruzados de otro modelo confunden a Google Imágenes.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description vs seoDescription",
+        "tiendaDice": "El mismo texto de 79 caracteres repetido en ambos campos y compartido con otros productos del catálogo",
+        "realidad": "Contenido duplicado penalizable; además no describe ni forma, ni color, ni construcción.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "marca visible en alts",
+        "tiendaDice": "\"Cápsula Escarlata\" aparece en los alt de la tienda pública",
+        "realidad": "Cápsula Escarlata es el canal mayorista, no una marca de retail. No debería mostrarse en fichas públicas.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Forma, material y género que declara la tienda coinciden con la foto: Cat-Eye / Metal / Femenino, no hay que tocar el vocabulario cerrado. El problema es el texto, que lo describe como acetato. Mismo modelo TL3932 que Diana C3 y C4, por eso cada descripción habla de su combinación de color."
+  },
+  {
+    "slug": "diana-c3",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Metal",
+      "color": "Dorado champagne con varillas blancas",
+      "detalles": "Aro fino de metal en dorado apagado, barra superior que sobresale del aro y marca el ángulo cat-eye. Plaquetas regulables sobre puente doble. Terminal dorado nervado con escudito y varillas blancas.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Metal, anteojos de receta, armazón ojo de gato, armazón cat eye mujer, armazones recetados, anteojos de receta Córdoba, óptica Cerro de las Rosas, armazones online envío a todo el país",
+    "seoTitle": "Anteojos Cat Eye Diana C3 Blanco",
+    "seoDescription": "Armazón Diana C3 cat eye de metal dorado suave con varillas blancas. Anteojos de receta de mujer, 53-18-140, envío gratis a todo el país.",
+    "description": "Mismo diseño cat eye del Diana, esta vez en un dorado apagado casi champagne con varillas blancas: una combinación clara y luminosa que se lleva bien con pieles frías y con el pelo claro. La barra superior de metal sobresale del aro y marca el vértice del ojo de gato sin recargar el frente. Aro fino, plaquetas regulables y terminal grabado con un escudito antes del blanco de la varilla. Armazón de receta liviano en 53-18-140, apto para monofocales y multifocales. Llega gratis a todo el país.",
+    "imageAlts": [
+      "Armazón de receta Diana C3 cat eye de metal dorado claro con varillas blancas",
+      "Anteojos de receta Diana C3, detalle del frente cat eye dorado y el puente",
+      "Armazón Diana C3, detalle de la varilla blanca y el terminal de metal dorado"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "TL3932-C3",
+    "discrepancias": [
+      {
+        "campo": "description / seoDescription (material)",
+        "tiendaDice": "\"Anteojos de receta de acetato modelo Diana C3\"",
+        "realidad": "Armazón de metal dorado con varillas blancas. No es acetato.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "genero",
+        "tiendaDice": "\"FEMENINO\" (todo en mayúsculas)",
+        "realidad": "El valor válido es \"Femenino\". En mayúsculas puede no matchear el filtro ni el structured data de Google.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "\"TL3932 C3\" (con espacio)",
+        "realidad": "Debe normalizarse a TL3932-C3, en mayúsculas y sin espacios.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "\"C3\"",
+        "realidad": "Dorado champagne con varillas blancas.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 3 imágenes, incluidos \"C2\", \"C3\", \"C4\" y \"Cápsula Escarlata Dionisio C2\" (otro producto)",
+        "realidad": "3 imágenes de este armazón; alts propios y descriptivos.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Texto idéntico al de Diana C2 y C4 salvo el código de color",
+        "realidad": "Contenido duplicado entre variantes; cada color necesita su propio texto.",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Vocabulario cerrado correcto en la tienda (Cat-Eye / Metal), sólo hay que normalizar el género a \"Femenino\" y el mpn. Es la variante clara del TL3932."
+  },
+  {
+    "slug": "diana-c4",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Metal",
+      "color": "Gris grafito (gunmetal) con varillas negras",
+      "detalles": "Aro fino de metal gris oscuro con barra superior prolongada que dibuja la punta cat-eye. Plaquetas regulables. Terminal oscuro con cartucho nervado y varillas negras.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Metal, anteojos de receta, armazón cat eye mujer, armazón de metal gris, armazones recetados, anteojos de receta Córdoba, óptica Cerro de las Rosas, comprar anteojos de receta online",
+    "seoTitle": "Anteojos Cat Eye Diana C4 Gris",
+    "seoDescription": "Armazón Diana C4 cat eye de metal gris grafito con varillas negras. Anteojos de receta de mujer, 53-18-140, envío gratis a todo el país.",
+    "description": "El Diana C4 lleva la silueta cat eye a un gris grafito oscuro con varillas negras: la versión más sobria de la familia, la que mejor funciona para usar todo el día en la oficina. El aro fino de metal se prolonga en una barra superior que dibuja la punta del ojo, y el terminal repite el motivo cincelado del modelo en tono oscuro. Le sienta bien a rostros redondos y cuadrados que quieren levantar la línea de la mirada sin color. Medidas 53-18-140. Envío gratis a todo el país y 30 días de garantía.",
+    "imageAlts": [
+      "Armazón de receta Diana C4 cat eye de metal gris grafito con varillas negras",
+      "Anteojos de receta Diana C4, detalle de la varilla negra y el terminal de metal oscuro"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "TL3932-C4",
+    "discrepancias": [
+      {
+        "campo": "description / seoDescription (material)",
+        "tiendaDice": "\"Anteojos de receta de acetato modelo Diana C4\"",
+        "realidad": "Armazón de metal gris grafito con varillas negras. No es acetato.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "genero",
+        "tiendaDice": "\"FEMENINO\" (todo en mayúsculas)",
+        "realidad": "El valor válido es \"Femenino\".",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "\"TL3932 C4\" (con espacio)",
+        "realidad": "Debe normalizarse a TL3932-C4.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "\"C4\"",
+        "realidad": "Gris grafito con varillas negras.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para sólo 2 imágenes, con \"vista 2\" fantasma y alts de otros productos (\"Cápsula Escarlata Dionisio C2\", \"Cápsula Escarlata Teseo C4\")",
+        "realidad": "Sólo hay 2 imágenes cargadas para este color; sobran 6 alts y dos son de modelos distintos.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "cantidad de imágenes",
+        "tiendaDice": "2 imágenes (falta la vista 2 que sí tienen C2 y C3)",
+        "realidad": "Las otras variantes del TL3932 tienen 3 fotos; conviene completar la galería de C4 para emparejar.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Variante oscura del TL3932. Forma y material de la tienda son correctos; corregir género en mayúsculas, mpn y el texto que dice acetato."
+  },
+  {
+    "slug": "armazon-receta-atelier-athena-91501-c6",
+    "visto": {
+      "forma": "XL",
+      "material": "Metal",
+      "color": "Dorado con perfil rosa viejo y terminales nude",
+      "detalles": "Aro geométrico grande de metal, de esquinas cortadas; filo dorado y cara frontal en rosa viejo. Puente recto dorado con plaquetas regulables, varillas finas de metal y terminales color nude translúcido.",
+      "confianza": "alta"
+    },
+    "seoTags": "XL, Metal, anteojos de receta, armazón oversize de metal, anteojos grandes para mujer, armazones recetados, anteojos de receta Córdoba, óptica Cerro de las Rosas, comprar armazones online Argentina",
+    "seoTitle": "Anteojos XL Athena Metal Rosa",
+    "seoDescription": "Armazón Athena 91501 C6: anteojos de receta XL de metal dorado con perfil rosa viejo y terminales nude. Calibre 55-16-145, envío gratis.",
+    "description": "El Athena es un armazón de receta oversize: aro geométrico grande de metal, con el filo dorado y la cara en rosa viejo, así que cambia de tono según cómo le dé la luz. El puente recto y las varillas finas dejan todo el protagonismo al frente, y los terminales color nude apoyan suave detrás de la oreja. Es el anteojo para quien busca presencia: favorece rostros medianos a grandes y suaviza los rasgos angulosos. Calibre 55-16-145, con plaquetas regulables. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "imageAlts": [
+      "Armazón de receta XL Athena 91501 C6 de metal dorado con perfil rosa viejo"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "91501-C6",
+    "discrepancias": [
+      {
+        "campo": "seoTitle",
+        "tiendaDice": "\"Atelier Athena | Armazón de Receta 91501 C6 - Calidad Premium | Atelier Óptica Córdoba\" (85 caracteres)",
+        "realidad": "El sistema agrega \" | Atelier Óptica Córdoba\" solo: el título queda duplicado y con 110 caracteres, muy por encima de lo que muestra Google.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description / seoDescription (idioma)",
+        "tiendaDice": "\"Descubre el armazón... Compra hoy\"",
+        "realidad": "Español neutro/peninsular. La casa escribe en argentino: \"Mirá\", \"Comprá\", \"llevate\".",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description (afirmaciones)",
+        "tiendaDice": "\"Calidad premium\", \"entrega inmediata\", \"envío gratis y entrega inmediata\"",
+        "realidad": "\"Entrega inmediata\" no es verificable con los datos del producto y contradice el envío a todo el país; además el texto no describe el armazón (ni forma, ni color, ni medidas).",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "vacío (null)",
+        "realidad": "Dorado con perfil rosa viejo y terminales nude. Sin color cargado el producto no aparece en filtros ni en el feed.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 sola imagen, con nombres de otros productos (Dionisio C2, Teseo C4, Poseidon C3, Q5205-C3) y hasta nombres de personas (\"Julieta Foppoli\", \"CLAUDIA SONIA GUZMAN\", \"Vale Contreras\")",
+        "realidad": "Hay 1 imagen. Los alts con nombres propios de clientes/vendedoras en una página pública son además un problema de privacidad.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "\"91501 C6\" (con espacio)",
+        "realidad": "Debe normalizarse a 91501-C6.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "cantidad de imágenes",
+        "tiendaDice": "1 sola foto",
+        "realidad": "Un armazón de $160.000 con una única vista convierte peor; convendría sumar vista lateral y de varilla.",
+        "gravedad": "baja"
+      }
+    ],
+    "discrepancias_extra": null,
+    "notas": "Confirmo XL: con 55-16-145 y ese aro geométrico grande es claramente oversize, así que el vocabulario cerrado de la tienda (XL / Metal / Femenino) está bien. Atención al bloque de alts: incluye nombres de personas reales en una ficha pública."
+  },
+  {
+    "slug": "fenix-c1",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Acetato",
+      "color": "Negro con lente gris oscura",
+      "detalles": "Frente macizo de acetato negro brillante, aro grueso y esquinas marcadas. Remaches metálicos en punta de diamante sobre el borde superior del aro y en la zona de bisagra. Bisagra de caja, varillas gruesas de acetato negro y puente ancho.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cuadrado, Acetato, anteojos de sol, anteojos de sol cuadrados negros, anteojos de sol unisex, anteojos de sol de acetato, lentes de sol, anteojos de sol Córdoba, comprar anteojos de sol online Argentina, anteojos de sol en cuotas sin interés",
+    "seoTitle": "Anteojos de Sol Fénix C1 Negro",
+    "seoDescription": "Anteojos de sol Fénix C1 cuadrados de acetato negro con lente gris oscura. Unisex, 51-26-145, envío gratis a todo el país y 6 cuotas.",
+    "description": "Los Fénix C1 son anteojos de sol cuadrados de acetato negro con lente gris oscura, de esos que no pasan de moda. El frente es macizo, de aro grueso y esquinas marcadas, con remaches metálicos en punta de diamante sobre el borde superior y en la bisagra, que es de caja y abre firme. El puente ancho de 26 mm los levanta bien del rostro y los hace cómodos de usar todo el día. Silueta unisex de 51 mm de calibre; también se les puede poner tu receta. Envío gratis a todo el país.",
+    "imageAlts": [
+      "Anteojos de sol Fénix C1 cuadrados de acetato negro con lente gris oscura"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "J853T19-C1",
+    "discrepancias": [
+      {
+        "campo": "description (material)",
+        "tiendaDice": "\"en acetato italiano Mazzucchelli\"",
+        "realidad": "No hay ningún dato del producto que respalde el origen ni la marca del acetato. Es acetato negro, sin más. Afirmar una marca de material que no consta es un riesgo de publicidad engañosa.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description (tecnología)",
+        "tiendaDice": "\"con protección UV\"",
+        "realidad": "No consta en la ficha ninguna especificación de filtro UV, categoría de lente ni polarizado. Si el proveedor lo certifica hay que cargar el dato; si no, no se puede afirmar.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "El modelCode es J853T19 C1 → mpn J853T19-C1.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "seoDescription",
+        "tiendaDice": "Termina cortada con puntos suspensivos: \"...Comprá online en Atelier Óptica con…\"",
+        "realidad": "La meta está truncada a mitad de frase; es un copiado de la descripción larga en vez de un texto propio de 155 caracteres.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 imagen, entre ellos \"Wicue Wicue Cargador incluido\", \"Atelier Nashira C3\", \"Atelier Cánopo C2\" y nombres de personas (\"Julieta Foppoli\", \"CLAUDIA SONIA GUZMAN\", \"Vale Contreras\")",
+        "realidad": "Hay 1 imagen. Los alts pertenecen a otros productos y a personas reales.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "edadMin / ageGroup",
+        "tiendaDice": "vacío (null)",
+        "realidad": "Es un modelo de adulto (51-26-145). Sin ageGroup el feed de Google queda incompleto.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Forma, material y género de la tienda coinciden con la foto (Cuadrado / Acetato / Unisex). Lo grave acá es el texto: inventa \"acetato italiano Mazzucchelli\" y afirma protección UV sin dato de respaldo. Yo saqué ambas cosas; si el proveedor certifica el UV, se puede volver a poner con el dato cargado."
+  },
+  {
+    "slug": "pegaso-c2",
+    "visto": {
+      "forma": "Redondo",
+      "material": "Acetato",
+      "color": "Negro brillante con detalles dorados",
+      "detalles": "Frente redondo de acetato negro, apenas achatado en la parte superior. Tres remaches dorados a cada lado del frente y un inserto dorado con textura de malla en el arranque de las varillas. Grabado de fábrica BC3063 49-20-148 en la lente.",
+      "confianza": "alta"
+    },
+    "seoTags": "Redondo, Acetato, anteojos de receta, armazones recetados, anteojos redondos de acetato negro, armazón de acetato negro, anteojos unisex de receta, óptica Cerro de las Rosas, anteojos recetados Córdoba, comprar anteojos de receta online",
+    "seoTitle": "Anteojos Redondos Negros Pegaso C2",
+    "seoDescription": "Armazón Pegaso C2 redondo de acetato negro con remaches dorados. Anteojos de receta unisex, calibre 49-20-148, envío gratis a todo el país.",
+    "description": "El Pegaso C2 es un armazón de receta redondo de acetato negro brillante, con el aro apenas achatado arriba: la vuelta clásica de anteojo redondo, pero sin caer en el círculo perfecto. Lleva tres remaches dorados a cada lado del frente y un inserto dorado con textura de malla en el arranque de las varillas, el único brillo de un diseño por lo demás sobrio. Con 49 mm de calibre y varilla de 148 mm es un armazón chico a mediano, cómodo en rostros angostos. Unisex. Envío gratis a todo el país.",
+    "imageAlts": [
+      "Armazón de receta Pegaso C2 redondo de acetato negro con remaches dorados"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "BC3063-C2",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "\"Unisex, Femenino, Masculino\" (los tres a la vez)",
+        "realidad": "El campo admite un solo valor. Con la lista completa el dato queda inválido para Google Shopping y el filtro de la tienda no puede resolverlo. Corresponde Unisex.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "El modelCode es BC3063-C2, y el grabado de la propia lente confirma BC3063 49-20-148.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description / seoDescription",
+        "tiendaDice": "\"Anteojos de receta de acetato modelo Pegaso C2 por Atelier. Envío a todo el país.\" repetido en ambos campos",
+        "realidad": "Texto plantilla de 79 caracteres, compartido con decenas de productos del catálogo. No menciona forma, color ni medidas.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "\"C2\"",
+        "realidad": "Negro brillante con detalles dorados.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 imagen, con nombres de otros modelos (Dionisio C2, Teseo C4, Poseidon C3, Q5205-C3) y de personas (\"Julieta Foppoli\", \"CLAUDIA SONIA GUZMAN\", \"Vale Contreras\")",
+        "realidad": "Hay 1 imagen de este armazón; el resto son alts contaminados de otras fichas.",
+        "gravedad": "alta"
+      }
+    ],
+    "notas": "Forma y material declarados por la tienda son correctos (Redondo / Acetato). Lo urgente es el género triple, que aparece en 40 productos del catálogo según la auditoría previa."
+  },
+  {
+    "slug": "gala-c1",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Negro",
+      "detalles": "Frente ancho de acetato negro pulido, líneas rectas y esquinas superiores levemente alzadas en punta (cat eye de silueta cuadrada). Aro de buen espesor, biselado. Varillas anchas al nacer sobre la bisagra que se afinan hacia un terminal curvo. Sin adornos ni metal a la vista en el frente.",
+      "confianza": "media"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón de acetato negro, anteojos cat eye para mujer, armazón ojo de gato, anteojos recetados, armazones para receta, óptica Cerro de las Rosas, anteojos de receta Córdoba",
+    "seoTitle": "Anteojos de Receta Gala C1 Negro",
+    "seoDescription": "Anteojos de receta Gala C1 en acetato negro, frente cat eye de 52 mm. Comprá online con envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "Gala C1 es un armazón de receta en acetato negro pulido, con frente ancho de líneas rectas y las esquinas superiores apenas levantadas: ese guiño cat eye estira la mirada sin exagerar. El negro es el comodín que va con todo y marca los rasgos en rostros redondos o de mandíbula suave. El acetato tiene cuerpo real: aro grueso y biselado, varillas que nacen anchas sobre la bisagra y se afinan hasta el terminal curvo, así apoya parejo detrás de la oreja. Calibre 52, puente 19 y varillas de 145 mm. Se arma con cristales monofocales o multifocales.",
+    "imageAlts": [
+      "Anteojos de receta Gala C1 en acetato negro, frente cat eye, vista tres cuartos",
+      "Armazón de receta Gala C1 negro, vista lateral de la varilla ancha y el terminal curvo",
+      "Detalle del frente y el puente del armazón Gala C1 en acetato negro pulido"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q5005-C1",
+    "discrepancias": [
+      {
+        "campo": "description",
+        "tiendaDice": "Texto plantilla idéntico al de Gala C2, C3, C7 y C8 (\"Elaborado artesanalmente en acetato de celulosa premium de alta densidad… otorga un brillo excepcional\")",
+        "realidad": "Cinco colores distintos del mismo molde comparten la misma descripción palabra por palabra. Google lo lee como contenido duplicado y ninguna ficha habla de su color.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "\"alma metálica interna en las patillas\" y \"acetato de celulosa premium de alta densidad\"",
+        "realidad": "Ninguna de las dos cosas se puede verificar en la foto ni figura en los datos del producto. Además \"patillas\" es español peninsular: en Argentina se dice varillas.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "El modelCode existe: Q5005-C1. Sin mpn, Google Merchant Center y Meta pierden el identificador de producto.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "\"Cápsula Escarlata Gala C1\", \"Cápsula Escarlata Gala C1 - vista 2\", \"vista 3\"",
+        "realidad": "Cápsula Escarlata es el canal mayorista, no una marca de retail: no debería aparecer en una ficha pública. Y \"vista 2 / vista 3\" no describe nada para SEO ni para lector de pantalla.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C1",
+        "realidad": "El color real es negro. El código de color del proveedor no sirve como valor de color para el comprador ni para el feed de catálogo.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Q5005 es un mismo molde en cinco colores (C1, C2, C3, C7, C8): la forma tiene que ser idéntica en los cinco. Lo que veo es un cat-eye de silueta cuadrada, con alza real pero moderada en la esquina superior externa; por eso la confianza es media (la lectura \"Cuadrado\" también sería defendible). Mantengo Cat-Eye porque el alza existe y porque es lo que ya usa la tienda en 4 de los 5 colores. Este producto lista 3 imágenes pero el campo altsActuales trae 8 entradas: las sobrantes (\"C1\", \"C2\", \"C3\", \"C7\") son de la grilla de variantes de la página, no de la galería."
+  },
+  {
+    "slug": "gala-c2",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Carey con varillas violeta jaspeado",
+      "detalles": "Frente en acetato carey de marrones cálidos y veteado ámbar. Las varillas son de otro acetato: jaspeado violeta sobre negro, que solo se ve de perfil. Aro grueso de líneas rectas con esquinas superiores alzadas. La varilla nace ancha sobre la bisagra y se afina hacia el terminal.",
+      "confianza": "media"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazones carey, armazón cat eye mujer, anteojos de acetato carey, armazones recetados, marcos de anteojos, óptica Cerro de las Rosas, anteojos de receta Córdoba",
+    "seoTitle": "Anteojos Gala C2 Carey y Violeta",
+    "seoDescription": "Anteojos de receta Gala C2: frente carey de acetato y varillas violeta jaspeado, calibre 52. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El Gala C2 juega a dos tiempos: frente de acetato carey en marrones cálidos y varillas jaspeadas en violeta y negro, que asoman recién cuando girás la cabeza. El frente es ancho, de líneas rectas y con las puntas superiores levantadas, un cat eye discreto que afina el pómulo y le sienta bien a rostros redondos o de mandíbula marcada. Fijate en el espesor del aro y en cómo la varilla nace ancha sobre la bisagra para afinarse hacia el terminal. Calibre 52, puente 19 y varillas de 145 mm, medidas cómodas para uso diario.",
+    "imageAlts": [
+      "Anteojos de receta Gala C2: frente de acetato carey y varillas jaspeadas en violeta y negro"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q5005-C2",
+    "discrepancias": [
+      {
+        "campo": "description",
+        "tiendaDice": "El mismo párrafo plantilla que C1, C3, C7 y C8, cambiando solo el código de modelo",
+        "realidad": "El C2 es el único de la serie con varillas violeta jaspeado sobre frente carey, y la ficha no lo menciona en ningún lado.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "\"alma metálica interna en las patillas\" / \"acetato de celulosa premium de alta densidad\"",
+        "realidad": "No verificable en la foto ni en los datos. \"Patillas\" además es peninsular; corresponde \"varillas\".",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "El modelCode es Q5005-C2.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "\"Cápsula Escarlata Gala C2\" más una lista de códigos sueltos (\"C1\", \"C2\", \"C3\", \"C7\", \"C8\")",
+        "realidad": "Aparece el nombre del canal mayorista en una ficha de retail, y los alt de código suelto no describen la imagen.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C2",
+        "realidad": "Carey con varillas violeta jaspeado.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Mismo molde Q5005 que C1, C3, C7 y C8: la forma debe quedar igual en los cinco. El frente y las varillas son de dos acetatos distintos; ese contraste es el argumento de venta del color y conviene fotografiarlo también de perfil (hoy la ficha tiene una sola imagen, contra las 3 del C1)."
+  },
+  {
+    "slug": "gala-c3",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Carey translúcido miel y marrón",
+      "detalles": "Acetato translúcido que deja pasar la luz: el frente es miel y marrón veteado y se ve el degradé del material contra el fondo. Varillas moteadas en tabaco y beige, con terminal redondeado. Frente ancho, recto, con las esquinas superiores apenas alzadas. Aro de buen espesor.",
+      "confianza": "media"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazones carey, armazón de acetato carey, anteojos cat eye para mujer, lentes recetados, armazones para receta, anteojos de receta Córdoba, óptica zona norte Córdoba",
+    "seoTitle": "Anteojos de Receta Gala C3 Carey",
+    "seoDescription": "Anteojos de receta Gala C3 en acetato carey translúcido, frente de 52 mm. Comprá online con envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El C3 es carey del bueno: acetato translúcido en miel y marrón que deja pasar la luz, con varillas moteadas en tabaco y beige que rematan en punta redondeada. Es el armazón de receta que suma sin gritar y que acompaña muy bien a la piel cálida y al pelo castaño. El frente es ancho y recto, con las esquinas superiores apenas alzadas para el efecto cat eye, y el aro tiene buen espesor sin volverse pesado. Calibre 52, puente 19 y varillas de 145 mm. Se puede armar con monofocales o multifocales: mandanos tu receta.",
+    "imageAlts": [
+      "Anteojos de receta Gala C3 en acetato carey translúcido con varillas moteadas en tabaco y beige"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q5005-C3",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Cuadrado",
+        "realidad": "Es exactamente el mismo molde que Gala C1, C2, C7 y C8, que la tienda clasifica como Cat-Eye. Hoy el mismo armazón aparece en dos filtros distintos según el color: quien filtra por Cat-Eye no ve el C3, y quien filtra por Cuadrado solo ve el C3.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "El mismo párrafo plantilla que los otros cuatro colores",
+        "realidad": "No dice que el acetato es translúcido, que es justamente lo que distingue al C3 del resto de la serie.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "\"alma metálica interna en las patillas\" / \"acetato de celulosa premium de alta densidad\"",
+        "realidad": "No verificable en la foto ni en los datos; \"patillas\" es peninsular.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "El modelCode es Q5005-C3.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "\"Cápsula Escarlata Gala C3\" más códigos sueltos",
+        "realidad": "Nombre del canal mayorista en retail y alt sin valor descriptivo.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C3",
+        "realidad": "Carey translúcido en miel y marrón.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Esta es la discrepancia de forma más importante del lote: no es una diferencia de criterio entre la tienda y yo, es una inconsistencia interna de la tienda consigo misma (mismo molde Q5005, cinco colores, cuatro etiquetados Cat-Eye y uno Cuadrado). Unifico en Cat-Eye para los cinco."
+  },
+  {
+    "slug": "gala-c7",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Jaspeado rosa, verde agua y marrón",
+      "detalles": "Frente en acetato jaspeado que mezcla rosa empolvado, verde agua y manchas marrón oscuro sobre base clara. Varillas en carey ámbar y negro, de dibujo distinto al del frente. Frente ancho de líneas rectas con esquinas superiores levantadas; terminal curvo.",
+      "confianza": "media"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazones animal print, armazón ojo de gato, anteojos de acetato jaspeado, anteojos cat eye para mujer, armazones recetados, anteojos de receta Córdoba, comprar armazones online Argentina",
+    "seoTitle": "Anteojos Gala C7 Jaspeado Pastel",
+    "seoDescription": "Anteojos de receta Gala C7 en acetato jaspeado rosa y verde agua, calibre 52. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El C7 es el más audaz de la serie Gala: acetato jaspeado que mezcla rosa empolvado, verde agua y manchas marrones en el frente, con varillas carey en ámbar y negro que cambian el registro de costado. Es un armazón de receta para quien quiere que se le noten los anteojos sin resignar sobriedad. El frente ancho de líneas rectas, con las esquinas superiores levantadas, equilibra mandíbulas marcadas y estira el rostro redondo. Calibre 52, puente 19 y varillas de 145 mm, con terminal curvo para que no resbale.",
+    "imageAlts": [
+      "Anteojos de receta Gala C7 en acetato jaspeado rosa y verde agua con varillas carey ámbar"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q5005-C7",
+    "discrepancias": [
+      {
+        "campo": "description",
+        "tiendaDice": "El mismo párrafo plantilla que C1, C2, C3 y C8",
+        "realidad": "El C7 es el color más distintivo del catálogo de la serie (jaspeado rosa y verde agua) y la ficha lo describe igual que al negro liso.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "\"alma metálica interna en las patillas\" / \"acetato de celulosa premium de alta densidad\"",
+        "realidad": "No verificable en la foto ni en los datos; \"patillas\" es peninsular.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "El modelCode es Q5005-C7.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "\"Cápsula Escarlata Gala C7\" más códigos sueltos",
+        "realidad": "Nombre del canal mayorista en retail y alt sin valor descriptivo.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C7",
+        "realidad": "Jaspeado rosa, verde agua y marrón, con varillas carey.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Mismo molde Q5005. Este color se vende con la foto: conviene sumarle vistas de galería como tiene el C1, porque el jaspeado se aprecia muy distinto de frente que de costado."
+  },
+  {
+    "slug": "gala-c8",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Azul noche con varillas verde inglés",
+      "detalles": "Frente de acetato azul noche, tan oscuro que de frente se lee casi negro; el azul se confirma en el canto interno del aro y en el borde sobre el puente. Las varillas revelan verde inglés en la cara interna y en el terminal, laminado sobre el azul oscuro. Frente ancho, recto, con esquinas superiores alzadas.",
+      "confianza": "media"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón cat eye mujer, anteojos de acetato azul, armazones recetados, anteojos recetados, óptica Cerro de las Rosas, anteojos de receta Córdoba, comprar anteojos de receta online",
+    "seoTitle": "Anteojos Gala C8 Azul y Verde",
+    "seoDescription": "Anteojos de receta Gala C8: acetato azul noche con varillas verde inglés, calibre 52. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "Gala C8 es el que rompe la regla del negro: frente de acetato azul noche, tan profundo que a contraluz se lee casi negro, y varillas que descubren un verde inglés en la cara interna y en el terminal. Ese contraste bicolor es todo el diseño y se ve recién de perfil. El frente ancho de líneas rectas, con las esquinas superiores levantadas, arma un cat eye medido que favorece a rostros redondos. Calibre 52, puente 19 y varillas de 145 mm. Armazón de receta apto para monofocales y multifocales.",
+    "imageAlts": [
+      "Anteojos de receta Gala C8: frente de acetato azul noche y varillas con interior verde inglés"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q5005-C8",
+    "discrepancias": [
+      {
+        "campo": "description",
+        "tiendaDice": "El mismo párrafo plantilla que C1, C2, C3 y C7",
+        "realidad": "No menciona el bicolor azul noche / verde inglés, que es la única razón por la que alguien elige este color y no el negro.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "\"alma metálica interna en las patillas\" / \"acetato de celulosa premium de alta densidad\"",
+        "realidad": "No verificable en la foto ni en los datos; \"patillas\" es peninsular.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "El modelCode es Q5005-C8.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "\"Cápsula Escarlata Gala C8\" más códigos sueltos",
+        "realidad": "Nombre del canal mayorista en retail y alt sin valor descriptivo.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C8",
+        "realidad": "Azul noche con varillas verde inglés.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Mismo molde Q5005. Dejo el género en Femenino por coherencia con los otros cuatro colores del molde y con el dato de la ficha, aunque la combinación azul y verde es la más neutra de la serie y funcionaría como Unisex si el negocio quiere ampliarle el alcance; conviene decidirlo para los cinco colores juntos, no producto por producto."
+  },
+  {
+    "slug": "mizar-c2",
+    "visto": {
+      "forma": "Hexagonal",
+      "material": "Acetato",
+      "color": "Carey ámbar veteado",
+      "detalles": "Anteojo de sol en acetato carey ámbar con veteado negro. El frente es facetado: canto superior recto, laterales rectos con esquinas angulosas y base redondeada. Una barra recta une los dos aros por arriba, sobre el puente. Remaches metálicos dorados a los costados del frente, logo grabado en dorado sobre la varilla y terminal en tono azul. Lentes gris oscuro parejas, sin degradé.",
+      "confianza": "media"
+    },
+    "seoTags": "Hexagonal, Acetato, anteojos de sol, anteojos de sol carey, anteojos de sol hexagonales, anteojos de sol de acetato, lentes de sol unisex, anteojos de sol recetados, anteojos de sol Córdoba, comprar anteojos de sol online Argentina",
+    "seoTitle": "Anteojos de Sol Mizar C2 Carey",
+    "seoDescription": "Anteojos de sol Mizar C2 en acetato carey, frente hexagonal y lente gris. Unisex, calibre 53. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "Mizar C2 es un anteojo de sol de acetato carey, en ámbar veteado con negro, de frente hexagonal: canto superior recto, laterales rectos y base redondeada. Arriba lleva una barra que une los dos aros, el detalle retro que lo separa del redondo de siempre. Las lentes son gris oscuro parejas, sin degradé. Fijate en los remaches metálicos dorados a los costados del frente y en el terminal azul de las varillas. Calibre 53, puente 17 y varillas de 145 mm: talle unisex, cómodo en rostros medianos. Se le pueden poner cristales con tu receta.",
+    "imageAlts": [
+      "Anteojos de sol Mizar C2 en acetato carey, frente hexagonal con barra superior y lente gris oscuro"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "YD1335-C2",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Redondo",
+        "realidad": "El frente es facetado, no redondo: canto superior recto, laterales rectos y esquinas angulosas, con barra superior uniendo los aros. Corresponde Hexagonal. Quien filtra por Hexagonal hoy no lo encuentra.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "\"acetato italiano Mazzucchelli\"",
+        "realidad": "El dato no consta en ninguna parte del producto y no se puede verificar en la foto. Es una afirmación de origen y proveedor de material inventada, y además figura en la meta description que ve Google.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "La página trae como alt nombres de personas (\"Julieta Foppoli\", \"CLAUDIA SONIA GUZMAN\", \"Vale Contreras\") junto con productos ajenos (\"Wicue Cargador incluido\", \"Atelier Nashira C3\", \"Cánopo C2\", \"Adhara C4\")",
+        "realidad": "Hay nombres propios de personas expuestos como texto alternativo en una ficha pública e indexable. Aunque vengan de un bloque de reseñas o de fotos de clientas, conviene revisar de dónde salen y quitarlos.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "\"con protección UV\"",
+        "realidad": "No hay ningún dato de filtro UV, categoría de lente ni certificación en la ficha del producto. Si el proveedor lo certifica hay que cargar el dato; si no, no se puede afirmar.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Descripción de 177 caracteres, idéntica palabra por palabra a la meta description",
+        "realidad": "Queda muy por debajo del mínimo de ficha de venta y no describe ni la forma facetada, ni la barra superior, ni los remaches dorados, ni el terminal azul.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "El modelCode es YD1335 C2, o sea mpn YD1335-C2.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C2",
+        "realidad": "Carey ámbar veteado.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "La forma es el punto discutible: la base del aro es curva, así que la lectura \"Redondo\" de la tienda no es absurda, pero el canto superior y los laterales son netamente rectos y la barra superior refuerza el aire geométrico. Por eso pongo Hexagonal con confianza media. No afirmo protección UV, polarizado ni categoría de lente en ningún texto porque no hay dato que lo respalde: si el proveedor los certifica, conviene cargarlos como atributo y recién ahí sumarlos a la ficha (es una keyword fuerte: \"anteojos de sol UV400\"). Tampoco menciono al proveedor, cuyo logo aparece grabado en la varilla de la foto."
+  },
+  {
+    "slug": "andromeda-c1",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Acetato",
+      "color": "Negro con animal print gris",
+      "confianza": "alta",
+      "detalles": "Frente de acetato bicolor: ceja superior en negro brillante y el resto del aro laminado en animal print gris y negro. Esquinas redondeadas, frente de buen espesor y aro alto. Varillas negras lisas, anchas en la bisagra y afinadas hacia la puntera curvada, con plaqueta metálica cuadrada remachada sobre la bisagra."
+    },
+    "seoTags": "Cuadrado, Acetato, anteojos de receta, armazones animal print, anteojos cuadrados de acetato, armazón negro, anteojos recetados Córdoba, óptica Cerro de las Rosas, comprar anteojos de receta online, armazones online envío a todo el país",
+    "seoTitle": "Armazón Andrómeda C1 Animal Print",
+    "seoDescription": "Armazón de receta cuadrado de acetato negro con animal print gris. Calce 53-19-145, envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El Andrómeda C1 combina dos acetatos en el mismo frente: la ceja superior en negro brillante y el resto del aro laminado en animal print gris y negro. Es un armazón de receta cuadrado, de esquinas redondeadas y ángulos suaves, que le queda cómodo a rostros ovalados, alargados y de pómulos marcados. Las varillas van en negro liso, con una plaqueta metálica cuadrada sobre la bisagra que corta el bloque de color. El aro tiene altura suficiente para cristales multifocales. Calce 53-19-145 y envío gratis a todo el país.",
+    "imageAlts": [
+      "Anteojos de receta Andrómeda C1 de acetato negro con animal print gris, vista de tres cuartos",
+      "Frente cuadrado del armazón Andrómeda C1 con laminado animal print gris sobre acetato negro",
+      "Varilla negra del armazón Andrómeda C1 con plaqueta metálica cuadrada sobre la bisagra"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "57201LJH-C1",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "Unisex, Femenino, Masculino",
+        "realidad": "Femenino (un solo valor). Una lista de tres géneros invalida el dato estructurado para Google y rompe el filtro de género de la tienda.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description / metaDescription",
+        "tiendaDice": "Anteojos de receta de acetato modelo Andrómeda C1 por Atelier. Envío a todo el país.",
+        "realidad": "Texto plantilla idéntico en las 5 variantes del modelo (solo cambia el código de color): contenido duplicado. Además no menciona el laminado animal print, que es lo que distingue a esta variante.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C1",
+        "realidad": "Negro con animal print gris. El campo guarda el código de fábrica, no un color legible ni buscable.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "57201LJH-C1, disponible en modelCode. Sin MPN el producto pierde matching en Google Merchant Center.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 3 imágenes, encabezados por 'Cápsula Escarlata Andrómeda C1' y seguidos de códigos sueltos (C3, C6, C1, C4)",
+        "realidad": "Deben ser 3 alts descriptivos, uno por imagen. Además 'Cápsula Escarlata' es el canal mayorista y no debería aparecer en la ficha retail.",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Forma y material que declara la tienda (Cuadrado / Acetato) coinciden con la foto. La marca que aparece grabada en el armazón es del proveedor y no se menciona en los textos."
+  },
+  {
+    "slug": "andromeda-c3",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Acetato",
+      "color": "Negro mate",
+      "confianza": "alta",
+      "detalles": "Mismo molde que el resto de la familia Andrómeda, en acetato negro mate parejo, sin vetas ni brillo. Frente cuadrado de esquinas redondeadas con espesor uniforme, varillas rectas que terminan en puntera curvada y plaqueta metálica cuadrada sobre la bisagra."
+    },
+    "seoTags": "Cuadrado, Acetato, anteojos de receta, armazón de acetato negro, anteojos cuadrados de acetato, armazón negro mate, anteojos recetados Córdoba, óptica Cerro de las Rosas, comprar anteojos de receta online, armazones online envío a todo el país",
+    "seoTitle": "Armazón Andrómeda C3 Negro Mate",
+    "seoDescription": "Anteojos de receta cuadrados de acetato negro mate, calce 53-19-145. Envío gratis a todo el país, 6 cuotas sin interés y 15% off por transferencia.",
+    "description": "El Andrómeda C3 es el mismo frente cuadrado de acetato llevado al negro mate: sin brillo, sin vetas y sin contraste, el armazón de receta más fácil de usar todos los días y el que menos discute con la cara. Funciona igual de bien en rostros redondos, ovalados y alargados, y es de las opciones más neutras para quien recién empieza a usar anteojos. Frente de espesor parejo, varillas rectas con puntera curvada y plaqueta metálica sobre la bisagra. Calce 53-19-145. Envío gratis a todo el país.",
+    "imageAlts": [
+      "Anteojos de receta Andrómeda C3 de acetato negro mate, vista de tres cuartos"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "57201LJH-C3",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "Unisex, Femenino, Masculino",
+        "realidad": "Unisex (un solo valor). La lista de tres valores invalida el dato para Google y rompe el filtro.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description / metaDescription",
+        "tiendaDice": "Anteojos de receta de acetato modelo Andrómeda C3 por Atelier. Envío a todo el país.",
+        "realidad": "Texto plantilla repetido en las 5 variantes del modelo: contenido duplicado penalizado por Google. Tampoco dice el color, que es lo único que diferencia a la variante.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C3",
+        "realidad": "Negro mate. El campo guarda el código de fábrica en vez del color real.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "57201LJH-C3, disponible en modelCode.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 sola imagen, con códigos sueltos (C3, C6, C1, C4, C7) y nombres de OTROS productos: 'Cápsula Escarlata Dionisio C2' y 'Cápsula Escarlata Teseo C4'",
+        "realidad": "Debe haber 1 alt descriptivo de esta foto. Alts que nombran otros modelos son texto alternativo falso.",
+        "gravedad": "alta"
+      }
+    ],
+    "notas": "Forma y material declarados coinciden con la foto. Variante monocolor: es la que menos riesgo tiene de quedar duplicada con el resto si se le escribe texto propio."
+  },
+  {
+    "slug": "andromeda-c4",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Acetato",
+      "color": "Nude amarronado traslúcido",
+      "confianza": "alta",
+      "detalles": "Acetato traslúcido en tono nude amarronado, monocolor de punta a punta. Frente cuadrado de esquinas redondeadas; se ve el corte del acetato en el canto del aro. Bisagra metálica remachada al frente con plaqueta cuadrada, varilla del mismo acetato traslúcido con un remache visible y puntera curvada."
+    },
+    "seoTags": "Cuadrado, Acetato, anteojos de receta, anteojos nude translúcidos, anteojos cuadrados de acetato, armazones para receta, anteojos recetados Córdoba, óptica Cerro de las Rosas, comprar armazones online Argentina, armazones online envío a todo el país",
+    "seoTitle": "Armazón Andrómeda C4 Nude",
+    "seoDescription": "Anteojos de receta de acetato traslúcido en tono nude amarronado, frente cuadrado y calce 53-19-145. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El Andrómeda C4 viene en acetato traslúcido color nude amarronado: deja pasar la luz, se apoya sobre cualquier tono de piel y suaviza los rasgos en lugar de recortarlos. Es el mismo frente cuadrado de esquinas redondeadas, para quien busca un armazón de receta presente pero discreto. Se le ve el corte del acetato en el canto del aro y la bisagra metálica remachada al frente; la varilla es del mismo tono traslúcido y termina en puntera curvada. Calce 53-19-145, con altura para multifocales. Envío gratis a todo el país.",
+    "imageAlts": [
+      "Anteojos de receta Andrómeda C4 de acetato traslúcido color nude, vista de tres cuartos"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "57201LJH-C4",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "Unisex, Femenino, Masculino",
+        "realidad": "Unisex (un solo valor). La lista de tres valores invalida el dato estructurado.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description / metaDescription",
+        "tiendaDice": "Anteojos de receta de acetato modelo Andrómeda C4 por Atelier. Envío a todo el país.",
+        "realidad": "Texto plantilla repetido en las 5 variantes: contenido duplicado. No menciona que es traslúcido ni el tono nude, que es el argumento de venta de esta variante.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C4",
+        "realidad": "Nude amarronado traslúcido. El campo guarda el código de fábrica en vez del color real.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "57201LJH-C4, disponible en modelCode.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 sola imagen, con códigos sueltos y nombres de otros productos ('Dionisio C2', 'Teseo C4')",
+        "realidad": "Debe haber 1 alt descriptivo de esta foto; los alts que nombran otros modelos son texto alternativo falso.",
+        "gravedad": "alta"
+      }
+    ],
+    "notas": "Forma y material declarados coinciden con la foto. Es el único color traslúcido claro de la familia y hoy queda indistinguible del resto en la tienda."
+  },
+  {
+    "slug": "andromeda-c6",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Acetato",
+      "color": "Azul petróleo traslúcido",
+      "confianza": "alta",
+      "detalles": "Acetato traslúcido azul petróleo, con fondo verdoso y veta visible del material contra la luz. Frente cuadrado de esquinas redondeadas y varillas del mismo tono, más oscuras hacia la puntera, con plaqueta metálica cuadrada sobre la bisagra."
+    },
+    "seoTags": "Cuadrado, Acetato, anteojos de receta, armazón de acetato azul, anteojos cuadrados de acetato, armazones para receta, anteojos recetados Córdoba, óptica en Córdoba, anteojos de receta en cuotas sin interés, armazones online envío a todo el país",
+    "seoTitle": "Armazón Andrómeda C6 Azul Petróleo",
+    "seoDescription": "Armazón de receta cuadrado de acetato azul petróleo traslúcido, calce 53-19-145. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El Andrómeda C6 es acetato azul petróleo traslúcido: un azul profundo con fondo verdoso que contra la luz se abre y deja ver la veta del material. Mantiene el frente cuadrado de esquinas redondeadas, así que es la variante que más juego da en rostros de rasgos marcados y la alternativa lógica al negro cuando se busca color sin estridencia. Las varillas siguen el mismo tono y llevan la plaqueta metálica sobre la bisagra. Anteojos de receta con calce 53-19-145 y envío gratis a todo el país.",
+    "imageAlts": [
+      "Anteojos de receta Andrómeda C6 de acetato azul petróleo traslúcido, vista de tres cuartos"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "57201LJH-C6",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "Unisex, Femenino, Masculino",
+        "realidad": "Unisex (un solo valor). La lista de tres valores invalida el dato estructurado.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description / metaDescription",
+        "tiendaDice": "Anteojos de receta de acetato modelo Andrómeda C6 por Atelier. Envío a todo el país.",
+        "realidad": "Texto plantilla repetido en las 5 variantes: contenido duplicado. No dice el color, que acá es todo el producto.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C6",
+        "realidad": "Azul petróleo traslúcido. El campo guarda el código de fábrica en vez del color real.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "57201LJH-C6, disponible en modelCode.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 sola imagen, con códigos sueltos y nombres de otros productos ('Dionisio C2', 'Teseo C4')",
+        "realidad": "Debe haber 1 alt descriptivo de esta foto.",
+        "gravedad": "alta"
+      }
+    ],
+    "notas": "Forma y material declarados coinciden con la foto. El azul petróleo no aparece en ningún campo indexable hoy: se pierde toda búsqueda por color."
+  },
+  {
+    "slug": "andromeda-c7",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Acetato",
+      "color": "Violeta uva traslúcido con varillas berenjena",
+      "confianza": "alta",
+      "detalles": "Bicolor: frente de acetato traslúcido color uva y varillas en berenjena muy oscuro. Frente cuadrado de esquinas redondeadas con una leve elevación en la punta superior externa. Bisagra remachada con plaqueta metálica cuadrada; varilla ancha en la bisagra que se afina hacia la puntera curvada."
+    },
+    "seoTags": "Cuadrado, Acetato, anteojos de receta, armazón de acetato violeta, anteojos cuadrados de acetato, anteojos para mujer, anteojos recetados Córdoba, óptica Cerro de las Rosas, comprar anteojos de receta online, armazones online envío a todo el país",
+    "seoTitle": "Armazón Andrómeda C7 Violeta",
+    "seoDescription": "Anteojos de receta de acetato violeta traslúcido con varillas berenjena, calce 53-19-145. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El Andrómeda C7 juega con dos tonos de violeta: el frente en acetato traslúcido color uva y las varillas en berenjena, tan oscuro que a contraluz pasa por negro. Es un armazón de receta cuadrado de esquinas redondeadas, con una leve elevación en la punta superior externa que estira la mirada. Le sienta bien a rostros redondos y ovalados, y a quien quiere color sin irse al pastel. Bisagra remachada con plaqueta metálica cuadrada y frente de buen espesor. Calce 53-19-145 y envío gratis a todo el país.",
+    "imageAlts": [
+      "Anteojos de receta Andrómeda C7 de acetato violeta traslúcido con varillas berenjena"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "57201LJH-C7",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "Unisex, Femenino, Masculino",
+        "realidad": "Femenino (un solo valor). La lista de tres valores invalida el dato estructurado y rompe el filtro.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description / metaDescription",
+        "tiendaDice": "Anteojos de receta de acetato modelo Andrómeda C7 por Atelier. Envío a todo el país.",
+        "realidad": "Texto plantilla repetido en las 5 variantes: contenido duplicado. No menciona el violeta ni que el armazón es bicolor.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C7",
+        "realidad": "Violeta uva traslúcido con varillas berenjena. El campo guarda el código de fábrica en vez del color real.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "57201LJH-C7, disponible en modelCode.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 sola imagen, con códigos sueltos y nombres de otros productos ('Dionisio C2', 'Teseo C4')",
+        "realidad": "Debe haber 1 alt descriptivo de esta foto.",
+        "gravedad": "alta"
+      }
+    ],
+    "notas": "Forma y material declarados coinciden con la foto. Es la única variante bicolor junto con la C1."
+  },
+  {
+    "slug": "minerva-c4-1",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Metal",
+      "color": "Marrón oscuro con puente y varillas plateados",
+      "confianza": "alta",
+      "detalles": "Armazón de metal fino, cat-eye anguloso: las puntas superiores externas suben y quiebran en ángulo. Aro completo en marrón oscuro y puente, varillas y bisagras en plateado pulido. Plaquetas nasales regulables sobre brazos de alambre, bisagra remachada y punteras de acrílico marrón."
+    },
+    "seoTags": "Cat-Eye, Metal, anteojos de receta, anteojos cat eye para mujer, armazón ojo de gato, anteojos recetados, anteojos de receta Córdoba, óptica Cerro de las Rosas, comprar anteojos de receta online, armazones online envío a todo el país",
+    "seoTitle": "Armazón Cat Eye Minerva C4-1",
+    "seoDescription": "Armazón de receta cat eye de metal marrón y plateado, liviano, calce 54-18-145. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El Minerva C4-1 es un cat eye de metal con las puntas superiores levantadas y en ángulo: el aro va en marrón oscuro y el puente, las varillas y las bisagras en plateado, así que el contraste dibuja la forma sin necesidad de espesor. Al ser un armazón de receta fino y liviano, levanta el pómulo y afina rostros redondos o cuadrados. Trae plaquetas nasales regulables para ajustar la altura y punteras marrones. Calce 54-18-145. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "imageAlts": [
+      "Anteojos de receta Minerva C4-1 cat eye de metal marrón con puente y varillas plateados"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "HY238014-C4-1",
+    "discrepancias": [
+      {
+        "campo": "description / metaDescription",
+        "tiendaDice": "Anteojos de receta de acetato modelo Minerva C4-1 por Atelier. Envío a todo el país.",
+        "realidad": "El armazón es de METAL, no de acetato. El propio campo material de la tienda dice 'Metal', así que el texto se contradice con la ficha y le da un dato falso al cliente.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "8 alts para 1 sola imagen, con códigos sueltos (C3, C2, C4-1) y nombres de OTROS productos: 'Dionisio C2', 'Teseo C4', 'Poseidon C3' y 'Cápsula escarlata Cápsula escarlata Q5205-C3' (marca duplicada)",
+        "realidad": "Debe haber 1 alt descriptivo de esta foto. Los alts que nombran otros modelos son texto alternativo falso, y 'Cápsula Escarlata' es el canal mayorista, no la marca retail.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C4",
+        "realidad": "Marrón oscuro con puente y varillas plateados. Además el código no coincide con el del producto: el nombre, el slug y el modelCode dicen C4-1 y el campo color dice C4.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "HY238014 C4-1 (con espacio)",
+        "realidad": "HY238014-C4-1. El MPN con espacio puede romper el matching en los feeds de Merchant Center y Commerce Manager.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "metaDescription (largo)",
+        "tiendaDice": "84 caracteres",
+        "realidad": "Queda muy por debajo del rango útil para Google (120-155): desaprovecha el snippet.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Forma (Cat-Eye), material (Metal) y género (Femenino) que declara la tienda coinciden con la foto: el único error duro es el texto que lo llama de acetato. Es el único producto del lote con el género ya bien cargado como valor único."
+  },
+  {
+    "slug": "hermes-c1",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Metal",
+      "color": "Negro mate",
+      "detalles": "Aro completo de metal fino en negro mate, frente cuadrado de líneas rectas. Plaquetas ajustables sobre brazos de alambre. Varillas planas de metal con grabado diamantado sobre el codo y terminales de acetato negro.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cuadrado, Metal, anteojos de receta, armazón negro mate, armazones para receta, anteojos recetados, anteojos de receta Córdoba, óptica Cerro de las Rosas, comprar anteojos de receta online, armazón con cristales incluidos",
+    "seoTitle": "Anteojos de Receta Hermes C1 Negro",
+    "seoDescription": "Armazón de receta Hermes C1 en metal negro mate, frente cuadrado de 55mm y plaquetas ajustables. Envío gratis y 6 cuotas sin interés.",
+    "description": "El Hermes C1 es un armazón de receta de metal en negro mate, con frente cuadrado de líneas rectas y aro completo. Es un clásico de hombre para uso diario: el calibre de 55mm y las varillas de 145mm lo hacen cómodo en rostros medianos y anchos, y el negro mate no compite con nada de lo que tengas puesto. Las varillas planas llevan un grabado diamantado sobre el codo y terminan en acetato negro, y las plaquetas ajustables permiten calzarlo justo. Medidas: 55mm de calibre, 17mm de puente y 145mm de varilla.",
+    "imageAlts": [
+      "Anteojos de receta Hermes C1, armazón de metal negro mate con frente cuadrado y terminales de acetato negro"
+    ],
+    "genero": "Masculino",
+    "ageGroup": "Adulto",
+    "mpn": "9006M-C1",
+    "discrepancias": [
+      {
+        "campo": "material (texto de la ficha)",
+        "tiendaDice": "«Anteojos de receta de acetato modelo Hermes C1»",
+        "realidad": "El armazón es de METAL: aro metálico fino, plaquetas ajustables de alambre y varillas planas de metal. Lo único de acetato son los terminales. El atributo estructurado dice Metal, pero el texto visible dice acetato y se contradicen.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "9006M-C1, derivado del modelCode «9006M C1»",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "«C1» (código interno de fábrica)",
+        "realidad": "Negro mate. El código C1 no le dice nada al cliente ni a Google.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "descripcion / seoDescription",
+        "tiendaDice": "Misma frase de 80 caracteres repetida en descripción y meta description",
+        "realidad": "Descripción demasiado corta y duplicada entre campos y entre las cuatro variantes de color del modelo",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Forma y material que declara la tienda (Cuadrado/Metal) coinciden con la foto; el problema está en el texto libre, que dice acetato. Es el mismo frente que C2, C3 y C4, sólo cambia el color. La ruta de la imagen (/assets/products/metal/) confirma metal."
+  },
+  {
+    "slug": "hermes-c2",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Metal",
+      "color": "Plateado pulido",
+      "detalles": "Mismo frente cuadrado de aro completo, en plateado brillante. Grabado diamantado en relieve sobre el codo de la varilla, con ranuras paralelas junto a la bisagra. Terminales de acetato negro y plaquetas ajustables.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cuadrado, Metal, anteojos de receta, armazón plateado, armazones para receta, anteojos recetados, anteojos de receta Córdoba, óptica en Córdoba, comprar armazones online Argentina, anteojos de receta en 6 cuotas",
+    "seoTitle": "Anteojos de Receta Hermes C2 Plata",
+    "seoDescription": "Armazón de receta Hermes C2 en metal plateado, frente cuadrado de 55mm y varilla grabada. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El Hermes C2 repite el frente cuadrado de metal del modelo, esta vez en plateado pulido: un tono que ilumina la cara y se lleva bien con el pelo canoso o la piel clara. El aro es completo pero fino, así que marca el ojo sin engrosar la mirada, y el contraste con los terminales de acetato negro le da un remate prolijo. Sobre el codo de la varilla plana aparece un grabado diamantado, el detalle que le saca la sobriedad. Calibre 55mm, puente 17mm y varilla de 145mm, con plaquetas ajustables.",
+    "imageAlts": [
+      "Armazón de receta Hermes C2 de metal plateado, frente cuadrado con aro completo y terminales de acetato negro"
+    ],
+    "genero": "Masculino",
+    "ageGroup": "Adulto",
+    "mpn": "9006M-C2",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "«Masculino, Femenino, Unisex» (los tres a la vez)",
+        "realidad": "Tiene que ser un valor único. Es Masculino: mismo frente cuadrado de 55-17-145 que el resto del modelo, que la tienda etiqueta Masculino en C1, C3 y C4. La lista múltiple invalida el dato para Google.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "material (texto de la ficha)",
+        "tiendaDice": "«Anteojos de receta de acetato modelo Hermes C2»",
+        "realidad": "El armazón es de metal plateado; sólo los terminales de las varillas son de acetato",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "9006M-C2, derivado del modelCode «9006M C2»",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "«C2»",
+        "realidad": "Plateado pulido",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Es la única de las cuatro variantes con género multivaluado: C1, C3 y C4 vienen como «Masculino» y esta como «Masculino, Femenino, Unisex». Unifiqué en Masculino. En esta foto se lee la marcación de medidas sobre la varilla (55-17-145), que coincide con los datos cargados."
+  },
+  {
+    "slug": "hermes-c3",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Metal",
+      "color": "Azul marino mate",
+      "detalles": "Frente cuadrado de aro completo en azul marino mate. Varillas planas de metal con grabado diamantado sobre el codo y terminales de acetato azul a tono. Plaquetas ajustables.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cuadrado, Metal, anteojos de receta, armazón azul marino, armazones recetados, marcos de anteojos, anteojos de receta Córdoba, óptica zona norte Córdoba, armazones online envío a todo el país, armazón más cristales precio",
+    "seoTitle": "Anteojos de Receta Hermes C3 Azul",
+    "seoDescription": "Armazón de receta Hermes C3 en metal azul marino mate, frente cuadrado de 55mm. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "Azul marino mate: el Hermes C3 es la versión menos previsible del modelo, para el que quiere salir del negro sin irse a un color ruidoso. Es un armazón de receta de metal, con frente cuadrado, aro completo y varillas planas con grabado diamantado sobre el codo. Los terminales de acetato son azules a juego y las plaquetas ajustables se acomodan a cualquier nariz. Anda bien en rostros medianos a anchos: calibre 55mm, puente 17mm y varilla de 145mm.",
+    "imageAlts": [
+      "Anteojos de receta Hermes C3 en metal azul marino mate, frente cuadrado y terminales de acetato azules"
+    ],
+    "genero": "Masculino",
+    "ageGroup": "Adulto",
+    "mpn": "9006M-C3",
+    "discrepancias": [
+      {
+        "campo": "material (texto de la ficha)",
+        "tiendaDice": "«Anteojos de receta de acetato modelo Hermes C3»",
+        "realidad": "El armazón es de metal azul marino mate; sólo los terminales son de acetato",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "9006M-C3, derivado del modelCode «9006M C3»",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "«C3»",
+        "realidad": "Azul marino mate, con terminales de acetato azules a juego",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "descripcion",
+        "tiendaDice": "Texto idéntico al de C1, C2 y C4 salvo el código de color",
+        "realidad": "Las cuatro variantes comparten la misma frase; Google lo lee como contenido duplicado dentro del propio sitio",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Es la variante de color más diferenciada del modelo y la que más conviene destacar: el azul marino es el único que se aparta de la gama negro/plata/gris. Los terminales azules son el detalle que la separa de las otras tres."
+  },
+  {
+    "slug": "hermes-c4",
+    "visto": {
+      "forma": "Cuadrado",
+      "material": "Metal",
+      "color": "Gris grafito mate (gunmetal)",
+      "detalles": "Frente cuadrado de aro completo en gris metálico oscuro mate. Varillas planas con grabado diamantado sobre el codo y terminales de acetato negro. Plaquetas ajustables sobre brazos de alambre.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cuadrado, Metal, anteojos de receta, armazón gris grafito, armazones recetados, marcos para lentes, anteojos recetados Córdoba precio, óptica Cerro de las Rosas, armazón para multifocal, anteojos de receta en cuotas sin interés",
+    "seoTitle": "Anteojos de Receta Hermes C4 Gris",
+    "seoDescription": "Armazón de receta Hermes C4 en metal gris grafito mate, frente cuadrado de 55mm. Envío gratis a todo el país y 6 cuotas sin interés.",
+    "description": "El Hermes C4 viene en gris grafito mate, un metálico oscuro que hace de intermedio entre el negro y el plateado y combina con casi cualquier ropa. Es un armazón de receta de metal, con frente cuadrado, aro completo y un perfil liviano que no pesa sobre la nariz. Las varillas planas repiten el grabado diamantado del modelo y cierran con terminales de acetato negro; las plaquetas ajustables lo apoyan sin marcar. Medidas: 55mm de calibre, 17mm de puente y 145mm de varilla.",
+    "imageAlts": [
+      "Armazón de receta Hermes C4 de metal gris grafito mate, frente cuadrado con plaquetas ajustables"
+    ],
+    "genero": "Masculino",
+    "ageGroup": "Adulto",
+    "mpn": "9006M-C4",
+    "discrepancias": [
+      {
+        "campo": "material (texto de la ficha)",
+        "tiendaDice": "«Anteojos de receta de acetato modelo Hermes C4»",
+        "realidad": "El armazón es de metal gris grafito; sólo los terminales de las varillas son de acetato",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "9006M-C4, derivado del modelCode «9006M C4»",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "«C4»",
+        "realidad": "Gris grafito mate (gunmetal)",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "El calibre de 55mm da altura suficiente de aro para montar multifocales sin comerse el campo de cerca; por eso incluí «armazón para multifocal» entre las keywords de esta variante. Mismo frente que C1, C2 y C3."
+  },
+  {
+    "slug": "clip-on-palermo-c3",
+    "visto": {
+      "forma": "Hexagonal",
+      "material": "Metal",
+      "color": "Plateado, con clips de sol gris y amarillo",
+      "detalles": "Frente hexagonal de aro completo con esquinas biseladas y doble puente al estilo aviador. Sobre el aro se ven los alojamientos de los imanes donde se apoyan los clips. Vienen clips solares en dos tonos, gris y amarillo. Varillas de metal fino con terminales de acetato negro y plaquetas ajustables.",
+      "confianza": "alta"
+    },
+    "seoTags": "Hexagonal, Metal, anteojos clip on, clip on imantado, armazón con clip on, anteojos de receta con clip on, armazón receta y sol, anteojos clip on Córdoba, óptica Cerro de las Rosas, comprar anteojos clip on online",
+    "seoTitle": "Anteojos Clip On Palermo C3 Plata",
+    "seoDescription": "Palermo C3: armazón de receta de metal plateado con clips de sol imantados en gris y amarillo. Envío gratis y 6 cuotas sin interés.",
+    "description": "El Palermo C3 es un armazón de receta de metal plateado que viene con clips de sol imantados: se apoyan sobre el frente y se sacan con la mano, sin herramientas. El frente es hexagonal y generoso, con doble puente al estilo aviador y aro completo, un dibujo geométrico que luce en rostros ovalados y redondos. Trae clips intercambiables en dos tonos, gris y amarillo, para ir cambiando según el día. Las varillas de metal fino terminan en acetato negro. Calibre 51mm, puente 15mm y varilla de 142mm.",
+    "imageAlts": [
+      "Armazón clip on Palermo C3 de metal plateado con doble puente hexagonal y clips de sol imantados gris y amarillo"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "8005S-C3",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Cuadrado",
+        "realidad": "Hexagonal. El aro tiene seis lados con las esquinas superiores e inferiores biseladas, y los clips repiten esa silueta. Con «Cuadrado» el filtro de forma de la tienda muestra el producto en la categoría equivocada.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "genero",
+        "tiendaDice": "«Unisex, Masculino, Femenino» (los tres a la vez)",
+        "realidad": "Valor único: Unisex. La lista múltiple invalida el dato estructurado para Google.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "seoDescription y descripcion",
+        "tiendaDice": "«Descubre los lentes de sol Clip-On Palermo 8005S C3. Estilo y protección UV garantizados. ¡Calidad premium con envío gratis y entrega inmediata! Compra ahora.»",
+        "realidad": "Tres problemas: (1) está en español neutro con tuteo («Descubre», «Compra ahora»), contra la guía de castellano argentino; (2) afirma «protección UV garantizados» y «entrega inmediata», que no constan en ningún dato del producto; (3) lo trata como si fuera sólo un anteojo de sol y nunca menciona que es un armazón de receta con clips intercambiables, que es lo que se está vendiendo.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "seoTitle",
+        "tiendaDice": "«Lentes de Sol Clip-On Palermo | Modelo 8005S C3 - Atelier Óptica | Atelier Óptica Córdoba»",
+        "realidad": "El título trae «Atelier Óptica» escrito a mano y el sistema le vuelve a agregar « | Atelier Óptica Córdoba»: queda duplicado y con 88 caracteres, muy por encima de lo que muestra Google",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "8005S-C3, derivado del modelCode «8005S C3»",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "Entre los textos alternativos aparecen «Julieta Foppoli», «CLAUDIA SONIA GUZMAN» y «Vale Contreras»",
+        "realidad": "Son nombres de personas cargados como alt de imagen: no describen ningún armazón, no aportan nada a SEO y exponen datos personales en el HTML público. Conviene revisar de dónde salen esas imágenes.",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Los clips se apoyan sobre alojamientos metálicos visibles en el borde del aro y en el puente, compatible con sujeción magnética; la categoría del producto ya es «Clip-On». No afirmé que las lentes sean polarizadas ni UV400 porque eso no se puede ver en la foto ni consta en los datos: si el proveedor lo confirma, conviene agregarlo, es una keyword fuerte. En la foto se ven cuatro piezas de clip (dos grises y dos amarillas), así que hablé de «dos tonos intercambiables» sin comprometerme con la cantidad exacta de clips que trae la caja: vale la pena confirmarlo con stock."
+  },
+  {
+    "slug": "orion",
+    "visto": {
+      "forma": "Redondo",
+      "material": "Acetato",
+      "color": "Negro brillante",
+      "detalles": "Frente de acetato negro brillante con buen espesor de aro y forma redondeada tipo panto. Dos remaches metálicos a la vista en la unión con las varillas. Varilla con lámina de metal estriada incrustada sobre el codo, que se degrada hacia una punta de acetato translúcido. Etiqueta de fábrica «ACETATE» sobre el cristal de muestra.",
+      "confianza": "alta"
+    },
+    "seoTags": "Redondo, Acetato, anteojos de receta, armazón negro, armazones para receta, anteojos recetados, anteojos de receta Córdoba, óptica Cerro de las Rosas, comprar anteojos de receta online, armazón con cristales incluidos",
+    "seoTitle": "Anteojos de Receta Orion Negro",
+    "seoDescription": "Orion: armazón de receta de acetato negro, frente redondeado de 51mm y varillas con lámina estriada. Envío gratis y 6 cuotas sin interés.",
+    "description": "El Orion es un armazón de receta de acetato negro brillante, de frente redondeado y aro con buen espesor: se nota puesto sin llegar a ser pesado. La curva suaviza los rasgos marcados, así que le sienta bien a rostros cuadrados o de mandíbula angulosa, tanto de hombre como de mujer. En la unión con las varillas lleva dos remaches metálicos a la vista, y la varilla suma una lámina de metal estriada que se va degradando hacia una punta translúcida. Calibre 51mm, puente 18mm y varilla de 148mm.",
+    "imageAlts": [
+      "Anteojos de receta Orion de acetato negro, frente redondeado con remaches metálicos y varilla con lámina estriada"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "YF3090-C1",
+    "discrepancias": [
+      {
+        "campo": "descripcion",
+        "tiendaDice": "«Elaborado artesanalmente en acetato de celulosa premium de alta densidad… pulido a mano que otorga un brillo excepcional… alma metálica interna en las patillas…»",
+        "realidad": "Es el texto plantilla que está repetido en decenas de productos del catálogo (contenido duplicado). Además afirma cosas no verificables: pulido a mano, acetato de celulosa de alta densidad y alma metálica interna no se ven en la foto ni constan en los datos. Y usa «patillas», que en Argentina son «varillas».",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "nombre del producto",
+        "tiendaDice": "«Cápsula escarlata YF3090-C1»",
+        "realidad": "El slug y el título comercial dicen «Orion». El nombre visible arrastra el código de fábrica y la marca del canal mayorista, que no debería aparecer en la tienda retail.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "metaDescActual",
+        "tiendaDice": "Meta description truncada con puntos suspensivos: «…que otorga un brillo excepc…»",
+        "realidad": "Es la descripción cortada a la fuerza, no una meta description escrita. Google la muestra partida al medio.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío (null)",
+        "realidad": "YF3090-C1, que ya viene tal cual en el modelCode",
+        "gravedad": "media"
+      },
+      {
+        "campo": "imageAlts",
+        "tiendaDice": "Entre los alts aparecen «Julieta Foppoli», «CLAUDIA SONIA GUZMAN» y «Vale Contreras»",
+        "realidad": "Nombres de personas usados como texto alternativo de imagen: no describen el producto y exponen datos personales en el HTML público",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "«C1»",
+        "realidad": "Negro brillante",
+        "gravedad": "baja"
+      }
+    ],
+    "discrepanciasNota": "",
+    "notas": "Mantuve «Redondo» como forma porque coincide con lo que ya declara la tienda y con lo que se ve, aunque en rigor es un panto (redondeado con la línea de ceja algo más recta), no un círculo puro; lo dije así en la descripción para no prometer un redondo perfecto. El frente lleva estampada la marca del fabricante sobre el cristal de muestra: no la mencioné en ningún texto por ser marca de origen, no de la casa. Confirmado acetato por el espesor del aro, el brillo y la etiqueta «ACETATE» del cristal de muestra."
+  },
+  {
+    "slug": "frida-c1",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Negro brillante",
+      "detalles": "Frente ancho de acetato negro brillante con los ángulos externos levantados en punta suave (gesto cat eye). Aro completo de buen espesor, bisagras metálicas remachadas visibles en los ángulos y varillas anchas en el arranque que se afinan hacia la punta.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón cat eye para mujer, anteojos negros de receta, armazones recetados, óptica Cerro de las Rosas, comprar anteojos de receta online, anteojos de receta en 6 cuotas, armazón con cristales incluidos",
+    "seoTitle": "Anteojos de Receta Frida C1 Negro",
+    "seoDescription": "Anteojos de receta Frida C1: armazón cat eye de acetato negro brillante, calibre 52-18-145. Envío gratis y 6 cuotas sin interés.",
+    "description": "Armazón de receta en acetato negro brillante, de frente ancho y con los ángulos externos apenas levantados: el gesto cat eye está, pero medido. El negro parejo combina con todo y es la opción segura para quien usa los anteojos todo el día, tanto en rostros redondos como ovalados. Las varillas arrancan anchas sobre bisagras metálicas remachadas y se afinan hacia la punta, así el apoyo queda firme y parejo. Calibre 52 mm, puente 18 mm y varillas de 145 mm. Le montamos tus cristales recetados: mandanos la receta por WhatsApp y te pasamos el presupuesto.",
+    "imageAlts": [
+      "Anteojos de receta Frida C1, armazón cat eye de acetato negro, vista tres cuartos",
+      "Armazón de receta cat eye Frida C1 en acetato negro brillante, otra vista del modelo",
+      "Anteojos recetados Frida C1 negros de acetato, vista de galería",
+      "Armazón Frida C1 de acetato negro para cristales de receta, imagen adicional"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q8013-C1",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Cuadrado",
+        "realidad": "Cat-Eye: los ángulos externos del frente suben en punta. Además es el MISMO modelo Q8013 que Frida C5 y C7, que sí figuran como Cat-Eye: hoy el catálogo se contradice a sí mismo y el filtro de forma miente.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Texto plantilla ('Elaborado artesanalmente en acetato de celulosa premium... otorga un brillo excepcional') idéntico en Frida C1, C2, C5 y C7",
+        "realidad": "Cada color necesita su propio texto; el duplicado se penaliza como contenido copiado y no describe el color real del armazón",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description (afirmación técnica)",
+        "tiendaDice": "'alma metálica interna en las patillas' y 'acetato de celulosa premium de alta densidad'",
+        "realidad": "No es verificable en la foto ni consta en los datos del producto. Se eliminó de la ficha nueva.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q8013-C1 (sale de modelCode)",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C1 (código crudo del fabricante)",
+        "realidad": "Negro brillante. El código no le dice nada al cliente ni a Google.",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "marca / alt de imagen",
+        "tiendaDice": "'Cápsula Escarlata Frida C1'",
+        "realidad": "Cápsula Escarlata es el canal mayorista, no la marca retail. No debería aparecer en la ficha pública ni en los alts.",
+        "gravedad": "media"
+      }
+    ],
+    "notas": "Único producto del lote con galería completa (4 fotos). Solo pude ver la imagen principal, así que los alts 2 a 4 describen el producto sin afirmar un ángulo que no verifiqué."
+  },
+  {
+    "slug": "frida-c2",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Blanco con interior negro (acetato laminado bicolor)",
+      "detalles": "Misma silueta que el resto de la línea Frida: frente ancho con ángulos externos levantados. El acetato es laminado, blanco por fuera y negro por dentro, y el contraste se ve en el filo de los aros y en la cara interna de las varillas. Bisagras metálicas remachadas.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón cat eye blanco, anteojos recetados para mujer, armazones bicolor blanco y negro, anteojos de receta Córdoba, óptica en Córdoba, comprar armazones online Argentina, anteojos recetados envío a todo el país",
+    "seoTitle": "Anteojos de Receta Frida C2 Blanco",
+    "seoDescription": "Anteojos de receta Frida C2: armazón cat eye de acetato blanco con interior negro, 52-18-145. Envío gratis y 6 cuotas sin interés.",
+    "description": "Frida C2 repite la silueta cat eye del modelo pero en acetato blanco laminado sobre negro: el contraste aparece en el filo de los aros y en la cara interna de las varillas. Es un armazón de receta claro, de los que levantan el rostro y quedan muy bien con pelo oscuro. El frente ancho equilibra pómulos marcados y el leve levante externo estira la mirada. Bisagras metálicas remachadas y varillas que se afinan hacia la punta. Calibre 52 mm, puente 18 mm y varillas de 145 mm; se arma con tus cristales recetados.",
+    "imageAlts": [
+      "Anteojos de receta Frida C2, armazón cat eye de acetato blanco con interior negro"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q8013-C2",
+    "discrepancias": [
+      {
+        "campo": "forma",
+        "tiendaDice": "Cuadrado",
+        "realidad": "Cat-Eye, igual que las otras variantes del modelo Q8013",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C2",
+        "realidad": "Blanco con interior negro: es un acetato laminado bicolor, un dato de venta que hoy se pierde",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Mismo texto plantilla que C1, C5 y C7",
+        "realidad": "Contenido duplicado; además nunca menciona que el armazón es blanco",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q8013-C2",
+        "gravedad": "media"
+      },
+      {
+        "campo": "galería",
+        "tiendaDice": "1 sola imagen",
+        "realidad": "Frida C1, el mismo modelo, tiene 4 fotos. Falta cargar la galería de este color.",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "El bicolor blanco/negro es lo más vendible de esta variante y no estaba escrito en ningún lado."
+  },
+  {
+    "slug": "frida-c5",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Nude rosado translúcido con varillas marrón oscuro",
+      "detalles": "Frente de acetato translúcido en tono nude rosado, se ve el paso de la luz a través del aro. Varillas en marrón oscuro casi opaco, anchas en la bisagra y afinadas hacia la punta. Bisagras metálicas remachadas y aro de buen espesor.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón cat eye nude, anteojos nude translúcidos, armazones para receta mujer, anteojos recetados Córdoba precio, óptica Cerro de las Rosas, armazón más cristales precio, armazones online envío a todo el país",
+    "seoTitle": "Anteojos de Receta Frida C5 Nude",
+    "seoDescription": "Anteojos de receta Frida C5: armazón cat eye de acetato nude translúcido, 52-18-145. Envío gratis a todo el país y 6 cuotas.",
+    "description": "La versión nude translúcida de Frida: el acetato rosado deja pasar la luz y se apoya en varillas marrón oscuro que le dan peso y lo aterrizan. Es el armazón de receta para quien quiere un anteojo grande pero discreto, porque el tono neutro se lleva bien con cualquier piel y pesa menos a la vista que un negro. Aros de buen espesor, bisagras metálicas remachadas y varillas anchas que se afinan hacia la punta. Calibre 52 mm, puente 18 mm y varillas de 145 mm. Mandanos la receta por WhatsApp y te cotizamos los cristales.",
+    "imageAlts": [
+      "Anteojos de receta Frida C5, armazón cat eye de acetato nude translúcido con varillas marrones"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q8013-C5",
+    "discrepancias": [
+      {
+        "campo": "color",
+        "tiendaDice": "C5",
+        "realidad": "Nude rosado translúcido con varillas marrón oscuro (bicolor)",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Mismo texto plantilla que C1, C2 y C7",
+        "realidad": "Contenido duplicado; no menciona el nude translúcido ni el contraste con las varillas marrones",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q8013-C5",
+        "gravedad": "media"
+      },
+      {
+        "campo": "galería",
+        "tiendaDice": "1 sola imagen",
+        "realidad": "Falta la galería del color, que sí existe para C1",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Forma y material de la tienda coinciden con lo que se ve. La incoherencia está entre variantes: C1 y C2 figuran como Cuadrado y C5/C7 como Cat-Eye siendo el mismo Q8013."
+  },
+  {
+    "slug": "frida-c7",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Ámbar miel translúcido con varillas marrón oscuro",
+      "detalles": "Frente de acetato translúcido en ámbar cálido, con el aro de buen espesor y los ángulos externos levantados. Varillas marrón oscuro, anchas en el arranque y afinadas hacia la punta, con bisagras metálicas remachadas.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de receta, armazón cat eye ámbar, anteojos recetados para mujer, armazones para receta, anteojos de receta Córdoba, óptica zona norte Córdoba, comprar anteojos de receta online, anteojos de receta en cuotas sin interés",
+    "seoTitle": "Anteojos de Receta Frida C7 Ámbar",
+    "seoDescription": "Anteojos de receta Frida C7: armazón cat eye de acetato ámbar translúcido, 52-18-145. Envío gratis a todo el país y 6 cuotas.",
+    "description": "Frida C7 lleva el frente en acetato ámbar translúcido, un miel cálido que se enciende con la luz, y las varillas en marrón oscuro para cerrar el contraste. Es un cat eye de línea ancha, con los ángulos externos levantados: favorece rostros redondos y ovalados y aporta más color que un carey clásico sin irse de tono. Aros de buen espesor, bisagras metálicas remachadas y varillas que se afinan hacia la punta. Calibre 52 mm, puente 18 mm y varillas de 145 mm, listo para tus cristales recetados.",
+    "imageAlts": [
+      "Anteojos de receta Frida C7, armazón cat eye de acetato ámbar con varillas marrón oscuro"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "Q8013-C7",
+    "discrepancias": [
+      {
+        "campo": "color",
+        "tiendaDice": "C7",
+        "realidad": "Ámbar miel translúcido con varillas marrón oscuro",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "Mismo texto plantilla que C1, C2 y C5",
+        "realidad": "Contenido duplicado; no dice el color ni el bicolor del armazón",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "Q8013-C7",
+        "gravedad": "media"
+      },
+      {
+        "campo": "stock",
+        "tiendaDice": "4 unidades (las otras variantes tienen 5)",
+        "realidad": "Solo para tenerlo a la vista: es la variante con menos stock del modelo",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Es la variante con más color de la línea Frida; conviene diferenciarla del carey en la comunicación."
+  },
+  {
+    "slug": "canopo-c2",
+    "visto": {
+      "forma": "Redondo",
+      "material": "Acetato",
+      "color": "Carey (marrón jaspeado con caramelo)",
+      "detalles": "Aro redondo de acetato grueso con la parte superior levemente achatada y puente tipo llave, de aire retro. Remaches metálicos en los ángulos del frente, varillas gruesas que se afinan y rematan en punteras azules de contraste. Lente gris oscura.",
+      "confianza": "alta"
+    },
+    "seoTags": "Redondo, Acetato, anteojos de sol, anteojos de sol redondos, anteojos de sol carey, lentes de sol unisex, anteojos de sol Córdoba, óptica Cerro de las Rosas, comprar anteojos de sol online Argentina, anteojos de sol en cuotas sin interés",
+    "seoTitle": "Anteojos de Sol Cánopo C2 Carey",
+    "seoDescription": "Anteojos de sol Cánopo C2: armazón redondo de acetato carey con punteras azules, 51-23-145. Envío gratis y 6 cuotas sin interés.",
+    "description": "Anteojos de sol redondos de acetato carey, con esa mezcla de marrones y caramelo que no pasa de moda. El frente es de línea gruesa y arriba se achata apenas, con puente tipo llave: un aire retro que funciona igual en hombres y en mujeres, sobre todo en rostros cuadrados o angulosos. Las varillas rematan en punteras azules, el detalle que lo saca de lo obvio, y llevan remaches metálicos sobre las bisagras. Lente gris oscura, pareja. Calibre 51 mm, puente 23 mm y varillas de 145 mm; también se puede armar con tu receta.",
+    "imageAlts": [
+      "Anteojos de sol Cánopo C2, armazón redondo de acetato carey con punteras azules"
+    ],
+    "genero": "Unisex",
+    "ageGroup": "Adulto",
+    "mpn": "YD1331-C2",
+    "discrepancias": [
+      {
+        "campo": "description (afirmación de material)",
+        "tiendaDice": "'acetato italiano Mazzucchelli'",
+        "realidad": "No hay ningún dato del producto ni evidencia en la foto que respalde el origen ni la marca del acetato. Es una afirmación de material inventada y hoy está publicada.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description (afirmación técnica)",
+        "tiendaDice": "'con protección UV'",
+        "realidad": "No consta en los datos del producto ni se puede verificar en la foto. Si el proveedor lo certifica, hay que cargarlo como dato; si no, no se publica.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "177 caracteres, idénticos a la meta description",
+        "realidad": "Queda por debajo del mínimo de ficha de venta y no menciona ningún detalle real: punteras azules, puente tipo llave ni los remaches metálicos",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "YD1331-C2",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C2",
+        "realidad": "Carey, con punteras azules de contraste",
+        "gravedad": "baja"
+      },
+      {
+        "campo": "alts de la página",
+        "tiendaDice": "'Wicue Wicue Cargador incluido', 'Julieta Foppoli', 'CLAUDIA SONIA GUZMAN', 'Vale Contreras'",
+        "realidad": "La ficha arrastra alts de otros bloques (producto relacionado y testimonios) sin texto descriptivo",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Forma (Redondo), material (Acetato) y género (Unisex) de la tienda coinciden con lo que se ve. El problema serio acá es el texto publicado, no el etiquetado."
+  },
+  {
+    "slug": "nashira-c3",
+    "visto": {
+      "forma": "Cat-Eye",
+      "material": "Acetato",
+      "color": "Bordó",
+      "detalles": "Cat eye de acetato macizo en bordó parejo: aros gruesos de líneas rectas, ángulos externos terminados en punta y frente que se adelgaza hacia el puente. Varillas anchas en la bisagra que bajan en curva hasta el codo. Lente gris oscura.",
+      "confianza": "alta"
+    },
+    "seoTags": "Cat-Eye, Acetato, anteojos de sol, anteojos de sol ojo de gato, anteojos de sol cat eye para mujer, lentes de sol bordó, anteojos de sol Córdoba, óptica Cerro de las Rosas, comprar anteojos de sol online Argentina, anteojos de sol 6 cuotas sin interés",
+    "seoTitle": "Anteojos de Sol Nashira C3 Bordó",
+    "seoDescription": "Anteojos de sol Nashira C3: armazón cat eye de acetato bordó con lente gris, 54-17-145. Envío gratis y 6 cuotas sin interés.",
+    "description": "Cat eye de acetato en bordó profundo y con volumen: aros gruesos, ángulos externos terminados en punta y un frente de líneas rectas que se adelgaza hacia el puente. Es un anteojo de sol de los que arman el look, levanta el pómulo y estiliza rostros redondos o cuadrados. Las varillas nacen anchas en la bisagra y bajan en curva hasta el codo, con la lente gris oscura pareja de lado a lado. Calibre 54 mm, puente 17 mm y varillas de 145 mm. Si querés, le ponemos aumento con tu receta.",
+    "imageAlts": [
+      "Anteojos de sol Nashira C3, armazón cat eye de acetato bordó con lente gris"
+    ],
+    "genero": "Femenino",
+    "ageGroup": "Adulto",
+    "mpn": "FG1596-C3",
+    "discrepancias": [
+      {
+        "campo": "genero",
+        "tiendaDice": "Unisex",
+        "realidad": "Femenino: cat eye macizo con ángulos en punta y color bordó. Marcarlo unisex diluye el dato para Google Shopping.",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description (afirmación de material)",
+        "tiendaDice": "'acetato italiano Mazzucchelli'",
+        "realidad": "Sin respaldo en los datos del producto ni en la foto. Afirmación de origen/marca de material inventada, publicada hoy.",
+        "gravedad": "alta"
+      },
+      {
+        "campo": "description (afirmación técnica)",
+        "tiendaDice": "'con protección UV'",
+        "realidad": "No consta en los datos del producto; se omitió de la ficha nueva hasta tener el dato del proveedor",
+        "gravedad": "media"
+      },
+      {
+        "campo": "description",
+        "tiendaDice": "178 caracteres, idénticos a la meta description",
+        "realidad": "Es una meta reciclada, no una ficha de venta: no describe construcción, calce ni a quién le queda",
+        "gravedad": "media"
+      },
+      {
+        "campo": "mpn",
+        "tiendaDice": "vacío",
+        "realidad": "FG1596-C3",
+        "gravedad": "media"
+      },
+      {
+        "campo": "color",
+        "tiendaDice": "C3",
+        "realidad": "Bordó",
+        "gravedad": "baja"
+      }
+    ],
+    "notas": "Forma y material de la tienda son correctos. Cambié el género a Femenino por la silueta; si el negocio prefiere sostener el alcance unisex, es la única decisión del lote que conviene confirmar."
+  }
+]
