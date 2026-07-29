@@ -7,12 +7,28 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { waId, content, direction, type, mediaUrl } = body;
+        // waMessageId/senderName/status venían llegando y se descartaban en silencio:
+        // por eso TODO lo ingresado por esta ruta quedaba anónimo (sin id de WhatsApp
+        // y sin autor), imposible de deduplicar y de auditar. Ahora se guardan si vienen.
+        const { waId, content, direction, type, mediaUrl, waMessageId, senderName, status } = body;
 
         console.log('[Bot Webhook] Mensaje recibido de:', waId, 'Contenido:', content);
 
         if (!waId || !content) {
             return NextResponse.json({ error: 'waId y content son requeridos' }, { status: 400 });
+        }
+
+        // Esta ruta es hoy la puerta de entrada de los mensajes de WhatsApp al CRM
+        // y no valida nada: cualquiera que conozca la URL puede inyectar mensajes en
+        // una ficha. Se deja en modo PERMISIVO (sólo avisa) para no cortar la
+        // ingestión viva; poniendo BOT_WEBHOOK_REQUIRE_KEY=true pasa a rechazar.
+        const apiKey = request.headers.get('x-api-key');
+        const expectedKey = process.env.BOT_API_KEY;
+        if (expectedKey && apiKey !== expectedKey) {
+            if (process.env.BOT_WEBHOOK_REQUIRE_KEY === 'true') {
+                return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+            }
+            console.warn('[Bot Webhook] ⚠️ Mensaje aceptado SIN clave válida (modo permisivo). Emisor:', waId);
         }
 
         // --- TEAM CHAT INTERCEPTION ---
@@ -67,17 +83,31 @@ export async function POST(request: Request) {
             });
         }
 
-        // Create message
-        const message = await prisma.whatsAppMessage.create({
-            data: {
-                chatId: chat.id,
-                content,
-                direction: direction || 'OUTBOUND',
-                type: type || 'TEXT',
-                mediaUrl,
-                status: 'SENT'
-            }
-        });
+        // Registrar el mensaje. Con id de WhatsApp se hace UPSERT: si el emisor
+        // reintenta el webhook (timeout, reintento de cola), antes se duplicaba el
+        // mensaje o reventaba con 500 por la unicidad de waMessageId.
+        const data = {
+            chatId: chat.id,
+            content,
+            direction: direction || 'OUTBOUND',
+            type: type || 'TEXT',
+            mediaUrl,
+            status: status || 'SENT',
+            ...(waMessageId ? { waMessageId } : {}),
+            ...(senderName ? { senderName } : {}),
+        };
+
+        const yaEstaba = waMessageId
+            ? await prisma.whatsAppMessage.findUnique({ where: { waMessageId }, select: { id: true } })
+            : null;
+
+        const message = waMessageId
+            ? await prisma.whatsAppMessage.upsert({
+                where: { waMessageId },
+                update: {},   // el primero que lo grabó manda: no se pisa el autor
+                create: data,
+            })
+            : await prisma.whatsAppMessage.create({ data });
 
         // Persistir la etiqueta del anuncio si viene en el prefill (primer toque:
         // una etiqueta ya grabada nunca se pisa). El wa-service hace lo mismo en su
@@ -98,12 +128,13 @@ export async function POST(request: Request) {
             }
         }
 
-        // Update chat
+        // Update chat. El no leído sube sólo si el mensaje es nuevo: con el
+        // reintento de un webhook, el contador se inflaba con el mismo mensaje.
         await prisma.whatsAppChat.update({
             where: { id: chat.id },
             data: {
                 lastMessageAt: new Date(),
-                unreadCount: direction === 'INBOUND' ? { increment: 1 } : undefined
+                unreadCount: direction === 'INBOUND' && !yaEstaba ? { increment: 1 } : undefined
             }
         });
 
