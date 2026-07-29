@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PricingService } from '@/services/PricingService';
 import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
+import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import fs from 'fs';
 import path from 'path';
 
@@ -304,6 +305,27 @@ function getOrderHtml(order: any, client: any): string {
             </div>
         </div>
     ` : ''}
+
+    ${(() => {
+        const lab = describeLabFrameDetails(order);
+        if (lab.isEmpty) return '';
+        const filas: string[] = [];
+        if (lab.origin) filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">ARMAZÓN</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.origin)}</div></div>`);
+        lab.pairs.forEach((pair, i) => {
+            if (pair.isEmpty) return;
+            const partes = [pair.shape ? `Forma: ${pair.shape}` : '', pair.measurements || '', pair.details || ''].filter(Boolean);
+            if (partes.length === 0) return;
+            filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">${i === 1 ? 'PAR 2 (BONIFICADO)' : 'MEDIDAS DEL ARMAZÓN'}</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(partes.join('  ·  '))}</div></div>`);
+        });
+        if (lab.tint) {
+            filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">TRATAMIENTO</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.tint.text)}${lab.tint.ambiguousPair ? ' <span style="color:#b45309;">(confirmar a qué par corresponde)</span>' : ''}</div></div>`);
+        }
+        return `
+    <div style="margin-top: 22px; border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 14px 16px; page-break-inside: avoid; break-inside: avoid;">
+        <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; letter-spacing: 2px; margin-bottom: 10px;">DETALLES DE LABORATORIO</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">${filas.join('')}</div>
+    </div>`;
+    })()}
 
     ${order.clientNote && String(order.clientNote).trim() ? `
         <div style="margin-top: 22px; border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 14px 16px; background: #fffcf9; page-break-inside: avoid; break-inside: avoid;">

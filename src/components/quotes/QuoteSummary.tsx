@@ -20,6 +20,7 @@ import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import QuoteLineItems from './QuoteLineItems';
 import { lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
+import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
@@ -317,6 +318,10 @@ export default function QuoteSummary({
     const isSale = order.orderType === 'SALE' || order.orderType === 'MAYORISTA';
     const isQuote = !isSale;
     const isLockedSale = isSale && order.isLocked !== false;
+
+    // Resumen de lo cargado en el Repaso Final (origen del armazón, medidas de
+    // cada par y teñido) — mismo dato que se muestra en "la venta" y en el PDF.
+    const labFrame = describeLabFrameDetails(order as any);
     
     // Integración con PricingService
     const financials = PricingService.calculateOrderFinancials(order);
@@ -845,9 +850,43 @@ export default function QuoteSummary({
                         <div>
                             <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">Armazón</p>
                             <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
-                                {order.frameSource === 'OPTICA' ? 'De la óptica' : `Del cliente — ${order.userFrameBrand || ''} ${order.userFrameModel || ''}`}
+                                {labFrame.origin}
                             </p>
                         </div>
+                    </div>
+                )}
+
+                {/* Segundo par (2x1) y teñido: lo que se eligió en el Repaso Final y no
+                    tiene su propio campo editable acá (el Par 1 se corrige arriba). */}
+                {(labFrame.pairs[1] && !labFrame.pairs[1].isEmpty || labFrame.tint || labFrame.notes) && (
+                    <div className="bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] p-6 border-2 border-stone-200 dark:border-stone-700 space-y-4">
+                        {labFrame.pairs[1] && !labFrame.pairs[1].isEmpty && (
+                            <div>
+                                <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">Segundo Par (Bonificado)</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-bold text-stone-700 dark:text-stone-200">
+                                    {labFrame.pairs[1].shape && <p>Forma: <span className="uppercase">{labFrame.pairs[1].shape}</span></p>}
+                                    {labFrame.pairs[1].measurements && <p>{labFrame.pairs[1].measurements}</p>}
+                                    {labFrame.pairs[1].details && <p className="sm:col-span-3">{labFrame.pairs[1].details}</p>}
+                                </div>
+                            </div>
+                        )}
+                        {labFrame.tint && (
+                            <div>
+                                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Tratamiento / Teñido</p>
+                                <p className="text-xs font-bold text-stone-800 dark:text-stone-200">{labFrame.tint.text}</p>
+                                {labFrame.tint.ambiguousPair && (
+                                    <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3" /> Es un 2x1 y solo hay una línea de teñido cargada: confirmar a qué par corresponde.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                        {labFrame.notes && (
+                            <div>
+                                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Observaciones Lab</p>
+                                <p className="text-xs font-bold text-stone-800 dark:text-stone-200">{labFrame.notes}</p>
+                            </div>
+                        )}
                     </div>
                 )}
 
