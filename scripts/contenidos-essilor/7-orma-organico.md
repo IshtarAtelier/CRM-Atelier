@@ -78,7 +78,7 @@ Sí, al tratarse de un plástico de grado óptico, su dureza natural frente a fr
         "longitude": -64.234154
       },
       "url": "https://atelieroptica.com.ar",
-      "telephone": "+5493513447219",
+      "telephone": "+5493518685644",
       "priceRange": "$$"
     },
     {

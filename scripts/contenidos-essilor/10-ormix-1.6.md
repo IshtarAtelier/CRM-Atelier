@@ -72,7 +72,7 @@ La respuesta depende íntegramente del armazón que elijas. Si optás por un mar
         "longitude": -64.234154
       },
       "url": "https://atelieroptica.com.ar",
-      "telephone": "+5493513447219",
+      "telephone": "+5493518685644",
       "priceRange": "$$"
     },
     {

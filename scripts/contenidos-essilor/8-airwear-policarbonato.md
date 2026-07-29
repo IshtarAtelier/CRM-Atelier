@@ -79,7 +79,7 @@ Sirve, ya que logra afinar el lente hasta un 20% respecto a los cristales básic
         "longitude": -64.234154
       },
       "url": "https://atelieroptica.com.ar",
-      "telephone": "+5493513447219",
+      "telephone": "+5493518685644",
       "priceRange": "$$"
     },
     {

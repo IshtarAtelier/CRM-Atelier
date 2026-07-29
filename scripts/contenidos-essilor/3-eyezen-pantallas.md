@@ -92,7 +92,7 @@ La adaptación es inmediata y 100% natural. A diferencia de lo que ocurre a vece
         "longitude": -64.234154
       },
       "url": "https://atelieroptica.com.ar",
-      "telephone": "+5493513447219",
+      "telephone": "+5493518685644",
       "priceRange": "$$"
     },
     {

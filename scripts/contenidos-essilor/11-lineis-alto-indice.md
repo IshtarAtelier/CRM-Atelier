@@ -72,7 +72,7 @@ No es recomendable. Por su composición molecular, el material 1.74 es rígido y
         "longitude": -64.234154
       },
       "url": "https://atelieroptica.com.ar",
-      "telephone": "+5493513447219",
+      "telephone": "+5493518685644",
       "priceRange": "$$$"
     },
     {

@@ -90,7 +90,7 @@ Podés lavarlos sin ningún problema. Solo tené en cuenta que al usar agua remo
         "longitude": -64.234154
       },
       "url": "https://atelieroptica.com.ar",
-      "telephone": "+5493513447219",
+      "telephone": "+5493518685644",
       "priceRange": "$$"
     },
     {

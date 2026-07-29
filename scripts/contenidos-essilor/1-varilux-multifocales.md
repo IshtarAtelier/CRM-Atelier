@@ -79,7 +79,7 @@ Con las tecnologías antiguas, el proceso tomaba semanas. Hoy, gracias a la exac
         "longitude": -64.234154
       },
       "url": "https://atelieroptica.com.ar",
-      "telephone": "+5493513447219",
+      "telephone": "+5493518685644",
       "priceRange": "$$$"
     },
     {

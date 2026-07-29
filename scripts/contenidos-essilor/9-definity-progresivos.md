@@ -81,7 +81,7 @@ Ambas son marcas de excelencia pertenecientes a Essilor. Varilux (con líneas co
         "longitude": -64.234154
       },
       "url": "https://atelieroptica.com.ar",
-      "telephone": "+5493513447219",
+      "telephone": "+5493518685644",
       "priceRange": "$$$"
     },
     {
