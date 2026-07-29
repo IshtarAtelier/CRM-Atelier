@@ -17,11 +17,13 @@ import {
     Search,
     ChevronRight,
     ChevronUp,
-    Image as ImageIcon
+    Image as ImageIcon,
+    AlertCircle
 } from 'lucide-react';
 import type { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
+import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { POST_SALE_CASE_TYPES, POST_SALE_FAULTS, POST_SALE_COVERAGE } from '@/lib/constants/postSale';
 
 export const LAB_STEPS = [
@@ -92,6 +94,10 @@ export function OrderDetailPanel({
 
     // ¿El lente del pedido requiere cargar las medidas del armazón (multifocal o monofocal de lab)?
     const needsFrameMeasures = requiresFrameMeasurements(order);
+
+    // Resumen de lo cargado en el Repaso Final (origen del armazón, medidas de
+    // cada par y teñido) — mismo dato que se muestra en la ficha y en el PDF.
+    const labFrame = describeLabFrameDetails(order as any);
 
     // Trae los datos completos del pedido original al formulario de un par
     const importFullOrder = (pair: 1 | 2) => {
@@ -859,7 +865,7 @@ export function OrderDetailPanel({
                     </div>
 
                     {/* Lab Measurements and Details */}
-                    {(order.frameA || order.frameB || order.frameDbl || order.frameEdc || order.labColor || order.labTreatment || order.labFrameShape || order.labFrameDetails || order.labNotes) && (
+                    {!labFrame.isEmpty && (
                         <div className="bg-white dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700 overflow-hidden shadow-sm">
                             <div className="px-5 py-3 border-b border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
                                 <h4 className="text-[10px] font-black text-stone-500 uppercase tracking-widest flex items-center gap-2">
@@ -867,65 +873,49 @@ export function OrderDetailPanel({
                                 </h4>
                             </div>
                             <div className="p-4 grid grid-cols-2 gap-4">
-                                {order.labFrameShape && (
-                                    <div>
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Forma / Aro</p>
-                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1 uppercase">{order.labFrameShape}</p>
+                                {labFrame.origin && (
+                                    <div className="col-span-2">
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Origen del Armazón</p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{labFrame.origin}</p>
                                     </div>
                                 )}
-                                {(order.frameA || order.frameB || order.frameEdc || order.frameDbl) && (
-                                    <div>
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Medidas del Armazón</p>
-                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">
-                                            {order.frameA && `A: ${order.frameA} `}
-                                            {order.frameB && `B: ${order.frameB} `}
-                                            {order.frameEdc && `ED: ${order.frameEdc} `}
-                                            {order.frameDbl && `Pte: ${order.frameDbl}`}
-                                        </p>
-                                    </div>
-                                )}
-                                {(order.labTreatment || order.labColor) && (
+                                {labFrame.pairs.map((pair, i) => pair.isEmpty ? null : (
+                                    <React.Fragment key={pair.pair}>
+                                        {pair.shape && (
+                                            <div className={i === 0 ? '' : 'border-t border-dashed border-stone-100 dark:border-stone-700/50 pt-2 mt-1'}>
+                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-400' : 'text-orange-500'}`}>Forma / Aro {i === 1 ? '(Par 2)' : ''}</p>
+                                                <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1 uppercase">{pair.shape}</p>
+                                            </div>
+                                        )}
+                                        {pair.measurements && (
+                                            <div className={i === 0 ? '' : 'border-t border-dashed border-stone-100 dark:border-stone-700/50 pt-2 mt-1'}>
+                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-400' : 'text-orange-500'}`}>Medidas {i === 1 ? '(Par 2)' : 'del Armazón'}</p>
+                                                <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{pair.measurements}</p>
+                                            </div>
+                                        )}
+                                        {pair.details && (
+                                            <div className="col-span-2 border-t border-dashed border-stone-100 dark:border-stone-700/50 pt-2 mt-1">
+                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-400' : 'text-orange-500'}`}>Detalles del Armazón {i === 1 ? '(Par 2)' : ''}</p>
+                                                <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{pair.details}</p>
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                                {labFrame.tint && (
                                     <div className="col-span-2">
                                         <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Tratamiento / Teñido</p>
-                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">
-                                            {order.labTreatment && `${order.labTreatment} `}
-                                            {order.labColor && `- ${order.labColor}`}
-                                        </p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{labFrame.tint.text}</p>
+                                        {labFrame.tint.ambiguousPair && (
+                                            <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                                                <AlertCircle className="w-3 h-3" /> Es un 2x1 y solo hay una línea de teñido cargada: confirmar a qué par corresponde.
+                                            </p>
+                                        )}
                                     </div>
                                 )}
-                                {order.labFrameDetails && (
-                                    <div className="col-span-2">
-                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Detalles del Armazón</p>
-                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{order.labFrameDetails}</p>
-                                    </div>
-                                )}
-                                {order.labFrameShape2 && (
-                                    <div>
-                                        <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest">Forma / Aro (Par 2)</p>
-                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1 uppercase">{order.labFrameShape2}</p>
-                                    </div>
-                                )}
-                                {(order.frameA2 || order.frameB2 || order.frameEdc2 || order.frameDbl2) && (
-                                    <div>
-                                        <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest">Medidas (Par 2)</p>
-                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">
-                                            {order.frameA2 && `A: ${order.frameA2} `}
-                                            {order.frameB2 && `B: ${order.frameB2} `}
-                                            {order.frameEdc2 && `ED: ${order.frameEdc2} `}
-                                            {order.frameDbl2 && `Pte: ${order.frameDbl2}`}
-                                        </p>
-                                    </div>
-                                )}
-                                {order.labFrameDetails2 && (
-                                    <div className="col-span-2 border-t border-dashed border-stone-100 dark:border-stone-700/50 pt-2 mt-1">
-                                        <p className="text-[8px] font-black text-orange-500 uppercase tracking-widest">Detalles del Armazón (Par 2)</p>
-                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{order.labFrameDetails2}</p>
-                                    </div>
-                                )}
-                                {order.labNotes && (
+                                {labFrame.notes && (
                                     <div className="col-span-2">
                                         <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Observaciones Lab</p>
-                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{order.labNotes}</p>
+                                        <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{labFrame.notes}</p>
                                     </div>
                                 )}
                             </div>
