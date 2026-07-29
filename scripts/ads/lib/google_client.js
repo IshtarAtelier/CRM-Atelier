@@ -151,7 +151,21 @@ async function getAccessToken() {
 
 /** Clasifica una respuesta de error de la Google Ads API. */
 function classifyError(status, body) {
-  const detail = redact(body?.error?.message || JSON.stringify(body?.error?.details || body || {}).slice(0, 400));
+  // El `message` de arriba suele ser genérico ("Request contains an invalid
+  // argument"); el motivo real vive en error.details[].errors[] (GoogleAdsFailure).
+  const failures = (body?.error?.details || [])
+    .flatMap((d) => d.errors || [])
+    .map((e) => {
+      const code = Object.entries(e.errorCode || {})
+        .map(([k, v]) => `${k}=${v}`)
+        .join(',');
+      const field = e.location?.fieldPathElements?.map((f) => f.fieldName).filter(Boolean).join('.');
+      return [code, e.message, field ? `(campo: ${field})` : ''].filter(Boolean).join(' ');
+    });
+  const detail = redact(
+    [body?.error?.message, ...failures].filter(Boolean).join(' | ') ||
+      JSON.stringify(body || {}).slice(0, 400),
+  );
   if (status === 401) {
     cachedAccessToken = null; // forzar renovación en el próximo intento
     return new GoogleAdsApiError(`Google Ads: no autorizado (401): ${detail}`, {
