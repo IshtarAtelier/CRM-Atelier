@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-15T14:49:56.534Z",
+  "generatedAt": "2026-07-29T01:00:50.321Z",
   "key": "home",
   "data": {
     "destacados": [
@@ -480,6 +480,7 @@
         }
       }
     ],
+    "clipon": [],
     "sol": [
       {
         "name": "Nashira C3",

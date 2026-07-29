@@ -132,11 +132,16 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                     <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
                       {webSettings.web_promo_installments} de <span className="font-extrabold text-[#8a6d3b] dark:text-[#c8a55c]">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
                     </p>
-                    <span className="text-xs text-stone-500 dark:text-stone-400 uppercase tracking-wider font-medium hover:text-black dark:hover:text-white transition-colors shrink-0">Ver detalles</span>
+                    <span className="text-xs text-stone-900 dark:text-white uppercase tracking-wider font-bold group-hover:text-[#8a6d3b] dark:group-hover:text-[#c8a55c] transition-colors shrink-0">Ver anteojos ›</span>
                   </div>
-                  
+
                   <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
                     ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transferencia <span className="text-emerald-600 dark:text-emerald-500 font-bold text-xs uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
+                  </p>
+                  {/* La promesa más fuerte de la tienda solo vivía en la cinta superior:
+                      acá acompaña al precio, que es donde se compara. */}
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-500">
+                    Envío gratis a todo el país
                   </p>
                   
                   <p className="text-xs text-stone-500 dark:text-stone-600">

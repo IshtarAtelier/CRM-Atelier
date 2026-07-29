@@ -167,13 +167,21 @@ export function CartSidebar() {
                     );
                   }
                   return (
-                    <Link
-                      href="/checkout"
-                      onClick={() => setIsOpen(false)}
-                      className="w-full flex items-center justify-center gap-2 bg-black text-white px-6 py-4 text-xs font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
-                    >
-                      {isWholesale ? "Finalizar Pedido Mayorista" : "Finalizar mi compra"} <ChevronRight className="w-4 h-4" />
-                    </Link>
+                    <>
+                      <Link
+                        href="/checkout"
+                        onClick={() => setIsOpen(false)}
+                        className="w-full flex items-center justify-center gap-2 bg-black text-white px-6 py-4 text-xs font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
+                      >
+                        {isWholesale ? "Finalizar Pedido Mayorista" : "Finalizar mi compra"} <ChevronRight className="w-4 h-4" />
+                      </Link>
+                      {/* Las tres dudas que frenan el clic, respondidas justo debajo del botón. */}
+                      {!isWholesale && (
+                        <p className="mt-2 text-center text-[10px] font-medium uppercase tracking-wider text-stone-500">
+                          6 cuotas sin interés · Envío gratis · Pago seguro
+                        </p>
+                      )}
+                    </>
                   );
                 })()}
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-15T14:49:56.559Z",
+  "generatedAt": "2026-07-29T01:00:50.343Z",
   "key": "receta",
   "data": {
     "products": [
@@ -1994,10 +1994,10 @@
     ],
     "meta": [
       {
-        "name": "Andrómeda C6",
+        "name": "Andrómeda C3",
         "product": {
           "brand": "Atelier",
-          "model": "57201LJH-C6"
+          "model": "57201LJH-C3"
         }
       },
       {
@@ -2008,13 +2008,6 @@
         }
       },
       {
-        "name": "Anastasia C1",
-        "product": {
-          "brand": "Atelier",
-          "model": "BC3059-C1"
-        }
-      },
-      {
         "name": "Hestia C1",
         "product": {
           "brand": "Atelier",
@@ -2022,10 +2015,17 @@
         }
       },
       {
-        "name": "Andrómeda C3",
+        "name": "Anastasia C1",
         "product": {
           "brand": "Atelier",
-          "model": "57201LJH-C3"
+          "model": "BC3059-C1"
+        }
+      },
+      {
+        "name": "Andrómeda C6",
+        "product": {
+          "brand": "Atelier",
+          "model": "57201LJH-C6"
         }
       },
       {
@@ -2211,6 +2211,13 @@
         }
       },
       {
+        "name": "Andrómeda C1",
+        "product": {
+          "brand": "Atelier",
+          "model": "57201LJH-C1"
+        }
+      },
+      {
         "name": "Orfeo C1",
         "product": {
           "brand": "Atelier",
@@ -2236,13 +2243,6 @@
         "product": {
           "brand": "Atelier",
           "model": "V99011 C4"
-        }
-      },
-      {
-        "name": "Andrómeda C1",
-        "product": {
-          "brand": "Atelier",
-          "model": "57201LJH-C1"
         }
       },
       {
@@ -2323,17 +2323,17 @@
         }
       },
       {
-        "name": "Artemis",
-        "product": {
-          "brand": "Atelier",
-          "model": "G7013 C1"
-        }
-      },
-      {
         "name": "Andrómeda C4",
         "product": {
           "brand": "Atelier",
           "model": "57201LJH-C4"
+        }
+      },
+      {
+        "name": "Artemis",
+        "product": {
+          "brand": "Atelier",
+          "model": "G7013 C1"
         }
       },
       {
@@ -2351,10 +2351,10 @@
         }
       },
       {
-        "name": "Ariadne C2",
+        "name": "Ariadne C1",
         "product": {
           "brand": "Atelier",
-          "model": "M7237 C2"
+          "model": "M7237 C1"
         }
       },
       {
@@ -2362,13 +2362,6 @@
         "product": {
           "brand": "Atelier",
           "model": "FD88821-C4"
-        }
-      },
-      {
-        "name": "Ariadne C1",
-        "product": {
-          "brand": "Atelier",
-          "model": "M7237 C1"
         }
       },
       {
@@ -2383,6 +2376,13 @@
         "product": {
           "brand": "Atelier",
           "model": "HY238014 C2"
+        }
+      },
+      {
+        "name": "Ariadne C2",
+        "product": {
+          "brand": "Atelier",
+          "model": "M7237 C2"
         }
       },
       {

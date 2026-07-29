@@ -626,7 +626,23 @@ export function CheckoutClient({
               
               <CheckoutShippingForm formData={formData} handleChange={handleChange} hasCrystals={hasCrystals} />
               
-              <CheckoutPaymentOptions formData={formData} handleChange={handleChange} isProcessing={isProcessing} webSettings={webSettings} paywayLoaded={paywayLoaded} isWholesale={isWholesale} />
+              <CheckoutPaymentOptions
+                formData={formData}
+                handleChange={handleChange}
+                isProcessing={isProcessing}
+                webSettings={webSettings}
+                paywayLoaded={paywayLoaded}
+                isWholesale={isWholesale}
+                payableTotal={(() => {
+                  // Mismo cálculo que CheckoutSummarySidebar: cupón primero,
+                  // después el % por método de pago. Si divergen, el botón miente.
+                  const subtotalAfterCoupon = Math.max(0, getCartTotal(!!isWholesale) - (couponDiscount || 0));
+                  const rate = (webSettings?.web_promo_cash_discount || 15) / 100;
+                  return formData.paymentMethod === 'TRANSFER'
+                    ? subtotalAfterCoupon * (1 - rate)
+                    : subtotalAfterCoupon;
+                })()}
+              />
             </fieldset>
           </form>
         </div>
