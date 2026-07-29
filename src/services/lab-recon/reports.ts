@@ -111,6 +111,11 @@ export async function weeklyReport(from: Date, to: Date) {
                 .sort((a, b) => (b.invoiceDate!.getTime()) - (a.invoiceDate!.getTime()))
                 .map(e => ({
                     labOrderNumber: e.labOrderNumber,
+                    // El email reclama con nº de operación + comprobante + fecha:
+                    // las tres viajan siempre, en todas las filas.
+                    sourceFile: e.sourceFile,
+                    invoiceDate: e.invoiceDate,
+                    createdAt: e.createdAt,
                     cliente: e.order?.client?.name || (e.status === 'UNMATCHED' ? 'SIN VENTA' : '—'),
                     clientId: e.order?.clientId || null,
                     billed: billedOf(e),
@@ -125,7 +130,10 @@ export async function weeklyReport(from: Date, to: Date) {
     // Sobrecostos vigentes (para destacar arriba, sobre todo Optovision).
     const sobrecostosVigentes = entries
         .filter(e => e.status === 'OVERCOST')
-        .map(e => ({ lab: e.lab, labOrderNumber: e.labOrderNumber, cliente: e.order?.client?.name || '—', difference: e.difference }))
+        .map(e => ({
+            lab: e.lab, labOrderNumber: e.labOrderNumber, cliente: e.order?.client?.name || '—',
+            difference: e.difference, sourceFile: e.sourceFile, invoiceDate: e.invoiceDate, createdAt: e.createdAt,
+        }))
         .sort((a, b) => (b.difference || 0) - (a.difference || 0));
 
     // Cuenta corriente (deuda) por lab según el último resumen recibido.

@@ -77,7 +77,10 @@ export async function PATCH(
             status = 403;
         } else if (error.message.includes('Pedido no encontrado')) {
             status = 404;
-        } else if (error.message.includes('suficiente stock disponible')) {
+        } else if (error.message.includes('suficiente stock disponible')
+            || error.message.includes('no se puede repetir')) {
+            // Conflicto con un dato que ya existe (stock tomado, N° de operación
+            // ya usado en otra venta): 409, y el mensaje va tal cual a la pantalla.
             status = 409;
         }
 

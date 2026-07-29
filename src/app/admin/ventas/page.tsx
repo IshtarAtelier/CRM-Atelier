@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, Save, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ChevronLeft, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users } from 'lucide-react';
+import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ChevronLeft, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { PostSaleCard } from '@/components/orders/PostSaleCard';
 import { caseTypeStyle } from '@/lib/constants/postSale';
@@ -15,6 +15,7 @@ import { generateInvoicePDF } from '@/lib/invoice-generator';
 import type { Order } from '@/types/orders';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { BUSINESS_INFO } from '@/lib/business-info';
+import LabNumberEditor from '@/components/orders/LabNumberEditor';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
@@ -736,11 +737,18 @@ export default function VentasPage() {
     });
 
     const saveLabOrderNumber = async (orderId: string) => {
-        await fetch(`/api/orders/${orderId}`, {
+        const res = await fetch(`/api/orders/${orderId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ labOrderNumber: editValue }),
         });
+        // El servidor rechaza los N° repetidos: si vuelve un error hay que
+        // mostrarlo y dejar el campo abierto, no cerrar como si hubiera guardado.
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            alert(`⚠️ No se guardó el N° de operación.\n\n${data.error || 'Error al guardar'}`);
+            return;
+        }
         setEditingOrderNumber(null);
         fetchOrders();
     };
@@ -1513,22 +1521,14 @@ export default function VentasPage() {
                                 <div className="flex flex-col lg:flex-row items-center gap-4 mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">
                                     <div className="w-full lg:w-72">
                                         {editingOrderNumber === order.id ? (
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={editValue}
-                                                    onChange={e => setEditValue(e.target.value)}
-                                                    placeholder="N° operación"
-                                                    className="w-full px-3 py-2 border-2 border-emerald-300 rounded-xl text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
-                                                    autoFocus
-                                                />
-                                                <button onClick={() => saveLabOrderNumber(order.id)} className="p-2 bg-emerald-500 text-white rounded-xl hover:scale-105 transition-all">
-                                                    <Save className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => setEditingOrderNumber(null)} className="p-2 bg-stone-200 text-stone-500 rounded-xl hover:scale-105 transition-all">
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                                            <LabNumberEditor
+                                                value={editValue}
+                                                onChange={setEditValue}
+                                                orderId={order.id}
+                                                tone="emerald"
+                                                onSave={() => saveLabOrderNumber(order.id)}
+                                                onCancel={() => setEditingOrderNumber(null)}
+                                            />
                                         ) : (
                                             <button
                                                 onClick={() => { setEditingOrderNumber(order.id); setEditValue(order.labOrderNumber || ''); }}

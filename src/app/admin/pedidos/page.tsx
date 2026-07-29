@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
     Package, Clock, CheckCircle2, Search, Download,
-    Save, X, Eye, ArrowRight, Hash,
+    X, Eye, ArrowRight, Hash,
     Calendar, Loader2, ExternalLink, Copy, CheckCheck, Clipboard,
     Factory, ChevronLeft, ChevronRight, User, Users, ChevronDown
 } from 'lucide-react';
@@ -19,6 +19,7 @@ import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 // ── Lab Status Config ─────────────────────────────
 
 import { LAB_STEPS } from '@/components/orders/OrderDetailPanel';
+import LabNumberEditor from '@/components/orders/LabNumberEditor';
 
 function getLabStep(status: string) {
     return LAB_STEPS.find(s => s.key === status) || LAB_STEPS[0];
@@ -271,11 +272,19 @@ export default function PedidosPage() {
         try {
             const updateData: any = { labOrderNumber: editValue };
 
-            await fetch(`/api/orders/${order.id}`, {
+            const res = await fetch(`/api/orders/${order.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updateData),
             });
+            // El servidor rechaza los N° repetidos: mostrarlo y dejar el campo
+            // abierto, en vez de cerrar como si se hubiera guardado.
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                alert(`⚠️ No se guardó el N° de operación.\n\n${data.error || 'Error al guardar'}`);
+                setUpdatingId(null);
+                return;
+            }
             setEditingId(null);
             setEditValue('');
             await fetchOrders();
@@ -1270,29 +1279,14 @@ export default function PedidosPage() {
                                     {/* Lab Order Number */}
                                     <div className="flex-shrink-0 w-44">
                                         {editingId === order.id ? (
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={editValue}
-                                                    onChange={e => setEditValue(e.target.value)}
-                                                    placeholder="N° operación"
-                                                    className="w-full px-3 py-2 border-2 border-blue-300 dark:border-blue-700 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500/20 outline-none bg-white dark:bg-stone-900"
-                                                    autoFocus
-                                                    onKeyDown={e => e.key === 'Enter' && saveLabOrderNumber(order)}
-                                                />
-                                                <button
-                                                    onClick={() => saveLabOrderNumber(order)}
-                                                    className="p-2 bg-blue-500 text-white rounded-xl hover:scale-105 transition-all"
-                                                >
-                                                    <Save className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => { setEditingId(null); setEditValue(''); }}
-                                                    className="p-2 bg-stone-200 dark:bg-stone-700 text-stone-500 rounded-xl hover:scale-105 transition-all"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                                            <LabNumberEditor
+                                                value={editValue}
+                                                onChange={setEditValue}
+                                                orderId={order.id}
+                                                saving={updatingId === order.id}
+                                                onSave={() => saveLabOrderNumber(order)}
+                                                onCancel={() => { setEditingId(null); setEditValue(''); }}
+                                            />
                                         ) : (
                                             <button
                                                 onClick={() => {

@@ -188,6 +188,14 @@ export class GrupoOpticoProvider {
                     billedTotal: billed,
                     source: 'SCRAPER',
                     sourceFile: o.factura ? `Fact ${o.factura}` : null,
+                    // El portal manda la fecha de cada pedido (FechaRegistro) y
+                    // hasta acá se escribía SOLO dentro de la nota: la columna
+                    // quedaba vacía en las 284 filas de Grupo Óptico, y cualquier
+                    // informe con corte por fecha lo dejaba afuera entero. Se
+                    // guarda. Para este lab es la fecha de ingreso del pedido al
+                    // laboratorio (el portal no expone la de emisión de la
+                    // factura); para Optovisión sigue siendo la del comprobante.
+                    invoiceDate: new Date(String(o.fecha).replace(' ', 'T')),
                     notes: `Pedido visto en el portal del laboratorio (${detail}).`,
                     // Pase rápido (ventana corta): solo COMPLETA importes faltantes;
                     // los ya registrados por la pasada completa no se pisan (el

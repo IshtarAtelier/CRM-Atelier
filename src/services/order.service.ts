@@ -14,6 +14,7 @@ import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { logAudit } from '@/lib/audit';
 import { alertDuplicateLabOrderNumber } from '@/lib/duplicate-lab-order-alert';
+import { findLabNumberConflicts, duplicateMessage } from '@/lib/lab-order-numbers';
 import { addBusinessDays, calculateEstimatedDays } from '@/lib/business-days';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
@@ -1622,6 +1623,22 @@ export class OrderService {
                 where: { id },
                 select: { labStatus: true, status: true, labOrderNumber: true }
             });
+        }
+
+        // BLOQUEO: el nº de operación no se puede repetir. Es la llave con la que
+        // se cruza la factura del laboratorio contra la venta; el mismo número en
+        // dos ventas deja el costo colgado de la equivocada. El aviso en vivo del
+        // formulario avisa antes, pero el que decide es este guard: el bot, el
+        // copiloto y cualquier otro camino de escritura pasan por acá.
+        //
+        // Solo se controla cuando el número CAMBIA: los duplicados que ya existen
+        // en la base (cargados antes de esta regla) no pueden quedar congelados —
+        // hay que poder abrir esas ventas y corregirlas.
+        if (data.labOrderNumber !== undefined
+            && (data.labOrderNumber || '').trim()
+            && (data.labOrderNumber || '').trim() !== (prevState?.labOrderNumber || '').trim()) {
+            const conflictos = await findLabNumberConflicts({ value: data.labOrderNumber, excludeOrderId: id });
+            if (conflictos.length > 0) throw new Error(duplicateMessage(conflictos));
         }
 
         const order = await prisma.order.update({

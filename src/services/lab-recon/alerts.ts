@@ -42,6 +42,38 @@ async function clasificarHuerfanos(huerfanos: any[]) {
             .split(/[^a-z]+/).filter(w => w.length >= 3)
     );
 
+    // EL NOMBRE DEL PORTAL VIENE TIPEADO A MANO. Caso real del 28/7/2026: el
+    // cliente «Oddino Franco» entró al portal como "Odino Franco" en un pedido y
+    // como "Odina ranco" en el otro. Comparar palabra por palabra exacta no
+    // encontraba nada y los dos pedidos quedaban como DUDOSO, cuando la venta
+    // estaba cargada. Se compara tolerando erratas: una letra de más, una de
+    // menos o una cambiada.
+    const distancia = (a: string, b: string): number => {
+        if (a === b) return 0;
+        const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+        for (let i = 1; i <= a.length; i++) {
+            let anterior = prev[0];
+            prev[0] = i;
+            for (let j = 1; j <= b.length; j++) {
+                const temp = prev[j];
+                prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, anterior + (a[i - 1] === b[j - 1] ? 0 : 1));
+                anterior = temp;
+            }
+        }
+        return prev[b.length];
+    };
+    // Dos erratas en palabras de 5+ letras: hace falta esa holgura para que
+    // "Odina ranco" llegue a «Oddino Franco». Como el aviso solo SUGIERE ("posible
+    // venta de…") y no asigna nada, un parecido de más lo resuelve el ojo humano;
+    // uno de menos deja el pedido perdido.
+    const parecidas = (a: string, b: string) => Math.abs(a.length - b.length) <= 2
+        && distancia(a, b) <= (Math.min(a.length, b.length) >= 5 ? 2 : 1);
+    /** Cuántos tokens del nombre del portal aparecen —aun con erratas— en el otro. */
+    const coincidencias = (unos: Set<string>, otros: Set<string>) =>
+        [...unos].filter(t => [...otros].some(o => parecidas(t, o))).length;
+    const normalizado = (s: string) => s.toLowerCase().normalize('NFD')
+        .replace(/[̀-ͯ]/g, '').replace(/[^a-z]+/g, ' ').trim();
+
     return Promise.all(huerfanos.map(async (o) => {
         const notes = o.notes || '';
         const nameRaw = notes.match(/\(([^,)]{4,60})[,)]/)?.[1]?.trim() || '';
@@ -50,7 +82,7 @@ async function clasificarHuerfanos(huerfanos: any[]) {
         if (nameTokens.size > 0) {
             for (const c of openCases) {
                 const ct = tokensOf(c.order?.client?.name || '');
-                const inter = [...nameTokens].filter(t => ct.has(t)).length;
+                const inter = coincidencias(nameTokens, ct);
                 if (inter >= 2 || (inter >= 1 && Math.min(nameTokens.size, ct.size) === 1)) {
                     return {
                         id: o.id, tipo: 'POSTVENTA', clientId: c.order?.clientId,
@@ -64,10 +96,40 @@ async function clasificarHuerfanos(huerfanos: any[]) {
         }
         const words: string[] = nameRaw.split(/\s+/).filter((w: string) => w.length >= 3 && !/^\d+$/.test(w)).slice(0, 2);
         if (words.length > 0) {
-            const client = await prisma.client.findFirst({
+            const select = {
+                id: true, name: true,
+                orders: { where: { isDeleted: false, orderType: 'SALE' }, select: { labOrderNumber: true }, take: 3, orderBy: { createdAt: 'desc' as const } },
+            };
+            // Primero el nombre tal cual vino. Si no aparece —erratas del portal—,
+            // se traen los que empiezan igual y se elige por parecido.
+            let client = await prisma.client.findFirst({
                 where: { isDeleted: false, AND: words.map((w: string) => ({ name: { contains: w, mode: 'insensitive' as const } })) },
-                select: { id: true, name: true, orders: { where: { isDeleted: false, orderType: 'SALE' }, select: { labOrderNumber: true }, take: 3, orderBy: { createdAt: 'desc' as const } } },
+                select,
             }).catch(() => null);
+
+            if (!client) {
+                const candidatos = await prisma.client.findMany({
+                    where: {
+                        isDeleted: false,
+                        OR: words.filter(w => w.length >= 4)
+                            .map((w: string) => ({ name: { contains: w.slice(0, 4), mode: 'insensitive' as const } })),
+                    },
+                    select, take: 40,
+                }).catch(() => [] as any[]);
+                // A igualdad de tokens parecidos gana el nombre entero más cercano:
+                // «Odina ranco» empata tokens con «Oddino Franco» y con «De La
+                // Colina Franco», y solo el nombre completo los desempata.
+                const puntuados = candidatos
+                    .map((c: any) => ({
+                        c,
+                        puntos: coincidencias(nameTokens, tokensOf(c.name || '')),
+                        error: distancia(normalizado(nameRaw), normalizado(c.name || '')),
+                    }))
+                    .filter((x: any) => x.puntos >= 2 || (x.puntos >= 1 && nameTokens.size === 1))
+                    .sort((a: any, b: any) => b.puntos - a.puntos || a.error - b.error);
+                client = puntuados[0]?.c ?? null;
+            }
+
             if (client) {
                 const sinNumero = client.orders.some(v => !v.labOrderNumber?.match(/\d{4,}/));
                 return {
@@ -247,18 +309,66 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
         DUDOSO: 'background:#fee2e2;color:#b91c1c;font-weight:bold',
     };
 
+    // TODA fila lleva SIEMPRE las tres claves con las que se reclama al lab:
+    // nº de operación, comprobante y fecha. Ninguna puede quedar vacía en unas
+    // filas y llena en otras — el administrador reclama con esos tres datos, y
+    // una fila incompleta obliga a ir a buscarlos a mano al PDF.
+    //
+    // Cuando la factura NO trae nº de pedido (Optovision factura remitos y
+    // reprocesos sin él), el registro guarda el nº de comprobante como clave —
+    // por eso la columna "Nº operación" venía mostrando "S/PEDIDO 3008-00069150"
+    // o, en las entradas viejas, la serie pelada ("3008"). Eso no es un nº de
+    // operación: se dice explícitamente que la factura no lo trae y el
+    // comprobante se muestra en su propia columna.
+    const ES_PEDIDO = /^\d{5,}$/;
+    const comprobanteDe = (f: any): string | null => {
+        const m = String(f.labOrderNumber || '').match(/\d{4}-\d{4,8}/)
+            || String(f.sourceFile || '').match(/\d{4}-\d{4,8}/);
+        if (m) return m[0];
+        return f.sourceFile ? String(f.sourceFile).replace(/\.pdf$/i, '') : null;
+    };
+    const faltante = (texto: string) => `<span style="color:#b91c1c">${texto}</span>`;
+
     const rows = findings.map((f, i) => {
         const m = META[f.status] || { label: f.status, color: '#374151' };
+        // Sin venta enganchada, la columna mostraba un guión aunque el portal
+        // hubiera mandado el nombre del cliente en la nota. Ese nombre es la
+        // única pista para encontrarle el dueño al pedido: se muestra.
+        const delPortal = (f.notes || '').match(/portal del laboratorio \(([^,)]{3,60})[,)]/)?.[1]?.trim();
         const cliente = f.order
             ? `<a href="${appUrl}/admin/contactos?clientId=${f.order.clientId}">${f.order.client?.name || 'ver ficha'}</a>`
-            : '<span style="color:#b91c1c">—</span>';
+            : delPortal && !/^ingreso\b/i.test(delPortal)
+                ? `<span style="color:#b45309">${delPortal}</span><br><span style="font-size:11px;color:#6b7280">nombre del portal, sin venta</span>`
+                : '<span style="color:#b91c1c">—</span>';
+        const nroOperacion = ES_PEDIDO.test(String(f.labOrderNumber || '').trim())
+            ? String(f.labOrderNumber).trim()
+            : faltante('la factura no trae nº');
+        const comprobante = comprobanteDe(f) || faltante('sin comprobante');
+        // Siempre una fecha: la de la factura y, si el comprobante no la trajo,
+        // la del alta en el sistema aclarada como tal (nunca un guión).
+        // La fecha de ingreso que manda el portal vale más que el alta en el
+        // sistema: es cuándo entró el trabajo al laboratorio.
+        // El portal escribe los dos formatos según la pantalla de la que salió:
+        // "ingreso 2026-07-28 16:06" y "ingreso 13-07-26 09:52".
+        const iso = (f.notes || '').match(/ingreso (\d{4})-(\d{2})-(\d{2})/);
+        const ar = (f.notes || '').match(/ingreso (\d{2})-(\d{2})-(\d{2})\b/);
+        const ingresoPortal = iso
+            ? `${iso[3]}/${iso[2]}/${iso[1]}`
+            : ar ? `${ar[1]}/${ar[2]}/20${ar[3]}` : null;
+        const fecha = f.invoiceDate
+            ? fmtFecha(f.invoiceDate)
+            : ingresoPortal
+                ? `${ingresoPortal} <span style="color:#6b7280">(ingreso)</span>`
+                : `${fmtFecha(f.createdAt)} <span style="color:#6b7280">(alta)</span>`;
         const real = f.lab === 'OPTOVISION' ? (f.billedTotal ?? f.billedNet) : (f.billedNet ?? f.billedTotal);
         const t: any = triage.get(f.id);
         const ultima = t
             ? `<span style="padding:2px 8px;border-radius:10px;${BADGE[t.tipo] || ''}">${t.detalle}</span>${t.clientId ? ` <a href="${appUrl}/admin/contactos?clientId=${t.clientId}">ver ficha</a>` : ''}`
             : (f.notes || '—');
         return `<tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
-            <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${f.labOrderNumber}</td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${nroOperacion}</td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${comprobante}</td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb;white-space:nowrap">${fecha}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb">${LABS[f.lab] || f.lab}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb">${cliente}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right">${fmt(f.systemCost)}</td>
@@ -291,7 +401,8 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
                 ${pendientes > 0 ? `<p style="background:#fef3c7;border-left:4px solid #f59e0b;padding:10px 12px;font-size:13px">Se movieron <strong>${total}</strong> en total: acá van los <strong>${MAX_FILAS} más importantes</strong> y los otros <strong>${pendientes}</strong> salen en el próximo resumen (no se pierde ninguno). Están todos en <a href="${appUrl}/admin/laboratorio/costos">la pantalla de conciliación</a>.</p>` : ''}
                 <table style="border-collapse:collapse;width:100%;font-size:13px">
                     <tr style="background:#111827;color:#fff">
-                        <th style="padding:8px;text-align:left">Nº operación</th><th style="padding:8px;text-align:left">Lab</th>
+                        <th style="padding:8px;text-align:left">Nº operación</th><th style="padding:8px;text-align:left">Comprobante</th>
+                        <th style="padding:8px;text-align:left">Fecha</th><th style="padding:8px;text-align:left">Lab</th>
                         <th style="padding:8px;text-align:left">Cliente</th><th style="padding:8px;text-align:right">Costo sistema</th>
                         <th style="padding:8px;text-align:right">Costo real</th><th style="padding:8px;text-align:right">Dif.</th>
                         <th style="padding:8px;text-align:left">Estado</th><th style="padding:8px;text-align:left">Detalle</th>
@@ -392,10 +503,10 @@ export async function sendChargedReworkAlert(entry: any, order: any, pvCase: any
                 <p style="margin:16px 0 4px;font-weight:bold">Lo que facturó el laboratorio:</p>
                 <table style="border-collapse:collapse;width:100%;font-size:13px">
                     ${fila('Laboratorio', entry.lab === 'GRUPO_OPTICO' ? 'Grupo Óptico' : 'Optovisión')}
-                    ${fila('Nº de operación del reproceso', `<span style="font-family:monospace">${entry.labOrderNumber}</span>`)}
+                    ${fila('Nº de operación del reproceso', `<span style="font-family:monospace">${/^\d{5,}$/.test(String(entry.labOrderNumber || '').trim()) ? entry.labOrderNumber : '<span style="color:#b91c1c">la factura no trae nº</span>'}</span>`)}
                     ${fila('Importe facturado', `<strong style="color:#b91c1c">${fmt(billed)}</strong>`)}
-                    ${fila('Comprobante', entry.sourceFile || '—')}
-                    ${fila('Fecha de factura', fecha(entry.invoiceDate))}
+                    ${fila('Comprobante', entry.sourceFile || '<span style="color:#b91c1c">sin comprobante</span>')}
+                    ${fila('Fecha de factura', entry.invoiceDate ? fecha(entry.invoiceDate) : `${fecha(entry.createdAt)} <span style="color:#6b7280">(alta en el sistema)</span>`)}
                     ${fila('Venta original', `<span style="font-family:monospace">${order.labOrderNumber || '—'}</span>`)}
                 </table>
 

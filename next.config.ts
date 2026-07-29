@@ -59,6 +59,16 @@ const nextConfig: NextConfig = {
       : [];
     return [
       ...cutoverRedirect,
+      // www → apex. Los dos hosts servían 200: el mismo sitio en dos dominios,
+      // con el visitante que llega por un link viejo con www quedándose ahí.
+      // El <link rel="canonical"> ya apuntaba al apex (Google cubierto), pero
+      // faltaba el 301 que mueve de verdad a la persona.
+      {
+        source: '/:path*',
+        has: [{ type: 'host' as const, value: 'www.atelieroptica.com.ar' }],
+        destination: 'https://atelieroptica.com.ar/:path*',
+        permanent: true,
+      },
       {
         source: '/politicas',
         destination: '/politicas-de-cambio',
