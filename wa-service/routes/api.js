@@ -12,6 +12,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { getFileExtension } = require('../utils');
+const { resolveWaMessageId } = require('../shared/message-id');
 
 const configPath = path.join(__dirname, '..', 'agent_config.json');
 
@@ -406,34 +407,39 @@ function createApiRouter(deps) {
                 sent = await sendMessage(waId, message, null, { isProactive: false, isAutomated: false });
             }
 
-            if (sent && sent.id && sent.id._serialized && dbChatId) {
+            // Se guarda aunque WhatsApp Web no devuelva su id: el mensaje salió, así que
+            // tiene que verse en el buzón. Antes el guarda `sent.id._serialized` lo tiraba.
+            if (sent && dbChatId) {
                 try {
-                    const msgType = media 
-                        ? (media.mimetype?.startsWith('audio/') 
-                            ? 'AUDIO' 
-                            : (media.mimetype?.startsWith('video/') 
-                                ? 'VIDEO' 
-                                : (media.mimetype?.startsWith('image/') 
-                                    ? 'IMAGE' 
+                    const msgType = media
+                        ? (media.mimetype?.startsWith('audio/')
+                            ? 'AUDIO'
+                            : (media.mimetype?.startsWith('video/')
+                                ? 'VIDEO'
+                                : (media.mimetype?.startsWith('image/')
+                                    ? 'IMAGE'
                                     : 'DOCUMENT')))
                         : 'TEXT';
 
+                    const content = message || '[Media]';
+                    const waMessageId = resolveWaMessageId(sent, { waId, direction: 'OUTBOUND', content });
+
                     await prisma.whatsAppMessage.upsert({
-                        where: { waMessageId: sent.id._serialized },
+                        where: { waMessageId },
                         update: { senderName: senderName || 'CRM' },
                         create: {
                             chatId: dbChatId,
                             direction: 'OUTBOUND',
                             type: msgType,
-                            content: message || '[Media]',
+                            content,
                             mediaUrl: mediaUrl,
-                            waMessageId: sent.id._serialized,
+                            waMessageId,
                             senderName: senderName || 'CRM',
                             status: 'SENT'
                         }
                     });
                 } catch (e) {
-                    console.error('Error guardando senderName del CRM:', e.message);
+                    console.error('Error guardando el saliente del CRM:', e.message);
                 }
             }
 

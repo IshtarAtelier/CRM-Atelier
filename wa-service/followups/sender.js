@@ -6,6 +6,7 @@
 const { prisma } = require('../db');
 const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const { runOutputGuardrail } = require('../services/ai.service');
+const { resolveWaMessageId, rememberBotMessage } = require('../shared/message-id');
 const {
     TEST_MODE,
     TEST_PHONE,
@@ -103,15 +104,11 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
         console.log(`  ✉️ ${logPrefix} Enviando mensaje a ${clientName} (${targetWaId.substring(0, 15)}...)`);
         const sent = await sendMessage(targetWaId, messageText, null, { isProactive: true });
 
-        const msgSerializedId = sent?.id?._serialized || `followup_${Date.now()}`;
+        const msgSerializedId = resolveWaMessageId(sent, { waId: targetWaId, direction: 'OUTBOUND', content: messageText });
 
-        // Registrar el ID como mensaje del bot para que handleMessageCreate lo ignore
+        // Registrar el mensaje como del bot para que handleMessageCreate lo ignore
         // (si no, el listener de salientes lo puede tratar como intervención humana)
-        if (sent?.id?._serialized) {
-            if (!global.botMessageIds) global.botMessageIds = new Set();
-            global.botMessageIds.add(sent.id._serialized);
-            setTimeout(() => global.botMessageIds.delete(sent.id._serialized), 10 * 60 * 1000);
-        }
+        rememberBotMessage(sent, messageText);
 
         // 6. Guardar en DB (siempre en el chat original, no en el test).
         // Upsert: si el listener de salientes ya lo registró, forzamos senderName 'Bot'

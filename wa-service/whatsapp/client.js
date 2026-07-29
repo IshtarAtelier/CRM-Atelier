@@ -129,9 +129,18 @@ async function startClient(attempt = 1) {
 
     waClient = new Client({
         authStrategy: new LocalAuth({ dataPath: sessionDataPath }),
+        // Versión de WhatsApp Web que se le sirve al navegador.
+        // El pin viejo (AhmadHassan72/WW-cache, un snapshot suelto y sin mantenimiento)
+        // quedó desfasado: desde el 14/7/2026 WhatsApp seguía conectando pero la capa
+        // inyectada de whatsapp-web.js dejó de funcionar — `getChats()` tiraba error,
+        // los mensajes llegaban sin id, las fotos y audios no se descargaban y NINGÚN
+        // saliente se guardaba. Ahora se usa el cache de wppconnect, que se actualiza
+        // a diario. `strict: false` deja seguir con la versión viva si la descarga falla.
+        // Si vuelve a romperse: actualizar WA_WEB_VERSION a una versión más nueva de
+        // https://github.com/wppconnect-team/wa-version/tree/main/html
         webVersionCache: {
             type: 'remote',
-            remotePath: 'https://raw.githubusercontent.com/AhmadHassan72/WW-cache/refs/heads/main/BootstrapQr.html',
+            remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${process.env.WA_WEB_VERSION || '2.3000.1044015310-alpha'}.html`,
             strict: false,
         },
         puppeteer: {
@@ -371,5 +380,6 @@ module.exports = {
     getStatus,
     getClient,
     sendMessage,
-    sendTypingState
+    sendTypingState,
+    notifyAdminDown
 };

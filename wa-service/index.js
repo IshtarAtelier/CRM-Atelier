@@ -26,6 +26,7 @@ const { checkAndSendSalesFollowUps } = require('./sales-followups');
 const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups');
 const { TAGS_SIN_BOT, getFileExtension, getAdminWaId } = require('./utils');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
+const { resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -122,8 +123,10 @@ const handleMessageCreate = async (msg) => {
     if (msg.fromMe) {
         const waId = msg.to;
         
-        // Si el mensaje fue enviado por el propio bot, lo ignoramos por completo
-        if (global.botMessageIds && global.botMessageIds.has(msg.id._serialized)) {
+        // Si el mensaje fue enviado por el propio bot, lo ignoramos por completo.
+        // Se compara por id y también por contenido: cuando WhatsApp Web no entrega
+        // el id, el contenido es lo único que distingue al bot de una persona.
+        if (wasSentByBot(msg)) {
             return;
         }
 
@@ -294,21 +297,37 @@ const handleMessageCreate = async (msg) => {
                     senderNameVal = 'Humano';
                 }
 
+                const content = msg.body || '[Media/Documento]';
+                const waMessageId = resolveWaMessageId(msg, { waId, direction: 'OUTBOUND', content });
+
                 const createData = {
                     chatId: chat.id,
                     direction: 'OUTBOUND',
                     type: messageType,
-                    content: msg.body || '[Media/Documento]',
-                    waMessageId: msg.id._serialized,
+                    content,
+                    waMessageId,
                     senderName: senderNameVal,
                 };
                 if (mediaUrl) createData.mediaUrl = mediaUrl;
 
-                await prisma.whatsAppMessage.upsert({
-                    where: { waMessageId: msg.id._serialized },
-                    update: {}, // No pisamos el senderName si ya fue creado por el POST /api/send
-                    create: createData
-                });
+                // Con id propio (WhatsApp no lo entregó) el POST /api/send pudo haber
+                // grabado este mismo mensaje un segundo antes: sin este chequeo el
+                // buzón mostraría la burbuja duplicada.
+                const twin = isLocalWaMessageId(waMessageId)
+                    ? await findRecentTwin(prisma, { chatId: chat.id, direction: 'OUTBOUND', content })
+                    : null;
+
+                if (twin) {
+                    if (mediaUrl && !twin.mediaUrl) {
+                        await prisma.whatsAppMessage.update({ where: { id: twin.id }, data: { mediaUrl } });
+                    }
+                } else {
+                    await prisma.whatsAppMessage.upsert({
+                        where: { waMessageId },
+                        update: {}, // No pisamos el senderName si ya fue creado por el POST /api/send
+                        create: createData
+                    });
+                }
                 broadcastChatUpdate(chat.id);
 
                 // ── Portero: Activar extracción pasiva cuando el HUMANO chatea (no el bot) ──
@@ -801,21 +820,21 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                     sent = await sendMessage(waId, block, null, { isProactive: false });
                 }
                     
-                    if (sent && sent.id && sent.id._serialized) {
-                        if (!global.botMessageIds) global.botMessageIds = new Set();
-                        global.botMessageIds.add(sent.id._serialized);
-                        setTimeout(() => global.botMessageIds.delete(sent.id._serialized), 10 * 60 * 1000); // 10 mins
+                    if (sent) {
+                        const contentSent = block || '[Media]';
+                        rememberBotMessage(sent, contentSent);
+                        const sentWaMessageId = resolveWaMessageId(sent, { waId, direction: 'OUTBOUND', content: contentSent });
 
                         try {
                             await prisma.whatsAppMessage.upsert({
-                                where: { waMessageId: sent.id._serialized },
+                                where: { waMessageId: sentWaMessageId },
                                 update: { senderName: 'Bot' },
                                 create: {
                                     chatId: chat.id,
                                     direction: 'OUTBOUND',
                                     type: mediaObj ? 'IMAGE' : 'TEXT',
-                                    content: block || '[Media]',
-                                    waMessageId: sent.id._serialized,
+                                    content: contentSent,
+                                    waMessageId: sentWaMessageId,
                                     senderName: 'Bot',
                                     status: 'SENT'
                                 }
@@ -1430,7 +1449,9 @@ const handleMessage = async (msg) => {
                             if (!Array.isArray(global.mediaCache[chat.id])) {
                                 global.mediaCache[chat.id] = [];
                             }
-                            const cacheItem = { waMessageId: msg.id._serialized, base64: mediaBase64, mimeType: mediaMime, timestamp: Date.now() };
+                            // Misma clave que la fila del CRM (index.js:510 cruza por waMessageId):
+                            // hay que resolverla igual que en el guardado, con el body ORIGINAL.
+                            const cacheItem = { waMessageId: resolveWaMessageId(msg, { waId, direction: 'INBOUND', content: originalBody }), base64: mediaBase64, mimeType: mediaMime, timestamp: Date.now() };
                             global.mediaCache[chat.id].push(cacheItem);
                             
                             // Limpiar este item específico de la caché después de 5 minutos
@@ -1476,14 +1497,19 @@ const handleMessage = async (msg) => {
             }
         }
 
-        await prisma.whatsAppMessage.create({
-            data: {
+        // Upsert y no create: el id ahora puede ser uno propio (cuando WhatsApp Web no
+        // entrega el suyo) y un reintento del mismo mensaje no debe tirar por unicidad.
+        const inboundWaMessageId = resolveWaMessageId(msg, { waId, direction: 'INBOUND', content: originalBody });
+        await prisma.whatsAppMessage.upsert({
+            where: { waMessageId: inboundWaMessageId },
+            update: {},
+            create: {
                 chatId: chat.id,
                 direction: 'INBOUND',
                 type: messageType,
                 content: originalBody, // Guardar body original (con tag [meta...]) para trazabilidad
                 mediaUrl: mediaUrl,
-                waMessageId: msg.id._serialized,
+                waMessageId: inboundWaMessageId,
             }
         });
 
