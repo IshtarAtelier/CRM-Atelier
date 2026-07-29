@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { STORE_ORIGIN } from "@/lib/constants";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,7 +19,11 @@ const geistSans = Geist({
 
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app'),
+  // Base de TODA url relativa de metadata (og:image, canonical). Va contra el
+  // dominio público, no contra el host interno de Railway: si no, cada vista
+  // previa compartida por WhatsApp o redes carga la imagen desde esa dirección
+  // y la deja a la vista. Mismo origen que usan los mails al cliente.
+  metadataBase: new URL(STORE_ORIGIN),
   title: {
     default: "Atelier Óptica | Armazones, Cristales y Multifocales en Cuotas",
     template: "%s | Atelier Óptica"
