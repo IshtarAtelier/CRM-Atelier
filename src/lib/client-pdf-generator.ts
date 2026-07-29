@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/format-date';
 import { WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -9,7 +10,7 @@ function getClientHtml(client: any): string {
     try {
         dateStr = format(new Date(client.createdAt), "dd 'de' MMMM, yyyy", { locale: es });
     } catch (e) {
-        dateStr = new Date().toLocaleDateString('es-AR');
+        dateStr = formatDate(new Date());
     }
 
     // Cargar logo local en base64 si existe
@@ -256,7 +257,7 @@ function getClientHtml(client: any): string {
 
     <div class='doc-header'>
         <div class='doc-title'>Ficha del Cliente</div>
-        <div class='doc-meta'>Generado el ${new Date().toLocaleDateString('es-AR')} · Registro: ${dateStr}</div>
+        <div class='doc-meta'>Generado el ${formatDate(new Date())} · Registro: ${dateStr}</div>
     </div>
 
     <div class='info-grid'>
@@ -384,7 +385,7 @@ async function generateClientPDFWithJsPDF(client: any, filename: string): Promis
     let dateStr = '';
     try {
         dateStr = format(new Date(client.createdAt), "dd/MM/yyyy", { locale: es });
-    } catch { dateStr = new Date().toLocaleDateString('es-AR'); }
+    } catch { dateStr = formatDate(new Date()); }
     
     const pw = 210;
     const m = 15;
@@ -425,7 +426,7 @@ async function generateClientPDFWithJsPDF(client: any, filename: string): Promis
     doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
     doc.text('FICHA DE CLIENTE', m, y);
     doc.setFontSize(8); doc.setTextColor(168, 162, 158);
-    doc.text(`Generado: ${new Date().toLocaleDateString('es-AR')}  |  Registro: ${dateStr}`, m, y + 5);
+    doc.text(`Generado: ${formatDate(new Date())}  |  Registro: ${dateStr}`, m, y + 5);
     y += 12;
     
     // --- DETAILS BOXES ---

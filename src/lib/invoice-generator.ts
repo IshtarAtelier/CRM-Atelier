@@ -1,3 +1,4 @@
+import { formatDate } from '@/lib/format-date';
 export interface InvoiceData {
     invoice: any;
     issuer: {
@@ -81,7 +82,7 @@ export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolea
     doc.setFontSize(9);
     doc.text(`NRO: ${invoice.pointOfSale.toString().padStart(4, '0')}-${invoice.voucherNumber.toString().padStart(8, '0')}`, (pageWidth / 2) + 15, 28);
     
-    const fecha = new Date(invoice.createdAt).toLocaleDateString('es-AR');
+    const fecha = formatDate(invoice.createdAt);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text(`Fecha de Emisión: ${fecha}`, (pageWidth / 2) + 15, 36);
@@ -211,7 +212,7 @@ export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolea
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(`CAE: ${invoice.cae}`, pageWidth - 12, footerY + 15, { align: 'right' });
-    doc.text(`Vencimiento CAE: ${new Date(invoice.caeExpiration).toLocaleDateString('es-AR')}`, pageWidth - 12, footerY + 22, { align: 'right' });
+    doc.text(`Vencimiento CAE: ${formatDate(invoice.caeExpiration)}`, pageWidth - 12, footerY + 22, { align: 'right' });
     
     doc.setFontSize(7);
     doc.setTextColor(200, 200, 200);
