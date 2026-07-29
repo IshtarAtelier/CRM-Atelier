@@ -1,3 +1,4 @@
+import { WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -124,7 +125,7 @@ function getOrderHtml(order: any, client: any): string {
         <div class='letterhead-right'>
             <div class='address-bold'>José Luis de Tejeda 4380</div>
             <div>Cerro de las Rosas, Córdoba</div>
-            <div>WhatsApp: 351 1234567</div>
+            <div>WhatsApp: ${WHATSAPP_PHONE_DISPLAY}</div>
         </div>
     </div>
     <div class='tagline'>ATELIER ÓPTICA — LA ÓPTICA MEJOR CALIFICADA EN CÓRDOBA ⭐⭐⭐⭐⭐</div>
@@ -318,7 +319,7 @@ function getOrderHtml(order: any, client: any): string {
             filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">${i === 1 ? 'PAR 2 (BONIFICADO)' : 'MEDIDAS DEL ARMAZÓN'}</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(partes.join('  ·  '))}</div></div>`);
         });
         if (lab.tint) {
-            filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">TRATAMIENTO</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.tint.text)}${lab.tint.ambiguousPair ? ' <span style="color:#b45309;">(confirmar a qué par corresponde)</span>' : ''}</div></div>`);
+            filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">TRATAMIENTO</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.tint.text)}</div></div>`);
         }
         return `
     <div style="margin-top: 22px; border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 14px 16px; page-break-inside: avoid; break-inside: avoid;">
@@ -429,7 +430,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     doc.text('JOSE LUIS DE TEJEDA 4380', pw - m, y, { align: 'right' });
     doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
     doc.text('Cerro de las Rosas, Cordoba', pw - m, y + 4, { align: 'right' });
-    doc.text('WhatsApp: 351 1234567', pw - m, y + 8, { align: 'right' });
+    doc.text(`WhatsApp: ${WHATSAPP_PHONE_DISPLAY}`, pw - m, y + 8, { align: 'right' });
     
     y += 14;
     doc.setDrawColor(...brandBeige); doc.setLineWidth(0.5);
@@ -630,7 +631,9 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
             lineasLab.push(`${i === 1 ? 'Par 2 (bonificado)' : 'Medidas del armazón'}: ${partes.join('  ·  ')}`);
         });
         if (labFrame.tint) {
-            lineasLab.push(`Tratamiento: ${labFrame.tint.text}${labFrame.tint.ambiguousPair ? ' (confirmar a qué par corresponde)' : ''}`);
+            // El aviso de "confirmar a qué par corresponde" es interno del vendedor:
+            // vive en las pantallas del admin, nunca en el PDF que ve el cliente.
+            lineasLab.push(`Tratamiento: ${labFrame.tint.text}`);
         }
 
         const lineas = lineasLab.flatMap(l => doc.splitTextToSize(l, cw - 8));

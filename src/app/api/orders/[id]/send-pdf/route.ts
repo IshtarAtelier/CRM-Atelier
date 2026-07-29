@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { fetchWa } from '@/lib/wa-config';
 import { generateOrderPDF } from '@/lib/order-pdf-generator';
+import { getActor } from '@/lib/actor';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -40,6 +41,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const waId = chat ? chat.waId : `${formattedPhone}@c.us`;
         const chatIdForBot = chat ? chat.id : waId;
 
+        // El PDF lo manda un vendedor logueado: que el buzón lo firme con su
+        // nombre (antes quedaba como "CRM" genérico, sin autor).
+        const senderName = getActor(request, 'CRM').name;
+
         // Generar PDF del lado del servidor
         let pdfResult = null;
         try {
@@ -62,6 +67,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                     body: JSON.stringify({
                         chatId: chatIdForBot,
                         message: text,
+                        senderName,
                         media: {
                             base64: pdfResult.base64,
                             mimetype: 'application/pdf',
@@ -125,7 +131,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chatId: chatIdForBot,
-                    message: fallbackText
+                    message: fallbackText,
+                    senderName
                 }),
             });
 

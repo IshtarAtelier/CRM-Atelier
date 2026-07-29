@@ -1,3 +1,4 @@
+import { WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import fs from 'fs';
@@ -248,7 +249,7 @@ function getClientHtml(client: any): string {
         <div class='letterhead-right'>
             <div class='address-bold'>José Luis de Tejeda 4380</div>
             <div>Cerro de las Rosas, Córdoba</div>
-            <div>WhatsApp: 351 1234567</div>
+            <div>WhatsApp: ${WHATSAPP_PHONE_DISPLAY}</div>
         </div>
     </div>
     <div class='tagline'>ATELIER ÓPTICA — LA ÓPTICA MEJOR CALIFICADA EN CÓRDOBA ⭐⭐⭐⭐⭐</div>
@@ -409,7 +410,7 @@ async function generateClientPDFWithJsPDF(client: any, filename: string): Promis
     doc.text('JOSE LUIS DE TEJEDA 4380', pw - m, y, { align: 'right' });
     doc.setFont('helvetica', 'normal'); doc.setTextColor(...grayText);
     doc.text('Cerro de las Rosas, Cordoba', pw - m, y + 4, { align: 'right' });
-    doc.text('WhatsApp: 351 1234567', pw - m, y + 8, { align: 'right' });
+    doc.text(`WhatsApp: ${WHATSAPP_PHONE_DISPLAY}`, pw - m, y + 8, { align: 'right' });
     
     y += 14;
     doc.setDrawColor(...brandBeige); doc.setLineWidth(0.5);

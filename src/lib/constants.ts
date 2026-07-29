@@ -1,6 +1,10 @@
 // WhatsApp phone number (single source of truth for all storefront pages)
 export const WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || '5493518685644';
 
+// El mismo número, como se muestra impreso (membretes de PDFs, firmas).
+// Los PDFs tenían "351 1234567" — un placeholder falso que veían los clientes.
+export const WHATSAPP_PHONE_DISPLAY = '351 868 5644';
+
 // WhatsApp del CANAL MAYORISTA (Cápsula Escarlata). Separado del número del
 // negocio a propósito: todo el contacto del área mayorista (catálogo, ingreso,
 // botón flotante, footer, plantilla de outreach) va a este número, no al de
