@@ -3,7 +3,7 @@
  */
 
 const { getFileExtension } = require('../utils');
-const { resolveWaMessageId } = require('../shared/message-id');
+const { serializedId, resolveWaMessageId } = require('../shared/message-id');
 
 async function downloadAndUploadMediaForSyncMessage(deps, msg, dbMessageId, chatId) {
     const { prisma, broadcastChatUpdate } = deps;
@@ -130,7 +130,11 @@ const syncRecentChatsAndMessages = async (deps, wc) => {
         console.log(`🔍 Procesando ${individualChats.length} chats individuales recientes...`);
 
         for (const chatObj of individualChats) {
-            const waId = chatObj.id._serialized;
+            const waId = serializedId(chatObj.id);
+            if (!waId) {
+                console.warn('  ⚠️ Chat sin id serializado, se saltea (no crear filas basura).');
+                continue;
+            }
             const profileName = chatObj.name || '';
             let realPhone = chatObj.id.user || '';
 

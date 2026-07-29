@@ -130,17 +130,25 @@ async function startClient(attempt = 1) {
     waClient = new Client({
         authStrategy: new LocalAuth({ dataPath: sessionDataPath }),
         // Versión de WhatsApp Web que se le sirve al navegador.
-        // El pin viejo (AhmadHassan72/WW-cache, un snapshot suelto y sin mantenimiento)
-        // quedó desfasado: desde el 14/7/2026 WhatsApp seguía conectando pero la capa
-        // inyectada de whatsapp-web.js dejó de funcionar — `getChats()` tiraba error,
-        // los mensajes llegaban sin id, las fotos y audios no se descargaban y NINGÚN
-        // saliente se guardaba. Ahora se usa el cache de wppconnect, que se actualiza
-        // a diario. `strict: false` deja seguir con la versión viva si la descarga falla.
-        // Si vuelve a romperse: actualizar WA_WEB_VERSION a una versión más nueva de
-        // https://github.com/wppconnect-team/wa-version/tree/main/html
+        //
+        // En julio de 2026 WhatsApp renombró internamente `_serialized` a `$1` (a partir
+        // de la build 2.3000.1042401057). Eso rompió la capa que whatsapp-web.js inyecta:
+        // desde el 14/7 WhatsApp seguía conectado pero `getChats()` tiraba error, los
+        // mensajes llegaban sin id, las fotos y audios no se bajaban y NINGÚN saliente se
+        // guardaba en el buzón. El arreglo de la librería (PR wwebjs#201832) todavía no
+        // está publicado: 1.34.7 es la última versión en npm y no lo trae.
+        //
+        // Por eso se fija la última build ANTERIOR al renombre, tomada del cache de
+        // wppconnect (mantenido a diario). `strict: false` deja seguir con la versión
+        // viva si la descarga falla.
+        //
+        // Cuando salga la versión de whatsapp-web.js con el PR: actualizar la librería y
+        // soltar este pin. Mientras tanto, si WhatsApp deja de servir esta build, probar
+        // otra de https://github.com/wppconnect-team/wa-version/tree/main/html vía la
+        // env WA_WEB_VERSION, sin tocar código.
         webVersionCache: {
             type: 'remote',
-            remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${process.env.WA_WEB_VERSION || '2.3000.1044015310-alpha'}.html`,
+            remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${process.env.WA_WEB_VERSION || '2.3000.1042391138-alpha'}.html`,
             strict: false,
         },
         puppeteer: {
