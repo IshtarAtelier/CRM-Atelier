@@ -20,7 +20,20 @@ function escapeHtml(value: string) {
         .replace(/"/g, '&quot;');
 }
 
-function getOrderHtml(order: any, client: any): string {
+/**
+ * Quién firma el documento como vendedor:
+ * - venta ya enviada a fábrica → labSentBy (regla: el dueño de la venta es
+ *   quien la mandó a fábrica);
+ * - si no, el usuario logueado que está generando/enviando el PDF.
+ * Nombres de sistema no firman: un PDF "atendido por Sistema" queda peor que sin firma.
+ */
+function resolveVendorName(order: any, vendorName?: string): string | null {
+    const name = (order?.labSentBy || vendorName || '').trim();
+    if (!name || ['Sistema', 'Bot', 'CRM'].includes(name)) return null;
+    return name;
+}
+
+function getOrderHtml(order: any, client: any, vendorName?: string): string {
     const isSale = order.orderType === 'SALE';
     
     let dateStr = '';
@@ -335,17 +348,28 @@ function getOrderHtml(order: any, client: any): string {
         </div>
     ` : ''}
 
+    ${resolveVendorName(order, vendorName) ? `
+        <div style="margin-top: 26px; display: flex; justify-content: flex-end; page-break-inside: avoid; break-inside: avoid;">
+            <div style="text-align: center; min-width: 220px;">
+                <div style="font-size: 13px; font-weight: 700; padding: 0 18px 6px;">${escapeHtml(resolveVendorName(order, vendorName)!)}</div>
+                <div style="border-top: 1.5px solid ${brandBeige}; padding-top: 6px;">
+                    <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; letter-spacing: 2px;">TE ATENDIÓ · ATELIER ÓPTICA</div>
+                </div>
+            </div>
+        </div>
+    ` : ''}
+
     <div class='footer'>Atelier Óptica · Tejeda 4380 · Profesionalismo Ética y Diseño · ${format(new Date(), "yyyy")}</div>
 </body>
 </html>`;
 }
 
-export async function generateOrderPDF(order: any, contact: any): Promise<{ base64: string, filename: string }> {
+export async function generateOrderPDF(order: any, contact: any, vendorName?: string): Promise<{ base64: string, filename: string }> {
     const isSale = order.orderType === 'SALE';
     const safeName = (contact?.name || 'Cliente').replace(/[^a-z0-9]/gi, '-').replace(/-+/g, '-');
     const filename = `${isSale ? 'Venta' : 'Presupuesto'}_${order.id.slice(-4).toUpperCase()}_${safeName}.pdf`;
 
-    const html = getOrderHtml(order, contact);
+    const html = getOrderHtml(order, contact, vendorName);
     
     let browser;
     try {
@@ -372,7 +396,7 @@ export async function generateOrderPDF(order: any, contact: any): Promise<{ base
     } catch (e: any) {
         console.error('Error generating PDF with Playwright:', e);
         console.warn('Falling back to jsPDF');
-        return generateOrderPDFWithJsPDF(order, contact, filename);
+        return generateOrderPDFWithJsPDF(order, contact, filename, vendorName);
     } finally {
         if (browser) {
             // No dejar que un close() colgado bloquee la respuesta.
@@ -384,7 +408,7 @@ export async function generateOrderPDF(order: any, contact: any): Promise<{ base
     }
 }
 
-async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: string): Promise<{ base64: string, filename: string }> {
+async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: string, vendorName?: string): Promise<{ base64: string, filename: string }> {
     const { default: jsPDF } = await import('jspdf');
     const autoTable = (await import('jspdf-autotable')).default;
     
@@ -659,6 +683,23 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(...darkText);
         doc.text(lineas, m + 4, y + 11);
         y += altura + 6;
+    }
+
+    // --- FIRMA DEL VENDEDOR (misma regla que el camino HTML) ---
+    const firmaVendedor = resolveVendorName(order, vendorName);
+    if (firmaVendedor) {
+        y += 10;
+        const firmaW = 70;
+        const firmaX = pw - m - firmaW;
+        doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(...darkText);
+        doc.text(firmaVendedor, firmaX + firmaW / 2, y, { align: 'center' });
+        y += 3;
+        doc.setDrawColor(...brandBeige); doc.setLineWidth(0.5);
+        doc.line(firmaX, y, firmaX + firmaW, y);
+        y += 4;
+        doc.setFontSize(6); doc.setFont('helvetica', 'bold'); doc.setTextColor(...brandSand);
+        doc.text('TE ATENDIÓ · ATELIER ÓPTICA', firmaX + firmaW / 2, y, { align: 'center' });
+        y += 8;
     }
 
     // --- FOOTER ---

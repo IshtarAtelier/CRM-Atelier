@@ -48,7 +48,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         // Generar PDF del lado del servidor
         let pdfResult = null;
         try {
-            pdfResult = await generateOrderPDF(order, order.client);
+            pdfResult = await generateOrderPDF(order, order.client, senderName);
             console.log('[send-pdf] PDF generated successfully:', pdfResult.filename, '| Size:', Math.round(pdfResult.base64.length * 0.75 / 1024), 'KB');
         } catch (pdfError: any) {
             console.error('[send-pdf] PDF generation failed:', pdfError.message);

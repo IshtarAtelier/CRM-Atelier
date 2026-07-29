@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { generateOrderPDF } from '@/lib/order-pdf-generator';
+import { getActor } from '@/lib/actor';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,9 @@ export async function GET(
 
         // Generamos el PDF con jsPDF en el servidor
         console.log('[pdf/route] Generating PDF for order:', id);
-        const { base64, filename } = await generateOrderPDF(order, order.client);
+        // Si lo baja un vendedor logueado, el PDF sale firmado con su nombre
+        // (para ventas manda labSentBy igual — lo resuelve el generador).
+        const { base64, filename } = await generateOrderPDF(order, order.client, getActor(request, 'CRM').name);
         const pdfBuffer = Buffer.from(base64, 'base64');
         console.log('[pdf/route] PDF generated:', filename, '| Size:', Math.round(pdfBuffer.length / 1024), 'KB');
 
