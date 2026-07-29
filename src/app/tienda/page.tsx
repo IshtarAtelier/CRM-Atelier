@@ -60,7 +60,14 @@ export default async function TiendaPage({
   // de "Todo" a la categoría real — ese cambio de estado dejaba la grilla
   // trabada, porque se anima con `key={activeCategory}` en modo "wait".
   const params = await searchParams;
-  const categoriaPedida = typeof params.categoria === 'string' ? params.categoria : 'Todo';
+  // El parámetro llega como lo escribió quien armó el link (?categoria=sol,
+  // ?categoria=CLIP-ON): se canoniza contra la lista real. Sin esto el título
+  // del hero mostraba "sol" en minúscula y el botón de la categoría no quedaba
+  // marcado como activo, porque comparaba contra "Sol".
+  const CATEGORIAS_VALIDAS = ['Todo', 'Receta', 'Sol', 'Clip-On'];
+  const pedida = typeof params.categoria === 'string' ? params.categoria.trim() : '';
+  const categoriaPedida =
+    CATEGORIAS_VALIDAS.find(c => c.toLowerCase() === pedida.toLowerCase()) ?? 'Todo';
 
   // 1) Metadatos del sidebar de filtros — fuente resiliente (vivo → memoria →
   //    snapshot): nunca lanza y nunca llega vacía. Ver src/lib/catalog/.

@@ -80,12 +80,21 @@ type FiltrosUrl = {
 // useSearchParams fuerza render en cliente hasta el <Suspense> más cercano; lo
 // aislamos acá para que el resto de la tienda (h1, hero, grilla inicial) salga
 // en el HTML del servidor y los filtros de la URL se apliquen al hidratar.
+/** El nombre real de la categoría a partir de lo que venga en la URL. */
+function canonizarCategoria(valor: string | null): string {
+  const pedida = (valor || '').trim().toLowerCase();
+  return CATEGORIES.find(c => c.toLowerCase() === pedida) ?? 'Todo';
+}
+
 function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosUrl) => void }) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
     onChange({
-      category: searchParams.get('categoria') || 'Todo',
+      // Canonizado: el link puede venir escrito de cualquier forma
+      // (?categoria=sol, ?categoria=CLIP-ON). Sin esto el hero mostraba "sol"
+      // en minúscula y el botón de la categoría no quedaba marcado como activo.
+      category: canonizarCategoria(searchParams.get('categoria')),
       brand: searchParams.get('marca') || '',
       shape: searchParams.get('forma') || '',
       material: searchParams.get('material') || '',
