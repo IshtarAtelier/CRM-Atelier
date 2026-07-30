@@ -31,10 +31,14 @@ function readCookie(req: Request, name: string): string | null {
 }
 
 /** Eventos propios → nombre estándar del Conversions API de Meta. */
-const CAPI_EVENT: Record<string, 'ViewContent' | 'AddToCart' | 'InitiateCheckout'> = {
+const CAPI_EVENT: Record<string, 'ViewContent' | 'AddToCart' | 'InitiateCheckout' | 'Contact'> = {
   view_content: 'ViewContent',
   add_to_cart: 'AddToCart',
   begin_checkout: 'InitiateCheckout',
+  // El contacto por WhatsApp es la conversión real del negocio: si un bloqueador
+  // voltea el Pixel, este es el único camino por el que llega.
+  whatsapp_click: 'Contact',
+  phone_click: 'Contact',
 };
 
 /**

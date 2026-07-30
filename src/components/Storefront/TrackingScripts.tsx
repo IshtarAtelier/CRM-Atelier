@@ -16,6 +16,14 @@ interface TrackingScriptsProps {
    * → "Configurar la etiqueta" → "Instalar manualmente".
    */
   adsPurchaseLabel?: string;
+  /**
+   * Etiqueta de la acción "WhatsApp" de Google Ads. En una óptica el contacto
+   * se cierra por WhatsApp, no en el checkout: sin esta conversión, las campañas
+   * de búsqueda optimizan a ciegas sobre el canal que más factura.
+   */
+  adsWhatsAppLabel?: string;
+  /** Etiqueta de la acción "Llamada" de Google Ads. */
+  adsCallLabel?: string;
   /** Píxel de Meta. Idem. */
   pixelId?: string;
 }
@@ -29,7 +37,14 @@ interface TrackingScriptsProps {
  * porque ningún archivo había cambiado. Leyéndolo en el servidor, alcanza con
  * reiniciar para que tome un valor nuevo.
  */
-export function TrackingScripts({ gaId, adsId, adsPurchaseLabel, pixelId }: TrackingScriptsProps) {
+export function TrackingScripts({
+  gaId,
+  adsId,
+  adsPurchaseLabel,
+  adsWhatsAppLabel,
+  adsCallLabel,
+  pixelId,
+}: TrackingScriptsProps) {
   const GA_MEASUREMENT_ID = gaId || process.env.NEXT_PUBLIC_GA_ID;
   const GOOGLE_ADS_ID = adsId || process.env.NEXT_PUBLIC_GOOGLE_ADS_TAG_ID;
   const GOOGLE_ADS_PURCHASE_LABEL =
@@ -54,18 +69,27 @@ export function TrackingScripts({ gaId, adsId, adsPurchaseLabel, pixelId }: Trac
   // trackPurchase() lo use sin volver a leer env del lado del cliente (mismo
   // motivo que los IDs: se resuelven en el servidor). Solo se publica si hay
   // etiqueta AW- Y label: un `send_to` a medias no registra nada en Google Ads.
-  const purchaseSendTo =
-    GOOGLE_ADS_ID && GOOGLE_ADS_ID.startsWith("AW-") && GOOGLE_ADS_PURCHASE_LABEL
-      ? `${GOOGLE_ADS_ID}/${GOOGLE_ADS_PURCHASE_LABEL}`
-      : null;
+  // Un destino por acción de conversión. Se publica solo lo que tenga etiqueta:
+  // un `send_to` a medias (sin la parte después de la barra) no registra nada.
+  const isAdsAccount = Boolean(GOOGLE_ADS_ID && GOOGLE_ADS_ID.startsWith("AW-"));
+  const sendTo = (label?: string) =>
+    isAdsAccount && label ? `${GOOGLE_ADS_ID}/${label}` : null;
+  const conversions: Record<string, string> = {};
+  const purchaseSendTo = sendTo(GOOGLE_ADS_PURCHASE_LABEL);
+  const whatsappSendTo = sendTo(adsWhatsAppLabel || process.env.NEXT_PUBLIC_GOOGLE_ADS_WHATSAPP_LABEL);
+  const callSendTo = sendTo(adsCallLabel || process.env.NEXT_PUBLIC_GOOGLE_ADS_CALL_LABEL);
+  if (purchaseSendTo) conversions.purchase = purchaseSendTo;
+  if (whatsappSendTo) conversions.whatsapp = whatsappSendTo;
+  if (callSendTo) conversions.call = callSendTo;
+
   const gtagInit = [
     "window.dataLayer = window.dataLayer || [];",
     "function gtag(){window.dataLayer.push(arguments);}",
     "gtag('js', new Date());",
     GA_MEASUREMENT_ID ? `gtag('config', '${GA_MEASUREMENT_ID}');` : null,
     GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}');` : null,
-    purchaseSendTo
-      ? `window.__ateAdsConversions = { purchase: '${purchaseSendTo}' };`
+    Object.keys(conversions).length
+      ? `window.__ateAdsConversions = ${JSON.stringify(conversions)};`
       : null,
   ]
     .filter(Boolean)

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { adPlatformSentence } from '@/lib/client-analytics';
+import { trackWhatsAppClick } from '@/lib/tracking';
 
 /**
  * Agrega el origen ("Los vi en Google Ads." / "Los vi en Meta.") al mensaje de
@@ -28,6 +29,12 @@ export default function WhatsAppAttribution() {
         const target = e.target as HTMLElement | null;
         const link = target?.closest?.('a[href*="wa.me"], a[href*="api.whatsapp.com"]') as HTMLAnchorElement | null;
         if (!link) return;
+
+        // La conversión se mide SIEMPRE, venga o no de un anuncio: este listener
+        // es el único punto por el que pasan todos los links a WhatsApp del
+        // sitio. Va antes del `return` de abajo, que solo corta el agregado de
+        // la frase de origen.
+        trackWhatsAppClick(window.location.pathname);
 
         const frase = adPlatformSentence();
         if (!frase) return;

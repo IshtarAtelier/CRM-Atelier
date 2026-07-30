@@ -165,7 +165,7 @@ export class AdsService {
    * datos del cliente. El matching se apoya en fbp/fbc + IP + user-agent.
    */
   public static async sendWebFunnelEvent(
-    eventName: 'ViewContent' | 'AddToCart' | 'InitiateCheckout',
+    eventName: 'ViewContent' | 'AddToCart' | 'InitiateCheckout' | 'Contact',
     opts: {
       eventId?: string;
       eventSourceUrl?: string;

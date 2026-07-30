@@ -104,6 +104,8 @@ export default function RootLayout({
             gaId={process.env.NEXT_PUBLIC_GA_ID}
             adsId={process.env.NEXT_PUBLIC_GOOGLE_ADS_TAG_ID || process.env.GOOGLE_ADS_CONVERSION_ID}
             adsPurchaseLabel={process.env.GOOGLE_ADS_CONVERSION_LABEL}
+            adsWhatsAppLabel={process.env.GOOGLE_ADS_WHATSAPP_LABEL}
+            adsCallLabel={process.env.GOOGLE_ADS_CALL_LABEL}
             pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID}
           />
           <AnalyticsTracker />

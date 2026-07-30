@@ -132,6 +132,58 @@ export function trackInitiateCheckout(cartItems: any[], totalValue: number) {
   }
 }
 
+/**
+ * Clic en cualquier link a WhatsApp del sitio.
+ *
+ * Es LA conversión del negocio: la venta de una óptica se cierra conversando, no
+ * en el checkout. Hasta ahora solo lo medían las landings, así que el botón
+ * flotante —el más visible de todo el sitio— no dejaba ningún rastro.
+ *
+ * Se manda como `Contact` (evento estándar de Meta) y no como evento propio:
+ * los estándar sirven para optimización y públicos sin configuración extra. El
+ * `WhatsAppClick` que aparece en el historial del píxel viene de la landing
+ * vieja vía GTM, no de este sitio.
+ */
+export function trackWhatsAppClick(location: string) {
+  if (typeof window === 'undefined') return;
+  const eventId = newEventId();
+
+  // Analítica propia (y desde ahí, espejo server-side a Meta CAPI)
+  track('whatsapp_click', { meta: { eventId, location } });
+
+  if ((window as any).fbq) {
+    (window as any).fbq('track', 'Contact', { content_name: location }, { eventID: eventId });
+  }
+  if ((window as any).gtag) {
+    (window as any).gtag('event', 'generate_lead', { method: 'whatsapp', content_name: location });
+    // Conversión de Google Ads: es un evento APARTE del de GA4. Sin este
+    // `send_to`, las campañas de búsqueda no ven ningún contacto por WhatsApp.
+    const adsWhatsApp = (window as any).__ateAdsConversions?.whatsapp;
+    if (adsWhatsApp) {
+      (window as any).gtag('event', 'conversion', { send_to: adsWhatsApp });
+    }
+  }
+}
+
+/** Clic en el botón de llamar. Mismo criterio que `trackWhatsAppClick`. */
+export function trackPhoneClick(location: string) {
+  if (typeof window === 'undefined') return;
+  const eventId = newEventId();
+
+  track('phone_click', { meta: { eventId, location } });
+
+  if ((window as any).fbq) {
+    (window as any).fbq('track', 'Contact', { content_name: `tel:${location}` }, { eventID: eventId });
+  }
+  if ((window as any).gtag) {
+    (window as any).gtag('event', 'generate_lead', { method: 'phone', content_name: location });
+    const adsCall = (window as any).__ateAdsConversions?.call;
+    if (adsCall) {
+      (window as any).gtag('event', 'conversion', { send_to: adsCall });
+    }
+  }
+}
+
 export function trackPurchase(orderId: string, totalValue: number, cartItems: any[]) {
   if (typeof window !== "undefined") {
     // (La analítica propia registra `purchase` server-side en el checkout.)

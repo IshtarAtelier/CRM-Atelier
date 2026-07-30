@@ -5,6 +5,8 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useState, useEffect } from "react";
 import { buildWhatsAppUrl, currentPageUrl } from "@/lib/whatsapp-link";
 import { WHOLESALE_WHATSAPP_PHONE } from "@/lib/constants";
+import { BUSINESS_INFO } from "@/lib/business-info";
+import { trackPhoneClick } from "@/lib/tracking";
 import { usePathname } from "next/navigation";
 
 export function FloatingWhatsApp({ message, productName }: { message?: string; productName?: string } = {}) {
@@ -91,10 +93,28 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
         <div className="absolute -bottom-2 right-4 w-4 h-4 bg-white border-b border-r border-stone-100 transform rotate-45 rounded-sm"></div>
       </motion.div>
 
+      {/* Llamar. Segunda vía de contacto real para una óptica con local: en
+          celular abre el discador directo. La medición va por trackPhoneClick
+          porque un `tel:` no pasa por el interceptor de links a wa.me. */}
+      {!isOptica && (
+        <a
+          href={`tel:${BUSINESS_INFO.phoneE164}`}
+          onClick={() => trackPhoneClick(BUSINESS_INFO.phoneE164)}
+          className="relative group pointer-events-auto"
+          aria-label={`Llamar al ${BUSINESS_INFO.phone}`}
+        >
+          <div className="relative bg-white text-stone-800 border border-stone-200 w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:scale-110 hover:border-stone-300 transition-all duration-300">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+          </div>
+        </a>
+      )}
+
       {/* Botón Flotante con animación de pulso */}
-      <a 
-        href={WHATSAPP_URL} 
-        target="_blank" 
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
         rel="noopener noreferrer"
         className="relative group pointer-events-auto"
         aria-label="Contactar por WhatsApp"
