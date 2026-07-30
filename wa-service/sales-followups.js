@@ -9,38 +9,64 @@ const { checkEligibility } = require('./followups/eligibility');
 const { generateFollowUpMessage } = require('./followups/message-generator');
 const { sendFollowUp } = require('./followups/sender');
 const { addTagToClient } = require('./tools');
+const {
+    MAX_TASKS_PER_CYCLE,
+    STALE_CLAIM_MINUTES,
+    SEND_DELAY_MIN_MINUTES,
+    SEND_DELAY_MAX_MINUTES,
+} = require('./followups/config');
 
 let isFollowUpRunning = false;
 let botReplyingToRef = null;
 
-async function checkAndSendSalesFollowUps({ isAgentEnabled, botReplyingTo, broadcastChatUpdate }) {
+async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, botReplyingTo, broadcastChatUpdate }) {
     if (isFollowUpRunning) return;
 
     botReplyingToRef = botReplyingTo;
     const now = new Date();
 
     if (!isBusinessHours(now)) return;
-    // Las tareas de seguimiento de ventas se ejecutan incluso con el asistente global apagado.
+
+    // Los seguimientos son independientes del asistente conversacional (ese flag
+    // decide si el bot CONTESTA), pero respetan su propio interruptor: es el
+    // botón de pánico para frenar todo lo saliente sin dejar de atender chats.
+    if (isFollowupsEnabled && !isFollowupsEnabled()) {
+        console.log('[Bot Executor] Seguimientos apagados desde el CRM. Sin envíos.');
+        return;
+    }
 
     isFollowUpRunning = true;
     console.log('\n[Bot Executor] Buscando tareas de seguimiento pendientes y vencidas...');
 
     try {
-        // Buscar tareas PENDIENTES que ya vencieron (ej: llegaron las 18:00 hs)
+        // Tareas vencidas listas para ejecutar, más las que quedaron reclamadas
+        // (SENDING) sin resolverse: ésas son envíos que se perdieron cuando el
+        // proceso se reinició con el setTimeout todavía en memoria. Recuperarlas
+        // es seguro porque checkEligibility vuelve a correr: si el mensaje SÍ
+        // había salido, la etiqueta y el cooldown la marcan como no elegible.
+        const staleClaimLimit = new Date(now.getTime() - STALE_CLAIM_MINUTES * 60 * 1000);
+
         const pendingTasks = await prisma.clientTask.findMany({
             where: {
                 type: 'FOLLOWUP',
-                status: 'PENDING',
-                dueDate: { lte: now }
+                OR: [
+                    { status: 'PENDING', dueDate: { lte: now } },
+                    { status: 'SENDING', updatedAt: { lte: staleClaimLimit } },
+                ],
             },
             include: {
                 client: {
                     include: {
-                        whatsappChats: true,
+                        // Sin orderBy el chat elegido es arbitrario: los clientes
+                        // con dos chats (@c.us y @lid) recibían el mensaje en uno
+                        // y la etiqueta en el otro.
+                        whatsappChats: { orderBy: { lastMessageAt: 'desc' } },
                         tags: true
                     }
                 }
-            }
+            },
+            orderBy: { dueDate: 'asc' },
+            take: MAX_TASKS_PER_CYCLE,
         });
 
         if (pendingTasks.length === 0) {
@@ -119,21 +145,30 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, botReplyingTo, broad
                 continue;
             }
 
-            // Marcar label INMEDIATAMENTE para evitar race conditions
-            try {
-                let updatedLabels = [...(chat.chatLabels || [])];
-                if (!updatedLabels.includes(label)) updatedLabels.push(label);
-                
-                await prisma.whatsAppChat.update({
-                    where: { id: chat.id },
-                    data: { chatLabels: updatedLabels }
-                });
-            } catch (err) {}
+            // Reclamar la tarea antes de encolarla.
+            //
+            // Antes acá se escribía la etiqueta de seguimiento para evitar que el
+            // ciclo siguiente reprogramara el mismo envío. El problema: la etiqueta
+            // quedaba puesta aunque el mensaje nunca saliera (el envío vive en un
+            // setTimeout en memoria y Railway reinicia), y entonces checkEligibility
+            // veía la etiqueta y CANCELABA la tarea dando por hecho que se mandó.
+            // Así se perdieron 9 de 13 seguimientos.
+            //
+            // Ahora el candado va sobre la tarea, no sobre el chat: la etiqueta la
+            // escribe sender.js recién cuando el mensaje salió de verdad. Si el
+            // proceso muere, la tarea queda en SENDING y se vuelve a tomar sola
+            // pasados STALE_CLAIM_MINUTES.
+            const claimed = await prisma.clientTask.updateMany({
+                where: { id: task.id, status: task.status },
+                data: { status: 'SENDING', updatedAt: new Date() }
+            });
+            if (claimed.count === 0) {
+                console.log(`  ⚠️ Tarea de ${client.name} ya fue tomada por otra corrida. Omitiendo.`);
+                continue;
+            }
 
             // Programar el envío diferido en la cola
-            const delayMin = 3;
-            const delayMax = 7;
-            const randomDelayMinutes = Math.random() * (delayMax - delayMin) + delayMin;
+            const randomDelayMinutes = Math.random() * (SEND_DELAY_MAX_MINUTES - SEND_DELAY_MIN_MINUTES) + SEND_DELAY_MIN_MINUTES;
             queueDelay += randomDelayMinutes * 60 * 1000;
 
             console.log(`  🕒 [Bot Executor] Programando envío a ${client.name} en ${(queueDelay / 60000).toFixed(1)} minutos.`);
@@ -154,10 +189,13 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, botReplyingTo, broad
 
 // Auxiliares
 async function cancelTask(taskId, reason) {
+    // Un fallo acá se registra: si la cancelación no se graba, la tarea vuelve a
+    // aparecer en la corrida siguiente y el cliente recibe un mensaje que ya se
+    // había decidido no mandar. Tragarse el error deja eso invisible.
     await prisma.clientTask.update({
         where: { id: taskId },
-        data: { status: 'CANCELLED', updatedAt: new Date() } // Usamos CANCELLED (o DONE)
-    }).catch(e => {});
+        data: { status: 'CANCELLED', updatedAt: new Date() }
+    }).catch(e => console.error(`  ❌ No se pudo cancelar la tarea ${taskId} (${reason}):`, e.message));
 }
 
 async function executeTaskAndSend(taskId, clientId, waId, chatId, text, label, clientName, followUpType) {

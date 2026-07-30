@@ -41,17 +41,24 @@ const FOLLOW_UP_COOLDOWN_MS = 48 * 60 * 60 * 1000;
  * Chequea y envía follow-ups por inactividad.
  * @param {Object} deps - Dependencias inyectadas
  * @param {Function} deps.isAgentEnabled - Función que retorna si el agente está habilitado
+ * @param {Function} deps.isFollowupsEnabled - Función que retorna si los seguimientos están habilitados
  * @param {Set} deps.botReplyingTo - Set de waIds activos
  * @param {Function} deps.broadcastChatUpdate - Emite actualización de chat por WebSocket
  */
-async function checkAndSendInactivityFollowUps({ isAgentEnabled, botReplyingTo, broadcastChatUpdate }) {
+async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnabled, botReplyingTo, broadcastChatUpdate }) {
     const now = new Date();
     if (!isBusinessHours(now)) {
         return;
     }
 
-    // Las tareas de inactividad se ejecutan incluso con el asistente global apagado
-    // porque representan compromisos comerciales que no deben detenerse.
+    // Los recordatorios por inactividad siguen siendo independientes del asistente
+    // conversacional: ese flag decide si el bot CONTESTA, no si retomamos una
+    // charla que quedó colgada. Pero respetan el interruptor propio de
+    // seguimientos, que es el botón de pánico para frenar todo lo saliente.
+    if (isFollowupsEnabled && !isFollowupsEnabled()) {
+        console.log('[Inactividad] Seguimientos apagados desde el CRM. Sin envíos.');
+        return;
+    }
 
     const activeChats = await prisma.whatsAppChat.findMany({
         where: { botEnabled: true, archived: false },

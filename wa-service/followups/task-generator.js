@@ -67,7 +67,10 @@ async function generateFollowUpTasks() {
                 client: {
                     include: {
                         tags: true,
-                        whatsappChats: true,
+                        // Sin orderBy el chat sale en orden arbitrario: los clientes
+                        // con dos chats (@c.us y @lid) quedaban evaluados contra el
+                        // chat equivocado, con sus etiquetas y su actividad.
+                        whatsappChats: { orderBy: { lastMessageAt: 'desc' } },
                         tasks: {
                             where: { status: 'PENDING' }
                         }

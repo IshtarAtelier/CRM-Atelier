@@ -65,6 +65,7 @@ function createApiRouter(deps) {
             phone: status.connectedPhone,
             qr: status.qrCode,
             agentEnabled: agentState.agentEnabled,
+            followupsEnabled: agentState.followupsEnabled,
             prompt: agentState.agentPrompt,
         });
     });
@@ -309,7 +310,14 @@ function createApiRouter(deps) {
     router.post('/followups/trigger', async (req, res) => {
         try {
             const { checkAndSendSalesFollowUps } = require('../sales-followups');
-            const cronDeps = { isAgentEnabled: () => agentState.agentEnabled, botReplyingTo, broadcastChatUpdate };
+            // Incluye isFollowupsEnabled: sin él, el trigger manual (tag de
+            // seguimiento desde el CRM) salteaba el interruptor de pánico.
+            const cronDeps = {
+                isAgentEnabled: () => agentState.agentEnabled,
+                isFollowupsEnabled: () => agentState.followupsEnabled,
+                botReplyingTo,
+                broadcastChatUpdate,
+            };
             
             checkAndSendSalesFollowUps(cronDeps)
                 .then(() => console.log('⚡ [Bot API] Manual followup trigger execution finished.'))
@@ -491,15 +499,16 @@ function createApiRouter(deps) {
     router.get('/agent', (req, res) => {
         const hasApiKey = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY);
         const displayPrompt = (!agentState.agentPrompt || agentState.agentPrompt.trim().length <= 300) ? DEFAULT_SALES_PROMPT : agentState.agentPrompt;
-        res.json({ enabled: agentState.agentEnabled, prompt: displayPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext });
+        res.json({ enabled: agentState.agentEnabled, prompt: displayPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled });
     });
 
     // ── POST /agent ────────────────────────────────
     router.post('/agent', async (req, res) => {
-        const { enabled, prompt, dailyContext: newDailyContext } = req.body;
+        const { enabled, prompt, dailyContext: newDailyContext, followupsEnabled: newFollowupsEnabled } = req.body;
         if (enabled !== undefined) agentState.agentEnabled = enabled;
         if (prompt !== undefined) agentState.agentPrompt = prompt;
         if (newDailyContext !== undefined) agentState.dailyContext = newDailyContext;
+        if (newFollowupsEnabled !== undefined) agentState.followupsEnabled = newFollowupsEnabled;
         
         try {
             fs.writeFileSync(configPath, JSON.stringify({ enabled: agentState.agentEnabled, prompt: agentState.agentPrompt, dailyContext: agentState.dailyContext }, null, 2));
@@ -525,13 +534,20 @@ function createApiRouter(deps) {
                     create: { key: 'bot_daily_context', value: agentState.dailyContext }
                 });
             }
+            if (newFollowupsEnabled !== undefined) {
+                await prisma.systemSetting.upsert({
+                    where: { key: 'followups_enabled' },
+                    update: { value: String(agentState.followupsEnabled) },
+                    create: { key: 'followups_enabled', value: String(agentState.followupsEnabled) }
+                });
+            }
         } catch (e) {
             console.error("❌ Error persisting config to database:", e);
         }
-        
+
         const hasApiKey = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY);
-        io.emit('bot_status', { agentEnabled: agentState.agentEnabled, prompt: agentState.agentPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext });
-        res.json({ enabled: agentState.agentEnabled, prompt: agentState.agentPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext });
+        io.emit('bot_status', { agentEnabled: agentState.agentEnabled, prompt: agentState.agentPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled });
+        res.json({ enabled: agentState.agentEnabled, prompt: agentState.agentPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled });
     });
 
     // ── PATCH /chats/:id/bot ───────────────────────

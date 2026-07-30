@@ -32,8 +32,43 @@ const QUOTE_LOOKBACK_DAYS = 20;                     // Buscar presupuestos de lo
 // ──────────────────────────────────────────────
 // Delays entre envíos (minutos)
 // ──────────────────────────────────────────────
-const SEND_DELAY_MIN_MINUTES = 3;
-const SEND_DELAY_MAX_MINUTES = 7;
+// Los delays se ACUMULAN dentro de una corrida (el 5º envío espera la suma de
+// los 4 anteriores). Junto con MAX_TASKS_PER_CYCLE tienen que dar menos que el
+// intervalo del cron (30 min), o la cola queda a medio vaciar cuando arranca la
+// corrida siguiente: 6 tareas × 4 min = 24 min como peor caso.
+const SEND_DELAY_MIN_MINUTES = 2;
+const SEND_DELAY_MAX_MINUTES = 4;
+
+// ──────────────────────────────────────────────
+// Cola de envíos
+// ──────────────────────────────────────────────
+/** Tope de envíos por corrida. Cuida la cuenta de WhatsApp y acota la cola. */
+const MAX_TASKS_PER_CYCLE = 6;
+
+/**
+ * Una tarea reclamada (status SENDING) que quedó más de este tiempo sin
+ * resolverse se considera huérfana y se vuelve a tomar. Es lo que rescata los
+ * envíos que se perdían cuando Railway reiniciaba con timers en memoria.
+ * Tiene que ser mayor que el intervalo del cron.
+ */
+const STALE_CLAIM_MINUTES = 45;
+
+// ──────────────────────────────────────────────
+// Tareas que el ejecutor puede mandar solo
+// ──────────────────────────────────────────────
+/**
+ * LISTA BLANCA — solo las tareas con este prefijo se convierten en un WhatsApp
+ * automático al cliente.
+ *
+ * Es lista blanca a propósito. El filtro anterior era solo
+ * `createdBy: 'Sistema (Pasivo)'`, y con ese criterio entraban también notas
+ * internas del equipo: '[RECETA POR FOTO] ... buscarla en el WhatsApp del local'
+ * y '[Seguimiento Manual] Contactar a X - Razón: "..."'. Al ejecutor se le pide
+ * "redactá un mensaje que cumpla esta tarea", así que esas notas se le podían
+ * terminar mandando al cliente. Con lista negra, cada tipo de nota interna nuevo
+ * volvería a filtrarse; con lista blanca, lo que no está previsto no sale.
+ */
+const AUTO_SENDABLE_TASK_PREFIX = '[Extracción Inteligente]';
 
 // ──────────────────────────────────────────────
 // Generación de mensajes
@@ -81,6 +116,9 @@ module.exports = {
     QUOTE_LOOKBACK_DAYS,
     SEND_DELAY_MIN_MINUTES,
     SEND_DELAY_MAX_MINUTES,
+    MAX_TASKS_PER_CYCLE,
+    STALE_CLAIM_MINUTES,
+    AUTO_SENDABLE_TASK_PREFIX,
     MAX_OUTPUT_TOKENS,
     TEMPERATURE,
     MODEL_NAME,

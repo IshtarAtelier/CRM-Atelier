@@ -17,6 +17,8 @@ const {
     MODEL_NAME,
     GENERATION_TIMEOUT_MS,
     MAX_RETRIES,
+    MAX_TASKS_PER_CYCLE,
+    AUTO_SENDABLE_TASK_PREFIX,
 } = require('./config');
 
 let isTaskExecutorRunning = false;
@@ -109,12 +111,20 @@ async function generateSmartTaskMessage(client, taskDescription, recentMessages)
     return { text: null, error: 'Intentos agotados' };
 }
 
-async function checkAndSendSmartTasks({ isAgentEnabled, botReplyingTo, broadcastChatUpdate }) {
+async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botReplyingTo, broadcastChatUpdate }) {
     if (isTaskExecutorRunning) return;
 
     const now = new Date();
     if (!isBusinessHours(now)) return;
-    // Las tareas inteligentes se ejecutan incluso con el asistente global apagado.
+
+    // Las tareas inteligentes son independientes del asistente conversacional
+    // (ese flag decide si el bot CONTESTA, no si mandamos seguimientos), pero sí
+    // respetan el interruptor propio de seguimientos: es el botón de pánico para
+    // frenar todo lo saliente sin apagar el bot que atiende a los clientes.
+    if (isFollowupsEnabled && !isFollowupsEnabled()) {
+        console.log('[Smart Task Executor] Seguimientos apagados desde el CRM. Sin envíos.');
+        return;
+    }
 
     isTaskExecutorRunning = true;
     console.log('\n[Smart Task Executor] Buscando tareas conversacionales atrasadas...');
@@ -127,15 +137,25 @@ async function checkAndSendSmartTasks({ isAgentEnabled, botReplyingTo, broadcast
                 type: 'TASK',
                 status: 'PENDING',
                 createdBy: 'Sistema (Pasivo)',
+                // Lista blanca: solo tareas nacidas de la conversación con el
+                // cliente. Sin esto entran notas internas del equipo ([RECETA POR
+                // FOTO], [Seguimiento Manual]) y el cliente recibe un mensaje
+                // redactado a partir de una instrucción que era para nosotros.
+                description: { startsWith: AUTO_SENDABLE_TASK_PREFIX },
                 dueDate: { lte: graceLimit } // Vencida por más del grace period
             },
             include: {
                 client: {
                     include: {
-                        whatsappChats: true
+                        // Sin orderBy, Postgres devuelve los chats en orden
+                        // arbitrario: con dos chats (@c.us y @lid) el mensaje
+                        // podía ir a uno y la etiqueta al otro.
+                        whatsappChats: { orderBy: { lastMessageAt: 'desc' } }
                     }
                 }
-            }
+            },
+            orderBy: { dueDate: 'asc' },
+            take: MAX_TASKS_PER_CYCLE,
         });
 
         if (pendingTasks.length === 0) {

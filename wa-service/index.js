@@ -46,7 +46,7 @@ app.use(express.json({ limit: '10mb' }));
 io.on('connection', (socket) => {
     console.log('🔌 Nuevo cliente WebSocket conectado:', socket.id);
     const status = getStatus();
-    socket.emit('bot_status', { ...status, connected: status.isReady, phone: status.connectedPhone, qr: status.qrCode, agentEnabled, prompt: agentPrompt });
+    socket.emit('bot_status', { ...status, connected: status.isReady, phone: status.connectedPhone, qr: status.qrCode, agentEnabled, followupsEnabled, prompt: agentPrompt });
 });
 
 // Función auxiliar para emitir eventos de chat actualizados
@@ -58,6 +58,11 @@ function broadcastChatUpdate(chatId) {
 let agentEnabled = false;
 let agentPrompt = '';
 let dailyContext = '';
+// Interruptor propio de los seguimientos salientes (presupuestos, inactividad y
+// tareas). Va separado de agentEnabled a propósito: ése decide si el bot CONTESTA
+// a quien escribe; éste decide si NOSOTROS escribimos primero. Arranca en true
+// para no cambiar el comportamiento de una instalación existente al desplegar.
+let followupsEnabled = true;
 
 // Cache global para las imágenes en base64 de cada chat, para que los sub-agentes puedan acceder
 global.mediaCache = global.mediaCache || {};
@@ -68,7 +73,12 @@ async function loadConfig() {
         const enabledSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_enabled' } });
         const promptSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_prompt' } });
         const contextSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_daily_context' } });
-        
+        const followupsSetting = await prisma.systemSetting.findUnique({ where: { key: 'followups_enabled' } });
+
+        // Si la clave no existe todavía (primer deploy con esta feature), se
+        // mantiene el comportamiento actual: seguimientos encendidos.
+        followupsEnabled = followupsSetting ? followupsSetting.value === 'true' : true;
+
         if (enabledSetting) {
             agentEnabled = enabledSetting.value === 'true';
         } else if (fs.existsSync(configPath)) {
@@ -90,7 +100,7 @@ async function loadConfig() {
             dailyContext = conf.dailyContext || '';
         }
         
-        console.log(`🤖 Bot configuration loaded from DB. Enabled: ${agentEnabled}, Prompt length: ${agentPrompt.length}, Daily context length: ${dailyContext.length}`);
+        console.log(`🤖 Bot configuration loaded from DB. Enabled: ${agentEnabled}, Seguimientos: ${followupsEnabled}, Prompt length: ${agentPrompt.length}, Daily context length: ${dailyContext.length}`);
     } catch (e) {
         console.error("❌ Error loading configuration from DB, falling back to file:", e);
         if (fs.existsSync(configPath)) {
@@ -1836,6 +1846,8 @@ app.use('/api', createApiRouter({
         set agentPrompt(v) { agentPrompt = v; },
         get dailyContext() { return dailyContext; },
         set dailyContext(v) { dailyContext = v; },
+        get followupsEnabled() { return followupsEnabled; },
+        set followupsEnabled(v) { followupsEnabled = v; },
     },
     botReplyingTo,
     broadcastChatUpdate,
@@ -1853,7 +1865,12 @@ server.listen(PORT, '0.0.0.0', async () => {
     await loadConfig();
     
     // Programar recordatorios por inactividad cada 15 minutos
-    const cronDeps = { isAgentEnabled: () => agentEnabled, botReplyingTo, broadcastChatUpdate };
+    const cronDeps = {
+        isAgentEnabled: () => agentEnabled,
+        isFollowupsEnabled: () => followupsEnabled,
+        botReplyingTo,
+        broadcastChatUpdate,
+    };
     setInterval(() => {
         checkAndSendInactivityFollowUps(cronDeps).catch(e => console.error("❌ Error en follow-ups de inactividad:", e.message));
     }, 15 * 60 * 1000);
@@ -1900,7 +1917,7 @@ server.listen(PORT, '0.0.0.0', async () => {
                 const isNowConnected = status.isReady;
                 global.lastWhatsAppConnectedState = isNowConnected;
 
-                io.emit('bot_status', { ...status, connected: status.isReady, phone: status.connectedPhone, qr: status.qrCode, agentEnabled, prompt: agentPrompt });
+                io.emit('bot_status', { ...status, connected: status.isReady, phone: status.connectedPhone, qr: status.qrCode, agentEnabled, followupsEnabled, prompt: agentPrompt });
 
                 if (isNowConnected && !wasConnected) {
                     console.log('📱 WhatsApp conectado. Iniciando sincronización automática...');
