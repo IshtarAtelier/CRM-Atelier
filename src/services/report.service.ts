@@ -47,6 +47,7 @@ export class ReportService {
                 clientId: true,
                 userId: true,
                 total: true,
+                paid: true,
                 subtotalWithMarkup: true,
                 specialDiscount: true,
                 appliedPromoName: true,

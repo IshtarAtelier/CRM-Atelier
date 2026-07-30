@@ -272,6 +272,27 @@ export function ProductClient({
               <span aria-hidden="true">›</span>
               <span className="text-stone-600 normal-case tracking-normal font-medium truncate max-w-[180px]">{product.model}</span>
             </nav>
+            {/* Kicker: el nombre estelar solo ("Antares") no le dice al visitante
+                QUÉ está mirando — clave para quien cae desde un anuncio. */}
+            {(() => {
+              const tipoMap: Record<string, string> = {
+                'Sol': 'Anteojos de sol',
+                'Receta': 'Armazón para lentes recetados',
+                'Clip-On': 'Armazón con clip-on de sol',
+                'Cristal': 'Cristales a medida',
+              };
+              const tipo = tipoMap[product.category];
+              return tipo ? (
+                <motion.p
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.15, duration: 0.6 }}
+                  className="text-[11px] font-black uppercase tracking-[0.25em] text-[#8a6d3b] mb-1.5"
+                >
+                  {tipo}
+                </motion.p>
+              ) : null;
+            })()}
             <motion.h1
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -449,6 +470,19 @@ export function ProductClient({
             )}
 
             <div className="flex flex-col gap-3 mb-6 mt-4">
+              {/* En Receta el flujo real es configurar cristales: ese es el CTA
+                  primario. "Comprar solo el armazón" queda como secundario para
+                  quien de verdad quiere solo el frame. En Sol/Clip-On/Cristal el
+                  primario sigue siendo comprar directo. */}
+              {product.category === "Receta" && !isWholesale && (
+                <button
+                  disabled={product.stock !== undefined && product.stock <= 0}
+                  onClick={() => setShowConfigurator(true)}
+                  className="w-full px-8 py-5 text-[15px] font-black uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed shadow-xl hover:scale-[1.02] bg-black text-white hover:bg-stone-900 disabled:opacity-50 disabled:bg-stone-400 disabled:hover:scale-100 disabled:shadow-none"
+                >
+                  {(product.stock !== undefined && product.stock <= 0) ? "Agotado" : "Elegir mis cristales >"}
+                </button>
+              )}
               <button
                 disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal" || isAdded}
                 onClick={() => {
@@ -485,9 +519,17 @@ export function ProductClient({
                     setTimeout(() => setIsAdded(false), 2000);
                   }, 500);
                 }}
-                className={`w-full px-8 py-5 text-[15px] font-black uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed shadow-xl hover:scale-[1.02] ${isAdded ? 'bg-green-600 text-white' : 'bg-black text-white hover:bg-stone-900 disabled:opacity-50 disabled:bg-stone-400 disabled:hover:scale-100 disabled:shadow-none'}`}
+                className={
+                  product.category === "Receta" && !isWholesale
+                    ? `w-full px-8 py-4 text-[12px] font-bold uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed border ${isAdded ? 'bg-green-600 text-white border-green-600' : 'bg-white text-black border-stone-300 hover:border-black disabled:opacity-50 disabled:bg-stone-100'}`
+                    : `w-full px-8 py-5 text-[15px] font-black uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed shadow-xl hover:scale-[1.02] ${isAdded ? 'bg-green-600 text-white' : 'bg-black text-white hover:bg-stone-900 disabled:opacity-50 disabled:bg-stone-400 disabled:hover:scale-100 disabled:shadow-none'}`
+                }
               >
-                {isAdded ? "¡Ya son tuyos! 🎉" : ((product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal") ? "Agotado" : "Comprar Ahora >")}
+                {isAdded
+                  ? "Agregado al carrito ✓"
+                  : ((product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal")
+                    ? "Agotado"
+                    : (product.category === "Receta" && !isWholesale ? "Comprar solo el armazón" : "Comprar Ahora >"))}
               </button>
             </div>
 
@@ -694,17 +736,20 @@ export function ProductClient({
               </div>
             </div>
             
-            <button
-              onClick={() => setShowConfigurator(true)}
-              disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal"}
-              className={`w-full border px-8 py-4 text-[11px] font-bold uppercase tracking-widest transition-colors shadow-sm ${
-                (product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal")
-                  ? 'border-stone-300 bg-stone-100 text-stone-400 cursor-not-allowed'
-                  : 'border-[#e5e5e5] bg-white text-black hover:border-black'
-              }`}
-            >
-              + Agregar Cristales Con Receta
-            </button>
+            {/* En Receta este botón ya no hace falta: "Elegir mis cristales" es el CTA primario arriba. */}
+            {!(product.category === "Receta" && !isWholesale) && (
+              <button
+                onClick={() => setShowConfigurator(true)}
+                disabled={product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal"}
+                className={`w-full border px-8 py-4 text-[11px] font-bold uppercase tracking-widest transition-colors shadow-sm ${
+                  (product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal")
+                    ? 'border-stone-300 bg-stone-100 text-stone-400 cursor-not-allowed'
+                    : 'border-[#e5e5e5] bg-white text-black hover:border-black'
+                }`}
+              >
+                + Agregar Cristales Con Receta
+              </button>
+            )}
 
             {images.length > 1 && (
               <div className="flex flex-wrap gap-2 w-full mt-2">

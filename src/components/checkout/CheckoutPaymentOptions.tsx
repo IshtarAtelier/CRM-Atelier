@@ -1,7 +1,16 @@
 import React from "react";
 import { ShieldCheck } from "lucide-react";
 
-export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean }) {
+export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale, payableTotal }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean, payableTotal?: number }) {
+  // El monto en el botón mata la última duda ("¿cuánto termino pagando?") justo
+  // en el clic que cierra la venta. Se calcula igual que el resumen de la derecha.
+  const montoFmt = payableTotal && payableTotal > 0
+    ? `$${Math.round(payableTotal).toLocaleString("es-AR")}`
+    : null;
+  const cuotasCount = (() => {
+    const m = (webSettings?.web_promo_installments || "").match(/\d+/);
+    return m ? Number(m[0]) : 6;
+  })();
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');
     const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
@@ -146,11 +155,11 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
           </>
         ) : formData.paymentMethod === 'PAYWAY' ? (
           <>
-            Pagar con Tarjeta <ShieldCheck className="w-4 h-4" />
+            {montoFmt ? `Pagar ${montoFmt} en ${cuotasCount} cuotas` : "Pagar con Tarjeta"} <ShieldCheck className="w-4 h-4" />
           </>
         ) : (
           <>
-            Confirmar Pedido <ShieldCheck className="w-4 h-4" />
+            {montoFmt ? `Confirmar pedido · ${montoFmt} por transferencia` : "Confirmar Pedido"} <ShieldCheck className="w-4 h-4" />
           </>
         )}
       </button>
