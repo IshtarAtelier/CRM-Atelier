@@ -6,6 +6,16 @@ import { useConsent } from "@/components/Storefront/CookieConsent";
 interface TrackingScriptsProps {
   /** Medición de GA4 (G-XXXXXXXXXX). Lo resuelve el layout en el servidor. */
   gaId?: string;
+  /**
+   * Segunda propiedad de GA4, si el negocio mide en dos.
+   *
+   * Existe por un caso real: `NEXT_PUBLIC_GOOGLE_ADS_TAG_ID` tenía cargado un id
+   * de GA4 (G-…) en lugar de uno de Google Ads (AW-…), así que esa propiedad se
+   * configuraba "de prestado" por el slot de Ads. Al corregir el id de Ads esa
+   * medición se habría cortado en silencio —y de ahí sale la conversión de compra
+   * que Google Ads importa desde GA4—. Este slot la mantiene viva.
+   */
+  gaSecondaryId?: string;
   /** Etiqueta de Google Ads (G-/AW-XXXXXXXX) para medir conversiones de las campañas. Idem. */
   adsId?: string;
   /**
@@ -39,6 +49,7 @@ interface TrackingScriptsProps {
  */
 export function TrackingScripts({
   gaId,
+  gaSecondaryId,
   adsId,
   adsPurchaseLabel,
   adsWhatsAppLabel,
@@ -46,6 +57,7 @@ export function TrackingScripts({
   pixelId,
 }: TrackingScriptsProps) {
   const GA_MEASUREMENT_ID = gaId || process.env.NEXT_PUBLIC_GA_ID;
+  const GA_SECONDARY_ID = gaSecondaryId || process.env.NEXT_PUBLIC_GA_ID_SECONDARY;
   const GOOGLE_ADS_ID = adsId || process.env.NEXT_PUBLIC_GOOGLE_ADS_TAG_ID;
   const GOOGLE_ADS_PURCHASE_LABEL =
     adsPurchaseLabel || process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL;
@@ -64,7 +76,7 @@ export function TrackingScripts({
 
   // Un solo gtag.js alcanza para GA4 y Google Ads: se carga una vez con
   // cualquiera de los dos IDs y después se hace un gtag('config', …) por destino.
-  const primaryGtagId = GA_MEASUREMENT_ID || GOOGLE_ADS_ID;
+  const primaryGtagId = GA_MEASUREMENT_ID || GA_SECONDARY_ID || GOOGLE_ADS_ID;
   // El destino de la conversión de compra queda colgado de window para que
   // trackPurchase() lo use sin volver a leer env del lado del cliente (mismo
   // motivo que los IDs: se resuelven en el servidor). Solo se publica si hay
@@ -87,6 +99,7 @@ export function TrackingScripts({
     "function gtag(){window.dataLayer.push(arguments);}",
     "gtag('js', new Date());",
     GA_MEASUREMENT_ID ? `gtag('config', '${GA_MEASUREMENT_ID}');` : null,
+    GA_SECONDARY_ID ? `gtag('config', '${GA_SECONDARY_ID}');` : null,
     GOOGLE_ADS_ID ? `gtag('config', '${GOOGLE_ADS_ID}');` : null,
     Object.keys(conversions).length
       ? `window.__ateAdsConversions = ${JSON.stringify(conversions)};`
