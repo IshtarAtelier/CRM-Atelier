@@ -103,6 +103,20 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
 
             // Validar elegibilidad "just-in-time" por si compró desde que se generó la tarea
             const isManual = task.createdBy === 'Bot Trigger';
+
+            // Una tarea manual recuperada de un reinicio (quedó SENDING) no se
+            // reintenta: el modo manual saltea cooldown, etiquetas y actividad,
+            // así que si el mensaje SÍ había salido antes del crash, nada
+            // frenaría el duplicado. Se marca fallida y, si hace falta, el
+            // vendedor vuelve a poner el tag.
+            if (isManual && task.status === 'SENDING') {
+                console.log(`  🚫 [Bot Executor] Tarea manual de ${client.name} quedó a medias en un reinicio. Se marca FAILED (re-taggear si corresponde).`);
+                await prisma.clientTask.update({
+                    where: { id: task.id },
+                    data: { status: 'FAILED', updatedAt: new Date() }
+                }).catch(e => console.error(`  ❌ No se pudo marcar FAILED la tarea ${task.id}:`, e.message));
+                continue;
+            }
             const { eligible, followUpType, label, reason } = await checkEligibility({
                 client,
                 chat,
@@ -136,7 +150,15 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
 
             if (!generated.text) {
                 console.error(`  ❌ [Bot Executor] Falló generación para ${client.name}: ${generated.error}`);
-                continue; // No cancelamos la tarea, probamos en el próximo ciclo
+                // Empujar el vencimiento 3 horas: con take + orderBy por dueDate,
+                // una tarea que falla generación siempre (validador que la rechaza
+                // determinísticamente, cuota/API rota) quedaría clavada al frente
+                // de la cola bloqueando a todas las demás.
+                await prisma.clientTask.update({
+                    where: { id: task.id },
+                    data: { dueDate: new Date(now.getTime() + 3 * 3600 * 1000) }
+                }).catch(() => {});
+                continue;
             }
 
             // Anti-duplicado in-memory

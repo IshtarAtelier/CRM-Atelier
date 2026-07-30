@@ -29,7 +29,7 @@ export type FollowUpType = 'STALLED_FAVORITE' | 'PENDING_QUOTE' | 'ABANDONED_CAR
 /** Cuál de los 3 seguimientos corresponde. */
 export type FollowUpTouch = 1 | 2 | 3;
 
-const STORE_WEB = 'atelieroptica.com.ar';
+const STORE_WEB = BUSINESS_INFO.websiteDisplay;
 
 /**
  * Hash estable de un string. Sirve para elegir siempre la misma redacción para
@@ -146,12 +146,25 @@ export function buildFollowUpMessage({
     seed: string;
     now?: Date;
 }): { message: string; touch: FollowUpTouch } {
-    const firstName = clientName.trim().split(/\s+/)[0] || 'Hola';
+    // Nombre válido = una palabra con pinta de nombre de pila. Los carritos web
+    // sin datos llegan como "Cliente Web": mandarle "Hola Cliente" delata
+    // plantilla — mejor saludar sin nombre.
+    const rawFirst = clientName.trim().split(/\s+/)[0] || '';
+    const hasValidName =
+        /^[a-záéíóúüñ]{2,20}$/i.test(rawFirst) &&
+        !['cliente', 'web'].includes(rawFirst.toLowerCase());
+    const firstName = hasValidName ? rawFirst : '';
     const greeting = greetingFor(now);
     const touch = touchForDays(daysElapsed);
 
     const variants = touch === 1 ? TOUCH_1[type] : touch === 2 ? TOUCH_2 : TOUCH_3;
     const index = hashSeed(`${seed}:${touch}`) % variants.length;
 
-    return { message: variants[index](firstName, greeting), touch };
+    // Con nombre vacío quedan restos tipo "Hola , buen día" — se colapsan acá
+    // en vez de duplicar cada plantilla en versión con y sin nombre.
+    const message = variants[index](firstName, greeting)
+        .replace(/\s+([,!?])/g, '$1')
+        .replace(/¡Hola!\s*\./g, '¡Hola!');
+
+    return { message, touch };
 }

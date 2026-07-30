@@ -37,6 +37,18 @@ const randomDelay = (min = 120000, max = 300000) => Math.floor(Math.random() * (
 async function main() {
     console.log("Iniciando Bot de Seguimiento Masivo...");
 
+    // Botón de pánico: si los seguimientos están pausados desde el CRM, este
+    // script no manda nada. La ruta cron ya lo chequea antes de spawnearlo,
+    // pero el script también puede correrse a mano — doble candado.
+    const followupsSetting = await prisma.systemSetting.findUnique({
+        where: { key: 'followups_enabled' },
+    });
+    if (followupsSetting && followupsSetting.value !== 'true') {
+        console.log('🚫 Seguimientos pausados desde el CRM (followups_enabled=false). Abortando sin enviar.');
+        await prisma.$disconnect();
+        return;
+    }
+
     // Asegurar que la etiqueta exista
     const botTag = await prisma.tag.upsert({
         where: { name: 'Seguimiento Bot' },
@@ -78,7 +90,9 @@ async function main() {
         },
         include: {
             whatsappChats: {
-                orderBy: { updatedAt: 'desc' },
+                // Por último mensaje, no updatedAt: con dos chats (@c.us y @lid)
+                // updatedAt puede favorecer al chat muerto.
+                orderBy: { lastMessageAt: 'desc' },
                 take: 1
             }
         }

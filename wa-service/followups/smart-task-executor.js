@@ -19,6 +19,9 @@ const {
     MAX_RETRIES,
     MAX_TASKS_PER_CYCLE,
     AUTO_SENDABLE_TASK_PREFIX,
+    STALE_CLAIM_MINUTES,
+    SEND_DELAY_MIN_MINUTES,
+    SEND_DELAY_MAX_MINUTES,
 } = require('./config');
 
 let isTaskExecutorRunning = false;
@@ -132,17 +135,24 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
     try {
         const graceLimit = new Date(now.getTime() - GRACE_PERIOD_HOURS * 60 * 60 * 1000);
 
+        // Igual que en sales-followups: además de las vencidas normales se
+        // recuperan las que quedaron reclamadas (SENDING) por un reinicio con el
+        // timer en memoria.
+        const staleClaimLimit = new Date(now.getTime() - STALE_CLAIM_MINUTES * 60 * 1000);
+
         const pendingTasks = await prisma.clientTask.findMany({
             where: {
                 type: 'TASK',
-                status: 'PENDING',
                 createdBy: 'Sistema (Pasivo)',
                 // Lista blanca: solo tareas nacidas de la conversación con el
                 // cliente. Sin esto entran notas internas del equipo ([RECETA POR
                 // FOTO], [Seguimiento Manual]) y el cliente recibe un mensaje
                 // redactado a partir de una instrucción que era para nosotros.
                 description: { startsWith: AUTO_SENDABLE_TASK_PREFIX },
-                dueDate: { lte: graceLimit } // Vencida por más del grace period
+                OR: [
+                    { status: 'PENDING', dueDate: { lte: graceLimit } },
+                    { status: 'SENDING', updatedAt: { lte: staleClaimLimit } },
+                ],
             },
             include: {
                 client: {
@@ -218,7 +228,15 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
 
             if (!generated.text) {
                 console.error(`  ❌ [Smart Task Executor] Falló generación para ${client.name}: ${generated.error}`);
-                continue; // Reintentamos la proxima vez
+                // Empujar el vencimiento 3 horas: una tarea cuya generación falla
+                // siempre (contexto que el validador rechaza, cuota agotada) no
+                // puede quedarse clavada al frente de la cola bloqueando a las
+                // demás — con take + orderBy, 6 de éstas frenarían todo.
+                await prisma.clientTask.update({
+                    where: { id: task.id },
+                    data: { dueDate: new Date(now.getTime() + 3 * 3600 * 1000) }
+                }).catch(() => {});
+                continue;
             }
 
             // Anti-colisión
@@ -227,10 +245,20 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
                 continue;
             }
 
+            // Reclamo atómico (mismo patrón que sales-followups): sin esto, la
+            // tarea sigue PENDING mientras su timer espera, y la corrida
+            // siguiente puede volver a generarla y programar un segundo envío.
+            const claimed = await prisma.clientTask.updateMany({
+                where: { id: task.id, status: task.status },
+                data: { status: 'SENDING', updatedAt: new Date() }
+            });
+            if (claimed.count === 0) {
+                console.log(`  ⚠️ Tarea de ${client.name} ya fue tomada por otra corrida. Omitiendo.`);
+                continue;
+            }
+
             // Cola de espera
-            const delayMin = 1;
-            const delayMax = 4;
-            const randomDelayMinutes = Math.random() * (delayMax - delayMin) + delayMin;
+            const randomDelayMinutes = Math.random() * (SEND_DELAY_MAX_MINUTES - SEND_DELAY_MIN_MINUTES) + SEND_DELAY_MIN_MINUTES;
             queueDelay += randomDelayMinutes * 60 * 1000;
 
             console.log(`  🕒 [Smart Task Executor] Envío a ${client.name} en ${(queueDelay / 60000).toFixed(1)} min.`);

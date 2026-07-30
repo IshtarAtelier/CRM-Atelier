@@ -511,7 +511,7 @@ function createApiRouter(deps) {
         if (newFollowupsEnabled !== undefined) agentState.followupsEnabled = newFollowupsEnabled;
         
         try {
-            fs.writeFileSync(configPath, JSON.stringify({ enabled: agentState.agentEnabled, prompt: agentState.agentPrompt, dailyContext: agentState.dailyContext }, null, 2));
+            fs.writeFileSync(configPath, JSON.stringify({ enabled: agentState.agentEnabled, prompt: agentState.agentPrompt, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled }, null, 2));
             
             if (enabled !== undefined) {
                 await prisma.systemSetting.upsert({
@@ -546,7 +546,12 @@ function createApiRouter(deps) {
         }
 
         const hasApiKey = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY);
-        io.emit('bot_status', { agentEnabled: agentState.agentEnabled, prompt: agentState.agentPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled });
+        // Incluye el estado de conexión: el handler del frontend hace
+        // setStatus({ connected: statusData.connected, ... }), así que un emit
+        // sin estos campos hacía "parpadear" el bot como desconectado en todas
+        // las pestañas abiertas cada vez que se tocaba un toggle.
+        const connStatus = getStatus();
+        io.emit('bot_status', { connected: connStatus.isReady, phone: connStatus.connectedPhone, qr: connStatus.qrCode, agentEnabled: agentState.agentEnabled, prompt: agentState.agentPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled });
         res.json({ enabled: agentState.agentEnabled, prompt: agentState.agentPrompt, configured: hasApiKey, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled });
     });
 

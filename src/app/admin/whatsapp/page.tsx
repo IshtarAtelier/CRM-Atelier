@@ -1243,6 +1243,13 @@ function WhatsAppPageContent() {
                                 setFollowupsEnabled(next);
                                 fetch('/api/whatsapp/agent', {
                                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ followupsEnabled: next }),
+                                }).then(res => {
+                                    if (!res.ok) throw new Error();
+                                }).catch(() => {
+                                    // Si el servicio no confirmó, la UI no puede
+                                    // quedarse mostrando un estado que no rige.
+                                    setFollowupsEnabled(!next);
+                                    alert('No se pudo cambiar el estado de los seguimientos: el servidor de WhatsApp no respondió. El estado real no cambió.');
                                 });
                             }}
                             title={followupsEnabled

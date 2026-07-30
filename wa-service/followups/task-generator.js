@@ -72,7 +72,11 @@ async function generateFollowUpTasks() {
                         // chat equivocado, con sus etiquetas y su actividad.
                         whatsappChats: { orderBy: { lastMessageAt: 'desc' } },
                         tasks: {
-                            where: { status: 'PENDING' }
+                            // SENDING incluido: una tarea reclamada con el envío
+                            // en vuelo (timer corriendo, etiqueta aún no escrita)
+                            // seguiría invisible para este dedup y se crearía una
+                            // gemela en la misma corrida.
+                            where: { status: { in: ['PENDING', 'SENDING'] } }
                         }
                     }
                 }

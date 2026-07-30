@@ -75,9 +75,15 @@ async function loadConfig() {
         const contextSetting = await prisma.systemSetting.findUnique({ where: { key: 'bot_daily_context' } });
         const followupsSetting = await prisma.systemSetting.findUnique({ where: { key: 'followups_enabled' } });
 
-        // Si la clave no existe todavía (primer deploy con esta feature), se
-        // mantiene el comportamiento actual: seguimientos encendidos.
-        followupsEnabled = followupsSetting ? followupsSetting.value === 'true' : true;
+        if (followupsSetting) {
+            followupsEnabled = followupsSetting.value === 'true';
+        } else if (fs.existsSync(configPath)) {
+            // Sin fila en DB (primer deploy o blip de conexión): cae al archivo
+            // local, que POST /agent mantiene al día. Sin este fallback, un
+            // reinicio con la DB caída re-encendía seguimientos pausados.
+            const conf = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            followupsEnabled = conf.followupsEnabled !== false;
+        }
 
         if (enabledSetting) {
             agentEnabled = enabledSetting.value === 'true';
@@ -109,6 +115,7 @@ async function loadConfig() {
                 agentEnabled = conf.enabled || false;
                 agentPrompt = conf.prompt || '';
                 dailyContext = conf.dailyContext || '';
+                followupsEnabled = conf.followupsEnabled !== false;
             } catch (fileErr) {
                 console.error("Error reading fallback agent config file:", fileErr);
             }

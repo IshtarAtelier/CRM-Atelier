@@ -15,6 +15,8 @@ export const BUSINESS_INFO = {
   postalCode: "5009",
   // Aproximado del domicilio — verificar contra el pin de Google Business Profile
   geo: { latitude: -31.3688, longitude: -64.2401 },
+  /** Dominio de la tienda tal como se escribe en mensajes al cliente. */
+  websiteDisplay: "atelieroptica.com.ar",
   instagramUrl: "https://www.instagram.com/atelieroptica_",
   youtubeUrl: "https://www.youtube.com/@AtelierOptica",
   mapsUrl: "https://www.google.com/maps?cid=14830223812501661125",
