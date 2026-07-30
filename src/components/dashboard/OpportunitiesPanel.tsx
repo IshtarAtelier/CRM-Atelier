@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Zap, X, ChevronRight, Heart, FileText, ShoppingCart, Loader2, Check } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
+import { buildFollowUpMessage } from '@/lib/whatsapp-followup';
 import Link from 'next/link';
 
 interface Opportunity {
@@ -72,16 +73,12 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
         const rawPhone = opp.phone.replace(/\D/g, '');
         const phone = rawPhone.length >= 10 ? '549' + rawPhone.slice(-10) : rawPhone;
 
-        const firstName = opp.clientName.split(' ')[0];
-        let message = '';
-
-        if (opp.type === 'STALLED_FAVORITE') {
-            message = `Hola ${firstName}! Cómo andás? Quería saber si te quedó alguna duda sobre los lentes que estuvimos viendo. Si querés te puedo pasar fotitos de los armazones en stock, que a la gente le gusta mucho ver los detalles de los modelos.`;
-        } else if (opp.type === 'PENDING_QUOTE') {
-            message = `Hola ${firstName}! Cómo estás? Pudiste ver el presupuesto que te enviamos? Queres que te mande fotitos de los armazones para que veas algunas opciones, ya que tenemos una coleccion de seleccion muy hermosa?`;
-        } else {
-            message = `Hola ${firstName}! Cómo estás? Vimos que te quedaron unos artículos en el carrito. Si querés te puedo pasar fotos reales de esos modelos en stock para ver los detalles, que a la gente le gusta mucho ver las fotos reales antes de avanzar.`;
-        }
+        const { message } = buildFollowUpMessage({
+            clientName: opp.clientName,
+            type: opp.type,
+            daysElapsed: opp.daysElapsed,
+            seed: opp.clientId || opp.id,
+        });
 
         // Copy to clipboard for easy pasting in the local WhatsApp chat
         try {

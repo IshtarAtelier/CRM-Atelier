@@ -10,13 +10,17 @@ export async function GET() {
         return NextResponse.json(data);
     } catch (error: any) {
         console.error('[WhatsApp Agent API] Error:', error.message);
-        return NextResponse.json({ 
-            prompt: '', 
-            enabled: false, 
-            apiKey: '', 
-            model: 'gpt-4o-mini', 
+        return NextResponse.json({
+            prompt: '',
+            enabled: false,
+            // Sin respuesta del servicio no sabemos el estado real. Mostramos los
+            // seguimientos como apagados: que el interruptor diga "Activos" cuando
+            // no pudimos confirmarlo es la mentira más cara de las dos.
+            followupsEnabled: false,
+            apiKey: '',
+            model: 'gpt-4o-mini',
             configured: false,
-            error: 'Servidor de WhatsApp no disponible' 
+            error: 'Servidor de WhatsApp no disponible'
         });
     }
 }

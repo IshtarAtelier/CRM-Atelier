@@ -146,6 +146,10 @@ function WhatsAppPageContent() {
     const [agentPrompt, setAgentPrompt] = useState('');
     const [dailyContext, setDailyContext] = useState('');
     const [agentEnabled, setAgentEnabled] = useState(false);
+    // Seguimientos salientes (presupuestos, inactividad, tareas). Es un
+    // interruptor aparte del asistente: ése decide si el bot contesta, éste si
+    // nosotros escribimos primero.
+    const [followupsEnabled, setFollowupsEnabled] = useState(true);
     const [showTestChat, setShowTestChat] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
     const [loadingStatus, setLoadingStatus] = useState(true);
@@ -671,6 +675,9 @@ function WhatsAppPageContent() {
             setAgentPrompt(systemPrompt);
             setDailyContext(data.dailyContext || '');
             setAgentEnabled(data.enabled || false);
+            // Si el servicio no informa el campo (versión vieja), asumimos
+            // encendido para no mostrar "Pausados" cuando en realidad están activos.
+            setFollowupsEnabled(data.followupsEnabled !== false);
         } catch { }
     };
 
@@ -724,6 +731,7 @@ function WhatsAppPageContent() {
                 socket.on('bot_status', (statusData: any) => {
                     setStatus({ connected: statusData.connected, phone: statusData.phone, qr: statusData.qr, agentEnabled: statusData.agentEnabled });
                     if (statusData.agentEnabled !== undefined) setAgentEnabled(statusData.agentEnabled);
+                    if (statusData.followupsEnabled !== undefined) setFollowupsEnabled(statusData.followupsEnabled);
                     if (statusData.prompt !== undefined) setAgentPrompt(statusData.prompt);
                     setLoadingStatus(false);
                 });
@@ -1215,6 +1223,34 @@ function WhatsAppPageContent() {
                             className={`w-11 h-6 rounded-full transition-colors relative shadow-inner focus:outline-none ${agentEnabled ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-stone-700'}`}
                         >
                             <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${agentEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-white/60 dark:bg-stone-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-800 shadow-sm transition-all">
+                        <div className="flex flex-col items-end">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500 leading-none mb-0.5">Seguimientos</span>
+                            <span className={`text-[11px] font-bold leading-none transition-colors ${followupsEnabled ? 'text-sky-600 dark:text-sky-400' : 'text-stone-500 dark:text-stone-400'}`}>
+                                {followupsEnabled ? 'Activos' : 'Pausados'}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                const next = !followupsEnabled;
+                                // Apagar es el botón de pánico: no pedimos confirmación.
+                                // Encender sí la pide, porque reanuda mensajes salientes
+                                // automáticos a clientes reales.
+                                if (next && !confirm('Vas a reactivar los seguimientos automáticos por WhatsApp.\n\nEl bot va a volver a escribirle solo a los clientes con presupuestos pendientes y charlas sin respuesta. ¿Confirmás?')) return;
+                                setFollowupsEnabled(next);
+                                fetch('/api/whatsapp/agent', {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ followupsEnabled: next }),
+                                });
+                            }}
+                            title={followupsEnabled
+                                ? 'Pausar todos los seguimientos automáticos salientes'
+                                : 'Reanudar los seguimientos automáticos salientes'}
+                            className={`w-11 h-6 rounded-full transition-colors relative shadow-inner focus:outline-none ${followupsEnabled ? 'bg-sky-500' : 'bg-stone-300 dark:bg-stone-700'}`}
+                        >
+                            <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${followupsEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
                         </button>
                     </div>
 

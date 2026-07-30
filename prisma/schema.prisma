@@ -50,6 +50,7 @@ model Client {
   adTag         String?
   createdBy     String?        @default("Sistema")
   isDeleted     Boolean        @default(false)
+  opportunityDismissedAt DateTime?
   tasks         ClientTask[]
   interactions  Interaction[]
   orders        Order[]

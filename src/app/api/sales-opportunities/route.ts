@@ -32,6 +32,7 @@ export async function GET() {
             where: {
                 isFavorite: true,
                 status: { notIn: ['CLIENT', 'active'] },
+                opportunityDismissedAt: null,
                 orders: {
                     none: {
                         OR: [
@@ -438,10 +439,10 @@ export async function POST(req: Request) {
                     userName: actor.name,
                 }
             });
-            // Also trigger client updatedAt update
+            // Descarte definitivo: ya no vuelve a aparecer como oportunidad de cierre
             await prisma.client.update({
                 where: { id },
-                data: { updatedAt: new Date() }
+                data: { opportunityDismissedAt: new Date() }
             });
         } else if (type === 'PENDING_QUOTE') {
             // Update order status to LOST
