@@ -77,7 +77,8 @@ async function processPassiveExtraction(chatId, waId, profileName) {
         const recentMessages = await prisma.whatsAppMessage.findMany({
             where: { chatId: chatId },
             orderBy: { createdAt: 'desc' },
-            take: 15
+            take: 15,
+            select: { content: true, direction: true, createdAt: true, type: true, mediaUrl: true },
         });
 
         if (recentMessages.length === 0) return;
@@ -98,6 +99,15 @@ async function processPassiveExtraction(chatId, waId, profileName) {
             });
             const timestamp = `[${formatter.format(dateObj)}]`;
             const role = m.direction === 'OUTBOUND' ? 'Óptica:' : 'Cliente:';
+            // Las fotos se marcan explícitas: la de la receta es el dato más
+            // valioso que manda un cliente, y como "[Adjunto/Media]" el modelo no
+            // podía distinguirla de un sticker. Se aclara si quedó guardada,
+            // porque desde el 15/7/2026 la bajada automática está caída y la foto
+            // puede estar solo en el teléfono.
+            if (m.type === 'IMAGE') {
+                const guardada = m.mediaUrl ? 'guardada en el sistema' : 'NO se pudo guardar, está solo en WhatsApp';
+                return `${timestamp} ${role} [FOTO — ${guardada}]${m.content && !m.content.startsWith('data:') ? ' ' + m.content : ''}`;
+            }
             return `${timestamp} ${role} ${m.content || '[Adjunto/Media]'}`;
         }).join('\n');
 
@@ -127,6 +137,10 @@ Your task is to return a strictly valid JSON object with the following fields:
 4. "summary": string or null.
 5. "suggestedTask": object or null {"description": string, "dueDate": "YYYY-MM-DD"}.
 6. "invoiceRequested": boolean.
+6b. "fotoDeReceta": boolean. true SOLO si el cliente mandó una FOTO y del contexto
+   surge que es su receta oftalmológica (habla de su receta, de su graduación, del
+   oftalmólogo, o el vendedor le pidió la receta y él respondió con la foto). Si la
+   foto es de un armazón, un comprobante de pago o cualquier otra cosa, false.
 7. "shouldPostponeFollowup": boolean. (Set to true if the client explicitly asks to postpone, wait, says they don't have the prescription yet, will have it in a week/few days, is busy and asks to be contacted later, or states they cannot buy/visit until a certain future date like next week, next month, etc.)
 8. "postponeUntilDate": "YYYY-MM-DD" or null. (If shouldPostponeFollowup is true, estimate the best future date to resume contact based on their message, e.g. next week = 7 days from now, next month = 30 days from now, or use the specific date they mentioned. Default to 7 days from now if unclear. Today is: ${new Date().toISOString().split('T')[0]}).
 
@@ -214,6 +228,47 @@ Respond ONLY with the raw JSON. No markdown.
                 await addTagToClient({ clientId: currentClientId, tagName: parsed.interestTag }).catch(e => console.error("Error addTagToClient pasivo:", e.message));
             }
             
+            // ── FOTO DE RECETA: el dato más valioso que manda un cliente ──
+            // Queda como tarea en la ficha, NO como email: el vendedor trabaja en la
+            // ficha y un mail por cada foto sería ruido. Una sola por chat: si ya
+            // existe la tarea pendiente no se repite en cada mensaje nuevo.
+            if (parsed.fotoDeReceta) {
+                const yaAvisada = await prisma.clientTask.findFirst({
+                    where: {
+                        clientId: currentClientId,
+                        status: 'PENDING',
+                        description: { startsWith: '[RECETA POR FOTO]' },
+                    },
+                    select: { id: true },
+                });
+                if (!yaAvisada) {
+                    // Si la imagen no se pudo bajar, el vendedor tiene que ir a
+                    // buscarla al WhatsApp del local: la tarea se lo dice.
+                    const guardada = recentMessages.some(m => m.type === 'IMAGE' && m.mediaUrl);
+                    const detalle = guardada
+                        ? 'La foto está en el chat del sistema.'
+                        : 'La foto NO se pudo guardar: buscarla en el WhatsApp del local y subirla a la receta.';
+                    console.log(`  📄 [Ficha Inteligente] Foto de receta detectada para ${currentClientId}`);
+                    await prisma.clientTask.create({
+                        data: {
+                            clientId: currentClientId,
+                            description: `[RECETA POR FOTO] El cliente mandó la foto de su receta por WhatsApp. ${detalle} Cargarla en el área de Recetas de la ficha.`,
+                            type: 'TASK',
+                            status: 'PENDING',
+                            dueDate: new Date(),
+                            createdBy: 'Sistema (Pasivo)',
+                        },
+                    }).catch(e => console.error('Error creando tarea de receta:', e.message));
+
+                    if (global.io) {
+                        global.io.emit('task_created', {
+                            clientId: currentClientId,
+                            description: '[RECETA POR FOTO] Cargar la receta que mandó el cliente',
+                        });
+                    }
+                }
+            }
+
             // Crear Tarea Inteligente si fue detectada
             if (parsed.suggestedTask && parsed.suggestedTask.description) {
                 // Check if a similar task already exists for this client (to avoid duplicates in every message)

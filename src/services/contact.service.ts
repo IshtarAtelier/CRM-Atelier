@@ -1470,7 +1470,10 @@ export const ContactService = {
             data: {
                 clientId,
                 type: 'NOTE',
-                content: `👓 ${actor?.name || 'Sistema'} cargó una nueva receta`,
+                // Decir si vino con foto: es el dato que la dueña necesita ver de un
+                // vistazo en el historial, sobre todo mientras la bajada automática
+                // de imágenes de WhatsApp está caída y la foto la sube el vendedor.
+                content: `👓 ${actor?.name || 'Sistema'} cargó una nueva receta${created.imageUrl ? ' (con foto)' : ' — SIN foto'}`,
                 userId: actor?.id || null,
                 userName: actor?.name || null
             }
