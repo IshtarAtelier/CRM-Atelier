@@ -16,6 +16,8 @@ wa-service/node_modules/
 
 # next.js
 /.next/
+# Los dev servers en puertos paralelos crean .next-<nombre> (ver CLAUDE.md).
+/.next-*/
 /out/
 
 # production
