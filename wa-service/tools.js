@@ -53,8 +53,13 @@ async function checkExistingClient({ phone, name }) {
 }
 
 /**
- * Detect contact source based on the chat's waId and the first inbound message.
- * Priority: @lid (definitive Meta) > keywords in first message > fallback 'Otros'
+ * Origen del contacto según lo que DICE el primer mensaje entrante.
+ *
+ * Prioridad: plantilla con corchetes de Meta ([metaFlor]) > plantilla de Google
+ * ("Vi su anuncio en Google", share.google) > mención explícita de la plataforma
+ * > referido. Sin ninguna señal devuelve null y lo elige el vendedor.
+ *
+ * NO se usa el formato del waId: ver la nota larga abajo sobre @lid.
  */
 async function detectContactSourceFromChat(chatId) {
     if (!chatId) return null;
@@ -69,15 +74,21 @@ async function detectContactSourceFromChat(chatId) {
         return null;
     }
 
-    // 0. Check if this is a @lid chat (Click-to-WhatsApp ad from Meta) — definitive indicator
-    const chat = await prisma.whatsAppChat.findUnique({
-        where: { id: chatId },
-        select: { waId: true }
-    });
-
-    if (chat?.waId?.includes('@lid')) {
-        return 'Meta';
-    }
+    // OJO: acá había una regla que devolvía 'Meta' para todo chat @lid, con el
+    // comentario "indicador definitivo de click-to-WhatsApp de Meta". Era cierto
+    // cuando se escribió, pero WhatsApp extendió el formato @lid a TODOS los
+    // contactos: al 29/7/2026 son 1.412 de 1.442 chats (98%), desde abril.
+    //
+    // Resultado: la regla marcaba Meta el 98% de lo que entra por WhatsApp y
+    // cortaba ANTES de leer el mensaje, así que la detección de Google era código
+    // inalcanzable. Se verificaron 8 chats que dicen "Vi su anuncio en Google" y
+    // quedaron etiquetados Meta; y hay chats @lid etiquetados a mano como Calle
+    // (31), Referido (28) y Google Ads (33) — o sea que @lid no dice nada del
+    // origen. Era el motivo de que Meta figurara con 479 contactos contra 68 de
+    // Google.
+    //
+    // Ahora se decide SOLO por lo que dice el mensaje. Sin señal explícita se
+    // devuelve null y el vendedor elige: un origen inventado es peor que vacío.
     
     // Find the earliest inbound message
     const firstMessage = await prisma.whatsAppMessage.findFirst({
