@@ -62,9 +62,13 @@ export async function POST(
         const isOutboundInitiated = firstMessage?.direction === 'OUTBOUND';
         const profileName = chat.profileName || '';
         const waId = chat.waId || '';
-        const isLid = waId.includes('@lid') && !isOutboundInitiated;
+        // @lid ya NO significa "vino de un anuncio de Meta". WhatsApp extendió ese
+        // formato a TODOS los contactos: al 29/7/2026 son 1.412 de 1.442 chats (98%).
+        // Lo único que sigue siendo cierto es que el número del id no es el teléfono
+        // real, así que hay que buscarlo en la conversación.
+        const telefonoNoConfiable = waId.includes('@lid');
         // Priorizar realPhone (resuelto por el wa-service) sobre el waId crudo
-        const rawPhone = chat.realPhone || (isLid ? '' : waId.replace('@c.us', '').replace('@s.whatsapp.net', ''));
+        const rawPhone = chat.realPhone || (telefonoNoConfiable ? '' : waId.replace('@c.us', '').replace('@s.whatsapp.net', ''));
 
         // Llamar a Gemini para extraer datos con el SDK oficial modernizado
         const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY || '';
@@ -96,7 +100,7 @@ export async function POST(
                     type: Type.STRING,
                     nullable: true,
                     enum: ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"],
-                    description: "Fuente de contacto del cliente. Si es un chat de ANUNCIO META (@lid) iniciado por el cliente, DEBE ser 'Meta'. Si es DIRECTO o INICIADO POR NOSOTROS (Outbound), DEBE ser null a menos que haya EVIDENCIA CLARA en la conversación (Google Ads, Meta, Referido, Calle, Ya es Cliente)."
+                    description: "Fuente de contacto del cliente. SOLO se asigna con evidencia clara en la conversación (Google Ads, Meta, Referido, Calle, Ya es Cliente). El formato del id del chat NO es evidencia: por WhatsApp entra gente de mil bocas. Si la conversación la inició la óptica, o si no hay evidencia, DEBE ser null."
                 },
                 notes: {
                     type: Type.STRING,
@@ -114,8 +118,8 @@ ${conversation}
 
 DATOS CONOCIDOS:
 - Nombre de perfil de WhatsApp: "${profileName}"
-- Teléfono extraído del WhatsApp ID: "${rawPhone}" ${isLid ? '(ATENCIÓN: este chat llegó por anuncio de Meta/Click-to-WhatsApp, el número puede ser falso. Busca si el cliente mencionó su teléfono en la conversación.)' : ''}
-- Tipo de chat: ${isOutboundInitiated ? 'INICIADO POR NOSOTROS (Outbound chat iniciado por la óptica) — el contactSource DEBE ser null salvo evidencia explícita.' : (isLid ? 'ANUNCIO META (Click-to-WhatsApp Ad) — el contactSource DEBE ser "Meta"' : 'CHAT DIRECTO ENTRANTE (el cliente escribió directamente al número de WhatsApp)')}
+- Teléfono extraído del WhatsApp ID: "${rawPhone}" ${telefonoNoConfiable ? '(ATENCIÓN: el id de este chat no contiene el teléfono real. Busca si el cliente mencionó su número en la conversación.)' : ''}
+- Tipo de chat: ${isOutboundInitiated ? 'INICIADO POR NOSOTROS (lo escribió la óptica primero) — el contactSource DEBE ser null salvo evidencia explícita en la conversación.' : 'ENTRANTE (el cliente escribió primero). El formato del id NO dice de dónde viene: por WhatsApp entra gente de mil bocas distintas.'}
 
 INSTRUCCIONES:
 1. Extrae el nombre real del cliente. Si no se menciona un nombre en la conversación, usa el nombre del perfil de WhatsApp.
@@ -123,7 +127,7 @@ INSTRUCCIONES:
 3. Deduce el interés principal (ej: "Multifocal", "Monofocal", "Lentes de contacto", "Armazones", "Gafas de sol", etc.)
 4. Detecta si mencionó obra social/seguro médico (ej: "OSDE", "Swiss Medical", "Galeno", "Apross", etc.)
 5. Detecta la fuente de contacto (contactSource). REGLAS ESTRICTAS:
-   ${isLid ? '- Este chat es de tipo ANUNCIO META (@lid) iniciado por el cliente, por lo tanto contactSource DEBE ser "Meta".' : `- Este chat es DIRECTO o fue INICIADO POR NOSOTROS. Solo asigna un origen si hay EVIDENCIA CLARA en la conversación:
+   ${`- Solo asigna un origen si hay EVIDENCIA CLARA en la conversación. El tipo de id del chat NO es evidencia:
    - "Google Ads": Si el cliente menciona que los encontró por Google/Maps o si la primera línea es exactamente "Hola! Vi su anuncio en Google y quiero recibir más información." o contiene referencias a Google.
    - "Meta": Si el cliente menciona que vio un anuncio en Instagram o Facebook, o si hay un tag en corchetes que empiece con "meta" o "Meta" (ej: [metaFlor], [MetaAgos], [metaSofi], [metacursi], etc.).
    - "Referido": Si menciona que alguien lo recomendó, un amigo, conocido o familiar.

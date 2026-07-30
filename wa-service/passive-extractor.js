@@ -167,8 +167,8 @@ Respond ONLY with the raw JSON. No markdown.
             } else {
                 console.log(`  👤 [Ficha Inteligente] Creando ficha: ${nombre} (${telefono})`);
                 // contactSource null a propósito: convertIntoLead llama a
-                // detectContactSourceFromChat, que resuelve @lid → Meta, plantillas
-                // [meta...], "vi su anuncio en Google", "me recomendó" → Referido.
+                // detectContactSourceFromChat, que resuelve por el TEXTO del primer mensaje:
+                // plantillas [meta...], "vi su anuncio en Google", "me recomendó".
                 const alta = await convertIntoLead({
                     phone: telefono,
                     name: nombre,
