@@ -86,7 +86,16 @@ export function captureAttribution(): Attribution {
 
     const existing = localStorage.getItem(ATTR_KEY);
     if (existing) {
-      const attr = JSON.parse(existing) as Attribution;
+      // Si el valor guardado está corrupto, JSON.parse lanza y sin este borrado
+      // el navegador quedaba con la atribución muerta PARA SIEMPRE: cada visita
+      // futura fallaba en el mismo parse antes de poder guardar el gclid nuevo.
+      let attr: Attribution;
+      try {
+        attr = JSON.parse(existing) as Attribution;
+      } catch {
+        localStorage.removeItem(ATTR_KEY);
+        return capturarFresco(params, { fbclid, gclid, wbraid, gbraid });
+      }
       if (fbclid || gclid || wbraid || gbraid) {
         if (fbclid) {
           attr.fbclid = fbclid;
@@ -103,6 +112,19 @@ export function captureAttribution(): Attribution {
       return attr;
     }
 
+    return capturarFresco(params, { fbclid, gclid, wbraid, gbraid });
+  } catch {
+    return {};
+  }
+}
+
+/** Primera visita (o dato corrupto recién borrado): se guarda lo que traiga la URL. */
+function capturarFresco(
+  params: URLSearchParams,
+  ids: { fbclid?: string; gclid?: string; wbraid?: string; gbraid?: string },
+): Attribution {
+  try {
+    const { fbclid, gclid, wbraid, gbraid } = ids;
     const attr: Attribution = {
       utmSource: params.get('utm_source') || undefined,
       utmMedium: params.get('utm_medium') || undefined,
@@ -174,18 +196,36 @@ export interface TrackProps {
  * copiar y pegar. Ante la duda devuelve null y el vendedor elige a mano — un
  * origen inventado es peor que un origen vacío (por eso no hay default a Meta).
  */
+/**
+ * Ventana de atribución: un clic más viejo que esto ya no cuenta como origen.
+ *
+ * Sin ventana, alguien que hizo clic en un aviso hace dos meses y hoy entra
+ * escribiendo la dirección a mano seguía mandando "Los vi en Google Ads." — y el
+ * portero lo metía en la cohorte de pauta. Es el mismo sobreconteo que infló el
+ * ROAS de 70×. 30 días es la ventana estándar de Google; Meta usa 7 para el clic.
+ */
+const VENTANA_GOOGLE_MS = 30 * 24 * 60 * 60 * 1000;
+const VENTANA_META_MS = 7 * 24 * 60 * 60 * 1000;
+
 export function adPlatform(): 'Google Ads' | 'Meta' | null {
   if (typeof window === 'undefined') return null;
   try {
     const attr = captureAttribution();
-    const google = Boolean(attr.gclid || attr.wbraid || attr.gbraid);
-    const meta = Boolean(attr.fbclid);
+    const ahora = Date.now();
+
+    // Un identificador sin fecha es de antes de que se guardara `gclidAt`: es
+    // viejo por definición, así que no cuenta. Mejor sin origen que con uno
+    // vencido.
+    const vigente = (visto?: number, ventana?: number) =>
+      Boolean(visto && ventana && ahora - visto <= ventana);
+
+    const google = Boolean(attr.gclid || attr.wbraid || attr.gbraid) && vigente(attr.gclidAt, VENTANA_GOOGLE_MS);
+    const meta = Boolean(attr.fbclid) && vigente(attr.fbclidAt, VENTANA_META_MS);
+
     if (!google && !meta) return null;
     if (google && !meta) return 'Google Ads';
     if (meta && !google) return 'Meta';
-    // Trae los dos: gana el clic más reciente. Sin fecha (dato viejo, guardado
-    // antes de que existiera gclidAt) se prefiere Meta, que es el que sí tenía
-    // fecha desde el principio.
+    // Los dos vigentes: gana el clic más reciente.
     return (attr.gclidAt ?? 0) > (attr.fbclidAt ?? 0) ? 'Google Ads' : 'Meta';
   } catch {
     return null;

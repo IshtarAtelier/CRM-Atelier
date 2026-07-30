@@ -5,7 +5,6 @@
  */
 
 import { WHATSAPP_PHONE } from "@/lib/constants";
-import { adPlatformSentence } from "@/lib/client-analytics";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://atelieroptica.com.ar";
 
@@ -24,28 +23,22 @@ export function currentPageUrl(pathname?: string): string {
 /**
  * Link de wa.me con el texto ya encodeado y la URL de la página al final.
  *
- * Si el visitante llegó desde un aviso (hay gclid/wbraid/gbraid de Google o
- * fbclid de Meta), el mensaje arranca diciendo "Los vi en Google Ads." o
- * "Los vi en Meta.". Así el origen viaja con la consulta y lo lee el portero,
- * en vez de depender de que alguien lo adivine tres días después.
+ * OJO: acá NO se agrega la frase de origen ("Los vi en Google Ads."). Se intentó
+ * y produce un error de hidratación: el HTML del servidor sale sin la frase (el
+ * identificador de clic vive en el navegador) y el primer render del cliente la
+ * agrega, así que el href difiere. React 19 no parchea atributos durante la
+ * hidratación, así que el href del servidor —sin frase— podía quedar pegado para
+ * siempre en la ficha de producto, justo donde aterriza el tráfico pago.
  *
- * Solo se agrega del lado del cliente: en el render del servidor todavía no se
- * sabe de dónde vino (el identificador vive en el navegador). Un link renderizado
- * en el servidor sale sin la frase, no con una equivocada.
- *
- * `attribution: false` lo desactiva para los links que no son una consulta de
- * venta (por ejemplo el botón de una página de error).
+ * La frase la agrega `WhatsAppAttribution` (montado en el layout) interceptando
+ * el clic. Ventaja extra: cubre TODOS los links a wa.me del sitio, incluidos los
+ * que se arman a mano en las notas del blog y los que se renderizan en el
+ * servidor, que con el enfoque anterior quedaban afuera.
  */
 export function buildWhatsAppUrl(
   text: string,
-  {
-    pageUrl,
-    phone = WHATSAPP_PHONE,
-    attribution = true,
-  }: { pageUrl?: string; phone?: string; attribution?: boolean } = {}
+  { pageUrl, phone = WHATSAPP_PHONE }: { pageUrl?: string; phone?: string } = {}
 ): string {
-  const origen = attribution ? adPlatformSentence() : "";
-  const conOrigen = origen ? `${origen} ${text}` : text;
-  const body = pageUrl ? `${conOrigen}\n\n${pageUrl}` : conOrigen;
+  const body = pageUrl ? `${text}\n\n${pageUrl}` : text;
   return `https://wa.me/${phone}?text=${encodeURIComponent(body)}`;
 }

@@ -73,6 +73,7 @@ import { TrackingScripts } from "@/components/Storefront/TrackingScripts";
 import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { ChunkReloadGuard } from "@/components/ChunkReloadGuard";
 import AnalyticsTracker from "@/components/Storefront/AnalyticsTracker";
+import WhatsAppAttribution from "@/components/Storefront/WhatsAppAttribution";
 import CookieConsent from "@/components/Storefront/CookieConsent";
 
 export default function RootLayout({
@@ -106,6 +107,7 @@ export default function RootLayout({
             pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID}
           />
           <AnalyticsTracker />
+          <WhatsAppAttribution />
           <CookieConsent />
           <ChunkReloadGuard />
         </ThemeProvider>

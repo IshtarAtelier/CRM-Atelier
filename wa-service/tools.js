@@ -104,7 +104,12 @@ async function detectContactSourceFromChat(chatId) {
 
     // 0. Deterministic Template Matches
     // Meta templates with brackets, e.g. [metaSofi], [Metaplaca]
-    if (/\[meta[^\]]*\]/i.test(firstMessage.content)) {
+    // Plantillas de Meta con corchetes ([metaSofi], [MetaAgos]) y la frase que
+    // agrega la web cuando el visitante trae fbclid. Las dos van en el paso 0,
+    // simétricas con las de Google: si "Los vi en Meta." cayera al chequeo
+    // genérico de abajo, un "los busqué en google maps" en el mismo mensaje le
+    // ganaría y escribiría el origen equivocado.
+    if (/\[meta[^\]]*\]/i.test(firstMessage.content) || /los vi en meta\b/i.test(firstMessage.content)) {
         return 'Meta';
     }
     // Google, señales DETERMINÍSTICAS (verificadas contra 120 días de mensajes
@@ -132,7 +137,12 @@ async function detectContactSourceFromChat(chatId) {
     if (
         text.includes('instagram') ||
         text.includes('facebook') ||
-        text.includes('meta') ||
+        // NO usar includes('meta') a secas: matchea "metal", "metales",
+        // "metalizado" — y la óptica vende armazones de metal. Con el corte @lid
+        // eliminado esta rama decide el 100% de los chats entrantes, así que un
+        // "¿tienen armazones de metal?" se etiquetaba Meta. Se exige la palabra
+        // sola o acompañada de "ads"/"anuncio".
+        /\bmeta\b(?!l)/i.test(text) ||
         text.includes('vi su publicacion') ||
         text.includes('vi tu publicacion') ||
         text.includes('vi su publicación') ||
