@@ -157,6 +157,12 @@ Reglas para que el proyecto escale sin volverse un mazacote.
 - **Los datos/entregables pesados** (JSON de fichas, listas de precios, PDFs de
   labs) van en `scripts/maintenance/<tema>/` con un README que diga qué son y
   cómo se aplican — nunca sueltos.
+- **Los snapshots de `src/data/snapshots/` NO se commitean desde la base local.**
+  Son el último recurso que sirve la tienda si producción no responde, y el build
+  los regenera contra la base que vea. Un `npm run build` local los sobreescribía
+  con el catálogo de docker (desincronizado). Ya hay una guarda en el script que
+  se niega a escribir desde localhost — si aparecen modificados en `git status`,
+  descartarlos con `git checkout -- src/data/snapshots/`.
 - **Auditoría mensual** (o cuando algo se sienta sucio): `git status`,
   `git stash list`, `git worktree list`, `git branch -vv`, ramas mergeadas
   (`git branch --merged origin/main`), y tamaño de la carpeta. Todo lo que no se

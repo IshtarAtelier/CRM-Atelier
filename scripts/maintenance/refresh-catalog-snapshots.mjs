@@ -26,6 +26,35 @@ import { CATALOG_SOURCE_KEYS, runCatalogQuery } from '../../src/lib/catalog/quer
 import { defaultIsEmpty } from '../../src/lib/catalog/resilience.ts';
 
 const OUT_DIR = resolve(process.cwd(), 'src/data/snapshots');
+
+// ────────────────────────────────────────────────────────────────────────────
+// GUARDA: no escribir snapshots desde una base LOCAL.
+//
+// Estos JSON son el último recurso que sirve la tienda cuando la base de
+// producción no responde, y están commiteados. El build los regenera contra la
+// base que vea en DATABASE_URL, así que un `npm run build` en la máquina de
+// alguien los sobreescribía con el catálogo de su docker — que está
+// desincronizado (29/7/2026: 449 productos / 106 activos en local contra
+// 119 / 114 en producción). Si esos snapshots llegaran a producción, el día que
+// la base tenga un problema la tienda mostraría el catálogo de una máquina de
+// desarrollo.
+//
+// En Railway DATABASE_URL apunta a producción y la guarda no se activa, así que
+// cada deploy sigue dejando snapshots frescos y correctos.
+//
+// Para regenerarlos a propósito desde producción:
+//   DATABASE_URL="$PROD_DATABASE_URL" npm run snapshot:catalog
+// ────────────────────────────────────────────────────────────────────────────
+const DB_URL = process.env.DATABASE_URL || '';
+const esLocal = /localhost|127\.0\.0\.1|::1|host\.docker\.internal/.test(DB_URL);
+if (esLocal && !process.argv.includes('--forzar-local')) {
+  console.log(
+    '[snapshot] DATABASE_URL apunta a una base LOCAL: no se tocan los snapshots ' +
+    'commiteados (son el fallback de producción). Para forzar: --forzar-local.',
+  );
+  process.exit(0);
+}
+
 const prisma = new PrismaClient();
 
 let failures = 0;
