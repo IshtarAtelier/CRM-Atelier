@@ -61,7 +61,10 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
     const getLinkHref = (opp: Opportunity) => {
         if (opp.type === 'STALLED_FAVORITE') return `/admin/contactos?clientId=${opp.clientId}`;
         if (opp.type === 'PENDING_QUOTE') return `/admin/ventas?id=${opp.id}`;
-        return `/admin/ventas`; // Carts don't have a direct detail page but belong to storefront/orders
+        // Los carritos que califican tienen ficha creada automáticamente
+        // (etiqueta "Carrito Web") — el click va directo a esa ficha.
+        if (opp.clientId) return `/admin/contactos?clientId=${opp.clientId}`;
+        return `/admin/ventas`;
     };
 
     const handleSendWhatsApp = (e: React.MouseEvent, opp: Opportunity) => {
@@ -86,6 +89,14 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
         } catch (err) {
             console.warn('Failed to copy to clipboard:', err);
         }
+
+        // Registrar el seguimiento en la ficha del cliente (fire-and-forget:
+        // no bloquea la navegación al chat).
+        fetch('/api/sales-opportunities/followup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: opp.id, type: opp.type, message }),
+        }).catch(() => { });
 
         onClose();
         window.location.href = `/admin/whatsapp?phone=${phone}&text=${encodeURIComponent(message)}`;

@@ -2,6 +2,20 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { serverCache } from '@/lib/cache';
 import { getActor } from '@/lib/actor';
+import { ensureClientForAbandonedCart } from '@/services/cart-recovery.service';
+import { normalizeArgentinePhone } from '@/services/contact.service';
+
+/**
+ * Llave de teléfono para dedup: normaliza formatos argentinos (el "15"
+ * intercalado, 0 de área, +54 9) antes de quedarse con los últimos 8 dígitos.
+ * Sin esto, "0351 15 6123456" y "3516123456" parecían dos personas.
+ */
+function phoneKey(phone: string | null | undefined): string | null {
+    const normalized = normalizeArgentinePhone(phone);
+    if (normalized.length <= 3) return null;
+    const digits = normalized.slice(3); // sin el '549'
+    return digits.length >= 8 ? digits.slice(-8) : null;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -22,8 +36,10 @@ export async function GET() {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        // 45 días: los tickets grandes (multifocales, controles de miopía,
+        // graduaciones altas) se piensan más — 30 días los soltaba demasiado pronto.
+        const fortyFiveDaysAgo = new Date();
+        fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
 
         const opportunities: any[] = [];
 
@@ -31,6 +47,7 @@ export async function GET() {
         const favoriteClients = await prisma.client.findMany({
             where: {
                 isFavorite: true,
+                isDeleted: false,
                 status: { notIn: ['CLIENT', 'active'] },
                 opportunityDismissedAt: null,
                 orders: {
@@ -47,6 +64,7 @@ export async function GET() {
                 id: true,
                 name: true,
                 phone: true,
+                email: true,
                 status: true,
                 interest: true,
                 updatedAt: true,
@@ -99,13 +117,14 @@ export async function GET() {
                 ? new Date(Math.max(...dates.map(d => d.getTime())))
                 : client.createdAt;
 
-            if (lastActivity < threeDaysAgo && lastActivity > thirtyDaysAgo) {
+            if (lastActivity < threeDaysAgo && lastActivity > fortyFiveDaysAgo) {
                 const latestRx = client.prescriptions[0];
                 const latestOrder = client.orders[0];
 
-                const isHighValue = 
-                    // Alto valor (monto >= 250.000)
-                    (latestOrder && latestOrder.total >= 250000) ||
+                // Ticket importante = producto de alto compromiso (graduación
+                // alta, multifocal, control de miopía). Va primero en el panel,
+                // por encima del monto.
+                const isSpecialTicket =
                     // Graduaciones altas (abs >= 4 esfera o abs >= 2 cilindro)
                     (latestRx && (
                         Math.abs(latestRx.sphereOD || 0) >= 4.0 ||
@@ -126,6 +145,8 @@ export async function GET() {
                         client.interest.toLowerCase().includes('myopilux')
                     ));
 
+                const isHighValue = (latestOrder && latestOrder.total >= 250000) || isSpecialTicket;
+
                 if (!isHighValue) continue;
 
                 const daysElapsed = Math.floor((Date.now() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
@@ -136,6 +157,8 @@ export async function GET() {
                     clientName: client.name,
                     clientId: client.id,
                     phone: client.phone,
+                    email: client.email,
+                    isPriority: !!isSpecialTicket,
                     detail: `Sin actividad por ${daysElapsed} días`,
                     amount: latestOrder?.total || null,
                     daysElapsed,
@@ -152,9 +175,10 @@ export async function GET() {
                 isDeleted: false,
                 createdAt: {
                     lt: threeDaysAgo,
-                    gt: thirtyDaysAgo
+                    gt: fortyFiveDaysAgo
                 },
                 client: {
+                    isDeleted: false,
                     status: { notIn: ['CLIENT', 'active'] },
                     orders: {
                         none: {
@@ -176,7 +200,9 @@ export async function GET() {
                     select: {
                         id: true,
                         name: true,
-                        phone: true
+                        phone: true,
+                        email: true,
+                        opportunityDismissedAt: true
                     }
                 },
                 items: {
@@ -193,6 +219,13 @@ export async function GET() {
         });
 
         for (const quote of pendingQuotes) {
+            // Cliente descartado como oportunidad DESPUÉS de este presupuesto:
+            // no volver a mostrarlo. Un presupuesto NUEVO posterior al descarte
+            // sí entra — es una oportunidad genuinamente nueva.
+            if (quote.client.opportunityDismissedAt && quote.createdAt < quote.client.opportunityDismissedAt) {
+                continue;
+            }
+
             const hasHighValue = quote.total >= 250000;
             let hasHighGraduation = false;
             let hasSpecialLenses = false;
@@ -239,6 +272,8 @@ export async function GET() {
                 clientName: quote.client.name,
                 clientId: quote.client.id,
                 phone: quote.client.phone,
+                email: quote.client.email,
+                isPriority: hasHighGraduation || hasSpecialLenses,
                 detail: `Presupuesto de $${quote.total.toLocaleString('es-AR')} hace ${daysElapsed} días`,
                 amount: quote.total,
                 daysElapsed,
@@ -254,7 +289,7 @@ export async function GET() {
                 },
                 createdAt: {
                     lt: oneDayAgo,
-                    gt: thirtyDaysAgo
+                    gt: fortyFiveDaysAgo
                 }
             },
             orderBy: {
@@ -290,6 +325,29 @@ export async function GET() {
                 continue; // Skip if it doesn't meet the target criteria
             }
 
+            // Carrito que califica → ficha en el CRM (etiqueta "Carrito Web",
+            // evento en el historial). Con ficha, el dedup es por cliente y los
+            // seguimientos quedan registrados. Idempotente: solo la primera vez.
+            let cartClientId: string | null = cart.clientId;
+            try {
+                cartClientId = await ensureClientForAbandonedCart(cart);
+            } catch (e) {
+                console.error('[sales-opportunities] No se pudo asegurar ficha para carrito', cart.id, e);
+            }
+
+            // Si el cliente fue descartado como oportunidad después de crear
+            // este carrito, no lo volvemos a mostrar (mismo criterio que
+            // presupuestos: un carrito nuevo posterior al descarte sí entra).
+            if (cartClientId) {
+                const cartClient = await prisma.client.findUnique({
+                    where: { id: cartClientId },
+                    select: { name: true, opportunityDismissedAt: true },
+                });
+                if (cartClient?.opportunityDismissedAt && cart.createdAt < cartClient.opportunityDismissedAt) {
+                    continue;
+                }
+            }
+
             const daysElapsed = Math.floor((Date.now() - cart.createdAt.getTime()) / (1000 * 60 * 60 * 24));
             const hoursElapsed = Math.floor((Date.now() - cart.createdAt.getTime()) / (1000 * 60 * 60));
             const clientName = `${cart.firstName || ''} ${cart.lastName || ''}`.trim() || 'Cliente Web';
@@ -298,8 +356,10 @@ export async function GET() {
                 type: 'ABANDONED_CART',
                 title: 'Carrito abandonado',
                 clientName,
-                clientId: null,
+                clientId: cartClientId,
                 phone: cart.phone,
+                email: cart.email,
+                isPriority: hasSpecialLenses,
                 detail: `Carrito de $${cart.total.toLocaleString('es-AR')} hace ${hoursElapsed >= 48 ? `${daysElapsed} días` : `${hoursElapsed} horas`}`,
                 amount: cart.total,
                 daysElapsed,
@@ -323,49 +383,52 @@ export async function GET() {
                             }
                         }
                     }
-                ]
+                ],
+                // Un cliente borrado no puede suprimir oportunidades vivas por
+                // coincidencia de nombre/teléfono.
+                isDeleted: false
             },
             select: {
                 name: true,
-                phone: true
+                phone: true,
+                email: true
             }
         });
 
-        // Create sets of phone numbers (last 8 digits) and lowercase names of existing clients
+        // Llaves de clientes ya convertidos: teléfono normalizado, email y nombre.
         const clientPhones = new Set<string>();
         const clientNames = new Set<string>();
+        const clientEmails = new Set<string>();
 
         for (const c of clientsWithSales) {
             clientNames.add(c.name.trim().toLowerCase());
-            if (c.phone) {
-                const cleaned = c.phone.replace(/\D/g, '');
-                if (cleaned.length >= 8) {
-                    clientPhones.add(cleaned.slice(-8));
-                }
-            }
+            const pk = phoneKey(c.phone);
+            if (pk) clientPhones.add(pk);
+            if (c.email) clientEmails.add(c.email.trim().toLowerCase());
         }
 
-        // Filter out opportunities that belong to already registered customers (by exact name or last 8 digits of phone)
+        // Excluir oportunidades de gente que ya es cliente (nombre exacto,
+        // teléfono normalizado o email).
         const filteredOpportunities = opportunities.filter(opp => {
-            // Check if there is an existing customer with the same exact name
             if (clientNames.has(opp.clientName.trim().toLowerCase())) {
                 return false;
             }
-            // Check if there is an existing customer with the same phone number (last 8 digits)
-            if (opp.phone) {
-                const cleaned = opp.phone.replace(/\D/g, '');
-                if (cleaned.length >= 8) {
-                    const last8 = cleaned.slice(-8);
-                    if (clientPhones.has(last8)) {
-                        return false;
-                    }
-                }
+            const pk = phoneKey(opp.phone);
+            if (pk && clientPhones.has(pk)) {
+                return false;
+            }
+            if (opp.email && clientEmails.has(opp.email.trim().toLowerCase())) {
+                return false;
             }
             return true;
         });
 
-        // Sort by amount descending (most valuable first), then by daysElapsed descending
+        // Orden: tickets importantes primero (multifocales, control de miopía,
+        // graduaciones altas), después monto, después antigüedad.
         filteredOpportunities.sort((a, b) => {
+            if (!!b.isPriority !== !!a.isPriority) {
+                return b.isPriority ? 1 : -1;
+            }
             const amountA = a.amount || 0;
             const amountB = b.amount || 0;
             if (amountB !== amountA) {
@@ -376,31 +439,32 @@ export async function GET() {
 
         const uniqueOpportunities = [];
         const seenClients = new Set<string>();
-        const seenPhones = new Set<string>();
+        // Llave → clientId dueño. Dos fichas DISTINTAS que comparten teléfono
+        // (madre e hija con el mismo celular) son dos oportunidades legítimas,
+        // no un duplicado — solo se colapsa si alguna de las dos no tiene ficha.
+        const seenPhones = new Map<string, string | null>();
+        const seenEmails = new Map<string, string | null>();
+
+        const sameOwner = (prev: string | null | undefined, curr: string | null) =>
+            prev === undefined ? false : (prev === null || curr === null || prev === curr);
 
         for (const opp of filteredOpportunities) {
-            let isDuplicate = false;
-            
-            if (opp.clientId) {
-                if (seenClients.has(opp.clientId)) {
-                    isDuplicate = true;
-                }
-                seenClients.add(opp.clientId);
-            }
-            
-            if (opp.phone) {
-                const cleaned = opp.phone.replace(/\D/g, '');
-                if (cleaned.length >= 8) {
-                    const last8 = cleaned.slice(-8);
-                    if (seenPhones.has(last8)) {
-                        isDuplicate = true;
-                    }
-                    seenPhones.add(last8);
-                }
-            }
-            
+            const pk = phoneKey(opp.phone);
+            const ek = opp.email ? opp.email.trim().toLowerCase() : null;
+            const cid: string | null = opp.clientId || null;
+
+            const isDuplicate =
+                (cid && seenClients.has(cid)) ||
+                (pk && seenPhones.has(pk) && sameOwner(seenPhones.get(pk), cid)) ||
+                (ek && seenEmails.has(ek) && sameOwner(seenEmails.get(ek), cid));
+
             if (!isDuplicate) {
                 uniqueOpportunities.push(opp);
+                // Las llaves se registran SOLO para filas que quedaron: una fila
+                // descartada no debe suprimir a la siguiente.
+                if (cid) seenClients.add(cid);
+                if (pk) seenPhones.set(pk, cid);
+                if (ek) seenEmails.set(ek, cid);
             }
         }
 
@@ -445,17 +509,57 @@ export async function POST(req: Request) {
                 data: { opportunityDismissedAt: new Date() }
             });
         } else if (type === 'PENDING_QUOTE') {
-            // Update order status to LOST
-            await prisma.order.update({
+            const actor = getActor(req);
+            const order = await prisma.order.update({
                 where: { id },
-                data: { status: 'LOST' }
+                data: { status: 'LOST' },
+                select: { clientId: true }
+            });
+            // El descarte es de la PERSONA, no solo del presupuesto: sin esto,
+            // el mismo cliente reaparecía como "favorito sin actividad" al día
+            // siguiente (descarte asimétrico favorito↔presupuesto).
+            await prisma.client.update({
+                where: { id: order.clientId },
+                data: { opportunityDismissedAt: new Date() }
+            });
+            await prisma.interaction.create({
+                data: {
+                    clientId: order.clientId,
+                    type: 'NOTE',
+                    content: `Seguimiento finalizado (Oportunidad de Cierre, presupuesto marcado perdido) por ${actor.name}`,
+                    userId: actor.id,
+                    userName: actor.name,
+                }
             });
         } else if (type === 'ABANDONED_CART') {
-            // Update checkout session status to FINALIZED
-            await prisma.checkoutSession.update({
+            const actor = getActor(req);
+            const session = await prisma.checkoutSession.update({
                 where: { id },
-                data: { status: 'FINALIZED' }
+                data: { status: 'FINALIZED' },
+                select: { clientId: true }
             });
+            if (session.clientId) {
+                // Cerrar TODAS las sesiones abiertas de la misma persona: si
+                // volvió a entrar al checkout y generó otra, esa otra seguía
+                // viva y "reaparecía" lo que se creyó descartado.
+                await prisma.checkoutSession.updateMany({
+                    where: { clientId: session.clientId, status: { in: ['PENDING', 'ABANDONED'] } },
+                    data: { status: 'FINALIZED' }
+                });
+                await prisma.client.update({
+                    where: { id: session.clientId },
+                    data: { opportunityDismissedAt: new Date() }
+                });
+                await prisma.interaction.create({
+                    data: {
+                        clientId: session.clientId,
+                        type: 'NOTE',
+                        content: `Seguimiento finalizado (Oportunidad de Cierre, carrito web descartado) por ${actor.name}`,
+                        userId: actor.id,
+                        userName: actor.name,
+                    }
+                });
+            }
         } else {
             return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
         }

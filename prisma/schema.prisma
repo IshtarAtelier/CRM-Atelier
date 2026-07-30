@@ -57,6 +57,7 @@ model Client {
   prescriptions Prescription[]
   whatsappChats WhatsAppChat[]
   postSaleCases PostSaleCase[]
+  checkoutSessions CheckoutSession[]
   tags          Tag[]          @relation("ClientToTag")
 
   @@index([status])
@@ -684,10 +685,16 @@ model CheckoutSession {
   shippingData Json?
   status       String   @default("PENDING")
   total        Float    @default(0.0)
+  // Ficha del CRM asociada. Se completa cuando el carrito abandonado califica
+  // como oportunidad de cierre: el seguimiento queda registrado en la ficha y
+  // el panel deduplica por cliente en vez de por teléfono suelto.
+  clientId     String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  client       Client?  @relation(fields: [clientId], references: [id])
 
   @@index([status])
+  @@index([clientId])
 }
 
 model BlogPost {
