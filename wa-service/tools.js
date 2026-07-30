@@ -96,12 +96,19 @@ async function detectContactSourceFromChat(chatId) {
     if (/\[meta[^\]]*\]/i.test(firstMessage.content)) {
         return 'Meta';
     }
-    // Google templates: "Los vi en Google,", "Hola! Vi su anuncio en Google..."
-    if (/vi su anuncio en google|los vi en google/i.test(firstMessage.content)) {
+    // Google, señales DETERMINÍSTICAS (verificadas contra 120 días de mensajes
+    // reales de producción):
+    //  · "Los vi en Google Ads." — la frase que ahora agrega la web cuando el
+    //    visitante llegó con gclid/wbraid/gbraid.
+    //  · "Hola! Vi su anuncio en Google y quiero recibir más información." —
+    //    la plantilla de los anuncios de click-to-WhatsApp de Google (10 casos).
+    //  · "Encontré este producto en Google: https://share.google/..." — compartir
+    //    desde la ficha de Google.
+    if (/vi su anuncio en google|los vi en google|encontr[ée] este producto en google|share\.google/i.test(firstMessage.content)) {
         return 'Google Ads';
     }
 
-    // 1. Google (Google, Maps, Búsqueda)
+    // 1. Google por mención genérica de la plataforma
     if (
         text.includes('google') ||
         text.includes('busqueda') ||
@@ -119,8 +126,10 @@ async function detectContactSourceFromChat(chatId) {
         text.includes('vi tu publicacion') ||
         text.includes('vi su publicación') ||
         text.includes('vi tu publicación') ||
-        text.includes('vi el anuncio') ||
-        text.includes('vi un anuncio') ||
+        // "vi el anuncio" / "vi un anuncio" a secas NO dicen la plataforma: pueden
+        // ser de Google igual que de Meta. Atribuirlos a Meta era el sesgo que
+        // inflaba Meta y vaciaba Google. Sin plataforma explícita se devuelve null
+        // y el vendedor elige a mano.
         text.includes('los vi en instagram') ||
         text.includes('los vi en facebook')
     ) {

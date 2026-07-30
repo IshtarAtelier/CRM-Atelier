@@ -21,8 +21,22 @@ type Attribution = {
   referrer?: string;
   fbclid?: string;
   gclid?: string;
+  /**
+   * Google no siempre manda `gclid`. En iOS y cuando el navegador limita las
+   * cookies manda `wbraid` (Búsqueda) o `gbraid` (resto de la red). Sin estos
+   * dos se pierde una parte grande de los clics desde celular.
+   */
+  wbraid?: string;
+  gbraid?: string;
   /** Epoch ms en que se vio el fbclid (para reconstruir fbc si no hay cookie _fbc). */
   fbclidAt?: number;
+  /**
+   * Epoch ms del último identificador de Google. Hace falta para decidir el
+   * origen cuando el visitante trae los dos: alguien que hizo clic en un aviso
+   * de Google en mayo y hoy entra por Meta tiene ambos guardados, y sin fecha
+   * ganaba siempre el primero que se chequeaba.
+   */
+  gclidAt?: number;
 };
 
 function uuid(): string {
@@ -67,16 +81,23 @@ export function captureAttribution(): Attribution {
     const params = new URLSearchParams(window.location.search);
     const fbclid = params.get('fbclid') || undefined;
     const gclid = params.get('gclid') || undefined;
+    const wbraid = params.get('wbraid') || undefined;
+    const gbraid = params.get('gbraid') || undefined;
 
     const existing = localStorage.getItem(ATTR_KEY);
     if (existing) {
       const attr = JSON.parse(existing) as Attribution;
-      if (fbclid || gclid) {
+      if (fbclid || gclid || wbraid || gbraid) {
         if (fbclid) {
           attr.fbclid = fbclid;
           attr.fbclidAt = Date.now();
         }
-        if (gclid) attr.gclid = gclid;
+        if (gclid || wbraid || gbraid) {
+          if (gclid) attr.gclid = gclid;
+          if (wbraid) attr.wbraid = wbraid;
+          if (gbraid) attr.gbraid = gbraid;
+          attr.gclidAt = Date.now();
+        }
         localStorage.setItem(ATTR_KEY, JSON.stringify(attr));
       }
       return attr;
@@ -91,6 +112,9 @@ export function captureAttribution(): Attribution {
       fbclid,
       fbclidAt: fbclid ? Date.now() : undefined,
       gclid,
+      wbraid,
+      gbraid,
+      gclidAt: gclid || wbraid || gbraid ? Date.now() : undefined,
       referrer:
         document.referrer && !document.referrer.includes(window.location.host)
           ? document.referrer
@@ -140,6 +164,44 @@ export interface TrackProps {
   quantity?: number;
   orderId?: string;
   meta?: Record<string, unknown>;
+}
+
+/**
+ * De dónde vino este visitante, si se puede saber con certeza.
+ *
+ * Solo devuelve algo cuando hay un identificador de clic de la plataforma en la
+ * URL con la que entró: no adivina por referrer ni por UTMs, que se pueden
+ * copiar y pegar. Ante la duda devuelve null y el vendedor elige a mano — un
+ * origen inventado es peor que un origen vacío (por eso no hay default a Meta).
+ */
+export function adPlatform(): 'Google Ads' | 'Meta' | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const attr = captureAttribution();
+    const google = Boolean(attr.gclid || attr.wbraid || attr.gbraid);
+    const meta = Boolean(attr.fbclid);
+    if (!google && !meta) return null;
+    if (google && !meta) return 'Google Ads';
+    if (meta && !google) return 'Meta';
+    // Trae los dos: gana el clic más reciente. Sin fecha (dato viejo, guardado
+    // antes de que existiera gclidAt) se prefiere Meta, que es el que sí tenía
+    // fecha desde el principio.
+    return (attr.gclidAt ?? 0) > (attr.fbclidAt ?? 0) ? 'Google Ads' : 'Meta';
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * La frase que se agrega al mensaje de WhatsApp para que el origen viaje con la
+ * consulta. La lee el portero (detectContactSourceFromChat) y la ve el vendedor
+ * en el buzón: el dato queda a la vista, no escondido en un código.
+ */
+export function adPlatformSentence(): string {
+  const p = adPlatform();
+  if (p === 'Google Ads') return 'Los vi en Google Ads.';
+  if (p === 'Meta') return 'Los vi en Meta.';
+  return '';
 }
 
 /** Registra un evento de la tienda. No bloquea ni lanza. */
