@@ -24,6 +24,48 @@ const SHARED_SET_ID = process.env.GOOGLE_ADS_NEGATIVE_SET_ID || '11042611019';
 // BROAD: nombres distintivos, no tapan ninguna búsqueda legítima de óptica.
 // PHRASE: palabras comunes (torre, soler, galileo, elvira) donde una amplia sí
 // taparía búsquedas buenas.
+// Tercera tanda. Dos correcciones y una decisión de negocio del usuario:
+//  · Las negativas NO cubren variantes: "optica arguello" no bloquea "óptica
+//    arguello norte". Van las dos formas, con y sin tilde.
+//  · gratis y pami estaban en 66 términos EXACTOS y por eso se filtraba
+//    "anteojos gratis apross". Pasan a amplia.
+//  · APROSS, Nobis y "obra social" NO se bloquean: la óptica cubre obras
+//    sociales. Lo que no sirve es PAMI y quien busca gratis.
+const TERCERA_TANDA = [
+  ['gratis', 'BROAD'],
+  ['pami', 'BROAD'],
+  // tildes que se escaparon de la segunda tanda
+  ['óptica arguello', 'PHRASE'],
+  ['óptica visión', 'PHRASE'],
+  ['óptica mys', 'PHRASE'],
+  ['óptica santa lucía', 'PHRASE'],
+  ['óptica alta vista', 'PHRASE'],
+  ['alta vista córdoba', 'PHRASE'],
+  // competencia que apareció al mirar 90 días
+  ['optione', 'BROAD'],
+  ['opticazul', 'BROAD'],
+  ['europtica', 'BROAD'],
+  ['lutz ferrando', 'PHRASE'],
+  ['optica reartes', 'PHRASE'],
+  ['óptica reartes', 'PHRASE'],
+  ['optica mendez', 'PHRASE'],
+  ['óptica méndez', 'PHRASE'],
+  ['optica suiza', 'PHRASE'],
+  ['óptica suiza', 'PHRASE'],
+  ['optica cervantes', 'PHRASE'],
+  ['óptica cervantes', 'PHRASE'],
+  ['campo visual optica', 'PHRASE'],
+  ['campo visual óptica', 'PHRASE'],
+  ['por tus ojos', 'PHRASE'],
+  ['mas vision cordoba', 'PHRASE'],
+  ['más visión córdoba', 'PHRASE'],
+  ['mostaza sánchez', 'PHRASE'],
+  // zonas fuera del mercado del local
+  ['rio ceballos', 'PHRASE'],
+  ['río ceballos', 'PHRASE'],
+  ['san vicente', 'PHRASE'],
+];
+
 // Segunda tanda (90 días de datos): el resto de las ópticas y clínicas de
 // Córdoba que aparecían en los temas de búsqueda de la PMax.
 const SEGUNDA_TANDA = [
@@ -65,6 +107,7 @@ const SEGUNDA_TANDA = [
 ];
 
 const TERMINOS = [
+  ...TERCERA_TANDA,
   ...SEGUNDA_TANDA,
   ['visualizar', 'BROAD'],
   ['praga', 'BROAD'],
