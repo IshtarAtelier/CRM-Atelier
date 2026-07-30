@@ -6,6 +6,7 @@
 const { prisma } = require('./db');
 const { isBusinessHours } = require('./shared/business-hours');
 const { checkEligibility } = require('./followups/eligibility');
+const { evaluateConversationGate, applyCancelVerdict } = require('./followups/conversation-gate');
 const { generateFollowUpMessage } = require('./followups/message-generator');
 const { sendFollowUp } = require('./followups/sender');
 const { addTagToClient } = require('./tools');
@@ -136,8 +137,42 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
             const recentMessages = await prisma.whatsAppMessage.findMany({
                 where: { chatId: chat.id },
                 orderBy: { createdAt: 'desc' },
-                take: 10
+                take: 15
             });
+
+            // Compuerta de conversación: la elegibilidad mira datos (compras,
+            // etiquetas, cooldowns); esto mira lo que la persona DIJO. Un "no me
+            // interesa" en el chat cancela acá aunque nadie haya cargado el tag.
+            const gate = await evaluateConversationGate({
+                chat,
+                recentMessages,
+                context: `Seguimiento ${followUpType} de un presupuesto de $${latestQuote.total}`,
+            });
+
+            if (gate.decision === 'CANCEL') {
+                await applyCancelVerdict({ chat, clientId: client.id, clientName: client.name, verdict: gate });
+                await cancelTask(task.id, `Compuerta: ${gate.reason}`);
+                continue;
+            }
+            if (gate.decision === 'POSTPONE') {
+                const days = gate.postponeDays || 7;
+                await prisma.clientTask.update({
+                    where: { id: task.id },
+                    data: { dueDate: new Date(now.getTime() + days * 24 * 3600 * 1000), status: 'PENDING' }
+                }).catch(() => {});
+                console.log(`  ⏸️ [Gate] Seguimiento de ${client.name} pospuesto ${days} días: ${gate.reason}`);
+                continue;
+            }
+            if (gate.decision === 'SKIP') {
+                // +2h para no re-consultar a la compuerta cada ciclo mientras la
+                // situación (pregunta sin responder, humano gestionando) no cambia.
+                await prisma.clientTask.update({
+                    where: { id: task.id },
+                    data: { dueDate: new Date(now.getTime() + 2 * 3600 * 1000), status: 'PENDING' }
+                }).catch(() => {});
+                console.log(`  ⏭️ [Gate] Seguimiento de ${client.name} salteado 2hs: ${gate.reason}`);
+                continue;
+            }
 
             console.log(`  🤖 [Bot Executor] Generando mensaje para ${client.name} (${followUpType})...`);
             const generated = await generateFollowUpMessage({
@@ -145,7 +180,8 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
                 chat,
                 quote: latestQuote,
                 followUpType,
-                recentMessages
+                recentMessages,
+                gateHint: gate.adaptHint
             });
 
             if (!generated.text) {

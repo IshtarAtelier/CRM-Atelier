@@ -131,9 +131,11 @@ function formatChatHistory(messages) {
  * @param {Object} params.quote - Presupuesto con items, total, etc.
  * @param {string} params.followUpType - 'DIA_1', 'DIA_4', 'DIA_15'
  * @param {Array} params.recentMessages - Últimos N mensajes del chat
+ * @param {string} [params.gateHint] - Pista de adaptación detectada por la
+ *   compuerta de conversación (ej: "quiere lentes de contacto, no anteojos")
  * @returns {Promise<{ text: string|null, error?: string }>}
  */
-async function generateFollowUpMessage({ client, chat, quote, followUpType, recentMessages }) {
+async function generateFollowUpMessage({ client, chat, quote, followUpType, recentMessages, gateHint }) {
     const model = getModel();
 
     const tierInstruction = getTierInstruction(followUpType);
@@ -151,6 +153,9 @@ async function generateFollowUpMessage({ client, chat, quote, followUpType, rece
     }
     userPrompt += `- Detalles del Presupuesto Pendiente:\n${formatQuoteDetails(quote)}\n\n`;
     userPrompt += `HISTORIAL DE CHAT RECIENTE:\n${formatChatHistory(recentMessages)}\n\n`;
+    if (gateHint) {
+        userPrompt += `DATO CLAVE DETECTADO EN LA CONVERSACIÓN (adaptá el mensaje a esto, tiene prioridad sobre lo cotizado): ${gateHint}\n\n`;
+    }
     userPrompt += tierInstruction;
 
     const systemMessage = new SystemMessage(SYSTEM_PROMPT);

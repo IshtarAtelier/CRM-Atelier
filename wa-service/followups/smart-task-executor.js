@@ -10,6 +10,7 @@ const { sendFollowUp } = require('./sender');
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { SystemMessage, HumanMessage } = require("@langchain/core/messages");
 const { withTimeout } = require('../utils');
+const { evaluateConversationGate, applyCancelVerdict } = require('./conversation-gate');
 const { validateMessage, sanitizeMessage } = require('./message-validator');
 const {
     MAX_OUTPUT_TOKENS,
@@ -220,8 +221,40 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
             const recentMessages = await prisma.whatsAppMessage.findMany({
                 where: { chatId: chat.id },
                 orderBy: { createdAt: 'desc' },
-                take: 10
+                take: 15
             });
+
+            // Compuerta de conversación: si el cliente ya dijo que no, la tarea
+            // pendiente no justifica escribirle igual.
+            const gate = await evaluateConversationGate({
+                chat,
+                recentMessages,
+                context: `Tarea conversacional pendiente: ${task.description}`,
+            });
+            if (gate.decision === 'CANCEL') {
+                await applyCancelVerdict({ chat, clientId: client.id, clientName: client.name, verdict: gate });
+                await cancelTask(task.id);
+                continue;
+            }
+            if (gate.decision === 'POSTPONE') {
+                const days = gate.postponeDays || 7;
+                await prisma.clientTask.update({
+                    where: { id: task.id },
+                    data: { dueDate: new Date(now.getTime() + days * 24 * 3600 * 1000), status: 'PENDING' }
+                }).catch(() => {});
+                console.log(`  ⏸️ [Gate] Tarea de ${client.name} pospuesta ${days} días: ${gate.reason}`);
+                continue;
+            }
+            if (gate.decision === 'SKIP') {
+                // +2h para no re-consultar a la compuerta cada ciclo mientras la
+                // situación no cambia.
+                await prisma.clientTask.update({
+                    where: { id: task.id },
+                    data: { dueDate: new Date(now.getTime() + 2 * 3600 * 1000), status: 'PENDING' }
+                }).catch(() => {});
+                console.log(`  ⏭️ [Gate] Tarea de ${client.name} salteada 2hs: ${gate.reason}`);
+                continue;
+            }
 
             console.log(`  🤖 [Smart Task Executor] Redactando mensaje para tarea de ${client.name}...`);
             const generated = await generateSmartTaskMessage(client, task.description, recentMessages);

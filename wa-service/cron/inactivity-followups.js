@@ -11,6 +11,7 @@ const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const { isBusinessHours } = require('../shared/business-hours');
 const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
 const { generateFollowUpMessage } = require('../followups/message-generator');
+const { evaluateConversationGate, applyCancelVerdict } = require('../followups/conversation-gate');
 const { runOutputGuardrail } = require('../services/ai.service');
 const { resolveWaMessageId, rememberBotMessage } = require('../shared/message-id');
 
@@ -123,20 +124,42 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                 try {
                     botReplyingTo.add(chat.waId);
 
+                    const recentMessages = await prisma.whatsAppMessage.findMany({
+                        where: { chatId: chat.id },
+                        orderBy: { createdAt: 'desc' },
+                        take: 15
+                    });
+
+                    // Compuerta de conversación. Caso típico que tapa: el cliente
+                    // dijo "no me interesa", el bot respondió "ok, cualquier cosa
+                    // avisame" → el último mensaje es nuestro y este cron lo
+                    // perseguía igual a las 24hs.
+                    const gate = await evaluateConversationGate({
+                        chat,
+                        recentMessages,
+                        context: 'Recordatorio por inactividad (el cliente no respondió el último mensaje)',
+                    });
+                    if (gate.decision === 'CANCEL') {
+                        await applyCancelVerdict({ chat, clientId: chat.clientId, clientName: chat.profileName, verdict: gate });
+                        continue;
+                    }
+                    if (gate.decision !== 'SEND') {
+                        // SKIP y POSTPONE acá son lo mismo: no hay tarea que
+                        // correr, el cooldown natural define el reintento.
+                        console.log(`  ⏭️ [Gate] Inactividad de ${chat.profileName || chat.waId} salteada: ${gate.reason}`);
+                        continue;
+                    }
+
                     // Generar un mensaje 100% personalizado que retome la charla donde quedó
                     let selectedText = null;
                     try {
-                        const recentMessages = await prisma.whatsAppMessage.findMany({
-                            where: { chatId: chat.id },
-                            orderBy: { createdAt: 'desc' },
-                            take: 10
-                        });
                         const generated = await generateFollowUpMessage({
                             client: { name: chat.profileName || null },
                             chat,
                             quote: null,
                             followUpType: 'INACTIVIDAD',
-                            recentMessages
+                            recentMessages,
+                            gateHint: gate.adaptHint
                         });
                         selectedText = generated.text;
                     } catch (genErr) {

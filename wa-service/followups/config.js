@@ -91,6 +91,14 @@ const DIA_15_COUPON = {
 };
 
 // ──────────────────────────────────────────────
+// Compuerta de conversación (conversation-gate.js)
+// ──────────────────────────────────────────────
+/** Timeout del juicio con LLM. Si vence, fail-closed: no se manda este ciclo. */
+const GATE_TIMEOUT_MS = 15000;
+/** Cuántos mensajes recientes lee la compuerta para decidir. */
+const GATE_LOOKBACK_MESSAGES = 15;
+
+// ──────────────────────────────────────────────
 // Validación de mensajes
 // ──────────────────────────────────────────────
 const MIN_MESSAGE_LENGTH = 50;                      // Un saludo pelado ("Hola! cómo andás?") no alcanza
@@ -119,6 +127,8 @@ module.exports = {
     MAX_TASKS_PER_CYCLE,
     STALE_CLAIM_MINUTES,
     AUTO_SENDABLE_TASK_PREFIX,
+    GATE_TIMEOUT_MS,
+    GATE_LOOKBACK_MESSAGES,
     MAX_OUTPUT_TOKENS,
     TEMPERATURE,
     MODEL_NAME,
