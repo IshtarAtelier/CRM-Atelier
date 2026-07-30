@@ -25,7 +25,7 @@ interface DashboardData {
   ordersCountMonth: number;
   ticketPromedioMonth: number;
   trendPct: string | null;
-  funnel: { contacts: number; quotes: number; sales: number; quoteRate: string; saleRate: string; etiquetas: string[]; tipos: string[] };
+  funnel: { contacts: number; chatsNuevos: number; chatsConFicha: number; chatsSubidosRate: string; quotes: number; sales: number; quoteRate: string; saleRate: string; etiquetas: string[]; tipos: string[] };
   monthlyBilling: { name: string; total: number }[];
   tagStats: { name: string; total: number; count: number }[];
   locationStats: { name: string; total: number; count: number }[];
@@ -275,7 +275,7 @@ export default function Home() {
     ordersCountMonth: 0,
     ticketPromedioMonth: 0,
     trendPct: null,
-    funnel: { contacts: 0, quotes: 0, sales: 0, quoteRate: '0', saleRate: '0', etiquetas: [], tipos: [] },
+    funnel: { contacts: 0, chatsNuevos: 0, chatsConFicha: 0, chatsSubidosRate: '0', quotes: 0, sales: 0, quoteRate: '0', saleRate: '0', etiquetas: [], tipos: [] },
     monthlyBilling: [],
     tagStats: [],
     locationStats: [],
@@ -368,8 +368,16 @@ export default function Home() {
                 title="Nuevos Contactos"
                 value={d.funnel.contacts}
                 icon={User}
-                trend={`${d.funnel.contacts}`}
-                sub="Ingresados en período"
+                trend={
+                  d.funnel.chatsNuevos > 0
+                    ? `${d.funnel.chatsConFicha} de ${d.funnel.chatsNuevos} chats`
+                    : `${d.funnel.contacts}`
+                }
+                sub={
+                  d.funnel.chatsNuevos > 0
+                    ? `${d.funnel.chatsNuevos} conversaciones nuevas · ${d.funnel.chatsSubidosRate}% se cargó`
+                    : 'Ingresados en período'
+                }
               />
             </div>
           </div>

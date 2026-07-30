@@ -555,8 +555,31 @@ export async function GET(request: Request) {
         const etiquetas = [...new Set(allClients.map((c: any) => c.contactSource).filter(Boolean))] as string[];
         const tipos = [...new Set(allClients.map((c: any) => c.interest).filter(Boolean))] as string[];
 
+        // ── Chats nuevos: conversaciones que arrancan de cero ──
+        // Una fila de WhatsAppChat se crea la PRIMERA vez que ese número escribe,
+        // así que contarlas por fecha de creación da exactamente eso: números que
+        // nunca antes habían hablado con la óptica. Un cliente que vuelve reusa su
+        // chat y no cuenta de nuevo.
+        //
+        // Se cruza con cuántos de esos llegaron a ficha. La brecha es el dato que
+        // importa: en junio y julio de 2026 fue de la mitad — 736 chats nuevos con
+        // 352 fichas, y 574 con 278.
+        const chatWhere: any = {};
+        if (hasFunnelFilter && Object.keys(funnelDateFilter).length > 0) {
+            chatWhere.createdAt = funnelDateFilter;
+        }
+        const [chatsNuevos, chatsConFicha] = await Promise.all([
+            prisma.whatsAppChat.count({ where: chatWhere }),
+            prisma.whatsAppChat.count({ where: { ...chatWhere, clientId: { not: null } } }),
+        ]);
+
         const funnel = {
             contacts: contactsCreated,
+            chatsNuevos,
+            chatsConFicha,
+            // Qué proporción de las conversaciones nuevas terminó como ficha en el
+            // sistema. Lo que falta es trabajo sin registrar, no clientes perdidos.
+            chatsSubidosRate: chatsNuevos > 0 ? ((chatsConFicha / chatsNuevos) * 100).toFixed(0) : '0',
             quotes: quotesCreated,
             sales: salesCreated,
             quoteRate: contactsCreated > 0 ? ((quotesCreated / contactsCreated) * 100).toFixed(1) : '0',
