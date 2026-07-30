@@ -103,6 +103,15 @@ const DEFAULT_FAQS: Faq[] = [
     answer:
       "Trabajamos con cristales de alto índice (súper delgados) que reducen el espesor. Te asesoramos para elegir el armazón ideal.",
   },
+  // El motivo de consulta que más faltaba: la landing vieja lo anunciaba como
+  // "trabajamos obras sociales" y acá no figuraba en ningún lado. Redactado como
+  // es en realidad (documentación para reintegro, no cobertura directa) para no
+  // prometer una cobertura que después no existe en el mostrador.
+  {
+    question: "¿Puedo usar mi obra social o prepaga?",
+    answer:
+      "Te confeccionamos la factura y toda la documentación para que pidas el reintegro en tu prepaga u obra social — OSDE, Swiss Medical, Galeno, Apross y otras. Consultanos por WhatsApp y te decimos qué necesitás presentar.",
+  },
 ];
 
 export const CAMPAIGNS: Record<string, CampaignConfig> = {
