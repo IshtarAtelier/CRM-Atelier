@@ -104,28 +104,43 @@ export async function ensureClientForAbandonedCart(session: CheckoutSessionLike)
     }
 
     const name = [session.firstName, session.lastName].map(s => s?.trim()).filter(Boolean).join(' ') || 'Cliente Web';
-    const client = await prisma.client.create({
-        data: {
-            name,
-            phone: session.phone?.trim() || null,
-            // email es @unique en Client: si dos sesiones viejas trajeran el mismo
-            // email, la búsqueda de arriba ya lo habría encontrado.
-            email,
-            status: 'CONTACT',
-            contactSource: 'Carrito Web',
-            createdBy: SYSTEM_ACTOR.name,
-            tags: { connectOrCreate: { where: { name: CART_WEB_TAG }, create: { name: CART_WEB_TAG, color: '#f59e0b' } } },
-            interactions: {
-                create: {
-                    type: 'NOTE',
-                    content: `${detail}\nFicha creada automáticamente desde la tienda.`,
-                    userId: SYSTEM_ACTOR.id,
-                    userName: SYSTEM_ACTOR.name,
+    let client: { id: string };
+    try {
+        client = await prisma.client.create({
+            data: {
+                name,
+                phone: session.phone?.trim() || null,
+                email,
+                status: 'CONTACT',
+                contactSource: 'Carrito Web',
+                createdBy: SYSTEM_ACTOR.name,
+                tags: { connectOrCreate: { where: { name: CART_WEB_TAG }, create: { name: CART_WEB_TAG, color: '#f59e0b' } } },
+                interactions: {
+                    create: {
+                        type: 'NOTE',
+                        content: `${detail}\nFicha creada automáticamente desde la tienda.`,
+                        userId: SYSTEM_ACTOR.id,
+                        userName: SYSTEM_ACTOR.name,
+                    },
                 },
             },
-        },
-        select: { id: true },
-    });
+            select: { id: true },
+        });
+    } catch (err: any) {
+        // Carrera entre dos requests procesando carritos de la misma persona:
+        // email es @unique, el segundo create pega P2002. El ganador ya creó la
+        // ficha — la buscamos y enlazamos a ésa en vez de fallar.
+        if (err?.code === 'P2002' && email) {
+            const winner = await prisma.client.findFirst({
+                where: { email: { equals: email, mode: 'insensitive' } },
+                select: { id: true },
+            });
+            if (!winner) throw err;
+            client = winner;
+        } else {
+            throw err;
+        }
+    }
 
     await prisma.checkoutSession.update({
         where: { id: session.id },

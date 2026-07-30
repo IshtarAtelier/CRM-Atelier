@@ -100,10 +100,32 @@ async function main() {
 
     console.log(`Se encontraron ${clients.length} clientes pendientes creados desde ${startOfMonth.toLocaleDateString()}`);
 
+    // Tope de destinatarios por corrida: una campaña sin techo desde una cuenta
+    // real de whatsapp-web.js es el patrón de baneo más directo que existe.
+    const MAX_BROADCAST_PER_RUN = 15;
+    let sentCount = 0;
+
     for (const client of clients) {
+        if (sentCount >= MAX_BROADCAST_PER_RUN) {
+            console.log(`[Broadcast] Tope de ${MAX_BROADCAST_PER_RUN} envíos por corrida alcanzado. El resto queda para la próxima.`);
+            break;
+        }
         try {
             const chat = client.whatsappChats[0];
             if (!chat || !chat.realPhone) {
+                continue;
+            }
+
+            // Exclusiones que el resto del sistema ya respeta y este script no miraba
+            const labels = chat.chatLabels || [];
+            if (!chat.botEnabled || labels.includes('SIN_SEGUIMIENTO') || labels.includes('[SISTEMA - BOT APAGADO]')) {
+                continue;
+            }
+            if (chat.followUpPausedUntil && new Date(chat.followUpPausedUntil) > new Date()) {
+                continue;
+            }
+            // Cooldown: no perseguir al mismo cliente en corridas consecutivas
+            if (chat.lastFollowUpAt && (Date.now() - new Date(chat.lastFollowUpAt).getTime()) < 72 * 3600 * 1000) {
                 continue;
             }
 
@@ -168,12 +190,17 @@ INSTRUCCIONES CRÍTICAS:
             console.log(`\nMensaje generado para ${client.name}:\n"${followUpMessage}"\n`);
 
             // 3. Enviar mensaje por WhatsApp
+            // isProactive: entra a la cola anti-ban como automático (cooldowns,
+            // pausas de lote, límite horario, escudo de contactos fríos) y NO
+            // apaga el bot del chat — antes cada envío de campaña entraba como
+            // "manual prioritario" salteando todo el anti-ban y matando el bot.
             const res = await fetchWa('/api/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    chatId: `${chat.realPhone}@c.us`, 
-                    message: followUpMessage 
+                body: JSON.stringify({
+                    chatId: `${chat.realPhone}@c.us`,
+                    message: followUpMessage,
+                    isProactive: true
                 }),
             });
 
@@ -181,6 +208,7 @@ INSTRUCCIONES CRÍTICAS:
                 console.error(`[Error WA] No se pudo enviar el WhatsApp a ${client.name}. Status: ${res.status}`);
                 continue;
             }
+            sentCount++;
 
             // 4. Registrar en la base de datos (Interacción + Mensaje WA)
             await prisma.interaction.create({

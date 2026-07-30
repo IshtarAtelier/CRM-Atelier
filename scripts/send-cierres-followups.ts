@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { GoogleGenAI, Type } from '@google/genai';
 import * as dotenv from 'dotenv';
+import { formatPhoneForWhatsApp } from '../src/lib/phone-utils';
 
 dotenv.config();
 
@@ -245,9 +246,11 @@ async function sendWhatsApp(phone: string, text: string): Promise<boolean> {
   const BOT_API_KEY = process.env.BOT_API_KEY || 'atelier-bot-secret-key-2026';
   const url = 'https://crm-atelier-production-ae72.up.railway.app/api/whatsapp/send';
 
-  // Formatear el teléfono
-  const cleanPhone = phone.replace(/\D/g, '');
-  const formattedPhone = cleanPhone.length >= 10 ? '549' + cleanPhone.slice(-10) : cleanPhone;
+  // Normalización completa (0 de área, "15" intercalado): el recorte de los
+  // últimos 10 dígitos mandaba el mensaje a un número equivocado con los
+  // formatos tipo "0351 15 6998877".
+  const formattedPhone = formatPhoneForWhatsApp(phone);
+  if (!formattedPhone || formattedPhone.length <= 3) return false;
   const chatId = `${formattedPhone}@c.us`;
 
   try {
@@ -259,7 +262,10 @@ async function sendWhatsApp(phone: string, text: string): Promise<boolean> {
       },
       body: JSON.stringify({
         chatId: chatId,
-        message: text
+        message: text,
+        // Entra a la cola anti-ban como automático (cooldowns, pausas de lote,
+        // límite horario) y no apaga el bot del chat.
+        isProactive: true
       })
     });
 
@@ -293,6 +299,19 @@ async function sendWhatsApp(phone: string, text: string): Promise<boolean> {
 async function main() {
   const args = process.argv.slice(2);
   const isDryRun = args.includes('--dry-run');
+
+  // Botón de pánico del CRM: si los seguimientos están pausados, este script
+  // no manda nada (el dry-run sí puede correr, no envía).
+  if (!isDryRun) {
+    const followupsSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'followups_enabled' },
+    });
+    if (followupsSetting && followupsSetting.value !== 'true') {
+      console.log('🚫 Seguimientos pausados desde el CRM (followups_enabled=false). Abortando sin enviar.');
+      await prisma.$disconnect();
+      return;
+    }
+  }
 
   console.log(`\n======================================================`);
   console.log(isDryRun ? `🧪 MODO SIMULACIÓN (DRY-RUN) - No se realizarán envíos` : `🚀 MODO PRODUCCIÓN - ENVÍOS DE WhatsApp ACTIVER`);

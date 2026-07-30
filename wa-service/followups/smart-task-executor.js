@@ -193,6 +193,12 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
                 continue;
             }
 
+            // Pausa cruzada puesta por la compuerta o por otro sistema
+            // ("hablamos a fin de mes"): sin gastar una llamada de LLM.
+            if (chat.followUpPausedUntil && new Date(chat.followUpPausedUntil) > now) {
+                continue;
+            }
+
             // Validar si es un contacto frío (debe tener al menos un mensaje entrante registrado)
             const inboundCount = await prisma.whatsAppMessage.count({
                 where: {
@@ -238,9 +244,15 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
             }
             if (gate.decision === 'POSTPONE') {
                 const days = gate.postponeDays || 7;
-                await prisma.clientTask.update({
-                    where: { id: task.id },
+                // updateMany con guarda: no resucitar una tarea cancelada en el medio.
+                await prisma.clientTask.updateMany({
+                    where: { id: task.id, status: task.status },
                     data: { dueDate: new Date(now.getTime() + days * 24 * 3600 * 1000), status: 'PENDING' }
+                }).catch(() => {});
+                // Pausa cruzada: frena también inactividad y tiers para el chat.
+                await prisma.whatsAppChat.update({
+                    where: { id: chat.id },
+                    data: { followUpPausedUntil: new Date(now.getTime() + days * 24 * 3600 * 1000) }
                 }).catch(() => {});
                 console.log(`  ⏸️ [Gate] Tarea de ${client.name} pospuesta ${days} días: ${gate.reason}`);
                 continue;
@@ -248,8 +260,8 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
             if (gate.decision === 'SKIP') {
                 // +2h para no re-consultar a la compuerta cada ciclo mientras la
                 // situación no cambia.
-                await prisma.clientTask.update({
-                    where: { id: task.id },
+                await prisma.clientTask.updateMany({
+                    where: { id: task.id, status: task.status },
                     data: { dueDate: new Date(now.getTime() + 2 * 3600 * 1000), status: 'PENDING' }
                 }).catch(() => {});
                 console.log(`  ⏭️ [Gate] Tarea de ${client.name} salteada 2hs: ${gate.reason}`);
@@ -261,13 +273,13 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
 
             if (!generated.text) {
                 console.error(`  ❌ [Smart Task Executor] Falló generación para ${client.name}: ${generated.error}`);
-                // Empujar el vencimiento 3 horas: una tarea cuya generación falla
-                // siempre (contexto que el validador rechaza, cuota agotada) no
-                // puede quedarse clavada al frente de la cola bloqueando a las
-                // demás — con take + orderBy, 6 de éstas frenarían todo.
-                await prisma.clientTask.update({
-                    where: { id: task.id },
-                    data: { dueDate: new Date(now.getTime() + 3 * 3600 * 1000) }
+                // Empujar el vencimiento 3 horas y volver a PENDING con guarda:
+                // una tarea cuya generación falla siempre no puede quedarse
+                // clavada al frente de la cola, y una SENDING recuperada sin el
+                // reset de status quedaba zombie.
+                await prisma.clientTask.updateMany({
+                    where: { id: task.id, status: task.status },
+                    data: { dueDate: new Date(now.getTime() + 3 * 3600 * 1000), status: 'PENDING' }
                 }).catch(() => {});
                 continue;
             }
@@ -278,12 +290,14 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
                 continue;
             }
 
-            // Reclamo atómico (mismo patrón que sales-followups): sin esto, la
-            // tarea sigue PENDING mientras su timer espera, y la corrida
-            // siguiente puede volver a generarla y programar un segundo envío.
+            // Reclamo atómico (mismo patrón que sales-followups). El claimStamp
+            // viaja hasta el preflight de la cola anti-ban: en el momento del
+            // envío físico se verifica que la tarea siga SENDING con ESTE
+            // updatedAt — un timer viejo nunca puede pisar a uno nuevo.
+            const claimStamp = new Date();
             const claimed = await prisma.clientTask.updateMany({
                 where: { id: task.id, status: task.status },
-                data: { status: 'SENDING', updatedAt: new Date() }
+                data: { status: 'SENDING', updatedAt: claimStamp }
             });
             if (claimed.count === 0) {
                 console.log(`  ⚠️ Tarea de ${client.name} ya fue tomada por otra corrida. Omitiendo.`);
@@ -297,7 +311,7 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
             console.log(`  🕒 [Smart Task Executor] Envío a ${client.name} en ${(queueDelay / 60000).toFixed(1)} min.`);
 
             setTimeout(() => {
-                executeSmartTaskAndSend(task.id, client.id, chat.waId, chat.id, generated.text, client.name, task.description)
+                executeSmartTaskAndSend(task.id, client.id, chat.waId, chat.id, generated.text, client.name, task.description, claimStamp)
                     .then(() => { if (broadcastChatUpdate) broadcastChatUpdate(chat.id); })
                     .catch(err => console.error(`❌ Error en smart task a ${client.name}:`, err.message));
             }, queueDelay);
@@ -317,19 +331,25 @@ async function cancelTask(taskId) {
     }).catch(e => {});
 }
 
-async function executeSmartTaskAndSend(taskId, clientId, waId, chatId, text, clientName, taskDescription) {
+async function executeSmartTaskAndSend(taskId, clientId, waId, chatId, text, clientName, taskDescription, claimStamp) {
     // Label general para estas interacciones
     const label = 'Asistencia Bot';
 
     const { sent, reason } = await sendFollowUp({
-        waId, text, chatId, label, clientName, followUpType: 'SMART_TASK'
+        waId, text, chatId, label, clientName, followUpType: 'SMART_TASK',
+        claim: { taskId, claimStamp }
     });
 
     if (sent) {
-        await prisma.clientTask.update({
-            where: { id: taskId },
+        // DONE solo si la tarea sigue SENDING: no pisar un CANCELLED que otra
+        // corrida (o la compuerta) haya puesto mientras el envío esperaba en cola.
+        const done = await prisma.clientTask.updateMany({
+            where: { id: taskId, status: 'SENDING' },
             data: { status: 'DONE', updatedAt: new Date() }
         });
+        if (done.count === 0) {
+            console.warn(`  ⚠️ [Smart Task Executor] Mensaje a ${clientName} salió pero la tarea ya no estaba en SENDING. No se pisa su estado.`);
+        }
 
         await prisma.interaction.create({
             data: {
@@ -341,20 +361,23 @@ async function executeSmartTaskAndSend(taskId, clientId, waId, chatId, text, cli
 
         console.log(`  ✅ [Smart Task Executor] Éxito para ${clientName}. Tarea cumplida.`);
     } else {
-        console.error(`  ❌ [Smart Task Executor] Falló envío a ${clientName}: ${reason}`);
-        
-        await prisma.clientTask.update({
-            where: { id: taskId },
-            data: { status: 'FAILED', updatedAt: new Date() }
-        }).catch(() => {});
+        const wasPreflight = (reason || '').startsWith('Preflight:');
+        console.error(`  ${wasPreflight ? '🚦' : '❌'} [Smart Task Executor] Envío a ${clientName} no realizado: ${reason}`);
 
-        await prisma.interaction.create({
-            data: {
-                clientId: clientId,
-                type: 'NOTE',
-                content: `❌ [BOT] Falló envío de Tarea Inteligente (${taskDescription}). Motivo: ${reason}`
-            }
-        }).catch(() => {});
+        if (!wasPreflight) {
+            await prisma.clientTask.updateMany({
+                where: { id: taskId, status: 'SENDING' },
+                data: { status: 'FAILED', updatedAt: new Date() }
+            }).catch(() => {});
+
+            await prisma.interaction.create({
+                data: {
+                    clientId: clientId,
+                    type: 'NOTE',
+                    content: `❌ [BOT] Falló envío de Tarea Inteligente (${taskDescription}). Motivo: ${reason}`
+                }
+            }).catch(() => {});
+        }
     }
 }
 

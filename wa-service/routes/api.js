@@ -331,8 +331,15 @@ function createApiRouter(deps) {
 
     // ── POST /send ─────────────────────────────────
     router.post('/send', async (req, res) => {
-        const { chatId, message, media, senderName } = req.body;
+        const { chatId, message, media, senderName, isProactive } = req.body;
         // media: { base64: string, mimetype: string, filename?: string }
+        // isProactive: true cuando el que llama es un SCRIPT/cron de seguimiento,
+        // no un humano. Cambia dos cosas: (1) el mensaje entra a la cola anti-ban
+        // como AUTOMÁTICO (respeta cooldowns, pausas de lote, límite horario y
+        // escudo de contactos fríos — antes las campañas entraban como envíos
+        // manuales prioritarios y salteaban TODO el anti-ban), y (2) NO se apaga
+        // el bot del chat ni se marca "intervención humana", porque no la hubo.
+        const proactive = isProactive === true;
         let waId = chatId; // fuera del try: el catch necesita limpiar botReplyingTo
         try {
             let dbChatId = null;
@@ -382,7 +389,7 @@ function createApiRouter(deps) {
             }
 
             if (media?.base64) {
-                sent = await sendMessage(waId, message, media, { isProactive: false, isAutomated: false });
+                sent = await sendMessage(waId, message, media, proactive ? { isProactive: true, isAutomated: true } : { isProactive: false, isAutomated: false });
 
                 // Subir al CRM para tener el pre-render
                 try {
@@ -420,7 +427,7 @@ function createApiRouter(deps) {
                     console.error("Error subiendo media saliente a CRM:", err.message);
                 }
             } else {
-                sent = await sendMessage(waId, message, null, { isProactive: false, isAutomated: false });
+                sent = await sendMessage(waId, message, null, proactive ? { isProactive: true, isAutomated: true } : { isProactive: false, isAutomated: false });
             }
 
             // Se guarda aunque WhatsApp Web no devuelva su id: el mensaje salió, así que
@@ -461,7 +468,7 @@ function createApiRouter(deps) {
 
             // Limpiar flag de botReplyingTo y DESACTIVAR el bot, ya que un humano tomó el control
             botReplyingTo.delete(waId);
-            if (dbChatId) {
+            if (dbChatId && !proactive) {
                 await disableBotForChatById(dbChatId, 'Intervención humana (mensaje desde CRM)');
                 // Marca permanente: sin esta etiqueta, el Auto-Resume de 24hs y la garantía de
                 // Meta Ads reencienden el bot en una charla que un humano ya tomó.
@@ -505,10 +512,17 @@ function createApiRouter(deps) {
     // ── POST /agent ────────────────────────────────
     router.post('/agent', async (req, res) => {
         const { enabled, prompt, dailyContext: newDailyContext, followupsEnabled: newFollowupsEnabled } = req.body;
-        if (enabled !== undefined) agentState.agentEnabled = enabled;
+        // Estado previo para poder revertir si la persistencia falla: un toggle
+        // que vive solo en memoria se deshace en el próximo reinicio, y peor,
+        // la UI le dice al usuario que la pausa quedó cuando no quedó.
+        const prevState = {
+            agentEnabled: agentState.agentEnabled,
+            followupsEnabled: agentState.followupsEnabled,
+        };
+        if (enabled !== undefined) agentState.agentEnabled = Boolean(enabled);
         if (prompt !== undefined) agentState.agentPrompt = prompt;
         if (newDailyContext !== undefined) agentState.dailyContext = newDailyContext;
-        if (newFollowupsEnabled !== undefined) agentState.followupsEnabled = newFollowupsEnabled;
+        if (newFollowupsEnabled !== undefined) agentState.followupsEnabled = Boolean(newFollowupsEnabled);
         
         try {
             fs.writeFileSync(configPath, JSON.stringify({ enabled: agentState.agentEnabled, prompt: agentState.agentPrompt, dailyContext: agentState.dailyContext, followupsEnabled: agentState.followupsEnabled }, null, 2));
@@ -543,6 +557,16 @@ function createApiRouter(deps) {
             }
         } catch (e) {
             console.error("❌ Error persisting config to database:", e);
+            // Los interruptores NO pueden quedar en un estado que no sobrevive
+            // un reinicio: se revierte la memoria y se responde error para que
+            // la UI haga rollback y el usuario sepa que el cambio no rigió.
+            if (enabled !== undefined || newFollowupsEnabled !== undefined) {
+                agentState.agentEnabled = prevState.agentEnabled;
+                agentState.followupsEnabled = prevState.followupsEnabled;
+                return res.status(503).json({
+                    error: 'No se pudo guardar el cambio en la base de datos. El estado no cambió.',
+                });
+            }
         }
 
         const hasApiKey = !!(process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY);

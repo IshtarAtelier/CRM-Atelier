@@ -38,6 +38,17 @@ const ALL_FOLLOW_UP_VARIANTS = [...FOLLOW_UP_TEXT_VARIANTS, ...FOLLOW_UP_TEXT_VA
 // Cooldown mínimo entre follow-ups para el mismo chat (48 horas según políticas anti-ban)
 const FOLLOW_UP_COOLDOWN_MS = 48 * 60 * 60 * 1000;
 
+// Tope de recordatorios por ciclo. Sin tope, una mañana de lunes con 30 chats
+// elegibles acumulados del fin de semana generaba una ráfaga — el patrón de
+// spam más detectable que existe para una cuenta personal.
+const MAX_INACTIVITY_PER_CYCLE = 5;
+
+// Guarda de reentrada: el intervalo es de 15 min pero el ciclo espera los
+// envíos de la cola anti-ban (45-90s + pausas de lote cada uno), así que una
+// corrida puede durar MÁS que el intervalo. Sin esta guarda, la corrida
+// siguiente re-procesaba los mismos chats y duplicaba recordatorios x4-5.
+let isInactivityRunning = false;
+
 /**
  * Chequea y envía follow-ups por inactividad.
  * @param {Object} deps - Dependencias inyectadas
@@ -47,6 +58,8 @@ const FOLLOW_UP_COOLDOWN_MS = 48 * 60 * 60 * 1000;
  * @param {Function} deps.broadcastChatUpdate - Emite actualización de chat por WebSocket
  */
 async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnabled, botReplyingTo, broadcastChatUpdate }) {
+    if (isInactivityRunning) return;
+
     const now = new Date();
     if (!isBusinessHours(now)) {
         return;
@@ -61,8 +74,21 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
         return;
     }
 
+    isInactivityRunning = true;
+    let sentThisCycle = 0;
+    try {
+
     const activeChats = await prisma.whatsAppChat.findMany({
-        where: { botEnabled: true, archived: false },
+        where: {
+            botEnabled: true,
+            archived: false,
+            // Pausa puesta por la compuerta ("hablamos a fin de mes") o por un
+            // SKIP previo: persistente, no depende de la memoria del proceso.
+            OR: [
+                { followUpPausedUntil: null },
+                { followUpPausedUntil: { lte: now } },
+            ],
+        },
         include: {
             messages: {
                 orderBy: { createdAt: 'desc' },
@@ -72,6 +98,10 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
     });
 
     for (const chat of activeChats) {
+        if (sentThisCycle >= MAX_INACTIVITY_PER_CYCLE) {
+            console.log(`[Inactividad] Tope de ${MAX_INACTIVITY_PER_CYCLE} recordatorios por ciclo alcanzado. El resto espera al próximo.`);
+            break;
+        }
         if (chat.messages.length === 0) continue;
         const lastMsg = chat.messages[0];
 
@@ -144,9 +174,19 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                         continue;
                     }
                     if (gate.decision !== 'SEND') {
-                        // SKIP y POSTPONE acá son lo mismo: no hay tarea que
-                        // correr, el cooldown natural define el reintento.
-                        console.log(`  ⏭️ [Gate] Inactividad de ${chat.profileName || chat.waId} salteada: ${gate.reason}`);
+                        // Persistir el veredicto: POSTPONE respeta la fecha que
+                        // pidió el cliente; SKIP re-evalúa en 2hs. Antes esto no
+                        // se guardaba y el LLM re-juzgaba el mismo chat cada 15
+                        // minutos, y un "hablamos a fin de mes" moría en el
+                        // primer reinicio.
+                        const pauseMs = gate.decision === 'POSTPONE'
+                            ? (gate.postponeDays || 7) * 24 * 3600 * 1000
+                            : 2 * 3600 * 1000;
+                        await prisma.whatsAppChat.update({
+                            where: { id: chat.id },
+                            data: { followUpPausedUntil: new Date(now.getTime() + pauseMs) }
+                        }).catch(() => {});
+                        console.log(`  ${gate.decision === 'POSTPONE' ? '⏸️' : '⏭️'} [Gate] Inactividad de ${chat.profileName || chat.waId} pausada ${(pauseMs / 3600000).toFixed(0)}hs: ${gate.reason}`);
                         continue;
                     }
 
@@ -185,10 +225,47 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                         continue;
                     }
 
+                    // Reclamo ANTES de encolar: si esta corrida se solapa con la
+                    // siguiente (la cola anti-ban puede demorar más que los 15
+                    // min del intervalo), el cooldown ya está tomado y el chat no
+                    // se re-procesa. Si el envío después se descarta, se pierde
+                    // un recordatorio — mejor eso que un duplicado.
+                    await prisma.whatsAppChat.update({
+                        where: { id: chat.id },
+                        data: { lastFollowUpAt: new Date() }
+                    });
+                    sentThisCycle++;
+
                     await sendTypingState(chat.waId);
                     await new Promise(r => setTimeout(r, 2000));
 
-                    const sent = await sendMessage(chat.waId, selectedText, null, { isProactive: true });
+                    const sent = await sendMessage(chat.waId, selectedText, null, {
+                        isProactive: true,
+                        // Revalidación al momento del envío físico: el mensaje
+                        // puede esperar en la cola anti-ban mucho más que estos
+                        // 2 segundos, y en el medio el cliente pudo escribir o
+                        // pedir que no lo contacten.
+                        preflight: async () => {
+                            const fresh = await prisma.whatsAppChat.findUnique({ where: { id: chat.id } });
+                            if (!fresh || !fresh.botEnabled) return { ok: false, reason: 'bot apagado' };
+                            const labels = fresh.chatLabels || [];
+                            if (labels.includes('SIN_SEGUIMIENTO') || labels.includes('[SISTEMA - BOT APAGADO]')) {
+                                return { ok: false, reason: 'etiqueta de corte aplicada' };
+                            }
+                            if (fresh.followUpPausedUntil && fresh.followUpPausedUntil > new Date()) {
+                                return { ok: false, reason: 'seguimientos pausados para este chat' };
+                            }
+                            if (fresh.lastMessageAt && (Date.now() - new Date(fresh.lastMessageAt).getTime()) < 2 * 3600 * 1000) {
+                                return { ok: false, reason: 'actividad reciente en el chat' };
+                            }
+                            return { ok: true };
+                        },
+                    });
+
+                    if (sent && sent.skipped) {
+                        console.log(`  🚦 [Follow-Up] Recordatorio a ${chat.profileName || chat.waId} descartado en cola: ${sent.reason}`);
+                        continue;
+                    }
 
                     // Registrar como mensaje del bot para que el listener de salientes lo ignore
                     rememberBotMessage(sent, selectedText);
@@ -225,6 +302,12 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                 }
             }
         }
+    }
+
+    } catch (cycleErr) {
+        console.error('[Inactividad] Error en el ciclo:', cycleErr.message);
+    } finally {
+        isInactivityRunning = false;
     }
 }
 

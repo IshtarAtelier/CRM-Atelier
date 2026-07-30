@@ -334,31 +334,23 @@ Respond ONLY with the raw JSON. No markdown.
                     }
                 }).catch(() => {});
 
-                // 3. Update WhatsAppChat labels: remove active followups, set bot to disabled, add SIN_SEGUIMIENTO
-                let updatedLabels = [...(chatInfo.chatLabels || [])].filter((l) => !l.startsWith('SEGUIMIENTO_DIA_'));
-                if (!updatedLabels.includes('SIN_SEGUIMIENTO')) {
-                    updatedLabels.push('SIN_SEGUIMIENTO');
-                }
+                // 3. Pausar seguimientos HASTA la fecha pedida, con vencimiento
+                // automático (followUpPausedUntil). El esquema anterior apagaba
+                // botEnabled para siempre y creaba una tarea de "Reanudación
+                // Automática" que ningún proceso consumía: el cliente quedaba
+                // muerto hasta que alguien se diera cuenta a mano. Ahora el bot
+                // sigue pudiendo CONTESTAR si el cliente escribe (eso nunca es
+                // spam) y los seguimientos proactivos se reanudan solos en la
+                // fecha — sin etiqueta permanente ni tarea huérfana.
+                const resumeDate = parsed.postponeUntilDate ? new Date(parsed.postponeUntilDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                resumeDate.setHours(11, 0, 0, 0);
+
+                const updatedLabels = [...(chatInfo.chatLabels || [])].filter((l) => !l.startsWith('SEGUIMIENTO_DIA_'));
                 await prisma.whatsAppChat.update({
                     where: { id: chatId },
                     data: {
                         chatLabels: updatedLabels,
-                        botEnabled: false
-                    }
-                }).catch(() => {});
-
-                // 4. Reschedule a FUTURE follow-up trigger task for the determined date
-                const resumeDate = parsed.postponeUntilDate ? new Date(parsed.postponeUntilDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-                resumeDate.setHours(11, 0, 0, 0); // Schedule for 11:00 AM
-
-                await prisma.clientTask.create({
-                    data: {
-                        clientId: currentClientId,
-                        description: `[SISTEMA] Reanudación Automática de Seguimientos`,
-                        type: 'TASK',
-                        status: 'PENDING',
-                        dueDate: resumeDate,
-                        createdBy: 'Bot Trigger'
+                        followUpPausedUntil: resumeDate
                     }
                 }).catch(() => {});
 

@@ -510,10 +510,24 @@ export async function POST(req: Request) {
             });
         } else if (type === 'PENDING_QUOTE') {
             const actor = getActor(req);
-            const order = await prisma.order.update({
+            // Guarda: solo un PRESUPUESTO pendiente puede marcarse perdido. Un
+            // id viejo del panel (o manipulado) podía pisar con LOST una orden
+            // que ya se convirtió en venta.
+            const order = await prisma.order.findUnique({
                 where: { id },
-                data: { status: 'LOST' },
-                select: { clientId: true }
+                select: { clientId: true, orderType: true, status: true }
+            });
+            if (!order || order.orderType !== 'QUOTE' || !['PENDING', 'CONFIRMED'].includes(order.status)) {
+                serverCache.clear();
+                return NextResponse.json({
+                    success: true,
+                    skipped: true,
+                    message: 'La orden ya no es un presupuesto pendiente; no se modificó.'
+                });
+            }
+            await prisma.order.update({
+                where: { id },
+                data: { status: 'LOST' }
             });
             // El descarte es de la PERSONA, no solo del presupuesto: sin esto,
             // el mismo cliente reaparecía como "favorito sin actividad" al día

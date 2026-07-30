@@ -36,6 +36,16 @@ async function preSendValidation(chatId, waId) {
         return { canSend: false, reason: `Bot desactivado para ${freshChat.profileName || waId}` };
     }
 
+    // Etiquetas de corte: pueden haberse aplicado (por un humano o por la
+    // compuerta de conversación) DESPUÉS de que este envío se generó y encoló.
+    const labels = freshChat.chatLabels || [];
+    if (labels.includes('SIN_SEGUIMIENTO')) {
+        return { canSend: false, reason: `Etiqueta SIN_SEGUIMIENTO en ${freshChat.profileName || waId}` };
+    }
+    if (labels.includes('[SISTEMA - BOT APAGADO]')) {
+        return { canSend: false, reason: `Bot apagado por sistema en ${freshChat.profileName || waId}` };
+    }
+
     if (freshChat.lastMessageAt) {
         const hoursSinceLastMsg = (Date.now() - new Date(freshChat.lastMessageAt).getTime()) / 3600000;
         if (hoursSinceLastMsg < PRE_SEND_ACTIVITY_WINDOW_HOURS) {
@@ -56,9 +66,14 @@ async function preSendValidation(chatId, waId) {
  * @param {string} params.label - Label de seguimiento a agregar
  * @param {string} params.clientName - Nombre del cliente (para logs y modo test)
  * @param {string} params.followUpType - Tipo de seguimiento (para logs)
+ * @param {Object} [params.claim] - Token de reclamo de la ClientTask que originó
+ *   este envío: { taskId, claimStamp }. Permite que el preflight verifique en el
+ *   momento del envío físico que la tarea siga siendo NUESTRA (status SENDING y
+ *   updatedAt igual al del reclamo). Si otra corrida la recuperó, canceló o
+ *   pospuso, el updatedAt cambió y este envío se descarta solo — sin duplicados.
  * @returns {Promise<{ sent: boolean, reason?: string }>}
  */
-async function sendFollowUp({ waId, text, chatId, label, clientName, followUpType }) {
+async function sendFollowUp({ waId, text, chatId, label, clientName, followUpType, claim }) {
     const logPrefix = TEST_MODE ? '[TEST Follow-Up]' : '[Follow-Up]';
 
     try {
@@ -100,9 +115,37 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
         const typingMs = Math.min(Math.max(text.length * TYPING_MS_PER_CHAR, TYPING_MIN_MS), TYPING_MAX_MS);
         await new Promise(resolve => setTimeout(resolve, typingMs));
 
-        // 5. Enviar mensaje
+        // 5. Enviar mensaje. El preflight corre DENTRO de la cola anti-ban,
+        // justo antes del envío físico: la validación de arriba es al encolar,
+        // pero el mensaje puede esperar en cola desde minutos hasta horas
+        // (pausas de lote, límite horario, retención nocturna) y en ese lapso
+        // el cliente pudo escribir o la tarea pudo cancelarse.
         console.log(`  ✉️ ${logPrefix} Enviando mensaje a ${clientName} (${targetWaId.substring(0, 15)}...)`);
-        const sent = await sendMessage(targetWaId, messageText, null, { isProactive: true });
+        const sent = await sendMessage(targetWaId, messageText, null, {
+            isProactive: true,
+            preflight: async () => {
+                const recheck = await preSendValidation(chatId, waId);
+                if (!recheck.canSend) return { ok: false, reason: recheck.reason };
+                if (claim && claim.taskId) {
+                    const t = await prisma.clientTask.findUnique({
+                        where: { id: claim.taskId },
+                        select: { status: true, updatedAt: true },
+                    });
+                    if (!t || t.status !== 'SENDING') {
+                        return { ok: false, reason: `La tarea ya no está en SENDING (${t ? t.status : 'no existe'})` };
+                    }
+                    if (claim.claimStamp && t.updatedAt.getTime() !== claim.claimStamp.getTime()) {
+                        return { ok: false, reason: 'La tarea fue reclamada por otra corrida (token vencido)' };
+                    }
+                }
+                return { ok: true };
+            },
+        });
+
+        if (sent && sent.skipped) {
+            console.log(`  🚦 ${logPrefix} Envío a ${clientName} descartado en cola: ${sent.reason}`);
+            return { sent: false, reason: `Preflight: ${sent.reason}` };
+        }
 
         const msgSerializedId = resolveWaMessageId(sent, { waId: targetWaId, direction: 'OUTBOUND', content: messageText });
 

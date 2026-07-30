@@ -422,6 +422,32 @@ class AntiBanQueue {
             }
         }
 
+        // E. Preflight del que encoló: revalidación EN EL MOMENTO del envío
+        // físico. Un mensaje puede esperar en esta cola desde minutos (pausas de
+        // lote, límite horario) hasta 13 horas (retención nocturna), y en ese
+        // lapso el cliente pudo escribir, pedir que no lo contacten, o la tarea
+        // pudo cancelarse — nada de eso se veía acá. Si el preflight dice que
+        // ya no corresponde, se descarta SIN contar como fallo (resolve, no
+        // reject: un descarte correcto no debe alimentar el circuit breaker).
+        // Corre ANTES de simular tipeo: que el cliente no vea "escribiendo..."
+        // y después nada.
+        if (typeof options.preflight === 'function') {
+            try {
+                const pf = await options.preflight();
+                if (!pf || pf.ok !== true) {
+                    const reason = (pf && pf.reason) || 'preflight rechazó el envío';
+                    console.log(`[AntiBanQueue] 🚦 Preflight canceló el envío a ${targetWaId}: ${reason}`);
+                    resolve({ skipped: true, reason });
+                    return;
+                }
+            } catch (pfErr) {
+                // Fail-closed: si no pudimos revalidar, no mandamos.
+                console.warn(`[AntiBanQueue] 🚦 Preflight falló para ${targetWaId} (${pfErr.message}). Descartando envío por seguridad.`);
+                resolve({ skipped: true, reason: `preflight error: ${pfErr.message}` });
+                return;
+            }
+        }
+
         // 4. Aplicar Spintax si el contenido es texto
         let processedContent = content;
         if (content) {

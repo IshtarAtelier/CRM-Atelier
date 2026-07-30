@@ -32,13 +32,16 @@ const { MODEL_NAME, GATE_TIMEOUT_MS, GATE_LOOKBACK_MESSAGES } = require('./confi
 // ──────────────────────────────────────────────
 // Capa 1: frenos duros deterministas
 // ──────────────────────────────────────────────
-// Solo frases inequívocas de "no me contacten". Lo ambiguo ("ya compré" puede
-// ser el estuche) lo juzga el LLM con el contexto completo.
+// Solo frases inequívocas de "no me contacten". Lo ambiguo lo juzga el LLM con
+// el contexto completo: "no me interesa" NO está acá a propósito — "no me
+// interesa el color, mandame cualquiera" cancelaba toda la secuencia por
+// coincidencia parcial. El LLM cancela igual cuando el "no me interesa" es
+// genuino (verificado en pruebas en vivo).
 const HARD_STOP_PATTERNS = [
     /no (me )?(escribas|escriban|contactes|contacten|molestes|molesten)/i,
     /dej(a|á) de (escribir|mandar|molestar|insistir)/i,
     /no quiero (mas|más) mensajes/i,
-    /no me interesa/i,
+    /no quiero que me (escriban|contacten|llamen)/i,
     /sacame de (la lista|los contactos)/i,
     /basta de (mensajes|escribir|insistir)/i,
 ];
@@ -90,8 +93,17 @@ const VALID_DECISIONS = ['SEND', 'SKIP', 'POSTPONE', 'CANCEL'];
 
 function parseGateResponse(raw) {
     try {
-        const cleaned = (raw || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+        let cleaned = (raw || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+        // Extraer el primer objeto JSON aunque venga rodeado de prosa: a
+        // temperatura 0 una respuesta con texto alrededor se repetiría igual en
+        // cada ciclo y dejaría la tarea en SKIP permanente.
+        const start = cleaned.indexOf('{');
+        const end = cleaned.lastIndexOf('}');
+        if (start === -1 || end <= start) return null;
+        cleaned = cleaned.slice(start, end + 1);
         const parsed = JSON.parse(cleaned);
+        // Tolerar decision en minúscula/mixta
+        if (typeof parsed.decision === 'string') parsed.decision = parsed.decision.toUpperCase().trim();
         if (!VALID_DECISIONS.includes(parsed.decision)) return null;
         return {
             decision: parsed.decision,

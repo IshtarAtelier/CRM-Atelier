@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Zap, X, ChevronRight, Heart, FileText, ShoppingCart, Loader2, Check } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { buildFollowUpMessage } from '@/lib/whatsapp-followup';
+import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import Link from 'next/link';
 
 interface Opportunity {
@@ -73,8 +74,11 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
 
         if (!opp.phone) return;
 
-        const rawPhone = opp.phone.replace(/\D/g, '');
-        const phone = rawPhone.length >= 10 ? '549' + rawPhone.slice(-10) : rawPhone;
+        // Normalización completa (0 de área, "15" intercalado, +54 9): el
+        // recorte ingenuo de últimos 10 dígitos convertía "0351 15 6998877" en
+        // un número de Buenos Aires y abría el chat de un desconocido.
+        const phone = formatPhoneForWhatsApp(opp.phone);
+        if (!phone || phone.length <= 3) return;
 
         const { message } = buildFollowUpMessage({
             clientName: opp.clientName,

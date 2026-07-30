@@ -156,9 +156,17 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
             }
             if (gate.decision === 'POSTPONE') {
                 const days = gate.postponeDays || 7;
-                await prisma.clientTask.update({
-                    where: { id: task.id },
+                // updateMany con guarda de estado: si en el medio otra corrida
+                // (o applyCancelVerdict) canceló la tarea, no la resucitamos.
+                await prisma.clientTask.updateMany({
+                    where: { id: task.id, status: task.status },
                     data: { dueDate: new Date(now.getTime() + days * 24 * 3600 * 1000), status: 'PENDING' }
+                }).catch(() => {});
+                // La pausa vale para TODOS los sistemas de seguimiento, no solo
+                // esta tarea: "hablamos a fin de mes" también frena inactividad.
+                await prisma.whatsAppChat.update({
+                    where: { id: chat.id },
+                    data: { followUpPausedUntil: new Date(now.getTime() + days * 24 * 3600 * 1000) }
                 }).catch(() => {});
                 console.log(`  ⏸️ [Gate] Seguimiento de ${client.name} pospuesto ${days} días: ${gate.reason}`);
                 continue;
@@ -166,8 +174,8 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
             if (gate.decision === 'SKIP') {
                 // +2h para no re-consultar a la compuerta cada ciclo mientras la
                 // situación (pregunta sin responder, humano gestionando) no cambia.
-                await prisma.clientTask.update({
-                    where: { id: task.id },
+                await prisma.clientTask.updateMany({
+                    where: { id: task.id, status: task.status },
                     data: { dueDate: new Date(now.getTime() + 2 * 3600 * 1000), status: 'PENDING' }
                 }).catch(() => {});
                 console.log(`  ⏭️ [Gate] Seguimiento de ${client.name} salteado 2hs: ${gate.reason}`);
@@ -189,10 +197,12 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
                 // Empujar el vencimiento 3 horas: con take + orderBy por dueDate,
                 // una tarea que falla generación siempre (validador que la rechaza
                 // determinísticamente, cuota/API rota) quedaría clavada al frente
-                // de la cola bloqueando a todas las demás.
-                await prisma.clientTask.update({
-                    where: { id: task.id },
-                    data: { dueDate: new Date(now.getTime() + 3 * 3600 * 1000) }
+                // de la cola bloqueando a todas las demás. Vuelve a PENDING con
+                // guarda: si era una SENDING recuperada, sin esto quedaba zombie
+                // reintentándose cada ~45 min para siempre.
+                await prisma.clientTask.updateMany({
+                    where: { id: task.id, status: task.status },
+                    data: { dueDate: new Date(now.getTime() + 3 * 3600 * 1000), status: 'PENDING' }
                 }).catch(() => {});
                 continue;
             }
@@ -216,9 +226,14 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
             // escribe sender.js recién cuando el mensaje salió de verdad. Si el
             // proceso muere, la tarea queda en SENDING y se vuelve a tomar sola
             // pasados STALE_CLAIM_MINUTES.
+            // El claimStamp viaja hasta el preflight de la cola anti-ban: en el
+            // momento del envío físico se verifica que la tarea siga SENDING con
+            // ESTE updatedAt. Cualquier recuperación, cancelación o bump posterior
+            // cambia el updatedAt y el envío viejo se descarta solo.
+            const claimStamp = new Date();
             const claimed = await prisma.clientTask.updateMany({
                 where: { id: task.id, status: task.status },
-                data: { status: 'SENDING', updatedAt: new Date() }
+                data: { status: 'SENDING', updatedAt: claimStamp }
             });
             if (claimed.count === 0) {
                 console.log(`  ⚠️ Tarea de ${client.name} ya fue tomada por otra corrida. Omitiendo.`);
@@ -232,7 +247,7 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
             console.log(`  🕒 [Bot Executor] Programando envío a ${client.name} en ${(queueDelay / 60000).toFixed(1)} minutos.`);
 
             setTimeout(() => {
-                executeTaskAndSend(task.id, client.id, chat.waId, chat.id, generated.text, label, client.name, followUpType)
+                executeTaskAndSend(task.id, client.id, chat.waId, chat.id, generated.text, label, client.name, followUpType, claimStamp)
                     .then(() => { if (broadcastChatUpdate) broadcastChatUpdate(chat.id); })
                     .catch(err => console.error(`❌ Error enviando a ${client.name}:`, err.message));
             }, queueDelay);
@@ -256,18 +271,25 @@ async function cancelTask(taskId, reason) {
     }).catch(e => console.error(`  ❌ No se pudo cancelar la tarea ${taskId} (${reason}):`, e.message));
 }
 
-async function executeTaskAndSend(taskId, clientId, waId, chatId, text, label, clientName, followUpType) {
-    // Enviar WhatsApp
+async function executeTaskAndSend(taskId, clientId, waId, chatId, text, label, clientName, followUpType, claimStamp) {
+    // Enviar WhatsApp. El claim le permite al preflight de la cola verificar,
+    // en el momento del envío físico, que la tarea siga siendo nuestra.
     const { sent, reason } = await sendFollowUp({
-        waId, text, chatId, label, clientName, followUpType
+        waId, text, chatId, label, clientName, followUpType,
+        claim: { taskId, claimStamp }
     });
 
     if (sent) {
-        // 1. Marcar Tarea como DONE
-        await prisma.clientTask.update({
-            where: { id: taskId },
+        // 1. Marcar DONE — SOLO si la tarea sigue en SENDING. Sin la guarda, un
+        // envío que quedó en cola pisaba un CANCELLED posterior con DONE y la
+        // auditoría quedaba mintiendo.
+        const done = await prisma.clientTask.updateMany({
+            where: { id: taskId, status: 'SENDING' },
             data: { status: 'DONE', updatedAt: new Date() }
         });
+        if (done.count === 0) {
+            console.warn(`  ⚠️ [Bot Executor] El mensaje a ${clientName} salió pero la tarea ya no estaba en SENDING (cancelada/reclamada en el medio). No se pisa su estado.`);
+        }
 
         // 2. Registrar Interacción en la ficha del cliente
         await prisma.interaction.create({
@@ -284,20 +306,27 @@ async function executeTaskAndSend(taskId, clientId, waId, chatId, text, label, c
 
         console.log(`  ✅ [Bot Executor] Ejecución completa para ${clientName} (${funnelTag})`);
     } else {
-        console.error(`  ❌ [Bot Executor] Falló envío a ${clientName}: ${reason}`);
-        
-        await prisma.clientTask.update({
-            where: { id: taskId },
-            data: { status: 'FAILED', updatedAt: new Date() }
-        }).catch(() => {});
+        const wasPreflight = (reason || '').startsWith('Preflight:');
+        console.error(`  ${wasPreflight ? '🚦' : '❌'} [Bot Executor] Envío a ${clientName} no realizado: ${reason}`);
 
-        await prisma.interaction.create({
-            data: {
-                clientId: clientId,
-                type: 'NOTE',
-                content: `❌ [BOT] Falló envío de Seguimiento (${followUpType}). Motivo: ${reason}`
-            }
-        }).catch(() => {});
+        // Un descarte del preflight NO es un fallo: la tarea fue cancelada,
+        // reclamada por otra corrida o el cliente escribió — el estado correcto
+        // ya lo puso quien la tomó. Solo un fallo real de envío marca FAILED,
+        // y con guarda para no pisar un estado ajeno.
+        if (!wasPreflight) {
+            await prisma.clientTask.updateMany({
+                where: { id: taskId, status: 'SENDING' },
+                data: { status: 'FAILED', updatedAt: new Date() }
+            }).catch(() => {});
+
+            await prisma.interaction.create({
+                data: {
+                    clientId: clientId,
+                    type: 'NOTE',
+                    content: `❌ [BOT] Falló envío de Seguimiento (${followUpType}). Motivo: ${reason}`
+                }
+            }).catch(() => {});
+        }
     }
 }
 

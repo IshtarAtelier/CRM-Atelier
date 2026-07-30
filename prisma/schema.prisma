@@ -515,6 +515,11 @@ model WhatsAppChat {
   realPhone      String?
   chatSummary    String?
   lastFollowUpAt DateTime?
+  // Pausa de seguimientos decidida por la compuerta de conversación (el cliente
+  // pidió retomar más adelante, o hay una pregunta sin responder). Persistente:
+  // antes vivía en nada y el cron de inactividad re-consultaba al LLM cada 15
+  // minutos y perdía los "hablamos a fin de mes" en cada reinicio.
+  followUpPausedUntil DateTime?
   adTag          String?
   client         Client?           @relation(fields: [clientId], references: [id])
   messages       WhatsAppMessage[]

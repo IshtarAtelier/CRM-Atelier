@@ -52,6 +52,13 @@ async function checkEligibility({ client, chat, quote, now, isManual = false, ta
         return { eligible: false, reason: `Chat de ${client.name} desactivado manualmente` };
     }
 
+    // 4b. Pausa puesta por la compuerta de conversación ("hablamos a fin de
+    // mes"): vale para todos los sistemas. El trigger manual la respeta también:
+    // si el cliente pidió una fecha, taggearlo no debería adelantársela.
+    if (chat.followUpPausedUntil && new Date(chat.followUpPausedUntil) > now) {
+        return { eligible: false, reason: `Seguimientos de ${client.name} pausados hasta ${new Date(chat.followUpPausedUntil).toLocaleDateString('es-AR')}` };
+    }
+
     // 5. Cooldown: mínimo COOLDOWN_HOURS desde último follow-up (Bypassed if manual trigger)
     if (!isManual && chat.lastFollowUpAt) {
         const hoursSinceLastFU = (now.getTime() - new Date(chat.lastFollowUpAt).getTime()) / 3600000;
