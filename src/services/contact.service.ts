@@ -243,6 +243,13 @@ export interface ContactCreateData {
     doctor?: string | null;
     metaLid?: string | null;
     forceCreate?: boolean;
+    /**
+     * CÓMO se creó la ficha, para el primer registro del historial. Quién la creó
+     * sale de la sesión (createdBy), esto es aparte: 'ASISTENTE_WHATSAPP' significa
+     * que una persona apretó el botón del buzón con los datos que prellenó el
+     * asistente — distinto de que el portero la haya creado solo.
+     */
+    creationMethod?: 'ASISTENTE_WHATSAPP';
     createdBy?: string;
 }
 
@@ -511,6 +518,32 @@ export const ContactService = {
         const createdClient = await prisma.client.create({
             data: createData
         });
+
+        // ── Primer registro del historial: quién creó la ficha y CÓMO ──
+        // No es lo mismo que el portero la haya creado solo, a que una persona haya
+        // tenido que abrir el chat, revisarlo y apretar el botón. Antes la creación
+        // no dejaba ningún registro propio: el primer renglón del historial era otra
+        // cosa (un hito, un presupuesto) y no se podía saber de dónde salió la ficha.
+        //
+        // `creationMethod` lo manda quien crea: el panel del buzón manda
+        // 'ASISTENTE_WHATSAPP' (una persona apretó el botón, con la extracción del
+        // asistente prellenando los datos). El bot no lo manda y queda 'BOT'.
+        const quien = createData.createdBy;
+        const esBot = /bot|sistema \(pasivo\)/i.test(quien);
+        const metodo = data.creationMethod;
+        const comoSeCreo = esBot
+            ? 'automáticamente desde WhatsApp (portero)'
+            : metodo === 'ASISTENTE_WHATSAPP'
+                ? 'desde el buzón de WhatsApp, con el asistente'
+                : 'a mano';
+        await prisma.interaction.create({
+            data: {
+                clientId: createdClient.id,
+                type: 'NOTE',
+                content: `🆕 ${quien} creó la ficha ${comoSeCreo}`,
+                userName: quien,
+            },
+        }).catch(console.error);
 
         // Auto-tag based on contactSource
         await syncContactSourceTag(createdClient.id, createdClient.contactSource);

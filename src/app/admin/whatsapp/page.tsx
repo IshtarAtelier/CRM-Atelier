@@ -1028,6 +1028,12 @@ function WhatsAppPageContent() {
                     insurance: extractedClient.insurance || null,
                     contactSource: extractedClient.contactSource || null,
                     status: 'CONTACT',
+                    // Quién crea la ficha es la persona logueada (lo resuelve el
+                    // servidor con la sesión). Esto solo declara CÓMO: apretó el
+                    // botón del buzón con los datos que prellenó el asistente. Es
+                    // distinto de que el portero la haya creado solo, y el primer
+                    // renglón del historial ahora lo dice.
+                    creationMethod: 'ASISTENTE_WHATSAPP',
                 }),
             });
             const newClient = await res.json();
