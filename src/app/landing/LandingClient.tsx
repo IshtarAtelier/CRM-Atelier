@@ -24,11 +24,25 @@ const MARQUEE_ITEMS = [
   "Curaduría Exclusiva",
 ];
 
+/** Reseña tal como la devuelve `getGoogleReviews()`. */
+interface LandingReview {
+  author_name?: string;
+  text?: string;
+}
+
 interface LandingClientProps {
   slug?: string;
   reviewCount?: number;
   rating?: number;
   products?: LandingProduct[];
+  /**
+   * Reseñas REALES de Google. Antes el bloque de prueba social mostraba tres
+   * testimonios inventados a mano ("María G.", "Carlos S.", "Lucía P.") mientras
+   * la página ya pedía las de verdad y las descartaba. Publicar testimonios
+   * inventados al lado de un "670 reseñas reales" es exactamente lo que no
+   * puede pasar en la parte que construye confianza.
+   */
+  reviews?: LandingReview[];
 }
 
 // Fondo del hero: crossfade en CSS puro + crédito de obra. El contenido del hero
@@ -117,6 +131,7 @@ export function LandingClient({
   reviewCount = 0,
   rating = 0,
   products = [],
+  reviews: googleReviews = [],
 }: LandingClientProps) {
   const config = CAMPAIGNS[slug] ?? CAMPAIGNS.default;
 
@@ -206,11 +221,23 @@ export function LandingClient({
     { num: "04", title: "Recibí tus lentes", desc: "En el local o a domicilio" },
   ];
 
-  const reviews = [
-    { name: "María G.", text: "Excelente atención y los anteojos me quedaron perfectos. Muy rápidos.", initial: "M" },
-    { name: "Carlos S.", text: "Me asesoraron por WhatsApp con mi receta. Calidad superior, 100% recomendados.", initial: "C" },
-    { name: "Lucía P.", text: "Hermosos diseños y la atención impecable. Volvería a comprar sin dudarlo.", initial: "L" },
-  ];
+  // Las reseñas de Google vienen enteras y algunas son largas: en tres columnas
+  // hay que recortarlas para que las tarjetas queden parejas. Se corta en el
+  // final de oración más cercano para no dejar la frase colgada a mitad.
+  const reviews = googleReviews
+    .filter((r) => r.text && r.author_name)
+    .slice(0, 3)
+    .map((r) => {
+      const full = (r.text || "").trim();
+      let text = full;
+      if (full.length > 190) {
+        const cut = full.slice(0, 190);
+        const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "));
+        text = lastStop > 90 ? cut.slice(0, lastStop + 1) : `${cut.trimEnd()}…`;
+      }
+      const name = (r.author_name || "").trim();
+      return { name, text, initial: name.charAt(0).toUpperCase() };
+    });
 
   const goldButton =
     "inline-flex items-center justify-center px-10 py-5 bg-[#C5A059] hover:bg-[#b58f4c] text-[#0F0F0F] font-bold text-[12px] uppercase tracking-[0.2em] transition-all duration-300 shadow-[0_0_40px_rgba(197,160,89,0.25)]";
@@ -442,11 +469,14 @@ export function LandingClient({
                 <Star key={j} className="w-5 h-5 fill-current" />
               ))}
             </div>
-            <h2 className="font-serif text-4xl md:text-5xl mb-5">
-              {reviewCount > 0
-                ? <>{ratingStr} · <em className="italic">{reviewCount} reseñas reales</em></>
-                : <em className="italic">Reseñas reales</em>}
+            <h2 className="font-serif text-4xl md:text-5xl mb-4">
+              La óptica <em className="italic text-[#8a6f3d]">mejor calificada</em> de Córdoba
             </h2>
+            {reviewCount > 0 && (
+              <p className="font-serif text-2xl md:text-3xl text-stone-600 mb-5">
+                {ratingStr} de 5 · <em className="italic">{reviewCount} reseñas reales</em>
+              </p>
+            )}
             <a
               href="https://www.google.com/maps?cid=14830223812501661125"
               target="_blank"
@@ -457,6 +487,8 @@ export function LandingClient({
             </a>
           </div>
 
+          {/* Si Google no responde, la sección se queda con el titular y el link
+              en vez de mostrar una grilla vacía. */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-14">
             {reviews.map((rev, i) => (
               <div key={i} className="border-t border-black/15 pt-6">
