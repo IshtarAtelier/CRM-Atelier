@@ -43,6 +43,19 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'kazwiniopticalgroup.com' },
     ]
   },
+  async rewrites() {
+    return [
+      // URL pública de la landing de campañas. Se sirve /landing pero la barra
+      // del navegador queda en /promoanteojos: es la que va en los anuncios.
+      //
+      // Rewrite y no redirect a propósito: un 301 hace que el visitante llegue
+      // a otra URL distinta de la del aviso, y encima suma un salto antes de
+      // ver la página — en tráfico pago desde celular eso se paga en rebote.
+      //
+      // No se usa /promo porque esa ruta ya tiene la landing de la promo 2x1.
+      { source: '/promoanteojos', destination: '/landing' },
+    ];
+  },
   async redirects() {
     // Redirect del dominio Railway al dominio real (sin www, como canonicaliza
     // el dominio vivo). APAGADO hasta el cutover DNS: se activa seteando
