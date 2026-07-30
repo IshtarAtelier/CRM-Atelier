@@ -590,6 +590,109 @@ function createApiRouter(deps) {
         res.json({ success: true, message: 'Sincronización iniciada en segundo plano.' });
     });
 
+    // ── POST /recover-media ────────────────────────
+    // Recupera retroactivamente las fotos/audios que no se pudieron bajar.
+    //
+    // Desde el 15/7/2026 downloadMedia() falla globalmente (issues #201828 y
+    // #201833 de la librería, sin fix publicado). Los archivos NO se pierden:
+    // siguen en WhatsApp, y cada mensaje quedó en la DB con su waMessageId y
+    // mediaUrl null. Este endpoint los barre y reintenta la descarga — hoy va a
+    // fallar igual que el camino en vivo, pero el día que la descarga vuelva
+    // (fix de la librería o cambio de versión), UNA corrida recupera todo lo
+    // acumulado de semanas y lo sube al storage como si hubiera llegado ayer.
+    //
+    // Uso: POST /api/recover-media  { "limit": 25, "dryRun": true }
+    //   dryRun (default true): solo informa cuántos hay y prueba UNO.
+    //   limit: cuántos procesar por corrida (máx 100 — es lento a propósito,
+    //   un mensaje por vez con pausa, para no estresar la sesión de WhatsApp).
+    router.post('/recover-media', async (req, res) => {
+        const status = getStatus();
+        if (!status.isReady) {
+            return res.status(400).json({ success: false, error: 'WhatsApp no está conectado' });
+        }
+        const wc = getClient();
+        if (!wc) return res.status(400).json({ success: false, error: 'WhatsApp client no disponible' });
+
+        const dryRun = req.body?.dryRun !== false;
+        const limit = Math.min(Number(req.body?.limit) || 25, 100);
+
+        const pendientes = await prisma.whatsAppMessage.findMany({
+            where: {
+                type: { in: ['IMAGE', 'AUDIO', 'VIDEO', 'DOCUMENT'] },
+                mediaUrl: null,
+                // Solo ids reales de WhatsApp: los local_/receipt_ no se pueden
+                // volver a pedir (son ids nuestros, no de WhatsApp).
+                waMessageId: { not: null },
+                NOT: [{ waMessageId: { startsWith: 'local_' } }, { waMessageId: { startsWith: 'receipt_' } }],
+                createdAt: { gte: new Date('2026-07-15') },
+            },
+            orderBy: { createdAt: 'asc' },
+            take: dryRun ? 1 : limit,
+            select: { id: true, waMessageId: true, chatId: true, type: true, createdAt: true },
+        });
+        const total = await prisma.whatsAppMessage.count({
+            where: {
+                type: { in: ['IMAGE', 'AUDIO', 'VIDEO', 'DOCUMENT'] },
+                mediaUrl: null,
+                waMessageId: { not: null },
+                NOT: [{ waMessageId: { startsWith: 'local_' } }, { waMessageId: { startsWith: 'receipt_' } }],
+                createdAt: { gte: new Date('2026-07-15') },
+            },
+        });
+
+        let recuperados = 0, fallidos = 0;
+        const errores = [];
+        for (const m of pendientes) {
+            try {
+                const msg = await wc.getMessageById(m.waMessageId);
+                if (!msg) { fallidos++; continue; }
+                const media = await msg.downloadMedia();
+                if (!media || !media.data) { fallidos++; continue; }
+
+                if (!dryRun) {
+                    const buffer = Buffer.from(media.data, 'base64');
+                    const FormDataNode = require('form-data');
+                    const axios = require('axios');
+                    const form = new FormDataNode();
+                    const ext = getFileExtension(media.mimetype);
+                    form.append('file', buffer, { filename: `wa_recuperado_${Date.now()}.${ext}`, contentType: media.mimetype });
+                    let uploadUrl = process.env.CRM_API_URL;
+                    if (uploadUrl.endsWith('/api/bot')) uploadUrl = uploadUrl.replace('/api/bot', '/api/upload');
+                    else uploadUrl = uploadUrl + '/upload';
+                    const up = await axios.post(uploadUrl, form, {
+                        headers: { ...form.getHeaders(), 'x-api-key': process.env.BOT_API_KEY },
+                    });
+                    if (up.data?.url) {
+                        await prisma.whatsAppMessage.update({ where: { id: m.id }, data: { mediaUrl: up.data.url } });
+                        recuperados++;
+                    } else fallidos++;
+                } else {
+                    // dry run: la descarga anduvo, no se sube nada
+                    recuperados++;
+                }
+                // Pausa entre mensajes: la recuperación no puede estresar la sesión
+                await new Promise((r2) => setTimeout(r2, 1500));
+            } catch (e) {
+                fallidos++;
+                if (errores.length < 3) errores.push(String(e?.message || e).slice(0, 80));
+            }
+        }
+
+        res.json({
+            success: true,
+            dryRun,
+            pendientesTotal: total,
+            procesados: pendientes.length,
+            descargaFunciona: recuperados > 0,
+            recuperados,
+            fallidos,
+            errores,
+            nota: dryRun
+                ? 'Dry run: probó UNO. Si descargaFunciona=true, correr con {"dryRun":false} para recuperar de a tandas.'
+                : 'Correr de nuevo hasta que pendientesTotal llegue a 0.',
+        });
+    });
+
     // ── POST /test/chat ────────────────────────────
     // Simulador de Chat (Test)
     // Réplica exacta del flujo real (processBotTurn) para testing fiel.
