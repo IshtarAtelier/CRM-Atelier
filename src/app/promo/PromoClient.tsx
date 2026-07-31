@@ -24,7 +24,19 @@ interface PromoClientProps {
 }
 
 export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: PromoClientProps) {
-  const [mounted, setMounted] = useState(false);
+  // Sin guard de "mounted": la página se renderiza también en el servidor.
+  //
+  // Había un `if (!mounted) return null` que devolvía la página VACÍA en el
+  // HTML y recién la armaba al hidratar. Para una landing de anuncios eso es
+  // caro: Google Ads evalúa la calidad del destino y una página sin contenido
+  // puede bajar el nivel de calidad —se paga en CPC— o hacer que desaprueben
+  // el anuncio. Meta mira lo mismo.
+  //
+  // Ese guard suele ponerse para evitar un error de hidratación, pero acá no
+  // había ninguno que evitar: el único uso de `window` está dentro del onClick
+  // (no corre al renderizar) y todos los estados arrancan con valores fijos,
+  // iguales en servidor y en navegador. Las otras dos landings no lo tienen y
+  // renderizan bien.
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   
   // WhatsApp State
@@ -38,8 +50,6 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
   const [hasSeenPopup, setHasSeenPopup] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    
     // Exit Intent Logic
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.clientY <= 0 && !hasSeenPopup) {
@@ -51,8 +61,6 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
     document.addEventListener("mouseleave", handleMouseLeave);
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
   }, [hasSeenPopup]);
-
-  if (!mounted) return null;
 
   const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
     e.preventDefault();
