@@ -25,6 +25,7 @@ const { transcribeAudio } = require('./transcriber');
 const { checkAndSendSalesFollowUps } = require('./sales-followups');
 const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups');
 const { TAGS_SIN_BOT, getFileExtension, getAdminWaId } = require('./utils');
+const { downloadMediaWithRetry, uploadMediaToCrm } = require('./shared/media');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
 const { serializedId, resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
 
@@ -262,7 +263,7 @@ const handleMessageCreate = async (msg) => {
                 
                 if (msg.hasMedia || ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(msg.type)) {
                     try {
-                        const media = await msg.downloadMedia();
+                        const media = await downloadMediaWithRetry(msg, 'saliente');
                         if (media) {
                             if (media.mimetype.startsWith('audio/')) messageType = 'AUDIO';
                             else if (media.mimetype.startsWith('video/')) messageType = 'VIDEO';
@@ -284,26 +285,12 @@ const handleMessageCreate = async (msg) => {
                                 }
                             }
 
-                            const axios = require('axios');
-                            const FormDataNode = require('form-data');
-                            const form = new FormDataNode();
-                            form.append('file', buffer, { filename: `wa_out_${Date.now()}.${ext}`, contentType: media.mimetype });
-                            
-                            let uploadUrl = process.env.CRM_API_URL;
-                            if (uploadUrl.endsWith('/api/bot')) uploadUrl = uploadUrl.replace('/api/bot', '/api/upload');
-                            else if (uploadUrl.endsWith('/api')) uploadUrl = uploadUrl + '/upload';
-                            else uploadUrl = uploadUrl + '/upload';
-
-                            const uploadRes = await axios.post(uploadUrl, form, {
-                                headers: {
-                                    ...form.getHeaders(),
-                                    'x-api-key': process.env.BOT_API_KEY
-                                }
-                            });
-                            
-                            if (uploadRes.data && uploadRes.data.url) {
-                                mediaUrl = uploadRes.data.url;
-                            }
+                            mediaUrl = await uploadMediaToCrm(
+                                buffer,
+                                media.mimetype,
+                                `wa_out_${Date.now()}.${ext}`,
+                                'saliente',
+                            );
                         }
                     } catch (err) {
                         console.error('Error procesando media saliente:', err.message);
@@ -1449,7 +1436,7 @@ const handleMessage = async (msg) => {
         
         if (msg.hasMedia || ['image', 'video', 'audio', 'ptt', 'document', 'sticker'].includes(msg.type)) {
             try {
-                const media = await msg.downloadMedia();
+                const media = await downloadMediaWithRetry(msg, `entrante de ${profileName || waId}`);
                 if (media) {
                     if (media.mimetype.startsWith('audio/')) messageType = 'AUDIO';
                     else if (media.mimetype.startsWith('video/')) messageType = 'VIDEO';
@@ -1497,34 +1484,16 @@ const handleMessage = async (msg) => {
                         }
                     }
 
-                    // AHORA LO SUBIMOS SIEMPRE PARA QUE LA UI LO PUEDA REPRODUCIR/VER ONLINE
-                    const axios = require('axios');
-                    const FormDataNode = require('form-data');
-                    const form = new FormDataNode();
-                    form.append('file', buffer, { filename: `wa_${Date.now()}.${ext}`, contentType: media.mimetype });
-                    
-                    try {
-                        let uploadUrl = process.env.CRM_API_URL;
-                        if (uploadUrl.endsWith('/api/bot')) uploadUrl = uploadUrl.replace('/api/bot', '/api/upload');
-                        else if (uploadUrl.endsWith('/api')) uploadUrl = uploadUrl + '/upload';
-                        else uploadUrl = uploadUrl + '/upload';
-
-                        const uploadRes = await axios.post(uploadUrl, form, {
-                            headers: {
-                                ...form.getHeaders(),
-                                'x-api-key': process.env.BOT_API_KEY
-                            }
-                        });
-                        
-                        if (uploadRes.data && uploadRes.data.url) {
-                            mediaUrl = uploadRes.data.url;
-                        }
-                    } catch (uploadError) {
-                        console.error('Error uploading file to CRM:', uploadError.message);
-                    }
+                    // Se sube siempre, así la UI lo puede ver/reproducir online.
+                    mediaUrl = await uploadMediaToCrm(
+                        buffer,
+                        media.mimetype,
+                        `wa_${Date.now()}.${ext}`,
+                        `entrante de ${profileName || waId}`,
+                    );
                 }
             } catch (e) {
-                console.error('Error downloading media:', e.message);
+                console.error('Error procesando media entrante:', e.message);
             }
         }
 
@@ -1533,7 +1502,13 @@ const handleMessage = async (msg) => {
         const inboundWaMessageId = resolveWaMessageId(msg, { waId, direction: 'INBOUND', content: originalBody });
         await prisma.whatsAppMessage.upsert({
             where: { waMessageId: inboundWaMessageId },
-            update: {},
+            // Si la fila ya existía SIN archivo y esta vez sí lo bajamos, se
+            // completa. Antes el update iba vacío: el otro camino que graba
+            // entrantes (POST /api/bot/messages) inserta apenas llega el
+            // mensaje, mientras acá todavía estamos bajando la foto —y cuando
+            // la bajada terminaba, el upsert encontraba la fila y no escribía
+            // nada. La foto quedaba en el aire y WhatsApp después la borra.
+            update: mediaUrl ? { mediaUrl } : {},
             create: {
                 chatId: chat.id,
                 direction: 'INBOUND',
