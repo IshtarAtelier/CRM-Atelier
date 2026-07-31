@@ -13,5 +13,10 @@ export const metadata: Metadata = {
 
 export default async function PromoPage() {
   const reviewsData = await getGoogleReviews();
-  return <PromoClient reviewCount={reviewsData.userRatingCount} />;
+  return (
+    <PromoClient
+      reviewCount={reviewsData.userRatingCount}
+      reviews={reviewsData.reviews}
+    />
+  );
 }

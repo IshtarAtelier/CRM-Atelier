@@ -5,12 +5,25 @@ import Image from "next/image";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { ChevronDown, Star, Diamond, Glasses, ShieldCheck, X, Eye, Layers } from "lucide-react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { LandingFooter } from "@/components/landing/LandingFooter";
+
+/** Reseña tal como la devuelve `getGoogleReviews()`. */
+interface PromoReview {
+  author_name?: string;
+  text?: string;
+}
 
 interface PromoClientProps {
   reviewCount?: number;
+  /**
+   * Reseñas REALES de Google. Esta landing mostraba tres testimonios escritos a
+   * mano ("María G.", "Carlos S.", "Lucía P.") en la sección titulada "Confianza
+   * Absoluta", mientras la página ya pedía las verdaderas y las descartaba.
+   */
+  reviews?: PromoReview[];
 }
 
-export function PromoClient({ reviewCount = 0 }: PromoClientProps) {
+export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: PromoClientProps) {
   const [mounted, setMounted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   
@@ -74,11 +87,22 @@ export function PromoClient({ reviewCount = 0 }: PromoClientProps) {
     }
   ];
 
-  const reviews = [
-    { name: "María G.", text: "Excelente atención y los anteojos me quedaron perfectos. Muy rápidos.", initial: "M" },
-    { name: "Carlos S.", text: "Me hice los multifocales con la promo 2x1. Calidad superior, 100% recomendados.", initial: "C" },
-    { name: "Lucía P.", text: "Hermosos diseños. La chica de WhatsApp me asesoró bárbaro con mi receta.", initial: "L" }
-  ];
+  // Recorte en el final de oración más cercano: las de Google vienen enteras y
+  // algunas son largas, y en tres columnas las tarjetas quedan desparejas.
+  const reviews = googleReviews
+    .filter((r) => r.text && r.author_name)
+    .slice(0, 3)
+    .map((r) => {
+      const full = (r.text || "").trim();
+      let text = full;
+      if (full.length > 190) {
+        const cut = full.slice(0, 190);
+        const lastStop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "));
+        text = lastStop > 90 ? cut.slice(0, lastStop + 1) : `${cut.trimEnd()}…`;
+      }
+      const name = (r.author_name || "").trim();
+      return { name, text, initial: name.charAt(0).toUpperCase() };
+    });
 
   // Framer Motion Variants
   const containerVars: Variants = {
@@ -315,9 +339,12 @@ export function PromoClient({ reviewCount = 0 }: PromoClientProps) {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col items-center text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-serif text-white mb-6">Confianza Absoluta</h2>
-            <a href="https://maps.app.goo.gl/fQ9T1xBFmDV8Tpim9" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[#C5A059] border-b border-[#C5A059] pb-1 hover:text-white hover:border-white transition-colors text-sm font-bold uppercase tracking-widest">
-              Ver las {reviewCount > 0 ? `${reviewCount} ` : ""}reseñas en Google
-            </a>
+            {/* Sin link a Google Maps: era la única salida de la landing y se
+                llevaba al visitante justo cuando la prueba social ya hizo su
+                trabajo. Queda el dato, se va la puerta. */}
+            <span className="inline-flex items-center gap-2 text-[#C5A059] text-sm font-bold uppercase tracking-widest">
+              {reviewCount > 0 ? `${reviewCount} reseñas verificadas en Google` : "Reseñas verificadas en Google"}
+            </span>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -382,10 +409,9 @@ export function PromoClient({ reviewCount = 0 }: PromoClientProps) {
         </motion.button>
       </section>
 
-      {/* Footer Minimalista */}
-      <footer className="w-full bg-[#FCFCFC] py-12 px-6 border-t border-gray-200 text-center">
-        <p className="text-gray-400 text-sm">© 2026 ATELIER ÓPTICA. Cerro de las Rosas, Córdoba.</p>
-      </footer>
+      {/* Datos del negocio + legales: sin navegación a la tienda, pero con lo
+          que Google Ads y Meta piden ver en el destino de un anuncio. */}
+      <LandingFooter theme="light" />
 
       {/* WhatsApp Flotante (Con Transición Suave) */}
       <div className="fixed bottom-6 right-6 z-50">

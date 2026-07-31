@@ -7,6 +7,7 @@ import { ChevronDown, Star, X, Glasses } from "lucide-react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { captureAttribution } from "@/lib/client-analytics";
 import { CAMPAIGNS, type LandingProduct } from "@/lib/landing/campaigns";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 
 // ── Créditos de obra para los retratos editoriales (mismo espíritu que FilmmakerReel) ──
 const FRAME_CREDITS: Record<string, string> = {
@@ -477,14 +478,12 @@ export function LandingClient({
                 {ratingStr} de 5 · <em className="italic">{reviewCount} reseñas reales</em>
               </p>
             )}
-            <a
-              href="https://www.google.com/maps?cid=14830223812501661125"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[12px] font-bold uppercase tracking-[0.15em] underline underline-offset-4 decoration-[#C5A059] decoration-2 hover:opacity-60 transition-opacity"
-            >
-              Ver las reseñas en Google
-            </a>
+            {/* Sin link a Google Maps: la prueba social se queda como texto.
+                Mandaba al visitante fuera de la landing justo en el momento de
+                mayor confianza, que es cuando tiene que escribir. */}
+            <span className="text-[12px] font-bold uppercase tracking-[0.15em] text-stone-500">
+              Reseñas verificadas en Google
+            </span>
           </div>
 
           {/* Si Google no responde, la sección se queda con el titular y el link
@@ -563,12 +562,9 @@ export function LandingClient({
 
       <Marquee />
 
-      {/* Footer minimalista */}
-      <footer className="w-full bg-[#0F0F0F] py-10 px-6 text-center">
-        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/30">
-          © 2026 Atelier Óptica — José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba
-        </p>
-      </footer>
+      {/* Datos del negocio + legales: sin navegación a la tienda, pero con lo
+          que Google Ads y Meta piden ver en el destino de un anuncio. */}
+      <LandingFooter theme="dark" />
 
       {/* El WhatsApp flotante persistente lo inyecta el layout raíz (<FloatingWhatsApp/>). */}
 

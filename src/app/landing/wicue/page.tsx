@@ -1,11 +1,25 @@
 "use client";
 
-import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { StorefrontFooterStatic as StorefrontFooter } from "@/components/Storefront/StorefrontFooterStatic";
 import { Sun, BatteryCharging, Shield, Smartphone, ArrowRight } from "lucide-react";
 import Image from "next/image";
+import { buildWhatsAppUrl } from "@/lib/whatsapp-link";
+import { LandingFooter } from "@/components/landing/LandingFooter";
+
+/**
+ * Landing de campaña: un solo objetivo, generar el contacto por WhatsApp.
+ *
+ * Sin navbar, sin footer del sitio y sin links a /tienda: todo eso desviaba al
+ * visitante del aviso hacia el catálogo, donde el recorrido se diluye. La página
+ * tenía DOS botones a /tienda y ningún botón de WhatsApp propio — el anuncio que
+ * la alimenta traía 1.439 clics y sólo 6 conversaciones.
+ *
+ * El tracking del clic y la frase de origen ("Los vi en Meta.") los agrega solo
+ * WhatsAppAttribution, que intercepta todo link a wa.me del sitio.
+ */
+const WA_URL = buildWhatsAppUrl(
+  "Hola Atelier! 👋 Vi los anteojos Wicue de tinte electrónico y quiero información y precio.",
+);
 
 export default function WicueLandingPage() {
   const { scrollYProgress } = useScroll();
@@ -14,7 +28,15 @@ export default function WicueLandingPage() {
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black font-sans">
-      <StorefrontNavbar theme="dark" />
+      {/* Marca sin link: identifica sin ofrecer una salida al resto del sitio. */}
+      <header className="absolute top-0 inset-x-0 z-30 py-6 px-6 lg:px-12 flex items-center justify-between">
+        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white/70">
+          Atelier Óptica
+        </span>
+        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40">
+          Córdoba · Arg
+        </span>
+      </header>
       <main>
         {/* HERO SECTION */}
         <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
@@ -67,9 +89,14 @@ export default function WicueLandingPage() {
               transition={{ delay: 0.8, duration: 0.8 }}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <Link href="/tienda" className="bg-white text-black px-8 py-4 rounded-full text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2">
-                Comprar Ahora <ArrowRight className="w-4 h-4" />
-              </Link>
+              <a
+                href={WA_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white text-black px-8 py-4 rounded-full text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center gap-2"
+              >
+                Consultar por WhatsApp <ArrowRight className="w-4 h-4" />
+              </a>
             </motion.div>
           </motion.div>
         </section>
@@ -115,14 +142,37 @@ export default function WicueLandingPage() {
             <div className="relative z-10 text-center max-w-3xl px-6">
               <h2 className="text-4xl md:text-6xl font-serif italic mb-6">El Futuro de la Óptica</h2>
               <p className="text-stone-300 text-lg leading-relaxed mb-10">La tecnología patentada de Wicue permite alterar la transmisión de luz visible en tiempo real. Olvidate de cambiar entre anteojos de receta y de sol.</p>
-              <Link href="/tienda" className="inline-block bg-transparent border border-white text-white px-8 py-4 rounded-full text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors">
-                Descubrir Colección
-              </Link>
+              <a
+                href={WA_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block bg-transparent border border-white text-white px-8 py-4 rounded-full text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
+              >
+                Pedir precio por WhatsApp
+              </a>
             </div>
+        </section>
+
+        {/* Cierre: última oportunidad de contacto, sin ninguna otra salida. */}
+        <section className="py-28 px-6 text-center border-t border-white/10">
+          <h2 className="text-3xl md:text-5xl font-serif italic mb-5">
+            ¿Te los mostramos?
+          </h2>
+          <p className="text-stone-400 text-base leading-relaxed max-w-xl mx-auto mb-10">
+            Escribinos y te contamos disponibilidad, precio y formas de pago. Sin compromiso.
+          </p>
+          <a
+            href={WA_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 bg-white text-black px-10 py-5 rounded-full text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform"
+          >
+            Hablar con un asesor <ArrowRight className="w-4 h-4" />
+          </a>
         </section>
       </main>
 
-      <StorefrontFooter />
+      <LandingFooter theme="dark" />
     </div>
   );
 }
