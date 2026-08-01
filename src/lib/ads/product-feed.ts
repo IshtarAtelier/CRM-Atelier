@@ -162,7 +162,14 @@ export async function buildProductFeed(platform: FeedPlatform): Promise<string> 
       <g:google_product_category>${googleCategory(p.category)}</g:google_product_category>
       <g:product_type>${esc(p.category || 'Anteojos')}</g:product_type>
       <g:gender>${feedGender(p.gender)}</g:gender>
-      <g:age_group>adult</g:age_group>
+      <g:age_group>adult</g:age_group>${p.color ? `
+      <g:color>${esc(p.color)}</g:color>` : ''}${p.material ? `
+      <g:material>${esc(p.material)}</g:material>` : ''}${p.shape && p.shape !== 'Otros' ? `
+      <g:product_detail>
+        <g:section_name>Armazón</g:section_name>
+        <g:attribute_name>Forma</g:attribute_name>
+        <g:attribute_value>${esc(p.shape)}</g:attribute_value>
+      </g:product_detail>` : ''}
       <g:shipping>
         <g:country>AR</g:country>
         <g:price>0.00 ARS</g:price>

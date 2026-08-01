@@ -46,6 +46,11 @@ export const TIENDA_SELECT = {
   category: true,
   slug: true,
   images: true,
+  // El alt de la foto es la única fuente del COLOR del armazón: el catálogo no
+  // tiene columna para eso, y los alts se escribieron con estructura fija
+  // ("… negro, en acetato, forma cat-eye …"). Merchant Center pide `color` para
+  // la categoría Gafas. Ver src/lib/catalog/frame-specs.ts.
+  imageAlts: true,
   isFeatured: true,
   product: {
     select: {

@@ -12,6 +12,7 @@
 import { serverCache } from "@/lib/cache";
 import { getProductAttributes } from "@/utils/product-controllers";
 import { getTiendaCatalogo, type CatalogRow } from "@/lib/catalog/sources";
+import { parseFrameSpecs, pickDescriptiveAlt } from "@/lib/catalog/frame-specs";
 import type { CatalogOrigin } from "@/lib/catalog/resilience";
 
 export interface MappedWebProduct {
@@ -27,6 +28,12 @@ export interface MappedWebProduct {
   imagenesCatalogo: string[];
   shape: string;
   material: string;
+  /**
+   * Color del armazón, sacado del alt de la foto. Puede ser null: se prefiere
+   * un dato ausente a uno inventado, porque en el feed de Merchant Center un
+   * atributo equivocado es motivo de desaprobación del producto.
+   */
+  color: string | null;
   gender: string;
   /** Campos que solo consume el feed de Google/Meta, no la grilla. */
   mpn: string | null;
@@ -40,6 +47,12 @@ const CACHE_TTL_SECONDS = 180;
 function mapRow(wp: CatalogRow): MappedWebProduct {
   const modelCode = wp.product.model || wp.name || "";
   const { shape, material } = getProductAttributes(modelCode, wp.product.seoTags);
+
+  // El color sale del alt de la foto, que es texto escrito a mano y explícito.
+  // El material del alt le gana al de getProductAttributes(), que cuando no
+  // reconoce el modelo devuelve "Metal" por descarte — en el feed eso sería
+  // afirmar un material que quizá no es.
+  const specs = parseFrameSpecs(pickDescriptiveAlt(wp.imageAlts));
 
   const isXl = ["9004M C3", "9004M C2", "TL3684 C4", "91501 C6"].some((code) => modelCode.toUpperCase().includes(code)) ||
                ["dionisio", "dionisio-c2", "selene-c4", "atelier-athena-3ytl", "poseidon-c3", "poseidon-c2"].includes(wp.slug);
@@ -58,7 +71,11 @@ function mapRow(wp: CatalogRow): MappedWebProduct {
     // arrastrar el resto de Data URIs base64 (peso muerto ×24).
     imagenesCatalogo: (wp.images.length > 0 ? wp.images : (wp.product.imagenesCatalogo || [])).slice(0, 2),
     shape: isXl ? "XL" : (shape || "Otros"),
-    material: material || "Acetato",
+    // El alt manda; getProductAttributes() queda de respaldo para las filas
+    // que no tengan alt descriptivo (o cuando sirve el snapshot de emergencia,
+    // que no incluye imageAlts).
+    material: specs.material || material || "Acetato",
+    color: specs.color,
     gender: wp.product.gender || "Unisex",
     mpn: wp.product.mpn || null,
     ageGroup: wp.product.ageGroup || null,
