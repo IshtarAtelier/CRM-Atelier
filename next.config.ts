@@ -54,6 +54,11 @@ const nextConfig: NextConfig = {
       //
       // No se usa /promo porque esa ruta ya tiene la landing de la promo 2x1.
       { source: '/promoanteojos', destination: '/landing' },
+      // Variantes: en un anuncio la URL se carga a mano una sola vez, y si se
+      // escribe mal el clic pago cae en un 404. Ya pasó con /promoanteojo.
+      { source: '/promoanteojo', destination: '/landing' },
+      { source: '/promo-anteojos', destination: '/landing' },
+      { source: '/promo-anteojo', destination: '/landing' },
     ];
   },
   async redirects() {
