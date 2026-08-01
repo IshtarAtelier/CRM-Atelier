@@ -55,9 +55,12 @@ class AntiBanQueue {
      */
     async enqueue(waId, content, media = null, options = {}) {
         return new Promise((resolve, reject) => {
-            // Validar contenido contra políticas de Spam antes de encolar
+            // Validar contenido contra políticas de Spam antes de encolar.
+            // SOLO para mensajes proactivos (nosotros escribimos primero): una
+            // respuesta a un cliente que acaba de escribir no es spam, y el bot
+            // dice "envío gratis" / "2x1" legítimamente — esto la bloqueaba.
             try {
-                if (options.isAutomated !== false) {
+                if (options.isAutomated !== false && options.isProactive !== false) {
                     this.validateContent(content);
                 }
             } catch (err) {
@@ -72,6 +75,17 @@ class AntiBanQueue {
             // (pausas de lote, límite horario, etc.).
             if (options.isAutomated === false) {
                 this.queue.unshift(task);
+            } else if (options.isProactive === false) {
+                // Respuesta reactiva del bot: entra ANTES del primer proactivo
+                // para no quedar atrapada detrás de seguimientos frenados por
+                // horario/límites (head-of-line blocking). Mantiene orden FIFO
+                // entre reactivas y respeta la prioridad de los manuales.
+                const firstProactive = this.queue.findIndex(t => t.options?.isProactive !== false);
+                if (firstProactive === -1) {
+                    this.queue.push(task);
+                } else {
+                    this.queue.splice(firstProactive, 0, task);
+                }
             } else {
                 this.queue.push(task);
             }
@@ -140,6 +154,9 @@ class AntiBanQueue {
      */
     hourlyLimitWaitMs(options = {}) {
         if (options.isAutomated === false) return 0;
+        // Respuesta reactiva: el cliente acaba de escribir y está esperando.
+        // Responder no es patrón de spam — el freno es solo para proactivos.
+        if (options.isProactive === false) return 0;
         this.cleanHourlyTimestamps();
         if (this.sentTimestamps.length >= 30) {
             const oldest = this.sentTimestamps[0];
@@ -155,6 +172,11 @@ class AntiBanQueue {
      */
     allowedHoursWaitMs(options = {}) {
         if (options.isAutomated === false) return 0;
+        // Respuesta reactiva: si el cliente escribe a las 21:00, responderle a
+        // las 21:00 es lo esperado (el prompt promete atención 24/7). Retenerla
+        // hasta las 09:00 dejaba al cliente viendo "escribiendo..." sin mensaje,
+        // y un redeploy borraba la cola en memoria → el mensaje se perdía.
+        if (options.isProactive === false) return 0;
 
         const nowARStr = new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" });
         const nowAR = new Date(nowARStr);
@@ -356,8 +378,11 @@ class AntiBanQueue {
             return;
         }
 
-        // C. Límite diario de envíos automáticos (120 mensajes máximo al día)
-        if (options.isAutomated !== false) {
+        // C. Límite diario de SEGUIMIENTOS proactivos (120 máximo al día).
+        // Solo frena proactivos: contaba y frenaba también las respuestas del
+        // bot, que en días movidos agotaban el cupo a media tarde y dejaban
+        // al bot mudo el resto del día.
+        if (options.isAutomated !== false && options.isProactive === true) {
             try {
                 const todayStart = new Date();
                 todayStart.setHours(0, 0, 0, 0);
