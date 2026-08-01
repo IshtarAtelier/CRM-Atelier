@@ -349,6 +349,35 @@ export function ProductClient({
               )}
             </motion.div>
 
+            {/* Especificaciones del armazón. Los mismos datos que publica el
+                feed de Shopping: el aviso que trajo al visitante no puede decir
+                más que la ficha. Solo se muestran los que existen — el color
+                sale del alt de la foto y puede faltar (ver frame-specs.ts). */}
+            {((product as any).color || product.material || (product as any).shape) && (
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+                className="flex flex-wrap gap-2 mb-6"
+              >
+                {[
+                  (product as any).color && { label: "Color", value: (product as any).color },
+                  product.material && { label: "Material", value: product.material },
+                  (product as any).shape && { label: "Forma", value: (product as any).shape },
+                ]
+                  .filter(Boolean)
+                  .map((spec: any) => (
+                    <span
+                      key={spec.label}
+                      className="inline-flex items-baseline gap-1.5 border border-stone-200 bg-stone-50 rounded-full px-3.5 py-1.5 text-[11px]"
+                    >
+                      <span className="font-bold uppercase tracking-widest text-stone-400">{spec.label}</span>
+                      <span className="text-stone-800 capitalize">{spec.value}</span>
+                    </span>
+                  ))}
+              </motion.div>
+            )}
+
             {variants && variants.length > 1 && (
               <div className="mb-6">
                 <span className="text-xs text-stone-500 font-bold uppercase tracking-wider block mb-2.5">
