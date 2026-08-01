@@ -14,6 +14,7 @@ import { TestChatModal } from '@/components/ui/TestChatModal';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { BotPricingSection } from '@/components/config/BotPricingSection';
+import { ChatLabelPicker } from '@/components/whatsapp/ChatLabelPicker';
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 const CHAT_LABEL_OPTIONS = [
@@ -1862,23 +1863,14 @@ function WhatsAppPageContent() {
                                             </div>
                                         )}
                                         
-                                        <div className="relative">
-                                            <button onClick={() => setShowLabelPicker(v => !v)} className="p-2 bg-white dark:bg-stone-800 border border-stone-200/50 dark:border-stone-700 hover:bg-stone-50 rounded-xl transition-all shadow-sm">
-                                                <Tag className="w-3.5 h-3.5 text-stone-500" />
-                                            </button>
-                                            {showLabelPicker && (
-                                                <div className="absolute right-0 top-11 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border border-stone-200/50 dark:border-white/10 rounded-2xl shadow-2xl z-50 w-44 p-2">
-                                                    {dbTags.map(tag => {
-    const active = (selectedChat.chatLabels || []).includes(tag.name);
-    return (
-        <button key={tag.id} onClick={() => toggleLabel(tag.name)} style={active ? getLabelStyleInline(tag.color) : {}} className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all mb-1 last:mb-0 ${active ? 'border' : 'text-stone-600 hover:bg-stone-100'}`}>
-            {tag.name}
-        </button>
-    );
-})}
-                                                </div>
-                                            )}
-                                        </div>
+                                        <ChatLabelPicker
+                                            labels={selectedChat.chatLabels || []}
+                                            availableTags={dbTags}
+                                            onToggle={toggleLabel}
+                                            isOpen={showLabelPicker}
+                                            onOpenChange={setShowLabelPicker}
+                                            triggerIcon={<Tag className="w-3.5 h-3.5 text-stone-500" />}
+                                        />
 
                                         <button onClick={() => { updateChat(selectedChat.id, { archived: !selectedChat.archived }); setSelectedChat(null); }} className="p-2 bg-white dark:bg-stone-800 border border-stone-200/50 dark:border-stone-700 hover:bg-stone-50 rounded-xl transition-all shadow-sm">
                                             {selectedChat.archived ? <ArchiveRestore className="w-3.5 h-3.5 text-stone-500" /> : <Archive className="w-3.5 h-3.5 text-stone-500" />}
