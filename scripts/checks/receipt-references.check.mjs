@@ -159,8 +159,12 @@ console.log('\nFecha impresa (blindaje del falso positivo de "comprobante viejo"
 
 console.log('\nImporte impreso (blindaje del falso positivo de "Monto difiere")');
 {
-    // Caso Ualá 31/7/2026: el comprobante decía $318.500 y se leyó "318.5".
+    // Casos reales del 31/7/2026: dos comprobantes distintos, el mismo error.
+    // Ualá por $318.500 se leyó "318.5"; Galicia por $540.610 se leyó "540.61".
     check('el punto de miles argentino NO es coma decimal', parseReceiptAmount('318.500') === 318500);
+    check('Galicia $540.610 son quinientos cuarenta mil seiscientos diez', parseReceiptAmount('540.610') === 540610);
+    check('y contra los $540.610 cargados no hay ninguna diferencia', Math.abs(parseReceiptAmount('540.610') - 540610) === 0);
+    check('540,61 contra 540.610 es un separador mal leído', looksLikeSeparatorArtifact(540.61, 540610));
     check('con el signo pesos y espacios también', parseReceiptAmount('$ 318.500') === 318500);
     check('dos puntos de miles', parseReceiptAmount('1.234.567') === 1234567);
     check('miles con punto y centavos con coma', parseReceiptAmount('1.234,56') === 1234.56);
