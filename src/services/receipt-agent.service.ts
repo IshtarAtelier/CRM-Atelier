@@ -56,6 +56,8 @@ export function parseArgentineReceiptDate(raw?: string | null): Date | null {
 import {
     collectReferenceIds,
     crossCheckReadings,
+    looksLikeSeparatorArtifact,
+    parseReceiptAmount,
     readerSystemPrompt,
     readerUserPrompt,
     referencesMatch,
@@ -118,12 +120,17 @@ export class ReceiptAgentService {
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (!jsonMatch) return null;
             const parsed = JSON.parse(jsonMatch[0]);
-            const amount = typeof parsed.amount === 'number'
-                ? parsed.amount
-                : (typeof parsed.amount === 'string' && parsed.amount.trim() ? Number(parsed.amount) : null);
             const texto = (v: any) => (typeof v === 'string' && v.trim() ? v.trim() : typeof v === 'number' ? String(v) : null);
+            // El importe se saca del que está IMPRESO (amount_raw) y se parsea acá,
+            // no como lo haya convertido la IA: "$318.500" es 318500, no 318,5.
+            // Mismo blindaje que se le hace a la fecha con date_raw.
+            const amountRaw = texto(parsed.amount_raw);
+            const amount = parseReceiptAmount(amountRaw) ?? parseReceiptAmount(
+                typeof parsed.amount === 'number' || typeof parsed.amount === 'string' ? parsed.amount : null
+            );
             return {
                 amount: amount != null && Number.isFinite(amount) ? amount : null,
+                amountRaw,
                 cuit: typeof parsed.cuit === 'string' && parsed.cuit.trim() ? parsed.cuit.trim() : null,
                 date: typeof parsed.date === 'string' && parsed.date.trim() ? parsed.date.trim() : null,
                 dateRaw: texto(parsed.date_raw),
@@ -253,22 +260,44 @@ export class ReceiptAgentService {
             const extracted = agreed.values;
 
             // 5. Validation Rules
-            const errors: string[] = [];
-            // Mismas observaciones pero redactadas en tono coloquial: van en el mail
-            // a los vendedores firmado por Ishtar, no pueden sonar a sistema.
-            const vendorIssues: string[] = [];
+            //
+            // Una observación REAL (`findings`) es la que se le puede reclamar a
+            // alguien: va al mail firmado por Ishtar y pinta el aviso al admin de
+            // rojo. Todo lo demás (`notes`) es contexto para el admin y nada más —
+            // mezclarlos hacía que un pago perfecto llegara como "⚠️ con
+            // observaciones" y que Ishtar tuviera que revisar a mano un mail que en
+            // realidad no decía nada.
+            const findings: { admin: string; vendor: string }[] = [];
+            const notes: string[] = [];
             // Pagos anteriores con el mismo nº de operación → links a ambas fichas
             const duplicateRefs: DuplicatePaymentRef[] = [];
 
             // Lo que los dos lectores leyeron distinto no se audita: queda como
             // aviso para el admin, nunca como reclamo a un vendedor.
-            errors.push(...agreed.disagreements);
+            notes.push(...agreed.disagreements);
+
+            const pesos = (n: number) => `$${n.toLocaleString('es-AR')}`;
 
             // A) Check Amount
             const tolerance = 5; // 5 pesos de tolerancia por errores de redondeo o carga
-            if (extracted.amount && Math.abs(extracted.amount - expectedAmount) > tolerance) {
-                errors.push(`Monto difiere. Comprobante dice $${extracted.amount.toLocaleString()}, se cargó $${expectedAmount.toLocaleString()}.`);
-                vendorIssues.push(`El comprobante está por $${extracted.amount.toLocaleString('es-AR')} pero el pago lo cargaron por $${expectedAmount.toLocaleString('es-AR')}.`);
+            if (extracted.amount != null && Math.abs(extracted.amount - expectedAmount) > tolerance) {
+                const enComprobante = extracted.amountRaw ? `$${extracted.amountRaw}` : pesos(extracted.amount);
+                if (looksLikeSeparatorArtifact(extracted.amount, expectedAmount)) {
+                    // Un punto de miles leído como coma decimal NO es una diferencia
+                    // de plata. Se anota y no se le reclama a nadie.
+                    notes.push(`El monto leído (${enComprobante}) y el cargado (${pesos(expectedAmount)}) difieren solo en dónde cae el separador de miles — se tomó como error de lectura, no se reclamó nada.`);
+                } else if (expectedAmount < extracted.amount) {
+                    // Un mismo comprobante puede cubrir DOS ventas: se carga una
+                    // parte acá y el resto en la otra. Cargar de menos no es un error
+                    // (decisión del usuario, 31/7/2026) — se anota para el admin.
+                    notes.push(`El comprobante es por ${enComprobante} y en esta venta se cargaron ${pesos(expectedAmount)}: puede ser un pago repartido entre varias ventas. No se reclamó nada.`);
+                } else {
+                    // Cargar MÁS de lo que prueba el comprobante sí es un problema.
+                    findings.push({
+                        admin: `Monto difiere. Comprobante dice ${enComprobante}, se cargó ${pesos(expectedAmount)}.`,
+                        vendor: `El comprobante está por ${enComprobante} pero el pago lo cargaron por ${pesos(expectedAmount)}.`
+                    });
+                }
             }
 
             // B) Check CUIT — se compara solo si hay un CUIT de facturación esperado
@@ -284,8 +313,10 @@ export class ReceiptAgentService {
             if (!isCardTerminal && expectedCuit && extracted.cuit) {
                 const extractedCuit = String(extracted.cuit);
                 if (!extractedCuit.includes(expectedCuit.toString())) {
-                     errors.push(`CUIT de destino distinto. Se esperaba ${expectedCuit} y figura ${extractedCuit}.`);
-                     vendorIssues.push(`La transferencia fue a otro CUIT: en el comprobante figura ${extractedCuit} y tendría que ser ${expectedCuit}.`);
+                    findings.push({
+                        admin: `CUIT de destino distinto. Se esperaba ${expectedCuit} y figura ${extractedCuit}.`,
+                        vendor: `La transferencia fue a otro CUIT: en el comprobante figura ${extractedCuit} y tendría que ser ${expectedCuit}.`
+                    });
                 }
             }
 
@@ -314,8 +345,10 @@ export class ReceiptAgentService {
                 const enTicket = extracted[campo];
                 if (!cargado || !enTicket) continue; // sin acuerdo de los dos lectores no se audita
                 if (!sameVoucherNumber(cargado, enTicket)) {
-                    errors.push(`Nº de ${etiqueta} distinto: se cargó "${cargado}" y en el ticket dice "${enTicket}".`);
-                    vendorIssues.push(`El nº de ${etiqueta} no me coincide: cargaron "${cargado}" y en el ticket veo "${enTicket}".`);
+                    findings.push({
+                        admin: `Nº de ${etiqueta} distinto: se cargó "${cargado}" y en el ticket dice "${enTicket}".`,
+                        vendor: `El nº de ${etiqueta} no me coincide: cargaron "${cargado}" y en el ticket veo "${enTicket}".`
+                    });
                 }
             }
 
@@ -342,8 +375,10 @@ export class ReceiptAgentService {
                     // Se avisa, pero NO se pisa lo que cargó la persona: si la IA leyó
                     // mal, la corrección automática destruiría el dato bueno.
                     const listado = extractedIds.map(id => `"${id}"`).join(' ni ');
-                    errors.push(`Referencia distinta: se cargó "${userReference}" y en el comprobante figura ${listado}. Revisar a mano — NO se modificó el pago.`);
-                    vendorIssues.push(`Cargaron la referencia "${userReference}" y en el comprobante no la encuentro: ahí figura ${listado}. ¿Se fijan cuál corresponde y la corrigen?`);
+                    findings.push({
+                        admin: `Referencia distinta: se cargó "${userReference}" y en el comprobante figura ${listado}. Revisar a mano — NO se modificó el pago.`,
+                        vendor: `Cargaron la referencia "${userReference}" y en el comprobante no la encuentro: ahí figura ${listado}. ¿Se fijan cuál corresponde y la corrigen?`
+                    });
                 }
 
                 // La referencia tipeada se conserva siempre; los [TX: ...] se agregan
@@ -378,8 +413,10 @@ export class ReceiptAgentService {
                         const clientName = d.order?.client?.name || 'Cliente Desconocido';
                         return `ID: ...${d.id.slice(-4).toUpperCase()} de ${clientName}`;
                     }).join(', ');
-                    errors.push(`¡Posible Duplicado! El comprobante tiene la Operación ${extractedTx}, igual a la/s en pago/s: ${duplicateDetails}.`);
-                    vendorIssues.push(`El número de operación ${extractedTx} ya estaba cargado en otro pago (${duplicateDetails}) — parece el mismo comprobante dos veces.`);
+                    findings.push({
+                        admin: `¡Posible Duplicado! El comprobante tiene la Operación ${extractedTx}, igual a la/s en pago/s: ${duplicateDetails}.`,
+                        vendor: `El número de operación ${extractedTx} ya estaba cargado en otro pago (${duplicateDetails}) — parece el mismo comprobante dos veces.`
+                    });
                 }
             }
 
@@ -399,37 +436,49 @@ export class ReceiptAgentService {
                 const diffDays = Math.floor((now.getTime() - receiptDate.getTime()) / (1000 * 60 * 60 * 24));
                 if (diffDays > STALE_RECEIPT_DAYS) {
                     const fechaFmt = formatDate(receiptDate);
-                    errors.push(`Fecha antigua. El comprobante indica la fecha ${fechaFmt}.`);
-                    vendorIssues.push(`El comprobante es del ${fechaFmt}, quedó viejo — fíjense que sea el que corresponde a esta venta.`);
+                    findings.push({
+                        admin: `Fecha antigua. El comprobante indica la fecha ${fechaFmt}.`,
+                        vendor: `El comprobante es del ${fechaFmt}, quedó viejo — fíjense que sea el que corresponde a esta venta.`
+                    });
                 }
             }
 
             // 6. Supervisor final: antes de tocar nada, vuelve a mirar el comprobante
             // y confirma o descarta UNA POR UNA las observaciones. Solo sale a los
             // vendedores lo que queda confirmado — el mail va firmado por Ishtar.
-            let confirmedIssues: string[] = [];
-            if (vendorIssues.length > 0) {
+            // Lo que descarta baja a nota del admin y no ensucia el aviso: antes
+            // salía en rojo, igual que un error real.
+            let confirmed: { admin: string; vendor: string }[] = [];
+            let verificationFailed = false;
+            if (findings.length > 0) {
                 const verdicts = await this.verifyIssues(mimeType, base64Data, {
                     clientName,
                     loadedAmount: expectedAmount,
-                    issues: vendorIssues
+                    issues: findings.map(f => f.vendor)
                 });
 
                 if (!verdicts) {
-                    errors.push('El segundo control no pudo verificar las observaciones — NO se envió el mail a los vendedores, revisar a mano.');
+                    verificationFailed = true;
+                    notes.push(`El segundo control no pudo verificar ${findings.length === 1 ? 'la observación' : 'las observaciones'} — NO se envió el mail a los vendedores, revisar a mano: ${findings.map(f => f.admin).join(' ')}`);
                 } else {
-                    confirmedIssues = vendorIssues.filter((_, i) => verdicts[i]?.confirmada);
+                    confirmed = findings.filter((_, i) => verdicts[i]?.confirmada);
                     verdicts.forEach((v, i) => {
                         if (!v?.confirmada) {
-                            errors.push(`Observación descartada por el supervisor (no se le mandó a nadie): "${vendorIssues[i]}" — ${v?.motivo || 'no se pudo comprobar contra el comprobante'}.`);
+                            notes.push(`Observación descartada por el supervisor (no se le mandó a nadie): "${findings[i].vendor}" — ${v?.motivo || 'no se pudo comprobar contra el comprobante'}.`);
                         }
                     });
                 }
             }
 
+            const errors = confirmed.map(f => f.admin);
+
             // 7. Report if errors
-            if (errors.length > 0) {
-                const alertMsg = `ERROR IA en Comprobante (${clientName}${uploadedByName ? `, cargado por ${uploadedByName}` : ''}): ${errors.join(' ')}`;
+            // La notificación en el CRM es para lo accionable: una observación
+            // confirmada, o una verificación que no pudo correr. Un desacuerdo entre
+            // lectores o una observación descartada no abren un pendiente.
+            if (errors.length > 0 || verificationFailed) {
+                const detalle = errors.length > 0 ? errors.join(' ') : notes.join(' ');
+                const alertMsg = `ERROR IA en Comprobante (${clientName}${uploadedByName ? `, cargado por ${uploadedByName}` : ''}): ${detalle}`;
 
                 await prisma.notification.create({
                     data: {
@@ -445,16 +494,16 @@ export class ReceiptAgentService {
             }
 
             // Mail a los vendedores como si lo mandara Ishtar pidiendo corregir la carga
-            if (confirmedIssues.length > 0) {
+            if (confirmed.length > 0) {
                 await notifyVendorsReceiptError({
                     clientName,
                     clientId: orderInfo?.client?.id,
                     orderId,
                     amount: expectedAmount,
                     receiptUrl,
-                    issues: confirmedIssues,
+                    issues: confirmed.map(f => f.vendor),
                     // El duplicado se nombra solo si esa observación sobrevivió a la verificación.
-                    duplicateRefs: confirmedIssues.some(i => i.includes('ya estaba cargado en otro pago')) ? duplicateRefs : []
+                    duplicateRefs: confirmed.some(f => f.vendor.includes('ya estaba cargado en otro pago')) ? duplicateRefs : []
                 });
             }
 
@@ -464,7 +513,10 @@ export class ReceiptAgentService {
                 ...emailBase,
                 reference: extractedIds.join(' · ') || null,
                 auditErrors: errors,
-                duplicateRefs
+                auditNotes: notes,
+                // Los links a las dos fichas solo tienen sentido si el duplicado
+                // quedó confirmado; si no, es un cartel naranja por nada.
+                duplicateRefs: errors.some(e => e.startsWith('¡Posible Duplicado!')) ? duplicateRefs : []
             });
 
         } catch (err: any) {

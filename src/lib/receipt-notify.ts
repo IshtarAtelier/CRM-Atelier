@@ -28,12 +28,20 @@ interface ReceiptUploadedInfo {
     /** Vendedor que cargó el pago/comprobante (ej: "Milena Magallanes"). */
     uploadedByName?: string | null;
     /**
-     * Resultado de la auditoría IA:
+     * Observaciones REALES: las que el supervisor confirmó contra el comprobante
+     * y se le reclamaron a los vendedores.
      * - []        → auditado, sin observaciones
      * - [errores] → auditado, con observaciones (duplicado, monto, CUIT, fecha)
      * - null      → la auditoría no pudo correr (falla de IA / archivo ilegible)
      */
     auditErrors: string[] | null;
+    /**
+     * Contexto que NO es un reclamo: observaciones que el supervisor descartó,
+     * desacuerdos entre los dos lectores, montos con el separador mal leído.
+     * Va aparte y en gris — mezclarlo con los errores hacía que un pago perfecto
+     * llegara como "⚠️ Comprobante con observaciones".
+     */
+    auditNotes?: string[];
     /** Si hubo duplicado, los pagos anteriores con el mismo nº de operación. */
     duplicateRefs?: DuplicatePaymentRef[];
 }
@@ -102,6 +110,17 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
         </p>
     `;
 
+    // En gris y debajo del veredicto: es información, no un problema. Se lee solo
+    // si a Ishtar le interesa el detalle de por qué la auditoría no reclamó nada.
+    const notesBlock = info.auditNotes && info.auditNotes.length > 0 ? `
+        <div style="margin: 16px 0; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+          <p style="margin: 0 0 8px; font-weight: bold; color: #475569;">Detalle de la revisión (no se le reclamó nada a nadie):</p>
+          <ul style="margin: 0; padding-left: 18px; color: #64748b; line-height: 1.7; font-size: 13px;">
+            ${info.auditNotes.map(n => `<li>${n}</li>`).join('')}
+          </ul>
+        </div>
+    ` : '';
+
     const subjectPrefix = hasWarnings ? '⚠️ Comprobante con observaciones' : '📎 Comprobante subido';
 
     const html = `
@@ -117,6 +136,7 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
         </ul>
         ${auditBlock}
         ${duplicatesBlock}
+        ${notesBlock}
         ${buffer && isInlineImage ? `
           <p style="margin: 16px 0 8px; font-weight: bold;">Imagen del comprobante:</p>
           <img src="cid:comprobante" alt="Comprobante" style="max-width: 100%; border: 1px solid #ddd;" />

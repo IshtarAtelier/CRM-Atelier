@@ -12,7 +12,9 @@
 import {
     collectReferenceIds,
     crossCheckReadings,
+    looksLikeSeparatorArtifact,
     mergeIds,
+    parseReceiptAmount,
     referencesMatch,
     sameVoucherNumber,
     stripTxTags,
@@ -33,7 +35,7 @@ function check(nombre, condicion) {
 const OPERACION = '170029330395';
 const IDENTIFICACION = '76V4MR2Z87VYP0WE9DEZOL';
 /** Lectura vacía: los tests le pisan solo lo que les importa. */
-const SIN_CUPON = { amount: null, cuit: null, date: null, dateRaw: null, ids: [], batchNumber: null, couponNumber: null, authNumber: null };
+const SIN_CUPON = { amount: null, amountRaw: null, cuit: null, date: null, dateRaw: null, ids: [], batchNumber: null, couponNumber: null, authNumber: null };
 
 console.log('\nCaso Veronica Serlin (Mercado Pago con dos identificadores)');
 {
@@ -153,6 +155,38 @@ console.log('\nFecha impresa (blindaje del falso positivo de "comprobante viejo"
     const r = crossCheckReadings(a, b);
     check('fechas impresas distintas → NO se audita la fecha', r.values.dateRaw === null);
     check('y queda anotado para el admin', r.disagreements.length === 1);
+}
+
+console.log('\nImporte impreso (blindaje del falso positivo de "Monto difiere")');
+{
+    // Caso Ualá 31/7/2026: el comprobante decía $318.500 y se leyó "318.5".
+    check('el punto de miles argentino NO es coma decimal', parseReceiptAmount('318.500') === 318500);
+    check('con el signo pesos y espacios también', parseReceiptAmount('$ 318.500') === 318500);
+    check('dos puntos de miles', parseReceiptAmount('1.234.567') === 1234567);
+    check('miles con punto y centavos con coma', parseReceiptAmount('1.234,56') === 1234.56);
+    check('formato yanqui: miles con coma y centavos con punto', parseReceiptAmount('1,234.56') === 1234.56);
+    check('coma seguida de tres dígitos también es de miles', parseReceiptAmount('318,500') === 318500);
+    check('dos dígitos detrás sí son centavos', parseReceiptAmount('318,50') === 318.5);
+    check('un solo dígito detrás también', parseReceiptAmount('1.5') === 1.5);
+    check('sin separadores queda igual', parseReceiptAmount('318500') === 318500);
+    check('un número ya parseado pasa tal cual', parseReceiptAmount(318500) === 318500);
+    check('lo ilegible es null', parseReceiptAmount('n/d') === null && parseReceiptAmount(null) === null);
+}
+{
+    const a = { ...SIN_CUPON, amount: 318500, amountRaw: '318.500', ids: [OPERACION] };
+    const b = { ...SIN_CUPON, amount: 318500, amountRaw: '$318.500', ids: [OPERACION] };
+    const r = crossCheckReadings(a, b);
+    check('los dos lectores coinciden en el monto ya parseado', r.values.amount === 318500);
+    check('se conserva el importe tal cual está impreso', r.values.amountRaw === '318.500');
+    check('318.500 leído bien NO difiere de los 318.501 cargados', Math.abs(r.values.amount - 318501) <= 5);
+}
+{
+    check('318,5 contra 318.501 es un separador mal leído, no plata', looksLikeSeparatorArtifact(318.5, 318501));
+    check('también al revés', looksLikeSeparatorArtifact(318501, 318.5));
+    check('un ×100 mal leído también', looksLikeSeparatorArtifact(3185, 318500));
+    check('dos montos realmente distintos NO son un artefacto', !looksLikeSeparatorArtifact(150000, 318500));
+    check('la mitad no es un artefacto de separador', !looksLikeSeparatorArtifact(159250, 318500));
+    check('un monto en cero no dispara nada', !looksLikeSeparatorArtifact(0, 318500));
 }
 
 console.log('');
