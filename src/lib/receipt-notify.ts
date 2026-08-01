@@ -10,6 +10,22 @@ const EXT_CONTENT_TYPES: Record<string, string> = {
     pdf: 'application/pdf',
 };
 
+/**
+ * Escapa lo que va al HTML del mail. Casi todo lo que se interpola acá sale de
+ * la IA leyendo una FOTO que subió un vendedor (referencias, observaciones,
+ * motivos): si el comprobante tiene texto que parece HTML, sin escapar rompe el
+ * mail o mete un link que nadie escribió. El nombre del cliente tampoco es
+ * confiable — lo tipea cualquiera en la ficha.
+ */
+function esc(value: unknown) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 /** Pago anterior donde ya figura cargado el mismo número de operación. */
 export interface DuplicatePaymentRef {
     clientName: string;
@@ -42,6 +58,13 @@ interface ReceiptUploadedInfo {
      * llegara como "⚠️ Comprobante con observaciones".
      */
     auditNotes?: string[];
+    /**
+     * La auditoría encontró algo pero el control final no pudo verificarlo, así
+     * que no salió ningún reclamo. No es "todo OK" ni "no se pudo revisar": hay
+     * que mirarlo a mano. Sin esto, un comprobante con una observación sin
+     * verificar llegaba con el cartel verde de "sin observaciones".
+     */
+    auditIncomplete?: boolean;
     /** Si hubo duplicado, los pagos anteriores con el mismo nº de operación. */
     duplicateRefs?: DuplicatePaymentRef[];
 }
@@ -86,10 +109,10 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
           <p style="margin: 0 0 8px; font-weight: bold; color: #9a3412;">El mismo nº de operación ya figura cargado en:</p>
           <ul style="margin: 0; padding-left: 18px; line-height: 1.9;">
             ${info.duplicateRefs.map(d => `
-              <li><a href="${clientFichaLink(d.clientId)}" style="color: #1e3a8a;">${d.clientName} — venta #${d.orderId.slice(-4).toUpperCase()}</a></li>
+              <li><a href="${clientFichaLink(d.clientId)}" style="color: #1e3a8a;">${esc(d.clientName)} — venta #${d.orderId.slice(-4).toUpperCase()}</a></li>
             `).join('')}
           </ul>
-          <p style="margin: 8px 0 0;">Y ahora también en <a href="${clientLink}" style="color: #1e3a8a;">${info.clientName} — venta #${shortOrder}</a>.</p>
+          <p style="margin: 8px 0 0;">Y ahora también en <a href="${clientLink}" style="color: #1e3a8a;">${esc(info.clientName)} — venta #${shortOrder}</a>.</p>
         </div>
     ` : '';
 
@@ -97,9 +120,13 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
         <div style="margin: 16px 0; padding: 12px 16px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 6px;">
           <p style="margin: 0 0 8px; font-weight: bold; color: #b91c1c;">⚠️ Observaciones del auditor IA:</p>
           <ul style="margin: 0; padding-left: 18px; color: #7f1d1d; line-height: 1.7;">
-            ${info.auditErrors!.map(e => `<li>${e}</li>`).join('')}
+            ${info.auditErrors!.map(e => `<li>${esc(e)}</li>`).join('')}
           </ul>
         </div>
+    ` : info.auditIncomplete ? `
+        <p style="margin: 16px 0; padding: 10px 16px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; color: #92400e;">
+          ⚠️ La auditoría encontró algo pero el control final no pudo verificarlo, así que no se le reclamó nada a nadie — revisalo a mano (el detalle está abajo).
+        </p>
     ` : info.auditErrors ? `
         <p style="margin: 16px 0; padding: 10px 16px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; color: #166534;">
           ✅ Auditoría IA: sin observaciones (monto, duplicados, CUIT y fecha OK).
@@ -116,23 +143,27 @@ export async function notifyReceiptUploaded(info: ReceiptUploadedInfo) {
         <div style="margin: 16px 0; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
           <p style="margin: 0 0 8px; font-weight: bold; color: #475569;">Detalle de la revisión (no se le reclamó nada a nadie):</p>
           <ul style="margin: 0; padding-left: 18px; color: #64748b; line-height: 1.7; font-size: 13px;">
-            ${info.auditNotes.map(n => `<li>${n}</li>`).join('')}
+            ${info.auditNotes.map(n => `<li>${esc(n)}</li>`).join('')}
           </ul>
         </div>
     ` : '';
 
-    const subjectPrefix = hasWarnings ? '⚠️ Comprobante con observaciones' : '📎 Comprobante subido';
+    const subjectPrefix = hasWarnings
+        ? '⚠️ Comprobante con observaciones'
+        : info.auditIncomplete
+            ? '⚠️ Comprobante a revisar a mano'
+            : '📎 Comprobante subido';
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
         <h2 style="color: #333; border-bottom: 2px solid #000; padding-bottom: 10px;">${subjectPrefix}</h2>
         <ul style="list-style: none; padding: 0; line-height: 1.9;">
-          <li><strong>Cliente:</strong> ${info.clientName}</li>
-          ${info.uploadedByName ? `<li><strong>Cargado por:</strong> ${info.uploadedByName}</li>` : ''}
+          <li><strong>Cliente:</strong> ${esc(info.clientName)}</li>
+          ${info.uploadedByName ? `<li><strong>Cargado por:</strong> ${esc(info.uploadedByName)}</li>` : ''}
           <li><strong>Venta:</strong> #${shortOrder}</li>
           <li><strong>Monto cargado:</strong> $${info.amount.toLocaleString('es-AR')}</li>
-          <li><strong>Método:</strong> ${info.method}</li>
-          ${info.reference ? `<li><strong>Referencia:</strong> ${info.reference}</li>` : ''}
+          <li><strong>Método:</strong> ${esc(info.method)}</li>
+          ${info.reference ? `<li><strong>Referencia:</strong> ${esc(info.reference)}</li>` : ''}
         </ul>
         ${auditBlock}
         ${duplicatesBlock}
@@ -201,19 +232,19 @@ export async function notifyVendorsReceiptError(info: VendorReceiptErrorInfo) {
     const shortOrder = info.orderId.slice(-4).toUpperCase();
 
     const duplicateLines = (info.duplicateRefs || []).map(d =>
-        `<p>El mismo pago ya está cargado en la ficha de <a href="${clientFichaLink(d.clientId)}" style="color: #1e3a8a;">${d.clientName} (venta #${d.orderId.slice(-4).toUpperCase()})</a> — entren y comparen los dos.</p>`
+        `<p>El mismo pago ya está cargado en la ficha de <a href="${clientFichaLink(d.clientId)}" style="color: #1e3a8a;">${esc(d.clientName)} (venta #${d.orderId.slice(-4).toUpperCase()})</a> — entren y comparen los dos.</p>`
     ).join('');
 
     // Sin cajas de colores ni encabezados: tiene que leerse como un mail escrito a mano.
     const html = `
       <div style="font-family: Arial, sans-serif; font-size: 14px; color: #222; line-height: 1.7;">
         <p>Hola,</p>
-        <p>Estuve revisando el comprobante que cargaron de <strong>${info.clientName}</strong> (venta #${shortOrder}, $${info.amount.toLocaleString('es-AR')}) y encontré esto:</p>
+        <p>Estuve revisando el comprobante que cargaron de <strong>${esc(info.clientName)}</strong> (venta #${shortOrder}, $${info.amount.toLocaleString('es-AR')}) y encontré esto:</p>
         <ul>
-          ${info.issues.map(i => `<li>${i}</li>`).join('')}
+          ${info.issues.map(i => `<li>${esc(i)}</li>`).join('')}
         </ul>
         ${duplicateLines}
-        <p>Acá les dejo la ficha del cliente para corregirlo: <a href="${clientFichaLink(info.clientId)}" style="color: #1e3a8a;">${info.clientName} — venta #${shortOrder}</a></p>
+        <p>Acá les dejo la ficha del cliente para corregirlo: <a href="${clientFichaLink(info.clientId)}" style="color: #1e3a8a;">${esc(info.clientName)} — venta #${shortOrder}</a></p>
         <p>¿Pueden fijarse y volver a cargarlo bien? Cualquier duda me escriben.</p>
         ${buffer && isInlineImage ? `
           <p>Este es el comprobante que subieron:</p>

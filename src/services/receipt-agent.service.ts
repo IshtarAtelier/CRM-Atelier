@@ -282,7 +282,11 @@ export class ReceiptAgentService {
             const tolerance = 5; // 5 pesos de tolerancia por errores de redondeo o carga
             if (extracted.amount != null && Math.abs(extracted.amount - expectedAmount) > tolerance) {
                 const enComprobante = extracted.amountRaw ? `$${extracted.amountRaw}` : pesos(extracted.amount);
-                if (looksLikeSeparatorArtifact(extracted.amount, expectedAmount)) {
+                // El escudo anti-separador solo hace falta cuando el número lo
+                // convirtió la IA. Si tenemos el importe impreso y lo parseamos
+                // nosotros (parseReceiptAmount), el valor es confiable y una
+                // diferencia de 10× o 100× es un tipeo real que hay que avisar.
+                if (!extracted.amountRaw && looksLikeSeparatorArtifact(extracted.amount, expectedAmount)) {
                     // Un punto de miles leído como coma decimal NO es una diferencia
                     // de plata. Se anota y no se le reclama a nadie.
                     notes.push(`El monto leído (${enComprobante}) y el cargado (${pesos(expectedAmount)}) difieren solo en dónde cae el separador de miles — se tomó como error de lectura, no se reclamó nada.`);
@@ -514,6 +518,7 @@ export class ReceiptAgentService {
                 reference: extractedIds.join(' · ') || null,
                 auditErrors: errors,
                 auditNotes: notes,
+                auditIncomplete: verificationFailed,
                 // Los links a las dos fichas solo tienen sentido si el duplicado
                 // quedó confirmado; si no, es un cartel naranja por nada.
                 duplicateRefs: errors.some(e => e.startsWith('¡Posible Duplicado!')) ? duplicateRefs : []
