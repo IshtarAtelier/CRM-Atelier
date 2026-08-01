@@ -576,7 +576,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         const allMessages = mergedMessages;
 
         const config = { configurable: { thread_id: waId } };
-        const state = { 
+        const state = {
             messages: allMessages,
             userPhone: realPhone || '',
             userName: profileName,
@@ -587,8 +587,20 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             clientData: freshChat?.client || chat.client || null,
             chatSummary: freshChat.chatSummary || null,
         };
-        
-        const result = await graph.invoke(state, config);
+
+        let result;
+        try {
+            // Envolver graph.invoke con timeout (30 segundos máximo)
+            const graphInvokePromise = graph.invoke(state, config);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Bot timeout: graph.invoke exceeded 30s')), 30000)
+            );
+            result = await Promise.race([graphInvokePromise, timeoutPromise]);
+        } catch (graphErr) {
+            console.error(`  ❌ Graph invoke error: ${graphErr.message}`);
+            // Fallback: retornar resultado vacío para evitar crash
+            result = { messages: [], agentType: 'UNKNOWN' };
+        }
         
         // ── GUARDRAIL DE DESACTIVACIÓN SILENCIOSA ──
         let hasPersonalOrCancelToolCall = false;
@@ -637,6 +649,13 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
             console.log(`  ⏹️ Error de API detectado en ToolMessage (${chat.id}). Abortando turno en silencio.`);
             await handleTransientBotFailure(chat, waId, profileName, realPhone, `Error de API en herramienta: ${apiErrorMessage.substring(0, 120)}`);
             return; // RETORNAR EN ABSOLUTO SILENCIO SIN ENVIAR NADA AL CLIENTE
+        }
+
+        // VERIFICACIÓN: detectar resultado vacío o sin mensajes (timeout, recursion limit, etc.)
+        if (!result.messages || result.messages.length === 0) {
+            console.warn(`  ⚠️ [Empty Response] Grafo retornó sin mensajes para ${profileName} (${chat.id}). Posible timeout/recursion limit.`);
+            await handleTransientBotFailure(chat, waId, profileName, realPhone, 'Respuesta vacía: posible timeout en procesamiento');
+            return; // Silencio absoluto
         }
 
         // Re-verificar si el bot sigue encendido

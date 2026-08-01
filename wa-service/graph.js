@@ -24,6 +24,8 @@ function getModel() {
     modelInstance = new ChatGoogleGenerativeAI({
       model: "gemini-2.5-flash",
       maxOutputTokens: 8192,
+      timeout: 25000,
+      maxRetries: 1,
       apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
     });
   }
@@ -426,7 +428,7 @@ const workflow = new StateGraph(GraphAnnotation)
   .addEdge("executiveTools", "executiveAgent")
   .addEdge("auditor", "__end__");
 
-const graph = workflow.compile({ recursionLimit: 15 }); // Reducido de 25→15 para cortar loops más rápido
+const graph = workflow.compile({ recursionLimit: 10 }); // Fail-fast: 10 max iterations
 module.exports = { 
   graph,
   DEFAULT_SALES_PROMPT,
