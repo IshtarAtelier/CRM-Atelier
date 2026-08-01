@@ -575,7 +575,10 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         }
         const allMessages = mergedMessages;
 
-        const config = { configurable: { thread_id: waId } };
+        // recursionLimit acá (no en compile(), donde LangGraph lo ignora):
+        // corta loops de tools a las 10 iteraciones lanzando GraphRecursionError,
+        // que cae en el catch de abajo → turno abortado en silencio.
+        const config = { configurable: { thread_id: waId }, recursionLimit: 10 };
         const state = {
             messages: allMessages,
             userPhone: realPhone || '',

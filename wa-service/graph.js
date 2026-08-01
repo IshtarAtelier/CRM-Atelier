@@ -21,10 +21,11 @@ function getModel() {
     if (!process.env.GOOGLE_GENAI_API_KEY && !process.env.GOOGLE_API_KEY) {
       console.warn('WARNING: GOOGLE_GENAI_API_KEY is not set. Bot will crash si se invoca.');
     }
+    // Nota: este paquete no soporta `timeout` por request; el corte real
+    // lo hace el Promise.race de 30s alrededor de graph.invoke en index.js.
     modelInstance = new ChatGoogleGenerativeAI({
       model: "gemini-2.5-flash",
       maxOutputTokens: 8192,
-      timeout: 25000,
       maxRetries: 1,
       apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
     });
@@ -428,7 +429,9 @@ const workflow = new StateGraph(GraphAnnotation)
   .addEdge("executiveTools", "executiveAgent")
   .addEdge("auditor", "__end__");
 
-const graph = workflow.compile({ recursionLimit: 10 }); // Fail-fast: 10 max iterations
+// OJO: compile() NO acepta recursionLimit (lo ignora en silencio). El límite
+// real se pasa en el config de graph.invoke() — ver index.js.
+const graph = workflow.compile();
 module.exports = { 
   graph,
   DEFAULT_SALES_PROMPT,
