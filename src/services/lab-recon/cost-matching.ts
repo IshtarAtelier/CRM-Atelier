@@ -89,7 +89,7 @@ export async function upsertEntry(input: LabCostInput) {
             client: { select: { name: true } },
             items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
             postSaleCases: {
-                select: { id: true, newOrderNumber: true, caseType: true, coverage: true, fault: true, cost: true },
+                select: { id: true, newOrderNumber: true, caseType: true, coverage: true, fault: true, cost: true, responsible: true },
                 orderBy: { createdAt: 'desc' as const },
             },
         },
@@ -329,7 +329,7 @@ export async function upsertEntry(input: LabCostInput) {
     // importe RECIÉN llega (así lo histórico pre-feature no dispara nada) y
     // fuera del backfill. Vale para ambos labs.
     if (pvCase && order && billedComparable !== null && facturaRecienLlegada && !quiet) {
-        await completePostSaleCost(entry, order, pvCase, billedComparable, cleanNumber)
+        await completePostSaleCost(order, pvCase, cleanNumber)
             .catch(err => console.error('[LabCost] Error completando costo de postventa:', err));
     }
 
