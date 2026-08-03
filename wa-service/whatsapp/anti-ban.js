@@ -14,6 +14,22 @@ function withTimeout(promise, ms, label = 'operación') {
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+/**
+ * ¿El envío falló porque el destinatario no existe / está mal escrito?
+ * Estos fallos no dicen nada del estado de la sesión de WhatsApp, así que no
+ * deben empujar el circuit breaker: reintentar no los arregla nunca.
+ */
+function esDestinoInvalido(error) {
+    const msg = String(error?.message || '').toLowerCase();
+    return msg.includes('no lid for user')
+        || msg.includes('número inválido')
+        || msg.includes('numero invalido')
+        || msg.includes('invalid wid')
+        || msg.includes('not a valid user')
+        || msg.includes('phone not registered')
+        || msg.includes('chat not found');
+}
+
 class AntiBanQueue {
     constructor() {
         this.queue = [];
@@ -236,6 +252,20 @@ class AntiBanQueue {
             this.consecutiveFailures = 0; // Resetear fallos tras éxito
         } catch (error) {
             console.error(`[AntiBanQueue] Error enviando mensaje a ${task.waId}:`, error.message);
+
+            // El circuit breaker existe para detectar que la SESIÓN de WhatsApp
+            // está caída. Un destino que no existe no dice nada de la sesión:
+            // reintentarlo nunca va a funcionar y no es señal de riesgo de ban.
+            // Contarlo era caro: un teléfono mal cargado en una etiqueta (sin el
+            // 549) reventó 5 veces seguidas y pausó la cola ENTERA una hora,
+            // dejando sin respuesta a todos los clientes por una notificación
+            // interna.
+            if (esDestinoInvalido(error)) {
+                console.warn(`[AntiBanQueue] Destino inválido (${task.waId}): no cuenta para el circuit breaker.`);
+                task.reject(error); // sin esto, quien encoló el envío queda esperando para siempre
+                return;             // el `finally` corre igual y libera la cola
+            }
+
             this.consecutiveFailures++;
 
             // Circuit Breaker: si 5 mensajes fallan consecuentemente, pausar por 1 hora

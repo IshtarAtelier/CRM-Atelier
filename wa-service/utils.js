@@ -20,6 +20,33 @@ function getAdminWaId() {
     return adminPhone.includes('@') ? adminPhone : `${adminPhone.replace(/[^0-9]/g, '')}@c.us`;
 }
 
+/**
+ * Normaliza un teléfono argentino al formato de WhatsApp (549 + área + número).
+ * Misma lógica que `formatPhoneForWhatsApp` del CRM (src/lib/phone-utils.ts).
+ *
+ * Existe porque los teléfonos cargados a mano (por ejemplo el `notifyPhone` de
+ * una etiqueta) vienen como "3541215971", sin el 549: WhatsApp no los resuelve
+ * ("No LID for user") y el envío falla siempre.
+ */
+function normalizarTelefonoAr(phone) {
+    if (!phone) return '';
+    let base = String(phone).replace(/\D/g, '');
+    if (!base) return '';
+
+    if (base.startsWith('549')) base = base.substring(3);
+    else if (base.startsWith('54')) base = base.substring(2);
+
+    if (base.startsWith('0')) base = base.substring(1);
+
+    // Saca el '15' incrustado después del código de área
+    if (base.length > 10) {
+        const m = base.match(/^([1-3]\d{1,3})15(\d{6,8})$/);
+        if (m) base = m[1] + m[2];
+    }
+
+    return '549' + base;
+}
+
 function withTimeout(promise, ms, errorMessage = 'Timeout de respuesta') {
     let timeoutId;
     const timeoutPromise = new Promise((_, reject) => {
@@ -104,6 +131,7 @@ module.exports = {
     TAGS_SIN_BOT,
     ADMIN_PHONE_FALLBACK,
     getAdminWaId,
+    normalizarTelefonoAr,
     withTimeout,
     getFileExtension,
     isLidFormat,

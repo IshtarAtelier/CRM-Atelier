@@ -4,7 +4,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { prisma } = require('./db');
-const { getAdminWaId, withTimeout } = require('./utils');
+const { getAdminWaId, withTimeout, normalizarTelefonoAr } = require('./utils');
 const CRM_API_URL = process.env.CRM_API_URL;
 const BOT_API_KEY = process.env.BOT_API_KEY;
 if (!BOT_API_KEY) {
@@ -645,7 +645,12 @@ async function addTagToClient({ clientId, tagName }) {
         if (tag.notifyPhone) {
             try {
                 const message = `🔔 *NOTIFICACIÓN DEL CRM*\nSe ha aplicado la etiqueta *${tag.name}* al cliente *${client.name || 'Sin nombre'}* (ID: ${client.id}).`;
-                const notifyWaId = tag.notifyPhone.includes('@') ? tag.notifyPhone : `${tag.notifyPhone.replace(/[^0-9]/g, '')}@c.us`;
+                // Se normaliza: los notifyPhone se cargan a mano y vienen sin el
+                // 549 ("3541215971"). Sin esto WhatsApp no resuelve el destino y
+                // el envío falla en cada etiqueta aplicada.
+                const notifyWaId = tag.notifyPhone.includes('@')
+                    ? tag.notifyPhone
+                    : `${normalizarTelefonoAr(tag.notifyPhone)}@c.us`;
                 await sendMessage(notifyWaId, message, null, { isProactive: false });
                 console.log(`[Etiqueta Automation] Notificación enviada a ${notifyWaId}`);
             } catch (err) {
