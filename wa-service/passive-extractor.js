@@ -61,12 +61,48 @@ function getPassiveModel() {
     if (!passiveModelInstance) {
         passiveModelInstance = new ChatGoogleGenerativeAI({
             model: 'gemini-2.5-flash',
-            maxOutputTokens: 500,
+            // 500 no alcanzaban: el JSON pide 8 campos y uno es un `summary` de la
+            // charla, así que la respuesta se cortaba a la mitad ({"clientName":
+            // "Roxana", "interestTag": "Multifoc...) y JSON.parse tiraba. Cuando eso
+            // pasaba, la ficha del cliente NO se creaba y no quedaba reintento.
+            maxOutputTokens: 4000,
             temperature: 0.1,
+            // Fuerza salida JSON válida del lado del modelo, en vez de confiar en
+            // que respete el "Respond ONLY with the raw JSON" del prompt.
+            json: true,
             apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
         });
     }
     return passiveModelInstance;
+}
+
+/**
+ * Rescata los pares clave/valor de un JSON que quedó cortado a la mitad.
+ * Devuelve null si no se pudo recuperar ni un campo.
+ */
+function rescatarJsonCortado(texto) {
+    if (!texto || typeof texto !== 'string') return null;
+
+    // Se cierra el objeto en la última coma de primer nivel: todo lo anterior
+    // son pares completos.
+    const ultimaComa = texto.lastIndexOf(',');
+    if (ultimaComa > 0) {
+        try {
+            return JSON.parse(texto.slice(0, ultimaComa) + '}');
+        } catch { /* sigue con el rescate campo por campo */ }
+    }
+
+    // Último recurso: los campos simples que se puedan leer sueltos.
+    const rescatado = {};
+    const strings = /"([a-zA-Z]+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+    let m;
+    while ((m = strings.exec(texto)) !== null) rescatado[m[1]] = m[2];
+    const otros = /"([a-zA-Z]+)"\s*:\s*(true|false|null)/g;
+    while ((m = otros.exec(texto)) !== null) {
+        rescatado[m[1]] = m[2] === 'true' ? true : m[2] === 'false' ? false : null;
+    }
+
+    return Object.keys(rescatado).length > 0 ? rescatado : null;
 }
 
 async function processPassiveExtraction(chatId, waId, profileName) {
@@ -159,9 +195,17 @@ Respond ONLY with the raw JSON. No markdown.
         let parsed;
         try {
             parsed = JSON.parse(resultText);
-        } catch(e) {
-            console.error("  ❌ Error parseando JSON pasivo:", resultText);
-            return;
+        } catch (e) {
+            // Red de contención: si igual vuelve algo cortado, se rescata el objeto
+            // más largo que sí cierre. Vale la pena aunque falten campos del final:
+            // con clientName + teléfono ya se puede crear la ficha, que es lo caro
+            // de perder (antes acá se hacía `return` y el cliente quedaba sin ficha).
+            parsed = rescatarJsonCortado(resultText);
+            if (!parsed) {
+                console.error("  ❌ Error parseando JSON pasivo (irrecuperable):", resultText.slice(0, 300));
+                return;
+            }
+            console.warn("  ⚠️ JSON pasivo cortado: se rescataron los campos completos.");
         }
 
         let currentClientId = chatInfo.clientId;
