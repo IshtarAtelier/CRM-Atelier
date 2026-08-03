@@ -89,7 +89,13 @@ export async function upsertEntry(input: LabCostInput) {
             client: { select: { name: true } },
             items: { include: { product: { select: { name: true, cost: true, laboratory: true, category: true } } } },
             postSaleCases: {
-                select: { id: true, newOrderNumber: true, caseType: true, coverage: true, fault: true, cost: true, responsible: true },
+                select: {
+                    id: true, newOrderNumber: true, caseType: true, coverage: true,
+                    fault: true, cost: true, responsible: true,
+                    // Para el aviso de costo: de dónde salió el costo actual y a
+                    // qué caja se propone imputarlo.
+                    costSource: true, faultUserId: true,
+                },
                 orderBy: { createdAt: 'desc' as const },
             },
         },

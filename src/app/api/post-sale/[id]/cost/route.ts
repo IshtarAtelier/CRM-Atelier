@@ -130,7 +130,9 @@ export async function POST(
                     createdByName: actor.name,
                 },
             });
-            await tx.postSaleCase.update({
+            // updateMany con el guard `cashEntryId: null`: si otro click ganó la
+            // carrera, actualiza 0 filas y la transacción entera se revierte.
+            const marcado = await tx.postSaleCase.updateMany({
                 where: { id, cashEntryId: null },
                 data: {
                     cashEntryId: entry.id,
@@ -140,6 +142,9 @@ export async function POST(
                     costConfirmedBy: actor.name,
                 },
             });
+            if (marcado.count === 0) {
+                throw new Error('El costo de este caso ya fue imputado a caja.');
+            }
             await tx.postSaleNote.create({
                 data: {
                     caseId: id,

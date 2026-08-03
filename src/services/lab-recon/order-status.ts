@@ -252,6 +252,18 @@ export async function completePostSaleCost(order: any, pvCase: any, pedido: stri
     const listaPedidos = detalle
         .map(d => `<li><strong style="font-family: monospace;">${d.pedido}</strong> (${labelDe(d.lab)}): ${fmt(d.monto)}</li>`)
         .join('');
+    // A qué caja va a proponer imputarse: la de quien se equivocó, y si el error
+    // no fue de una persona de la óptica lo absorbe Atelier (caja del admin).
+    const culpaEsDeLaOptica = pvCase.fault === 'Óptica' && !!pvCase.faultUserId;
+    const responsableCaja = culpaEsDeLaOptica
+        ? (await prisma.user.findUnique({
+            where: { id: pvCase.faultUserId },
+            select: { name: true },
+        }))?.name || 'el responsable'
+        : null;
+    const destinoCaja = responsableCaja || 'caja Ishtar (lo cubre Atelier)';
+    // Link directo al caso, para revisar y disparar el cobro sin buscarlo.
+    const linkCaso = `${appUrl}/admin/contactos?clientId=${order.clientId}&postSaleCaseId=${pvCase.id}`;
     const res: any = await sendEmail({
         to: adminInbox(),
         subject: `Costo del caso de postventa de ${order.client?.name || 'cliente'}: ${costo > 0 ? fmt(costo) : 'sin cargo'}`,
@@ -268,9 +280,16 @@ export async function completePostSaleCost(order: any, pvCase: any, pedido: stri
                         : (estimado > 0
                             ? 'Coincide con lo que se había estimado a mano.'
                             : 'El caso no tenía costo estimado cargado.')}</li>
-                    <li><strong>Falta tu corroboración</strong> para poder imputarlo: revisá el caso y confirmá el costo. Recién ahí se habilita el descuento de caja.</li>
                 </ul>
-                <p><a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Corroborar e imputar en la ficha del cliente</a></p>
+                ${costo > 0 ? `
+                <div style="border: 1px solid #e7e5e4; border-radius: 12px; padding: 16px; margin: 20px 0; background: #fafaf9;">
+                    <p style="margin: 0 0 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #78716c; font-weight: 700;">Listo para cobrar</p>
+                    <p style="margin: 0 0 14px; font-size: 14px;">Descontar <strong>${fmt(costo)}</strong> de <strong>${destinoCaja}</strong>.</p>
+                    <a href="${linkCaso}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 11px 20px; border-radius: 9px; font-size: 14px; font-weight: 600;">Revisar y disparar el cobro</a>
+                    <p style="margin: 12px 0 0; font-size: 12px; color: #78716c;">El descuento se genera desde el caso, con un click. Nada se mueve hasta que lo confirmes ahí.</p>
+                </div>` : `
+                <p style="font-size: 14px;">Sin cargo: no hay nada que imputar a caja.</p>
+                <p><a href="${linkCaso}">Ver el caso</a></p>`}
             </div>
         `,
     });
