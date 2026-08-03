@@ -70,6 +70,68 @@ let followupsEnabled = true;
 // Cache global para las imágenes en base64 de cada chat, para que los sub-agentes puedan acceder
 global.mediaCache = global.mediaCache || {};
 
+// Cuánto vive una imagen en la caché en memoria. Eran 5 minutos: una charla de
+// WhatsApp dura mucho más que eso, y cuando la receta se caía de la caché el
+// modelo dejaba de verla en los turnos siguientes.
+const MEDIA_CACHE_TTL_MS = 60 * 60 * 1000;
+
+// Cuántas imágenes del historial se le mandan al modelo por turno. Van en base64
+// dentro del contexto, así que no pueden ser todas.
+const MAX_IMAGENES_AL_MODELO = 3;
+
+function cachearMedia(chatId, item) {
+    if (!chatId || !item) return item;
+    if (!global.mediaCache) global.mediaCache = {};
+    if (!Array.isArray(global.mediaCache[chatId])) global.mediaCache[chatId] = [];
+    global.mediaCache[chatId].push(item);
+    setTimeout(() => {
+        if (global.mediaCache[chatId]) {
+            global.mediaCache[chatId] = global.mediaCache[chatId].filter(i => i !== item);
+            if (global.mediaCache[chatId].length === 0) delete global.mediaCache[chatId];
+        }
+    }, MEDIA_CACHE_TTL_MS);
+    return item;
+}
+
+/**
+ * Devuelve la imagen de un mensaje para mandársela al modelo. Primero la caché;
+ * si no está (expiró o se reinició el servicio), la vuelve a bajar del CRM.
+ * Antes, cuando faltaba, se le mandaba al modelo un texto que decía que la
+ * imagen era "antigua": el modelo lo leía como que la RECETA era vieja y le
+ * pedía al cliente una más nueva, o le pedía que dictara esfera/cilindro/eje.
+ */
+async function obtenerImagenDelMensaje(msg, chatId) {
+    const cached = (global.mediaCache?.[chatId] || []).find(item => item.waMessageId === msg.waMessageId);
+    if (cached) return cached;
+    if (!msg.mediaUrl) return null;
+
+    try {
+        const axios = require('axios');
+        const base = (process.env.CRM_API_URL || '').replace(/\/api(\/bot)?$/, '');
+        const url = /^https?:\/\//i.test(msg.mediaUrl) ? msg.mediaUrl : `${base}${msg.mediaUrl}`;
+        const res = await axios.get(url, {
+            responseType: 'arraybuffer',
+            timeout: 15000,
+            maxContentLength: 15 * 1024 * 1024,
+        });
+        const mimeType = (res.headers['content-type'] || 'image/jpeg').split(';')[0].trim();
+        if (!mimeType.startsWith('image/')) return null;
+
+        console.log(`  🔁 Imagen ${msg.waMessageId} recuperada del CRM (no estaba en caché).`);
+        // Se repuebla la caché: la usa también save_prescription_data para
+        // adjuntar la foto de la receta a la ficha del cliente.
+        return cachearMedia(chatId, {
+            waMessageId: msg.waMessageId,
+            base64: Buffer.from(res.data).toString('base64'),
+            mimeType,
+            timestamp: Date.now(),
+        });
+    } catch (e) {
+        console.error(`  ⚠️ No se pudo recuperar la imagen ${msg.waMessageId}: ${e.message}`);
+        return null;
+    }
+}
+
 // Load configuration from database SystemSetting with fallback to agent_config.json
 async function loadConfig() {
     try {
@@ -513,7 +575,21 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         const newestMessageProcessed = recentMessages[0]; // Referencia para el post-procesamiento
 
         const { AIMessage } = require("@langchain/core/messages");
-        
+
+        // Resolver las imágenes ANTES de armar el historial: las últimas del chat
+        // tienen que llegarle al modelo sí o sí (si no están en caché se bajan de
+        // nuevo del CRM). Sin esto, una receta enviada hace un rato desaparecía
+        // del contexto y el bot terminaba pidiéndole los datos al cliente.
+        const cronologicos = recentMessages.slice().reverse();
+        const imagenesResueltas = new Map();
+        const candidatas = cronologicos
+            .filter(m => m.direction !== 'OUTBOUND' && m.type === 'IMAGE')
+            .slice(-MAX_IMAGENES_AL_MODELO);
+        for (const m of candidatas) {
+            const imagen = await obtenerImagenDelMensaje(m, chat.id);
+            if (imagen) imagenesResueltas.set(m.waMessageId, imagen);
+        }
+
         // Reconstruir el historial, convirtiendo mensajes DB a LangChain messages
         const rawMessages = recentMessages.reverse().map(m => {
             const dateObj = new Date(m.createdAt);
@@ -527,15 +603,18 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 return { role: 'ai', content: timestamp + (m.content || '') };
             } else {
                 if (m.type === 'IMAGE') {
-                    const cached = (global.mediaCache?.[chat.id] || []).find(item => item.waMessageId === m.waMessageId);
-                    if (cached) {
+                    const imagen = imagenesResueltas.get(m.waMessageId);
+                    if (imagen) {
                         console.log(`📸 Enviando imagen multimodal a Gemini para mensaje: ${m.waMessageId}`);
                         return { role: 'human', multimodal: true, content: [
                             { type: "text", text: `${timestamp}[Imagen adjunta. Mensaje del cliente: "${m.content || '(sin texto)'}"]` },
-                            { type: "image_url", image_url: { url: `data:${cached.mimeType};base64,${cached.base64}` } }
+                            { type: "image_url", image_url: { url: `data:${imagen.mimeType};base64,${imagen.base64}` } }
                         ]};
                     } else {
-                        return { role: 'human', content: `${timestamp}[Imagen adjunta (antigua): ${m.content || '(sin texto)'}]` };
+                        // OJO con el texto: describe que NO PODEMOS MOSTRAR el archivo,
+                        // nunca que la receta sea vieja. Decir "(antigua)" acá hacía que
+                        // el bot le contestara al cliente que su receta estaba vencida.
+                        return { role: 'human', content: `${timestamp}[El cliente adjuntó una imagen que no podemos mostrarte en este turno. NO comentes su antigüedad, su fecha ni su contenido, y NO le pidas que te dicte los datos de la receta. Si ya la leíste antes en esta charla, usá esos valores y seguí normalmente. Texto que la acompañaba: "${m.content || '(sin texto)'}"]` };
                     }
                 } else if (m.type === 'AUDIO') {
                     return { role: 'human', content: `${timestamp}[El cliente envió un audio transcrito. Mensaje: ${m.content}]` };
