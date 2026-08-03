@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
-import { BillingAccount, getAfipInstance, formatAfipDate, getBillingAccountConfig } from '@/lib/afip';
+import type { Prisma } from '@prisma/client';
+import { BillingAccount, getAfipInstance, formatAfipDate, parseAfipDate, getBillingAccountConfig } from '@/lib/afip';
 import { PricingService } from '@/services/PricingService';
 import { uploadFile, getSignedUrl } from '@/lib/storage';
 import fs from 'fs';
@@ -100,7 +101,43 @@ export const BillingService = {
             
         const maximumInvoiceable = PricingService.calculateOrderFinancials(order as any).paidReal;
 
-        const totalAmount = amount !== undefined ? amount : (order.subtotalWithMarkup || order.total || 0);
+        // Ítems tal como se facturan. Si el frontend los mandó, MANDAN ELLOS: son
+        // los que se guardan y los que salen impresos en el PDF. El detalle y el
+        // total tienen que cerrar entre sí, así que el total se deriva de la suma.
+        let invoiceItems: CreateInvoiceItem[] | null = null;
+        if (items !== undefined) {
+            if (!Array.isArray(items) || items.length === 0) {
+                throw new Error('La factura necesita al menos un ítem en el detalle.');
+            }
+            invoiceItems = items.map((it, idx) => {
+                const quantity = Math.round(Number(it?.quantity) || 0);
+                const price = Math.round((Number(it?.price) || 0) * 100) / 100;
+                const description = String(it?.description || '').trim();
+                if (!description) throw new Error(`El ítem #${idx + 1} no tiene descripción.`);
+                if (quantity < 1) throw new Error(`El ítem "${description}" tiene una cantidad inválida.`);
+                if (price < 0) throw new Error(`El ítem "${description}" tiene un precio negativo.`);
+                return { description, quantity, price };
+            });
+        }
+
+        const itemsTotal = invoiceItems
+            ? Math.round(invoiceItems.reduce((acc, it) => acc + it.price * it.quantity, 0) * 100) / 100
+            : null;
+
+        const totalAmount = itemsTotal !== null
+            ? itemsTotal
+            : (amount !== undefined ? amount : (order.subtotalWithMarkup || order.total || 0));
+
+        if (itemsTotal !== null && amount !== undefined && Math.abs(itemsTotal - amount) >= 1) {
+            throw new Error(
+                `El detalle no cierra con el monto: los ítems suman $${itemsTotal.toLocaleString('es-AR')} ` +
+                `y se pidió facturar $${Number(amount).toLocaleString('es-AR')}. Ajustá los ítems o el monto.`
+            );
+        }
+
+        if (totalAmount <= 0) {
+            throw new Error('El monto a facturar debe ser mayor a cero.');
+        }
 
         // 1.5 Validar doble facturación (ahora con totalAmount real y redondeado a 2 decimales)
         const roundedTotalToInvoice = Math.round((totalInvoiced + totalAmount) * 100) / 100;
@@ -110,7 +147,7 @@ export const BillingService = {
         }
         const UNIT_PRICE_LIMIT = 499000;
         
-        const itemsToValidate = items || order.items.map(it => ({
+        const itemsToValidate = invoiceItems || order.items.map(it => ({
             description: `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || 'Producto'}`.trim(),
             price: it.price
         }));
@@ -234,6 +271,9 @@ export const BillingService = {
                     billingAccount: account,
                     status: 'COMPLETED',
                     observations: observations || null,
+                    // Detalle tal como se facturó: es lo que se imprime en el PDF.
+                    items: invoiceItems ? (invoiceItems as unknown as Prisma.InputJsonValue) : undefined,
+                    fiscalDate: parseAfipDate(cbteFch),
                     createdByName: actorName || null,
                 },
             });
@@ -393,8 +433,20 @@ export const BillingService = {
             const caeVto = invoice.caeExpiration.replace(/-/g, '');
             const formattedCaeDate = `${caeVto.slice(6,8)}/${caeVto.slice(4,6)}/${caeVto.slice(0,4)}`;
 
-            // Preparar ítems para el PDF
-            const pdfItems = invoice.totalAmount === invoice.order.total
+            // Preparar ítems para el PDF: manda el detalle guardado al emitir.
+            // Las facturas viejas (sin `items`) caen a la heurística anterior.
+            const savedItems = Array.isArray(invoice.items) && invoice.items.length > 0
+                ? (invoice.items as any[])
+                : null;
+
+            const pdfItems = savedItems
+                ? savedItems.map((item: any) => ({
+                    description: item.description || 'Producto',
+                    quantity: item.quantity,
+                    unit_price: item.price,
+                    subtotal: Number(item.price) * Number(item.quantity),
+                }))
+                : invoice.totalAmount === invoice.order.total
                 ? invoice.order.items.map((item: any) => ({
                     description: `${item.product?.brand || item.productBrandSnapshot || ''} ${item.product?.name || item.productNameSnapshot || ''}`.trim(),
                     quantity: item.quantity,

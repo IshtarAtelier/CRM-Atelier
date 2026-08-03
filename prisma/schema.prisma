@@ -425,6 +425,11 @@ model Invoice {
   // no por createdAt. Nullable para filas históricas anteriores a la columna.
   fiscalDate     DateTime?
   observations   String?
+  // Ítems TAL COMO SE FACTURARON: [{ description, quantity, price }].
+  // Se editan en el modal de emisión y pueden diferir de los de la orden (precios
+  // ajustados, conceptos partidos por el tope de monotributo, conceptos nuevos).
+  // El PDF se arma con esto; solo cae a order.items en facturas viejas (null).
+  items          Json?
   // Actor: qué usuario emitió la factura en ARCA
   createdByName  String?
   order          Order    @relation(fields: [orderId], references: [id])

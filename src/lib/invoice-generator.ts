@@ -113,14 +113,30 @@ export async function generateInvoicePDF(data: InvoiceData, returnBase64: boolea
     doc.text(`Medio de Pago: Otro`, pageWidth - 60, 71);
 
     // --- 3. TABLA DE ÍTEMS (Diseño Premium sin líneas verticales) ---
-    const tableItems = invoice.order.items.map((it: any) => [
-        it.productId?.slice(-4).toUpperCase() || it.product?.id?.slice(-4).toUpperCase() || '-',
-        `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || 'Producto'}`.trim(),
-        it.quantity,
-        'unidades',
-        it.price.toLocaleString('es-AR', { minimumFractionDigits: 2 }),
-        (it.price * it.quantity).toLocaleString('es-AR', { minimumFractionDigits: 2 })
-    ]);
+    // Se imprime el detalle guardado al emitir (precios y conceptos tal como se
+    // editaron en el modal). Solo las facturas anteriores a la columna `items`
+    // caen a los ítems de la orden.
+    const savedItems: any[] | null = Array.isArray(invoice.items) && invoice.items.length > 0
+        ? invoice.items
+        : null;
+
+    const tableItems = savedItems
+        ? savedItems.map((it: any) => [
+            '-',
+            it.description || 'Producto',
+            it.quantity,
+            'unidades',
+            Number(it.price).toLocaleString('es-AR', { minimumFractionDigits: 2 }),
+            (Number(it.price) * Number(it.quantity)).toLocaleString('es-AR', { minimumFractionDigits: 2 })
+        ])
+        : (invoice.order?.items || []).map((it: any) => [
+            it.productId?.slice(-4).toUpperCase() || it.product?.id?.slice(-4).toUpperCase() || '-',
+            `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || 'Producto'}`.trim(),
+            it.quantity,
+            'unidades',
+            it.price.toLocaleString('es-AR', { minimumFractionDigits: 2 }),
+            (it.price * it.quantity).toLocaleString('es-AR', { minimumFractionDigits: 2 })
+        ]);
 
     autoTable(doc, {
         startY: 90,

@@ -138,3 +138,17 @@ export function formatAfipDate(date: Date = new Date()): number {
     const d = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
     return parseInt(d.toISOString().split('T')[0].replace(/-/g, ''));
 }
+
+/**
+ * Inversa de formatAfipDate: convierte el yyyymmdd de ARCA a Date (mediodía UTC
+ * para que no se corra de día al leerla en el huso local).
+ */
+export function parseAfipDate(cbteFch: number): Date | null {
+    const raw = String(cbteFch);
+    if (!/^\d{8}$/.test(raw)) return null;
+    const year = Number(raw.slice(0, 4));
+    const month = Number(raw.slice(4, 6));
+    const day = Number(raw.slice(6, 8));
+    const parsed = new Date(Date.UTC(year, month - 1, day, 12));
+    return isNaN(parsed.getTime()) ? null : parsed;
+}

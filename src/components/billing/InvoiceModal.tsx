@@ -40,6 +40,42 @@ const DOC_TYPES = [
 
 const MONOTRIBUTO_LIMIT = 499000;
 
+const sumItems = (list: InvoiceItem[]) =>
+    list.reduce((acc, it) => acc + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0);
+
+/**
+ * Reparte un monto objetivo entre los ítems manteniendo sus proporciones.
+ * Con cantidades > 1 el redondeo puede dejar unos pesos de diferencia: quien
+ * llama ajusta el monto a la suma real, así el detalle y el total siempre cierran.
+ */
+const prorrateItems = (list: InvoiceItem[], target: number): InvoiceItem[] => {
+    const safeTarget = Math.max(0, Math.round(target));
+    const currentTotal = sumItems(list);
+
+    if (list.length === 0 || currentTotal <= 0) {
+        // Sin base para prorratear: un único concepto por el monto pedido.
+        if (list.length === 1) return [{ ...list[0], quantity: 1, price: safeTarget }];
+        if (list.length > 1) return list;
+        return [{ id: 'auto-0', description: 'Productos ópticos', quantity: 1, price: safeTarget }];
+    }
+
+    const factor = safeTarget / currentTotal;
+    const scaled = list.map(it => ({ ...it, price: Math.max(0, Math.round(it.price * factor)) }));
+
+    // El residuo del redondeo va al ítem de mayor subtotal, prorrateado por su cantidad.
+    const residuo = safeTarget - sumItems(scaled);
+    if (residuo !== 0) {
+        let idx = 0;
+        scaled.forEach((it, i) => {
+            if (it.price * it.quantity > scaled[idx].price * scaled[idx].quantity) idx = i;
+        });
+        const qty = scaled[idx].quantity || 1;
+        scaled[idx] = { ...scaled[idx], price: Math.max(0, scaled[idx].price + Math.round(residuo / qty)) };
+    }
+
+    return scaled;
+};
+
 export default function InvoiceModal({ order, initialAccount, initialAmount, onClose, onSuccess }: InvoiceModalProps) {
     const [docTipo, setDocTipo] = useState(order.client.dni ? 96 : 99);
     const [docNro, setDocNro] = useState(order.client.dni || '');
@@ -75,24 +111,44 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
             quantity: it.quantity || 1,
             price: Math.round((it.price || 0) * markupFactor) // Apply markup to match sale price
         }));
-        
-        setItems(baseItems);
-    }, [order, initialAmount]);
 
-    const totalInvoiced = items.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+        // El detalle arranca ya cuadrado con el monto a facturar (que puede ser
+        // menor al total de la orden si se facturan señas o pagos parciales).
+        const target = initialAmount || paidReal || order.total;
+        const synced = prorrateItems(baseItems, target);
+        setItems(synced);
+        setTargetAmount(sumItems(synced));
+        // Dep en order.id: si dependiera del objeto, cualquier re-render del padre
+        // pisaría los ítems que el usuario está editando.
+    }, [order.id, initialAmount]);
+
+    const totalInvoiced = sumItems(items);
     const diff = targetAmount - totalInvoiced;
     const isTotalMatching = Math.abs(diff) < 1; // Tolerance for decimals
 
+    // Toda edición del detalle manda: el monto del comprobante sigue a la suma.
+    const applyItems = (next: InvoiceItem[]) => {
+        setItems(next);
+        setTargetAmount(sumItems(next));
+    };
+
+    // Y al revés: al cambiar el monto, los ítems se reparten para cerrar en él.
+    const applyTargetAmount = (target: number) => {
+        const next = prorrateItems(items, target);
+        setItems(next);
+        setTargetAmount(sumItems(next));
+    };
+
     const addItem = () => {
-        setItems([...items, { id: Date.now().toString(), description: 'Nuevo Concepto', quantity: 1, price: 0 }]);
+        applyItems([...items, { id: Date.now().toString(), description: 'Nuevo Concepto', quantity: 1, price: 0 }]);
     };
 
     const removeItem = (id: string) => {
-        setItems(items.filter(it => it.id !== id));
+        applyItems(items.filter(it => it.id !== id));
     };
 
     const updateItem = (id: string, field: keyof InvoiceItem, value: any) => {
-        setItems(items.map(it => it.id === id ? { ...it, [field]: value } : it));
+        applyItems(items.map(it => it.id === id ? { ...it, [field]: value } : it));
     };
 
     const splitItem = (id: string) => {
@@ -111,10 +167,30 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
             }
             return it;
         });
-        setItems(newItems);
+        applyItems(newItems);
     };
 
     const handleEmit = async () => {
+        if (items.length === 0) {
+            setError('Agregá al menos un ítem al detalle antes de emitir.');
+            return;
+        }
+
+        if (items.some(it => !it.description.trim())) {
+            setError('Todos los ítems necesitan una descripción.');
+            return;
+        }
+
+        if (!isTotalMatching) {
+            setError(`El detalle suma $${totalInvoiced.toLocaleString('es-AR')} y el monto dice $${targetAmount.toLocaleString('es-AR')}. Cuadralos antes de emitir.`);
+            return;
+        }
+
+        if (totalInvoiced <= 0) {
+            setError('El monto a facturar debe ser mayor a cero.');
+            return;
+        }
+
         // Only hard-block: items exceeding monotributo unit limit
 
         const expensiveItem = items.find(it => it.price > MONOTRIBUTO_LIMIT);
@@ -137,7 +213,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                     account: account,
                     docTipo: docTipo,
                     docNro: docTipo === 99 ? '0' : docNro.replace(/\D/g, ''),
-                    amount: targetAmount,
+                    amount: totalInvoiced,
                     issueDate: issueDate,
                     items: items.map(({ description, quantity, price }) => ({ description, quantity, price })),
                     observations: observations
@@ -241,10 +317,11 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                     <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Monto del Comprobante</p>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className="text-3xl font-black tracking-tighter">$</span>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             value={targetAmount}
                                             onChange={(e) => setTargetAmount(Number(e.target.value))}
+                                            onBlur={() => applyTargetAmount(targetAmount)}
                                             className="bg-transparent text-3xl font-black tracking-tighter w-48 focus:ring-2 focus:ring-amber-500 focus:outline-none border-b-2 border-white/20 focus:border-white transition-all"
                                         />
                                     </div>
@@ -318,8 +395,27 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-4 p-4 rounded-2xl flex items-center justify-between text-xs font-black transition-all bg-emerald-50 text-emerald-600">
+                            {items.length === 0 && (
+                                <div className="p-6 rounded-2xl border-2 border-dashed border-stone-200 dark:border-stone-700 text-center text-[10px] font-black uppercase tracking-widest text-stone-400">
+                                    Sin ítems — agregá al menos uno para poder facturar
+                                </div>
+                            )}
+                            <div className={`mt-4 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs font-black transition-all ${isTotalMatching ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-700'}`}>
                                 <span className="uppercase tracking-widest">Suma de ítems: ${totalInvoiced.toLocaleString('es-AR')}</span>
+                                {!isTotalMatching && (
+                                    <div className="flex items-center gap-3">
+                                        <span className="uppercase tracking-widest">
+                                            {diff > 0 ? `Faltan $${Math.abs(diff).toLocaleString('es-AR')}` : `Sobran $${Math.abs(diff).toLocaleString('es-AR')}`}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => applyTargetAmount(targetAmount)}
+                                            className="px-3 py-1.5 bg-amber-600 text-white rounded-xl uppercase tracking-widest text-[10px] hover:bg-amber-700 transition-colors"
+                                        >
+                                            Cuadrar con el monto
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -412,7 +508,7 @@ export default function InvoiceModal({ order, initialAccount, initialAmount, onC
 
                         <button
                             onClick={handleEmit}
-                            disabled={!!emittingStep}
+                            disabled={!!emittingStep || items.length === 0}
                             className="w-full py-5 bg-gradient-to-r from-indigo-600 to-blue-700 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:grayscale disabled:scale-100 flex items-center justify-center gap-3"
                         >
                             {emittingStep ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
