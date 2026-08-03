@@ -24,6 +24,7 @@ const { processPassiveExtraction } = require('./passive-extractor');
 const { transcribeAudio } = require('./transcriber');
 const { checkAndSendSalesFollowUps } = require('./sales-followups');
 const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups');
+const { recuperarExtraccionesPendientes } = require('./cron/extraccion-pendiente');
 const { TAGS_SIN_BOT, getFileExtension, getAdminWaId } = require('./utils');
 const { downloadMediaWithRetry, uploadMediaToCrm } = require('./shared/media');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
@@ -1884,6 +1885,16 @@ server.listen(PORT, '0.0.0.0', async () => {
     setInterval(() => {
         checkAndSendInactivityFollowUps(cronDeps).catch(e => console.error("❌ Error en follow-ups de inactividad:", e.message));
     }, 15 * 60 * 1000);
+
+    // Recuperar las extracciones pasivas que se perdieron por un reinicio.
+    // El setTimeout de 20s que las programa vive en memoria: si el proceso cae
+    // antes de que dispare, nadie lo reintenta. Medido: ~40% de los chats que
+    // cumplían la regla se quedaron sin ficha, unas 180 por mes. Sin ficha no
+    // hay a quién buscarle órdenes y la venta es invisible para la atribución.
+    setInterval(() => {
+        recuperarExtraccionesPendientes(processPassiveExtraction)
+            .catch(e => console.error("❌ Error en extracción pendiente:", e.message));
+    }, 10 * 60 * 1000);
 
     // Generar tareas inteligentes de seguimiento de ventas cada 30 minutos
     setInterval(async () => {
