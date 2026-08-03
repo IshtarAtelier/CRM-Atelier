@@ -14,7 +14,7 @@ const APPLY = process.argv.includes('--apply')
 const ITEMS = [
   { brand: 'Reef', stock: 12, price: 180000, cost: 40000 },
   { brand: 'Mormai', stock: 2, price: 160000, cost: 40000 },
-  { brand: 'Pr Desing', stock: 2, price: 180000, cost: 40000 },
+  { brand: 'PR Design', stock: 2, price: 180000, cost: 40000 },
   { brand: 'Philippe R', stock: 2, price: 180000, cost: 40000 },
   { brand: 'Pierre Cardin', stock: 1, price: 170000, cost: 40000 },
   { brand: 'Karun', stock: 1, price: 260000, cost: 40000 },
