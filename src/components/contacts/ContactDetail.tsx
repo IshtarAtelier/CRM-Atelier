@@ -283,7 +283,7 @@ export default function ContactDetail({
                     )}
 
                     {activeSection === 'postsale' && (
-                        <PostSaleTab contact={contact} onRefresh={fetchContact} />
+                        <PostSaleTab contact={contact} onRefresh={fetchContact} userRole={currentUserRole} />
                     )}
 
                     {(activeSection === 'budget' || activeSection === 'sales') && (

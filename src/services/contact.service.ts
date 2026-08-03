@@ -1222,7 +1222,17 @@ export const ContactService = {
                         caseType: true,
                         fault: true,
                         coverage: true,
+                        rxData: true,
                         createdAt: true,
+                        // Cierre económico: en qué etapa está el costo y si ya se
+                        // descontó de una caja. La ficha del caso los usa para
+                        // mostrar el estado y habilitar (o no) el cobro.
+                        costEstimated: true,
+                        costSource: true,
+                        costConfirmedAt: true,
+                        costConfirmedBy: true,
+                        faultUserId: true,
+                        cashEntryId: true,
                         order: { select: { id: true, total: true, createdAt: true, labOrderNumber: true } },
                         notesList: {
                             orderBy: { createdAt: 'asc' },

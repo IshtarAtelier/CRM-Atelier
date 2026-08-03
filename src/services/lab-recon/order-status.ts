@@ -262,8 +262,9 @@ export async function completePostSaleCost(order: any, pvCase: any, pedido: stri
         }))?.name || 'el responsable'
         : null;
     const destinoCaja = responsableCaja || 'caja Ishtar (lo cubre Atelier)';
-    // Link directo al caso, para revisar y disparar el cobro sin buscarlo.
-    const linkCaso = `${appUrl}/admin/contactos?clientId=${order.clientId}&postSaleCaseId=${pvCase.id}`;
+    // Link directo al caso: abre la ficha, la solapa Post Venta (section=postsale,
+    // que ya reconoce /admin/contactos) y el caso puntual para resaltarlo.
+    const linkCaso = `${appUrl}/admin/contactos?clientId=${order.clientId}&section=postsale&postSaleCaseId=${pvCase.id}`;
     const res: any = await sendEmail({
         to: adminInbox(),
         subject: `Costo del caso de postventa de ${order.client?.name || 'cliente'}: ${costo > 0 ? fmt(costo) : 'sin cargo'}`,
