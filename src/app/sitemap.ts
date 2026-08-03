@@ -163,14 +163,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Espejamos el catálogo: solo lo publicado y sin Cristal, para no indexar
       // URLs que la ficha redirige o que no representan productos comprables.
       where: { isActive: true, product: { publishToWeb: true, category: { not: 'Cristal' } } },
-      select: { slug: true, updatedAt: true }
+      select: { slug: true, updatedAt: true, product: { select: { imagenesCatalogo: true } } }
     });
-    productRoutes = products.map((product) => ({
-      url: `${baseUrl}/producto/${product.slug}`,
-      lastModified: product.updatedAt,
-      changeFrequency: 'daily' as const,
-      priority: 0.9,
-    }));
+    productRoutes = products.map((product) => {
+      // La imagen declarada en el sitemap es lo que habilita a la ficha a
+      // aparecer en Google Imágenes, que para anteojos es tráfico real: la
+      // gente busca el armazón mirando, no leyendo.
+      const primera = product.product?.imagenesCatalogo?.find((i) => typeof i === 'string' && i.length > 0);
+      return {
+        url: `${baseUrl}/producto/${product.slug}`,
+        lastModified: product.updatedAt,
+        changeFrequency: 'daily' as const,
+        priority: 0.9,
+        ...(primera
+          ? { images: [primera.startsWith('http') ? primera : `${baseUrl}${primera}`] }
+          : {}),
+      };
+    });
   } catch (error) {
     console.error("Error fetching sitemap product routes from DB:", error);
   }

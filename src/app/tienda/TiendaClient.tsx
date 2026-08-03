@@ -360,7 +360,11 @@ export function TiendaClient({
                 fill
                 priority
                 className="object-cover object-center"
-                sizes="100vw"
+                // Es una banda decorativa recortada con object-cover, no una
+                // foto que se mire en detalle: con `100vw` pelado Next servía
+                // la variante de 3840 px (151 KB) y era el recurso más pesado
+                // de la página. Arriba de 1600 px no se gana nada visible.
+                sizes="(max-width: 1600px) 100vw, 1600px"
               />
               <div className="absolute inset-0 bg-black/20" />
             </motion.div>

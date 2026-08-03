@@ -209,11 +209,16 @@ export function LandingClient({
       /* los píxeles pueden no estar configurados; no debe romper el click */
     }
 
+    // `window.open` va sincrónico dentro del handler, no dentro de un
+    // setTimeout: pasados unos milisegundos el navegador ya no lo considera
+    // parte del gesto del usuario y el bloqueador de pop-ups lo cancela. Con el
+    // retardo de 800 ms que había acá, una parte de los clics simplemente no
+    // abría WhatsApp — sobre el único CTA que tiene la landing.
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+    // El cartel queda un instante para que el clic dé respuesta visible aunque
+    // WhatsApp abra en otra pestaña.
     setIsRedirecting(true);
-    setTimeout(() => {
-      window.open(waUrl, "_blank", "noopener,noreferrer");
-      setIsRedirecting(false);
-    }, 800);
+    setTimeout(() => setIsRedirecting(false), 600);
   };
 
   const toggleFaq = (index: number) => setOpenFaq(openFaq === index ? null : index);

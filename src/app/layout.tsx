@@ -29,7 +29,8 @@ export const metadata: Metadata = {
     template: "%s | Atelier Óptica"
   },
   description: "Óptica especializada en salud visual. Promociones en lentes multifocales, cuotas sin interés y envíos a todo el país. Presupuestamos tu receta por WhatsApp.",
-  keywords: ["optica cordoba", "multifocales en cuotas", "precio multifocales", "anteojos de sol", "lentes de contacto con envio", "anteojos recetados", "armazones", "salud visual", "reparacion de anteojos", "optica con obra social"],
+  // `keywords` lo ignoran Google y Bing desde hace más de una década; lo único
+  // que hace es publicar a qué términos apuntás. Se saca.
   openGraph: {
     type: "website",
     locale: "es_AR",

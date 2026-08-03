@@ -59,6 +59,13 @@ const nextConfig: NextConfig = {
       { source: '/promoanteojo', destination: '/landing' },
       { source: '/promo-anteojos', destination: '/landing' },
       { source: '/promo-anteojo', destination: '/landing' },
+      // Los feeds de catálogo viven bajo /api/, que robots.txt bloquea. Las
+      // descargas programadas de Merchant y Commerce no respetan robots.txt,
+      // así que hoy funcionan igual — pero cualquier validador o previsualización
+      // que sí lo respete ve un feed prohibido. Estas URLs los dejan fuera de
+      // /api/ sin mover la implementación.
+      { source: '/feed/google.xml', destination: '/api/web/feed/google' },
+      { source: '/feed/meta.xml', destination: '/api/web/feed/meta' },
     ];
   },
   async redirects() {
