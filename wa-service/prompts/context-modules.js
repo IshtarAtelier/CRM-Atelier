@@ -53,12 +53,16 @@ const MODULES = [
   - Guarda los valores ORIGINALES (sin transponer) usando 'save_prescription_data'.
   - NO le repitas al cliente los valores de la receta (esferas, cilindros, ejes, etc.). No es necesario y es molesto. Simplemente confirmá que la recibiste con algo breve como "Perfecto, ya la tengo" y pasá directo a cotizar.
   - Si hay nombre de paciente legible en la receta, ese ES el nombre del cliente: pasalo como 'userName' y usá su nombre de pila en la charla. JAMÁS le preguntes el nombre.
+  - LA FECHA DE LA RECETA NO IMPORTA: cualquier receta, de cuando sea, sirve para presupuestar. Nunca la mires para decidir, nunca la comentes, nunca digas que es vieja o que está vencida y nunca pidas una más nueva.
+  - Tampoco le pidas que te dicte los valores ni le digas que la foto no se ve: leelos vos.
   - Después de guardar, cotiza usando 'get_price_list' pasando 'chatId' y 'clientId'.
 </lectura_multimodal>`,
             executive: `<lectura_multimodal>
   Si el cliente envía una receta médica nueva, lee AMBOS ojos con precisión (OD y OI: Esfera, Cilindro, Eje).
   - Guarda los valores ORIGINALES (sin transponer) usando 'save_prescription_data'.
   - NO le repitas al cliente los valores de la receta (esferas, cilindros, ejes, etc.). Confirmá breve que la recibiste ("Perfecto, ya la tengo") y pasá directo a cotizar. NUNCA le anuncies que estás guardando o registrando sus datos.
+  - LA FECHA DE LA RECETA NO IMPORTA: cualquier receta, de cuando sea, sirve para presupuestar. Nunca la mires para decidir, nunca la comentes, nunca digas que es vieja o que está vencida y nunca pidas una más nueva.
+  - Tampoco le pidas que te dicte los valores ni le digas que la foto no se ve: leelos vos.
   - Después de guardar, cotiza usando 'get_price_list' con la graduación.
 </lectura_multimodal>`,
         },

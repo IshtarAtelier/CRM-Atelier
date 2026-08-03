@@ -137,9 +137,19 @@ async function formatClientData(clientData, userPhone, userName, chatId, chatSum
   }
   
   if (clientData.prescriptions && clientData.prescriptions.length > 0) {
-    text += `\n\nRECETAS GUARDADAS (USAR ESTOS DATOS PARA COTIZAR SIN PEDIR FOTO DE NUEVO):`;
-    clientData.prescriptions.forEach((p, i) => {
-      text += `\nReceta ${i + 1} (${new Date(p.date).toLocaleDateString()}): Tipo: ${p.tipoDeLente || 'N/A'}`;
+    // Las recetas van SIN fecha a propósito: toda receta se cotiza igual, y
+    // cuando el modelo veía una fecha vieja le salía a decirle al cliente que
+    // su receta estaba desactualizada. Se ordenan de la más nueva a la más
+    // vieja y se rotula cuál es la vigente, que es lo único que necesita saber.
+    const recetas = [...clientData.prescriptions].sort(
+      (a, b) => new Date(b.date || 0) - new Date(a.date || 0)
+    );
+    text += `\n\nRECETAS GUARDADAS (USAR ESTOS DATOS PARA COTIZAR SIN PEDIR FOTO DE NUEVO NI MENCIONAR SU ANTIGÜEDAD):`;
+    recetas.forEach((p, i) => {
+      const rotulo = i === 0
+        ? (recetas.length > 1 ? 'Receta 1 (la más reciente, usar esta)' : 'Receta 1')
+        : `Receta ${i + 1} (anterior)`;
+      text += `\n${rotulo}: Tipo: ${p.tipoDeLente || 'N/A'}`;
       text += `\n- OD (Ojo Derecho): Esf ${p.odEsf || 0}, Cil ${p.odCil || 0}, Eje ${p.odEje || 0}, DIP ${p.odDip || '-'}`;
       text += `\n- OI (Ojo Izquierdo): Esf ${p.oiEsf || 0}, Cil ${p.oiCil || 0}, Eje ${p.oiEje || 0}, DIP ${p.oiDip || '-'}`;
       if (p.add) text += `\n- Adición: ${p.add}`;
