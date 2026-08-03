@@ -30,6 +30,58 @@ function hostPermitido(host: string): boolean {
     return HOSTS_PERMITIDOS.some(h => limpio === h || limpio.endsWith(`.${h}`));
 }
 
+/**
+ * Baja la imagen forzando IPv4.
+ *
+ * El host del proveedor publica registro AAAA, pero el servicio no tiene salida
+ * IPv6 (ipv6EgressEnabled: false en Railway): con `fetch` normal la conexión
+ * moría con un "fetch failed" seco en producción, mientras en local andaba
+ * perfecto. `family: 4` obliga a resolver por IPv4, que sí tiene salida.
+ */
+function bajarPorIPv4(target: URL): Promise<{ buffer: Buffer; contentType: string }> {
+    return new Promise((resolve, reject) => {
+        import('node:https').then(({ default: https }) => {
+            const req = https.get(
+                {
+                    hostname: target.hostname,
+                    path: `${target.pathname}${target.search}`,
+                    port: target.port || 443,
+                    family: 4,
+                    timeout: 15000,
+                    headers: { Accept: 'image/*', 'User-Agent': 'AtelierOptica/1.0' },
+                },
+                (res) => {
+                    if (!res.statusCode || res.statusCode >= 400) {
+                        res.resume();
+                        reject(new Error(`El origen respondió ${res.statusCode}`));
+                        return;
+                    }
+
+                    const trozos: Buffer[] = [];
+                    let total = 0;
+                    res.on('data', (t: Buffer) => {
+                        total += t.length;
+                        if (total > MAX_BYTES) {
+                            req.destroy();
+                            reject(new Error('Imagen demasiado grande'));
+                            return;
+                        }
+                        trozos.push(t);
+                    });
+                    res.on('end', () => resolve({
+                        buffer: Buffer.concat(trozos),
+                        contentType: (res.headers['content-type'] || '').split(';')[0].trim(),
+                    }));
+                    res.on('error', reject);
+                }
+            );
+
+            req.on('timeout', () => { req.destroy(new Error('Timeout bajando la imagen')); });
+            req.on('error', reject);
+        }).catch(reject);
+    });
+}
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
@@ -50,21 +102,12 @@ export async function GET(request: Request) {
     }
 
     try {
-        const upstream = await fetch(target.toString(), {
-            signal: AbortSignal.timeout(15000),
-            headers: { Accept: 'image/*' },
-        });
+        const { buffer, contentType } = await bajarPorIPv4(target);
 
-        if (!upstream.ok) {
-            return new NextResponse('No se pudo obtener la imagen', { status: 502 });
-        }
-
-        const contentType = upstream.headers.get('content-type') || '';
         if (!contentType.startsWith('image/')) {
             return new NextResponse('El origen no devolvió una imagen', { status: 502 });
         }
 
-        const buffer = Buffer.from(await upstream.arrayBuffer());
         if (buffer.byteLength > MAX_BYTES) {
             return new NextResponse('Imagen demasiado grande', { status: 413 });
         }
@@ -85,7 +128,13 @@ export async function GET(request: Request) {
             },
         });
     } catch (error: any) {
-        console.error('[store/product-image] Error convirtiendo imagen:', error?.message);
+        // La causa importa: "fetch failed" a secas no dice si fue DNS, TLS o red.
+        console.error(
+            '[store/product-image] Error convirtiendo imagen:',
+            error?.message,
+            error?.cause?.code || error?.code || '',
+            target.hostname
+        );
         return new NextResponse('Error procesando la imagen', { status: 500 });
     }
 }
