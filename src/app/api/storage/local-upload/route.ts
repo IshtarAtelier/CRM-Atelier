@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { uploadFile } from '@/lib/storage';
+import { isPathTraversalKey } from '@/lib/utils/storage';
 
 export async function POST(req: Request) {
     try {
@@ -8,8 +9,9 @@ export async function POST(req: Request) {
         
         if (!key) return NextResponse.json({ error: 'Missing key' }, { status: 400 });
 
-        // Sanitize key to prevent path traversal
-        if (key.includes('..') || key.includes('\\') || key.startsWith('/') || key.startsWith('.')) {
+        // Traversal real por segmento (un ".." dentro del nombre es válido), más
+        // el bloqueo de rutas absolutas y archivos ocultos.
+        if (isPathTraversalKey(key) || key.startsWith('/') || key.startsWith('.')) {
             return NextResponse.json({ error: 'Invalid key: path traversal detected' }, { status: 400 });
         }
 

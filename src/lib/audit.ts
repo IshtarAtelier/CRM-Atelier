@@ -4,7 +4,7 @@ export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'LO
 export type AuditEntityType =
     | 'ORDER' | 'CONTACT' | 'PAYMENT' | 'USER' | 'PRODUCT'
     | 'TASK' | 'PRESCRIPTION' | 'INVOICE' | 'EXPENSE' | 'DOCTOR_PAYMENT'
-    | 'COUPON' | 'SETTING' | 'VENDOR_CASH'
+    | 'COUPON' | 'SETTING' | 'VENDOR_CASH' | 'POST_SALE_CASE'
     | 'CASH_HANDOVER' | 'CASH_COUNT' | 'CASH_MOVEMENT' | 'OPTICA_LEAD' | 'OTHER';
 
 export async function logAudit(params: {

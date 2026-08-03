@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { LifeBuoy, ImageIcon, Receipt, Plus, X, Send, Paperclip, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LifeBuoy, ImageIcon, Receipt, Plus, X, Send, Paperclip, ShieldCheck, ChevronDown, Copy, Check, Wallet } from 'lucide-react';
 import {
     caseTypeStyle, postSaleStatusLabel,
     POST_SALE_CASE_TYPES, POST_SALE_FAULTS, POST_SALE_COVERAGE
@@ -30,10 +30,43 @@ interface PostSaleCase {
     caseType?: string | null;
     fault?: string | null;
     coverage?: string | null;
+    rxData?: string | null;
     createdAt?: string | Date | null;
+    // Cierre económico del caso (ver /api/post-sale/[id]/cost).
+    costEstimated?: number | null;
+    costSource?: string | null;
+    costConfirmedAt?: string | Date | null;
+    costConfirmedBy?: string | null;
+    faultUserId?: string | null;
+    cashEntryId?: string | null;
     order?: { id: string; total?: number | null; createdAt?: string | Date | null; labOrderNumber?: string | null } | null;
     notesList?: PostSaleNote[];
 }
+
+/** Los números de operación que tiene cargados el caso ("80530908 - 80530914" → dos). */
+function operationNumbers(c: PostSaleCase): string[] {
+    return (c.newOrderNumber || '').match(/\d{4,}/g) || [];
+}
+
+/**
+ * En qué etapa está el costo del caso. Es lo que decide si se puede cobrar:
+ * el costo real lo cierra el laboratorio al facturar TODAS las operaciones, y
+ * hasta entonces lo que hay es la estimación que cargó el vendedor.
+ */
+type CostStage = 'SIN_COSTO' | 'ESTIMADO' | 'CERRADO' | 'IMPUTADO';
+function costStage(c: PostSaleCase): CostStage {
+    if (c.cashEntryId) return 'IMPUTADO';
+    if (c.costSource === 'LAB') return 'CERRADO';
+    if ((c.cost ?? 0) > 0) return 'ESTIMADO';
+    return 'SIN_COSTO';
+}
+
+const COST_STAGE_UI: Record<CostStage, { label: string; cls: string }> = {
+    SIN_COSTO: { label: 'Sin costo', cls: 'bg-stone-100 text-stone-500 border-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700' },
+    ESTIMADO: { label: 'Estimado · esperando laboratorio', cls: 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/40' },
+    CERRADO: { label: 'Costo cerrado · listo para cobrar', cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40' },
+    IMPUTADO: { label: 'Cobrado a caja', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40' },
+};
 
 /** Sube una imagen y devuelve su URL/clave de storage (reusa /api/upload). */
 async function uploadImage(file: File): Promise<string | null> {
@@ -54,9 +87,18 @@ async function uploadImage(file: File): Promise<string | null> {
  * - Permite AGREGAR: una observación (con foto) a un caso, o abrir un caso nuevo.
  * - Nunca permite ELIMINAR: los casos y sus observaciones son append-only.
  */
-export default function PostSaleTab({ contact, onRefresh }: { contact: any; onRefresh: () => void }) {
+export default function PostSaleTab({ contact, onRefresh, userRole }: { contact: any; onRefresh: () => void; userRole?: string }) {
     const cases: PostSaleCase[] = contact?.postSaleCases || [];
     const [creating, setCreating] = useState(false);
+    const isAdmin = userRole === 'ADMIN';
+
+    // Caso puntual al que apunta el link del email de costo: se abre solo y
+    // queda resaltado, para no tener que buscarlo entre los casos del cliente.
+    const [highlightId, setHighlightId] = useState<string | null>(null);
+    useEffect(() => {
+        const id = new URLSearchParams(window.location.search).get('postSaleCaseId');
+        if (id) setHighlightId(id);
+    }, []);
 
     // Ventas del cliente que todavía no tienen caso (para abrir uno nuevo).
     const casedOrderIds = new Set(cases.map(c => c.orderId).filter(Boolean));
@@ -104,9 +146,18 @@ export default function PostSaleTab({ contact, onRefresh }: { contact: any; onRe
                 </div>
             ) : (
                 <div className="space-y-8">
-                    {cases.map((c) => (
-                        <CaseCard key={c.id} c={c} onRefresh={onRefresh} />
-                    ))}
+                    {/* El caso señalado por el email va primero: es a lo que viniste. */}
+                    {[...cases]
+                        .sort((a, b) => (a.id === highlightId ? -1 : b.id === highlightId ? 1 : 0))
+                        .map((c) => (
+                            <CaseCard
+                                key={c.id}
+                                c={c}
+                                isAdmin={isAdmin}
+                                highlighted={c.id === highlightId}
+                                onRefresh={onRefresh}
+                            />
+                        ))}
                 </div>
             )}
         </div>
@@ -134,67 +185,255 @@ function CaseContext({ c }: { c: PostSaleCase }) {
     );
 }
 
-function CaseCard({ c, onRefresh }: { c: PostSaleCase; onRefresh: () => void }) {
+/** Nº de operación en grande y copiable: es el dato que más se copia y pega. */
+function OperationNumbers({ c }: { c: PostSaleCase }) {
+    const nums = operationNumbers(c);
+    const [copied, setCopied] = useState<string | null>(null);
+    if (nums.length === 0) return null;
+
+    const copy = async (n: string) => {
+        try {
+            await navigator.clipboard.writeText(n);
+            setCopied(n);
+            setTimeout(() => setCopied(null), 1500);
+        } catch { /* sin portapapeles: el número igual se ve y se puede seleccionar */ }
+    };
+
     return (
-        <div className="space-y-3">
+        <div className="flex items-center flex-wrap gap-2">
+            <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">
+                {nums.length > 1 ? `Operaciones (${nums.length})` : 'Operación'}
+            </span>
+            {nums.map(n => (
+                <button
+                    key={n}
+                    onClick={() => copy(n)}
+                    title="Copiar número de operación"
+                    className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-stone-300 dark:border-stone-600 bg-stone-50 dark:bg-stone-800 font-mono text-xs font-bold text-stone-700 dark:text-stone-200 hover:border-stone-900 dark:hover:border-primary transition-colors"
+                >
+                    {n}
+                    {copied === n
+                        ? <Check className="w-3 h-3 text-emerald-600" />
+                        : <Copy className="w-3 h-3 text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-200" />}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+/**
+ * Cierre económico del caso: muestra en qué etapa está el costo y, cuando el
+ * laboratorio ya lo cerró, permite descontarlo de la caja del responsable.
+ * Solo el administrador ve el disparo (la API además lo exige).
+ */
+function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolean; onRefresh: () => void }) {
+    const stage = costStage(c);
+    const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
+    const [vendorId, setVendorId] = useState<string>(c.faultUserId || '');
+    const [working, setWorking] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!isAdmin || stage !== 'CERRADO') return;
+        fetch('/api/users')
+            .then(r => (r.ok ? r.json() : []))
+            .then((d: any[]) => Array.isArray(d) && setVendors(d.filter(u => u.role !== 'OPTICA').map(u => ({ id: u.id, name: u.name }))))
+            .catch(() => setVendors([]));
+    }, [isAdmin, stage]);
+
+    if (stage === 'SIN_COSTO') return null;
+
+    const monto = c.cost ?? 0;
+    const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
+    const loCubreAtelier = !vendorId;
+
+    const imputar = async () => {
+        if (working) return;
+        setWorking(true);
+        setError(null);
+        try {
+            const res = await fetch(`/api/post-sale/${c.id}/cost`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'impute', vendorId: vendorId || undefined }),
+            });
+            const d = await res.json().catch(() => ({}));
+            if (!res.ok) { setError(d.error || 'No se pudo imputar'); return; }
+            onRefresh();
+        } catch {
+            setError('No se pudo conectar con el servidor.');
+        } finally { setWorking(false); }
+    };
+
+    return (
+        <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/60 dark:bg-stone-800/30 p-3 space-y-2">
+            <div className="flex items-center flex-wrap gap-2">
+                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${COST_STAGE_UI[stage].cls}`}>
+                    {COST_STAGE_UI[stage].label}
+                </span>
+                <span className="text-sm font-black text-stone-800 dark:text-stone-100">{fmt(monto)}</span>
+                {stage === 'CERRADO' && c.costEstimated != null && Math.abs(c.costEstimated - monto) >= 1 && (
+                    <span className="text-[9px] font-bold text-stone-400">
+                        estimado: {fmt(c.costEstimated)} · {monto > c.costEstimated ? '+' : '−'}{fmt(Math.abs(monto - c.costEstimated))}
+                    </span>
+                )}
+            </div>
+
+            {stage === 'ESTIMADO' && (
+                <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                    Es la estimación cargada a mano. El costo real lo cierra el laboratorio cuando factura
+                    {operationNumbers(c).length > 1 ? ' las dos operaciones' : ' la operación'} del caso. Recién ahí se puede cobrar.
+                </p>
+            )}
+
+            {stage === 'IMPUTADO' && (
+                <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold leading-relaxed">
+                    Ya descontado de caja{c.costConfirmedBy ? ` por ${c.costConfirmedBy}` : ''}
+                    {c.costConfirmedAt ? ` · ${formatDateTime(c.costConfirmedAt)}` : ''}.
+                </p>
+            )}
+
+            {stage === 'CERRADO' && (isAdmin ? (
+                <div className="space-y-2">
+                    <div>
+                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Descontar de la caja de</p>
+                        <select
+                            value={vendorId}
+                            onChange={(e) => setVendorId(e.target.value)}
+                            className="w-full text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none focus:ring-2 focus:ring-stone-300"
+                        >
+                            <option value="">Caja Ishtar — lo cubre Atelier</option>
+                            {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                        </select>
+                        {c.fault && c.fault !== 'Óptica' && (
+                            <p className="mt-1 text-[9px] text-stone-400">
+                                La atribución es <b>{c.fault}</b>: por defecto lo absorbe Atelier.
+                            </p>
+                        )}
+                    </div>
+                    <button
+                        onClick={imputar}
+                        disabled={working}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground text-[10px] font-black uppercase tracking-widest shadow-lg disabled:opacity-40 hover:opacity-90 transition-opacity"
+                    >
+                        <Wallet className="w-3.5 h-3.5" />
+                        {working ? 'Imputando…' : `Descontar ${fmt(monto)} de ${loCubreAtelier ? 'caja Ishtar' : (vendors.find(v => v.id === vendorId)?.name || 'la caja')}`}
+                    </button>
+                    {error && <p className="text-[10px] font-bold text-rose-600">{error}</p>}
+                </div>
+            ) : (
+                <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                    El costo ya está cerrado por el laboratorio. Lo revisa y lo imputa el administrador.
+                </p>
+            ))}
+        </div>
+    );
+}
+
+function CaseCard({ c, isAdmin, highlighted, onRefresh }: {
+    c: PostSaleCase; isAdmin: boolean; highlighted?: boolean; onRefresh: () => void;
+}) {
+    // La tarjeta arranca colapsada (resumen). Se abre la ficha completa con un
+    // click en el encabezado — o sola, si vino resaltada desde el link del email.
+    const [open, setOpen] = useState(!!highlighted);
+    const stage = costStage(c);
+    const notesCount = c.notesList?.length || 0;
+
+    return (
+        <div className={`space-y-3 ${highlighted ? 'rounded-[1.75rem] ring-2 ring-amber-400/70 dark:ring-amber-500/50 p-3 -m-1' : ''}`}>
             <CaseContext c={c} />
 
-            <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/60 p-4 space-y-3">
-                {/* Cabecera: tipo + estado + fecha */}
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${caseTypeStyle(c.caseType)}`}>
-                        {c.caseType || 'Sin tipificar'}
-                    </span>
-                    <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400">
-                        {postSaleStatusLabel(c.status)}
-                    </span>
-                    {c.createdAt && (
-                        <span className="ml-auto text-[9px] font-bold text-stone-400">{formatDateTime(c.createdAt)}</span>
-                    )}
+            <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/60 overflow-hidden">
+                {/* ── RESUMEN (siempre visible) ───────────────────────────────────
+                    El toggle es un <button> propio y NO envuelve a los números de
+                    operación: esos son botones de copiar, y un botón dentro de otro
+                    botón es HTML inválido. */}
+                <div className="p-4 space-y-2.5">
+                    <button
+                        onClick={() => setOpen(o => !o)}
+                        className="w-full text-left group"
+                        aria-expanded={open}
+                    >
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${caseTypeStyle(c.caseType)}`}>
+                                {c.caseType || 'Sin tipificar'}
+                            </span>
+                            <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400">
+                                {postSaleStatusLabel(c.status)}
+                            </span>
+                            {stage !== 'SIN_COSTO' && (
+                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${COST_STAGE_UI[stage].cls}`}>
+                                    {stage === 'IMPUTADO' ? 'Cobrado' : stage === 'CERRADO' ? 'Listo para cobrar' : 'Estimado'}
+                                    {(c.cost ?? 0) > 0 ? ` · $${Math.round(c.cost!).toLocaleString('es-AR')}` : ''}
+                                </span>
+                            )}
+                            {c.createdAt && (
+                                <span className="ml-auto text-[9px] font-bold text-stone-400">{formatDateTime(c.createdAt)}</span>
+                            )}
+                            <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+                        </div>
+
+                        {!open && (
+                            <p className="mt-2 text-[10px] font-bold text-stone-400 group-hover:text-stone-600 dark:group-hover:text-stone-300 transition-colors">
+                                {notesCount > 0 ? `${notesCount} observación${notesCount === 1 ? '' : 'es'}` : 'Sin observaciones'}
+                                {c.fault ? ` · culpa: ${c.fault}` : ''}
+                                {' · '}Ver ficha completa
+                            </p>
+                        )}
+                    </button>
+
+                    {/* Los nº de operación quedan SIEMPRE afuera del desplegable */}
+                    <OperationNumbers c={c} />
                 </div>
 
-                {/* Datos del caso */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <Field label="Culpa" value={c.fault} />
-                    <CoverageField coverage={c.coverage} />
-                    <Field label="Costo" value={c.cost != null && c.cost > 0 ? `$${c.cost.toLocaleString('es-AR')}` : null} />
-                    <Field label="Responsable" value={c.responsible} />
-                    <Field label="Resolución" value={resolucionLabel(c)} />
-                </div>
+                {/* ── FICHA COMPLETA (desplegable) ────────────────────────────── */}
+                {open && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-stone-100 dark:border-stone-800 pt-3 animate-in fade-in duration-200">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <Field label="Culpa" value={c.fault} />
+                            <CoverageField coverage={c.coverage} />
+                            <Field label="Costo" value={c.cost != null && c.cost > 0 ? `$${c.cost.toLocaleString('es-AR')}` : null} />
+                            <Field label="Responsable" value={c.responsible} />
+                            <Field label="Resolución" value={resolucionLabel(c)} />
+                        </div>
 
-                {/* Observaciones (append-only, con autor, fecha e imagen) */}
-                <div className="space-y-2 pt-1">
-                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Observaciones</p>
-                    {(c.notesList && c.notesList.length > 0) ? (
-                        c.notesList.map((n) => (
-                            <div key={n.id} className="rounded-xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/60 dark:border-stone-800 p-3">
-                                <p className="text-xs text-stone-700 dark:text-stone-300 whitespace-pre-wrap leading-relaxed">{n.content}</p>
-                                {n.imageUrl && (
-                                    <a href={resolveStorageUrl(n.imageUrl)} target="_blank" rel="noopener noreferrer"
-                                        className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 hover:underline">
-                                        <ImageIcon className="w-3.5 h-3.5" /> Ver foto
-                                    </a>
-                                )}
-                                <div className="mt-1.5 flex items-center gap-2 text-[9px] font-bold text-stone-400">
-                                    {n.createdBy && <span>{n.createdBy}</span>}
-                                    {n.createdBy && n.createdAt && <span>·</span>}
-                                    {n.createdAt && <span>{formatDateTime(n.createdAt)}</span>}
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-[10px] text-stone-400 italic">Sin observaciones registradas.</p>
-                    )}
-                </div>
+                        <CashPanel c={c} isAdmin={isAdmin} onRefresh={onRefresh} />
 
-                {/* Agregar observación (solo si la venta sigue existiendo).
-                    Misma señal que CaseContext: la relación `order` cargada. */}
-                {c.order ? (
-                    <AddNote orderId={c.order.id} onSaved={onRefresh} />
-                ) : (
-                    <p className="text-[9px] font-bold text-stone-400 italic pt-1">
-                        La venta original fue eliminada: el caso queda como registro histórico (solo lectura).
-                    </p>
+                        {/* Observaciones (append-only, con autor, fecha e imagen) */}
+                        <div className="space-y-2 pt-1">
+                            <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Observaciones</p>
+                            {(c.notesList && c.notesList.length > 0) ? (
+                                c.notesList.map((n) => (
+                                    <div key={n.id} className="rounded-xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/60 dark:border-stone-800 p-3">
+                                        <p className="text-xs text-stone-700 dark:text-stone-300 whitespace-pre-wrap leading-relaxed">{n.content}</p>
+                                        {n.imageUrl && (
+                                            <a href={resolveStorageUrl(n.imageUrl)} target="_blank" rel="noopener noreferrer"
+                                                className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 hover:underline">
+                                                <ImageIcon className="w-3.5 h-3.5" /> Ver foto
+                                            </a>
+                                        )}
+                                        <div className="mt-1.5 flex items-center gap-2 text-[9px] font-bold text-stone-400">
+                                            {n.createdBy && <span>{n.createdBy}</span>}
+                                            {n.createdBy && n.createdAt && <span>·</span>}
+                                            {n.createdAt && <span>{formatDateTime(n.createdAt)}</span>}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-[10px] text-stone-400 italic">Sin observaciones registradas.</p>
+                            )}
+                        </div>
+
+                        {/* Agregar observación (solo si la venta sigue existiendo).
+                            Misma señal que CaseContext: la relación `order` cargada. */}
+                        {c.order ? (
+                            <AddNote orderId={c.order.id} onSaved={onRefresh} />
+                        ) : (
+                            <p className="text-[9px] font-bold text-stone-400 italic pt-1">
+                                La venta original fue eliminada: el caso queda como registro histórico (solo lectura).
+                            </p>
+                        )}
+                    </div>
                 )}
             </div>
         </div>

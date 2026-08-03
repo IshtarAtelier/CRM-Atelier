@@ -78,9 +78,11 @@ export async function PATCH(
         } else if (error.message.includes('Pedido no encontrado')) {
             status = 404;
         } else if (error.message.includes('suficiente stock disponible')
-            || error.message.includes('no se puede repetir')) {
+            || error.message.includes('no se puede repetir')
+            || error.message.includes('ya fue imputado a caja')) {
             // Conflicto con un dato que ya existe (stock tomado, N° de operación
-            // ya usado en otra venta): 409, y el mensaje va tal cual a la pantalla.
+            // ya usado en otra venta, caso ya cerrado en caja): 409, y el mensaje
+            // va tal cual a la pantalla.
             status = 409;
         }
 

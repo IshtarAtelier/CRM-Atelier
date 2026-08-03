@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, ChevronLeft, ChevronRight, FlaskConical, Loader2, RotateCcw, X, Upload, FileText } from 'lucide-react';
+import { Eye, ChevronLeft, ChevronRight, ChevronDown, FlaskConical, Loader2, RotateCcw, X, Upload, FileText } from 'lucide-react';
 import { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
@@ -53,6 +53,9 @@ export function PostSaleCard({
     const [newNote, setNewNote] = useState('');
     const [isSavingNote, setIsSavingNote] = useState(false);
     const [showReprocess, setShowReprocess] = useState(false);
+    // La tarjeta arranca colapsada: solo el nombre y los dos datos que se buscan
+    // de un vistazo (operación y plata). El resto se abre con un click.
+    const [collapsed, setCollapsed] = useState(true);
     const [isSavingRx, setIsSavingRx] = useState(false);
 
     // Rx state for reprocess form
@@ -340,23 +343,54 @@ export function PostSaleCard({
     return (
         <div className="bg-white dark:bg-stone-850 rounded-2xl border border-stone-200/70 dark:border-stone-750 p-4 shadow-sm hover:shadow-md transition-all space-y-3 flex flex-col justify-between">
             <div className="space-y-2">
-                {/* Header */}
+                {/* Header: el nombre abre y cierra la tarjeta. Colapsada entra el triple
+                    de casos por columna, que es lo que hace usable el tablero. */}
                 <div className="flex items-start justify-between gap-1">
-                    <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-black text-stone-850 dark:text-stone-100 uppercase tracking-tight leading-tight truncate">
-                            {order.client?.name || 'Cliente'}
+                    <button
+                        onClick={() => setCollapsed(v => !v)}
+                        className="min-w-0 flex-1 text-left group"
+                        aria-expanded={!collapsed}
+                        title={collapsed ? 'Abrir la tarjeta completa' : 'Colapsar'}
+                    >
+                        <h4 className="text-xs font-black text-stone-850 dark:text-stone-100 uppercase tracking-tight leading-tight truncate flex items-center gap-1">
+                            <ChevronDown className={`w-3 h-3 flex-shrink-0 text-stone-400 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
+                            <span className="truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                                {order.client?.name || 'Cliente'}
+                            </span>
                         </h4>
-                        <span className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mt-0.5">
+                        <span className="text-[9px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mt-0.5 pl-4">
                             Venta #{order.id.slice(-4).toUpperCase()}
                         </span>
-                    </div>
+                    </button>
                     <button onClick={onExpand} className="p-1.5 hover:bg-stone-100 dark:hover:bg-stone-755 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded-lg transition-colors flex-shrink-0" title="Ver Ficha y Medidas">
                         <Eye className="w-3.5 h-3.5" />
                     </button>
                 </div>
 
+                {/* Colapsada: solo lo que se necesita para identificar el caso de un
+                    vistazo — la operación (que es lo que más se busca) y la plata. */}
+                {collapsed && (
+                    <div className="flex flex-wrap gap-1.5 pl-4">
+                        {order.postSaleNewOrderNumber && (
+                            <span className="bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md font-mono">
+                                {order.postSaleNewOrderNumber}
+                            </span>
+                        )}
+                        {order.postSaleCost != null && order.postSaleCost > 0 && (
+                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${order.postSaleCashEntryId
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/40'
+                                : order.postSaleCostSource === 'LAB'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40'
+                                    : 'bg-red-50 text-red-600 border-red-100 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/30'}`}>
+                                $ {order.postSaleCost.toLocaleString('es-AR')}
+                                {order.postSaleCashEntryId ? ' · cobrado' : order.postSaleCostSource === 'LAB' ? ' · a cobrar' : ''}
+                            </span>
+                        )}
+                    </div>
+                )}
+
                 {/* Info badges */}
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                <div className={`flex-wrap gap-1.5 pt-0.5 ${collapsed ? 'hidden' : 'flex'}`}>
                     {order.postSaleCaseType && (
                         <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${caseTypeStyle(order.postSaleCaseType)}`}>
                             {order.postSaleCaseType}
@@ -390,7 +424,7 @@ export function PostSaleCard({
                 </div>
 
                 {/* SmartLab Progress */}
-                {order.smartLabProgress != null && order.smartLabProgress > 0 && requiresLab && (
+                {!collapsed && order.smartLabProgress != null && order.smartLabProgress > 0 && requiresLab && (
                     <div className="bg-blue-50/55 dark:bg-blue-950/20 rounded-xl px-2.5 py-2 border border-blue-100/50 dark:border-blue-800/30">
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-[7px] font-black text-blue-500 uppercase tracking-widest">SmartLab</span>
@@ -408,7 +442,7 @@ export function PostSaleCard({
                 )}
 
                 {/* Notes History */}
-                <div className="bg-stone-50 dark:bg-stone-900/40 rounded-xl p-2.5 border border-stone-100 dark:border-stone-800 space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar">
+                <div className={`bg-stone-50 dark:bg-stone-900/40 rounded-xl p-2.5 border border-stone-100 dark:border-stone-800 space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar ${collapsed ? 'hidden' : ''}`}>
                     <p className="text-[7px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest border-b border-stone-200/20 pb-1">Historial de Incidencia</p>
                     {notesHistory.length === 0 ? (
                         <p className="text-[9px] text-stone-400 italic">Sin observaciones registradas.</p>
@@ -565,7 +599,7 @@ export function PostSaleCard({
             )}
 
             {/* ══════════ Note Quick Add & Actions ══════════ */}
-            <div className="space-y-2 pt-2 border-t border-stone-100 dark:border-stone-800">
+            <div className={`space-y-2 pt-2 border-t border-stone-100 dark:border-stone-800 ${collapsed ? 'hidden' : ''}`}>
                 <form onSubmit={handleAddNote} className="flex gap-1.5 items-center">
                     <input type="text" placeholder="Comentar..." value={newNote} onChange={e => setNewNote(e.target.value)} disabled={isSavingNote}
                         className="flex-1 bg-stone-55 dark:bg-stone-900 border border-stone-200/60 dark:border-stone-800 text-[10px] p-2 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 disabled:opacity-50 dark:text-stone-200" />

@@ -404,9 +404,14 @@ export async function GET(request: Request) {
                     responsible: true,
                     caseType: true,
                     fault: true,
+                    faultUserId: true,
                     coverage: true,
                     rxData: true,
                     createdAt: true,
+                    // Cierre económico: mapOrderPostSale los expone como
+                    // postSaleCostSource / postSaleCashEntryId / postSaleCaseId.
+                    costSource: true,
+                    cashEntryId: true,
                     notesList: {
                         select: {
                             id: true,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFileBuffer } from '@/lib/storage';
+import { isPathTraversalKey } from '@/lib/utils/storage';
 import path from 'path';
 
 export const dynamic = 'force-dynamic';
@@ -13,14 +14,18 @@ export async function GET(req: NextRequest) {
         return new NextResponse('Missing key', { status: 400 });
     }
 
-    // Security: Sanitize key to prevent path traversal attacks
+    // Seguridad: bloquear SOLO el traversal real (un ".." o "." como segmento de
+    // ruta). Un ".." dentro del nombre del archivo es legítimo — ver
+    // isPathTraversalKey. La defensa de fondo sigue siendo la contención dentro
+    // del directorio de storage, que es la que de verdad garantiza el límite.
     const cleanKey = key.replace('local://', '');
-    if (cleanKey.includes('..') || cleanKey.includes('\\')) {
+    if (isPathTraversalKey(cleanKey)) {
         return new NextResponse('Forbidden: Invalid key', { status: 403 });
     }
     const storageDir = path.resolve(process.cwd(), 'storage', 'uploads');
     const resolvedPath = path.resolve(storageDir, cleanKey);
-    if (!resolvedPath.startsWith(storageDir)) {
+    // Con separador: sin él, "storage/uploads-otro" pasaría el startsWith.
+    if (resolvedPath !== storageDir && !resolvedPath.startsWith(storageDir + path.sep)) {
         return new NextResponse('Forbidden: Path traversal detected', { status: 403 });
     }
 

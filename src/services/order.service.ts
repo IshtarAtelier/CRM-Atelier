@@ -91,6 +91,10 @@ const OrderUpdateSchema = z.object({
     postSaleRxData: z.string().nullable().optional(),
     postSaleCaseType: z.string().nullable().optional(),
     postSaleFault: z.string().nullable().optional(),
+    // Quién de la óptica cometió el error, cuando postSaleFault === 'Óptica'.
+    // Es la caja a la que se va a proponer imputar el costo en el cierre
+    // económico del caso (ver /api/post-sale/[id]/cost).
+    postSaleFaultUserId: z.string().nullable().optional(),
     postSaleCoverage: z.string().nullable().optional(),
     // Imagen adjunta a la observación que se agrega en este PATCH
     postSaleNoteImageUrl: z.string().nullable().optional(),
@@ -379,7 +383,7 @@ export class OrderService {
             isLocked, authorizedByAdmin,
             postSaleNotes, postSaleCost, postSaleResponsible,
             postSaleOrderOption, postSaleNewOrderNumber, postSaleStatus, postSaleRxData, postSaleCaseType,
-            postSaleFault, postSaleCoverage, postSaleNoteImageUrl, postSaleNoteEntry
+            postSaleFault, postSaleFaultUserId, postSaleCoverage, postSaleNoteImageUrl, postSaleNoteEntry
         } = body;
 
         // Observación única a agregar en este PATCH (camino preferido, sin que el
@@ -909,7 +913,7 @@ export class OrderService {
         if (userFrameNotes !== undefined) data.userFrameNotes = userFrameNotes;
         // Post-Sale status initialization and email notification check
         // Post-Sale status initialization and email notification check
-        if (postSaleNotes !== undefined || postSaleCost !== undefined || postSaleResponsible !== undefined || postSaleOrderOption !== undefined || postSaleStatus !== undefined || postSaleRxData !== undefined || postSaleNewOrderNumber !== undefined || postSaleCaseType !== undefined || postSaleFault !== undefined || postSaleCoverage !== undefined || noteEntryText) {
+        if (postSaleNotes !== undefined || postSaleCost !== undefined || postSaleResponsible !== undefined || postSaleOrderOption !== undefined || postSaleStatus !== undefined || postSaleRxData !== undefined || postSaleNewOrderNumber !== undefined || postSaleCaseType !== undefined || postSaleFault !== undefined || postSaleFaultUserId !== undefined || postSaleCoverage !== undefined || noteEntryText) {
             const currentOrderForPostSale = await prisma.order.findUnique({
                 where: { id },
                 select: {
@@ -917,7 +921,9 @@ export class OrderService {
                         orderBy: { createdAt: 'desc' as const },
                         select: {
                             notes: true,
-                            status: true
+                            status: true,
+                            cost: true,
+                            costSource: true,
                         }
                     },
                     client: { select: { name: true, phone: true, email: true, dni: true, insurance: true, doctor: true } },
@@ -966,19 +972,26 @@ export class OrderService {
                         currentOrderForPostSale.total != null ? `$${Number(currentOrderForPostSale.total).toLocaleString('es-AR')}` : null
                     ].filter(Boolean).join(' · ');
 
+                    const initialCost = postSaleCost !== undefined && postSaleCost !== null ? Number(postSaleCost) : 0.0;
                     activeCase = await prisma.postSaleCase.create({
                         data: {
                             orderId: id,
                             clientId: currentOrderForPostSale.clientId || null,
                             orderLabel: orderLabelSnapshot,
                             status: resolvedStatus || 'SENT',
-                            cost: postSaleCost !== undefined && postSaleCost !== null ? Number(postSaleCost) : 0.0,
+                            cost: initialCost,
+                            // Lo que carga el vendedor al abrir el caso es una
+                            // ESTIMACIÓN: el costo real lo cierra el laboratorio
+                            // (ver completePostSaleCost en services/lab-recon).
+                            ...(initialCost > 0 ? { costSource: 'MANUAL', costEstimated: initialCost } : {}),
                             newOrderNumber: postSaleNewOrderNumber || null,
                             notes: stampedNoteEntry || postSaleNotes || null,
                             orderOption: postSaleOrderOption || null,
                             responsible: postSaleResponsible || null,
                             caseType: postSaleCaseType || null,
                             fault: postSaleFault || null,
+                            // Quién de la óptica se equivocó, si la atribución es 'Óptica'.
+                            faultUserId: postSaleFault === 'Óptica' ? (postSaleFaultUserId || null) : null,
                             coverage: postSaleCoverage || null,
                             rxData: postSaleRxData || null
                         }
@@ -1070,7 +1083,34 @@ export class OrderService {
                         caseData.clientId = currentOrderForPostSale.clientId;
                     }
                     if (resolvedStatus !== undefined) caseData.status = resolvedStatus;
-                    if (postSaleCost !== undefined && postSaleCost !== null) caseData.cost = Number(postSaleCost);
+
+                    // El costo ya imputado a caja es de solo lectura desde acá: tocarlo
+                    // desataría un descuento y un número de caso que ya no coinciden.
+                    // La corrección de un caso cerrado se hace revirtiendo la caja, no
+                    // pisando el caso.
+                    const yaImputado = !!(activeCase as any).cashEntryId;
+                    if (yaImputado && (postSaleCost !== undefined || postSaleFault !== undefined || postSaleFaultUserId !== undefined)) {
+                        throw new Error('Este caso ya fue imputado a caja: el costo y la atribución quedan de solo lectura. Para corregirlo, hay que revertir el movimiento de caja primero.');
+                    }
+
+                    let costOverrideNote: string | null = null;
+                    if (postSaleCost !== undefined && postSaleCost !== null) {
+                        const nuevoCosto = Number(postSaleCost);
+                        if (nuevoCosto !== activeCase.cost) {
+                            // Toda edición de costo desde este formulario es una
+                            // ESTIMACIÓN del vendedor — el valor real lo cierra el
+                            // laboratorio (completePostSaleCost). Si el caso ya tenía el
+                            // costo real cerrado (costSource 'LAB', sin imputar todavía),
+                            // esta edición lo reabre: se deja constancia en la nota para
+                            // que no se pierda el rastro de que hubo un número cerrado.
+                            if ((activeCase as any).costSource === 'LAB') {
+                                costOverrideNote = `Costo cerrado por el laboratorio ($${Math.round(activeCase.cost).toLocaleString('es-AR')}) reemplazado a mano por $${Math.round(nuevoCosto).toLocaleString('es-AR')}. El cruce con el laboratorio lo puede volver a cerrar si corresponde.`;
+                            }
+                            caseData.cost = nuevoCosto;
+                            caseData.costSource = 'MANUAL';
+                            caseData.costEstimated = nuevoCosto;
+                        }
+                    }
                     if (postSaleNotes !== undefined) caseData.notes = postSaleNotes;
                     // Append server-side de la observación única (camino preferido): se
                     // suma al historial existente, sin depender del snapshot del cliente.
@@ -1081,6 +1121,13 @@ export class OrderService {
                     if (postSaleResponsible !== undefined) caseData.responsible = postSaleResponsible;
                     if (postSaleCaseType !== undefined) caseData.caseType = postSaleCaseType;
                     if (postSaleFault !== undefined) caseData.fault = postSaleFault;
+                    // La caja de destino solo tiene sentido cuando la atribución es
+                    // 'Óptica'; cualquier otro valor de fault la limpia (si no, quedaría
+                    // apuntando a una persona por un error que no fue de ella).
+                    if (postSaleFault !== undefined || postSaleFaultUserId !== undefined) {
+                        const faultResuelto = postSaleFault !== undefined ? postSaleFault : activeCase.fault;
+                        caseData.faultUserId = faultResuelto === 'Óptica' ? (postSaleFaultUserId ?? (activeCase as any).faultUserId ?? null) : null;
+                    }
                     if (postSaleCoverage !== undefined) caseData.coverage = postSaleCoverage;
                     if (postSaleRxData !== undefined) caseData.rxData = postSaleRxData;
                     if (postSaleNewOrderNumber !== undefined) caseData.newOrderNumber = postSaleNewOrderNumber;
@@ -1090,6 +1137,11 @@ export class OrderService {
                         where: { id: activeCase.id },
                         data: caseData
                     });
+                    if (costOverrideNote) {
+                        await prisma.postSaleNote.create({
+                            data: { caseId: activeCase.id, content: costOverrideNote, createdBy: 'Sistema' },
+                        });
+                    }
 
                     // Log status transition if changed
                     if (resolvedStatus !== undefined && resolvedStatus !== oldStatus) {

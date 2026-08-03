@@ -149,7 +149,15 @@ export interface Order {
     postSaleRxData?: string | null;
     postSaleCaseType?: string | null;
     postSaleFault?: string | null;
+    /** Quién de la óptica cometió el error (solo con postSaleFault === 'Óptica'): la caja del descuento. */
+    postSaleFaultUserId?: string | null;
     postSaleCoverage?: string | null;
+    /** Etapa del costo del caso: 'MANUAL' (estimación del vendedor) | 'LAB' (cerrado por el laboratorio). */
+    postSaleCostSource?: string | null;
+    /** Movimiento de caja generado por el caso. Si está, el costo ya se descontó. */
+    postSaleCashEntryId?: string | null;
+    /** Id del caso de post venta activo, para las acciones de cierre económico. */
+    postSaleCaseId?: string | null;
     labColor?: string | null;
     labTreatment?: string | null;
     labDiameter?: string | null;
@@ -246,6 +254,14 @@ export function mapOrderPostSale(order: any): any {
         postSaleRxData: activeCase?.rxData || order.postSaleRxData || null,
         postSaleCaseType: activeCase?.caseType || order.postSaleCaseType || null,
         postSaleFault: activeCase?.fault || order.postSaleFault || null,
+        // Quién de la óptica se equivocó (solo aplica con postSaleFault === 'Óptica').
+        postSaleFaultUserId: activeCase?.faultUserId || null,
         postSaleCoverage: activeCase?.coverage || order.postSaleCoverage || null,
+        // Cierre económico del caso: en qué etapa está el costo (estimación del
+        // vendedor o cerrado por el laboratorio) y si ya se descontó de una caja.
+        // El kanban y la ficha del cliente los usan para el chip de estado.
+        postSaleCostSource: activeCase?.costSource || null,
+        postSaleCashEntryId: activeCase?.cashEntryId || null,
+        postSaleCaseId: activeCase?.id || null,
     };
 }

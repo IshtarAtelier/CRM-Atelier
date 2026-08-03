@@ -1222,7 +1222,17 @@ export const ContactService = {
                         caseType: true,
                         fault: true,
                         coverage: true,
+                        rxData: true,
                         createdAt: true,
+                        // Cierre económico: en qué etapa está el costo y si ya se
+                        // descontó de una caja. La ficha del caso los usa para
+                        // mostrar el estado y habilitar (o no) el cobro.
+                        costEstimated: true,
+                        costSource: true,
+                        costConfirmedAt: true,
+                        costConfirmedBy: true,
+                        faultUserId: true,
+                        cashEntryId: true,
                         order: { select: { id: true, total: true, createdAt: true, labOrderNumber: true } },
                         notesList: {
                             orderBy: { createdAt: 'asc' },
@@ -1826,57 +1836,20 @@ export const ContactService = {
                 }
             }
 
-            // 3. Check for Duplicate amount and method for the SAME CLIENT
-            // Excepción: Si el vendedor escribe "DIVIDIDO" o "COMPARTIDO" en la nota, se permite (pago dividido en varios pedidos).
-            const isSplitPayment = notes && (notes.toUpperCase().includes('DIVIDIDO') || notes.toUpperCase().includes('COMPARTIDO'));
-
-            let duplicateAmountMethod = null;
-            if (!isSplitPayment) {
-                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                duplicateAmountMethod = await tx.payment.findFirst({
-                    where: {
-                        amount: amount,
-                        method: method,
-                        order: {
-                            clientId: order.clientId
-                        },
-                        date: {
-                            gte: thirtyDaysAgo
-                        }
-                    },
-                    include: {
-                        order: true
-                    }
-                });
-            }
-
-            // Dos cobros del mismo monto y método al mismo cliente NO son el mismo
-            // cobro si los cupones son distintos: ahí hay evidencia dura de que son
-            // dos operaciones y bloquear sería frenar una venta legítima.
-            if (duplicateAmountMethod && voucherKey) {
-                const otroCupon = cardVoucherKey(duplicateAmountMethod);
-                if (otroCupon && otroCupon !== voucherKey) {
-                    duplicateAmountMethod = null;
-                }
-            }
-
-            if (duplicateAmountMethod) {
-                const clientName = (await tx.client.findUnique({ where: { id: order.clientId }, select: { name: true } }))?.name || 'Cliente';
-                const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
-                const clientLink = `${appUrl}/admin/contactos?id=${order.clientId}`;
-                
-                const msg = `🚨 ALERTA IMPORTANTE: Ya ingresaste un pago idéntico de $${amount.toLocaleString('es-AR')} (${method}) para el cliente ${clientName} recientemente (Orden #${duplicateAmountMethod.orderId.slice(-4).toUpperCase()}).\n\nPor seguridad, el sistema bloqueó este ingreso para evitar pagos duplicados. Si el cliente realmente hizo DOS pagos exactos, por favor contactá al Administrador.`;
-
-                import('@/lib/email').then(({ sendEmail }) => {
-                    sendEmail({
-                        to: 'pisano.ishtar@gmail.com',
-                        subject: `🚨 ${actorName} bloqueado por Posible Pago Duplicado`,
-                        text: `El vendedor ${actorName} intentó cargar un pago duplicado.\n\n${msg}\n\nFicha del cliente: ${clientLink}`
-                    });
-                }).catch(console.error);
-
-                throw new Error(msg);
-            }
+            // 3. Dos cobros del MISMO MONTO al mismo cliente NO son un duplicado.
+            //
+            // Hasta el 31/7/2026 acá había un bloqueo por monto+método repetido en
+            // los últimos 30 días: frenaba la carga y le mandaba a Ishtar un mail de
+            // "vendedor bloqueado". Frenó un cobro legítimo de $318.500 de Matias
+            // Turchi solo porque otro cliente había pagado lo mismo. Un cobro puede
+            // repetir el importe (dos pares iguales, la mitad de una seña, la cuota
+            // de siempre) y no es ni sospechoso ni bloqueable.
+            //
+            // Lo que sí identifica al MISMO comprobante son datos únicos de la
+            // operación —referencia/nº de operación, archivo del comprobante y cupón
+            // de tarjeta (lote+cupón+autorización)—, y ya se chequean arriba (pasos
+            // 1, 2 y 2 bis) más el nº de operación que lee el auditor de la imagen.
+            // Todos avisan sin bloquear: el sistema audita, decide una persona.
 
             // Fecha del pago: si la que llega es inverosímil (el OCR de los tickets
             // de tarjeta llegó a dar vuelta día y año), se descarta y queda la de
@@ -2532,51 +2505,9 @@ export const ContactService = {
                 }
             }
 
-            // 3b. Check for Duplicate amount and method for the SAME CLIENT (on edit)
-            // Excepción: Si la nota incluye "DIVIDIDO" o "COMPARTIDO", no bloquea.
-            const newNotes = updates.notes !== undefined ? updates.notes : oldPayment.notes;
-            const isSplitEdit = newNotes && (newNotes.toUpperCase().includes('DIVIDIDO') || newNotes.toUpperCase().includes('COMPARTIDO'));
-
-            if (!isSplitEdit && (updates.amount !== undefined || updates.method !== undefined)) {
-                const checkAmount = updates.amount !== undefined ? updates.amount : oldPayment.amount;
-                const checkMethod = updates.method !== undefined ? updates.method : oldPayment.method;
-                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-                
-                const duplicateAmountMethod = await tx.payment.findFirst({
-                    where: {
-                        amount: checkAmount,
-                        method: checkMethod,
-                        order: {
-                            clientId: clientId
-                        },
-                        date: {
-                            gte: thirtyDaysAgo
-                        },
-                        id: { not: paymentId }
-                    },
-                    include: {
-                        order: true
-                    }
-                });
-
-                if (duplicateAmountMethod) {
-                    const clientName = (await tx.client.findUnique({ where: { id: clientId }, select: { name: true } }))?.name || 'Cliente';
-                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
-                    const clientLink = `${appUrl}/admin/contactos?id=${clientId}`;
-
-                    const msg = `🚨 ALERTA IMPORTANTE AL EDITAR: El pago que estás editando ($${checkAmount.toLocaleString('es-AR')} - ${checkMethod}) coincide EXACTAMENTE con otro pago ya registrado recientemente en la orden #${duplicateAmountMethod.orderId.slice(-4).toUpperCase()}.\n\nPor seguridad, el sistema bloqueó la edición para evitar pagos duplicados. Si el cliente realmente hizo DOS pagos exactos, por favor contactá al Administrador.`;
-                    
-                    import('@/lib/email').then(({ sendEmail }) => {
-                        sendEmail({
-                            to: 'pisano.ishtar@gmail.com',
-                            subject: `🚨 ${actorName} bloqueado por Posible Pago Duplicado (Edición)`,
-                            text: `El vendedor ${actorName} intentó editar un pago que resultó en un duplicado.\n\n${msg}\n\nFicha del cliente: ${clientLink}`
-                        });
-                    }).catch(console.error);
-
-                    throw new Error(msg);
-                }
-            }
+            // 3b. Editar un pago dejándolo con el mismo importe que otro tampoco es
+            // un duplicado — mismo criterio que en el alta (ver paso 3 de addPayment).
+            // El bloqueo por monto+método que había acá se sacó el 31/7/2026.
 
             // 3. Actualizar el Payment in-place
             const updatedPayment = await tx.payment.update({

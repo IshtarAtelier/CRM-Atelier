@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     FlaskConical,
     Eye,
@@ -116,6 +116,11 @@ export function OrderDetailPanel({
     const [postSaleResponsible, setPostSaleResponsible] = useState(order.postSaleResponsible || '');
     const [postSaleCaseType, setPostSaleCaseType] = useState(order.postSaleCaseType || '');
     const [postSaleFault, setPostSaleFault] = useState(order.postSaleFault || '');
+    // Quién de la óptica cometió el error, cuando la atribución es 'Óptica': es la
+    // caja a la que se le va a proponer descontar el costo en el cierre económico
+    // del caso (ver /api/post-sale/[id]/cost).
+    const [postSaleFaultUserId, setPostSaleFaultUserId] = useState(order.postSaleFaultUserId || '');
+    const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
     const [postSaleCoverage, setPostSaleCoverage] = useState(order.postSaleCoverage || '');
     const [postSaleOrderOption, setPostSaleOrderOption] = useState(order.postSaleOrderOption || '');
     const [postSaleNewOrderNumber, setPostSaleNewOrderNumber] = useState(order.postSaleNewOrderNumber || '');
@@ -145,6 +150,7 @@ export function OrderDetailPanel({
         setPostSaleResponsible(order.postSaleResponsible || '');
         setPostSaleCaseType(order.postSaleCaseType || '');
         setPostSaleFault(order.postSaleFault || '');
+        setPostSaleFaultUserId(order.postSaleFaultUserId || '');
         setPostSaleCoverage(order.postSaleCoverage || '');
         setPostSaleOrderOption(order.postSaleOrderOption || '');
         setPostSaleNewOrderNumber(order.postSaleNewOrderNumber || '');
@@ -175,7 +181,20 @@ export function OrderDetailPanel({
         // Al cambiar de orden se reinician las subidas frescas de esta sesión
         setRxUploaded1(false);
         setRxUploaded2(false);
-    }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleCaseType, order.postSaleFault, order.postSaleCoverage, order.postSaleOrderOption, order.postSaleNewOrderNumber, order.postSaleRxData]);
+    }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleCaseType, order.postSaleFault, order.postSaleFaultUserId, order.postSaleCoverage, order.postSaleOrderOption, order.postSaleNewOrderNumber, order.postSaleRxData]);
+
+    // Vendedores/administradores a los que se les puede atribuir el error (mismo
+    // criterio que HistoryManager: se excluyen las cuentas de ópticas mayoristas).
+    useEffect(() => {
+        fetch('/api/users')
+            .then(res => (res.ok ? res.json() : []))
+            .then((data: any[]) => {
+                if (Array.isArray(data)) {
+                    setVendors(data.filter(u => u.role !== 'OPTICA').map(u => ({ id: u.id, name: u.name })));
+                }
+            })
+            .catch(() => setVendors([]));
+    }, []);
 
     React.useEffect(() => {
         if (postSaleOrderOption === 'DIFFERENT' && order.clientId) {
@@ -312,6 +331,7 @@ export function OrderDetailPanel({
                     postSaleResponsible: postSaleResponsible || null,
                     postSaleCaseType: postSaleCaseType || null,
                     postSaleFault: postSaleFault || null,
+                    postSaleFaultUserId: postSaleFault === 'Óptica' ? (postSaleFaultUserId || null) : null,
                     postSaleCoverage: postSaleCoverage || null,
                     postSaleOrderOption: postSaleOrderOption || null,
                     postSaleNewOrderNumber: postSaleOrderOption === 'DIFFERENT' ? (postSaleNewOrderNumber || null) : null,
@@ -1273,6 +1293,30 @@ export function OrderDetailPanel({
                                         </select>
                                     </div>
                                 </div>
+
+                                {/* A qué caja se le descuenta el costo. Solo aparece cuando el
+                                    error fue de la óptica: en los demás casos (laboratorio,
+                                    cliente, médico) lo absorbe Atelier y no hay persona. */}
+                                {postSaleFault === 'Óptica' && (
+                                    <div>
+                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
+                                            ¿Quién de la óptica? · define la caja del descuento
+                                        </label>
+                                        <select
+                                            value={postSaleFaultUserId}
+                                            onChange={(e) => setPostSaleFaultUserId(e.target.value)}
+                                            className="w-full text-xs p-2.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
+                                        >
+                                            <option value="">Sin definir — lo cubre Atelier</option>
+                                            {vendors.map(v => (
+                                                <option key={v.id} value={v.id}>{v.name}</option>
+                                            ))}
+                                        </select>
+                                        <p className="mt-1 text-[9px] text-stone-400 leading-relaxed">
+                                            El costo real lo cierra el laboratorio al facturar. Recién ahí se puede descontar de esta caja, y lo confirma el administrador.
+                                        </p>
+                                    </div>
+                                )}
 
                                 <div>
                                     <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">

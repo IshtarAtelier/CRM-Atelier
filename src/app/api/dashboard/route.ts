@@ -24,30 +24,44 @@ export async function GET(request: Request) {
         const userIdParam = searchParams.get('userId');
         const userId = userIdParam && userIdParam !== '' ? userIdParam : null;
 
+        // Cortes de tiempo en horario de Argentina (UTC-3, sin horario de verano).
+        // El server corre en UTC: usar el mes/día UTC hacía que de 21:00 a 00:00 ART
+        // el dashboard "cambiara de día" antes de tiempo — y la última noche del mes,
+        // de mes entero: a las 21:00 del 31 ya buscaba ventas del mes siguiente y
+        // mostraba todos los objetivos en $0.
+        const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
+        const artNow = new Date(Date.now() - ART_OFFSET_MS);
+        const artY = artNow.getUTCFullYear();
+        const artM = artNow.getUTCMonth();
+        const artD = artNow.getUTCDate();
+        const startOfDayART = new Date(Date.UTC(artY, artM, artD) + ART_OFFSET_MS);
+        const daysFromMonday = (artNow.getUTCDay() + 6) % 7; // lunes = inicio de semana
+        const startOfWeekART = new Date(startOfDayART.getTime() - daysFromMonday * 24 * 60 * 60 * 1000);
+        const startOfMonthART = new Date(Date.UTC(artY, artM, 1) + ART_OFFSET_MS);
+
         const dateFilter: any = {};
         let hasDateFilter = false;
 
         if (isStaff) {
             // Force STAFF to only see the current month (no historical access via query params)
-            const now = new Date();
-            dateFilter.gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+            dateFilter.gte = startOfMonthART;
             hasDateFilter = true;
             from = null;
             to = null;
         } else {
+            // Rangos elegidos a mano: interpretarlos como días ARGENTINOS completos
             if (from && from !== 'all') {
-                dateFilter.gte = new Date(`${from}T00:00:00.000Z`);
+                dateFilter.gte = new Date(`${from}T00:00:00.000-03:00`);
                 hasDateFilter = true;
             }
             if (to && to !== 'all') {
-                dateFilter.lte = new Date(`${to}T23:59:59.999Z`);
+                dateFilter.lte = new Date(`${to}T23:59:59.999-03:00`);
                 hasDateFilter = true;
             }
 
-            // If no parameters are provided at all (initial load), default to current month in UTC
+            // Sin parámetros (carga inicial): mes calendario argentino en curso
             if (from === null && to === null) {
-                const now = new Date();
-                dateFilter.gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+                dateFilter.gte = startOfMonthART;
                 hasDateFilter = true;
             }
         }
@@ -119,29 +133,11 @@ export async function GET(request: Request) {
             });
         }
 
-        const startOfToday = new Date();
-        startOfToday.setHours(0,0,0,0);
-        const startOfWeek = new Date();
-        const dayOfWeek = startOfWeek.getDay();
-        const diffToMonday = startOfWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-        startOfWeek.setDate(diffToMonday);
-        startOfWeek.setHours(0,0,0,0);
-
         // ── Nuevos contactos subidos al sistema ──
         // Contador independiente del período/filtro del dashboard: mide el ingreso de
         // leads nuevos al CRM. El número principal (sinceCutoff) acumula desde el
         // "borrón y cuenta nueva" (mismo corte que el "sin atender", ver constants.ts).
-        // Límites de tiempo en horario de Argentina (UTC-3, sin horario de verano) para
-        // que "hoy" corte a la medianoche local y no a las 00:00 UTC (21:00 ART) del server.
-        const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
-        const artNow = new Date(Date.now() - ART_OFFSET_MS);
-        const artY = artNow.getUTCFullYear();
-        const artM = artNow.getUTCMonth();
-        const artD = artNow.getUTCDate();
-        const startOfDayART = new Date(Date.UTC(artY, artM, artD) + ART_OFFSET_MS);
-        const daysFromMonday = (artNow.getUTCDay() + 6) % 7; // lunes = inicio de semana
-        const startOfWeekART = new Date(startOfDayART.getTime() - daysFromMonday * 24 * 60 * 60 * 1000);
-        const startOfMonthART = new Date(Date.UTC(artY, artM, 1) + ART_OFFSET_MS);
+        // Los cortes ART (startOfDayART, etc.) están definidos arriba, antes del dateFilter.
         const attentionCutoff = new Date(process.env.ATTENTION_CUTOFF_DATE || ATTENTION_CUTOFF_ISO);
         const [newContactsSinceCutoff, newContactsToday, newContactsWeek, newContactsMonth] = await Promise.all([
             prisma.client.count({ where: { isDeleted: false, createdAt: { gte: attentionCutoff } } }),
@@ -163,8 +159,8 @@ export async function GET(request: Request) {
         const totalSoldMonth = currentMonthOrders.reduce((acc: number, order: any) => {
             const price = order.subtotalWithMarkup || order.total || 0;
             const orderDate = new Date(order.labSentAt || order.createdAt);
-            if (orderDate >= startOfToday) todaySold += price;
-            if (orderDate >= startOfWeek) weekSold += price;
+            if (orderDate >= startOfDayART) todaySold += price;
+            if (orderDate >= startOfWeekART) weekSold += price;
             return acc + price;
         }, 0);
         const totalPaidMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + (order.paid || 0), 0);
@@ -331,16 +327,17 @@ export async function GET(request: Request) {
         const monthlyStats: Record<string, number> = {};
         const last6MonthsKeys: string[] = [];
 
-        const now = new Date();
         for (let i = 5; i >= 0; i--) {
-            const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+            const d = new Date(Date.UTC(artY, artM - i, 1));
             const key = `${monthsNames[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
             last6MonthsKeys.push(key);
             monthlyStats[key] = 0;
         }
 
         allOrders.forEach((order: any) => {
-            const date = new Date(order.labSentAt || order.createdAt);
+            // Mes ARGENTINO del pedido (corrido -3h): una venta del 31 a las 22:00
+            // ART es 01:00 UTC del día 1 y caía en el bucket del mes siguiente.
+            const date = new Date(new Date(order.labSentAt || order.createdAt).getTime() - ART_OFFSET_MS);
             const key = `${monthsNames[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
             if (monthlyStats[key] !== undefined) {
                 const price = order.subtotalWithMarkup || order.total || 0;
@@ -467,11 +464,11 @@ export async function GET(request: Request) {
             });
         });
 
-        // Previous period comparison
+        // Previous period comparison (mes anterior al mes actual, en horario ART)
         let prevTotal = 0;
         if (from && from !== 'all') {
-            const fromDate = new Date(`${from}T00:00:00.000Z`);
-            const toDate = to && to !== 'all' ? new Date(`${to}T23:59:59.999Z`) : new Date();
+            const fromDate = new Date(`${from}T00:00:00.000-03:00`);
+            const toDate = to && to !== 'all' ? new Date(`${to}T23:59:59.999-03:00`) : new Date();
             const periodDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
             const prevFrom = new Date(fromDate.getTime() - periodDays * 24 * 60 * 60 * 1000);
             const prevOrders = await prisma.order.findMany({
@@ -491,21 +488,19 @@ export async function GET(request: Request) {
         const funnelDateFilter: any = {};
         let hasFunnelFilter = false;
         if (isStaff) {
-            const now = new Date();
-            funnelDateFilter.gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+            funnelDateFilter.gte = startOfMonthART;
             hasFunnelFilter = true;
         } else {
             if (from && from !== 'all') {
-                funnelDateFilter.gte = new Date(`${from}T00:00:00.000Z`);
+                funnelDateFilter.gte = new Date(`${from}T00:00:00.000-03:00`);
                 hasFunnelFilter = true;
             }
             if (to && to !== 'all') {
-                funnelDateFilter.lte = new Date(`${to}T23:59:59.999Z`);
+                funnelDateFilter.lte = new Date(`${to}T23:59:59.999-03:00`);
                 hasFunnelFilter = true;
             }
             if (from === null && to === null) {
-                const now = new Date();
-                funnelDateFilter.gte = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+                funnelDateFilter.gte = startOfMonthART;
                 hasFunnelFilter = true;
             }
         }
@@ -588,9 +583,9 @@ export async function GET(request: Request) {
             tipos,
         };
 
-        // Monthly Targets
-        const targetMonth = from && from !== 'all' ? new Date(`${from}T00:00:00.000Z`).getUTCMonth() + 1 : now.getUTCMonth() + 1;
-        const targetYear = from && from !== 'all' ? new Date(`${from}T00:00:00.000Z`).getUTCFullYear() : now.getUTCFullYear();
+        // Monthly Targets (mes ARGENTINO, no UTC)
+        const targetMonth = from && from !== 'all' ? new Date(`${from}T00:00:00.000-03:00`).getUTCMonth() + 1 : artM + 1;
+        const targetYear = from && from !== 'all' ? new Date(`${from}T00:00:00.000-03:00`).getUTCFullYear() : artY;
         
         // Objetivos configurados en USD, resueltos a ARS con el blue del día.
         let targets = null;

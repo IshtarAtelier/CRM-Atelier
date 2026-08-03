@@ -1,4 +1,35 @@
 /**
+ * ¿Esta key intenta salirse del almacenamiento?
+ *
+ * El traversal real es un ".." como SEGMENTO de ruta ("../../etc/passwd"), no
+ * dos puntos DENTRO del nombre del archivo. La validación anterior era un
+ * `includes('..')` a secas y bloqueaba las capturas de macOS, que se llaman
+ * "Captura de pantalla ... a la(s) 8.24.53 p. m..png" → sanitizada queda
+ * "..._8.24.53_p._m..png", con ".." entre "m." y ".png". Resultado: la imagen
+ * se subía bien pero al abrirla devolvía 403 y parecía que no se había
+ * guardado. Acá se mira segmento por segmento, que es lo que corresponde.
+ */
+export function isPathTraversalKey(key: string): boolean {
+    return key
+        .replace(/\\/g, '/')
+        .split('/')
+        .some(seg => seg === '..' || seg === '.');
+}
+
+/**
+ * Nombre de archivo seguro para usar como key de storage: sin caracteres raros,
+ * sin corridas de puntos (que además confunden la extensión) y sin punto
+ * inicial (archivo oculto).
+ */
+export function safeStorageName(name: string): string {
+    return name
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
+        .replace(/\.{2,}/g, '.')
+        .replace(/^\.+/, '')
+        || 'archivo';
+}
+
+/**
  * Resuelve una URL de almacenamiento (local o nube) para su visualización en el frontend.
  * @param urlOrKey La URL o Key guardada en la base de datos.
  * @returns Una URL válida para asignar al src de un <img> o abrir en una pestaña.

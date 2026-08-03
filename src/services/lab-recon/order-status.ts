@@ -1,9 +1,8 @@
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/email';
 import { logAudit } from '../../lib/audit';
-import { notificationEmailFor, ISHTAR_INBOX, firstName } from '../../lib/vendor-email';
 import { backfillKey, emailsEnabled } from './backfill';
-import { OPTOVISION_DIAS_FACTURA_A_LISTO, appUrl as appUrlFn, fmtARS } from './types';
+import { OPTOVISION_DIAS_FACTURA_A_LISTO, LAB_LABELS, billedForLab, adminInbox } from './types';
 
 /**
  * ESTADO DEL PEDIDO en el laboratorio y costo del caso de postventa: lo que la
@@ -121,41 +120,123 @@ export async function promoteFinishedOptovision() {
 }
 
 
+/** Marcador persistente: el costo de este caso YA se cerró e informó. Vive en
+ *  la nota del caso (mismo patrón que la alerta de reproceso cobrado), así que
+ *  se redacta como una frase que le sirve a quien lee el caso, no como una
+ *  etiqueta técnica. */
+const COSTO_MARK = 'Costo del caso cerrado por la conciliación de laboratorio.';
+
 /**
  * Completa el costo del caso de postventa con lo que facturó el lab, deja
- * nota firmada en el caso y avisa por email al vendedor que cargó el caso
- * (con copia a Ishtar). Reglas: un costo cargado a mano NO se pisa (la nota
- * deja asentada la diferencia), y $0 también informa (garantía sin cargo).
+ * nota firmada en el caso y avisa por email al administrador. Reglas: un costo
+ * cargado a mano NO se pisa (la nota deja asentada la diferencia), y $0 también
+ * informa (garantía sin cargo).
+ *
+ * SE AVISA UNA SOLA VEZ, Y RECIÉN CUANDO EL COSTO ESTÁ CERRADO (corrección del
+ * administrador del 1/8/2026). Antes este aviso salía en loop y con un costo
+ * que todavía no era el final. Dos causas, las dos arregladas acá:
+ *
+ *  1. UN CASO PUEDE TENER VARIAS OPERACIONES: cuando se rehacen los dos pares
+ *     el caso queda con dos números ("80530908 - 80530914") y el lab factura
+ *     cada uno por separado. La función corría POR FACTURA, así que informaba
+ *     como costo final el de la primera que llegaba, y cuando llegaba la
+ *     segunda volvía a avisar (y ya no la sumaba: el caso tenía costo > 0 y lo
+ *     trataba como cargado a mano). Ahora el costo del caso es la SUMA de
+ *     TODAS sus operaciones y no se toca nada hasta que estén todas facturadas.
+ *  2. NO HABÍA MARCADOR DE "YA AVISADO": era el único aviso del módulo que se
+ *     apoyaba solo en una condición transitoria (la factura recién llegada).
+ *     Cada re-cruce de recheckUnmatched() que volviera a pasar por acá lo
+ *     reenviaba. Ahora el aviso deja marca en la nota del caso y no se repite.
  */
-export async function completePostSaleCost(entry: any, order: any, pvCase: any, billed: number, pedido: string) {
-    const costo = Math.round(billed * 100) / 100;
-    const labLabel = entry.lab === 'GRUPO_OPTICO' ? 'Grupo Óptico' : 'Optovision';
+export async function completePostSaleCost(order: any, pvCase: any, pedido: string) {
     const fmt = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
+    const labelDe = (lab: string) => LAB_LABELS[lab] || lab;
 
-    const costoManual = (pvCase.cost ?? 0) > 0;
-    const completar = !costoManual && costo > 0;
-    if (completar) {
-        await prisma.postSaleCase.update({ where: { id: pvCase.id }, data: { cost: costo } });
+    // ¿Ya se informó el costo de este caso? Entonces no se vuelve a tocar ni a
+    // avisar nunca más, pase lo que pase con las facturas.
+    const yaInformado = await prisma.postSaleNote.findFirst({
+        where: { caseId: pvCase.id, content: { contains: COSTO_MARK } },
+        select: { id: true },
+    });
+    if (yaInformado) return;
+
+    // Todas las operaciones del caso (si el caso no tiene números cargados, la
+    // que vino: un caso de un solo par se comporta igual que antes).
+    const nums = (pvCase.newOrderNumber as string | null)?.match(/\d{4,}/g) || [pedido];
+    const entradas = await prisma.labCostEntry.findMany({
+        where: { labOrderNumber: { in: nums } },
+        select: { lab: true, labOrderNumber: true, orderId: true, billedNet: true, billedTotal: true, sourceFile: true },
+    });
+    // Un mismo número puede existir en dos labs (la unicidad es por lab+número):
+    // gana la entrada que está colgada de ESTA venta.
+    const facturadas = new Map<string, { lab: string; monto: number; sourceFile: string | null; propia: boolean }>();
+    for (const e of entradas) {
+        const monto = billedForLab(e.lab, e);
+        if (monto === null) continue;
+        const propia = e.orderId === order.id;
+        const previa = facturadas.get(e.labOrderNumber);
+        if (previa?.propia && !propia) continue;
+        facturadas.set(e.labOrderNumber, { lab: e.lab, monto, sourceFile: e.sourceFile, propia });
+    }
+    const faltan = nums.filter(n => !facturadas.has(n));
+    if (faltan.length > 0) {
+        // Todavía es un costo parcial: no se carga ni se avisa nada. Lo cierra
+        // la factura que falta cuando llegue.
+        console.log(`[LabCost] Caso ${pvCase.id}: facturado ${nums.length - faltan.length}/${nums.length} — falta(n) ${faltan.join(', ')}. El costo del caso se completa cuando estén todas.`);
+        return;
     }
 
-    const detalleFactura = `${labLabel}, pedido ${pedido}${entry.sourceFile ? `, ${entry.sourceFile}` : ''}`;
-    const content = costo > 0
-        ? (completar
-            ? `Costo del caso completado automáticamente: ${fmt(costo)} según lo facturado por el laboratorio (${detalleFactura}).`
-            : `El laboratorio facturó ${fmt(costo)} por el pedido de este caso (${detalleFactura}). El caso ya tenía cargado ${fmt(pvCase.cost)} a mano; se conserva ese valor.`)
-        : `El laboratorio facturó el pedido de este caso SIN CARGO (garantía) — ${detalleFactura}.`;
+    const detalle = nums.map(n => ({ pedido: n, ...facturadas.get(n)! }));
+    const costo = Math.round(detalle.reduce((a, d) => a + d.monto, 0) * 100) / 100;
+    const multi = nums.length > 1;
+
+    // EL VALOR DEL LABORATORIO MANDA (regla del administrador del 2/8/2026). El
+    // monto que carga el vendedor es una ESTIMACIÓN: la asigna antes de saber
+    // qué va a facturar el lab. Cuando llega la factura de todas las
+    // operaciones, ese es el costo real y pisa la estimación — antes se
+    // conservaba lo cargado a mano y el caso quedaba con un número que nadie
+    // había verificado. La estimación no se pierde: queda en costEstimated y la
+    // nota deja asentada la diferencia.
+    const estimado = pvCase.cost ?? 0;
+    const previoEsEstimacion = pvCase.costSource !== 'LAB';
+    const difiere = estimado > 0 && Math.abs(estimado - costo) >= 1;
+    await prisma.postSaleCase.update({
+        where: { id: pvCase.id },
+        data: {
+            cost: costo,
+            costSource: 'LAB',
+            ...(previoEsEstimacion && estimado > 0 ? { costEstimated: estimado } : {}),
+        },
+    });
+
+    const detalleFactura = multi
+        ? `${detalle.map(d => `${labelDe(d.lab)} ${d.pedido}: ${fmt(d.monto)}`).join(' + ')}`
+        : `${labelDe(detalle[0].lab)}, pedido ${detalle[0].pedido}${detalle[0].sourceFile ? `, ${detalle[0].sourceFile}` : ''}`;
+    const base = costo > 0
+        ? `Costo real del caso según el laboratorio: ${fmt(costo)} (${detalleFactura}).`
+        : `El laboratorio facturó ${multi ? 'los pedidos' : 'el pedido'} de este caso SIN CARGO (garantía) — ${detalleFactura}.`;
+    const content = difiere
+        ? `${base} Reemplaza la estimación de ${fmt(estimado)} que se había cargado a mano (diferencia: ${costo > estimado ? '+' : '−'}${fmt(Math.abs(costo - estimado))}).`
+        : base;
+    // La marca viaja en la nota: es el registro del costo Y el candado que
+    // impide que este aviso se repita.
     await prisma.postSaleNote.create({
-        data: { caseId: pvCase.id, content, createdBy: 'Sistema' },
+        data: { caseId: pvCase.id, content: `${content} ${COSTO_MARK}`, createdBy: 'Sistema' },
     });
     logAudit({
         userName: 'Sistema', action: 'UPDATE', entityType: 'ORDER', entityId: order.id,
-        details: { evento: 'costo_postventa', caseId: pvCase.id, pedido, lab: entry.lab, costo, completado: completar },
+        details: {
+            evento: 'costo_postventa', caseId: pvCase.id, pedidos: nums,
+            detalle: detalle.map(d => ({ pedido: d.pedido, lab: d.lab, monto: d.monto })),
+            costo, estimado: estimado || null, difiere,
+        },
     }).catch(console.error);
 
     if (!emailsEnabled()) return;
-    // Vendedor que cargó el caso: quien hizo el primer movimiento del
-    // historial (o la primera nota humana). Si no se resuelve a un usuario
-    // con casilla propia, el aviso va a la casilla compartida del local.
+    // AVISO SOLO AL ADMINISTRADOR (decisión del administrador del 1/8/2026): el
+    // aviso dejó de ir a la casilla del local. Lo revisa Ishtar y ella decide a
+    // qué caja se imputa el costo antes de que el vendedor se entere.
+    // Se sigue informando QUIÉN cargó el caso, pero como dato, no como destino.
     const [hist, primeraNota] = await Promise.all([
         prisma.postSaleStatusHistory.findFirst({
             where: { caseId: pvCase.id }, orderBy: { createdAt: 'asc' }, select: { changedBy: true },
@@ -167,39 +248,56 @@ export async function completePostSaleCost(entry: any, order: any, pvCase: any, 
     ]);
     const cargadoPor = [hist?.changedBy, primeraNota?.createdBy]
         .find(n => n && n !== 'Sistema') || null;
-    const user = cargadoPor
-        ? await prisma.user.findFirst({
-            where: { name: cargadoPor },
-            select: { id: true, name: true, email: true, notificationEmail: true },
-        })
-        : null;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
+    const listaPedidos = detalle
+        .map(d => `<li><strong style="font-family: monospace;">${d.pedido}</strong> (${labelDe(d.lab)}): ${fmt(d.monto)}</li>`)
+        .join('');
+    // A qué caja va a proponer imputarse: la de quien se equivocó, y si el error
+    // no fue de una persona de la óptica lo absorbe Atelier (caja del admin).
+    const culpaEsDeLaOptica = pvCase.fault === 'Óptica' && !!pvCase.faultUserId;
+    const responsableCaja = culpaEsDeLaOptica
+        ? (await prisma.user.findUnique({
+            where: { id: pvCase.faultUserId },
+            select: { name: true },
+        }))?.name || 'el responsable'
+        : null;
+    const destinoCaja = responsableCaja || 'caja Ishtar (lo cubre Atelier)';
+    // Link directo al caso: abre la ficha, la solapa Post Venta (section=postsale,
+    // que ya reconoce /admin/contactos) y el caso puntual para resaltarlo.
+    const linkCaso = `${appUrl}/admin/contactos?clientId=${order.clientId}&section=postsale&postSaleCaseId=${pvCase.id}`;
     const res: any = await sendEmail({
-        to: notificationEmailFor(user),
-        bcc: ISHTAR_INBOX,
+        to: adminInbox(),
         subject: `Costo del caso de postventa de ${order.client?.name || 'cliente'}: ${costo > 0 ? fmt(costo) : 'sin cargo'}`,
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937;">
-                <p>Hola${cargadoPor ? ` ${firstName(cargadoPor)}` : ''},</p>
-                <p>Ya tenemos el costo del caso de postventa de <strong>${order.client?.name || 'cliente'}</strong> que cargaste:
-                el laboratorio facturó <strong>${costo > 0 ? fmt(costo) : 'sin cargo (garantía)'}</strong> por el pedido
-                <strong style="font-family: monospace;">${pedido}</strong> (${labLabel}).</p>
+                <p>Hola Ishtar,</p>
+                <p>Ya tenemos el costo del caso de postventa de <strong>${order.client?.name || 'cliente'}</strong>${cargadoPor ? `, cargado por <strong>${cargadoPor}</strong>` : ''}:
+                el laboratorio facturó <strong>${costo > 0 ? fmt(costo) : 'sin cargo (garantía)'}</strong>${multi ? ` en total por las ${nums.length} operaciones del caso` : ` por el pedido <strong style="font-family: monospace;">${detalle[0].pedido}</strong> (${labelDe(detalle[0].lab)})`}.</p>
+                ${multi ? `<ul style="line-height: 1.7; font-size: 14px;">${listaPedidos}</ul>` : ''}
                 <ul style="line-height: 1.7; font-size: 14px;">
-                    <li>Caso: ${pvCase.caseType || 'sin tipo'}${pvCase.coverage ? ` · cobertura: ${pvCase.coverage}` : ''}${pvCase.fault ? ` · falla: ${pvCase.fault}` : ''}</li>
-                    <li>${completar
-                        ? 'El costo quedó cargado automáticamente en el caso.'
-                        : (costoManual
-                            ? `El caso ya tenía cargado ${fmt(pvCase.cost)} a mano; se conservó ese valor.`
-                            : 'Sin cargo: no había costo que completar.')}</li>
+                    <li>Caso: ${pvCase.caseType || 'sin tipo'}${pvCase.coverage ? ` · cobertura: ${pvCase.coverage}` : ''}${pvCase.fault ? ` · atribución: ${pvCase.fault}` : ''}</li>
+                    <li>${difiere
+                        ? `⚠️ La estimación cargada a mano era <strong>${fmt(estimado)}</strong> — difiere en ${costo > estimado ? '+' : '−'}${fmt(Math.abs(costo - estimado))}. Quedó el valor del laboratorio.`
+                        : (estimado > 0
+                            ? 'Coincide con lo que se había estimado a mano.'
+                            : 'El caso no tenía costo estimado cargado.')}</li>
                 </ul>
-                <p><a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente</a></p>
+                ${costo > 0 ? `
+                <div style="border: 1px solid #e7e5e4; border-radius: 12px; padding: 16px; margin: 20px 0; background: #fafaf9;">
+                    <p style="margin: 0 0 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #78716c; font-weight: 700;">Listo para cobrar</p>
+                    <p style="margin: 0 0 14px; font-size: 14px;">Descontar <strong>${fmt(costo)}</strong> de <strong>${destinoCaja}</strong>.</p>
+                    <a href="${linkCaso}" style="display: inline-block; background: #1c1917; color: #fff; text-decoration: none; padding: 11px 20px; border-radius: 9px; font-size: 14px; font-weight: 600;">Revisar y disparar el cobro</a>
+                    <p style="margin: 12px 0 0; font-size: 12px; color: #78716c;">El descuento se genera desde el caso, con un click. Nada se mueve hasta que lo confirmes ahí.</p>
+                </div>` : `
+                <p style="font-size: 14px;">Sin cargo: no hay nada que imputar a caja.</p>
+                <p><a href="${linkCaso}">Ver el caso</a></p>`}
             </div>
         `,
     });
     if (!res?.success) {
-        console.error(`[LabCost] Aviso de costo de postventa NO salió (caso ${pvCase.id}, pedido ${pedido}).`);
+        console.error(`[LabCost] Aviso de costo de postventa NO salió (caso ${pvCase.id}, pedidos ${nums.join(', ')}).`);
     } else {
-        console.log(`[LabCost] Costo de postventa informado: caso ${pvCase.id}, pedido ${pedido}, ${costo}`);
+        console.log(`[LabCost] Costo de postventa informado: caso ${pvCase.id}, pedidos ${nums.join(', ')}, ${costo}`);
     }
 }
 
