@@ -31,6 +31,66 @@ const SHARED_SET_ID = process.env.GOOGLE_ADS_NEGATIVE_SET_ID || '11042611019';
 //    "anteojos gratis apross". Pasan a amplia.
 //  · APROSS, Nobis y "obra social" NO se bloquean: la óptica cubre obras
 //    sociales. Lo que no sirve es PAMI y quien busca gratis.
+// Cuarta tanda (agosto 2026). Salió de cruzar los 500 términos de 90 días
+// contra las 669 negativas ya cargadas, aplicando la semántica real de Google
+// (EXACT bloquea la frase idéntica, PHRASE la secuencia, BROAD exige todas las
+// palabras). Quedaban 306 términos sin bloquear y $88.353 de gasto ahí.
+//
+// Lo que NO se bloquea, y por qué (cada uno se miró contra el negocio):
+//  · Otras localidades (Villa Allende, Carlos Paz, Alta Gracia, Unquillo):
+//    convierten Y hay envío gratis a todo el país. No son fuga.
+//  · OSDE, Apross, Swiss, Galeno, Accord: la óptica las atiende (ver
+//    /obras-sociales). Son leads buenos.
+//  · "opticas nueva cordoba", "optica centro": Nueva Córdoba y Centro son
+//    barrios, no competidores.
+//  · "clínica de ojos córdoba" a secas: ambiguo, alguien puede terminar
+//    comprando anteojos. Se bloquean sólo las clínicas con nombre propio y la
+//    intención quirúrgica, que sí es turno médico.
+//
+// CUIDADO con "iris": Atelier vende los modelos Iris C1 e Iris C3. Una amplia
+// con esa palabra taparía búsquedas de su propio producto, así que va como
+// frase con "optica" adelante. Mismo criterio para modelo, lens, mayo, torres,
+// italia y campo visual, que son palabras corrientes.
+const CUARTA_TANDA = [
+  // Ópticas de la competencia que aparecieron al cruzar 90 días. Todas como
+  // frase con "optica/óptica" adelante: las palabras sueltas son comunes.
+  ['optica modelo', 'PHRASE'],
+  ['óptica modelo', 'PHRASE'],
+  ['lens optica', 'PHRASE'],
+  ['lens óptica', 'PHRASE'],
+  ['optica italia', 'PHRASE'],
+  ['óptica italia', 'PHRASE'],
+  ['optica iris', 'PHRASE'],
+  ['óptica iris', 'PHRASE'],
+  ['optica guemes', 'PHRASE'],
+  ['óptica güemes', 'PHRASE'],
+  ['más visión', 'PHRASE'],
+  ['mas vision optica', 'PHRASE'],
+  ['optica mayo', 'PHRASE'],
+  ['óptica mayo', 'PHRASE'],
+  ['optica torres', 'PHRASE'],
+  ['óptica torres', 'PHRASE'],
+  ['campo visual', 'PHRASE'],
+  ['los granaderos', 'PHRASE'],
+  ['hiper libertad', 'PHRASE'],
+  ['la casa de las opticas', 'PHRASE'],
+  ['la casa de las ópticas', 'PHRASE'],
+  ['infinit', 'BROAD'],
+  ['modernclix', 'BROAD'],
+  // Clínicas con nombre propio y cirugía: es turno médico, no un armazón.
+  ['centro privado de ojos', 'PHRASE'],
+  ['clinica lazarte', 'PHRASE'],
+  ['clínica lazarte', 'PHRASE'],
+  ['cirugia', 'BROAD'],
+  ['cirugía', 'BROAD'],
+  ['oftalmologia', 'BROAD'],
+  ['oftalmología', 'BROAD'],
+  // Obras sociales que la óptica NO atiende (las que sí, arriba).
+  ['sancor salud', 'PHRASE'],
+  ['prevencion salud', 'PHRASE'],
+  ['prevención salud', 'PHRASE'],
+];
+
 const TERCERA_TANDA = [
   ['gratis', 'BROAD'],
   ['pami', 'BROAD'],
@@ -107,6 +167,7 @@ const SEGUNDA_TANDA = [
 ];
 
 const TERMINOS = [
+  ...CUARTA_TANDA,
   ...TERCERA_TANDA,
   ...SEGUNDA_TANDA,
   ['visualizar', 'BROAD'],
