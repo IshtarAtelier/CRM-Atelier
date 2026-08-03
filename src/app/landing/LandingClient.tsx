@@ -21,6 +21,7 @@ const FRAME_CREDITS: Record<string, string> = {
 const MARQUEE_ITEMS = [
   "Colección de Diseño",
   "Acetato Italiano",
+  "Más de 10 años de experiencia",
   "Hechos para destacar tu mirada",
   "Curaduría Exclusiva",
 ];

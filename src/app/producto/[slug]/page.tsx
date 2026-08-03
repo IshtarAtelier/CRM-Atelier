@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { rethrowUnlessBuild } from '@/lib/db-guard';
 import { getProductAttributes } from '@/utils/product-controllers';
+import { parseFrameSpecs, pickDescriptiveAlt } from '@/lib/catalog/frame-specs';
 
 export const revalidate = 300;
 import { ProductClient } from './ProductClient';
@@ -212,6 +213,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // Get material from product attributes
   const { material } = getProductAttributes((product as any).modelCode || product.model, (product as any).seoTags);
 
+  // Color, material y forma REALES, sacados del alt de la foto (única fuente
+  // del color en el catálogo; ver frame-specs.ts). El material del alt le gana
+  // al de getProductAttributes(), que adivina "Metal" por descarte. Son los
+  // mismos datos que ya publica el feed de Merchant Center: la ficha no puede
+  // decir menos que el aviso que trajo al visitante.
+  const specs = parseFrameSpecs(pickDescriptiveAlt((product as any).imageAlts));
+
   // Las dos consultas secundarias (variantes y relacionados) no dependen entre
   // sí: van en paralelo. Antes eran secuenciales y sumaban sus latencias al
   // TTFB, que ahora pesa más porque la ruta ya no streamea (ver nota del 404).
@@ -406,7 +414,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <ProductClient product={{ ...product, material }} variants={variants} similarProducts={relatedProducts} footer={<StorefrontFooter />} />
+      <ProductClient
+        product={{
+          ...product,
+          material: specs.material || material,
+          color: specs.color,
+          shape: specs.shape,
+        }}
+        variants={variants}
+        similarProducts={relatedProducts}
+        footer={<StorefrontFooter />}
+      />
     </>
   );
 }

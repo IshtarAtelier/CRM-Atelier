@@ -30,12 +30,25 @@ export function LandingFooter({ theme = "dark" }: { theme?: "dark" | "light" }) 
   return (
     <footer className={`w-full border-t py-12 px-6 text-center ${wrap}`}>
       <div className="max-w-3xl mx-auto space-y-4">
+        {/* Marcas de CRISTALES, no de armazones: la lista de armazones de la
+            landing vieja (Rusty, Sarkany, Hanoover…) ya no existe en el
+            catálogo — verificado contra producción, solo quedan 3 Vulk en
+            salón. Las que sí se venden y la gente busca por nombre son estas. */}
+        <p className={`text-[11px] font-bold uppercase tracking-[0.2em] ${muted}`}>
+          Más de 10 años de experiencia · Essilor · Varilux · Kodak · Transitions
+        </p>
         <p className={`text-sm ${strong}`}>
           {BUSINESS_INFO.address}
         </p>
         <p className={`text-sm ${strong}`}>
           <a href={`tel:${BUSINESS_INFO.phoneE164}`} className={linkCls}>
             {BUSINESS_INFO.phone}
+          </a>
+          <span className={`mx-2 ${muted}`}>·</span>
+          {/* mailto no es fuga: es otro canal de contacto, mismo objetivo. Es
+              la casilla que el negocio ya publica en promo.atelieroptica.com.ar. */}
+          <a href="mailto:ventas@atelieroptica.com.ar" className={linkCls}>
+            ventas@atelieroptica.com.ar
           </a>
         </p>
         <p className={`text-[13px] ${muted}`}>{BUSINESS_INFO.hours}</p>
