@@ -2,11 +2,11 @@
 
 import QRCode from 'qrcode';
 import Link from 'next/link';
-import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import {
     Send, WifiOff, QrCode, RefreshCw, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
     Tag, Archive, ArchiveRestore, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Play, Paperclip, Smile, Trash2,
-    UserPlus, Loader2, Sparkles, Pin, Heart, FileText
+    UserPlus, Loader2, Sparkles, Pin, Heart, FileText, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { format } from 'date-fns';
@@ -181,8 +181,14 @@ function WhatsAppPageContent() {
     const [extractedClient, setExtractedClient] = useState<{ name: string; phone: string | null; interest: string | null; insurance: string | null; contactSource: string; notes: string | null } | null>(null);
     const [creatingClient, setCreatingClient] = useState(false);
     const [syncing, setSyncing] = useState(false);
+    // Buscador dentro de la conversación abierta (la lupa de la cabecera).
+    const [showChatSearch, setShowChatSearch] = useState(false);
+    const [chatSearch, setChatSearch] = useState('');
+    const [chatSearchIdx, setChatSearchIdx] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const chatSearchInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesBoxRef = useRef<HTMLDivElement>(null);
     const pollRef = useRef<NodeJS.Timeout | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
@@ -799,19 +805,105 @@ function WhatsAppPageContent() {
         };
     }, [fetchStatus, fetchChats, fetchMessages]);
 
+    // ── Buscador dentro de la conversación ────────
+    // Los mensajes del chat se traen todos (el endpoint no pagina), así que la
+    // búsqueda es sobre lo que ya está en memoria: encuentra en toda la charla,
+    // no solo en lo que se ve en pantalla.
+    const normalizarBusqueda = (s: string) =>
+        (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+    const chatSearchHits = useMemo(() => {
+        const q = normalizarBusqueda(chatSearch.trim());
+        if (!q) return [] as string[];
+        return messages
+            .filter(m => normalizarBusqueda(m.content || '').includes(q))
+            .map(m => m.id)
+            .filter(Boolean);
+    }, [chatSearch, messages]);
+
+    // Al cambiar el texto se vuelve al primer resultado (el más viejo).
+    useEffect(() => { setChatSearchIdx(0); }, [chatSearch]);
+
+    // Cerrar el buscador al cambiar de conversación: los resultados eran de la otra.
+    useEffect(() => {
+        setShowChatSearch(false);
+        setChatSearch('');
+    }, [selectedChat?.id]);
+
+    const chatSearchActiveId = chatSearchHits[chatSearchIdx] || null;
+
+    // Llevar a la vista el resultado activo.
+    useEffect(() => {
+        if (!chatSearchActiveId) return;
+        const el = document.getElementById(`msg-${chatSearchActiveId}`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [chatSearchActiveId]);
+
+    const irAlResultado = (delta: number) => {
+        if (chatSearchHits.length === 0) return;
+        setChatSearchIdx(prev => (prev + delta + chatSearchHits.length) % chatSearchHits.length);
+    };
+
+    const cerrarBuscadorChat = () => {
+        setShowChatSearch(false);
+        setChatSearch('');
+    };
+
+    /** Parte el texto en fragmentos marcando las coincidencias, sin tocar el original. */
+    const resaltarCoincidencias = (texto: string, esActivo: boolean) => {
+        const q = chatSearch.trim();
+        if (!q || !texto) return texto;
+
+        const textoNorm = normalizarBusqueda(texto);
+        const qNorm = normalizarBusqueda(q);
+        const partes: React.ReactNode[] = [];
+        let desde = 0;
+        let pos = textoNorm.indexOf(qNorm);
+
+        while (pos !== -1) {
+            if (pos > desde) partes.push(texto.slice(desde, pos));
+            partes.push(
+                <mark
+                    key={`${pos}-${partes.length}`}
+                    className={esActivo
+                        ? 'bg-amber-400 text-stone-900 rounded px-0.5'
+                        : 'bg-amber-200/70 text-stone-900 rounded px-0.5'}
+                >
+                    {texto.slice(pos, pos + q.length)}
+                </mark>
+            );
+            desde = pos + q.length;
+            pos = textoNorm.indexOf(qNorm, desde);
+        }
+
+        if (desde < texto.length) partes.push(texto.slice(desde));
+        return partes;
+    };
+
     // ── Auto-scroll ───────────────────────────────
     const lastScrollChatIdRef = useRef<string | null>(null);
     useEffect(() => {
         if (!selectedChatRef.current) return;
+        // Con el buscador abierto no se salta al final: el usuario está mirando
+        // un resultado y un mensaje nuevo se lo arrancaría de la vista.
+        if (showChatSearch && chatSearch.trim()) return;
         const isNewChat = lastScrollChatIdRef.current !== selectedChatRef.current.id;
-        
+
+        // Solo se baja solo si el usuario YA estaba abajo. El polling recarga los
+        // mensajes cada 15s y antes cada recarga scrolleaba al final: leer algo
+        // más arriba era imposible, te devolvía al fondo una y otra vez.
+        const box = messagesBoxRef.current;
+        const estabaAbajo = !box
+            || box.scrollHeight - box.scrollTop - box.clientHeight < 150;
+        if (!isNewChat && !estabaAbajo) return;
+
         // Timeout para asegurar que las imágenes/DOM rendericen antes de scrollear
         setTimeout(() => {
             if (messagesEndRef.current) {
                 messagesEndRef.current.scrollIntoView({ behavior: isNewChat ? 'auto' : 'smooth' });
             }
         }, 50);
-        
+
         if (isNewChat && messages.length > 0) {
             lastScrollChatIdRef.current = selectedChatRef.current.id;
         }
@@ -1863,6 +1955,22 @@ function WhatsAppPageContent() {
                                             </div>
                                         )}
                                         
+                                        <button
+                                            onClick={() => {
+                                                if (showChatSearch) { cerrarBuscadorChat(); return; }
+                                                setShowChatSearch(true);
+                                                setTimeout(() => chatSearchInputRef.current?.focus(), 50);
+                                            }}
+                                            title="Buscar en esta conversación"
+                                            className={`p-2 border rounded-xl transition-all shadow-sm ${
+                                                showChatSearch
+                                                    ? 'bg-emerald-500 border-emerald-500'
+                                                    : 'bg-white dark:bg-stone-800 border-stone-200/50 dark:border-stone-700 hover:bg-stone-50'
+                                            }`}
+                                        >
+                                            <Search className={`w-3.5 h-3.5 ${showChatSearch ? 'text-white' : 'text-stone-500'}`} />
+                                        </button>
+
                                         <ChatLabelPicker
                                             labels={selectedChat.chatLabels || []}
                                             availableTags={dbTags}
@@ -1999,8 +2107,57 @@ function WhatsAppPageContent() {
                                     </div>
                                 </div>
 
+                                {/* Buscador dentro de la conversación */}
+                                {showChatSearch && (
+                                    <div className="flex-shrink-0 px-6 py-3 border-b border-stone-200/60 dark:border-stone-800 bg-white/80 dark:bg-stone-900/80 backdrop-blur-xl animate-in slide-in-from-top-2 fade-in duration-200">
+                                        <div className="flex items-center gap-3">
+                                            <Search className="w-4 h-4 text-stone-400 shrink-0" />
+                                            <input
+                                                ref={chatSearchInputRef}
+                                                type="text"
+                                                value={chatSearch}
+                                                onChange={(e) => setChatSearch(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') { e.preventDefault(); irAlResultado(e.shiftKey ? -1 : 1); }
+                                                    if (e.key === 'Escape') { e.preventDefault(); cerrarBuscadorChat(); }
+                                                }}
+                                                placeholder="Buscar en esta conversación..."
+                                                className="flex-1 bg-transparent outline-none text-sm font-medium text-stone-800 dark:text-white placeholder:text-stone-400"
+                                            />
+                                            {chatSearch.trim() && (
+                                                <span className={`text-[11px] font-black tabular-nums whitespace-nowrap ${chatSearchHits.length ? 'text-stone-500' : 'text-red-500'}`}>
+                                                    {chatSearchHits.length ? `${chatSearchIdx + 1} de ${chatSearchHits.length}` : 'sin resultados'}
+                                                </span>
+                                            )}
+                                            <button
+                                                onClick={() => irAlResultado(-1)}
+                                                disabled={chatSearchHits.length === 0}
+                                                title="Anterior (Shift+Enter)"
+                                                className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-30 transition-colors"
+                                            >
+                                                <ChevronUp className="w-4 h-4 text-stone-500" />
+                                            </button>
+                                            <button
+                                                onClick={() => irAlResultado(1)}
+                                                disabled={chatSearchHits.length === 0}
+                                                title="Siguiente (Enter)"
+                                                className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-30 transition-colors"
+                                            >
+                                                <ChevronDown className="w-4 h-4 text-stone-500" />
+                                            </button>
+                                            <button
+                                                onClick={cerrarBuscadorChat}
+                                                title="Cerrar (Esc)"
+                                                className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                                            >
+                                                <X className="w-4 h-4 text-stone-500" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Conversación (Burbujas Premium) */}
-                                <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6 bg-gradient-to-b from-transparent to-stone-50/50 dark:from-transparent dark:to-stone-950/20 custom-scrollbar-smooth">
+                                <div ref={messagesBoxRef} className="flex-1 overflow-y-auto px-6 py-8 space-y-6 bg-gradient-to-b from-transparent to-stone-50/50 dark:from-transparent dark:to-stone-950/20 custom-scrollbar-smooth">
                                     {messages.map((msg, idx) => {
                                         const isOut = msg.direction === 'OUTBOUND';
                                         
@@ -2015,7 +2172,7 @@ function WhatsAppPageContent() {
                                         }
 
                                         return (
-                                            <div key={msg.id || `msg-${idx}`} className="flex flex-col w-full gap-4">
+                                            <div key={msg.id || `msg-${idx}`} id={`msg-${msg.id}`} className="flex flex-col w-full gap-4">
                                                 {showDateDivider && (
                                                     <div className="flex justify-center w-full my-1">
                                                         <span className="bg-stone-200/50 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full backdrop-blur-sm shadow-sm">
@@ -2093,7 +2250,11 @@ function WhatsAppPageContent() {
                                                         )}
 
                                                         {msg.content ? (
-                                                            <p className="text-[15px] font-medium leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                                                            <p className="text-[15px] font-medium leading-relaxed whitespace-pre-wrap break-words">
+                                                                {chatSearch.trim()
+                                                                    ? resaltarCoincidencias(msg.content, msg.id === chatSearchActiveId)
+                                                                    : msg.content}
+                                                            </p>
                                                         ) : null}
                                                         
                                                         <div className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold ${isOut ? 'text-emerald-100 justify-end' : 'text-stone-400'}`}>

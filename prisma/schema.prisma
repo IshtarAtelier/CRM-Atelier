@@ -545,7 +545,11 @@ model WhatsAppMessage {
   status      String       @default("SENT")
   createdAt   DateTime     @default(now())
   senderName  String?
-  chat        WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  // Restrict, NO Cascade: una conversación es prueba de lo que se habló con el
+  // cliente y no se borra nunca. Con Cascade, borrar un chat (desde un script,
+  // Prisma Studio o código futuro) se llevaba TODO su historial en silencio.
+  // Ahora la base rechaza ese borrado mientras el chat tenga mensajes.
+  chat        WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Restrict)
 
   @@index([chatId, createdAt(sort: Desc)])
 }
