@@ -59,6 +59,13 @@ const nextConfig: NextConfig = {
       { source: '/promoanteojo', destination: '/landing' },
       { source: '/promo-anteojos', destination: '/landing' },
       { source: '/promo-anteojo', destination: '/landing' },
+      // Los feeds de catálogo viven bajo /api/, que robots.txt bloquea. Las
+      // descargas programadas de Merchant y Commerce no respetan robots.txt,
+      // así que hoy funcionan igual — pero cualquier validador o previsualización
+      // que sí lo respete ve un feed prohibido. Estas URLs los dejan fuera de
+      // /api/ sin mover la implementación.
+      { source: '/feed/google.xml', destination: '/api/web/feed/google' },
+      { source: '/feed/meta.xml', destination: '/api/web/feed/meta' },
     ];
   },
   async redirects() {
@@ -204,17 +211,38 @@ const nextConfig: NextConfig = {
     // Corre como Report-Only junto a la CSP activa: loguea violaciones en la
     // consola del navegador sin bloquear nada. Cuando se valide en producción
     // (checkout Decidir incluido), promoverla a Content-Security-Policy.
+    // Hosts de imágenes. Los cuatro últimos son los beacons de Meta y Google:
+    // el Pixel manda sus eventos como <img>, así que si faltan acá la medición
+    // se corta en silencio (no hay error visible, sólo dejan de llegar datos).
+    // Se comparte entre la CSP activa y la Report-Only a propósito: estaban
+    // duplicados y derivaron — la activa se quedó sin estos hosts y estuvo
+    // bloqueando PageView, ViewContent y AddToCart.
+    const imgSrc =
+      "img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.g.doubleclick.net";
     const cspStrict = [
       "default-src 'self'",
       `script-src 'self' ${isDev ? "'unsafe-eval' " : ""}'unsafe-inline' https://live.decidir.com https://developers.decidir.com https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.g.doubleclick.net",
+      imgSrc,
       "font-src 'self' data: https://fonts.gstatic.com",
       `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://mercados.ambito.com${waOrigins}`,
       "frame-src 'self' https://maps.google.com https://www.google.com",
       "media-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",
+    ].join('; ');
+    // CSP activa: la de siempre, pero armada por partes en vez de un string
+    // suelto. Mantiene los wildcards de connect/frame que necesita el checkout
+    // de Decidir; lo único que cambió es que ahora comparte `imgSrc`.
+    const cspActive = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://live.decidir.com https://developers.decidir.com https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      imgSrc,
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https://* wss://*",
+      "frame-src 'self' https://*",
+      "media-src 'self' https://cdn.pixabay.com",
     ].join('; ');
     return [
       {
@@ -225,7 +253,7 @@ const nextConfig: NextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
-          { key: 'Content-Security-Policy', value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://live.decidir.com https://developers.decidir.com https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://* wss://*; frame-src 'self' https://*; media-src 'self' https://cdn.pixabay.com;" },
+          { key: 'Content-Security-Policy', value: cspActive },
           { key: 'Content-Security-Policy-Report-Only', value: cspStrict },
         ],
       },

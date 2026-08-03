@@ -360,7 +360,11 @@ export function TiendaClient({
                 fill
                 priority
                 className="object-cover object-center"
-                sizes="100vw"
+                // Es una banda decorativa recortada con object-cover, no una
+                // foto que se mire en detalle: con `100vw` pelado Next servía
+                // la variante de 3840 px (151 KB) y era el recurso más pesado
+                // de la página. Arriba de 1600 px no se gana nada visible.
+                sizes="(max-width: 1600px) 100vw, 1600px"
               />
               <div className="absolute inset-0 bg-black/20" />
             </motion.div>
@@ -608,7 +612,10 @@ export function TiendaClient({
                     {/* Info */}
                     <div className="flex flex-col gap-1 mt-4 px-1 pb-4">
                       <div className="flex items-center justify-between mb-0.5">
-                        <h3 className="text-[10px] text-stone-500 font-black uppercase tracking-[0.20em]">{isWholesale ? 'Cápsula Escarlata' : (p.brand || 'ATELIER')}</h3>
+                        {/* La marca es un <p>, no un encabezado: iba como <h3>
+                            ANTES del <h2> del nombre, así que cada tarjeta
+                            invertía la jerarquía del listado. */}
+                        <p className="text-[10px] text-stone-500 font-black uppercase tracking-[0.20em]">{isWholesale ? 'Cápsula Escarlata' : (p.brand || 'ATELIER')}</p>
                         {p.material === "Titanio" && (
                           <span className="text-[10px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
                             Titanio

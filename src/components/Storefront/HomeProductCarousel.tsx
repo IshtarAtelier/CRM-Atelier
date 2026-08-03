@@ -6,6 +6,7 @@ import Image from "next/image";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { trackWhatsAppClick } from "@/lib/tracking";
 
 interface CarouselProduct {
   id: string | number;
@@ -244,6 +245,10 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     e.stopPropagation();
                     const productModelName = `${item.brand || ''} ${item.model || item.name}`.trim();
                     const text = `Hola Atelier! Me interesa el modelo ${productModelName} y me gustaría recibir asesoramiento.`;
+                    // Es un <button> con window.open, no un <a>, así que el
+                    // interceptor global de WhatsAppAttribution no lo veía: los
+                    // clics desde el carrusel de la home no quedaban medidos.
+                    trackWhatsAppClick(`home-carrusel:${productModelName}`);
                     window.open(`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(text)}`, "_blank");
                   }}
                   className="flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-2 border border-stone-200 text-stone-700 hover:border-[#25D366] hover:text-[#25D366] transition-colors rounded-full cursor-pointer bg-white"

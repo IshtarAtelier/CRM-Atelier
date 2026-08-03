@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Star, X, Glasses } from "lucide-react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { captureAttribution } from "@/lib/client-analytics";
+import { trackWhatsAppClick } from "@/lib/tracking";
 import { CAMPAIGNS, type LandingProduct } from "@/lib/landing/campaigns";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
@@ -192,23 +193,32 @@ export function LandingClient({
     e.preventDefault();
     if (isRedirecting) return;
 
-    // Evento de conversión para que Meta/Google optimicen por leads.
+    // El CTA de la landing es un <button>, y el interceptor global de
+    // WhatsAppAttribution sólo reconoce <a href="wa.me/…">. Sin esta llamada
+    // explícita el clic no quedaba registrado en AnalyticsEvent ni se espejaba
+    // como Contact al Conversions API, y tampoco disparaba la conversión de
+    // Google Ads: la landing medía menos que cualquier otra página del sitio.
+    trackWhatsAppClick(`landing:${config.slug}`);
+
+    // `Lead` es aparte de `Contact`: distingue el formulario-por-WhatsApp de la
+    // landing del contacto genérico del resto del sitio.
     try {
-      const w = window as unknown as {
-        fbq?: (...a: unknown[]) => void;
-        gtag?: (...a: unknown[]) => void;
-      };
+      const w = window as unknown as { fbq?: (...a: unknown[]) => void };
       w.fbq?.("track", "Lead", { content_name: config.slug });
-      w.gtag?.("event", "generate_lead", { campaign: config.slug });
     } catch {
       /* los píxeles pueden no estar configurados; no debe romper el click */
     }
 
+    // `window.open` va sincrónico dentro del handler, no dentro de un
+    // setTimeout: pasados unos milisegundos el navegador ya no lo considera
+    // parte del gesto del usuario y el bloqueador de pop-ups lo cancela. Con el
+    // retardo de 800 ms que había acá, una parte de los clics simplemente no
+    // abría WhatsApp — sobre el único CTA que tiene la landing.
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+    // El cartel queda un instante para que el clic dé respuesta visible aunque
+    // WhatsApp abra en otra pestaña.
     setIsRedirecting(true);
-    setTimeout(() => {
-      window.open(waUrl, "_blank", "noopener,noreferrer");
-      setIsRedirecting(false);
-    }, 800);
+    setTimeout(() => setIsRedirecting(false), 600);
   };
 
   const toggleFaq = (index: number) => setOpenFaq(openFaq === index ? null : index);

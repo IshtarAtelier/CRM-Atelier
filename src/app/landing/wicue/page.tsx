@@ -42,10 +42,15 @@ export default function WicueLandingPage() {
         <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
           {/* Fondo de Video / Imagen Cinemática */}
           <div className="absolute inset-0 z-0 bg-stone-900">
+            {/* Es la imagen más grande arriba de todo: sin `priority` compite
+                con el resto de la carga y sin `sizes` Next pide la variante de
+                3840 px hasta en un celular. */}
             <Image
               src="/images/landing/ray_ban_meta.png"
               alt="Ray-Ban Meta Smart Glasses"
               fill
+              priority
+              sizes="100vw"
               className="object-cover opacity-40 mix-blend-luminosity"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />

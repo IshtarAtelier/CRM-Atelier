@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { ChevronDown, Star, Diamond, Glasses, ShieldCheck, X, Eye, Layers } from "lucide-react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { trackWhatsAppClick } from "@/lib/tracking";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
 /** Reseña tal como la devuelve `getGoogleReviews()`. */
@@ -65,11 +66,18 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
   const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
     e.preventDefault();
     if (isRedirecting) return;
+
+    // El CTA es un <button>, así que el interceptor global de
+    // WhatsAppAttribution —que sólo reconoce <a href="wa.me/…">— nunca veía
+    // este clic: /promo era la única landing que no medía absolutamente nada.
+    trackWhatsAppClick('promo');
+
+    // Sincrónico dentro del handler: con el setTimeout de 800 ms que había
+    // acá, el navegador ya no lo cuenta como gesto del usuario y el bloqueador
+    // de pop-ups cancelaba parte de los clics.
+    window.open(waUrl, "_blank", "noopener,noreferrer");
     setIsRedirecting(true);
-    setTimeout(() => {
-      window.open(waUrl, "_blank", "noopener,noreferrer");
-      setIsRedirecting(false);
-    }, 800);
+    setTimeout(() => setIsRedirecting(false), 600);
   };
 
   const toggleFaq = (index: number) => {
