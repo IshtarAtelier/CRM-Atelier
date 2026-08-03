@@ -124,7 +124,8 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
               </div>
 
               <div className="flex flex-col flex-1 px-1">
-                <h3 className="text-[10px] text-stone-500 dark:text-stone-400 font-bold uppercase tracking-[0.20em] mb-1">{p.brand}</h3>
+                {/* Marca como <p>: iba como <h3> antes del <h2> del modelo. */}
+                <p className="text-[10px] text-stone-500 dark:text-stone-400 font-bold uppercase tracking-[0.20em] mb-1">{p.brand}</p>
                 <h2 className="text-base font-serif tracking-tight text-stone-900 dark:text-white mb-2 leading-tight flex-1">{p.model}</h2>
                 
                 <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40 flex flex-col gap-1">

@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://atelieroptica.com.ar/promo',
   },
+  // Mismo criterio que /landing/[slug]: es una página de campaña, no de
+  // catálogo. Indexarla la pone a competir con el home por las mismas
+  // búsquedas. Quedó sin la etiqueta cuando se separó del sistema de landings.
+  robots: { index: false, follow: true },
 };
 
 export default async function PromoPage() {

@@ -26,6 +26,38 @@ function newEventId(): string {
   return `ev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/**
+ * Corre `fn` cuando el tag ya existe en `window`, no antes.
+ *
+ * gtag y fbq cargan con `afterInteractive` y además detrás del banner de
+ * consentimiento, así que un evento disparado desde un `useEffect` de montaje
+ * llega cuando todavía no están definidos. Con un `if (window.fbq)` suelto ese
+ * evento se descartaba sin dejar rastro: es el motivo por el que las fichas de
+ * producto nunca mandaron ViewContent ni view_item.
+ *
+ * Si a los ~10 s el tag no apareció, se abandona: significa que el visitante
+ * rechazó el consentimiento y no hay que insistir. La analítica propia
+ * (`track()`) es independiente de esto y sigue registrando el evento, que es
+ * desde donde el server lo espeja al Conversions API.
+ */
+function whenTagReady(name: 'fbq' | 'gtag', fn: (tag: (...args: any[]) => void) => void) {
+  if (typeof window === 'undefined') return;
+  const w = window as any;
+  if (typeof w[name] === 'function') {
+    fn(w[name]);
+    return;
+  }
+  let intentos = 0;
+  const id = setInterval(() => {
+    if (typeof w[name] === 'function') {
+      clearInterval(id);
+      fn(w[name]);
+    } else if (++intentos > 50) {
+      clearInterval(id);
+    }
+  }, 200);
+}
+
 export function trackViewContent(item: {
   id: string | number;
   name: string;
@@ -41,23 +73,23 @@ export function trackViewContent(item: {
     meta: { eventId },
   });
   // Meta Pixel
-  if ((window as any).fbq) {
-    (window as any).fbq('track', 'ViewContent', {
+  whenTagReady('fbq', (fbq) => {
+    fbq('track', 'ViewContent', {
       content_name: item.name,
       content_ids: [String(item.id)],
       content_type: 'product',
       value: item.price,
       currency: 'ARS',
     }, { eventID: eventId });
-  }
+  });
   // GA4
-  if ((window as any).gtag) {
-    (window as any).gtag('event', 'view_item', {
+  whenTagReady('gtag', (gtag) => {
+    gtag('event', 'view_item', {
       currency: 'ARS',
       value: item.price,
       items: [{ item_id: String(item.id), item_name: item.name, price: item.price }],
     });
-  }
+  });
 }
 
 export function trackAddToCart(item: { id: string | number; name: string; price: number; quantity: number }) {
@@ -72,18 +104,18 @@ export function trackAddToCart(item: { id: string | number; name: string; price:
       meta: { eventId },
     });
     // Meta Pixel Event
-    if ((window as any).fbq) {
-      (window as any).fbq("track", "AddToCart", {
+    whenTagReady('fbq', (fbq) => {
+      fbq("track", "AddToCart", {
         content_name: item.name,
         content_ids: [String(item.id)],
         content_type: "product",
         value: item.price,
         currency: "ARS",
       }, { eventID: eventId });
-    }
+    });
     // Google Analytics 4 Event
-    if ((window as any).gtag) {
-      (window as any).gtag("event", "add_to_cart", {
+    whenTagReady('gtag', (gtag) => {
+      gtag("event", "add_to_cart", {
         currency: "ARS",
         value: item.price,
         items: [
@@ -95,7 +127,7 @@ export function trackAddToCart(item: { id: string | number; name: string; price:
           },
         ],
       });
-    }
+    });
   }
 }
 
@@ -109,16 +141,16 @@ export function trackInitiateCheckout(cartItems: any[], totalValue: number) {
       meta: { eventId },
     });
     // Meta Pixel Event
-    if ((window as any).fbq) {
-      (window as any).fbq("track", "InitiateCheckout", {
+    whenTagReady('fbq', (fbq) => {
+      fbq("track", "InitiateCheckout", {
         value: totalValue,
         currency: "ARS",
         num_items: cartItems.length,
       }, { eventID: eventId });
-    }
+    });
     // Google Analytics 4 Event
-    if ((window as any).gtag) {
-      (window as any).gtag("event", "begin_checkout", {
+    whenTagReady('gtag', (gtag) => {
+      gtag("event", "begin_checkout", {
         currency: "ARS",
         value: totalValue,
         items: cartItems.map(item => ({
@@ -128,7 +160,7 @@ export function trackInitiateCheckout(cartItems: any[], totalValue: number) {
           quantity: item.quantity || 1,
         })),
       });
-    }
+    });
   }
 }
 
@@ -151,18 +183,18 @@ export function trackWhatsAppClick(location: string) {
   // Analítica propia (y desde ahí, espejo server-side a Meta CAPI)
   track('whatsapp_click', { meta: { eventId, location } });
 
-  if ((window as any).fbq) {
-    (window as any).fbq('track', 'Contact', { content_name: location }, { eventID: eventId });
-  }
-  if ((window as any).gtag) {
-    (window as any).gtag('event', 'generate_lead', { method: 'whatsapp', content_name: location });
+  whenTagReady('fbq', (fbq) => {
+    fbq('track', 'Contact', { content_name: location }, { eventID: eventId });
+  });
+  whenTagReady('gtag', (gtag) => {
+    gtag('event', 'generate_lead', { method: 'whatsapp', content_name: location });
     // Conversión de Google Ads: es un evento APARTE del de GA4. Sin este
     // `send_to`, las campañas de búsqueda no ven ningún contacto por WhatsApp.
     const adsWhatsApp = (window as any).__ateAdsConversions?.whatsapp;
     if (adsWhatsApp) {
-      (window as any).gtag('event', 'conversion', { send_to: adsWhatsApp });
+      gtag('event', 'conversion', { send_to: adsWhatsApp });
     }
-  }
+  });
 }
 
 /** Clic en el botón de llamar. Mismo criterio que `trackWhatsAppClick`. */
@@ -172,16 +204,16 @@ export function trackPhoneClick(location: string) {
 
   track('phone_click', { meta: { eventId, location } });
 
-  if ((window as any).fbq) {
-    (window as any).fbq('track', 'Contact', { content_name: `tel:${location}` }, { eventID: eventId });
-  }
-  if ((window as any).gtag) {
-    (window as any).gtag('event', 'generate_lead', { method: 'phone', content_name: location });
+  whenTagReady('fbq', (fbq) => {
+    fbq('track', 'Contact', { content_name: `tel:${location}` }, { eventID: eventId });
+  });
+  whenTagReady('gtag', (gtag) => {
+    gtag('event', 'generate_lead', { method: 'phone', content_name: location });
     const adsCall = (window as any).__ateAdsConversions?.call;
     if (adsCall) {
-      (window as any).gtag('event', 'conversion', { send_to: adsCall });
+      gtag('event', 'conversion', { send_to: adsCall });
     }
-  }
+  });
 }
 
 export function trackPurchase(orderId: string, totalValue: number, cartItems: any[]) {
@@ -189,16 +221,16 @@ export function trackPurchase(orderId: string, totalValue: number, cartItems: an
     // (La analítica propia registra `purchase` server-side en el checkout.)
     // Meta Pixel Event. El 4º arg { eventID } deduplica con el evento server-side
     // del Conversions API (AdsService.sendWebPurchase usa event_id = order.id).
-    if ((window as any).fbq) {
-      (window as any).fbq("track", "Purchase", {
+    whenTagReady('fbq', (fbq) => {
+      fbq("track", "Purchase", {
         value: totalValue,
         currency: "ARS",
         transaction_id: orderId,
       }, { eventID: orderId });
-    }
+    });
     // Google Analytics 4 Event
-    if ((window as any).gtag) {
-      (window as any).gtag("event", "purchase", {
+    whenTagReady('gtag', (gtag) => {
+      gtag("event", "purchase", {
         transaction_id: orderId,
         value: totalValue,
         currency: "ARS",
@@ -209,19 +241,19 @@ export function trackPurchase(orderId: string, totalValue: number, cartItems: an
           quantity: item.quantity || 1,
         })),
       });
-    }
-    // Conversión de Google Ads. Es un evento APARTE del `purchase` de GA4: sin
-    // este `send_to` (AW-…/label), la campaña no ve una sola compra y no puede
-    // pujar por conversiones. El destino lo publica TrackingScripts cuando están
-    // cargadas GOOGLE_ADS_CONVERSION_ID y GOOGLE_ADS_CONVERSION_LABEL.
-    const adsPurchase = (window as any).__ateAdsConversions?.purchase;
-    if (adsPurchase && (window as any).gtag) {
-      (window as any).gtag("event", "conversion", {
-        send_to: adsPurchase,
-        value: totalValue,
-        currency: "ARS",
-        transaction_id: orderId,
-      });
-    }
+      // Conversión de Google Ads. Es un evento APARTE del `purchase` de GA4: sin
+      // este `send_to` (AW-…/label), la campaña no ve una sola compra y no puede
+      // pujar por conversiones. El destino lo publica TrackingScripts cuando están
+      // cargadas GOOGLE_ADS_CONVERSION_ID y GOOGLE_ADS_CONVERSION_LABEL.
+      const adsPurchase = (window as any).__ateAdsConversions?.purchase;
+      if (adsPurchase) {
+        gtag("event", "conversion", {
+          send_to: adsPurchase,
+          value: totalValue,
+          currency: "ARS",
+          transaction_id: orderId,
+        });
+      }
+    });
   }
 }
