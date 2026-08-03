@@ -270,6 +270,18 @@ async function updateClientData({ id, ...data }) {
 }
 
 /**
+ * ¿Es un producto que el cliente elige mirándolo? Solo esos llevan foto.
+ * El tipo viene del catálogo ("Armazón", "Armazón de Receta", "Lentes de Sol");
+ * los clip-ons no tienen tipo propio y se reconocen por el nombre.
+ */
+function esArmazonOClipon(p) {
+    const texto = `${p.category || ''} ${p.name || ''}`
+        .toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return /armazon|clip|lentes de sol/.test(texto);
+}
+
+/**
  * Tool: Get price list for bot quotes
  */
 async function getPriceList({ category, search, botRecommended }) {
@@ -320,12 +332,25 @@ async function getPriceList({ category, search, botRecommended }) {
         const cuotaFormatted = cuota.toLocaleString('es-AR');
         const creditTotalFormatted = creditTotal.toLocaleString('es-AR');
 
-        let line = `*Opción ${i + 1} – ${name}*\n`;
+        // La foto va SOLO en lo que se elige mirándolo: armazones y clip-ons.
+        // En cristales no hay nada que ver (y de hecho no tienen foto cargada:
+        // 341/347 armazones sí, 0 de los cristales), así que una imagen ahí es
+        // ruido que alarga la charla. El link lleva a la ficha de la tienda.
+        let line = '';
+        if (esArmazonOClipon(p) && p.imageUrl) {
+            line += `[IMAGE: ${p.imageUrl}]\n`;
+        }
+
+        line += `*Opción ${i + 1} – ${name}*\n`;
         line += `• Precio contado: *$${cashFormatted}*\n`;
         line += `• 6 cuotas sin interés de *$${cuotaFormatted}* (total *$${creditTotalFormatted}*)`;
-        
+
         if (p.is2x1) {
             line += `\n🎉 *Promo 2x1* - Incluye dos pares de cristales!`;
+        }
+
+        if (esArmazonOClipon(p) && p.link) {
+            line += `\n• Link: ${p.link}`;
         }
 
         return line;

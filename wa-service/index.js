@@ -879,10 +879,10 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 return;
             }
 
-            // Kill-switch de imágenes: por ahora el bot NO envía ninguna imagen.
-            // Cuando la web esté lista, va a usar las fotos de los productos
-            // activos cargados en la web — recién ahí volver a poner true.
-            const BOT_IMAGES_ENABLED = false;
+            // Imágenes ENCENDIDAS: el bot muestra las fotos de la tienda al
+            // cotizar armazones y clip-ons (las pone get_price_list, que solo
+            // adjunta foto en lo que el cliente elige mirándolo).
+            const BOT_IMAGES_ENABLED = true;
 
             const messageBlocks = cleanResponseText.split('\n\n').map(b => b.trim()).filter(b => b.length > 0);
             
