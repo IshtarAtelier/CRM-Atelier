@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 import { AdsService } from '@/services/ads.service';
+import { GoogleAdsService } from '@/services/google-ads.service';
 import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { logAudit } from '@/lib/audit';
@@ -1602,6 +1603,20 @@ export class OrderService {
                 // Enviar conversión offline a Meta/Google de forma asíncrona (fire and forget)
                 AdsService.sendOfflineConversion(updatedOrder as any).catch(err => {
                     console.error('Error al notificar conversión offline:', err);
+                });
+
+                // Lo mismo hacia Google Ads. Va aparte porque son dos APIs
+                // distintas: el comentario de arriba decía "Meta/Google" pero
+                // sólo se le avisaba a Meta, así que Google pujaba sin saber
+                // nunca qué clic terminaba en venta.
+                GoogleAdsService.sendOfflineConversion({
+                    orderId: updatedOrder.id,
+                    value: updatedOrder.total ?? 0,
+                    occurredAt: updatedOrder.createdAt ?? new Date(),
+                    client: {
+                        email: updatedOrder.client?.email,
+                        phone: updatedOrder.client?.phone,
+                    },
                 });
 
                 // Enviar vCard por WhatsApp (Sincronización de Contacto)

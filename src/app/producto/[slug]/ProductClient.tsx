@@ -14,7 +14,7 @@ import { Camera, Share2, ChevronDown, Truck, Package, ShieldCheck, CreditCard, P
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
-import { trackAddToCart, trackViewContent } from "@/lib/tracking";
+import { trackViewContent } from "@/lib/tracking";
 import ProductReviews from "@/components/Storefront/ProductReviews";
 
 // Carga diferida: el configurador (662 líneas) recién se monta cuando el cliente
@@ -519,13 +519,12 @@ export function ProductClient({
                   // resuelve en vivo por sesión (getItemUnitPrice) para que un
                   // carrito persistido nunca muestre tarifa mayorista a un
                   // minorista (ni viceversa) tras login/logout.
-                  const displayPrice = isWholesale && product.wholesalePrice > 0 ? product.wholesalePrice : effectivePrice;
-                  trackAddToCart({
-                    id: product.id,
-                    name: product.model,
-                    price: displayPrice,
-                    quantity: 1
-                  });
+                  // El AddToCart lo dispara `addItem` en el store (useCart.ts):
+                  // es el único punto por el que pasan TODOS los caminos al
+                  // carrito. Acá había una segunda llamada que hacía que cada
+                  // agregado desde la ficha contara dos veces en Meta y GA4,
+                  // con eventId distinto, así que la deduplicación del CAPI
+                  // tampoco los unía.
                   addItem({
                     productId: product.id,
                     brand: product.brand,
