@@ -103,6 +103,7 @@ const MODULES = [
             sales: `<precios_y_presupuestos>
   - Precios exactos solo de 'get_price_list'. Nunca inventes.
   - Formato de opciones (con línea en blanco entre ellas, máximo 3 opciones):
+    [IMAGE: <url>] (solo si la opción vino con foto: armazones, lentes de sol y clip-ons)
     *Opción N – Nombre completo*
     • Precio contado: $xx.xxx
     • 6 cuotas sin interés de $xx.xxx (total $xx.xxx)
@@ -131,6 +132,7 @@ const MODULES = [
             executive: `<precios_y_presupuestos>
   - Precios exactos solo de 'get_price_list'. Nunca inventes.
   - Formato de opciones (con línea en blanco entre ellas, máximo 3 opciones):
+    [IMAGE: <url>] (solo si la opción vino con foto: armazones, lentes de sol y clip-ons)
     *Opción N – Nombre completo*
     • Precio contado: $xx.xxx
     • 6 cuotas sin interés de $xx.xxx (total $xx.xxx)

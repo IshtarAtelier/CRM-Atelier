@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { STORE_ORIGIN } from '@/lib/constants';
+
+/**
+ * La foto se entrega vía /api/store/product-image, que la convierte a JPEG: el
+ * catálogo publica casi todo en AVIF y WhatsApp no lo soporta (le llegaría al
+ * cliente como un archivo roto).
+ */
+function fotoParaWhatsApp(url: string | null | undefined): string | null {
+    if (!url) return null;
+    if (!/^https:\/\//i.test(url)) return url;
+    return `${STORE_ORIGIN}/api/store/product-image?url=${encodeURIComponent(url)}`;
+}
 
 // ── GET /api/bot/pricing ──────────────────────────────────────────────────────
 // Obtiene los productos del inventario real con precios reales recomendados para el bot
@@ -35,11 +47,19 @@ export async function GET(req: NextRequest) {
                 { model: { contains: 'clip', mode: 'insensitive' } }
             ];
         } else {
-            productWhere.type = { contains: category, mode: 'insensitive' };
+            // Los `type` del catálogo llevan tilde ("Armazón", "Armazón de
+            // Receta") y la categoría llega sin ella: un ILIKE '%ARMAZON%' no
+            // matchea nada. Se busca por un fragmento que no dependa del acento.
+            const FRAGMENTO_POR_CATEGORIA: Record<string, string> = {
+                ARMAZON: 'rmaz',
+                SOL: 'sol',
+            };
+            const fragmento = FRAGMENTO_POR_CATEGORIA[category] || category;
+            productWhere.type = { contains: fragmento, mode: 'insensitive' };
         }
     }
 
-    const products = await prisma.product.findMany({
+    let products = await prisma.product.findMany({
         where: productWhere,
         select: {
             id: true,
@@ -62,6 +82,34 @@ export async function GET(req: NextRequest) {
         orderBy: { name: 'asc' },
     });
 
+    // Si no hay ninguno marcado como recomendado (hoy: 0 de 481 armazones), el
+    // bot se quedaba sin nada que mostrar y tenía que salir del paso con texto.
+    // Mejor ofrecer los de la categoría pedida que no ofrecer nada.
+    if (products.length === 0 && productWhere.botRecommended) {
+        const { botRecommended: _descartado, ...sinFiltroDeRecomendados } = productWhere;
+        products = await prisma.product.findMany({
+            where: sinFiltroDeRecomendados,
+            select: {
+                id: true,
+                name: true,
+                brand: true,
+                model: true,
+                type: true,
+                category: true,
+                price: true,
+                lensIndex: true,
+                is2x1: true,
+                botRecommended: true,
+                botLabel: true,
+                laboratory: true,
+                rawImageUrls: true,
+                webProducts: { select: { slug: true, imageUrl: true } },
+            },
+            orderBy: { name: 'asc' },
+            take: 20,
+        });
+    }
+
     // Normalizar formato para el bot
     const productsMapped = products.map(p => {
         const webProd = p.webProducts && p.webProducts.length > 0 ? p.webProducts[0] : null;
@@ -79,7 +127,7 @@ export async function GET(req: NextRequest) {
             lensIndex: p.lensIndex,
             laboratory: p.laboratory,
             botRecommended: p.botRecommended,
-            imageUrl: finalImageUrl,
+            imageUrl: fotoParaWhatsApp(finalImageUrl),
             link: webProd?.slug ? `https://atelieroptica.com.ar/producto/${webProd.slug}` : null,
         };
     });
