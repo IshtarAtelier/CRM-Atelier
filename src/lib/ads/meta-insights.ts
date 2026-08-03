@@ -11,6 +11,7 @@
  * convierte a pesos con el blue, igual que los objetivos.
  */
 import crypto from 'crypto';
+import { parseAdTag } from '@/lib/ads/ad-tag';
 
 // v24.0: mínimo que la Marketing API acepta desde jun-2026 (las anteriores dan #2635).
 const API_VERSION = 'v24.0';
@@ -57,8 +58,15 @@ function redact(text: string): string {
  */
 export function adTag(text?: string | null): string | null {
   if (!text) return null;
-  const m = String(text).match(/\[\s*meta([a-z0-9_ -]+?)\s*\]/i);
-  if (m) return m[1].trim().toLowerCase().replace(/\s+/g, '');
+  // El parseo de corchetes sale del helper único (ad-tag.ts). Acá tenía su
+  // propio regex con un juego de caracteres más chico (`[a-z0-9_ -]`), así que
+  // una etiqueta con, por ejemplo, un punto o una tilde se leía distinto según
+  // quién la mirara: el bot la guardaba y este reporte no la encontraba.
+  const parsed = parseAdTag(text);
+  if (parsed) return parsed.campaign;
+  // Lo que sigue SÍ es propio de este módulo y no va al helper: para los chats
+  // sin etiqueta se deduce la campaña por el producto que menciona el cliente.
+  // No se persiste nunca — es solo para el reporte.
   const t = String(text).toLowerCase();
   if (/mayolens/.test(t)) return 'myolens';
   if (/myofix/.test(t)) return 'myofix';

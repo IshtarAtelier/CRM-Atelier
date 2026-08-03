@@ -27,6 +27,7 @@ const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups
 const { TAGS_SIN_BOT, getFileExtension, getAdminWaId } = require('./utils');
 const { downloadMediaWithRetry, uploadMediaToCrm } = require('./shared/media');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
+const { parseAdTag, prefillAdTag, stripAdTags } = require('./shared/ad-tag');
 const { serializedId, resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
 
 const configPath = path.join(__dirname, 'agent_config.json');
@@ -1108,24 +1109,29 @@ const handleMessage = async (msg) => {
     // Detectamos y preservamos el tag [meta...] del mensaje ANTES de cualquier
     // procesamiento de keywords para evitar falsos positivos (ej: [meta baja] 
     // no debe activar la auto-exclusión por la palabra "baja").
-    const META_TAG_REGEX = /\[meta[^\]]*\]/i;
-    const isMetaAdsMessage = META_TAG_REGEX.test(body);
-    // Etiqueta normalizada ([metaFlor] → "flor"), misma forma que adTag() en
-    // src/lib/ads/meta-insights.ts. Se persiste en WhatsAppChat.adTag / Client.adTag
-    // para que la atribución no dependa de que el historial de mensajes sobreviva.
-    let metaAdTag = null;
-    if (isMetaAdsMessage) {
-        const m = body.match(/\[\s*meta([^\]]*?)\s*\]/i);
-        const tag = m && m[1] ? m[1].trim().toLowerCase().replace(/\s+/g, '') : '';
-        metaAdTag = tag || null;
-    }
+    // Parser único, compartido con src/lib/ads/ad-tag.ts (ver shared/ad-tag.js).
+    const parsedAdTag = parseAdTag(body);
+    // OJO: `isMetaAdsMessage` no es solo una etiqueta — más abajo FUERZA el
+    // encendido del bot en chat nuevo y existente. Se deja restringido a Meta a
+    // propósito: sumar Google acá cambiaría a quién le contesta el bot, y eso es
+    // una decisión de negocio, no una consecuencia de unificar un parser.
+    const isMetaAdsMessage = parsedAdTag?.platform === 'META';
+    // Etiqueta normalizada que se persiste en WhatsAppChat.adTag / Client.adTag
+    // para que la atribución no dependa de que el historial sobreviva. Ahora
+    // incluye Google (como `google:campaña`): antes el regex exigía el literal
+    // `meta` y un anuncio de Google era invisible aunque tuviera su etiqueta.
+    const metaAdTag = prefillAdTag(body);
     const originalBody = body; // Preservar body original (con tag) para guardar en DB
-    // Limpiar el tag del body para que no interfiera con detecciones de negativos, 
+    // Limpiar el tag del body para que no interfiera con detecciones de negativos,
     // post-venta, hostilidad, etc. El tag original ya fue evaluado arriba.
-    if (isMetaAdsMessage) {
-        body = body.replace(/\[meta[^\]]*\]/gi, '').trim();
+    // Se limpian las DOS plataformas: un `[googleBaja]` sin limpiar habría
+    // disparado la auto-exclusión por la palabra "baja".
+    if (parsedAdTag) {
+        body = stripAdTags(body);
         if (!body) {
-            body = 'Hola, vengo de un anuncio de Facebook/Instagram y estoy interesado.';
+            body = parsedAdTag.platform === 'GOOGLE'
+                ? 'Hola, vengo de un anuncio de Google y estoy interesado.'
+                : 'Hola, vengo de un anuncio de Facebook/Instagram y estoy interesado.';
         }
     }
 

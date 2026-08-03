@@ -25,10 +25,11 @@ const usarProd = process.argv.includes('--prod');
 const TOKEN = process.env.META_ADS_TOKEN;
 
 /** Saca la etiqueta de un texto: "[metaFlor]" o "... [metaAgos]" → "metaflor" */
+// Parser único (wa-service/shared/ad-tag.js). Acá había una quinta copia del
+// regex, con el juego de caracteres restringido: no leía igual que la ingestión.
+const { parseAdTag } = require('../../wa-service/shared/ad-tag');
 function etiqueta(txt) {
-  if (!txt) return null;
-  const m = String(txt).match(/\[\s*meta([a-z0-9_ -]+?)\s*\]/i);
-  return m ? m[1].trim().toLowerCase().replace(/\s+/g, '') : null;
+  return parseAdTag(txt)?.campaign ?? null;
 }
 
 /** Etiqueta implícita para anuncios sin corchetes, por producto mencionado. */

@@ -20,14 +20,8 @@ const { PrismaClient, Prisma } = require('@prisma/client');
 const usarProd = process.argv.includes('--prod');
 const aplicar = process.argv.includes('--aplicar');
 
-/** "[metaFlor]" → "flor" — misma normalización que la ingestión del wa-service. */
-function etiquetaPrefill(txt) {
-  if (!txt) return null;
-  const m = String(txt).match(/\[\s*meta([^\]]*?)\s*\]/i);
-  if (!m) return null;
-  const tag = m[1].trim().toLowerCase().replace(/\s+/g, '');
-  return tag || null;
-}
+// Parser único, el mismo que usa la ingestión del wa-service y el reporte.
+const { prefillAdTag: etiquetaPrefill } = require('../../wa-service/shared/ad-tag');
 
 async function main() {
   if (usarProd && !process.env.PROD_DATABASE_URL) {

@@ -5,7 +5,11 @@ const CUENTAS = (process.env.META_AD_ACCOUNT_ID||'').split(',').map(s=>s.trim())
 const arDate = d => new Date(Date.now()-d*864e5).toLocaleDateString('en-CA',{timeZone:'America/Argentina/Buenos_Aires'});
 const RANGO = JSON.stringify({since: arDate(30), until: arDate(1)});
 
-function etiqueta(t){ const m=String(t||'').match(/\[\s*meta([a-z0-9_ -]+?)\s*\]/i); return m?m[1].trim().toLowerCase().replace(/\s+/g,''):null; }
+// Parser único (wa-service/shared/ad-tag.js). Acá vivía una quinta copia del
+// regex, con el juego de caracteres restringido: leía distinto que la ingestión.
+import { createRequire } from 'node:module';
+const { parseAdTag } = createRequire(import.meta.url)('../../wa-service/shared/ad-tag.js');
+const etiqueta = (t) => parseAdTag(t)?.campaign ?? null;
 function implicita(t){ t=String(t||'').toLowerCase();
   if(/mayolens/.test(t))return'myolens'; if(/myofix/.test(t))return'myofix';
   if(/clipon|clip-on|clipones|clippons/.test(t))return'clip';
