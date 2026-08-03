@@ -878,6 +878,30 @@ model PostSaleCase {
   fault            String?
   coverage         String?
   rxData           String?
+
+  // ── COSTO EN DOS ETAPAS Y SU IMPUTACIÓN A CAJA ──────────────────────────────
+  // El costo de un caso no se conoce de entrada: primero el vendedor asigna lo
+  // que estima, y recién cuando el laboratorio factura TODAS las operaciones del
+  // caso se sabe el valor real. Por eso `cost` es "el mejor valor a hoy" y estos
+  // campos cuentan de dónde salió y si ya está cerrado:
+  //   costEstimated → lo que asignó la persona (se conserva para comparar)
+  //   costSource    → MANUAL mientras es la estimación; LAB cuando lo cerró el lab
+  // La imputación a caja NO puede dispararse con la estimación: exige costSource
+  // = LAB **y** la corroboración del administrador (costConfirmedAt), porque el
+  // monto que carga el vendedor puede no coincidir con lo que factura el lab.
+  costEstimated    Float?
+  costSource       String?                 // MANUAL | LAB
+  costConfirmedAt  DateTime?
+  costConfirmedBy  String?
+  // Quién de la óptica cometió el error. La atribución (`fault`) solo distingue
+  // Laboratorio/Óptica/Cliente/Médico — no alcanza para saber a qué caja va el
+  // descuento cuando la culpa es de la óptica. Vacío = lo cubre Atelier (caja
+  // del administrador).
+  faultUserId      String?
+  // Movimiento de caja generado por este caso. Su presencia es el candado que
+  // impide imputar dos veces el mismo costo.
+  cashEntryId      String?                 @unique
+
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
 

@@ -190,31 +190,34 @@ export async function completePostSaleCost(order: any, pvCase: any, pedido: stri
     const costo = Math.round(detalle.reduce((a, d) => a + d.monto, 0) * 100) / 100;
     const multi = nums.length > 1;
 
-    // "Cargado a mano" = costo > 0 que NO puso esta misma función. Los casos que
-    // quedaron con el parcial de la versión anterior (una sola factura de las
-    // dos) llevan su nota de sistema: ese valor SÍ se pisa con la suma correcta,
-    // si no el caso se quedaba subvaluado para siempre.
-    const cargadoPorSistema = await prisma.postSaleNote.findFirst({
-        where: {
-            caseId: pvCase.id, createdBy: 'Sistema',
-            content: { contains: 'Costo del caso completado automáticamente' },
+    // EL VALOR DEL LABORATORIO MANDA (regla del administrador del 2/8/2026). El
+    // monto que carga el vendedor es una ESTIMACIÓN: la asigna antes de saber
+    // qué va a facturar el lab. Cuando llega la factura de todas las
+    // operaciones, ese es el costo real y pisa la estimación — antes se
+    // conservaba lo cargado a mano y el caso quedaba con un número que nadie
+    // había verificado. La estimación no se pierde: queda en costEstimated y la
+    // nota deja asentada la diferencia.
+    const estimado = pvCase.cost ?? 0;
+    const previoEsEstimacion = pvCase.costSource !== 'LAB';
+    const difiere = estimado > 0 && Math.abs(estimado - costo) >= 1;
+    await prisma.postSaleCase.update({
+        where: { id: pvCase.id },
+        data: {
+            cost: costo,
+            costSource: 'LAB',
+            ...(previoEsEstimacion && estimado > 0 ? { costEstimated: estimado } : {}),
         },
-        select: { id: true },
     });
-    const costoManual = (pvCase.cost ?? 0) > 0 && !cargadoPorSistema;
-    const completar = !costoManual && costo > 0;
-    if (completar) {
-        await prisma.postSaleCase.update({ where: { id: pvCase.id }, data: { cost: costo } });
-    }
 
     const detalleFactura = multi
         ? `${detalle.map(d => `${labelDe(d.lab)} ${d.pedido}: ${fmt(d.monto)}`).join(' + ')}`
         : `${labelDe(detalle[0].lab)}, pedido ${detalle[0].pedido}${detalle[0].sourceFile ? `, ${detalle[0].sourceFile}` : ''}`;
-    const content = costo > 0
-        ? (completar
-            ? `Costo del caso completado automáticamente: ${fmt(costo)} según lo facturado por el laboratorio (${detalleFactura}).`
-            : `El laboratorio facturó ${fmt(costo)} por ${multi ? 'los pedidos' : 'el pedido'} de este caso (${detalleFactura}). El caso ya tenía cargado ${fmt(pvCase.cost)} a mano; se conserva ese valor.`)
+    const base = costo > 0
+        ? `Costo real del caso según el laboratorio: ${fmt(costo)} (${detalleFactura}).`
         : `El laboratorio facturó ${multi ? 'los pedidos' : 'el pedido'} de este caso SIN CARGO (garantía) — ${detalleFactura}.`;
+    const content = difiere
+        ? `${base} Reemplaza la estimación de ${fmt(estimado)} que se había cargado a mano (diferencia: ${costo > estimado ? '+' : '−'}${fmt(Math.abs(costo - estimado))}).`
+        : base;
     // La marca viaja en la nota: es el registro del costo Y el candado que
     // impide que este aviso se repita.
     await prisma.postSaleNote.create({
@@ -225,7 +228,7 @@ export async function completePostSaleCost(order: any, pvCase: any, pedido: stri
         details: {
             evento: 'costo_postventa', caseId: pvCase.id, pedidos: nums,
             detalle: detalle.map(d => ({ pedido: d.pedido, lab: d.lab, monto: d.monto })),
-            costo, completado: completar,
+            costo, estimado: estimado || null, difiere,
         },
     }).catch(console.error);
 
@@ -259,15 +262,15 @@ export async function completePostSaleCost(order: any, pvCase: any, pedido: stri
                 el laboratorio facturó <strong>${costo > 0 ? fmt(costo) : 'sin cargo (garantía)'}</strong>${multi ? ` en total por las ${nums.length} operaciones del caso` : ` por el pedido <strong style="font-family: monospace;">${detalle[0].pedido}</strong> (${labelDe(detalle[0].lab)})`}.</p>
                 ${multi ? `<ul style="line-height: 1.7; font-size: 14px;">${listaPedidos}</ul>` : ''}
                 <ul style="line-height: 1.7; font-size: 14px;">
-                    <li>Caso: ${pvCase.caseType || 'sin tipo'}${pvCase.coverage ? ` · cobertura: ${pvCase.coverage}` : ''}${pvCase.fault ? ` · falla: ${pvCase.fault}` : ''}</li>
-                    <li>${completar
-                        ? 'El costo quedó cargado automáticamente en el caso.'
-                        : (costoManual
-                            ? `El caso ya tenía cargado ${fmt(pvCase.cost)} a mano; se conservó ese valor.`
-                            : 'Sin cargo: no había costo que completar.')}</li>
-                    <li>Imputar el costo a la caja de <strong>${pvCase.responsible || 'el responsable del error'}</strong>${pvCase.coverage ? ` (cobertura: ${pvCase.coverage})` : ''}, o a <strong>caja Ishtar</strong> si lo cubre Atelier.</li>
+                    <li>Caso: ${pvCase.caseType || 'sin tipo'}${pvCase.coverage ? ` · cobertura: ${pvCase.coverage}` : ''}${pvCase.fault ? ` · atribución: ${pvCase.fault}` : ''}</li>
+                    <li>${difiere
+                        ? `⚠️ La estimación cargada a mano era <strong>${fmt(estimado)}</strong> — difiere en ${costo > estimado ? '+' : '−'}${fmt(Math.abs(costo - estimado))}. Quedó el valor del laboratorio.`
+                        : (estimado > 0
+                            ? 'Coincide con lo que se había estimado a mano.'
+                            : 'El caso no tenía costo estimado cargado.')}</li>
+                    <li><strong>Falta tu corroboración</strong> para poder imputarlo: revisá el caso y confirmá el costo. Recién ahí se habilita el descuento de caja.</li>
                 </ul>
-                <p><a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Ver ficha del cliente</a></p>
+                <p><a href="${appUrl}/admin/contactos?clientId=${order.clientId}">Corroborar e imputar en la ficha del cliente</a></p>
             </div>
         `,
     });

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { uploadFile } from '@/lib/storage';
+import { safeStorageName } from '@/lib/utils/storage';
 
 const BLOCKED_EXTENSIONS = ['exe', 'sh', 'bat', 'cmd', 'ps1', 'php', 'pl', 'py', 'js', 'html', 'htm'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -63,8 +64,10 @@ export async function POST(request: Request) {
         // Use unified storage service with retry for transient errors
         const buffer = Buffer.from(await file.arrayBuffer());
         const timestamp = Date.now();
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const filename = `${timestamp}_${safeName}`;
+        // safeStorageName colapsa las corridas de puntos: si no, las capturas de
+        // macOS ("... p. m..png") generaban keys con ".." que después no se
+        // podían servir.
+        const filename = `${timestamp}_${safeStorageName(file.name)}`;
         
         const urlOrKey = await uploadWithRetry(buffer, filename, file.type || 'application/octet-stream');
 
