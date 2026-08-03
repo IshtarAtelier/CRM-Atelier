@@ -52,11 +52,19 @@ const prorrateItems = (list: InvoiceItem[], target: number): InvoiceItem[] => {
     const safeTarget = Math.max(0, Math.round(target));
     const currentTotal = sumItems(list);
 
-    if (list.length === 0 || currentTotal <= 0) {
-        // Sin base para prorratear: un único concepto por el monto pedido.
-        if (list.length === 1) return [{ ...list[0], quantity: 1, price: safeTarget }];
-        if (list.length > 1) return list;
+    if (list.length === 0) {
         return [{ id: 'auto-0', description: 'Productos ópticos', quantity: 1, price: safeTarget }];
+    }
+
+    if (currentTotal <= 0) {
+        // Ítems recién agregados, todos en cero: no hay proporción que respetar,
+        // se reparte en partes iguales y el resto va al primero.
+        const porItem = Math.floor(safeTarget / list.length);
+        return list.map((it, i) => ({
+            ...it,
+            quantity: 1,
+            price: i === 0 ? safeTarget - porItem * (list.length - 1) : porItem,
+        }));
     }
 
     const factor = safeTarget / currentTotal;
