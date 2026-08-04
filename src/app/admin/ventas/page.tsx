@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ChevronLeft, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users } from 'lucide-react';
+import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { PostSaleCard } from '@/components/orders/PostSaleCard';
 import { caseTypeStyle } from '@/lib/constants/postSale';
@@ -19,10 +19,10 @@ import LabNumberEditor from '@/components/orders/LabNumberEditor';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
-    'SENT': { key: 'SENT', label: 'Falta procesar', color: 'bg-amber-100 text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950', text: 'text-amber-600 dark:text-amber-400', ring: 'ring-amber-200 dark:ring-amber-800', icon: Clock },
-    'IN_PROGRESS': { key: 'IN_PROGRESS', label: 'Procesado', color: 'bg-blue-100 text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950', text: 'text-blue-600 dark:text-blue-400', ring: 'ring-blue-200 dark:ring-blue-800', icon: Package },
+    'SENT': { key: 'SENT', label: 'Falta procesar', color: 'bg-amber-100 text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950', text: 'text-amber-800 dark:text-amber-400', ring: 'ring-amber-200 dark:ring-amber-800', icon: Clock },
+    'IN_PROGRESS': { key: 'IN_PROGRESS', label: 'Procesado', color: 'bg-blue-100 text-blue-600', bg: 'bg-blue-50 dark:bg-blue-950', text: 'text-blue-800 dark:text-blue-400', ring: 'ring-blue-200 dark:ring-blue-800', icon: Package },
     'FINISHED': { key: 'FINISHED', label: 'Finalizado (Lab)', color: 'bg-fuchsia-100 text-fuchsia-600', bg: 'bg-fuchsia-50 dark:bg-fuchsia-950', text: 'text-fuchsia-600 dark:text-fuchsia-400', ring: 'ring-fuchsia-200 dark:ring-fuchsia-800', icon: Factory },
-    'READY': { key: 'READY', label: 'Listo p/ Retirar', color: 'bg-emerald-100 text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950', text: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-200 dark:ring-emerald-800', icon: CheckCircle2 },
+    'READY': { key: 'READY', label: 'Listo p/ Retirar', color: 'bg-emerald-100 text-emerald-800', bg: 'bg-emerald-50 dark:bg-emerald-950', text: 'text-emerald-800 dark:text-emerald-400', ring: 'ring-emerald-200 dark:ring-emerald-800', icon: CheckCircle2 },
     'DELIVERED': { key: 'DELIVERED', label: 'Entregado', color: 'bg-indigo-100 text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-950', text: 'text-indigo-600 dark:text-indigo-400', ring: 'ring-indigo-200 dark:ring-indigo-800', icon: Truck },
 };
 
@@ -1030,7 +1030,7 @@ export default function VentasPage() {
                     </div>
 
                     {/* View Switcher Pill */}
-                    <div className="flex gap-1 p-1 bg-stone-100 dark:bg-stone-850 rounded-full border border-stone-200/50 dark:border-stone-700/50 backdrop-blur-sm self-start sm:self-center">
+                    <div className="flex gap-1 p-1 bg-stone-100 dark:bg-stone-850 rounded-full border border-stone-300 dark:border-stone-700 backdrop-blur-sm self-start sm:self-center">
                         <button
                             onClick={() => { setViewMode('VENTAS'); window.history.replaceState(null, '', '/admin/ventas?mode=VENTAS'); }}
                             className={`py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
@@ -1089,7 +1089,7 @@ export default function VentasPage() {
                                     ? 'bg-blue-55 border-blue-200 text-blue-500'
                                     : syncResult 
                                         ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
-                                        : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900'
+                                        : 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900'
                             }`}
                             title="Sincronizar estados con SmartLab"
                         >
@@ -1115,16 +1115,21 @@ export default function VentasPage() {
                     {/* Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                 {[
+                    // Los tonos -600 sobre su propio fondo -100 daban ~3,4:1: alcanza
+                    // para el número grande, no para la etiqueta de 9px. Con -700/-800
+                    // toda la tarjeta pasa el 4,5:1 sin cambiar de color.
                     { label: 'Total Ventas', value: stats.total, color: 'bg-stone-900 text-white' },
-                    { label: 'Falta Procesar', value: stats.sent, color: 'bg-amber-100 text-amber-600' },
-                    { label: 'Procesados', value: stats.inProgress, color: 'bg-blue-100 text-blue-600' },
-                    { label: 'Finalizados (Lab)', value: stats.finished, color: 'bg-fuchsia-100 text-fuchsia-600' },
-                    { label: 'Listas', value: stats.ready, color: 'bg-emerald-100 text-emerald-600' },
-                    { label: 'Entregadas', value: stats.delivered, color: 'bg-indigo-100 text-indigo-600' },
+                    { label: 'Falta Procesar', value: stats.sent, color: 'bg-amber-100 text-amber-800' },
+                    { label: 'Procesados', value: stats.inProgress, color: 'bg-blue-100 text-blue-700' },
+                    { label: 'Finalizados (Lab)', value: stats.finished, color: 'bg-fuchsia-100 text-fuchsia-800' },
+                    { label: 'Listas', value: stats.ready, color: 'bg-emerald-100 text-emerald-800' },
+                    { label: 'Entregadas', value: stats.delivered, color: 'bg-indigo-100 text-indigo-700' },
                 ].map(s => (
                     <div key={s.label} className={`${s.color} rounded-2xl p-5 text-center`}>
                         <p className="text-3xl font-black">{s.value}</p>
-                        <p className="text-[9px] font-black uppercase tracking-widest mt-1 opacity-70">{s.label}</p>
+                        {/* Sin opacidad: la jerarquía ya la da el tamaño (9px vs 3xl), y
+                            al 70% estas etiquetas quedaban en 2,8:1 sobre su propio fondo. */}
+                        <p className="text-[9px] font-black uppercase tracking-widest mt-1">{s.label}</p>
                     </div>
                 ))}
             </div>
@@ -1133,7 +1138,7 @@ export default function VentasPage() {
             <div className="space-y-6 mb-8">
                 <div className="flex flex-col lg:flex-row gap-5">
                     <div className="relative flex-1 group">
-                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400 group-focus-within:text-emerald-500 transition-colors duration-300" />
+                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-500 dark:text-stone-400 group-focus-within:text-emerald-600 transition-colors duration-300" />
                         <input
                             type="text"
                             placeholder="Buscar por cliente, N° venta o N° operación lab..."
@@ -1148,24 +1153,29 @@ export default function VentasPage() {
                                 }, 400);
                                 setSearchDebounce(newDebounce);
                             }}
-                            className="w-full pl-14 pr-6 py-5 bg-stone-50/50 dark:bg-stone-800/30 backdrop-blur-md border border-stone-200/50 dark:border-stone-700/50 rounded-full shadow-[0_2px_10px_-3px_rgba(16,185,129,0.05)] focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-medium text-stone-800 dark:text-stone-100 placeholder-stone-400"
+                            className="w-full pl-14 pr-6 py-5 bg-white dark:bg-stone-800/60 backdrop-blur-md border border-stone-300 dark:border-stone-700 rounded-full shadow-[0_2px_10px_-3px_rgba(16,185,129,0.05)] focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-600 outline-none transition-all font-medium text-stone-900 dark:text-stone-100 placeholder-stone-500 dark:placeholder-stone-400"
                         />
                     </div>
                     
-                    <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar inline-flex items-center bg-stone-100/50 dark:bg-stone-800/50 backdrop-blur-md p-1.5 rounded-full border border-stone-200/50 dark:border-stone-700/50 w-max">
+                    <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 no-scrollbar inline-flex items-center bg-stone-100 dark:bg-stone-800 backdrop-blur-md p-1.5 rounded-full border border-stone-300 dark:border-stone-700 w-max">
                         {['ALL', 'SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'].map(f => {
                             const isActive = filterLab === f && !filterBalance;
                             return (
                                 <button
                                     key={f}
                                     onClick={() => { setFilterLab(f); if (f !== 'ALL') setFilterBalance(false); }}
-                                    className={`relative px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${
-                                        isActive 
-                                        ? 'text-stone-900 dark:text-white' 
-                                        : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
+                                    /* El filtro activo era una burbuja BLANCA sobre gris muy
+                                       claro, dibujada en una capa con -z-10: quedaba detrás
+                                       del fondo de la cápsula y había que buscar cuál estaba
+                                       elegido. Ahora el fondo va en el botón mismo e invertido
+                                       (oscuro con texto blanco): se ve de una, que es lo que
+                                       necesita alguien con baja visión. */
+                                    className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${
+                                        isActive
+                                        ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.35)]'
+                                        : 'text-stone-700 hover:text-stone-900 hover:bg-stone-200 dark:text-stone-300 dark:hover:text-white dark:hover:bg-stone-700'
                                     }`}
                                 >
-                                    {isActive && <div className="absolute inset-0 bg-white dark:bg-stone-600 rounded-full shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] dark:shadow-none -z-10 animate-in zoom-in-95 duration-200" />}
                                     {f === 'ALL' ? 'Todas' : LAB_STATUS[f]?.label || f}
                                 </button>
                             );
@@ -1177,15 +1187,16 @@ export default function VentasPage() {
                         {/* Filtro de Saldos Pendientes */}
                         <button
                             onClick={() => { setFilterBalance(!filterBalance); if (!filterBalance) setFilterLab('ALL'); }}
-                            className={`relative px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${
+                            /* Mismo arreglo que los filtros de al lado: el fondo va en el
+                               botón, no en una capa detrás del fondo de la cápsula. */
+                            className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${
                                 filterBalance
-                                ? 'text-white'
+                                ? 'bg-red-700 text-white shadow-[0_2px_8px_-2px_rgba(185,28,28,0.5)]'
                                 : stats.withBalance > 0
-                                    ? 'text-red-500 hover:text-red-600'
-                                    : 'text-stone-400 hover:text-stone-600'
+                                    ? 'text-red-700 dark:text-red-400 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-950/30'
+                                    : 'text-stone-700 dark:text-stone-300 hover:text-stone-900 hover:bg-stone-200 dark:hover:bg-stone-700'
                             }`}
                         >
-                            {filterBalance && <div className="absolute inset-0 bg-red-500 rounded-full shadow-[0_2px_8px_-2px_rgba(239,68,68,0.4)] -z-10 animate-in zoom-in-95 duration-200" />}
                             <Banknote className="w-3.5 h-3.5" />
                             Con Saldo
                             {stats.withBalance > 0 && (
@@ -1200,7 +1211,7 @@ export default function VentasPage() {
                 {/* Laboratory, Seller & Date Filters */}
                 <div className="flex items-center gap-4 flex-wrap">
                     {/* Lab filter dropdown */}
-                    <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-700/50">
+                    <div className="flex items-center gap-3 bg-white dark:bg-stone-900 backdrop-blur-sm px-4 py-2 rounded-full border border-stone-300 dark:border-stone-700">
                         <FlaskConical className="w-4 h-4 text-stone-400" />
                         <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Lab:</span>
                         <select
@@ -1219,7 +1230,7 @@ export default function VentasPage() {
                     <div className={`flex items-center gap-3 backdrop-blur-sm px-4 py-2 rounded-full border transition-all ${
                         filterSeller !== 'ALL' && filterSeller !== '__LOADING__'
                             ? 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/80 dark:border-amber-800/50'
-                            : 'bg-white/50 dark:bg-stone-900/50 border-stone-200/50 dark:border-stone-700/50'
+                            : 'bg-white dark:bg-stone-900 border-stone-300 dark:border-stone-700'
                     }`}>
                         {filterSeller !== 'ALL' && filterSeller !== '__LOADING__' ? (
                             <User className="w-4 h-4 text-amber-500" />
@@ -1245,7 +1256,7 @@ export default function VentasPage() {
 
                     {/* Date filters */}
                     {isAdmin && (
-                        <div className="flex items-center gap-3 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm px-4 py-2.5 rounded-full border border-stone-200/50 dark:border-stone-700/50">
+                        <div className="flex items-center gap-3 bg-white dark:bg-stone-900 backdrop-blur-sm px-4 py-2.5 rounded-full border border-stone-300 dark:border-stone-700">
                             <Calendar className="w-4 h-4 text-stone-400" />
                             <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Desde:</span>
                             <input
@@ -1346,21 +1357,21 @@ export default function VentasPage() {
                                                     </span>
                                                 )}
                                                 {order.status === 'WEB_PAID' && (
-                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1 animate-pulse">
+                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-1 animate-pulse">
                                                         🌐 Venta Web Pagada · A Confirmar
                                                     </span>
                                                 )}
                                                 {financials.progress >= 100 && (
-                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-600">PAGADO</span>
+                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-800">PAGADO</span>
                                                 )}
                                                 {orderLabs.length > 0 && orderLabs.map(lab => (
-                                                    <span key={lab} className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-violet-100 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 flex items-center gap-1">
+                                                    <span key={lab} className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-violet-100 dark:bg-violet-950/40 text-violet-800 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 flex items-center gap-1">
                                                         <FlaskConical className="w-2.5 h-2.5" />
                                                         {lab}
                                                     </span>
                                                 ))}
                                                 {order.user?.name && (
-                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
+                                                    <span className="px-2 py-0.5 rounded-lg text-[8px] lg:text-[9px] font-black uppercase tracking-widest bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
                                                         <User className="w-2.5 h-2.5" />
                                                         {order.user.name}
                                                     </span>
@@ -1375,23 +1386,23 @@ export default function VentasPage() {
 
                                     {/* Payment Detail (Triple Saldo) */}
                                     <div className="flex flex-col gap-1.5 lg:border-l-2 lg:border-stone-100 lg:dark:border-stone-700 lg:pl-4 py-0.5">
-                                        <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Saldo Pendiente</span>
+                                        <span className="text-[8px] font-black text-stone-600 dark:text-stone-300 uppercase tracking-widest">Saldo Pendiente</span>
                                         <div className="flex flex-wrap gap-2">
                                             {!financials.hasBalance ? (
-                                                <div className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800">
+                                                <div className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800">
                                                     PAGADO
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className="flex flex-col rounded-lg bg-emerald-50 dark:bg-emerald-900/10 px-2 py-1 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
+                                                    <div className="flex flex-col rounded-lg bg-emerald-50 dark:bg-emerald-900/10 px-2 py-1 text-emerald-800 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30">
                                                         <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><Banknote className="w-3 h-3" /> Efvo</span>
                                                         <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingCash.toLocaleString()}</span>
                                                     </div>
-                                                    <div className="flex flex-col rounded-lg bg-violet-50 dark:bg-violet-900/10 px-2 py-1 text-violet-600 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30">
+                                                    <div className="flex flex-col rounded-lg bg-violet-50 dark:bg-violet-900/10 px-2 py-1 text-violet-800 dark:text-violet-400 border border-violet-100 dark:border-violet-900/30">
                                                         <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><ArrowRightLeft className="w-3 h-3" /> Transf</span>
                                                         <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingTransfer.toLocaleString()}</span>
                                                     </div>
-                                                    <div className="flex flex-col rounded-lg bg-orange-50 dark:bg-orange-900/10 px-2 py-1 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30">
+                                                    <div className="flex flex-col rounded-lg bg-orange-50 dark:bg-orange-900/10 px-2 py-1 text-orange-800 dark:text-orange-400 border border-orange-100 dark:border-orange-900/30">
                                                         <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest flex items-center gap-1"><CreditCard className="w-3 h-3" /> Cuotas</span>
                                                         <span className="text-[9px] lg:text-[10px] font-black mt-0.5">${financials.remainingCard.toLocaleString()}</span>
                                                     </div>
@@ -1401,7 +1412,7 @@ export default function VentasPage() {
                                     </div>
 
                                     {/* Info Badges */}
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] lg:text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] lg:text-[10px] font-bold text-stone-600 dark:text-stone-300 uppercase tracking-widest">
                                         <span>Venta #{order.id.slice(-4).toUpperCase()}</span>
                                         <span>·</span>
                                         <span>{format(new Date(order.createdAt), "d MMM yyyy", { locale: es })}</span>
@@ -1419,7 +1430,7 @@ export default function VentasPage() {
                                                     <span className="hidden sm:inline">·</span>
                                                     <span className="w-full sm:w-auto mt-1 sm:mt-0">
                                                         Enviado: {format(new Date(order.labSentAt), "d/MM HH:mm", { locale: es })}
-                                                        <span className={`ml-1 font-black ${isCompleted ? 'text-emerald-500' : 'text-blue-500'}`}>
+                                                        <span className={`ml-1 font-black ${isCompleted ? 'text-emerald-700 dark:text-emerald-400' : 'text-blue-700 dark:text-blue-400'}`}>
                                                             ({isCompleted ? `demoró ${days} d` : `${days} d`})
                                                         </span>
                                                     </span>
@@ -1438,7 +1449,7 @@ export default function VentasPage() {
                                             <div className="flex-1">
                                                 {order.status === 'WEB_PAID' ? (
                                                     <>
-                                                        <p className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">🌐 Venta web con tarjeta — pago acreditado vía Payway ✓</p>
+                                                        <p className="text-[9px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">🌐 Venta web con tarjeta — pago acreditado vía Payway ✓</p>
                                                         <p className="text-[10px] font-bold text-stone-500 mt-0.5">El pago de ${(order.total || 0).toLocaleString('es-AR')} ya está registrado. Revisá el pedido y confirmá para pasarlo al flujo de preparación.</p>
                                                     </>
                                                 ) : (
@@ -1832,7 +1843,7 @@ export default function VentasPage() {
                             placeholder="Buscar por cliente, id, N° de OP o nota..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-14 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 backdrop-blur-md border border-stone-200/50 dark:border-stone-700/50 rounded-full focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all font-medium text-stone-850 dark:text-stone-100 placeholder-stone-400"
+                            className="w-full pl-14 pr-6 py-4 bg-stone-50/50 dark:bg-stone-800/30 backdrop-blur-md border border-stone-300 dark:border-stone-700 rounded-full focus:bg-white dark:focus:bg-stone-900 focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all font-medium text-stone-850 dark:text-stone-100 placeholder-stone-400"
                         />
                     </div>
 

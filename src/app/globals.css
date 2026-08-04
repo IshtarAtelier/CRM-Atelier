@@ -21,6 +21,29 @@
   --sidebar-border: #44403c; /* stone-700 */
 }
 
+/* ── Contraste de los grises claros ──────────────────────────────────────────
+   `text-stone-400` se usa 1298 veces en la app, casi siempre en etiquetas de
+   8-10px en mayúsculas (fechas, "enviado", nombres de filtro). Sobre el fondo
+   claro daba 2,5:1 de contraste: abajo del 4,5:1 que pide WCAG AA para texto
+   chico, y directamente ilegible para alguien con baja visión.
+
+   En modo CLARO los dos tonos más claros se corren un escalón hacia el oscuro
+   (400 pasa a valer lo que valía 500 → 4,9:1). En modo OSCURO se dejan como
+   vienen: ahí el gris claro contrasta bien contra el fondo negro y oscurecerlo
+   sería el error simétrico.
+
+   Se toca el token y no cada clase a propósito: 1298 usos no se migran a mano
+   sin romper algo, y así cualquier pantalla nueva nace con el piso correcto. */
+:root {
+  --color-stone-300: #a8a29e; /* era #d6d3d1 (el stone-400 de Tailwind) */
+  --color-stone-400: #78716c; /* era #a8a29e (el stone-500 de Tailwind) */
+}
+
+.dark {
+  --color-stone-300: #d6d3d1;
+  --color-stone-400: #a8a29e;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
