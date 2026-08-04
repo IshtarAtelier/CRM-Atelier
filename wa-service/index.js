@@ -30,6 +30,7 @@ const { downloadMediaWithRetry, uploadMediaToCrm } = require('./shared/media');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
 const { parseAdTag, prefillAdTag, stripAdTags } = require('./shared/ad-tag');
 const { serializedId, resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
+const { BotReplyingSet } = require('./shared/bot-replying');
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -195,7 +196,8 @@ const passiveDebounceTimers = new Map();
 // (TAGS_SIN_BOT se importa desde ./utils)
 
 // ── Detección de Intervención Humana ───────────
-global.botReplyingTo = new Set();
+// La marca vence sola: ver el porqué en shared/bot-replying.js.
+global.botReplyingTo = new BotReplyingSet();
 const botReplyingTo = global.botReplyingTo; // Trackear cuando el bot está enviando para evitar race conditions
 
 // waId → nombre del usuario del CRM que está enviando en este momento. Sin esto,
