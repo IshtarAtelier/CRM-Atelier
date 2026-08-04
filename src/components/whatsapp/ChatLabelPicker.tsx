@@ -34,6 +34,53 @@ const getLabelStyleInline = (hexColor: string | null | undefined) => {
     };
 };
 
+/** Una fila del selector. Se extrajo para no repetir el mismo JSX en el bloque
+ *  de activas y en cada grupo. */
+function FilaEtiqueta({
+    tag,
+    active,
+    toggling,
+    onToggle,
+}: {
+    tag: Tag;
+    active: boolean;
+    toggling: boolean;
+    onToggle: (name: string) => void;
+}) {
+    return (
+        <button
+            onClick={() => onToggle(tag.name)}
+            disabled={toggling}
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-left mb-1 last:mb-0 ${
+                active ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'hover:bg-stone-50 dark:hover:bg-stone-800/50'
+            } ${toggling ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+            <div
+                className="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all"
+                style={
+                    active
+                        ? getLabelStyleInline(tag.color)
+                        : { backgroundColor: 'transparent', borderColor: 'var(--border, #ddd)' }
+                }
+            >
+                {active && <Check className="w-3 h-3" />}
+            </div>
+
+            <span className="flex-1 text-sm font-medium text-stone-700 dark:text-stone-200">
+                {tag.name}
+            </span>
+
+            {tag.color && (
+                <div
+                    className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
+                    style={{ backgroundColor: tag.color }}
+                    title={tag.color}
+                />
+            )}
+        </button>
+    );
+}
+
 export function ChatLabelPicker({
     labels,
     availableTags,
@@ -65,9 +112,48 @@ export function ChatLabelPicker({
         return () => clearTimeout(timer);
     }, [isOpen]);
 
+    // Búsqueda sin tildes ni mayúsculas: buscar "maculopatia" tiene que
+    // encontrar "Maculopatía".
+    const normalizar = (s: string) =>
+        (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+
     const filteredTags = availableTags.filter(tag =>
-        tag.name.toLowerCase().includes(searchQuery.toLowerCase())
+        normalizar(tag.name).includes(normalizar(searchQuery))
     );
+
+    // Con 70 etiquetas, una lista plana alfabética es inusable: la que buscás
+    // está en cualquier lado y las que YA tiene el chat se pierden entre las
+    // demás. Se agrupan por familia y las activas van siempre primero.
+    const familiaDe = (nombre: string): string => {
+        const n = normalizar(nombre);
+        if (n.includes('sin seguimiento') || n.includes('seguimiento') || n.includes('bot apagado')) return 'Seguimiento y bot';
+        if (/multifocal|monofocal|bifocal|ocupacional|contacto|sol\b|receta|clipon|lentes de lejos|cerca|armaz|anteojo|gafa|lente|2x1|promo|presupuesto|renovaci|graduad|miop|astigmat|presbi/.test(n)) return 'Qué busca';
+        if (/obra social|ospia|ospigc|parque salud|novis|ocusis|met\b|amc|prepaga|pami|apross/.test(n)) return 'Obra social';
+        if (/meta|google|ads|referido|calle|instagram|facebook|showroom|visita/.test(n)) return 'De dónde vino';
+        if (/post-?venta|reclamo|ya es cliente|vip|spam|proveedor|postulante/.test(n)) return 'Estado del cliente';
+        return 'Otras';
+    };
+
+    const ORDEN_FAMILIAS = [
+        'Seguimiento y bot',
+        'Qué busca',
+        'Obra social',
+        'De dónde vino',
+        'Estado del cliente',
+        'Otras',
+    ];
+
+    const activas = filteredTags.filter(t => labels.includes(t.name));
+    const inactivas = filteredTags.filter(t => !labels.includes(t.name));
+
+    const grupos = ORDEN_FAMILIAS
+        .map(fam => ({
+            familia: fam,
+            tags: inactivas
+                .filter(t => familiaDe(t.name) === fam)
+                .sort((a, b) => a.name.localeCompare(b.name, 'es')),
+        }))
+        .filter(g => g.tags.length > 0);
 
     const handleToggle = async (tagName: string) => {
         setToggling(tagName);
@@ -134,52 +220,42 @@ export function ChatLabelPicker({
                         <div className="max-h-80 overflow-y-auto custom-scrollbar-smooth">
                             {filteredTags.length > 0 ? (
                                 <div className="py-2 px-2">
-                                    {filteredTags.map(tag => {
-                                        const active = isActive(tag.name);
-                                        const isCurrentlyToggling = toggling === tag.name;
-
-                                        return (
-                                            <button
-                                                key={tag.id}
-                                                onClick={() => handleToggle(tag.name)}
-                                                disabled={isCurrentlyToggling}
-                                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left mb-1 last:mb-0 ${
+                                    {activas.length > 0 && (
+                                        <>
+                                            <p className="px-3 pt-1 pb-2 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-500">
+                                                Puestas en este chat
+                                            </p>
+                                            {activas.map(tag => (
+                                                <FilaEtiqueta
+                                                    key={tag.id}
+                                                    tag={tag}
                                                     active
-                                                        ? 'bg-stone-100 dark:bg-stone-800'
-                                                        : 'hover:bg-stone-50 dark:hover:bg-stone-800/50'
-                                                } ${isCurrentlyToggling ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            >
-                                                {/* Checkbox visual */}
-                                                <div
-                                                    className="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all"
-                                                    style={
-                                                        active
-                                                            ? getLabelStyleInline(tag.color)
-                                                            : {
-                                                                  backgroundColor: 'transparent',
-                                                                  borderColor: 'var(--border, #ddd)'
-                                                              }
-                                                    }
-                                                >
-                                                    {active && <Check className="w-3 h-3" />}
-                                                </div>
+                                                    toggling={toggling === tag.name}
+                                                    onToggle={handleToggle}
+                                                />
+                                            ))}
+                                            {grupos.length > 0 && (
+                                                <div className="my-2 border-t border-stone-200 dark:border-stone-700" />
+                                            )}
+                                        </>
+                                    )}
 
-                                                {/* Nombre de etiqueta */}
-                                                <span className="flex-1 text-sm font-medium text-stone-700 dark:text-stone-200">
-                                                    {tag.name}
-                                                </span>
-
-                                                {/* Color preview */}
-                                                {tag.color && (
-                                                    <div
-                                                        className="w-3 h-3 rounded-full flex-shrink-0 shadow-sm"
-                                                        style={{ backgroundColor: tag.color }}
-                                                        title={tag.color}
-                                                    />
-                                                )}
-                                            </button>
-                                        );
-                                    })}
+                                    {grupos.map(grupo => (
+                                        <div key={grupo.familia}>
+                                            <p className="px-3 pt-2 pb-1.5 text-[10px] font-black uppercase tracking-widest text-stone-400">
+                                                {grupo.familia}
+                                            </p>
+                                            {grupo.tags.map(tag => (
+                                                <FilaEtiqueta
+                                                    key={tag.id}
+                                                    tag={tag}
+                                                    active={false}
+                                                    toggling={toggling === tag.name}
+                                                    onToggle={handleToggle}
+                                                />
+                                            ))}
+                                        </div>
+                                    ))}
                                 </div>
                             ) : (
                                 <div className="py-8 text-center text-sm text-stone-400 dark:text-stone-500">
