@@ -186,7 +186,21 @@ async function startClient(attempt = 1) {
         keepAliveFailCount = 0; // Resetear contador de fallos
         connectedPhone = waClient.info?.wid?.user || 'desconocido';
         console.log(`\n✅ WhatsApp conectado: ${connectedPhone}`);
-        
+
+        // Qué build de WhatsApp Web quedó corriendo. Es el dato que decide si el
+        // pin de webVersionCache sirvió: si acá aparece una build POSTERIOR a
+        // 2.3000.1042401057 (la del renombre `_serialized` → `$1`), el pin no se
+        // aplicó y por eso getChats() y downloadMedia() tiran "r" — que es la
+        // razón de que las fotos de recetas no se guarden.
+        waClient.getWWebVersion()
+            .then(v => {
+                const esperada = process.env.WA_WEB_VERSION || '2.3000.1042391138-alpha';
+                const coincide = String(v) === esperada;
+                console.log(`🌐 WhatsApp Web build: ${v} | fijada: ${esperada} | ${coincide ? 'PIN APLICADO' : '⚠️ PIN NO APLICADO (corre la build viva)'}`);
+            })
+            .catch(e => console.warn('🌐 No se pudo leer la build de WhatsApp Web:', e.message));
+
+
         // Registrar cliente en la cola anti-ban
         antiBanQueue.setClient(waClient);
 
