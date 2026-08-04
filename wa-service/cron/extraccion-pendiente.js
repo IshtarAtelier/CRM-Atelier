@@ -35,8 +35,14 @@ const { isPhrase } = require('../tools');
 const TANDA = 15;
 /** No tocar chats con actividad reciente: el debounce en vivo todavía tiene su turno. */
 const MINUTOS_DE_GRACIA = 5;
-/** Hasta dónde mirar hacia atrás. El backlog viejo lo levanta el script de mantenimiento. */
-const DIAS = 7;
+/**
+ * Hasta dónde mirar hacia atrás. Pedido del dueño (4/8/2026): solo el fin de
+ * semana + hoy — 3 días. Con 7 días, la primera corrida tras un arreglo creó
+ * ~95 fichas de golpe y el contador de "nuevos contactos hoy" quedó
+ * irreconocible. Lo anterior a la ventana lo levanta, si hace falta, el script
+ * de mantenimiento a mano. Ajustable por env sin tocar código.
+ */
+const DIAS = Number(process.env.EXTRACCION_PENDIENTE_DIAS) || 3;
 
 /**
  * Espejo de `telefonoValido` de passive-extractor.js, para el caso con
