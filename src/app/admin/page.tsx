@@ -832,9 +832,32 @@ export default function Home() {
   );
 }
 
-function NewContactsHero({ nc, loading }: { nc?: { sinceCutoff: number; today: number; week: number; month: number; cutoffISO: string }; loading?: boolean }) {
-  const data = nc || { sinceCutoff: 0, today: 0, week: 0, month: 0, cutoffISO: '' };
+type NewContactsData = {
+  sinceCutoff: number; today: number; week: number; month: number;
+  last7?: number; last30?: number; cutoffISO: string;
+};
+
+const RANGOS_CONTACTOS = [
+  { key: 'today', label: 'Hoy' },
+  { key: 'last7', label: '7 días' },
+  { key: 'last30', label: '30 días' },
+] as const;
+
+type RangoContactos = typeof RANGOS_CONTACTOS[number]['key'];
+
+function NewContactsHero({ nc, loading }: { nc?: NewContactsData; loading?: boolean }) {
+  const data: NewContactsData = nc || { sinceCutoff: 0, today: 0, week: 0, month: 0, last7: 0, last30: 0, cutoffISO: '' };
+  const [rango, setRango] = useState<RangoContactos>('today');
+
+  const valor = rango === 'today' ? data.today : rango === 'last7' ? (data.last7 ?? 0) : (data.last30 ?? 0);
+
   const hoy = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const pie = rango === 'today'
+    ? `Subidos al sistema · ${hoy}`
+    : rango === 'last7'
+      ? 'Subidos al sistema · últimos 7 días'
+      : 'Subidos al sistema · últimos 30 días';
+
   return (
     <Link
       href="/admin/contactos"
@@ -852,18 +875,37 @@ function NewContactsHero({ nc, loading }: { nc?: { sinceCutoff: number; today: n
           </div>
           <div>
             <p className="mb-1 text-[10px] font-black uppercase tracking-[0.25em] text-[#e7d3c1]/80">
-              Nuevos contactos hoy
+              Nuevos contactos
             </p>
             <div className="flex items-end gap-3">
               <span className="text-6xl font-black leading-none tracking-tight drop-shadow-sm md:text-7xl">
-                {data.today.toLocaleString()}
+                {valor.toLocaleString()}
               </span>
               <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white/90">
-                <UserPlus className="h-3 w-3" /> {data.today === 1 ? 'contacto' : 'contactos'}
+                <UserPlus className="h-3 w-3" /> {valor === 1 ? 'contacto' : 'contactos'}
               </span>
             </div>
+
+            {/* Selector de período. La tarjeta entera es un Link a Contactos, así
+                que cada botón corta la navegación (preventDefault) para que
+                elegir un rango no te saque de la pantalla. */}
+            <div className="mt-2.5 inline-flex gap-1 rounded-xl bg-black/25 p-1">
+              {RANGOS_CONTACTOS.map(r => (
+                <button
+                  key={r.key}
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRango(r.key); }}
+                  className={`rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-wider transition-all ${
+                    rango === r.key ? 'bg-white/90 text-stone-900 shadow-sm' : 'text-white/60 hover:text-white/90'
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+
             <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/60">
-              Subidos al sistema · {hoy}
+              {pie}
             </p>
           </div>
         </div>

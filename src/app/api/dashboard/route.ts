@@ -139,17 +139,35 @@ export async function GET(request: Request) {
         // "borrón y cuenta nueva" (mismo corte que el "sin atender", ver constants.ts).
         // Los cortes ART (startOfDayART, etc.) están definidos arriba, antes del dateFilter.
         const attentionCutoff = new Date(process.env.ATTENTION_CUTOFF_DATE || ATTENTION_CUTOFF_ISO);
-        const [newContactsSinceCutoff, newContactsToday, newContactsWeek, newContactsMonth] = await Promise.all([
+        // "Últimos 7/30 días" son ventanas móviles que arrancan a la medianoche ART
+        // de hace N días — no la semana ni el mes calendario, que ya se cuentan
+        // aparte. Un lunes a la mañana "esta semana" muestra casi nada; "7 días"
+        // sirve para ver el ritmo real.
+        const startOfLast7ART = new Date(startOfDayART.getTime() - 6 * 24 * 60 * 60 * 1000);
+        const startOfLast30ART = new Date(startOfDayART.getTime() - 29 * 24 * 60 * 60 * 1000);
+
+        const [
+            newContactsSinceCutoff,
+            newContactsToday,
+            newContactsWeek,
+            newContactsMonth,
+            newContactsLast7,
+            newContactsLast30,
+        ] = await Promise.all([
             prisma.client.count({ where: { isDeleted: false, createdAt: { gte: attentionCutoff } } }),
             prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfDayART } } }),
             prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfWeekART } } }),
             prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfMonthART } } }),
+            prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfLast7ART } } }),
+            prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfLast30ART } } }),
         ]);
         const newContacts = {
             sinceCutoff: newContactsSinceCutoff,
             today: newContactsToday,
             week: newContactsWeek,
             month: newContactsMonth,
+            last7: newContactsLast7,
+            last30: newContactsLast30,
             cutoffISO: attentionCutoff.toISOString(),
         };
 
