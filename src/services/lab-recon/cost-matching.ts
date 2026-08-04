@@ -66,6 +66,14 @@ export function systemCostForLab(order: any, lab: string): number {
  * lo cruza contra la orden del CRM y dispara alerta si hay sobrecosto nuevo.
  * Devuelve la entrada resultante.
  */
+/**
+ * Marca que la alerta de "reproceso de garantía facturado con cargo" ya salió.
+ * Vive a nivel módulo porque la usan DOS lugares: el rearmado de notas (para
+ * no pisarla) y el envío (para no repetir). Cuando cada uno tenía su propio
+ * texto, el dedupe no servía y el email se reenviaba en cada corrida.
+ */
+const REWORK_MARK = '⚠️ REPROCESO DE GARANTÍA FACTURADO CON CARGO';
+
 export async function upsertEntry(input: LabCostInput) {
     const cleanNumber = input.claveLiteral
         ? input.labOrderNumber.trim()
@@ -234,8 +242,14 @@ export async function upsertEntry(input: LabCostInput) {
     // El marcador de "reproceso cobrado ya avisado" sobrevive a los rearmados
     // de notas (el proveedor manda su nota en cada corrida y la pisaría —
     // perdiendo el dedupe y reenviando la alerta en cada pasada).
-    const reworkMark = existing?.notes?.includes('[Reproceso cobrado avisado]') && !baseNotes?.includes('[Reproceso cobrado avisado]')
-        ? '[Reproceso cobrado avisado]' : null;
+    //
+    // 4/8/2026: esto NO funcionaba. Acá se buscaba '[Reproceso cobrado avisado]'
+    // pero abajo se escribe REWORK_MARK, que es otro texto: la marca real se
+    // perdía en cada corrida y la alerta salía cada 10 minutos, para siempre.
+    // Tres pedidos (80530908, 80530914, 80530530) llenaron la casilla del
+    // administrador. Ahora los dos lados usan la MISMA constante.
+    const reworkMark = existing?.notes?.includes(REWORK_MARK) && !baseNotes?.includes(REWORK_MARK)
+        ? REWORK_MARK : null;
     const notes = [resolucionNote, pvNote, baseNotes, multiNote, reworkMark].filter(Boolean).join(' ') || null;
 
     const data = {
@@ -310,7 +324,6 @@ export async function upsertEntry(input: LabCostInput) {
     // pedidos sin venta). El marcador en la nota hace el aviso persistente: si
     // el email falla se reintenta en la próxima corrida, y una vez enviado no
     // se repite nunca; además deja la marca visible en la pantalla.
-    const REWORK_MARK = '⚠️ REPROCESO DE GARANTÍA FACTURADO CON CARGO';
     if (pvCase && order && billedComparable !== null && billedComparable > 5000
         && !(entry.notes || '').includes(REWORK_MARK)) {
         const marcar = () => prisma.labCostEntry.update({
