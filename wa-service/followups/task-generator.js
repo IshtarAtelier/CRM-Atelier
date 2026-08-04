@@ -1,5 +1,6 @@
 const { prisma } = require('../db');
 const { checkEligibility } = require('./eligibility');
+const { MAX_NEW_TASKS_PER_DAY } = require('./config');
 
 // Ventana de ENVÍO de seguimientos, en minutos desde la medianoche (hora de Argentina).
 // A propósito más angosta que el horario real del local (L–V 8–20, Sáb 9–17): se
@@ -84,9 +85,35 @@ async function generateFollowUpTasks() {
             orderBy: { createdAt: 'desc' }
         });
 
+        // ── FRENO ANTI-BLOQUEO (innegociable) ────────────────────────────────
+        // Nunca, bajo ninguna circunstancia, se sueltan todos los seguimientos
+        // juntos. Al separar los seguimientos del interruptor del agente
+        // quedaron 265 presupuestos represados en el primer escalón: mandarlos
+        // de una es un patrón de envío masivo no solicitado y la vía más rápida
+        // a que WhatsApp bloquee el número, que es la línea comercial del local.
+        // Se cuentan las tareas de seguimiento YA creadas hoy (no las enviadas):
+        // el tope vale aunque el proceso se reinicie diez veces en el día,
+        // porque el dato vive en la base y no en memoria.
+        const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
+        const artNow = new Date(Date.now() - ART_OFFSET_MS);
+        const inicioDiaART = new Date(Date.UTC(artNow.getUTCFullYear(), artNow.getUTCMonth(), artNow.getUTCDate()) + ART_OFFSET_MS);
+
+        const creadasHoy = await prisma.clientTask.count({
+            where: { type: 'FOLLOWUP', createdBy: 'Bot', createdAt: { gte: inicioDiaART } },
+        });
+
+        let cupoRestante = MAX_NEW_TASKS_PER_DAY - creadasHoy;
+        if (cupoRestante <= 0) {
+            console.log(`[Task Generator] Cupo diario agotado (${creadasHoy}/${MAX_NEW_TASKS_PER_DAY}). Sin tareas nuevas hasta mañana.\n`);
+            return;
+        }
+        console.log(`[Task Generator] Cupo del día: ${creadasHoy}/${MAX_NEW_TASKS_PER_DAY} usados, quedan ${cupoRestante}.`);
+
         let tasksCreated = 0;
+        let frenadosPorCupo = 0;
 
         for (const quote of recentQuotes) {
+            if (cupoRestante <= 0) { frenadosPorCupo++; continue; }
             const client = quote.client;
             if (!client || !client.whatsappChats || client.whatsappChats.length === 0) continue;
 
@@ -124,11 +151,15 @@ async function generateFollowUpTasks() {
                     const dueAR = dueDate.toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
                     console.log(`  ✅ [Task Gen] Tarea creada: ${client.name} -> ${followUpType} (Vence: ${dueAR} AR)`);
                     tasksCreated++;
+                    cupoRestante--;
                 }
             }
         }
 
-        console.log(`[Task Generator] Finalizado. Tareas creadas: ${tasksCreated}\n`);
+        const nota = frenadosPorCupo > 0
+            ? ` · ${frenadosPorCupo} en espera por el tope diario (siguen mañana)`
+            : '';
+        console.log(`[Task Generator] Finalizado. Tareas creadas: ${tasksCreated}${nota}\n`);
 
     } catch (err) {
         console.error('❌ Error en Task Generator:', err.message);

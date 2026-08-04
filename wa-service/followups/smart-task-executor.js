@@ -186,12 +186,12 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
 
             const chat = client.whatsappChats[0];
 
-            // Validar que el chat siga con bot activado
-            if (!chat.botEnabled) {
-                console.log(`  🚫 [Smart Task Executor] Tarea cancelada: Bot apagado para ${client.name}`);
-                await cancelTask(task.id);
-                continue;
-            }
+            // OJO: acá NO se cancela por `botEnabled`. Ese flag dice si el
+            // AGENTE contesta en la charla y se apaga solo apenas responde una
+            // persona — o sea, en casi todos los chats con presupuesto. Cancelar
+            // por eso es lo que dejó 9 de las 13 tareas históricas en CANCELLED
+            // sin que saliera un solo seguimiento. El corte por conversación es
+            // la etiqueta SIN_SEGUIMIENTO, que valida el sender antes de enviar.
 
             // Pausa cruzada puesta por la compuerta o por otro sistema
             // ("hablamos a fin de mes"): sin gastar una llamada de LLM.

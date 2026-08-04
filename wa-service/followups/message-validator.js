@@ -91,10 +91,23 @@ function validateMessage(text) {
     // 9. Nombre del cliente repetido más de 1 vez (señal de que el LLM está divagando)
     // Se chequea externamente pasando el nombre
 
-    // 9b. Máximo UNA pregunta por mensaje (regla global de estilo del bot)
-    const questionCount = (trimmed.match(/\?/g) || []).length;
-    if (questionCount > 1) {
-        return { valid: false, reason: `Más de una pregunta en el mensaje (${questionCount})` };
+    // 9b. Máximo UNA pregunta REAL por mensaje (regla global de estilo del bot).
+    //
+    // El saludo argentino lleva pregunta incorporada ("Hola Stella, cómo andás?")
+    // y no es una pregunta que el cliente tenga que responder: es cortesía. Al
+    // contarla, un mensaje normal daba 2 y se rechazaba. Medido el 4/8/2026 con
+    // un presupuesto real: 3 de los 4 tipos de seguimiento fallaron sus 3
+    // intentos SOLO por esto, y no salía ningún mensaje.
+    const sinSaludo = trimmed.replace(
+        /\b(c[oó]mo\s+(and[aá]s|est[aá]s|va|te\s+va|anda\s+todo)|qu[eé]\s+tal|todo\s+bien)\s*\?/gi,
+        ''
+    );
+    // Tope: DOS preguntas reales. El DÍA 1 cierra, por pedido del dueño, con una
+    // segunda pregunta-oferta ("querés que te mande alguna fotito?") además del
+    // sondeo. Tres o más ya es interrogatorio y se rechaza.
+    const questionCount = (sinSaludo.match(/\?/g) || []).length;
+    if (questionCount > 2) {
+        return { valid: false, reason: `Demasiadas preguntas en el mensaje (${questionCount})` };
     }
 
     // 9c. Re-presentación o títulos: en un seguimiento el cliente ya nos conoce

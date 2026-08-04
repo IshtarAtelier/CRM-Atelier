@@ -32,18 +32,16 @@ async function preSendValidation(chatId, waId) {
         return { canSend: false, reason: `Chat ${chatId} ya no existe` };
     }
 
-    if (!freshChat.botEnabled) {
-        return { canSend: false, reason: `Bot desactivado para ${freshChat.profileName || waId}` };
-    }
+    // Acá NO se mira `botEnabled` ni [SISTEMA - BOT APAGADO]: gobiernan si el
+    // AGENTE contesta, y se apagan solos apenas una persona toma la charla —
+    // que es justo lo que pasa cuando se arma un presupuesto. El corte del
+    // seguimiento por conversación es la etiqueta SIN_SEGUIMIENTO.
 
     // Etiquetas de corte: pueden haberse aplicado (por un humano o por la
     // compuerta de conversación) DESPUÉS de que este envío se generó y encoló.
     const labels = freshChat.chatLabels || [];
     if (labels.includes('SIN_SEGUIMIENTO')) {
         return { canSend: false, reason: `Etiqueta SIN_SEGUIMIENTO en ${freshChat.profileName || waId}` };
-    }
-    if (labels.includes('[SISTEMA - BOT APAGADO]')) {
-        return { canSend: false, reason: `Bot apagado por sistema en ${freshChat.profileName || waId}` };
     }
 
     if (freshChat.lastMessageAt) {

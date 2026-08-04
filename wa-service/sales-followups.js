@@ -47,11 +47,33 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
         // había salido, la etiqueta y el cooldown la marcan como no elegible.
         const staleClaimLimit = new Date(now.getTime() - STALE_CLAIM_MINUTES * 60 * 1000);
 
+        // ── SOLO LO DEL DÍA. Lo que no salió, se olvida ──────────────────────
+        // Política del dueño (4/8/2026): el seguimiento tiene sentido cuando es
+        // oportuno. Una tarea que no salió hoy NO se arrastra: mañana el
+        // generador vuelve a evaluar desde cero y, si el presupuesto sigue en
+        // ventana, la crea de nuevo. Sin esto la cola acumula deuda vieja y un
+        // día se descarga junta — el escenario de bloqueo de WhatsApp que hay
+        // que evitar bajo cualquier circunstancia.
+        const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
+        const artNow = new Date(now.getTime() - ART_OFFSET_MS);
+        const inicioDiaART = new Date(Date.UTC(artNow.getUTCFullYear(), artNow.getUTCMonth(), artNow.getUTCDate()) + ART_OFFSET_MS);
+
+        // Las de días anteriores se cierran ANTES de elegir, para que no se
+        // acumulen para siempre en la tabla ni reaparezcan por un cambio de
+        // criterio. Quedan como CANCELLED, con rastro.
+        const olvidadas = await prisma.clientTask.updateMany({
+            where: { type: 'FOLLOWUP', status: 'PENDING', dueDate: { lt: inicioDiaART } },
+            data: { status: 'CANCELLED' },
+        });
+        if (olvidadas.count > 0) {
+            console.log(`[Bot Executor] ${olvidadas.count} seguimiento(s) de días anteriores dados de baja (no se arrastran).`);
+        }
+
         const pendingTasks = await prisma.clientTask.findMany({
             where: {
                 type: 'FOLLOWUP',
                 OR: [
-                    { status: 'PENDING', dueDate: { lte: now } },
+                    { status: 'PENDING', dueDate: { lte: now, gte: inicioDiaART } },
                     { status: 'SENDING', updatedAt: { lte: staleClaimLimit } },
                 ],
             },

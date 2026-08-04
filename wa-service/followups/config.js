@@ -46,6 +46,31 @@ const SEND_DELAY_MAX_MINUTES = 4;
 const MAX_TASKS_PER_CYCLE = 6;
 
 /**
+ * Tope de tareas NUEVAS por día. Es el freno anti-bloqueo más importante.
+ *
+ * Los seguimientos estuvieron atados al interruptor del agente y nunca salió
+ * ninguno: al separarlos quedaron 265 presupuestos represados en el primer
+ * escalón (medido en producción el 4/8/2026). Soltarlos de una es un patrón de
+ * envío masivo no solicitado — la forma más rápida de que WhatsApp bloquee el
+ * número, que es la línea comercial de la óptica.
+ *
+ * Con 25 por día la deuda se drena en ~10 días hábiles, a un ritmo que se
+ * parece al de una persona escribiendo. Subir SOLO después de ver varios días
+ * sin advertencias y sin quejas de clientes.
+ */
+const MAX_NEW_TASKS_PER_DAY = Number(process.env.FOLLOWUP_MAX_NEW_PER_DAY) || 25;
+
+/**
+ * Cuánto se tolera llegar tarde a un escalón, en horas.
+ *
+ * Sin esto, un presupuesto de hace 20 días recibía HOY su seguimiento de
+ * "48 horas": al cliente le llega un "¿pudiste verlo?" tres semanas después,
+ * que suena a error y quema la relación. Si el escalón quedó más viejo que esta
+ * tolerancia, se da por perdido y se pasa al siguiente que corresponda.
+ */
+const TIER_GRACE_HOURS = Number(process.env.FOLLOWUP_TIER_GRACE_HOURS) || 72;
+
+/**
  * Una tarea reclamada (status SENDING) que quedó más de este tiempo sin
  * resolverse se considera huérfana y se vuelve a tomar. Es lo que rescata los
  * envíos que se perdían cuando Railway reiniciaba con timers en memoria.
@@ -73,7 +98,15 @@ const AUTO_SENDABLE_TASK_PREFIX = '[Extracción Inteligente]';
 // ──────────────────────────────────────────────
 // Generación de mensajes
 // ──────────────────────────────────────────────
-const MAX_OUTPUT_TOKENS = 300;
+// gemini-2.5-flash gasta tokens de RAZONAMIENTO que se descuentan de este mismo
+// presupuesto: con 300 el mensaje llegaba cortado a la mitad ("...los multif") y
+// el validador lo rechazaba por corto o por no terminar limpio. Reproducido el
+// 4/8/2026 sobre un presupuesto real: los 3 intentos fallaron en los 4 tipos de
+// seguimiento. Es el mismo bug que tenía el extractor de fichas, y el que hacía
+// que no saliera ni un seguimiento aunque el resto estuviera bien.
+// conversation-gate.js:67-70 ya lo había diagnosticado. 2048 y no 1024: el
+// DIA_15 (el prompt más largo, con cupón) seguía cortándose con 1024.
+const MAX_OUTPUT_TOKENS = 2048;
 const TEMPERATURE = 0.7;
 const MODEL_NAME = 'gemini-2.5-flash';
 const GENERATION_TIMEOUT_MS = 30000;
@@ -125,6 +158,8 @@ module.exports = {
     SEND_DELAY_MIN_MINUTES,
     SEND_DELAY_MAX_MINUTES,
     MAX_TASKS_PER_CYCLE,
+    MAX_NEW_TASKS_PER_DAY,
+    TIER_GRACE_HOURS,
     STALE_CLAIM_MINUTES,
     AUTO_SENDABLE_TASK_PREFIX,
     GATE_TIMEOUT_MS,

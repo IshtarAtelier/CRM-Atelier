@@ -9,6 +9,7 @@ const {
     FOLLOWUP_TIERS,
     COOLDOWN_HOURS,
     ACTIVITY_WINDOW_HOURS,
+    TIER_GRACE_HOURS,
 } = require('./config');
 
 /**
@@ -24,10 +25,24 @@ const {
  */
 async function checkEligibility({ client, chat, quote, now, isManual = false, taskDescription = null }) {
 
-    // 1. Bot habilitado para este chat
-    if (!chat.botEnabled) {
-        return { eligible: false, reason: `Bot desactivado para ${client.name}` };
-    }
+    // 1. SON DOS INTERRUPTORES DISTINTOS, y este módulo solo mira el suyo.
+    //
+    //    · `chat.botEnabled` y el label [SISTEMA - BOT APAGADO] gobiernan al
+    //      AGENTE: si CONTESTA o no en ese chat. Se apagan solos apenas una
+    //      persona responde (index.js:270, "Intervención humana").
+    //    · Los SEGUIMIENTOS tienen los suyos: el interruptor global del panel
+    //      (lo aplica el ejecutor) y, por conversación, la etiqueta
+    //      SIN_SEGUIMIENTO.
+    //
+    //    Hasta el 4/8/2026 acá se exigía `chat.botEnabled`, y eso ataba una cosa
+    //    a la otra: medido sobre 20 días, 308 de 308 presupuestos con chat
+    //    tenían el bot apagado, así que NUNCA salía un seguimiento. Y era al
+    //    revés de lo que el negocio necesita: el presupuesto lo arma una persona
+    //    hablando con el cliente —lo que apaga el bot en ese chat—, o sea que
+    //    quien más merece seguimiento era justamente a quien nunca se le escribía.
+    //
+    //    Para frenar los seguimientos de UNA conversación: etiqueta SIN_SEGUIMIENTO.
+    //    Para frenarlos TODOS: el interruptor "Seguimientos" del panel.
 
     // 2. No tiene SIN_SEGUIMIENTO (Only block if NOT manual trigger)
     const labels = chat.chatLabels || [];
@@ -43,13 +58,16 @@ async function checkEligibility({ client, chat, quote, now, isManual = false, ta
         return { eligible: false, reason: `${client.name} tiene tag de exclusión` };
     }
 
-    // 4. No tiene label de bot apagado manual
-    const tieneLabelApagado = labels.some(label =>
-        label.includes('[SISTEMA - BOT APAGADO]') ||
+    // 4. Etiquetas del chat que excluyen del seguimiento (post-venta, ya es
+    //    cliente, etc.). OJO: acá NO va [SISTEMA - BOT APAGADO] — ese label solo
+    //    dice que el agente dejó de contestar en la charla, que es lo normal
+    //    apenas la toma una persona. Frenar el seguimiento por eso era la causa
+    //    de que nunca saliera ninguno (ver nota del punto 1).
+    const tieneLabelExclusion = labels.some(label =>
         TAGS_SIN_BOT.some(t => label.toLowerCase().includes(t))
     );
-    if (tieneLabelApagado) {
-        return { eligible: false, reason: `Chat de ${client.name} desactivado manualmente` };
+    if (tieneLabelExclusion) {
+        return { eligible: false, reason: `Chat de ${client.name} tiene etiqueta de exclusión` };
     }
 
     // 4b. Pausa puesta por la compuerta de conversación ("hablamos a fin de
@@ -135,8 +153,17 @@ async function checkEligibility({ client, chat, quote, now, isManual = false, ta
         // ¿Requiere una etiqueta previa que no tiene?
         if (tier.requiresPrevious && !labels.includes(tier.requiresPrevious)) continue;
 
-        // ¿Pasaron suficientes horas?
-        if (diffHours >= tier.hoursAfterQuote) {
+        // ¿Pasaron suficientes horas... y no DEMASIADAS?
+        //
+        // El techo es tan importante como el piso: sin él, un presupuesto de
+        // hace 20 días recibía hoy su seguimiento "de las 48 horas", y al
+        // cliente le llegaba un "¿pudiste verlo?" tres semanas tarde — suena a
+        // error y quema la relación. Si el escalón quedó viejo, se saltea y se
+        // evalúa el siguiente; si ninguno está en ventana, no se manda nada.
+        // El trigger manual ignora el techo: si alguien lo pide a mano, sabe
+        // lo que hace.
+        const venceEn = tier.hoursAfterQuote + TIER_GRACE_HOURS;
+        if (diffHours >= tier.hoursAfterQuote && (isManual || diffHours <= venceEn)) {
             return {
                 eligible: true,
                 followUpType: tier.type,
