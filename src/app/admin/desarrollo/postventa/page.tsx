@@ -11,7 +11,9 @@ import {
     Phone, 
     Calendar,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Search,
+    X
 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -23,6 +25,7 @@ export default function PostVentaPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedDetail, setExpandedDetail] = useState<string | null>(null);
+    const [busqueda, setBusqueda] = useState('');
 
     const fetchPostSales = async () => {
         setLoading(true);
@@ -46,8 +49,32 @@ export default function PostVentaPage() {
         fetchPostSales();
     }, []);
 
-    const totalCases = orders.length;
-    const totalCost = orders.reduce((sum, order) => sum + (order.postSaleCost || 0), 0);
+    // Búsqueda por N° de operación o por nombre, pensada para cuando haya
+    // cientos de casos: sin tildes ni mayúsculas, y el número se puede tipear
+    // con o sin "#". El id que se muestra en pantalla son los últimos 6
+    // caracteres en mayúscula, así que se busca contra el id completo.
+    const normalizar = (s: string) =>
+        (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+
+    const q = normalizar(busqueda).replace(/^#/, '');
+
+    const ordersFiltradas = !q
+        ? orders
+        : orders.filter(order => {
+            const nombre = normalizar(order.client?.name || '');
+            const telefono = (order.client?.phone || '').replace(/\D/g, '');
+            const id = normalizar(order.id);
+            const responsable = normalizar(order.postSaleResponsible || '');
+            return nombre.includes(q)
+                || id.includes(q)
+                || responsable.includes(q)
+                || (/^\d+$/.test(q) && telefono.includes(q));
+        });
+
+    // Los totales siguen a lo que estás viendo: si filtrás, el resumen es del
+    // filtro. Si no, es de todo.
+    const totalCases = ordersFiltradas.length;
+    const totalCost = ordersFiltradas.reduce((sum, order) => sum + (order.postSaleCost || 0), 0);
     const averageCost = totalCases > 0 ? totalCost / totalCases : 0;
 
     return (
@@ -112,6 +139,35 @@ export default function PostVentaPage() {
                 </div>
             </div>
 
+            {/* Buscador: pensado para cuando el área tenga cientos de fichas */}
+            <div className="bg-white dark:bg-stone-900 border border-stone-100 dark:border-stone-800 rounded-3xl px-5 py-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <Search className="w-4 h-4 text-stone-400 shrink-0" />
+                    <input
+                        type="text"
+                        value={busqueda}
+                        onChange={(e) => setBusqueda(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Escape') setBusqueda(''); }}
+                        placeholder="Buscar por N° de operación, nombre, teléfono o responsable..."
+                        className="flex-1 bg-transparent outline-none text-sm font-medium text-stone-800 dark:text-white placeholder:text-stone-400"
+                    />
+                    {busqueda && (
+                        <>
+                            <span className="text-[11px] font-black tabular-nums whitespace-nowrap text-stone-500">
+                                {ordersFiltradas.length} de {orders.length}
+                            </span>
+                            <button
+                                onClick={() => setBusqueda('')}
+                                title="Limpiar (Esc)"
+                                className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                            >
+                                <X className="w-4 h-4 text-stone-500" />
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
             {/* List / Table */}
             <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 overflow-hidden shadow-sm">
                 <div className="hidden lg:block overflow-x-auto">
@@ -129,13 +185,13 @@ export default function PostVentaPage() {
                                 <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
                                 Cargando casos...
                             </div>
-                        ) : orders.length === 0 ? (
+                        ) : ordersFiltradas.length === 0 ? (
                             <div className="py-24 text-center px-4">
                                 <ShieldAlert className="w-12 h-12 text-stone-200 dark:text-stone-800 mx-auto mb-4" />
                                 <p className="text-stone-400 dark:text-stone-500 font-black uppercase tracking-widest text-[10px]">No se encontraron registros de post-venta</p>
                             </div>
                         ) : (
-                            orders.map((order) => (
+                            ordersFiltradas.map((order) => (
                                 <div key={order.id} className="flex flex-col">
                                     <div className={`grid grid-cols-[1.2fr_1.8fr_1.3fr_1.3fr_1fr_2.5fr_100px] gap-4 px-6 py-4 items-center hover:bg-stone-50/50 dark:hover:bg-stone-800/10 transition-colors ${expandedDetail === order.id ? 'bg-amber-50/20 dark:bg-amber-950/5' : ''}`}>
                                         {/* Date */}
@@ -243,13 +299,13 @@ export default function PostVentaPage() {
                             <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
                             Cargando...
                         </div>
-                    ) : orders.length === 0 ? (
+                    ) : ordersFiltradas.length === 0 ? (
                         <div className="py-16 text-center">
                             <ShieldAlert className="w-10 h-10 text-stone-200 dark:text-stone-800 mx-auto mb-3" />
-                            <p className="text-stone-400 font-black uppercase tracking-widest text-[9px]">No hay casos de post-venta</p>
+                            <p className="text-stone-400 font-black uppercase tracking-widest text-[9px]">No se encontró ningún caso</p>
                         </div>
                     ) : (
-                        orders.map((order) => (
+                        ordersFiltradas.map((order) => (
                             <div key={order.id} className="p-4 space-y-3 bg-white dark:bg-stone-900">
                                 <div className="flex justify-between items-start">
                                     <div>
