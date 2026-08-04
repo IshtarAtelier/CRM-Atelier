@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { Lock, Heart, ShieldAlert } from 'lucide-react';
+import { WHATSAPP_PHONE, WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: "Políticas de Privacidad",
@@ -69,6 +70,64 @@ export default function PoliticasDePrivacidadPage() {
             <div className="space-y-4">
               <p>
                 Los usuarios registrados o compradores en nuestro sitio web tienen derecho a solicitar el acceso, rectificación o eliminación total de sus datos personales de nuestras bases de datos comerciales en cualquier momento, enviando una solicitud por escrito a nuestros canales oficiales.
+              </p>
+            </div>
+          </section>
+
+          {/*
+            Sección de eliminación de datos, con id propio.
+
+            El id `eliminacion-de-datos` es la URL que Meta exige al crear una app
+            (https://atelieroptica.com.ar/politicas-de-privacidad#eliminacion-de-datos).
+            Meta no valida que el ancla exista, pero es lo que ve una persona que
+            viene a reclamar sus datos: si el id no está, la página abre arriba de
+            todo y no encuentra nada.
+
+            Si se renombra esta sección, hay que actualizar la URL en la
+            configuración de la app de Meta.
+          */}
+          <section
+            id="eliminacion-de-datos"
+            className="bg-white dark:bg-stone-900 rounded-3xl p-8 lg:p-10 border border-stone-200 dark:border-stone-800 shadow-sm scroll-mt-28"
+          >
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary flex-shrink-0">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <h2 className="text-2xl font-bold text-stone-900 dark:text-white">4. Cómo eliminar tus datos</h2>
+            </div>
+            <div className="space-y-4">
+              <p>
+                Si querés que borremos la información que tenemos sobre vos, escribinos a{' '}
+                <a href="mailto:ventas@atelieroptica.com.ar" className="text-primary font-semibold hover:underline">
+                  ventas@atelieroptica.com.ar
+                </a>{' '}
+                o por WhatsApp al{' '}
+                <a
+                  href={`https://wa.me/${WHATSAPP_PHONE}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary font-semibold hover:underline"
+                >
+                  {WHATSAPP_PHONE_DISPLAY}
+                </a>
+                , indicando tu nombre completo y el teléfono o email con el que nos contactaste.
+              </p>
+              <p>
+                Resolvemos el pedido dentro de los <strong>10 días hábiles</strong> y te confirmamos
+                por el mismo medio cuando esté hecho. Se elimina tu ficha, tus datos de contacto y el
+                historial de conversaciones.
+              </p>
+              <p>
+                Hay una excepción que la ley nos obliga a mantener: los{' '}
+                <strong>comprobantes fiscales</strong> de compras ya realizadas y las{' '}
+                <strong>recetas oftalmológicas</strong> asociadas a un pedido confeccionado. Son
+                documentación respaldatoria que debemos conservar por los plazos legales. Todo lo
+                demás se borra.
+              </p>
+              <p className="text-sm text-stone-500 dark:text-stone-400">
+                Si nos escribiste solo por WhatsApp y nunca compraste, tu eliminación es completa y
+                sin excepciones.
               </p>
             </div>
           </section>
