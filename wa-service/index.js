@@ -425,6 +425,13 @@ const handleMessageCreate = async (msg) => {
                     }, 20000);
                     passiveDebounceTimers.set(chat.id, timer);
                 }
+            } else {
+                // Sin fila de chat no se apaga el bot NI se guarda el mensaje, y hasta
+                // ahora pasaba en silencio. Puede ser legítimo (una conversación que
+                // arranca la óptica, sin inbound previo) o el síntoma de un waId que no
+                // matchea (el mismo contacto puede tener chat @lid y @c.us). Si esto
+                // aparece justo cuando "el bot no cortó", ahí está la causa.
+                console.warn(`  ⚠️ [Saliente] No hay chat para waId=${waId}: no se apaga el bot ni se guarda el mensaje.`);
             }
         } catch (e) {
             console.error("Error on message_create sync:", e);

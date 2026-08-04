@@ -17,7 +17,11 @@ const crypto = require('crypto');
 // (el POST /send del CRM y el listener message_create) siguen colapsando en una fila.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BOT_MEMORY_TTL_MS = 10 * 60 * 1000;
+// Cuánto se recuerda un mensaje propio para no confundirlo con una persona.
+// El eco de `message_create` llega en segundos: 2 minutos ya es holgadísimo.
+// Estaba en 10 minutos, y esa ventana era media hora de riesgo por cada texto
+// que el bot y una vendedora pueden escribir igual ("hola", "listo", "gracias").
+const BOT_MEMORY_TTL_MS = 2 * 60 * 1000;
 
 function hashContent(content) {
     return crypto.createHash('sha1').update(String(content || '')).digest('hex').slice(0, 12);
@@ -107,13 +111,29 @@ function rememberBotMessage(sent, content) {
     }
 }
 
-/** ¿Este saliente lo mandó el bot (y no una persona)? */
+/**
+ * ¿Este saliente lo mandó el bot (y no una persona)?
+ *
+ * La marca se CONSUME al primer match. El eco de un mensaje del bot llega UNA
+ * sola vez (`message_create` está registrado en un solo lugar), así que un
+ * segundo saliente con el mismo texto ya es una persona escribiendo.
+ *
+ * Sin esto, la marca por contenido —que no distingue de qué chat es— tapaba a
+ * la vendedora: si el bot había mandado "hola, contame" en cualquier chat, y
+ * ella escribía ese mismo texto en otro, su mensaje se leía como propio del bot
+ * y la conversación NO se cortaba: el bot le seguía contestando por encima.
+ */
 function wasSentByBot(msg) {
     const id = serializedId(msg?.id);
-    if (id && global.botMessageIds && global.botMessageIds.has(id)) return true;
-
     const key = normalizeContent(msg?.body);
-    return Boolean(key && global.botMessageContents && global.botMessageContents.has(key));
+
+    const porId = Boolean(id && global.botMessageIds && global.botMessageIds.has(id));
+    const porContenido = Boolean(key && global.botMessageContents && global.botMessageContents.has(key));
+    if (!porId && !porContenido) return false;
+
+    if (id && global.botMessageIds) global.botMessageIds.delete(id);
+    if (key && global.botMessageContents) global.botMessageContents.delete(key);
+    return true;
 }
 
 module.exports = {
