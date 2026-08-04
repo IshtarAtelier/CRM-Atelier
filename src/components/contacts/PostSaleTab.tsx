@@ -380,7 +380,7 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                         {!open && (
                             <p className="mt-2 text-[10px] font-bold text-stone-400 group-hover:text-stone-600 dark:group-hover:text-stone-300 transition-colors">
                                 {notesCount > 0 ? `${notesCount} observación${notesCount === 1 ? '' : 'es'}` : 'Sin observaciones'}
-                                {c.fault ? ` · culpa: ${c.fault}` : ''}
+                                {(c.responsible || c.fault) ? ` · ${c.responsible || c.fault}` : ''}
                                 {' · '}Ver ficha completa
                             </p>
                         )}

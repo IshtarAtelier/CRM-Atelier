@@ -1991,11 +1991,16 @@ function buildPostSaleCaseEmailHtml(opts: {
                                 <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                                     ${row('Tipo de caso', caseInfo.caseType, 'color: #1f2937; font-weight: bold;')}
                                     ${row('Responsable', caseInfo.responsible)}
-                                    ${row('Culpa / origen', caseInfo.fault)}
+                                    ${/* La atribución se deriva del responsable: solo se
+                                         muestra cuando aporta algo distinto (casos viejos,
+                                         cargados cuando eran dos campos separados). */''}
+                                    ${caseInfo.fault && caseInfo.fault !== caseInfo.responsible ? row('Atribución', caseInfo.fault) : ''}
                                     ${row('Cobertura', caseInfo.coverage)}
                                     ${row('Costo Adicional', `$${caseInfo.cost || 0}`, 'color: #b91c1c; font-weight: bold;')}
                                     ${row('Opción en Lab', caseInfo.orderOption || 'No requiere', 'color: #1f2937; text-transform: uppercase; font-size: 12px; font-weight: bold;')}
-                                    ${caseInfo.newOrderNumber ? row('N° de operación / nuevo pedido', caseInfo.newOrderNumber, 'color: #2563eb; font-family: monospace; font-weight: bold;') : ''}
+                                    ${caseInfo.newOrderNumber
+            ? row('N° de operación / nuevo pedido', caseInfo.newOrderNumber, 'color: #2563eb; font-family: monospace; font-weight: bold;')
+            : row('N° de operación / nuevo pedido', 'Pendiente de cargar', 'color: #b45309; font-weight: bold;')}
                                 </table>
                                 ${notesBlock}
                                 <div style="margin-top: 24px; text-align: center;">

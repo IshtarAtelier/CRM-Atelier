@@ -401,14 +401,11 @@ export function PostSaleCard({
                             {order.postSaleCoverage}
                         </span>
                     )}
-                    {order.postSaleFault && (
-                        <span className="bg-stone-100 dark:bg-stone-750 text-stone-500 dark:text-stone-400 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
-                            Culpa: {order.postSaleFault}
-                        </span>
-                    )}
-                    {order.postSaleResponsible && (
+                    {/* Un solo badge: responsable y culpa son la misma respuesta
+                        desde que el caso se carga con un campo único. */}
+                    {(order.postSaleResponsible || order.postSaleFault) && (
                         <span className="bg-stone-100 dark:bg-stone-750 text-stone-600 dark:text-stone-300 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md flex items-center gap-1">
-                            👤 {order.postSaleResponsible}
+                            👤 {order.postSaleResponsible || order.postSaleFault}
                         </span>
                     )}
                     {order.postSaleCost != null && order.postSaleCost > 0 && (
