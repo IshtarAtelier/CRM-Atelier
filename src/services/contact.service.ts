@@ -251,6 +251,14 @@ export interface ContactCreateData {
      */
     creationMethod?: 'ASISTENTE_WHATSAPP';
     createdBy?: string;
+    /**
+     * Fecha del PRIMER contacto real (primer mensaje de la conversación). Si la
+     * ficha se crea días después —el recuperador salda backlog tras una caída—
+     * la ficha queda fechada en su día verdadero, no en el del arreglo: si no,
+     * el contador diario y el total del mes cuentan como "de hoy" clientes que
+     * escribieron otro día. Solo se acepta hacia atrás y hasta 90 días.
+     */
+    firstContactAt?: string | Date | null;
 }
 
 export const ContactService = {
@@ -514,6 +522,17 @@ export const ContactService = {
             metaLid: data.metaLid?.trim() === "" ? null : data.metaLid,
             createdBy: (data as any).createdBy || 'Sistema'
         };
+
+        // Fechar la ficha en el día del primer contacto real, no en el de la
+        // creación. Guardas: solo hacia atrás (nunca a futuro) y máximo 90 días
+        // — una fecha basura no puede mandar la ficha al año pasado.
+        if (data.firstContactAt) {
+            const fc = new Date(data.firstContactAt);
+            const edadMs = Date.now() - fc.getTime();
+            if (!isNaN(fc.getTime()) && edadMs > 0 && edadMs < 90 * 24 * 60 * 60 * 1000) {
+                createData.createdAt = fc;
+            }
+        }
 
         const createdClient = await prisma.client.create({
             data: createData

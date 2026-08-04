@@ -36,13 +36,15 @@ const TANDA = 15;
 /** No tocar chats con actividad reciente: el debounce en vivo todavía tiene su turno. */
 const MINUTOS_DE_GRACIA = 5;
 /**
- * Hasta dónde mirar hacia atrás. Pedido del dueño (4/8/2026): solo el fin de
- * semana + hoy — 3 días. Con 7 días, la primera corrida tras un arreglo creó
- * ~95 fichas de golpe y el contador de "nuevos contactos hoy" quedó
- * irreconocible. Lo anterior a la ventana lo levanta, si hace falta, el script
- * de mantenimiento a mano. Ajustable por env sin tocar código.
+ * Hasta dónde mirar hacia atrás. Pedido del dueño (4/8/2026): NADA retroactivo
+ * — este cron solo reintenta las extracciones del día que fallaron en vivo
+ * (JSON cortado, CRM caído un rato). El backlog de días anteriores NO se
+ * levanta solo: tras la corrida que creó ~95 fichas de golpe quedó claro que
+ * saldar deuda vieja sin aviso distorsiona los números del negocio. Si algún
+ * día hay que recuperar un período, se corre a mano el script de mantenimiento
+ * o se sube esta env temporalmente.
  */
-const DIAS = Number(process.env.EXTRACCION_PENDIENTE_DIAS) || 3;
+const DIAS = Number(process.env.EXTRACCION_PENDIENTE_DIAS) || 1;
 
 /**
  * Espejo de `telefonoValido` de passive-extractor.js, para el caso con

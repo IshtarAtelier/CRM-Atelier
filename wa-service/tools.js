@@ -179,7 +179,7 @@ async function detectContactSourceFromChat(chatId) {
 /**
  * Tool: Convert a chat into a Lead in the CRM
  */
-async function convertIntoLead({ phone, name, contactSource, interest, chatId, insurance }) {
+async function convertIntoLead({ phone, name, contactSource, interest, chatId, insurance, firstContactAt }) {
     if (name && isPhrase(name)) {
         return { success: false, error: '[INSTRUCCIÓN INTERNA] El nombre no es válido, parece una frase. Preguntale al cliente su nombre de pila de forma natural.' };
     }
@@ -203,14 +203,32 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
             resolvedSource = await detectContactSourceFromChat(chatId);
         }
 
+        // Si no vino la fecha del primer contacto, se busca acá: el primer mensaje
+        // entrante del chat. Así la ficha queda fechada en el día que el cliente
+        // escribió, aunque el recuperador la cree días más tarde saldando backlog.
+        let resolvedFirstContactAt = firstContactAt || null;
+        if (!resolvedFirstContactAt && chatId) {
+            try {
+                const primero = await prisma.whatsAppMessage.findFirst({
+                    where: { chatId, direction: 'INBOUND' },
+                    orderBy: { createdAt: 'asc' },
+                    select: { createdAt: true },
+                });
+                resolvedFirstContactAt = primero?.createdAt || null;
+            } catch (e) {
+                console.error('[convertIntoLead] No se pudo resolver firstContactAt:', e.message);
+            }
+        }
+
         const response = await requestWithRetry(() =>
             apiClient.post(`${CRM_API_URL}/clients`, {
-                phone: cleanPhone, 
-                name, 
-                contactSource: resolvedSource, 
-                interest: interest || 'Otros', 
-                status: 'CONTACT', 
-                insurance
+                phone: cleanPhone,
+                name,
+                contactSource: resolvedSource,
+                interest: interest || 'Otros',
+                status: 'CONTACT',
+                insurance,
+                firstContactAt: resolvedFirstContactAt
             })
         );
         const newContact = response.data.client || response.data;
