@@ -47,6 +47,80 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+/**
+ * Bloque "por qué nosotros", en varias redacciones.
+ *
+ * Esta ruta genera decenas de URLs (una por búsqueda) y todas compartían el
+ * MISMO h2 y el mismo párrafo palabra por palabra: en Google se veían cinco
+ * resultados idénticos ("Por qué elegirnos para tu próxima compra... Sabemos
+ * que elegir..."), que es contenido duplicado y compite consigo mismo.
+ *
+ * Cada página toma una variante y la frase se arma con su propio término de
+ * búsqueda, así ninguna repite a otra.
+ */
+const VARIANTES_POR_QUE = [
+  {
+    titulo: 'Qué nos diferencia como óptica',
+    parrafo: (t: string) =>
+      `Trabajamos ${t} con criterio profesional: medimos bien, explicamos cada opción y te decimos también lo que NO te conviene. Garantía de adaptación y materiales de primera línea.`,
+    beneficios: [
+      'Atención de contactólogos matriculados',
+      'Laboratorio digital de alta precisión',
+      'Garantía de adaptación en multifocales',
+      'Armazones de diseño seleccionados uno por uno',
+      'Envíos sin cargo a todo el país',
+      'La óptica mejor calificada de Córdoba en Google',
+    ],
+  },
+  {
+    titulo: 'Cómo trabajamos tu caso',
+    parrafo: (t: string) =>
+      `Cuando alguien nos consulta por ${t}, lo primero es entender cómo usa la vista todos los días. Recién ahí recomendamos cristal y armazón. Sin apuro y sin venderte de más.`,
+    beneficios: [
+      'Diagnóstico personalizado, no recetas de molde',
+      'Cristales tallados con tecnología digital',
+      'Adaptación garantizada o lo corregimos',
+      'Marcas de autor y diseño propio',
+      'Enviamos a cualquier punto del país',
+      'Más de 670 reseñas con 5 estrellas',
+    ],
+  },
+  {
+    titulo: 'Por qué nos eligen en Córdoba',
+    parrafo: (t: string) =>
+      `Quien busca ${t} suele llegar con dudas de otra óptica. Nuestro trabajo es despejarlas: te mostramos las alternativas reales, con sus diferencias y su precio, y elegís vos.`,
+    beneficios: [
+      'Asesoramiento honesto, sin letra chica',
+      'Taller propio para ajustes cuando lo necesites',
+      'Respaldo total en lentes multifocales',
+      'Colección curada de armazones',
+      'Envío gratis a todo el país',
+      'Referentes en salud visual en Cerro de las Rosas',
+    ],
+  },
+  {
+    titulo: 'Lo que podés esperar de nosotros',
+    parrafo: (t: string) =>
+      `En ${t} la diferencia está en los detalles: la medición, el centrado y el material del cristal. Eso es lo que cuidamos, y por eso la mayoría de nuestros clientes vuelve.`,
+    beneficios: [
+      'Profesionales que te explican cada paso',
+      'Precisión de laboratorio en cada pedido',
+      'Garantía real de adaptación',
+      'Diseño que no vas a ver en todos lados',
+      'Llegamos a todo el país',
+      'Puntaje 5.0 en Google entre las ópticas de Córdoba',
+    ],
+  },
+];
+
+/** Elige una variante de forma ESTABLE: la misma búsqueda cae siempre en la
+ *  misma redacción (nada de azar, que cambiaría el texto en cada build). */
+function elegirVariante(clave: string) {
+  let suma = 0;
+  for (let i = 0; i < clave.length; i++) suma = (suma + clave.charCodeAt(i)) % 100000;
+  return VARIANTES_POR_QUE[suma % VARIANTES_POR_QUE.length];
+}
+
 export default async function BusquedaPage({ params }: PageProps) {
   const { query } = await params;
 
@@ -56,6 +130,13 @@ export default async function BusquedaPage({ params }: PageProps) {
 
   const title = formatQueryToTitle(query);
   const whatsappMessage = encodeURIComponent(`Hola! Los encontré en Google buscando "${title}" y quería consultarles.`);
+
+  const varianteBase = elegirVariante(query);
+  const variante = {
+    titulo: varianteBase.titulo,
+    parrafo: varianteBase.parrafo(title.toLowerCase()),
+    beneficios: varianteBase.beneficios,
+  };
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20 font-sans">
@@ -113,21 +194,14 @@ export default async function BusquedaPage({ params }: PageProps) {
           </div>
 
           <h2 className="text-2xl lg:text-3xl font-bold text-stone-900 dark:text-white mb-6">
-            Por qué elegirnos para tu próxima compra
+            {variante.titulo}
           </h2>
           <p className="text-lg text-stone-600 dark:text-stone-400 mb-8 leading-relaxed">
-            Sabemos que elegir la óptica correcta es fundamental para tu salud visual. Ofrecemos asesoramiento honesto, garantía total de adaptación y los mejores materiales del mercado.
+            {variante.parrafo}
           </p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            {[
-              "Asesoramiento personalizado por contactólogos",
-              "Laboratorio digital de alta precisión",
-              "Garantía de adaptación en multifocales",
-              "Armazones con diseño de vanguardia",
-              "Envíos a todo el país",
-              "Mejor óptica calificada en Córdoba"
-            ].map((benefit, i) => (
+            {variante.beneficios.map((benefit, i) => (
               <div key={i} className="flex items-start">
                 <CheckCircle2 className="w-6 h-6 text-primary flex-shrink-0 mt-0.5 mr-3" />
                 <span className="text-stone-700 dark:text-stone-300 font-medium">{benefit}</span>
