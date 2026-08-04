@@ -22,6 +22,7 @@ import { lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
+import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
 import InvoiceModal from '@/components/billing/InvoiceModal';
@@ -87,14 +88,6 @@ export default function QuoteSummary({
     const [labFrameDetails, setLabFrameDetails] = React.useState(order.labFrameDetails || '');
     const [isSavingFrame, setIsSavingFrame] = React.useState(false);
 
-    const [postSaleNotes, setPostSaleNotes] = React.useState(order.postSaleNotes || '');
-    const [postSaleCost, setPostSaleCost] = React.useState<number | ''>(order.postSaleCost ?? '');
-    const [postSaleResponsible, setPostSaleResponsible] = React.useState(order.postSaleResponsible || '');
-    const [postSaleOrderOption, setPostSaleOrderOption] = React.useState(order.postSaleOrderOption || '');
-    const [postSaleNewOrderNumber, setPostSaleNewOrderNumber] = React.useState(order.postSaleNewOrderNumber || '');
-    const [newNoteText, setNewNoteText] = React.useState('');
-    const [isSavingPostSale, setIsSavingPostSale] = React.useState(false);
-    const [showPostSaleForm, setShowPostSaleForm] = React.useState(false);
 
     // Facturación desde la ficha del cliente. Mismas reglas que /admin/ventas:
     // ADMIN emite (abre el modal de ARCA), el vendedor solo puede SOLICITARLA.
@@ -113,56 +106,7 @@ export default function QuoteSummary({
         setFrameDbl(order.frameDbl || '');
         setFrameEdc(order.frameEdc || '');
         setLabFrameDetails(order.labFrameDetails || '');
-
-        setPostSaleNotes(order.postSaleNotes || '');
-        setPostSaleCost(order.postSaleCost ?? '');
-        setPostSaleResponsible(order.postSaleResponsible || '');
-        setPostSaleOrderOption(order.postSaleOrderOption || '');
-        setPostSaleNewOrderNumber(order.postSaleNewOrderNumber || '');
-        setNewNoteText('');
     }, [order]);
-
-    const handleSavePostSale = async () => {
-        setIsSavingPostSale(true);
-        try {
-            let finalNotes = order.postSaleNotes;
-            if (newNoteText.trim()) {
-                const formattedDate = new Date().toLocaleDateString('es-AR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                const newEntry = `[${formattedDate}]: ${newNoteText.trim()}`;
-                finalNotes = order.postSaleNotes ? `${order.postSaleNotes}\n${newEntry}` : newEntry;
-            }
-
-            const res = await fetch(`/api/orders/${order.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    postSaleNotes: finalNotes || null,
-                    postSaleCost: postSaleCost === '' ? 0 : Number(postSaleCost),
-                    postSaleResponsible: postSaleResponsible || null,
-                    postSaleOrderOption: postSaleOrderOption || null,
-                    postSaleNewOrderNumber: postSaleOrderOption === 'DIFFERENT' ? (postSaleNewOrderNumber || null) : null,
-                }),
-            });
-            if (res.ok) {
-                setNewNoteText('');
-                alert('✓ Cambios de post venta guardados.');
-                if (onRefreshContact) await onRefreshContact();
-            } else {
-                const data = await res.json();
-                alert(`⚠️ ${data.error || 'Error al guardar cambios de post venta'}`);
-            }
-        } catch (error) {
-            console.error('Error saving post sale fields:', error);
-            alert('⚠️ Error al conectar con el servidor.');
-        } finally {
-            setIsSavingPostSale(false);
-        }
-    };
 
     const handleSaveFrameMeasures = async () => {
         setIsSavingFrame(true);
@@ -1072,147 +1016,14 @@ export default function QuoteSummary({
                     </div>
                 )}
 
+                {/* Post Venta — la MISMA tarjeta que en ventas y en la ficha del
+                    cliente. Acá no hay reproceso: eso se hace desde la venta. */}
                 {isSale && (order.labStatus && order.labStatus !== 'NONE' || order.postSaleNotes || order.postSaleCost > 0 || order.postSaleOrderOption) && (
-                    <div className={showPostSaleForm ? "bg-white dark:bg-stone-850 rounded-[2rem] border-2 border-amber-200/60 dark:border-amber-900/40 p-6 shadow-sm space-y-4" : ""}>
-                        <button
-                            onClick={() => setShowPostSaleForm(!showPostSaleForm)}
-                            className={showPostSaleForm
-                                ? "w-full flex items-center justify-between gap-2 mb-2 pb-2 border-b border-stone-100 dark:border-stone-700/50"
-                                : "w-full flex items-center justify-between gap-2 px-5 py-3 bg-white dark:bg-stone-850 rounded-2xl border-2 border-amber-200/60 dark:border-amber-900/40 shadow-sm hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-all"}
-                        >
-                            <span className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest">
-                                Servicio de Post Venta
-                            </span>
-                            {showPostSaleForm
-                                ? <ChevronUp className="w-4 h-4 text-amber-500" />
-                                : <ChevronRight className="w-4 h-4 text-amber-500" />}
-                        </button>
-
-                        {showPostSaleForm && (
-                        <div className="space-y-4">
-                            <div>
-                                {/* Timeline de notas */}
-                                <div className="bg-stone-50 dark:bg-stone-900/40 rounded-xl p-3 border border-stone-200/50 dark:border-stone-800 space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar mb-3">
-                                    <p className="text-[7.5px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest border-b border-stone-200/20 pb-1">
-                                        Historial de Observaciones
-                                    </p>
-                                    {(() => {
-                                        const lines = order.postSaleNotes
-                                            ? order.postSaleNotes.split('\n').filter((l: string) => l.trim() !== '')
-                                            : [];
-                                        if (lines.length === 0) {
-                                            return <p className="text-[10px] text-stone-400 italic">Sin observaciones registradas.</p>;
-                                        }
-                                        return (
-                                            <div className="space-y-2 text-[10px] leading-relaxed">
-                                                {lines.map((line: string, i: number) => {
-                                                    const match = line.match(/^\[(.*?)\]:\s*(.*)$/);
-                                                    if (match) {
-                                                        return (
-                                                            <div key={i} className="flex flex-col text-stone-600 dark:text-stone-300">
-                                                                <span className="text-[7.5px] font-black text-amber-600 dark:text-amber-500">{match[1]}</span>
-                                                                <span className="font-semibold">{match[2]}</span>
-                                                            </div>
-                                                        );
-                                                    }
-                                                    return (
-                                                        <div key={i} className="text-stone-500 dark:text-stone-400 font-semibold">
-                                                            {line}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-
-                                <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                    Agregar Nueva Observación / Actualización
-                                </label>
-                                <textarea
-                                    rows={2}
-                                    value={newNoteText}
-                                    onChange={(e) => setNewNoteText(e.target.value)}
-                                    placeholder="Escribir un comentario o actualización de estado de garantía..."
-                                    className="w-full text-xs p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all resize-none dark:text-stone-200"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                        Costo Adicional ($)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={postSaleCost}
-                                        onChange={(e) => setPostSaleCost(e.target.value === '' ? '' : Number(e.target.value))}
-                                        placeholder="0"
-                                        className="w-full text-xs p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                        Responsabilidad
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={postSaleResponsible}
-                                        onChange={(e) => setPostSaleResponsible(e.target.value)}
-                                        placeholder="Nombre del responsable"
-                                        className="w-full text-xs p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                    ¿Requiere procesar en laboratorio?
-                                </label>
-                                <select
-                                    value={postSaleOrderOption}
-                                    onChange={(e) => setPostSaleOrderOption(e.target.value)}
-                                    className="w-full text-xs p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
-                                >
-                                    <option value="">No requiere / No aplica</option>
-                                    <option value="SAME">Mismo número de pedido ({order.labOrderNumber || 'Sin número'})</option>
-                                    <option value="DIFFERENT">Número de pedido diferente</option>
-                                </select>
-                            </div>
-
-                            {postSaleOrderOption === 'DIFFERENT' && (
-                                <div>
-                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                        Nuevo Número de Pedido / OP
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={postSaleNewOrderNumber}
-                                        onChange={(e) => setPostSaleNewOrderNumber(e.target.value)}
-                                        placeholder="Ingresar nuevo número de OP en lab..."
-                                        className="w-full text-xs p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                    />
-                                </div>
-                            )}
-
-                            <button
-                                onClick={handleSavePostSale}
-                                disabled={isSavingPostSale}
-                                className="w-full py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                            >
-                                {isSavingPostSale ? (
-                                    <>
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        Guardando...
-                                    </>
-                                ) : (
-                                    'Guardar Registro'
-                                )}
-                            </button>
-                        </div>
-                        )}
-                    </div>
+                    <PostSaleServiceForm
+                        value={postSaleValueFromOrder(order)}
+                        onRefresh={() => { onRefreshContact?.(); }}
+                        userRole={currentUserRole}
+                    />
                 )}
 
                 {showActions && !order.isDeleted && (

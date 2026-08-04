@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     FlaskConical,
     Eye,
@@ -15,16 +15,13 @@ import {
     Activity,
     Layers,
     Search,
-    ChevronRight,
-    ChevronUp,
-    Image as ImageIcon,
     AlertCircle
 } from 'lucide-react';
 import type { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
-import { POST_SALE_CASE_TYPES, POST_SALE_FAULTS, POST_SALE_COVERAGE } from '@/lib/constants/postSale';
+import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 
 export const LAB_STEPS = [
     { key: 'NONE', label: 'Pendiente', icon: Clock, color: 'stone', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700' },
@@ -111,25 +108,10 @@ export function OrderDetailPanel({
     }) || false;
 
     const [fullImageOpen, setFullImageOpen] = useState(false);
-    const [postSaleNotes, setPostSaleNotes] = useState(order.postSaleNotes || '');
-    const [postSaleCost, setPostSaleCost] = useState<number | ''>(order.postSaleCost ?? '');
-    const [postSaleResponsible, setPostSaleResponsible] = useState(order.postSaleResponsible || '');
-    const [postSaleCaseType, setPostSaleCaseType] = useState(order.postSaleCaseType || '');
-    const [postSaleFault, setPostSaleFault] = useState(order.postSaleFault || '');
-    // Quién de la óptica cometió el error, cuando la atribución es 'Óptica': es la
-    // caja a la que se le va a proponer descontar el costo en el cierre económico
-    // del caso (ver /api/post-sale/[id]/cost).
-    const [postSaleFaultUserId, setPostSaleFaultUserId] = useState(order.postSaleFaultUserId || '');
-    const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
-    const [postSaleCoverage, setPostSaleCoverage] = useState(order.postSaleCoverage || '');
+    // Los campos del caso los maneja PostSaleServiceForm; acá solo se sigue la
+    // opción de laboratorio, porque de ella dependen el panel de reproceso y la
+    // carga de recetas del cliente.
     const [postSaleOrderOption, setPostSaleOrderOption] = useState(order.postSaleOrderOption || '');
-    const [postSaleNewOrderNumber, setPostSaleNewOrderNumber] = useState(order.postSaleNewOrderNumber || '');
-    const [newNoteText, setNewNoteText] = useState('');
-    const [isSavingPostSale, setIsSavingPostSale] = useState(false);
-    const [showPostSaleForm, setShowPostSaleForm] = useState(false);
-    // Imagen adjunta a la observación del caso (se sube al guardar)
-    const [noteImageFile, setNoteImageFile] = useState<File | null>(null);
-    const [noteImagePreview, setNoteImagePreview] = useState<string | null>(null);
 
     const [pair1Faulty, setPair1Faulty] = useState(true);
     const [pair2Faulty, setPair2Faulty] = useState(false);
@@ -145,16 +127,7 @@ export function OrderDetailPanel({
     const isReprocessAdmin = userRole === 'ADMIN';
 
     React.useEffect(() => {
-        setPostSaleNotes(order.postSaleNotes || '');
-        setPostSaleCost(order.postSaleCost ?? '');
-        setPostSaleResponsible(order.postSaleResponsible || '');
-        setPostSaleCaseType(order.postSaleCaseType || '');
-        setPostSaleFault(order.postSaleFault || '');
-        setPostSaleFaultUserId(order.postSaleFaultUserId || '');
-        setPostSaleCoverage(order.postSaleCoverage || '');
         setPostSaleOrderOption(order.postSaleOrderOption || '');
-        setPostSaleNewOrderNumber(order.postSaleNewOrderNumber || '');
-        setNewNoteText('');
 
         if (order.postSaleRxData) {
             try {
@@ -181,20 +154,7 @@ export function OrderDetailPanel({
         // Al cambiar de orden se reinician las subidas frescas de esta sesión
         setRxUploaded1(false);
         setRxUploaded2(false);
-    }, [order.id, order.postSaleNotes, order.postSaleCost, order.postSaleResponsible, order.postSaleCaseType, order.postSaleFault, order.postSaleFaultUserId, order.postSaleCoverage, order.postSaleOrderOption, order.postSaleNewOrderNumber, order.postSaleRxData]);
-
-    // Vendedores/administradores a los que se les puede atribuir el error (mismo
-    // criterio que HistoryManager: se excluyen las cuentas de ópticas mayoristas).
-    useEffect(() => {
-        fetch('/api/users')
-            .then(res => (res.ok ? res.json() : []))
-            .then((data: any[]) => {
-                if (Array.isArray(data)) {
-                    setVendors(data.filter(u => u.role !== 'OPTICA').map(u => ({ id: u.id, name: u.name })));
-                }
-            })
-            .catch(() => setVendors([]));
-    }, []);
+    }, [order.id, order.postSaleOrderOption, order.postSaleRxData]);
 
     React.useEffect(() => {
         if (postSaleOrderOption === 'DIFFERENT' && order.clientId) {
@@ -263,96 +223,6 @@ export function OrderDetailPanel({
         } catch (e) {
             console.error('Error uploading recipe image:', e);
             alert('Error de red al subir la receta.');
-        }
-    };
-
-    const handleNoteImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setNoteImageFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => setNoteImagePreview(reader.result as string);
-        reader.readAsDataURL(file);
-    };
-
-    const clearNoteImage = () => {
-        setNoteImageFile(null);
-        setNoteImagePreview(null);
-    };
-
-    const handleSavePostSale = async () => {
-        setIsSavingPostSale(true);
-        try {
-            // Si adjuntaron una imagen sin escribir nada, igual queda una observación
-            const noteText = newNoteText.trim() || (noteImageFile ? '📎 Imagen adjunta' : '');
-
-            // La imagen se sube recién acá; si falla, no se guarda nada
-            let uploadedNoteImage: string | null = null;
-            if (noteImageFile) {
-                const formData = new FormData();
-                formData.append('file', noteImageFile);
-                const up = await fetch('/api/upload', { method: 'POST', body: formData });
-                if (!up.ok) {
-                    const err = await up.json().catch(() => ({}));
-                    alert(`⚠️ No se pudo subir la imagen: ${err.error || 'error desconocido'}. No se guardaron los cambios.`);
-                    return;
-                }
-                const upData = await up.json();
-                uploadedNoteImage = upData.url || upData.fileUrl || null;
-            }
-
-            let finalNotes = order.postSaleNotes;
-            if (noteText) {
-                const formattedDate = new Date().toLocaleDateString('es-AR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                const newEntry = `[${formattedDate}]: ${noteText}`;
-                finalNotes = order.postSaleNotes ? `${order.postSaleNotes}\n${newEntry}` : newEntry;
-            }
-
-            const payloadRxData = {
-                pair1Faulty,
-                pair2Faulty,
-                rxChange,
-                reprocessAuthNoRx,
-                rx1,
-                rx2
-            };
-
-            const res = await fetch(`/api/orders/${order.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    postSaleNotes: finalNotes || null,
-                    postSaleCost: postSaleCost === '' ? 0 : Number(postSaleCost),
-                    postSaleResponsible: postSaleResponsible || null,
-                    postSaleCaseType: postSaleCaseType || null,
-                    postSaleFault: postSaleFault || null,
-                    postSaleFaultUserId: postSaleFault === 'Óptica' ? (postSaleFaultUserId || null) : null,
-                    postSaleCoverage: postSaleCoverage || null,
-                    postSaleOrderOption: postSaleOrderOption || null,
-                    postSaleNewOrderNumber: postSaleOrderOption === 'DIFFERENT' ? (postSaleNewOrderNumber || null) : null,
-                    postSaleRxData: postSaleOrderOption === 'DIFFERENT' ? JSON.stringify(payloadRxData) : null,
-                    postSaleNoteImageUrl: uploadedNoteImage,
-                }),
-            });
-            if (res.ok) {
-                setNewNoteText('');
-                clearNoteImage();
-                if (onRefresh) onRefresh();
-                alert('✓ Cambios de post venta guardados.');
-            } else {
-                const data = await res.json();
-                alert(`⚠️ ${data.error || 'Error al guardar cambios de post venta'}`);
-            }
-        } catch (error) {
-            console.error('Error saving post sale fields:', error);
-            alert('⚠️ Error al conectar con el servidor.');
-        } finally {
-            setIsSavingPostSale(false);
         }
     };
 
@@ -1117,253 +987,23 @@ export function OrderDetailPanel({
                         </div>
                     )}
 
-                    {/* Post Venta Form — only after sent to factory */}
+                    {/* Post Venta — es LA MISMA tarjeta que en la ficha del cliente y
+                        en el cotizador (PostSaleServiceForm). El panel de reproceso
+                        (recetas + carga en SmartLab) lo pone esta pantalla, que es la
+                        única que lo tiene. */}
                     {order.orderType === 'SALE' && (order.labStatus && order.labStatus !== 'NONE' || order.postSaleNotes || (order.postSaleCost ?? 0) > 0 || order.postSaleOrderOption) && (
-                        <div className={showPostSaleForm ? "bg-white dark:bg-stone-850 rounded-2xl border border-stone-100 dark:border-stone-700/50 p-5 shadow-sm space-y-4" : ""}>
-                            <button
-                                onClick={() => setShowPostSaleForm(!showPostSaleForm)}
-                                className={showPostSaleForm
-                                    ? "w-full flex items-center justify-between gap-2 mb-2 pb-2 border-b border-stone-100 dark:border-stone-700/50"
-                                    : "w-full flex items-center justify-between gap-2 px-4 py-3 bg-white dark:bg-stone-850 rounded-2xl border border-stone-100 dark:border-stone-700/50 shadow-sm hover:bg-amber-50/50 dark:hover:bg-amber-950/20 transition-all"}
-                            >
-                                <span className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest">
-                                    Servicio de Post Venta
-                                </span>
-                                {showPostSaleForm
-                                    ? <ChevronUp className="w-4 h-4 text-amber-500" />
-                                    : <ChevronRight className="w-4 h-4 text-amber-500" />}
-                            </button>
-
-                            {showPostSaleForm && (
-                            <div className="space-y-3">
-                                <div>
-                                    {/* Timeline de notas */}
-                                    <div className="bg-stone-50 dark:bg-stone-900/40 rounded-xl p-3 border border-stone-200/50 dark:border-stone-800 space-y-2 max-h-[150px] overflow-y-auto custom-scrollbar mb-3">
-                                        <p className="text-[7.5px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest border-b border-stone-200/20 pb-1">
-                                            Historial de Observaciones
-                                        </p>
-                                        {(() => {
-                                            const lines = order.postSaleNotes
-                                                ? order.postSaleNotes.split('\n').filter((l: string) => l.trim() !== '')
-                                                : [];
-                                            if (lines.length === 0) {
-                                                return <p className="text-[10px] text-stone-400 italic">Sin observaciones registradas.</p>;
-                                            }
-                                            return (
-                                                <div className="space-y-2 text-[10px] leading-relaxed">
-                                                    {lines.map((line: string, i: number) => {
-                                                        const match = line.match(/^\[(.*?)\]:\s*(.*)$/);
-                                                        if (match) {
-                                                            return (
-                                                                <div key={i} className="flex flex-col text-stone-600 dark:text-stone-300">
-                                                                    <span className="text-[7.5px] font-black text-amber-600 dark:text-amber-500">{match[1]}</span>
-                                                                    <span className="font-semibold">{match[2]}</span>
-                                                                </div>
-                                                            );
-                                                        }
-                                                        return (
-                                                            <div key={i} className="text-stone-500 dark:text-stone-400 font-semibold">
-                                                                {line}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            );
-                                        })()}
-
-                                        {/* Imágenes adjuntas a las observaciones del caso */}
-                                        {(() => {
-                                            const notesWithImage = ((order as any).postSaleCases?.[0]?.notesList || [])
-                                                .filter((n: any) => n.imageUrl);
-                                            if (notesWithImage.length === 0) return null;
-                                            return (
-                                                <div className="flex flex-wrap gap-2 pt-2 border-t border-stone-200/20">
-                                                    {notesWithImage.map((n: any) => (
-                                                        <a
-                                                            key={n.id}
-                                                            href={resolveStorageUrl(n.imageUrl)}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            title="Abrir imagen en tamaño completo"
-                                                        >
-                                                            <img
-                                                                src={resolveStorageUrl(n.imageUrl)}
-                                                                alt="Adjunto del caso"
-                                                                className="w-14 h-14 rounded-lg object-cover border border-stone-200 dark:border-stone-700 hover:opacity-90 transition-opacity"
-                                                            />
-                                                        </a>
-                                                    ))}
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-
-                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                        Agregar Nueva Observación / Actualización
-                                    </label>
-                                    <textarea
-                                        rows={2}
-                                        value={newNoteText}
-                                        onChange={(e) => setNewNoteText(e.target.value)}
-                                        placeholder="Escribir un comentario o actualización de estado de garantía..."
-                                        className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all resize-none dark:text-stone-200"
-                                    />
-
-                                    {/* Adjuntar una imagen a la observación (foto del lente, comprobante, etc.) */}
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <label className="flex items-center gap-1.5 px-2.5 py-1.5 bg-stone-50 dark:bg-stone-900 border border-dashed border-stone-300 dark:border-stone-700 rounded-xl cursor-pointer hover:border-amber-400 transition-colors">
-                                            <ImageIcon className="w-3.5 h-3.5 text-stone-400" />
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-stone-500">
-                                                {noteImageFile ? 'Cambiar imagen' : 'Adjuntar imagen'}
-                                            </span>
-                                            <input type="file" accept="image/*" onChange={handleNoteImageSelect} className="hidden" />
-                                        </label>
-                                        {noteImagePreview && (
-                                            <>
-                                                <img src={noteImagePreview} alt="Vista previa" className="w-9 h-9 rounded-lg object-cover border border-stone-200 dark:border-stone-700" />
-                                                <button
-                                                    onClick={clearNoteImage}
-                                                    className="p-1 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-400 transition-colors"
-                                                    title="Quitar imagen"
-                                                >
-                                                    <X className="w-3.5 h-3.5" />
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Costo Adicional ($)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={postSaleCost}
-                                            onChange={(e) => setPostSaleCost(e.target.value === '' ? '' : Number(e.target.value))}
-                                            placeholder="0"
-                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Responsable (quién gestiona)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={postSaleResponsible}
-                                            onChange={(e) => setPostSaleResponsible(e.target.value)}
-                                            placeholder="Nombre del responsable"
-                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Atribución (de quién fue el error)
-                                        </label>
-                                        <select
-                                            value={postSaleFault}
-                                            onChange={(e) => setPostSaleFault(e.target.value)}
-                                            className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
-                                        >
-                                            <option value="">Sin definir</option>
-                                            {POST_SALE_FAULTS.map(f => (
-                                                <option key={f} value={f}>{f}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            Cobertura
-                                        </label>
-                                        <select
-                                            value={postSaleCoverage}
-                                            onChange={(e) => setPostSaleCoverage(e.target.value)}
-                                            className={`w-full text-xs p-2.5 rounded-xl border bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200 ${postSaleCoverage === 'Con cargo' ? 'border-amber-300 dark:border-amber-800' : postSaleCoverage === 'Sin cargo' ? 'border-emerald-300 dark:border-emerald-800' : 'border-stone-200 dark:border-stone-700'}`}
-                                        >
-                                            <option value="">Sin definir</option>
-                                            {POST_SALE_COVERAGE.map(c => (
-                                                <option key={c} value={c}>{c}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* A qué caja se le descuenta el costo. Solo aparece cuando el
-                                    error fue de la óptica: en los demás casos (laboratorio,
-                                    cliente, médico) lo absorbe Atelier y no hay persona. */}
-                                {postSaleFault === 'Óptica' && (
-                                    <div>
-                                        <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                            ¿Quién de la óptica? · define la caja del descuento
-                                        </label>
-                                        <select
-                                            value={postSaleFaultUserId}
-                                            onChange={(e) => setPostSaleFaultUserId(e.target.value)}
-                                            className="w-full text-xs p-2.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
-                                        >
-                                            <option value="">Sin definir — lo cubre Atelier</option>
-                                            {vendors.map(v => (
-                                                <option key={v.id} value={v.id}>{v.name}</option>
-                                            ))}
-                                        </select>
-                                        <p className="mt-1 text-[9px] text-stone-400 leading-relaxed">
-                                            El costo real lo cierra el laboratorio al facturar. Recién ahí se puede descontar de esta caja, y lo confirma el administrador.
-                                        </p>
-                                    </div>
-                                )}
-
-                                <div>
-                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                        Tipo de caso
-                                    </label>
-                                    <select
-                                        value={postSaleCaseType}
-                                        onChange={(e) => setPostSaleCaseType(e.target.value)}
-                                        className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
-                                    >
-                                        <option value="">Sin clasificar</option>
-                                        {POST_SALE_CASE_TYPES.map(t => (
-                                            <option key={t} value={t}>{t}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                        ¿Requiere procesar en laboratorio?
-                                    </label>
-                                    <select
-                                        value={postSaleOrderOption}
-                                        onChange={(e) => setPostSaleOrderOption(e.target.value)}
-                                        className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-stone-200"
-                                    >
-                                        <option value="">No requiere / No aplica</option>
-                                        <option value="SAME">Mismo número de pedido ({order.labOrderNumber || 'Sin número'})</option>
-                                        <option value="DIFFERENT">Número de pedido diferente</option>
-                                    </select>
-                                </div>
-
-                                {postSaleOrderOption === 'DIFFERENT' && (
+                        <PostSaleServiceForm
+                            value={postSaleValueFromOrder(order)}
+                            onRefresh={() => onRefresh?.()}
+                            userRole={userRole}
+                            onOrderOptionChange={setPostSaleOrderOption}
+                            extraSavePayload={(opt) => ({
+                                postSaleRxData: opt === 'DIFFERENT'
+                                    ? JSON.stringify({ pair1Faulty, pair2Faulty, rxChange, reprocessAuthNoRx, rx1, rx2 })
+                                    : null,
+                            })}
+                            reprocessSlot={
                                     <div className="space-y-4 pt-2 border-t border-stone-150 dark:border-stone-850">
-                                        <div>
-                                            <label className="text-[8px] font-black text-stone-400 dark:text-stone-500 uppercase tracking-widest block mb-1">
-                                                Nuevo Número de Pedido / OP
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={postSaleNewOrderNumber}
-                                                onChange={(e) => setPostSaleNewOrderNumber(e.target.value)}
-                                                placeholder="Ingresar nuevo número de OP en lab..."
-                                                className="w-full text-xs p-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 placeholder-stone-400 transition-all dark:text-stone-200"
-                                            />
-                                        </div>
-
                                         {/* Pair Selectors */}
                                         <div className="flex gap-4 p-2 bg-stone-50/50 dark:bg-stone-900/30 rounded-xl border border-stone-200/50 dark:border-stone-850">
                                             <label className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
@@ -1456,25 +1096,8 @@ export function OrderDetailPanel({
                                             )}
                                         </div>
                                     </div>
-                                )}
-
-                                <button
-                                    onClick={handleSavePostSale}
-                                    disabled={isSavingPostSale}
-                                    className="w-full py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                                >
-                                    {isSavingPostSale ? (
-                                        <>
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                            Guardando...
-                                        </>
-                                    ) : (
-                                        'Guardar Registro'
-                                    )}
-                                </button>
-                            </div>
-                            )}
-                        </div>
+                            }
+                        />
                     )}
                 </div>
 

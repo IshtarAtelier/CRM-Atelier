@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { LifeBuoy, ImageIcon, Receipt, Plus, X, Send, Paperclip, ShieldCheck, ChevronDown, Copy, Check, Wallet } from 'lucide-react';
+import { LifeBuoy, ImageIcon, Receipt, Plus, X, Paperclip, ShieldCheck, ChevronDown, Copy, Check, Wallet } from 'lucide-react';
 import {
     caseTypeStyle, postSaleStatusLabel,
-    POST_SALE_CASE_TYPES, POST_SALE_FAULTS, POST_SALE_COVERAGE
+    POST_SALE_CASE_TYPES, POST_SALE_COVERAGE, POST_SALE_RESPONSIBLE_CAUSES,
+    parseResponsibleOption, responsibleUserValue, type PostSaleUser
 } from '@/lib/constants/postSale';
+import { PostSaleServiceForm, postSaleValueFromCase } from '@/components/orders/PostSaleServiceForm';
 import { formatDate, formatDateTime } from '@/lib/format-date';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 
@@ -127,6 +129,7 @@ export default function PostSaleTab({ contact, onRefresh, userRole }: { contact:
             {creating && (
                 <NewCaseForm
                     sales={salesWithoutCase}
+                    isAdmin={isAdmin}
                     onCancel={() => setCreating(false)}
                     onSaved={() => { setCreating(false); onRefresh(); }}
                 />
@@ -154,6 +157,7 @@ export default function PostSaleTab({ contact, onRefresh, userRole }: { contact:
                                 key={c.id}
                                 c={c}
                                 isAdmin={isAdmin}
+                                userRole={userRole}
                                 highlighted={c.id === highlightId}
                                 onRefresh={onRefresh}
                             />
@@ -330,8 +334,8 @@ function CashPanel({ c, isAdmin, onRefresh }: { c: PostSaleCase; isAdmin: boolea
     );
 }
 
-function CaseCard({ c, isAdmin, highlighted, onRefresh }: {
-    c: PostSaleCase; isAdmin: boolean; highlighted?: boolean; onRefresh: () => void;
+function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
+    c: PostSaleCase; isAdmin: boolean; userRole?: string; highlighted?: boolean; onRefresh: () => void;
 }) {
     // La tarjeta arranca colapsada (resumen). Se abre la ficha completa con un
     // click en el encabezado — o sola, si vino resaltada desde el link del email.
@@ -390,48 +394,55 @@ function CaseCard({ c, isAdmin, highlighted, onRefresh }: {
                 {open && (
                     <div className="px-4 pb-4 space-y-3 border-t border-stone-100 dark:border-stone-800 pt-3 animate-in fade-in duration-200">
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <Field label="Culpa" value={c.fault} />
-                            <CoverageField coverage={c.coverage} />
-                            <Field label="Costo" value={c.cost != null && c.cost > 0 ? `$${c.cost.toLocaleString('es-AR')}` : null} />
-                            <Field label="Responsable" value={c.responsible} />
                             <Field label="Resolución" value={resolucionLabel(c)} />
                         </div>
 
                         <CashPanel c={c} isAdmin={isAdmin} onRefresh={onRefresh} />
 
-                        {/* Observaciones (append-only, con autor, fecha e imagen) */}
-                        <div className="space-y-2 pt-1">
-                            <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Observaciones</p>
-                            {(c.notesList && c.notesList.length > 0) ? (
-                                c.notesList.map((n) => (
-                                    <div key={n.id} className="rounded-xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/60 dark:border-stone-800 p-3">
-                                        <p className="text-xs text-stone-700 dark:text-stone-300 whitespace-pre-wrap leading-relaxed">{n.content}</p>
-                                        {n.imageUrl && (
-                                            <a href={resolveStorageUrl(n.imageUrl)} target="_blank" rel="noopener noreferrer"
-                                                className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 hover:underline">
-                                                <ImageIcon className="w-3.5 h-3.5" /> Ver foto
-                                            </a>
-                                        )}
-                                        <div className="mt-1.5 flex items-center gap-2 text-[9px] font-bold text-stone-400">
-                                            {n.createdBy && <span>{n.createdBy}</span>}
-                                            {n.createdBy && n.createdAt && <span>·</span>}
-                                            {n.createdAt && <span>{formatDateTime(n.createdAt)}</span>}
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-[10px] text-stone-400 italic">Sin observaciones registradas.</p>
-                            )}
-                        </div>
-
-                        {/* Agregar observación (solo si la venta sigue existiendo).
-                            Misma señal que CaseContext: la relación `order` cargada. */}
+                        {/* La tarjeta completa del caso: es LA MISMA que en ventas y en
+                            el cotizador. Solo se puede editar mientras la venta exista;
+                            si la borraron, el caso queda como registro histórico. */}
                         {c.order ? (
-                            <AddNote orderId={c.order.id} onSaved={onRefresh} />
+                            <PostSaleServiceForm
+                                value={postSaleValueFromCase(c)}
+                                onRefresh={onRefresh}
+                                userRole={userRole}
+                                variant="plain"
+                            />
                         ) : (
-                            <p className="text-[9px] font-bold text-stone-400 italic pt-1">
-                                La venta original fue eliminada: el caso queda como registro histórico (solo lectura).
-                            </p>
+                            <>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <Field label="Responsable" value={c.responsible} />
+                                    <CoverageField coverage={c.coverage} />
+                                    <Field label="Costo" value={c.cost != null && c.cost > 0 ? `$${c.cost.toLocaleString('es-AR')}` : null} />
+                                </div>
+                                <div className="space-y-2 pt-1">
+                                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Observaciones</p>
+                                    {(c.notesList && c.notesList.length > 0) ? (
+                                        c.notesList.map((n) => (
+                                            <div key={n.id} className="rounded-xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/60 dark:border-stone-800 p-3">
+                                                <p className="text-xs text-stone-700 dark:text-stone-300 whitespace-pre-wrap leading-relaxed">{n.content}</p>
+                                                {n.imageUrl && (
+                                                    <a href={resolveStorageUrl(n.imageUrl)} target="_blank" rel="noopener noreferrer"
+                                                        className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 hover:underline">
+                                                        <ImageIcon className="w-3.5 h-3.5" /> Ver foto
+                                                    </a>
+                                                )}
+                                                <div className="mt-1.5 flex items-center gap-2 text-[9px] font-bold text-stone-400">
+                                                    {n.createdBy && <span>{n.createdBy}</span>}
+                                                    {n.createdBy && n.createdAt && <span>·</span>}
+                                                    {n.createdAt && <span>{formatDateTime(n.createdAt)}</span>}
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-[10px] text-stone-400 italic">Sin observaciones registradas.</p>
+                                    )}
+                                </div>
+                                <p className="text-[9px] font-bold text-stone-400 italic pt-1">
+                                    La venta original fue eliminada: el caso queda como registro histórico (solo lectura).
+                                </p>
+                            </>
                         )}
                     </div>
                 )}
@@ -440,80 +451,25 @@ function CaseCard({ c, isAdmin, highlighted, onRefresh }: {
     );
 }
 
-/** Form inline para sumar una observación a un caso existente. */
-function AddNote({ orderId, onSaved }: { orderId: string; onSaved: () => void }) {
-    const [text, setText] = useState('');
-    const [file, setFile] = useState<File | null>(null);
-    const [saving, setSaving] = useState(false);
-
-    const submit = async () => {
-        if (!text.trim() || saving) return;
-        setSaving(true);
-        try {
-            let imageUrl: string | null = null;
-            if (file) {
-                imageUrl = await uploadImage(file);
-                if (!imageUrl) { alert('No se pudo subir la foto. Reintentá o guardá la observación sin foto.'); return; }
-            }
-
-            // Se manda SOLO la observación nueva; el server la estampa y la agrega
-            // al historial (append-only, sin reconstruir desde un snapshot viejo).
-            const res = await fetch(`/api/orders/${orderId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ postSaleNoteEntry: text.trim(), postSaleNoteImageUrl: imageUrl })
-            });
-            if (res.ok) { setText(''); setFile(null); onSaved(); }
-            else { const d = await res.json().catch(() => ({})); alert(`Error: ${d.error || 'No se pudo guardar'}`); }
-        } finally { setSaving(false); }
-    };
-
-    return (
-        <div className="pt-2 border-t border-stone-100 dark:border-stone-800">
-            <div className="flex items-end gap-2">
-                <textarea
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Agregar observación…"
-                    rows={2}
-                    className="flex-1 text-xs rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-3 py-2 outline-none focus:ring-2 focus:ring-stone-300 dark:focus:ring-stone-600 resize-none"
-                />
-                <div className="flex flex-col gap-1.5">
-                    <label className={`cursor-pointer p-2 rounded-xl border transition-colors ${file ? 'border-amber-300 bg-amber-50 text-amber-600 dark:bg-amber-950/30' : 'border-stone-200 dark:border-stone-700 text-stone-400 hover:text-stone-600'}`} title="Adjuntar foto">
-                        <Paperclip className="w-4 h-4" />
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                    </label>
-                    <button
-                        onClick={submit}
-                        disabled={!text.trim() || saving}
-                        className="p-2 rounded-xl bg-stone-900 text-white dark:bg-primary dark:text-primary-foreground disabled:opacity-40 transition-opacity"
-                        title="Guardar observación"
-                    >
-                        <Send className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
-            {file && (
-                <p className="mt-1 text-[9px] font-bold text-amber-600 flex items-center gap-1">
-                    <ImageIcon className="w-3 h-3" /> {file.name}
-                    <button onClick={() => setFile(null)} className="ml-1 text-stone-400 hover:text-stone-600"><X className="w-3 h-3" /></button>
-                </p>
-            )}
-        </div>
-    );
-}
-
 /** Form para abrir un caso de post venta nuevo sobre una venta del cliente. */
-function NewCaseForm({ sales, onCancel, onSaved }: { sales: any[]; onCancel: () => void; onSaved: () => void }) {
+function NewCaseForm({ sales, isAdmin, onCancel, onSaved }: { sales: any[]; isAdmin: boolean; onCancel: () => void; onSaved: () => void }) {
     const [orderId, setOrderId] = useState<string>(sales[0]?.id || '');
     const [caseType, setCaseType] = useState<string>('');
-    const [fault, setFault] = useState<string>('');
     const [coverage, setCoverage] = useState<string>('');
     const [cost, setCost] = useState<string>('');
-    const [responsible, setResponsible] = useState<string>('');
+    const [responsibleOption, setResponsibleOption] = useState<string>('');
+    const [users, setUsers] = useState<PostSaleUser[]>([]);
     const [notes, setNotes] = useState<string>('');
     const [file, setFile] = useState<File | null>(null);
     const [saving, setSaving] = useState(false);
+
+    // Mismo criterio que la tarjeta: el equipo sale de los usuarios del sistema.
+    useEffect(() => {
+        fetch('/api/users')
+            .then(r => (r.ok ? r.json() : []))
+            .then((d: any[]) => { if (Array.isArray(d)) setUsers(d.filter(u => u.role !== 'OPTICA').map(u => ({ id: u.id, name: u.name, role: u.role }))); })
+            .catch(() => setUsers([]));
+    }, []);
 
     const saleLabel = (o: any) => {
         const d = o.createdAt ? formatDate(o.createdAt) : '';
@@ -535,16 +491,19 @@ function NewCaseForm({ sales, onCancel, onSaved }: { sales: any[]; onCancel: () 
             // la imagen tenga a qué observación adjuntarse (no quede huérfana).
             const entryText = notes.trim() || (imageUrl ? 'Foto adjunta' : '');
             const costNum = Number(cost);
+            const seleccion = parseResponsibleOption(responsibleOption, users);
 
             const res = await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     postSaleCaseType: caseType,
-                    postSaleFault: fault || null,
+                    postSaleFault: seleccion.fault,
+                    postSaleFaultUserId: seleccion.faultUserId,
                     postSaleCoverage: coverage || null,
-                    postSaleCost: Number.isFinite(costNum) ? costNum : 0,
-                    postSaleResponsible: responsible || null,
+                    // El costo lo carga solo la administración.
+                    ...(isAdmin ? { postSaleCost: Number.isFinite(costNum) ? costNum : 0 } : {}),
+                    postSaleResponsible: seleccion.responsible,
                     postSaleStatus: 'SENT',
                     postSaleNoteEntry: entryText || null,
                     postSaleNoteImageUrl: imageUrl
@@ -579,10 +538,15 @@ function NewCaseForm({ sales, onCancel, onSaved }: { sales: any[]; onCancel: () 
                     </select>
                 </div>
                 <div>
-                    <Label>Culpa / origen</Label>
-                    <select value={fault} onChange={(e) => setFault(e.target.value)} className={selectCls}>
+                    <Label>Responsable · de quién fue</Label>
+                    <select value={responsibleOption} onChange={(e) => setResponsibleOption(e.target.value)} className={selectCls}>
                         <option value="">—</option>
-                        {POST_SALE_FAULTS.map((f) => <option key={f} value={f}>{f}</option>)}
+                        <optgroup label="Equipo">
+                            {users.map((u) => <option key={u.id} value={responsibleUserValue(u.id)}>{u.name}</option>)}
+                        </optgroup>
+                        <optgroup label="Otras causas">
+                            {POST_SALE_RESPONSIBLE_CAUSES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </optgroup>
                     </select>
                 </div>
                 <div>
@@ -592,14 +556,14 @@ function NewCaseForm({ sales, onCancel, onSaved }: { sales: any[]; onCancel: () 
                         {POST_SALE_COVERAGE.map((cv) => <option key={cv} value={cv}>{cv}</option>)}
                     </select>
                 </div>
-                <div>
-                    <Label>Costo</Label>
-                    <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" className={selectCls} />
-                </div>
-                <div className="sm:col-span-2">
-                    <Label>Responsable</Label>
-                    <input value={responsible} onChange={(e) => setResponsible(e.target.value)} placeholder="Quién se hace cargo" className={selectCls} />
-                </div>
+                {/* El costo lo carga solo la administración: aun cuando el error es
+                    del laboratorio, muchas veces algo nos terminan cobrando. */}
+                {isAdmin && (
+                    <div className="sm:col-span-2">
+                        <Label>Costo</Label>
+                        <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" className={selectCls} />
+                    </div>
+                )}
                 <div className="sm:col-span-2">
                     <Label>Primera observación</Label>
                     <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Qué reporta el cliente / qué se detectó…" className={`${selectCls} resize-none`} />

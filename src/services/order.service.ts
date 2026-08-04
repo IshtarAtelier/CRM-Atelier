@@ -1223,6 +1223,20 @@ export class OrderService {
                         changes.push(`<b>Costo adicional:</b> $${activeCase.cost} → $${Number(postSaleCost)}`);
                     }
 
+                    // Los cambios de campos también quedan EN EL CASO, no solo en el
+                    // email: si mañana alguien reemplaza el responsable o el costo,
+                    // en la ficha se ve qué había antes y quién lo cambió.
+                    if (changes.length > 0) {
+                        const enTexto = changes.map(c => c.replace(/<\/?b>/g, '')).join(' · ');
+                        await prisma.postSaleNote.create({
+                            data: {
+                                caseId: activeCase.id,
+                                content: `Actualización del caso — ${enTexto}`,
+                                createdBy: userName || 'Sistema',
+                            },
+                        });
+                    }
+
                     if (changes.length > 0 || appendedNoteText) {
                         const adminEmail = process.env.ADMIN_EMAIL || 'Pisano.ishtar@gmail.com';
                         const clientName = currentOrderForPostSale.client?.name || 'Cliente';
