@@ -36,15 +36,35 @@ const TANDA = 15;
 /** No tocar chats con actividad reciente: el debounce en vivo todavía tiene su turno. */
 const MINUTOS_DE_GRACIA = 5;
 /**
- * Hasta dónde mirar hacia atrás. Pedido del dueño (4/8/2026): NADA retroactivo
- * — este cron solo reintenta las extracciones del día que fallaron en vivo
- * (JSON cortado, CRM caído un rato). El backlog de días anteriores NO se
- * levanta solo: tras la corrida que creó ~95 fichas de golpe quedó claro que
- * saldar deuda vieja sin aviso distorsiona los números del negocio. Si algún
- * día hay que recuperar un período, se corre a mano el script de mantenimiento
- * o se sube esta env temporalmente.
+ * Hasta dónde mirar hacia atrás. La regla del dueño: "hoy los de hoy", con una
+ * excepción — el local cierra el domingo y abre tarde el sábado, así que EL
+ * LUNES la ventana alcanza al sábado y al domingo, que es cuando esas
+ * conversaciones se atienden. El resto de los días, solo el día en curso.
+ *
+ * Nada de backlog viejo: la corrida que saldó una semana entera creó ~95 fichas
+ * de golpe y volvió ilegibles los números del negocio. Para recuperar un período
+ * puntual se sube EXTRACCION_PENDIENTE_DIAS a mano, a propósito.
  */
-const DIAS = Number(process.env.EXTRACCION_PENDIENTE_DIAS) || 1;
+function diasDeVentana() {
+    const forzado = Number(process.env.EXTRACCION_PENDIENTE_DIAS);
+    if (forzado > 0) return forzado;
+    // Día de la semana en hora argentina (UTC-3), no la del servidor.
+    const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
+    const diaART = new Date(Date.now() - ART_OFFSET_MS).getUTCDay(); // 0 dom … 1 lun
+    return diaART === 1 ? 3 : 1; // lunes: sábado + domingo + hoy
+}
+
+/**
+ * Desde cuándo mirar: la MEDIANOCHE argentina del primer día de la ventana, no
+ * "hace N por 24 horas". Con la resta cruda, un lunes a las 22:00 con ventana de
+ * 3 días se comía también el viernes a la noche.
+ */
+function desdeCuando() {
+    const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
+    const artNow = new Date(Date.now() - ART_OFFSET_MS);
+    const medianocheHoyART = Date.UTC(artNow.getUTCFullYear(), artNow.getUTCMonth(), artNow.getUTCDate()) + ART_OFFSET_MS;
+    return new Date(medianocheHoyART - (diasDeVentana() - 1) * 864e5);
+}
 
 /**
  * Espejo de `telefonoValido` de passive-extractor.js, para el caso con
@@ -83,7 +103,7 @@ async function recuperarExtraccionesPendientes(processPassiveExtraction) {
             clientId: null,
             realPhone: { not: null },
             profileName: { not: null },
-            createdAt: { gte: new Date(ahora - DIAS * 864e5) },
+            createdAt: { gte: desdeCuando() },
             lastMessageAt: { lt: new Date(ahora - MINUTOS_DE_GRACIA * 60 * 1000) },
         },
         select: { id: true, waId: true, profileName: true, realPhone: true },
