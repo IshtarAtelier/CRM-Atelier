@@ -127,6 +127,34 @@ function isValidRecipient(waId) {
     return { valid: true };
 }
 
+/**
+ * Traduce el mensaje de un fallo de envío a un código estable.
+ *
+ * Existe porque el CRM avisaba "el número parece falso" ante CUALQUIER fallo:
+ * una sesión trabada, un timeout subiendo el PDF o un freno anti-spam salían
+ * con el mismo cartel, y mandaban a corregir una ficha que estaba perfecta.
+ * Quien recibe el aviso necesita saber si el problema es el número o nosotros.
+ *
+ * @returns {'INVALID_NUMBER'|'NOT_CONNECTED'|'TIMEOUT'|'BLOCKED'|'UNKNOWN'}
+ */
+function clasificarFalloDeEnvio(mensaje) {
+    const m = String(mensaje || '').toLowerCase();
+
+    if (/whatsapp reconectando|whatsapp not connected|no está inicializado/.test(m)) {
+        return 'NOT_CONNECTED';
+    }
+    if (/no está registrado|número inválido|numero invalido|invalid wid|not a valid user|no lid for user|phone not registered|código de país/.test(m)) {
+        return 'INVALID_NUMBER';
+    }
+    if (/timeout/.test(m)) {
+        return 'TIMEOUT';
+    }
+    if (/anti-spam|cold contact|límite diario|pausa de 30 días|archivados|prohibido/.test(m)) {
+        return 'BLOCKED';
+    }
+    return 'UNKNOWN';
+}
+
 module.exports = {
     TAGS_SIN_BOT,
     ADMIN_PHONE_FALLBACK,
@@ -136,5 +164,6 @@ module.exports = {
     getFileExtension,
     isLidFormat,
     isGroupId,
-    isValidRecipient
+    isValidRecipient,
+    clasificarFalloDeEnvio
 };

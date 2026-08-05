@@ -2220,42 +2220,76 @@ export const ContactService = {
                         if (!resClient.ok) {
                             const errText = await resClient.text();
                             console.error('[Payment Notification] Failed to send WhatsApp to Client:', errText);
-                            
+
+                            // El wa-service devuelve `code` con el motivo real. Sin
+                            // leerlo, un timeout o una sesión trabada se avisaban
+                            // como "el número es falso" y mandaban a corregir una
+                            // ficha que estaba perfecta.
+                            let failCode = 'UNKNOWN';
+                            let failDetail = errText;
+                            try {
+                                const parsed = JSON.parse(errText);
+                                failCode = parsed.code || 'UNKNOWN';
+                                failDetail = parsed.error || errText;
+                            } catch { /* el body no era JSON: queda el texto crudo */ }
+
+                            const esCulpaDelNumero = failCode === 'INVALID_NUMBER';
+                            const motivo = esCulpaDelNumero
+                                ? 'su número parece ser falso o no tener WhatsApp activo'
+                                : failCode === 'NOT_CONNECTED'
+                                    ? 'la sesión de WhatsApp está caída o reconectando (el número del cliente está bien)'
+                                    : failCode === 'TIMEOUT'
+                                        ? 'WhatsApp no confirmó el envío a tiempo (el número del cliente está bien)'
+                                        : failCode === 'BLOCKED'
+                                            ? 'una regla anti-spam frenó el envío (el número del cliente está bien)'
+                                            : 'falló el envío por un problema del sistema, no del número';
+
                             try {
                                 await prisma.interaction.create({
                                     data: {
                                         clientId: result.clientId,
                                         type: 'ERROR',
-                                        content: `⚠️ Falló el envío automático del recibo por WhatsApp. Verificá que el número cargado sea correcto y esté registrado en WhatsApp.`
+                                        content: esCulpaDelNumero
+                                            ? `⚠️ Falló el envío automático del recibo por WhatsApp. Verificá que el número cargado sea correcto y esté registrado en WhatsApp.`
+                                            : `⚠️ Falló el envío automático del recibo por WhatsApp: ${motivo}. Detalle técnico: ${failDetail}. Reenviar el recibo a mano.`
                                     }
                                 });
 
-                                // Notificar a Ishtar por WhatsApp
+                                // Notificar a Ishtar por WhatsApp. Cuando el número
+                                // está bien, va el PDF adjunto para poder reenviarlo
+                                // a mano sin volver a generarlo.
+                                const accion = esCulpaDelNumero
+                                    ? `🔗 *Corregir Ficha:* ${clientLink}`
+                                    : `Reenviale el recibo a mano (va adjunto acá).\n🔗 *Ficha:* ${clientLink}`;
+
                                 await fetchWa('/api/send', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
                                         chatId: getAdminChatId(),
-                                        message: `🚨 *Alerta de Envío Fallido*\n\nNo se pudo enviar el recibo automático a *${result.clientName}* porque su número parece ser falso o no tener WhatsApp activo.\n\n🔗 *Corregir Ficha:* ${clientLink}`,
-                                        senderName: 'Sistema Atelier'
+                                        message: `🚨 *Alerta de Envío Fallido*\n\nNo se pudo enviar el recibo automático a *${result.clientName}* porque ${motivo}.\n\n🧾 *Motivo técnico:* ${failDetail}\n\n${accion}`,
+                                        senderName: 'Sistema Atelier',
+                                        media: esCulpaDelNumero ? null : pdfMedia
                                     })
                                 });
                             } catch(e) {
                                 console.error('[Payment Notification] Error saving failure alert:', e);
                             }
+                        } else {
+                            // Copia a Ishtar SOLO si el cliente lo recibió: la copia
+                            // decía "enviada al cliente" aunque el envío hubiera
+                            // fallado un segundo antes.
+                            await fetchWa('/api/send', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    chatId: getAdminChatId(),
+                                    message: `🤖 *[Copia enviada al cliente]*\n\n${clientMsgText}`,
+                                    senderName: 'Sistema Atelier',
+                                    media: pdfMedia
+                                }),
+                            });
                         }
-
-                        // Enviar copia a Ishtar
-                        await fetchWa('/api/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                chatId: getAdminChatId(),
-                                message: `🤖 *[Copia enviada al cliente]*\n\n${clientMsgText}`,
-                                senderName: 'Sistema Atelier',
-                                media: pdfMedia
-                            }),
-                        });
                     }
 
                 } catch (err: any) {

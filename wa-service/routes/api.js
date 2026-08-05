@@ -11,7 +11,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const { getFileExtension } = require('../utils');
+const { getFileExtension, clasificarFalloDeEnvio } = require('../utils');
 const { resolveWaMessageId } = require('../shared/message-id');
 
 const configPath = path.join(__dirname, '..', 'agent_config.json');
@@ -491,14 +491,17 @@ function createApiRouter(deps) {
             
             res.json({ success: true });
         } catch (e) {
+            // El código viaja al CRM para que el aviso diga el motivo REAL: sin
+            // esto, un timeout o una sesión trabada se le comunicaban al vendedor
+            // como "el número del cliente es falso".
+            const code = e.code || clasificarFalloDeEnvio(e.message);
             // Sesión caída/reconectando: el mensaje NUNCA llegó a WhatsApp, así que
             // el CRM puede decirle al vendedor que reintente sin miedo a duplicar.
-            const notConnected = /WhatsApp reconectando|WhatsApp not connected/i.test(e.message || '');
-            if (notConnected) {
+            if (code === 'NOT_CONNECTED') {
                 botReplyingTo.delete(waId);
-                return res.status(503).json({ error: e.message, notSent: true });
+                return res.status(503).json({ error: e.message, code, notSent: true });
             }
-            res.status(500).json({ error: e.message });
+            res.status(500).json({ error: e.message, code });
         }
     });
 

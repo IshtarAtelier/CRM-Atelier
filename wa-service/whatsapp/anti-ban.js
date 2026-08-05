@@ -315,6 +315,29 @@ class AntiBanQueue {
     }
 
     /**
+     * ¿Este número ya nos escribió alguna vez? Prueba de que el número existe y
+     * tiene WhatsApp, independiente de lo que conteste `getNumberId` hoy.
+     * Ante error de DB devuelve false (no inventamos evidencia).
+     */
+    async tieneHistorialEntrante(waId) {
+        try {
+            const telefono = String(waId).split('@')[0];
+            const entrantes = await prisma.whatsAppMessage.count({
+                where: {
+                    direction: 'INBOUND',
+                    chat: {
+                        OR: [{ waId }, { realPhone: telefono }]
+                    }
+                }
+            });
+            return entrantes > 0;
+        } catch (e) {
+            console.error('[AntiBanQueue] Error verificando historial entrante:', e.message);
+            return false;
+        }
+    }
+
+    /**
      * Ejecuta una tarea individual de la cola.
      */
     async executeTask(task) {
@@ -334,20 +357,29 @@ class AntiBanQueue {
         }
 
         // Resolver @c.us → @lid vía WhatsApp Web (los LIDs ya están resueltos)
-        if (!isLidFormat(targetWaId)) {
+        if (!isLidFormat(targetWaId) && targetWaId.includes('@c.us')) {
+            let numberWaId = null;
             try {
-                if (targetWaId.includes('@c.us')) {
-                    const numberId = await this.client.getNumberId(targetWaId);
-                    const numberWaId = serializedId(numberId);
-                    if (numberWaId) {
-                        targetWaId = numberWaId;
-                    } else {
-                        reject(new Error('El número no está registrado en WhatsApp o es inválido'));
-                        return;
-                    }
-                }
+                numberWaId = serializedId(await this.client.getNumberId(targetWaId));
             } catch (e) {
                 console.warn(`[AntiBanQueue] No se pudo validar el ID de número para ${targetWaId}: ${e.message}`);
+            }
+
+            if (numberWaId) {
+                targetWaId = numberWaId;
+            } else if (await this.tieneHistorialEntrante(targetWaId)) {
+                // getNumberId devuelve null también cuando la sesión está tibia o
+                // WhatsApp no contesta la consulta de LID — no solo cuando el
+                // número no existe. Si ya recibimos mensajes DE este número, es
+                // real: seguimos con el @c.us original en vez de acusar de falsa
+                // una ficha correcta y dejar al cliente sin su recibo.
+                console.warn(`[AntiBanQueue] getNumberId no resolvió ${targetWaId}, pero hay entrantes de ese número: se envía igual.`);
+            } else {
+                reject(Object.assign(
+                    new Error('El número no está registrado en WhatsApp o es inválido'),
+                    { code: 'INVALID_NUMBER' }
+                ));
+                return;
             }
         }
 
