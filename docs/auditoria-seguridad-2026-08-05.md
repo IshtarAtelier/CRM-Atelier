@@ -42,19 +42,33 @@ Verificado contra producción tras el deploy (`d9e67fc8`):
 - con la `BOT_API_KEY` real (via `railway run`, sin exponer el valor) → **200**
 - sesión de WhatsApp reconectada (`/health` → `whatsapp: true`)
 
-### 2b. El socket.io del bot sigue SIN autenticación 🔴 (abierto)
-Hallado al cerrar el punto 2: `io.on('connection')` no valida nada — el CORS
+### 2b. El socket.io del bot sin autenticación 🔴 → CERRADO
+Hallado al cerrar el punto 2: `io.on('connection')` no validaba nada — el CORS
 solo lo respetan los navegadores, un cliente socket.io de línea de comandos se
-conecta igual. Al conectar, el bot emite `bot_status` con **el QR de la sesión**
-(si la sesión está deslogueada, quien escanee ese QR se queda con la línea de
-WhatsApp de la óptica), el prompt completo y el teléfono. Y `new_message_received`
-difunde los mensajes entrantes a **todos** los conectados.
+conectaba igual. Al conectar, el bot emitía `bot_status` con **el QR de la
+sesión** (si la sesión está deslogueada, quien escanee ese QR se queda con la
+línea de WhatsApp de la óptica), el prompt completo y el teléfono. Y
+`new_message_received` difundía los mensajes entrantes a **todos** los conectados.
 
-No se tocó en caliente: el buzón del CRM depende de este socket para el tiempo
-real, y exigir clave rompe la UI (el navegador no puede mandar `BOT_API_KEY`
-sin exponerla al staff). El arreglo correcto: handshake con un token de corta
-vida que el CRM emita para sesiones logueadas y el bot valide contra el CRM.
-**Mientras tanto, este es el agujero más grave que queda.**
+**Resuelto** (`7c471c08`) con un token de corta vida: el CRM lo firma con
+`BOT_API_KEY` (HMAC-SHA256, TTL 24 h — la duración de la sesión) y se lo da
+solo a callers ya autenticados vía `/api/whatsapp/status`; el bot lo verifica
+localmente (`timingSafeEqual` + expiración) sin round-trip. El navegador nunca
+ve la clave — que era justamente lo que la ruta hacía antes: **mandaba
+`WA_API_KEY` cruda como `socketToken`**, expuesta al staff en devtools. Eso
+también quedó eliminado. Los tres consumidores del frontend (buzón, badge,
+toasts de leads) piden token fresco en cada intento de conexión, así una
+reconexión tras un deploy del bot no muere en silencio.
+
+Verificado contra producción:
+- socket sin token → **rechazado**; token falso → **rechazado**
+- token firmado con la clave real → **conectado**, `bot_status` recibido
+- cadena completa navegador-style (ruta → `socketToken` → socket) → **OK**
+- firma/verificación: 8 casos de borde en verde (expirado, adulterado, etc.)
+
+> Nota de rollout del 2b: las pestañas del CRM abiertas ANTES de este deploy
+> tienen el JS viejo (mandan la clave cruda como token, que ya no valida) —
+> pierden el tiempo real hasta que se recargue la página. Un F5 lo resuelve.
 
 ## Abierto — decisión pendiente
 
