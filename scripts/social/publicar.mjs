@@ -24,6 +24,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { RAIZ } from './identidad.mjs';
 import { registrarPublicacion } from './bitacora.mjs';
+import { captionConHashtags, altDeSlide } from './seo.mjs';
 
 const API = 'https://graph.facebook.com/v21.0';
 const BASE_PUBLICA = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
@@ -136,11 +137,15 @@ async function publicarStoryEnInstagram(igUserId, tokenPagina, url) {
  * REGLA 3: Instagram, cuatro pasos y una espera.
  * El contenedor se procesa en segundo plano; publicar antes de que termine falla.
  */
-async function publicarEnInstagram(igUserId, tokenPagina, urls, mensaje) {
+async function publicarEnInstagram(igUserId, tokenPagina, urls, mensaje, alts = []) {
     const hijos = [];
     for (const [i, url] of urls.entries()) {
-        const c = await graph('POST', `/${igUserId}/media`,
-            { image_url: url, is_carousel_item: 'true' }, tokenPagina);
+        // alt_text: lo lee el buscador interno de Instagram y lo lee un lector
+        // de pantalla. En estas piezas el texto ES el contenido, así que
+        // describir la placa describe la publicación.
+        const params = { image_url: url, is_carousel_item: 'true' };
+        if (alts[i]) params.alt_text = alts[i];
+        const c = await graph('POST', `/${igUserId}/media`, params, tokenPagina);
         hijos.push(c.id);
         info(`contenedor ${i + 1}/${urls.length}`);
     }
@@ -178,7 +183,9 @@ export async function publicar(rutaJson, { facebook = false, instagram = false }
     }
 
     const urls = jpgs.map(f => `${BASE_PUBLICA}/social/${pieza.id}/${path.basename(f)}`);
-    const mensaje = pieza.caption || pieza.slides[0]?.title?.replace(/\*/g, '') || '';
+    const textoBase = pieza.caption || pieza.slides[0]?.title?.replace(/\*/g, '') || '';
+    const mensaje = captionConHashtags(pieza, textoBase);
+    const alts = (pieza.slides || []).map(s => altDeSlide(s, pieza));
 
     // Una pieza 9:16 es una story: se publica por otro endpoint y no lleva
     // epígrafe. Se decide por el formato declarado, no por la cantidad de
@@ -242,7 +249,7 @@ export async function publicar(rutaJson, { facebook = false, instagram = false }
             resultado.plataformas.push('Instagram (story)');
         } else {
             paso('Publicando en Instagram');
-            resultado.urls.instagram = await publicarEnInstagram(IG_USER_ID, tokenPagina, urls, mensaje);
+            resultado.urls.instagram = await publicarEnInstagram(IG_USER_ID, tokenPagina, urls, mensaje, alts);
             resultado.plataformas.push('Instagram');
         }
     }
