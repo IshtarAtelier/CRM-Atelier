@@ -1,0 +1,52 @@
+{
+  "id": "multifocales-marean",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "\"Me mareo con los multifocales\" es de las frases que más escuchamos. Casi nunca es que no te adaptás: es que hay una causa concreta y casi siempre tiene arreglo.\n\nSi te está pasando, no los guardes en el cajón. Traelos y los revisamos, aunque no los hayas comprado acá.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/multifocal-mujer-lectura.png",
+      "title": "\"Me mareo con los multifocales.\" *Casi nunca es tu culpa.*",
+      "subtitle": "Las tres causas reales, y qué se hace con cada una."
+    },
+    {
+      "type": "list",
+      "title": "Lo primero: *qué es normal*",
+      "items": [
+        "Los primeros días el cerebro está aprendiendo a usar las zonas",
+        "Bajar escaleras se siente raro al principio: se pasa",
+        "Si a los 15 días seguís mareado, ahí ya no es adaptación"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Las causas que *sí son del anteojo*",
+      "items": [
+        "El centro óptico corrido: mirás por una zona que no es la tuya",
+        "La altura de montaje mal tomada, o el aro que se aflojó y bajó",
+        "Un pasillo de progresión demasiado corto para tu graduación"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/lentes-progresivos-zonas.png",
+      "title": "Por eso *se revisa, no se aguanta*",
+      "items": [
+        "Muchas veces alcanza con reajustar cómo apoya el aro",
+        "Otras hay que volver a medir y rehacer el cristal",
+        "Lo que nunca sirve es acostumbrarse a ver mal"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Traelos y los revisamos",
+      "body": "Aunque no los hayas comprado acá. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

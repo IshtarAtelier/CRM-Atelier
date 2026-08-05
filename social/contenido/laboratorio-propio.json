@@ -1,0 +1,52 @@
+{
+  "id": "laboratorio-propio",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "adentro",
+  "caption": "La mayoría de las ópticas manda los cristales a biselar afuera. Nosotros los hacemos acá, y eso cambia tres cosas: los tiempos, quién se hace cargo si algo sale mal, y qué tan finito se puede ajustar el trabajo.\n\nEste es el lugar donde pasa. Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/local-varilux.jpg",
+      "title": "Tus cristales *no viajan a ningún lado.*",
+      "subtitle": "Se cortan y se montan acá, a metros del mostrador."
+    },
+    {
+      "type": "list",
+      "title": "Lo que cambia *tener laboratorio propio*",
+      "items": [
+        "El anteojo no se va a otra ciudad y vuelve en diez días",
+        "Si el montaje quedó un milímetro corrido, se corrige en el momento",
+        "Cuando algo sale mal, lo arregla quien lo hizo, no un intermediario"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que se hace *puertas adentro*",
+      "items": [
+        "Biselado del cristal según la forma exacta de tu aro",
+        "Montaje y centrado, comparado contra tu medición",
+        "Control final antes de que te lo lleves puesto"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/matias-turchi.png",
+      "title": "Y una persona *con nombre*",
+      "items": [
+        "Matías es nuestro especialista certificado Essilor Expert",
+        "Es quien mide los progresivos y quien controla cómo quedaron",
+        "Si volvés a las dos semanas, te atiende el mismo que te midió"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Pasá a conocerlo",
+      "body": "Cerro de las Rosas, sin turno previo. Se puede ver el taller."
+    }
+  ]
+}

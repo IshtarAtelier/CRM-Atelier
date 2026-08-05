@@ -1,0 +1,49 @@
+{
+  "id": "garantia-adaptacion",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Comprar anteojos tiene un riesgo que nadie nombra: que no te adaptes, y que el problema pase a ser tuyo.\n\nAcá no. Tenés 30 días para probarlos de verdad, en tu vida real. Si no funcionan, lo resolvemos nosotros.\n\nCerro de las Rosas, sin turno previo. También coordinamos por WhatsApp.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "title": "Probalos 30 días. *Si no te adaptás, lo resolvemos.*",
+      "subtitle": "El riesgo de que no funcionen no debería ser tuyo."
+    },
+    {
+      "type": "number",
+      "dato": "30 días",
+      "title": "Para probarlos en serio",
+      "body": "No en el mostrador con un cartelito de prueba: manejando de noche, en la compu, leyendo en la cama."
+    },
+    {
+      "type": "list",
+      "title": "Qué incluye, sin letra chica",
+      "items": [
+        "Reajuste del armazón todas las veces que haga falta",
+        "Nueva medición si algo no cierra",
+        "Cambio del cristal si el problema es el diseño de la lente"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Por qué podemos ofrecerlo",
+      "items": [
+        "Porque el laboratorio es nuestro y rehacer un cristal no es un trámite",
+        "Porque medimos antes con el aro puesto, así que casi nunca hace falta",
+        "Porque un cliente que ve mal no vuelve, y nosotros vivimos de que vuelvan"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Vení cuando quieras",
+      "body": "Cerro de las Rosas, sin turno previo. También coordinamos por WhatsApp."
+    }
+  ]
+}

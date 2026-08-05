@@ -1,0 +1,49 @@
+{
+  "id": "multifocales-no-fallan",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "prueba",
+  "caption": "Un multifocal que falla casi nunca falla por el cristal: falla por cómo se midió y cómo se montó.\n\nEstas son las tres medidas que tomamos antes de encargar el tuyo, y por qué las tomamos con el armazón que elegiste ya puesto en tu cara. Es la parte que no se ve en la caja pero se siente a los tres días.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/medicion-pupilar-optica.png",
+      "title": "Un multifocal falla por *cómo se midió*, no por el cristal.",
+      "subtitle": "Lo que hacemos antes de encargar el tuyo."
+    },
+    {
+      "type": "list",
+      "title": "Las tres medidas *que no están en la receta*",
+      "items": [
+        "Distancia entre pupilas, tomada con el aro que elegiste puesto",
+        "Altura de montaje, según cómo te apoya ese aro en la nariz",
+        "Distancia al vértice, del ojo a la cara interna del cristal"
+      ]
+    },
+    {
+      "type": "number",
+      "dato": "1 mm",
+      "title": "Lo que alcanza para arruinarlo",
+      "body": "Un milímetro de error en la altura corre el pasillo de progresión y el pasaje entre distancias empieza a sentirse."
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/local-varilux.jpg",
+      "title": "Y después, *el control*",
+      "items": [
+        "El biselado se hace en nuestro laboratorio, no viaja",
+        "Antes de entregarlo, se compara el montaje contra tu medición",
+        "Si algo no coincide, se rehace antes de que te lo lleves"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Garantía de adaptación de 30 días",
+      "body": "Si no te adaptás, lo resolvemos. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

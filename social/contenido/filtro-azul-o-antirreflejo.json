@@ -1,0 +1,52 @@
+{
+  "id": "filtro-azul-o-antirreflejo",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Te ofrecen los dos, suenan parecido y cuestan distinto. No son lo mismo ni resuelven el mismo problema.\n\nEl antirreflejo lo necesita todo el mundo. El filtro azul, según qué hagas con tus días. Te contamos cuál te conviene sin venderte el más caro.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog2_homeoffice.png",
+      "title": "Filtro azul o antirreflejo: *no son lo mismo.*",
+      "subtitle": "Qué hace cada uno, y cuál necesitás realmente."
+    },
+    {
+      "type": "list",
+      "title": "El antirreflejo *no es opcional*",
+      "items": [
+        "Saca los reflejos que te tapan los ojos en las fotos",
+        "Mejora lo que ves de noche manejando, con las luces de frente",
+        "Sin él, parte de la luz que debería entrar rebota y se pierde"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "El filtro azul *depende de vos*",
+      "items": [
+        "Filtra parte de la luz de pantallas y luces LED",
+        "Ayuda si pasás muchas horas frente a la computadora",
+        "Si trabajás al aire libre o casi no usás pantallas, aporta poco"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/crizal_prevencia_blue.png",
+      "title": "Lo que nadie te aclara",
+      "items": [
+        "El filtro azul viene incluido en el antirreflejo, no lo reemplaza",
+        "Un antirreflejo barato se raya y se pela: ahí sí se nota la diferencia",
+        "La pregunta no es cuál es mejor, es cuántas horas de pantalla hacés"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Contanos cómo son tus días",
+      "body": "Con eso te decimos qué necesitás y qué no. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}
