@@ -24,13 +24,32 @@ import 'dotenv/config';
 
 const API = 'https://graph.facebook.com/v21.0';
 
+/**
+ * Los que SÍ hacen falta para publicar un carrusel. Sin alguno de estos, no se
+ * publica: por eso bloquean.
+ */
 const PERMISOS_NECESARIOS = [
     ['pages_show_list', 'ver la lista de Páginas'],
-    ['pages_read_engagement', 'leer la Página'],
+    ['pages_read_engagement', 'leer la Página y derivar su token'],
     ['pages_manage_posts', 'crear publicaciones en la Página'],
-    ['pages_manage_engagement', 'gestionar comentarios y reacciones'],
     ['instagram_basic', 'ver la cuenta de Instagram'],
     ['instagram_content_publish', 'publicar en Instagram'],
+];
+
+/**
+ * Los que habilitan cosas que todavía no hacemos. Se informan pero NO bloquean.
+ *
+ * `pages_manage_engagement` estaba en la lista de arriba y frenaba el
+ * diagnóstico entero con todo lo demás en verde. Es para responder comentarios
+ * y reacciones: `publicar.mjs` no lo usa en ningún endpoint (solo toca
+ * /photos, /feed, /media y /media_publish). Un chequeo que falla por algo que
+ * no impide publicar enseña a ignorar los chequeos, que es peor que no tenerlos.
+ *
+ * Si algún día el sistema responde comentarios, se agrega el permiso al token
+ * y se mueve esta línea a PERMISOS_NECESARIOS.
+ */
+const PERMISOS_OPCIONALES = [
+    ['pages_manage_engagement', 'responder comentarios (no lo usamos todavía)'],
 ];
 
 const ok = (t) => console.log(`  ✅ OK     ${t}`);
@@ -96,6 +115,10 @@ async function api(path, token, params = {}) {
             scopes.has(permiso)
                 ? ok(`${permiso.padEnd(28)} ${paraQue}`)
                 : marcarFalla(`${permiso.padEnd(28)} FALTA — ${paraQue}`);
+        }
+        for (const [permiso, paraQue] of PERMISOS_OPCIONALES) {
+            if (scopes.has(permiso)) ok(`${permiso.padEnd(28)} ${paraQue}`);
+            else console.log(`  ·  ${permiso.padEnd(28)} no está — ${paraQue}`);
         }
     }
 
