@@ -171,6 +171,32 @@ Reglas para que el proyecto escale sin volverse un mazacote.
   commitear el resultado. Si se puede repetir, nombre descriptivo + comentario
   de qué hace y contra qué base pega.
 
+## Publicación en redes (`scripts/social/`)
+Sistema para publicar carruseles en Instagram y Facebook. El plan completo y el
+porqué de cada decisión están en `docs/plan-publicacion-meta.md`.
+- **Las piezas se DECLARAN en JSON, nunca se diseña una imagen a mano.** El
+  render es HTML + CSS capturado con Playwright; nada de librerías de canvas.
+- **Los colores salen de `globals.css`** vía `identidad.mjs`. PROHIBIDO escribir
+  un color o una fuente literal dentro de una plantilla.
+- **Las piezas con precio se generan desde la base** (`generar-producto.mjs`),
+  que las marca con `fuente: "base"`. Una pieza escrita a mano con un precio
+  adentro NO renderiza: es la regla R6 y no se exime nunca. Publicar un precio
+  viejo tiene que ser imposible, no "algo a tener cuidado".
+- **El validador corre ANTES de renderizar y es bloqueante.** La única salida es
+  `images_waived` CON una razón escrita; R5 y R6 no se eximen jamás.
+- **Instagram no acepta los bytes de la imagen**: descarga una URL pública HTTPS.
+  Por eso los JPEG se commitean en `public/social/` (los PNG master no, van al
+  `.gitignore`). Y tienen que ser JPEG REAL: un PNG renombrado se rechaza.
+- **El token de Página se deriva en cada corrida** de `GET /{page_id}?fields=access_token`.
+  Nunca se guarda en el `.env`.
+- **Ningún script imprime el token ni el App Secret**, ni parcialmente.
+- **Nada se publica sin aprobación**: `publicar.mjs` sin `--facebook`/`--instagram`
+  solo muestra qué haría. Es el comportamiento por defecto, no una opción.
+- Ante cualquier falla de publicación, empezar por `node scripts/social/meta-check.mjs`.
+- **Las credenciales `META_ACCESS_TOKEN` / `META_ADS_TOKEN` / `META_PIXEL_ID` son
+  de Ads y Pixel: NO sirven para publicar.** Publicar usa `META_SYSTEM_USER_TOKEN`
+  con otros seis permisos. Verificado: el token de Ads no tiene ninguno de ellos.
+
 ## Trampas conocidas
 - **`npx prisma generate` SIEMPRE desde `atelier/`.** Corrido desde otra carpeta,
   toda ficha de cliente tira 500.

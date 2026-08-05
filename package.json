@@ -24,7 +24,11 @@
     "db:seed": "npx prisma db seed",
     "db:studio": "npx prisma studio",
     "db:status": "npx prisma migrate status",
-    "analyze": "ANALYZE=true next build"
+    "analyze": "ANALYZE=true next build",
+    "social:check": "node scripts/social/meta-check.mjs",
+    "social:producto": "node scripts/social/generar-producto.mjs --destacados --render",
+    "social:render": "node scripts/social/render.mjs",
+    "social:publicar": "node scripts/social/publicar.mjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",

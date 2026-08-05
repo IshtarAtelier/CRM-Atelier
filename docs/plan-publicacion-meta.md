@@ -97,6 +97,41 @@ de publicar tres veces por semana, conviene no empezar.
 
 ---
 
+## ESTADO (5/8/2026)
+
+Todo lo que no depende de credenciales está **construido y en producción**.
+
+| Etapa | Estado | Qué quedó |
+|---|---|---|
+| 0 · Ancla de eliminación de datos | ✅ | `/politicas-de-privacidad#eliminacion-de-datos`, verificada en el DOM renderizado |
+| 0 · Pasos con login en Meta | ⏳ **PENDIENTE** | Los hace una persona; ver abajo |
+| 1 · Diagnóstico | ✅ | `npm run social:check` |
+| 2 · Render | ✅ | `npm run social:render <pieza>` |
+| 3 · Validador | ✅ | Bloqueante, R1–R6 |
+| 4 · Publicador | ✅ código · ⏳ sin usar | `npm run social:publicar <pieza>` (modo prueba por defecto) |
+| 5 · Piezas desde la base | ✅ | `npm run social:producto` |
+| 6 · Aviso de cadencia | ✅ | `/api/cron/social-cadencia` — falta darlo de alta en cron-job.org |
+
+**Lo único que falta para publicar** (pantallas con sesión iniciada, no las puede
+hacer un agente):
+
+1. En el Business "Atelier Óptica" → Usuarios del sistema. **El usuario del
+   sistema YA EXISTE** (verificado: el token actual es de tipo `SYSTEM_USER` y no
+   vence), así que no hay que crearlo.
+2. Asignarle **los activos**: la Página y la cuenta de Instagram. Ojo: tener la
+   app asignada NO da acceso a los activos — son dos pantallas distintas y es el
+   error más común.
+3. Regenerar el token con los seis permisos y guardarlo como
+   `META_SYSTEM_USER_TOKEN`, junto con `META_PAGE_ID` y `META_IG_USER_ID`.
+   Verificar el salto de línea final del `.env` antes de agregar.
+4. `npm run social:check` hasta que dé todo OK.
+
+Hay **dos piezas ya renderizadas y servidas** para probar el publicador apenas
+haya token: `progresivos-que-medimos` (educación, escrita a mano) y
+`armazones-destacados` (producto, generada desde la base).
+
+---
+
 ## 4. El plan, por etapas
 
 Cada etapa deja algo que sirve por sí solo. Si se abandona en la 3, lo hecho
