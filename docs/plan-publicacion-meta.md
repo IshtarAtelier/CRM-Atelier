@@ -117,14 +117,46 @@ hacer un agente):
 
 1. En el Business "Atelier Óptica" → Usuarios del sistema. **El usuario del
    sistema YA EXISTE** (verificado: el token actual es de tipo `SYSTEM_USER` y no
-   vence), así que no hay que crearlo.
+   vence), así que no hay que crearlo. ✅ **HECHO** — usuario `Ishtar`
+   (`61592498900635`), con la Página `112571191818391` y el Instagram
+   `17841458761171093` asignados (Contenido / Actividad de la comunidad /
+   Estadísticas). Los activos pasaron de 9 a 11.
 2. Asignarle **los activos**: la Página y la cuenta de Instagram. Ojo: tener la
    app asignada NO da acceso a los activos — son dos pantallas distintas y es el
-   error más común.
+   error más común. ✅ **HECHO** (ver punto 1).
 3. Regenerar el token con los seis permisos y guardarlo como
    `META_SYSTEM_USER_TOKEN`, junto con `META_PAGE_ID` y `META_IG_USER_ID`.
    Verificar el salto de línea final del `.env` antes de agregar.
+   ⏳ **BLOQUEADO POR EL PUNTO 5** — el desplegable de permisos solo ofrecía
+   `ads_*`, `business_management` y `pages_show_list`; buscar "instagram" no
+   devolvía nada. No es un bug: los permisos de un token salen de los **casos de
+   uso de la app**, y la única app del Business (`Atelier Ads API`,
+   `1680337733032126`) es de Ads y no tiene ninguno de contenido.
 4. `npm run social:check` hasta que dé todo OK.
+5. **Crear una app propia de publicación.** En curso el 5/8/2026:
+   `Atelier Optica Contenido`, portfolio Atelier Óptica, con los dos casos de uso
+   de "Administración de contenido": *Administrar mensajes y contenido en
+   Instagram* y *Administrar todos los aspectos de tu página*. Meta no pidió
+   requisitos de revisión (se publica sobre activos propios). Quedó en el diálogo
+   final de contraseña, que lo completa una persona.
+
+### Dos pozos que costaron una sesión entera (5/8/2026)
+
+**El registro de Meta for Developers se traba si el teléfono ya es tuyo.** Para
+crear cualquier app hace falta una cuenta de desarrollador verificada, y esa
+verificación quiere *agregar* un celular al perfil. Si el número ya está cargado
+y confirmado en la cuenta —como estaba—, Meta responde *"Solo puedes completar
+esta acción en el centro de cuentas"* y manda a una pantalla donde no hay nada
+que confirmar. Círculo cerrado. Se sale con la tarjeta de crédito (Meta no cobra,
+solo valida que sea una persona) o con un número que no esté en esa cuenta.
+
+**Y antes de eso, el diálogo vence.** Si la pantalla de verificación queda abierta
+unos minutos, cualquier envío falla con *"Your verification session has expired"*.
+No es el número: hay que recargar y hacer los pasos de corrido.
+
+Verificado que no hay atajo: el registro directo, `/apps/<id>/dashboard/` y
+`/apps/creation/` **los tres** terminan en el mismo diálogo. Tener acceso total a
+una app desde el Business no alcanza para entrar a su panel de desarrollador.
 
 Hay **dos piezas ya renderizadas y servidas** para probar el publicador apenas
 haya token: `progresivos-que-medimos` (educación, escrita a mano) y

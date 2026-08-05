@@ -146,6 +146,13 @@ async function startClient(attempt = 1) {
         // soltar este pin. Mientras tanto, si WhatsApp deja de servir esta build, probar
         // otra de https://github.com/wppconnect-team/wa-version/tree/main/html vía la
         // env WA_WEB_VERSION, sin tocar código.
+        //
+        // DESCARTADO como causa del pin que no se aplica (5/8/2026): la sospecha era que
+        // wppconnect hubiera borrado esta build del repo, porque con `strict: false` un
+        // 404 se traga sin ruido y se sigue con la versión viva — el síntoma exacto. NO
+        // es eso: la URL responde 200 y 552.574 bytes. El archivo está. Queda por mirar
+        // del lado de whatsapp-web.js: si con LocalAuth ya autenticado el HTML cacheado
+        // se llega a servir, o si WhatsApp actualiza por su cuenta después de cargarlo.
         webVersionCache: {
             type: 'remote',
             remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${process.env.WA_WEB_VERSION || '2.3000.1042391138-alpha'}.html`,
