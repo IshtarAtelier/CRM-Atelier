@@ -2205,23 +2205,19 @@ export const ContactService = {
                             console.error('[Payment Notification] Failed to generate Receipt PDF:', pdfErr);
                         }
 
-                        // Enviar al cliente.
-                        // Plazo propio de 150s: el default de `fetchWa` (100s) corta
-                        // ANTES que el wa-service, que para un adjunto puede tardar
-                        // hasta ~113s (cola + tipeo + subida del PDF + los 90s del
-                        // envío). Cuando cortaba primero, el recibo se perdía sin
-                        // aviso: el abort ni siquiera entra por la rama de alerta.
-                        // Este bloque es fire-and-forget, así que esperar no demora
-                        // la respuesta del cobro.
+                        // Enviar al cliente en DOS mensajes: primero el TEXTO solo,
+                        // después el PDF. Producción (5/8/2026) mostró que los envíos
+                        // con adjunto vienen muriendo por timeout dentro de
+                        // whatsapp-web.js mientras el texto sale siempre; en un solo
+                        // mensaje, el adjunto roto se llevaba la confirmación con él
+                        // y el cliente no recibía NADA.
                         const resClient = await fetchWa('/api/send', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            signal: AbortSignal.timeout(150000),
                             body: JSON.stringify({
                                 chatId: phoneTo,
                                 message: clientMsgText,
-                                senderName: 'Sistema Atelier',
-                                media: pdfMedia
+                                senderName: 'Sistema Atelier'
                             }),
                         });
 
@@ -2263,12 +2259,12 @@ export const ContactService = {
                                     }
                                 });
 
-                                // Notificar a Ishtar por WhatsApp. Cuando el número
-                                // está bien, va el PDF adjunto para poder reenviarlo
-                                // a mano sin volver a generarlo.
+                                // Notificar a Ishtar por WhatsApp. Sin adjunto: si los
+                                // adjuntos están rotos (el caso de hoy), la alerta con
+                                // PDF moriría por el mismo timeout y no llegaría nada.
                                 const accion = esCulpaDelNumero
                                     ? `🔗 *Corregir Ficha:* ${clientLink}`
-                                    : `Reenviale el recibo a mano (va adjunto acá).\n🔗 *Ficha:* ${clientLink}`;
+                                    : `Reenviale el recibo a mano desde la ficha.\n🔗 *Ficha:* ${clientLink}`;
 
                                 await fetchWa('/api/send', {
                                     method: 'POST',
@@ -2276,25 +2272,110 @@ export const ContactService = {
                                     body: JSON.stringify({
                                         chatId: getAdminChatId(),
                                         message: `🚨 *Alerta de Envío Fallido*\n\nNo se pudo enviar el recibo automático a *${result.clientName}* porque ${motivo}.\n\n🧾 *Motivo técnico:* ${failDetail}\n\n${accion}`,
-                                        senderName: 'Sistema Atelier',
-                                        media: esCulpaDelNumero ? null : pdfMedia
+                                        senderName: 'Sistema Atelier'
                                     })
                                 });
                             } catch(e) {
                                 console.error('[Payment Notification] Error saving failure alert:', e);
                             }
                         } else {
+                            // El texto llegó. Ahora el PDF, en mensaje aparte; si el
+                            // adjunto muere (timeout de whatsapp-web.js), el recibo
+                            // viaja igual como link de descarga.
+                            let comoLlegoElPdf: 'adjunto' | 'link' | null = null;
+
+                            if (pdfMedia) {
+                                try {
+                                    const resPdf = await fetchWa('/api/send', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        // 150s: la cadena completa del adjunto en el
+                                        // wa-service (cola + tipeo + subida + los 90s
+                                        // del envío) puede superar los 100s del default
+                                        // de fetchWa; cortar antes perdía el envío sin
+                                        // pasar por ninguna rama de alerta.
+                                        signal: AbortSignal.timeout(150000),
+                                        body: JSON.stringify({
+                                            chatId: phoneTo,
+                                            message: '',
+                                            senderName: 'Sistema Atelier',
+                                            media: pdfMedia
+                                        }),
+                                    });
+                                    if (resPdf.ok) comoLlegoElPdf = 'adjunto';
+                                    else console.error('[Payment Notification] PDF adjunto rechazado:', await resPdf.text());
+                                } catch (pdfSendErr: any) {
+                                    console.error('[Payment Notification] PDF adjunto falló:', pdfSendErr.message);
+                                }
+
+                                if (comoLlegoElPdf !== 'adjunto') {
+                                    try {
+                                        const { uploadFile, getSignedUrl } = await import('@/lib/storage');
+                                        const { randomUUID } = await import('crypto');
+                                        const { STORE_ORIGIN } = await import('@/lib/constants');
+                                        // UUID en el nombre: el link es público, que no
+                                        // sea adivinable listando fechas.
+                                        const key = await uploadFile(
+                                            Buffer.from(pdfMedia.base64, 'base64'),
+                                            `receipts/${randomUUID()}-${String(pdfMedia.filename).replace(/[^a-zA-Z0-9._-]/g, '_')}`,
+                                            'application/pdf'
+                                        );
+                                        let url = await getSignedUrl(key);
+                                        if (url.startsWith('/')) url = `${STORE_ORIGIN}${url}`;
+
+                                        const resLink = await fetchWa('/api/send', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                chatId: phoneTo,
+                                                message: `🧾 Podés descargar tu recibo desde este enlace: ${url}`,
+                                                senderName: 'Sistema Atelier'
+                                            }),
+                                        });
+                                        if (resLink.ok) comoLlegoElPdf = 'link';
+                                    } catch (linkErr: any) {
+                                        console.error('[Payment Notification] Fallback de link del recibo falló:', linkErr.message);
+                                    }
+                                }
+
+                                if (comoLlegoElPdf === null) {
+                                    // El cliente tiene la confirmación por texto pero
+                                    // ningún recibo. Que quede en la ficha y que Ishtar
+                                    // se entere con el motivo real.
+                                    try {
+                                        await prisma.interaction.create({
+                                            data: {
+                                                clientId: result.clientId,
+                                                type: 'ERROR',
+                                                content: `⚠️ El cliente recibió la confirmación del pago por WhatsApp, pero el PDF del recibo no se pudo entregar (ni adjunto ni como link). Reenviarlo a mano desde la ficha.`
+                                            }
+                                        });
+                                        await fetchWa('/api/send', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                chatId: getAdminChatId(),
+                                                message: `🚨 *Recibo sin entregar*\n\n*${result.clientName}* recibió la confirmación del pago por texto, pero el PDF del recibo no salió (ni adjunto ni como link). El número está bien.\n\n🔗 *Ficha:* ${clientLink}`,
+                                                senderName: 'Sistema Atelier'
+                                            })
+                                        });
+                                    } catch (e) {
+                                        console.error('[Payment Notification] Error avisando recibo sin entregar:', e);
+                                    }
+                                }
+                            }
+
                             // Copia a Ishtar SOLO si el cliente lo recibió: la copia
                             // decía "enviada al cliente" aunque el envío hubiera
-                            // fallado un segundo antes.
+                            // fallado un segundo antes. Sin adjunto, por lo mismo que
+                            // la alerta: si los adjuntos están rotos, no llegaría.
                             await fetchWa('/api/send', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                     chatId: getAdminChatId(),
-                                    message: `🤖 *[Copia enviada al cliente]*\n\n${clientMsgText}`,
-                                    senderName: 'Sistema Atelier',
-                                    media: pdfMedia
+                                    message: `🤖 *[Copia enviada al cliente]*\n\n${clientMsgText}${comoLlegoElPdf ? `\n\n(El recibo le llegó como ${comoLlegoElPdf}.)` : ''}`,
+                                    senderName: 'Sistema Atelier'
                                 }),
                             });
                         }

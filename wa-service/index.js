@@ -1909,6 +1909,22 @@ app.get('/health', async (req, res) => {
 const WA_API_KEY = process.env.WA_API_KEY;
 if (!WA_API_KEY) {
     console.warn('⚠️ WARNING: WA_API_KEY not set. API endpoints are UNPROTECTED.');
+    // El warn de arriba vivió meses en logs que nadie lee, con la API pública en
+    // internet: cualquiera podía mandar WhatsApp firmados como la óptica. Un
+    // agujero de seguridad tiene que gritar donde se lo escucha: WhatsApp del
+    // admin, apenas la sesión esté lista. Reintenta hasta lograrlo (una sola vez).
+    const avisoSinClave = setInterval(() => {
+        try {
+            if (!getStatus().isReady) return;
+            clearInterval(avisoSinClave);
+            sendMessage(
+                getAdminWaId(),
+                `🚨 *API DEL BOT SIN CLAVE*\n\nEl wa-service arrancó SIN la variable WA_API_KEY: cualquiera que conozca la URL puede mandar mensajes como la óptica y cambiar la configuración del bot.\n\nSetear WA_API_KEY en Railway (en el servicio del bot Y en el CRM, mismo valor) y redeployar.`
+            ).catch(e => console.error('[Seguridad] No se pudo avisar la falta de WA_API_KEY:', e.message));
+        } catch (e) {
+            console.error('[Seguridad] Error en el aviso de WA_API_KEY:', e.message);
+        }
+    }, 60000);
 }
 function apiAuth(req, res, next) {
     if (!WA_API_KEY) return next(); // Sin key configurada, permitir (modo legacy)
