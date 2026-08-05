@@ -1,0 +1,22 @@
+{
+  "id": "campania-2x1-multifocales-feed",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "ubicacion": "Feed de Instagram y Facebook",
+  "temas": [
+    "multifocales"
+  ],
+  "caption": "2x1 en multifocales: llevás dos pares al precio de uno.\n\nLos dos medidos acá, con el armazón ya elegido y garantía de adaptación de 30 días. Si no te adaptás, hacemos el cristal de nuevo.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo, o escribinos por WhatsApp.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "title": "En lentes multifocales",
+      "dato": "2x1",
+      "body": "Llevás dos pares de multifocales al precio de uno. Medidos acá, con garantía de adaptación."
+    }
+  ]
+}

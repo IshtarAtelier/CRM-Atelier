@@ -114,6 +114,8 @@ export function htmlDeSlide(slide, id, pieza) {
     const fondo = oscuro ? id.oscuro : id.colores.fondo;
     const texto = oscuro ? '#ffffff' : id.colores.texto;
     const esStory = id.formato?.nombre === '9:16';
+    const esApaisado = id.formato?.nombre === '1.91:1';
+    const esCuadrado = id.formato?.nombre === '1:1';
 
     return `<!doctype html>
 <html lang="es"><head>
@@ -149,31 +151,6 @@ export function htmlDeSlide(slide, id, pieza) {
     display:flex; flex-direction:column; justify-content:flex-end;
   }
 
-  /* Story (9:16): la placa es mucho más alta que el carrusel del feed, así que
-     el texto apoyado abajo deja media pantalla vacía y queda por debajo de la
-     zona donde la gente apoya el pulgar. Se centra y se agranda: una story se
-     mira dos segundos, no se lee. */
-  ${esStory ? `
-  /* El velo del feed se oscurece hacia abajo porque ahí va el texto. En la
-     story el texto está al medio, donde ese gradiente todavía es claro: se
-     empareja para que el contraste no dependa de qué hay en la foto. */
-  .velo { background:linear-gradient(180deg,
-      ${oscuro ? 'rgba(42,33,28,.55)' : 'rgba(250,248,245,.62)'} 0%,
-      ${oscuro ? 'rgba(42,33,28,.80)' : 'rgba(250,248,245,.88)'} 45%,
-      ${oscuro ? 'rgba(42,33,28,.88)' : 'rgba(250,248,245,.94)'} 100%); }
-  .contenido { justify-content:center !important; padding:120px 96px 260px; }
-  /* Producto es la excepción: la foto va arriba sobre fondo blanco, así que el
-     texto tiene que quedar ABAJO, sobre el fondo oscuro. Centrado cae encima
-     del blanco y, siendo texto blanco, desaparece. Pasó: la placa salió con el
-     precio suelto y sin nombre. */
-  .contenido.number { justify-content:flex-end !important; }
-  .producto { height:46%; }
-  h1 { font-size:104px; }
-  h2 { font-size:78px; }
-  .cuerpo { font-size:44px; margin-top:40px; }
-  .bajada { font-size:42px; margin-top:40px; }
-  .item { font-size:44px; }
-  ` : ''}
   .contenido.cover { justify-content:flex-end; }
   /* La lista sin foto se centra; CON foto se apoya abajo, para no taparle la
      cara a la persona de la imagen ni dejar un hueco entre el texto y el pie.
@@ -223,6 +200,67 @@ export function htmlDeSlide(slide, id, pieza) {
   }
   .logo { height:52px; width:auto; ${oscuro ? 'filter:brightness(0) invert(1);' : ''} opacity:.95; }
   .handle { font-size:26px; font-weight:500; letter-spacing:.06em; opacity:.7; }
+
+  /* ── Ajustes por formato ──────────────────────────────────────────────────
+     VAN AL FINAL A PROPÓSITO. Estaban arriba y no se aplicaban: las reglas
+     base de .producto y .pie venían después y ganaban por orden. La placa
+     apaisada salió con la foto encima del texto y el pie superpuesto. */
+
+  ${esStory ? `
+  /* Story (9:16): mucho más alta que el feed. El texto apoyado abajo deja media
+     pantalla vacía y cae por debajo de donde la gente apoya el pulgar. Se
+     centra y se agranda: una story se mira dos segundos, no se lee. */
+  .contenido { justify-content:center; padding:120px 96px 260px; }
+  h1 { font-size:104px; }
+  h2 { font-size:78px; }
+  .cuerpo { font-size:44px; margin-top:40px; }
+  .bajada { font-size:42px; margin-top:40px; }
+  .item { font-size:44px; }
+  /* El velo del feed se oscurece hacia abajo porque ahí va el texto; acá el
+     texto está al medio, donde ese gradiente todavía es claro. */
+  .velo { background:linear-gradient(180deg,
+      ${oscuro ? 'rgba(42,33,28,.55)' : 'rgba(250,248,245,.62)'} 0%,
+      ${oscuro ? 'rgba(42,33,28,.80)' : 'rgba(250,248,245,.88)'} 45%,
+      ${oscuro ? 'rgba(42,33,28,.88)' : 'rgba(250,248,245,.94)'} 100%); }
+  /* Producto es la excepción: la foto va arriba sobre fondo blanco, así que el
+     texto tiene que quedar ABAJO, sobre el oscuro. Centrado cae sobre el blanco
+     y, siendo texto blanco, desaparece. Pasó: salió el precio sin nombre. */
+  .contenido.number { justify-content:flex-end; }
+  .producto { height:46%; }
+  ` : ''}
+
+  ${esCuadrado ? `
+  /* Cuadrado (1:1): el layout del feed funciona, solo se ajusta el aire. */
+  .contenido { padding:80px 76px 170px; }
+  h1 { font-size:74px; }
+  h2 { font-size:58px; margin-bottom:34px; }
+  .producto { height:52%; }
+  ` : ''}
+
+  ${esApaisado ? `
+  /* Apaisado (1.91:1): 1200x628, la ubicación más chica y más ancha. No entra
+     un párrafo, entra un titular y un dato. La foto va al COSTADO: partir 628px
+     en dos franjas horizontales no deja lugar para nada. */
+  .producto { top:0; bottom:0; left:auto; right:0; width:44%; height:100%;
+              background-size:cover; }
+  /* El padding-bottom reserva la franja del pie. Sin él, el texto centrado baja
+     hasta el logo y se superponen: la bajada quedaba escrita encima del
+     isotipo. */
+  .contenido { inset:0; padding:44px 52px 104px 60px; padding-right:50%;
+               justify-content:center; }
+  h1 { font-size:56px; line-height:1.03; }
+  h2 { font-size:44px; margin-bottom:18px; }
+  .rotulo { font-size:25px; }
+  .dato { font-size:82px; margin-top:6px; }
+  .cuerpo { font-size:25px; margin-top:14px; line-height:1.3; }
+  .bajada { font-size:25px; margin-top:14px; line-height:1.3; }
+  .item { font-size:25px; }
+  /* El pie se achica y se ancla a la izquierda: con 628px de alto, el de 74px
+     de separación se comía el texto. */
+  .pie { left:60px; right:auto; bottom:34px; gap:12px; }
+  .logo { height:34px; }
+  .handle { font-size:19px; }
+  ` : ''}
 </style></head>
 <body>${plantilla(slide, id)}</body></html>`;
 }

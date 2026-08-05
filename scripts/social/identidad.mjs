@@ -111,8 +111,17 @@ export async function cargarIdentidad() {
  * avisa.
  */
 export const FORMATOS = {
+    // Feed orgánico y anuncios de feed. El que más pantalla ocupa.
     '4:5': { nombre: '4:5', ancho: 1080, alto: 1350 },
+    // Stories, Reels y anuncios de story.
     '9:16': { nombre: '9:16', ancho: 1080, alto: 1920 },
+    // Cuadrado: Meta lo usa para varias ubicaciones de anuncio y es el que
+    // menos se recorta cuando la misma pieza se muestra en lugares distintos.
+    '1:1': { nombre: '1:1', ancho: 1080, alto: 1080 },
+    // Apaisado 1.91:1 — columna derecha, Audience Network, Marketplace.
+    // Es MUY bajo (628 px): no entra un párrafo, solo un titular y un dato.
+    // Meterle el mismo texto que a un 4:5 lo vuelve ilegible.
+    '1.91:1': { nombre: '1.91:1', ancho: 1200, alto: 628 },
 };
 
 /**
