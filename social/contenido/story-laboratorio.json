@@ -1,0 +1,19 @@
+{
+  "id": "story-laboratorio",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Laboratorio propio: tus cristales no dependen de la cola de un proveedor ajeno.",
+  "temas": [
+    "taller"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/local-varilux.jpg",
+      "title": "Tus cristales los hacemos nosotros",
+      "subtitle": "Laboratorio propio, no tercerizado. Otros tiempos y otro control."
+    }
+  ]
+}

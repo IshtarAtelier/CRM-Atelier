@@ -1,0 +1,24 @@
+{
+  "_comentario": [
+    "Las stories que rotan todos los días, en orden. El cron",
+    "/api/cron/social-story-diaria elige una por fecha, de forma determinística:",
+    "índice = díasDesde(1/1/2026) % cantidad. No es al azar a propósito — así se",
+    "puede saber de antemano qué sale mañana y se puede reproducir un problema.",
+    "",
+    "Para sacar una del aire, se borra de esta lista y deja de salir. Para agregar",
+    "una nueva: renderizarla en 9:16, commitear el JPEG y sumarla acá.",
+    "",
+    "El orden intercala info del local con contenido, para que dos parecidas no",
+    "salgan seguidas. Cuantas más haya, menos se repite: con 6 la misma vuelve",
+    "cada 6 días, que es el mínimo tolerable. Las de producto suman cuando se",
+    "generen desde la base."
+  ],
+  "stories": [
+    { "id": "horarios", "tipo": "info" },
+    { "id": "story-receta", "tipo": "educacion" },
+    { "id": "story-garantia", "tipo": "propuesta" },
+    { "id": "donde-estamos", "tipo": "info" },
+    { "id": "story-marean", "tipo": "educacion" },
+    { "id": "story-laboratorio", "tipo": "propuesta" }
+  ]
+}

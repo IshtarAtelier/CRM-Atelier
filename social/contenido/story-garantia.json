@@ -1,0 +1,21 @@
+{
+  "id": "story-garantia",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Probalos 30 días. Si no te adaptás, hacemos el cristal de nuevo.",
+  "temas": [
+    "multifocales",
+    "local"
+  ],
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "dato": "30 días",
+      "title": "Para probar tus anteojos",
+      "body": "Si no te adaptás, te volvemos a medir y hacemos el cristal otra vez. Hasta que veas bien."
+    }
+  ]
+}

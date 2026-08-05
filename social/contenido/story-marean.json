@@ -1,0 +1,19 @@
+{
+  "id": "story-marean",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Si tus multifocales te marean, traelos. Aunque no los hayas comprado acá.",
+  "temas": [
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/multifocal-mujer-lectura.png",
+      "title": "¿Te marean tus multifocales?",
+      "subtitle": "Casi nunca es que no te adaptás. Traelos y los revisamos, aunque no sean nuestros."
+    }
+  ]
+}

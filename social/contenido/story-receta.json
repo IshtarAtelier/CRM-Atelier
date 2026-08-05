@@ -1,0 +1,19 @@
+{
+  "id": "story-receta",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Traé tu receta y te la explicamos. No hace falta que entiendas nada.",
+  "temas": [
+    "receta"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog6_consulta.png",
+      "title": "¿No entendés tu receta?",
+      "subtitle": "Traela y te la leemos. OD, OI, esfera, cilindro y eje, explicados sin apuro."
+    }
+  ]
+}
