@@ -1,0 +1,17 @@
+{
+  "id": "donde-estamos",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "fuente": "business-info",
+  "caption": "Estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Estamos en *José Luis de Tejeda 4380*",
+      "subtitle": "Cerro de las Rosas. Sin turno previo: entrás y te atendemos."
+    }
+  ]
+}

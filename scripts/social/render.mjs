@@ -18,7 +18,7 @@
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { cargarIdentidad, RAIZ } from './identidad.mjs';
+import { cargarIdentidad, formatoDePieza, RAIZ } from './identidad.mjs';
 import { htmlDeSlide } from './plantillas.mjs';
 import { validarPieza } from './validador.mjs';
 
@@ -35,6 +35,11 @@ export function resolverImagen(ref) {
 export async function renderizarPieza(rutaJson, { soloValidar = false } = {}) {
     const pieza = JSON.parse(await readFile(rutaJson, 'utf-8'));
     const id = await cargarIdentidad();
+
+    // El formato lo manda la pieza: una story es 1080x1920 y un carrusel de
+    // feed 1080x1350. Antes se ignoraba el campo `format` y todo salía 4:5,
+    // así que una story habría salido con franjas o recortada.
+    id.formato = formatoDePieza(pieza);
 
     // Resolver las imágenes ANTES de validar: el validador necesita saber
     // cuáles existen de verdad (regla R5).

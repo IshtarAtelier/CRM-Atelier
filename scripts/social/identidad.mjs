@@ -96,10 +96,40 @@ export async function cargarIdentidad() {
         googleFonts: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700;900&display=swap',
         logo: path.join(RAIZ, 'public', 'assets', 'logo-atelier-optica.png'),
         handle: '@atelieroptica',
-        // Formato único, como recomienda la guía: 4:5 es el que más pantalla
-        // ocupa en el feed. Los otros se agregan cuando hagan falta.
-        formato: { nombre: '4:5', ancho: 1080, alto: 1350 },
+        // Formato por defecto: 4:5 es el que más pantalla ocupa en el feed.
+        // Una pieza puede pedir otro con su campo `format` (ver FORMATOS).
+        formato: FORMATOS['4:5'],
     };
+}
+
+/**
+ * Los formatos que sabemos renderizar.
+ *
+ * `9:16` se agregó para las stories, que son otro producto: duran 24 horas, se
+ * ven a pantalla completa y nadie las lee con detenimiento. Por eso llevan una
+ * sola idea por placa y texto grande — el carrusel del feed explica, la story
+ * avisa.
+ */
+export const FORMATOS = {
+    '4:5': { nombre: '4:5', ancho: 1080, alto: 1350 },
+    '9:16': { nombre: '9:16', ancho: 1080, alto: 1920 },
+};
+
+/**
+ * El formato que pide la pieza, o el 4:5 por defecto.
+ * Falla fuerte con un formato desconocido: mejor que renderizar 1080x1350 en
+ * silencio y descubrirlo cuando la story ya salió cortada.
+ */
+export function formatoDePieza(pieza) {
+    const pedido = pieza?.format;
+    if (!pedido) return FORMATOS['4:5'];
+    const f = FORMATOS[pedido];
+    if (!f) {
+        throw new Error(
+            `Formato desconocido: "${pedido}". Los que existen: ${Object.keys(FORMATOS).join(', ')}.`
+        );
+    }
+    return f;
 }
 
 /** Para inspeccionar rápido: `node scripts/social/identidad.mjs` */

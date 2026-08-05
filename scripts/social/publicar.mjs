@@ -104,6 +104,35 @@ async function publicarEnFacebook(pageId, tokenPagina, jpgs, mensaje) {
 }
 
 /**
+ * Instagram Stories: otro `media_type`, una sola imagen y SIN caption.
+ *
+ * La story no acepta epígrafe: el texto tiene que estar dentro de la imagen.
+ * Por eso las piezas 9:16 llevan la información en la placa y no en el pie —
+ * si esto no se supiera, saldría una story muda con el dato en un caption que
+ * nadie ve.
+ *
+ * Dura 24 horas. No se registra distinto en la bitácora a propósito: una story
+ * publicada también cuenta como actividad para el aviso de cadencia.
+ */
+async function publicarStoryEnInstagram(igUserId, tokenPagina, url) {
+    const c = await graph('POST', `/${igUserId}/media`,
+        { image_url: url, media_type: 'STORIES' }, tokenPagina);
+
+    let listo = false;
+    for (let intento = 0; intento < 30; intento++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const estado = await graph('GET', `/${c.id}`, { fields: 'status_code' }, tokenPagina);
+        if (estado.status_code === 'FINISHED') { listo = true; break; }
+        if (estado.status_code === 'ERROR') throw new Error('Instagram no pudo procesar la story.');
+    }
+    if (!listo) throw new Error('La story no terminó de procesarse en 90 segundos.');
+
+    const pub = await graph('POST', `/${igUserId}/media_publish`, { creation_id: c.id }, tokenPagina);
+    ok(`Story publicada en Instagram: ${pub.id}`);
+    return pub.id;
+}
+
+/**
  * REGLA 3: Instagram, cuatro pasos y una espera.
  * El contenedor se procesa en segundo plano; publicar antes de que termine falla.
  */
@@ -151,6 +180,23 @@ export async function publicar(rutaJson, { facebook = false, instagram = false }
     const urls = jpgs.map(f => `${BASE_PUBLICA}/social/${pieza.id}/${path.basename(f)}`);
     const mensaje = pieza.caption || pieza.slides[0]?.title?.replace(/\*/g, '') || '';
 
+    // Una pieza 9:16 es una story: se publica por otro endpoint y no lleva
+    // epígrafe. Se decide por el formato declarado, no por la cantidad de
+    // slides, para que quede explícito en el JSON qué se está publicando.
+    const esStory = pieza.format === '9:16';
+    if (esStory && jpgs.length > 1) {
+        throw new Error(
+            `La pieza "${pieza.id}" es 9:16 con ${jpgs.length} placas. Una story se publica de a una: ` +
+            `dejar una sola slide, o separarla en varias piezas.`
+        );
+    }
+    if (esStory && facebook) {
+        throw new Error(
+            'Las stories por ahora solo van a Instagram. Publicar la misma placa en el feed de ' +
+            'Facebook la mostraría cortada: el feed espera 4:5 y esto es 9:16.'
+        );
+    }
+
     const seco = !facebook && !instagram;
 
     console.log(`\n═══ ${seco ? 'PRUEBA (no publica nada)' : 'PUBLICANDO'} ═══`);
@@ -190,9 +236,15 @@ export async function publicar(rutaJson, { facebook = false, instagram = false }
 
     if (instagram) {
         if (!IG_USER_ID) throw new Error('Falta META_IG_USER_ID.');
-        paso('Publicando en Instagram');
-        resultado.urls.instagram = await publicarEnInstagram(IG_USER_ID, tokenPagina, urls, mensaje);
-        resultado.plataformas.push('Instagram');
+        if (esStory) {
+            paso('Publicando story en Instagram');
+            resultado.urls.instagram = await publicarStoryEnInstagram(IG_USER_ID, tokenPagina, urls[0]);
+            resultado.plataformas.push('Instagram (story)');
+        } else {
+            paso('Publicando en Instagram');
+            resultado.urls.instagram = await publicarEnInstagram(IG_USER_ID, tokenPagina, urls, mensaje);
+            resultado.plataformas.push('Instagram');
+        }
     }
 
     // Queda registrado para el aviso diario de cadencia (Etapa 6).

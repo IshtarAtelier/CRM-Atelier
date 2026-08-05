@@ -105,11 +105,21 @@ export function validarPieza(pieza) {
     }
 
     // ── R4: como máximo el 60% con imagen ───────────────────────────────────
-    const conImagen = slides.filter(s => s.image).length;
-    const porcentaje = Math.round((conImagen / slides.length) * 100);
-    if (porcentaje > 60) {
-        problemas.push(nivelImagen('R4',
-            `${porcentaje}% de las slides tienen imagen (máximo 60%). Si todo es foto, la foto deja de jerarquizar.`));
+    //
+    // Solo para carruseles. La regla existe porque en una secuencia que se
+    // desliza, alternar foto y texto es lo que hace que la foto jerarquice: si
+    // son todas foto, ninguna resalta.
+    //
+    // Una story de una sola placa no es una secuencia: se ve a pantalla
+    // completa, dura 24 horas y la foto de fondo ES el formato. Aplicarle un
+    // porcentaje no significa nada — con una sola slide, o da 0% o da 100%.
+    if (slides.length > 1) {
+        const conImagen = slides.filter(s => s.image).length;
+        const porcentaje = Math.round((conImagen / slides.length) * 100);
+        if (porcentaje > 60) {
+            problemas.push(nivelImagen('R4',
+                `${porcentaje}% de las slides tienen imagen (máximo 60%). Si todo es foto, la foto deja de jerarquizar.`));
+        }
     }
 
     return problemas;

@@ -113,6 +113,7 @@ export function htmlDeSlide(slide, id, pieza) {
     const oscuro = pieza.theme !== 'light';
     const fondo = oscuro ? id.oscuro : id.colores.fondo;
     const texto = oscuro ? '#ffffff' : id.colores.texto;
+    const esStory = id.formato?.nombre === '9:16';
 
     return `<!doctype html>
 <html lang="es"><head>
@@ -147,6 +148,26 @@ export function htmlDeSlide(slide, id, pieza) {
     padding:96px 88px 190px;
     display:flex; flex-direction:column; justify-content:flex-end;
   }
+
+  /* Story (9:16): la placa es mucho más alta que el carrusel del feed, así que
+     el texto apoyado abajo deja media pantalla vacía y queda por debajo de la
+     zona donde la gente apoya el pulgar. Se centra y se agranda: una story se
+     mira dos segundos, no se lee. */
+  ${esStory ? `
+  /* El velo del feed se oscurece hacia abajo porque ahí va el texto. En la
+     story el texto está al medio, donde ese gradiente todavía es claro: se
+     empareja para que el contraste no dependa de qué hay en la foto. */
+  .velo { background:linear-gradient(180deg,
+      ${oscuro ? 'rgba(42,33,28,.55)' : 'rgba(250,248,245,.62)'} 0%,
+      ${oscuro ? 'rgba(42,33,28,.80)' : 'rgba(250,248,245,.88)'} 45%,
+      ${oscuro ? 'rgba(42,33,28,.88)' : 'rgba(250,248,245,.94)'} 100%); }
+  .contenido { justify-content:center !important; padding:120px 96px 260px; }
+  h1 { font-size:104px; }
+  h2 { font-size:78px; }
+  .cuerpo { font-size:44px; margin-top:40px; }
+  .bajada { font-size:42px; margin-top:40px; }
+  .item { font-size:44px; }
+  ` : ''}
   .contenido.cover { justify-content:flex-end; }
   /* La lista sin foto se centra; CON foto se apoya abajo, para no taparle la
      cara a la persona de la imagen ni dejar un hueco entre el texto y el pie.
@@ -173,7 +194,10 @@ export function htmlDeSlide(slide, id, pieza) {
   }
 
   .bajada { margin-top:32px; font-size:34px; line-height:1.4; font-weight:400; opacity:.86; }
-  .cuerpo { margin-top:28px; font-size:36px; line-height:1.38; font-weight:400; opacity:.9; }
+  /* pre-line: los saltos de línea del texto se respetan. Sin esto, un cuerpo
+     con dos horarios en dos líneas sale todo corrido en un párrafo y no se
+     entiende dónde termina uno y empieza el otro. */
+  .cuerpo { margin-top:28px; font-size:36px; line-height:1.38; font-weight:400; opacity:.9; white-space:pre-line; }
 
   ul { list-style:none; display:flex; flex-direction:column; gap:30px; }
   li {

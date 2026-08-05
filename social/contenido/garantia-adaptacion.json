@@ -3,7 +3,7 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "accion",
-  "caption": "Comprar anteojos tiene un riesgo que nadie nombra: que no termines de ver bien, y que el problema pase a ser tuyo.\n\nAcá no. Tenés 30 días para probarlos en tu vida real. Si no te adaptás, te revisamos la vista de nuevo y hacemos el cristal otra vez con la graduación que corresponda.\n\nNo devolvemos el dinero: rehacemos el cristal hasta que veas bien. Es mejor que un reembolso, porque lo que necesitás no es la plata de vuelta, es ver.\n\nCerro de las Rosas, sin turno previo. También coordinamos por WhatsApp.",
+  "caption": "Comprar anteojos tiene un riesgo que nadie nombra: que no termines de ver bien, y que el problema pase a ser tuyo.\n\nAcá no. Tenés 30 días para probarlos en tu vida real. Si no te adaptás, te revisamos la vista de nuevo y hacemos el cristal otra vez con la graduación que corresponda, las veces que haga falta.\n\nHasta que veas bien. Esa es la garantía.\n\nCerro de las Rosas, sin turno previo. También coordinamos por WhatsApp.",
   "slides": [
     {
       "type": "cover",
@@ -31,9 +31,9 @@
       "type": "list",
       "role": "bisagra",
       "image": "blog/mostrador-marmol.jpg",
-      "title": "No es devolución: *es que veas bien*",
+      "title": "Hasta que *veas bien*",
       "items": [
-        "No te devolvemos la plata, te resolvemos el problema",
+        "Las veces que haga falta, sin límite de intentos",
         "El laboratorio es nuestro: rehacer un cristal no es un trámite",
         "Un cliente que ve mal no vuelve, y nosotros vivimos de que vuelvan"
       ]
