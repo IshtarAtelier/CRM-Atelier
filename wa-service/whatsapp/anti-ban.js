@@ -20,8 +20,10 @@ function withTimeout(promise, ms, label = 'operación') {
  * deben empujar el circuit breaker: reintentar no los arregla nunca.
  */
 function esDestinoInvalido(error) {
+    if (error?.code === 'INVALID_NUMBER') return true;
     const msg = String(error?.message || '').toLowerCase();
     return msg.includes('no lid for user')
+        || msg.includes('no está registrado en whatsapp')
         || msg.includes('número inválido')
         || msg.includes('numero invalido')
         || msg.includes('invalid wid')

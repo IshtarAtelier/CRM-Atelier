@@ -2205,10 +2205,18 @@ export const ContactService = {
                             console.error('[Payment Notification] Failed to generate Receipt PDF:', pdfErr);
                         }
 
-                        // Enviar al cliente
+                        // Enviar al cliente.
+                        // Plazo propio de 150s: el default de `fetchWa` (100s) corta
+                        // ANTES que el wa-service, que para un adjunto puede tardar
+                        // hasta ~113s (cola + tipeo + subida del PDF + los 90s del
+                        // envío). Cuando cortaba primero, el recibo se perdía sin
+                        // aviso: el abort ni siquiera entra por la rama de alerta.
+                        // Este bloque es fire-and-forget, así que esperar no demora
+                        // la respuesta del cobro.
                         const resClient = await fetchWa('/api/send', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
+                            signal: AbortSignal.timeout(150000),
                             body: JSON.stringify({
                                 chatId: phoneTo,
                                 message: clientMsgText,
@@ -2294,6 +2302,19 @@ export const ContactService = {
 
                 } catch (err: any) {
                     console.error('[Payment Notification] Error sending WhatsApp:', err.message);
+                    // Sin esto la falla moría en un console.error de Railway: el
+                    // recibo no salía, nadie se enteraba y la ficha no lo decía.
+                    try {
+                        await prisma.interaction.create({
+                            data: {
+                                clientId: result.clientId,
+                                type: 'ERROR',
+                                content: `⚠️ Falló el envío automático del recibo por WhatsApp por un problema del sistema (no del número del cliente). Detalle técnico: ${err.message}. Reenviar el recibo a mano.`
+                            }
+                        });
+                    } catch (logErr) {
+                        console.error('[Payment Notification] Error registrando la falla en la ficha:', logErr);
+                    }
                 }
             })();
 
