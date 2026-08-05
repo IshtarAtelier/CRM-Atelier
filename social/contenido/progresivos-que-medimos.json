@@ -1,0 +1,51 @@
+{
+  "id": "progresivos-que-medimos",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/mujer-oficina-multifocal.png",
+      "title": "Ves bien de lejos, y de cerca ya no tanto. *No es la edad, es la lente.*",
+      "subtitle": "Tres cosas que conviene saber antes de comprar progresivos."
+    },
+    {
+      "type": "list",
+      "title": "Lo que te pasa y no sabés cómo explicar",
+      "items": [
+        "Alejás el celular para leer el menú",
+        "Te cansa la vista después de un rato en la pantalla",
+        "Con los lentes de leer, de lejos ves borroso"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que medimos *antes* de encargar tus lentes",
+      "items": [
+        "La distancia entre tus pupilas, con el armazón ya elegido",
+        "La altura de montaje, que cambia según cómo te apoya el aro en la cara",
+        "La distancia al vértice, del ojo al cristal"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/medicion-pupilar-optica.png",
+      "title": "Por eso dos progresivos *no son iguales*",
+      "items": [
+        "El mismo cristal, mal medido, se siente mareado",
+        "Bien medido, el pasaje entre distancias no se nota",
+        "La diferencia no está en el aro: está en la medición"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Vení a que te los midamos",
+      "body": "Cerro de las Rosas, sin turno previo. También coordinamos por WhatsApp."
+    }
+  ]
+}

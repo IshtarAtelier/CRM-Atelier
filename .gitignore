@@ -86,3 +86,8 @@ scripts/maintenance/reversa-*.json
 scripts/ads/meta_api.log
 scripts/ads/token_info.json
 scripts/ads/out/
+
+# Piezas de redes: los JPEG SÍ se commitean (Instagram no acepta los bytes de la
+# imagen: descarga la URL pública, así que tienen que estar deployados). Los PNG
+# master son solo para archivo local y pesan de más.
+public/social/**/*.png
