@@ -26,12 +26,19 @@ export function WhatsAppBadge() {
 
         import('socket.io-client').then(({ io }) => {
             fetch('/api/whatsapp/status').then(r => r.json()).then(statusData => {
-                const token = statusData.socketToken;
                 const socketUrl = process.env.NEXT_PUBLIC_WA_URL || statusData.socketUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
                 const socket = io(socketUrl, {
                 transports: ['websocket'],
                 path: '/socket.io',
-                reconnection: true
+                reconnection: true,
+                // El socket del bot exige token firmado; fresco por intento de
+                // conexión para sobrevivir expiración (24h) y reinicios del bot.
+                auth: (cb: (data: object) => void) => {
+                    fetch('/api/whatsapp/status')
+                        .then(r => r.json())
+                        .then(d => cb({ token: d.socketToken }))
+                        .catch(() => cb({ token: statusData.socketToken }));
+                }
             });
 
             socket.on('new_message_received', ({ name, content }: any) => {

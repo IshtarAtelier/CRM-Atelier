@@ -1942,6 +1942,28 @@ function apiAuth(req, res, next) {
 }
 app.use('/api', apiAuth);
 
+// ── Auth del socket.io ─────────────────────────
+// Sin esto, cualquier cliente socket.io de internet (el CORS solo lo respetan
+// los navegadores) recibía al conectar el QR de la sesión — escanearlo con la
+// sesión deslogueada es quedarse con la línea de WhatsApp de la óptica — más
+// el prompt completo y TODOS los mensajes entrantes vía new_message_received.
+// Acepta: la clave entre servicios directa (herramientas server-side), o el
+// token de corta vida que el CRM firma con esa clave para sesiones logueadas
+// (el navegador nunca ve la clave). Mismo modo legacy que apiAuth cuando no
+// hay clave configurada.
+const { verificarSocketToken } = require('./shared/socket-token');
+io.use((socket, next) => {
+    if (!WA_API_KEY) return next();
+    if (socket.handshake.headers['x-api-key'] === WA_API_KEY) return next();
+    const quien = verificarSocketToken(socket.handshake.auth && socket.handshake.auth.token, WA_API_KEY);
+    if (quien) {
+        socket.data.user = quien;
+        return next();
+    }
+    console.warn(`[Socket Auth] Conexión rechazada desde ${socket.handshake.address || 'desconocida'}`);
+    next(new Error('Unauthorized'));
+});
+
 const { syncRecentChatsAndMessages } = require('./services/sync.service');
 
 const mediaDownloadQueue = [];

@@ -728,11 +728,19 @@ function WhatsAppPageContent() {
                 setStatus(data);
                 setLoadingStatus(false);
 
-                 const token = data.socketToken;
                 const socketUrl = process.env.NEXT_PUBLIC_WA_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
                 const { io } = await import('socket.io-client');
                 socket = io(socketUrl, {
-                    auth: { token }
+                    // Token fresco por intento de conexión: el socketToken expira
+                    // (24h) y el bot se reinicia con cada deploy; con un token
+                    // estático, la reconexión quedaba rechazada hasta recargar
+                    // la página y el buzón moría en silencio.
+                    auth: (cb: (data: object) => void) => {
+                        fetch('/api/whatsapp/status')
+                            .then(r => r.json())
+                            .then(d => cb({ token: d.socketToken }))
+                            .catch(() => cb({ token: data.socketToken }));
+                    }
                 });
 
                 socket.on('bot_status', (statusData: any) => {

@@ -57,7 +57,16 @@ export function LeadToastNotifications() {
             .then(res => res.json())
             .then(statusData => {
                 const socketUrl = process.env.NEXT_PUBLIC_WA_URL || statusData.socketUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
-                socket = SocketIOClient(socketUrl);
+                socket = SocketIOClient(socketUrl, {
+                    // El socket del bot exige token firmado; fresco por intento
+                    // de conexión para sobrevivir expiración (24h) y reinicios.
+                    auth: (cb: (data: object) => void) => {
+                        fetch('/api/whatsapp/status')
+                            .then(r => r.json())
+                            .then(d => cb({ token: d.socketToken }))
+                            .catch(() => cb({ token: statusData.socketToken }));
+                    }
+                });
 
                 socket.on('lead_created', (data: LeadNotification) => {
             const toastId = `${data.id}-${Date.now()}`;
