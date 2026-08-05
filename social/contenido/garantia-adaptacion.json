@@ -3,14 +3,14 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "accion",
-  "caption": "Comprar anteojos tiene un riesgo que nadie nombra: que no te adaptes, y que el problema pase a ser tuyo.\n\nAcá no. Tenés 30 días para probarlos de verdad, en tu vida real. Si no funcionan, lo resolvemos nosotros.\n\nCerro de las Rosas, sin turno previo. También coordinamos por WhatsApp.",
+  "caption": "Comprar anteojos tiene un riesgo que nadie nombra: que no termines de ver bien, y que el problema pase a ser tuyo.\n\nAcá no. Tenés 30 días para probarlos en tu vida real. Si no te adaptás, te revisamos la vista de nuevo y hacemos el cristal otra vez con la graduación que corresponda.\n\nNo devolvemos el dinero: rehacemos el cristal hasta que veas bien. Es mejor que un reembolso, porque lo que necesitás no es la plata de vuelta, es ver.\n\nCerro de las Rosas, sin turno previo. También coordinamos por WhatsApp.",
   "slides": [
     {
       "type": "cover",
       "role": "portada",
       "image": "blog/pareja-multifocales-exterior.png",
-      "title": "Probalos 30 días. *Si no te adaptás, lo resolvemos.*",
-      "subtitle": "El riesgo de que no funcionen no debería ser tuyo."
+      "title": "Probalos 30 días. *Si no te adaptás, hacemos el cristal de nuevo.*",
+      "subtitle": "Con la graduación que haga falta, hasta que veas bien."
     },
     {
       "type": "number",
@@ -20,22 +20,22 @@
     },
     {
       "type": "list",
-      "title": "Qué incluye, sin letra chica",
+      "title": "Qué hacemos, sin letra chica",
       "items": [
-        "Reajuste del armazón todas las veces que haga falta",
-        "Nueva medición si algo no cierra",
-        "Cambio del cristal si el problema es el diseño de la lente"
+        "Reajustamos el armazón las veces que haga falta",
+        "Te volvemos a medir, y si cambió la receta la tomamos",
+        "Hacemos el cristal de nuevo con la graduación correcta"
       ]
     },
     {
       "type": "list",
       "role": "bisagra",
       "image": "blog/mostrador-marmol.jpg",
-      "title": "Por qué podemos ofrecerlo",
+      "title": "No es devolución: *es que veas bien*",
       "items": [
-        "Porque el laboratorio es nuestro y rehacer un cristal no es un trámite",
-        "Porque medimos antes con el aro puesto, así que casi nunca hace falta",
-        "Porque un cliente que ve mal no vuelve, y nosotros vivimos de que vuelvan"
+        "No te devolvemos la plata, te resolvemos el problema",
+        "El laboratorio es nuestro: rehacer un cristal no es un trámite",
+        "Un cliente que ve mal no vuelve, y nosotros vivimos de que vuelvan"
       ]
     },
     {

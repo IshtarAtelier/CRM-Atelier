@@ -3,27 +3,27 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "adentro",
-  "caption": "La mayoría de las ópticas manda los cristales a biselar afuera. Nosotros los hacemos acá, y eso cambia tres cosas: los tiempos, quién se hace cargo si algo sale mal, y qué tan finito se puede ajustar el trabajo.\n\nEste es el lugar donde pasa. Cerro de las Rosas.",
+  "caption": "Casi todas las ópticas tercerizan el biselado: mandan tus cristales a un laboratorio que no controlan y esperan.\n\nEl nuestro es propio. No está en el local —es un taller aparte— pero responde a nosotros, no a un proveedor con su propia cola de trabajo. Eso cambia los tiempos, cambia quién se hace cargo si algo sale mal, y cambia cuánto se puede afinar el montaje.\n\nCerro de las Rosas, sin turno previo.",
   "slides": [
     {
       "type": "cover",
       "role": "portada",
       "image": "blog/local-varilux.jpg",
-      "title": "Tus cristales *no viajan a ningún lado.*",
-      "subtitle": "Se cortan y se montan acá, a metros del mostrador."
+      "title": "Tus cristales los hacemos nosotros. *No los terceriza nadie.*",
+      "subtitle": "Laboratorio propio, no un proveedor con su propia cola."
     },
     {
       "type": "list",
-      "title": "Lo que cambia *tener laboratorio propio*",
+      "title": "Lo que cambia *que sea propio*",
       "items": [
-        "El anteojo no se va a otra ciudad y vuelve en diez días",
-        "Si el montaje quedó un milímetro corrido, se corrige en el momento",
-        "Cuando algo sale mal, lo arregla quien lo hizo, no un intermediario"
+        "No dependemos de la agenda de un tercero para tus tiempos",
+        "Si el montaje quedó corrido, se corrige sin negociar con nadie",
+        "Cuando algo sale mal, se hace de nuevo y listo"
       ]
     },
     {
       "type": "list",
-      "title": "Lo que se hace *puertas adentro*",
+      "title": "Lo que se controla *en cada trabajo*",
       "items": [
         "Biselado del cristal según la forma exacta de tu aro",
         "Montaje y centrado, comparado contra tu medición",
@@ -45,8 +45,8 @@
       "type": "cta",
       "role": "cierre",
       "image": "blog/mostrador-marmol.jpg",
-      "title": "Pasá a conocerlo",
-      "body": "Cerro de las Rosas, sin turno previo. Se puede ver el taller."
+      "title": "Vení a que te midamos",
+      "body": "Cerro de las Rosas, sin turno previo. También coordinamos por WhatsApp."
     }
   ]
 }
