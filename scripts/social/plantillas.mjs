@@ -73,6 +73,21 @@ const PLANTILLAS = {
     </div>
     ${pie(id)}`,
 
+    /**
+     * Número: un dato grande. La guía lo recomienda para precios y plazos, y es
+     * el que usan las piezas de producto que salen de la base.
+     * La foto va ARRIBA y sin velo pesado: en un armazón la foto ES el producto,
+     * no un fondo decorativo.
+     */
+    number: (slide, id) => `
+    ${slide.imagenResuelta ? `<div class="producto" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>` : ''}
+    <div class="contenido number">
+      <p class="rotulo">${resaltar(slide.title)}</p>
+      <p class="dato">${esc(slide.dato)}</p>
+      ${slide.body ? `<p class="cuerpo">${resaltar(slide.body)}</p>` : ''}
+    </div>
+    ${pie(id)}`,
+
     /** Cierre: qué hacer ahora. Una sola acción concreta. */
     cta: (slide, id) => `
     ${fondoDeImagen(slide.imagenResuelta)}
@@ -142,6 +157,20 @@ export function htmlDeSlide(slide, id, pieza) {
   h1 { font-size:82px; line-height:1.04; font-weight:900; letter-spacing:-.025em; }
   h2 { font-size:64px; line-height:1.1;  font-weight:900; letter-spacing:-.02em; margin-bottom:44px; }
   .marca { color:${id.colores.marca}; }
+
+  /* Producto: la foto ocupa la mitad de arriba, sobre fondo claro para que el
+     armazón se vea bien recortado. El texto va abajo, sin taparla. */
+  .producto {
+    position:absolute; top:0; left:0; right:0; height:56%;
+    background-size:contain; background-repeat:no-repeat; background-position:center;
+    background-color:#ffffff;
+  }
+  .contenido.number { justify-content:flex-end; }
+  .rotulo { font-size:38px; font-weight:700; letter-spacing:-.01em; opacity:.9; }
+  .dato {
+    font-size:104px; font-weight:900; letter-spacing:-.03em; line-height:1;
+    margin-top:14px; color:${id.colores.marca};
+  }
 
   .bajada { margin-top:32px; font-size:34px; line-height:1.4; font-weight:400; opacity:.86; }
   .cuerpo { margin-top:28px; font-size:36px; line-height:1.38; font-weight:400; opacity:.9; }
