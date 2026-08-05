@@ -1,0 +1,26 @@
+{
+  "id": "story-producto-vega-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Vega C1",
+    "slug": "vega-c1",
+    "marca": "Cápsula Escarlata"
+  },
+  "caption": "Vega C1 — Cápsula Escarlata. $189.000.\n\nEn la tienda: https://atelieroptica.com.ar/producto/vega-c1\nO vení a probártelo en Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/vega-c1.webp",
+      "title": "Vega C1 · Cápsula Escarlata",
+      "dato": "$189.000",
+      "body": "En la tienda y en el local, Cerro de las Rosas."
+    }
+  ]
+}

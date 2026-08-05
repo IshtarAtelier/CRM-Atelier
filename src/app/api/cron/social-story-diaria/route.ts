@@ -71,55 +71,72 @@ export async function GET(request: Request) {
 
         const crudo = await readFile(path.join(process.cwd(), CATALOGO), 'utf-8');
         const catalogo = JSON.parse(crudo);
-        const stories: Array<{ id: string; tipo?: string }> = catalogo.stories || [];
+        const carriles: Record<string, Array<{ id: string; tipo?: string }>> = catalogo.carriles || {};
 
-        if (!stories.length) {
+        // Una de cada carril: contenido y producto. Se recorren por separado
+        // para que los productos puedan rotar más rápido que el contenido sin
+        // que este último se vuelva repetitivo.
+        const elegidas = Object.entries(carriles)
+            .map(([carril, lista]) => (lista?.length ? { carril, ...lista[indiceDelDia(lista.length)] } : null))
+            .filter((x): x is { carril: string; id: string; tipo?: string } => x !== null);
+
+        if (!elegidas.length) {
             return NextResponse.json({ ok: false, motivo: 'El catálogo de stories está vacío.' });
         }
 
-        const elegida = stories[indiceDelDia(stories.length)];
-        const url = `${origenPublico()}/social/${elegida.id}/01.jpg`;
+        const conUrl = elegidas.map(e => ({ ...e, url: `${origenPublico()}/social/${e.id}/01.jpg` }));
 
         // `dryRun` sirve para probar la elección sin publicar: útil al dar de
         // alta el cron y para ver qué saldría mañana.
         if (searchParams.get('dryRun') === '1') {
-            return NextResponse.json({ ok: true, dryRun: true, elegida: elegida.id, url });
+            return NextResponse.json({ ok: true, dryRun: true, elegidas: conUrl });
         }
 
-        const r = await publicarStory(url, elegida.id);
-
-        if (r.ok) {
-            await registrarEnBitacora({
-                pieza: elegida.id,
-                plataformas: ['Instagram (story)'],
-                slides: 1,
-                urls: { instagram: r.storyId },
-            });
-            return NextResponse.json({ ok: true, pieza: elegida.id, storyId: r.storyId });
+        // En serie y no en paralelo: dos publicaciones simultáneas contra la
+        // misma cuenta es la forma más rápida de que Meta empiece a limitar.
+        const resultados = [];
+        for (const e of conUrl) {
+            const r = await publicarStory(e.url, e.id);
+            resultados.push({ ...e, ...r });
+            if (r.ok) {
+                await registrarEnBitacora({
+                    pieza: e.id,
+                    plataformas: ['Instagram (story)'],
+                    slides: 1,
+                    urls: { instagram: r.storyId },
+                });
+            }
         }
+
+        const fallaron = resultados.filter(r => !r.ok);
 
         // No reintenta: avisa. Dos stories iguales es peor que ninguna.
-        await sendEmail({
-            to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
-            subject: `⚠️ No salió la story de hoy (${elegida.id})`,
-            html: `
-                <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
-                    <h2 style="color:#b45309">La story de hoy no se publicó</h2>
-                    <p style="font-size:15px">
-                        Pieza: <strong>${elegida.id}</strong><br>
-                        Motivo: <strong>${r.error}</strong>
-                    </p>
-                    <p style="font-size:14px">
-                        No se reintenta solo, para no terminar con la misma story publicada dos veces.
-                        Se puede publicar a mano desde el celular, o revisar qué pasó y esperar a mañana.
-                    </p>
-                    <p style="margin-top:22px;font-size:12px;color:#6b7280">
-                        Si la causa es "la imagen no responde 200", falta deployar la placa.
-                    </p>
-                </div>`,
-        }).catch(console.error);
+        if (fallaron.length) {
+            await sendEmail({
+                to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
+                subject: `⚠️ ${fallaron.length} de ${resultados.length} stories no salieron hoy`,
+                html: `
+                    <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
+                        <h2 style="color:#b45309">No salieron todas las stories de hoy</h2>
+                        <ul style="font-size:15px">
+                            ${resultados.map(r => `<li><strong>${r.id}</strong> (${r.carril}): ${r.ok ? '✅ publicada' : `❌ ${r.error}`}</li>`).join('')}
+                        </ul>
+                        <p style="font-size:14px">
+                            No se reintenta solo, para no terminar con la misma story publicada dos veces.
+                            Se puede publicar a mano desde el celular, o revisar qué pasó y esperar a mañana.
+                        </p>
+                        <p style="margin-top:22px;font-size:12px;color:#6b7280">
+                            Si la causa es "la imagen no responde 200", falta deployar la placa.
+                        </p>
+                    </div>`,
+            }).catch(console.error);
+        }
 
-        return NextResponse.json({ ok: false, pieza: elegida.id, error: r.error }, { status: 200 });
+        return NextResponse.json({
+            ok: fallaron.length === 0,
+            publicadas: resultados.filter(r => r.ok).map(r => ({ pieza: r.id, carril: r.carril, storyId: r.storyId })),
+            fallaron: fallaron.map(r => ({ pieza: r.id, error: r.error })),
+        });
     } catch (error: any) {
         console.error('[cron social-story-diaria] Error:', error?.message);
         return NextResponse.json({ error: error?.message || 'Error' }, { status: 500 });

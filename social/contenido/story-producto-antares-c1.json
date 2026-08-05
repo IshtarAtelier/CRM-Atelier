@@ -1,0 +1,26 @@
+{
+  "id": "story-producto-antares-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Antares C1",
+    "slug": "antares-c1",
+    "marca": "Cápsula Escarlata"
+  },
+  "caption": "Antares C1 — Cápsula Escarlata. $189.000.\n\nEn la tienda: https://atelieroptica.com.ar/producto/antares-c1\nO vení a probártelo en Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/antares-c1.webp",
+      "title": "Antares C1 · Cápsula Escarlata",
+      "dato": "$189.000",
+      "body": "En la tienda y en el local, Cerro de las Rosas."
+    }
+  ]
+}

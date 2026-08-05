@@ -162,6 +162,12 @@ export function htmlDeSlide(slide, id, pieza) {
       ${oscuro ? 'rgba(42,33,28,.80)' : 'rgba(250,248,245,.88)'} 45%,
       ${oscuro ? 'rgba(42,33,28,.88)' : 'rgba(250,248,245,.94)'} 100%); }
   .contenido { justify-content:center !important; padding:120px 96px 260px; }
+  /* Producto es la excepción: la foto va arriba sobre fondo blanco, así que el
+     texto tiene que quedar ABAJO, sobre el fondo oscuro. Centrado cae encima
+     del blanco y, siendo texto blanco, desaparece. Pasó: la placa salió con el
+     precio suelto y sin nombre. */
+  .contenido.number { justify-content:flex-end !important; }
+  .producto { height:46%; }
   h1 { font-size:104px; }
   h2 { font-size:78px; }
   .cuerpo { font-size:44px; margin-top:40px; }

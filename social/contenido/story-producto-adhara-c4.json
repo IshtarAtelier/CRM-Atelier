@@ -1,0 +1,26 @@
+{
+  "id": "story-producto-adhara-c4",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Adhara C4",
+    "slug": "adhara-c4",
+    "marca": "Cápsula Escarlata"
+  },
+  "caption": "Adhara C4 — Cápsula Escarlata. $200.000.\n\nEn la tienda: https://atelieroptica.com.ar/producto/adhara-c4\nO vení a probártelo en Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "assets/products/acetato/adhara-c4.webp",
+      "title": "Adhara C4 · Cápsula Escarlata",
+      "dato": "$200.000",
+      "body": "En la tienda y en el local, Cerro de las Rosas."
+    }
+  ]
+}

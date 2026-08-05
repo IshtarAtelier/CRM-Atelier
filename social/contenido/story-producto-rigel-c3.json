@@ -1,0 +1,26 @@
+{
+  "id": "story-producto-rigel-c3",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Rigel C3",
+    "slug": "rigel-c3",
+    "marca": "Cápsula Escarlata"
+  },
+  "caption": "Rigel C3 — Cápsula Escarlata. $189.000.\n\nEn la tienda: https://atelieroptica.com.ar/producto/rigel-c3\nO vení a probártelo en Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/rigel-c3.webp",
+      "title": "Rigel C3 · Cápsula Escarlata",
+      "dato": "$189.000",
+      "body": "En la tienda y en el local, Cerro de las Rosas."
+    }
+  ]
+}

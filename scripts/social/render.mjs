@@ -24,12 +24,30 @@ import { validarPieza } from './validador.mjs';
 
 const SALIDA_BASE = path.join(RAIZ, 'public', 'social');
 const BANCO = path.join(RAIZ, 'public', 'images');
+const PUBLIC = path.join(RAIZ, 'public');
 
-/** Resuelve `"blog/fachada-ladrillo.jpg"` a una ruta absoluta del banco. */
+/**
+ * Resuelve la referencia de una imagen a una ruta absoluta.
+ *
+ * Se prueban dos raíces porque hay dos bancos distintos:
+ *   - `public/images/` — las fotos editoriales y del blog, que se citan como
+ *     "blog/fachada-ladrillo.jpg".
+ *   - `public/` — las fotos de producto, que la base guarda con su ruta web ya
+ *     hecha ("assets/products/acetato/nashira-c3.webp"). Reescribirlas al
+ *     generarlas sería duplicar el criterio de dónde vive cada foto en dos
+ *     lugares; alcanza con que el resolvedor entienda las dos formas.
+ *
+ * Sigue devolviendo null si no existe: la regla R5 se apoya en esto para
+ * bloquear una pieza que cite una foto inexistente.
+ */
 export function resolverImagen(ref) {
     if (!ref) return null;
-    const ruta = path.join(BANCO, ref);
-    return existsSync(ruta) ? ruta : null;
+    const limpia = String(ref).replace(/^\//, '');
+    for (const raiz of [BANCO, PUBLIC]) {
+        const ruta = path.join(raiz, limpia);
+        if (existsSync(ruta)) return ruta;
+    }
+    return null;
 }
 
 export async function renderizarPieza(rutaJson, { soloValidar = false } = {}) {

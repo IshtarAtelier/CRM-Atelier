@@ -1,24 +1,96 @@
 {
   "_comentario": [
-    "Las stories que rotan todos los días, en orden. El cron",
-    "/api/cron/social-story-diaria elige una por fecha, de forma determinística:",
-    "índice = díasDesde(1/1/2026) % cantidad. No es al azar a propósito — así se",
-    "puede saber de antemano qué sale mañana y se puede reproducir un problema.",
+    "Dos carriles: cada día sale una story de CONTENIDO y una de PRODUCTO.",
+    "Son listas separadas a propósito — así el contenido no se hace repetitivo",
+    "aunque los productos roten más rápido, y se puede tocar una sin la otra.",
     "",
-    "Para sacar una del aire, se borra de esta lista y deja de salir. Para agregar",
-    "una nueva: renderizarla en 9:16, commitear el JPEG y sumarla acá.",
+    "La elección es determinística: índice = díasDesde(1/1/2026) % cantidad del",
+    "carril. No es al azar, así se sabe de antemano qué sale mañana y un",
+    "problema se puede reproducir.",
     "",
-    "El orden intercala info del local con contenido, para que dos parecidas no",
-    "salgan seguidas. Cuantas más haya, menos se repite: con 6 la misma vuelve",
-    "cada 6 días, que es el mínimo tolerable. Las de producto suman cuando se",
-    "generen desde la base."
+    "Para sacar algo del aire se lo borra de su lista. Para agregar: renderizar",
+    "en 9:16, commitear el JPEG y sumarlo acá.",
+    "",
+    "Las de producto se regeneran desde la base con:",
+    "  node scripts/social/generar-story-producto.mjs --produccion --cantidad 20",
+    "Eso las actualiza con los precios y las fotos vigentes."
   ],
-  "stories": [
-    { "id": "horarios", "tipo": "info" },
-    { "id": "story-receta", "tipo": "educacion" },
-    { "id": "story-garantia", "tipo": "propuesta" },
-    { "id": "donde-estamos", "tipo": "info" },
-    { "id": "story-marean", "tipo": "educacion" },
-    { "id": "story-laboratorio", "tipo": "propuesta" }
-  ]
+  "carriles": {
+    "contenido": [
+      {
+        "id": "horarios",
+        "tipo": "info"
+      },
+      {
+        "id": "story-receta",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-garantia",
+        "tipo": "propuesta"
+      },
+      {
+        "id": "donde-estamos",
+        "tipo": "info"
+      },
+      {
+        "id": "story-marean",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-laboratorio",
+        "tipo": "propuesta"
+      }
+    ],
+    "producto": [
+      {
+        "id": "story-producto-adhara-c4",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-antares-c1",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-canopo-c2",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-deneb-c1",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-deneb-c2",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-fenix-c1",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-mizar-c2",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-nashira-c3",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-rigel-c1",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-rigel-c3",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-vega-c1",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-vega-c2",
+        "tipo": "producto"
+      }
+    ]
+  }
 }

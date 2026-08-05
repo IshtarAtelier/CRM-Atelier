@@ -1,0 +1,26 @@
+{
+  "id": "story-producto-deneb-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Deneb C1",
+    "slug": "deneb-c1",
+    "marca": "Cápsula Escarlata"
+  },
+  "caption": "Deneb C1 — Cápsula Escarlata. $189.000.\n\nEn la tienda: https://atelieroptica.com.ar/producto/deneb-c1\nO vení a probártelo en Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/deneb-c1.webp",
+      "title": "Deneb C1 · Cápsula Escarlata",
+      "dato": "$189.000",
+      "body": "En la tienda y en el local, Cerro de las Rosas."
+    }
+  ]
+}
