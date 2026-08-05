@@ -91,3 +91,6 @@ scripts/ads/out/
 # imagen: descarga la URL pública, así que tienen que estar deployados). Los PNG
 # master son solo para archivo local y pesan de más.
 public/social/**/*.png
+
+# Packaging: los PDF y PNG de las cajas se regeneran con el script
+scripts/packaging/salida/

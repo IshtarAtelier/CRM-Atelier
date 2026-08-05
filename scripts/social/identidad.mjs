@@ -39,6 +39,27 @@ function leerVariable(css, nombre) {
     return m ? m[1].trim() : null;
 }
 
+/**
+ * Lee una variable del bloque `.dark` (el tema oscuro).
+ *
+ * Se busca con regex de inicio de línea y no con `indexOf('.dark')` por el mismo
+ * pozo de arriba: la línea 4 de globals.css es `@custom-variant dark (&:where(.dark, ...))`
+ * y cortar por ahí devolvía basura.
+ *
+ * Hace falta para las piezas impresas: sobre fondo oscuro el bronce del tema
+ * claro (#9e7f65) queda en 4,3:1 y el del tema oscuro pasa de 9:1.
+ */
+function leerVariableOscura(css, nombre) {
+    const m0 = css.match(/^\s*\.dark\s*\{/m);
+    if (!m0) return null;
+    const abre = css.indexOf('{', m0.index);
+    const cierra = css.indexOf('}', abre);
+    if (abre === -1 || cierra === -1) return null;
+
+    const m = css.slice(abre, cierra).match(new RegExp(`--${nombre}\\s*:\\s*([^;]+);`));
+    return m ? m[1].trim().split(/\s*\/\*/)[0].trim() : null;
+}
+
 export async function cargarIdentidad() {
     const css = await readFile(GLOBALS_CSS, 'utf-8');
 
@@ -47,6 +68,10 @@ export async function cargarIdentidad() {
         texto: leerVariable(css, 'foreground'),
         marca: leerVariable(css, 'primary'),
         sobreMarca: leerVariable(css, 'primary-foreground'),
+        // El bronce claro del tema oscuro. Lo usan las piezas impresas sobre
+        // fondo oscuro; las de redes siguen usando `marca`.
+        marcaClara: leerVariableOscura(css, 'primary'),
+        fondoOscuro: leerVariableOscura(css, 'background'),
     };
 
     const faltantes = Object.entries(colores).filter(([, v]) => !v).map(([k]) => k);
