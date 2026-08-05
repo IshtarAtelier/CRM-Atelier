@@ -1,0 +1,52 @@
+{
+  "id": "leer-tu-receta",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "OD, OI, esfera, cilindro, eje. Guardá este posteo para la próxima vez que tengas la receta en la mano y no sepas qué dice. Y si preferís, traela y te la explicamos en el mostrador.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog6_consulta.png",
+      "title": "Tenés la receta en la mano y *no entendés nada.*",
+      "subtitle": "Cinco siglas, explicadas de una vez y para siempre."
+    },
+    {
+      "type": "list",
+      "title": "Primero, *de qué ojo habla*",
+      "items": [
+        "OD es el ojo derecho. A veces aparece como R o RE",
+        "OI es el izquierdo. También lo vas a ver como L o LE",
+        "Cada fila tiene sus propios números: casi nunca son iguales"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Después, *los tres números*",
+      "items": [
+        "Esfera: cuánto te falta de lejos o de cerca. Con menos es miopía, con más es hipermetropía",
+        "Cilindro: cuánto astigmatismo hay, o sea la córnea menos redonda",
+        "Eje: en qué ángulo está ese astigmatismo, de 0 a 180"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/medicion-pupilar-optica.png",
+      "title": "Lo que la receta *no dice*",
+      "items": [
+        "La distancia entre tus pupilas: se mide acá, con el aro puesto",
+        "La altura a la que te queda el cristal según cómo te apoya",
+        "Por eso la misma receta, en dos ópticas, puede terminar distinto"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Traela y la leemos juntos",
+      "body": "No hace falta que entiendas nada: para eso estamos. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

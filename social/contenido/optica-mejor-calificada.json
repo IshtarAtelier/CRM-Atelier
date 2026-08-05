@@ -1,0 +1,52 @@
+{
+  "id": "optica-mejor-calificada",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "prueba",
+  "caption": "Seis cosas concretas que explican las reseñas. Ninguna es un eslogan: son cosas que se pueden verificar viniendo. Cerro de las Rosas, sin turno previo.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "La gente nos elige. *Estas son las razones concretas.*",
+      "subtitle": "No son frases: son cosas que podés verificar el día que venís."
+    },
+    {
+      "type": "list",
+      "title": "Lo que hacemos *acá adentro*",
+      "items": [
+        "Laboratorio propio: el biselado no viaja a otra ciudad",
+        "Medición Essilor Expert, con el armazón ya elegido",
+        "Si algo sale mal, lo arregla la misma persona que lo hizo"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que te llevás además del anteojo",
+      "items": [
+        "Garantía de adaptación de 30 días",
+        "Ajustes y limpieza cuando quieras, sin cargo",
+        "Alguien que atiende el WhatsApp y sabe de tu caso"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Por qué esto *cambia el resultado*",
+      "items": [
+        "Un progresivo mal medido se siente mareado, aunque el cristal sea bueno",
+        "Un aro que no apoya bien corre el centro óptico y arruina la graduación",
+        "Nada de eso se ve en la caja: se ve a los tres días de uso"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Vení a verlo vos",
+      "body": "Cerro de las Rosas, sin turno previo. También coordinamos por WhatsApp."
+    }
+  ]
+}

@@ -13,6 +13,12 @@
  * Las cuatro reglas de abajo se descubren perdiendo una tarde cada una; están
  * documentadas en docs/plan-publicacion-meta.md.
  */
+// Sin esto, las credenciales del .env no llegan y el script aborta con
+// "Faltan META_SYSTEM_USER_TOKEN o META_PAGE_ID" aunque estén cargadas — que es
+// exactamente lo que pasó en la primera publicación real. meta-check.mjs sí lo
+// importaba, así que el diagnóstico daba todo OK y el publicador fallaba: el
+// peor combo posible, porque el chequeo decía que estaba todo bien.
+import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
