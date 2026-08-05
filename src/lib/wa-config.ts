@@ -14,8 +14,13 @@ export function getAdminChatId(): string {
 
 export function fetchWa(url: string | URL, init?: RequestInit): Promise<Response> {
     const headers = new Headers(init?.headers);
-    if (process.env.WA_API_KEY) {
-        headers.set('x-api-key', process.env.WA_API_KEY);
+    // La clave entre servicios es BOT_API_KEY: la misma que el bot usa para
+    // llamar al CRM, así existe en los dos lados sin configurar nada nuevo.
+    // El wa-service valida con esta misma preferencia (apiAuth en su index.js)
+    // — si se cambia el orden acá, cambiarlo allá también.
+    const apiKey = process.env.BOT_API_KEY || process.env.WA_API_KEY;
+    if (apiKey) {
+        headers.set('x-api-key', apiKey);
     }
     
     const resolvedUrl = typeof url === 'string' && url.startsWith('/')

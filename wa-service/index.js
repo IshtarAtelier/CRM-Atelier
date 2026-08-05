@@ -1906,9 +1906,15 @@ app.get('/health', async (req, res) => {
 });
 
 // ── Auth middleware for API endpoints ──────────
-const WA_API_KEY = process.env.WA_API_KEY;
+// La clave entre servicios es BOT_API_KEY: es la MISMA que este bot ya usa para
+// autenticarse contra el CRM, así que existe en los dos lados desde siempre.
+// Reusarla evita depender de configurar una variable nueva en un proyecto de
+// Railway al que no hay acceso por CLI. WA_API_KEY queda como fallback para
+// instalaciones sin BOT_API_KEY. El CRM manda esta misma preferencia
+// (src/lib/wa-config.ts) — si se cambia el orden acá, cambiarlo allá también.
+const WA_API_KEY = process.env.BOT_API_KEY || process.env.WA_API_KEY;
 if (!WA_API_KEY) {
-    console.warn('⚠️ WARNING: WA_API_KEY not set. API endpoints are UNPROTECTED.');
+    console.warn('⚠️ WARNING: ni BOT_API_KEY ni WA_API_KEY están seteadas. API endpoints are UNPROTECTED.');
     // El warn de arriba vivió meses en logs que nadie lee, con la API pública en
     // internet: cualquiera podía mandar WhatsApp firmados como la óptica. Un
     // agujero de seguridad tiene que gritar donde se lo escucha: WhatsApp del
@@ -1919,10 +1925,10 @@ if (!WA_API_KEY) {
             clearInterval(avisoSinClave);
             sendMessage(
                 getAdminWaId(),
-                `🚨 *API DEL BOT SIN CLAVE*\n\nEl wa-service arrancó SIN la variable WA_API_KEY: cualquiera que conozca la URL puede mandar mensajes como la óptica y cambiar la configuración del bot.\n\nSetear WA_API_KEY en Railway (en el servicio del bot Y en el CRM, mismo valor) y redeployar.`
-            ).catch(e => console.error('[Seguridad] No se pudo avisar la falta de WA_API_KEY:', e.message));
+                `🚨 *API DEL BOT SIN CLAVE*\n\nEl wa-service arrancó sin BOT_API_KEY ni WA_API_KEY: cualquiera que conozca la URL puede mandar mensajes como la óptica y cambiar la configuración del bot.\n\nSetear BOT_API_KEY en el servicio del bot en Railway (la misma que usa para llamar al CRM) y redeployar.`
+            ).catch(e => console.error('[Seguridad] No se pudo avisar la falta de clave de API:', e.message));
         } catch (e) {
-            console.error('[Seguridad] Error en el aviso de WA_API_KEY:', e.message);
+            console.error('[Seguridad] Error en el aviso de clave de API faltante:', e.message);
         }
     }, 60000);
 }
