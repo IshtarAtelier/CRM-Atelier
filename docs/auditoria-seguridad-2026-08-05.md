@@ -21,23 +21,40 @@ Verificado en producción tras el deploy:
 - sin sesión → 11 claves, todas `web_`; `?key=bot_prompt` → **401**
 - con sesión ADMIN (probado en local) → las 26 claves; `?key=MANUFACTURING_TIMES` → 200
 
-### 2. La API del wa-service, publicada sin clave 🔴 (a medias)
+### 2. La API del wa-service, publicada sin clave 🔴 → CERRADO
 `GET /api/status` en la URL pública del bot respondía **200 sin cabecera
-`x-api-key` y también con una clave inventada** → `WA_API_KEY` no está seteada.
-`apiAuth` deja pasar todo cuando la variable no existe ("modo legacy", con un
-`console.warn` que nadie lee). Con eso, cualquiera que conozca la URL puede
-`POST /api/send` (mandar WhatsApp firmados como la óptica), leer el prompt y el
-teléfono conectado, y cambiar la configuración del agente.
+`x-api-key` y también con una clave inventada** → sin clave configurada,
+`apiAuth` dejaba pasar todo ("modo legacy", con un `console.warn` que nadie
+lee). Con eso, cualquiera que conociera la URL podía `POST /api/send` (mandar
+WhatsApp firmados como la óptica), leer el prompt y el teléfono conectado, y
+cambiar la configuración del agente.
 
-**Hecho**: clave generada y seteada en `CRM-Atelier`; el bot ahora **avisa por
-WhatsApp al admin** al arrancar sin clave, en vez de dejarlo en los logs.
+**Resuelto sin tocar el proyecto inaccesible**: el proyecto de Railway del bot
+no aparece con la cuenta `pisano.ishtar@gmail.com` (CLI y API GraphQL: "Not
+Authorized"), así que no se le podía setear una variable nueva. En vez de eso,
+ambos lados **reusan `BOT_API_KEY`** — la clave que el bot ya usaba para
+autenticarse contra el CRM, presente en los dos entornos desde siempre.
+`WA_API_KEY` queda como fallback. Además el bot **avisa por WhatsApp al admin**
+si arranca sin ninguna de las dos, en vez de dejarlo en los logs.
 
-**FALTA — solo lo puede hacer el dueño de esa cuenta**: setear `WA_API_KEY` en el
-servicio del bot desde la UI de Railway. El proyecto del bot NO aparece en
-`railway list` con la cuenta `pisano.ishtar@gmail.com` (ver
-`docs/` → topología de deploy), así que no se puede hacer por CLI.
-El valor a copiar está en `~/.atelier-wa-api-key.txt` (permisos 600). **Tiene
-que ser exactamente el mismo** que quedó en el CRM.
+Verificado contra producción tras el deploy (`d9e67fc8`):
+- `/api/status` sin clave → **401**; con clave inventada → **401**
+- con la `BOT_API_KEY` real (via `railway run`, sin exponer el valor) → **200**
+- sesión de WhatsApp reconectada (`/health` → `whatsapp: true`)
+
+### 2b. El socket.io del bot sigue SIN autenticación 🔴 (abierto)
+Hallado al cerrar el punto 2: `io.on('connection')` no valida nada — el CORS
+solo lo respetan los navegadores, un cliente socket.io de línea de comandos se
+conecta igual. Al conectar, el bot emite `bot_status` con **el QR de la sesión**
+(si la sesión está deslogueada, quien escanee ese QR se queda con la línea de
+WhatsApp de la óptica), el prompt completo y el teléfono. Y `new_message_received`
+difunde los mensajes entrantes a **todos** los conectados.
+
+No se tocó en caliente: el buzón del CRM depende de este socket para el tiempo
+real, y exigir clave rompe la UI (el navegador no puede mandar `BOT_API_KEY`
+sin exponerla al staff). El arreglo correcto: handshake con un token de corta
+vida que el CRM emita para sesiones logueadas y el bot valide contra el CRM.
+**Mientras tanto, este es el agujero más grave que queda.**
 
 ## Abierto — decisión pendiente
 
