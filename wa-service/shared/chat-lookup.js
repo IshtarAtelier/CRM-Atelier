@@ -29,6 +29,17 @@ function telefonoDeWaId(waId) {
 }
 
 /**
+ * ¿Es una conversación 1 a 1 con una persona?
+ * Grupos (@g.us) y estados (status@broadcast) no tienen ficha de chat y nunca la
+ * van a tener: que no haya fila para ellos es lo NORMAL, no un síntoma. Se separan
+ * para que el aviso de "no encontré el chat" siga queriendo decir algo — en los
+ * logs de producción del 6/8 el único caso era, justamente, un grupo.
+ */
+function esChatDePersona(waId) {
+    return typeof waId === 'string' && (waId.endsWith('@c.us') || waId.endsWith('@lid'));
+}
+
+/**
  * Busca el chat de un waId, con fallback por teléfono cuando el formato no coincide.
  *
  * @param {object} prisma
@@ -71,4 +82,4 @@ async function findChatByWaId(prisma, waId, opts = {}) {
     return { chat: null, via: null, telefono, ambiguo: candidatos.length > 1 };
 }
 
-module.exports = { findChatByWaId, telefonoDeWaId, esTelefonoPlausible };
+module.exports = { findChatByWaId, telefonoDeWaId, esTelefonoPlausible, esChatDePersona };

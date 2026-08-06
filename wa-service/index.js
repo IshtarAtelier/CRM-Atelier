@@ -32,7 +32,7 @@ const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
 const { parseAdTag, prefillAdTag, stripAdTags } = require('./shared/ad-tag');
 const { serializedId, resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
 const { BotReplyingSet } = require('./shared/bot-replying');
-const { findChatByWaId } = require('./shared/chat-lookup');
+const { findChatByWaId, esChatDePersona } = require('./shared/chat-lookup');
 
 /**
  * @lid → teléfono, en UNA sola llamada y sin reintentos: se usa solo en el
@@ -452,12 +452,13 @@ const handleMessageCreate = async (msg) => {
                 // Dos chats para el mismo teléfono: elegir uno podría apagar el bot y
                 // archivar el mensaje en la conversación equivocada. Se avisa y se frena.
                 console.warn(`  ⚠️ [Saliente] waId=${waId} (tel ${telefono}) matchea MÁS DE UN chat: no se elige ninguno. Hay que unificar esos chats.`);
-            } else {
+            } else if (esChatDePersona(waId)) {
                 // Ya no hay fallback que probar. Queda el caso legítimo —una conversación
                 // que arranca la óptica, sin inbound previo, donde el bot no estaba
                 // contestando igual— y el @lid que WhatsApp no supo resolver a teléfono.
                 console.warn(`  ⚠️ [Saliente] No hay chat para waId=${waId}${telefono ? ` (tel ${telefono})` : ''}: no se apaga el bot ni se guarda el mensaje.`);
             }
+            // Grupos y estados no llevan ficha de chat: no hay nada que avisar.
         } catch (e) {
             console.error("Error on message_create sync:", e);
         }
