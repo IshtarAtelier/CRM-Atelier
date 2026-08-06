@@ -104,24 +104,30 @@ async function startClient(attempt = 1) {
         }
     }
 
-    // Borrar la caché del SERVICE WORKER de WhatsApp Web. Es la causa de que el
-    // pin de versión "no aplique": la intercepción de puppeteer que sirve la
-    // build fijada solo ve requests de red, y el service worker registrado en
-    // el perfil persistido (LocalAuth) sirve la app desde SU caché — con la
-    // build viva — sin pasar por la red. Resultado: "PIN NO APLICADO" y toda
-    // la familia de errores "r" (getChats roto, medias que no bajan, sendSeen).
-    // Borrarlo NO toca la autenticación (vive en IndexedDB/Local Storage):
-    // solo obliga al primer load a ir por la red, donde la intercepción manda.
-    for (const swDir of ['Service Worker', 'Code Cache']) {
-        for (const base of [path.join(sessionDataPath, 'session'), path.join(__dirname, '.wwebjs_auth', 'session')]) {
-            const dir = path.join(base, 'Default', swDir);
-            try {
-                if (fs.existsSync(dir)) {
-                    fs.rmSync(dir, { recursive: true, force: true });
-                    console.log(`🗑️ Caché de ${swDir} borrada: ${dir}`);
+    // Borrar la caché del SERVICE WORKER de WhatsApp Web — SOLO si se pinea
+    // versión por env. El SW del perfil persistido sirve la app desde su caché
+    // sin pasar por la red, y la intercepción de puppeteer que inyecta la build
+    // fijada solo ve requests de red: sin esta limpieza el pin no aplica nunca
+    // con LocalAuth autenticado.
+    //
+    // ⚠️ LECCIÓN DEL 6/8/2026: cuando el pin POR FIN aplicó (build de ~1 mes
+    // atrás), WhatsApp la rechazó y DESLOGUEÓ la sesión — QR y línea muerta
+    // hasta re-escanear. Pinear hacia atrás es peligroso: WhatsApp tiene una
+    // antigüedad mínima aceptada. Por eso el pin quedó OPT-IN vía
+    // WA_WEB_VERSION y apagado por defecto (build viva, con sus errores "r"
+    // conocidos en getChats/medias — molestos pero la línea FUNCIONA).
+    if (process.env.WA_WEB_VERSION) {
+        for (const swDir of ['Service Worker', 'Code Cache']) {
+            for (const base of [path.join(sessionDataPath, 'session'), path.join(__dirname, '.wwebjs_auth', 'session')]) {
+                const dir = path.join(base, 'Default', swDir);
+                try {
+                    if (fs.existsSync(dir)) {
+                        fs.rmSync(dir, { recursive: true, force: true });
+                        console.log(`🗑️ Caché de ${swDir} borrada: ${dir}`);
+                    }
+                } catch (e) {
+                    console.error(`⚠️ Error borrando ${swDir} en ${dir}:`, e.message);
                 }
-            } catch (e) {
-                console.error(`⚠️ Error borrando ${swDir} en ${dir}:`, e.message);
             }
         }
     }
@@ -174,17 +180,23 @@ async function startClient(attempt = 1) {
         // 404 se traga sin ruido y se sigue con la versión viva — el síntoma exacto. NO
         // es eso: la URL responde 200 y 552.574 bytes. El archivo está.
         //
-        // ENCONTRADO (6/8/2026): era el SERVICE WORKER del perfil persistido — sirve la
-        // app desde su caché sin pasar por la red, y la intercepción de puppeteer que
-        // inyecta esta build solo ve requests de red. Por eso el pin aplicaba en un
-        // perfil virgen y no con LocalAuth ya autenticado. La limpieza de la caché del
-        // SW al arrancar (más arriba) es la otra mitad de este pin.
-        webVersion: process.env.WA_WEB_VERSION || '2.3000.1042391138-alpha',
-        webVersionCache: {
-            type: 'remote',
-            remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${process.env.WA_WEB_VERSION || '2.3000.1042391138-alpha'}.html`,
-            strict: false,
-        },
+        // ENCONTRADO (6/8/2026): el pin no aplicaba por el SERVICE WORKER del perfil
+        // persistido (sirve la app desde su caché sin pasar por la red; la intercepción
+        // de puppeteer solo ve red). PERO al aplicar de verdad la build vieja, WhatsApp
+        // la rechazó y deslogueó la sesión (QR, línea muerta). Conclusión: pinear hacia
+        // atrás no es viable pasada la antigüedad mínima que acepta WhatsApp. El pin
+        // queda OPT-IN vía WA_WEB_VERSION (con la limpieza de SW de arriba) y por
+        // defecto corre la build viva. Los errores "r" (getChats/medias/sendSeen) son
+        // el precio hasta que whatsapp-web.js publique el arreglo del renombre $1 —
+        // ahí: actualizar la librería y borrar todo este bloque.
+        ...(process.env.WA_WEB_VERSION ? {
+            webVersion: process.env.WA_WEB_VERSION,
+            webVersionCache: {
+                type: 'remote',
+                remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${process.env.WA_WEB_VERSION}.html`,
+                strict: false,
+            },
+        } : {}),
         puppeteer: {
             headless: true,
             executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
