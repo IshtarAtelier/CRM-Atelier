@@ -80,7 +80,7 @@ const PLANTILLAS = {
      * no un fondo decorativo.
      */
     number: (slide, id) => `
-    ${slide.imagenResuelta ? `<div class="producto" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>` : ''}
+    ${slide.imagenResuelta ? `<div class="producto ${slide.encuadre === 'cover' ? 'llena' : ''}" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>` : ''}
     <div class="contenido number">
       <p class="rotulo">${resaltar(slide.title)}</p>
       <p class="dato">${esc(slide.dato)}</p>
@@ -169,6 +169,33 @@ export function htmlDeSlide(slide, id, pieza) {
     background-size:contain; background-repeat:no-repeat; background-position:center;
     background-color:#ffffff;
   }
+  /*
+   * El contain con fondo blanco de arriba es para un ARMAZON RECORTADO: la foto
+   * tiene que entrar entera, sin cortar una varilla, y el blanco es el fondo
+   * del propio recorte, asi que no se nota.
+   *
+   * Con una foto editorial (personas, el local) eso deja franjas blancas a los
+   * costados y la placa parece mal armada. Paso con las de campania.
+   *
+   * La clase llena es para esas: la foto cubre la franja y se recorta lo que
+   * sobra, que en una foto de ambiente no molesta.
+   */
+  .producto.llena { background-size:cover; background-color:transparent; }
+
+  /*
+   * La franja de la foto termina en un corte recto contra el fondo oscuro y se
+   * ve como dos placas pegadas. Este degrade funde el blanco del recorte con el
+   * fondo, que es lo que hace que la pieza se lea como una sola cosa.
+   * Va sobre la foto, no debajo: tiene que tapar el borde.
+   */
+  .producto::after {
+    content:''; position:absolute; left:0; right:0; bottom:0; height:26%;
+    background:linear-gradient(180deg, rgba(255,255,255,0) 0%, ${fondo} 92%);
+  }
+  /* En la variante llena la foto es editorial y ya trae su propio velo, asi
+     que el degrade se suaviza para no ensuciarla. */
+  .producto.llena::after { height:34%;
+    background:linear-gradient(180deg, transparent 0%, ${fondo} 96%); }
   .contenido.number { justify-content:flex-end; }
   .rotulo { font-size:38px; font-weight:700; letter-spacing:-.01em; opacity:.9; }
   .dato {
@@ -226,7 +253,10 @@ export function htmlDeSlide(slide, id, pieza) {
      texto tiene que quedar ABAJO, sobre el oscuro. Centrado cae sobre el blanco
      y, siendo texto blanco, desaparece. Pasó: salió el precio sin nombre. */
   .contenido.number { justify-content:flex-end; }
-  .producto { height:46%; }
+  /* Más alta que en el feed y la foto un poco arriba del centro: en 9:16, con
+     el armazón centrado en su franja queda un hueco muerto entre la foto y el
+     texto. */
+  .producto { height:58%; background-position:center 42%; }
   ` : ''}
 
   ${esCuadrado ? `

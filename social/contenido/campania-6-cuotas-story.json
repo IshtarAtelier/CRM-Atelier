@@ -15,6 +15,7 @@
       "type": "number",
       "role": "portada",
       "image": "blog/mostrador-marmol.jpg",
+      "encuadre": "cover",
       "title": "Sin interés, con tarjeta",
       "dato": "6 cuotas",
       "body": "En anteojos recetados, multifocales y lentes de sol. Con tarjeta, en el local."

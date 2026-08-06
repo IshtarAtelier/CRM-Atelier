@@ -14,6 +14,7 @@
       "type": "number",
       "role": "portada",
       "image": "blog/pareja-multifocales-exterior.png",
+      "encuadre": "cover",
       "title": "En lentes multifocales",
       "dato": "2x1",
       "body": "Llevás dos pares de multifocales al precio de uno. Medidos acá, con garantía de adaptación."

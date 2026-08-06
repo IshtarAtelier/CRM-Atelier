@@ -43,7 +43,48 @@ function precioAr(n) {
     return `$${Math.round(n).toLocaleString('es-AR')}`;
 }
 
-export async function generarStoriesDeProducto({ marca, cantidad, produccion, tienda }) {
+/**
+ * "Nashira C3" → "Nashira".
+ *
+ * El sufijo de color (C1, C2, C4...) distingue variantes en el catálogo, donde
+ * hace falta. En una placa ensucia: nadie busca "Dionisio C1", busca
+ * "Dionisio". El color se ve en la foto, que para eso está.
+ *
+ * Solo se saca si va al final y tiene la forma C + número: un modelo que se
+ * llame "C3PO" no se toca.
+ */
+function limpiarNombre(nombre) {
+    return String(nombre).replace(/\s+C\d+\s*$/i, '').trim();
+}
+
+/**
+ * Las condiciones de pago, leídas de DONDE LAS LEE LA TIENDA.
+ *
+ * `PaymentOptions.tsx` las saca de `SystemSetting` (`web_promo_installments` y
+ * `web_promo_cash_discount`), no de business-info.ts. Si acá se usara otra
+ * fuente, la story diría un precio y la ficha del producto otro — el cliente
+ * llega a la tienda desde la story y ve otro número. Es el mismo criterio con
+ * el que la tienda calcula: `Math.round(price / cuotas)` y
+ * `Math.round(price * (1 - descuento/100))`.
+ */
+async function condicionesDeVenta(prisma) {
+    const filas = await prisma.systemSetting.findMany({
+        where: { key: { in: ['web_promo_installments', 'web_promo_cash_discount'] } },
+        select: { key: true, value: true },
+    });
+    const get = (k) => filas.find(f => f.key === k)?.value;
+
+    const texto = get('web_promo_installments') || '6 cuotas sin interés';
+    const cuotas = Number(texto.match(/\d+/)?.[0] || 6);
+
+    const crudo = Number(get('web_promo_cash_discount'));
+    // El mismo default que PaymentOptions.tsx cuando el setting no está.
+    const descuento = Number.isFinite(crudo) && crudo > 0 ? crudo : 15;
+
+    return { cuotas, textoCuotas: texto, descuento };
+}
+
+export async function generarStoriesDeProducto({ marca, cantidad, produccion, tienda, categoria, nombre }) {
     const url = produccion ? process.env.PROD_DATABASE_URL : process.env.DATABASE_URL;
     if (!url) throw new Error(`Falta ${produccion ? 'PROD_DATABASE_URL' : 'DATABASE_URL'} en el .env`);
 
@@ -56,16 +97,23 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
         const webs = await prisma.webProduct.findMany({
             where: {
                 isActive: true,
+                ...(categoria ? { category: { equals: categoria, mode: 'insensitive' } } : {}),
+                ...(nombre ? { name: { startsWith: nombre, mode: 'insensitive' } } : {}),
                 product: { brand: { equals: marca, mode: 'insensitive' }, stock: { gt: 0 } },
             },
             select: {
-                name: true, slug: true, images: true, imageUrl: true, imageAlts: true,
+                name: true, slug: true, images: true, imageUrl: true, imageAlts: true, category: true,
                 product: { select: { model: true, brand: true, price: true, salePrice: true, stock: true } },
             },
             orderBy: { createdAt: 'desc' },
         });
 
-        console.log(`\n${webs.length} producto(s) publicados de "${marca}" con stock.`);
+        const filtros = [
+            `marca "${marca}"`,
+            categoria ? `categoría "${categoria}"` : null,
+            nombre ? `nombre que empieza con "${nombre}"` : null,
+        ].filter(Boolean).join(' · ');
+        console.log(`\n${webs.length} producto(s) publicados con stock — ${filtros}`);
 
         const usables = webs.filter(w => (w.images?.length || w.imageUrl) && (w.product?.price ?? 0) > 0);
         const sinFoto = webs.length - usables.length;
@@ -75,6 +123,9 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
             console.log(`  · ${sinFoto} quedaron afuera por no tener foto o precio.`);
         }
 
+        const cond = await condicionesDeVenta(prisma);
+        console.log(`  · condiciones (de la tienda): ${cond.textoCuotas} · ${cond.descuento}% al contado`);
+
         const elegidos = usables.slice(0, cantidad);
         const generadas = [];
 
@@ -83,7 +134,18 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
             const enOferta = (p.salePrice ?? 0) > 0 && p.salePrice < p.price;
             const precio = enOferta ? p.salePrice : p.price;
             const foto = (w.images?.[0] || w.imageUrl || '').replace(/^\//, '');
-            const id = `story-producto-${aSlug(w.name)}`;
+            const nombre = limpiarNombre(w.name);
+            // El id sale del SLUG, que es único, y no del nombre limpio: al
+            // sacar el sufijo de color, "Dionisio C1" y "Dionisio C2" pasan a
+            // llamarse igual y la segunda pieza pisaba a la primera en silencio.
+            const id = `story-producto-${aSlug(w.slug)}`;
+
+            // Se calcula igual que PaymentOptions.tsx, con Math.round, para que
+            // el número de la story sea EXACTAMENTE el de la ficha. Un peso de
+            // diferencia entre lo que promete el aviso y lo que muestra la
+            // tienda es una discusión en el mostrador.
+            const cuota = Math.round(precio / cond.cuotas);
+            const alContado = Math.round(precio * (1 - cond.descuento / 100));
 
             const pieza = {
                 id,
@@ -94,32 +156,31 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
                 // venga de la base (R6). Escrita a mano, no renderiza.
                 fuente: 'base',
                 temas: ['armazones'],
-                producto: { nombre: w.name, slug: w.slug, marca: p.brand },
-                caption: `${w.name} — ${p.brand}. ${precioAr(precio)}${enOferta ? ' (en oferta)' : ''}.\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo en Cerro de las Rosas.`,
+                producto: { nombre, slug: w.slug, marca: p.brand, categoria: w.category },
+                caption: `${nombre} · ${p.brand}\n\n${cond.textoCuotas} de ${precioAr(cuota)}\n${precioAr(alContado)} en efectivo o transferencia (ahorrás ${cond.descuento}%)\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`,
                 slides: [
                     {
-                        // `number` es la plantilla de producto: la foto va
-                        // arriba y sin velo pesado (en un armazón la foto ES el
-                        // producto) y el precio va grande.
                         type: 'number',
                         role: 'portada',
                         image: foto,
-                        title: `${w.name} · ${p.brand}`,
-                        dato: precioAr(precio),
-                        body: enOferta
-                            ? 'En oferta. En la tienda y en el local, Cerro de las Rosas.'
-                            : 'En la tienda y en el local, Cerro de las Rosas.',
+                        // Primer impacto: el valor de la CUOTA. El precio de
+                        // lista solo no dice nada y no vende; lo que decide una
+                        // compra es cuánto sale por mes.
+                        title: `${nombre} · ${p.brand}`,
+                        dato: precioAr(cuota),
+                        body: `${cond.textoCuotas}\n${precioAr(alContado)} en efectivo o transferencia`,
                     },
                 ],
             };
 
             const destino = path.join(SALIDA, `${id}.json`);
             await writeFile(destino, JSON.stringify(pieza, null, 2) + '\n', 'utf-8');
-            generadas.push({ id, nombre: w.name, precio: precioAr(precio), oferta: enOferta });
+            generadas.push({ id, nombre, cuota: precioAr(cuota), contado: precioAr(alContado), categoria: w.category });
         }
 
         console.log(`\n✅ ${generadas.length} story(s) generada(s):\n`);
-        generadas.forEach(g => console.log(`   ${g.nombre.padEnd(28)} ${g.precio}${g.oferta ? '  (oferta)' : ''}`));
+        console.log(`   ${'producto'.padEnd(24)} ${'cuota'.padEnd(12)} contado`);
+        generadas.forEach(g => console.log(`   ${g.nombre.padEnd(24)} ${g.cuota.padEnd(12)} ${g.contado}   [${g.categoria || '—'}]`));
         return generadas;
     } finally {
         await prisma.$disconnect();
@@ -131,6 +192,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         const generadas = await generarStoriesDeProducto({
             marca: arg('marca', 'Cápsula Escarlata'),
             cantidad: Number(arg('cantidad', 20)),
+            categoria: arg('categoria'),
+            nombre: arg('nombre'),
             produccion: process.argv.includes('--produccion'),
             tienda: process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar',
         });

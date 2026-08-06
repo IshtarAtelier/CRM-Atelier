@@ -97,6 +97,11 @@ function piezasDePromo(promo, tam) {
                 type: 'number',
                 role: 'portada',
                 image: promo.imagen,
+                // Foto editorial, no un armazón recortado: tiene que llenar la
+                // franja. Sin esto queda con franjas blancas a los costados,
+                // porque el default de esta plantilla es `contain` sobre blanco
+                // (pensado para el recorte de un armazón).
+                encuadre: 'cover',
                 title: promo.rotulo,
                 dato: promo.dato,
                 body: apaisado ? promo.corto : promo.bajada,

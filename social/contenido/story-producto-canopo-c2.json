@@ -8,19 +8,20 @@
     "armazones"
   ],
   "producto": {
-    "nombre": "Cánopo C2",
+    "nombre": "Cánopo",
     "slug": "canopo-c2",
-    "marca": "Cápsula Escarlata"
+    "marca": "Cápsula Escarlata",
+    "categoria": "Sol"
   },
-  "caption": "Cánopo C2 — Cápsula Escarlata. $200.000.\n\nEn la tienda: https://atelieroptica.com.ar/producto/canopo-c2\nO vení a probártelo en Cerro de las Rosas.",
+  "caption": "Cánopo · Cápsula Escarlata\n\n6 cuotas sin interés de $33.333\n$170.000 en efectivo o transferencia (ahorrás 15%)\n\nEn la tienda: https://atelieroptica.com.ar/producto/canopo-c2\nO vení a probártelo, Cerro de las Rosas.",
   "slides": [
     {
       "type": "number",
       "role": "portada",
       "image": "assets/products/acetato/canopo-c2.webp",
-      "title": "Cánopo C2 · Cápsula Escarlata",
-      "dato": "$200.000",
-      "body": "En la tienda y en el local, Cerro de las Rosas."
+      "title": "Cánopo · Cápsula Escarlata",
+      "dato": "$33.333",
+      "body": "6 cuotas sin interés\n$170.000 en efectivo o transferencia"
     }
   ]
 }
