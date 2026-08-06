@@ -1,0 +1,94 @@
+# Regeneración semanal de las piezas con precio.
+#
+# EL PROBLEMA QUE RESUELVE: las placas llevan el precio HORNEADO en la imagen.
+# Una story de producto renderizada el 6/8 que rota el 20/10 mostraría precios
+# de agosto. La guarda de frescura del cron evita que eso se publique — pero
+# bloquear no es resolver: alguien tendría que regenerar a mano cada 10 días,
+# que es exactamente el "dejarlo listo y volver a hacerlo" que no queremos.
+#
+# ESTO lo hace solo: cada viernes lee el catálogo de producción, regenera las
+# stories de producto y los carruseles de base con los precios vigentes,
+# re-renderiza y commitea. El push dispara el deploy de Railway, así que el
+# sábado (día de carrusel de producto) las placas tienen precios de esa semana.
+#
+# Si un viernes esto falla, NO se publica nada viejo: la guarda de frescura del
+# cron sigue ahí como red — bloquea y avisa por mail. Son dos capas: esta
+# mantiene, aquella protege.
+#
+# PROD_DATABASE_URL vive en los secrets del repo. El workflow solo LEE de la
+# base (los generadores no escriben una sola fila).
+
+name: Regenerar piezas con precio
+
+on:
+  schedule:
+    - cron: '0 9 * * 5'   # viernes 06:00 ART — antes del sábado de producto
+  workflow_dispatch:
+
+jobs:
+  regenerar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci --ignore-scripts
+
+      - name: Prisma client + Chromium para el render
+        run: |
+          npx prisma generate
+          npx playwright install --with-deps chromium
+
+      - name: Regenerar stories y carruseles de producto
+        env:
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          set -e
+          node scripts/social/generar-story-producto.mjs --produccion --marca "Cápsula Escarlata" --cantidad 12
+          node scripts/social/generar-producto.mjs --categoria "Sol" --id sol-seleccion --limite 3
+          node scripts/social/generar-producto.mjs --categoria "Receta" --id receta-seleccion --titulo "Armazones *de receta* con firma propia" --limite 3 --saltear 3
+          node scripts/social/generar-producto.mjs
+
+      - name: Renderizar todo lo regenerado
+        run: |
+          set -e
+          for f in social/contenido/story-producto-*.json \
+                   social/contenido/sol-seleccion.json \
+                   social/contenido/receta-seleccion.json \
+                   social/contenido/armazones-destacados.json; do
+            echo "render: $f"
+            node scripts/social/render.mjs "$f"
+          done
+
+      - name: Verificar que ninguna pieza quedó con precio crudo
+        run: |
+          set -e
+          for f in social/contenido/story-producto-*.json; do
+            node -e "
+              const p = require('./$f');
+              const b = p.slides[0].body || '';
+              if (!b.includes('cuotas')) { console.error('PRECIO CRUDO en $f'); process.exit(1); }
+            "
+          done
+          echo "todas con cuota ✅"
+
+      - name: Commitear si cambió algo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add social/contenido/ public/social/ public/images/catalogo-social/
+          if git diff --cached --quiet; then
+            echo "Sin cambios: los precios siguen iguales."
+          else
+            git commit -m "chore(social): regeneracion semanal de piezas con precio
+
+Precios y fotos releidos de la base de produccion (solo lectura) y placas
+re-renderizadas. Corrida automatica del workflow social-regeneracion."
+            git push
+          fi
