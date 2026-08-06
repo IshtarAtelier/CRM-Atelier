@@ -166,24 +166,61 @@ export async function generarVoz(rutaJson, { voz = VOZ_DEFAULT, aplicar = false 
     return salidaMp4;
 }
 
-/** Un clip corto por cada voz candidata, para elegir escuchando. */
+/**
+ * Las voces candidatas, en UN SOLO VIDEO: cada una con su tarjeta con nombre,
+ * una tras otra. Un video se reproduce en cualquier lado; los archivos de
+ * audio sueltos no — ya pasó que no se podían escuchar desde el chat.
+ */
 export async function generarMuestras(texto) {
     await mkdir(SALIDA, { recursive: true });
-    const archivos = [];
-    for (const voz of VOCES_CANDIDATAS) {
-        console.log(`\nMuestra con ${voz}…`);
-        const pcm = await tts(texto, voz);
-        const wav = path.join(SALIDA, `muestra-voz-${voz.toLowerCase()}.wav`);
-        await pcmAWav(pcm, wav);
-        // a m4a para que pese poco y se escuche en cualquier lado
-        const ffmpeg = (await import('ffmpeg-static')).default;
-        const m4a = wav.replace(/\.wav$/, '.m4a');
-        await ejecutar(ffmpeg, ['-y', '-i', wav, '-c:a', 'aac', '-b:a', '96k', m4a]);
-        await rm(wav, { force: true });
-        console.log(`  ✅ ${path.relative(RAIZ, m4a)}`);
-        archivos.push(m4a);
+    const ffmpeg = (await import('ffmpeg-static')).default;
+    const { chromium } = await import('playwright');
+
+    const nav = await chromium.launch();
+    const pg = await nav.newPage({ viewport: { width: 1080, height: 1920 } });
+    const segmentos = [];
+    const DESC = { Sulafat: 'cálida', Aoede: 'fresca', Leda: 'joven' };
+
+    try {
+        for (const [i, voz] of VOCES_CANDIDATAS.entries()) {
+            console.log(`\nMuestra con ${voz}…`);
+            const pcm = await tts(texto, voz);
+            const wav = path.join(SALIDA, `.muestra-${voz}.wav`);
+            await pcmAWav(pcm, wav);
+
+            const card = path.join(SALIDA, `.card-${voz}.png`);
+            await pg.setContent(
+                '<body style="margin:0;width:1080px;height:1920px;background:#2a211c;color:#fff;' +
+                'font-family:-apple-system,sans-serif;display:flex;flex-direction:column;' +
+                'align-items:center;justify-content:center;gap:30px">' +
+                `<div style="font-size:44px;opacity:.6;letter-spacing:.1em">VOZ ${i + 1} DE ${VOCES_CANDIDATAS.length}</div>` +
+                `<div style="font-size:130px;font-weight:900;color:#9e7f65">${voz}</div>` +
+                `<div style="font-size:52px;opacity:.85">${DESC[voz] || ''}</div>` +
+                '<div style="position:absolute;bottom:140px;font-size:38px;opacity:.5">¿Cuál te gusta más?</div></body>'
+            );
+            await pg.screenshot({ path: card });
+
+            const seg = path.join(SALIDA, `.seg-${voz}.mp4`);
+            await ejecutar(ffmpeg, ['-y', '-loop', '1', '-i', card, '-i', wav,
+                '-c:v', 'libx264', '-tune', 'stillimage', '-pix_fmt', 'yuv420p', '-r', '30',
+                '-c:a', 'aac', '-b:a', '128k', '-shortest', seg]);
+            segmentos.push(seg);
+            await rm(wav, { force: true });
+            await rm(card, { force: true });
+            console.log(`  ✅ ${voz}`);
+        }
+    } finally {
+        await nav.close();
     }
-    return archivos;
+
+    const lista = path.join(SALIDA, '.lista-muestras.txt');
+    await writeFile(lista, segmentos.map(s => `file '${s}'`).join('\n') + '\n');
+    const final = path.join(SALIDA, 'comparacion-voces.mp4');
+    await ejecutar(ffmpeg, ['-y', '-f', 'concat', '-safe', '0', '-i', lista, '-c', 'copy', final]);
+    for (const s of [...segmentos, lista]) await rm(s, { force: true });
+
+    console.log(`\n✅ ${path.relative(RAIZ, final)} — las ${VOCES_CANDIDATAS.length} voces en un solo video`);
+    return [final];
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
