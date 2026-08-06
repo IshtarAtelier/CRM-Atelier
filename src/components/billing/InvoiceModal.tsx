@@ -5,6 +5,7 @@ import { X, FileText, CheckCircle2, AlertCircle, Loader2, Plus, Trash2, Split, S
 import { PricingService } from '@/services/PricingService';
 import { Modal } from '@/components/ui/Modal';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
+import { MONOTRIBUTO_UNIT_PRICE_LIMIT } from '@/lib/constants/billing';
 
 interface InvoiceItem {
 // ... (rest of interface remains same)
@@ -38,7 +39,7 @@ const DOC_TYPES = [
     { value: 80, label: 'CUIT' },
 ];
 
-const MONOTRIBUTO_LIMIT = 499000;
+const MONOTRIBUTO_LIMIT = MONOTRIBUTO_UNIT_PRICE_LIMIT;
 
 const sumItems = (list: InvoiceItem[]) =>
     list.reduce((acc, it) => acc + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0);

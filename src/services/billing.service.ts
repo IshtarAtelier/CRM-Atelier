@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { retryWithBackoff, isTransientNetworkError } from '@/lib/retry-utils';
 import { logAudit } from '@/lib/audit';
+import { MONOTRIBUTO_UNIT_PRICE_LIMIT } from '@/lib/constants/billing';
 
 // Logo en base64 para incluir en los PDFs de factura
 let logoBase64Cache: string | null = null;
@@ -145,8 +146,8 @@ export const BillingService = {
         if (roundedTotalToInvoice > roundedMaximum) {
             throw new Error(`No podés facturar este monto ($${totalAmount}) porque el total facturado ($${totalInvoiced + totalAmount}) superaría el saldo total pagado de $${maximumInvoiceable}.`);
         }
-        const UNIT_PRICE_LIMIT = 499000;
-        
+        const UNIT_PRICE_LIMIT = MONOTRIBUTO_UNIT_PRICE_LIMIT;
+
         const itemsToValidate = invoiceItems || order.items.map(it => ({
             description: `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || 'Producto'}`.trim(),
             price: it.price
