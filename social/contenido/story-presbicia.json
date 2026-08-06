@@ -1,0 +1,19 @@
+{
+  "id": "story-presbicia",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "¿Te alejás el celular para leer? Es presbicia, le pasa a todo el mundo después de los 40, y tiene solución.",
+  "temas": [
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog4_leyendo.png",
+      "title": "¿Alejás el celular *para leer*?",
+      "subtitle": "Es presbicia. Le pasa a todo el mundo después de los 40, y tiene solución."
+    }
+  ]
+}

@@ -30,16 +30,40 @@
         "tipo": "propuesta"
       },
       {
+        "id": "story-presbicia",
+        "tipo": "educacion"
+      },
+      {
         "id": "donde-estamos",
         "tipo": "info"
+      },
+      {
+        "id": "story-limpieza",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-laboratorio",
+        "tipo": "propuesta"
+      },
+      {
+        "id": "story-fotocromaticos",
+        "tipo": "educacion"
       },
       {
         "id": "story-marean",
         "tipo": "educacion"
       },
       {
-        "id": "story-laboratorio",
+        "id": "story-medicion",
         "tipo": "propuesta"
+      },
+      {
+        "id": "story-ninos",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-anteojos-calle",
+        "tipo": "educacion"
       }
     ],
     "producto": [

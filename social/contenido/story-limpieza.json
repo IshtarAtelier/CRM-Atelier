@@ -1,0 +1,19 @@
+{
+  "id": "story-limpieza",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "La remera raya el antirreflejo: tiene polvo atrapado que actúa como lija. Agua tibia, jabón neutro y paño de microfibra. Y si querés, pasá que te los limpiamos gratis.",
+  "temas": [
+    "armazones"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/lentes_con_reflejo.png",
+      "title": "Dejá de limpiarlos *con la remera*",
+      "subtitle": "El polvo atrapado en la tela raya el antirreflejo. Agua tibia, jabón neutro y microfibra."
+    }
+  ]
+}

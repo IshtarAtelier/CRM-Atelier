@@ -1,0 +1,19 @@
+{
+  "id": "story-anteojos-calle",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Los anteojos de farmacia tienen la misma graduación en los dos ojos y el centro óptico en cualquier lado. Para salir del paso un día, pasa. Todos los días, cansa la vista.",
+  "temas": [
+    "receta"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog4_header.png",
+      "title": "Los anteojos de farmacia *cansan tu vista*",
+      "subtitle": "Misma graduación en los dos ojos y el centro óptico en cualquier lado. Tus ojos no son iguales."
+    }
+  ]
+}

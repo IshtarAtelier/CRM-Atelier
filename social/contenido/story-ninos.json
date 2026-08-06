@@ -1,0 +1,19 @@
+{
+  "id": "story-ninos",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "La miopía en los chicos avanza rápido y hoy se puede frenar. El primer control visual conviene hacerlo antes de empezar las clases.",
+  "temas": [
+    "receta"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog6_consulta.png",
+      "title": "La miopía de los chicos *se puede frenar*",
+      "subtitle": "Hoy existen lentes que retrasan su avance. El control a tiempo hace la diferencia."
+    }
+  ]
+}

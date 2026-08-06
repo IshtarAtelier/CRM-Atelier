@@ -1,0 +1,19 @@
+{
+  "id": "story-fotocromaticos",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Cristales que se oscurecen solos con el sol y se aclaran adentro: un solo anteojo para todo el día. Preguntanos por los fotocromáticos.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog3_eligiendo.png",
+      "title": "Un anteojo que se oscurece *solo*",
+      "subtitle": "Fotocromáticos: de sol afuera, claros adentro. Un solo par para todo el día."
+    }
+  ]
+}
