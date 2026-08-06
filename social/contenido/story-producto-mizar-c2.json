@@ -8,19 +8,20 @@
     "armazones"
   ],
   "producto": {
-    "nombre": "Mizar C2",
+    "nombre": "Mizar",
     "slug": "mizar-c2",
-    "marca": "Cápsula Escarlata"
+    "marca": "Cápsula Escarlata",
+    "categoria": "Sol"
   },
-  "caption": "Mizar C2 — Cápsula Escarlata. $200.000.\n\nEn la tienda: https://atelieroptica.com.ar/producto/mizar-c2\nO vení a probártelo en Cerro de las Rosas.",
+  "caption": "Mizar · Cápsula Escarlata\n\n6 cuotas sin interés de $33.333\n$170.000 en efectivo o transferencia (ahorrás 15%)\n\nEn la tienda: https://atelieroptica.com.ar/producto/mizar-c2\nO vení a probártelo, Cerro de las Rosas.",
   "slides": [
     {
       "type": "number",
       "role": "portada",
       "image": "assets/products/acetato/mizar-c2.webp",
-      "title": "Mizar C2 · Cápsula Escarlata",
-      "dato": "$200.000",
-      "body": "En la tienda y en el local, Cerro de las Rosas."
+      "title": "Mizar · Cápsula Escarlata",
+      "dato": "$33.333",
+      "body": "6 cuotas sin interés\n$170.000 en efectivo o transferencia"
     }
   ]
 }

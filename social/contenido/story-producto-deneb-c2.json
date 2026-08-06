@@ -8,19 +8,20 @@
     "armazones"
   ],
   "producto": {
-    "nombre": "Deneb C2",
+    "nombre": "Deneb",
     "slug": "deneb-c2",
-    "marca": "Cápsula Escarlata"
+    "marca": "Cápsula Escarlata",
+    "categoria": "Sol"
   },
-  "caption": "Deneb C2 — Cápsula Escarlata. $189.000.\n\nEn la tienda: https://atelieroptica.com.ar/producto/deneb-c2\nO vení a probártelo en Cerro de las Rosas.",
+  "caption": "Deneb · Cápsula Escarlata\n\n6 cuotas sin interés de $31.500\n$160.650 en efectivo o transferencia (ahorrás 15%)\n\nEn la tienda: https://atelieroptica.com.ar/producto/deneb-c2\nO vení a probártelo, Cerro de las Rosas.",
   "slides": [
     {
       "type": "number",
       "role": "portada",
       "image": "images/products/deneb-c2.webp",
-      "title": "Deneb C2 · Cápsula Escarlata",
-      "dato": "$189.000",
-      "body": "En la tienda y en el local, Cerro de las Rosas."
+      "title": "Deneb · Cápsula Escarlata",
+      "dato": "$31.500",
+      "body": "6 cuotas sin interés\n$160.650 en efectivo o transferencia"
     }
   ]
 }

@@ -8,19 +8,20 @@
     "armazones"
   ],
   "producto": {
-    "nombre": "Rigel C1",
+    "nombre": "Rigel",
     "slug": "rigel-c1",
-    "marca": "Cápsula Escarlata"
+    "marca": "Cápsula Escarlata",
+    "categoria": "Receta"
   },
-  "caption": "Rigel C1 — Cápsula Escarlata. $189.000.\n\nEn la tienda: https://atelieroptica.com.ar/producto/rigel-c1\nO vení a probártelo en Cerro de las Rosas.",
+  "caption": "Rigel · Cápsula Escarlata\n\n6 cuotas sin interés de $31.500\n$160.650 en efectivo o transferencia (ahorrás 15%)\n\nEn la tienda: https://atelieroptica.com.ar/producto/rigel-c1\nO vení a probártelo, Cerro de las Rosas.",
   "slides": [
     {
       "type": "number",
       "role": "portada",
       "image": "images/products/rigel-c1.webp",
-      "title": "Rigel C1 · Cápsula Escarlata",
-      "dato": "$189.000",
-      "body": "En la tienda y en el local, Cerro de las Rosas."
+      "title": "Rigel · Cápsula Escarlata",
+      "dato": "$31.500",
+      "body": "6 cuotas sin interés\n$160.650 en efectivo o transferencia"
     }
   ]
 }

@@ -8,19 +8,20 @@
     "armazones"
   ],
   "producto": {
-    "nombre": "Fénix C1",
+    "nombre": "Fénix",
     "slug": "fenix-c1",
-    "marca": "Cápsula Escarlata"
+    "marca": "Cápsula Escarlata",
+    "categoria": "Sol"
   },
-  "caption": "Fénix C1 — Cápsula Escarlata. $200.000.\n\nEn la tienda: https://atelieroptica.com.ar/producto/fenix-c1\nO vení a probártelo en Cerro de las Rosas.",
+  "caption": "Fénix · Cápsula Escarlata\n\n6 cuotas sin interés de $33.333\n$170.000 en efectivo o transferencia (ahorrás 15%)\n\nEn la tienda: https://atelieroptica.com.ar/producto/fenix-c1\nO vení a probártelo, Cerro de las Rosas.",
   "slides": [
     {
       "type": "number",
       "role": "portada",
       "image": "assets/products/acetato/fenix-c1.webp",
-      "title": "Fénix C1 · Cápsula Escarlata",
-      "dato": "$200.000",
-      "body": "En la tienda y en el local, Cerro de las Rosas."
+      "title": "Fénix · Cápsula Escarlata",
+      "dato": "$33.333",
+      "body": "6 cuotas sin interés\n$170.000 en efectivo o transferencia"
     }
   ]
 }
