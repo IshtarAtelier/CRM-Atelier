@@ -92,3 +92,5 @@ Precios y fotos releidos de la base de produccion (solo lectura) y placas
 re-renderizadas. Corrida automatica del workflow social-regeneracion."
             git push
           fi
+
+# (touch para forzar el re-indexado del trigger en GitHub)
