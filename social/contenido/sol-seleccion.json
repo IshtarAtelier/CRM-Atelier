@@ -1,0 +1,47 @@
+{
+  "id": "sol-seleccion",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "images_waived": "Carrusel de catálogo: cada slide es un armazón y su foto es el producto, no un fondo.",
+  "generado": "2026-08-06",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "catalogo-social/lentes-de-sol-clip-on-monaco-a12183-c2.jpg",
+      "title": "Los de *sol* que están volando",
+      "subtitle": "Diseño de autor, en 6 cuotas sin interés y con envío sin cargo."
+    },
+    {
+      "type": "number",
+      "role": "bisagra",
+      "image": "catalogo-social/lentes-de-sol-clip-on-monaco-a12183-c2.jpg",
+      "title": "Cápsula escarlata A12183",
+      "dato": "$25.000",
+      "body": "6 cuotas sin interés\n$127.500 en efectivo o transferencia"
+    },
+    {
+      "type": "number",
+      "image": "catalogo-social/sirio-c1.jpg",
+      "title": "Sirio · Cápsula Escarlata",
+      "dato": "$31.500",
+      "body": "6 cuotas sin interés\n$160.650 en efectivo o transferencia"
+    },
+    {
+      "type": "number",
+      "image": "catalogo-social/vega-c1.jpg",
+      "title": "Vega · Cápsula Escarlata",
+      "dato": "$31.500",
+      "body": "6 cuotas sin interés\n$160.650 en efectivo o transferencia"
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Probátelos en el local",
+      "body": "Cerro de las Rosas. También te los mostramos por WhatsApp si estás lejos."
+    }
+  ]
+}

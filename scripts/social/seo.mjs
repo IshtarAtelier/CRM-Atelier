@@ -22,29 +22,21 @@
  * todas y el día que se agregue uno, entra en las que vengan sin tocar nada.
  */
 
-/** Los que van en TODAS: dicen qué somos y dónde estamos. */
-export const HASHTAGS_BASE = [
-    'opticacordoba',
-    'cerrodelasrosas',
-    'opticacerrodelasrosas',
-    'cordobaargentina',
-    'atelieroptica',
-];
-
 /**
- * Por tema. Se eligen por el pilar y por lo que la pieza trata de verdad —
- * poner #multifocales en una pieza que no habla de multifocales atrae gente
- * que se va enseguida, y eso el algoritmo lo mide y lo castiga.
+ * Las tablas de hashtags viven en social/seo-hashtags.json, NO acá: también las
+ * lee el publicador del server (social-publisher.service.ts), que no puede
+ * importar este .mjs. Un JSON lo leen los dos; editar ahí.
  */
-export const HASHTAGS_POR_TEMA = {
-    multifocales: ['multifocales', 'lentesmultifocales', 'progresivos', 'presbicia'],
-    receta: ['recetaoftalmologica', 'saludvisual', 'controlvisual'],
-    cristales: ['antirreflejo', 'filtroazul', 'cristalesopticos'],
-    armazones: ['armazones', 'anteojosrecetados', 'lentesopticos'],
-    sol: ['anteojosdesol', 'lentesdesol', 'proteccionuv'],
-    taller: ['laboratoriooptico', 'opticaindependiente'],
-    local: ['opticaenCordoba', 'showroom'],
-};
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const _TABLAS = JSON.parse(readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'social', 'seo-hashtags.json'), 'utf-8'));
+
+export const HASHTAGS_BASE = _TABLAS.base;
+export const HASHTAGS_POR_TEMA = _TABLAS.porTema;
+
+
 
 /**
  * Arma el bloque de hashtags de una pieza.
@@ -64,7 +56,7 @@ export function captionConHashtags(pieza, mensaje) {
 }
 
 /** Los de salud visual: sirven para cualquier pieza, hablen de lo que hablen. */
-export const HASHTAGS_SALUD = ['saludvisual', 'cuidadovisual', 'vision'];
+export const HASHTAGS_SALUD = _TABLAS.salud;
 
 /**
  * Ocho hashtags para un reel, con las tres familias representadas: el tema de

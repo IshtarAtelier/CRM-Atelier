@@ -1,0 +1,51 @@
+{
+  "_comentario": "Fuente unica de hashtags. La leen scripts/social/seo.mjs y el publicador del server (social-publisher.service.ts). Editar ACA, no en los consumidores.",
+  "base": [
+    "opticacordoba",
+    "cerrodelasrosas",
+    "opticacerrodelasrosas",
+    "cordobaargentina",
+    "atelieroptica"
+  ],
+  "salud": [
+    "saludvisual",
+    "cuidadovisual",
+    "vision"
+  ],
+  "porTema": {
+    "multifocales": [
+      "multifocales",
+      "lentesmultifocales",
+      "progresivos",
+      "presbicia"
+    ],
+    "receta": [
+      "recetaoftalmologica",
+      "saludvisual",
+      "controlvisual"
+    ],
+    "cristales": [
+      "antirreflejo",
+      "filtroazul",
+      "cristalesopticos"
+    ],
+    "armazones": [
+      "armazones",
+      "anteojosrecetados",
+      "lentesopticos"
+    ],
+    "sol": [
+      "anteojosdesol",
+      "lentesdesol",
+      "proteccionuv"
+    ],
+    "taller": [
+      "laboratoriooptico",
+      "opticaindependiente"
+    ],
+    "local": [
+      "opticaenCordoba",
+      "showroom"
+    ]
+  }
+}

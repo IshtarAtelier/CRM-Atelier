@@ -92,7 +92,7 @@ async function fotoLocal(url, nombre) {
     return destino;
 }
 
-export async function generarPiezaDeProductos({ destacados = false, marca = null, limite = 3 } = {}) {
+export async function generarPiezaDeProductos({ destacados = false, marca = null, categoria = null, idPieza = null, titulo = null, limite = 3, saltear = 0 } = {}) {
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient({
         datasources: { db: { url: process.env.PROD_DATABASE_URL || process.env.DATABASE_URL } },
@@ -104,6 +104,7 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
                 isActive: true,
                 imageUrl: { not: null },
                 ...(destacados ? { isFeatured: true } : {}),
+                ...(categoria ? { category: { equals: categoria, mode: 'insensitive' } } : {}),
             },
             include: { product: true },
             take: 200,
@@ -118,8 +119,23 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             throw new Error('Ningún producto activo con foto y precio para ese filtro.');
         }
 
-        elegidos = elegidos.slice(0, limite);
-        console.log(`Productos elegidos: ${elegidos.length}`);
+        // Una sola variante por modelo: "Sirio C1" y "Sirio C3" son el mismo
+        // armazón en otro color, y en un carrusel de 3 productos repetir el
+        // nombre se ve como un error. El color ya se ve en la foto.
+        const porNombre = new Map();
+        for (const p of elegidos) {
+            const clave = String(p.name).replace(/\s+C\d+\s*$/i, '').trim().toLowerCase();
+            if (!porNombre.has(clave)) porNombre.set(clave, p);
+        }
+        elegidos = [...porNombre.values()];
+
+        // `saltear` corre la ventana: sirve para que dos carruseles de la misma
+        // categoría en el mes no muestren los mismos tres productos.
+        elegidos = elegidos.slice(saltear, saltear + limite);
+        if (!elegidos.length) {
+            throw new Error(`Con saltear=${saltear} no quedan productos. Bajar el offset.`);
+        }
+        console.log(`Productos elegidos: ${elegidos.length}${saltear ? ` (salteando ${saltear})` : ''}`);
 
         const slides = [];
 
@@ -132,7 +148,8 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             type: 'cover',
             role: 'portada',
             image: path.relative(path.join(RAIZ, 'public', 'images'), fotoPortada),
-            title: marca ? `Armazones *${marca}*` : 'Los que más nos piden *esta temporada*',
+            title: titulo || (categoria === 'Sol' ? 'Los de *sol* que están volando'
+                : marca ? `Armazones *${marca}*` : 'Los que más nos piden *esta temporada*'),
             subtitle: 'Diseño de autor, en 6 cuotas sin interés y con envío sin cargo.',
         });
 
@@ -193,9 +210,11 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             body: 'Cerro de las Rosas. También te los mostramos por WhatsApp si estás lejos.',
         });
 
-        const id = marca
-            ? `armazones-${marca.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-')}`
-            : 'armazones-destacados';
+        const id = idPieza || (categoria
+            ? `armazones-${categoria.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-')}`
+            : marca
+                ? `armazones-${marca.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-')}`
+                : 'armazones-destacados');
 
         const pieza = {
             id,
@@ -228,10 +247,15 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
 
 if (import.meta.url === `file://${process.argv[1]}`) {
     const args = process.argv.slice(2);
-    const marcaIdx = args.indexOf('--marca');
+    const val = (flag) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] : null; };
     const r = await generarPiezaDeProductos({
         destacados: args.includes('--destacados'),
-        marca: marcaIdx !== -1 ? args[marcaIdx + 1] : null,
+        marca: val('--marca'),
+        categoria: val('--categoria'),
+        idPieza: val('--id'),
+        titulo: val('--titulo'),
+        limite: Number(val('--limite') || 3),
+        saltear: Number(val('--saltear') || 0),
     });
 
     if (args.includes('--render')) {

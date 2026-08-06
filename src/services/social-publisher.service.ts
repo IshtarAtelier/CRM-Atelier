@@ -114,3 +114,87 @@ export async function publicarStory(urlImagen: string, piezaId: string): Promise
 export function origenPublico(): string {
     return process.env.NEXT_PUBLIC_APP_URL || `https://${BUSINESS_INFO.websiteDisplay}`;
 }
+
+export interface ResultadoCarrusel {
+    ok: boolean;
+    pieza: string;
+    facebookId?: string;
+    instagramId?: string;
+    error?: string;
+}
+
+/**
+ * Publica un carrusel en Facebook e Instagram desde el servidor.
+ *
+ * Es el mismo contrato que scripts/social/publicar.mjs (la versión manual),
+ * con UNA diferencia deliberada: las fotos de Facebook se suben por URL
+ * (`url:`) y no por bytes. En el server no hay working tree garantizado, pero
+ * las placas SÍ están publicadas en /public — que es exactamente lo que
+ * Instagram ya exige. Una sola fuente para las dos plataformas.
+ */
+export async function publicarCarrusel(
+    piezaId: string,
+    urls: string[],
+    caption: string,
+    alts: string[] = [],
+): Promise<ResultadoCarrusel> {
+    try {
+        const TOKEN = process.env.META_SYSTEM_USER_TOKEN;
+        const PAGE_ID = process.env.META_PAGE_ID;
+        const IG_USER_ID = process.env.META_IG_USER_ID;
+        if (!TOKEN || !PAGE_ID || !IG_USER_ID) {
+            throw new Error('Faltan credenciales de Meta.');
+        }
+
+        // Las URLs tienen que responder 200 y ser JPEG ANTES de crear nada:
+        // Meta las descarga de nuestro server, y si una falta el carrusel sale
+        // a medias con un error que no dice nada.
+        for (const u of urls) {
+            const head = await fetch(u, { method: 'HEAD', signal: AbortSignal.timeout(20000) }).catch(() => null);
+            if (!head?.ok) throw new Error(`${u} no responde 200 (${head?.status ?? 'sin respuesta'}). ¿Se deployó?`);
+            if (!(head.headers.get('content-type') || '').includes('jpeg')) {
+                throw new Error(`${u} no es JPEG real.`);
+            }
+        }
+
+        const tokenPagina = await tokenDePagina(PAGE_ID, TOKEN);
+
+        // ── Facebook: N fotos sin publicar + una entrada que las junta ──────
+        const fbIds: string[] = [];
+        for (const u of urls) {
+            const foto = await graph('POST', `/${PAGE_ID}/photos`,
+                { url: u, published: 'false' }, tokenPagina);
+            fbIds.push(foto.id);
+        }
+        const fbParams: Record<string, string> = { message: caption };
+        fbIds.forEach((id, i) => { fbParams[`attached_media[${i}]`] = JSON.stringify({ media_fbid: id }); });
+        const post = await graph('POST', `/${PAGE_ID}/feed`, fbParams, tokenPagina);
+
+        // ── Instagram: contenedores hijos + carrusel + espera + publish ─────
+        const hijos: string[] = [];
+        for (const [i, u] of urls.entries()) {
+            const params: Record<string, string> = { image_url: u, is_carousel_item: 'true' };
+            if (alts[i]) params.alt_text = alts[i];
+            const c = await graph('POST', `/${IG_USER_ID}/media`, params, tokenPagina);
+            hijos.push(c.id);
+        }
+        const carrusel = await graph('POST', `/${IG_USER_ID}/media`,
+            { media_type: 'CAROUSEL', children: hijos.join(','), caption }, tokenPagina);
+
+        let listo = false;
+        for (let i = 0; i < 30; i++) {
+            await new Promise(r => setTimeout(r, 3000));
+            const estado = await graph('GET', `/${carrusel.id}`, { fields: 'status_code' }, tokenPagina);
+            if (estado.status_code === 'FINISHED') { listo = true; break; }
+            if (estado.status_code === 'ERROR') throw new Error('Instagram no pudo procesar el carrusel.');
+        }
+        if (!listo) throw new Error('El carrusel no terminó de procesarse en 90 segundos.');
+
+        const pub = await graph('POST', `/${IG_USER_ID}/media_publish`,
+            { creation_id: carrusel.id }, tokenPagina);
+
+        return { ok: true, pieza: piezaId, facebookId: post.id, instagramId: pub.id };
+    } catch (e: any) {
+        return { ok: false, pieza: piezaId, error: e?.message || 'Error desconocido' };
+    }
+}

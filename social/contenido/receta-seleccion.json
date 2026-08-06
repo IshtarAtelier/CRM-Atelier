@@ -1,0 +1,47 @@
+{
+  "id": "receta-seleccion",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "images_waived": "Carrusel de catálogo: cada slide es un armazón y su foto es el producto, no un fondo.",
+  "generado": "2026-08-06",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "catalogo-social/iris-c3.jpg",
+      "title": "Armazones *de receta* con firma propia",
+      "subtitle": "Diseño de autor, en 6 cuotas sin interés y con envío sin cargo."
+    },
+    {
+      "type": "number",
+      "role": "bisagra",
+      "image": "catalogo-social/iris-c3.jpg",
+      "title": "Iris · Cápsula Escarlata",
+      "dato": "$31.500",
+      "body": "6 cuotas sin interés\n$160.650 en efectivo o transferencia"
+    },
+    {
+      "type": "number",
+      "image": "catalogo-social/pandora-c3.jpg",
+      "title": "Pandora · Cápsula Escarlata",
+      "dato": "$26.667",
+      "body": "6 cuotas sin interés\n$136.000 en efectivo o transferencia"
+    },
+    {
+      "type": "number",
+      "image": "catalogo-social/capsula-escarlata-hy238013-c1-9iju.jpg",
+      "title": "Cápsula escarlata HY238013",
+      "dato": "$26.667",
+      "body": "6 cuotas sin interés\n$136.000 en efectivo o transferencia"
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Probátelos en el local",
+      "body": "Cerro de las Rosas. También te los mostramos por WhatsApp si estás lejos."
+    }
+  ]
+}
