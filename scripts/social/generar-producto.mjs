@@ -136,21 +136,52 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             subtitle: 'Diseño de autor, en 6 cuotas sin interés y con envío sin cargo.',
         });
 
-        // Una slide por producto, con su precio real.
+        // Las condiciones de pago se leen de DONDE LAS LEE LA TIENDA
+        // (SystemSetting), con el mismo redondeo que PaymentOptions.tsx. Si la
+        // fuente fuera otra, el carrusel diría un número y la ficha otro.
+        const cond = await (async () => {
+            const filas = await prisma.systemSetting.findMany({
+                where: { key: { in: ['web_promo_installments', 'web_promo_cash_discount'] } },
+                select: { key: true, value: true },
+            });
+            const get = (k) => filas.find(f => f.key === k)?.value;
+            const texto = get('web_promo_installments') || '6 cuotas sin interés';
+            const crudo = Number(get('web_promo_cash_discount'));
+            return {
+                cuotas: Number(texto.match(/\d+/)?.[0] || 6),
+                textoCuotas: texto,
+                descuento: Number.isFinite(crudo) && crudo > 0 ? crudo : 15,
+            };
+        })();
+        console.log(`  · condiciones (de la tienda): ${cond.textoCuotas} · ${cond.descuento}% al contado`);
+
+        // "Nashira C3" → "Nashira": el sufijo de color distingue variantes en
+        // el catálogo; en una placa ensucia y el color se ve en la foto.
+        const limpiar = (n) => String(n).replace(/\s+C\d+\s*$/i, '').trim();
+
+        // Una slide por producto. EL PRIMER IMPACTO ES LA CUOTA, no el precio
+        // de lista: el precio crudo solo no dice nada y no vende. Debajo, el
+        // contado con el descuento. Mismo criterio que las stories de producto.
         for (const [i, p] of elegidos.entries()) {
             const foto = await fotoLocal(p.imageUrl, p.slug);
-            console.log(`  ✅ foto: ${p.name}`);
-            const cuota = Math.round(p.product.price / 6);
+            console.log(`  ✅ foto: ${limpiar(p.name)}`);
+            const cuota = Math.round(p.product.price / cond.cuotas);
+            const alContado = Math.round(p.product.price * (1 - cond.descuento / 100));
             slides.push({
                 type: 'number',
                 // El primer producto es la bisagra: donde el carrusel gira de
                 // "mirá estos" a "esto es lo que cuestan".
                 ...(i === 0 ? { role: 'bisagra' } : {}),
                 image: path.relative(path.join(RAIZ, 'public', 'images'), foto),
-                title: p.name,
-                dato: plata(p.product.price),
-                body: `o 6 cuotas sin interés de ${plata(cuota)}` +
-                      (p.product.brand ? ` · ${p.product.brand}` : ''),
+                // La marca se agrega solo si el nombre no la trae ya: en el
+                // catálogo hay productos nombrados "Cápsula escarlata 91501" y
+                // repetirla daba "Cápsula escarlata 91501 · Cápsula escarlata".
+                title: limpiar(p.name) + (
+                    p.product.brand && !limpiar(p.name).toLowerCase().includes(p.product.brand.toLowerCase())
+                        ? ` · ${p.product.brand}` : ''
+                ),
+                dato: plata(cuota),
+                body: `${cond.textoCuotas}\n${plata(alContado)} en efectivo o transferencia`,
             });
         }
 
