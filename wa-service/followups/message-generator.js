@@ -4,6 +4,7 @@
  */
 
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { contenidoATexto } = require('../shared/ai-content');
 const { SystemMessage, HumanMessage } = require("@langchain/core/messages");
 const { withTimeout } = require('../utils');
 const { validateMessage, validateNameFrequency, validateSalesContent, sanitizeMessage } = require('./message-validator');
@@ -174,7 +175,7 @@ async function generateFollowUpMessage({ client, chat, quote, followUpType, rece
                 'Timeout generando mensaje de seguimiento'
             );
 
-            let text = response.content.toString().trim();
+            let text = contenidoATexto(response.content).trim();
 
             // Sanitizar
             text = sanitizeMessage(text);

@@ -3,6 +3,7 @@
  */
 
 const { HumanMessage } = require("@langchain/core/messages");
+const { contenidoATexto } = require('../shared/ai-content');
 const { withTimeout } = require('../utils');
 
 /**
@@ -143,7 +144,7 @@ async function detectPaymentReceipt(mediaBase64, mimeType) {
             'Gemini payment receipt detection timeout'
         );
 
-        const text = response.content.toString().trim().toUpperCase();
+        const text = contenidoATexto(response.content).trim().toUpperCase();
         return text.includes('COMPROBANTE') && !text.includes('OTRO');
     } catch (e) {
         console.error('Error en detectPaymentReceipt:', e.message);

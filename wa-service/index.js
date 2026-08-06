@@ -6,6 +6,7 @@
 
 
 const express = require('express');
+const { contenidoATexto } = require('./shared/ai-content');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
@@ -1026,7 +1027,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                         const summaryPrompt = `Sos un asistente de CRM. A partir del resumen anterior y la conversación reciente, generá un resumen actualizado en máximo 4 líneas con: nombre, obra social, tipo de lente, cotización entregada, decisión del cliente, y cualquier dato relevante. NO inventes datos.\n\nResumen anterior:\n${existingSummary || '(Ninguno)'}\n\nConversación reciente:\n${convText}\n\nResumen actualizado:`;
 
                         summaryLLM.invoke(summaryPrompt).then(async (res) => {
-                            const newSummary = res.content.toString().trim();
+                            const newSummary = contenidoATexto(res.content).trim();
                             if (newSummary && newSummary.length > 10) {
                                 await updateChatSummary({ chatId: chat.id, summaryText: newSummary });
                                 console.log(`  📝 [Auto-Resumen] Resumen periódico generado para ${profileName}`);

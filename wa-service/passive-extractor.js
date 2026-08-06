@@ -1,4 +1,5 @@
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { contenidoATexto } = require('./shared/ai-content');
 const { HumanMessage } = require("@langchain/core/messages");
 const { prisma } = require('./db');
 const { addTagToClient, convertIntoLead, updateClientData, reportInvoiceRequest, isPhrase } = require('./tools');
@@ -190,7 +191,7 @@ Respond ONLY with the raw JSON. No markdown.
             'Gemini passive extractor timeout'
         );
         
-        let resultText = res.content.replace(/```json/g, '').replace(/```/g, '').trim();
+        let resultText = contenidoATexto(res.content).replace(/```json/g, '').replace(/```/g, '').trim();
         
         let parsed;
         try {

@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { contenidoATexto } = require('./shared/ai-content');
 const nodemailer = require('nodemailer');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -886,7 +887,7 @@ async function generateAndSaveHandoffSummary(chatId) {
             30000,
             'Gemini handoff summary timeout'
         );
-        const summaryText = response.content.toString().trim();
+        const summaryText = contenidoATexto(response.content).trim();
 
         if (summaryText) {
             await prisma.interaction.create({

@@ -24,6 +24,7 @@
  */
 
 const { prisma } = require('../db');
+const { contenidoATexto } = require('../shared/ai-content');
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { SystemMessage, HumanMessage } = require("@langchain/core/messages");
 const { withTimeout } = require('../utils');
@@ -162,7 +163,7 @@ async function evaluateConversationGate({ chat, recentMessages, context }) {
             'Timeout en compuerta de conversación'
         );
 
-        const verdict = parseGateResponse(response.content.toString());
+        const verdict = parseGateResponse(contenidoATexto(response.content));
         if (!verdict) {
             return { decision: 'SKIP', signal: 'OTHER', reason: 'Respuesta de la compuerta inválida (fail-closed)', adaptHint: null, postponeDays: null };
         }

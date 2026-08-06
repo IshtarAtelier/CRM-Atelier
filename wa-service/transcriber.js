@@ -1,4 +1,5 @@
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
+const { contenidoATexto } = require('./shared/ai-content');
 const { HumanMessage } = require("@langchain/core/messages");
 const { withTimeout } = require('./utils');
 const path = require('path');
@@ -44,7 +45,7 @@ async function transcribeAudio(base64Data, mimeType) {
             30000,
             'Gemini transcription timeout'
         );
-        return res.content.trim();
+        return contenidoATexto(res.content).trim();
     } catch (err) {
         console.error("  ❌ Error transcribiendo audio:", err.message);
         return null;

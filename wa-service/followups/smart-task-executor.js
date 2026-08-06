@@ -5,6 +5,7 @@
  */
 
 const { prisma } = require('../db');
+const { contenidoATexto } = require('../shared/ai-content');
 const { isBusinessHours } = require('../shared/business-hours');
 const { sendFollowUp } = require('./sender');
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
@@ -94,7 +95,7 @@ async function generateSmartTaskMessage(client, taskDescription, recentMessages)
                 'Timeout generando mensaje de smart task'
             );
 
-            let text = response.content.toString().trim();
+            let text = contenidoATexto(response.content).trim();
             text = sanitizeMessage(text);
 
             if (!text) continue;

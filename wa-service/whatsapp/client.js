@@ -96,11 +96,33 @@ async function startClient(attempt = 1) {
         path.join(__dirname, '.wwebjs_auth', 'session', 'SingletonSocket'),
     ];
     for (const lp of lockPaths) {
-        try { 
-            fs.rmSync(lp, { force: true }); 
+        try {
+            fs.rmSync(lp, { force: true });
             console.log(`🗑️ Limpieza de lock forzada en: ${lp}`);
-        } catch (e) { 
+        } catch (e) {
             console.error(`⚠️ Error al borrar lock en ${lp}:`, e.message);
+        }
+    }
+
+    // Borrar la caché del SERVICE WORKER de WhatsApp Web. Es la causa de que el
+    // pin de versión "no aplique": la intercepción de puppeteer que sirve la
+    // build fijada solo ve requests de red, y el service worker registrado en
+    // el perfil persistido (LocalAuth) sirve la app desde SU caché — con la
+    // build viva — sin pasar por la red. Resultado: "PIN NO APLICADO" y toda
+    // la familia de errores "r" (getChats roto, medias que no bajan, sendSeen).
+    // Borrarlo NO toca la autenticación (vive en IndexedDB/Local Storage):
+    // solo obliga al primer load a ir por la red, donde la intercepción manda.
+    for (const swDir of ['Service Worker', 'Code Cache']) {
+        for (const base of [path.join(sessionDataPath, 'session'), path.join(__dirname, '.wwebjs_auth', 'session')]) {
+            const dir = path.join(base, 'Default', swDir);
+            try {
+                if (fs.existsSync(dir)) {
+                    fs.rmSync(dir, { recursive: true, force: true });
+                    console.log(`🗑️ Caché de ${swDir} borrada: ${dir}`);
+                }
+            } catch (e) {
+                console.error(`⚠️ Error borrando ${swDir} en ${dir}:`, e.message);
+            }
         }
     }
 
@@ -150,9 +172,14 @@ async function startClient(attempt = 1) {
         // DESCARTADO como causa del pin que no se aplica (5/8/2026): la sospecha era que
         // wppconnect hubiera borrado esta build del repo, porque con `strict: false` un
         // 404 se traga sin ruido y se sigue con la versión viva — el síntoma exacto. NO
-        // es eso: la URL responde 200 y 552.574 bytes. El archivo está. Queda por mirar
-        // del lado de whatsapp-web.js: si con LocalAuth ya autenticado el HTML cacheado
-        // se llega a servir, o si WhatsApp actualiza por su cuenta después de cargarlo.
+        // es eso: la URL responde 200 y 552.574 bytes. El archivo está.
+        //
+        // ENCONTRADO (6/8/2026): era el SERVICE WORKER del perfil persistido — sirve la
+        // app desde su caché sin pasar por la red, y la intercepción de puppeteer que
+        // inyecta esta build solo ve requests de red. Por eso el pin aplicaba en un
+        // perfil virgen y no con LocalAuth ya autenticado. La limpieza de la caché del
+        // SW al arrancar (más arriba) es la otra mitad de este pin.
+        webVersion: process.env.WA_WEB_VERSION || '2.3000.1042391138-alpha',
         webVersionCache: {
             type: 'remote',
             remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/${process.env.WA_WEB_VERSION || '2.3000.1042391138-alpha'}.html`,
