@@ -1,0 +1,74 @@
+# Los tres crons de publicación en redes.
+#
+# Viven en GitHub Actions y no en cron-job.org por una razón práctica: el repo
+# ya está acá, el alta la puede hacer cualquiera con acceso al repo (no depende
+# de la cuenta personal de nadie), y queda versionado — cambiar un horario es un
+# commit, no clickear en un panel que nadie recuerda.
+#
+# Los horarios están en UTC (ART = UTC-3) y SEPARADOS a propósito: una cuenta
+# que dispara stories, feed y reportes en el mismo minuto se ve automatizada.
+#   13:00 UTC = 10:00 ART → stories (4 por día)
+#   14:00 UTC = 11:00 ART → carrusel del feed, si hay programado
+#   21:00 UTC = 18:00 ART → mail de cadencia (después de todo lo del día)
+#
+# GitHub puede demorar un schedule algunos minutos en horas pico: para publicar
+# en redes no importa. Cada endpoint tiene su propio dedup, así que si un run se
+# repitiera, no se publica dos veces.
+#
+# CRON_SECRET vive en los secrets del repo (Settings → Secrets → Actions).
+# workflow_dispatch permite disparar cualquiera a mano desde la pestaña Actions.
+
+name: Social crons
+
+on:
+  schedule:
+    - cron: '0 13 * * *'   # stories — 10:00 ART
+    - cron: '0 14 * * *'   # feed — 11:00 ART
+    - cron: '0 21 * * *'   # cadencia — 18:00 ART
+  workflow_dispatch:
+    inputs:
+      cual:
+        description: 'Qué cron disparar (stories | feed | cadencia)'
+        required: true
+        default: 'stories'
+        type: choice
+        options: [stories, feed, cadencia]
+
+jobs:
+  disparar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Elegir endpoint según la hora (o el input manual)
+        id: cual
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            CUAL="${{ inputs.cual }}"
+          else
+            # El schedule no dice cuál cron disparó: se deduce de la hora UTC.
+            HORA=$(date -u +%H)
+            case "$HORA" in
+              13) CUAL="stories" ;;
+              14) CUAL="feed" ;;
+              21) CUAL="cadencia" ;;
+              *)  CUAL="stories" ;;   # colchón por si el schedule llegó tarde
+            esac
+          fi
+          case "$CUAL" in
+            stories)  RUTA="social-story-diaria" ;;
+            feed)     RUTA="social-feed" ;;
+            cadencia) RUTA="social-cadencia" ;;
+          esac
+          echo "cual=$CUAL" >> "$GITHUB_OUTPUT"
+          echo "ruta=$RUTA" >> "$GITHUB_OUTPUT"
+
+      - name: Llamar el endpoint
+        run: |
+          echo "Disparando: ${{ steps.cual.outputs.cual }}"
+          RESPUESTA=$(curl -sS --max-time 480 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://atelieroptica.com.ar/api/cron/${{ steps.cual.outputs.ruta }}")
+          echo "$RESPUESTA"
+          # El job falla si el endpoint reporta ok:false, para que el run quede
+          # rojo en la pestaña Actions y se vea sin abrir los logs.
+          echo "$RESPUESTA" | grep -q '"ok":true' || exit 1
