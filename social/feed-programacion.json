@@ -36,6 +36,10 @@
       "pieza": "sol-seleccion"
     },
     {
+      "fecha": "2026-08-16",
+      "reel": "que-es-la-miopia"
+    },
+    {
       "fecha": "2026-08-18",
       "pieza": "laboratorio-propio"
     },
@@ -62,6 +66,10 @@
     {
       "fecha": "2026-08-29",
       "pieza": "garantia-adaptacion"
+    },
+    {
+      "fecha": "2026-08-30",
+      "reel": "que-es-la-hipermetropia"
     },
     {
       "fecha": "2026-09-01",
@@ -92,6 +100,10 @@
       "pieza": "sol-seleccion"
     },
     {
+      "fecha": "2026-09-13",
+      "reel": "que-es-la-presbicia"
+    },
+    {
       "fecha": "2026-09-15",
       "pieza": "anteojos-rotos-gotita"
     },
@@ -118,6 +130,10 @@
     {
       "fecha": "2026-09-26",
       "pieza": "optica-mejor-calificada"
+    },
+    {
+      "fecha": "2026-09-27",
+      "reel": "que-es-la-miopia"
     },
     {
       "fecha": "2026-09-29",
@@ -148,6 +164,10 @@
       "pieza": "sol-seleccion"
     },
     {
+      "fecha": "2026-10-11",
+      "reel": "que-es-la-hipermetropia"
+    },
+    {
       "fecha": "2026-10-13",
       "pieza": "garantia-adaptacion"
     },
@@ -174,6 +194,10 @@
     {
       "fecha": "2026-10-24",
       "pieza": "armazones-destacados"
+    },
+    {
+      "fecha": "2026-10-25",
+      "reel": "que-es-la-presbicia"
     },
     {
       "fecha": "2026-10-27",

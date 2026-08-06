@@ -1,0 +1,10 @@
+{
+  "tema": "que-es-la-miopia",
+  "plantilla": "ojo",
+  "condicion": "miopia",
+  "temas": [
+    "receta"
+  ],
+  "coverMs": 4300,
+  "copy": "¿Miopía? La imagen se forma antes de llegar a la retina, y por eso lo lejano se ve borroso.\nUna lente divergente corre el foco exactamente donde tiene que caer — pero la graduación justa se mide, no se adivina.\nEscribinos por WhatsApp o pasá por el local y te la medimos."
+}
