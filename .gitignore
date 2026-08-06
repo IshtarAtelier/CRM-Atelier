@@ -94,3 +94,6 @@ public/social/**/*.png
 
 # Packaging: los PDF y PNG de las cajas se regeneran con el script
 scripts/packaging/salida/
+
+# Frames intermedios de los reels (se borran solos, pero por si un render se corta)
+social/contenido/reels/salida/.frames-*/

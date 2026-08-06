@@ -63,6 +63,31 @@ export function captionConHashtags(pieza, mensaje) {
     return tags ? `${mensaje}\n\n.\n.\n${tags}` : mensaje;
 }
 
+/** Los de salud visual: sirven para cualquier pieza, hablen de lo que hablen. */
+export const HASHTAGS_SALUD = ['saludvisual', 'cuidadovisual', 'vision'];
+
+/**
+ * Ocho hashtags para un reel, con las tres familias representadas: el tema de
+ * la pieza, salud visual y Córdoba.
+ *
+ * Ocho y no doce porque en un reel el epígrafe se ve cortado a dos líneas y
+ * cada hashtag de más empuja el texto que sí importa fuera de la vista. Se
+ * mezclan las tres familias a propósito: solo de tema, compite con cuentas
+ * nacionales; solo locales, no aparece en ninguna búsqueda de interés.
+ */
+export function hashtagsDeReel(pieza, tope = 8) {
+    const tema = (pieza.temas || []).flatMap(t => HASHTAGS_POR_TEMA[t] || []);
+    // 3 del tema + 2 de salud + el resto locales. Si alguna familia no llega,
+    // las otras completan hasta el tope.
+    const mezcla = [
+        ...tema.slice(0, 3),
+        ...HASHTAGS_SALUD.slice(0, 2),
+        ...HASHTAGS_BASE,
+        ...tema.slice(3),
+    ];
+    return [...new Set(mezcla)].slice(0, tope).map(h => `#${h}`).join(' ');
+}
+
 /**
  * Texto alternativo de una placa.
  *

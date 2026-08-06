@@ -1,0 +1,28 @@
+{
+  "tema": "2x1-multifocales",
+  "theme": "dark",
+  "imagen": "blog/pareja-multifocales-exterior.png",
+  "temas": ["multifocales", "local"],
+  "coverEscena": 1,
+  "escenas": [
+    {
+      "rotulo": "En Atelier Óptica",
+      "titulo": "Dos pares de multifocales *al precio de uno*"
+    },
+    {
+      "rotulo": "En lentes multifocales",
+      "dato": "2x1",
+      "pie": "Los dos medidos acá, con el armazón ya elegido."
+    },
+    {
+      "titulo": "Y si no te adaptás, *hacemos el cristal de nuevo*",
+      "pie": "Garantía de adaptación de 30 días."
+    },
+    {
+      "rotulo": "Cerro de las Rosas",
+      "titulo": "Vení cuando quieras",
+      "pie": "Sin turno previo. O escribinos por WhatsApp."
+    }
+  ],
+  "copy": "Dos pares de multifocales al precio de uno, los dos medidos acá con el armazón que elijas ya puesto.\nSi no te adaptás, hacemos el cristal de nuevo: tenés 30 días para probarlos en tu vida real.\nEscribinos por WhatsApp y te contamos cómo funciona."
+}

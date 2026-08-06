@@ -31,13 +31,23 @@ import { publicarStory, origenPublico } from '@/services/social-publisher.servic
 const CLAVE_BITACORA = 'social_publicaciones';
 const CATALOGO = 'social/stories-diarias.json';
 
-/** Días completos desde el 1/1/2026, en hora argentina. */
-function indiceDelDia(cantidad: number): number {
+/** Cuántos días completos pasaron desde el 1/1/2026, en hora argentina. */
+function diasDesdeElOrigen(): number {
     const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
     const hoyART = new Date(Date.now() - ART_OFFSET_MS);
     const dias = Math.floor(Date.UTC(hoyART.getUTCFullYear(), hoyART.getUTCMonth(), hoyART.getUTCDate()) / 86400000);
-    const base = Math.floor(Date.UTC(2026, 0, 1) / 86400000);
-    return ((dias - base) % cantidad + cantidad) % cantidad;
+    return dias - Math.floor(Date.UTC(2026, 0, 1) / 86400000);
+}
+
+/**
+ * Desde qué posición del carril arranca el día de hoy.
+ *
+ * Avanza de a `porDia`, no de a uno: si se publican dos por día y el índice
+ * avanzara de a uno, la segunda de hoy volvería a salir mañana como primera.
+ */
+function indiceDelDia(cantidad: number, porDia = 1): number {
+    const n = diasDesdeElOrigen() * porDia;
+    return ((n % cantidad) + cantidad) % cantidad;
 }
 
 async function registrarEnBitacora(entrada: Record<string, unknown>) {
@@ -73,12 +83,22 @@ export async function GET(request: Request) {
         const catalogo = JSON.parse(crudo);
         const carriles: Record<string, Array<{ id: string; tipo?: string }>> = catalogo.carriles || {};
 
-        // Una de cada carril: contenido y producto. Se recorren por separado
-        // para que los productos puedan rotar más rápido que el contenido sin
-        // que este último se vuelva repetitivo.
-        const elegidas = Object.entries(carriles)
-            .map(([carril, lista]) => (lista?.length ? { carril, ...lista[indiceDelDia(lista.length)] } : null))
-            .filter((x): x is { carril: string; id: string; tipo?: string } => x !== null);
+        // DOS de cada carril: cuatro stories por día, dos de contenido y dos de
+        // producto. Se toman consecutivas dentro del carril (i, i+1) para que
+        // no se repita ninguna el mismo día y para que al día siguiente la
+        // secuencia siga donde quedó, sin saltear piezas.
+        const POR_CARRIL = 2;
+        const elegidas = Object.entries(carriles).flatMap(([carril, lista]) => {
+            if (!lista?.length) return [];
+            const base = indiceDelDia(lista.length, POR_CARRIL);
+            // Si el carril tiene menos piezas que las que se piden por día, se
+            // publica lo que hay en vez de repetir la misma dos veces.
+            const cuantas = Math.min(POR_CARRIL, lista.length);
+            return Array.from({ length: cuantas }, (_, k) => ({
+                carril,
+                ...lista[(base + k) % lista.length],
+            }));
+        });
 
         if (!elegidas.length) {
             return NextResponse.json({ ok: false, motivo: 'El catálogo de stories está vacío.' });
