@@ -32,6 +32,21 @@ const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
 const { parseAdTag, prefillAdTag, stripAdTags } = require('./shared/ad-tag');
 const { serializedId, resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
 const { BotReplyingSet } = require('./shared/bot-replying');
+const { findChatByWaId } = require('./shared/chat-lookup');
+
+/**
+ * @lid → teléfono, en UNA sola llamada y sin reintentos: se usa solo en el
+ * fallback de búsqueda de chat, que corre en el camino de un mensaje saliente.
+ * (La resolución completa, con reintentos, vive en el camino de entrada, donde
+ * vale la pena esperar porque de ahí sale el realPhone que se guarda.)
+ */
+const lidToPhone = async (waId) => {
+    const wc = getClient();
+    if (!wc || typeof wc.getContactLidAndPhone !== 'function') return null;
+    const mapping = await wc.getContactLidAndPhone([waId]);
+    const pn = mapping?.[0]?.pn;
+    return pn ? String(pn).replace('@c.us', '').replace('@s.whatsapp.net', '') : null;
+};
 
 const configPath = path.join(__dirname, 'agent_config.json');
 
@@ -267,7 +282,12 @@ const handleMessageCreate = async (msg) => {
         }
 
         try {
-            const chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
+            // El mismo contacto puede tener chat @lid y @c.us: si la fila quedó con
+            // la otra identidad, el waId no matchea y antes se salía en silencio.
+            const { chat, via, telefono, ambiguo } = await findChatByWaId(prisma, waId, { lidToPhone });
+            if (via === 'telefono') {
+                console.log(`  🔀 [Saliente] waId=${waId} no matcheaba ninguna fila; resuelto por teléfono ${telefono} → chat ${chat.waId}.`);
+            }
             if (chat) {
                 if (chat.botEnabled && !isBotReplying && !isMetaAutoReply) {
                     await disableBotForChatById(chat.id, 'Intervención humana (mensaje saliente)');
@@ -428,13 +448,15 @@ const handleMessageCreate = async (msg) => {
                     }, 20000);
                     passiveDebounceTimers.set(chat.id, timer);
                 }
+            } else if (ambiguo) {
+                // Dos chats para el mismo teléfono: elegir uno podría apagar el bot y
+                // archivar el mensaje en la conversación equivocada. Se avisa y se frena.
+                console.warn(`  ⚠️ [Saliente] waId=${waId} (tel ${telefono}) matchea MÁS DE UN chat: no se elige ninguno. Hay que unificar esos chats.`);
             } else {
-                // Sin fila de chat no se apaga el bot NI se guarda el mensaje, y hasta
-                // ahora pasaba en silencio. Puede ser legítimo (una conversación que
-                // arranca la óptica, sin inbound previo) o el síntoma de un waId que no
-                // matchea (el mismo contacto puede tener chat @lid y @c.us). Si esto
-                // aparece justo cuando "el bot no cortó", ahí está la causa.
-                console.warn(`  ⚠️ [Saliente] No hay chat para waId=${waId}: no se apaga el bot ni se guarda el mensaje.`);
+                // Ya no hay fallback que probar. Queda el caso legítimo —una conversación
+                // que arranca la óptica, sin inbound previo, donde el bot no estaba
+                // contestando igual— y el @lid que WhatsApp no supo resolver a teléfono.
+                console.warn(`  ⚠️ [Saliente] No hay chat para waId=${waId}${telefono ? ` (tel ${telefono})` : ''}: no se apaga el bot ni se guarda el mensaje.`);
             }
         } catch (e) {
             console.error("Error on message_create sync:", e);
