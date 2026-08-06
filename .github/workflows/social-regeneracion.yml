@@ -86,11 +86,12 @@ jobs:
           if git diff --cached --quiet; then
             echo "Sin cambios: los precios siguen iguales."
           else
-            git commit -m "chore(social): regeneracion semanal de piezas con precio
-
-Precios y fotos releidos de la base de produccion (solo lectura) y placas
-re-renderizadas. Corrida automatica del workflow social-regeneracion."
+            # Dos -m y no un mensaje multilinea: dentro de un bloque `run: |`
+            # una linea sin indentar corta el escalar YAML y invalida el
+            # workflow entero — GitHub responde "no tiene workflow_dispatch"
+            # sin decir que el YAML esta roto. Paso una tarde ahi.
+            git commit \
+              -m "chore(social): regeneracion semanal de piezas con precio" \
+              -m "Precios y fotos releidos de la base de produccion (solo lectura) y placas re-renderizadas. Corrida automatica del workflow social-regeneracion."
             git push
           fi
-
-# (touch para forzar el re-indexado del trigger en GitHub)
