@@ -1,0 +1,55 @@
+{
+  "id": "lentes-de-contacto",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Primera vez con lentes de contacto: lo que es mito, lo que es verdad, y por qué la primera adaptación se hace con un profesional y no comprando por internet.",
+  "temas": [
+    "receta"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog6_consulta.png",
+      "title": "Lentes de contacto: *mitos y verdades*",
+      "subtitle": "Lo que hay que saber antes de la primera vez."
+    },
+    {
+      "type": "list",
+      "title": "Los *mitos*",
+      "items": [
+        "\"Se te pueden ir atrás del ojo\" — anatómicamente imposible",
+        "\"Duelen\" — bien adaptadas no se sienten",
+        "\"Son para jóvenes\" — hay multifocales de contacto también"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Las *verdades*",
+      "items": [
+        "La curvatura de tu córnea importa: no es talle único",
+        "Dormir con ellas (si no son para eso) daña el ojo",
+        "La higiene no es negociable: es tu córnea"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/medicion-pupilar-optica.png",
+      "title": "Por eso la primera vez *es con profesional*",
+      "items": [
+        "Se mide la córnea y se elige el material según tu ojo",
+        "Aprendés a ponerlas y sacarlas con alguien al lado",
+        "A la semana se controla cómo reaccionó el ojo"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Consultanos sin compromiso",
+      "body": "Cerro de las Rosas, sin turno previo. También por WhatsApp."
+    }
+  ]
+}

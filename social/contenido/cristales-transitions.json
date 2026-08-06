@@ -1,0 +1,55 @@
+{
+  "id": "cristales-transitions",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "¿Valen la pena los cristales que se oscurecen solos? Depende de tus días, no del cristal. Te contamos cuándo sí y cuándo no, sin venderte el más caro.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog3_eligiendo.png",
+      "title": "¿Valen la pena los cristales *que se oscurecen solos*?",
+      "subtitle": "Cuándo sí, cuándo no, y qué esperar de verdad."
+    },
+    {
+      "type": "list",
+      "title": "Cuándo *sí* valen la pena",
+      "items": [
+        "Entrás y salís todo el día: calle, auto, oficina",
+        "Te molesta andar cambiando entre dos anteojos",
+        "Tenés fotosensibilidad o te encandila el sol fácil"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que hay que saber *antes*",
+      "items": [
+        "Dentro del auto se oscurecen menos: el parabrisas filtra el UV",
+        "El cambio no es instantáneo: tarda unos segundos",
+        "No reemplazan a un buen lente de sol para la playa o la nieve"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/muestrario-smart-lens.jpg",
+      "title": "Por eso *se prueban acá*",
+      "items": [
+        "Tenemos muestrarios para que veas el cambio en vivo",
+        "Se combinan con antirreflejo y con tu graduación",
+        "Te decimos si tu rutina los justifica, o si no"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Vení a verlos en vivo",
+      "body": "Cerro de las Rosas, sin turno previo. Traé tu receta si la tenés."
+    }
+  ]
+}

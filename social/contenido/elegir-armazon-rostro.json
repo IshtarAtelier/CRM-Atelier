@@ -1,0 +1,55 @@
+{
+  "id": "elegir-armazon-rostro",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "El truco para elegir armazón no es la moda: es el contraste. Cara redonda, armazón angular; cara angular, armazón suave. Y después está lo que ninguna guía te dice: cómo te queda puesto de verdad.",
+  "temas": [
+    "armazones"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog1_marcos.png",
+      "title": "Elegir armazón *según tu cara*",
+      "subtitle": "La regla es simple: contraste. El resto se prueba."
+    },
+    {
+      "type": "list",
+      "title": "La regla del *contraste*",
+      "items": [
+        "Cara redonda: formas angulares, que estructuran",
+        "Cara cuadrada: aros redondos u ovalados, que suavizan",
+        "Cara ovalada: casi todo te queda — el problema es elegir"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que las guías *no dicen*",
+      "items": [
+        "El ancho importa más que la forma: ni apretado ni bailando",
+        "Las cejas mandan: el borde superior las acompaña, no las tapa",
+        "El puente decide la comodidad: es donde carga el peso"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/blog3_eligiendo.png",
+      "title": "Por eso acá *se prueba sin apuro*",
+      "items": [
+        "Traé los que usás hoy y vemos qué funciona y qué no",
+        "Te sacamos fotos con cada uno para comparar tranquilo",
+        "Sin vendedor encima: el apuro elige mal"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Vení a probarte los que quieras",
+      "body": "Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

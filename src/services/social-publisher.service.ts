@@ -115,6 +115,62 @@ export function origenPublico(): string {
     return process.env.NEXT_PUBLIC_APP_URL || `https://${BUSINESS_INFO.websiteDisplay}`;
 }
 
+/**
+ * Publica un reel en Instagram desde una URL pública de video.
+ *
+ * Mismo contrato que las stories pero con `media_type: 'REELS'`. Diferencias
+ * que importan:
+ * - El video tarda MÁS en procesarse que una imagen: la espera llega a 5
+ *   minutos antes de rendirse (una imagen usa 90 segundos).
+ * - `thumb_offset` elige el frame de portada, en milisegundos del video. Los
+ *   reels del sistema definen su portada por escena (coverEscena), y acá se
+ *   traduce a ms.
+ * - Solo Instagram: el API de reels de Facebook es otro flujo (subida en
+ *   fases) y no lo necesitamos para arrancar.
+ */
+export async function publicarReel(
+    piezaId: string,
+    videoUrl: string,
+    caption: string,
+    thumbOffsetMs = 0,
+): Promise<ResultadoStory> {
+    const base = { pieza: piezaId, url: videoUrl };
+    try {
+        const TOKEN = process.env.META_SYSTEM_USER_TOKEN;
+        const PAGE_ID = process.env.META_PAGE_ID;
+        const IG_USER_ID = process.env.META_IG_USER_ID;
+        if (!TOKEN || !PAGE_ID || !IG_USER_ID) throw new Error('Faltan credenciales de Meta.');
+
+        const head = await fetch(videoUrl, { method: 'HEAD', signal: AbortSignal.timeout(20000) }).catch(() => null);
+        if (!head?.ok) throw new Error(`El video no responde 200 (${head?.status ?? 'sin respuesta'}). ¿Se deployó?`);
+
+        const tokenPagina = await tokenDePagina(PAGE_ID, TOKEN);
+
+        const contenedor = await graph('POST', `/${IG_USER_ID}/media`, {
+            media_type: 'REELS',
+            video_url: videoUrl,
+            caption,
+            thumb_offset: String(Math.max(0, Math.round(thumbOffsetMs))),
+        }, tokenPagina);
+
+        let listo = false;
+        for (let i = 0; i < 100; i++) {
+            await new Promise(r => setTimeout(r, 3000));
+            const estado = await graph('GET', `/${contenedor.id}`, { fields: 'status_code' }, tokenPagina);
+            if (estado.status_code === 'FINISHED') { listo = true; break; }
+            if (estado.status_code === 'ERROR') throw new Error('Instagram no pudo procesar el video del reel.');
+        }
+        if (!listo) throw new Error('El reel no terminó de procesarse en 5 minutos.');
+
+        const pub = await graph('POST', `/${IG_USER_ID}/media_publish`,
+            { creation_id: contenedor.id }, tokenPagina);
+
+        return { ok: true, storyId: pub.id, ...base };
+    } catch (e: any) {
+        return { ok: false, error: e?.message || 'Error desconocido', ...base };
+    }
+}
+
 export interface ResultadoCarrusel {
     ok: boolean;
     pieza: string;

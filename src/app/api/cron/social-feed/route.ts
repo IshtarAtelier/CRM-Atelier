@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
-import { publicarCarrusel, origenPublico } from '@/services/social-publisher.service';
+import { publicarCarrusel, publicarReel, origenPublico } from '@/services/social-publisher.service';
 
 /**
  * Publica el carrusel del día en el feed de Facebook + Instagram.
@@ -93,6 +93,64 @@ export async function GET(request: Request) {
             return NextResponse.json({ ok: true, motivo: `Sin programación para hoy (${hoy}).` });
         }
 
+        // ── Entrada de REEL ({fecha, reel: "tema"}) ─────────────────────────
+        // El video ya está renderizado y hosteado en /social/reels/<tema>.mp4;
+        // acá solo se publica. Los reels duran 6 s por diseño (DURACION_MS del
+        // pipeline), y la portada se elige por escena → thumb_offset en ms.
+        if (entrada.reel) {
+            const bitacoraR = await leerBitacora();
+            const claveReel = `reel-${entrada.reel}`;
+            const hace7dR = Date.now() - 7 * 86400000;
+            if (bitacoraR.some(p => p.pieza === claveReel && new Date(p.fecha).getTime() >= hace7dR)) {
+                return NextResponse.json({ ok: true, motivo: `"${claveReel}" ya se publicó en los últimos 7 días.` });
+            }
+
+            const def = JSON.parse(await readFile(
+                path.join(process.cwd(), 'social', 'contenido', 'reels', `${entrada.reel}.json`), 'utf-8'));
+            const tablasR = JSON.parse(await readFile(
+                path.join(process.cwd(), 'social', 'seo-hashtags.json'), 'utf-8'));
+
+            // 8 hashtags, tres familias — mismo criterio que hashtagsDeReel().
+            const tema: string[] = (def.temas || []).flatMap((t: string) => tablasR.porTema?.[t] || []);
+            const tags = [...new Set([
+                ...tema.slice(0, 3),
+                ...(tablasR.salud || []).slice(0, 2),
+                ...(tablasR.base || []),
+                ...tema.slice(3),
+            ])].slice(0, 8).map(h => `#${h}`).join(' ');
+            const caption = `${String(def.copy || '').trim()}\n\n${tags}`;
+
+            const videoUrl = `${origenPublico()}/social/reels/${entrada.reel}.mp4`;
+            const DURACION_MS = 6000;
+            const nEsc = (def.escenas || []).length || 1;
+            const thumbMs = (((def.coverEscena ?? 0) + 0.5) / nEsc) * DURACION_MS;
+
+            if (searchParams.get('dryRun') === '1') {
+                return NextResponse.json({ ok: true, dryRun: true, reel: entrada.reel, videoUrl, caption });
+            }
+
+            const rr = await publicarReel(claveReel, videoUrl, caption, thumbMs);
+            if (rr.ok) {
+                await registrarEnBitacora({
+                    pieza: claveReel,
+                    plataformas: ['Instagram (reel)'],
+                    slides: 1,
+                    urls: { instagram: rr.storyId },
+                });
+                return NextResponse.json({ ok: true, reel: entrada.reel, instagramId: rr.storyId });
+            }
+            await sendEmail({
+                to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
+                subject: `⚠️ No salió el reel de hoy (${entrada.reel})`,
+                html: `<div style="font-family:Arial,sans-serif;color:#1f2937">
+                    <h2 style="color:#b45309">El reel programado no se publicó</h2>
+                    <p>Reel: <strong>${entrada.reel}</strong><br>Motivo: <strong>${rr.error}</strong></p>
+                    <p style="font-size:13px">No se reintenta solo. Se puede subir a mano desde la app con el mp4 de social/contenido/reels/salida/.</p>
+                </div>`,
+            }).catch(console.error);
+            return NextResponse.json({ ok: false, reel: entrada.reel, error: rr.error });
+        }
+
         // Dedup contra la bitácora: publicada en los últimos 7 días → no repetir.
         const bitacora = await leerBitacora();
         const hace7d = Date.now() - 7 * 86400000;
@@ -106,6 +164,34 @@ export async function GET(request: Request) {
             path.join(process.cwd(), 'social', 'contenido', `${entrada.pieza}.json`), 'utf-8'));
         const tablas = JSON.parse(await readFile(
             path.join(process.cwd(), 'social', 'seo-hashtags.json'), 'utf-8'));
+
+        // GUARDA DE FRESCURA: una pieza de base con más de 10 días puede tener
+        // precios que ya no rigen. Publicar un precio viejo es exactamente lo
+        // que este sistema existe para impedir, así que antes de publicar avisa
+        // por mail cómo regenerarla y NO publica. Programar octubre hoy es
+        // posible justamente gracias a esto: si nadie regenera cerca de la
+        // fecha, sale un aviso y no un precio de agosto.
+        if (pieza.fuente === 'base') {
+            const dias = pieza.generadoEl
+                ? Math.floor((Date.now() - new Date(`${pieza.generadoEl}T12:00:00Z`).getTime()) / 86400000)
+                : Infinity;
+            if (dias > 10) {
+                await sendEmail({
+                    to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
+                    subject: `⚠️ Carrusel "${pieza.id}" no salió: precios de hace ${dias === Infinity ? 'fecha desconocida' : `${dias} días`}`,
+                    html: `
+                        <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
+                            <h2 style="color:#b45309">El carrusel de hoy tiene precios viejos</h2>
+                            <p style="font-size:15px">"${pieza.id}" se generó ${pieza.generadoEl ? `el ${pieza.generadoEl}` : 'en fecha desconocida'}
+                            y los precios pueden haber cambiado. No se publicó.</p>
+                            <p style="font-size:14px">Para regenerarlo con los precios de hoy y publicarlo:</p>
+                            <pre style="background:#f3f4f6;padding:10px;border-radius:6px;font-size:12px">node scripts/social/generar-producto.mjs ${pieza.id === 'sol-seleccion' ? '--categoria "Sol" --id sol-seleccion' : pieza.id === 'receta-seleccion' ? '--categoria "Receta" --id receta-seleccion --saltear 3' : ''} --render
+node scripts/social/publicar.mjs social/contenido/${pieza.id}.json --facebook --instagram</pre>
+                        </div>`,
+                }).catch(console.error);
+                return NextResponse.json({ ok: false, pieza: pieza.id, motivo: `Precios de hace ${dias} días: no se publica. Mail enviado.` });
+            }
+        }
 
         const urls = (pieza.slides || []).map((_: any, i: number) =>
             `${origenPublico()}/social/${pieza.id}/${String(i + 1).padStart(2, '0')}.jpg`);

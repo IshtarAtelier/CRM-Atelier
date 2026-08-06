@@ -1,0 +1,55 @@
+{
+  "id": "eyezen-pantallas",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Si al final del día sentís los ojos cansados y no usás anteojos, no es raro: 8 horas de pantalla son 8 horas enfocando de cerca. Hay cristales diseñados para eso, aunque no tengas graduación.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog2_homeoffice.png",
+      "title": "Ojos cansados *al final del día*",
+      "subtitle": "8 horas de pantalla son 8 horas enfocando de cerca. Hay lentes para eso."
+    },
+    {
+      "type": "list",
+      "title": "Lo que hace la *pantalla*",
+      "items": [
+        "Enfocás a 40 cm durante horas: el ojo no descansa nunca",
+        "Parpadeás menos y el ojo se seca",
+        "A la noche, la vista borrosa de lejos es fatiga, no miopía"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que hace un *cristal de descanso*",
+      "items": [
+        "Un pequeño apoyo de enfoque en la zona de lectura",
+        "El ojo trabaja menos para sostener la distancia corta",
+        "Con o sin graduación: también para quien 've bien'"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/mujer-oficina-multifocal.png",
+      "title": "Cómo saber *si lo necesitás*",
+      "items": [
+        "Dolor de cabeza al final de la jornada",
+        "Frotarte los ojos o acercarte a la pantalla de a poco",
+        "Contanos tus horas de pantalla y te decimos qué conviene"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Contanos cómo trabajás",
+      "body": "Cerro de las Rosas, sin turno previo. También por WhatsApp."
+    }
+  ]
+}

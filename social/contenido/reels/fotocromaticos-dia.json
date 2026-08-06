@@ -1,0 +1,30 @@
+{
+  "tema": "fotocromaticos-dia",
+  "theme": "dark",
+  "imagen": "blog/blog3_eligiendo.png",
+  "temas": [
+    "cristales"
+  ],
+  "coverEscena": 1,
+  "escenas": [
+    {
+      "rotulo": "Adentro, transparentes",
+      "titulo": "Afuera, *de sol*"
+    },
+    {
+      "rotulo": "Un solo anteojo",
+      "dato": "Todo el día",
+      "pie": "Se oscurecen solos con el sol y se aclaran adentro."
+    },
+    {
+      "titulo": "Con tu graduación *y antirreflejo*",
+      "pie": "No es un accesorio: es tu lente de todos los días."
+    },
+    {
+      "rotulo": "Cerro de las Rosas",
+      "titulo": "Vení a verlos en vivo",
+      "pie": "Tenemos muestrarios para que veas el cambio."
+    }
+  ],
+  "copy": "Un solo anteojo para todo el día: transparente adentro, de sol afuera.\nLos fotocromáticos van con tu graduación y tu antirreflejo, y tenemos muestrarios para que veas el cambio en vivo.\nEscribinos por WhatsApp o pasá por el local."
+}

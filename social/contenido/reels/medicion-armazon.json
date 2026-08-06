@@ -1,0 +1,31 @@
+{
+  "tema": "medicion-armazon",
+  "theme": "dark",
+  "imagen": "blog/medicion-pupilar-optica.png",
+  "temas": [
+    "multifocales",
+    "taller"
+  ],
+  "coverEscena": 2,
+  "escenas": [
+    {
+      "rotulo": "El secreto que nadie cuenta",
+      "titulo": "Dos progresivos iguales *no existen*"
+    },
+    {
+      "titulo": "El mismo cristal puede sentirse *perfecto o mareado*",
+      "pie": "La diferencia no está en la marca."
+    },
+    {
+      "rotulo": "Está en la medición",
+      "dato": "1 mm",
+      "pie": "Un milímetro de error corre el pasillo de progresión."
+    },
+    {
+      "rotulo": "Por eso medimos",
+      "titulo": "Con tu armazón *ya puesto*",
+      "pie": "Cerro de las Rosas, sin turno previo."
+    }
+  ],
+  "copy": "El mismo cristal progresivo puede sentirse perfecto o mareado: la diferencia está en la medición, no en la marca.\nPor eso acá medimos con el armazón que elegiste ya puesto en tu cara.\nEscribinos por WhatsApp y coordinamos tu medición."
+}

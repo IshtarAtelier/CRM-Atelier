@@ -152,6 +152,15 @@ export async function renderizarReel(rutaJson) {
     const rutaTxt = path.join(SALIDA, `${base}-reel.txt`);
     await writeFile(rutaTxt, txt, 'utf-8');
 
+    // Copia hosteada SIN fecha en public/social/reels/: es la URL estable que
+    // usa el cron para publicar por API (Instagram descarga el video de ahí).
+    // La salida fechada de arriba queda como entregable manual.
+    const HOSTEO = path.join(RAIZ, 'public', 'social', 'reels');
+    await mkdir(HOSTEO, { recursive: true });
+    const { copyFile } = await import('node:fs/promises');
+    await copyFile(mp4, path.join(HOSTEO, `${reel.tema}.mp4`));
+    await copyFile(path.join(SALIDA, `${base}-cover.jpg`), path.join(HOSTEO, `${reel.tema}-cover.jpg`));
+
     const rel = (p) => path.relative(RAIZ, p);
     console.log(`\n✅ ${rel(mp4)}`);
     console.log(`✅ ${rel(path.join(SALIDA, `${base}-cover.jpg`))}`);

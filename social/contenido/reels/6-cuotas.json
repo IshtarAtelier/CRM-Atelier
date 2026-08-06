@@ -1,0 +1,31 @@
+{
+  "tema": "6-cuotas",
+  "theme": "dark",
+  "imagen": "blog/mostrador-marmol.jpg",
+  "temas": [
+    "armazones",
+    "local"
+  ],
+  "coverEscena": 1,
+  "escenas": [
+    {
+      "rotulo": "En Atelier Óptica",
+      "titulo": "Tus anteojos nuevos, *sin pagarlos de una*"
+    },
+    {
+      "rotulo": "Con tarjeta",
+      "dato": "6 cuotas",
+      "pie": "Sin interés, en recetados, multifocales y sol."
+    },
+    {
+      "titulo": "¿Pagás de una? *Mejor todavía*",
+      "pie": "Descuento en efectivo o por transferencia."
+    },
+    {
+      "rotulo": "Cerro de las Rosas",
+      "titulo": "Vení cuando quieras",
+      "pie": "Sin turno previo. O escribinos por WhatsApp."
+    }
+  ],
+  "copy": "Hasta 6 cuotas sin interés con tarjeta, en anteojos recetados, multifocales y lentes de sol.\nY si pagás de una, tenés descuento en efectivo o por transferencia.\nEscribinos por WhatsApp y te pasamos tu presupuesto."
+}

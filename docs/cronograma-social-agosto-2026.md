@@ -62,3 +62,12 @@ eso pase, el sistema no avisa si se cortó la cadencia.
   puede significar que está todo bien.
 - **Programación automática**: hoy cada publicación se dispara a mano. El token
   ya está, así que es construible cuando se decida.
+
+---
+
+## ACTUALIZACIÓN 6/8: la fuente viva es `social/feed-programacion.json`
+
+Este documento explica el porqué; la programación real —agosto, septiembre y
+octubre, con reels los domingos por medio— vive en ese JSON y la ejecuta sola
+el cron `/api/cron/social-feed`. Cambiar una fecha es editar el JSON, no este
+documento.

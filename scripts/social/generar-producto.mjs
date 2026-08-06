@@ -223,6 +223,10 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             pilar: 'producto',
             // La marca que habilita los precios en el validador (R6).
             fuente: 'base',
+            // Cuándo se leyeron los precios. El cron del feed se niega a
+            // publicar una pieza de base con más de 10 días: publicar precios
+            // viejos es exactamente lo que este sistema existe para impedir.
+            generadoEl: new Date().toISOString().slice(0, 10),
             // R1-R4 pasan a aviso: en un carrusel de catálogo cada slide ES un
             // armazón, y la foto del armazón no es decoración sino el producto.
             // Exigirle un 60% de slides sin imagen lo volvería otra cosa.

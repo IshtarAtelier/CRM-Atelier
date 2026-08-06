@@ -1,0 +1,30 @@
+{
+  "tema": "garantia-30-dias",
+  "theme": "dark",
+  "imagen": "blog/pareja-multifocales-exterior.png",
+  "temas": [
+    "multifocales"
+  ],
+  "coverEscena": 1,
+  "escenas": [
+    {
+      "rotulo": "El miedo de siempre",
+      "titulo": "\"¿Y si no me *adapto*?\""
+    },
+    {
+      "rotulo": "Acá no es tu problema",
+      "dato": "30 días",
+      "pie": "Para probarlos en tu vida real, no en el mostrador."
+    },
+    {
+      "titulo": "Si no te adaptás, *hacemos el cristal de nuevo*",
+      "pie": "Con la graduación que haga falta, hasta que veas bien."
+    },
+    {
+      "rotulo": "Cerro de las Rosas",
+      "titulo": "Probalos sin miedo",
+      "pie": "Sin turno previo. O escribinos por WhatsApp."
+    }
+  ],
+  "copy": "El miedo de siempre con los multifocales: ¿y si no me adapto?\nAcá tenés 30 días para probarlos en tu vida real, y si no funcionan hacemos el cristal de nuevo hasta que veas bien.\nEscribinos por WhatsApp y te contamos cómo funciona."
+}

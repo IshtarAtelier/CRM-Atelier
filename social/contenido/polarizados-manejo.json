@@ -1,0 +1,55 @@
+{
+  "id": "polarizados-manejo",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "La diferencia entre un lente de sol común y uno polarizado se nota manejando: el polarizado corta el reflejo del asfalto y del capot. Si manejás mucho, es la mejor inversión en seguridad que podés hacer por tu vista.",
+  "temas": [
+    "sol"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog5_cordoba.png",
+      "title": "Polarizados: la diferencia *se nota manejando*",
+      "subtitle": "No es marketing: es física. Te explicamos qué hacen."
+    },
+    {
+      "type": "list",
+      "title": "Qué hace el *polarizado*",
+      "items": [
+        "Corta el reflejo horizontal: asfalto mojado, capot, agua",
+        "Baja el encandilamiento sin oscurecer de más",
+        "Los colores se ven más definidos, no más apagados"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Cuándo *lo notás* de verdad",
+      "items": [
+        "Manejando de frente al sol, a la mañana o al atardecer",
+        "En la ruta, con el asfalto brillando adelante",
+        "Pescando o en el río: ves a través del agua"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "Lo que *no* te cuentan",
+      "items": [
+        "Algunas pantallas se ven raras con polarizado: se prueba antes",
+        "Polarizado no es sinónimo de protección UV: pedí las dos cosas",
+        "También van con tu graduación, no solo neutros"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Probalos antes de decidir",
+      "body": "Cerro de las Rosas, sin turno previo. Traé los tuyos y comparamos."
+    }
+  ]
+}

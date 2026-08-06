@@ -1,26 +1,191 @@
 {
   "_comentario": [
-    "Qué carrusel sale al feed cada día. El cron /api/cron/social-feed corre",
-    "a diario: si la fecha de hoy (hora argentina) está acá y la pieza no se",
-    "publicó ya, la publica en Facebook + Instagram y la registra en la bitácora.",
-    "Si hoy no figura, no hace nada — por eso el cron puede correr todos los días.",
+    "Qué sale al feed cada día. El cron /api/cron/social-feed corre a diario:",
+    "si la fecha de hoy (ART) está acá y no se publicó ya, publica y registra.",
+    "Entradas {fecha, pieza} = carrusel a FB+IG. {fecha, reel} = reel a IG.",
     "",
-    "La cadencia es martes/jueves/sábado, 3 por semana: menos y el algoritmo",
-    "deja de mostrar las publicaciones, más y no se sostiene. Para reprogramar,",
-    "editar la fecha. Para cancelar una, borrar la línea.",
+    "Cadencia: carruseles mar/jue/sáb, reels domingo por medio.",
     "",
-    "progresivos-que-medimos no está: ya salió el 5/8, publicada a mano."
+    "Los carruseles de PRODUCTO (fuente: base) tienen guarda de frescura: si al",
+    "llegar su fecha fueron generados hace más de 10 días, el cron NO los publica",
+    "y avisa por mail cómo regenerarlos. Así se puede programar octubre hoy sin",
+    "riesgo de publicar precios de agosto.",
+    "",
+    "Sept/oct repiten piezas de agosto con 6+ semanas de distancia: en redes eso",
+    "no es repetir, es que lo vea la gente que no lo vio."
   ],
   "programacion": [
-    { "fecha": "2026-08-08", "pieza": "armazones-destacados" },
-    { "fecha": "2026-08-11", "pieza": "optica-mejor-calificada" },
-    { "fecha": "2026-08-13", "pieza": "leer-tu-receta" },
-    { "fecha": "2026-08-15", "pieza": "sol-seleccion" },
-    { "fecha": "2026-08-18", "pieza": "laboratorio-propio" },
-    { "fecha": "2026-08-20", "pieza": "multifocales-marean" },
-    { "fecha": "2026-08-22", "pieza": "receta-seleccion" },
-    { "fecha": "2026-08-25", "pieza": "multifocales-no-fallan" },
-    { "fecha": "2026-08-27", "pieza": "filtro-azul-o-antirreflejo" },
-    { "fecha": "2026-08-29", "pieza": "garantia-adaptacion" }
+    {
+      "fecha": "2026-08-08",
+      "pieza": "armazones-destacados"
+    },
+    {
+      "fecha": "2026-08-09",
+      "reel": "2x1-multifocales"
+    },
+    {
+      "fecha": "2026-08-11",
+      "pieza": "optica-mejor-calificada"
+    },
+    {
+      "fecha": "2026-08-13",
+      "pieza": "leer-tu-receta"
+    },
+    {
+      "fecha": "2026-08-15",
+      "pieza": "sol-seleccion"
+    },
+    {
+      "fecha": "2026-08-18",
+      "pieza": "laboratorio-propio"
+    },
+    {
+      "fecha": "2026-08-20",
+      "pieza": "multifocales-marean"
+    },
+    {
+      "fecha": "2026-08-22",
+      "pieza": "receta-seleccion"
+    },
+    {
+      "fecha": "2026-08-23",
+      "reel": "6-cuotas"
+    },
+    {
+      "fecha": "2026-08-25",
+      "pieza": "multifocales-no-fallan"
+    },
+    {
+      "fecha": "2026-08-27",
+      "pieza": "filtro-azul-o-antirreflejo"
+    },
+    {
+      "fecha": "2026-08-29",
+      "pieza": "garantia-adaptacion"
+    },
+    {
+      "fecha": "2026-09-01",
+      "pieza": "cristales-transitions"
+    },
+    {
+      "fecha": "2026-09-03",
+      "pieza": "polarizados-manejo"
+    },
+    {
+      "fecha": "2026-09-05",
+      "pieza": "armazones-destacados"
+    },
+    {
+      "fecha": "2026-09-06",
+      "reel": "garantia-30-dias"
+    },
+    {
+      "fecha": "2026-09-08",
+      "pieza": "elegir-armazon-rostro"
+    },
+    {
+      "fecha": "2026-09-10",
+      "pieza": "lentes-de-contacto"
+    },
+    {
+      "fecha": "2026-09-12",
+      "pieza": "sol-seleccion"
+    },
+    {
+      "fecha": "2026-09-15",
+      "pieza": "anteojos-rotos-gotita"
+    },
+    {
+      "fecha": "2026-09-17",
+      "pieza": "eyezen-pantallas"
+    },
+    {
+      "fecha": "2026-09-19",
+      "pieza": "receta-seleccion"
+    },
+    {
+      "fecha": "2026-09-20",
+      "reel": "medicion-armazon"
+    },
+    {
+      "fecha": "2026-09-22",
+      "pieza": "progresivos-que-medimos"
+    },
+    {
+      "fecha": "2026-09-24",
+      "pieza": "leer-tu-receta"
+    },
+    {
+      "fecha": "2026-09-26",
+      "pieza": "optica-mejor-calificada"
+    },
+    {
+      "fecha": "2026-09-29",
+      "pieza": "multifocales-marean"
+    },
+    {
+      "fecha": "2026-10-01",
+      "pieza": "laboratorio-propio"
+    },
+    {
+      "fecha": "2026-10-03",
+      "pieza": "armazones-destacados"
+    },
+    {
+      "fecha": "2026-10-04",
+      "reel": "fotocromaticos-dia"
+    },
+    {
+      "fecha": "2026-10-06",
+      "pieza": "filtro-azul-o-antirreflejo"
+    },
+    {
+      "fecha": "2026-10-08",
+      "pieza": "multifocales-no-fallan"
+    },
+    {
+      "fecha": "2026-10-10",
+      "pieza": "sol-seleccion"
+    },
+    {
+      "fecha": "2026-10-13",
+      "pieza": "garantia-adaptacion"
+    },
+    {
+      "fecha": "2026-10-15",
+      "pieza": "cristales-transitions"
+    },
+    {
+      "fecha": "2026-10-17",
+      "pieza": "receta-seleccion"
+    },
+    {
+      "fecha": "2026-10-18",
+      "reel": "2x1-multifocales"
+    },
+    {
+      "fecha": "2026-10-20",
+      "pieza": "polarizados-manejo"
+    },
+    {
+      "fecha": "2026-10-22",
+      "pieza": "elegir-armazon-rostro"
+    },
+    {
+      "fecha": "2026-10-24",
+      "pieza": "armazones-destacados"
+    },
+    {
+      "fecha": "2026-10-27",
+      "pieza": "lentes-de-contacto"
+    },
+    {
+      "fecha": "2026-10-29",
+      "pieza": "eyezen-pantallas"
+    },
+    {
+      "fecha": "2026-10-31",
+      "pieza": "sol-seleccion"
+    }
   ]
 }

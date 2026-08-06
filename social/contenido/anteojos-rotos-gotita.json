@@ -1,0 +1,55 @@
+{
+  "id": "anteojos-rotos-gotita",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Si se te rompieron los anteojos, lo peor que podés hacer es pegarlos con La Gotita: el cianoacrilato ataca el acetato y empaña los cristales, y lo que era un arreglo simple pasa a ser irreversible. Traelos como estén.",
+  "temas": [
+    "armazones"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog1_header.png",
+      "title": "Anteojos rotos: *bajá La Gotita*",
+      "subtitle": "El pegamento instantáneo convierte un arreglo simple en uno imposible."
+    },
+    {
+      "type": "list",
+      "title": "Qué hace el *cianoacrilato*",
+      "items": [
+        "Ataca el acetato: lo mancha y lo vuelve quebradizo",
+        "Su vapor empaña los cristales — y eso no sale",
+        "Sella la rotura torcida: después no se puede alinear"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Qué hacemos *nosotros*",
+      "items": [
+        "Soldadura de metal y reposición de bisagras",
+        "Cambio de plaquetas, tornillos y varillas",
+        "Si no tiene arreglo, te lo decimos sin vueltas"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Traelos *como estén*",
+      "items": [
+        "Roto limpio es más fácil que roto pegado",
+        "Muchos arreglos salen en el día",
+        "Aunque no los hayas comprado acá"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Pasá y los miramos",
+      "body": "Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}
