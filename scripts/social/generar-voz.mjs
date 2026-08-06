@@ -38,9 +38,18 @@ const VOCES_CANDIDATAS = ['Sulafat', 'Aoede', 'Leda'];
 const DURACION_VIDEO_S = 14;
 const TOPE_NARRACION_S = 13.3;
 
-const ESTILO = 'Narrá en castellano rioplatense (Argentina), con voz femenina cálida, ' +
-    'cercana y tranquila, como una profesional de la salud visual que explica sin apuro. ' +
-    'Ritmo pausado, sin tono de publicidad gritada: ';
+/**
+ * La dirección actoral importa más que la voz elegida: sin ella, cualquier voz
+ * neural cae en dicción de locutora neutra, que es lo que suena "robótico".
+ * Se le pide explícitamente el acento (yeísmo rehilado: la ll/y como "sh"),
+ * la entonación y el registro conversacional.
+ */
+const ESTILO = 'Sos una locutora argentina. Hablá con acento rioplatense auténtico: ' +
+    'la "ll" y la "y" suenan "sh" (yeísmo rehilado), entonación melódica que baja al final ' +
+    'de las frases, y voseo natural. Registro cálido e íntimo, como si le contaras algo ' +
+    'a una amiga tomando un café: conversacional, con pausas naturales donde hay comas, ' +
+    'levemente sonriente. NADA de dicción neutra de locutora comercial, nada robótico, ' +
+    'sin sobreactuar. Este es el texto: ';
 
 async function tts(texto, voz) {
     const apiKey = process.env.GOOGLE_GENAI_API_KEY;
@@ -48,14 +57,25 @@ async function tts(texto, voz) {
 
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey });
-    const resp = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-preview-tts',
+    // El modelo pro narra con mucha más naturalidad que el flash — la
+    // diferencia se oye exactamente en lo "robótico". Si no está disponible
+    // para la cuenta, se cae al flash avisando.
+    const generar = (model) => ai.models.generateContent({
+        model,
         contents: [{ parts: [{ text: ESTILO + '\n\n' + texto }] }],
         config: {
             responseModalities: ['AUDIO'],
             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voz } } },
         },
     });
+
+    let resp;
+    try {
+        resp = await generar('gemini-2.5-pro-preview-tts');
+    } catch (e) {
+        console.log('  (pro-tts no disponible, usando flash: ' + String(e.message).slice(0, 80) + ')');
+        resp = await generar('gemini-2.5-flash-preview-tts');
+    }
 
     const parte = resp.candidates?.[0]?.content?.parts?.find(p => p.inlineData?.data);
     if (!parte) throw new Error('El TTS no devolvió audio. Respuesta sin inlineData.');
