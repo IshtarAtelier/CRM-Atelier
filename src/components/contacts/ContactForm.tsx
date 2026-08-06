@@ -68,23 +68,29 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
     }, []);
 
     const isHighTicket = formData.interest === 'Multifocal';
+    // Al editar una ficha existente solo se exige lo mínimo: las fichas viejas
+    // tienen campos vacíos y el resto de los datos se completa cuando hace
+    // falta de verdad (el envío a fábrica tiene su propia validación).
+    const isEdit = !!initialData;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const faltantes: string[] = [];
         if (!formData.name?.trim()) faltantes.push('Nombre');
         if (!formData.phone?.trim()) faltantes.push('Teléfono');
-        if (!formData.contactSource) faltantes.push('Origen / Canal');
-        if (!formData.interest) faltantes.push('Tipo de producto');
-        if (!formData.email?.trim()) faltantes.push('Email');
-        if (!formData.birthDate) faltantes.push('Fecha de nacimiento');
-        if (!formData.dni?.trim()) faltantes.push('DNI');
-        if (!formData.address?.trim()) faltantes.push('Dirección');
+        if (!isEdit) {
+            if (!formData.contactSource) faltantes.push('Origen / Canal');
+            if (!formData.interest) faltantes.push('Tipo de producto');
+            if (!formData.email?.trim()) faltantes.push('Email');
+            if (!formData.birthDate) faltantes.push('Fecha de nacimiento');
+            if (!formData.dni?.trim()) faltantes.push('DNI');
+            if (!formData.address?.trim()) faltantes.push('Dirección');
+        }
         if (faltantes.length > 0) {
             alert(`Faltan datos obligatorios (*):\n\n• ${faltantes.join('\n• ')}`);
             return;
         }
-        if (isHighTicket && !followUpTask.trim()) {
+        if (!isEdit && isHighTicket && !followUpTask.trim()) {
             alert('Para clientes Multifocal es obligatorio registrar una tarea de seguimiento.');
             return;
         }
@@ -124,7 +130,7 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                 </header>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                    <PersonalDataSection formData={formData} setFormData={setFormData} doctors={doctors} sources={CONTACT_SOURCES} hasOrdersInFactory={hasOrdersInFactory} />
+                    <PersonalDataSection formData={formData} setFormData={setFormData} doctors={doctors} sources={CONTACT_SOURCES} hasOrdersInFactory={hasOrdersInFactory} requireFull={!isEdit} />
                     
                     <InterestSection formData={formData} setFormData={setFormData} productTypes={PRODUCT_TYPES} />
 
