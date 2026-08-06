@@ -42,6 +42,7 @@ class AntiBanQueue {
         this.dailyProactiveLimit = 120; // Límite diario de seguimientos (máx 150-200)
         
         this.consecutiveFailures = 0;
+        this.consecutiveTaskHangs = 0; // cuelgues del tope duro por tarea (página zombie)
         this.isPaused = false;
         
         // Control de lotes y timing por hora
@@ -250,10 +251,45 @@ class AntiBanQueue {
         const task = this.queue.shift();
 
         try {
-            await this.executeTask(task);
+            // Tope duro por TAREA COMPLETA, además de los timeouts individuales:
+            // garantiza que `isProcessing` se libere aunque aparezca un cuelgue
+            // nuevo sin timeout propio. El 6/8 un cuelgue así (getChatById en una
+            // página zombie) dejó la cola muerta 12 horas con la sesión diciendo
+            // CONNECTED. 240s > el peor caso legítimo (tipeo 8s + media 90s +
+            // fromUrl 30s + preflight/DB), así que nunca corta un envío sano.
+            await withTimeout(this.executeTask(task), 240000, `tarea completa (${task.waId})`);
             this.consecutiveFailures = 0; // Resetear fallos tras éxito
+            this.consecutiveTaskHangs = 0;
         } catch (error) {
             console.error(`[AntiBanQueue] Error enviando mensaje a ${task.waId}:`, error.message);
+
+            // ¿Fue el tope duro de la tarea? Eso no es un destino malo ni una
+            // sesión reconectando: es la firma de una página zombie de puppeteer
+            // (dice CONNECTED pero toda llamada espera para siempre). Dos
+            // seguidas = no se cura solo. Un reinicio del proceso sí lo cura:
+            // Railway lo levanta de nuevo y puppeteer nace sano. Se pierde lo
+            // encolado en RAM, pero con la página zombie eso no iba a salir
+            // nunca de todos modos. Aviso por email ANTES (no por WhatsApp:
+            // WhatsApp es justamente lo que está colgado).
+            if (/Timeout de \d+ms en tarea completa/.test(error.message || '')) {
+                this.consecutiveTaskHangs = (this.consecutiveTaskHangs || 0) + 1;
+                console.error(`[AntiBanQueue] 🧟 Cuelgue de tarea completa (${this.consecutiveTaskHangs}/2).`);
+                if (this.consecutiveTaskHangs >= 2) {
+                    task.reject(error);
+                    console.error('[AntiBanQueue] 🧟 Página de WhatsApp zombie: reiniciando el proceso para renacer sano.');
+                    try {
+                        // require tardío para no crear ciclo (client.js requiere este archivo)
+                        const { notifyAdminDown } = require('./client');
+                        await notifyAdminDown(
+                            'Bot reiniciado: página de WhatsApp colgada',
+                            'La cola de envíos detectó dos tareas seguidas colgadas más de 4 minutos (página de puppeteer zombie: la sesión decía CONNECTED pero nada salía). El proceso se reinició solo para recuperarse. Los envíos que estaban en cola en ese momento se perdieron: revisar si falta reenviar algo.'
+                        );
+                    } catch (e) {
+                        console.error('[AntiBanQueue] No se pudo avisar el reinicio:', e.message);
+                    }
+                    process.exit(1);
+                }
+            }
 
             // El circuit breaker existe para detectar que la SESIÓN de WhatsApp
             // está caída. Un destino que no existe no dice nada de la sesión:
@@ -278,10 +314,13 @@ class AntiBanQueue {
                 try {
                     const adminWaId = getAdminWaId();
                     if (this.client) {
-                        await this.client.sendMessage(
+                        // Con timeout: si el fallo de fondo es la página zombie,
+                        // este aviso también cuelga — y sin tope dejaba la cola
+                        // trabada DENTRO del manejador de errores.
+                        await withTimeout(this.client.sendMessage(
                             adminWaId,
                             `🚨 *CIRCUIT BREAKER ACTIVADO* 🚨\n\nSe han detectado ${this.consecutiveFailures} fallos de envío consecutivos en WhatsApp. La cola ha sido PAUSADA durante 1 hora de forma preventiva.`
-                        );
+                        ), 25000, 'aviso de circuit breaker al admin');
                     }
                 } catch (adminErr) {
                     console.error('[AntiBanQueue] Error notificando circuit breaker al admin:', adminErr.message);
@@ -299,10 +338,10 @@ class AntiBanQueue {
                 try {
                     const adminWaId = getAdminWaId();
                     if (this.client) {
-                        await this.client.sendMessage(
+                        await withTimeout(this.client.sendMessage(
                             adminWaId,
                             `⚠️ *ADVERTENCIA ANTIBAN* ⚠️\nSe detectaron ${this.consecutiveFailures} fallos consecutivos en los envíos de WhatsApp. Por favor, verificar estado.`
-                        );
+                        ), 25000, 'advertencia antiban al admin');
                     }
                 } catch (e) { /* ignore */ }
             }
@@ -358,11 +397,13 @@ class AntiBanQueue {
             return;
         }
 
-        // Resolver @c.us → @lid vía WhatsApp Web (los LIDs ya están resueltos)
+        // Resolver @c.us → @lid vía WhatsApp Web (los LIDs ya están resueltos).
+        // Con timeout: en una página zombie de puppeteer, getNumberId no falla —
+        // espera para SIEMPRE, y eso dejó la cola entera muerta 12 horas el 6/8.
         if (!isLidFormat(targetWaId) && targetWaId.includes('@c.us')) {
             let numberWaId = null;
             try {
-                numberWaId = serializedId(await this.client.getNumberId(targetWaId));
+                numberWaId = serializedId(await withTimeout(this.client.getNumberId(targetWaId), 15000, 'getNumberId'));
             } catch (e) {
                 console.warn(`[AntiBanQueue] No se pudo validar el ID de número para ${targetWaId}: ${e.message}`);
             }
@@ -543,16 +584,19 @@ class AntiBanQueue {
             processedContent = this.parseSpintax(content);
         }
 
-        // 5. Simular interacción humana (sendSeen + sendStateTyping)
+        // 5. Simular interacción humana (sendSeen + sendStateTyping).
+        // Todo con timeout: son cortesías, no requisitos — y sin timeout, una
+        // página zombie de puppeteer las convierte en esperas infinitas que
+        // matan la cola (la causa del cuelgue del 6/8: getChatById sin tope).
         let chat;
         try {
-            chat = await this.client.getChatById(targetWaId);
-            
+            chat = await withTimeout(this.client.getChatById(targetWaId), 10000, 'getChatById');
+
             // Marcar como leído antes de responder
-            await chat.sendSeen();
-            
+            await withTimeout(chat.sendSeen(), 10000, 'sendSeen');
+
             if (processedContent) {
-                await chat.sendStateTyping();
+                await withTimeout(chat.sendStateTyping(), 10000, 'sendStateTyping');
             }
         } catch (err) {
             console.warn('[AntiBanQueue] Error simulando interacción (sendSeen/typing):', err.message);
