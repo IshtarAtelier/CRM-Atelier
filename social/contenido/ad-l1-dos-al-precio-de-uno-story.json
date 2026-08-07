@@ -1,0 +1,20 @@
+{
+  "id": "ad-l1-dos-al-precio-de-uno-story",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "temas": [
+    "multifocales"
+  ],
+  "caption": "Llevás dos multifocales y pagás uno. Medidos con el armazón puesto, como se debe, y con 30 días de garantía de adaptación. Estamos en el Cerro, sin turno previo. Escribinos por WhatsApp.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "title": "*2x1* en multifocales",
+      "subtitle": "Dos pares al precio de uno, medidos con tu armazón puesto"
+    }
+  ]
+}

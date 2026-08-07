@@ -147,7 +147,7 @@ export function htmlDeSlide(slide, id, pieza) {
 
   .contenido {
     position:absolute; inset:0;
-    padding:96px 88px 190px;
+    padding:96px 88px 380px;
     display:flex; flex-direction:column; justify-content:flex-end;
   }
 
@@ -222,7 +222,11 @@ export function htmlDeSlide(slide, id, pieza) {
 
   /* Logo y handle centrados entre sí, no pegados al fondo de la caja */
   .pie {
-    position:absolute; left:88px; right:88px; bottom:74px;
+    /* ZONA SEGURA DE UN DEDO en TODOS los formatos: ~20% del alto libre abajo.
+       Es donde el pulgar apoya y donde Meta superpone el botón de CTA en las
+       ubicaciones que lo llevan. Proporcional por formato: 4:5 → 267px,
+       1:1 → 214px, 9:16 → 380px, 1.91:1 → 124px. */
+    position:absolute; left:88px; right:88px; bottom:267px;
     display:flex; align-items:center; gap:20px;
   }
   .logo { height:52px; width:auto; ${oscuro ? 'filter:brightness(0) invert(1);' : ''} opacity:.95; }
@@ -237,7 +241,12 @@ export function htmlDeSlide(slide, id, pieza) {
   /* Story (9:16): mucho más alta que el feed. El texto apoyado abajo deja media
      pantalla vacía y cae por debajo de donde la gente apoya el pulgar. Se
      centra y se agranda: una story se mira dos segundos, no se lee. */
-  .contenido { justify-content:center; padding:120px 96px 260px; }
+  /* ZONA SEGURA DE ANUNCIO: en una story promocionada, el botón "Enviar
+     mensaje" se superpone sobre la imagen y tapa la franja inferior. El pie
+     sube a 380px (un dedo) y el texto reserva ese espacio. Sin esto, el logo
+     y la última línea quedan tapados SIEMPRE, no a veces. */
+  .contenido { justify-content:center; padding:120px 96px 500px; }
+  .pie { bottom:380px; }
   h1 { font-size:104px; }
   h2 { font-size:78px; }
   .cuerpo { font-size:44px; margin-top:40px; }
@@ -261,7 +270,8 @@ export function htmlDeSlide(slide, id, pieza) {
 
   ${esCuadrado ? `
   /* Cuadrado (1:1): el layout del feed funciona, solo se ajusta el aire. */
-  .contenido { padding:80px 76px 170px; }
+  .contenido { padding:80px 76px 320px; }
+  .pie { bottom:214px; }
   h1 { font-size:74px; }
   h2 { font-size:58px; margin-bottom:34px; }
   .producto { height:52%; }
@@ -276,7 +286,7 @@ export function htmlDeSlide(slide, id, pieza) {
   /* El padding-bottom reserva la franja del pie. Sin él, el texto centrado baja
      hasta el logo y se superponen: la bajada quedaba escrita encima del
      isotipo. */
-  .contenido { inset:0; padding:44px 52px 104px 60px; padding-right:50%;
+  .contenido { inset:0; padding:32px 52px 180px 60px; padding-right:50%;
                justify-content:center; }
   h1 { font-size:56px; line-height:1.03; }
   h2 { font-size:44px; margin-bottom:18px; }
@@ -287,7 +297,7 @@ export function htmlDeSlide(slide, id, pieza) {
   .item { font-size:25px; }
   /* El pie se achica y se ancla a la izquierda: con 628px de alto, el de 74px
      de separación se comía el texto. */
-  .pie { left:60px; right:auto; bottom:34px; gap:12px; }
+  .pie { left:60px; right:auto; bottom:124px; gap:12px; }
   .logo { height:34px; }
   .handle { font-size:19px; }
   ` : ''}

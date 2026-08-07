@@ -1,0 +1,21 @@
+{
+  "id": "ad-l1-armazon-puesto-apaisado",
+  "format": "1.91:1",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "temas": [
+    "multifocales",
+    "taller"
+  ],
+  "caption": "Un multifocal que marea casi siempre estuvo mal medido. Nosotros te medimos con el armazón puesto y hacemos los cristales en taller propio. Si ya tuviste una mala experiencia, escribinos por WhatsApp.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "portada",
+      "image": "blog/medicion-pupilar-optica.png",
+      "title": "Un multifocal que marea estuvo *mal medido*",
+      "body": "Medimos con tu armazón puesto. *Garantía de 30 días*."
+    }
+  ]
+}
