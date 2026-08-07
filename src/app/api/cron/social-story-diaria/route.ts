@@ -135,7 +135,10 @@ export async function GET(request: Request) {
 
         // En serie y no en paralelo: dos publicaciones simultáneas contra la
         // misma cuenta es la forma más rápida de que Meta empiece a limitar.
-        const resultados = [];
+        const resultados: Array<{
+            carril: string; id: string; tipo?: string; url: string;
+            ok: boolean; storyId?: string; error?: string;
+        }> = [];
         for (const e of conUrl) {
             if (yaSalioHoy(e.id)) {
                 resultados.push({ ...e, ok: true, storyId: '(ya salió hoy, no se repite)' });
