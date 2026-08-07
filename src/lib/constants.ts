@@ -25,12 +25,12 @@ export const CRM_ORIGIN = (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-ateli
 // Single source of truth: no hardcodear estos correos en cada endpoint.
 export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
 
-// Casilla del negocio que recibe COPIA (BCC) de cada recibo que se le manda a un
-// cliente por email. Va aparte de ADMIN_ALERT_EMAILS y de ADMIN_EMAIL a
-// propósito: esas dos son para alertas de sistema (errores, stock, caídas) y
-// mezclarlas haría que cambiar el destino de una alerta técnica desviara sin
-// querer el archivo de comprobantes del negocio.
-export const RECEIPTS_BCC_EMAIL = process.env.RECEIPTS_BCC_EMAIL || 'atelier.optica.cerro@gmail.com';
+// Casilla del negocio que recibe COPIA de cada aviso que se le manda a un
+// cliente por email (recibo, pedido listo, presupuesto). Va aparte de
+// ADMIN_ALERT_EMAILS y de ADMIN_EMAIL a propósito: esas dos son para alertas de
+// sistema (errores, stock, caídas) y mezclarlas haría que cambiar el destino de
+// una alerta técnica desviara sin querer el archivo de comprobantes del negocio.
+export const ATELIER_COPY_EMAIL = process.env.ATELIER_COPY_EMAIL || 'atelier.optica.cerro@gmail.com';
 
 // "Sin atender" — borrón y cuenta nueva. El backlog viejo de leads sin atender se
 // dio por cerrado el 2026-07-06: solo los contactos ingresados a partir de este
