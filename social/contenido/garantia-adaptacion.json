@@ -3,14 +3,14 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "accion",
-  "caption": "Comprar anteojos tiene un riesgo que nadie nombra: que no termines de ver bien, y que el problema pase a ser tuyo.\n\nAcá no. Tenés 30 días para probarlos en tu vida real. Si no te adaptás, te revisamos la vista de nuevo y hacemos el cristal otra vez con la graduación que corresponda, las veces que haga falta.\n\nHasta que veas bien. Esa es la garantía.\n\nCerro de las Rosas, sin turno previo. También coordinamos por WhatsApp.",
+  "caption": "Comprar anteojos tiene un riesgo que nadie nombra: que no termines de ver bien, y que el problema pase a ser tuyo.\n\nAcá no. Tenés 30 días para probarlos en tu vida real. Si no te adaptás, te revisamos la vista de nuevo y hacemos el cristal otra vez con la graduación que corresponda, las veces que haga falta.\n\nLas veces que haga falta. Esa es la garantía.\n\nCerro de las Rosas, sin turno previo. También coordinamos por WhatsApp.",
   "slides": [
     {
       "type": "cover",
       "role": "portada",
       "image": "blog/pareja-multifocales-exterior.png",
       "title": "Probalos 30 días. *Si no te adaptás, hacemos el cristal de nuevo.*",
-      "subtitle": "Con la graduación que haga falta, hasta que veas bien."
+      "subtitle": "Con la graduación que haga falta."
     },
     {
       "type": "number",
@@ -20,7 +20,7 @@
     },
     {
       "type": "list",
-      "title": "Qué hacemos, sin letra chica",
+      "title": "Qué hacemos, paso a paso",
       "items": [
         "Reajustamos el armazón las veces que haga falta",
         "Te volvemos a medir, y si cambió la receta la tomamos",
@@ -31,9 +31,9 @@
       "type": "list",
       "role": "bisagra",
       "image": "blog/mostrador-marmol.jpg",
-      "title": "Hasta que *veas bien*",
+      "title": "Las veces que *haga falta*",
       "items": [
-        "Las veces que haga falta, sin límite de intentos",
+        "Rehacemos el cristal las veces que corresponda",
         "El laboratorio es nuestro: rehacer un cristal no es un trámite",
         "Un cliente que ve mal no vuelve, y nosotros vivimos de que vuelvan"
       ]
