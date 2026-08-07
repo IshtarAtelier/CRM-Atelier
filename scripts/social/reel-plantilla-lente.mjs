@@ -1,24 +1,28 @@
 /**
- * Plantilla de reel educativo: la LENTE de frente, con sus zonas animadas.
+ * Plantilla de reel educativo: la LENTE de frente, con sus zonas animadas. v2
  *
- * Es la serie hermana de la del ojo: aquella muestra el problema (dónde cae el
- * foco), esta muestra la lente que lo resuelve. Tres tipos:
+ * Cinco tipos:
+ *   monofocal    toda la superficie con una graduación
+ *   bifocal      la LUPITA incorporada: la ventana de cerca con su línea — y
+ *                el salto de imagen al cruzarla, que es el defecto que la jubiló
+ *   progresivo   lejos/intermedio/cerca en gradiente continuo, sin líneas
+ *   stellest     centro que corrige + ANILLOS de micro-lentes (control de
+ *                miopía infantil, Essilor)
+ *   myofix       centro que corrige + PANAL de micro-segmentos (control de
+ *                miopía infantil)
  *
- *   monofocal   toda la superficie con una graduación — una distancia
- *   bifocal     la ventana de cerca con su línea visible — y el salto de
- *               imagen al cruzarla, que es el defecto que la jubiló
- *   progresivo  lejos/intermedio/cerca en gradiente continuo, sin líneas
+ * Level up de diseño (v2, a pedido):
+ * - la lente ya no es un óvalo: es la forma real de un cristal de anteojo
+ *   (rectángulo blando), con brillo de vidrio y un DESTELLO diagonal que la
+ *   recorre una vez — el gesto que la hace leerse como vidrio y no como globo
+ * - la bifocal muestra la lupita DE VERDAD: una letra chica arriba de la
+ *   línea y la misma letra agrandada adentro de la ventana
+ * - stellest y myofix laten: los anillos/panal emiten ondas durante el remate,
+ *   que es la "señal" de la que habla el guion
+ * - EL PIE SUBE a 280 px del borde: abajo queda la zona donde el pulgar tapa
+ *   y donde Instagram pone sus controles
  *
- * El recurso central es una MIRADA que baja por la lente (una línea de
- * exploración con su punto): en el bifocal la imagen SALTA al cruzar la línea;
- * en el progresivo baja fluida. Ese contraste es el argumento de venta del
- * progresivo, contado sin decirlo.
- *
- * Misma vuelta cinematográfica que la plantilla del ojo v2: viñeta, fondo con
- * profundidad, push-in, textos con fade+rise y CIERRE CON LOGO.
- *
- * Recordatorio para quien edite: nada de backticks en los comentarios dentro
- * del template — cortan el string en silencio. Ya pasó tres veces.
+ * Recordatorio: nada de backticks en los comentarios de adentro del template.
  */
 
 export const DURACION_LENTE_MS = 14000;
@@ -41,9 +45,9 @@ const TIPOS = {
     },
     bifocal: {
         titulo: 'La lente *bifocal*',
-        bajada: 'Dos zonas, una línea... y un salto.',
-        explica: 'Una ventana de cerca, *con línea visible*',
-        explica2: 'Arriba lejos, abajo cerca. Dos graduaciones separadas.',
+        bajada: 'Una lupita incorporada... y un salto.',
+        explica: 'Como una *lupita* en la parte de abajo',
+        explica2: 'La ventana de cerca agranda lo próximo, separada por su línea visible.',
         remate: 'Al cruzar la línea, la imagen *salta*',
         remate2: 'Cumplió su época: hoy el progresivo hace lo mismo, sin el salto.',
         cierre: 'Hay algo *mejor*',
@@ -58,6 +62,26 @@ const TIPOS = {
         remate2: 'La mirada baja y la distancia acompaña. Bien medido, no se nota el pasaje.',
         cierre: 'Bien medido *es la clave*',
         cierre2: 'Medimos con tu armazón puesto. Atelier Óptica · Cerro de las Rosas.',
+    },
+    stellest: {
+        titulo: 'El lente *Stellest*',
+        bajada: 'Corrige y controla la miopía infantil.',
+        explica: 'Un centro que corrige, *anillos que frenan*',
+        explica2: 'Más de mil micro-lentes en once anillos rodean la zona de visión.',
+        remate: 'La señal que le pide al ojo *no alargarse*',
+        remate2: 'Hasta 67% menos de avance en promedio, según estudios clínicos de Essilor.',
+        cierre: 'El control a tiempo *cambia todo*',
+        cierre2: 'Atelier Óptica · Cerro de las Rosas. Sin turno previo.',
+    },
+    myofix: {
+        titulo: 'El lente *MyoFix*',
+        bajada: 'Control de miopía infantil.',
+        explica: 'Zona central nítida, *panal que controla*',
+        explica2: 'Cientos de micro-segmentos rodean el centro de visión.',
+        remate: 'Desenfoque periférico: la señal de *no crecer*',
+        remate2: 'Corrige la visión de tu hijo mientras acompaña el crecimiento del ojo.',
+        cierre: 'Pediatría visual *en serio*',
+        cierre2: 'Atelier Óptica · Cerro de las Rosas. Sin turno previo.',
     },
 };
 
@@ -83,21 +107,23 @@ export function htmlDeReelLente(reel, id, logoUri) {
   .vineta { position:absolute; inset:0; pointer-events:none;
             background:radial-gradient(140% 110% at 50% 45%, transparent 55%, rgba(0,0,0,.42) 100%); }
   .fase { position:absolute; left:88px; right:88px; opacity:0; }
-  #titulo { top:300px; }
-  #titulo h1 { font-size:104px; line-height:1.06; font-weight:900; letter-spacing:-.025em; }
+  #titulo { top:290px; }
+  #titulo h1 { font-size:100px; line-height:1.06; font-weight:900; letter-spacing:-.025em; }
   #titulo p  { margin-top:30px; font-size:42px; opacity:.85; }
-  .texto { top:1330px; }
+  .texto { top:1290px; }
   .texto h2 { font-size:58px; line-height:1.12; font-weight:900; letter-spacing:-.02em; }
   .texto p  { margin-top:22px; font-size:38px; line-height:1.35; opacity:.88; }
-  #cierre { top:1330px; }
-  #cierre h2 { font-size:74px; line-height:1.08; font-weight:900; letter-spacing:-.02em; }
+  #cierre { top:1290px; }
+  #cierre h2 { font-size:72px; line-height:1.08; font-weight:900; letter-spacing:-.02em; }
   #cierre p { margin-top:24px; font-size:36px; line-height:1.35; opacity:.85; }
   .marca { color:${bronce}; }
-  #lienzo { position:absolute; top:440px; left:0; width:1080px; height:860px; }
-  .pie { position:absolute; left:88px; right:88px; bottom:110px;
+  #lienzo { position:absolute; top:430px; left:0; width:1080px; height:840px; }
+  /* El pie va a 280 px del borde: más abajo queda la zona del pulgar y de los
+     controles de Instagram. Lo pidió el usuario mirando el reel en el celu. */
+  .pie { position:absolute; left:88px; right:88px; bottom:280px;
          display:flex; align-items:center; gap:22px; }
-  .logo { height:60px; filter:brightness(0) invert(1); opacity:.95; }
-  .handle { font-size:30px; font-weight:500; letter-spacing:.06em; opacity:.72; }
+  .logo { height:56px; filter:brightness(0) invert(1); opacity:.95; }
+  .handle { font-size:28px; font-weight:500; letter-spacing:.06em; opacity:.72; }
   .barra { position:absolute; left:0; top:0; height:8px; background:${bronce}; width:0; }
   #outro { position:absolute; inset:0; display:flex; flex-direction:column;
            align-items:center; justify-content:center; gap:44px; opacity:0;
@@ -114,46 +140,70 @@ export function htmlDeReelLente(reel, id, logoUri) {
     <p>${esc(tipo.bajada)}</p>
   </div>
 
-  <div id="lienzo"><svg id="escena" viewBox="0 0 1080 860" fill="none">
+  <div id="lienzo"><svg id="escena" viewBox="0 0 1080 840" fill="none">
     <defs>
       <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="7"/>
       </filter>
-      <clipPath id="clipLente"><ellipse cx="500" cy="420" rx="300" ry="330"/></clipPath>
-      <linearGradient id="gradProgresivo" x1="0" y1="90" x2="0" y2="750" gradientUnits="userSpaceOnUse">
+      <clipPath id="clipLente"><circle cx="500" cy="415" r="318"/></clipPath>
+      <linearGradient id="gradProgresivo" x1="0" y1="95" x2="0" y2="735" gradientUnits="userSpaceOnUse">
         <stop offset="0" stop-color="${bronce}" stop-opacity=".10"/>
         <stop offset=".5" stop-color="${bronce}" stop-opacity=".26"/>
         <stop offset="1" stop-color="${bronce}" stop-opacity=".48"/>
       </linearGradient>
+      <linearGradient id="gradDestello" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+        <stop offset=".5" stop-color="#ffffff" stop-opacity=".16"/>
+        <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="gradBorde" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset="1" stop-color="${bronce}"/>
+      </linearGradient>
     </defs>
 
-    <ellipse cx="500" cy="420" rx="300" ry="330" stroke="#ffffff" stroke-width="6" opacity=".9"/>
-    <ellipse cx="500" cy="420" rx="300" ry="330" fill="#ffffff" opacity=".04"/>
+    <!-- el cristal: REDONDO (lo pidio el usuario), con vidrio y borde vivo -->
+    <circle cx="500" cy="415" r="318" fill="#ffffff" opacity=".05"/>
+    <circle cx="500" cy="415" r="318" stroke="url(#gradBorde)" stroke-width="7" opacity=".95"/>
 
     <g clip-path="url(#clipLente)">
-      <rect id="zonaUniforme" x="200" y="90" width="600" height="660" fill="${bronce}" opacity="0"/>
-      <rect id="zonaGradiente" x="200" y="90" width="600" height="660" fill="url(#gradProgresivo)" opacity="0"/>
-      <path id="ventanaCerca" d="M 340 560 A 175 175 0 0 0 660 560 L 340 560 Z" fill="${bronce}" opacity="0"/>
-      <line id="lineaBifocal" x1="340" y1="560" x2="660" y2="560" stroke="#ffffff" stroke-width="6" opacity="0"/>
+      <rect id="zonaUniforme" x="180" y="95" width="640" height="640" fill="${bronce}" opacity="0"/>
+      <rect id="zonaGradiente" x="180" y="95" width="640" height="640" fill="url(#gradProgresivo)" opacity="0"/>
+
+      <!-- bifocal: la lupita — ventana con borde propio y la letra agrandada -->
+      <g id="grupoBifocal" opacity="0">
+        <path d="M 350 555 A 168 168 0 0 0 650 555 Z" fill="${bronce}" opacity=".30"/>
+        <path d="M 350 555 A 168 168 0 0 0 650 555" stroke="#ffffff" stroke-width="6"/>
+        <line x1="350" y1="555" x2="650" y2="555" stroke="#ffffff" stroke-width="6"/>
+        <text x="404" y="500" font-family="Georgia, serif" font-size="66" fill="#ffffff" opacity=".8">A</text>
+        <text id="letraGrande" x="462" y="682" font-family="Georgia, serif" font-size="132" fill="#ffffff">A</text>
+      </g>
+
+      <!-- stellest: anillos de micro-lentes / myofix: panal -->
+      <circle id="zonaCentral" cx="500" cy="415" r="108" stroke="${bronce}" stroke-width="4" opacity="0" stroke-dasharray="10 12"/>
+      <g id="microlentes"></g>
+      <circle id="onda1" cx="500" cy="415" r="120" stroke="${bronce}" stroke-width="5" opacity="0"/>
+      <circle id="onda2" cx="500" cy="415" r="120" stroke="${bronce}" stroke-width="5" opacity="0"/>
+
+      <!-- el destello de vidrio que recorre la lente una vez -->
+      <rect id="destello" x="-400" y="-100" width="260" height="1100" fill="url(#gradDestello)" transform="rotate(18 500 415)"/>
     </g>
 
-    <!-- Las etiquetas van a la IZQUIERDA: a la derecha vive la tarjeta de
-         vista y se pisaban (INTERMEDIO quedaba abajo de la tarjeta). -->
     <g id="etiquetas" font-family="sans-serif" font-size="26" fill="#ffffff">
       <text id="etq1" x="46" y="205" opacity="0">LEJOS</text>
-      <text id="etq2" x="46" y="435" opacity="0">INTERMEDIO</text>
-      <text id="etq3" x="46" y="665" opacity="0">CERCA</text>
+      <text id="etq2" x="46" y="430" opacity="0">INTERMEDIO</text>
+      <text id="etq3" x="46" y="655" opacity="0">CERCA</text>
     </g>
 
-    <line id="mirada" x1="220" x2="780" y1="240" y2="240" stroke="${bronce}" stroke-width="4" opacity="0"/>
+    <line id="mirada" x1="245" x2="755" y1="240" y2="240" stroke="${bronce}" stroke-width="4" opacity="0"/>
     <circle id="miradaPunto" cx="500" r="13" fill="${bronce}" opacity="0"/>
     <circle id="miradaHalo" cx="500" r="28" fill="${bronce}" opacity="0" filter="url(#glow)"/>
 
     <g id="tarjetaVista" opacity="0">
-      <rect x="885" y="330" width="150" height="180" rx="16" fill="#ffffff" opacity=".12"/>
-      <rect id="vistaImg" x="912" y="365" width="96" height="66" rx="8" fill="${bronce}" opacity=".85"/>
-      <rect x="912" y="452" width="96" height="10" rx="5" fill="#ffffff" opacity=".5"/>
-      <rect x="912" y="472" width="66" height="10" rx="5" fill="#ffffff" opacity=".35"/>
+      <rect x="870" y="320" width="150" height="180" rx="16" fill="#ffffff" opacity=".12"/>
+      <rect id="vistaImg" x="897" y="355" width="96" height="66" rx="8" fill="${bronce}" opacity=".85"/>
+      <rect x="897" y="442" width="96" height="10" rx="5" fill="#ffffff" opacity=".5"/>
+      <rect x="897" y="462" width="66" height="10" rx="5" fill="#ffffff" opacity=".35"/>
     </g>
   </svg></div>
 
@@ -173,13 +223,51 @@ export function htmlDeReelLente(reel, id, logoUri) {
 <script>
   const DUR = ${DURACION_LENTE_MS};
   const TIPO = '${reel.tipoLente}';
-  const LINEA_Y = 560;
+  const LINEA_Y = 555;
+  const CX = 500, CYL = 415;
 
   const $ = (s) => document.querySelector(s);
   const suave = (x) => x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x + 2, 3) / 2;
   const clamp01 = (x) => Math.max(0, Math.min(1, x));
   const fase = (t, a, b) => t < a ? 0 : t > b ? 0 : Math.min(suave(clamp01((t-a)/380)), suave(clamp01((b-t)/380)));
   const subir = (el, f) => { el.style.opacity = f; el.style.transform = 'translateY(' + ((1-f)*26) + 'px)'; };
+
+  // Las micro-lentes: anillos concentricos (stellest) o panal (myofix).
+  // Se generan una vez; cada punto guarda su orden para el pop escalonado.
+  const NS = 'http://www.w3.org/2000/svg';
+  const micro = [];
+  if (TIPO === 'stellest') {
+    const radios = [150, 185, 220, 255, 290, 325];
+    radios.forEach((r, ri) => {
+      const n = Math.round((2 * Math.PI * r) / 26);
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * 2 * Math.PI;
+        const c = document.createElementNS(NS, 'circle');
+        c.setAttribute('cx', String(CX + r * Math.cos(a)));
+        c.setAttribute('cy', String(CYL + r * Math.sin(a)));
+        c.setAttribute('r', '5'); c.setAttribute('fill', '${bronce}'); c.setAttribute('opacity', '0');
+        $('#microlentes').appendChild(c);
+        micro.push({ el: c, orden: ri });
+      }
+    });
+  }
+  if (TIPO === 'myofix') {
+    let fila = 0;
+    for (let y = 130; y <= 710; y += 34) {
+      const off = (fila % 2) ? 19 : 0;
+      for (let x = 250 + off; x <= 750; x += 38) {
+        const d = Math.hypot(x - CX, y - CYL);
+        if (d < 118) continue;
+        const c = document.createElementNS(NS, 'circle');
+        c.setAttribute('cx', String(x)); c.setAttribute('cy', String(y));
+        c.setAttribute('r', '6'); c.setAttribute('fill', '${bronce}'); c.setAttribute('opacity', '0');
+        $('#microlentes').appendChild(c);
+        micro.push({ el: c, orden: Math.floor(d / 60) });
+      }
+      fila++;
+    }
+  }
+  const esControl = TIPO === 'stellest' || TIPO === 'myofix';
 
   window.__dibujar = function (t) {
     $('#barra').style.width = ((t % DUR) / DUR * 100) + '%';
@@ -202,17 +290,39 @@ export function htmlDeReelLente(reel, id, logoUri) {
     lienzo.style.transform = 'scale(' + pushIn + ')';
     lienzo.style.opacity = (0.15 + 0.85 * vivo) * (t > 9600 ? 0.33 : 1) * (1 - fOutro);
 
-    // Las zonas de la lente aparecen durante la explicación
+    // El destello de vidrio: recorre la lente UNA vez apenas aparece
+    const barrida = suave(clamp01((t - 2700) / 1400));
+    $('#destello').setAttribute('transform', 'translate(' + (barrida * 1500 - 400) + ' 0) rotate(18 500 415)');
+
+    // Las zonas, por tipo
     const zona = suave(clamp01((t - 2700) / 1100));
     if (TIPO === 'monofocal')  $('#zonaUniforme').setAttribute('opacity', String(zona * 0.26));
     if (TIPO === 'progresivo') $('#zonaGradiente').setAttribute('opacity', String(zona));
     if (TIPO === 'bifocal') {
-        $('#zonaUniforme').setAttribute('opacity', String(zona * 0.12));
-        $('#ventanaCerca').setAttribute('opacity', String(zona * 0.4));
-        $('#lineaBifocal').setAttribute('opacity', String(zona * 0.95));
+        $('#zonaUniforme').setAttribute('opacity', String(zona * 0.10));
+        $('#grupoBifocal').setAttribute('opacity', String(zona));
+        // La letra de la lupita "respira" apenas, para que se lea como aumento
+        const respiro = 1 + 0.03 * Math.sin(t / 300);
+        $('#letraGrande').setAttribute('transform', 'scale(' + respiro + ')');
+        $('#letraGrande').setAttribute('transform-origin', '500 640');
+    }
+    if (esControl) {
+        $('#zonaCentral').setAttribute('opacity', String(zona * 0.85));
+        micro.forEach(({ el, orden }) => {
+            const f = suave(clamp01((t - 3000 - orden * 260) / 420)) * zona;
+            el.setAttribute('opacity', String(f * 0.85));
+        });
+        // El latido de la señal, durante el remate: dos ondas que se expanden
+        for (const [sel, desfase] of [['#onda1', 0], ['#onda2', 900]]) {
+            const ciclo = ((t - 6800 - desfase) % 1800) / 1800;
+            const activa = t > 6800 + desfase && t < 9600 ? 1 : 0;
+            const r = 120 + ciclo * 230;
+            $(sel).setAttribute('r', String(Math.max(120, r)));
+            $(sel).setAttribute('opacity', String(activa * (1 - ciclo) * 0.5));
+        }
     }
 
-    // Las etiquetas de distancia: en el progresivo las tres; en los otros, lo suyo
+    // Las etiquetas de distancia (solo tipos "clásicos")
     const etq = (sel, f) => $(sel).setAttribute('opacity', String(f * 0.6));
     if (TIPO === 'progresivo') {
         etq('#etq1', suave(clamp01((t - 3100) / 400)));
@@ -221,32 +331,30 @@ export function htmlDeReelLente(reel, id, logoUri) {
     } else if (TIPO === 'bifocal') {
         etq('#etq1', suave(clamp01((t - 3100) / 400)));
         etq('#etq3', suave(clamp01((t - 3500) / 400)));
-    } else {
+    } else if (TIPO === 'monofocal') {
         etq('#etq1', suave(clamp01((t - 3100) / 400)));
     }
 
-    // LA MIRADA QUE BAJA: el corazón de la pieza. Baja durante el remate.
-    // En el progresivo baja fluida; en el bifocal, al cruzar la línea, la
-    // tarjetita de "vista" SALTA — ese salto es el argumento contra el bifocal.
-    const bajando = suave(clamp01((t - 6800) / 2300));
-    const yMirada = 200 + bajando * 460;
-    const fMirada = fase(t, 6700, 9500);
-    $('#mirada').setAttribute('y1', String(yMirada));
-    $('#mirada').setAttribute('y2', String(yMirada));
-    $('#mirada').setAttribute('opacity', String(fMirada * 0.7));
-    for (const sel of ['#miradaPunto', '#miradaHalo']) $(sel).setAttribute('cy', String(yMirada));
-    $('#miradaPunto').setAttribute('opacity', String(fMirada * 0.95));
-    $('#miradaHalo').setAttribute('opacity', String(fMirada * 0.4));
+    // La mirada que baja (solo mono/bi/progresivo): fluida o con salto
+    if (!esControl) {
+        const bajando = suave(clamp01((t - 6800) / 2300));
+        const yMirada = 200 + bajando * 450;
+        const fMirada = fase(t, 6700, 9500);
+        $('#mirada').setAttribute('y1', String(yMirada));
+        $('#mirada').setAttribute('y2', String(yMirada));
+        $('#mirada').setAttribute('opacity', String(fMirada * 0.7));
+        for (const sel of ['#miradaPunto', '#miradaHalo']) $(sel).setAttribute('cy', String(yMirada));
+        $('#miradaPunto').setAttribute('opacity', String(fMirada * 0.95));
+        $('#miradaHalo').setAttribute('opacity', String(fMirada * 0.4));
 
-    // La tarjeta de vista, a la derecha: muestra el efecto del salto
-    $('#tarjetaVista').setAttribute('opacity', String(fMirada));
-    let brinco = 0;
-    if (TIPO === 'bifocal' && yMirada > LINEA_Y) {
-        // El brinco: desplaza la "imagen" de golpe y decae en 300 ms
-        const desde = (yMirada - LINEA_Y) / 460;
-        brinco = Math.max(0, 1 - desde * 6) * 26;
+        $('#tarjetaVista').setAttribute('opacity', String(fMirada));
+        let brinco = 0;
+        if (TIPO === 'bifocal' && yMirada > LINEA_Y) {
+            const desde = (yMirada - LINEA_Y) / 450;
+            brinco = Math.max(0, 1 - desde * 6) * 26;
+        }
+        $('#vistaImg').setAttribute('transform', 'translate(0 ' + brinco + ')');
     }
-    $('#vistaImg').setAttribute('transform', 'translate(0 ' + brinco + ')');
   };
 
   window.__dibujar(0);

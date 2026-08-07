@@ -118,7 +118,9 @@ export function htmlDeReelOjo(reel, id, logoUri) {
   .marca { color:${bronce}; }
   #lienzo { position:absolute; top:430px; left:0; width:1080px; height:850px; }
   #escena { width:100%; height:100%; }
-  .pie { position:absolute; left:88px; right:88px; bottom:110px;
+  /* A 280 px del borde: mas abajo queda la zona del pulgar y los controles
+     de Instagram. Lo pidio el usuario mirando el reel en el celu. */
+  .pie { position:absolute; left:88px; right:88px; bottom:280px;
          display:flex; align-items:center; gap:22px; }
   .logo { height:60px; filter:brightness(0) invert(1); opacity:.95; }
   .handle { font-size:30px; font-weight:500; letter-spacing:.06em; opacity:.72; }
