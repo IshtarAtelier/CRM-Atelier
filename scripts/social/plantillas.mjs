@@ -248,10 +248,12 @@ export function htmlDeSlide(slide, id, pieza) {
      centra y se agranda: una story se mira dos segundos, no se lee. */
   /* ZONA SEGURA DE ANUNCIO: en una story promocionada, el botón "Enviar
      mensaje" se superpone sobre la imagen y tapa la franja inferior. El pie
-     sube a 380px (un dedo) y el texto reserva ese espacio. Sin esto, el logo
-     y la última línea quedan tapados SIEMPRE, no a veces. */
-  .contenido { justify-content:center; padding:120px 96px 500px; }
-  .pie { bottom:380px; }
+     sube a 460px y el texto reserva ese espacio. 380px (un dedo) alcanzaba
+     para Stories, pero en FACEBOOK REELS la pila de UI (cuenta + caption +
+     botón) sube más y pisaba el logo — verificado en la vista previa real
+     de Meta. Sin esto, el logo queda tapado SIEMPRE en esa ubicación. */
+  .contenido { justify-content:center; padding:120px 96px 580px; }
+  .pie { bottom:460px; }
   h1 { font-size:104px; }
   h2 { font-size:78px; }
   .cuerpo { font-size:44px; margin-top:40px; }
