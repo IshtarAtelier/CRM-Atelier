@@ -186,9 +186,13 @@ async function startClient(attempt = 1) {
         // la rechazó y deslogueó la sesión (QR, línea muerta). Conclusión: pinear hacia
         // atrás no es viable pasada la antigüedad mínima que acepta WhatsApp. El pin
         // queda OPT-IN vía WA_WEB_VERSION (con la limpieza de SW de arriba) y por
-        // defecto corre la build viva. Los errores "r" (getChats/medias/sendSeen) son
-        // el precio hasta que whatsapp-web.js publique el arreglo del renombre $1 —
-        // ahí: actualizar la librería y borrar todo este bloque.
+        // defecto corre la build viva.
+        //
+        // RESUELTO (6/8/2026, más tarde): package.json pinea el HEAD del PR #201832
+        // (fork lindionez, sha 92f443fb, diff auditado completo: solo agrega
+        // `|| X.$1` como fallback del renombre — nada más). Con eso la build viva
+        // deja de romper getChats/medias/ids. Cuando el PR se mergee y salga release
+        // oficial: volver la dependencia a la de upstream y borrar este bloque.
         ...(process.env.WA_WEB_VERSION ? {
             webVersion: process.env.WA_WEB_VERSION,
             webVersionCache: {

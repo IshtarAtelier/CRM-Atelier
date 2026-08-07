@@ -23,6 +23,6 @@
     "prisma": "^5.22.0",
     "qrcode-terminal": "^0.12.0",
     "socket.io": "^4.8.3",
-    "whatsapp-web.js": "https://github.com/pedroslopez/whatsapp-web.js/archive/942d236a11ad68807308b058303ba5256915979c.tar.gz"
+    "whatsapp-web.js": "https://github.com/lindionez/whatsapp-web.js/archive/92f443fb6b4fb3ee52c6576bc640b4a2e17379ae.tar.gz"
   }
 }
