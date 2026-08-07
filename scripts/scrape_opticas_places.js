@@ -1,18 +1,18 @@
 // Scraper de ópticas vía Google Places API para el panel /admin/opticas.
 //
 // Busca "ópticas en <ciudad>" por cada localidad, pagina hasta 60 resultados
-// por búsqueda (límite de la API), levanta el teléfono/web de cada lugar con
-// Place Details, dedupea por place_id y escribe un JSON listo para pegar en
-// el botón "Importar" del panel (acepta JSON) — o importar vía API.
+// por búsqueda (límite de la API), dedupea por place_id y escribe un JSON listo
+// para pegar en el botón "Importar" del panel (acepta JSON) — o importar vía API.
+// Usa Places API (New): el teléfono viene en la misma respuesta que la búsqueda.
 //
 // Uso:
 //   GOOGLE_MAPS_API_KEY=xxxx node scripts/scrape_opticas_places.js
 //   node scripts/scrape_opticas_places.js --key=xxxx --ciudades="Córdoba,Villa Carlos Paz"
 //   node scripts/scrape_opticas_places.js --key=xxxx --max=200 --out=opticas.json
 //
-// Costos aprox (tarifas Google jul/2026): Text Search ~USD 32/1000 requests,
-// Place Details (Basic+Contact) ~USD 20/1000. 1000 ópticas ≈ USD 25-60.
-// La key necesita "Places API" habilitada y facturación activa en el proyecto.
+// Costos aprox: searchText con field mask Enterprise (incluye teléfono) ~USD
+// 35/1000 requests, y cada request trae 20 lugares → 1000 ópticas ≈ USD 2.
+// La key necesita "Places API (New)" habilitada y facturación activa.
 
 const fs = require('fs');
 
@@ -43,39 +43,48 @@ const provincia = args.provincia || 'Córdoba';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// Places API (New) — la legacy (maps.googleapis.com/maps/api/place/*) está dada
+// de baja y responde REQUEST_DENIED "legacy API not enabled". searchText ya trae
+// teléfono y web en la misma respuesta, así que no hace falta un Details por lugar.
+const FIELD_MASK = [
+  'places.id', 'places.displayName', 'places.formattedAddress', 'places.types',
+  'places.rating', 'places.userRatingCount', 'places.googleMapsUri',
+  'places.nationalPhoneNumber', 'places.internationalPhoneNumber', 'places.websiteUri',
+  'nextPageToken',
+].join(',');
+
 async function textSearch(query) {
   const results = [];
   let pageToken = null;
-  for (let page = 0; page < 3; page++) { // la API da máx. 3 páginas (60 resultados)
-    const url = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
-    url.searchParams.set('key', API_KEY);
-    if (pageToken) url.searchParams.set('pagetoken', pageToken);
-    else { url.searchParams.set('query', query); url.searchParams.set('region', 'ar'); url.searchParams.set('language', 'es'); }
-    const res = await fetch(url);
+  for (let page = 0; page < 3; page++) { // 3 páginas de 20 = 60 resultados, igual que la legacy
+    // La API nueva exige que la request paginada repita TODOS los parámetros de
+    // la primera ("Request parameters for paging requests must match"), no solo
+    // el token: mandar el pageToken solo devuelve "Empty text_query".
+    const body = { textQuery: query, languageCode: 'es', regionCode: 'AR', pageSize: 20 };
+    if (pageToken) body.pageToken = pageToken;
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': API_KEY,
+        'X-Goog-FieldMask': FIELD_MASK,
+      },
+      body: JSON.stringify(body),
+    });
     const data = await res.json();
-    if (data.status === 'REQUEST_DENIED' || data.status === 'OVER_QUERY_LIMIT') {
-      throw new Error(`${data.status}: ${data.error_message || 'revisar key/billing'}`);
+    if (!res.ok) {
+      const msg = data?.error?.message || `HTTP ${res.status}`;
+      // 403/PERMISSION_DENIED = key sin Places API (New) o sin billing: no sigue.
+      if (res.status === 403 || res.status === 401) throw new Error(`REQUEST_DENIED: ${msg}`);
+      console.warn(`  aviso: ${msg} para "${query}"`);
+      break;
     }
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      console.warn(`  aviso: status ${data.status} para "${query}"`);
-    }
-    results.push(...(data.results || []));
-    pageToken = data.next_page_token;
+    results.push(...(data.places || []));
+    pageToken = data.nextPageToken;
     if (!pageToken) break;
     await sleep(2100); // el token tarda ~2s en activarse (requisito de la API)
   }
   return results;
-}
-
-async function placeDetails(placeId) {
-  const url = new URL('https://maps.googleapis.com/maps/api/place/details/json');
-  url.searchParams.set('key', API_KEY);
-  url.searchParams.set('place_id', placeId);
-  url.searchParams.set('language', 'es');
-  url.searchParams.set('fields', 'formatted_phone_number,international_phone_number,website,url');
-  const res = await fetch(url);
-  const data = await res.json();
-  return data.result || {};
 }
 
 (async () => {
@@ -89,8 +98,8 @@ async function placeDetails(placeId) {
       const found = await textSearch(query);
       let nuevos = 0;
       for (const r of found) {
-        if (!byPlaceId.has(r.place_id)) {
-          byPlaceId.set(r.place_id, { ...r, _ciudad: ciudad });
+        if (!byPlaceId.has(r.id)) {
+          byPlaceId.set(r.id, { ...r, _ciudad: ciudad });
           nuevos++;
         }
       }
@@ -103,31 +112,24 @@ async function placeDetails(placeId) {
   }
 
   const places = [...byPlaceId.values()].slice(0, MAX_PLACES);
-  console.log(`\nLevantando teléfonos de ${places.length} lugares (Place Details)…`);
-  const leads = [];
-  for (let i = 0; i < places.length; i++) {
-    const p = places[i];
-    try {
-      const d = await placeDetails(p.place_id);
-      leads.push({
-        name: p.name,
-        phone: d.formatted_phone_number || d.international_phone_number || null,
-        rating: p.rating ?? null,
-        reviewsCount: p.user_ratings_total ?? null,
-        category: (p.types || []).includes('optician') ? 'Óptica' : (p.types || [])[0] || null,
-        address: p.formatted_address || null,
-        city: p._ciudad,
-        province: provincia,
-        mapsUrl: d.url || `https://www.google.com/maps/place/?q=place_id:${p.place_id}`,
-        placeId: p.place_id,
-        website: d.website || null,
-      });
-      if ((i + 1) % 25 === 0) console.log(`  ${i + 1}/${places.length}…`);
-      await sleep(120); // gentileza con el rate limit
-    } catch (e) {
-      console.warn(`  detalle falló para ${p.name}: ${e.message}`);
-    }
-  }
+  console.log(`\nArmando ${places.length} leads…`);
+  const leads = places.map((p) => ({
+    name: p.displayName?.text || null,
+    phone: p.nationalPhoneNumber || p.internationalPhoneNumber || null,
+    // El formato nacional NO distingue fijo de celular (Google casi nunca pone
+    // el "15"). El internacional sí: "+54 9 299…" es celular, "+54 299…" es fijo.
+    // Es el único dato que evita escribirle por WhatsApp a un teléfono de línea.
+    phoneIntl: p.internationalPhoneNumber || null,
+    rating: p.rating ?? null,
+    reviewsCount: p.userRatingCount ?? null,
+    category: (p.types || []).includes('optician') ? 'Óptica' : (p.types || [])[0] || null,
+    address: p.formattedAddress || null,
+    city: p._ciudad,
+    province: provincia,
+    mapsUrl: p.googleMapsUri || `https://www.google.com/maps/place/?q=place_id:${p.id}`,
+    placeId: p.id,
+    website: p.websiteUri || null,
+  })).filter((l) => l.name);
 
   fs.writeFileSync(OUT, JSON.stringify(leads, null, 2));
   const conTel = leads.filter(l => l.phone).length;
