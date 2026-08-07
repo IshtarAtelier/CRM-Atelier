@@ -160,7 +160,12 @@ export function htmlDeSlide(slide, id, pieza) {
 
   h1 { font-size:82px; line-height:1.04; font-weight:900; letter-spacing:-.025em; }
   h2 { font-size:64px; line-height:1.1;  font-weight:900; letter-spacing:-.02em; margin-bottom:44px; }
-  .marca { color:${id.colores.marca}; }
+  /* Bronce CLARO (el del tema oscuro de globals.css): el bronce normal sobre
+     este fondo mide 3,6-4:1 y justo resalta las frases que venden ("rehacemos
+     el cristal", "30 dias de garantia"). El claro pasa de 9:1. El numero
+     grande (.dato) sigue con el bronce normal: como texto grande su umbral es
+     3:1 y lo cumple. */
+  .marca { color:${id.colores.marcaClara}; }
 
   /* Producto: la foto ocupa la mitad de arriba, sobre fondo claro para que el
      armazón se vea bien recortado. El texto va abajo, sin taparla. */
