@@ -5,6 +5,7 @@ import { fetchWa } from '@/lib/wa-config';
 import { PricingService } from './PricingService';
 import { normalizeArgentinePhone } from './contact.service';
 import { BUSINESS_INFO } from '@/lib/business-info';
+import { sendClientEmail, escHtml } from '@/lib/client-email';
 
 export class BotService {
     /**
@@ -149,17 +150,24 @@ export class BotService {
     }
 
     /**
-     * Notifica al cliente por WhatsApp que su pedido está listo y le informa su saldo usando el desglose financiero exacto.
+     * Notifica al cliente que su pedido está listo, con el desglose financiero
+     * exacto. Sale por WhatsApp y —si la ficha tiene mail— también por email,
+     * con copia al negocio. Es el aviso AUTOMÁTICO (cron de recordatorios); el
+     * botón manual vive en /api/orders/[id]/notify-ready y cubre lo mismo.
      */
     static async notifyOrderReady(order: any) {
         try {
             const clientName = order.client?.name || 'Cliente';
             const clientPhone = order.client?.phone;
-            
-            if (!clientPhone) return false;
+            const clientEmail = order.client?.email?.trim() || null;
+
+            // Sin teléfono NI mail no hay canal posible. Antes cortaba solo por
+            // teléfono, así que un cliente con mail cargado y número inválido
+            // nunca se enteraba de que su pedido estaba listo.
+            if (!clientPhone && !clientEmail) return false;
 
             const financials = PricingService.calculateOrderFinancials(order);
-            
+
             let message = `*Hola ${clientName}*\n\n`;
             message += `Te avisamos que *tu pedido ya está listo para retirar* en *Atelier Óptica*\n\n`;
             
@@ -178,31 +186,68 @@ export class BotService {
             message += `${BUSINESS_INFO.hoursWhatsAppBlock}\n\n`;
             message += `¡Te esperamos! Muchas gracias.\n`;
 
-            const formattedPhone = normalizeArgentinePhone(clientPhone);
-            if (!formattedPhone) return false;
+            // Email primero: nunca lanza, así un fallo de WhatsApp no se lleva
+            // puesto también este canal.
+            const saldoHtml = financials.hasBalance
+                ? `<p><strong>Detalle del saldo:</strong></p>
+<ul>
+  <li>Saldo con <strong>TARJETA / CUOTAS</strong>: $${financials.remainingCard.toLocaleString('es-AR')}</li>
+  <li>Saldo con <strong>TRANSFERENCIA</strong>: $${financials.remainingTransfer.toLocaleString('es-AR')}</li>
+  <li>Saldo si pagás en <strong>EFECTIVO</strong>: $${financials.remainingCash.toLocaleString('es-AR')}</li>
+</ul>
+<p>Podés abonar con cualquier medio de pago. ¿Nos podrías avisar cómo quisieras abonar el saldo?</p>`
+                : `<p>Tu pedido está <strong>completamente pago</strong>.</p>`;
 
-             // Send via internal WA server proxy
-            const res = await fetchWa('/api/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    chatId: `${formattedPhone}@c.us`, 
-                    message 
-                }),
+            const emailEnviado = await sendClientEmail({
+                to: clientEmail,
+                subject: '¡Tu pedido ya está listo para retirar! — Atelier Óptica',
+                bodyHtml: `<p><strong>Hola ${escHtml(clientName)}</strong>,</p>
+<p>Te avisamos que <strong>tu pedido ya está listo para retirar</strong> en Atelier Óptica.</p>
+${saldoHtml}
+<p>${escHtml(BUSINESS_INFO.hours)}</p>
+<p>¡Te esperamos! Muchas gracias.</p>`,
+                label: 'pedido listo (automático)',
             });
-            
-            if (!res.ok) {
-                const errText = await res.text();
-                console.warn('[Auto-Notify READY] WhatsApp server returned error:', errText);
-                throw new Error(errText || `HTTP ${res.status}`);
+
+            let whatsappEnviado = false;
+            if (clientPhone) {
+                const formattedPhone = normalizeArgentinePhone(clientPhone);
+                if (formattedPhone) {
+                    const res = await fetchWa('/api/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chatId: `${formattedPhone}@c.us`,
+                            message
+                        }),
+                    });
+
+                    whatsappEnviado = res.ok;
+                    // Solo escala a error si NINGÚN canal llegó: con el mail
+                    // enviado, tirar acá crearía una tarea de "notificar a mano"
+                    // por un cliente que ya está avisado.
+                    if (!res.ok && !emailEnviado) {
+                        const errText = await res.text();
+                        console.warn('[Auto-Notify READY] WhatsApp server returned error:', errText);
+                        throw new Error(errText || `HTTP ${res.status}`);
+                    }
+                    if (!res.ok) {
+                        console.warn('[Auto-Notify READY] WhatsApp falló pero el email salió: no se escala.');
+                    }
+                }
+            }
+
+            if (!whatsappEnviado && !emailEnviado) {
+                throw new Error('No se pudo notificar por ningún canal');
             }
 
             // Log interaction
+            const canales = [whatsappEnviado ? 'WhatsApp' : null, emailEnviado ? 'email' : null].filter(Boolean).join(' y ');
             await prisma.interaction.create({
                 data: {
                     clientId: order.clientId,
                     type: 'NOTE',
-                    content: `🤖 Notificación automática enviada: Listo para retirar. Saldo restante: Efectivo $${financials.remainingCash.toLocaleString('es-AR')}, Tarjeta $${financials.remainingCard.toLocaleString('es-AR')}, Transferencia $${financials.remainingTransfer.toLocaleString('es-AR')}.`
+                    content: `🤖 Notificación automática enviada por ${canales}: Listo para retirar. Saldo restante: Efectivo $${financials.remainingCash.toLocaleString('es-AR')}, Tarjeta $${financials.remainingCard.toLocaleString('es-AR')}, Transferencia $${financials.remainingTransfer.toLocaleString('es-AR')}.`
                 }
             });
             return true;
