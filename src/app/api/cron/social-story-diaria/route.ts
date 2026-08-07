@@ -50,6 +50,14 @@ function indiceDelDia(cantidad: number, porDia = 1): number {
     return ((n % cantidad) + cantidad) % cantidad;
 }
 
+async function leerBitacora(): Promise<any[]> {
+    const fila = await prisma.systemSetting.findUnique({ where: { key: CLAVE_BITACORA } });
+    try {
+        const datos = fila?.value ? JSON.parse(fila.value) : [];
+        return Array.isArray(datos) ? datos : [];
+    } catch { return []; }
+}
+
 async function registrarEnBitacora(entrada: Record<string, unknown>) {
     const fila = await prisma.systemSetting.findUnique({ where: { key: CLAVE_BITACORA } });
     let previas: unknown[] = [];
@@ -112,10 +120,27 @@ export async function GET(request: Request) {
             return NextResponse.json({ ok: true, dryRun: true, elegidas: conUrl });
         }
 
+        // DEDUP DEL MISMO DÍA: si una pieza ya salió hoy (el cron corrió dos
+        // veces, o alguien disparó a mano y después llegó el schedule), se
+        // salta. Existe porque el workflow ahora tiene DOS horarios de disparo
+        // — GitHub a veces se come un schedule y el segundo lo cubre — y sin
+        // esto el segundo duplicaría las 4 stories.
+        const bitacoraHoy = await leerBitacora();
+        const inicioDiaART = (() => {
+            const d = new Date(Date.now() - 3 * 60 * 60 * 1000);
+            return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) + 3 * 60 * 60 * 1000;
+        })();
+        const yaSalioHoy = (id: string) => bitacoraHoy.some(p =>
+            p.pieza === id && new Date(p.fecha).getTime() >= inicioDiaART);
+
         // En serie y no en paralelo: dos publicaciones simultáneas contra la
         // misma cuenta es la forma más rápida de que Meta empiece a limitar.
         const resultados = [];
         for (const e of conUrl) {
+            if (yaSalioHoy(e.id)) {
+                resultados.push({ ...e, ok: true, storyId: '(ya salió hoy, no se repite)' });
+                continue;
+            }
             const r = await publicarStory(e.url, e.id);
             resultados.push({ ...e, ...r });
             if (r.ok) {

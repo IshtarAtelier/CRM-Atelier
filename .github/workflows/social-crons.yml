@@ -21,10 +21,16 @@
 name: Social crons
 
 on:
+  # DOS disparos por cron, a 40 minutos: GitHub a veces se come un schedule
+  # (paso el 7/8: el de las 13:00 nunca disparo y las stories no salieron).
+  # Cada endpoint tiene dedup, asi que el segundo disparo no duplica nada:
+  # si el primero anduvo, el segundo responde "ya salio hoy" y listo.
   schedule:
-    - cron: '0 13 * * *'   # stories — 10:00 ART
-    - cron: '0 14 * * *'   # feed — 11:00 ART
-    - cron: '0 21 * * *'   # cadencia — 18:00 ART
+    - cron: '0 13 * * *'    # stories — 10:00 ART
+    - cron: '40 13 * * *'   # stories, red de seguridad
+    - cron: '0 14 * * *'    # feed — 11:00 ART
+    - cron: '40 14 * * *'   # feed, red de seguridad
+    - cron: '0 21 * * *'    # cadencia — 18:00 ART
   workflow_dispatch:
     inputs:
       cual:
