@@ -1085,6 +1085,20 @@ export class OrderService {
                     }
                     if (resolvedStatus !== undefined) caseData.status = resolvedStatus;
 
+                    // ── Cargar el nº de operación mueve el caso solo ─────────────
+                    // Si el caso tiene número de operación, el laboratorio ya lo tomó:
+                    // pedir que además alguien lo arrastre a "En laboratorio" es pedir
+                    // un paso que el dato ya contestó, y es el paso que se olvida.
+                    // Solo empuja hacia adelante desde el arranque; nunca retrocede un
+                    // caso que ya está más avanzado.
+                    const teniaOperacion = Boolean((activeCase.newOrderNumber || '').trim());
+                    const tieneOperacion = Boolean((postSaleNewOrderNumber || '').trim());
+                    const estadoActual = resolvedStatus ?? activeCase.status;
+                    if (!teniaOperacion && tieneOperacion && (estadoActual === 'SENT' || estadoActual === 'PENDING' || !estadoActual)) {
+                        caseData.status = 'IN_PROGRESS';
+                        resolvedStatus = 'IN_PROGRESS';
+                    }
+
                     // El costo ya imputado a caja es de solo lectura desde acá: tocarlo
                     // desataría un descuento y un número de caso que ya no coinciden.
                     // La corrección de un caso cerrado se hace revirtiendo la caja, no

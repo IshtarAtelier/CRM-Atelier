@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { LifeBuoy, ImageIcon, Receipt, Plus, X, Paperclip, ShieldCheck, ChevronDown, Copy, Check, Wallet } from 'lucide-react';
 import {
-    caseTypeStyle, postSaleStatusLabel,
+    caseTypeStyle, postSaleColumnLabel,
     POST_SALE_CASE_TYPES, POST_SALE_COVERAGE, POST_SALE_RESPONSIBLE_CAUSES,
     parseResponsibleOption, responsibleUserValue, type PostSaleUser
 } from '@/lib/constants/postSale';
@@ -364,7 +364,7 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                                 {c.caseType || 'Sin tipificar'}
                             </span>
                             <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300">
-                                {postSaleStatusLabel(c.status)}
+                                {postSaleColumnLabel(c)}
                             </span>
                             {stage !== 'SIN_COSTO' && (
                                 <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border ${COST_STAGE_UI[stage].cls}`}>

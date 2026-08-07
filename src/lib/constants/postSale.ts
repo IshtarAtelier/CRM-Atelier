@@ -124,17 +124,119 @@ export function caseTypeStyle(type?: string | null): string {
     return POST_SALE_CASE_TYPE_STYLES[type] || POST_SALE_CASE_TYPE_STYLES['Otro'];
 }
 
-// Etiqueta legible del estado del caso (mismo pipeline que el tablero de Post Venta).
+// ── Pipeline del caso ───────────────────────────────────────────────────────
+//
+// El tablero mezcla a propósito DOS recorridos: dónde está el anteojo (físico) y
+// dónde está la plata (económico). Se pueden mezclar porque el caso no se cierra
+// hasta que las dos cosas terminaron.
+//
+// La parte económica NO es un estado que alguien arrastra: ya está en los datos.
+// `costSource === 'LAB'` significa que el laboratorio facturó y cerró el costo
+// real; `cashEntryId` significa que ya se descontó de una caja
+// (ver /api/post-sale/[id]/cost). Si esas dos columnas fueran manuales, se
+// desincronizarían de la caja el primer día. Por eso se DERIVAN: la última
+// columna no se puede equivocar.
+//
+// Dos transiciones también son automáticas:
+//  · cargar el nº de operación ⇒ el caso pasa a "En laboratorio" (si tiene número,
+//    el laboratorio lo tomó: no tiene sentido pedir que además lo arrastren).
+//  · descontar el costo de caja ⇒ el caso pasa a "Cerrado".
+
+/** Estados que se guardan en la base y que una persona puede mover. */
+export const POST_SALE_MOVABLE_STATUSES = ['SENT', 'IN_PROGRESS', 'READY', 'DELIVERED'] as const;
+
+/** Columnas del tablero, en orden. La última es terminal y automática. */
+export const POST_SALE_PIPELINE = [
+    {
+        key: 'SENT',
+        label: 'Reportado',
+        hint: 'El caso se abrió. Todavía no hay nº de operación.',
+        borde: 'border-amber-400 dark:border-amber-700',
+        fondo: 'bg-amber-500/10',
+        texto: 'text-amber-800 dark:text-amber-400',
+    },
+    {
+        key: 'IN_PROGRESS',
+        label: 'En laboratorio',
+        hint: 'Tiene nº de operación: el laboratorio lo tomó. Entra solo al cargar el número.',
+        borde: 'border-blue-400 dark:border-blue-700',
+        fondo: 'bg-blue-500/10',
+        texto: 'text-blue-800 dark:text-blue-400',
+    },
+    {
+        key: 'READY',
+        label: 'Listo para retirar',
+        hint: 'El laboratorio terminó. Antes esto eran dos columnas ("Finalizado" y "Listo") que en la práctica se usaban igual.',
+        borde: 'border-emerald-400 dark:border-emerald-700',
+        fondo: 'bg-emerald-500/10',
+        texto: 'text-emerald-800 dark:text-emerald-400',
+    },
+    {
+        key: 'DELIVERED',
+        label: 'Entregado · a cobrar',
+        hint: 'El cliente ya lo tiene y queda plata por descontar de una caja.',
+        borde: 'border-orange-400 dark:border-orange-700',
+        fondo: 'bg-orange-500/10',
+        texto: 'text-orange-800 dark:text-orange-400',
+    },
+    {
+        key: 'CLOSED',
+        label: 'Cerrado',
+        hint: 'Se descontó de caja, o no había nada que cobrar. Entra solo.',
+        borde: 'border-stone-400 dark:border-stone-600',
+        fondo: 'bg-stone-500/10',
+        texto: 'text-stone-700 dark:text-stone-300',
+    },
+] as const;
+
+export type PostSaleColumnKey = typeof POST_SALE_PIPELINE[number]['key'];
+
+/** Lo mínimo que hace falta para ubicar un caso en el tablero. */
+export interface PostSaleColumnInput {
+    status?: string | null;
+    cost?: number | null;
+    cashEntryId?: string | null;
+}
+
+/**
+ * En qué columna va el caso. Derivado, nunca almacenado:
+ * - Ya descontado de caja ⇒ Cerrado.
+ * - Entregado sin nada que cobrar ⇒ Cerrado (si no, un caso sin cargo se quedaba
+ *   para siempre en "a cobrar" esperando algo que no iba a pasar).
+ * - 'FINISHED' es un estado viejo: cae en "Listo para retirar" junto con 'READY'.
+ */
+export function postSaleColumn(c: PostSaleColumnInput): PostSaleColumnKey {
+    if (c.cashEntryId) return 'CLOSED';
+    const status = c.status || 'SENT';
+    if (status === 'DELIVERED') return (c.cost ?? 0) > 0 ? 'DELIVERED' : 'CLOSED';
+    if (status === 'READY' || status === 'FINISHED') return 'READY';
+    if (status === 'IN_PROGRESS') return 'IN_PROGRESS';
+    return 'SENT';
+}
+
+/** El caso terminó: no hay nada más que hacerle. */
+export function postSaleCerrado(c: PostSaleColumnInput): boolean {
+    return postSaleColumn(c) === 'CLOSED';
+}
+
+// Etiqueta legible del estado. 'FINISHED' se muestra ya fusionado con 'READY'.
 export const POST_SALE_STATUS_LABELS: Record<string, string> = {
-    'PENDING': 'Reportado / Pendiente',
-    'SENT': 'Reportado / Pendiente',
-    'IN_PROGRESS': 'En Laboratorio',
-    'FINISHED': 'Finalizado (Lab)',
-    'READY': 'Listo p/ Retirar',
-    'DELIVERED': 'Entregado / Cerrado',
+    'PENDING': 'Reportado',
+    'SENT': 'Reportado',
+    'IN_PROGRESS': 'En laboratorio',
+    'FINISHED': 'Listo para retirar',
+    'READY': 'Listo para retirar',
+    'DELIVERED': 'Entregado · a cobrar',
+    'CLOSED': 'Cerrado',
 };
 
 export function postSaleStatusLabel(status?: string | null): string {
     if (!status) return POST_SALE_STATUS_LABELS['SENT'];
     return POST_SALE_STATUS_LABELS[status] || status;
+}
+
+/** La etiqueta que corresponde mostrar en la ficha: la de la columna derivada. */
+export function postSaleColumnLabel(c: PostSaleColumnInput): string {
+    const key = postSaleColumn(c);
+    return POST_SALE_PIPELINE.find(p => p.key === key)?.label || POST_SALE_STATUS_LABELS[key] || key;
 }

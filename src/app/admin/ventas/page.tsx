@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { ShoppingCart, Download, Search, Package, Clock, CheckCircle2, Truck, Eye, Pencil, X, AlertTriangle, FileText, Banknote, ArrowRightLeft, CreditCard, ChevronRight, ExternalLink, Loader2, ArrowRight, FlaskConical, Calendar, Factory, User, Users } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { PostSaleCard } from '@/components/orders/PostSaleCard';
-import { caseTypeStyle } from '@/lib/constants/postSale';
+import { caseTypeStyle, POST_SALE_PIPELINE, POST_SALE_MOVABLE_STATUSES, postSaleColumn } from '@/lib/constants/postSale';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { PricingService } from '@/services/PricingService';
 import { format } from 'date-fns';
@@ -659,8 +659,10 @@ export default function VentasPage() {
     }, [orders, search]);
 
     const handleMoveCard = async (order: Order, direction: 'left' | 'right') => {
-        const currentStatus = order.postSaleStatus || 'SENT';
-        const statusKeys = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+        // 'Cerrado' no está acá: no se arrastra, entra solo cuando se descuenta de
+        // caja. 'FINISHED' es un estado viejo que ahora cae en 'READY'.
+        const statusKeys: string[] = [...POST_SALE_MOVABLE_STATUSES];
+        const currentStatus = order.postSaleStatus === 'FINISHED' ? 'READY' : (order.postSaleStatus || 'SENT');
         let currentIdx = statusKeys.indexOf(currentStatus);
         if (currentIdx === -1) currentIdx = 0;
 
@@ -1884,18 +1886,16 @@ export default function VentasPage() {
                     {/* Kanban Board Container */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start pb-4">
                         {(() => {
-                            const PIPELINE_COLUMNS = [
-                                { key: 'SENT', label: 'Reportados / Pendientes', color: 'border-amber-400/80 bg-amber-500/10 text-amber-600' },
-                                { key: 'IN_PROGRESS', label: 'En Laboratorio', color: 'border-blue-400/80 bg-blue-500/10 text-blue-600' },
-                                { key: 'FINISHED', label: 'Finalizado (Lab)', color: 'border-fuchsia-400/80 bg-fuchsia-500/10 text-fuchsia-600' },
-                                { key: 'READY', label: 'Listo p/ Retirar', color: 'border-emerald-400/80 bg-emerald-500/10 text-emerald-600' },
-                                { key: 'DELIVERED', label: 'Entregado / Cerrado', color: 'border-indigo-400/80 bg-indigo-500/10 text-indigo-600' }
-                            ];
-
-                            return PIPELINE_COLUMNS.map(column => {
+                            // Las columnas viven en un solo lugar (constants/postSale) y la
+                            // última se deriva de la caja: ver el porqué allá.
+                            return POST_SALE_PIPELINE.map(column => {
                                 const columnOrders = postSaleOrders.filter(o => {
-                                    const status = o.postSaleStatus || 'SENT';
-                                    if (status !== column.key) return false;
+                                    const col = postSaleColumn({
+                                        status: o.postSaleStatus,
+                                        cost: o.postSaleCost,
+                                        cashEntryId: (o as any).postSaleCashEntryId,
+                                    });
+                                    if (col !== column.key) return false;
                                     if (caseTypeFilter) {
                                         const t = o.postSaleCaseType || 'Sin clasificar';
                                         if (t !== caseTypeFilter) return false;
@@ -1906,16 +1906,23 @@ export default function VentasPage() {
                                 return (
                                     <div 
                                         key={column.key}
-                                        className={`bg-stone-50/50 dark:bg-stone-900/30 rounded-3xl border-2 ${column.color.split(' ')[0]} p-4 flex flex-col min-h-[500px]`}
+                                        className={`bg-stone-50/50 dark:bg-stone-900/30 rounded-3xl border-2 ${column.borde} p-4 flex flex-col min-h-[500px]`}
                                     >
-                                        {/* Column Header */}
-                                        <div className="flex items-center justify-between mb-4 border-b border-stone-200/30 dark:border-stone-800 pb-2 flex-shrink-0">
-                                            <h3 className={`text-xs font-black uppercase tracking-wider ${column.color.split(' ')[2]}`}>
-                                                {column.label}
-                                            </h3>
-                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${column.color.split(' ')[1]} ${column.color.split(' ')[2]}`}>
-                                                {columnOrders.length}
-                                            </span>
+                                        {/* Encabezado: la columna dice qué significa. Con
+                                            dos columnas que entran solas, sin esa línea
+                                            no hay forma de saber por qué cayó un caso ahí. */}
+                                        <div className="mb-4 border-b border-stone-300/60 dark:border-stone-800 pb-2 flex-shrink-0">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <h3 className={`text-xs font-black uppercase tracking-wider ${column.texto}`}>
+                                                    {column.label}
+                                                </h3>
+                                                <span className={`px-2 py-0.5 rounded-lg text-[11px] font-black ${column.fondo} ${column.texto}`}>
+                                                    {columnOrders.length}
+                                                </span>
+                                            </div>
+                                            <p className="mt-1 text-[11px] leading-snug text-stone-600 dark:text-stone-400">
+                                                {column.hint}
+                                            </p>
                                         </div>
 
                                         {/* Cards Stack */}

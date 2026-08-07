@@ -3,7 +3,7 @@ import { Eye, ChevronLeft, ChevronRight, ChevronDown, FlaskConical, Loader2, Rot
 import { Order } from '@/types/orders';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
-import { caseTypeStyle } from '@/lib/constants/postSale';
+import { caseTypeStyle, POST_SALE_MOVABLE_STATUSES, postSaleCerrado } from '@/lib/constants/postSale';
 
 interface PostSaleCardProps {
     order: Order;
@@ -261,12 +261,19 @@ export function PostSaleCard({
         else setRx2((prev: any) => ({ ...prev, [field]: val }));
     };
 
-    const currentStatus = order.postSaleStatus || 'SENT';
-    const statusKeys = ['SENT', 'IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+    // 'Cerrado' no se mueve a mano: entra solo al descontarse de caja. Y un caso
+    // ya cerrado no vuelve para atrás desde acá — eso exige revertir el movimiento.
+    const cerrado = postSaleCerrado({
+        status: order.postSaleStatus,
+        cost: order.postSaleCost,
+        cashEntryId: (order as any).postSaleCashEntryId,
+    });
+    const statusKeys: string[] = [...POST_SALE_MOVABLE_STATUSES];
+    const currentStatus = order.postSaleStatus === 'FINISHED' ? 'READY' : (order.postSaleStatus || 'SENT');
     let currentIdx = statusKeys.indexOf(currentStatus);
     if (currentIdx === -1) currentIdx = 0;
-    const canMoveLeft = currentIdx > 0;
-    const canMoveRight = currentIdx < statusKeys.length - 1;
+    const canMoveLeft = !cerrado && currentIdx > 0;
+    const canMoveRight = !cerrado && currentIdx < statusKeys.length - 1;
 
     const renderRxFormInline = (pairRx: any, pairNum: 1 | 2) => {
         const odFields = [

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import {
     POST_SALE_CASE_TYPES, POST_SALE_COVERAGE, POST_SALE_RESPONSIBLE_CAUSES,
-    caseTypeStyle, postSaleStatusLabel,
+    caseTypeStyle, postSaleColumnLabel,
     parseResponsibleOption, responsibleOptionOf, responsibleUserValue, cajaDestino,
     type PostSaleUser,
 } from '@/lib/constants/postSale';
@@ -352,7 +352,7 @@ export function PostSaleServiceForm({
         <div className="flex flex-wrap items-center gap-1.5">
             <span className={`${CHIP} ${caseTypeStyle(value.caseType)}`}>{value.caseType || 'Sin tipificar'}</span>
             <span className={`${CHIP} border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300`}>
-                {postSaleStatusLabel(value.status)}
+                {postSaleColumnLabel({ status: value.status, cost: value.cost, cashEntryId: value.cashEntryId })}
             </span>
             {value.coverage && (
                 <span className={`${CHIP} ${value.coverage === 'Con cargo'
