@@ -1,0 +1,23 @@
+{
+  "id": "ad-l2-calificacion-story",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "temas": [
+    "local",
+    "reseñas"
+  ],
+  "caption": "★ 5,0 con 675 reseñas en Google. “Volví a elegirlos porque la calidad es realmente impecable. Los anteojos multifocales son hermosos y de primera.” — Claudia S. Escribinos por WhatsApp y comprobalo.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "blog/fachada-ladrillo.jpg",
+      "encuadre": "cover",
+      "title": "675 reseñas en Google",
+      "dato": "★ 5,0",
+      "body": "“Volví a elegirlos porque la calidad es *realmente impecable*. Los anteojos multifocales son hermosos y de primera.” — Claudia S."
+    }
+  ]
+}
