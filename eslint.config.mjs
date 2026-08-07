@@ -16,8 +16,13 @@ const compat = new FlatCompat({
 const eslintConfig = [
   {
     ignores: [
-        ".next/**", 
-        "node_modules/**", 
+        ".next/**",
+        // Los dev servers en puertos paralelos generan `.next-<nombre>` (ver
+        // CLAUDE.md). El .gitignore ya los cubre, pero ESLint no: uno solo de
+        // esos directorios metía 26 errores de un archivo generado y tapaba
+        // los 5 reales.
+        ".next-*/**",
+        "node_modules/**",
         "build/**", 
         "out/**", 
         "public/**", 
