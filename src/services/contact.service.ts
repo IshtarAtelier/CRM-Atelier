@@ -2207,34 +2207,22 @@ export const ContactService = {
                     // nunca lanza), y sale aunque la ficha no tenga teléfono — el caso
                     // Pedraza (7/8/2026): número sin WhatsApp pero mail válido, y el
                     // recibo no tenía por dónde llegar.
-                    if (pdfMedia && clientEmail && clientEmail.includes('@')) {
-                        try {
-                            const { sendEmail } = await import('@/lib/email');
-                            const { RECEIPTS_BCC_EMAIL } = await import('@/lib/constants');
-                            const escHtml = (v: unknown) => String(v ?? '')
-                                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                            const emailResult = await sendEmail({
-                                to: clientEmail,
-                                bcc: RECEIPTS_BCC_EMAIL,
-                                subject: `Tu recibo de pago — Atelier Óptica`,
-                                html: `<p>Hola <strong>${escHtml(result.clientName)}</strong>,</p>
+                    if (pdfMedia) {
+                        const { sendClientEmail, escHtml } = await import('@/lib/client-email');
+                        await sendClientEmail({
+                            to: clientEmail,
+                            subject: 'Tu recibo de pago — Atelier Óptica',
+                            bodyHtml: `<p>Hola <strong>${escHtml(result.clientName)}</strong>,</p>
 <p>Desde Atelier Óptica te enviamos el comprobante de tu pago ${escHtml(methodLabel)} por <strong>$${amount.toLocaleString('es-AR')}</strong> con fecha <strong>${today}</strong>.</p>
 <p>Vas a encontrar el recibo adjunto en PDF.</p>
-<p>¡Muchas gracias!<br/>Atelier Óptica — José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba</p>`,
-                                attachments: [{
-                                    filename: pdfMedia.filename,
-                                    content: pdfMedia.base64,
-                                    contentType: 'application/pdf'
-                                }]
-                            });
-                            if (emailResult.success) {
-                                console.log(`[Payment Notification] Recibo enviado por email a ${clientEmail} (BCC Atelier).`);
-                            } else {
-                                console.error('[Payment Notification] Falló el email del recibo:', emailResult.error);
-                            }
-                        } catch (emailErr) {
-                            console.error('[Payment Notification] Error enviando recibo por email:', emailErr);
-                        }
+<p>¡Muchas gracias!</p>`,
+                            attachments: [{
+                                filename: pdfMedia.filename,
+                                content: pdfMedia.base64,
+                                contentType: 'application/pdf'
+                            }],
+                            label: 'recibo',
+                        });
                     }
 
                     // Enviar comprobante automático al cliente para cualquier método de pago

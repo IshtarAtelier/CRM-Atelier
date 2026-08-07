@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { fetchWa } from '@/lib/wa-config';
 import { generateOrderPDF } from '@/lib/order-pdf-generator';
 import { getActor } from '@/lib/actor';
+import { sendClientEmail, escHtml } from '@/lib/client-email';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -53,6 +54,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         } catch (pdfError: any) {
             console.error('[send-pdf] PDF generation failed:', pdfError.message);
             // No hacemos un early return: caemos al link de respaldo (Caso B).
+        }
+
+        // Copia por EMAIL del mismo documento, si la ficha tiene mail. Canal
+        // adicional e independiente (nunca lanza): va antes del envío por
+        // WhatsApp para que un fallo de WhatsApp no se lo lleve puesto.
+        if (pdfResult) {
+            await sendClientEmail({
+                to: order.client.email,
+                subject: 'Tu presupuesto — Atelier Óptica',
+                bodyHtml: `<p>Hola <strong>${escHtml(order.client.name)}</strong>,</p>
+<p>Te enviamos el documento adjunto en PDF.</p>
+<p style="white-space:pre-wrap">${escHtml(text)}</p>`,
+                attachments: [{
+                    filename: pdfResult.filename,
+                    content: pdfResult.base64,
+                    contentType: 'application/pdf',
+                }],
+                label: 'presupuesto',
+            });
         }
 
         // Caso A: El PDF se generó bien → lo enviamos como Documento adjunto.
