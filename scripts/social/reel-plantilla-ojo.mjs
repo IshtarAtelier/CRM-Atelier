@@ -109,10 +109,10 @@ export function htmlDeReelOjo(reel, id, logoUri) {
   #titulo { top:300px; }
   #titulo h1 { font-size:100px; line-height:1.06; font-weight:900; letter-spacing:-.025em; }
   #titulo p  { margin-top:30px; font-size:42px; opacity:.85; }
-  .texto { top:1200px; }
+  .texto { bottom:520px; }
   .texto h2 { font-size:56px; line-height:1.12; font-weight:900; letter-spacing:-.02em; }
   .texto p  { margin-top:22px; font-size:38px; line-height:1.35; opacity:.88; }
-  #cierre { top:1200px; }
+  #cierre { bottom:520px; }
   #cierre h2 { font-size:74px; line-height:1.08; font-weight:900; letter-spacing:-.02em; }
   #cierre p { margin-top:24px; font-size:36px; line-height:1.35; opacity:.85; }
   .marca { color:${bronce}; }
@@ -259,12 +259,12 @@ export function htmlDeReelOjo(reel, id, logoUri) {
     o.style.opacity = fOutro;
     o.style.transform = 'scale(' + (0.94 + 0.06 * suave(clamp01((t - 11750) / 900))) + ')';
     $('#outroLinea').style.width = (suave(clamp01((t - 12250) / 800)) * 260) + 'px';
-    $('#pie').style.opacity = String(1 - fOutro);
+    $('#pie').style.opacity = String(1 - suave(clamp01((t - 11350) / 300)));
 
     // La cámara: push-in lentísimo sobre el diagrama, ida sola (no vuelve:
     // el corte al outro tapa el regreso y el loop no se nota)
-    const vivo = clamp01((t - 2300) / 500);
-    const pushIn = 1 + 0.05 * suave(clamp01((t - 2300) / 9000));
+    const vivo = clamp01((t - 1800) / 500);
+    const pushIn = 1 + 0.05 * suave(clamp01((t - 1800) / 9000));
     const lienzo = $('#lienzo');
     lienzo.style.transform = 'scale(' + pushIn + ')';
     lienzo.style.opacity = (0.15 + 0.85 * vivo) * (t > 9400 ? 0.33 : 1) * (1 - fOutro);
@@ -288,7 +288,7 @@ export function htmlDeReelOjo(reel, id, logoUri) {
     }
 
     const fx = FX_MAL + (RETINA_X - FX_MAL) * corr;
-    const traza = suave(clamp01((t - 2600) / 900));
+    const traza = suave(clamp01((t - 2100) / 900));
 
     OFFS.forEach((off, i) => {
         const y0 = CY + off;

@@ -34,8 +34,8 @@ const resaltar = (t) => esc(t).replace(/\*([^*]+)\*/g, '<span class="marca">$1</
 
 const TIPOS = {
     monofocal: {
-        titulo: 'La lente *monofocal*',
-        bajada: 'Una sola graduación, una distancia perfecta.',
+        titulo: '¿Tu receta es de *una sola distancia*?',
+        bajada: 'La monofocal la resuelve entera. Simple y nítida.',
         explica: 'Toda la superficie con *una graduación*',
         explica2: 'Elegís la distancia: lejos, o cerca. Y esa distancia se ve perfecta.',
         remate: 'Simple y *nítida*',
@@ -110,10 +110,10 @@ export function htmlDeReelLente(reel, id, logoUri) {
   #titulo { top:290px; }
   #titulo h1 { font-size:100px; line-height:1.06; font-weight:900; letter-spacing:-.025em; }
   #titulo p  { margin-top:30px; font-size:42px; opacity:.85; }
-  .texto { top:1200px; }
+  .texto { bottom:520px; }
   .texto h2 { font-size:58px; line-height:1.12; font-weight:900; letter-spacing:-.02em; }
   .texto p  { margin-top:22px; font-size:38px; line-height:1.35; opacity:.88; }
-  #cierre { top:1200px; }
+  #cierre { bottom:520px; }
   #cierre h2 { font-size:72px; line-height:1.08; font-weight:900; letter-spacing:-.02em; }
   #cierre p { margin-top:24px; font-size:36px; line-height:1.35; opacity:.85; }
   .marca { color:${bronce}; }
@@ -282,10 +282,10 @@ export function htmlDeReelLente(reel, id, logoUri) {
     o.style.opacity = fOutro;
     o.style.transform = 'scale(' + (0.94 + 0.06 * suave(clamp01((t - 11750) / 900))) + ')';
     $('#outroLinea').style.width = (suave(clamp01((t - 12250) / 800)) * 260) + 'px';
-    $('#pie').style.opacity = String(1 - fOutro);
+    $('#pie').style.opacity = String(1 - suave(clamp01((t - 11350) / 300)));
 
-    const vivo = clamp01((t - 2300) / 500);
-    const pushIn = 1 + 0.05 * suave(clamp01((t - 2300) / 9000));
+    const vivo = clamp01((t - 1800) / 500);
+    const pushIn = 1 + 0.05 * suave(clamp01((t - 1800) / 9000));
     const lienzo = $('#lienzo');
     lienzo.style.transform = 'scale(' + pushIn + ')';
     lienzo.style.opacity = (0.15 + 0.85 * vivo) * (t > 9600 ? 0.33 : 1) * (1 - fOutro);
@@ -295,7 +295,7 @@ export function htmlDeReelLente(reel, id, logoUri) {
     $('#destello').setAttribute('transform', 'translate(' + (barrida * 1500 - 400) + ' 0) rotate(18 500 415)');
 
     // Las zonas, por tipo
-    const zona = suave(clamp01((t - 2700) / 1100));
+    const zona = suave(clamp01((t - 2100) / 1100));
     if (TIPO === 'monofocal')  $('#zonaUniforme').setAttribute('opacity', String(zona * 0.26));
     if (TIPO === 'progresivo') $('#zonaGradiente').setAttribute('opacity', String(zona));
     if (TIPO === 'bifocal') {

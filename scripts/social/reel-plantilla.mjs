@@ -152,7 +152,9 @@ export function htmlDeReel(reel, id, fondoUri, logoUri) {
     o.style.transform = 'scale(' + (0.94 + 0.06 * suave(Math.max(0, Math.min(1, (tl - (DUR - OUTRO)) / 900)))) + ')';
     document.getElementById('outroLinea').style.width =
         (suave(Math.max(0, Math.min(1, (tl - (DUR - OUTRO + 500)) / 800))) * 260) + 'px';
-    document.getElementById('pie').style.opacity = String(1 - fOutro);
+    // El pie se va ANTES de que entre el logo central: no conviven dos logos
+    document.getElementById('pie').style.opacity =
+        String(1 - suave(Math.max(0, Math.min(1, (tl - (DUR - OUTRO - 450)) / 300))));
 
     escenas.forEach((el, i) => {
       const inicio = i * porEscena;

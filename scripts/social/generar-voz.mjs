@@ -152,7 +152,9 @@ export async function generarVoz(rutaJson, { voz = VOZ_DEFAULT, aplicar = false 
     // del video en silencio (el outro del logo queda sin voz, como debe ser).
     await ejecutar(ffmpeg, [
         '-y', '-i', videoHosteado, '-i', wav,
-        '-filter_complex', `[1:a]adelay=400|400${filtroTempo},apad[a]`,
+        // loudnorm: los 14 reels al mismo volumen (-16 LUFS). Sin esto habia
+        // 5.5 dB de dispersion entre piezas y dos quedaban 'bajitas'.
+        '-filter_complex', `[1:a]adelay=400|400${filtroTempo},loudnorm=I=-16:TP=-1.5:LRA=11,apad[a]`,
         '-map', '0:v', '-map', '[a]',
         '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',
         '-t', durVideo.toFixed(2),
