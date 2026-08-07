@@ -1,0 +1,22 @@
+{
+  "id": "ad-l1-garantia-30-dias",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "temas": [
+    "multifocales"
+  ],
+  "caption": "¿Y si no me adapto? Es la pregunta que más escuchamos. Por eso damos 30 días de garantía de adaptación: si el multifocal no te resulta, rehacemos el cristal. Escribinos por WhatsApp y te contamos cómo funciona.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "blog/multifocal-mujer-lectura.png",
+      "encuadre": "cover",
+      "title": "Garantía de adaptación",
+      "dato": "30 días",
+      "body": "Si no te adaptás al multifocal, *rehacemos el cristal*. Sin letra chica."
+    }
+  ]
+}
