@@ -31,6 +31,7 @@ import { promisify } from 'node:util';
 import { cargarIdentidad, RAIZ } from './identidad.mjs';
 import { htmlDeReel, DURACION_MS, FPS } from './reel-plantilla.mjs';
 import { htmlDeReelOjo, DURACION_OJO_MS } from './reel-plantilla-ojo.mjs';
+import { htmlDeReelLente, DURACION_LENTE_MS } from './reel-plantilla-lente.mjs';
 import { hashtagsDeReel } from './seo.mjs';
 
 const ejecutar = promisify(execFile);
@@ -67,7 +68,7 @@ export async function renderizarReel(rutaJson) {
     const id = await cargarIdentidad();
 
     const fotoRuta = resolverImagen(reel.imagen);
-    if (!fotoRuta && reel.plantilla !== 'ojo') {
+    if (!fotoRuta && !['ojo', 'lente'].includes(reel.plantilla)) {
         // Misma lógica que la regla R5 de las placas: si la foto no existe, no
         // se renderiza. Un reel con el fondo vacío es peor que ningún reel.
         throw new Error(`La imagen "${reel.imagen}" no existe en el banco. No se renderiza.`);
@@ -83,10 +84,13 @@ export async function renderizarReel(rutaJson) {
     // una promo aguanta 6. La duración vive en la plantilla y no en el JSON
     // para que el timeline interno y el largo del video no puedan divergir.
     const esOjo = reel.plantilla === 'ojo';
-    const DUR = esOjo ? DURACION_OJO_MS : DURACION_MS;
+    const esLente = reel.plantilla === 'lente';
+    const DUR = esOjo ? DURACION_OJO_MS : esLente ? DURACION_LENTE_MS : DURACION_MS;
     const html = esOjo
         ? htmlDeReelOjo(reel, id, await aDataUri(id.logo))
-        : htmlDeReel(reel, id, await aDataUri(fotoRuta), await aDataUri(id.logo));
+        : esLente
+            ? htmlDeReelLente(reel, id, await aDataUri(id.logo))
+            : htmlDeReel(reel, id, await aDataUri(fotoRuta), await aDataUri(id.logo));
 
     const { chromium } = await import('playwright');
     const navegador = await chromium.launch();

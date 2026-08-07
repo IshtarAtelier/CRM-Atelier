@@ -33,7 +33,8 @@ const ejecutar = promisify(execFile);
 const SALIDA = path.join(RAIZ, 'social', 'contenido', 'reels', 'salida');
 const HOSTEO = path.join(RAIZ, 'public', 'social', 'reels');
 
-const VOZ_DEFAULT = 'Sulafat';
+// Aoede: la eligio el usuario escuchando el comparador (6/8/2026).
+const VOZ_DEFAULT = 'Aoede';
 const VOCES_CANDIDATAS = ['Sulafat', 'Aoede', 'Leda'];
 const DURACION_VIDEO_S = 14;
 const TOPE_NARRACION_S = 13.3;
