@@ -2164,46 +2164,84 @@ export const ContactService = {
                         console.log('[Payment Notification] WhatsApp sent successfully to Admin');
                     }
 
+                    const today = new Date().toLocaleDateString('es-AR');
+                    let methodLabel = method;
+                    if (method === 'EFECTIVO' || method === 'CASH') methodLabel = 'en efectivo';
+                    else if (method.includes('TRANSFERENCIA')) methodLabel = 'mediante transferencia bancaria';
+                    else if (method.includes('NARANJA_Z') || method === 'PLAN_Z') methodLabel = 'mediante Tarjeta Naranja (Plan Z)';
+                    else if (method.includes('PAY_WAY_3') || method === 'CREDIT_3') methodLabel = 'mediante Tarjeta de Crédito (3 Cuotas)';
+                    else if (method.includes('PAY_WAY_6') || method === 'CREDIT_6') methodLabel = 'mediante Tarjeta de Crédito (6 Cuotas)';
+                    else if (method.includes('PAY_WAY')) methodLabel = 'mediante Tarjeta de Crédito';
+                    else if (method.includes('GO_CUOTAS')) methodLabel = 'mediante Go Cuotas';
+                    else methodLabel = `mediante ${method.replace(/_/g, ' ')}`;
+
+                    // Generar PDF del recibo (una sola vez: lo usan WhatsApp Y email).
+                    // De la misma consulta sale el email del cliente para el canal nuevo.
+                    let pdfMedia: any = null;
+                    let clientEmail: string | null = null;
+                    try {
+                        const { generateReceiptPDF } = await import('@/lib/receipt-pdf-generator');
+
+                        const fullOrder = await prisma.order.findUnique({
+                            where: { id: orderId },
+                            include: { client: true }
+                        });
+
+                        if (fullOrder && fullOrder.client) {
+                            clientEmail = fullOrder.client.email?.trim() || null;
+                            const pdfResult = await generateReceiptPDF(result, fullOrder, fullOrder.client);
+                            pdfMedia = {
+                                base64: pdfResult.base64,
+                                mimetype: 'application/pdf',
+                                filename: pdfResult.filename
+                            };
+                            console.log('[Payment Notification] Receipt PDF generated successfully.');
+                        }
+                    } catch (pdfErr) {
+                        console.error('[Payment Notification] Failed to generate Receipt PDF:', pdfErr);
+                    }
+
+                    // Canal EMAIL: si la ficha tiene mail cargado, el recibo va también
+                    // por ahí, con copia (BCC) a Atelier. Es un canal ADICIONAL e
+                    // independiente: su falla no toca el flujo de WhatsApp (sendEmail
+                    // nunca lanza), y sale aunque la ficha no tenga teléfono — el caso
+                    // Pedraza (7/8/2026): número sin WhatsApp pero mail válido, y el
+                    // recibo no tenía por dónde llegar.
+                    if (pdfMedia && clientEmail && clientEmail.includes('@')) {
+                        try {
+                            const { sendEmail } = await import('@/lib/email');
+                            const escHtml = (v: unknown) => String(v ?? '')
+                                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            const emailResult = await sendEmail({
+                                to: clientEmail,
+                                bcc: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                                subject: `Tu recibo de pago — Atelier Óptica`,
+                                html: `<p>Hola <strong>${escHtml(result.clientName)}</strong>,</p>
+<p>Desde Atelier Óptica te enviamos el comprobante de tu pago ${escHtml(methodLabel)} por <strong>$${amount.toLocaleString('es-AR')}</strong> con fecha <strong>${today}</strong>.</p>
+<p>Vas a encontrar el recibo adjunto en PDF.</p>
+<p>¡Muchas gracias!<br/>Atelier Óptica — José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba</p>`,
+                                attachments: [{
+                                    filename: pdfMedia.filename,
+                                    content: pdfMedia.base64,
+                                    contentType: 'application/pdf'
+                                }]
+                            });
+                            if (emailResult.success) {
+                                console.log(`[Payment Notification] Recibo enviado por email a ${clientEmail} (BCC Atelier).`);
+                            } else {
+                                console.error('[Payment Notification] Falló el email del recibo:', emailResult.error);
+                            }
+                        } catch (emailErr) {
+                            console.error('[Payment Notification] Error enviando recibo por email:', emailErr);
+                        }
+                    }
+
                     // Enviar comprobante automático al cliente para cualquier método de pago
                     if (result.clientPhone) {
                         let phoneTo = normalizeArgentinePhone(result.clientPhone);
                         if (!phoneTo.endsWith('@c.us')) phoneTo = `${phoneTo}@c.us`;
 
-                        const today = new Date().toLocaleDateString('es-AR');
-                        let methodLabel = method;
-                        if (method === 'EFECTIVO' || method === 'CASH') methodLabel = 'en efectivo';
-                        else if (method.includes('TRANSFERENCIA')) methodLabel = 'mediante transferencia bancaria';
-                        else if (method.includes('NARANJA_Z') || method === 'PLAN_Z') methodLabel = 'mediante Tarjeta Naranja (Plan Z)';
-                        else if (method.includes('PAY_WAY_3') || method === 'CREDIT_3') methodLabel = 'mediante Tarjeta de Crédito (3 Cuotas)';
-                        else if (method.includes('PAY_WAY_6') || method === 'CREDIT_6') methodLabel = 'mediante Tarjeta de Crédito (6 Cuotas)';
-                        else if (method.includes('PAY_WAY')) methodLabel = 'mediante Tarjeta de Crédito';
-                        else if (method.includes('GO_CUOTAS')) methodLabel = 'mediante Go Cuotas';
-                        else methodLabel = `mediante ${method.replace(/_/g, ' ')}`;
-                        
                         const clientMsgText = `Hola *${result.clientName}*, desde Atelier te informamos que hemos recibido tu pago ${methodLabel} por *$${amount.toLocaleString('es-AR')}* con fecha *${today}*. ¡Muchas gracias!`;
-
-                        // Generar PDF del recibo
-                        let pdfMedia: any = null;
-                        try {
-                            const { generateReceiptPDF } = await import('@/lib/receipt-pdf-generator');
-                            
-                            const fullOrder = await prisma.order.findUnique({
-                                where: { id: orderId },
-                                include: { client: true }
-                            });
-                            
-                            if (fullOrder && fullOrder.client) {
-                                const pdfResult = await generateReceiptPDF(result, fullOrder, fullOrder.client);
-                                pdfMedia = {
-                                    base64: pdfResult.base64,
-                                    mimetype: 'application/pdf',
-                                    filename: pdfResult.filename
-                                };
-                                console.log('[Payment Notification] Receipt PDF generated successfully.');
-                            }
-                        } catch (pdfErr) {
-                            console.error('[Payment Notification] Failed to generate Receipt PDF:', pdfErr);
-                        }
 
                         // Enviar al cliente en DOS mensajes: primero el TEXTO solo,
                         // después el PDF. Producción (5/8/2026) mostró que los envíos
