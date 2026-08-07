@@ -1,0 +1,25 @@
+{
+  "id": "ad-l2-numeros-que-cierran-apaisado",
+  "format": "1.91:1",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "temas": [
+    "armazones",
+    "local"
+  ],
+  "caption": "Ya los viste. Ahora los números: 6 cuotas sin interés con tarjeta, 20% de descuento en efectivo o 15% por transferencia. Lunes a sábado, sin turno previo. Escribinos por WhatsApp.",
+  "slides": [
+    {
+      "type": "list",
+      "role": "portada",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Elegí *cómo pagarlos*",
+      "items": [
+        "*6 cuotas* sin interés con tarjeta",
+        "*20%* de descuento en efectivo",
+        "*15%* pagando por transferencia"
+      ]
+    }
+  ]
+}

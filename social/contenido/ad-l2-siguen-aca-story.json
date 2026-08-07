@@ -1,0 +1,21 @@
+{
+  "id": "ad-l2-siguen-aca-story",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "temas": [
+    "armazones",
+    "local"
+  ],
+  "caption": "Esos lentes que estuviste mirando siguen acá. 6 cuotas sin interés con tarjeta, 20% en efectivo o 15% por transferencia. Pasá por el Cerro sin turno, o escribinos por WhatsApp.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "Esos lentes *siguen acá*",
+      "body": "6 cuotas sin interés, *20% en efectivo* o 15% por transferencia. José Luis de Tejeda 4380, sin turno previo."
+    }
+  ]
+}
