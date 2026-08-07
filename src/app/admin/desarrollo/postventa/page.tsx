@@ -281,7 +281,7 @@ export default function PostVentaPage() {
                                         <div className="border-t border-stone-100 dark:border-stone-800/80 bg-stone-50/30 dark:bg-stone-900/30">
                                             <OrderDetailPanel 
                                                 order={order}
-                                                context="pedidos"
+                                                context="postventa"
                                                 onRefresh={fetchPostSales}
                                             />
                                         </div>
@@ -358,7 +358,7 @@ export default function PostVentaPage() {
                                     <div className="border-t border-stone-100 dark:border-stone-800/80 mt-3 pt-3">
                                         <OrderDetailPanel 
                                             order={order}
-                                            context="pedidos"
+                                            context="postventa"
                                             onRefresh={fetchPostSales}
                                         />
                                     </div>

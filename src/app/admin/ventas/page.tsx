@@ -1976,7 +1976,7 @@ export default function VentasPage() {
                                     </div>
                                     <OrderDetailPanel
                                         order={order as any}
-                                        context="ventas"
+                                        context={viewMode === 'POST_VENTA' ? 'postventa' : 'ventas'}
                                         onAutoSubmit={autoSubmitSmartLab}
                                         isAutoSubmitting={isAutoSubmitting}
                                         userRole={userRole}

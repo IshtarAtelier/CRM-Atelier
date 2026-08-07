@@ -342,6 +342,7 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
     const [open, setOpen] = useState(!!highlighted);
     const stage = costStage(c);
     const notesCount = c.notesList?.length || 0;
+    const ultimaObservacion = c.notesList?.[c.notesList.length - 1];
 
     return (
         <div className={`space-y-3 ${highlighted ? 'rounded-[1.75rem] ring-2 ring-amber-400/70 dark:ring-amber-500/50 p-3 -m-1' : ''}`}>
@@ -359,30 +360,46 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                         aria-expanded={open}
                     >
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${caseTypeStyle(c.caseType)}`}>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border ${caseTypeStyle(c.caseType)}`}>
                                 {c.caseType || 'Sin tipificar'}
                             </span>
-                            <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border border-stone-200 dark:border-stone-700 text-stone-500 dark:text-stone-400">
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300">
                                 {postSaleStatusLabel(c.status)}
                             </span>
                             {stage !== 'SIN_COSTO' && (
-                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${COST_STAGE_UI[stage].cls}`}>
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border ${COST_STAGE_UI[stage].cls}`}>
                                     {stage === 'IMPUTADO' ? 'Cobrado' : stage === 'CERRADO' ? 'Listo para cobrar' : 'Estimado'}
                                     {(c.cost ?? 0) > 0 ? ` · $${Math.round(c.cost!).toLocaleString('es-AR')}` : ''}
                                 </span>
                             )}
-                            {c.createdAt && (
-                                <span className="ml-auto text-[9px] font-bold text-stone-400">{formatDateTime(c.createdAt)}</span>
+                            {c.responsible && (
+                                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md border border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300">
+                                    👤 {c.responsible}
+                                </span>
                             )}
-                            <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+                            {c.createdAt && (
+                                <span className="ml-auto text-[10px] font-bold text-stone-600 dark:text-stone-400">{formatDateTime(c.createdAt)}</span>
+                            )}
+                            <ChevronDown className={`w-4 h-4 text-stone-600 dark:text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`} />
                         </div>
 
+                        {/* Cerrada, la tarjeta tiene que decir en qué anda el caso. Antes
+                            decía "4 observaciones · Doctor": el conteo no es la noticia,
+                            la última observación sí. */}
                         {!open && (
-                            <p className="mt-2 text-[10px] font-bold text-stone-400 group-hover:text-stone-600 dark:group-hover:text-stone-300 transition-colors">
-                                {notesCount > 0 ? `${notesCount} observación${notesCount === 1 ? '' : 'es'}` : 'Sin observaciones'}
-                                {(c.responsible || c.fault) ? ` · ${c.responsible || c.fault}` : ''}
-                                {' · '}Ver ficha completa
-                            </p>
+                            <div className="mt-2">
+                                {ultimaObservacion ? (
+                                    <p className="text-[13px] text-stone-700 dark:text-stone-300 leading-relaxed line-clamp-2">
+                                        {ultimaObservacion.content}
+                                    </p>
+                                ) : (
+                                    <p className="text-[13px] text-stone-600 dark:text-stone-400 italic">Sin observaciones registradas.</p>
+                                )}
+                                <p className="mt-1 text-[11px] font-bold text-stone-600 dark:text-stone-400 group-hover:text-stone-900 dark:group-hover:text-stone-200 transition-colors">
+                                    {notesCount > 0 && `${notesCount} observación${notesCount === 1 ? '' : 'es'} · `}
+                                    Abrir la ficha del caso
+                                </p>
+                            </div>
                         )}
                     </button>
 

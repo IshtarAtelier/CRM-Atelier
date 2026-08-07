@@ -34,7 +34,8 @@ export const LAB_STEPS = [
 
 interface OrderDetailPanelProps {
     order: Order & { authorizedByAdmin?: boolean };
-    context?: 'ventas' | 'pedidos';
+    /** 'postventa' = se entró desde el tablero de Post Venta: el caso encabeza el panel. */
+    context?: 'ventas' | 'pedidos' | 'postventa';
     financials?: {
         totalCash: number;
         totalTransfer: number;
@@ -537,6 +538,128 @@ export function OrderDetailPanel({
         }
     };
 
+    // ── Tarjeta de Post Venta ────────────────────────────────────────────
+    // Es LA MISMA tarjeta que en la ficha del cliente y en el cotizador
+    // (PostSaleServiceForm). El panel de reproceso (recetas + carga en SmartLab)
+    // lo pone esta pantalla, que es la única que lo tiene.
+    //
+    // Se arma acá arriba, en una variable, porque va en DOS lugares distintos
+    // según de dónde se entró: desde el tablero de post venta encabeza el panel
+    // (abierta), y desde ventas o pedidos queda en la columna del laboratorio.
+    const hayPostVenta = order.orderType === 'SALE' && Boolean(
+        (order.labStatus && order.labStatus !== 'NONE') || order.postSaleNotes || (order.postSaleCost ?? 0) > 0 || order.postSaleOrderOption
+    );
+    const desdePostVenta = context === 'postventa';
+    const tarjetaPostVenta = hayPostVenta ? (
+        <PostSaleServiceForm
+            defaultOpen={desdePostVenta}
+            value={postSaleValueFromOrder(order)}
+            onRefresh={() => onRefresh?.()}
+            userRole={userRole}
+            onOrderOptionChange={setPostSaleOrderOption}
+            extraSavePayload={(opt) => ({
+                postSaleRxData: opt === 'DIFFERENT'
+                    ? JSON.stringify({ pair1Faulty, pair2Faulty, rxChange, reprocessAuthNoRx, rx1, rx2 })
+                    : null,
+            })}
+            reprocessSlot={
+                    <div className="space-y-4 pt-2 border-t border-stone-150 dark:border-stone-850">
+                        {/* Pair Selectors */}
+                        <div className="flex gap-4 p-2 bg-stone-50/50 dark:bg-stone-900/30 rounded-xl border border-stone-200/50 dark:border-stone-850">
+                            <label className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={pair1Faulty}
+                                    onChange={(e) => setPair1Faulty(e.target.checked)}
+                                    className="rounded border-stone-300 text-amber-500 focus:ring-amber-500"
+                                />
+                                <span>Re-hacer Par 1</span>
+                            </label>
+                            {hasSecondPair && (
+                                <label className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={pair2Faulty}
+                                        onChange={(e) => setPair2Faulty(e.target.checked)}
+                                        className="rounded border-stone-300 text-amber-500 focus:ring-amber-500"
+                                    />
+                                    <span>Re-hacer Par 2</span>
+                                </label>
+                            )}
+                        </div>
+
+                        {/* Motivo: cambio de receta → obliga a subir la nueva receta */}
+                        <label className="flex items-start gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer px-1">
+                            <input
+                                type="checkbox"
+                                checked={rxChange}
+                                onChange={(e) => setRxChange(e.target.checked)}
+                                className="rounded border-stone-300 text-amber-500 focus:ring-amber-500 mt-0.5 flex-shrink-0"
+                            />
+                            <span>Es por <b>cambio de receta</b> <span className="text-amber-600 dark:text-amber-500 font-semibold">(obligatorio adjuntar la nueva receta de cada par a rehacer)</span></span>
+                        </label>
+
+                        {/* Prescription Forms */}
+                        {pair1Faulty && renderRxForm(rx1, setRx1, 1)}
+                        {hasSecondPair && pair2Faulty && renderRxForm(rx2, setRx2, 2)}
+
+                        {rxChange && ((pair1Faulty && !rxUploaded1) || (hasSecondPair && pair2Faulty && !rxUploaded2)) && (
+                            <div className={`space-y-2 border rounded-xl p-3 ${reprocessAuthNoRx ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40' : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40'}`}>
+                                {reprocessAuthNoRx ? (
+                                    <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 leading-snug">
+                                        ✓ Reproceso sin receta autorizado por administrador. Se puede cargar, pero sin la receta no corresponde envío sin cargo.
+                                    </p>
+                                ) : (
+                                    <p className="text-[10px] font-bold text-red-600 dark:text-red-400 leading-snug">
+                                        ⚠️ Sin la nueva receta no se puede enviar el reproceso sin cargo. Adjuntá la nueva receta (campo &ldquo;Adjuntar Foto de Nueva Receta&rdquo;) de cada par a rehacer, o pedile a un administrador que autorice el reproceso del pedido.
+                                    </p>
+                                )}
+                                {isReprocessAdmin ? (
+                                    <label className="flex items-start gap-2 text-[10px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={reprocessAuthNoRx}
+                                            onChange={(e) => setReprocessAuthNoRx(e.target.checked)}
+                                            className="rounded border-stone-300 text-emerald-500 focus:ring-emerald-500 mt-0.5 flex-shrink-0"
+                                        />
+                                        <span>Autorizo el reproceso sin la nueva receta (como administrador).</span>
+                                    </label>
+                                ) : !reprocessAuthNoRx && (
+                                    <p className="text-[10px] font-semibold text-red-500/80 italic">Solo un administrador puede autorizar el reproceso sin receta.</p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Dynamic SmartLab Buttons from Post-Venta form */}
+                        <div className="flex gap-2">
+                            {pair1Faulty && onAutoSubmit && (
+                                <button
+                                    onClick={() => onAutoSubmit(order, 1)}
+                                    disabled={isAutoSubmitting || (rxChange && !rxUploaded1 && !reprocessAuthNoRx) || (needsFrameMeasures && !hasFrameMeasures(rx1))}
+                                    className="flex-1 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title={needsFrameMeasures && !hasFrameMeasures(rx1) ? 'Faltan las medidas del armazón del Par 1 (A, B, ED, Puente)' : (rxChange && !rxUploaded1 && !reprocessAuthNoRx ? 'Falta la nueva receta del Par 1 o la autorización del administrador' : 'Cargar Par 1 en SmartLab con nuevos datos')}
+                                >
+                                    {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
+                                    <span>Cargar Par 1</span>
+                                </button>
+                            )}
+                            {hasSecondPair && pair2Faulty && onAutoSubmit && (
+                                <button
+                                    onClick={() => onAutoSubmit(order, 2)}
+                                    disabled={isAutoSubmitting || (rxChange && !rxUploaded2 && !reprocessAuthNoRx) || (needsFrameMeasures && !hasFrameMeasures(rx2))}
+                                    className="flex-1 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title={needsFrameMeasures && !hasFrameMeasures(rx2) ? 'Faltan las medidas del armazón del Par 2 (A, B, ED, Puente)' : (rxChange && !rxUploaded2 && !reprocessAuthNoRx ? 'Falta la nueva receta del Par 2 o la autorización del administrador' : 'Cargar Par 2 en SmartLab con nuevos datos')}
+                                >
+                                    {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
+                                    <span>Cargar Par 2</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+            }
+        />
+    ) : null;
+
     return (
         <div className="border-t-2 border-stone-100 dark:border-stone-700/50 px-4 md:px-6 pb-6 pt-5 bg-stone-50/50 dark:bg-stone-900/30 animate-in slide-in-from-top-2 fade-in duration-200">
             {/* Full Screen Image Modal */}
@@ -556,8 +679,18 @@ export function OrderDetailPanel({
                 </div>
             )}
 
+            {/* Entrando desde el tablero de Post Venta, el caso encabeza el panel y
+                arranca abierto: es lo único que se fue a ver. Antes estaba último,
+                colapsado, debajo de SmartLab — había que pasar receta, foto,
+                productos y seña para llegar. El pedido queda abajo, de contexto. */}
+            {desdePostVenta && tarjetaPostVenta && (
+                <div className="mb-6">
+                    {tarjetaPostVenta}
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
+
                 {/* 🔴 COLUMNA IZQUIERDA: SISTEMA ATELIER */}
                 <div className="space-y-6">
                     <div className="flex items-center gap-2 mb-2">
@@ -987,118 +1120,9 @@ export function OrderDetailPanel({
                         </div>
                     )}
 
-                    {/* Post Venta — es LA MISMA tarjeta que en la ficha del cliente y
-                        en el cotizador (PostSaleServiceForm). El panel de reproceso
-                        (recetas + carga en SmartLab) lo pone esta pantalla, que es la
-                        única que lo tiene. */}
-                    {order.orderType === 'SALE' && (order.labStatus && order.labStatus !== 'NONE' || order.postSaleNotes || (order.postSaleCost ?? 0) > 0 || order.postSaleOrderOption) && (
-                        <PostSaleServiceForm
-                            value={postSaleValueFromOrder(order)}
-                            onRefresh={() => onRefresh?.()}
-                            userRole={userRole}
-                            onOrderOptionChange={setPostSaleOrderOption}
-                            extraSavePayload={(opt) => ({
-                                postSaleRxData: opt === 'DIFFERENT'
-                                    ? JSON.stringify({ pair1Faulty, pair2Faulty, rxChange, reprocessAuthNoRx, rx1, rx2 })
-                                    : null,
-                            })}
-                            reprocessSlot={
-                                    <div className="space-y-4 pt-2 border-t border-stone-150 dark:border-stone-850">
-                                        {/* Pair Selectors */}
-                                        <div className="flex gap-4 p-2 bg-stone-50/50 dark:bg-stone-900/30 rounded-xl border border-stone-200/50 dark:border-stone-850">
-                                            <label className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={pair1Faulty}
-                                                    onChange={(e) => setPair1Faulty(e.target.checked)}
-                                                    className="rounded border-stone-300 text-amber-500 focus:ring-amber-500"
-                                                />
-                                                <span>Re-hacer Par 1</span>
-                                            </label>
-                                            {hasSecondPair && (
-                                                <label className="flex items-center gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={pair2Faulty}
-                                                        onChange={(e) => setPair2Faulty(e.target.checked)}
-                                                        className="rounded border-stone-300 text-amber-500 focus:ring-amber-500"
-                                                    />
-                                                    <span>Re-hacer Par 2</span>
-                                                </label>
-                                            )}
-                                        </div>
-
-                                        {/* Motivo: cambio de receta → obliga a subir la nueva receta */}
-                                        <label className="flex items-start gap-2 text-xs font-bold text-stone-700 dark:text-stone-300 cursor-pointer px-1">
-                                            <input
-                                                type="checkbox"
-                                                checked={rxChange}
-                                                onChange={(e) => setRxChange(e.target.checked)}
-                                                className="rounded border-stone-300 text-amber-500 focus:ring-amber-500 mt-0.5 flex-shrink-0"
-                                            />
-                                            <span>Es por <b>cambio de receta</b> <span className="text-amber-600 dark:text-amber-500 font-semibold">(obligatorio adjuntar la nueva receta de cada par a rehacer)</span></span>
-                                        </label>
-
-                                        {/* Prescription Forms */}
-                                        {pair1Faulty && renderRxForm(rx1, setRx1, 1)}
-                                        {hasSecondPair && pair2Faulty && renderRxForm(rx2, setRx2, 2)}
-
-                                        {rxChange && ((pair1Faulty && !rxUploaded1) || (hasSecondPair && pair2Faulty && !rxUploaded2)) && (
-                                            <div className={`space-y-2 border rounded-xl p-3 ${reprocessAuthNoRx ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40' : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/40'}`}>
-                                                {reprocessAuthNoRx ? (
-                                                    <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 leading-snug">
-                                                        ✓ Reproceso sin receta autorizado por administrador. Se puede cargar, pero sin la receta no corresponde envío sin cargo.
-                                                    </p>
-                                                ) : (
-                                                    <p className="text-[10px] font-bold text-red-600 dark:text-red-400 leading-snug">
-                                                        ⚠️ Sin la nueva receta no se puede enviar el reproceso sin cargo. Adjuntá la nueva receta (campo &ldquo;Adjuntar Foto de Nueva Receta&rdquo;) de cada par a rehacer, o pedile a un administrador que autorice el reproceso del pedido.
-                                                    </p>
-                                                )}
-                                                {isReprocessAdmin ? (
-                                                    <label className="flex items-start gap-2 text-[10px] font-bold text-stone-700 dark:text-stone-300 cursor-pointer">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={reprocessAuthNoRx}
-                                                            onChange={(e) => setReprocessAuthNoRx(e.target.checked)}
-                                                            className="rounded border-stone-300 text-emerald-500 focus:ring-emerald-500 mt-0.5 flex-shrink-0"
-                                                        />
-                                                        <span>Autorizo el reproceso sin la nueva receta (como administrador).</span>
-                                                    </label>
-                                                ) : !reprocessAuthNoRx && (
-                                                    <p className="text-[10px] font-semibold text-red-500/80 italic">Solo un administrador puede autorizar el reproceso sin receta.</p>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Dynamic SmartLab Buttons from Post-Venta form */}
-                                        <div className="flex gap-2">
-                                            {pair1Faulty && onAutoSubmit && (
-                                                <button
-                                                    onClick={() => onAutoSubmit(order, 1)}
-                                                    disabled={isAutoSubmitting || (rxChange && !rxUploaded1 && !reprocessAuthNoRx) || (needsFrameMeasures && !hasFrameMeasures(rx1))}
-                                                    className="flex-1 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    title={needsFrameMeasures && !hasFrameMeasures(rx1) ? 'Faltan las medidas del armazón del Par 1 (A, B, ED, Puente)' : (rxChange && !rxUploaded1 && !reprocessAuthNoRx ? 'Falta la nueva receta del Par 1 o la autorización del administrador' : 'Cargar Par 1 en SmartLab con nuevos datos')}
-                                                >
-                                                    {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
-                                                    <span>Cargar Par 1</span>
-                                                </button>
-                                            )}
-                                            {hasSecondPair && pair2Faulty && onAutoSubmit && (
-                                                <button
-                                                    onClick={() => onAutoSubmit(order, 2)}
-                                                    disabled={isAutoSubmitting || (rxChange && !rxUploaded2 && !reprocessAuthNoRx) || (needsFrameMeasures && !hasFrameMeasures(rx2))}
-                                                    className="flex-1 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 shadow-md hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    title={needsFrameMeasures && !hasFrameMeasures(rx2) ? 'Faltan las medidas del armazón del Par 2 (A, B, ED, Puente)' : (rxChange && !rxUploaded2 && !reprocessAuthNoRx ? 'Falta la nueva receta del Par 2 o la autorización del administrador' : 'Cargar Par 2 en SmartLab con nuevos datos')}
-                                                >
-                                                    {isAutoSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5" />}
-                                                    <span>Cargar Par 2</span>
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                            }
-                        />
-                    )}
+                    {/* Post Venta — desde el tablero de post venta va arriba de todo,
+                        no acá abajo: es lo único que se fue a ver. */}
+                    {!desdePostVenta && tarjetaPostVenta}
                 </div>
 
             </div>
