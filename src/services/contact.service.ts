@@ -2210,11 +2210,12 @@ export const ContactService = {
                     if (pdfMedia && clientEmail && clientEmail.includes('@')) {
                         try {
                             const { sendEmail } = await import('@/lib/email');
+                            const { RECEIPTS_BCC_EMAIL } = await import('@/lib/constants');
                             const escHtml = (v: unknown) => String(v ?? '')
                                 .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                             const emailResult = await sendEmail({
                                 to: clientEmail,
-                                bcc: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                                bcc: RECEIPTS_BCC_EMAIL,
                                 subject: `Tu recibo de pago — Atelier Óptica`,
                                 html: `<p>Hola <strong>${escHtml(result.clientName)}</strong>,</p>
 <p>Desde Atelier Óptica te enviamos el comprobante de tu pago ${escHtml(methodLabel)} por <strong>$${amount.toLocaleString('es-AR')}</strong> con fecha <strong>${today}</strong>.</p>
