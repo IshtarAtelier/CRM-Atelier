@@ -110,17 +110,17 @@ export function htmlDeReelLente(reel, id, logoUri) {
   #titulo { top:290px; }
   #titulo h1 { font-size:100px; line-height:1.06; font-weight:900; letter-spacing:-.025em; }
   #titulo p  { margin-top:30px; font-size:42px; opacity:.85; }
-  .texto { top:1290px; }
+  .texto { top:1200px; }
   .texto h2 { font-size:58px; line-height:1.12; font-weight:900; letter-spacing:-.02em; }
   .texto p  { margin-top:22px; font-size:38px; line-height:1.35; opacity:.88; }
-  #cierre { top:1290px; }
+  #cierre { top:1200px; }
   #cierre h2 { font-size:72px; line-height:1.08; font-weight:900; letter-spacing:-.02em; }
   #cierre p { margin-top:24px; font-size:36px; line-height:1.35; opacity:.85; }
   .marca { color:${bronce}; }
-  #lienzo { position:absolute; top:430px; left:0; width:1080px; height:840px; }
+  #lienzo { position:absolute; top:400px; left:0; width:1080px; height:840px; }
   /* El pie va a 280 px del borde: más abajo queda la zona del pulgar y de los
      controles de Instagram. Lo pidió el usuario mirando el reel en el celu. */
-  .pie { position:absolute; left:88px; right:88px; bottom:280px;
+  .pie { position:absolute; left:88px; right:88px; bottom:380px;
          display:flex; align-items:center; gap:22px; }
   .logo { height:56px; filter:brightness(0) invert(1); opacity:.95; }
   .handle { font-size:28px; font-weight:500; letter-spacing:.06em; opacity:.72; }

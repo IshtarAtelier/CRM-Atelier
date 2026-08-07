@@ -36,8 +36,9 @@ const HOSTEO = path.join(RAIZ, 'public', 'social', 'reels');
 // Aoede: la eligio el usuario escuchando el comparador (6/8/2026).
 const VOZ_DEFAULT = 'Aoede';
 const VOCES_CANDIDATAS = ['Sulafat', 'Aoede', 'Leda'];
-const DURACION_VIDEO_S = 14;
-const TOPE_NARRACION_S = 13.3;
+// La duración se mide del video REAL: los educativos duran 14 s y las promos
+// 9. Con el valor fijo de antes, mezclar una promo dejaba 5 s de video
+// congelado en negro al final.
 
 /**
  * La dirección actoral importa más que la voz elegida: sin ella, cualquier voz
@@ -120,21 +121,24 @@ export async function generarVoz(rutaJson, { voz = VOZ_DEFAULT, aplicar = false 
     const videoHosteado = path.join(HOSTEO, `${reel.tema}.mp4`);
     await mkdir(SALIDA, { recursive: true });
 
-    console.log(`\nNarrando "${reel.tema}" con la voz ${voz}…`);
+    const durVideo = await duracionDe(videoHosteado);
+    const tope = durVideo - 0.7;
+
+    console.log(`\nNarrando "${reel.tema}" con la voz ${voz}… (video: ${durVideo.toFixed(1)} s)`);
     const pcm = await tts(texto, voz);
     const wav = path.join(SALIDA, `.voz-${reel.tema}.wav`);
     await pcmAWav(pcm, wav);
 
     let dur = await duracionDe(wav);
-    console.log(`  narración: ${dur.toFixed(1)} s (video: ${DURACION_VIDEO_S} s)`);
+    console.log(`  narración: ${dur.toFixed(1)} s (tope: ${tope.toFixed(1)} s)`);
 
     // Si no entra, acelerar hasta 12%. Más que eso se nota y es peor que nada.
     let filtroTempo = '';
-    if (dur > TOPE_NARRACION_S) {
-        const factor = dur / TOPE_NARRACION_S;
+    if (dur > tope) {
+        const factor = dur / tope;
         if (factor > 1.12) {
             throw new Error(
-                `La narración dura ${dur.toFixed(1)} s y ni acelerada al 12% entra en ${TOPE_NARRACION_S} s. ` +
+                `La narración dura ${dur.toFixed(1)} s y ni acelerada al 12% entra en ${tope.toFixed(1)} s. ` +
                 `Acortar el campo "guion" del reel (hoy: ${texto.split(/\s+/).length} palabras).`
             );
         }
@@ -151,7 +155,7 @@ export async function generarVoz(rutaJson, { voz = VOZ_DEFAULT, aplicar = false 
         '-filter_complex', `[1:a]adelay=400|400${filtroTempo},apad[a]`,
         '-map', '0:v', '-map', '[a]',
         '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k',
-        '-t', String(DURACION_VIDEO_S),
+        '-t', durVideo.toFixed(2),
         salidaMp4,
     ]);
     await rm(wav, { force: true });

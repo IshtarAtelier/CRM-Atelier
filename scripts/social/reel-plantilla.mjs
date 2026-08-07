@@ -19,7 +19,10 @@
  */
 
 /** Duración del loop. 6 s es lo que aguanta un reel sin contenido nuevo. */
-export const DURACION_MS = 6000;
+// 9 s: eran 6 cuando el reel era mudo. Con voz hacen falta ~7 s de narración
+// y 2.2 s para el cierre con logo, igual que las plantillas educativas.
+export const DURACION_MS = 9000;
+export const OUTRO_MS = 2200;
 export const FPS = 30;
 
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, c => (
@@ -77,7 +80,7 @@ export function htmlDeReel(reel, id, fondoUri, logoUri) {
       ${oscuro ? 'rgba(42,33,28,.96)' : 'rgba(250,248,245,.97)'} 100%);
   }
 
-  .escenario { position:absolute; inset:0; padding:150px 96px 300px;
+  .escenario { position:absolute; inset:0; padding:150px 96px 420px;
                display:flex; flex-direction:column; justify-content:center; }
   .escena { position:absolute; left:96px; right:96px; opacity:0; will-change:opacity,transform; }
 
@@ -88,7 +91,7 @@ export function htmlDeReel(reel, id, fondoUri, logoUri) {
   .cuerpo { margin-top:34px; font-size:42px; line-height:1.35; font-weight:400; opacity:.9; }
   .marca { color:${id.colores.marca}; }
 
-  .pie { position:absolute; left:96px; right:96px; bottom:150px;
+  .pie { position:absolute; left:96px; right:96px; bottom:380px;
          display:flex; align-items:center; gap:22px; }
   .logo { height:60px; ${oscuro ? 'filter:brightness(0) invert(1);' : ''} opacity:.95; }
   .handle { font-size:30px; font-weight:500; letter-spacing:.06em; opacity:.72; }
@@ -96,15 +99,27 @@ export function htmlDeReel(reel, id, fondoUri, logoUri) {
   /* Barra de progreso del loop: da sensación de que algo avanza, que es lo que
      retiene en los primeros segundos. */
   .barra { position:absolute; left:0; top:0; height:8px; background:${id.colores.marca}; width:0; }
+  #outro { position:absolute; inset:0; display:flex; flex-direction:column;
+           align-items:center; justify-content:center; gap:44px; opacity:0;
+           background:radial-gradient(120% 90% at 50% 46%, #33281f 0%, #211a15 62%, #171310 100%); }
+  #outro img { height:150px; filter:brightness(0) invert(1); }
+  #outro .linea { height:4px; width:0; background:${id.colores.marca}; border-radius:2px; }
+  #outro .h { font-size:34px; letter-spacing:.14em; opacity:.75; }
 </style></head>
 <body>
   <div class="foto" id="foto"></div>
   <div class="velo"></div>
   <div class="barra" id="barra"></div>
   <div class="escenario">${escenas}</div>
-  <div class="pie">
+  <div class="pie" id="pie">
     <img class="logo" src="${logoUri}" alt="">
     <span class="handle">${esc(id.handle)}</span>
+  </div>
+
+  <div id="outro">
+    <img src="${logoUri}" alt="">
+    <div class="linea" id="outroLinea"></div>
+    <div class="h">${esc(id.handle)}</div>
   </div>
 
 <script>
@@ -122,10 +137,22 @@ export function htmlDeReel(reel, id, fondoUri, logoUri) {
    * La llama el script de captura para cada frame; no hay requestAnimationFrame
    * porque el video no debe depender de la velocidad de la máquina.
    */
+  const OUTRO = ${OUTRO_MS};
   window.__dibujar = function (t) {
-    const p = (t % DUR) / DUR;              // 0..1 dentro del loop
+    const tl = t % DUR;
+    // Las escenas se reparten lo que queda despues del outro del logo
+    const p = Math.min(1, tl / (DUR - OUTRO));
     const n = escenas.length;
     const porEscena = 1 / n;
+
+    const fOutro = suave(Math.max(0, Math.min(1, (tl - (DUR - OUTRO - 50)) / 500)))
+                 * suave(Math.max(0, Math.min(1, (DUR - 120 - tl) / 400)));
+    const o = document.getElementById('outro');
+    o.style.opacity = fOutro;
+    o.style.transform = 'scale(' + (0.94 + 0.06 * suave(Math.max(0, Math.min(1, (tl - (DUR - OUTRO)) / 900)))) + ')';
+    document.getElementById('outroLinea').style.width =
+        (suave(Math.max(0, Math.min(1, (tl - (DUR - OUTRO + 500)) / 800))) * 260) + 'px';
+    document.getElementById('pie').style.opacity = String(1 - fOutro);
 
     escenas.forEach((el, i) => {
       const inicio = i * porEscena;

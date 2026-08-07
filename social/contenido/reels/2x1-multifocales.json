@@ -2,7 +2,10 @@
   "tema": "2x1-multifocales",
   "theme": "dark",
   "imagen": "blog/pareja-multifocales-exterior.png",
-  "temas": ["multifocales", "local"],
+  "temas": [
+    "multifocales",
+    "local"
+  ],
   "coverEscena": 1,
   "escenas": [
     {
@@ -24,5 +27,6 @@
       "pie": "Sin turno previo. O escribinos por WhatsApp."
     }
   ],
-  "copy": "Dos pares de multifocales al precio de uno, los dos medidos acá con el armazón que elijas ya puesto.\nSi no te adaptás, hacemos el cristal de nuevo: tenés 30 días para probarlos en tu vida real.\nEscribinos por WhatsApp y te contamos cómo funciona."
+  "copy": "Dos pares de multifocales al precio de uno, los dos medidos acá con el armazón que elijas ya puesto.\nSi no te adaptás, hacemos el cristal de nuevo: tenés 30 días para probarlos en tu vida real.\nEscribinos por WhatsApp y te contamos cómo funciona.",
+  "guion": "Dos pares de multifocales, al precio de uno... medidos acá, con garantía de adaptación."
 }
