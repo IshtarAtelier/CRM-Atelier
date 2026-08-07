@@ -13,13 +13,14 @@
     {
       "type": "list",
       "role": "portada",
-      "image": "blog/mostrador-marmol.jpg",
+      "image": "atelier-macro-film.png",
       "title": "Elegí *cómo pagarlos*",
       "items": [
         "*6 cuotas* sin interés con tarjeta",
         "*20%* de descuento en efectivo",
         "*15%* pagando por transferencia"
-      ]
+      ],
+      "encuadre": "cover"
     }
   ]
 }

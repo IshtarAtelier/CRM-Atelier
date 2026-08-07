@@ -1,0 +1,22 @@
+{
+  "id": "ad-l3-stellest-frena-cuadrado",
+  "format": "1:1",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "temas": [
+    "receta"
+  ],
+  "caption": "La miopía en los chicos avanza rápido, pero hoy se puede frenar: los lentes Stellest reducen hasta un 67% el avance, según estudios clínicos de Essilor. Escribinos por WhatsApp y coordinamos un control.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "blog/medicion-pupilar-optica.png",
+      "encuadre": "cover",
+      "title": "Miopía infantil: hasta",
+      "dato": "67%",
+      "body": "menos avance con lentes *Stellest*, según estudios clínicos de Essilor."
+    }
+  ]
+}

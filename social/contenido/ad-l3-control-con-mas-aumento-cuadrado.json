@@ -1,0 +1,20 @@
+{
+  "id": "ad-l3-control-con-mas-aumento-cuadrado",
+  "format": "1:1",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "temas": [
+    "receta"
+  ],
+  "caption": "Si cada control de tu hijo termina con más aumento, hay algo que podés hacer. Hoy existen tratamientos como Stellest y MyoFix pensados para frenar el avance de la miopía. Escribinos y coordinamos un control.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "portada",
+      "image": "blog/blog6_consulta.png",
+      "title": "¿Cada control trae *más aumento*?",
+      "body": "La miopía infantil hoy se puede tratar. Con *Stellest* y *MyoFix* trabajamos para frenar su avance, no solo para compensarlo."
+    }
+  ]
+}
