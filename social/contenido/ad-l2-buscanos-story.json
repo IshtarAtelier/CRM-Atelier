@@ -1,0 +1,22 @@
+{
+  "id": "ad-l2-buscanos-story",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "temas": [
+    "local",
+    "reseñas"
+  ],
+  "caption": "No nos creas a nosotros: buscá Atelier Óptica en Google y leé lo que cuentan los que ya compraron. Después escribinos por WhatsApp.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "portada",
+      "image": "blog/blog3_eligiendo.png",
+      "encuadre": "cover",
+      "title": "No nos creas *a nosotros*",
+      "body": "Buscá Atelier Óptica en Google y leé lo que cuentan los que ya compraron. Nosotros te esperamos con el mate."
+    }
+  ]
+}
