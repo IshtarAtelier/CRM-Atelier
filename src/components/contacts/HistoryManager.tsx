@@ -10,9 +10,11 @@ import {
     AlertCircle,
     AtSign,
     Image as ImageIcon,
+    ChevronDown,
     X
 } from 'lucide-react';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { splitDetalle } from '@/lib/order-detail-summary';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -28,6 +30,40 @@ interface DirectableUser {
     id: string;
     name: string;
     role: string;
+}
+
+/**
+ * Cuerpo de una interacción. Si trae detalle (el resumen del presupuesto que se
+ * le mandó al cliente), lo muestra COLAPSADO: el historial tiene que seguir
+ * siendo escaneable de un vistazo, y un presupuesto entero abierto en cada
+ * entrada lo volvía ilegible.
+ */
+function InteractionContent({ content }: { content: string }) {
+    const { resumen, detalle } = splitDetalle(content || '');
+    const [abierto, setAbierto] = useState(false);
+
+    return (
+        <>
+            <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-line">{resumen}</p>
+            {detalle && (
+                <div className="mt-2">
+                    <button
+                        onClick={() => setAbierto(v => !v)}
+                        aria-expanded={abierto}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-stone-900/50 border border-stone-200 dark:border-stone-700 text-[10px] font-black uppercase tracking-widest text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 hover:border-stone-300 transition-colors"
+                    >
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${abierto ? 'rotate-180' : ''}`} />
+                        {abierto ? 'Ocultar detalle' : 'Ver detalle enviado'}
+                    </button>
+                    {abierto && (
+                        <div className="mt-2 p-4 rounded-2xl bg-white dark:bg-stone-900/70 border border-stone-200 dark:border-stone-700">
+                            <p className="text-xs font-medium text-stone-600 dark:text-stone-400 leading-relaxed whitespace-pre-line">{detalle}</p>
+                        </div>
+                    )}
+                </div>
+            )}
+        </>
+    );
 }
 
 export default function HistoryManager({
@@ -262,7 +298,7 @@ export default function HistoryManager({
                                         )}
                                     </span>
                                 </div>
-                                <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-line">{interaction.content}</p>
+                                <InteractionContent content={interaction.content} />
                                 {interaction.imageUrl && (
                                     <a
                                         href={resolveStorageUrl(interaction.imageUrl)}

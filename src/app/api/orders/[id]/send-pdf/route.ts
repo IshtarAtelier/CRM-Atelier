@@ -5,6 +5,7 @@ import { generateOrderPDF } from '@/lib/order-pdf-generator';
 import { getActor } from '@/lib/actor';
 import { sendClientEmail, escHtml } from '@/lib/client-email';
 import { logAudit } from '@/lib/audit';
+import { buildOrderDetailSummary, DETALLE_MARK } from '@/lib/order-detail-summary';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -56,6 +57,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
          * fallido — que es el que más importa poder reclamar.
          */
         const registrarEnFicha = async (detalle: string, ok: boolean) => {
+            // Al resumen de una línea se le pega el MISMO detalle que ve el
+            // cliente en el PDF (ítems, descuentos, total y saldo), detrás del
+            // separador que la ficha usa para mostrarlo colapsado.
+            let cuerpo = `${ok ? '📄' : '⚠️'} Presupuesto ${ok ? 'enviado' : 'NO enviado'} por ${senderName}: ${detalle}`;
+            try {
+                cuerpo += `${DETALLE_MARK}${buildOrderDetailSummary(order)}`;
+            } catch (e) {
+                // El detalle es un extra: si falla, la nota igual tiene que quedar.
+                console.error('[send-pdf] No se pudo armar el detalle del presupuesto:', e);
+            }
             try {
                 await prisma.interaction.create({
                     data: {
@@ -63,7 +74,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                         type: ok ? 'NOTE' : 'ERROR',
                         userId: actor.id,
                         userName: senderName,
-                        content: `${ok ? '📄' : '⚠️'} Presupuesto ${ok ? 'enviado' : 'NO enviado'} por ${senderName}: ${detalle}`,
+                        content: cuerpo,
                     },
                 });
             } catch (e) {
