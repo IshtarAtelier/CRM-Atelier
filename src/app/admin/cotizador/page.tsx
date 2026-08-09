@@ -26,7 +26,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
-import { CONTACT_SOURCES } from '@/lib/contact-source';
+import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
 import { 
     isCrystal, 
@@ -1490,7 +1490,7 @@ function CotizadorPageContent() {
                                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-400 pointer-events-none" />
                                         <select value={newContactSource} onChange={e => setNewContactSource(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
                                             <option value="">Seleccionar origen...</option>
-                                            {CONTACT_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+                                            {CONTACT_SOURCES_SELECCIONABLES.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     </div>
                                 </div>

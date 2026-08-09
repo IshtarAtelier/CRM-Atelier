@@ -32,16 +32,37 @@ export const CONTACT_SOURCES = [
     'Google orgánico',
     'Meta',
     'Calle',
-    'Jemima',
     'Ya es Cliente',
-    'Tienda nube',
+    'Tienda online',
     'Referido',
-    'Wave',
-    'Salida',
     'Otros',
 ] as const;
 
 export type ContactSource = (typeof CONTACT_SOURCES)[number];
+
+/**
+ * Canales que se dieron de baja del desplegable (9/8/2026, pedido de la dueña):
+ * nadie en el equipo sabía qué significaban y ningún reporte los usaba.
+ * Siguen acá para que las fichas viejas que los tienen guardados se muestren
+ * como "Otros" en vez de aparecer como un canal fantasma en los reportes.
+ */
+const RETIRADOS = ['jemima', 'wave', 'salida'];
+
+/**
+ * Canales que el sistema escribe solo y NADIE elige a mano: no van en el
+ * desplegable, pero siguen siendo valores válidos y se agrupan aparte en los
+ * reportes. "Tienda online" lo pone el checkout de la tienda web.
+ */
+const AUTOMATICOS: readonly ContactSource[] = ['Tienda online'];
+
+/**
+ * Lo que ve el staff en el desplegable "Origen / Canal" al cargar una ficha.
+ * Es CONTACT_SOURCES menos los automáticos: ofrecerle "Tienda online" a quien
+ * atiende el mostrador solo invita a elegir mal.
+ */
+export const CONTACT_SOURCES_SELECCIONABLES = CONTACT_SOURCES.filter(
+    s => !AUTOMATICOS.includes(s)
+);
 
 /** trim + colapso de espacios internos ("visita  showroom " → "visita showroom"). */
 function limpiar(raw: string): string {
@@ -84,10 +105,13 @@ const VARIANTES: Record<string, ContactSource> = {
     'antiguo': 'Ya es Cliente',
     'importado': 'Ya es Cliente',
     'importados': 'Ya es Cliente',
-    // La tienda web: el checkout escribió "Tienda Online" y algunas pantallas "WEB_STOREFRONT".
-    'tienda online': 'Tienda nube',
-    'tiendanube': 'Tienda nube',
-    'web_storefront': 'Tienda nube',
+    // La tienda web. Se llamó "Tienda nube" mientras se usó esa plataforma; hoy
+    // la tienda es propia (atelieroptica.com.ar) y el canal es "Tienda online".
+    // Las variantes viejas siguen acá para que el histórico no quede huérfano.
+    'tienda nube': 'Tienda online',
+    'tiendanube': 'Tienda online',
+    'tienda': 'Tienda online',
+    'web_storefront': 'Tienda online',
     // Referidos.
     'recomendado': 'Referido',
     'recomendada': 'Referido',
@@ -103,6 +127,7 @@ export function matchContactSource(raw: string | null | undefined): ContactSourc
     const clean = limpiar(raw);
     if (!clean) return null;
     const lower = clean.toLowerCase();
+    if (RETIRADOS.includes(lower)) return 'Otros';
     return CANONICO_POR_LOWER[lower] ?? VARIANTES[lower] ?? null;
 }
 

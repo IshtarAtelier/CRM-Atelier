@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Star, Save, Loader2, Calculator } from 'lucide-react';
 import { PersonalDataSection, InterestSection } from './ContactFormSections';
-import { CONTACT_SOURCES } from '@/lib/contact-source';
+import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 
 export interface ContactFormData {
     name: string;
@@ -130,7 +130,7 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
                 </header>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                    <PersonalDataSection formData={formData} setFormData={setFormData} doctors={doctors} sources={CONTACT_SOURCES} hasOrdersInFactory={hasOrdersInFactory} requireFull={!isEdit} />
+                    <PersonalDataSection formData={formData} setFormData={setFormData} doctors={doctors} sources={CONTACT_SOURCES_SELECCIONABLES} hasOrdersInFactory={hasOrdersInFactory} requireFull={!isEdit} />
                     
                     <InterestSection formData={formData} setFormData={setFormData} productTypes={PRODUCT_TYPES} />
 

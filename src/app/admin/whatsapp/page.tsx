@@ -15,7 +15,7 @@ import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { BotPricingSection } from '@/components/config/BotPricingSection';
 import { ChatLabelPicker } from '@/components/whatsapp/ChatLabelPicker';
-import { CONTACT_SOURCES } from '@/lib/contact-source';
+import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 const CHAT_LABEL_OPTIONS = [
@@ -2549,7 +2549,7 @@ function WhatsAppPageContent() {
                                     className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-sm font-semibold text-stone-900 dark:text-white focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all cursor-pointer"
                                 >
                                     <option value="">Seleccionar origen...</option>
-                                    {CONTACT_SOURCES.map(s => (
+                                    {CONTACT_SOURCES_SELECCIONABLES.map(s => (
                                         <option key={s} value={s}>{s}</option>
                                     ))}
                                 </select>
