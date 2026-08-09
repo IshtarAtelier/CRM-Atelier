@@ -7,9 +7,26 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
   const montoFmt = payableTotal && payableTotal > 0
     ? `$${Math.round(payableTotal).toLocaleString("es-AR")}`
     : null;
-  const cuotasCount = (() => {
-    const m = (webSettings?.web_promo_installments || "").match(/\d+/);
-    return m ? Number(m[0]) : 6;
+  // Cuántas cuotas eligió el visitante en el select, NO las del texto
+  // promocional. Antes se sacaba de `web_promo_installments` ("6 cuotas sin
+  // interés"), así que quien elegía 1 pago leía "Pagar $X en 6 cuotas" justo en
+  // el botón que cierra la compra: el peor lugar para un número que no es.
+  const cuotasElegidas = Math.max(1, Number(formData.installments) || 1);
+
+  /** " · 6 x $107.708" para la opción de N cuotas; vacío si no hay total aún. */
+  const porCuota = (n: number) =>
+    payableTotal && payableTotal > 0
+      ? ` · ${n} x $${Math.round(payableTotal / n).toLocaleString("es-AR")}`
+      : "";
+
+  // Con más de una cuota lo que resuelve la duda es el valor de CADA cuota
+  // ("6 x $107.708"), no el total: es la cifra que la persona compara contra su
+  // presupuesto mensual.
+  const etiquetaPago = (() => {
+    if (!montoFmt || !payableTotal) return null;
+    if (cuotasElegidas <= 1) return `Pagar ${montoFmt}`;
+    const porCuota = `$${Math.round(payableTotal / cuotasElegidas).toLocaleString("es-AR")}`;
+    return `Pagar ${cuotasElegidas} x ${porCuota}`;
   })();
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');
@@ -110,10 +127,13 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                     <input type="text" name="cardName" value={formData.cardName} onChange={handleChange} placeholder="Titular (Como figura en la tarjeta)" autoComplete="cc-name" className={`w-full border p-3 text-sm focus:outline-none transition-colors uppercase ${getBorderColor(formData.cardName, 4)}`} />
                   </div>
                   <div>
+                    {/* El valor de cada cuota va en la opción misma: es el número
+                        con el que la persona decide, y tenerlo que calcular de
+                        cabeza en el checkout es fricción pura. */}
                     <select name="installments" value={formData.installments || "1"} onChange={handleChange} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors bg-white">
-                      <option value="1">1 pago sin interés</option>
-                      <option value="3">3 Cuotas Fijas</option>
-                      <option value="6">6 Cuotas Fijas (Cuota Simple)</option>
+                      <option value="1">1 pago sin interés{montoFmt ? ` · ${montoFmt}` : ""}</option>
+                      <option value="3">3 cuotas sin interés{porCuota(3)}</option>
+                      <option value="6">6 cuotas sin interés (Cuota Simple){porCuota(6)}</option>
                     </select>
                   </div>
                 </div>
@@ -155,7 +175,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
           </>
         ) : formData.paymentMethod === 'PAYWAY' ? (
           <>
-            {montoFmt ? `Pagar ${montoFmt} en ${cuotasCount} cuotas` : "Pagar con Tarjeta"} <ShieldCheck className="w-4 h-4" />
+            {etiquetaPago || "Pagar con Tarjeta"} <ShieldCheck className="w-4 h-4" />
           </>
         ) : (
           <>

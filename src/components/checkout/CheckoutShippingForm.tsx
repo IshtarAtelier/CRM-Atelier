@@ -50,8 +50,8 @@ export function CheckoutShippingForm({ formData, handleChange, hasCrystals }: { 
             <div className="-mt-0.5">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
                 <p className="text-sm font-bold text-black">Envío a Domicilio (Correo Argentino)</p>
-                <span className="text-[10px] font-black text-white bg-emerald-600 px-2 py-1 rounded shadow-sm uppercase animate-pulse w-fit">
-                  ¡Solo por esta semana: Envío Sin Cargo!
+                <span className="text-[10px] font-black text-white bg-emerald-600 px-2 py-1 rounded shadow-sm uppercase w-fit">
+                  Envío sin cargo
                 </span>
               </div>
               <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">
@@ -83,8 +83,8 @@ export function CheckoutShippingForm({ formData, handleChange, hasCrystals }: { 
             <div className="-mt-0.5">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
                 <p className="text-sm font-bold text-black">Envío a Sucursal (Correo Argentino)</p>
-                <span className="text-[10px] font-black text-white bg-emerald-600 px-2 py-1 rounded shadow-sm uppercase animate-pulse w-fit">
-                  ¡Solo por esta semana: Envío Sin Cargo!
+                <span className="text-[10px] font-black text-white bg-emerald-600 px-2 py-1 rounded shadow-sm uppercase w-fit">
+                  Envío sin cargo
                 </span>
               </div>
               <p className="text-[11px] text-stone-500 mt-1 leading-relaxed">

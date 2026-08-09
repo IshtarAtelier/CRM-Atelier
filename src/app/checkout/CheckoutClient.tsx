@@ -49,6 +49,10 @@ export function CheckoutClient({
   const [mounted, setMounted] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  // Qué pedido quedó hecho y por cuánto. Se guarda ANTES de vaciar el carrito:
+  // después de clearCart() el total vuelve a cero y la pantalla de éxito no
+  // tendría con qué decirle al cliente cuánto transferir.
+  const [ordenHecha, setOrdenHecha] = useState<{ id: string | null; total: number } | null>(null);
   const [paywayLoaded, setPaywayLoaded] = useState(false);
   const [decidirInstance, setDecidirInstance] = useState<any>(null);
   const [isWholesale, setIsWholesale] = useState(false);
@@ -361,6 +365,8 @@ export function CheckoutClient({
           } catch (e) {
             console.error("Purchase tracking error:", e);
           }
+          // Guardar antes de vaciar: clearCart() pone el total en cero.
+          setOrdenHecha({ id: data?.orderId ?? null, total: payableTotal });
           clearCart();
           setIsSuccess(true);
         } else {
@@ -492,6 +498,8 @@ export function CheckoutClient({
               } catch (e) {
                 console.error("Purchase tracking error:", e);
               }
+              // Guardar antes de vaciar: clearCart() pone el total en cero.
+              setOrdenHecha({ id: data?.orderId ?? null, total: payableTotal });
               clearCart();
               setIsSuccess(true);
             } else {
@@ -526,6 +534,17 @@ export function CheckoutClient({
 
   if (!mounted) return null;
 
+  // Lo que la persona termina pagando. Mismo cálculo que CheckoutSummarySidebar:
+  // primero el cupón, después el % por método de pago. Si divergen, el botón
+  // miente. Vive acá arriba porque lo usan el botón de pago Y la pantalla de
+  // éxito (regla del proyecto: un dato que se muestra en dos lados se arma una
+  // sola vez).
+  const subtotalConCupon = Math.max(0, getCartTotal(!!isWholesale) - (couponDiscount || 0));
+  const payableTotal =
+    formData.paymentMethod === 'TRANSFER'
+      ? subtotalConCupon * (1 - (webSettings?.web_promo_cash_discount || 15) / 100)
+      : subtotalConCupon;
+
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-between font-sans text-black">
@@ -546,20 +565,64 @@ export function CheckoutClient({
           {formData.paymentMethod === 'TRANSFER' && (
             <div className="bg-stone-50 border border-stone-200 rounded-lg p-6 mb-8 text-left">
               <h3 className="font-bold text-stone-900 mb-4 text-sm uppercase tracking-widest border-b border-stone-200 pb-2">Datos para Transferencia</h3>
-              <ul className="text-sm text-stone-600 space-y-3 mb-6">
+
+              {/* EL MONTO, arriba de todo. Antes esta pantalla decía "transferí el
+                  total con descuento" sin decir cuánto: el cliente quedaba
+                  haciendo la cuenta del 15% de memoria, o escribía para
+                  preguntar. Es el último paso de una venta ya ganada. */}
+              {ordenHecha && ordenHecha.total > 0 && (
+                <div className="mb-5 rounded border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-[11px] uppercase tracking-widest text-emerald-800 font-bold mb-1">
+                    Importe a transferir
+                  </p>
+                  <p className="text-3xl font-black text-emerald-900 leading-none">
+                    ${Math.round(ordenHecha.total).toLocaleString('es-AR')}
+                  </p>
+                  <p className="text-[11px] text-emerald-800/80 mt-1.5">
+                    Ya tiene aplicado el {webSettings?.web_promo_cash_discount || 15}% de descuento por transferencia.
+                  </p>
+                </div>
+              )}
+
+              <ul className="text-sm text-stone-600 space-y-3 mb-4">
+                {ordenHecha?.id && (
+                  <li><strong className="text-stone-900">Pedido:</strong> #{ordenHecha.id.slice(-4).toUpperCase()}</li>
+                )}
                 <li><strong className="text-stone-900">Titular:</strong> Ishtar Pissano</li>
                 <li><strong className="text-stone-900">CVU:</strong> 0000069704088281149142</li>
                 <li><strong className="text-stone-900">Alias:</strong> atelieroptica.arq</li>
                 <li><strong className="text-stone-900">Banco:</strong> Proveedor de Servicios de Pago - Garpa S.A.</li>
               </ul>
+
+              {/* Copiar el alias con un toque: en celular, seleccionar texto de
+                  una lista para pegarlo en el homebanking es la friccción que
+                  hace que la transferencia quede para después (y no vuelva). */}
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText('atelieroptica.arq')
+                    .then(() => toast.success('Alias copiado'))
+                    .catch(() => toast.error('No se pudo copiar el alias'));
+                }}
+                className="w-full mb-4 border border-stone-300 px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-stone-100 transition-colors"
+              >
+                Copiar alias
+              </button>
+
               <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 rounded p-4 text-xs mb-4">
                 <p className="font-bold mb-1">Paso final:</p>
-                <p>Transferí el total con descuento y envianos el comprobante haciendo clic en el botón de abajo para que preparemos tu pedido.</p>
+                <p>Transferí el importe y envianos el comprobante con el botón de abajo para que preparemos tu pedido.</p>
               </div>
-              <a 
-                href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(`¡Hola! Acabo de realizar una compra web y ya hice la transferencia. Adjunto mi comprobante.`)}`}
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent(
+                  `¡Hola! Acabo de hacer la compra${ordenHecha?.id ? ` #${ordenHecha.id.slice(-4).toUpperCase()}` : ''}${
+                    ordenHecha && ordenHecha.total > 0
+                      ? ` por $${Math.round(ordenHecha.total).toLocaleString('es-AR')}`
+                      : ''
+                  } y ya hice la transferencia. Adjunto mi comprobante.`,
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="block w-full text-center bg-stone-900 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors"
               >
                 Enviar Comprobante por WhatsApp
@@ -646,15 +709,7 @@ export function CheckoutClient({
                 webSettings={webSettings}
                 paywayLoaded={paywayLoaded}
                 isWholesale={isWholesale}
-                payableTotal={(() => {
-                  // Mismo cálculo que CheckoutSummarySidebar: cupón primero,
-                  // después el % por método de pago. Si divergen, el botón miente.
-                  const subtotalAfterCoupon = Math.max(0, getCartTotal(!!isWholesale) - (couponDiscount || 0));
-                  const rate = (webSettings?.web_promo_cash_discount || 15) / 100;
-                  return formData.paymentMethod === 'TRANSFER'
-                    ? subtotalAfterCoupon * (1 - rate)
-                    : subtotalAfterCoupon;
-                })()}
+                payableTotal={payableTotal}
               />
             </fieldset>
           </form>

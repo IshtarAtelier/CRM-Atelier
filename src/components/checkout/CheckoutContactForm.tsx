@@ -42,16 +42,20 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
           />
         </div>
         <div>
-          <input 
-            type="text" 
-            name="dni" 
+          {/* El DNI solo es obligatorio pagando con tarjeta: Payway lo exige para
+              tokenizar (card_holder_doc_number). Para transferencia y mayorista
+              no hace falta, y pedirlo igual es un campo más que frena a alguien
+              que ya decidió comprar. Si lo completan, se guarda igual. */}
+          <input
+            type="text"
+            name="dni"
             value={formData.dni}
-            required 
+            required={formData.paymentMethod === 'PAYWAY'}
             pattern="[0-9]{7,11}"
             title="Ingresá un DNI o CUIL válido (7 a 11 números sin puntos ni guiones)"
-            placeholder="DNI / CUIL (Ej: 35123456)" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
-            onChange={handleChange} 
+            placeholder={formData.paymentMethod === 'PAYWAY' ? "DNI / CUIL (Ej: 35123456)" : "DNI / CUIL (opcional)"}
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors"
+            onChange={handleChange}
           />
         </div>
         <div>
