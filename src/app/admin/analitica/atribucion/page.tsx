@@ -35,6 +35,8 @@ type Canal = {
     cobrado: number;
     /** Desglose de la fila de arriba (Meta sin anuncio), no un canal aparte. */
     esSubfila?: boolean;
+    /** false = texto libre de una ficha vieja, no un canal del vocabulario. */
+    esCanonico: boolean;
 };
 
 type Atribucion = {
@@ -241,8 +243,14 @@ export default function AtribucionPage() {
                             <Vacio texto="Sin clientes nuevos ni cobros en este período." />
                         ) : (
                             <Tabla columnas={['Canal', 'Clientes nuevos', 'Ventas cobradas', 'Cobrado']}>
-                                {data.canales.map((c) => (
-                                    <FilaCanal key={c.canal} canal={c} />
+                                {data.canales.map((c, i) => (
+                                    <FilaCanal
+                                        key={c.canal}
+                                        canal={c}
+                                        // El texto libre arranca acá: se separa con un título
+                                        // para que no parezca un canal más de la lista.
+                                        abreHistoricos={!c.esCanonico && (data.canales[i - 1]?.esCanonico ?? true)}
+                                    />
                                 ))}
                             </Tabla>
                         )}
@@ -251,6 +259,8 @@ export default function AtribucionPage() {
                             = pagos registrados en el período, imputados al canal del cliente de esa
                             venta (puede ser un cliente de antes). La fila indentada es la pauta de Meta
                             que llegó sin etiqueta de anuncio: se sabe que vino de Meta, pero no de cuál.
+                            Lo de abajo de todo se escribió a mano antes de que existiera el desplegable
+                            y se muestra tal cual: nada se mezcla con un canal que no le corresponde.
                         </Nota>
                     </Panel>
                 </>
@@ -263,24 +273,36 @@ export default function AtribucionPage() {
  * Un canal. La subfila (Meta sin anuncio identificado) va indentada y con un
  * guión de pertenencia: es un pedazo de la fila de arriba, no otro canal.
  */
-function FilaCanal({ canal }: { canal: Canal }) {
+function FilaCanal({ canal, abreHistoricos }: { canal: Canal; abreHistoricos?: boolean }) {
     return (
-        <tr className="border-b border-stone-200 dark:border-stone-700">
-            <Td
-                className={
-                    canal.esSubfila
-                        ? 'pl-6 text-stone-700 dark:text-stone-300'
-                        : 'font-semibold text-stone-900 dark:text-stone-50'
-                }
-            >
-                {canal.esSubfila ? `↳ ${canal.canal}` : canal.canal}
-            </Td>
-            <Td num>{oGuion(canal.clientesNuevos)}</Td>
-            <Td num>{oGuion(canal.ventasCobradas)}</Td>
-            <Td num className={canal.esSubfila ? '' : 'font-semibold text-stone-900 dark:text-stone-50'}>
-                {plataOGuion(canal.cobrado)}
-            </Td>
-        </tr>
+        <>
+            {abreHistoricos && (
+                <tr>
+                    <td
+                        colSpan={4}
+                        className="pt-5 pb-1 px-2 text-[11px] font-bold uppercase tracking-wide text-stone-700 dark:text-stone-300"
+                    >
+                        Escrito a mano en fichas viejas (no son canales del desplegable)
+                    </td>
+                </tr>
+            )}
+            <tr className="border-b border-stone-200 dark:border-stone-700">
+                <Td
+                    className={
+                        canal.esSubfila
+                            ? 'pl-6 text-stone-700 dark:text-stone-300'
+                            : 'font-semibold text-stone-900 dark:text-stone-50'
+                    }
+                >
+                    {canal.esSubfila ? `↳ ${canal.canal}` : canal.canal}
+                </Td>
+                <Td num>{oGuion(canal.clientesNuevos)}</Td>
+                <Td num>{oGuion(canal.ventasCobradas)}</Td>
+                <Td num className={canal.esSubfila ? '' : 'font-semibold text-stone-900 dark:text-stone-50'}>
+                    {plataOGuion(canal.cobrado)}
+                </Td>
+            </tr>
+        </>
     );
 }
 

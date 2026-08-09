@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { adTag, dolarBlue, fetchSpendByTag, metaAdsConfigured } from '@/lib/ads/meta-insights';
-import { normalizeContactSource, SIN_ORIGEN } from '@/lib/contact-source';
+import { CONTACT_SOURCES, normalizeContactSource, SIN_ORIGEN } from '@/lib/contact-source';
 
 /**
  * Atribución: qué trajo a cada cliente y qué devolvió.
@@ -53,6 +53,14 @@ export function arDayStart(daysAgo: number): Date {
 /** El canónico de Meta sale del vocabulario único, nunca de un literal suelto. */
 const CANAL_META = normalizeContactSource('Meta');
 
+/**
+ * Valores que el sistema reconoce como canal. Todo lo demás que aparezca es
+ * carga libre de fichas viejas (anteriores al desplegable): `normalizeContactSource`
+ * lo devuelve tal cual a propósito —verlo es mejor que fundirlo en "Otros"—,
+ * pero en la pantalla va aparte para que no compita con los canales de verdad.
+ */
+const CANONICOS = new Set<string>([...CONTACT_SOURCES, SIN_ORIGEN]);
+
 export interface AnuncioAtribucion {
     /** Apodo del anuncio: `[metaFlor]` se guarda como `flor` (Google va con prefijo `google:`). */
     tag: string;
@@ -82,6 +90,8 @@ export interface CanalAtribucion {
     cobrado: number;
     /** Desglose de otra fila (hoy: el pedazo de Meta sin anuncio), no un canal aparte. */
     esSubfila?: boolean;
+    /** false = texto libre de una ficha vieja, no un canal del vocabulario. */
+    esCanonico: boolean;
 }
 
 export interface TotalesAtribucion {
@@ -241,6 +251,7 @@ const vacio = (canal: string): CanalAtribucion => ({
     clientesNuevos: 0,
     ventasCobradas: 0,
     cobrado: 0,
+    esCanonico: CANONICOS.has(canal),
 });
 
 export class AttributionService {
@@ -307,6 +318,7 @@ export class AttributionService {
         const metaSinAnuncio: CanalAtribucion = {
             ...vacio(`${CANAL_META} (sin anuncio identificado)`),
             esSubfila: true,
+            esCanonico: true, // es un pedazo de Meta, no un canal suelto
         };
 
         for (const c of clientes) {
@@ -328,12 +340,16 @@ export class AttributionService {
             }
         }
 
-        // 'Sin origen' va último: es el pendiente de carga, no un canal que compita.
-        const canales = [...porCanal.values()].sort((a, b) => {
-            if (a.canal === SIN_ORIGEN) return 1;
-            if (b.canal === SIN_ORIGEN) return -1;
-            return b.clientesNuevos - a.clientesNuevos || b.cobrado - a.cobrado;
-        });
+        // Primero los canales del vocabulario, después 'Sin origen' (que es el
+        // pendiente de carga, no un canal que compita) y al final el texto libre
+        // de las fichas viejas. Dentro de cada grupo, por volumen de gente.
+        const grupo = (c: CanalAtribucion) => (c.canal === SIN_ORIGEN ? 1 : c.esCanonico ? 0 : 2);
+        const canales = [...porCanal.values()].sort(
+            (a, b) =>
+                grupo(a) - grupo(b) ||
+                b.clientesNuevos - a.clientesNuevos ||
+                b.cobrado - a.cobrado,
+        );
 
         // Lo que Meta trajo pero NO se pudo atribuir a un anuncio va como fila
         // propia debajo de Meta —incluso en cero—, para que se vea el tamaño del
