@@ -8,6 +8,33 @@
 
 ---
 
+## 0. Estado de ejecución (al 9/8/2026)
+
+Todo lo de abajo está **commiteado en la rama de trabajo y verificado en local. Nada se deployó ni se pautó**: el deploy a producción y cualquier escritura en Meta/Google siguen esperando OK explícito.
+
+| Ítem | Estado | Commit |
+|---|---|---|
+| B1 · Banner de cookies tapaba los CTAs del hero mobile | ✅ hecho — de ~190px a 76px; medido en 375x812 y 360x740 | `bb25f2bd` |
+| QW3 · Multifocales visible en el hero y en el nav | ✅ hecho — línea fija + "Multifocales" en el menú | `bb25f2bd` |
+| QW4 · Carrusel del hero a pantalla negra | ✅ hecho — crossfade en vez de `mode="wait"` | `bb25f2bd` |
+| QW4b · Los CTAs parpadeaban cada 5s (no estaba en el plan) | ✅ hecho — salieron del bloque que rota | `bb25f2bd` |
+| QW5 · og:image AVIF → los links de WhatsApp salían sin foto | ✅ hecho | `bb25f2bd` |
+| QW6 · FloatingWhatsApp 5s → 1,5s + etiqueta "Presupuesto" | ✅ hecho; además dejó de montarse encima del CTA del hero | `bb25f2bd` |
+| B7 · `aggregateRating` self-serving (riesgo de acción manual) | ✅ hecho — fuera de las 4 páginas | `de00a1b5` |
+| B8 · 46 doorways `/blog/busquedas/` | ✅ hecho — 301 a la página real + fuera del sitemap | `de00a1b5` |
+| B3 · Purchase solo en la rama TARJETA | ✅ hecho — las 3 ramas + se arregló un doble conteo | `197f4c1b` |
+| B11 · UTMs en el pipeline social | ✅ hecho — solo en el texto que va a Facebook | `7f2119c8` |
+| Lote 2 · Microcopy del checkout (cuotas, urgencia falsa, pantalla de transferencia, DNI) | ✅ hecho | `fb773143` |
+| Retención flujo 3 · Habilitante del pipeline | ✅ hecho — whitelist a array + `Sistema (Retención)` + firma `Bot` | `b5a1b2d0` |
+| Seguridad · Bypass de auth en el cron de carritos | ✅ hecho (no estaba en el plan; se encontró al abrirlo) | `11419918` |
+| Panel de salud de medición + crecimiento mes a mes | ✅ hecho | `547c0e8a` |
+
+**Lo que cambió el diagnóstico al medirlo** (§4.1 y §4.2): el gasto real es ~$1.181.000/mes y **Meta no estaba en $0**; la mejor campaña de toda la operación vive en la cuenta USD que el plan mandaba pausar; el píxel **funciona** (748 PageView / 111 ViewContent en 7 días — el error era el token equivocado); y Google **sí recibe compras** por una acción importada de GA4, así que cargar `GOOGLE_ADS_CONVERSION_LABEL` habría contado doble.
+
+**Lo que sigue pendiente y NO depende de código:** el OK a la reasignación de §4.3, el alta de los crons en el scheduler, la higiene de conversiones primarias en Google Ads, y el deploy. Detalle en "Aprobaciones".
+
+---
+
 ## 1. Diagnóstico en una página
 
 **El negocio real es el multifocal** (ticket promedio $831.243–$834.000, cierre por WhatsApp/local) **y la tienda hoy lo esconde y lo mide mal.** La plomería transaccional es sólida (idempotencia, anti doble cobro, stock atómico, guard de precio server-side — no tocar); el problema está en cuatro capas:
