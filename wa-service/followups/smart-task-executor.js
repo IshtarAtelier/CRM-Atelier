@@ -20,7 +20,8 @@ const {
     GENERATION_TIMEOUT_MS,
     MAX_RETRIES,
     MAX_TASKS_PER_CYCLE,
-    AUTO_SENDABLE_TASK_PREFIX,
+    AUTO_SENDABLE_TASK_PREFIXES,
+    AUTO_SENDABLE_TASK_CREATORS,
     STALE_CLAIM_MINUTES,
     SEND_DELAY_MIN_MINUTES,
     SEND_DELAY_MAX_MINUTES,
@@ -145,12 +146,16 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
         const pendingTasks = await prisma.clientTask.findMany({
             where: {
                 type: 'TASK',
-                createdBy: 'Sistema (Pasivo)',
-                // Lista blanca: solo tareas nacidas de la conversación con el
-                // cliente. Sin esto entran notas internas del equipo ([RECETA POR
-                // FOTO], [Seguimiento Manual]) y el cliente recibe un mensaje
-                // redactado a partir de una instrucción que era para nosotros.
-                description: { startsWith: AUTO_SENDABLE_TASK_PREFIX },
+                // Doble lista blanca: quién creó la tarea Y con qué prefijo.
+                // Sin esto entran notas internas del equipo ([RECETA POR FOTO],
+                // [Seguimiento Manual]) y el cliente recibe un mensaje redactado
+                // a partir de una instrucción que era para nosotros.
+                createdBy: { in: AUTO_SENDABLE_TASK_CREATORS },
+                // Prisma no tiene "startsWith con cualquiera de estos": se arma
+                // como OR. Va dentro de AND para no chocar con el OR de estado.
+                AND: [
+                    { OR: AUTO_SENDABLE_TASK_PREFIXES.map((p) => ({ description: { startsWith: p } })) },
+                ],
                 OR: [
                     { status: 'PENDING', dueDate: { lte: graceLimit } },
                     { status: 'SENDING', updatedAt: { lte: staleClaimLimit } },
@@ -356,6 +361,11 @@ async function executeSmartTaskAndSend(taskId, clientId, waId, chatId, text, cli
             data: {
                 clientId: clientId,
                 type: 'FOLLOWUP',
+                // Firmada: la regla de trazabilidad del proyecto pide que toda
+                // mutación de negocio diga quién la hizo, y esta salía sin
+                // userName. En la ficha del cliente la interacción aparecía sin
+                // autor, como si la hubiera escrito nadie.
+                userName: 'Bot',
                 content: `📍 [BOT] Ejecutó tarea conversacional pendiente.\nTarea: ${taskDescription}\nMensaje: "${text}"`
             }
         });

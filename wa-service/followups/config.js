@@ -93,7 +93,26 @@ const STALE_CLAIM_MINUTES = 45;
  * terminar mandando al cliente. Con lista negra, cada tipo de nota interna nuevo
  * volvería a filtrarse; con lista blanca, lo que no está previsto no sale.
  */
-const AUTO_SENDABLE_TASK_PREFIX = '[Extracción Inteligente]';
+const AUTO_SENDABLE_TASK_PREFIXES = [
+    '[Extracción Inteligente]',
+    // Flujos de retención sobre la base instalada (renovación de receta,
+    // posventa, pedido de reseña, segundo par). Van por el MISMO pipeline y la
+    // misma cola anti-ban que el resto: el plan es explícito en no construir un
+    // sexto sistema de seguimientos. Cada prefijo se agrega acá cuando el flujo
+    // que lo emite existe, no antes.
+    '[RENOVACION]',
+    '[POSVENTA]',
+    '[RESENA]',
+    '[SEGUNDO PAR]',
+];
+
+/**
+ * Quién puede haber creado una tarea para que el ejecutor la mande solo.
+ * 'Sistema (Pasivo)' son las que nacen de la conversación con el cliente;
+ * 'Sistema (Retención)' las que nacen de un cron sobre la base instalada.
+ * Lista blanca, igual que los prefijos: lo que no está previsto no sale.
+ */
+const AUTO_SENDABLE_TASK_CREATORS = ['Sistema (Pasivo)', 'Sistema (Retención)'];
 
 // ──────────────────────────────────────────────
 // Generación de mensajes
@@ -161,7 +180,8 @@ module.exports = {
     MAX_NEW_TASKS_PER_DAY,
     TIER_GRACE_HOURS,
     STALE_CLAIM_MINUTES,
-    AUTO_SENDABLE_TASK_PREFIX,
+    AUTO_SENDABLE_TASK_PREFIXES,
+    AUTO_SENDABLE_TASK_CREATORS,
     GATE_TIMEOUT_MS,
     GATE_LOOKBACK_MESSAGES,
     MAX_OUTPUT_TOKENS,
