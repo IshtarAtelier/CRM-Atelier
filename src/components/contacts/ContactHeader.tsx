@@ -3,10 +3,11 @@
 import React from 'react';
 import { 
     User, Heart, Pencil, Calculator, Star, X, 
-    Phone, Mail, FileText, MapPin, Building2, Share2, Tag,
+    Phone, Mail, FileText, MapPin, Building2, Tag,
     History, CheckCircle2, Receipt, Trash2, Cake, LifeBuoy
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
+import { OrigenBanner } from './ContactOrigin';
 import { useRouter } from 'next/navigation';
 
 interface ContactHeaderProps {
@@ -255,14 +256,19 @@ export default function ContactHeader({
                 </div>
             </div>
 
+            {/* De dónde vino este cliente: canal + anuncio de Meta que lo trajo.
+                Vive en su propio bloque (y ya no como una celda más de la grilla)
+                porque el adTag no entra en una celda y es el dato que conecta la
+                ficha con el gasto de pauta. */}
+            <OrigenBanner contact={contact} onEdit={() => onEdit(contact)} />
+
             {/* Quick Info Grid - Improved UX: All items clickable to edit */}
-            <div className="grid grid-cols-2 md:grid-cols-7 gap-2 mb-4 mt-1">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-4 mt-1">
                 {[
                     { label: 'DNI / Documento', icon: FileText, value: contact.dni || 'No registrado' },
                     { label: 'Nacimiento', icon: Cake, value: contact.birthDate ? new Date(contact.birthDate).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : 'No registrada' },
                     { label: 'Dirección', icon: MapPin, value: contact.address || 'No registrada' },
                     { label: 'Obra Social', icon: Building2, value: contact.insurance || 'Sin Obra Social' },
-                    { label: 'Origen', icon: Share2, value: contact.contactSource === 'WEB_STOREFRONT' ? 'Tienda Online' : (contact.contactSource || 'No especificado') },
                     { label: 'Interés', icon: Tag, value: contact.interest || 'General' },
                     { label: 'Presupuesto Est.', icon: Calculator, value: `$${safePrice(contact.expectedValue).toLocaleString()}` }
                 ].map((item, idx) => {

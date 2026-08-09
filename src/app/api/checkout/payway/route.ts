@@ -15,6 +15,18 @@ import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
 import { AdsService } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
 import { logAudit } from '@/lib/audit';
+import type { ContactSource } from '@/lib/contact-source';
+
+/**
+ * Canal que escribe el checkout web. Tipado contra el vocabulario único
+ * (src/lib/contact-source.ts) para que un typo no cree un canal fantasma.
+ *
+ * Se escribe SOLO cuando la ficha todavía no tiene origen. Antes se pisaba
+ * siempre y eso borraba la atribución: un cliente que llegó por un anuncio de
+ * Meta y terminó pagando en la tienda quedaba como "Tienda online", y el
+ * anuncio que lo trajo perdía su venta. Dónde compró no es de dónde vino.
+ */
+const ORIGEN_CHECKOUT_WEB: ContactSource = 'Tienda online';
 
 function getArgentineStateCode(stateName: string): string {
   if (!stateName) return "C"; // fallback to CABA
@@ -459,7 +471,8 @@ export async function POST(req: Request) {
           phone: normalizedPhone,
           dni: customer.dni,
           address: `${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
-          contactSource: "Tienda Online",
+          // Ficha nueva: no hay atribución previa que perder, la tienda ES el origen.
+          contactSource: ORIGEN_CHECKOUT_WEB,
         });
       } catch (error: any) {
         let isHandled = false;
@@ -467,9 +480,11 @@ export async function POST(req: Request) {
           if (error?.message && (error.message.trim().startsWith('{') || error.message.trim().startsWith('['))) {
             const parsedError = JSON.parse(error.message);
             if (parsedError?.isDuplicate && parsedError?.existingClient?.id) {
+              // La ficha ya existía: el origen se completa solo si está vacío
+              // (`contactSourceIfEmpty`), nunca se pisa el que ya tenía.
               client = await ContactService.update(parsedError.existingClient.id, {
                 address: `${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
-                contactSource: "Tienda Online"
+                contactSourceIfEmpty: ORIGEN_CHECKOUT_WEB
               });
               isHandled = true;
             }

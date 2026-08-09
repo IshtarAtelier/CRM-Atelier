@@ -13,7 +13,7 @@ import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
 import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/lib/payment-card';
 import { calculateEstimatedDays } from '@/lib/business-days';
 import { syncAdTagFromChats } from '@/lib/ads/ad-tag';
-import { matchContactSource } from '@/lib/contact-source';
+import { matchContactSource, SIN_ORIGEN } from '@/lib/contact-source';
 
 
 // Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
@@ -218,6 +218,17 @@ export interface ContactCreateData {
     expectedValue?: number;
     priority?: number;
     contactSource?: string | null;
+    /**
+     * Origen a escribir SOLO si la ficha todavía no tiene uno (update).
+     *
+     * Es para los procesos automáticos que saben DÓNDE ocurrió algo pero no de
+     * dónde vino el cliente: el checkout web mandaba `contactSource: "Tienda
+     * Online"` en cada compra y pisaba el "Meta" del anuncio que lo había
+     * traído. Con este campo el dato de atribución se escribe una sola vez.
+     * El staff corrigiendo el origen desde la ficha sigue usando `contactSource`,
+     * que manda siempre — si no, no se podría arreglar un origen mal cargado.
+     */
+    contactSourceIfEmpty?: string | null;
     status?: string;
     address?: string | null;
     insurance?: string | null;
@@ -630,6 +641,18 @@ export const ContactService = {
         }
         if (data.contactSource !== undefined) {
             updateData.contactSource = normalizeContactSource(data.contactSource);
+        } else if (data.contactSourceIfEmpty) {
+            // Solo completa el hueco. Vale tanto para null como para el literal
+            // 'Sin origen' que quedó guardado en fichas viejas: las dos cosas
+            // significan "todavía no sabemos de dónde vino".
+            const actual = await prisma.client.findUnique({
+                where: { id },
+                select: { contactSource: true }
+            });
+            const actualNorm = normalizeContactSource(actual?.contactSource);
+            if (!actualNorm || actualNorm === SIN_ORIGEN) {
+                updateData.contactSource = normalizeContactSource(data.contactSourceIfEmpty);
+            }
         }
         if (data.interest !== undefined) updateData.interest = data.interest?.trim() === "" ? 'Otros' : data.interest;
         if (data.expectedValue !== undefined) updateData.expectedValue = Number(data.expectedValue) || 0;
@@ -757,8 +780,10 @@ export const ContactService = {
             data: updateData
         });
 
-        // Auto-tag based on contactSource update
-        if (data.contactSource !== undefined) {
+        // Auto-tag based on contactSource update. Se mira `updateData` y no
+        // `data` para que la etiqueta también se cree cuando el origen lo
+        // completó `contactSourceIfEmpty`.
+        if (updateData.contactSource !== undefined) {
             await syncContactSourceTag(updatedClient.id, updatedClient.contactSource);
         }
 

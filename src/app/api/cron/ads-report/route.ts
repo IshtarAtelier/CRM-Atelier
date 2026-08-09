@@ -5,12 +5,13 @@ import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
 import {
   metaAdsConfigured,
   fetchCampaignInsights,
-  fetchSpendByTag,
   dolarBlue,
-  adTag,
   actionValue,
   type InsightRow,
 } from '@/lib/ads/meta-insights';
+// El cruce anuncio ↔ chats ↔ ventas ya no vive acá: lo calcula el service, que
+// es el mismo que lee la pantalla /admin/analitica/atribucion. Un solo lugar.
+import { AttributionService, arDayStart, calcularRoas } from '@/services/attribution.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,14 +24,6 @@ export const dynamic = 'force-dynamic';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const money = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
-
-/** Medianoche de hace `daysAgo` días en Argentina (sin DST, -03:00 fijo es seguro). */
-function arDayStart(daysAgo: number): Date {
-  const dateStr = new Date(Date.now() - daysAgo * 864e5).toLocaleDateString('en-CA', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-  });
-  return new Date(`${dateStr}T00:00:00-03:00`);
-}
 
 interface CrmCampaignSales {
   count: number;
@@ -118,27 +111,6 @@ function campaignRow(
     </tr>`;
 }
 
-interface TagRoas {
-  tag: string;
-  gasto: number;
-  chats: number;
-  /** Clientes que recibieron al menos un presupuesto (orden en cualquier estado no borrado). */
-  presupuestados: number;
-  presupuestado: number;
-  /** Clientes con al menos una venta REAL: plata cobrada o pedido en laboratorio. */
-  cierres: number;
-  facturadoReal: number;
-  cobrado: number;
-}
-
-/**
- * Retorno real por anuncio: lo que Meta cobró contra lo que se facturó.
- *
- * El puente es la etiqueta del anuncio ([metaFlor], [metaClip]…): el texto
- * pre-cargado que llega por WhatsApp la trae, así que se sabe qué anuncio
- * trajo cada conversación y qué compró después ese cliente. Es el único cruce
- * que dice si la pauta se paga sola — Meta solo informa conversaciones.
- */
 /**
  * Barrido de respaldo: copia la etiqueta persistida en los chats a Client.adTag
  * para los clientes que se vincularon por caminos que no propagan en el momento
@@ -159,98 +131,6 @@ async function barridoAdTagClientes(): Promise<void> {
   } catch (e) {
     console.error('[Ads Report] Error en barrido adTag → clientes:', e);
   }
-}
-
-async function roasPorAnuncio(desde: Date, hasta: Date, rate: number): Promise<TagRoas[]> {
-  const gasto = await fetchSpendByTag('last_7d', rate);
-
-  const chats = await prisma.whatsAppChat.findMany({
-    where: { createdAt: { gte: desde, lt: hasta } },
-    select: {
-      clientId: true,
-      adTag: true,
-      messages: {
-        where: { direction: 'INBOUND' },
-        orderBy: { createdAt: 'asc' },
-        take: 1,
-        select: { content: true },
-      },
-    },
-  });
-
-  const porTag = new Map<string, { chats: number; clientes: Set<string> }>();
-  for (const c of chats) {
-    // La columna persistida manda; el parseo del primer mensaje queda como
-    // respaldo para chats anteriores a la columna (o etiquetas deducidas por producto).
-    const tag = c.adTag || adTag(c.messages[0]?.content);
-    if (!tag) continue;
-    const g = porTag.get(tag) || { chats: 0, clientes: new Set<string>() };
-    g.chats++;
-    if (c.clientId) g.clientes.add(c.clientId);
-    porTag.set(tag, g);
-  }
-
-  const ids = [...new Set([...porTag.values()].flatMap((g) => [...g.clientes]))];
-  // Órdenes vivas del período. OJO: acá conviven dos cosas MUY distintas —
-  // presupuestos (PDF que manda el bot/vendedora, sin plata) y ventas reales.
-  // Auditoría 28/7: contar Order.total a secas infló el "ROAS" contando
-  // presupuestos LOST y PENDING sin un peso como facturación.
-  const ordenes = ids.length
-    ? await prisma.order.findMany({
-        where: { clientId: { in: ids }, createdAt: { gte: desde, lt: hasta }, isDeleted: false },
-        select: {
-          clientId: true,
-          total: true,
-          paid: true,
-          labStatus: true,
-          status: true,
-          payments: { select: { amount: true } },
-        },
-      })
-    : [];
-
-  const porCliente = new Map<string, { presupuesto: number; real: number; cobrado: number }>();
-  for (const v of ordenes) {
-    if (!v.clientId) continue;
-    const p = porCliente.get(v.clientId) || { presupuesto: 0, real: 0, cobrado: 0 };
-    p.presupuesto += Number(v.total || 0);
-    // Solo cuentan los pagos REGISTRADOS. `Order.paid` no sirve como respaldo:
-    // quedan filas con `paid` = total × 1,25 sin ninguna fila de pago detrás
-    // (residuo del arreglo del ratchet, que baja `total` y no toca `paid`), y
-    // usarlas como evidencia inventaba cierres. De 168 órdenes con pagos reales
-    // en 90 días, 165 tienen `paid` coherente — no se pierde nada al exigir la fila.
-    const cobrado = v.payments.reduce((s, pay) => s + Number(pay.amount || 0), 0);
-    const esVentaReal =
-      !['LOST', 'CANCELED'].includes(v.status || '') &&
-      (cobrado > 0 || (v.labStatus && v.labStatus !== 'NONE'));
-    if (esVentaReal) {
-      p.real += Number(v.total || 0);
-      p.cobrado += cobrado;
-    }
-    porCliente.set(v.clientId, p);
-  }
-
-  const tags = new Set([...gasto.keys(), ...porTag.keys()]);
-  const filas: TagRoas[] = [];
-  for (const tag of tags) {
-    const g = porTag.get(tag);
-    let presupuestados = 0, presupuestado = 0, cierres = 0, facturadoReal = 0, cobrado = 0;
-    for (const cid of g?.clientes || []) {
-      const v = porCliente.get(cid);
-      if (!v) continue;
-      if (v.presupuesto > 0) { presupuestados++; presupuestado += v.presupuesto; }
-      if (v.real > 0 || v.cobrado > 0) { cierres++; facturadoReal += v.real; cobrado += v.cobrado; }
-    }
-    filas.push({
-      tag,
-      gasto: gasto.get(tag)?.gasto || 0,
-      chats: g?.chats || 0,
-      presupuestados, presupuestado, cierres, facturadoReal, cobrado,
-    });
-  }
-  return filas
-    .filter((f) => f.gasto > 0 || f.presupuestado > 0 || f.facturadoReal > 0)
-    .sort((a, b) => b.facturadoReal - a.facturadoReal || b.presupuestado - a.presupuestado);
 }
 
 export async function GET(request: Request) {
@@ -279,7 +159,8 @@ export async function GET(request: Request) {
     const weekRows = await fetchCampaignInsights('last_7d', rate);
     const crmWeek = await crmSalesByCampaign(arDayStart(7), arDayStart(0));
     await barridoAdTagClientes();
-    const roas = await roasPorAnuncio(arDayStart(7), arDayStart(0), rate);
+    // Misma ventana de 7 días y mismo cruce que muestra /admin/analitica/atribucion.
+    const roas = await AttributionService.porAnuncio(7, rate);
 
     const yMap = aggregateByName(yesterdayRows);
     const wMap = aggregateByName(weekRows);
@@ -347,6 +228,7 @@ export async function GET(request: Request) {
       }),
       { gasto: 0, chats: 0, presupuestados: 0, presupuestado: 0, cierres: 0, facturadoReal: 0, cobrado: 0 },
     );
+    const roasTotalX = calcularRoas(roasTotal.gasto, roasTotal.facturadoReal);
     const roasHtml = roas.length
       ? `
         <h3 style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;margin:22px 0 6px;border-bottom:2px solid #9e7f65;padding-bottom:5px;">Qué devolvió cada anuncio</h3>
@@ -362,7 +244,7 @@ export async function GET(request: Request) {
           </tr>
           ${roas
             .map((f) => {
-              const x = f.gasto > 0 && f.facturadoReal > 0 ? f.facturadoReal / f.gasto : null;
+              const x = f.roas;
               const alerta = f.gasto > 0 && f.chats === 0;
               return `<tr style="border-bottom:1px dotted #f0eae4;${alerta ? 'background:#fdf6ec;' : ''}">
             <td style="padding:6px 4px;font-size:12px;font-weight:600;color:#433831;">${f.tag}${alerta ? ' ⚠️' : ''}</td>
@@ -382,7 +264,7 @@ export async function GET(request: Request) {
             <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:700;">${roasTotal.presupuestados}</td>
             <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:700;">${roasTotal.cierres}</td>
             <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:800;white-space:nowrap;">${money(roasTotal.facturadoReal)}</td>
-            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:800;color:#1a7d4b;">${roasTotal.gasto > 0 && roasTotal.facturadoReal > 0 ? (roasTotal.facturadoReal / roasTotal.gasto).toFixed(1) + '×' : '—'}</td>
+            <td style="padding:7px 4px;text-align:right;font-size:12px;font-weight:800;color:#1a7d4b;">${roasTotalX != null ? roasTotalX.toFixed(1) + '×' : '—'}</td>
           </tr>
         </table>
         <p style="font-size:10px;color:#a89c90;margin:6px 0 0;">Presup. = clientes que recibieron presupuesto (${money(roasTotal.presupuestado)} presupuestados en total). Cierre = venta con plata cobrada o pedido en laboratorio — cobrado hasta hoy: ${money(roasTotal.cobrado)}. "Vendió" es facturación de esas ventas reales, no ganancia. ⚠️ = gastó sin traer una sola conversación.</p>`
@@ -441,9 +323,7 @@ export async function GET(request: Request) {
         cierres: roasTotal.cierres,
         facturadoReal: Math.round(roasTotal.facturadoReal),
         cobrado: Math.round(roasTotal.cobrado),
-        x: roasTotal.gasto > 0 && roasTotal.facturadoReal > 0
-          ? Number((roasTotal.facturadoReal / roasTotal.gasto).toFixed(1))
-          : null,
+        x: roasTotalX != null ? Number(roasTotalX.toFixed(1)) : null,
       },
     });
   } catch (error) {

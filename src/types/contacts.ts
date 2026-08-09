@@ -71,6 +71,8 @@ export interface Contact {
     dni: string | null;
     status: string;
     contactSource: string | null;
+    /** Apodo del anuncio de Meta que trajo al cliente (ej. "ishvarilux"). Lo escribe el bot. */
+    adTag?: string | null;
     interest: string | null;
     expectedValue: number | null;
     avgTicket?: number;

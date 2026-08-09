@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { ContactService } from '@/services/contact.service';
 import { ATTENTION_CUTOFF_ISO } from '@/lib/constants';
 import { resolveMonthlyTargets } from '@/lib/targets';
+import { normalizeContactSource } from '@/lib/contact-source';
 
 export const dynamic = 'force-dynamic';
 
@@ -388,8 +389,13 @@ export async function GET(request: Request) {
         }
 
         currentMonthOrders.forEach((order: any) => {
-            // Tag stats
-            const source = order.client?.contactSource || 'Sin etiqueta';
+            // Tag stats. El nombre del canal sale del vocabulario único
+            // (src/lib/contact-source.ts): la ficha sin origen se llama
+            // 'Sin origen' acá y en el panel de marketing, y variantes como
+            // "instagram"/"IG" caen en el mismo "Meta" en las dos pantallas.
+            // Antes cada tablero inventaba su etiqueta ('Sin etiqueta' acá,
+            // 'Orgánico / Local' allá) y el mismo cliente parecía dos cosas.
+            const source = normalizeContactSource(order.client?.contactSource);
             if (!tagStats[source]) tagStats[source] = { total: 0, count: 0 };
             const orderPrice = order.subtotalWithMarkup || order.total || 0;
             tagStats[source].total += orderPrice;

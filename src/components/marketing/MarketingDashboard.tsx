@@ -72,8 +72,8 @@ export function MarketingDashboard() {
                     <h2 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center gap-3">
                         <BarChart3 className="w-8 h-8 text-indigo-500" /> Rendimiento de Marketing
                     </h2>
-                    <p className="text-stone-500 dark:text-stone-400 text-sm mt-1">
-                        Control de inversión, CAC y atribución de ventas en tiempo real (Mes actual)
+                    <p className="text-stone-600 dark:text-stone-300 text-sm mt-1">
+                        Ventas reales del mes y de qué canal vino cada una. Solo cuenta la venta con cobro registrado o ya enviada a fábrica: un presupuesto sin un peso no es facturación.
                     </p>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -88,13 +88,13 @@ export function MarketingDashboard() {
             </div>
 
             {/* Aviso de Conexión Parcial */}
-            {(!data.isMetaConnected || !data.isGoogleConnected) && (
+            {!data.hasSpendData && (
                 <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-200 dark:border-amber-900/50 rounded-2xl flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
-                        <h4 className="text-sm font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider">APIs Publicitarias no conectadas</h4>
-                        <p className="text-xs text-amber-700 dark:text-amber-500 mt-1 font-bold">
-                            Los datos de ventas y conversión son reales (extraídos de tu base de datos), pero los gastos en inversión muestran una simulación hasta que configures el Account ID de Meta y el Token de Desarrollador de Google Ads.
+                        <h4 className="text-sm font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider">Inversión publicitaria no conectada</h4>
+                        <p className="text-xs text-amber-800 dark:text-amber-300 mt-1 font-bold">
+                            Las ventas y la atribución por origen de esta pantalla son reales (salen de la base). La inversión, el CAC y el ROAS quedan vacíos a propósito: esta pantalla todavía no lee las plataformas de ads, y mostrar un número de ejemplo sería peor que no mostrar nada.
                         </p>
                     </div>
                 </div>
@@ -110,9 +110,18 @@ export function MarketingDashboard() {
                         </div>
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Inversión Mensual</p>
-                        <p className="text-3xl font-black text-stone-800 dark:text-white">${data.totalSpent.toLocaleString()}</p>
-                        <p className="text-xs font-bold text-stone-500 mt-2">Google: ${data.googleSpent.toLocaleString()} | Meta: ${data.metaSpent.toLocaleString()}</p>
+                        <p className="text-[10px] font-black text-stone-500 dark:text-stone-300 uppercase tracking-widest mb-1">Inversión Mensual</p>
+                        {data.hasSpendData ? (
+                            <>
+                                <p className="text-3xl font-black text-stone-800 dark:text-white">${data.totalSpent.toLocaleString()}</p>
+                                <p className="text-xs font-bold text-stone-600 dark:text-stone-300 mt-2">Google: ${data.googleSpent.toLocaleString()} | Meta: ${data.metaSpent.toLocaleString()}</p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-2xl font-black text-stone-500 dark:text-stone-400">Sin datos</p>
+                                <p className="text-xs font-bold text-stone-600 dark:text-stone-300 mt-2">La inversión llega por el reporte diario de ads, todavía no por esta pantalla</p>
+                            </>
+                        )}
                     </div>
                 </div>
                 )}
@@ -125,9 +134,12 @@ export function MarketingDashboard() {
                         </div>
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">ROAS Global</p>
-                        <p className="text-3xl font-black text-stone-800 dark:text-white">{data.roas}x</p>
-                        <p className="text-xs font-bold text-emerald-500 mt-2">Facturación Bruta: ${data.totalSales.toLocaleString()}</p>
+                        <p className="text-[10px] font-black text-stone-500 dark:text-stone-300 uppercase tracking-widest mb-1">ROAS Global</p>
+                        <p className="text-3xl font-black text-stone-800 dark:text-white">
+                            {data.hasSpendData ? `${data.roas}x` : <span className="text-2xl text-stone-500 dark:text-stone-400">Sin datos</span>}
+                        </p>
+                        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mt-2">Ventas reales del mes: ${data.totalSales.toLocaleString()}</p>
+                        <p className="text-[11px] font-bold text-stone-600 dark:text-stone-300 mt-1">Cobrado hasta hoy: ${data.totalCobrado.toLocaleString()}</p>
                     </div>
                 </div>
                 )}
@@ -140,9 +152,13 @@ export function MarketingDashboard() {
                         </div>
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">CAC Promedio</p>
-                        <p className="text-3xl font-black text-stone-800 dark:text-white">${data.cac.toLocaleString()}</p>
-                        <p className="text-xs font-bold text-stone-500 mt-2">Gasto Total / {data.ordersCount} ventas reales</p>
+                        <p className="text-[10px] font-black text-stone-500 dark:text-stone-300 uppercase tracking-widest mb-1">CAC Promedio</p>
+                        <p className="text-3xl font-black text-stone-800 dark:text-white">
+                            {data.hasSpendData ? `$${data.cac.toLocaleString()}` : <span className="text-2xl text-stone-500 dark:text-stone-400">Sin datos</span>}
+                        </p>
+                        <p className="text-xs font-bold text-stone-600 dark:text-stone-300 mt-2">
+                            {data.hasSpendData ? `Gasto Total / ${data.ordersCount} ventas reales` : `Necesita la inversión del mes (hay ${data.ordersCount} ventas reales)`}
+                        </p>
                     </div>
                 </div>
                 )}
@@ -166,17 +182,17 @@ export function MarketingDashboard() {
                 {userRole === 'ADMIN' && (
                 <div className="bg-white dark:bg-[#1C1816] border border-stone-200 dark:border-white/5 rounded-3xl p-6 xl:col-span-1 shadow-sm">
                     <div className="flex items-center gap-2 mb-8">
-                        <Megaphone className="w-5 h-5 text-stone-500" />
-                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Origen de Ventas (Atribución)</h2>
+                        <Megaphone className="w-5 h-5 text-stone-600 dark:text-stone-300" />
+                        <h2 className="text-xs font-black uppercase tracking-widest text-stone-600 dark:text-stone-300">Origen de Ventas (Atribución)</h2>
                     </div>
                     <div className="space-y-4">
                         {data.sources.length === 0 ? (
-                            <div className="text-center py-6 text-stone-400 text-sm">No hay ventas este mes</div>
+                            <div className="text-center py-6 text-stone-600 dark:text-stone-300 text-sm font-bold">No hay ventas este mes</div>
                         ) : data.sources.map((source: any, i: number) => (
                             <div key={i} className="flex items-center justify-between p-4 bg-stone-50 dark:bg-white/5 rounded-2xl">
                                 <div>
                                     <p className="text-sm font-bold text-stone-800 dark:text-white">{source.name}</p>
-                                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mt-1">
+                                    <p className="text-[10px] font-black text-stone-600 dark:text-stone-300 uppercase tracking-widest mt-1">
                                         {source.orders} ventas
                                     </p>
                                 </div>
@@ -195,11 +211,19 @@ export function MarketingDashboard() {
                 <div className="bg-white dark:bg-[#1C1816] border border-stone-200 dark:border-white/5 rounded-3xl p-6 xl:col-span-2 shadow-sm">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2">
-                            <MousePointerClick className="w-5 h-5 text-stone-500" />
-                            <h2 className="text-xs font-black uppercase tracking-widest text-stone-400">Rendimiento por Campaña (APIs)</h2>
+                            <MousePointerClick className="w-5 h-5 text-stone-600 dark:text-stone-300" />
+                            <h2 className="text-xs font-black uppercase tracking-widest text-stone-600 dark:text-stone-300">Rendimiento por Campaña (APIs)</h2>
                         </div>
                     </div>
-                    
+
+                    {!data.hasCampaignData || data.campaigns.length === 0 ? (
+                        <div className="text-center py-12 px-4">
+                            <p className="text-sm font-black text-stone-700 dark:text-stone-200">Sin datos de campañas conectados</p>
+                            <p className="text-xs font-bold text-stone-600 dark:text-stone-300 mt-2 max-w-md mx-auto">
+                                Esta pantalla no lee las plataformas de ads. El gasto y el retorno por anuncio se calculan hoy en el reporte diario de ads; hasta que se conecten acá, la tabla queda vacía en vez de mostrar cifras de ejemplo.
+                            </p>
+                        </div>
+                    ) : (
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left min-w-[600px]">
                             <thead>
@@ -245,6 +269,7 @@ export function MarketingDashboard() {
                             </tbody>
                         </table>
                     </div>
+                    )}
                 </div>
             </div>
         </div>

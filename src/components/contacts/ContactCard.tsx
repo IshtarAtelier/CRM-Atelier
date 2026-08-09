@@ -2,6 +2,7 @@ import React from 'react';
 import { UserPlus, Star, Phone, Tag as TagIcon, ChevronRight, CheckCircle2, UserCheck, Building2, Heart, FileText, Trash2, MapPin, Store, AlertTriangle, Banknote } from "lucide-react";
 import { Contact } from '@/types/contacts';
 import { ATTENTION_CUTOFF_ISO } from '@/lib/constants';
+import { OrigenChips } from '@/components/contacts/ContactOrigin';
 
 interface ContactCardProps {
     contact: Contact;
@@ -159,6 +160,8 @@ export const ContactCard: React.FC<ContactCardProps> = ({
                                 {contact.interest}
                             </div>
                         )}
+                        {/* De dónde vino: canal y, si lo hay, el anuncio de Meta. */}
+                        <OrigenChips contact={contact} />
                     </div>
                     {contact.hasPaidNotSent && contact.status === 'CONFIRMED' && (
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 mt-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg border-2 border-red-200 dark:border-red-800/30 font-black text-[9px] uppercase tracking-widest shadow-sm animate-pulse">

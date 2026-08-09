@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
 import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/auth';
+import { matchContactSource, CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,34 @@ export async function POST(request: Request) {
         if (!body.name || !body.name.trim()) {
             return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
         }
+
+        // ── Origen obligatorio DE VERDAD ──────────────────────────────────────
+        // Los tres formularios que pegan acá (ficha nueva en Contactos, alta
+        // rápida del cotizador y "crear ficha" del buzón de WhatsApp) ya piden
+        // el origen, pero solo del lado del navegador: bastaba un submit sin
+        // pasar por el formulario para crear una ficha sin canal, y una ficha
+        // sin canal no aparece en ningún reporte de atribución — la venta que
+        // trajo el anuncio queda sin dueño.
+        //
+        // Solo se valida en ESTA ruta (altas hechas por una persona del equipo).
+        // Los procesos automáticos NO pasan por acá: el bot, la extracción del
+        // chat y el checkout web llaman a ContactService.create() directamente,
+        // porque muchas veces todavía no se sabe de dónde vino el cliente y
+        // forzar un valor sería inventarlo (el checkout es la excepción: ahí sí
+        // se sabe, y escribe 'Tienda online' solo si la ficha no traía origen).
+        const origen = matchContactSource(body.contactSource);
+        if (!origen) {
+            return NextResponse.json({
+                error: 'Falta el origen del contacto',
+                details: body.contactSource
+                    ? `"${body.contactSource}" no es un canal conocido. Elegí uno de: ${CONTACT_SOURCES_SELECCIONABLES.join(', ')}.`
+                    : `Elegí de dónde vino este contacto (Origen / Canal): ${CONTACT_SOURCES_SELECCIONABLES.join(', ')}.`,
+                field: 'contactSource',
+            }, { status: 400 });
+        }
+        // Se guarda ya en su forma canónica: "instagram", "IG" y "Meta" son el
+        // mismo canal y tienen que contarse juntos.
+        body.contactSource = origen;
 
         // Deduplication is handled entirely by ContactService.create() using raw SQL
         // with REGEXP_REPLACE for digit normalization — this correctly handles phones
