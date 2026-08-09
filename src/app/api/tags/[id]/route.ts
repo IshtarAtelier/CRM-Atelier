@@ -9,11 +9,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const { id } = await params;
         const headersList = await headers();
         const body = await request.json();
+        // Misma higiene que en el POST: un rename con espacio final volvería a
+        // duplicar la tag ("visita showroom " vs "visita showroom").
+        const nameLimpio = typeof body.name === 'string' ? body.name.trim().replace(/\s+/g, ' ') : undefined;
         const previo = await prisma.tag.findUnique({ where: { id: id } });
         const updatedTag = await prisma.tag.update({
             where: { id: id },
             data: {
-                name: body.name,
+                name: nameLimpio === '' ? undefined : nameLimpio,
                 color: body.color,
                 botAction: body.botAction,
                 notifyPhone: body.notifyPhone,

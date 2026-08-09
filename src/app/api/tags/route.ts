@@ -25,10 +25,18 @@ export async function POST(request: NextRequest) {
     try {
         const headersList = await headers();
         const body = await request.json();
-        
+
+        // trim + colapso de espacios: la tag "visita showroom " (con espacio
+        // final) convivió duplicada con "visita showroom". El unique de la DB
+        // no distingue espacios, así que hay que limpiar ANTES de crear.
+        const name = typeof body.name === 'string' ? body.name.trim().replace(/\s+/g, ' ') : '';
+        if (!name) {
+            return NextResponse.json({ error: 'El nombre de la etiqueta no puede estar vacío' }, { status: 400 });
+        }
+
         const newTag = await prisma.tag.create({
             data: {
-                name: body.name,
+                name,
                 color: body.color || '#9e7f65',
                 botAction: body.botAction || 'NONE',
                 notifyPhone: body.notifyPhone || null,
