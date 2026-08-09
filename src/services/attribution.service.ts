@@ -134,6 +134,28 @@ export function tieneMovimiento(f: AnuncioAtribucion): boolean {
 type MapaGasto = Map<string, { gasto: number; convMeta: number }>;
 
 /**
+ * Caché en memoria del gasto de Meta.
+ *
+ * La pantalla de atribución consultaba la API de Meta en cada carga y tardaba
+ * ~3 s en abrir. El gasto de un anuncio no cambia de un minuto al otro (Meta
+ * mismo consolida con retraso), así que diez minutos de caché no envejecen el
+ * dato y sacan la llamada externa del camino crítico. Es en memoria a
+ * propósito: se pierde en cada deploy, que es exactamente cuando conviene
+ * volver a preguntar.
+ */
+const TTL_GASTO_MS = 10 * 60 * 1000;
+const cacheGasto = new Map<string, { valor: MapaGasto; vence: number }>();
+
+async function gastoCacheado(preset: string): Promise<MapaGasto> {
+    const guardado = cacheGasto.get(preset);
+    if (guardado && guardado.vence > Date.now()) return guardado.valor;
+
+    const valor = await fetchSpendByTag(preset);
+    cacheGasto.set(preset, { valor, vence: Date.now() + TTL_GASTO_MS });
+    return valor;
+}
+
+/**
  * Cruce anuncio ↔ conversaciones ↔ ventas para la ventana dada.
  * Recibe el gasto ya resuelto para que el llamador decida qué hacer si Meta no
  * responde (el cron falla, la pantalla sigue mostrando lo propio).
@@ -382,7 +404,7 @@ export class AttributionService {
                 'Este servidor no tiene cargadas las credenciales de lectura de Meta Ads, así que el gasto figura en cero. Los chats, clientes y ventas de abajo sí son reales.';
         } else {
             try {
-                mapaGasto = await fetchSpendByTag(PRESET_META[dias]);
+                mapaGasto = await gastoCacheado(PRESET_META[dias]);
                 disponible = true;
             } catch (e) {
                 // El mensaje ya viene con los secretos tapados desde meta-insights.
