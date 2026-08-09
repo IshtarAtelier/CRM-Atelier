@@ -137,6 +137,86 @@ function resolveCrystalProduct(item: any, crystals: any[]) {
   return findMatchedProduct(crystals, config);
 }
 
+/**
+ * Espeja la compra a la analítica propia y al Conversions API de Meta.
+ *
+ * Vive acá, en una sola función, porque el checkout termina en TRES ramas
+ * distintas —tarjeta, transferencia y mayorista— y hasta el 9/8/2026 la
+ * medición estaba escrita solo dentro de la de tarjeta. Consecuencia: las
+ * compras por transferencia (que llevan 15% de descuento, o sea el camino que
+ * más conviene al cliente y probablemente el más usado) y las mayoristas eran
+ * invisibles para Meta, para GA y para el propio embudo del panel. El plan lo
+ * anotó como bloqueante B3.
+ *
+ * `paymentMethod` viaja en la analítica propia para poder separar después lo
+ * cobrado de lo prometido: una transferencia queda pendiente de acreditación y
+ * puede no concretarse nunca. Por eso la plata que manda sigue siendo la del
+ * CRM (filas de `Payment`), nunca el panel de la plataforma — es la regla del
+ * proyecto y la del plan de campañas.
+ *
+ * No lanza ni bloquea: medir no puede romper una venta.
+ */
+function medirCompraWeb(opts: {
+  req: Request;
+  body: any;
+  order: { id: string; createdAt: Date };
+  total: number;
+  customer: { email: string; phone: string; firstName: string; lastName: string };
+  paymentMethod: 'TARJETA' | 'TRANSFERENCIA' | 'MAYORISTA';
+}) {
+  const { req, body, order, total, customer, paymentMethod } = opts;
+  try {
+    // 1) Conversión propia del embudo, atada a la sesión anónima del visitante.
+    recordServerEvent({
+      type: 'purchase',
+      sessionId: body?.analyticsSessionId || `web-${order.id}`,
+      value: total,
+      orderId: order.id,
+      meta: {
+        channel: 'web',
+        paymentMethod,
+        ...(body?.adsMatch?.gclid ? { gclid: body.adsMatch.gclid } : {}),
+        ...(body?.adsMatch?.fbc ? { fbc: body.adsMatch.fbc } : {}),
+      },
+    });
+
+    // 2) Meta CAPI server-side (respaldo del Pixel; event_id = order.id deduplica).
+    //
+    // Los pedidos MAYORISTAS no se espejan a Meta a propósito: los hace una
+    // óptica logueada del canal Cápsula Escarlata, no un cliente que vino de un
+    // anuncio. Mandarlos al píxel de consumo final le enseñaría a Meta un
+    // público B2B que ninguna campaña persigue e inflaría el ROAS que lee la
+    // dueña. En la analítica propia sí quedan (con paymentMethod MAYORISTA),
+    // que es donde se los quiere ver. El plan pedía "las 3 ramas"; esta es la
+    // única excepción y queda escrita acá para que se pueda revertir a sabiendas.
+    if (paymentMethod === 'MAYORISTA') return;
+
+    AdsService.sendWebPurchase(
+      {
+        id: order.id,
+        total,
+        client: {
+          email: customer.email,
+          phone: customer.phone,
+          name: `${customer.firstName} ${customer.lastName}`,
+        },
+        createdAt: order.createdAt,
+      },
+      {
+        eventSourceUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar'}/checkout`,
+        matchData: {
+          fbc: typeof body?.adsMatch?.fbc === 'string' ? body.adsMatch.fbc.slice(0, 500) : null,
+          fbp: typeof body?.adsMatch?.fbp === 'string' ? body.adsMatch.fbp.slice(0, 100) : null,
+          clientIp: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
+          userAgent: req.headers.get('user-agent'),
+        },
+      },
+    );
+  } catch (err) {
+    console.error('[checkout] error midiendo la compra (no afecta la venta):', err);
+  }
+}
+
 export async function POST(req: Request) {
   let globalRestoreStock: (() => Promise<void>) | null = null;
   let order: any = null;
@@ -750,6 +830,10 @@ export async function POST(req: Request) {
         // Red de seguridad: avisar si alguna línea quedó con costo $0.
         notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (transferencia web):', err));
 
+        // Medición: `emailTotal` ya trae aplicado el 15% de descuento, o sea lo
+        // que el cliente efectivamente va a transferir.
+        medirCompraWeb({ req, body, order, total: emailTotal, customer, paymentMethod: 'TRANSFERENCIA' });
+
         return NextResponse.json({
           success: true,
           message: "Orden de transferencia generada",
@@ -790,6 +874,8 @@ export async function POST(req: Request) {
 
       await notifyLowStockCrossing(decrementedProducts);
       notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (mayorista web):', err));
+
+      medirCompraWeb({ req, body, order, total: emailTotal, customer, paymentMethod: 'MAYORISTA' });
 
       return NextResponse.json({
         success: true,
@@ -1052,38 +1138,8 @@ export async function POST(req: Request) {
     // Red de seguridad: avisar si alguna línea quedó con costo $0.
     notifyZeroCostSale(order.id).catch(err => console.error('Error en alerta de costo $0 (pago Payway):', err));
 
-    // Medición (fuera del critical path, no bloquea ni lanza):
-    // 1) Conversión propia del embudo, atada a la sesión anónima del visitante.
-    recordServerEvent({
-      type: 'purchase',
-      sessionId: body.analyticsSessionId || `web-${order.id}`,
-      value: finalItemsTotal,
-      orderId: order.id,
-      meta: {
-        channel: 'web',
-        paymentMethod: 'TARJETA',
-        ...(body.adsMatch?.gclid ? { gclid: body.adsMatch.gclid } : {}),
-        ...(body.adsMatch?.fbc ? { fbc: body.adsMatch.fbc } : {}),
-      },
-    });
-    // 2) Meta CAPI server-side (respaldo del Pixel; event_id = order.id deduplica).
-    AdsService.sendWebPurchase(
-      {
-        id: order.id,
-        total: finalItemsTotal,
-        client: { email: customer.email, phone: customer.phone, name: `${customer.firstName} ${customer.lastName}` },
-        createdAt: order.createdAt,
-      },
-      {
-        eventSourceUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar'}/checkout`,
-        matchData: {
-          fbc: typeof body.adsMatch?.fbc === 'string' ? body.adsMatch.fbc.slice(0, 500) : null,
-          fbp: typeof body.adsMatch?.fbp === 'string' ? body.adsMatch.fbp.slice(0, 100) : null,
-          clientIp: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
-          userAgent: req.headers.get('user-agent'),
-        },
-      },
-    );
+    // Medición (fuera del critical path, no bloquea ni lanza).
+    medirCompraWeb({ req, body, order, total: emailTotal, customer, paymentMethod: 'TARJETA' });
 
     return NextResponse.json({
       success: true,

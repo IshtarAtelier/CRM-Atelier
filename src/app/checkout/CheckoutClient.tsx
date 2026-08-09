@@ -335,6 +335,7 @@ export function CheckoutClient({
         });
 
         if (res.ok) {
+          const data = await res.json().catch(() => ({} as any));
           const sessionId = localStorage.getItem("atelier-checkout-session-id");
           if (sessionId) {
             fetch('/api/checkout/session', {
@@ -348,7 +349,15 @@ export function CheckoutClient({
           // sobrevive haría que la PRÓXIMA compra responda "idempotent" sin cobrar.
           clearIdempotencyKey();
           try {
-            trackPurchase(sessionId || crypto.randomUUID(), getCartTotal(isWholesale), items);
+            // SOLO con el id de la orden: el server manda la misma compra por el
+            // Conversions API con event_id = order.id, y Meta descarta el
+            // duplicado comparando ese id. Mandando acá un uuid al azar (o el id
+            // de la sesión de recuperación, que es otra cosa) los dos eventos
+            // nunca coincidían y la MISMA venta se contaba dos veces. Si no vino
+            // orderId, no se mide del lado del navegador: ya lo cubre el server.
+            if (data?.orderId) {
+              trackPurchase(data.orderId, getCartTotal(isWholesale), items);
+            }
           } catch (e) {
             console.error("Purchase tracking error:", e);
           }
@@ -475,7 +484,11 @@ export function CheckoutClient({
               // sobrevive haría que la PRÓXIMA compra responda "idempotent" sin cobrar.
               clearIdempotencyKey();
               try {
-                trackPurchase(data.orderId || sessionId || crypto.randomUUID(), getCartTotal(isWholesale), items);
+                // Ídem rama transferencia: el transaction_id tiene que ser el id
+                // de la orden para que Meta deduplique contra el evento del CAPI.
+                if (data?.orderId) {
+                  trackPurchase(data.orderId, getCartTotal(isWholesale), items);
+                }
               } catch (e) {
                 console.error("Purchase tracking error:", e);
               }
