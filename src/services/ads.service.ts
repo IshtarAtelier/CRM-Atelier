@@ -217,4 +217,75 @@ export class AdsService {
       console.error('[AdsService] Error preparando evento de embudo CAPI:', err);
     }
   }
+
+  /**
+   * Salud del píxel consultada a la Graph API: si existe, cuándo disparó por
+   * última vez y qué eventos recibió en los últimos 7 días. Solo lectura.
+   *
+   * `configured` sale de las env del server; el resto puede venir null si el
+   * token no tiene permiso para stats (el error se devuelve como texto, nunca
+   * el token). Con timeout corto: es un panel, no puede colgar al admin.
+   */
+  public static async getPixelHealth(): Promise<{
+    configured: { pixelId: boolean; capiToken: boolean };
+    pixel: { name: string; lastFiredTime: string | null; isUnavailable: boolean } | null;
+    events7d: { event: string; count: number }[] | null;
+    error: string | null;
+  }> {
+    const metaToken = process.env.META_ACCESS_TOKEN;
+    const pixelId = process.env.META_PIXEL_ID;
+    const configured = { pixelId: Boolean(pixelId), capiToken: Boolean(metaToken) };
+    if (!metaToken || !pixelId) {
+      return { configured, pixel: null, events7d: null, error: 'Credenciales CAPI sin configurar' };
+    }
+
+    const graph = async (ruta: string) => {
+      const sep = ruta.includes('?') ? '&' : '?';
+      const res = await fetch(
+        `https://graph.facebook.com/v24.0/${ruta}${sep}access_token=${encodeURIComponent(metaToken)}`,
+        { signal: AbortSignal.timeout(6000), cache: 'no-store' },
+      );
+      return res.json();
+    };
+
+    try {
+      const desde = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
+      const [info, stats] = await Promise.all([
+        graph(`${pixelId}?fields=name,last_fired_time,is_unavailable`),
+        graph(`${pixelId}/stats?aggregation=event&start_time=${desde}`),
+      ]);
+
+      const pixel = info?.error
+        ? null
+        : {
+            name: String(info.name ?? ''),
+            lastFiredTime: info.last_fired_time ?? null,
+            isUnavailable: Boolean(info.is_unavailable),
+          };
+
+      let events7d: { event: string; count: number }[] | null = null;
+      if (!stats?.error) {
+        const porEvento = new Map<string, number>();
+        for (const bloque of stats?.data ?? []) {
+          for (const fila of bloque?.data ?? []) {
+            porEvento.set(fila.value, (porEvento.get(fila.value) ?? 0) + Number(fila.count || 0));
+          }
+        }
+        events7d = [...porEvento.entries()]
+          .map(([event, count]) => ({ event, count }))
+          .sort((a, b) => b.count - a.count);
+      }
+
+      // Los mensajes de error de Meta no incluyen el token; son seguros de mostrar.
+      const error = info?.error?.message || stats?.error?.message || null;
+      return { configured, pixel, events7d, error };
+    } catch (err) {
+      return {
+        configured,
+        pixel: null,
+        events7d: null,
+        error: err instanceof Error ? err.message : 'Error consultando la Graph API',
+      };
+    }
+  }
 }

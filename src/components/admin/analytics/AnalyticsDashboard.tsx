@@ -5,6 +5,8 @@ import {
   Eye, Users, ShoppingCart, CreditCard, TrendingUp, MapPin,
   Package, Radio, RefreshCw, DollarSign,
 } from 'lucide-react';
+import MeasurementHealth from '@/components/admin/analytics/MeasurementHealth';
+import GrowthPanel from '@/components/admin/analytics/GrowthPanel';
 
 type Analytics = {
   range: { from: string; to: string };
@@ -97,6 +99,10 @@ export default function AnalyticsDashboard() {
       {error && (
         <div className="p-4 rounded-lg border border-red-300 bg-red-50 text-red-700 text-sm">{error}</div>
       )}
+
+      {/* Independientes del selector de rango: estado actual y serie mensual */}
+      <MeasurementHealth />
+      <GrowthPanel />
 
       {!data && loading && <div className="text-muted-foreground">Cargando…</div>}
 
