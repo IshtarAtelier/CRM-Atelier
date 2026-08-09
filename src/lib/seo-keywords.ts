@@ -60,3 +60,49 @@ export function formatQueryToTitle(query: string): string {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 }
+
+/**
+ * A qué página REAL corresponde cada búsqueda.
+ *
+ * Por qué existe: `/blog/busquedas/<keyword>` era una página por keyword, todas
+ * con el mismo molde ("Si estás buscando X, llegaste al lugar indicado") y el
+ * mismo par de botones. Eso es la definición de doorway en las guías de spam de
+ * Google —páginas hechas para rankear que empujan a todos al mismo lado— y son
+ * causa de acción manual. En vez de borrarlas y perder lo que ya rankean, cada
+ * una redirige 301 al contenido real que responde esa búsqueda.
+ *
+ * El mismo mapa lo usan la redirección y el acordeón del blog, así ninguna parte
+ * del sitio queda enlazando a una URL que redirige.
+ */
+const DESTINOS: Array<[RegExp, string]> = [
+  // ORDEN = PRIORIDAD: gana la primera que matchea, así que lo específico va
+  // arriba. Los tokens cortos llevan guiones a los lados a propósito: sin eso
+  // `cara` matcheaba "…smart-glasses-caracteristicas" y mandaba una búsqueda de
+  // Ray-Ban a la guía de rostros.
+
+  // Producto puntual (antes que "precio", o "ray-ban-meta-precio-argentina"
+  // terminaba en la guía de multifocales)
+  [/ray-ban|wayfarer|smart-glasses|camara/, '/tienda'],
+  // Control de miopía infantil — hay nota propia y es el tema de la campaña
+  [/stellest|myopilux|miopia|ninos/, '/blog/control-miopia-infantil-lentes'],
+  // Filtro azul / pantallas
+  [/blue-block|filtro-azul|computadora|(^|-)azul(-|$)/, '/cristales-opticos/blue-uv'],
+  // Multifocales y precios
+  [/multifocal|progresiv|precio/, '/blog/guia-precios-multifocales-argentina'],
+  // Elección de armazón por rostro
+  [/(^|-)cara(-|$)|rostro|quedan-bien/, '/blog/guia-armazones-segun-rostro'],
+  // Receta / síntomas / cuándo cambiar
+  [/receta|necesito-anteojos|cambiar-los-anteojos|lectura/, '/cristales-opticos'],
+  // Sol
+  [/(^|-)sol(-|$)/, '/lentes-de-sol'],
+  // Local / marca / geo
+  [/optica|cordoba|cerca-de-mi|cerro-de-las-rosas|comprar-anteojos/, '/optica-cordoba'],
+];
+
+/** Destino 301 de una búsqueda vieja. Default: el índice del blog. */
+export function destinoDeBusqueda(query: string): string {
+  for (const [patron, destino] of DESTINOS) {
+    if (patron.test(query)) return destino;
+  }
+  return '/blog';
+}

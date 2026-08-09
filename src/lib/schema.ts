@@ -8,14 +8,22 @@ import { BUSINESS_INFO } from "./business-info";
 const SITE_URL = "https://atelieroptica.com.ar";
 const LOGO_URL = `${SITE_URL}/assets/logo-pwa-512.png`;
 
-interface OpticianSchemaOptions {
-  /** Solo se emite si rating y count son reales (> 0). */
-  aggregateRating?: { rating: number; count: number };
-}
-
-/** Schema Optician completo de la entidad canónica (@id #optica). */
-export function buildOpticianSchema(opts: OpticianSchemaOptions = {}) {
-  const { aggregateRating } = opts;
+/**
+ * Schema Optician completo de la entidad canónica (@id #optica).
+ *
+ * SIN `aggregateRating`, a propósito. Las reseñas de Atelier (5,0 · 677) las
+ * junta y las muestra Google Business Profile, no este sitio: marcarlas acá es
+ * exactamente lo que las guías de fragmentos de reseña llaman "self-serving"
+ * —el negocio publicando su propia calificación sobre sí mismo— y expone a una
+ * acción manual que se lleva puesto TODO rich result del dominio, no solo las
+ * estrellas. El rating se sigue mostrando a los visitantes como texto y con
+ * link al perfil de Google (ver el badge del hero y /resenas): eso es legítimo
+ * y no toca el structured data.
+ *
+ * No agregar un parámetro para reactivarlo: la ausencia de la opción es el
+ * control. Ver docs/plan-maquina-de-vender.md §2 (B7).
+ */
+export function buildOpticianSchema() {
   return {
     "@context": "https://schema.org",
     "@type": "Optician",
@@ -41,16 +49,5 @@ export function buildOpticianSchema(opts: OpticianSchemaOptions = {}) {
     openingHoursSpecification: BUSINESS_INFO.openingHoursSpecification,
     hasMap: BUSINESS_INFO.mapsUrl,
     sameAs: [BUSINESS_INFO.instagramUrl, BUSINESS_INFO.youtubeUrl],
-    ...(aggregateRating && aggregateRating.rating > 0 && aggregateRating.count > 0
-      ? {
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: aggregateRating.rating.toFixed(1),
-            bestRating: "5",
-            worstRating: "1",
-            reviewCount: aggregateRating.count.toString(),
-          },
-        }
-      : {}),
   };
 }

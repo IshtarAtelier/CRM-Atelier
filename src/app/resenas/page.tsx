@@ -105,10 +105,9 @@ async function getGoogleReviews() {
 export default async function ResenasPage() {
   const data = await getGoogleReviews();
 
-  // El builder omite aggregateRating si rating/count no son reales (> 0)
-  const jsonLd = buildOpticianSchema({
-    aggregateRating: { rating: data.rating, count: data.userRatingCount },
-  });
+  // Sin aggregateRating: las reseñas las junta y muestra Google, no este sitio
+  // (marcarlas acá es self-serving). Ver src/lib/schema.ts.
+  const jsonLd = buildOpticianSchema();
 
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">

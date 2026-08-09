@@ -38,10 +38,9 @@ export default async function NuestroLocalPage() {
 
   const reviewsData = await getGoogleReviews();
 
-  // El builder omite aggregateRating si rating/count no son reales (> 0)
-  const localBusinessJsonLd = buildOpticianSchema({
-    aggregateRating: { rating: reviewsData.rating, count: reviewsData.userRatingCount },
-  });
+  // Sin aggregateRating: las reseñas las junta y muestra Google, no este sitio
+  // (marcarlas acá es self-serving). Ver src/lib/schema.ts.
+  const localBusinessJsonLd = buildOpticianSchema();
 
   return (
     <>

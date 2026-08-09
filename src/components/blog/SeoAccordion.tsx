@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatQueryToTitle } from '@/lib/seo-keywords';
+import { formatQueryToTitle, destinoDeBusqueda } from '@/lib/seo-keywords';
 import { Search, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -49,10 +49,15 @@ export function SeoAccordion({ keywords }: { keywords: string[] }) {
             >
               <div className="pt-6 pb-2 px-2 md:px-4">
                 <div className="flex flex-wrap gap-2 md:gap-3 justify-center md:justify-start">
+                  {/* Cada búsqueda va DIRECTO a la página real que la responde.
+                      Antes apuntaban a /blog/busquedas/<keyword>, que hoy es un
+                      301: enlazar internamente a una redirección desperdicia el
+                      rastreo y mantiene viva la URL vieja. El mapa es el mismo
+                      que usa la redirección (destinoDeBusqueda). */}
                   {keywords.map((keyword) => (
-                    <Link 
-                      key={keyword} 
-                      href={`/blog/busquedas/${keyword}`}
+                    <Link
+                      key={keyword}
+                      href={destinoDeBusqueda(keyword)}
                       className="text-[10px] md:text-[11px] font-medium px-3.5 py-1.5 md:px-4 md:py-2 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-300 rounded-full border border-stone-200 dark:border-stone-700 shadow-sm hover:shadow hover:border-primary/50 hover:text-primary dark:hover:text-primary transition-all duration-300 hover:-translate-y-0.5"
                     >
                       {formatQueryToTitle(keyword)}

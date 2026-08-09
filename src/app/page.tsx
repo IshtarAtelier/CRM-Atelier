@@ -85,10 +85,9 @@ export default async function Home() {
   const reviewsData = await reviewsPromise;
   const webSettings = await webSettingsPromise;
 
-  // El builder omite aggregateRating si rating/count no son reales (> 0)
-  const localBusinessSchema = buildOpticianSchema({
-    aggregateRating: { rating: reviewsData.rating, count: reviewsData.userRatingCount },
-  });
+  // Sin aggregateRating: las reseñas las junta y muestra Google, no este sitio
+  // (marcarlas acá es self-serving). Ver src/lib/schema.ts.
+  const localBusinessSchema = buildOpticianSchema();
 
   const webSiteSchema = {
     "@context": "https://schema.org",

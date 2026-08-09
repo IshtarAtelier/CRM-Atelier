@@ -92,10 +92,9 @@ export default async function OpticaCordobaPage() {
   const withClaim = claimBackedByRating(rating, userRatingCount);
   const ratingLabel = rating > 0 ? rating.toFixed(1).replace(".", ",") : null;
 
-  // El builder omite aggregateRating si rating/count no son reales (> 0)
-  const opticianJsonLd = buildOpticianSchema({
-    aggregateRating: { rating, count: userRatingCount },
-  });
+  // Sin aggregateRating: las reseñas las junta y muestra Google, no este sitio
+  // (marcarlas acá es self-serving). Ver src/lib/schema.ts.
+  const opticianJsonLd = buildOpticianSchema();
 
   const faqJsonLd = {
     "@context": "https://schema.org",

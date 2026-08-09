@@ -1,7 +1,6 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
 import { categoriasConPosts } from '@/lib/blog-categorias';
-import { seoKeywords } from '@/lib/seo-keywords';
 
 export const dynamic = 'force-dynamic';
 
@@ -184,12 +183,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Error fetching sitemap product routes from DB:", error);
   }
 
-  const seoKeywordRoutes = seoKeywords.map((keyword) => ({
-    url: `${baseUrl}/blog/busquedas/${keyword}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.8,
-  }));
+  // Las 48 `/blog/busquedas/<keyword>` NO van más en el sitemap: desde el
+  // 9/8/2026 redirigen 301 a la página real que responde cada búsqueda (ver
+  // src/app/blog/busquedas/[query]/page.tsx). Un sitemap declara destinos
+  // finales; ofrecer redirecciones para indexar es el mismo error que ya costó
+  // 17 avisos de "Página con redirección" el 18/7 con los slugs de Tienda Nube.
+  // Además eran doorway pages, que es riesgo de acción manual.
 
   // Dedupe por URL — los posts de DB pisan a los fallbacks hardcodeados
   // (traen lastModified real) y evitamos las ~30 entradas duplicadas del blog.
@@ -201,7 +200,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...dbBlogRoutes,
     ...categoriaRoutes,
     ...productRoutes,
-    ...seoKeywordRoutes,
   ]) {
     byUrl.set(route.url, route);
   }
