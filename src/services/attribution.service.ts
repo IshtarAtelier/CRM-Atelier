@@ -191,7 +191,8 @@ async function cruzar(desde: Date, hasta: Date, gasto: MapaGasto): Promise<Anunc
               select: {
                   clientId: true,
                   total: true,
-                  paid: true,
+                  // `paid` NO se trae a propósito: no prueba cobro (hay filas
+                  // con `paid` y cero pagos). La venta se mide por `payments`.
                   labStatus: true,
                   status: true,
                   payments: { select: { amount: true } },

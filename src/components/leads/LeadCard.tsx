@@ -10,6 +10,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import type { PipelineLead } from '@/types/leads';
+import { displayContactSource } from '@/lib/contact-source';
 import type { PipelineStageKey } from '@/types/leads';
 
 // ─────────────────────────────────────────────────────────────
@@ -100,7 +101,10 @@ export default function LeadCard({ lead, stageKey, actionLoading, onMarkWon, onM
         )}
         {lead.contactSource && (
           <span className="px-1.5 py-0.5 bg-blue-500/8 text-[8px] font-black uppercase tracking-wider text-blue-500 rounded border border-blue-500/15">
-            {lead.contactSource === 'WEB_STOREFRONT' ? 'Tienda Online' : lead.contactSource}
+            {/* Vocabulario único: acá vivía un mapeo propio
+                ("WEB_STOREFRONT" → "Tienda Online") que mostraba un canal con
+                otro nombre que el resto de la app. */}
+            {displayContactSource(lead.contactSource)}
           </span>
         )}
         {lead.dni && (
