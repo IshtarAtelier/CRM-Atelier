@@ -29,6 +29,30 @@ import { captionConHashtags, altDeSlide } from './seo.mjs';
 const API = 'https://graph.facebook.com/v21.0';
 const BASE_PUBLICA = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
 
+/**
+ * Etiqueta con UTMs los links propios de un texto, para que la visita se pueda
+ * separar del tráfico pago en la analítica (`utm_source`/`utm_medium` los lee
+ * `src/lib/client-analytics.ts` y terminan en la tabla de fuentes del panel).
+ *
+ * Se aplica SOLO al texto que va a Facebook, a propósito: en Facebook el link
+ * es clickeable y el parámetro viaja; en Instagram el epígrafe no linkea nada,
+ * así que un `?utm_source=…` colgando de la URL sería ruido que la persona
+ * tiene que tipear a mano. Las stories ni siquiera llevan epígrafe.
+ *
+ * `utm_medium=social` (no "organico") porque es el valor que GA4 agrupa como
+ * Organic Social; uno inventado cae en "Unassigned" y no sirve para nada.
+ */
+function conUtm(texto, campania) {
+    if (!texto) return texto;
+    const dominio = BASE_PUBLICA.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const patron = new RegExp(`https?://${dominio.replace(/\./g, '\\.')}[^\\s)]*`, 'g');
+    return texto.replace(patron, (url) => {
+        if (url.includes('utm_')) return url;
+        const sep = url.includes('?') ? '&' : '?';
+        return `${url}${sep}utm_source=facebook&utm_medium=social&utm_campaign=${encodeURIComponent(campania)}`;
+    });
+}
+
 const paso = (t) => console.log(`\n▶ ${t}`);
 const ok = (t) => console.log(`  ✅ ${t}`);
 const info = (t) => console.log(`  ·  ${t}`);
@@ -185,6 +209,8 @@ export async function publicar(rutaJson, { facebook = false, instagram = false }
     const urls = jpgs.map(f => `${BASE_PUBLICA}/social/${pieza.id}/${path.basename(f)}`);
     const textoBase = pieza.caption || pieza.slides[0]?.title?.replace(/\*/g, '') || '';
     const mensaje = captionConHashtags(pieza, textoBase);
+    // Solo Facebook: ver la nota de `conUtm`.
+    const mensajeFacebook = conUtm(mensaje, pieza.id);
     const alts = (pieza.slides || []).map(s => altDeSlide(s, pieza));
 
     // Una pieza 9:16 es una story: se publica por otro endpoint y no lleva
@@ -211,6 +237,9 @@ export async function publicar(rutaJson, { facebook = false, instagram = false }
     console.log(`Slides   : ${jpgs.length}`);
     console.log(`Destino  : ${[facebook && 'Facebook', instagram && 'Instagram'].filter(Boolean).join(' + ') || '(ninguno)'}`);
     console.log(`\nTexto que acompaña:\n  "${mensaje}"`);
+    if (mensajeFacebook !== mensaje) {
+        console.log(`\nEn Facebook, con UTMs:\n  "${mensajeFacebook}"`);
+    }
     console.log('\nImágenes:');
     urls.forEach(u => console.log(`  ${u}`));
 
@@ -237,7 +266,7 @@ export async function publicar(rutaJson, { facebook = false, instagram = false }
 
     if (facebook) {
         paso('Publicando en Facebook');
-        resultado.urls.facebook = await publicarEnFacebook(PAGE_ID, tokenPagina, jpgs, mensaje);
+        resultado.urls.facebook = await publicarEnFacebook(PAGE_ID, tokenPagina, jpgs, mensajeFacebook);
         resultado.plataformas.push('Facebook');
     }
 
