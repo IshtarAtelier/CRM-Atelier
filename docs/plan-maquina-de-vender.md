@@ -14,7 +14,7 @@
 
 1. **La primera pantalla mobile no convierte.** El banner de cookies (`CookieConsent.tsx:64`) tapa los DOS CTAs del hero en 375x812 — el 100% del tráfico pago mobile aterriza sin acción visible. El carrusel del hero además rota a pantalla negra. Y el mismo banner apaga TODA la medición (Pixel/GA/Ads no cargan sin clic en "Aceptar"): hoy rompe conversión y medición a la vez.
 2. **El producto de $834k es invisible.** El hero habla de pinturas, "multifocales" recién aparece en el 6º bloque, el nav dice "Cristales", `/multifocales` da 404, no hay NINGUNA pieza social con precio de multifocal, y el 2x1 Smart FREE ($646.250, ya codeado en `PricingService.ts:67-78`, único `botRecommended`) no se comunica en ningún lado. Mientras tanto Galileo ancla la categoría en $120.000 a 15 minutos. Todas las fichas contradicen "En Stock" con una nota "⏳ PREVENTA ~1 semana". El configurador tiene un dropzone de receta **fake** (guarda solo el nombre del archivo, descarta los bytes — `LensConfigurator.tsx:548,567`).
-3. **La pauta actual compra humo y decide a ciegas.** Google gasta $517k/mes y el 82% compra clics "Cómo llegar" fabricados; la campaña Multifocales quema **$29.425/chat** (benchmark sano: ≤$1.000) con concordancia amplia y 2.761 keywords zombies. Google Ads recibe **CERO compras** (`adsPurchaseLabel: "$undefined"`); el purchase server-side solo corre en la rama TARJETA (transferencia con 15% OFF — probablemente la porción mayor — es invisible); el 57% de los chats etiquetados no tiene `clientId`, así que el ROAS 0,48x de Meta no distingue "no cierran" de "no se atribuyen".
+3. **La pauta actual compra humo y decide a ciegas.** Medido el 9/8 (§4.1): se gastan **~$1.181.000/mes** entre las dos plataformas, y **$519.000 de eso (44%) va a cuatro campañas que no producen conversaciones** — la PMax "al local" ($357.709/mes por 550 clics de dirección fabricados), Maps ($129.569, que el plan daba por pausada y sigue gastando), la de Tráfico en Instagram ($133.450 por 8 chats a $16.681) y PMax Ventas. Mientras tanto `Search Óptica`, la mejor de Google a $1.011/conv, **pierde 47% de sus impresiones por presupuesto**. Google Ads recibe **CERO compras** (`adsPurchaseLabel: "$undefined"`); el purchase server-side solo corre en la rama TARJETA (transferencia con 15% OFF — probablemente la porción mayor — es invisible); el 57% de los chats etiquetados no tiene `clientId`, así que el ROAS 0,48x de Meta no distingue "no cierran" de "no se atribuyen".
 4. **La retención no existe pese a estar construida.** El cron de carritos abandonados jamás corrió (schedule en `vercel.json`, deploy en Railway); el pedido de reseñas es 100% manual (0 ProductReview persistidas, 675+ reseñas reales sin usar en feed ni fichas); no hay ningún mecanismo de renovación de receta — la recompra obligada cada 1-2 años del multifocal — a pesar de que el pipeline anti-ban de WhatsApp (5 sistemas de followup) está probado y solo hay que extenderlo.
 
 Refuerzos: fotos 73/106 con una sola toma y cero sobre rostro; feed social 49% educación / 5% acción / 0 testimonios; 111 productos publicados con 0 ventas atribuidas (mostrador vende contra SKUs genéricos); TTFB 0,8-0,95s sin CDN y con ISR roto en las páginas de venta; riesgos de acción manual de Google activos (aggregateRating self-serving 5.0/677 + 46 doorways indexables).
@@ -78,31 +78,60 @@ Ordenados por impacto/esfuerzo. Los S se agrupan en 2-3 lotes de deploy.
 
 ---
 
-## 4. Inversión propuesta
+## 4. Inversión propuesta — techo: lo que ya se gasta
 
-### Notas de unificación (contradicciones resueltas)
+**Restricción fijada por la dueña (9/8/2026):** *no superar el promedio que se viene gastando; si se puede, reubicar presupuestos.* Todo este capítulo se reescribió contra esa restricción. **El escenario "mínimo" de $1.260.000 que proponía la síntesis original queda DEROGADO** por dos motivos: superaba el gasto actual, y estaba dimensionado con benchmarks genéricos de Argentina ($1.000-2.000 por conversación) en lugar del costo medido de esta cuenta.
 
-1. **Mínimo de Google:** el plan Meta asumía "Google solo-marca ~$120-150k" en el escenario mínimo; el plan Google (más detallado, y basado en el presupuesto FIRMADO el 8/8) fija $420.000/mes reasignando los $517k que YA se gastan (−20%). **Se adopta $420k**: no es plata nueva, es la reconstrucción de la pauta existente. La advertencia del backlog ("no arrancar G1 en mínimo: $12.000/día ≈ 4 clics/día") se cumple por la vía alternativa que el propio backlog ofrece: C1 va CHICA ($2.500/día) concentrada en 3-5 exactas de máxima intención, midiendo CPC real la primera semana; el volumen del mínimo lo compran C2/C3, que ya probaron $2.255-2.386/chat.
-2. **KPI de conversación:** el KPI viejo de agosto ("≤$8.000, a calibrar") queda derogado — habría validado un desastre de 4x. Rige el del backlog: **≤ ARS 1.000 = bueno; alerta sostenida > ARS 2.000**.
-3. **Etiqueta del anuncio de precio multifocal:** el plan Meta propuso `[metaDesde]` y el de placas `[metaMFdesde]`. Se unifica en **`[metaDesde]`**.
-4. **M2:** un conjunto único combinado (no dos como el plan de agosto); se parte recién arriba de ~$10.000/día con frecuencia sana.
-5. **Reseñas de Google en creativos:** en pauta se cita solo el NÚMERO ("Más de 675 reseñas"), nunca el contenido (términos de Google); en el feed ORGÁNICO la placa testimonio sí usa cita textual con autor real y campo `resena` obligatorio (una cita inventada debe ser imposible de renderizar, no "algo a cuidar").
-6. **Landing /multifocales:** no se crea de cero — se promueve/clona la campaña `multifocales` que ya existe en `campaigns.ts:213`.
+### 4.1 Gasto real medido (últimos 30 días, 10/7→9/8, leído hoy con `scripts/ads/meta_report.js` y `google_report.js`)
 
-### Tabla única de inversión (ARS/mes, NETOS — el costo real suma IVA 21% + percepciones según condición fiscal)
+| Campaña | Gasto/mes ARS | Resultados | Costo unitario | Veredicto |
+|---|---|---|---|---|
+| Meta USD `Mensajes ✉️` | ~$350.110 (US$223) | **454 conversaciones WA** | **~$771** | 🟢 **el motor de toda la operación** |
+| Google `Search - Optica` | $52.586 | 52 conv · valor $4.036 | $1.011 | 🟢 la mejor de Google |
+| Google `Search - Multifocales` | $31.116 | 26 conv | $1.197 | 🟢 sana en el panel (ver corrección 3) |
+| Google `Search - Recetados` | $36.617 | 30 conv · valor $2.271 | $1.221 | 🟢 |
+| Meta ARS `✉️ Mensajes` | $44.408 | 31 conversaciones WA | $1.432 | 🟢 |
+| Meta ARS `Remarketing` | $16.842 | 9 conversaciones WA | $1.871 | 🟡 caro pero es cierre |
+| Google `Google Maps` | $129.569 | 47 conv | $2.757 | 🔴 el plan la daba por pausada: **sigue gastando** |
+| Google `PMax Ventas` | $28.630 | 5 conv | $5.726 | 🔴 |
+| Meta USD `Tráfico en Instagram` | ~$133.450 (US$85) | 8 conversaciones WA | **~$16.681** | 🔴🔴 objetivo tráfico = clics que no compran |
+| Google `Máximo rendimiento al local` | **$357.709** | 550 conv a $650 · **valor total declarado $550** | — | 🔴🔴 **56% del gasto de Google**: son los clics de dirección fabricados |
+| **TOTAL** | **~$1.181.000/mes** | | | **← este es el techo** |
 
-| | **Mínimo** (arranque) | **Recomendado** | **Agresivo** |
-|---|---|---|---|
-| **Meta** | $840.000 ($28.000/día: M1 $22k + M2 $6k) | $1.500.000 ($50.000/día: M1 $32k + M2 $10k + M3 $8k desde sem. 4) | $2.640.000 ($88.000/día: M1 $48k + M2 $16k + M3 $12k + M4 $12k con gates) |
-| **Google** | $420.000 ($14.000/día: C2 $5k + C3 $3,5k + C1 $2,5k chica + C4 $1k + PMax cuarentena $2k) | ~$675.000 (C1 $6k + C2 $7k + C3 $5k + C4 $1,5k + C5 $1k mes 2 + PMax $2k o $0) | ~$1.050.000 (C1 $9k + C2 $11k + C3 $8k + C4 $2k + C5 $2k + PMax $3k solo con feed sano) |
-| **Total neto/mes** | **$1.260.000** | **$2.175.000** | **$3.690.000** |
-| Total c/IVA 21% (sin percepciones) | ~$1.525.000 | ~$2.632.000 | ~$4.465.000 |
-| **Qué compra** | Salir de Learning: M1 a $22k/día produce 11-22 conv/día (≥50/sem, sale de aprendizaje — menos plata = Learning Limited eterno, el error histórico). Google: volumen probado en C2/C3 (C2 hoy pierde 47% de impresiones por presupuesto), C1 en modo medición de CPC | El primer escenario donde C1 Multifocales compra volumen real. Prende M3 (miopía) y C5. | Escala + catálogo (M4 con sus 5 gates). Condicionado a capacidad de atención del local, no solo a pauta |
-| **Gatillo para pasar** | — (es el arranque) | Valle del Gran Corte superado + $/chat ≤$3.500 + impression share perdida >20% (Google); "×" total del ads-report con cierres (Meta) | ROAS CRM ≥3x sostenido + el local absorbe el volumen de chats |
+*Conversión de la cuenta USD a $1.570/USD (misma tasa que la auditoría del 6/8). Montos NETOS, igual que la comparación: el costo real suma IVA 21% + percepciones en ambas columnas, así que la comparación se sostiene.*
 
-**Reglas de dimensionamiento:** CPC/CPM reciente (USD 0,5-0,65), nunca la mediana anual (subió 6x en 12 meses). **Q4 (oct-dic): +30-60% de CPM estacional** — presupuestar colchón o aceptar menos volumen; decisión en octubre. Escalado siempre +15-20% por vez, máximo un ajuste significativo por campaña cada 3-4 días; JAMÁS duplicar (el historial de la cuenta son 8 conjuntos "Copia" compitiendo entre sí). Riesgo #1 en Google: techo de demanda de Córdoba (98,7% de keywords sin gasto en 30 días) — más plata sobre el techo compra ranking, no clientes. Rebalanceo mensual entre plataformas: mover 10-15%/mes según $/venta atribuida, con piso Google Search $250k/mes.
+### 4.2 Tres correcciones que obligó la medición (derogan partes del plan)
 
-### KPIs y reglas de corte (se ejecutan sin discusión, ambas plataformas)
+1. **Meta NO está en $0.** La auditoría previa (`plan-campanias-meta-google.md`: "el gasto de los últimos 30 días es $0 en ambas cuentas, auditado 8/7→6/8") era un **falso negativo**. Meta gasta ~$545.000/mes y produce **502 conversaciones**. Es el patrón exacto de [verificar antes de afirmar]: leer la campaña y no el conjunto/anuncio.
+2. **NO pausar la cuenta USD** (§5 y la aprobación nº2 quedan corregidas). Ahí vive `Mensajes ✉️` con **454 de las 502 conversaciones a ~$771** — la más barata de toda la operación, 46% más barata que su gemela en ARS. La regla "una sola cuenta, la de ARS" nació de creer que ambas estaban en cero; ejecutarla habría borrado el 90% de las conversaciones de Meta. Lo que se pausa de esa cuenta es **solo** la campaña de Tráfico.
+3. **`Search - Multifocales` no quema $29.425/chat** en el panel de Google: registra 26 conversiones a $1.197. Las dos cifras pueden convivir (Google cuenta acciones locales; el CRM cuenta chats con `clientId`, y el 57% no lo tiene — bloqueante B5). Deja de ser la emergencia del plan: se reconstruye igual (concordancia amplia, keywords zombies), pero **sin apurar el corte** hasta que B5 permita distinguir "no cierra" de "no se atribuye".
+
+### 4.3 La reasignación (mes 1): mismo techo, ~24% menos de gasto
+
+Ni un peso nuevo. Se apaga lo que compra humo y se alimenta lo que ya produce conversaciones baratas.
+
+| Campaña | Hoy | Mes 1 | Δ | Por qué |
+|---|---|---|---|---|
+| Meta USD `Mensajes` | ~$350.110 | **$410.000** | +17% | El motor a $771/chat. Se escala al máximo que permite la regla (+15-20% por paso) |
+| Meta ARS `Mensajes` (→ M1 multifocales) | $44.408 | **$52.000** | +17% | $1.432/chat |
+| Meta ARS `Remarketing` (→ M2) | $16.842 | **$20.000** | +19% | Cierre del tibio |
+| Meta USD `Tráfico en Instagram` | ~$133.450 | **$0** | −100% | 8 chats a $16.681 |
+| **Meta total** | **~$544.810** | **$482.000** | **−11%** | |
+| Google `Search Óptica` (→ C2) | $52.586 | **$150.000** | +185% | $1.011/conv y **pierde 47% de impresiones por presupuesto**: acá va la primera plata liberada |
+| Google `Search Recetados` (→ C3) | $36.617 | **$105.000** | +187% | $1.221/conv |
+| Google `Search Multifocales` (→ C1) | $31.116 | **$75.000** | +141% | El producto de $834k, reconstruido a exactas + landing viva |
+| Google `Marca + Cerro` (C4, nueva) | $0 | **$30.000** | nueva | Defensa del pin y de "atelier" tras pausar Maps |
+| Google `PMax al local` | $357.709 | **$60.000** | −83% | Cuarentena con espada quincenal (>$8.000/chat real → pausa) |
+| Google `PMax Ventas` | $28.630 | **$0** | −100% | 5 conv a $5.726 |
+| Google `Maps` | $129.569 | **$0** | −100% | $2.757/conv. Respetando la ventana de 21 días del experimento y su gatillo de reversión |
+| **Google total** | **$636.227** | **$420.000** | **−34%** | Coincide con el presupuesto firmado el 8/8 |
+| **TOTAL** | **~$1.181.000** | **~$902.000** | **−24%** | |
+
+**Headroom disponible: ~$279.000/mes dentro del techo ya aprobado.** No se toca en el mes 1. Se libera de a un paso (+15-20% por vez, máximo un ajuste por campaña cada 3-4 días) y **solo** cuando el `ads-report` muestre cierres reales en la fila TOTAL. Es decir: el plan tiene margen para crecer 31% sin pedir un peso más.
+
+**Reglas de dimensionamiento:** CPC/CPM reciente, nunca la mediana anual (subió 6x en 12 meses). **Q4 (oct-dic): +30-60% de CPM estacional** — con techo fijo eso significa *menos volumen por el mismo peso*, no más presupuesto; decisión en octubre. Escalado siempre +15-20% por vez; **JAMÁS duplicar** (el historial de la cuenta son 8 conjuntos "Copia" compitiendo entre sí). Riesgo nº1 en Google: techo de demanda de Córdoba (98,7% de keywords sin gasto en 30 días) — más plata sobre el techo compra ranking, no clientes. Rebalanceo mensual entre plataformas: mover 10-15%/mes según $/venta atribuida, con piso Google Search $250k/mes.
+
+### 4.4 KPIs y reglas de corte (se ejecutan sin discusión, ambas plataformas)
 
 Los 3 números diarios de la dueña (email "📊 Ads — reporte diario", cron `ads-report` 9:45): gasto de ayer / chats por anuncio / multiplicador "×" de la fila TOTAL (venta real CRM por peso de pauta).
 
@@ -114,17 +143,17 @@ Los 3 números diarios de la dueña (email "📊 Ads — reporte diario", cron `
 | Regla de los 45 días (global) | $1.000.000+ gastados y CERO cierres en la fila TOTAL | Frenar todo; el problema es el circuito conversación→presupuesto→cierre, no la pauta |
 | Frecuencia prospección / remarketing | >3,5 / >5 en 7 días | Rotar creativo del pool de reserva / ampliar ventana a 45-60 días o bajar presupuesto |
 | CVR conversación→venta | benchmark 7-14% a 30 días | <7% sostenido con volumen = problema de bot/asesor/precio — NO tocar pauta |
-| Chats sin clientId (~57%) | mientras siga | Las reglas de ROAS NO son ejecutables; interinamente cortar solo por costo/conversación + presupuestos (QUOTE) generados |
+| Chats sin `clientId` (~57%) | mientras siga | Las reglas de ROAS NO son ejecutables; interinamente cortar solo por costo/conversación + presupuestos (QUOTE) generados |
 
-**Optimización, regla de hierro:** SIEMPRE por conversación de WhatsApp iniciada, JAMÁS por compra (compra daría <5 eventos/semana → Learning Limited permanente). Compra web queda como conversión secundaria de observación.
+**Optimización, regla de hierro:** SIEMPRE por conversación de WhatsApp iniciada, JAMÁS por compra (compra daría <5 eventos/semana → Learning Limited permanente). Compra web queda como conversión secundaria de observación. Nota: con conversaciones a $771-1.871, los presupuestos propuestos producen **de sobra** las ~50 conversiones/semana que el algoritmo necesita — el miedo a Learning Limited que inflaba el presupuesto original no aplica a esta cuenta.
 
-Cuenta de servilleta (no reemplaza al ads-report): mínimo ≈ 400-600 conversaciones/mes; con CVR 7-14% y ticket $834k, incluso el decil pesimista paga el plan varias veces. El número REAL sale de la tabla ROAS del CRM.
+Con ~502 conversaciones/mes hoy y la reasignación apuntada a las campañas baratas, la banda esperable es **600-900 conversaciones/mes por $279.000 menos**. El número que manda es la tabla ROAS del CRM, no esta cuenta de servilleta.
 
 ---
 
 ## 5. Campañas Meta (resumen — detalle completo en Anexo A)
 
-Cuenta única **act_901723834933651 (ARS)**; pausar explícitamente las 2 campañas ACTIVE de la cuenta USD (riesgo de que arranquen solas al cargar método de pago). Comunes: ubicaciones Advantage+ sin Audience Network; ABO (un conjunto por campaña, sin excepción); optimización "conversaciones iniciadas"; entrega 24/7 (el bot atiende); etiqueta `[metaXxx]` única en nombre del anuncio Y mensaje precargado (sin eso el anuncio es invisible para `meta-insights.ts:59` / `ads-report`).
+**Corregido el 9/8 con datos medidos (§4.2):** las DOS cuentas siguen operativas. `act_2107444353167176` (USD) aloja `Mensajes ✉️`, la campaña más barata de toda la operación (454 conversaciones a ~$771) — **no se pausa**; se le sube el presupuesto y se le aplica el etiquetado. De esa cuenta se pausa **solo** `Campaña de Tráfico en Instagram` (8 chats a $16.681). `act_901723834933651` (ARS) aloja M1/M2 tal como se describen abajo. La contrapartida de operar en dos cuentas (datos partidos, gasto USD convertido a blue en los reportes) se acepta a cambio de no destruir el motor: se resuelve leyendo el `ads-report`, que cruza por etiqueta y no por cuenta. Comunes: ubicaciones Advantage+ sin Audience Network; ABO (un conjunto por campaña, sin excepción); optimización "conversaciones iniciadas"; entrega 24/7 (el bot atiende); etiqueta `[metaXxx]` única en nombre del anuncio Y mensaje precargado (sin eso el anuncio es invisible para `meta-insights.ts:59` / `ads-report`).
 
 - **M1 `[MF] Mensajes WhatsApp | Multifocales`** (75-80% del presupuesto Meta): Córdoba capital +15 km · 40-65+ · Advantage+ con edad como único filtro duro. 4 anuncios: `[meta2x1]` (reel 2x1), `[meta2x1Img]` (placa ad-l1-dos-al-precio-de-uno), `[metaPuesto]` (ad-l1-armazon-puesto — claim de proceso, pasa policy), `[metaGar30]` (garantía 30 días). Sin precios (R6); rotación futura: `[metaDesde]` cuando exista `generar-multifocal.mjs`.
 - **M2 `[RMK] Remarketing`** (15-20%): conjunto ÚNICO combinado (web 30d + interacción IG/FB 30d + viewers ≥50% reels), exclusión conversaciones últimos 30d. Si Consent Mode no está en prod, arranca SOLO con fuentes de interacción. Anuncios de cierre: `[metaRmk6c]` (6 cuotas sin monto mínimo — ventaja real vs Más Visión que exige $400k), `[metaRmkPago]`, `[metaRmkCalif]` (solo el número de reseñas), rotación `[metaRmkSiguen]`/`[metaRmkBusca]`; refuerzo futuro `[metaRmkTest]` (testimonio) y `obras-sociales` para el 45+ tibio.
@@ -195,7 +224,7 @@ Presión sobre el anti-ban: renovación (10/día) + posventa + reseñas ≈ 45-5
 ## 9. Roadmap: semana 1 a semana 8 (todo junto)
 
 **Semana 0/1 (10-16/8) — destapar y bloqueantes:**
-- Dueña decide: escenario de inversión (bruto = neto + IVA + percepciones), método de pago ARS, pausa cuenta USD, texto vigente de 2x1 y garantía (cumplibles tal como se leen), pregunta obras sociales (B15), claim "control sin cargo" de renovación.
+- Dueña decide: OK a la reasignación de §4.3 (mismo techo, −24%), método de pago ARS, texto vigente de 2x1 y garantía (cumplibles tal como se leen), pregunta obras sociales (B15), claim "control sin cargo" de renovación.
 - Deploy Lote 1 quick wins (banner cookies, PREVENTA, multifocal en hero/nav, carrusel negro, og:image, FloatingWhatsApp) + B7 (aggregateRating) + B8 (doorways) + B13/B14 (301 promo, desindexar CRM) + B11 (UTMs) + B2 (label de Google).
 - Altas de crons (B12): ads-report, social-*, abandoned-carts (con fix del bypass localhost y del CRON_SECRET hardcodeado) — retención flujo 1 PRENDIDO.
 - Retención: PR flujos 2+3 (reseña automatizada + whitelist array).
@@ -270,16 +299,19 @@ Copy sin precios (R6). Condiciones del 2x1 a un clic (Lealtad Comercial + policy
 
 ### A.3 Presupuestos Meta por campaña (ARS/día, netos)
 
-| Campaña | Mínimo | Recomendado | Agresivo |
-|---|---|---|---|
-| M1 | $22.000 | $32.000 | $48.000 |
-| M2 | $6.000 | $10.000 | $16.000 |
-| M3 (sem. 4+) | — | $8.000 | $12.000 |
-| M4 (mes 2+, gates) | — | — | $12.000 |
-| **Total/día** | **$28.000** | **$50.000** | **$88.000** |
-| **Total/mes** | **$840.000** | **$1.500.000** | **$2.640.000** |
+> ⚠️ **DEROGADA por §4.3 (9/8/2026).** Esta tabla se dimensionó con benchmarks genéricos ($1.000-2.000/conversación) y bajo la premisa falsa de que Meta gastaba $0. Medido: las conversaciones cuestan **$771-1.871** y Meta ya gasta ~$545.000/mes. Rige la reasignación de §4.3, que respeta el techo de gasto actual. Se conserva acá solo como registro de lo que se descartó y por qué.
 
-Sanidad del mínimo: M1 a $22k/día con costo/conv $1.000-2.000 → 11-22 conv/día ≈ 75-150/semana → supera las ~50/semana que exige salir de aprendizaje. **M1 no puede bajar de ~$20.000/día: menos plata = Learning Limited eterno.**
+| Campaña | ~~Mínimo~~ | ~~Recomendado~~ | ~~Agresivo~~ |
+|---|---|---|---|
+| M1 | ~~$22.000~~ | ~~$32.000~~ | ~~$48.000~~ |
+| M2 | ~~$6.000~~ | ~~$10.000~~ | ~~$16.000~~ |
+| M3 (sem. 4+) | — | ~~$8.000~~ | ~~$12.000~~ |
+| M4 (mes 2+, gates) | — | — | ~~$12.000~~ |
+| **Total/mes** | ~~$840.000~~ | ~~$1.500.000~~ | ~~$2.640.000~~ |
+
+**Presupuestos vigentes (§4.3):** `Mensajes` USD $410.000/mes · M1 (ARS `Mensajes`) $52.000 · M2 (`Remarketing`) $20.000 · Tráfico IG $0. **Total Meta $482.000/mes.** M3 (miopía) y M4 (catálogo) no prenden con plata nueva: salen del headroom de $279.000 o de reasignar dentro de Meta, y solo con cierres demostrados.
+
+Sobre Learning Limited: el miedo que inflaba la tabla vieja no aplica. A $771/conversación, los $410.000/mes de `Mensajes` compran ~530 conversaciones/mes ≈ 124/semana — más del doble del umbral de ~50/semana. La campaña ya está fuera de aprendizaje hoy con menos plata.
 
 ### A.4 Higiene de cuenta
 Tras actualizar un creative por API, **re-pausar y verificar status** (Meta resetea a ACTIVE sin aviso); checklist semanal de viernes; app publicada con URL de privacidad (error 1885183 si está en dev). Fuente: `docs/buenas-practicas-meta-google.md`.
@@ -346,16 +378,19 @@ Puja: maximizar conversiones sin tCPA → tCPA = CPA real +10% con 30 conv/30d �
 
 ### B.5 Presupuesto Google por campaña (ARS)
 
-| Campaña | Mínimo (firmado 8/8) | Recomendado | Agresivo |
-|---|---|---|---|
-| C1 Multifocales | $2.500/d — $75.000 | $6.000/d — $180.000 | $9.000/d — $270.000 |
-| C2 Óptica local | $5.000/d — $150.000 | $7.000/d — $210.000 | $11.000/d — $330.000 |
-| C3 Recetados | $3.500/d — $105.000 | $5.000/d — $150.000 | $8.000/d — $240.000 |
-| C4 Marca | $1.000/d — $30.000 | $1.500/d — $45.000 | $2.000/d — $60.000 |
-| C5 Miopía | — | $1.000/d — $30.000 (mes 2) | $2.000/d — $60.000 |
-| PMax cuarentena | $2.000/d — $60.000 | $60.000 o $0 (espada quincenal) | $3.000/d — $90.000 (solo feed sano) |
-| Maps | $0 (pausada) | $0 | $0 |
-| **Total/mes** | **$420.000** | **~$675.000** | **~$1.050.000** |
+La columna **VIGENTE** es la del presupuesto firmado el 8/8, ratificada por §4.3: entra dentro del techo de gasto actual. Las otras dos quedan como referencia de escalado futuro y **solo** se financian desde el headroom de $279.000/mes o reasignando, nunca con plata nueva.
+
+| Campaña | Hoy (medido 9/8) | **VIGENTE (mes 1)** | Referencia: escalar | Referencia: máx. |
+|---|---|---|---|---|
+| C1 Multifocales | $31.116 | **$2.500/d — $75.000** | $6.000/d — $180.000 | $9.000/d — $270.000 |
+| C2 Óptica local | $52.586 | **$5.000/d — $150.000** | $7.000/d — $210.000 | $11.000/d — $330.000 |
+| C3 Recetados | $36.617 | **$3.500/d — $105.000** | $5.000/d — $150.000 | $8.000/d — $240.000 |
+| C4 Marca | $0 | **$1.000/d — $30.000** | $1.500/d — $45.000 | $2.000/d — $60.000 |
+| C5 Miopía | — | **$0** (mes 2, desde headroom) | $1.000/d — $30.000 | $2.000/d — $60.000 |
+| PMax "al local" | **$357.709** | **$2.000/d — $60.000** (cuarentena) | $60.000 o $0 (espada quincenal) | $3.000/d — $90.000 (solo feed sano) |
+| PMax Ventas | $28.630 | **$0** (pausada) | $0 | $0 |
+| Maps | **$129.569** ⚠️ sigue gastando | **$0** (pausar de verdad) | $0 | $0 |
+| **Total/mes** | **$636.227** | **$420.000 (−34%)** | ~$675.000 | ~$1.050.000 |
 
 ### B.6 Mapa landing × grupo
 
@@ -491,8 +526,8 @@ Infraestructura heredada (verificada): ejecutor `wa-service/followups/smart-task
 
 ## Aprobaciones que necesita dar la dueña (consolidado)
 
-1. Escenario de inversión y total mensual BRUTO (neto + IVA 21% + percepciones) — §4.
-2. Pausa explícita de las 2 campañas ACTIVE de la cuenta Meta USD.
+1. OK a la reasignación de §4.3: **mismo techo de gasto, ~$902.000/mes netos (−24% vs los ~$1.181.000 actuales)**, sin plata nueva. Confirmar el bruto (neto + IVA 21% + percepciones).
+2. Pausar **solo** `Campaña de Tráfico en Instagram` (cuenta USD) y las dos PMax/Maps de Google. **La cuenta USD NO se pausa** — ahí vive el motor de 454 conversaciones a $771 (§4.2, corrección 2).
 3. Texto y condiciones vigentes del 2x1 y de la garantía (cumplibles tal como se leen; alinear con lo que publica el subdominio promo antes del 301).
 4. Obras sociales: ¿convenios activos? (define sitelink, grupo de keywords, placa y footer).
 5. Claim "control/medición sin cargo" (placas `renova-tu-receta` y flujo `[RENOVACION]`).
