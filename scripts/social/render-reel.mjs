@@ -143,8 +143,12 @@ export async function renderizarReel(rutaJson) {
         '-framerate', String(FPS),
         '-i', path.join(dirFrames, 'f%05d.png'),
         '-c:v', 'libx264',
-        '-preset', 'slow',
-        '-crf', '18',
+        '-preset', 'slower',
+        // CRF 15 + piso de bitrate: Instagram RECOMPRIME todo lo que sube, y
+        // con un master de ~2 Mbps los degradados del fondo salen con bandas
+        // después de su compresión. Con 8-15 Mbps de entrada sobrevive limpio.
+        '-crf', '15',
+        '-maxrate', '15M', '-bufsize', '30M',
         // yuv420p: sin esto el video se ve verde o no reproduce en varios
         // celulares. Es el formato de color que espera todo reproductor.
         '-pix_fmt', 'yuv420p',

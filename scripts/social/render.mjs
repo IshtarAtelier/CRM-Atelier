@@ -89,7 +89,10 @@ export async function renderizarPieza(rutaJson, { soloValidar = false } = {}) {
     const navegador = await chromium.launch();
     const pagina = await navegador.newPage({
         viewport: { width: id.formato.ancho, height: id.formato.alto },
-        deviceScaleFactor: 1,
+        // 2x y después se baja a tamaño nominal con Lanczos: el texto y los
+        // bordes finos quedan mucho más limpios que renderizando a 1x. Las
+        // dimensiones finales NO cambian (Instagram espera 1080px de ancho).
+        deviceScaleFactor: 2,
     });
 
     const carpeta = path.join(SALIDA_BASE, pieza.id);
@@ -132,7 +135,10 @@ export async function renderizarPieza(rutaJson, { soloValidar = false } = {}) {
 
         // JPEG DE VERDAD, convertido. No es el PNG con otro nombre.
         const rutaJpg = path.join(carpeta, `${n}.jpg`);
-        await sharp(png).jpeg({ quality: 92, mozjpeg: true }).toFile(rutaJpg);
+        await sharp(png)
+            .resize(id.formato.ancho, id.formato.alto, { kernel: 'lanczos3' })
+            .jpeg({ quality: 95, mozjpeg: true, chromaSubsampling: '4:4:4' })
+            .toFile(rutaJpg);
 
         archivos.push({ slide: i + 1, tipo: slide.type, png: rutaPng, jpg: rutaJpg });
         console.log(`  ✅ slide ${n} (${slide.type})`);
