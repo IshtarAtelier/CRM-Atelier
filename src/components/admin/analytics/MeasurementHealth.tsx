@@ -59,9 +59,18 @@ export default function MeasurementHealth() {
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold flex items-center gap-2 text-sm">
-          <Activity className="w-4 h-4" /> Salud de la medición
-        </h2>
+        <div>
+          <h2 className="font-semibold flex items-center gap-2 text-sm">
+            <Activity className="w-4 h-4" /> Salud de la medición
+          </h2>
+          {/* Aclaración necesaria: corriendo en local, las variables que solo
+              existen en Railway aparecen como "falta" y parecen un problema de
+              producción que no es. Lo que vale es este panel en el sitio vivo. */}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Mira las variables del servidor donde corre este panel. En local van a
+            figurar como faltantes las que solo están cargadas en producción.
+          </p>
+        </div>
         <button
           onClick={load}
           className="p-1.5 rounded-md border border-border hover:bg-muted"

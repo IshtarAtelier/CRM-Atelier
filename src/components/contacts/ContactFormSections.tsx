@@ -7,7 +7,7 @@ interface ContactFormSectionsProps {
     formData: any;
     setFormData: (val: any) => void;
     doctors: any[];
-    sources: string[];
+    sources: readonly string[];
     hasOrdersInFactory?: boolean;
     // false al editar una ficha existente: solo nombre y teléfono son obligatorios
     requireFull?: boolean;

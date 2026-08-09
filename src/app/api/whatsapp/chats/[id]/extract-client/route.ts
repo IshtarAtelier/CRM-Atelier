@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { GoogleGenAI, Type } from '@google/genai';
 import { decrypt } from '@/lib/auth';
+import { CONTACT_SOURCES, matchContactSource } from '@/lib/contact-source';
 
 // POST /api/whatsapp/chats/[id]/extract-client
 // Lee los mensajes del chat y usa IA para extraer datos del cliente
@@ -99,7 +100,7 @@ export async function POST(
                 contactSource: {
                     type: Type.STRING,
                     nullable: true,
-                    enum: ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"],
+                    enum: [...CONTACT_SOURCES],
                     description: "Fuente de contacto del cliente. SOLO se asigna con evidencia clara en la conversación (Google Ads, Meta, Referido, Calle, Ya es Cliente). El formato del id del chat NO es evidencia: por WhatsApp entra gente de mil bocas. Si la conversación la inició la óptica, o si no hay evidencia, DEBE ser null."
                 },
                 notes: {
@@ -128,7 +129,9 @@ INSTRUCCIONES:
 4. Detecta si mencionó obra social/seguro médico (ej: "OSDE", "Swiss Medical", "Galeno", "Apross", etc.)
 5. Detecta la fuente de contacto (contactSource). REGLAS ESTRICTAS:
    ${`- Solo asigna un origen si hay EVIDENCIA CLARA en la conversación. El tipo de id del chat NO es evidencia:
-   - "Google Ads": Si el cliente menciona que los encontró por Google/Maps o si la primera línea es exactamente "Hola! Vi su anuncio en Google y quiero recibir más información." o contiene referencias a Google.
+   - "Google Ads": SOLO si el cliente menciona haber visto un ANUNCIO en Google, o si la primera línea es exactamente "Hola! Vi su anuncio en Google y quiero recibir más información." Encontrarnos por Google o por Maps NO es "Google Ads".
+   - "Google Maps": Si el cliente menciona que los encontró por Maps / Google Maps.
+   - "Google orgánico": Si el cliente menciona que los buscó o encontró en Google, SIN mencionar un anuncio.
    - "Meta": Si el cliente menciona que vio un anuncio en Instagram o Facebook, o si hay un tag en corchetes que empiece con "meta" o "Meta" (ej: [metaFlor], [MetaAgos], [metaSofi], [metacursi], etc.).
    - "Referido": Si menciona que alguien lo recomendó, un amigo, conocido o familiar.
    - "Calle": Si dice que vio el local al pasar o pasó por la puerta.
@@ -178,54 +181,27 @@ INSTRUCCIONES:
             }
         }
 
-        // Normalize contactSource casing/spelling
-        let sourceNorm = parsedData.contactSource;
+        // Normalizar contactSource con el vocabulario único (src/lib/contact-source.ts)
+        let sourceNorm: string | null = null;
         if (deterministicSource) {
             sourceNorm = deterministicSource;
-        } else if (typeof sourceNorm === 'string') {
-            sourceNorm = sourceNorm.trim();
-            const lower = sourceNorm.toLowerCase();
-            if (lower.includes('google') || lower === 'gads') {
-                sourceNorm = 'Google Ads';
-            } else if (
-                lower.includes('meta') || 
-                lower.includes('instagram') || 
-                lower.includes('facebook') || 
-                lower === 'fb' ||
-                lower === 'ig'
-            ) {
-                // "face" is too generic and can cause false positives for Meta
+        } else if (typeof parsedData.contactSource === 'string') {
+            // Canónico o null — si la IA devolvió algo fuera del vocabulario,
+            // queda vacío para que el usuario elija (nunca adivinar).
+            sourceNorm = matchContactSource(parsedData.contactSource);
+        } else if (firstInbound && firstInbound.content) {
+            // Heurística de último recurso sobre el primer mensaje entrante.
+            // OJO atribución: "maps" y la búsqueda genérica en Google NO son
+            // pauta — acusarlas como 'Google Ads' inflaba el retorno de la
+            // inversión. 'Google Ads' solo sale de la señal determinística
+            // del template del anuncio (deterministicSource, más arriba).
+            const text = firstInbound.content.toLowerCase();
+            if (text.includes('maps')) {
+                sourceNorm = 'Google Maps';
+            } else if (text.includes('google') || text.includes('búsqueda') || text.includes('busqueda')) {
+                sourceNorm = 'Google orgánico';
+            } else if (text.includes('instagram') || text.includes('facebook')) {
                 sourceNorm = 'Meta';
-            } else if (lower === 'ya es cliente') {
-                sourceNorm = 'Ya es Cliente';
-            } else if (lower === 'tienda nube' || lower === 'tiendanube') {
-                sourceNorm = 'Tienda nube';
-            } else if (lower === 'referido' || lower === 'recomendado' || lower === 'recomendada') {
-                sourceNorm = 'Referido';
-            } else if (lower === 'calle') {
-                sourceNorm = 'Calle';
-            } else if (lower === 'wave') {
-                sourceNorm = 'Wave';
-            } else if (lower === 'salida') {
-                sourceNorm = 'Salida';
-            } else if (lower === 'jemima' || lower.includes('jemima')) {
-                sourceNorm = 'Jemima';
-            } else {
-                sourceNorm = null; // En vez de 'Otros', lo dejamos vacío para que el usuario elija
-            }
-        } else {
-            // Fallback heuristics directly on the first inbound message content
-            if (firstInbound && firstInbound.content) {
-                const text = firstInbound.content.toLowerCase();
-                if (text.includes('google') || text.includes('búsqueda') || text.includes('busqueda') || text.includes('maps')) {
-                    sourceNorm = 'Google Ads';
-                } else if (text.includes('instagram') || text.includes('facebook')) {
-                    sourceNorm = 'Meta';
-                } else {
-                    sourceNorm = null;
-                }
-            } else {
-                sourceNorm = null;
             }
         }
 

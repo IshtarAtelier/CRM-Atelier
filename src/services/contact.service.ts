@@ -90,33 +90,13 @@ export function normalizeArgentinePhone(phone: string | null | undefined): strin
     return '549' + base;
 }
 
+// Normaliza el canal para ESCRITURA en la base: vacío queda null (nunca el
+// texto "Sin origen"). El vocabulario y las variantes viven en UN solo lugar,
+// src/lib/contact-source.ts — acá solo la política de null para la DB.
 export function normalizeContactSource(source: string | null | undefined): string | null {
     if (!source || source.trim() === "") return null;
-    const clean = source.trim();
-    const lower = clean.toLowerCase();
-    if (lower.includes('google') || lower === 'gads') {
-        return 'Google Ads';
-    } else if (
-        lower.includes('meta') || 
-        lower.includes('instagram') || 
-        lower.includes('facebook') || 
-        lower === 'face' || 
-        lower === 'fb' || 
-        lower === 'ig'
-    ) {
-        return 'Meta';
-    } else if (
-        lower.includes('ya es cliente') ||
-        lower === 'cliente' ||
-        lower === 'antiguo' ||
-        // "Importado" no es un canal de captación: son los clientes que vinieron
-        // de la migración del sistema anterior, o sea que ya eran clientes.
-        lower === 'importado' ||
-        lower === 'importados'
-    ) {
-        return 'Ya es Cliente';
-    }
-    return clean;
+    const clean = source.trim().replace(/\s+/g, ' ');
+    return matchContactSource(clean) ?? clean;
 }
 
 export async function syncContactSourceTag(clientId: string, contactSource: string | null) {

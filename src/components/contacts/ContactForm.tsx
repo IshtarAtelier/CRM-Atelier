@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Star, Save, Loader2, Calculator } from 'lucide-react';
 import { PersonalDataSection, InterestSection } from './ContactFormSections';
+import { CONTACT_SOURCES } from '@/lib/contact-source';
 
 export interface ContactFormData {
     name: string;
@@ -33,7 +34,6 @@ interface ContactFormProps {
 }
 
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
-const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"];
 
 export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal, initialData }: ContactFormProps) {
     const [formData, setFormData] = useState<ContactFormData>({

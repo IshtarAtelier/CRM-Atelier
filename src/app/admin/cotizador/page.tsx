@@ -26,6 +26,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+import { CONTACT_SOURCES } from '@/lib/contact-source';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
 import { 
     isCrystal, 
@@ -66,7 +67,6 @@ const getTypeConfig = (type: string | null, category?: string | null) => {
     }
 };
 
-const CONTACT_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida", "Otros"];
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 
 interface QuoteItem {
