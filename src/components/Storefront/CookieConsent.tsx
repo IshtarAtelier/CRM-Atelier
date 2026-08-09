@@ -61,28 +61,37 @@ export default function CookieConsent() {
     <div
       role="region"
       aria-label="Consentimiento de cookies"
-      className="fixed bottom-0 inset-x-0 z-[90] p-3 sm:p-5 pointer-events-none animate-[tiendaFadeUp_0.35s_ease-out]"
+      className="fixed bottom-0 inset-x-0 z-[90] p-2 sm:p-5 pointer-events-none animate-[tiendaFadeUp_0.35s_ease-out]"
     >
       {/* Fondo OPACO y a contramano del sitio (la tienda es blanca): el banner
           tiene que leerse como una capa aparte, no como parte de la página.
           Nada de bg-card/border-border acá — esos tokens no existen en el
           @theme de globals.css y Tailwind los resuelve a "sin color", que es
-          justo lo que dejaba el cartel transparente sobre el hero. */}
-      <div className="pointer-events-auto mx-auto max-w-3xl rounded-2xl bg-stone-900 text-white ring-1 ring-[#c8a55c]/50 shadow-2xl shadow-black/40 p-5 sm:p-6 sm:flex sm:items-center sm:gap-6">
-        <p className="text-[15px] leading-relaxed text-white/90 flex-1">
-          Usamos cookies de medición para mejorar tu experiencia y nuestras campañas.
-          Podés aceptarlas o rechazarlas. La analítica interna del sitio no usa cookies ni datos personales.
+          justo lo que dejaba el cartel transparente sobre el hero.
+
+          En celular va en UNA FILA y con el texto corto: apilado ocupaba ~190px
+          y tapaba los dos CTAs del hero (que viven entre 116 y 220px del borde
+          inferior en 375x812). Así queda en ~76px, por debajo de los botones.
+          El aviso completo se lee en /privacidad; el banner solo tiene que
+          alcanzar para decidir. */}
+      <div className="pointer-events-auto mx-auto max-w-3xl rounded-2xl bg-stone-900 text-white ring-1 ring-[#c8a55c]/50 shadow-2xl shadow-black/40 p-3 sm:p-6 flex items-center gap-3 sm:gap-6">
+        <p className="text-[13px] sm:text-[15px] leading-snug sm:leading-relaxed text-white/90 flex-1">
+          <span className="sm:hidden">Usamos cookies de medición. La analítica interna no usa datos personales.</span>
+          <span className="hidden sm:inline">
+            Usamos cookies de medición para mejorar tu experiencia y nuestras campañas.
+            Podés aceptarlas o rechazarlas. La analítica interna del sitio no usa cookies ni datos personales.
+          </span>
         </p>
-        <div className="mt-4 sm:mt-0 flex gap-3 shrink-0">
+        <div className="flex gap-2 sm:gap-3 shrink-0">
           <button
             onClick={() => { setConsent('denied'); setDecided(true); }}
-            className="px-5 py-3 rounded-full border border-white/35 text-sm text-white/85 hover:bg-white/10 transition-colors"
+            className="px-3 py-2 sm:px-5 sm:py-3 rounded-full border border-white/35 text-[12px] sm:text-sm text-white/85 hover:bg-white/10 transition-colors"
           >
             Rechazar
           </button>
           <button
             onClick={() => { setConsent('granted'); setDecided(true); }}
-            className="px-7 py-3 rounded-full bg-[#c8a55c] text-stone-900 text-sm font-bold uppercase tracking-widest hover:bg-[#d8b76d] transition-colors shadow-lg shadow-[#c8a55c]/25"
+            className="px-4 py-2 sm:px-7 sm:py-3 rounded-full bg-[#c8a55c] text-stone-900 text-[12px] sm:text-sm font-bold uppercase tracking-widest hover:bg-[#d8b76d] transition-colors shadow-lg shadow-[#c8a55c]/25"
           >
             Aceptar
           </button>

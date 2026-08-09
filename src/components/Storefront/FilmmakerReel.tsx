@@ -132,8 +132,14 @@ export function FilmmakerReel({ reviewCount = 0, rating = 0 }: FilmmakerReelProp
       {/* initial={false}: el primer frame sale visible desde el SSR (sin esperar
           la hidratación de JS). Antes el hero llegaba con opacity:0 y en móvil 4G
           quedaba invisible ~12s → era el LCP de la página. Las transiciones entre
-          frames siguen animando normalmente. */}
-      <AnimatePresence mode="wait" initial={false}>
+          frames siguen animando normalmente.
+
+          Sin mode="wait" (o sea, crossfade): con "wait" el frame que sale
+          terminaba su exit de 1,4s ANTES de que entrara el siguiente, y en ese
+          hueco no había ninguna imagen montada — el hero quedaba en NEGRO (el
+          bg-black de la section) una vez y media por rotación. Los dos frames
+          son `absolute inset-0`, así que superponerlos cruza el fundido. */}
+      <AnimatePresence initial={false}>
         <motion.div
           key={frame.id}
           className="absolute inset-0"
@@ -177,80 +183,107 @@ export function FilmmakerReel({ reviewCount = 0, rating = 0 }: FilmmakerReelProp
 
       {/* ─── TEXT OVERLAY ─── */}
       <div className="absolute bottom-[10%] left-6 lg:left-16 z-30 max-w-xl">
-        {/* initial={false}: ídem imágenes — el texto del hero (título, badges) debe
-            estar visible en el primer pintado, no después de hidratar. */}
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={frame.id + "-text"}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-          >
-            {/* Local SEO & Google Review Badges */}
-            <div className="flex flex-wrap items-center gap-2 mb-3 select-none">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-white/10 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1">
-                <span className="text-amber-500 text-[10px]">📍</span> Cerro de las Rosas, Córdoba
-              </span>
-              {/* Badge de Google solo con datos reales */}
-              {reviewCount > 0 && (
-                <a
-                  href="https://www.google.com/maps?cid=14830223812501661125"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] font-black uppercase tracking-[0.2em] bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1 transition-colors"
-                >
-                  <span className="text-amber-500">★</span> {rating.toFixed(1)} Google ({reviewCount} reseñas) · Verificada
-                </a>
-              )}
-            </div>
-
-            {/* Credit line */}
-            <p className="text-white/60 font-mono text-[10px] tracking-[0.25em] uppercase mb-3">
-              {frame.credit} &nbsp;·&nbsp; {frame.year}
-            </p>
-            {/* Title */}
-            <h2
-              className="text-4xl md:text-6xl lg:text-7xl font-serif text-white tracking-tight mb-2"
+        {/* Badges FIJOS: no dependen del frame, así que no tienen por qué
+            desaparecer en cada rotación. La ubicación y la calificación de
+            Google son las dos señales de confianza de la primera pantalla. */}
+        <div className="flex flex-wrap items-center gap-2 mb-3 select-none">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-white/10 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1">
+            <span className="text-amber-500 text-[10px]">📍</span> Cerro de las Rosas, Córdoba
+          </span>
+          {/* Badge de Google solo con datos reales */}
+          {reviewCount > 0 && (
+            <a
+              href="https://www.google.com/maps?cid=14830223812501661125"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] font-black uppercase tracking-[0.2em] bg-white/10 hover:bg-white/20 text-white px-2.5 py-1.5 backdrop-blur-md rounded-full flex items-center gap-1 transition-colors"
             >
-              {frame.title}
-            </h2>
-            {/* Subtitle / product */}
-            <p className="text-white/80 text-sm md:text-base font-light tracking-[0.15em] uppercase mb-1">
-              {frame.subtitle}
-            </p>
-            <p className="text-white/60 text-xs md:text-sm font-light">
-              Diseño de autor en 6 cuotas sin interés y envío gratis a todo el país.
-            </p>
+              <span className="text-amber-500">★</span> {rating.toFixed(1)} Google ({reviewCount} reseñas) · Verificada
+            </a>
+          )}
+        </div>
 
-            {/* Subtle CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 mt-6">
-              <Link
-                href="/tienda"
-                className="w-full sm:w-auto px-6 py-3.5 bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-white/90 hover:scale-105 transition-all rounded-full text-center shadow-[0_0_30px_rgba(255,255,255,0.4)] group flex items-center justify-center gap-2"
+        {/* Lo ÚNICO que rota es la ficha del cuadro. Va en un grid de una celda
+            con los hijos apilados en la misma fila/columna: sin eso, el bloque
+            que entra se acomodaba DEBAJO del que sale durante el cruce y
+            empujaba los CTA hacia abajo en cada rotación.
+            initial={false}: ídem imágenes — el texto debe estar visible en el
+            primer pintado, no después de hidratar. */}
+        <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={frame.id + "-text"}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.8 }}
+            >
+              {/* Credit line */}
+              <p className="text-white/60 font-mono text-[10px] tracking-[0.25em] uppercase mb-3">
+                {frame.credit} &nbsp;·&nbsp; {frame.year}
+              </p>
+              {/* Title */}
+              <h2
+                className="text-4xl md:text-6xl lg:text-7xl font-serif text-white tracking-tight mb-2"
               >
-                1. Elegí tu Armazón <span className="opacity-60 group-hover:opacity-100 transition-opacity">→</span>
-              </Link>
-              <a
-                href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`Hola, vi los anteojos de diseño "${frame.title}" en su web y me gustaría recibir asesoramiento.`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto px-6 py-3.5 border border-white/30 hover:border-white text-white text-[11px] font-black uppercase tracking-widest transition-all rounded-full flex items-center justify-center gap-2 backdrop-blur-sm bg-black/20 hover:bg-white/10"
-              >
-                Hablar con un Asesor
-              </a>
-            </div>
+                {frame.title}
+              </h2>
+              {/* Subtitle / product */}
+              <p className="text-white/80 text-sm md:text-base font-light tracking-[0.15em] uppercase mb-1">
+                {frame.subtitle}
+              </p>
+              <p className="text-white/60 text-xs md:text-sm font-light">
+                Diseño de autor en 6 cuotas sin interés y envío gratis a todo el país.
+              </p>
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-            {/* Guided Flow Microcopy */}
-            <div className="flex items-center gap-2 mt-5 text-[10px] text-white/50 uppercase tracking-[0.2em] font-black select-none">
-              <span>1. Armazón</span>
-              <span className="opacity-40">/</span>
-              <span>2. Cristales</span>
-              <span className="opacity-40">/</span>
-              <span>3. Envío Gratis</span>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+        {/* El negocio real de la óptica, FIJO en la primera pantalla. Antes
+            "multifocales" no aparecía hasta el sexto bloque de la home, y el
+            hero solo hablaba de cuadros: el producto de ticket alto era
+            invisible para quien llega de un anuncio. Sin precios acá (los
+            precios salen generados de la base, nunca escritos a mano). */}
+        <Link
+          href="/cristales-opticos"
+          className="mt-5 inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] md:text-xs text-white/85 hover:text-white uppercase tracking-[0.18em] font-black transition-colors group"
+        >
+          <span className="text-amber-500">◆</span>
+          <span>Multifocales Varilux</span>
+          <span className="opacity-40">/</span>
+          <span>Garantía de adaptación 30 días</span>
+          <span className="opacity-60 group-hover:opacity-100 transition-opacity">→</span>
+        </Link>
+
+        {/* CTAs FIJOS. Estaban dentro del bloque que rota, así que se
+            desvanecían y volvían cada 5 segundos: el botón más importante de
+            la tienda no puede parpadear. El mensaje de WhatsApp ya no nombra
+            el cuadro (dejó de depender del frame). */}
+        <div className="flex flex-col sm:flex-row gap-3 mt-5">
+          <Link
+            href="/tienda"
+            className="w-full sm:w-auto px-6 py-3.5 bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-white/90 hover:scale-105 transition-all rounded-full text-center shadow-[0_0_30px_rgba(255,255,255,0.4)] group flex items-center justify-center gap-2"
+          >
+            1. Elegí tu Armazón <span className="opacity-60 group-hover:opacity-100 transition-opacity">→</span>
+          </Link>
+          <a
+            href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent('Hola, entré a la web de Atelier y me gustaría recibir asesoramiento.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto px-6 py-3.5 border border-white/30 hover:border-white text-white text-[11px] font-black uppercase tracking-widest transition-all rounded-full flex items-center justify-center gap-2 backdrop-blur-sm bg-black/20 hover:bg-white/10"
+          >
+            Hablar con un Asesor
+          </a>
+        </div>
+
+        {/* Guided Flow Microcopy */}
+        <div className="flex items-center gap-2 mt-5 text-[10px] text-white/50 uppercase tracking-[0.2em] font-black select-none">
+          <span>1. Armazón</span>
+          <span className="opacity-40">/</span>
+          <span>2. Cristales</span>
+          <span className="opacity-40">/</span>
+          <span>3. Envío Gratis</span>
+        </div>
       </div>
 
       {/* ─── PROGRESS BAR ─── */}
