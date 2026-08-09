@@ -133,8 +133,26 @@ export class GrowthService {
         ? undefined
         : 'Cargar NEXT_PUBLIC_GOOGLE_ADS_TAG_ID (formato AW-…) en Railway.',
     );
+    // Compra web: caso aparte. La cuenta ya tiene "Atelier Optica - Web (web)
+    // purchase", una acción IMPORTADA DE GA4 y marcada como primaria (verificado
+    // el 9/8 con scripts/checks/conversiones-google.mjs). Esa vía se alimenta del
+    // evento `purchase` de GA4 y no necesita etiqueta en el sitio: sumar además
+    // la etiqueta de una acción de sitio web contaría la MISMA venta dos veces e
+    // inflaría el ROAS. Por eso "sin etiqueta" acá es lo correcto, no una falla.
+    const labelCompra = process.env.GOOGLE_ADS_CONVERSION_LABEL;
+    add(
+      'ads-compra',
+      'Conversión "Compra web" (Google Ads)',
+      labelCompra ? 'atencion' : 'ok',
+      labelCompra
+        ? 'Hay etiqueta de sitio web cargada Y la acción importada de GA4 está primaria: riesgo de contar la compra dos veces'
+        : 'La compra entra por la acción importada de GA4 (primaria). Sin etiqueta en el sitio, que es lo correcto',
+      labelCompra
+        ? 'Elegir UNA sola vía: o se quita esta etiqueta, o se pasa a secundaria la acción de GA4 en Google Ads. Verificar con: node --env-file=.env scripts/checks/conversiones-google.mjs'
+        : undefined,
+    );
+
     const labels: Array<[string, string, string | undefined]> = [
-      ['ads-compra', 'Conversión "Compra web" (Google Ads)', process.env.GOOGLE_ADS_CONVERSION_LABEL],
       ['ads-whatsapp', 'Conversión "WhatsApp" (Google Ads)', process.env.GOOGLE_ADS_WHATSAPP_LABEL],
       ['ads-llamada', 'Conversión "Llamada" (Google Ads)', process.env.GOOGLE_ADS_CALL_LABEL],
     ];

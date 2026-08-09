@@ -76,7 +76,7 @@ export default function CookieConsent() {
           alcanzar para decidir. */}
       <div className="pointer-events-auto mx-auto max-w-3xl rounded-2xl bg-stone-900 text-white ring-1 ring-[#c8a55c]/50 shadow-2xl shadow-black/40 p-3 sm:p-6 flex items-center gap-3 sm:gap-6">
         <p className="text-[13px] sm:text-[15px] leading-snug sm:leading-relaxed text-white/90 flex-1">
-          <span className="sm:hidden">Usamos cookies de medición. La analítica interna no usa datos personales.</span>
+          <span className="sm:hidden">Usamos cookies de medición.</span>
           <span className="hidden sm:inline">
             Usamos cookies de medición para mejorar tu experiencia y nuestras campañas.
             Podés aceptarlas o rechazarlas. La analítica interna del sitio no usa cookies ni datos personales.

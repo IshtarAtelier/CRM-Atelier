@@ -109,8 +109,10 @@ export function FilmmakerReel({ reviewCount = 0, rating = 0 }: FilmmakerReelProp
 
   const frame = FRAMES[current];
 
+  // data-hero le dice a FloatingWhatsApp que esta pantalla ya tiene su propio CTA
+  // a WhatsApp, así la burbuja flotante no se monta encima de los botones.
   return (
-    <section ref={sectionRef} className="relative w-full bg-black overflow-hidden" style={{ height: "100svh", minHeight: 560 }}>
+    <section ref={sectionRef} data-hero className="relative w-full bg-black overflow-hidden" style={{ height: "100svh", minHeight: 560 }}>
       
       {/* ─── LETTERBOX BARS ─── */}
       <div className="absolute top-0 left-0 right-0 h-[6%] bg-black z-20" />

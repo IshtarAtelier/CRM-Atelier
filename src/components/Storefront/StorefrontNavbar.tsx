@@ -181,7 +181,10 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                   className={`relative group text-[11px] lg:text-[13px] leading-none font-medium ${activeTextColorClass} hidden lg:block transition-colors`}
                   style={activeTextShadowStyle}
                 >
-                  Cristales
+                  {/* "Multifocales", no "Cristales": es el producto de ticket
+                      alto y el término que la gente busca. Apunta al hub de
+                      cristales hasta que exista /multifocales. */}
+                  Multifocales
                   <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-current transition-all duration-300 group-hover:w-full opacity-80"></span>
                 </Link>
                 )}

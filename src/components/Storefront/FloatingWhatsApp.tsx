@@ -8,22 +8,53 @@ import { WHOLESALE_WHATSAPP_PHONE } from "@/lib/constants";
 import { BUSINESS_INFO } from "@/lib/business-info";
 import { trackPhoneClick } from "@/lib/tracking";
 import { usePathname } from "next/navigation";
+import { useConsent } from "@/components/Storefront/CookieConsent";
 
 export function FloatingWhatsApp({ message, productName }: { message?: string; productName?: string } = {}) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [tiempoCumplido, setTiempoCumplido] = useState(false);
+  // Arranca en true (oculto) hasta comprobar si esta página declara un hero con
+  // su propio CTA: es mejor tardar un tick que pisar el botón principal.
+  const [heroTapando, setHeroTapando] = useState(true);
   // Óptica logueada (mayorista): el botón usa el número y el tono de Cápsula
   // Escarlata, no los de Atelier. Señal = localStorage 'user' (la cookie es
   // httpOnly). Ver el patrón en StorefrontNavbar.
   const [isOptica, setIsOptica] = useState(false);
   const pathname = usePathname();
+  // Sin decisión de cookies (null) el banner ocupa el pie de la pantalla y se
+  // superpone con esta burbuja. Es un estado de un solo toque: se espera.
+  const bannerDeCookiesVisible = useConsent() === null;
 
-  // Solo mostrar después de un par de segundos para que no sea intrusivo al cargar la página
+  // 1,5s, no 5s: WhatsApp es el canal donde se cierra la venta de ticket alto y
+  // este es el botón más visible del sitio. A los 5 segundos, buena parte del
+  // tráfico pago de celular ya se fue sin haberlo visto nunca.
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 5000);
+      setTiempoCumplido(true);
+    }, 1500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Una pantalla que trae su propio CTA a WhatsApp se marca con `data-hero`
+  // (hoy: el hero de la home). Mientras ese bloque está a la vista, la burbuja
+  // flotante se le montaba ENCIMA en celular — medido en 360x740: el botón de
+  // teléfono caía en y600-648 sobre el "Hablar con un Asesor" del hero, que va
+  // de y585 a y631. Se usa IntersectionObserver y no el scroll porque no
+  // depende de qué elemento sea el que scrollea en cada página.
+  useEffect(() => {
+    const hero = document.querySelector("[data-hero]");
+    if (!hero) {
+      setHeroTapando(false); // páginas sin CTA propio: la burbuja es el único camino
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entrada]) => setHeroTapando(entrada.isIntersecting),
+      { threshold: 0.25 },
+    );
+    io.observe(hero);
+    return () => io.disconnect();
+  }, [pathname]);
+
+  const isVisible = tiempoCumplido && !bannerDeCookiesVisible && !heroTapando;
 
   useEffect(() => {
     try {
@@ -116,16 +147,27 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
         href={WHATSAPP_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="relative group pointer-events-auto"
+        className="relative group pointer-events-auto flex items-center gap-2"
         aria-label="Contactar por WhatsApp"
       >
-        {/* Anillo exterior que hace pulso */}
-        <div className="absolute inset-0 bg-green-500 rounded-full opacity-30 animate-pulse group-hover:animate-none" />
-        
-        {/* Botón principal (con logo oficial SVG de WhatsApp) */}
-        <div className="relative bg-gradient-to-tr from-green-600 to-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 hover:shadow-green-500/30 transition-all duration-300">
-          <WhatsAppIcon className="w-7 h-7" />
-        </div>
+        {/* En celular el globo de arriba está oculto (hidden sm:block), así que
+            el botón era un círculo verde sin decir para qué sirve. Esta etiqueta
+            nombra lo que la gente viene a pedir. */}
+        <span className="sm:hidden rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-stone-800 shadow-lg border border-stone-100">
+          Presupuesto
+        </span>
+
+        {/* El pulso va relativo al botón, no al <a>: con la etiqueta al lado, un
+            `inset-0` sobre el ancla estiraba el anillo verde detrás del texto. */}
+        <span className="relative block">
+          {/* Anillo exterior que hace pulso */}
+          <span className="absolute inset-0 bg-green-500 rounded-full opacity-30 animate-pulse group-hover:animate-none" />
+
+          {/* Botón principal (con logo oficial SVG de WhatsApp) */}
+          <span className="relative bg-gradient-to-tr from-green-600 to-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 hover:shadow-green-500/30 transition-all duration-300">
+            <WhatsAppIcon className="w-7 h-7" />
+          </span>
+        </span>
       </a>
       
     </div>

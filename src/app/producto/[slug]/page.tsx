@@ -159,6 +159,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       ? imageUrl
       : `${SITE}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
 
+  // Los crawlers de WhatsApp y Facebook NO renderizan AVIF: la ficha compartida
+  // por WhatsApp —el canal donde se cierra la venta de ticket alto— salía sin
+  // foto. Cada AVIF de public/images/products tiene su copia .webp al lado
+  // (verificado 9/8: 7 de 7), que sí se previsualiza. La página sigue sirviendo
+  // AVIF por next/image; esto cambia solo la imagen de la preview.
+  const ogImageUrl = absoluteImageUrl.replace(/\.avif(\?|$)/i, '.webp$1');
+
   return {
     // absolute: evita que el template del layout ("%s | Atelier Óptica") vuelva a agregar la marca
     title: { absolute: title },
@@ -173,7 +180,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description,
       images: [
         {
-          url: absoluteImageUrl,
+          url: ogImageUrl,
           width: 800,
           height: 800,
           alt: `${product.brand} ${product.model}`,
@@ -185,7 +192,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       card: "summary_large_image",
       title,
       description,
-      images: [absoluteImageUrl],
+      images: [ogImageUrl],
     },
   };
 }

@@ -232,60 +232,81 @@ export class AdsService {
     events7d: { event: string; count: number }[] | null;
     error: string | null;
   }> {
-    const metaToken = process.env.META_ACCESS_TOKEN;
     const pixelId = process.env.META_PIXEL_ID;
-    const configured = { pixelId: Boolean(pixelId), capiToken: Boolean(metaToken) };
-    if (!metaToken || !pixelId) {
-      return { configured, pixel: null, events7d: null, error: 'Credenciales CAPI sin configurar' };
+    const configured = {
+      pixelId: Boolean(pixelId),
+      capiToken: Boolean(process.env.META_ACCESS_TOKEN),
+    };
+
+    // Los tokens NO son intercambiables. META_ACCESS_TOKEN es el que usa el
+    // Conversions API para ESCRIBIR eventos y no trae `ads_read`: pidiéndole
+    // las stats del píxel devuelve "(#100) Missing Permission", que parece un
+    // píxel roto y no lo es. La lectura la hace META_ADS_TOKEN (system user con
+    // ads_read). Se prueban en orden; el mismo orden que scripts/checks/pixel-salud.mjs.
+    const tokens = [
+      process.env.META_ADS_TOKEN,
+      process.env.META_SYSTEM_USER_TOKEN,
+      process.env.META_ACCESS_TOKEN,
+    ].filter((t): t is string => Boolean(t));
+
+    if (!pixelId || !tokens.length) {
+      return {
+        configured,
+        pixel: null,
+        events7d: null,
+        error: 'Falta META_PIXEL_ID o algún token de Meta',
+      };
     }
 
-    const graph = async (ruta: string) => {
+    const graph = async (ruta: string, token: string) => {
       const sep = ruta.includes('?') ? '&' : '?';
       const res = await fetch(
-        `https://graph.facebook.com/v24.0/${ruta}${sep}access_token=${encodeURIComponent(metaToken)}`,
+        `https://graph.facebook.com/v24.0/${ruta}${sep}access_token=${encodeURIComponent(token)}`,
         { signal: AbortSignal.timeout(6000), cache: 'no-store' },
       );
       return res.json();
     };
 
-    try {
-      const desde = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
-      const [info, stats] = await Promise.all([
-        graph(`${pixelId}?fields=name,last_fired_time,is_unavailable`),
-        graph(`${pixelId}/stats?aggregation=event&start_time=${desde}`),
-      ]);
+    let ultimoError: string | null = null;
 
-      const pixel = info?.error
-        ? null
-        : {
-            name: String(info.name ?? ''),
-            lastFiredTime: info.last_fired_time ?? null,
-            isUnavailable: Boolean(info.is_unavailable),
-          };
+    for (const token of tokens) {
+      try {
+        const desde = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
+        const [info, stats] = await Promise.all([
+          graph(`${pixelId}?fields=name,last_fired_time,is_unavailable`, token),
+          graph(`${pixelId}/stats?aggregation=event&start_time=${desde}`, token),
+        ]);
 
-      let events7d: { event: string; count: number }[] | null = null;
-      if (!stats?.error) {
+        // Los mensajes de error de Meta no incluyen el token; son seguros de mostrar.
+        if (info?.error || stats?.error) {
+          ultimoError = info?.error?.message || stats?.error?.message || null;
+          continue; // sin permiso con este token: probar el siguiente
+        }
+
         const porEvento = new Map<string, number>();
         for (const bloque of stats?.data ?? []) {
           for (const fila of bloque?.data ?? []) {
             porEvento.set(fila.value, (porEvento.get(fila.value) ?? 0) + Number(fila.count || 0));
           }
         }
-        events7d = [...porEvento.entries()]
-          .map(([event, count]) => ({ event, count }))
-          .sort((a, b) => b.count - a.count);
-      }
 
-      // Los mensajes de error de Meta no incluyen el token; son seguros de mostrar.
-      const error = info?.error?.message || stats?.error?.message || null;
-      return { configured, pixel, events7d, error };
-    } catch (err) {
-      return {
-        configured,
-        pixel: null,
-        events7d: null,
-        error: err instanceof Error ? err.message : 'Error consultando la Graph API',
-      };
+        return {
+          configured,
+          pixel: {
+            name: String(info.name ?? ''),
+            lastFiredTime: info.last_fired_time ?? null,
+            isUnavailable: Boolean(info.is_unavailable),
+          },
+          events7d: [...porEvento.entries()]
+            .map(([event, count]) => ({ event, count }))
+            .sort((a, b) => b.count - a.count),
+          error: null,
+        };
+      } catch (err) {
+        ultimoError = err instanceof Error ? err.message : 'Error consultando la Graph API';
+      }
     }
+
+    return { configured, pixel: null, events7d: null, error: ultimoError };
   }
 }
