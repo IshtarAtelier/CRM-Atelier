@@ -22,7 +22,7 @@ Sin importar de qué lista viene cada cosa. Si algo no mueve una venta, está m�
 | ✅ | Varilux: la web publicaba un precio y el checkout cobraba la mitad | **$673.298 por par** |
 | 🟢 | El bot de WhatsApp cotizaba distinto que la tienda | $40.350 de más por cristal |
 | 🟢 | El saldo que ve el cliente y el staff estaba mal | **$1.784.348** de deuda invisible en 90 ventas |
-| 🔒 | La tienda **no mide nada** desde hoy → cada peso de pauta se decide a ciegas | todo el presupuesto |
+| ✅ | La tienda **volvió a medir** (GA4 + Google Ads + pixel, verificado en vivo el 10/8) | todo el presupuesto |
 
 ### 2. Fricción que hace abandonar la compra
 
@@ -31,7 +31,7 @@ Sin importar de qué lista viene cada cosa. Si algo no mueve una venta, está m�
 | ✅ | El cartel de cookies tapaba los dos botones del hero en celular — **el 100% del tráfico pago mobile** |
 | ✅ | El checkout mentía en las cuotas y no decía cuánto transferir |
 | ✅ | Los links compartidos por WhatsApp salían sin foto |
-| 🔒 | Las fichas dicen "En Stock" y **PREVENTA** a la vez |
+| ✅ | Las fichas dicen "En Stock" y **PREVENTA** a la vez — sacado de las 117 el 10/8 |
 | 🔄 | La receta que el cliente sube **se tira a la basura** |
 | 🔄 | Pagás y no sabés nada de tu pedido hasta que lo retirás |
 
