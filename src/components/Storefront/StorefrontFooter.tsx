@@ -56,6 +56,10 @@ export async function StorefrontFooter() {
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Guías</p>
             <Link href="/optica-cordoba" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Óptica en Córdoba</Link>
+            {/* La página existe y está bien resuelta, pero solo la linkeaban el
+                footer de /faq y el de /tienda: desde la home no había forma de
+                llegar. Es una de las primeras preguntas de quien compra lentes. */}
+            <Link href="/obras-sociales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Obras Sociales</Link>
             <Link href="/blog/guia-armazones-segun-rostro" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Armazones según tu rostro</Link>
             <Link href="/blog/guia-precios-multifocales-argentina" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Precios de Multifocales</Link>
             <Link href="/blog/control-miopia-infantil-lentes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Control de Miopía Infantil</Link>
