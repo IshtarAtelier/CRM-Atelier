@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma generate && (node --experimental-strip-types scripts/maintenance/refresh-catalog-snapshots.mjs || echo '[snapshot] sin DB en build — se usan los snapshots commiteados') && next build && (PLAYWRIGHT_BROWSERS_PATH=./.playwright-browsers npx playwright install chromium || echo 'Playwright install skipped')",
+    "build": "node scripts/checks/medicion-en-build.mjs && npx prisma generate && (node --experimental-strip-types scripts/maintenance/refresh-catalog-snapshots.mjs || echo '[snapshot] sin DB en build — se usan los snapshots commiteados') && next build && (PLAYWRIGHT_BROWSERS_PATH=./.playwright-browsers npx playwright install chromium || echo 'Playwright install skipped')",
     "postinstall": "npx playwright install chromium",
     "start": "npx prisma migrate deploy && next start -p ${PORT:-3000} -H 0.0.0.0",
     "lint": "eslint",
