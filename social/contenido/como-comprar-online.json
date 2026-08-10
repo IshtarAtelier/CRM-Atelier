@@ -1,0 +1,54 @@
+{
+  "id": "como-comprar-online",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Mucha gente entra a la tienda, ve el armazón que le gusta y después nos escribe para preguntar cómo sigue. Así que lo contamos acá, completo.\n\nSe puede comprar entero desde el teléfono. Elegís el armazón, decís si lo querés con tu receta o sin graduar, y pagás. Si lleva cristales nos mandás la foto de la receta por WhatsApp cuando puedas — no hace falta tenerla a mano en ese momento.\n\nEl envío es gratis a todo el país. Y si vivís en Córdoba y preferís venir a probártelo antes, también: José Luis de Tejeda 4380, Cerro de las Rosas.\n\nTodo el catálogo está en atelieroptica.com.ar/tienda",
+  "temas": [
+    "armazones",
+    "local"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog3_eligiendo.png",
+      "title": "Comprar tus anteojos *desde el teléfono*",
+      "subtitle": "Sin llamar, sin turno y sin tener la receta a mano."
+    },
+    {
+      "type": "list",
+      "title": "Son *cuatro pasos*",
+      "items": [
+        "Entrás a la tienda y elegís el armazón que te gusta",
+        "Decís si lo querés *con tu receta* o sin graduar",
+        "Pagás con tarjeta, transferencia o en cuotas",
+        "Te llega a tu casa, con envío *gratis* a todo el país"
+      ]
+    },
+    {
+      "type": "number",
+      "dato": "Después",
+      "title": "La receta no te frena",
+      "body": "Si tu pedido lleva cristales, nos mandás la foto de la receta por WhatsApp cuando la tengas.\nNo hace falta tenerla en el momento de comprar."
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "¿Y si prefiero *probármelo*?",
+      "items": [
+        "Vivís en Córdoba: venís, te lo probás y lo comprás acá",
+        "Estás lejos: si el armazón no te va, lo cambiamos",
+        "Tenés dudas del cristal: escribinos antes de comprar"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Mirá el catálogo completo",
+      "body": "atelieroptica.com.ar/tienda\nO escribinos por WhatsApp y te ayudamos a elegir."
+    }
+  ]
+}
