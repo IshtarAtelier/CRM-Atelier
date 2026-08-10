@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { STORE_ORIGIN } from '@/lib/constants';
+import { getWebSettings } from '@/lib/web-settings';
 
 /**
  * La foto se entrega vía /api/store/product-image, que la convierte a JPEG: el
@@ -110,6 +111,12 @@ export async function GET(req: NextRequest) {
         });
     }
 
+    // El descuento por contado sale de la MISMA configuración que usa la tienda
+    // (`web_promo_cash_discount`), no de un número escrito acá. Si el dueño lo
+    // cambia en el panel, el bot y la web cambian juntos.
+    const settings = await getWebSettings().catch(() => null);
+    const descuentoContado = (settings?.web_promo_cash_discount ?? 15) / 100;
+
     // Normalizar formato para el bot
     const productsMapped = products.map(p => {
         const webProd = p.webProducts && p.webProducts.length > 0 ? p.webProducts[0] : null;
@@ -120,8 +127,21 @@ export async function GET(req: NextRequest) {
             source: 'PRODUCT' as const,
             name: p.botLabel || `${p.brand ?? ''} ${p.name ?? ''}`.trim(),
             category: p.type || p.category,
-            priceCash: p.price,
-            priceCredit: null, // Se calcula en el bot si no está
+            // Los DOS precios se calculan acá, con el mismo criterio que la
+            // tienda: el precio de lista ES el precio en cuotas, y el contado
+            // tiene el descuento aplicado.
+            //
+            // Antes se mandaba `priceCash: p.price` (o sea, la LISTA rotulada
+            // como contado) y `priceCredit: null` con un comentario que decía
+            // "se calcula en el bot". El bot entonces hacía `contado × 1,15` y
+            // lo anunciaba como "6 cuotas SIN INTERÉS" — un recargo del 15%
+            // llamado "sin interés". Resultado: el bot cotizaba el contado un
+            // 15% por encima de lo que cobra la web, y las cuotas un 15% por
+            // encima del total real. Dos superficies, dos precios distintos
+            // para el mismo producto, que es el mismo problema que ya costó
+            // plata con los cristales Varilux.
+            priceCash: Math.round((p.price ?? 0) * (1 - descuentoContado)),
+            priceCredit: p.price,
             creditMonths: 6,
             is2x1: p.is2x1,
             lensIndex: p.lensIndex,

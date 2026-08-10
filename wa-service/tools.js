@@ -345,8 +345,17 @@ async function getPriceList({ category, search, botRecommended }) {
         const name = p.name || 'Producto';
         const cash = p.priceCash;
         const cashFormatted = cash.toLocaleString('es-AR');
-        // Calcular cuota: precio + 15% recargo / 6 cuotas
-        const creditTotal = Math.round(cash * 1.15);
+        // El total en cuotas viene calculado del CRM, con el mismo criterio que
+        // la tienda: el precio de LISTA es el precio en cuotas, y el contado
+        // lleva el descuento aplicado.
+        //
+        // Acá había `Math.round(cash * 1.15)`: un recargo del 15% inventado en
+        // el bot y anunciado dos líneas más abajo como "6 cuotas SIN INTERÉS".
+        // Además de la contradicción, hacía que el bot cotizara distinto que la
+        // web para el mismo producto — el mismo problema que ya costó plata con
+        // los cristales Varilux. El `?? cash` es la red por si algún producto
+        // llegara sin `priceCredit`: mejor repetir el contado que inventar.
+        const creditTotal = Math.round(p.priceCredit ?? cash);
         const cuota = Math.round(creditTotal / 6);
         const cuotaFormatted = cuota.toLocaleString('es-AR');
         const creditTotalFormatted = creditTotal.toLocaleString('es-AR');
