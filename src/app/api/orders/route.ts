@@ -8,6 +8,7 @@ import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { isMultifocal2x1, recalculateCrystalPrices } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
+import { descuentoNegativo, excedeTopeVendedor } from '@/lib/constants/descuentos';
 import { mapOrderPostSale } from '@/types/orders';
 
 // POST /api/orders — Create order from inline cotizador
@@ -40,6 +41,20 @@ export async function POST(request: Request) {
         const cleanSpecialDiscount = Math.max(0, Number(specialDiscount) || 0);
         if (cleanSpecialDiscount > 0 && role !== 'ADMIN') {
             return NextResponse.json({ error: 'Solo el administrador puede aplicar el descuento especial.' }, { status: 403 });
+        }
+
+        // Mismo criterio para los descuentos por forma de pago: la UI le muestra
+        // al vendedor solo hasta su tope, pero sin este chequeo el valor entraba
+        // igual por la API y quedaba como precio de la venta.
+        const negativo = descuentoNegativo({ discountCash, discountTransfer });
+        if (negativo) {
+            return NextResponse.json({ error: negativo }, { status: 400 });
+        }
+        if (role !== 'ADMIN') {
+            const excede = excedeTopeVendedor({ discountCash, discountTransfer, discountCard });
+            if (excede) {
+                return NextResponse.json({ error: excede }, { status: 403 });
+            }
         }
 
         // Fetch all products in the cart for snapshot saving and total calculations

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { recalculateCrystalPrices } from '@/lib/promo-utils';
+import { TOPE_VENDEDOR } from '@/lib/constants/descuentos';
 import { z } from 'zod';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 import { normalizeArgentinePhone } from '@/services/contact.service';
@@ -45,9 +46,12 @@ const OrderUpdateSchema = z.object({
     orderType: z.enum(['QUOTE', 'SALE']).optional(),
     total: z.number().optional(),
     markup: z.number().min(0).optional(),
-    discountCash: z.number().optional(),
-    discountTransfer: z.number().optional(),
-    discountCard: z.number().optional(),
+    // El piso en 0 no es cosmético: un descuento negativo INFLA la venta, y el
+    // de transferencia además se usa para convertir pagos a equivalente de lista
+    // (dividir por 1 - d/100), así que un valor fuera de rango descuadra el saldo.
+    discountCash: z.number().min(0).optional(),
+    discountTransfer: z.number().min(0).optional(),
+    discountCard: z.number().min(0).optional(),
     specialDiscount: z.number().min(0).optional(),
     subtotalWithMarkup: z.number().optional(),
     prescriptionId: z.string().nullable().optional(),
@@ -518,6 +522,28 @@ export class OrderService {
             const actual = currentForDiscount?.specialDiscount || 0;
             if (Math.round(body.specialDiscount || 0) !== Math.round(actual)) {
                 throw new Error('Solo el administrador puede aplicar o modificar el descuento especial.');
+            }
+        }
+
+        // ── Guard: descuentos por forma de pago (tope del vendedor) ──
+        // El techo no es el tope pelado sino el MAYOR entre el tope y lo que la
+        // orden ya tiene: si el admin autorizó un 30%, el vendedor tiene que
+        // poder seguir editando esa venta (el cotizador reenvía los tres campos
+        // en cada guardado) y bajarlo, pero nunca subirlo por su cuenta.
+        // (los negativos ya los frenó el Zod de arriba, con su `.min(0)`)
+        if (role !== 'ADMIN'
+            && (body.discountCash !== undefined || body.discountTransfer !== undefined)) {
+            const actualDtos = await prisma.order.findUnique({
+                where: { id },
+                select: { discountCash: true, discountTransfer: true }
+            });
+            const sube = (propuesto: number | undefined, guardado: number | null | undefined, tope: number) =>
+                propuesto !== undefined && propuesto > Math.max(tope, guardado ?? tope);
+            if (sube(body.discountCash, actualDtos?.discountCash, TOPE_VENDEDOR.discountCash)) {
+                throw new Error(`Solo el administrador puede dar más de ${TOPE_VENDEDOR.discountCash}% de descuento por efectivo.`);
+            }
+            if (sube(body.discountTransfer, actualDtos?.discountTransfer, TOPE_VENDEDOR.discountTransfer)) {
+                throw new Error(`Solo el administrador puede dar más de ${TOPE_VENDEDOR.discountTransfer}% de descuento por transferencia.`);
             }
         }
 

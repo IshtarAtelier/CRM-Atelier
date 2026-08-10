@@ -2,6 +2,12 @@
 
 import React from 'react';
 import { TrendingUp, Banknote, ArrowRightLeft, CreditCard } from 'lucide-react';
+import {
+    OPCIONES_DESCUENTO_EFECTIVO,
+    OPCIONES_DESCUENTO_TRANSFERENCIA,
+    OPCIONES_RECARGO_CUOTAS,
+    TOPE_VENDEDOR,
+} from '@/lib/constants/descuentos';
 
 interface CartPricingControlsProps {
     markup: number;
@@ -34,6 +40,12 @@ export default function CartPricingControls({
 }: CartPricingControlsProps) {
     const isAdmin = currentUserRole === 'ADMIN';
 
+    // El vendedor solo ve hasta su tope. Si la orden ya trae un descuento mayor
+    // —el admin lo autorizó—, esa opción se mantiene a la vista: si no, el select
+    // no podría representar su propio valor y al guardar lo bajaría solo.
+    const hastaElTope = (opciones: readonly number[], tope: number, actual: number) =>
+        isAdmin ? [...opciones] : opciones.filter(v => v <= Math.max(tope, actual));
+
     return (
         <div className={`grid grid-cols-2 gap-3 mb-6 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
             <div className="p-3 bg-stone-50 dark:bg-stone-900/40 rounded-2xl border border-stone-250/60 dark:border-stone-800 transition-all focus-within:border-blue-400 dark:focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-400/25 group/markup">
@@ -62,7 +74,8 @@ export default function CartPricingControls({
                     onChange={e => setDiscountCash(Number(e.target.value))}
                     className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer"
                 >
-                    {[0, 5, 10, 15, 20, 25, 30].map(v => <option key={v} value={v}>-{v}%</option>)}
+                    {hastaElTope(OPCIONES_DESCUENTO_EFECTIVO, TOPE_VENDEDOR.discountCash, discountCash)
+                        .map(v => <option key={v} value={v}>-{v}%</option>)}
                 </select>
             </div>
             <div className="p-3 bg-stone-50 dark:bg-stone-900/40 rounded-2xl border border-stone-250/60 dark:border-stone-800 transition-all focus-within:border-violet-400 dark:focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-400/25 group/transf">
@@ -75,7 +88,8 @@ export default function CartPricingControls({
                     onChange={e => setDiscountTransfer(Number(e.target.value))}
                     className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer"
                 >
-                    {[0, 5, 10, 15, 20].map(v => <option key={v} value={v}>-{v}%</option>)}
+                    {hastaElTope(OPCIONES_DESCUENTO_TRANSFERENCIA, TOPE_VENDEDOR.discountTransfer, discountTransfer)
+                        .map(v => <option key={v} value={v}>-{v}%</option>)}
                 </select>
             </div>
             <div className="p-3 bg-stone-50 dark:bg-stone-900/40 rounded-2xl border border-stone-250/60 dark:border-stone-800 transition-all focus-within:border-orange-400 dark:focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-400/25 group/card">
@@ -88,7 +102,7 @@ export default function CartPricingControls({
                     onChange={e => setDiscountCard(Number(e.target.value))}
                     className="w-full bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-xs font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer"
                 >
-                    {[0, 5, 10].map(v => <option key={v} value={v}>{v === 0 ? '0%' : `+${v}%`}</option>)}
+                    {OPCIONES_RECARGO_CUOTAS.map(v => <option key={v} value={v}>{v === 0 ? '0%' : `+${v}%`}</option>)}
                 </select>
             </div>
             
