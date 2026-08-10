@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/email';
 import { BACKFILL_LABS, emailsEnabled, isQuietLab } from './backfill';
-import { ALERT_MIN_DIFF, LAB_LABELS, UNMATCHED_GRACE_MS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
+import { LAB_LABELS, UNMATCHED_GRACE_MS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
 
 /**
  * AVISOS de la conciliación de costos de laboratorio.

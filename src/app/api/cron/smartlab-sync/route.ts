@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { SmartLabService } from '@/services/smartlab.service';
-import { env } from '@/env';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';

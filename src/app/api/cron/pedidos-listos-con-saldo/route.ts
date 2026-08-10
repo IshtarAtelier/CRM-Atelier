@@ -236,7 +236,7 @@ export async function GET(request: Request) {
             if (!financials.hasBalance) continue;
 
             let kind: Entry['kind'];
-            let estDays = calculateEstimatedDays(itemsForEstimation(o.items));
+            const estDays = calculateEstimatedDays(itemsForEstimation(o.items));
             let overdueBizDays = 0;
 
             if (o.labStatus === 'FINISHED' || o.labStatus === 'READY') {

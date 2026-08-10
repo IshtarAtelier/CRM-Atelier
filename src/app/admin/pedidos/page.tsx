@@ -5,7 +5,7 @@ import {
     Package, Clock, CheckCircle2, Search, Download,
     X, Eye, ArrowRight, Hash,
     Calendar, Loader2, ExternalLink, Copy, CheckCheck, Clipboard,
-    Factory, ChevronLeft, ChevronRight, User, Users, ChevronDown
+    Factory, User, Users, ChevronDown
 } from 'lucide-react';
 import { OrderDetailPanel } from '@/components/orders/OrderDetailPanel';
 import { PostSaleCard } from '@/components/orders/PostSaleCard';
