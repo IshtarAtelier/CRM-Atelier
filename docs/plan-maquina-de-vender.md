@@ -28,6 +28,8 @@ Todo lo de abajo está **commiteado en la rama de trabajo y verificado en local.
 | Retención flujo 3 · Habilitante del pipeline | ✅ hecho — whitelist a array + `Sistema (Retención)` + firma `Bot` | `b5a1b2d0` |
 | Seguridad · Bypass de auth en el cron de carritos | ✅ hecho (no estaba en el plan; se encontró al abrirlo) | `11419918` |
 | Panel de salud de medición + crecimiento mes a mes | ✅ hecho | `547c0e8a` |
+| Techo de inversión: medición histórica + guardián que lo vigila solo | ✅ hecho — email diario + panel | `53edf8f9`, `23d50b1c` |
+| Token de escritura de Meta (bloqueaba toda operación en las cuentas) | ✅ hecho — aceptaba un solo nombre de los dos | `ff808f29` |
 
 **Lo que cambió el diagnóstico al medirlo** (§4.1 y §4.2): el gasto real es ~$1.181.000/mes y **Meta no estaba en $0**; la mejor campaña de toda la operación vive en la cuenta USD que el plan mandaba pausar; el píxel **funciona** (748 PageView / 111 ViewContent en 7 días — el error era el token equivocado); y Google **sí recibe compras** por una acción importada de GA4, así que cargar `GOOGLE_ADS_CONVERSION_LABEL` habría contado doble.
 
@@ -133,6 +135,10 @@ Medición de respaldo (`node --env-file=.env scripts/checks/gasto-historico.mjs`
 | | | **$1.000.000** | |
 
 **La conversión del dólar la fija la dueña, no este documento.** Si el costo efectivo por dólar es menor al oficial (que es el motivo de usar la cuenta USD), esos US$369 cuestan menos de $580.000 y el sobrante queda como margen dentro del mismo techo — nunca como excusa para subir el gasto sin decidirlo.
+
+**Cómo se hace cumplir (ya construido).** Ninguna de las dos plataformas puede sostener este techo sola: el límite de gasto de Meta es **de por vida, no mensual** (se acumula contra el gastado histórico y hay que resetearlo a mano) y Google, en cuentas que pagan con tarjeta, no tiene tope de cuenta. Por eso el techo lo vigila `AdsBudgetService`: lee el gasto del mes de las dos plataformas, proyecta a fin de mes y aparece **arriba de todo en el email diario de ads** y en `/admin/analitica`. Avisa, no apaga — apagar sola una campaña recién prendida sería peor que el problema. El valor vive en `SystemSetting.ads_monthly_cap_ars`, así que se cambia sin deployar.
+
+Primera lectura real (9/8, día 9 de 31): **$280.423 gastados** (Meta $104.860 + Google $175.563), proyección **$965.903 = 97% del techo** → estado *atención*. O sea: el ritmo actual ya roza el límite **antes** de aplicar la reasignación. Es exactamente el margen que la reasignación libera.
 
 ### 4.1 Gasto real medido (últimos 30 días, 10/7→9/8, leído hoy con `scripts/ads/meta_report.js` y `google_report.js`)
 
