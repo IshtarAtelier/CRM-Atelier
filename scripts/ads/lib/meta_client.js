@@ -345,7 +345,11 @@ function post(apiPath, params = {}, opts = {}) {
 }
 
 /** Normaliza el id de cuenta al formato act_XXXX. */
-function accountId() {
+/**
+ * Todas las cuentas declaradas en META_AD_ACCOUNT_ID (acepta varias separadas
+ * por coma, igual que `src/lib/ads/meta-insights.ts`).
+ */
+function accountIds() {
   const raw = process.env.META_AD_ACCOUNT_ID;
   if (!raw) {
     throw new MetaApiError('Falta META_AD_ACCOUNT_ID en el entorno.', {
@@ -353,7 +357,31 @@ function accountId() {
       guidance: 'Cargar el id de la cuenta publicitaria (formato act_XXXXXXXXX) en .env.',
     });
   }
-  return raw.startsWith('act_') ? raw : `act_${raw}`;
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((id) => (id.startsWith('act_') ? id : `act_${id}`));
+}
+
+/**
+ * La cuenta con la que trabaja un script que espera UNA sola.
+ *
+ * El `.env` del proyecto tiene las dos cuentas separadas por coma, y esto
+ * devolvía la cadena entera como si fuera un id: la Graph API respondía
+ * "Object with ID 'act_A,act_B' does not exist" y TODOS los scripts de ads
+ * fallaban con las credenciales bien cargadas. Ahora toma la primera y avisa,
+ * para que quede claro cuál se está mirando.
+ */
+function accountId() {
+  const ids = accountIds();
+  if (ids.length > 1) {
+    console.warn(
+      `[meta_client] META_AD_ACCOUNT_ID tiene ${ids.length} cuentas; se usa ${ids[0]}. ` +
+        'Para otra: META_AD_ACCOUNT_ID=act_XXXX inline en el comando.',
+    );
+  }
+  return ids[0];
 }
 
 module.exports = {
@@ -364,5 +392,6 @@ module.exports = {
   post,
   debugToken,
   accountId,
+  accountIds,
   redact,
 };
