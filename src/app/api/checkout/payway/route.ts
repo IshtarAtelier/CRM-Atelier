@@ -101,6 +101,16 @@ function findMatchedProduct(crystals: any[], config: any) {
   if (config.type) {
     matches = matches.filter(p => p.type === config.type);
   }
+  // Misma exclusión que en `findPrice`: este helper elige el PRODUCTO que se
+  // adjunta a la orden y que después ve el laboratorio. Sin esta rama, a un
+  // pedido de Varilux se le enganchaba "Mi Primer Varilux" —el que la config
+  // excluye por sus restricciones de adición— y el lab fabricaba un cristal que
+  // no correspondía. El precio y el producto tienen que salir del MISMO filtro.
+  if (config.excludeKeywords && config.excludeKeywords.length > 0) {
+    matches = matches.filter(p =>
+      !config.excludeKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
+    );
+  }
   if (config.exactMatchName) {
     const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
     if (exactMatch) return exactMatch;
@@ -313,6 +323,23 @@ export async function POST(req: Request) {
       let matches = crystals;
       if (config.type) {
         matches = matches.filter(p => p.type === config.type);
+      }
+      // Exclusiones del mapeo. Esta rama FALTABA acá y la tienda sí la tenía
+      // (/api/web/pricing), así que las dos puntas del checkout no coincidían:
+      // `MULTIFOCAL.VARILUX` excluye "mi primer" —tiene restricciones de adición
+      // y por eso no puede ser el precio que se publica—, pero como este
+      // `findPrice` toma el MÍNIMO sin filtrar, elegía justo ese. Medido contra
+      // el catálogo real: la web mostraba $1.346.599 (COMFORT MAX - ORMA +
+      // CRIZAL 2x1) y acá se cobraba $673.301 (MI PRIMER VARILUX COMFORT MAX -
+      // ORMA). Diferencia de $673.298 por par, a favor del cliente, y el guard
+      // de precio no lo frena porque es direccional (solo bloquea si se paga de
+      // menos que lo que calcula el backend). Peor todavía: `findMatchedProduct`
+      // adjuntaba a la orden ese mismo cristal, así que al laboratorio le iba el
+      // que la exclusión existía para no vender.
+      if (config.excludeKeywords && config.excludeKeywords.length > 0) {
+        matches = matches.filter(p =>
+          !config.excludeKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
+        );
       }
       if (config.exactMatchName) {
         const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
