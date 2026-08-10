@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { PricingService } from '@/services/PricingService';
 import { resolveMonthlyTargets } from '@/lib/targets';
 import { logAudit } from '@/lib/audit';
+import { OrderService } from '@/services/order.service';
 
 // ═══════════════════════════════════════════════════
 // Tipos
@@ -340,10 +341,43 @@ const updateLabOrder: CopilotTool = {
         return `El pedido de ${order.client.name} ya tenía esos datos. No se hicieron cambios.`;
     }
 
-    await prisma.order.update({
-        where: { id: order.id },
-        data: dataToUpdate
-    });
+    // Mandar a fábrica pasa por el MISMO camino que el botón de la pantalla.
+    //
+    // Acá había un `prisma.order.update` directo, y eso convertía al Copilot en
+    // una puerta lateral: cualquiera del staff podía escribirle "pasá a enviado
+    // el pedido de Juan" y el pedido salía sin receta, sin foto, sin alturas ni
+    // DP, y —lo más caro— sin el 50% cobrado. Esa regla existe y está bien
+    // implementada en `OrderService.updateOrder` (que además exige que solo un
+    // ADMIN pueda autorizar una seña menor); el problema era que este atajo no
+    // la consultaba.
+    //
+    // No se copian las validaciones acá: copiarlas sería la quinta versión de la
+    // misma regla y la próxima que cambie va a divergir. Se delega. Si el gate
+    // rechaza, su mensaje ya explica exactamente qué falta, así que se devuelve
+    // tal cual al usuario en vez de un "no se pudo".
+    const vaAFabrica =
+        dataToUpdate.labStatus === 'SENT' || dataToUpdate.labStatus === 'IN_PROGRESS';
+
+    if (vaAFabrica) {
+        try {
+            await OrderService.updateOrder(
+                order.id,
+                dataToUpdate,
+                ctx.userId ?? null,
+                ctx.userName ? `${ctx.userName} (vía Copilot)` : 'Copilot',
+                ctx.userRole ?? null,
+            );
+        } catch (e: any) {
+            return `No se pudo enviar a fábrica el pedido de ${order.client.name}:\n${e?.message || 'error desconocido'}`;
+        }
+    } else {
+        // READY, DELIVERED o solo cargar el número de operación: no tocan el
+        // gate de fábrica, así que siguen por el camino corto.
+        await prisma.order.update({
+            where: { id: order.id },
+            data: dataToUpdate
+        });
+    }
 
     // Trazabilidad: quién lo cambió (vía Copilot) queda en ficha y AuditLog
     if (willChangeStatus) {
