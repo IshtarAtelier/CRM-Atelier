@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { adTag, dolarBlue, fetchSpendByTag, metaAdsConfigured } from '@/lib/ads/meta-insights';
 import { CONTACT_SOURCES, normalizeContactSource, SIN_ORIGEN } from '@/lib/contact-source';
+import { esVentaReal } from '@/lib/constants/ventas';
 
 /**
  * Atribución: qué trajo a cada cliente y qué devolvió.
@@ -233,10 +234,9 @@ async function cruzar(desde: Date, hasta: Date, gasto: MapaGasto): Promise<Anunc
         // usarlas como evidencia inventaba cierres. De 168 órdenes con pagos reales
         // en 90 días, 165 tienen `paid` coherente — no se pierde nada al exigir la fila.
         const cobrado = v.payments.reduce((s, pay) => s + Number(pay.amount || 0), 0);
-        const esVentaReal =
-            !['LOST', 'CANCELED'].includes(v.status || '') &&
-            (cobrado > 0 || (v.labStatus && v.labStatus !== 'NONE'));
-        if (esVentaReal) {
+        // La regla vive en src/lib/constants/ventas.ts (estaba repetida en
+        // cuatro lugares y una copia la escribió mal: `Boolean(labStatus)`).
+        if (esVentaReal({ status: v.status, labStatus: v.labStatus, cobrado })) {
             p.real += Number(v.total || 0);
             p.cobrado += cobrado;
         }

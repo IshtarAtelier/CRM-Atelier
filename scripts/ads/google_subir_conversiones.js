@@ -134,7 +134,16 @@ async function main() {
       continue;
     }
     const cobrado = o.payments.reduce((s, p) => s + Number(p.amount || 0), 0);
-    const enFabrica = Boolean(o.labStatus);
+    // `labStatus` tiene DEFAULT 'NONE' en el schema, así que `Boolean(labStatus)`
+    // —que es lo que había acá— da true para TODA orden y el guard no descartaba
+    // nada. Medido sobre 90 días: la regla buena cuenta 35 ventas y esta contaba
+    // 111. Eran 76 conversiones fantasma que Google iba a usar para decidir
+    // dónde poner la plata. La regla canónica vive en
+    // `src/lib/constants/ventas.ts` (`estaEnFabrica`); acá se repite porque este
+    // script es CommonJS y todavía no puede importar TS con alias `@/`.
+    // Mientras eso siga así, cualquier regla de negocio se va a seguir
+    // re-tipeando y alguna copia va a volver a divergir.
+    const enFabrica = o.labStatus != null && o.labStatus !== 'NONE';
     // La regla de oro: cobrado o en laboratorio. Un presupuesto no es una venta.
     if (cobrado <= 0 && !enFabrica) {
       descartes.noEsVenta++;

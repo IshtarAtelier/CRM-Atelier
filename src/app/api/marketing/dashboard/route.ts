@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { normalizeContactSource } from '@/lib/contact-source';
+import { esVentaReal } from '@/lib/constants/ventas';
 
 /**
  * Datos del panel "Rendimiento de Marketing" (mes en curso por defecto).
@@ -54,6 +55,11 @@ export async function GET(request: Request) {
       select: {
         total: true,
         labStatus: true,
+        // `status` faltaba: sin él, esta pantalla contaba como facturación las
+        // órdenes LOST y CANCELED que tuvieran algún pago o hubieran entrado a
+        // fábrica. Lo destapó unificar la regla en un solo helper — la copia
+        // local se había quedado sin ese filtro.
+        status: true,
         payments: { select: { amount: true } },
         client: { select: { contactSource: true } },
       },
@@ -64,10 +70,15 @@ export async function GET(request: Request) {
     //    así que la venta se mide por filas de Payment o por haber entrado a
     //    fábrica. Sin este filtro, un presupuesto PENDING sin un peso cobrado
     //    entraba a la "facturación bruta" del mes.
-    const ventasReales = orders.filter((o) => {
-      const cobrado = o.payments.reduce((s, p) => s + Number(p.amount || 0), 0);
-      return cobrado > 0 || (o.labStatus != null && o.labStatus !== 'NONE');
-    });
+    // La regla vive en src/lib/constants/ventas.ts, no re-escrita acá: estaba
+    // repetida en cuatro lugares y una de las copias la escribió mal.
+    const ventasReales = orders.filter((o) =>
+      esVentaReal({
+        status: o.status,
+        labStatus: o.labStatus,
+        cobrado: o.payments.reduce((s, p) => s + Number(p.amount || 0), 0),
+      }),
+    );
 
     const totalSales = ventasReales.reduce((sum, o) => sum + Number(o.total || 0), 0);
     const totalCobrado = ventasReales.reduce(
