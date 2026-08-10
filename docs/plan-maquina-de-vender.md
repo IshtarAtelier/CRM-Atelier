@@ -109,6 +109,31 @@ Ordenados por impacto/esfuerzo. Los S se agrupan en 2-3 lotes de deploy.
 
 **Restricción fijada por la dueña (9/8/2026):** *no superar el promedio que se viene gastando; si se puede, reubicar presupuestos.* Todo este capítulo se reescribió contra esa restricción. **El escenario "mínimo" de $1.260.000 que proponía la síntesis original queda DEROGADO** por dos motivos: superaba el gasto actual, y estaba dimensionado con benchmarks genéricos de Argentina ($1.000-2.000 por conversación) en lugar del costo medido de esta cuenta.
 
+### 4.0 TECHO ACORDADO: ARS 1.000.000/mes entre Google y Meta
+
+Definido por la dueña el 9/8/2026. Es un techo **duro**: ninguna campaña se prende ni se sube si el mes proyectado lo supera.
+
+Medición de respaldo (`node --env-file=.env scripts/checks/gasto-historico.mjs`, 6 meses):
+
+| Cuenta | mar | abr | may | jun | jul | Promedio mensual |
+|---|---|---|---|---|---|---|
+| Google Ads (ARS) | $504.577 | $390.403 | $527.247 | $579.580 | $595.096 | **$519.381** |
+| Meta ARS | $356.099 | $417.685 | $433.764 | $412.552 | $120.828 | **$348.186** |
+| Meta USD | — | — | — | US$87 | US$362 | **US$225** |
+
+**Dato que ordena todo el capítulo: la operación de Meta se está mudando a la cuenta USD.** La ARS cae de $412.552 (junio) a $120.828 (julio) y a ~$0 en agosto, mientras la USD sube de US$87 a US$362. Es deliberado: en USD se evita una carga impositiva. Por eso el plan **consolida Meta en la cuenta USD** y deja la ARS en cero — lo contrario de lo que decía la síntesis original ("una sola cuenta, la de ARS"), que además se apoyaba en la medición equivocada de que Meta gastaba $0.
+
+**Reparto del techo:**
+
+| Plataforma | Cuenta | Tope mensual | vs. su promedio |
+|---|---|---|---|
+| Google Ads | ARS | **$420.000** | −19% |
+| Meta | **USD** (act_2107444353167176) | **el equivalente a $580.000** — a $1.570/USD son ~US$369/mes (US$12,3/día) | consolida lo de las dos cuentas |
+| Meta | ARS (act_901723834933651) | **$0** — se deja viva pero sin presupuesto | ya está de hecho |
+| | | **$1.000.000** | |
+
+**La conversión del dólar la fija la dueña, no este documento.** Si el costo efectivo por dólar es menor al oficial (que es el motivo de usar la cuenta USD), esos US$369 cuestan menos de $580.000 y el sobrante queda como margen dentro del mismo techo — nunca como excusa para subir el gasto sin decidirlo.
+
 ### 4.1 Gasto real medido (últimos 30 días, 10/7→9/8, leído hoy con `scripts/ads/meta_report.js` y `google_report.js`)
 
 | Campaña | Gasto/mes ARS | Resultados | Costo unitario | Veredicto |

@@ -64,15 +64,27 @@ export function TrackingScripts({
   const META_PIXEL_ID = pixelId || process.env.NEXT_PUBLIC_META_PIXEL_ID;
   const consent = useConsent();
 
-  // Las cookies de marketing (Pixel/GA/Ads) solo cargan con consentimiento explícito.
-  // La analítica propia (sin cookies) va aparte y no depende de esto.
+  // Consent Mode v2 (Google): el tag SIEMPRE carga, pero arranca con todo
+  // DENEGADO. Sin consentimiento no escribe ninguna cookie ni identificador —
+  // manda pings sin cookies que Google usa solo para modelar agregados. Cuando
+  // el visitante acepta, se emite un `consent update` y recién ahí hay cookies.
+  //
+  // Por qué cambió: antes este componente devolvía null sin consentimiento, así
+  // que quien ignoraba el banner (la mayoría) no se medía de ninguna forma. No
+  // era más privado, era ciego: la persona igual navegaba, pero el negocio no
+  // podía saber siquiera cuánta gente había. Denegado-por-defecto es el
+  // comportamiento que Google espera y el que corresponde.
+  //
+  // El Pixel de Meta NO tiene equivalente cookieless, así que ese sigue atado a
+  // "granted"; su respaldo sin consentimiento es el Conversions API del server,
+  // que a su vez exige la cookie propia `ate_consent` (ver api/web/track).
   //
   // Los Script van con strategy="afterInteractive", NO "lazyOnload": lazyOnload
   // espera el evento `load` de la ventana, que en esta pantalla ya pasó cuando
   // el visitante toca "Aceptar" — el evento no vuelve a dispararse y los scripts
   // no se inyectaban nunca. Resultado: la visita entera en la que aceptaba se
   // perdía (recién medía si recargaba la página).
-  if (consent !== "granted") return null;
+  const otorgado = consent === "granted";
 
   // Un solo gtag.js alcanza para GA4 y Google Ads: se carga una vez con
   // cualquiera de los dos IDs y después se hace un gtag('config', …) por destino.
@@ -94,9 +106,21 @@ export function TrackingScripts({
   if (whatsappSendTo) conversions.whatsapp = whatsappSendTo;
   if (callSendTo) conversions.call = callSendTo;
 
+  // El estado por defecto va ANTES de cualquier `config`: dataLayer es una cola
+  // y gtag.js la procesa en orden, así que si el config saliera primero se
+  // mandaría un evento con consentimiento sin declarar.
   const gtagInit = [
     "window.dataLayer = window.dataLayer || [];",
     "function gtag(){window.dataLayer.push(arguments);}",
+    `gtag('consent', 'default', {
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+      analytics_storage: 'denied',
+      functionality_storage: 'granted',
+      security_storage: 'granted',
+      wait_for_update: 500
+    });`,
     "gtag('js', new Date());",
     GA_MEASUREMENT_ID ? `gtag('config', '${GA_MEASUREMENT_ID}');` : null,
     GA_SECONDARY_ID ? `gtag('config', '${GA_SECONDARY_ID}');` : null,
@@ -107,6 +131,19 @@ export function TrackingScripts({
   ]
     .filter(Boolean)
     .join("\n");
+
+  // Se emite solo cuando el visitante aceptó. Va en su propio <Script> con una
+  // key distinta para que Next lo monte al cambiar el consentimiento, sin
+  // recargar la página (el hook useConsent re-renderiza este componente).
+  const gtagUpdate = `
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){window.dataLayer.push(arguments);}
+    gtag('consent', 'update', {
+      ad_storage: 'granted',
+      ad_user_data: 'granted',
+      ad_personalization: 'granted',
+      analytics_storage: 'granted'
+    });`;
 
   return (
     <>
@@ -120,11 +157,17 @@ export function TrackingScripts({
           <Script id="google-gtag" strategy="afterInteractive">
             {gtagInit}
           </Script>
+          {/* Se monta recién cuando hay consentimiento y libera las cookies. */}
+          {otorgado && (
+            <Script id="google-consent-update" strategy="afterInteractive">
+              {gtagUpdate}
+            </Script>
+          )}
         </>
       )}
 
-      {/* Meta Pixel */}
-      {META_PIXEL_ID && (
+      {/* Meta Pixel: sin modo cookieless, va solo con consentimiento. */}
+      {otorgado && META_PIXEL_ID && (
         <Script id="meta-pixel" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s)
