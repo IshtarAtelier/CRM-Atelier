@@ -8,32 +8,65 @@
 
 ---
 
-## 0. Estado de ejecución (al 9/8/2026)
+## 0. Estado de ejecución (al 10/8/2026)
 
-Todo lo de abajo está **commiteado en la rama de trabajo y verificado en local. Nada se deployó ni se pautó**: el deploy a producción y cualquier escritura en Meta/Google siguen esperando OK explícito.
+**Este es el documento vivo del plan.** Se actualiza a medida que las cosas se hacen; si acá dice "hecho", está verificado.
 
-| Ítem | Estado | Commit |
-|---|---|---|
-| B1 · Banner de cookies tapaba los CTAs del hero mobile | ✅ hecho — de ~190px a 76px; medido en 375x812 y 360x740 | `bb25f2bd` |
-| QW3 · Multifocales visible en el hero y en el nav | ✅ hecho — línea fija + "Multifocales" en el menú | `bb25f2bd` |
-| QW4 · Carrusel del hero a pantalla negra | ✅ hecho — crossfade en vez de `mode="wait"` | `bb25f2bd` |
-| QW4b · Los CTAs parpadeaban cada 5s (no estaba en el plan) | ✅ hecho — salieron del bloque que rota | `bb25f2bd` |
-| QW5 · og:image AVIF → los links de WhatsApp salían sin foto | ✅ hecho | `bb25f2bd` |
-| QW6 · FloatingWhatsApp 5s → 1,5s + etiqueta "Presupuesto" | ✅ hecho; además dejó de montarse encima del CTA del hero | `bb25f2bd` |
-| B7 · `aggregateRating` self-serving (riesgo de acción manual) | ✅ hecho — fuera de las 4 páginas | `de00a1b5` |
-| B8 · 46 doorways `/blog/busquedas/` | ✅ hecho — 301 a la página real + fuera del sitemap | `de00a1b5` |
-| B3 · Purchase solo en la rama TARJETA | ✅ hecho — las 3 ramas + se arregló un doble conteo | `197f4c1b` |
-| B11 · UTMs en el pipeline social | ✅ hecho — solo en el texto que va a Facebook | `7f2119c8` |
-| Lote 2 · Microcopy del checkout (cuotas, urgencia falsa, pantalla de transferencia, DNI) | ✅ hecho | `fb773143` |
-| Retención flujo 3 · Habilitante del pipeline | ✅ hecho — whitelist a array + `Sistema (Retención)` + firma `Bot` | `b5a1b2d0` |
-| Seguridad · Bypass de auth en el cron de carritos | ✅ hecho (no estaba en el plan; se encontró al abrirlo) | `11419918` |
-| Panel de salud de medición + crecimiento mes a mes | ✅ hecho | `547c0e8a` |
-| Techo de inversión: medición histórica + guardián que lo vigila solo | ✅ hecho — email diario + panel | `53edf8f9`, `23d50b1c` |
-| Token de escritura de Meta (bloqueaba toda operación en las cuentas) | ✅ hecho — aceptaba un solo nombre de los dos | `ff808f29` |
+### 0.1 EN PRODUCCIÓN
 
-**Lo que cambió el diagnóstico al medirlo** (§4.1 y §4.2): el gasto real es ~$1.181.000/mes y **Meta no estaba en $0**; la mejor campaña de toda la operación vive en la cuenta USD que el plan mandaba pausar; el píxel **funciona** (748 PageView / 111 ViewContent en 7 días — el error era el token equivocado); y Google **sí recibe compras** por una acción importada de GA4, así que cargar `GOOGLE_ADS_CONVERSION_LABEL` habría contado doble.
+Desplegado el 10/8. Verificado contra el sitio vivo (doorways redirigiendo, línea de multifocales en el hero, `aggregateRating` fuera).
 
-**Lo que sigue pendiente y NO depende de código:** el OK a la reasignación de §4.3, el alta de los crons en el scheduler, la higiene de conversiones primarias en Google Ads, y el deploy. Detalle en "Aprobaciones".
+| Ítem | Qué resolvió |
+|---|---|
+| **B1** · Banner de cookies tapaba los dos CTAs del hero en celular | De ~190px a 76px. Medido en 375x812 y 360x740 |
+| **QW1/QW3/QW4** · Primera pantalla | Multifocales fijo en hero y nav (también en el menú mobile, que decía "Cristales"), carrusel sin pantalla negra, CTAs que dejaron de parpadear cada 5s |
+| **QW5** · og:image AVIF → WebP | Los links de fichas compartidos por WhatsApp salían sin foto |
+| **QW6** · FloatingWhatsApp | 5s → 1,5s, etiqueta "Presupuesto", y dejó de montarse encima del CTA del hero |
+| **QW7** · Microcopy del checkout (4/4) | Cuotas reales, urgencia falsa borrada, pantalla de transferencia con importe y alias copiable, DNI solo con tarjeta |
+| **B3** · Purchase en las 3 ramas | Transferencia y mayorista eran invisibles; y se cerró un doble conteo (el navegador mandaba un UUID al azar como id) |
+| **B4** · Consent Mode v2 + medir el punto ciego | Se registra si el cartel se mostró y qué se decidió |
+| **B7** · `aggregateRating` self-serving | Riesgo de acción manual de Google sobre todo el dominio |
+| **B8** · 46 doorways `/blog/busquedas/` | 301 a la página real + fuera del sitemap |
+| **B11** · UTMs en el pipeline social | Separar orgánico de pago |
+| **B5** · Chat de WhatsApp ↔ ficha del cliente | Sin eso el ROAS por anuncio subestima |
+| 🔴 **Precio de Varilux** *(no estaba en el plan)* | La web publicaba $1.346.599 y el checkout cobraba $673.301: **$673.298 por par**, y al laboratorio le iba el cristal equivocado |
+| 🔒 **Dos agujeros de seguridad** *(no estaban en el plan)* | El cron de carritos tenía clave publicada en el repo y un bypass con `?x=localhost`; y un backup del `.env` con secretos estaba fuera del `.gitignore` |
+| Paneles | Salud de la medición, crecimiento mes a mes y techo de inversión en `/admin/analitica` |
+
+### 0.2 HECHO, ESPERANDO DEPLOY
+
+```bash
+cd /Users/ishtarpissano/proyectos/atelier-auditoria && git push origin deploy/bot-recetas:main
+```
+
+| Ítem | Medido |
+|---|---|
+| **B6** · Landing `/multifocales` | El head term del producto de ~$834.000 mandaba su tráfico a un 404. Indexable, con redirección desde la vieja y ancla de precio leída de la base |
+| Saldo global del dashboard | Usaba `lista − cobrado`: daba $5.583.845 contra $3.419.152 real. Además 8 pagos por $2.184.971 sobre presupuestos descontaban deuda de ventas |
+| Saldo en el PDF del cliente y en el Copiloto | La misma resta prohibida. Sobre 90 ventas, 26 difieren >$1.000 y la resta **subestima la deuda en $1.784.348** |
+| 76 conversiones fantasma a Google | `Boolean('NONE')` es `true`: la regla buena cuenta 35 ventas, esa copia contaba 111 |
+| El bot cotizaba distinto que la tienda | Pedía **$40.350 de más al contado** sobre un cristal de $269.000, y llamaba "sin interés" a un recargo del 15% |
+| El Copiloto se salteaba el gate de fábrica | Cualquiera del staff podía mandar a laboratorio sin el 50% cobrado, sin receta ni alturas |
+| Guarda de build de medición | Un build sin las variables ya no publica en silencio: se detiene |
+
+**⚠️ Pendiente urgente:** desde el deploy del 10/8 la tienda **no mide nada** (ni píxel, ni GA, ni Google Ads). Las variables están bien cargadas en Railway y el runtime las ve; el problema es que la home se prerenderiza y el build las horneó como `undefined`. **El push de arriba dispara el rebuild y lo resuelve** — y ya va protegido por la guarda nueva.
+
+### 0.3 EN CURSO
+
+Diez agentes trabajando en ámbitos de archivo disjuntos, sin commitear: **QW8** (receta fake + medición del configurador), **QW9** (helper de garantía), **QW10** (badge 2x1), **QW11** (cross-sell por afinidad), **ISR** de las páginas de venta, **downscale de imágenes**, **aviso de despacho post-pago**, **posventa a 10 días**, `PageView` en navegación SPA, y evento de búsqueda + panel de consentimiento.
+
+### 0.4 LO QUE DEPENDE DE UNA DECISIÓN, NO DE CÓDIGO
+
+| Qué | Por qué está frenado |
+|---|---|
+| **QW2** · Sacar el aviso "PREVENTA" de las fichas | No está en el código: es texto en la base de **producción**. El script está listo (`scripts/maintenance/sacar-aviso-preventa.mjs`, simula por defecto) y escribir ahí necesita autorización explícita |
+| Reasignación de presupuesto (§4.3) | Techo acordado: **$1.000.000/mes** entre Google y Meta |
+| Alta de los crons en el scheduler | El código está terminado; sin esto el carrito abandonado no recupera un peso |
+| Higiene de conversiones en Google Ads | 5 acciones locales + la de Tiendanube están primarias: es lo que le enseña a la puja a comprar clics de dirección |
+| **QW15** · Aplicar las 114 fichas SEO + reactivar 5 productos | Requiere leer y escribir producción |
+| Fotos, obras sociales, matrícula del director técnico, Cloudflare, Merchant Center | Detalle en "Aprobaciones" |
+
+> **Nota sobre alcance:** varios de los hallazgos más caros de estos días **no estaban en este plan** — el precio de Varilux, los dos agujeros de seguridad, el bot que cotizaba de más. Salieron de auditar el código, no de auditar las ventas. Están en `docs/auditoria-arquitectura-9ago2026.md` y el consolidado en `docs/estado-consolidado-10ago2026.md`.
 
 ---
 
