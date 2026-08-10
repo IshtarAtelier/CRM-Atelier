@@ -373,7 +373,16 @@ export default function QuoteSummary({
         let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨\n`;
         text += `👤 *Cliente:* ${contact.name}\n\n`;
         text += `${itemLines}\n\n`;
-        text += `*Precio Lista: $${Math.round(financials.listPrice).toLocaleString()}*\n`;
+        // Si el admin aplicó un descuento especial, el mensaje lo dice en vez de
+        // mostrar un precio de lista más bajo sin explicación: `listPrice` ya viene
+        // neto, así que se parte del precio previo y se muestra la resta.
+        if (financials.specialDiscount > 0) {
+            text += `Precio Lista: $${Math.round(financials.listPriceBeforeSpecial).toLocaleString()}\n`;
+            text += `✨ *Descuento especial: -$${Math.round(financials.specialDiscount).toLocaleString()}*\n`;
+            text += `*Precio con tu descuento: $${Math.round(financials.listPrice).toLocaleString()}*\n`;
+        } else {
+            text += `*Precio Lista: $${Math.round(financials.listPrice).toLocaleString()}*\n`;
+        }
         text += `🏦 *Transf. (-${financials.discountTransfer}%): $${financials.totalTransfer.toLocaleString()}*\n`;
         text += `💵 *Efectivo (-${financials.discountCash}%): $${financials.totalCash.toLocaleString()}*\n`;
         text += `💳 *Tarjeta (Lista): $${financials.totalCard.toLocaleString()}*\n`;
