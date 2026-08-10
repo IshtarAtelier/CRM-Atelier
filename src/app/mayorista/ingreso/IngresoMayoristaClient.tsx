@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { WHOLESALE_WHATSAPP_PHONE } from '@/lib/constants';
 
@@ -129,11 +128,8 @@ export default function IngresoMayoristaClient() {
               Pedilo por WhatsApp
             </a>
           </p>
-          <p className="text-sm text-[#a89e91]">
-            <Link href="/capsulaescarlata" className="text-[#c8a55c] hover:underline">
-              Ver el catálogo mayorista →
-            </Link>
-          </p>
+          {/* Sin link al catálogo: /capsulaescarlata dejó de ser público (son
+              precios netos B2B). El link se manda uno a uno desde el panel. */}
         </div>
       </div>
     </div>

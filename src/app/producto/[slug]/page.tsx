@@ -60,7 +60,10 @@ const getProduct = cache(async (slug: string) => {
         modelCode: webProduct.product.model,
         price: webProduct.product.price,
         salePrice: webProduct.product.salePrice,
-        wholesalePrice: webProduct.product.wholesalePrice,
+        // Sin precio neto en el HTML: la ficha es ISR y la sirve el mismo cache
+        // para cualquiera. La óptica logueada lo pide después desde el cliente
+        // (/api/store/wholesale-prices, que exige sesión).
+        wholesalePrice: 0,
         stock: webProduct.product.stock,
         imagenesCatalogo: webProduct.images.length > 0 ? webProduct.images : webProduct.product.imagenesCatalogo,
         imageAlts: webProduct.images.length > 0 ? webProduct.imageAlts : [],
@@ -94,7 +97,7 @@ const getProduct = cache(async (slug: string) => {
       modelCode: product.model,
       price: product.price,
       salePrice: product.salePrice,
-      wholesalePrice: product.wholesalePrice,
+      wholesalePrice: 0, // idem: el precio neto no viaja en el HTML público
       stock: product.stock,
       imagenesCatalogo: product.imagenesCatalogo,
       imageAlts: [],
@@ -450,7 +453,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         model: c.name || c.product.model || '',
         price: c.product.price,
         salePrice: c.product.salePrice,
-        wholesalePrice: c.product.wholesalePrice,
+        // 0 y no el valor real: esta página es ISR, o sea que el MISMO HTML se
+        // le sirve a todo el mundo. El precio neto mayorista viajando acá era
+        // una de las puertas por las que se filtraba. Quien tiene derecho a
+        // verlo lo pide después, con sesión, al endpoint protegido.
+        wholesalePrice: 0,
         slug: c.slug,
         imageUrl: c.images.length > 0 ? c.images[0] : (c.product.imagenesCatalogo?.[0] || '/images/placeholder.svg')
       }));

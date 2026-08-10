@@ -1,18 +1,27 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
+import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
+import { decrypt } from '@/lib/auth';
 import { rethrowUnlessBuild } from '@/lib/db-guard';
+import { isValidCatalogKey } from '@/lib/wholesale-access';
 import { WHOLESALE_WHATSAPP_PHONE, WHOLESALE_MIN_PIECES } from '@/lib/constants';
 import CatalogViewTracker from '@/components/Mayorista/CatalogViewTracker';
 
 // Pedido a mano (Ishtar, 21/7): estas piezas van primero, en este orden.
 const FEATURED_NAMES = ['Artemis', 'Teseo C4', 'Orión C1', 'Iris C3'];
 
-// Página pública, pensada para abrirse desde el link que se manda por
-// WhatsApp a los leads de /admin/opticas (ver DEFAULT_TPL ahí). Vive del
-// catálogo real (mismo Product.wholesalePrice que cobra el checkout), así
-// que nunca queda desactualizada como un PDF estático.
-export const revalidate = 300;
+// Página NO pública: son precios netos B2B. Se abre solo desde el link que
+// mandamos nosotros por WhatsApp (con ?r= del lead, o ?k= la llave general del
+// panel) o con sesión iniciada. Sin credencial en la URL devuelve 404 — ver
+// src/lib/wholesale-access.ts. Vive del catálogo real (mismo
+// Product.wholesalePrice que cobra el checkout), así que nunca queda
+// desactualizada como un PDF estático.
+//
+// force-dynamic y no ISR: la respuesta depende de la credencial de cada
+// request. Cachear esta página es exactamente el agujero que estamos cerrando.
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   // title.absolute: sin esto el layout root le agrega "| Atelier Óptica" y
@@ -112,6 +121,29 @@ async function resolveLeadByCode(code: string): Promise<string | null> {
   }
 }
 
+/** El `?lead=` viejo trae el id completo: sirve como credencial solo si existe. */
+async function leadExists(id: string): Promise<boolean> {
+  const clean = id.trim();
+  if (clean.length < 6) return false;
+  try {
+    const found = await prisma.opticaLead.findUnique({ where: { id: clean }, select: { id: true } });
+    return Boolean(found);
+  } catch (error) {
+    rethrowUnlessBuild(error, 'MayoristaCatalogoLead');
+    return false;
+  }
+}
+
+/**
+ * Cualquier sesión válida entra: el equipo para revisar cómo se ve, y una
+ * óptica ya dada de alta para volver a mirar la colección desde el portal.
+ */
+async function hasValidSession(): Promise<boolean> {
+  const token = (await cookies()).get('session')?.value;
+  if (!token) return false;
+  return Boolean(await decrypt(token));
+}
+
 export default async function CatalogoMayoristaPage({
   searchParams,
 }: {
@@ -123,7 +155,20 @@ export default async function CatalogoMayoristaPage({
   // aceptando: los primeros mensajes salieron con ese formato.
   const shortCode = typeof resolvedParams.r === 'string' ? resolvedParams.r : null;
   const rawLead = typeof resolvedParams.lead === 'string' ? resolvedParams.lead : null;
-  const leadId = shortCode ? await resolveLeadByCode(shortCode) : rawLead;
+  const shareKey = typeof resolvedParams.k === 'string' ? resolvedParams.k : null;
+
+  // El código del lead cumple doble función: atribuye la visita Y habilita la
+  // entrada. Un `?r=` que no resuelve a un lead real ya no muestra el catálogo
+  // "sin atribuir" — no muestra nada.
+  const leadId = shortCode
+    ? await resolveLeadByCode(shortCode)
+    : rawLead && (await leadExists(rawLead))
+      ? rawLead
+      : null;
+
+  const allowed = leadId !== null || isValidCatalogKey(shareKey) || (await hasValidSession());
+  // 404 y no 403: al que llega de rebote no le confirmamos que la página existe.
+  if (!allowed) notFound();
 
   const products = await getWholesaleCatalog();
   const featured = FEATURED_NAMES

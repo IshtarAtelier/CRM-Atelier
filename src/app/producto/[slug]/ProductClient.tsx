@@ -121,6 +121,22 @@ export function ProductClient({
       .catch(err => console.error("Error loading settings in product client:", err));
   }, []);
 
+  // Precios netos: la ficha es ISR y el HTML lo comparten todos, así que el
+  // server ya no los manda (llegan siempre en 0). Los pedimos acá solo cuando
+  // hay sesión de óptica; el endpoint exige cookie y le contesta 401 al resto.
+  const [wholesalePrices, setWholesalePrices] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!isWholesale) return;
+    fetch('/api/store/wholesale-prices')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => { if (data?.prices) setWholesalePrices(data.prices); })
+      .catch(() => {});
+  }, [isWholesale]);
+  // Mientras no resolvió el fetch queda en 0 = se muestra precio de lista, que
+  // es el mismo criterio que ya tenía la ficha sin wholesalePrice cargado.
+  const wholesalePriceOf = (id: string) => wholesalePrices[id] || 0;
+  const productWholesalePrice = wholesalePriceOf(product.id);
+
   const whatsappPhoneId = (settings?.web_store_whatsapp_id || WHATSAPP_PHONE).replace(/\D/g, '');
   const cashDiscount = settings && settings.web_promo_cash_discount && !isNaN(Number(settings.web_promo_cash_discount)) ? Number(settings.web_promo_cash_discount) : 15;
   const installmentsText = settings ? settings.web_promo_installments : "6 cuotas sin interés";
@@ -436,16 +452,16 @@ export function ProductClient({
               >
                 {/* Sin wholesalePrice cargado (> 0) el backend cobra retail:
                     no etiquetar el precio de lista como "Mayorista". */}
-                {product.wholesalePrice > 0 ? (
+                {productWholesalePrice > 0 ? (
                   <>
                     <span className="text-xs font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded w-max">
                       Precio Mayorista Ópticas
                     </span>
                     <div className="flex items-baseline gap-3">
                       <span className="text-3xl font-black text-blue-600">
-                        ${(product.wholesalePrice || 0).toLocaleString("es-AR")}
+                        ${productWholesalePrice.toLocaleString("es-AR")}
                       </span>
-                      {product.wholesalePrice < product.price && (
+                      {productWholesalePrice < product.price && (
                         <span className="text-sm font-medium text-stone-500 line-through">
                           ${(product.price || 0).toLocaleString("es-AR")} (P. Lista)
                         </span>
@@ -531,7 +547,7 @@ export function ProductClient({
                     brand: product.brand,
                     model: product.model,
                     price: effectivePrice,
-                    wholesaleBasePrice: product.wholesalePrice || 0,
+                    wholesaleBasePrice: productWholesalePrice,
                     image: images[0] || "/images/placeholder.svg",
                     lensColor: null,
                     lensConfig: {
@@ -809,7 +825,7 @@ export function ProductClient({
               <a 
                 href={buildWhatsAppUrl(
                   isWholesale
-                    ? `¡Hola! Soy de la óptica ${currentUser?.name || ''} y quiero consultar por el anteojo mayorista ${product.brand || ''} ${product.model || ''} por $${(product.wholesalePrice || product.price || 0).toLocaleString("es-AR")}.`
+                    ? `¡Hola! Soy de la óptica ${currentUser?.name || ''} y quiero consultar por el anteojo mayorista ${product.brand || ''} ${product.model || ''} por $${(productWholesalePrice || product.price || 0).toLocaleString("es-AR")}.`
                     : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round(effectivePrice * (1 - cashDiscount / 100)).toLocaleString("es-AR")} por transferencia o $${effectivePrice.toLocaleString("es-AR")} en cuotas. ¿Me pasarían los datos de pago?`,
                   { pageUrl: currentPageUrl(`/producto/${product.slug}`), phone: whatsappPhoneId }
                 )}
@@ -849,7 +865,7 @@ export function ProductClient({
                   <p className="text-xs text-stone-600 font-medium mt-1">
                     {(() => {
                       const pSale = p.salePrice != null && p.salePrice > 0 && p.salePrice < p.price;
-                      if (isWholesale) return <>${(p.wholesalePrice > 0 ? p.wholesalePrice : (p.price || 0)).toLocaleString("es-AR")} <span className="text-[10px] font-black text-blue-600">(Mayorista)</span></>;
+                      if (isWholesale) return <>${(wholesalePriceOf(p.id) || p.price || 0).toLocaleString("es-AR")} <span className="text-[10px] font-black text-blue-600">(Mayorista)</span></>;
                       if (pSale) return <><span className="text-red-600 font-bold">${p.salePrice.toLocaleString("es-AR")}</span> <span className="text-[10px] text-stone-400 line-through">${(p.price || 0).toLocaleString("es-AR")}</span></>;
                       return <>${(p.price || 0).toLocaleString("es-AR")}</>;
                     })()}
@@ -897,7 +913,7 @@ export function ProductClient({
             </button>
             <LensConfigurator
               basePrice={product.price || 0}
-              wholesaleBasePrice={product.wholesalePrice || 0}
+              wholesaleBasePrice={productWholesalePrice}
               productId={product.id}
               productInfo={{ brand: product.brand, model: product.model, image: images[0] || "/images/placeholder.svg" }}
               onSuccess={() => {

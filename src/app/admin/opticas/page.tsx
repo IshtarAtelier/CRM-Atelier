@@ -67,6 +67,25 @@ export default function OpticasLeadsPage() {
     if (saved) setTpl(saved);
   }, []);
 
+  // Link general del catálogo (con la llave ?k=), para mandárselo a mano a
+  // alguien que no está cargado como lead. La llave la sirve
+  // /api/admin/catalog-link y solo baja con este click: /capsulaescarlata dejó
+  // de ser una URL pública y el link es la credencial.
+  const [linkMsg, setLinkMsg] = useState("");
+  const copyGeneralLink = async () => {
+    setLinkMsg("Generando…");
+    try {
+      const res = await fetch("/api/admin/catalog-link");
+      const data = await res.json();
+      if (!res.ok || !data.key) throw new Error(data.error || "sin llave");
+      await navigator.clipboard.writeText(`${window.location.origin}/capsulaescarlata?k=${data.key}`);
+      setLinkMsg("Link copiado ✓");
+    } catch {
+      setLinkMsg("No se pudo generar");
+    }
+    setTimeout(() => setLinkMsg(""), 3000);
+  };
+
   const fetchLeads = useCallback(async () => {
     const seq = ++fetchSeq.current;
     setLoading(true);
@@ -213,7 +232,12 @@ export default function OpticasLeadsPage() {
             <p className="text-xs text-stone-500">Canal mayorista B2B · el envío de WhatsApp siempre lo disparás vos</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {linkMsg && <span className="text-xs font-bold text-stone-500">{linkMsg}</span>}
+          <button onClick={copyGeneralLink} title="Copia el link del catálogo con la llave de acceso"
+            className="px-3 py-2 text-xs font-bold uppercase tracking-wider border border-stone-300 rounded-lg hover:bg-stone-50 flex items-center gap-2">
+            <Copy className="w-3.5 h-3.5" /> Link catálogo
+          </button>
           <button onClick={() => setShowTpl(v => !v)}
             className="px-3 py-2 text-xs font-bold uppercase tracking-wider border border-stone-300 rounded-lg hover:bg-stone-50">
             Plantilla WA

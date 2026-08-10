@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { serverCache } from '@/lib/cache';
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
+import { canSeeWholesalePrices } from '@/lib/wholesale-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,17 @@ export async function GET(request: NextRequest) {
     try {
         const channel = request.nextUrl.searchParams.get('channel');
         const isWholesale = channel === 'wholesale';
+
+        // El canal mayorista devuelve precios netos: solo con sesión. Sin este
+        // control, `?channel=wholesale` era la lista B2B completa para
+        // cualquiera que mirara la pestaña Red del navegador.
+        if (isWholesale) {
+            const token = request.cookies.get('session')?.value;
+            if (!(await canSeeWholesalePrices(token))) {
+                return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+            }
+        }
+
         const page = Number(request.nextUrl.searchParams.get('page') || 1);
         const limit = Number(request.nextUrl.searchParams.get('limit') || 24);
         const category = request.nextUrl.searchParams.get('category') || 'Todo';

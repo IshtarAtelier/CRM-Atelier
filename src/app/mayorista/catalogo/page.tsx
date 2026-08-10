@@ -10,5 +10,7 @@ export default async function CatalogoMayoristaLegacyPage({
 }) {
   const params = await searchParams;
   const lead = typeof params.lead === 'string' ? params.lead : null;
-  redirect(lead ? `/capsulaescarlata?lead=${encodeURIComponent(lead)}` : '/capsulaescarlata');
+  // Sin ?lead= no hay credencial que arrastrar y el catálogo devolvería 404:
+  // mandamos a la puerta del área en vez de a una pared.
+  redirect(lead ? `/capsulaescarlata?lead=${encodeURIComponent(lead)}` : '/mayorista/ingreso');
 }
