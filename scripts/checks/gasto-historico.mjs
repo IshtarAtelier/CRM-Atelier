@@ -77,6 +77,8 @@ function informar(titulo, porMes, moneda) {
 console.log(`Gasto publicitario · desde ${DESDE} hasta ${HOY}`);
 
 const promedios = [];
+/** Serie mensual cruda de cada cuenta de Meta, para poder sumarlas después. */
+const seriesMeta = [];
 
 // ── Meta: una cuenta por vez, nunca en paralelo ──
 for (const [nombre, cuenta, moneda] of CUENTAS_META) {
@@ -96,6 +98,7 @@ for (const [nombre, cuenta, moneda] of CUENTAS_META) {
     console.log(`\n▸ ${nombre}: no se pudo leer — ${err instanceof Error ? err.message : err}`);
     continue;
   }
+  seriesMeta.push([nombre, porMes, moneda]);
   promedios.push([nombre, informar(`${nombre} (${cuenta})`, porMes, moneda), moneda]);
 }
 
@@ -117,6 +120,36 @@ for (const [nombre, cuenta, moneda] of CUENTAS_META) {
     console.log(`\n▸ Google Ads: no se pudo leer — ${err instanceof Error ? err.message : err}`);
   }
   if (porMes.size) promedios.push(['Google Ads', informar('Google Ads (ARS)', porMes, 'ARS'), 'ARS']);
+}
+
+// ── Meta TOTAL: las dos cuentas juntas, que es lo que cuenta contra el techo ──
+//
+// Sin esto se lee "Meta gasta $348.000" mirando solo la cuenta ARS, y falta la
+// USD — que desde junio es la que crece. El techo se controla sobre la SUMA,
+// así que la suma tiene que estar a la vista.
+{
+  const rate = Number(arg('tasa', 1570));
+  const total = new Map();
+  for (const [nombre, porMes, moneda] of seriesMeta) {
+    for (const [mes, monto] of porMes) {
+      total.set(mes, (total.get(mes) ?? 0) + (moneda === 'USD' ? monto * rate : monto));
+    }
+    void nombre;
+  }
+  if (total.size) {
+    console.log(`\n▸ META TOTAL (las dos cuentas, USD convertido a $${rate}/USD)`);
+    const meses = [...total.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const cerrados = meses.filter(([m]) => m !== MES_ACTUAL);
+    for (const [mes, monto] of meses) {
+      console.log(`   ${mes}  ${fmt(monto, 'ARS').padStart(14)}${mes === MES_ACTUAL ? '  ← parcial' : ''}`);
+    }
+    if (cerrados.length) {
+      const prom = cerrados.reduce((a, [, v]) => a + v, 0) / cerrados.length;
+      console.log(`   promedio ${fmt(prom, 'ARS').padStart(13)}  (${cerrados.length} meses cerrados)`);
+      const ultimo = cerrados[cerrados.length - 1];
+      console.log(`   último mes cerrado (${ultimo[0]}): ${fmt(ultimo[1], 'ARS')}`);
+    }
+  }
 }
 
 // ── Resumen: el techo ──
