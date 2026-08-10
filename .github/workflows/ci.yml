@@ -21,7 +21,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # 22 y no 20: package.json pide >=22.17.0, y los chequeos de negocio
+          # corren con `node --experimental-strip-types`, que no existe en 20
+          # (el paso moría con "bad option" antes de ejecutar un solo check).
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
