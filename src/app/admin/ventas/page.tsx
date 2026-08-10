@@ -623,24 +623,33 @@ export default function VentasPage() {
         return map;
     }, [orders]);
 
-    const getFinancials = (orderId: string) => {
-        const f = financialsMap.get(orderId);
-        if (f) return f;
-        return {
-            hasBalance: false,
-            remainingCash: 0,
-            remainingTransfer: 0,
-            remainingCard: 0,
-            paidReal: 0,
-            listPrice: 0,
-            totalCard: 0,
-            totalCash: 0,
-            totalTransfer: 0,
-            progress: 0,
-            discountAmount: 0,
-            subtotal: 0
-        };
+    // El fallback va TIPADO como OrderFinancials a propósito: antes era un objeto
+    // suelto al que le faltaban campos y le sobraban dos que no existen en el
+    // service (`discountAmount`, `subtotal`, que no usaba nadie). Con el tipo
+    // puesto, cualquier campo nuevo del service rompe el build acá en vez de
+    // llegar a la pantalla como `undefined`.
+    const FINANCIALS_VACIO: ReturnType<typeof PricingService.calculateOrderFinancials> = {
+        listPrice: 0,
+        totalCash: 0,
+        totalTransfer: 0,
+        totalCard: 0,
+        installment3: 0,
+        installment6: 0,
+        paidReal: 0,
+        listEquivalentPaid: 0,
+        remainingList: 0,
+        remainingCash: 0,
+        remainingTransfer: 0,
+        remainingCard: 0,
+        hasBalance: false,
+        progress: 0,
+        discountCash: 0,
+        discountTransfer: 0,
+        specialDiscount: 0,
+        listPriceBeforeSpecial: 0,
     };
+
+    const getFinancials = (orderId: string) => financialsMap.get(orderId) ?? FINANCIALS_VACIO;
 
     const postSaleOrders = useMemo(() => {
         return orders.filter(o => 
@@ -1383,6 +1392,11 @@ export default function VentasPage() {
                                         {/* Total on Mobile Header */}
                                         <div className="lg:hidden text-right">
                                             <p className="text-lg font-black text-stone-800 dark:text-white">${(order.subtotalWithMarkup || order.total || 0).toLocaleString()}</p>
+                                            {financials.specialDiscount > 0 && (
+                                                <p className="text-[9px] font-black uppercase tracking-wide text-rose-700 dark:text-rose-300">
+                                                    Dto. especial −${financials.specialDiscount.toLocaleString()}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
 
@@ -1569,6 +1583,13 @@ export default function VentasPage() {
                                     {/* Total on Desktop */}
                                     <div className="hidden lg:block flex-shrink-0 text-right">
                                         <p className="text-xl font-black text-stone-800 dark:text-white">${(order.subtotalWithMarkup || order.total || 0).toLocaleString()}</p>
+                                        {/* Solo si hubo descuento especial: si no, no se muestra nada.
+                                            Sin este renglón la venta figuraba más barata sin decir por qué. */}
+                                        {financials.specialDiscount > 0 && (
+                                            <p className="text-[9px] font-black uppercase tracking-wide text-rose-700 dark:text-rose-300">
+                                                Dto. especial −${financials.specialDiscount.toLocaleString()}
+                                            </p>
+                                        )}
                                         <div className="w-24 h-1.5 bg-stone-100 dark:bg-stone-700 rounded-full mt-2 overflow-hidden">
                                             <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${financials.progress}%` }} />
                                         </div>

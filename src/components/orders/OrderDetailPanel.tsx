@@ -18,6 +18,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 import type { Order } from '@/types/orders';
+import type { OrderFinancials } from '@/services/PricingService';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { requiresFrameMeasurements, frameMeasuresForPair, hasFrameMeasures } from '@/lib/utils/lens';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
@@ -36,12 +37,13 @@ interface OrderDetailPanelProps {
     order: Order & { authorizedByAdmin?: boolean };
     /** 'postventa' = se entró desde el tablero de Post Venta: el caso encabeza el panel. */
     context?: 'ventas' | 'pedidos' | 'postventa';
-    financials?: {
-        totalCash: number;
-        totalTransfer: number;
-        totalCard: number;
-        paidReal: number;
-    };
+    /**
+     * Lo que devuelve `PricingService.calculateOrderFinancials`. Se tipa contra el
+     * service en vez de a mano: la lista suelta que había acá no incluía
+     * `specialDiscount` ni `listPrice`, así que el panel no podía mostrar el
+     * descuento aunque el llamador se lo estuviera pasando.
+     */
+    financials?: OrderFinancials;
     onAutoSubmit?: (order: any, pairNum?: number) => void;
     isAutoSubmitting?: boolean;
     userRole?: string;
@@ -947,7 +949,19 @@ export function OrderDetailPanel({
 
                     {/* Financials (If present) */}
                     {financials && (
-                        <div className="p-5 rounded-2xl bg-stone-900 dark:bg-black text-white flex justify-between items-center shadow-md">
+                        <div className="rounded-2xl bg-stone-900 dark:bg-black text-white shadow-md overflow-hidden">
+                        {/* Solo si el admin aplicó un descuento especial. Se muestra la
+                            cuenta entera porque el precio de lista YA viene neto: sin el
+                            "antes", el monto descontado parece que habría que restarlo otra vez. */}
+                        {financials.specialDiscount > 0 && (
+                            <div className="px-5 py-2.5 bg-rose-950 border-b border-rose-900 flex flex-wrap items-center justify-between gap-2">
+                                <span className="text-[8px] font-black text-rose-200 uppercase tracking-widest">Descuento especial · lo aplicó el admin</span>
+                                <span className="text-[11px] font-black text-rose-100">
+                                    ${financials.listPriceBeforeSpecial.toLocaleString()} − ${financials.specialDiscount.toLocaleString()} = ${financials.listPrice.toLocaleString()}
+                                </span>
+                            </div>
+                        )}
+                        <div className="p-5 flex justify-between items-center">
                             <div className="flex gap-6">
                                 <div>
                                     <span className="text-[7px] font-black text-emerald-400 uppercase tracking-widest block mb-1">Efectivo</span>
@@ -966,6 +980,7 @@ export function OrderDetailPanel({
                                 <span className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">Abonado Real</span>
                                 <span className="text-2xl font-black text-amber-400">${financials.paidReal.toLocaleString()}</span>
                             </div>
+                        </div>
                         </div>
                     )}
                 </div>

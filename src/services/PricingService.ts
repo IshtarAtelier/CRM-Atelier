@@ -37,6 +37,15 @@ export interface OrderFinancials {
     progress: number;
     discountCash: number;
     discountTransfer: number;
+    /**
+     * Descuento especial en pesos que el admin ya aplicó a esta orden (0 si no hubo).
+     * OJO: `listPrice` YA lo tiene restado — `subtotalWithMarkup` se guarda neto.
+     * Para mostrar el renglón sin mentir hace falta el par: se parte de
+     * `listPriceBeforeSpecial`, se resta `specialDiscount` y se llega a `listPrice`.
+     */
+    specialDiscount: number;
+    /** Precio de lista ANTES del descuento especial (= listPrice + specialDiscount). */
+    listPriceBeforeSpecial: number;
 }
 
 /**
@@ -133,6 +142,11 @@ export class PricingService {
         // cotizador); sin este fallback, listPrice caía a 0 y toda venta web figuraba
         // "PAGADO" con saldo 0 sin importar cuánto se pagó en realidad.
         const listPrice = order.subtotalWithMarkup || order.total || 0;
+        // El descuento especial no se recalcula acá: ya está restado dentro de
+        // `subtotalWithMarkup`. Se expone para que las pantallas puedan mostrar el
+        // renglón — sin esto, una venta con descuento se veía como un total más
+        // barato sin ninguna explicación de por qué.
+        const especial = Math.max(0, order.specialDiscount || 0);
 
         // Totales base
         const totalCash = Math.round(listPrice * (1 - discCash / 100));
@@ -190,7 +204,9 @@ export class PricingService {
             hasBalance,
             progress,
             discountCash: discCash,
-            discountTransfer: discTrans
+            discountTransfer: discTrans,
+            specialDiscount: especial,
+            listPriceBeforeSpecial: listPrice + especial
         };
     }
 
