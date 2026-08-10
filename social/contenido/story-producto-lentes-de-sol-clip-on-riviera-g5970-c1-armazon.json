@@ -1,0 +1,30 @@
+{
+  "id": "story-producto-lentes-de-sol-clip-on-riviera-g5970-c1-armazon",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-08-10",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Riviera",
+    "slug": "lentes-de-sol-clip-on-riviera-g5970-c1-armazon",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Clip-On"
+  },
+  "caption": "Riviera · Cápsula Escarlata\n\n6 cuotas sin interés de $32.500\n$165.750 en efectivo o transferencia (ahorrás 15%)\n\nEn la tienda: https://atelieroptica.com.ar/producto/lentes-de-sol-clip-on-riviera-g5970-c1-armazon\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/clipon-g5970-c1.webp",
+      "title": "Riviera · Cápsula Escarlata",
+      "dato": "$32.500",
+      "body": "6 cuotas sin interés\n$165.750 en efectivo o transferencia",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}

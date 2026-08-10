@@ -1,0 +1,30 @@
+{
+  "id": "story-producto-sirio-c1",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-08-10",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Sirio",
+    "slug": "sirio-c1",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Sol"
+  },
+  "caption": "Sirio · Cápsula Escarlata\n\n6 cuotas sin interés de $31.500\n$160.650 en efectivo o transferencia (ahorrás 15%)\n\nEn la tienda: https://atelieroptica.com.ar/producto/sirio-c1\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/sirio-c1.webp",
+      "title": "Sirio · Cápsula Escarlata",
+      "dato": "$31.500",
+      "body": "6 cuotas sin interés\n$160.650 en efectivo o transferencia",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}

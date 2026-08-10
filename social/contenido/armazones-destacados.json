@@ -4,37 +4,39 @@
   "theme": "dark",
   "pilar": "producto",
   "fuente": "base",
+  "generadoEl": "2026-08-10",
+  "generadoDesde": "produccion",
   "images_waived": "Carrusel de catálogo: cada slide es un armazón y su foto es el producto, no un fondo.",
-  "generado": "2026-08-06",
+  "generado": "2026-08-10",
   "slides": [
     {
       "type": "cover",
       "role": "portada",
-      "image": "catalogo-social/armazon-receta-atelier-athena-91501-c6.jpg",
+      "image": "catalogo-social/atelier-artemis-tendencia.jpg",
       "title": "Los que más nos piden *esta temporada*",
       "subtitle": "Diseño de autor, en 6 cuotas sin interés y con envío sin cargo."
     },
     {
       "type": "number",
       "role": "bisagra",
-      "image": "catalogo-social/armazon-receta-atelier-athena-91501-c6.jpg",
-      "title": "Cápsula escarlata 91501",
-      "dato": "$26.667",
-      "body": "6 cuotas sin interés\n$136.000 en efectivo o transferencia"
-    },
-    {
-      "type": "number",
-      "image": "catalogo-social/selene-c4.jpg",
-      "title": "Selene · Cápsula Escarlata",
-      "dato": "$26.667",
-      "body": "6 cuotas sin interés\n$136.000 en efectivo o transferencia"
-    },
-    {
-      "type": "number",
       "image": "catalogo-social/atelier-artemis-tendencia.jpg",
       "title": "Artemis · Cápsula Escarlata",
       "dato": "$31.500",
       "body": "6 cuotas sin interés\n$160.650 en efectivo o transferencia"
+    },
+    {
+      "type": "number",
+      "image": "catalogo-social/iris-c3.jpg",
+      "title": "Iris · Cápsula Escarlata",
+      "dato": "$31.500",
+      "body": "6 cuotas sin interés\n$160.650 en efectivo o transferencia"
+    },
+    {
+      "type": "number",
+      "image": "catalogo-social/gala-c7.jpg",
+      "title": "Gala · Cápsula Escarlata",
+      "dato": "$26.667",
+      "body": "6 cuotas sin interés\n$136.000 en efectivo o transferencia"
     },
     {
       "type": "cta",
@@ -43,6 +45,5 @@
       "title": "Probátelos en el local",
       "body": "Cerro de las Rosas. También te los mostramos por WhatsApp si estás lejos."
     }
-  ],
-  "generadoEl": "2026-08-06"
+  ]
 }
