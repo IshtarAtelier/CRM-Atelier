@@ -22,6 +22,25 @@ export interface CheckMedicion {
   accion?: string;
 }
 
+/**
+ * Cómo respondió la gente al cartel de cookies en los últimos 7 días.
+ *
+ * Se cuenta por VISITANTE (sessionId distinto), no por evento: `consent_shown`
+ * se dispara en cada carga de página mientras la persona no decide, así que
+ * contar filas inflaba el denominador y hacía parecer que casi nadie acepta.
+ *
+ * `ignoraron` es el número que importa: son los que vieron el cartel y no
+ * tocaron ningún botón. El Pixel de Meta no carga sin consentimiento, así que
+ * esa porción es tráfico real que Meta no ve — el tamaño del punto ciego, medido
+ * en vez de intuido.
+ */
+export interface ConsentimientoMedicion {
+  vieron: number;
+  aceptaron: number;
+  rechazaron: number;
+  ignoraron: number;
+}
+
 export interface SaludMedicion {
   checks: CheckMedicion[];
   pixelVivo: Awaited<ReturnType<typeof AdsService.getPixelHealth>> | null;
@@ -29,6 +48,7 @@ export interface SaludMedicion {
     ultimoEvento: string | null;
     eventos7d: { tipo: string; count: number }[];
   };
+  consentimiento: ConsentimientoMedicion;
 }
 
 export interface MesCrecimiento {
@@ -53,14 +73,54 @@ export class GrowthService {
   static async getSaludMedicion(consultarMeta = true): Promise<SaludMedicion> {
     const pixelVivo = consultarMeta ? await AdsService.getPixelHealth() : null;
 
-    const [ultimo, porTipo] = await Promise.all([
+    const desde7d = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+
+    const [ultimo, porTipo, consentRaw] = await Promise.all([
       prisma.analyticsEvent.findFirst({ orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
       prisma.analyticsEvent.groupBy({
         by: ['type'],
-        where: { createdAt: { gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) } },
+        where: { createdAt: { gte: desde7d } },
         _count: { _all: true },
       }),
+      // Va en SQL crudo porque la decisión (granted/denied) vive dentro del JSON
+      // `meta` y Prisma no sabe agrupar por una clave de JSON. El universo son
+      // las sesiones que VIERON el cartel en la ventana: una decisión sin
+      // `consent_shown` propio es de alguien que ya lo había visto antes y no
+      // debe sumar al denominador de esta semana.
+      prisma.$queryRaw<Array<{ vieron: bigint; aceptaron: bigint; rechazaron: bigint }>>(
+        Prisma.sql`
+          WITH vistos AS (
+            SELECT DISTINCT "sessionId" FROM "AnalyticsEvent"
+            WHERE type = 'consent_shown' AND "createdAt" >= ${desde7d}
+          ), decisiones AS (
+            SELECT "sessionId",
+                   bool_or(meta->>'decision' = 'granted') AS acepto,
+                   bool_or(meta->>'decision' = 'denied')  AS rechazo
+            FROM "AnalyticsEvent"
+            WHERE type = 'consent_decision' AND "createdAt" >= ${desde7d}
+            GROUP BY "sessionId"
+          )
+          SELECT COUNT(*) AS vieron,
+                 COUNT(*) FILTER (WHERE d.acepto) AS aceptaron,
+                 -- Si alguien cambió de idea y quedan las dos decisiones,
+                 -- manda "aceptó": es el estado que habilita el Pixel.
+                 COUNT(*) FILTER (WHERE d.rechazo AND NOT d.acepto) AS rechazaron
+          FROM vistos v LEFT JOIN decisiones d ON d."sessionId" = v."sessionId"
+        `,
+      ),
     ]);
+
+    const consentFila = consentRaw[0];
+    const vieron = num(consentFila?.vieron);
+    const aceptaron = num(consentFila?.aceptaron);
+    const rechazaron = num(consentFila?.rechazaron);
+    const consentimiento: ConsentimientoMedicion = {
+      vieron,
+      aceptaron,
+      rechazaron,
+      // Por resta, no por un evento propio: "no hacer nada" no dispara nada.
+      ignoraron: Math.max(0, vieron - aceptaron - rechazaron),
+    };
 
     const checks: CheckMedicion[] = [];
     const add = (id: string, label: string, estado: CheckEstado, detalle: string, accion?: string) =>
@@ -192,6 +252,7 @@ export class GrowthService {
         ultimoEvento: ultimo ? ultimo.createdAt.toISOString() : null,
         eventos7d,
       },
+      consentimiento,
     };
   }
 

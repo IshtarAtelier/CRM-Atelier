@@ -15,6 +15,7 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { trackViewContent } from "@/lib/tracking";
+import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 import ProductReviews from "@/components/Storefront/ProductReviews";
 
 // Carga diferida: el configurador (662 líneas) recién se monta cuando el cliente
@@ -731,7 +732,10 @@ export function ProductClient({
                       <div className="pb-6">
                         <ul className="text-xs text-stone-600 space-y-2 list-disc pl-4">
                           <li>Tenés 10 días hábiles para realizar cambios si el armazón no te convence, sin ningún desperfecto.</li>
-                          <li>Garantía de adaptación total en cristales multifocales.</li>
+                          {/* Decía "garantía de adaptación total en cristales
+                              multifocales": la cobertura real no es todo
+                              multifocal, es Varilux + Super Blue. */}
+                          <li>{GARANTIA_ADAPTACION.RESUMEN} {GARANTIA_ADAPTACION.REQUISITO}</li>
                           <li>Para iniciar un cambio, contactanos por WhatsApp con tu número de orden.</li>
                         </ul>
                       </div>

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { CreditCard, BadgePercent, Truck } from "lucide-react";
 import { CouponField, type AppliedCoupon } from "@/components/checkout/CouponField";
 import { getItemUnitPrice } from "@/store/useCart";
+import { recetaPendiente } from '@/lib/checkout/receta';
 
 export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings, isWholesale, appliedCoupon, couponDiscount = 0, onCouponApplied }: { items: any[], getCartTotal: any, formData: any, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, isWholesale?: boolean, appliedCoupon?: AppliedCoupon | null, couponDiscount?: number, onCouponApplied?: (coupon: AppliedCoupon | null) => void }) {
   const discountRate = (webSettings?.web_promo_cash_discount || 15) / 100;
@@ -60,8 +61,16 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
                   {item.lensConfig.color && (
                     <p>Tinte: {item.lensConfig.color}</p>
                   )}
+                  {/* Un tilde verde comunica "ya la tenemos". Cuando la receta
+                      está pendiente hay que decirlo con otro tono: si no, el
+                      cliente que pagó cree que mandó todo y nadie le pide nada
+                      hasta que el pedido se traba en el laboratorio. */}
                   {item.lensConfig.prescriptionFile && (
-                    <p className="text-green-600 font-medium">✓ Receta: {item.lensConfig.prescriptionFile}</p>
+                    recetaPendiente(item.lensConfig.prescriptionFile) ? (
+                      <p className="text-amber-600 font-medium">⏳ Receta: te la pedimos por WhatsApp</p>
+                    ) : (
+                      <p className="text-green-600 font-medium">✓ Receta: {item.lensConfig.prescriptionFile}</p>
+                    )
                   )}
                 </div>
               )}

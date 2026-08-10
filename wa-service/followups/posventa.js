@@ -1,0 +1,312 @@
+/**
+ * Posventa: a los 10 días de entregado el pedido, preguntar cómo va la adaptación.
+ *
+ * En multifocales los 10 días son EL momento. El que no se adapta no se queja:
+ * deja el anteojo en un cajón y la óptica se entera tres meses después, cuando ya
+ * no hay nada que ajustar y sí un cliente perdido. Preguntando a tiempo, el
+ * problema se resuelve con una visita y un ajuste sin cargo.
+ *
+ * ESTE MÓDULO NO ENVÍA NADA. Solo crea la ClientTask '[POSVENTA] ...' con
+ * createdBy 'Sistema (Retención)' — a propósito, para no construir un sexto
+ * sistema de seguimientos. Quien la redacta, la pasa por la compuerta de
+ * conversación y la manda es `smart-task-executor.js`, y con eso hereda gratis:
+ * la cola anti-ban, la ventana horaria, el interruptor de pánico
+ * `followups_enabled`, la etiqueta SIN_SEGUIMIENTO y el corte por contacto frío.
+ * El prefijo y el creador ya están en las dos listas blancas de `config.js`.
+ */
+
+const { prisma } = require('../db');
+const { TAGS_SIN_BOT } = require('../utils');
+const { pickSpreadDueDate } = require('./task-generator');
+const { COOLDOWN_HOURS } = require('./config');
+
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+/** A los cuántos días de la entrega se pregunta. */
+const POSVENTA_DIAS = Number(process.env.POSVENTA_DIAS) || 10;
+
+/**
+ * Cuánto se tolera llegar tarde, en días. Es un techo, no un piso: un
+ * "cómo venís con los anteojos nuevos?" a los 40 días no es posventa, es un
+ * mensaje raro que suena a error (misma razón que TIER_GRACE_HOURS en los
+ * seguimientos de presupuesto). Si el barrido estuvo caído más que esto, esa
+ * entrega se da por perdida y no se le escribe.
+ */
+const POSVENTA_VENTANA_DIAS = Number(process.env.POSVENTA_VENTANA_DIAS) || 4;
+
+/**
+ * Un solo toque de retención por cliente cada N días. Los flujos de retención
+ * (posventa, reseña, renovación, segundo par) miran la MISMA base instalada:
+ * sin esta regla, al mismo cliente le pueden caer tres mensajes distintos en la
+ * misma semana, que es exactamente lo que hace que la gente silencie el número.
+ */
+const RETENCION_EXCLUSION_DIAS = Number(process.env.RETENCION_EXCLUSION_DIAS) || 14;
+
+/**
+ * Tope de tareas nuevas por día. El volumen normal es de entregas (decenas por
+ * mes), así que nunca debería tocarlo; está para la PRIMERA corrida, que ve de
+ * golpe toda la ventana de entregas ya vencidas, y para el caso de que alguien
+ * marque veinte pedidos como entregados de una sentada. Se cuenta en la base,
+ * no en memoria: el tope vale aunque el proceso se reinicie diez veces.
+ */
+const POSVENTA_MAX_POR_DIA = Number(process.env.POSVENTA_MAX_POR_DIA) || 10;
+
+const CREADO_POR = 'Sistema (Retención)';
+const PREFIJO = '[POSVENTA]';
+
+/**
+ * 'post-venta', 'postventa', 'ya es cliente' y 'cerrado' describen EXACTAMENTE
+ * al que acaba de retirar su pedido. Heredando TAGS_SIN_BOT tal cual, este flujo
+ * no le escribiría nunca a nadie. El resto de la lista (proveedor, spam, no bot,
+ * personal, familiar…) sí corta, y se hereda para que un tag de exclusión nuevo
+ * valga acá sin tener que acordarse de este archivo.
+ */
+const TAGS_QUE_NO_CORTAN_POSVENTA = ['post-venta', 'postventa', 'ya es cliente', 'cerrado'];
+const TAGS_EXCLUSION = TAGS_SIN_BOT.filter(t => !TAGS_QUE_NO_CORTAN_POSVENTA.includes(t));
+
+/** Cristales que exigen adaptación: son los que justifican la pregunta. */
+const RX_PROGRESIVO = /multifocal|bifocal|progresiv|ocupacional/i;
+
+function tieneCristales(items) {
+    // La regla del proyecto: un ítem con `eye` cargado es un cristal (se factura
+    // por ojo). Un pedido sin cristales es un armazón suelto o un accesorio, y
+    // ahí no hay adaptación que preguntar.
+    return items.some(i => i.eye);
+}
+
+function esProgresivo(items) {
+    return items.some(i => i.eye && (
+        i.additionVal != null ||
+        RX_PROGRESIVO.test(i.productTypeSnapshot || '') ||
+        RX_PROGRESIVO.test(i.productNameSnapshot || '')
+    ));
+}
+
+function primerNombre(nombre) {
+    return ((nombre || '').trim().split(/\s+/)[0]) || '';
+}
+
+/**
+ * Busca las transiciones a "Entregado" ocurridas dentro de la ventana.
+ *
+ * No hay columna `deliveredAt` en Order, y `updatedAt` no sirve: se mueve con
+ * cualquier reedición posterior del pedido (un nº de operación corregido a los
+ * 20 días haría "entregado hoy" algo de hace tres semanas). El único registro
+ * fechado de la entrega es el AuditLog que escribe `updateOrder`, y ahí el
+ * entityId ES el orderId.
+ *
+ * Se exige que `from.labStatus` NO fuera ya DELIVERED: el audit log arma
+ * `to: { labStatus: data.labStatus ?? prevState.labStatus }`, así que una
+ * edición cualquiera de un pedido ya entregado también deja `to.labStatus`
+ * en DELIVERED. Sin este filtro, cada edición contaría como una entrega nueva.
+ */
+async function buscarEntregas(desde, hasta) {
+    const transiciones = await prisma.auditLog.findMany({
+        where: {
+            entityType: 'ORDER',
+            action: 'STATUS_CHANGE',
+            createdAt: { gte: desde, lte: hasta },
+            details: { path: ['to', 'labStatus'], equals: 'DELIVERED' },
+        },
+        select: { entityId: true, createdAt: true, details: true },
+        orderBy: { createdAt: 'asc' },
+    });
+
+    const entregas = new Map(); // orderId -> fecha de la PRIMERA entrega
+    for (const t of transiciones) {
+        const detalle = t.details || {};
+        if (detalle.from && detalle.from.labStatus === 'DELIVERED') continue;
+        if (!entregas.has(t.entityId)) entregas.set(t.entityId, t.createdAt);
+    }
+    return entregas;
+}
+
+/**
+ * Barrido de posventa. Se corre junto al resto de los crons de seguimientos.
+ * Nunca lanza: cualquier error se loguea y la corrida siguiente reintenta (la
+ * ventana de POSVENTA_VENTANA_DIAS está justamente para eso).
+ */
+async function generarTareasPosventa() {
+    console.log(`\n[Posventa] Buscando entregas de hace ${POSVENTA_DIAS} a ${POSVENTA_DIAS + POSVENTA_VENTANA_DIAS} días...`);
+
+    try {
+        const now = new Date();
+        const hasta = new Date(now.getTime() - POSVENTA_DIAS * DIA_MS);
+        const desde = new Date(now.getTime() - (POSVENTA_DIAS + POSVENTA_VENTANA_DIAS) * DIA_MS);
+
+        const entregas = await buscarEntregas(desde, hasta);
+        if (entregas.size === 0) {
+            console.log('[Posventa] Sin entregas en la ventana.\n');
+            return;
+        }
+
+        // Cupo del día. Mismo anclaje horario que el task-generator: Argentina es
+        // UTC-3 fija (sin horario de verano), así que el día se corre 3 horas.
+        const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
+        const artNow = new Date(now.getTime() - ART_OFFSET_MS);
+        const inicioDiaART = new Date(Date.UTC(artNow.getUTCFullYear(), artNow.getUTCMonth(), artNow.getUTCDate()) + ART_OFFSET_MS);
+
+        const creadasHoy = await prisma.clientTask.count({
+            where: { createdBy: CREADO_POR, description: { startsWith: PREFIJO }, createdAt: { gte: inicioDiaART } },
+        });
+        let cupoRestante = POSVENTA_MAX_POR_DIA - creadasHoy;
+        if (cupoRestante <= 0) {
+            console.log(`[Posventa] Cupo diario agotado (${creadasHoy}/${POSVENTA_MAX_POR_DIA}).\n`);
+            return;
+        }
+
+        const orders = await prisma.order.findMany({
+            where: {
+                id: { in: [...entregas.keys()] },
+                isDeleted: false,
+                // Que siga entregado hoy: si alguien lo volvió atrás (se rehízo
+                // el cristal, se corrigió una carga), el cliente no tiene el
+                // anteojo puesto y preguntarle cómo se adapta es absurdo.
+                labStatus: 'DELIVERED',
+            },
+            select: {
+                id: true,
+                clientId: true,
+                items: { select: { eye: true, additionVal: true, productTypeSnapshot: true, productNameSnapshot: true } },
+                // Un caso de posventa abierto significa que YA hay una persona
+                // ocupándose del problema. Un "cómo venís con los anteojos?"
+                // automático encima de eso es la peor cara que puede poner el local.
+                postSaleCases: { select: { id: true } },
+                client: {
+                    select: {
+                        id: true,
+                        name: true,
+                        tags: { select: { name: true } },
+                        whatsappChats: {
+                            // Sin orderBy el chat sale en orden arbitrario: los
+                            // clientes con dos chats (@c.us y @lid) quedaban
+                            // evaluados contra el chat equivocado.
+                            orderBy: { lastMessageAt: 'desc' },
+                            select: {
+                                id: true,
+                                chatLabels: true,
+                                followUpPausedUntil: true,
+                                lastFollowUpAt: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        // Los dos filtros que necesitan otra tabla se resuelven en una consulta
+        // cada uno, no una por cliente: el barrido corre cada 30 minutos.
+        const clientIds = [...new Set(orders.map(o => o.clientId).filter(Boolean))];
+        const limiteRetencion = new Date(now.getTime() - RETENCION_EXCLUSION_DIAS * DIA_MS);
+        const toquesRecientes = clientIds.length
+            ? await prisma.clientTask.findMany({
+                // Cualquier estado: una tarea de retención cancelada o fallada
+                // igual consumió el turno del cliente. Y de paso esto es el
+                // dedup del propio flujo: creada la tarea, el cliente queda
+                // bloqueado por 14 días y la ventana no la vuelve a crear.
+                where: { clientId: { in: clientIds }, createdBy: CREADO_POR, createdAt: { gte: limiteRetencion } },
+                select: { clientId: true },
+                distinct: ['clientId'],
+            })
+            : [];
+        const conToqueReciente = new Set(toquesRecientes.map(t => t.clientId));
+
+        const chatIds = orders.flatMap(o => (o.client?.whatsappChats || []).slice(0, 1).map(c => c.id));
+        const chatsConInbound = chatIds.length
+            ? await prisma.whatsAppMessage.findMany({
+                where: { chatId: { in: chatIds }, direction: 'INBOUND' },
+                select: { chatId: true },
+                distinct: ['chatId'],
+            })
+            : [];
+        const tieneInbound = new Set(chatsConInbound.map(m => m.chatId));
+
+        let creadas = 0;
+        let frenadasPorCupo = 0;
+
+        // De la más vieja a la más nueva: si el cupo corta, se atiende primero a
+        // quien hace más tiempo que espera (y a quien menos ventana le queda).
+        const ordenadas = orders.slice().sort((a, b) => entregas.get(a.id) - entregas.get(b.id));
+
+        for (const order of ordenadas) {
+            const client = order.client;
+            if (!client) continue;
+
+            if (!tieneCristales(order.items)) continue;
+            if (order.postSaleCases.length > 0) continue;
+
+            if ((client.tags || []).some(tag => TAGS_EXCLUSION.some(t => tag.name.toLowerCase().includes(t)))) continue;
+
+            const chat = (client.whatsappChats || [])[0];
+            if (!chat) continue; // sin WhatsApp no hay por dónde: es trabajo de mostrador
+
+            const labels = chat.chatLabels || [];
+            if (labels.includes('SIN_SEGUIMIENTO')) continue;
+            if (labels.some(l => TAGS_EXCLUSION.some(t => l.toLowerCase().includes(t)))) continue;
+            if (chat.followUpPausedUntil && new Date(chat.followUpPausedUntil) > now) continue;
+
+            // Contacto frío: nunca nos escribió. El ejecutor lo cancelaría igual,
+            // pero cancelándolo deja una tarea muerta en la ficha del cliente.
+            if (!tieneInbound.has(chat.id)) continue;
+
+            // No apilar la posventa sobre un seguimiento recién enviado.
+            if (chat.lastFollowUpAt) {
+                const horas = (now.getTime() - new Date(chat.lastFollowUpAt).getTime()) / 3600000;
+                if (horas < COOLDOWN_HOURS) continue;
+            }
+
+            if (conToqueReciente.has(client.id)) continue;
+
+            if (cupoRestante <= 0) { frenadasPorCupo++; continue; }
+
+            const fechaEntrega = entregas.get(order.id);
+            const dias = Math.round((now.getTime() - new Date(fechaEntrega).getTime()) / DIA_MS);
+            const nombre = primerNombre(client.name) || 'el cliente';
+            const producto = esProgresivo(order.items) ? 'multifocales' : 'anteojos nuevos';
+
+            // La descripción es literalmente el pedido que lee el redactor del
+            // ejecutor, así que se escribe como una instrucción para él, no como
+            // una nota interna: todo lo que diga acá puede terminar en el mensaje.
+            const description =
+                `${PREFIJO} ${nombre} retiró sus ${producto} hace ${dias} días. ` +
+                `Preguntale cómo viene la adaptación y si necesita algún ajuste del armazón ` +
+                `(el ajuste es sin cargo). Una sola pregunta, sin ofrecerle nada más.`;
+
+            // Vencimiento repartido en la franja de envío de hoy (9 a 19 AR).
+            // Domingo, o si el horario sorteado ya pasó, vence ahora: la ventana
+            // horaria real la vuelve a chequear el ejecutor antes de mandar.
+            let dueDate = pickSpreadDueDate(now);
+            if (!dueDate || now > dueDate) dueDate = new Date(now.getTime());
+
+            await prisma.clientTask.create({
+                data: {
+                    clientId: client.id,
+                    description,
+                    type: 'TASK',   // el ejecutor solo levanta type 'TASK'
+                    status: 'PENDING',
+                    dueDate,
+                    createdBy: CREADO_POR,
+                },
+            });
+
+            conToqueReciente.add(client.id); // dos entregas del mismo cliente en la ventana: una sola posventa
+            creadas++;
+            cupoRestante--;
+
+            const dueAR = dueDate.toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
+            console.log(`  ✅ [Posventa] Tarea creada: ${client.name} (${producto}, entregado hace ${dias} días) — vence ${dueAR} AR`);
+
+            if (global.io) {
+                global.io.emit('task_created', { clientId: client.id, description });
+            }
+        }
+
+        const nota = frenadasPorCupo > 0 ? ` · ${frenadasPorCupo} frenadas por el cupo diario` : '';
+        console.log(`[Posventa] Finalizado. Tareas creadas: ${creadas}${nota}\n`);
+
+    } catch (err) {
+        console.error('❌ Error en Posventa:', err.message);
+    }
+}
+
+module.exports = { generarTareasPosventa };

@@ -14,6 +14,8 @@ import { GoogleAdsService } from '@/services/google-ads.service';
 import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { logAudit } from '@/lib/audit';
+import { sendClientEmail, escHtml } from '@/lib/client-email';
+import { getOrderShippedHtml } from '@/lib/checkout/checkout-emails';
 import { alertDuplicateLabOrderNumber } from '@/lib/duplicate-lab-order-alert';
 import { findLabNumberConflicts, duplicateMessage } from '@/lib/lab-order-numbers';
 import { addBusinessDays, calculateEstimatedDays } from '@/lib/business-days';
@@ -55,6 +57,14 @@ const OrderUpdateSchema = z.object({
     userFrameNotes: z.string().nullable().optional(),
     items: z.array(OrderItemSchema).optional(),
     isLocked: z.boolean().optional(),
+    // Despacho: datos del envío que se le mandan al cliente. Cargar el número
+    // de seguimiento es lo que dispara el aviso (ver notifyOrderDispatched).
+    shippingCarrier: z.string().nullable().optional(),
+    trackingNumber: z.string().nullable().optional(),
+    trackingUrl: z.string().nullable().optional(),
+    // Despacho sin código de seguimiento (moto, entrega propia): permite avisarle
+    // igual al cliente. Sin esto, esos envíos seguían siendo silencio total.
+    markDispatched: z.boolean().optional(),
     // Lab fields
     labStatus: z.string().optional(),
     labNotes: z.string().nullable().optional(),
@@ -304,6 +314,146 @@ export class OrderService {
     }
 }
 
+    /**
+     * Avisa al cliente que su pedido SALIÓ (o quedó en camino).
+     *
+     * Existe porque entre el cobro y la entrega no se le mandaba nada: una compra
+     * web podía tener dos semanas de silencio después de haberle cobrado, y esa
+     * es la principal causa de "¿qué pasó con mi pedido?".
+     *
+     * Sigue el patrón de BotService.notifyOrderReady: sale por WhatsApp y —si la
+     * ficha tiene mail— también por email con copia al negocio; si no llega por
+     * ningún canal, deja una tarea para avisar a mano. La diferencia es que este
+     * aviso se manda UNA sola vez: `dispatchNotifiedAt` lo sella, así reeditar el
+     * pedido (corregir el correo, el número, cualquier cosa) no lo repite.
+     */
+    static async notifyOrderDispatched(orderId: string, actorName: string = 'Sistema') {
+        let clientIdParaFallback: string | null = null;
+        let nombreParaFallback = 'Cliente';
+        try {
+            const order = await prisma.order.findUnique({
+                where: { id: orderId },
+                select: {
+                    id: true,
+                    clientId: true,
+                    shippingCarrier: true,
+                    trackingNumber: true,
+                    trackingUrl: true,
+                    dispatchNotifiedAt: true,
+                    client: { select: { name: true, phone: true, email: true } },
+                },
+            });
+            if (!order) return false;
+            // Ya avisado: cortar acá es lo que evita el segundo mail al cliente.
+            if (order.dispatchNotifiedAt) return false;
+
+            clientIdParaFallback = order.clientId;
+            const clientName = order.client?.name || 'Cliente';
+            nombreParaFallback = clientName;
+            const firstName = clientName.trim().split(/\s+/)[0] || clientName;
+            const clientPhone = order.client?.phone || null;
+            const clientEmail = order.client?.email?.trim() || null;
+            if (!clientPhone && !clientEmail) return false;
+
+            const shortId = order.id.slice(-4).toUpperCase();
+            const carrier = order.shippingCarrier?.trim() || null;
+            const tracking = order.trackingNumber?.trim() || null;
+            const trackingUrl = order.trackingUrl?.trim() || null;
+
+            // Email primero: nunca lanza, así un fallo de WhatsApp no se lleva
+            // puesto también este canal.
+            const emailEnviado = await sendClientEmail({
+                to: clientEmail,
+                subject: `Tu pedido #${shortId} ya está en camino — Atelier Óptica`,
+                bodyHtml: getOrderShippedHtml({
+                    firstName: escHtml(firstName),
+                    orderId: order.id,
+                    carrier: carrier ? escHtml(carrier) : null,
+                    tracking: tracking ? escHtml(tracking) : null,
+                    trackingUrl: trackingUrl ? escHtml(trackingUrl) : null,
+                }),
+                label: 'pedido despachado',
+            });
+
+            let message = `*Hola ${clientName}*\n\n`;
+            message += `Te avisamos que *tu pedido #${shortId} ya fue despachado* 📦\n\n`;
+            if (carrier) message += `*Correo:* ${carrier}\n`;
+            if (tracking) message += `*N° de seguimiento:* ${tracking}\n`;
+            if (trackingUrl) message += `*Seguilo acá:* ${trackingUrl}\n`;
+            message += `\nLlega en *3 a 5 días hábiles* desde el despacho.\n\n`;
+            message += `Cualquier cosa, respondenos por acá. ¡Gracias por elegirnos!\n`;
+
+            let whatsappEnviado = false;
+            if (clientPhone) {
+                const formattedPhone = normalizeArgentinePhone(clientPhone);
+                if (formattedPhone) {
+                    const res = await fetchWa('/api/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chatId: `${formattedPhone}@c.us`, message }),
+                    });
+                    whatsappEnviado = res.ok;
+                    if (!res.ok) {
+                        console.warn('[Auto-Notify DESPACHO] WhatsApp devolvió error:', await res.text());
+                    }
+                }
+            }
+
+            if (!whatsappEnviado && !emailEnviado) {
+                throw new Error('No se pudo notificar por ningún canal');
+            }
+
+            // El sello va después de haber salido: si se marcara antes y el envío
+            // fallara, el cliente quedaría sin aviso y sin forma de reintentarlo.
+            await prisma.order.update({
+                where: { id: order.id },
+                data: { dispatchNotifiedAt: new Date() },
+                select: { id: true },
+            });
+
+            const canales = [whatsappEnviado ? 'WhatsApp' : null, emailEnviado ? 'email' : null].filter(Boolean).join(' y ');
+            const detalle = tracking ? ` Seguimiento: ${carrier ? `${carrier} ` : ''}${tracking}.` : '';
+            await prisma.interaction.create({
+                data: {
+                    clientId: order.clientId,
+                    type: 'NOTE',
+                    content: `📦 Aviso de despacho enviado por ${canales} (pedido #${shortId}), despachado por ${actorName}.${detalle}`,
+                    userName: actorName,
+                },
+            });
+
+            logAudit({
+                userId: null,
+                userName: actorName,
+                action: 'UPDATE',
+                entityType: 'ORDER',
+                entityId: order.id,
+                details: { evento: 'aviso_despacho', canales, trackingNumber: tracking, shippingCarrier: carrier },
+            }).catch(err => console.error('Error logging audit del aviso de despacho:', err));
+
+            return true;
+        } catch (error: any) {
+            console.error('[Auto-Notify DESPACHO] Error:', error?.message);
+            // Igual que en notifyOrderReady: si no se pudo avisar, alguien tiene
+            // que hacerlo a mano. El silencio es justo lo que este aviso ataca.
+            if (clientIdParaFallback) {
+                try {
+                    await prisma.clientTask.create({
+                        data: {
+                            clientId: clientIdParaFallback,
+                            description: `⚠️ Falló el aviso automático de despacho a ${nombreParaFallback} (pedido #${orderId.slice(-4).toUpperCase()}). Avisarle a mano que su pedido salió.`,
+                            status: 'PENDING',
+                            type: 'TASK',
+                        },
+                    });
+                } catch (dbErr) {
+                    console.error('Error creando la tarea de fallback del aviso de despacho:', dbErr);
+                }
+            }
+            return false;
+        }
+    }
+
     static async updateOrder(id: string, body: any, userId?: string | null, userName?: string | null, role?: string | null) {
         try {
         
@@ -379,7 +529,8 @@ export class OrderService {
             labPrismOD, labPrismOI, labBaseCurve, labFrameType, labBevelPosition,
             labFrameShape, labFrameDetails,
             frameA2, frameB2, frameDbl2, frameEdc2, labFrameShape2, labFrameDetails2,
-            prescriptionId, items, total, markup, 
+            shippingCarrier, trackingNumber, trackingUrl, markDispatched,
+            prescriptionId, items, total, markup,
             discountCash, discountTransfer, discountCard, specialDiscount, subtotalWithMarkup,
             isLocked, authorizedByAdmin,
             postSaleNotes, postSaleCost, postSaleResponsible,
@@ -790,6 +941,12 @@ export class OrderService {
                 data.status = 'COMPLETED';
             }
         }
+
+        // ── Despacho ── (la fecha y el aviso se resuelven más abajo, con el
+        // estado previo a la vista: sin él, cada reedición pisaría `shippedAt`)
+        if (shippingCarrier !== undefined) data.shippingCarrier = shippingCarrier;
+        if (trackingUrl !== undefined) data.trackingUrl = trackingUrl;
+        if (trackingNumber !== undefined) data.trackingNumber = trackingNumber;
 
         if (labNotes !== undefined) data.labNotes = labNotes;
         if (clientNote !== undefined) data.clientNote = clientNote;
@@ -1712,12 +1869,38 @@ export class OrderService {
         }
 
         // Estado previo para historizar transiciones (quién cambió qué estado)
-        let prevState: { labStatus: string | null; status: string; labOrderNumber: string | null } | null = null;
-        if (data.labStatus !== undefined || data.status !== undefined || data.labOrderNumber !== undefined) {
+        let prevState: {
+            labStatus: string | null;
+            status: string;
+            labOrderNumber: string | null;
+            trackingNumber: string | null;
+            shippedAt: Date | null;
+            dispatchNotifiedAt: Date | null;
+        } | null = null;
+        if (data.labStatus !== undefined || data.status !== undefined || data.labOrderNumber !== undefined
+            || data.trackingNumber !== undefined || markDispatched) {
             prevState = await prisma.order.findUnique({
                 where: { id },
-                select: { labStatus: true, status: true, labOrderNumber: true }
+                select: {
+                    labStatus: true, status: true, labOrderNumber: true,
+                    trackingNumber: true, shippedAt: true, dispatchNotifiedAt: true
+                }
             });
+        }
+
+        // ── Despacho: cuándo se considera que el pedido SALIÓ ──
+        // Sale cuando se le carga el número de seguimiento por primera vez, o
+        // cuando se lo marca despachado a mano (envíos sin código). `shippedAt`
+        // se estampa una sola vez: corregir después el número del correo no
+        // puede mover la fecha de salida, que es la que sostiene el plazo de
+        // entrega que le prometimos al cliente.
+        const trackingEntrante = (data.trackingNumber ?? '').toString().trim();
+        const trackingPrevio = (prevState?.trackingNumber || '').trim();
+        const seDespachaAhora = !!prevState
+            && !prevState.shippedAt
+            && ((!!trackingEntrante && trackingEntrante !== trackingPrevio) || !!markDispatched);
+        if (seDespachaAhora) {
+            data.shippedAt = new Date();
         }
 
         // BLOQUEO: el nº de operación no se puede repetir. Es la llave con la que
@@ -1786,8 +1969,16 @@ export class OrderService {
                 labFrameDetails: true,
                 labFrameShape2: true,
                 labFrameDetails2: true,
+                shippingCarrier: true,
+                trackingNumber: true,
+                trackingUrl: true,
+                shippedAt: true,
                 client: {
-                    select: { id: true, name: true, phone: true }
+                    // El email va acá porque notifyOrderReady lo necesita: sin él
+                    // el aviso de "listo para retirar" salía SOLO por WhatsApp
+                    // desde el CRM (el cron sí lo mandaba, porque trae el cliente
+                    // entero). Un cliente sin WhatsApp válido no se enteraba.
+                    select: { id: true, name: true, phone: true, email: true }
                 }
             },
         });
@@ -1875,11 +2066,20 @@ export class OrderService {
         }
 
         // ── Auto-Notify: WhatsApp pickup when READY ──
-        if (labStatus === 'READY' && order.client.phone) {
+        // El gate pedía teléfono y solo teléfono: un cliente web que compró con
+        // mail y dejó un número mal tipeado no recibía el aviso por ningún lado.
+        // notifyOrderReady ya sabe elegir canal, así que acá solo se controla que
+        // haya AL MENOS uno.
+        if (labStatus === 'READY' && (order.client.phone || order.client.email)) {
             // Delegate sending logic and DB interaction updates to the background service
-            // Note: In Next.js App Router, we avoid awaiting background non-critical tasks 
+            // Note: In Next.js App Router, we avoid awaiting background non-critical tasks
             // if we don't want to delay the API response, but for DB consistency it's fine.
             await BotService.notifyOrderReady(order);
+        }
+
+        // ── Auto-Notify: pedido despachado ──
+        if (seDespachaAhora && !prevState?.dispatchNotifiedAt) {
+            await OrderService.notifyOrderDispatched(id, userName || 'Sistema');
         }
 
         // Log Audit for update — siempre (aunque falte userId), con transición old→new si hubo cambio de estado

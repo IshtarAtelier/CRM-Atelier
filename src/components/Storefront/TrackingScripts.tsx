@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useConsent } from "@/components/Storefront/CookieConsent";
 
@@ -145,6 +147,39 @@ export function TrackingScripts({
       analytics_storage: 'granted'
     });`;
 
+  // PageView del Pixel en cada navegación del App Router.
+  //
+  // Por qué: el snippet de abajo corre UNA sola vez (Next no re-ejecuta un
+  // <Script> inline con el mismo id, y este componente vive en el layout raíz,
+  // así que nunca se desmonta). Como la tienda es una SPA, ir de la home a una
+  // ficha de producto no disparaba nada: Meta veía una sola URL por visita y los
+  // públicos de remarketing por URL salían mucho más chicos de lo real —
+  // remarketing más chico = campañas más caras.
+  //
+  // Solo mira el pathname, no los query params: usar useSearchParams acá
+  // obligaría a envolver el layout entero en <Suspense> y a renderizar en
+  // cliente todas las páginas. Filtros y utm_* no definen públicos por URL.
+  const pathname = usePathname();
+  const pixelActivo = otorgado && Boolean(META_PIXEL_ID);
+  // Última ruta ya contada. En null significa "el Pixel todavía no arrancó":
+  // la primera corrida con el Pixel activo NO dispara nada, porque de esa vista
+  // ya se encarga el `fbq('track','PageView')` del snippet — así no se duplica
+  // ni la carga inicial ni la vista en la que el visitante toca "Aceptar".
+  const ultimaRutaMedida = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!pixelActivo) return;
+    if (ultimaRutaMedida.current === null) {
+      ultimaRutaMedida.current = pathname;
+      return;
+    }
+    if (ultimaRutaMedida.current === pathname) return;
+    ultimaRutaMedida.current = pathname;
+    const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq;
+    if (typeof fbq !== "function") return;
+    fbq("track", "PageView");
+  }, [pathname, pixelActivo]);
+
   return (
     <>
       {/* Google tag (gtag.js) — GA4 + Google Ads en una sola carga */}
@@ -179,6 +214,8 @@ export function TrackingScripts({
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
             fbq('init', '${META_PIXEL_ID}');
+            /* Solo la vista en la que se monta el Pixel. Las navegaciones
+               siguientes las manda el useEffect de arriba. */
             fbq('track', 'PageView');
           `}
         </Script>

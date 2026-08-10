@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronDown, Search, ShoppingBag, X, ShoppingCart, Gem, Glasses, BookOpen, Users, MapPin, HelpCircle, Star, MessageCircle, ChevronRight, Briefcase } from "lucide-react";
 import { useCart } from "@/store/useCart";
 import dynamic from "next/dynamic";
@@ -9,6 +9,7 @@ const CartSidebar = dynamic(() => import('./CartSidebar').then(mod => mod.CartSi
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { track } from "@/lib/client-analytics";
 
 interface StorefrontNavbarProps {
   theme?: "light" | "dark"; // dark = dark background (needs white text), light = light background (needs black text)
@@ -109,6 +110,34 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                (p.category || '').toLowerCase().includes(term);
       })
     : [];
+
+  // Términos ya reportados: el buscador filtra en memoria, así que el mismo
+  // texto puede volver a "quedar quieto" con cada re-render (o si la persona
+  // borra y reescribe) y mandaría el evento de nuevo.
+  const busquedasReportadas = useRef<Set<string>>(new Set());
+
+  /**
+   * Reporta `search` cuando la persona dejó de tipear, no en cada tecla:
+   * "anteojos de sol" habría entrado como 15 eventos de términos incompletos y
+   * lo único que sirve para decidir catálogo es la palabra terminada.
+   *
+   * Lo valioso del evento es `resultados: 0` — qué busca la gente que la tienda
+   * no tiene. Por eso se espera a que el catálogo esté cargado: reportar
+   * mientras `allProducts` está vacío marcaría como "no encontrado" algo que sí
+   * existía y ensuciaría justo el número que se quiere leer.
+   */
+  useEffect(() => {
+    const termino = searchQuery.trim().slice(0, 100);
+    if (!isSearchOpen || termino.length < 2 || allProducts.length === 0) return;
+
+    const timer = setTimeout(() => {
+      const clave = termino.toLowerCase();
+      if (busquedasReportadas.current.has(clave)) return;
+      busquedasReportadas.current.add(clave);
+      track('search', { meta: { termino, resultados: searchResults.length } });
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [searchQuery, isSearchOpen, allProducts.length, searchResults.length]);
 
   useEffect(() => {
     const handleScroll = () => {

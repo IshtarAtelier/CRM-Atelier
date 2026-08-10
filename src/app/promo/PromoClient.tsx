@@ -6,6 +6,7 @@ import { motion, AnimatePresence, Variants } from "framer-motion";
 import { ChevronDown, Star, Diamond, Glasses, ShieldCheck, X, Eye, Layers } from "lucide-react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { trackWhatsAppClick } from "@/lib/tracking";
+import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
 /** Reseña tal como la devuelve `getGoogleReviews()`. */
@@ -91,7 +92,7 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
     },
     {
       question: "¿Cuánto tiempo lleva adaptarse a los multifocales?",
-      answer: "Varía según cada persona, usualmente de unos días a un par de semanas. Además, nuestros cristales Varilux cuentan con garantía de adaptación."
+      answer: `Varía según cada persona, usualmente de unos días a un par de semanas. ${GARANTIA_ADAPTACION.RESUMEN} ${GARANTIA_ADAPTACION.REQUISITO}`
     },
     {
       question: "¿Qué tratamientos adicionales puedo agregar?",
@@ -229,8 +230,11 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
                 <ShieldCheck className="w-7 h-7" strokeWidth={1.5} />
               </div>
               <h3 className="text-lg font-bold mb-3 uppercase tracking-wider text-[#0F0F0F]">Inversión Garantizada</h3>
+              {/* Decía "Garantía de Adaptación total ... cambiamos los cristales
+                  gratis", sin plazo ni requisito de receta: era la promesa más
+                  amplia del sitio y contradecía /politicas-de-cambio. */}
               <p className="text-gray-600 text-base leading-relaxed">
-                Respaldamos ambos pares con Garantía de Adaptación total. Si no te adaptás, cambiamos los cristales gratis.
+                {GARANTIA_ADAPTACION.RESUMEN} {GARANTIA_ADAPTACION.REQUISITO}
               </p>
             </motion.div>
           </div>

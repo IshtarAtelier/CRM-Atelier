@@ -1,79 +1,49 @@
 import { TiendaClient } from './TiendaClient';
-import { StorefrontFooterStatic } from '@/components/Storefront/StorefrontFooterStatic';
+import { PieSegunSesion } from './PieSegunSesion';
 import { Metadata } from 'next';
-import { cookies } from 'next/headers';
-import { decrypt } from '@/lib/auth';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { getTiendaFiltros } from '@/lib/catalog/sources';
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
 
+// ISR de verdad: la página se prerenderiza y se regenera cada minuto.
+//
+// Antes este `revalidate` no hacía nada, por dos motivos que marcaban la ruta
+// como dinámica:
+//   1. `cookies()` — se leía la sesión para saber si quien mira es una óptica
+//      mayorista (título del tab, pie sin marca Atelier). Ahora eso lo resuelve
+//      PieSegunSesion en el cliente, como el resto del rebrandeo mayorista que
+//      TiendaClient ya venía haciendo ahí.
+//   2. `searchParams` — la categoría de ?categoria= se resolvía en el servidor.
+//      No hay forma de conservar eso y tener ISR: una página estática sirve el
+//      mismo HTML para todas las querystrings. La categoría la aplica ahora
+//      TiendaClient al hidratar (ya leía los otros cinco filtros de la URL así).
+//      Contrapartida: el HTML inicial de /tienda?categoria=Sol trae la vitrina
+//      completa y la grilla se recorta un instante después. Para tráfico e
+//      indexación de una categoría sola están /lentes-de-sol y /receta, que sí
+//      son URLs propias y siguen saliendo enteras del servidor.
 export const revalidate = 60;
 
-// Sesión OPTICA (mayorista) desde la cookie, server-side. Se usa para el title
-// (metadata) y para pasarle isWholesale al footer — la óptica nunca ve Atelier.
-async function isOpticaSession(): Promise<boolean> {
-  try {
-    const token = (await cookies()).get('session')?.value;
-    if (!token) return false;
-    const payload = await decrypt(token);
-    return payload?.role === 'OPTICA';
-  } catch {
-    return false;
-  }
-}
-
-// Title condicional por rol: para una óptica el tab dice Cápsula Escarlata.
-export async function generateMetadata(): Promise<Metadata> {
-  const isOptica = await isOpticaSession();
-  if (isOptica) {
-    return {
-      title: { absolute: 'Catálogo Mayorista · Cápsula Escarlata' },
-      robots: { index: false, follow: false },
-    };
-  }
-  return {
+export const metadata: Metadata = {
+  title: 'Colección de Anteojos',
+  description: 'Descubrí nuestra colección completa de anteojos de diseño. Marcos premium seleccionados a mano.',
+  alternates: {
+    canonical: 'https://atelieroptica.com.ar/tienda',
+  },
+  openGraph: {
     title: 'Colección de Anteojos',
     description: 'Descubrí nuestra colección completa de anteojos de diseño. Marcos premium seleccionados a mano.',
-    alternates: {
-      canonical: 'https://atelieroptica.com.ar/tienda',
-    },
-    openGraph: {
-      title: 'Colección de Anteojos',
-      description: 'Descubrí nuestra colección completa de anteojos de diseño. Marcos premium seleccionados a mano.',
-      url: 'https://atelieroptica.com.ar/tienda',
-      type: 'website',
-      // La misma imagen que el home: el ATELIER grabado en la varilla. Es la
-      // única del sitio que ya viene en 1200×630 (el formato que usan WhatsApp,
-      // Instagram y Facebook). La anterior —mostrador-marmol— es vertical
-      // (1600×2842) aunque el código declarara 1200×630: al compartir el link,
-      // WhatsApp la recortaba y se veían las flores y el frasco de caramelos.
-      images: [{ url: '/images/og-image.jpg', width: 1200, height: 630, alt: 'Anteojos Atelier Óptica' }],
-    },
-  };
-}
+    url: 'https://atelieroptica.com.ar/tienda',
+    type: 'website',
+    // La misma imagen que el home: el ATELIER grabado en la varilla. Es la
+    // única del sitio que ya viene en 1200×630 (el formato que usan WhatsApp,
+    // Instagram y Facebook). La anterior —mostrador-marmol— es vertical
+    // (1600×2842) aunque el código declarara 1200×630: al compartir el link,
+    // WhatsApp la recortaba y se veían las flores y el frasco de caramelos.
+    images: [{ url: '/images/og-image.jpg', width: 1200, height: 630, alt: 'Anteojos Atelier Óptica' }],
+  },
+};
 
-export default async function TiendaPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const isOptica = await isOpticaSession();
-
-  // La categoría se resuelve en el servidor, no después de hidratar. Dos
-  // motivos: el HTML sale ya con los productos de la categoría (antes /tienda
-  // servía siempre los mismos 24, mezclados), y el cliente no tiene que pasar
-  // de "Todo" a la categoría real — ese cambio de estado dejaba la grilla
-  // trabada, porque se anima con `key={activeCategory}` en modo "wait".
-  const params = await searchParams;
-  // El parámetro llega como lo escribió quien armó el link (?categoria=sol,
-  // ?categoria=CLIP-ON): se canoniza contra la lista real. Sin esto el título
-  // del hero mostraba "sol" en minúscula y el botón de la categoría no quedaba
-  // marcado como activo, porque comparaba contra "Sol".
-  const CATEGORIAS_VALIDAS = ['Todo', 'Receta', 'Sol', 'Clip-On'];
-  const pedida = typeof params.categoria === 'string' ? params.categoria.trim() : '';
-  const categoriaPedida =
-    CATEGORIAS_VALIDAS.find(c => c.toLowerCase() === pedida.toLowerCase()) ?? 'Todo';
-
+export default async function TiendaPage() {
   // 1) Metadatos del sidebar de filtros — fuente resiliente (vivo → memoria →
   //    snapshot): nunca lanza y nunca llega vacía. Ver src/lib/catalog/.
   const { data: filterMetadata } = await getTiendaFiltros();
@@ -107,12 +77,8 @@ export default async function TiendaPage({
   // fallback resiliente por debajo — la tienda nunca renderiza vacía.
   const { products: catalog } = await getMappedWebCatalog();
 
-  const catalogoDeLaCategoria = categoriaPedida === 'Todo'
-    ? catalog
-    : catalog.filter((p) => (p.category || '').toLowerCase() === categoriaPedida.toLowerCase());
-
-  const mappedInitialProducts = catalogoDeLaCategoria.slice(0, 24);
-  const initialTotalCount = catalogoDeLaCategoria.length;
+  const mappedInitialProducts = catalog.slice(0, 24);
+  const initialTotalCount = catalog.length;
 
   const collectionLd = {
     '@context': 'https://schema.org',
@@ -136,23 +102,20 @@ export default async function TiendaPage({
 
   return (
     <>
-      {/* El JSON-LD nombra Atelier (SEO minorista). Para una óptica no se
-          emite: la página es noindex y no debe filtrar la marca ni en el
-          HTML oculto. */}
-      {!isOptica && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }}
-        />
-      )}
+      {/* El JSON-LD nombra Atelier (SEO minorista). Va siempre: el HTML es el
+          mismo para todos porque la página es estática, y una óptica no lo ve
+          —vive en un <script>, y el rebrandeo de lo visible lo hace el cliente. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }}
+      />
       <TiendaClient
-        initialCategory={categoriaPedida}
         initialProducts={mappedInitialProducts}
         initialTotalCount={initialTotalCount}
         availableBrands={availableBrands}
         availableShapes={availableShapes}
         availableMaterials={availableMaterials}
-        footer={<StorefrontFooterStatic isWholesale={isOptica} />}
+        footer={<PieSegunSesion />}
       />
     </>
   );

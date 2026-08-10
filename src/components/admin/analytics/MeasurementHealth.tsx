@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, CheckCircle2, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Activity, CheckCircle2, XCircle, AlertTriangle, RefreshCw, Cookie } from 'lucide-react';
 
 type Check = {
   id: string;
@@ -23,9 +23,17 @@ type Salud = {
     ultimoEvento: string | null;
     eventos7d: { tipo: string; count: number }[];
   };
+  consentimiento?: {
+    vieron: number;
+    aceptaron: number;
+    rechazaron: number;
+    ignoraron: number;
+  };
 };
 
 const fmt = (n: number) => n.toLocaleString('es-AR');
+const pct = (parte: number, total: number) =>
+  total > 0 ? `${Math.round((parte / total) * 100)}%` : '—';
 
 /**
  * Salud de la cadena de medición: qué está configurado, qué dispara de verdad
@@ -123,6 +131,9 @@ export default function MeasurementHealth() {
             </p>
           )}
 
+          {/* Cartel de cookies: cuánta gente deja a Meta afuera */}
+          <ConsentimientoLinea datos={data.consentimiento} />
+
           {/* Eventos que Meta recibió de verdad */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>
@@ -151,6 +162,53 @@ export default function MeasurementHealth() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Qué se hace con el cartel de cookies, en una línea.
+ *
+ * El número que se busca acá es "lo ignoró": el Pixel de Meta no carga sin
+ * consentimiento, así que esa porción de visitantes es tráfico real que Meta no
+ * puede ver ni atribuir. Antes ese punto ciego era una intuición ("algo se
+ * pierde"); con los eventos consent_shown / consent_decision es un número.
+ */
+function ConsentimientoLinea({ datos }: { datos: Salud['consentimiento'] }) {
+  // Panel viejo contra API vieja (o respuesta cacheada sin el campo): no
+  // inventamos ceros, que se leerían como "nadie acepta".
+  if (!datos) return null;
+
+  const { vieron, aceptaron, rechazaron, ignoraron } = datos;
+
+  return (
+    <div className="rounded-md border border-border p-3">
+      <div className="text-xs font-semibold mb-1 flex items-center gap-2 text-muted-foreground uppercase tracking-wide">
+        <Cookie className="w-3.5 h-3.5" /> Cartel de cookies (últimos 7 días)
+      </div>
+      {vieron === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Ningún visitante nuevo vio el cartel esta semana (solo se muestra a quien todavía no decidió).
+        </p>
+      ) : (
+        <>
+          <p className="text-sm">
+            <span className="font-medium text-green-700 dark:text-green-400">{pct(aceptaron, vieron)} acepta</span>
+            {' · '}
+            <span className="font-medium">{pct(rechazaron, vieron)} rechaza</span>
+            {' · '}
+            <span className="font-medium text-amber-700 dark:text-amber-400">{pct(ignoraron, vieron)} lo ignora</span>
+            <span className="text-muted-foreground">
+              {' '}
+              (sobre {fmt(vieron)} {vieron === 1 ? 'visitante' : 'visitantes'} que lo vieron)
+            </span>
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Los que ignoran el cartel ({fmt(ignoraron)}) más los que rechazan ({fmt(rechazaron)}) son la parte del
+            tráfico que Meta no ve: el Pixel no carga sin consentimiento. La analítica propia sí los cuenta.
+          </p>
+        </>
       )}
     </div>
   );

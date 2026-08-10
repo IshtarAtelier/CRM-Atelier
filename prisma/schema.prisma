@@ -379,6 +379,19 @@ model Order {
   frameEdc2              String?
   labFrameDetails2       String?
   labFrameShape2         String?
+  // ── Despacho al cliente ──
+  // Una compra web se cobraba y después el cliente no recibía NADA hasta que
+  // retiraba: hasta dos semanas de silencio. Estos campos existen para poder
+  // avisarle cuando el pedido sale, y para que ese aviso no se repita.
+  // `trackingNumber` es el código del correo; `trackingUrl` el link de la
+  // empresa (varía según cuál sea, por eso se guarda y no se arma en el código).
+  // `dispatchNotifiedAt` marca que el aviso YA salió: reeditar el pedido no
+  // vuelve a mandarlo.
+  shippingCarrier        String?
+  trackingNumber         String?
+  trackingUrl            String?
+  shippedAt              DateTime?
+  dispatchNotifiedAt     DateTime?
   postSaleCases          PostSaleCase[]
   invoices               Invoice[]
   notifications          Notification[]

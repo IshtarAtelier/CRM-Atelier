@@ -5,6 +5,7 @@ import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { Star, Microscope, Award, HeartHandshake, ShieldCheck, MapPin } from "lucide-react";
 import { getGoogleReviews } from '@/lib/googleReviews';
 import { BUSINESS_INFO } from '@/lib/business-info';
+import { GARANTIA_ADAPTACION, GARANTIA_TEXTO_LARGO } from '@/lib/garantia';
 import { buildWhatsAppUrl, currentPageUrl } from '@/lib/whatsapp-link';
 
 export const revalidate = 300;
@@ -62,8 +63,8 @@ const REASONS = [
   },
   {
     icon: ShieldCheck,
-    title: 'Garantía de adaptación de 30 días',
-    body: 'Todos los cristales multifocales Varilux y los monofocales Super Blue tienen garantía de adaptación: si dentro de los primeros 30 días no te adaptás, te cambiamos los cristales sin costo. Solo pedimos una receta nueva de tu oftalmólogo, emitida a menos de 90 días de la anterior.',
+    title: GARANTIA_ADAPTACION.BADGE,
+    body: GARANTIA_TEXTO_LARGO,
   },
   {
     icon: HeartHandshake,

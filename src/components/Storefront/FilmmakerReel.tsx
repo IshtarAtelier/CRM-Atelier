@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 
 const FRAMES = [
   {
@@ -253,7 +254,7 @@ export function FilmmakerReel({ reviewCount = 0, rating = 0 }: FilmmakerReelProp
           <span className="text-amber-500">◆</span>
           <span>Multifocales Varilux</span>
           <span className="opacity-40">/</span>
-          <span>Garantía de adaptación 30 días</span>
+          <span>{GARANTIA_ADAPTACION.BADGE}</span>
           <span className="opacity-60 group-hover:opacity-100 transition-opacity">→</span>
         </Link>
 

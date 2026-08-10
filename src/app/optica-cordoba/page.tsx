@@ -9,6 +9,7 @@ import { getGoogleReviews } from "@/lib/googleReviews";
 import { buildOpticianSchema } from "@/lib/schema";
 import { BUSINESS_INFO } from "@/lib/business-info";
 import { FAQ_FLAT } from "@/lib/faq-data";
+import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 import { buildWhatsAppUrl, currentPageUrl } from "@/lib/whatsapp-link";
 
 export const revalidate = 300;
@@ -206,8 +207,7 @@ export default async function OpticaCordobaPage() {
               <div className="text-3xl mb-3">👓</div>
               <h3 className="text-lg font-bold mb-2">Cristales Varilux</h3>
               <p className="text-sm text-black/70">
-                Multifocales premium de Essilor con garantía de adaptación de 30
-                días: si no te adaptás, te cambiamos los cristales sin costo.
+                Multifocales premium de Essilor. {GARANTIA_ADAPTACION.RESUMEN}
               </p>
             </div>
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#e8e2db]">

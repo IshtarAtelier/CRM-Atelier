@@ -285,6 +285,112 @@ export function getConfirmationHtml(customer: any, orderId: string, emailTotal: 
   `);
 }
 
+/**
+ * Aviso de que el pedido SALIÓ.
+ *
+ * Es el mail que faltaba: entre el cobro y la entrega el cliente no recibía
+ * nada durante semanas, y esa era la principal causa de "¿qué pasó con mi
+ * pedido?". (El otro final del circuito, "listo para retirar", ya lo cubre
+ * BotService.notifyOrderReady.)
+ *
+ * `carrier`, `tracking` y `trackingUrl` son opcionales: hay despachos (moto,
+ * entrega propia) que no tienen código de seguimiento, y el mail igual sale.
+ */
+export function getOrderShippedHtml(opts: {
+  firstName: string;
+  orderId: string;
+  carrier?: string | null;
+  tracking?: string | null;
+  trackingUrl?: string | null;
+  itemsHtml?: string;
+}) {
+  const { firstName, orderId, carrier, tracking, trackingUrl, itemsHtml } = opts;
+  const shortId = orderId.slice(-4).toUpperCase();
+
+  const datosEnvio = [
+    carrier ? `<strong style="color: ${IVORY};">Correo:</strong> ${carrier}<br/>` : '',
+    tracking ? `<strong style="color: ${IVORY};">Seguimiento:</strong> <span style="font-family: 'Courier New', monospace; color: ${IVORY};">${tracking}</span><br/>` : '',
+    `<strong style="color: ${IVORY};">Tiempo de tr&aacute;nsito:</strong> 3 a 5 d&iacute;as h&aacute;biles desde el despacho.`,
+  ].join('');
+
+  const bloqueEnvio = `
+    <tr>
+      <td style="padding: 32px 40px 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${SOFT_PANEL}" style="background-color: ${SOFT_PANEL}; border-radius: 14px;">
+          <tr>
+            <td style="padding: 24px 28px; font-family: ${SANS}; font-size: 13px; line-height: 2.1; color: #5a5348;">
+              <span style="color: ${GOLD}; letter-spacing: 3px; font-size: 11px; text-transform: uppercase; font-weight: bold;">Tu env&iacute;o</span><br/>
+              ${datosEnvio}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  `;
+
+  // El botón solo aparece con link real: un "Seguir mi envío" que no lleva a
+  // ningún lado genera más consultas de las que evita.
+  //
+  // Y solo http(s): este valor lo escribe una persona en el CRM y termina en el
+  // `href` de un mail que sale a un cliente. Sin validar el ESQUEMA, un
+  // `javascript:` pegado por error viaja como link clickeable — escapar las
+  // comillas no protege de eso. Si no es http(s) no se muestra el botón; el
+  // mail sirve igual porque el número de seguimiento va aparte.
+  const urlSeguimientoOk =
+    typeof trackingUrl === 'string' && /^https?:\/\//i.test(trackingUrl.trim());
+
+  const botonSeguimiento = urlSeguimientoOk ? `
+    <tr>
+      <td align="center" style="padding: 32px 40px 0;">
+        <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 0 auto;">
+          <tr>
+            <td bgcolor="${IVORY}" style="border-radius: 999px;">
+              <a href="${trackingUrl}" target="_blank"
+                 style="display: inline-block; padding: 17px 46px; font-family: ${SANS}; font-size: 15px; font-weight: 600; letter-spacing: 0.3px; color: ${CARD}; text-decoration: none;">
+                Seguir mi env&iacute;o&nbsp;&nbsp;&rarr;
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  ` : '';
+
+  const bloqueItems = itemsHtml ? `
+    <tr>
+      <td style="padding: 40px 40px 0;">
+        <p style="margin: 0 0 4px; font-family: ${SANS}; font-size: 11px; font-weight: bold; letter-spacing: 4px; text-transform: uppercase; color: ${GOLD};">Lo que va en camino</p>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top: 1px solid ${HAIRLINE};">${itemsHtml}</table>
+      </td>
+    </tr>
+  ` : '';
+
+  return emailShell(`
+    <tr>
+      <td align="center" style="padding: 32px 40px 0;">
+        <p style="margin: 0; font-family: ${SANS}; font-size: 12px; font-weight: bold; letter-spacing: 5px; text-transform: uppercase; color: ${GOLD};">Pedido despachado</p>
+        <h1 style="margin: 18px 0 0; font-family: ${SERIF}; font-size: 40px; font-weight: normal; line-height: 1.15; color: ${IVORY};">Ya sali&oacute;, ${firstName}.</h1>
+        <p style="margin: 14px 0 0; font-family: ${SERIF}; font-size: 19px; font-style: italic; color: ${GOLD_SOFT};">Tu pedido est&aacute; en camino.</p>
+        <p style="margin: 28px 0 0;">
+          <span style="display: inline-block; padding: 10px 26px; background-color: ${IVORY}; border-radius: 999px; font-family: ${SANS}; font-size: 12px; font-weight: bold; letter-spacing: 3px; color: ${CARD};">ORDEN #${shortId}</span>
+        </p>
+      </td>
+    </tr>
+    ${bloqueItems}
+    ${bloqueEnvio}
+    ${botonSeguimiento}
+    <tr>
+      <td align="center" style="padding: 40px 40px 44px;">
+        <h2 style="margin: 0; font-family: ${SERIF}; font-size: 26px; font-weight: normal; color: ${IVORY};">&iquest;Alguna duda?</h2>
+        <p style="margin: 12px 0 26px; font-family: ${SANS}; font-size: 14px; line-height: 1.8; color: ${MUTED};">
+          Estamos del otro lado para lo que necesites sobre tu pedido.
+        </p>
+        ${whatsappButton('Escribinos por WhatsApp', `Hola Atelier! Tengo una consulta sobre mi pedido #${shortId}.`)}
+      </td>
+    </tr>
+  `);
+}
+
 export function getAdminHtml(customer: any, orderId: string, emailTotal: number, shippingMethodLabel: string, isTransfer: boolean, itemsHtml: string) {
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">

@@ -2056,9 +2056,14 @@ server.listen(PORT, '0.0.0.0', async () => {
     setInterval(async () => {
         try {
             const { generateFollowUpTasks } = require('./followups/task-generator');
+            const { generarTareasPosventa } = require('./followups/posventa');
             const { checkAndSendSmartTasks } = require('./followups/smart-task-executor');
-            
+
             await generateFollowUpTasks();
+            // Posventa a los 10 días de la entrega. Solo CREA la ClientTask
+            // [POSVENTA]: quien la redacta y la manda es el mismo ejecutor de
+            // abajo, cuando la tarea vence. No es un sistema de envío aparte.
+            await generarTareasPosventa();
             await checkAndSendSalesFollowUps(cronDeps);
             await checkAndSendSmartTasks(cronDeps);
         } catch (e) {

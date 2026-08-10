@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { LensConfigurator } from "@/components/Storefront/LensConfigurator";
 import Image from "next/image";
+import { recetaPendiente } from '@/lib/checkout/receta';
 
 export function CartSidebar() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal } = useCart();
@@ -89,9 +90,15 @@ export function CartSidebar() {
                                 Tinte: {item.lensConfig.color}
                               </p>
                             )}
+                            {/* Ver la nota en src/lib/checkout/receta.ts: el
+                                tilde verde solo va cuando la receta llegó. */}
                             {item.lensConfig.prescriptionFile && (
-                              <p className="text-xs text-green-700 uppercase tracking-widest flex items-center gap-1">
-                                ✓ Receta: {item.lensConfig.prescriptionFile}
+                              <p className={`text-xs uppercase tracking-widest flex items-center gap-1 ${
+                                recetaPendiente(item.lensConfig.prescriptionFile) ? 'text-amber-700' : 'text-green-700'
+                              }`}>
+                                {recetaPendiente(item.lensConfig.prescriptionFile)
+                                  ? '⏳ Receta: te la pedimos por WhatsApp'
+                                  : `✓ Receta: ${item.lensConfig.prescriptionFile}`}
                               </p>
                             )}
                           </div>

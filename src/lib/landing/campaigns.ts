@@ -6,6 +6,8 @@
 // Agregar una campaña = agregar una entrada a CAMPAIGNS.
 // ============================================================
 
+import { GARANTIA_ADAPTACION } from "@/lib/garantia";
+
 export type BenefitIcon =
   | "diamond"
   | "eye"
@@ -137,7 +139,7 @@ export const CAMPAIGNS: Record<string, CampaignConfig> = {
     benefits: [
       { icon: "diamond", title: "Diseño de autor", desc: "Colección curada en acetato italiano y metales nobles. Piezas pensadas para destacar tu mirada." },
       { icon: "eye", title: "Cristales premium", desc: "Multifocales Varilux, antirreflex y filtro azul. Tallado digital de laboratorio de primera línea." },
-      { icon: "shield", title: "Garantía de adaptación", desc: "Si no te adaptás a tus multifocales, cambiamos los cristales sin costo. Comprás con respaldo." },
+      { icon: "shield", title: GARANTIA_ADAPTACION.TITULO, desc: GARANTIA_ADAPTACION.RESUMEN },
     ],
     editorial: {
       badge: "Colección editorial",
@@ -230,7 +232,7 @@ export const CAMPAIGNS: Record<string, CampaignConfig> = {
     benefits: [
       { icon: "layers", title: "Tres visiones, un cristal", desc: "Lejos, intermedia y cerca en una transición invisible. Sin líneas, sin saltos, sin cambiar de anteojos." },
       { icon: "sparkles", title: "Tallado digital premium", desc: "Cristales Varilux y de primeras marcas, calculados a tu medida exacta para máxima nitidez." },
-      { icon: "shield", title: "Garantía de adaptación", desc: "Si no te adaptás, ajustamos o cambiamos los cristales sin costo. Comprás con total respaldo." },
+      { icon: "shield", title: GARANTIA_ADAPTACION.TITULO, desc: GARANTIA_ADAPTACION.RESUMEN },
     ],
     editorial: {
       badge: "Tecnología óptica",
@@ -241,7 +243,9 @@ export const CAMPAIGNS: Record<string, CampaignConfig> = {
       cta: "Quiero asesorarme con un experto",
     },
     faqs: [
-      { question: "¿Cuánto tarda la adaptación a los multifocales?", answer: "Suele ser de unos días a un par de semanas. Nuestros cristales premium cuentan con garantía de adaptación: si no te adaptás, lo resolvemos sin costo." },
+      // Decía "lo resolvemos sin costo" sin plazo ni requisito de receta: la
+      // promesa vive en garantia.ts, alineada con /politicas-de-cambio.
+      { question: "¿Cuánto tarda la adaptación a los multifocales?", answer: `Suele ser de unos días a un par de semanas. ${GARANTIA_ADAPTACION.RESUMEN} ${GARANTIA_ADAPTACION.REQUISITO}` },
       { question: "Es mi primer multifocal, ¿me va a costar?", answer: "Te acompañamos en todo el proceso. Con un buen tallado digital y el armazón correcto, la adaptación es mucho más simple. Te asesoramos paso a paso." },
       { question: "¿Qué marcas de cristales usan?", answer: "Trabajamos con Varilux (Essilor) y otras primeras marcas, con tratamientos antirreflex, filtro azul y fotocromáticos según lo que necesites." },
       { question: "¿Puedo hacerlo desde otra provincia?", answer: "Sí. Coordinamos tu receta por WhatsApp y enviamos a todo el país, en cuotas sin interés." },

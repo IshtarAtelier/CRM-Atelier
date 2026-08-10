@@ -2,13 +2,17 @@
 
 import { motion } from "framer-motion";
 import { ShieldCheck, Truck, CreditCard, Sparkles } from "lucide-react";
+import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 
 export function HomeWhyChooseUs() {
   const features = [
     {
       icon: <ShieldCheck className="w-8 h-8 text-[#b08f4c]" strokeWidth={1.2} />,
-      title: "Garantía de Adaptación",
-      desc: "100% de cobertura en multifocales Varilux y lentes de diseño para tu total tranquilidad."
+      title: GARANTIA_ADAPTACION.TITULO,
+      // Decía "100% de cobertura en multifocales Varilux y lentes de diseño":
+      // los "lentes de diseño" (armazones) nunca tuvieron garantía de adaptación
+      // y el alcance real está en /politicas-de-cambio.
+      desc: GARANTIA_ADAPTACION.RESUMEN
     },
     {
       icon: <Truck className="w-8 h-8 text-[#b08f4c]" strokeWidth={1.2} />,

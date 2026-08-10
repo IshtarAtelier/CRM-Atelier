@@ -13,6 +13,7 @@
  */
 
 import { BUSINESS_INFO } from "@/lib/business-info";
+import { GARANTIA_FAQ } from "@/lib/garantia";
 
 export type FaqLink = { label: string; href: string };
 export type FaqItem = { q: string; a: string; links?: FaqLink[] };
@@ -59,10 +60,10 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         a: "Trabajamos cristales monofocales y multifocales (progresivos) Varilux, con tratamientos de antirreflejo, filtro de luz azul y fotocromáticos que se oscurecen al sol. Según tu receta y tu uso diario te recomendamos la combinación de material y tratamiento que mejor se adapta.",
         links: [{ label: "Ver cristales ópticos", href: "/cristales-opticos" }],
       },
-      {
-        q: "¿Tienen garantía los cristales multifocales?",
-        a: "Sí. Todos nuestros cristales multifocales Varilux, y los cristales Super Blue de monofocales, tienen garantía de adaptación. Si no te adaptás dentro de los primeros 30 días, te cambiamos los cristales sin costo. Es requisito presentar una nueva receta emitida por tu oftalmólogo, y entre ambas recetas no deben pasar más de 90 días. Los demás cristales monofocales no tienen garantía de adaptación.",
-      },
+      // Condiciones de la garantía: salen de garantia.ts para que no se
+      // desincronicen con /politicas-de-cambio (esta respuesta también alimenta
+      // el JSON-LD, así que una versión vieja acá la levantaban los buscadores).
+      { q: GARANTIA_FAQ.q, a: GARANTIA_FAQ.a },
       {
         q: "¿Qué es un cristal con filtro de luz azul y para qué sirve?",
         a: "Es un tratamiento que reduce la exposición a la luz azul-violeta que emiten las pantallas de celulares, computadoras y tablets. Ayuda a bajar la fatiga visual en jornadas largas frente a dispositivos y mejora el confort al final del día. Se puede sumar tanto a cristales con graduación como sin graduación.",

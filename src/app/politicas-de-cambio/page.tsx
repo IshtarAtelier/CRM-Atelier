@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { AlertTriangle, Glasses, RefreshCcw } from 'lucide-react';
+import { GARANTIA_ADAPTACION } from '@/lib/garantia';
 
 export const metadata: Metadata = {
   title: "Políticas de Cambio",
@@ -57,9 +58,9 @@ export default function PoliticasDeCambioPage() {
             <p className="mb-4">
               A pesar de no admitir devoluciones, ofrecemos una garantía total de adaptación para todos nuestros cristales multifocales de la marca premium Varilux.
             </p>
-            <p>
-              Si el paciente no logra adaptarse dentro de los primeros 30 días, nos comprometemos a reemplazar los cristales sin costo adicional. Para hacer efectiva esta garantía, será indispensable la presentación de una nueva receta emitida por el médico oftalmólogo tratante (no deben transcurrir más de 90 días entre ambas recetas).
-            </p>
+            {/* Las condiciones son las mismas que las de Super Blue más abajo: el
+                párrafo estaba escrito dos veces y podía divergir. */}
+            <p>{GARANTIA_ADAPTACION.CONDICIONES}</p>
           </section>
 
           <section className="bg-white dark:bg-stone-900 rounded-3xl p-8 lg:p-10 border border-stone-200 dark:border-stone-800 shadow-sm">
@@ -72,9 +73,7 @@ export default function PoliticasDeCambioPage() {
             <p className="mb-4">
               Los cristales monofocales estándar no cuentan con garantía de adaptación. Como excepción, los cristales <strong>Super Blue</strong> (monofocales con filtro de luz azul) sí tienen esta garantía, en las mismas condiciones que los multifocales.
             </p>
-            <p>
-              Si el paciente no logra adaptarse dentro de los primeros 30 días, nos comprometemos a reemplazar los cristales sin costo adicional. Para hacer efectiva esta garantía, será indispensable la presentación de una nueva receta emitida por el médico oftalmólogo tratante (no deben transcurrir más de 90 días entre ambas recetas).
-            </p>
+            <p>{GARANTIA_ADAPTACION.CONDICIONES}</p>
           </section>
 
           <section className="bg-white dark:bg-stone-900 rounded-3xl p-8 lg:p-10 border border-stone-200 dark:border-stone-800 shadow-sm">

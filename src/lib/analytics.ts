@@ -29,6 +29,17 @@ export const ANALYTICS_EVENT_TYPES = [
   // propia, que no usa cookies y por eso puede registrarlo sin consentimiento.
   'consent_shown',
   'consent_decision',
+  // Configurador de lentes (/arma-tus-lentes y el modal de la ficha): es el
+  // producto de mayor ticket y hasta acá no reportaba NINGÚN evento, así que el
+  // tramo entre la ficha y el carrito era una caja negra. Con estos seis pasos
+  // se ve dónde se cae la gente; el `add_to_cart` estándar lo sigue disparando
+  // el carrito, no el configurador.
+  'lens_config_start', // montó el configurador para un armazón
+  'lens_config_type', // eligió el tipo de visión (mono/bi/multifocal/sin aumento)
+  'lens_config_treatment', // eligió el tratamiento (flujo transparente) o el teñido (flujo sol)
+  'lens_config_prescription', // llegó al paso de la receta
+  'lens_config_prescription_whatsapp', // tocó el botón para mandar la receta por WhatsApp
+  'lens_config_complete', // confirmó los cristales (agregar al carrito / confirmar)
 ] as const;
 
 export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];

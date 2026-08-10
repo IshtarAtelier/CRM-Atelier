@@ -166,4 +166,7 @@ async function generateFollowUpTasks() {
     }
 }
 
-module.exports = { generateFollowUpTasks };
+// pickSpreadDueDate se exporta porque los flujos de retención (posventa y los
+// que vengan) tienen que repartir sus envíos en la MISMA franja horaria. Copiar
+// la función sería tener dos ventanas de envío que se van a desincronizar.
+module.exports = { generateFollowUpTasks, pickSpreadDueDate };

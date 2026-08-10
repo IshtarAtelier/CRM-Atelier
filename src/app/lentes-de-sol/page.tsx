@@ -1,12 +1,20 @@
 import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
-import { CategoryGrid } from "@/components/Storefront/CategoryGrid";
+import { ListadoCatalogoFiltrado } from "@/components/Storefront/ListadoCatalogoFiltrado";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { prisma } from '@/lib/db';
 import { LISTADO_SELECT } from '@/lib/catalog/queries';
 import { getSolListado } from '@/lib/catalog/sources';
 
+// ISR de verdad: la página se prerenderiza y se regenera cada 5 minutos.
+// Antes este `revalidate` no hacía nada — el componente recibía `searchParams`
+// para armar el WHERE y el ORDER BY de Prisma, y leer searchParams marca la ruta
+// como dinámica. Resultado: cero caché y dos consultas al catálogo por visita,
+// aun para quien entraba sin ningún filtro (la enorme mayoría). Ahora el
+// servidor trae siempre el listado completo en su orden por defecto y el recorte
+// por marca/forma/material/género y el orden se aplican en el cliente, sobre
+// datos que ya viajaron (ver ListadoCatalogoFiltrado).
 export const revalidate = 300;
 import { Glasses } from 'lucide-react';
 import { Suspense } from 'react';
@@ -27,39 +35,25 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function LentesDeSolPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
-  const resolvedParams = await searchParams;
-  const filterBrand = typeof resolvedParams.marca === 'string' ? resolvedParams.marca : undefined;
-  const sortParam = typeof resolvedParams.orden === 'string' ? resolvedParams.orden : 'recientes';
-  const filterShape = typeof resolvedParams.forma === 'string' ? resolvedParams.forma : undefined;
-  const filterMaterial = typeof resolvedParams.material === 'string' ? resolvedParams.material : undefined;
-  const filterGender = typeof resolvedParams.genero === 'string' ? resolvedParams.genero : undefined;
+// La marca real no está en LISTADO_SELECT (la grilla muestra siempre "ATELIER"):
+// la pedimos sólo acá porque el filtro ?marca= ahora se resuelve en el cliente y
+// necesita el dato en cada fila. Fuera de LISTADO_SELECT a propósito, para no
+// engordar los snapshots commiteados de src/data/snapshots/.
+const SELECT_CON_MARCA = {
+  ...LISTADO_SELECT,
+  product: { select: { ...LISTADO_SELECT.product.select, brand: true } },
+};
 
-  // Base Where Clause
-  // Los cristales no son armazones: si a uno le queda la categoría web de
-  // sol, aparece en la grilla mezclado entre los marcos. Pasó con un
+export default async function LentesDeSolPage() {
+  // WHERE y ORDER BY fijos: son los de la vista por defecto, la única que se
+  // cachea. Los cristales no son armazones: si a uno le queda la categoría web
+  // de sol, aparece en la grilla mezclado entre los marcos. Pasó con un
   // Essilor Orma de $280.000 listado en /receta.
-  const whereClause: any = { 
-    category: { contains: "Sol", mode: "insensitive" },
+  const whereClause = {
+    category: { contains: "Sol", mode: "insensitive" as const },
     isActive: true,
-    product: { category: { not: 'Cristal' } }
+    product: { category: { not: 'Cristal' } },
   };
-
-  // Add Brand Filter if exists
-  if (filterBrand) {
-    whereClause.product.brand = { equals: filterBrand, mode: "insensitive" };
-  }
-
-  // Determine Sort Order
-  const orderBy: any[] = [{ isFeatured: 'desc' }];
-  if (sortParam === 'menor_precio') {
-    orderBy.push({ product: { price: 'asc' } });
-  } else if (sortParam === 'mayor_precio') {
-    orderBy.push({ product: { price: 'desc' } });
-  } else {
-    // recientes
-    orderBy.push({ createdAt: 'desc' });
-  }
 
   // Execute Queries in parallel
   let dbProducts: any[] = [];
@@ -68,12 +62,12 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
     const [pRes, bRes] = await Promise.all([
       prisma.webProduct.findMany({
         where: whereClause,
-        select: LISTADO_SELECT,
-        orderBy: orderBy
+        select: SELECT_CON_MARCA,
+        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
       }),
       // Prisma doesn't support distinct easily on nested relations, so we fetch all active sol products to extract brands
       prisma.webProduct.findMany({
-        where: { category: { contains: "Sol", mode: "insensitive" }, isActive: true, product: { category: { not: 'Cristal' } } },
+        where: whereClause,
         select: { name: true, product: { select: { brand: true, model: true } } }
       })
     ]);
@@ -81,8 +75,8 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
     uniqueBrandsResult = bRes;
   } catch (error) {
     // DB caída: vista por defecto resiliente (memoria → snapshot). La página
-    // nunca queda vacía; los filtros de la URL se ignoran mientras dure la falla.
-    // Un resultado vacío por filtros NO pasa por acá (es legítimo y se muestra).
+    // nunca queda vacía; el filtro por marca se ignora mientras dure la falla
+    // (las filas del fallback no traen la marca real).
     console.error('[LentesDeSol] query en vivo falló — usando fallback:', error);
     const fallback = await getSolListado();
     dbProducts = fallback.data.products;
@@ -123,6 +117,9 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
     return {
       id: wp.product.id,
       brand: 'ATELIER',
+      // La marca que se muestra es siempre ATELIER; ésta es la del catálogo y
+      // sólo la usa el filtro ?marca= del cliente.
+      marcaReal: wp.product.brand ?? null,
       model: wp.name || modelCode,
       modelCode: modelCode,
       price: wp.product.price,
@@ -148,45 +145,11 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
     };
   });
 
-  // Apply shape, material, and gender filters in memory
-  let filteredProducts = products;
-  if (filterShape) {
-    filteredProducts = filteredProducts.filter(p => {
-      if (!p.shape) return false;
-      const shapes = p.shape.split(',').map(s => s.trim().toLowerCase());
-      return shapes.includes(filterShape.toLowerCase());
-    });
-  }
-  if (filterMaterial) {
-    filteredProducts = filteredProducts.filter(p => p.material.toLowerCase() === filterMaterial.toLowerCase());
-  }
-  if (filterGender) {
-    const fg = filterGender.toLowerCase();
-    filteredProducts = filteredProducts.filter(p => {
-      if (!p.gender) return true;
-      const g = p.gender.toLowerCase();
-      if (fg === 'femme') {
-        return g.includes('femenino') || g.includes('mujer') || g.includes('femme') || g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
-      } else if (fg === 'homme') {
-        return g.includes('masculino') || g.includes('hombre') || g.includes('homme') || g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
-      } else if (fg === 'no_gender') {
-        return g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
-      }
-      return true;
-    });
-  }
-
-  if (sortParam === 'forma') {
-    filteredProducts.sort((a, b) => {
-      const shapeA = (a.shape || '').toLowerCase();
-      const shapeB = (b.shape || '').toLowerCase();
-      if (shapeA < shapeB) return -1;
-      if (shapeA > shapeB) return 1;
-      return 0;
-    });
-  }
-
   // CollectionPage JSON-LD
+  // Se arma sobre el listado SIN filtrar: es lo que devuelve la URL canónica
+  // (https://…/lentes-de-sol) y lo único que ve un buscador. Antes se armaba con
+  // el resultado filtrado, que en la práctica era lo mismo salvo cuando alguien
+  // entraba con parámetros en la URL.
   const collectionJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
@@ -197,8 +160,8 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
       '@type': 'ItemList',
       // Los que se enumeran, no el total: declarar 89 y listar 20 es una
       // inconsistencia que Google marca al validar el dato estructurado.
-      numberOfItems: Math.min(filteredProducts.length, 20),
-      itemListElement: filteredProducts.slice(0, 20).map((p, i) => {
+      numberOfItems: Math.min(products.length, 20),
+      itemListElement: products.slice(0, 20).map((p, i) => {
         const img = p.imagenesCatalogo && p.imagenesCatalogo.length > 0
           ? resolveStorageUrl(p.imagenesCatalogo[0])
           : undefined;
@@ -221,7 +184,7 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
       />
       <StorefrontNavbar theme="light" />
-      
+
       <main className="flex-1 flex flex-col px-4 pt-32 pb-16 max-w-[1400px] mx-auto w-full">
         <div className="text-center mb-16 lg:mb-24">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto mb-6">
@@ -238,8 +201,8 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 relative">
           <aside className="w-full lg:w-64 flex-shrink-0">
             <Suspense fallback={<div className="h-40 bg-stone-100 animate-pulse rounded-xl" />}>
-              <ProductFilters 
-                availableBrands={availableBrands} 
+              <ProductFilters
+                availableBrands={availableBrands}
                 availableShapes={availableShapes}
                 availableMaterials={availableMaterials}
               />
@@ -247,17 +210,18 @@ export default async function LentesDeSolPage({ searchParams }: { searchParams: 
           </aside>
 
           <div className="flex-1">
-            <CategoryGrid 
-              products={filteredProducts} 
-              categoryName="Lentes de Sol" 
-              emptyMessage={filterBrand ? `No encontramos anteojos de sol de la marca ${filterBrand}.` : "Estamos actualizando nuestra colección de anteojos de sol. ¡Volvé pronto para ver los nuevos modelos!"} 
+            <ListadoCatalogoFiltrado
+              productos={products}
+              nombreCategoria="Lentes de Sol"
+              mensajeVacio="Estamos actualizando nuestra colección de anteojos de sol. ¡Volvé pronto para ver los nuevos modelos!"
+              plantillaVacioPorMarca="No encontramos anteojos de sol de la marca {marca}."
             />
           </div>
         </div>
       </main>
 
       <StorefrontFooter />
-      
+
     </div>
   );
 }

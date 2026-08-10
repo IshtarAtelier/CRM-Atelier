@@ -197,6 +197,67 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+// ---------------------------------------------------------------------------
+// Recomendados por afinidad
+//
+// Antes esta sección traía los 4 primeros destacados de la categoría ordenados
+// por fecha: siempre los MISMOS cuatro armazones, mirara lo que mirara el
+// visitante. Alguien viendo un acetato cat-eye femenino terminaba con un
+// titanio masculino recomendado.
+//
+// El catálogo no tiene columnas de forma ni material (ver frame-specs.ts): se
+// puntúa con los mismos datos que ya usa la ficha para describirse a sí misma.
+// ---------------------------------------------------------------------------
+
+// La forma y el material son lo que se ve en la foto: dos cat-eye de acetato
+// "combinan" aunque sean de modelos distintos. El género pesa menos porque la
+// mitad del catálogo es Unisex y no discrimina nada. Un género OPUESTO resta:
+// es exactamente el error que se está corrigiendo, no alcanza con no premiarlo.
+const PESO_FORMA = 4;
+const PESO_MATERIAL = 3;
+const PESO_GENERO = 2;
+const PESO_GENERO_UNISEX = 1;
+const CASTIGO_GENERO_OPUESTO = -3;
+// Desempate por rango de precio: quien mira un armazón de $60.000 no está
+// buscando uno de $250.000. Es una comparación entre precios de lista, no un
+// cálculo de plata (eso vive solo en PricingService).
+const PESO_PRECIO_CERCANO = 1;
+const BANDA_PRECIO = 0.4;
+
+const CANTIDAD_RECOMENDADOS = 4;
+// Los candidatos se puntúan en memoria, así que se traen todos los publicados
+// (hoy ~110). El tope está para que la ficha no empiece a bajarse la tienda
+// entera el día que el catálogo crezca.
+const POOL_RECOMENDADOS = 200;
+
+const normalizarTexto = (valor?: string | null) =>
+  (valor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+// La forma puede venir compuesta ("Cuadrado, XL"): se compara por tokens para
+// que un XL matchee con un "Cuadrado, XL" en vez de fallar por el string entero.
+function comparteForma(a?: string | null, b?: string | null): boolean {
+  const tokens = (valor?: string | null) =>
+    normalizarTexto(valor).split(/[,/]+/).map(t => t.trim()).filter(Boolean);
+  const ta = tokens(a);
+  const tb = tokens(b);
+  return ta.length > 0 && tb.length > 0 && ta.some(t => tb.includes(t));
+}
+
+// Mismo orden de prioridad que usa la ficha para sí misma más abajo: el alt de
+// la foto es el dato REAL y le gana a getProductAttributes(), que adivina
+// "Metal" y "Cuadrado" por descarte cuando no reconoce el código de modelo.
+function specsDeCandidato(candidato: {
+  imageAlts: string[];
+  product: { model: string | null; seoTags: string | null };
+}) {
+  const delAlt = parseFrameSpecs(pickDescriptiveAlt(candidato.imageAlts));
+  const heuristica = getProductAttributes(candidato.product.model, candidato.product.seoTags);
+  return {
+    material: delAlt.material || heuristica.material,
+    shape: delAlt.shape || heuristica.shape,
+  };
+}
+
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
   if (LEGACY_SLUGS[resolvedParams.slug]) {
@@ -218,7 +279,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   }
 
   // Get material from product attributes
-  const { material } = getProductAttributes((product as any).modelCode || product.model, (product as any).seoTags);
+  const { material, shape: shapeHeuristica } = getProductAttributes((product as any).modelCode || product.model, (product as any).seoTags);
 
   // Color, material y forma REALES, sacados del alt de la foto (única fuente
   // del color en el catálogo; ver frame-specs.ts). El material del alt le gana
@@ -227,16 +288,21 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // decir menos que el aviso que trajo al visitante.
   const specs = parseFrameSpecs(pickDescriptiveAlt((product as any).imageAlts));
 
+  // Modelo base ("HY238014" de "HY238014 C4-1"): agrupa los colores del MISMO
+  // armazón. Lo usan las dos consultas de abajo — variantes para juntarlos y
+  // recomendados para no repetirlos. Un base de 1 o 2 caracteres matchearía
+  // media tienda, así que en ese caso vale null.
+  const baseModelCrudo = product.modelCode
+    ? product.modelCode.split(/[\s-]/)[0]
+    : product.model?.split(/[\s-]/)[0];
+  const baseModel = baseModelCrudo && baseModelCrudo.length > 2 ? baseModelCrudo : null;
+
   // Las dos consultas secundarias (variantes y relacionados) no dependen entre
   // sí: van en paralelo. Antes eran secuenciales y sumaban sus latencias al
   // TTFB, que ahora pesa más porque la ruta ya no streamea (ver nota del 404).
   const variantsPromise = (async (): Promise<any[]> => {
     try {
-      const baseModel = product.modelCode
-        ? product.modelCode.split(/[\s-]/)[0]
-        : product.model?.split(/[\s-]/)[0];
-
-      if (!baseModel || baseModel.length <= 2) return [];
+      if (!baseModel) return [];
       const siblings = await prisma.webProduct.findMany({
         where: {
           isActive: true,
@@ -271,26 +337,122 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   const relatedPromise = (async (): Promise<any[]> => {
     try {
-      const siblings = await prisma.webProduct.findMany({
+      // Forma, material y género de LO QUE SE ESTÁ MIRANDO: es contra esto que
+      // se puntúa. El alt de la foto manda; si no lo tiene, la heurística.
+      const shapeActual = specs.shape || shapeHeuristica;
+      const materialActual = specs.material || material;
+      const generoActual = normalizarTexto((product as any).gender);
+      const precioActual = product.price || 0;
+
+      // Sin filtro de categoría en el WHERE: la categoría ordena (abajo), no
+      // excluye. Así una ficha de Sol, que tiene pocos hermanos, completa los
+      // cuatro lugares en vez de quedarse con dos.
+      const candidatos = await prisma.webProduct.findMany({
         where: {
           isActive: true,
-          category: product.category,
           productId: { not: product.id },
-          product: { publishToWeb: true }
+          product: {
+            publishToWeb: true,
+            // Recomendar lo que no se puede comprar es regalar el clic.
+            stock: { gt: 0 }
+          }
         },
-        include: { product: true },
+        // select explícito: la fila entera de Product no entra acá y además
+        // contra producción devolverla revienta (el schema local va adelantado).
+        select: {
+          slug: true,
+          name: true,
+          images: true,
+          imageAlts: true,
+          category: true,
+          product: {
+            select: {
+              id: true,
+              brand: true,
+              model: true,
+              price: true,
+              salePrice: true,
+              wholesalePrice: true,
+              gender: true,
+              seoTags: true,
+              imagenesCatalogo: true
+            }
+          }
+        },
+        // Este orden es el desempate final: a igual afinidad gana el destacado
+        // y después el más nuevo (el criterio que antes era el único).
         orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
-        take: 4
+        take: POOL_RECOMENDADOS
       });
-      return siblings.map(wp => ({
-        id: wp.product.id,
-        brand: wp.product.brand || 'ATELIER',
-        model: wp.name || wp.product.model || '',
-        price: wp.product.price,
-        salePrice: wp.product.salePrice,
-        wholesalePrice: wp.product.wholesalePrice,
-        slug: wp.slug,
-        imageUrl: wp.images.length > 0 ? wp.images[0] : (wp.product.imagenesCatalogo?.[0] || '/images/placeholder.svg')
+
+      const puntuados = candidatos
+        // Los otros colores del mismo armazón ya están arriba en el selector de
+        // variantes: repetirlos acá quema los cuatro lugares en algo ya visible.
+        .filter(c => !baseModel || !normalizarTexto(c.product.model).startsWith(normalizarTexto(baseModel)))
+        .map(c => {
+          const specsCandidato = specsDeCandidato(c);
+          let puntos = 0;
+
+          if (comparteForma(specsCandidato.shape, shapeActual)) puntos += PESO_FORMA;
+          if (materialActual && normalizarTexto(specsCandidato.material) === normalizarTexto(materialActual)) {
+            puntos += PESO_MATERIAL;
+          }
+
+          const genero = normalizarTexto(c.product.gender);
+          if (genero && generoActual) {
+            if (genero === generoActual) puntos += PESO_GENERO;
+            else if (genero === 'unisex' || generoActual === 'unisex') puntos += PESO_GENERO_UNISEX;
+            else puntos += CASTIGO_GENERO_OPUESTO;
+          }
+
+          if (precioActual > 0 && c.product.price > 0 &&
+              Math.abs(c.product.price - precioActual) <= precioActual * BANDA_PRECIO) {
+            puntos += PESO_PRECIO_CERCANO;
+          }
+
+          return { c, puntos, mismaCategoria: c.category === product.category };
+        });
+
+      // La categoría no compite con el resto de las señales: manda. Un anteojo
+      // de sol perfecto en forma y material no debería colarse en la ficha de
+      // un armazón de receta mientras haya armazones de receta para mostrar.
+      // Array.sort es estable, así que el orderBy de la base sobrevive el empate.
+      puntuados.sort((a, b) =>
+        Number(b.mismaCategoria) - Number(a.mismaCategoria) || b.puntos - a.puntos
+      );
+
+      // Un lugar por armazón. Como los colores de un mismo modelo puntúan casi
+      // idéntico, sin esto la fila salía con "Gala C1" y "Gala C8" al lado —dos
+      // fotos casi iguales— en vez de cuatro opciones distintas.
+      const elegidos: typeof puntuados = [];
+      const basesUsadas = new Set<string>();
+      for (const candidato of puntuados) {
+        if (elegidos.length >= CANTIDAD_RECOMENDADOS) break;
+        const base = normalizarTexto(candidato.c.product.model).split(/[\s-]/)[0];
+        if (base.length > 2) {
+          if (basesUsadas.has(base)) continue;
+          basesUsadas.add(base);
+        }
+        elegidos.push(candidato);
+      }
+      // Si el catálogo no da para cuatro modelos distintos, se completa con lo
+      // que quedó afuera: mejor un color repetido que un hueco en la grilla.
+      if (elegidos.length < CANTIDAD_RECOMENDADOS) {
+        for (const candidato of puntuados) {
+          if (elegidos.length >= CANTIDAD_RECOMENDADOS) break;
+          if (!elegidos.includes(candidato)) elegidos.push(candidato);
+        }
+      }
+
+      return elegidos.map(({ c }) => ({
+        id: c.product.id,
+        brand: c.product.brand || 'ATELIER',
+        model: c.name || c.product.model || '',
+        price: c.product.price,
+        salePrice: c.product.salePrice,
+        wholesalePrice: c.product.wholesalePrice,
+        slug: c.slug,
+        imageUrl: c.images.length > 0 ? c.images[0] : (c.product.imagenesCatalogo?.[0] || '/images/placeholder.svg')
       }));
     } catch (err) {
       console.error("Error fetching related products:", err);
