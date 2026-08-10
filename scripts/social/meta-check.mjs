@@ -138,10 +138,21 @@ async function api(path, token, params = {}) {
                 marcarFalla(`La Página ${PAGE_ID} no está entre las que ve el token. Páginas visibles: ${paginas.map(p => `${p.name} (${p.id})`).join(', ')}`);
             } else if (pagina) {
                 ok(`Página: ${pagina.name} (${pagina.id})`);
+                // AVISO, no FALLA — y esto costó tiempo real el 10/8/2026.
+                // El chequeo dijo "Sin permiso CREATE_CONTENT, permisos
+                // actuales: ADVERTISE" y mandó a tocar roles en Business
+                // Manager. La publicación funcionó igual, en Facebook Y en
+                // Instagram, sin cambiar absolutamente nada.
+                // El `tasks` que devuelve `me/accounts` no refleja lo que el
+                // token puede hacer de verdad. La prueba que vale es si se
+                // deriva el token de Página (paso 4): eso es lo que exigen
+                // Facebook e Instagram para publicar.
+                // Un chequeo con falso negativo hace perder más tiempo que uno
+                // que no existe, porque manda a arreglar lo que no está roto.
                 const tasks = pagina.tasks || [];
                 tasks.includes('CREATE_CONTENT')
                     ? ok('Tiene permiso de crear contenido')
-                    : marcarFalla(`Sin permiso CREATE_CONTENT. Permisos actuales: ${tasks.join(', ') || 'ninguno'}`);
+                    : aviso(`El listado dice "${tasks.join(', ') || 'ninguno'}", no CREATE_CONTENT. Suele ser falso negativo: si el paso 4 deriva el token de Página, se publica igual. PROBAR antes de tocar permisos.`);
             }
         }
     }
