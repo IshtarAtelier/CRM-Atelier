@@ -82,7 +82,7 @@ Duplicación de reglas, transacciones, estructura, observabilidad. Detalle en la
 - [x] 🟢 **B6** — Landing `/multifocales` *(el head term mandaba su tráfico a un 404)*
 - [x] ✅ **B7** — `aggregateRating` self-serving fuera *(riesgo de sanción de Google)*
 - [x] ✅ **B8** — 46 doorways → 301 + fuera del sitemap
-- [ ] ⬜ **B9** — Conversiones offline a Google Ads: falta pasar el `gclid` (ya se guarda) y crear la acción
+- [ ] 🔒 **B9** — Conversiones offline a Google Ads. **Código listo**: `findClickIds()` recupera el click id y la venta se sube al cerrarse; además `wbraid`/`gbraid` ahora viajan en el evento (se capturaban y nunca subían — en iOS Google no manda `gclid`, así que esas ventas quedaban sin atribuir). *Falta crear la acción de conversión en la cuenta de Google Ads — eso es tuyo*
 - [ ] 🔒 **B10** — Alta en Merchant Center *(requiere B2 y sacar PREVENTA primero)*
 - [x] ✅ **B11** — UTMs en el pipeline social
 - [ ] 🔒 **B12** — Dar de alta los crons en el scheduler. *Código terminado; sin esto el carrito abandonado no recupera un peso y no sale el reporte diario*
@@ -129,7 +129,7 @@ Duplicación de reglas, transacciones, estructura, observabilidad. Detalle en la
 - [x] ✅ **Flujo 3** — Habilitante del pipeline *(whitelist a array + firma `Bot`)*
 - [ ] 🔄 **Flujo 4** — Posventa a los 10 días *(sin reseña encadenada — ver Flujo 2)*
 - [ ] 🔒 **Flujo 5** — Renovación de receta a 12-18 meses. **El mayor ROI del plan**: a $834.000 el ticket, 5 reactivaciones al mes lo pagan todo. *Requiere dimensionar la cohorte contra producción*
-- [ ] ⬜ **Flujo 6** — Carrito multi-toque
+- [x] ✅ **Flujo 6** — Carrito multi-toque *(2º toque + canal WhatsApp con reclamo atómico; migración aplicada. Sigue esperando el alta del cron — Flujo 1)*
 - [ ] 🔒 **Flujo 7** — Segundo par con descuento *(falta aprobar el cupón)*
 - [ ] ⬜ **Flujo 8** — Capturar fecha de nacimiento en el checkout *(hoy 2 de 1096 fichas la tienen)*
 - [ ] ⬜ **Infra** — Exclusión mutua de 14 días entre flujos *(prerequisito de prender el segundo)*
@@ -137,10 +137,12 @@ Duplicación de reglas, transacciones, estructura, observabilidad. Detalle en la
 ### A.5 Placas y contenido
 
 - [ ] 🔒 **Regenerar 3 piezas con precio** ⏰ *(se generaron el 6/8 y la guarda corta a los 10 días: dos publicaciones programadas se van a saltear solas)*
-- [ ] ⬜ Plantilla de testimonio *(con validación anti-cita-inventada)*
-- [ ] ⬜ Generador de piezas de multifocal desde la base
-- [ ] ⬜ 4 piezas nuevas del calendario + campo CTA en las stories
+- [x] ✅ Plantilla de testimonio *(con validación anti-cita-inventada: sin `resena:{autor, fuente}` no renderiza)*
+- [x] ✅ Generador de piezas de multifocal desde la base *(carrusel + 4 tamaños de ad + el ancla de la landing, todo del mismo cálculo)*
+- [x] ✅ 4 piezas nuevas del calendario + campo CTA en las stories *(el CTA se escribía y no se dibujaba; ahora se renderiza y R6 lo revisa)*
 - [x] ✅ Guarda de frescura en las stories con precio *(podían publicar un precio de hace meses)*
+- [x] ✅ **La frescura ahora mira contra QUÉ base se generó**, no solo cuándo. Una pieza hecha contra docker traía precios de semanas atrás y salía marcada como fresca; los dos crons usan el mismo helper (antes el del feed tenía su propia copia de la regla)
+- [ ] 🔒 **Regenerar las 5 piezas de multifocal con `--produccion`** *(hoy están selladas `local` y la guarda las bloquea, que es lo correcto. Requiere tu OK para leer la base de producción)*
 
 ### A.6 Inversión
 
