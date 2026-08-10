@@ -1,0 +1,53 @@
+{
+  "id": "renova-tu-receta",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Nadie nota que ve un 10% peor: el cerebro compensa. Por eso la receta tiene vencimiento aunque el anteojo esté impecable.\n\nSi tus multifocales tienen más de dos años, vení a chequear. Traé el que usás: medimos qué graduación tiene puesta y la comparamos con cómo estás viendo hoy. Capaz están perfectos y te vas tranquilo, capaz te estás perdiendo de ver bien.\n\nWhatsApp o sin turno, en Cerro de las Rosas.",
+  "temas": [
+    "receta",
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/multifocal-mujer-lectura.png",
+      "title": "¿Tus anteojos tienen *más de dos años*?",
+      "subtitle": "La vista cambia despacio. Uno se acostumbra a ver peor sin darse cuenta."
+    },
+    {
+      "type": "list",
+      "title": "Señales de que la receta venció",
+      "items": [
+        "Acercás o alejás el celular para enfocar",
+        "Leer te cansa o te deja dolor de cabeza",
+        "De noche las luces encandilan más que antes"
+      ]
+    },
+    {
+      "type": "number",
+      "dato": "1 a 2 años",
+      "title": "Un multifocal se renueva cada",
+      "body": "No porque se gaste el cristal: porque cambia tu vista."
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/medicion-pupilar-optica.png",
+      "title": "Cómo sabemos si *sigue siendo la tuya*",
+      "items": [
+        "Traé el anteojo que usás: medimos qué graduación tiene puesta",
+        "La comparamos con cómo estás viendo hoy",
+        "Si no cambió, te lo decimos y listo"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Vení a chequearla",
+      "body": "Es un rato, y salís sabiendo si tu graduación sigue siendo la tuya. WhatsApp o sin turno previo."
+    }
+  ]
+}

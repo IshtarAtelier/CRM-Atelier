@@ -1,0 +1,56 @@
+{
+  "id": "multifocal-desde",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "accion",
+  "fuente": "base",
+  "generadoEl": "2026-08-10",
+  "generadoDesde": "local",
+  "temas": [
+    "multifocales"
+  ],
+  "caption": "Cuánto sale un multifocal en Atelier, sin \"consultar precio\".\n\nCristales multifocales desde $269.000 — 6 cuotas sin interés de $44.833, o $228.650 en efectivo o transferencia (ahorrás 15%).\nEs el cristal: el armazón lo elegís vos, y arrancan en $160.000.\n\nLas gamas y desde cuánto arranca cada una:\n· Diseño Digital ONE — desde $269.000\n· Varilux Premium — desde $1.346.599 (los dos pares, 2x1)\n\nLos medimos con tu armazón puesto y quedás con 30 días de garantía de adaptación: si no te adaptás, rehacemos el cristal.\n\nMandanos la receta por WhatsApp y te pasamos el total exacto. Cerro de las Rosas, sin turno previo.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/multifocal-mujer-lectura.png",
+      "title": "Cristales multifocales *desde $269.000*",
+      "subtitle": "Sin \"consultar precio\". El armazón lo elegís vos."
+    },
+    {
+      "type": "number",
+      "role": "bisagra",
+      "image": "blog/lentes-progresivos-zonas.png",
+      "encuadre": "cover",
+      "title": "6 cuotas sin interés",
+      "dato": "$44.833",
+      "body": "$228.650 en efectivo o transferencia (ahorrás 15%)"
+    },
+    {
+      "type": "list",
+      "title": "Las gamas, y *desde cuánto* arranca cada una",
+      "items": [
+        "Diseño Digital ONE — desde $269.000 (campo visual amplio)",
+        "Varilux Premium — desde $1.346.599 (la gama alta de Essilor) · los dos pares (2x1)"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que *incluye*",
+      "items": [
+        "Medición con tu armazón puesto, no con una plantilla",
+        "*30 días de garantía de adaptación*: si no te adaptás, rehacemos el cristal",
+        "Laboratorio propio: si algo hay que corregir, se corrige acá",
+        "Armazones recetados desde $160.000, también en cuotas"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Mandanos tu receta",
+      "body": "Te pasamos el total exacto con el armazón que elijas. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

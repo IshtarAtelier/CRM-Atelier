@@ -1,0 +1,53 @@
+{
+  "id": "sol-con-receta",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "El anteojo de sol con receta no es un producto aparte: es cualquier armazón que te quede bien, con tu graduación y el tratamiento que uses — teñido, polarizado o fotocromático.\n\nEso cambia la pregunta. No es «cuáles son los de sol», es «cuál te gusta»: el catálogo de sol pasa a ser toda la vidriera.\n\nSi usás multifocales, también se puede: sol de lejos y de cerca en el mismo anteojo.\n\nMandanos tu receta por WhatsApp y armamos opciones con foto. Cerro de las Rosas, sin turno previo.",
+  "temas": [
+    "sol",
+    "armazones"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog5_cordoba.png",
+      "title": "Cualquier armazón de la óptica *se hace lente de sol* con tu receta",
+      "subtitle": "El modelo lo elegís vos. El color y la graduación los ponemos nosotros."
+    },
+    {
+      "type": "list",
+      "title": "Cómo es",
+      "items": [
+        "Elegís cualquier armazón de receta que te guste",
+        "Teñimos o *polarizamos* el cristal con tu graduación",
+        "¿Multifocal? También: sol de lejos y de cerca en el mismo anteojo"
+      ]
+    },
+    {
+      "type": "number",
+      "dato": "Todo el local",
+      "title": "Tu catálogo de sol acaba de crecer",
+      "body": "No son 10 modelos de sol: es cada armazón de la vidriera, hecho sol."
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/muestrario-smart-lens.jpg",
+      "title": "Lo que conviene decidir *antes*",
+      "items": [
+        "El teñido va de suave a full, y el degradé también existe",
+        "Polarizado no es sinónimo de oscuro: corta el reflejo, no la luz",
+        "Si querés uno solo para todo, el fotocromático se oscurece al sol"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Traé tu receta y elegí",
+      "body": "O mandala por WhatsApp y te pasamos opciones con foto. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "id": "agenda-tu-medicion",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "El multifocal que marea casi nunca es culpa del cristal: es una medición hecha a las apuradas, o directamente sin el armazón puesto.\n\nAcá la medición es el corazón del trabajo. Se toma con el aro que elegiste ya apoyado en tu cara, porque dos milímetros de diferencia en un progresivo se sienten todo el día.\n\nEscribinos por WhatsApp y coordinamos un momento tranquilo para vos. También podés venir sin turno: lunes a viernes de 8 a 20, sábados de 9 a 17.",
+  "temas": [
+    "multifocales",
+    "local"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/medicion-pupilar-optica.png",
+      "title": "Un buen anteojo empieza *antes* de elegir el armazón",
+      "subtitle": "La medición es lo que hace que un multifocal funcione. O no."
+    },
+    {
+      "type": "list",
+      "title": "Qué pasa en tu visita",
+      "items": [
+        "Tomamos tu receta, o te medimos la vista",
+        "Medimos con *el armazón puesto*: altura, distancia, inclinación",
+        "Te decimos qué cristal conviene para TU uso, no el más caro"
+      ]
+    },
+    {
+      "type": "number",
+      "dato": "3 medidas",
+      "title": "Se toman con el aro en tu cara",
+      "body": "Distancia entre pupilas, altura de montaje y distancia al vértice. Ninguna de las tres sale de un promedio."
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Por qué esto es *presencial*",
+      "items": [
+        "Dos milímetros de diferencia en un multifocal se sienten todo el día",
+        "Ningún formulario online puede medir cómo te queda un armazón",
+        "Por eso podemos dar la garantía: medimos nosotros"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Coordiná tu visita por WhatsApp",
+      "body": "Decinos qué día te queda cómodo y te esperamos. También sin turno: lunes a viernes de 8 a 20, sábados de 9 a 17."
+    }
+  ]
+}

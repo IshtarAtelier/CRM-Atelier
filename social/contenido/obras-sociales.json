@@ -1,0 +1,54 @@
+{
+  "id": "obras-sociales",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "accion",
+  "_pendiente": "Escrita a propósito SIN nombrar ninguna obra social ni prepaga: la dueña todavía no confirmó qué convenios están activos (§0.4 del plan, pregunta B15). La mecánica que describe es la de REINTEGRO, que es la única que hoy afirma src/app/obras-sociales/page.tsx — si algún día hay convenio directo (la óptica cobra la diferencia y tramita ella), esta pieza hay que reescribirla entera, no parchearla. Antes de publicar: que la dueña lea la slide 4, que es la que promete que el reintegro se suma a las promos.",
+  "caption": "La pregunta que más escuchamos en el mostrador: «¿trabajan con mi obra social?».\n\nTrabajamos por reintegro, y para vos eso tiene una ventaja concreta: elegís el armazón que te gusta y el cristal que necesitás, sin quedar atado a los tres modelos de la cartilla. Nosotros te damos la factura con los conceptos como los pide tu cobertura, y el trámite lo cargás en la app de tu prepaga.\n\nCuánto te devuelven depende del plan que tengas contratado, así que eso conviene chequearlo con ellos. Lo que sí te aseguramos: el reintegro se suma a nuestras promos, no las reemplaza.\n\nMandanos la foto de tu orden médica por WhatsApp y te pasamos el presupuesto detallado, listo para presentar.\n\nhttps://atelieroptica.com.ar/obras-sociales",
+  "temas": [
+    "receta",
+    "local"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Tu prepaga *te devuelve parte* de tus anteojos",
+      "subtitle": "Nosotros te damos la factura como la piden. El trámite lo cargás en tu app."
+    },
+    {
+      "type": "list",
+      "title": "Cómo funciona, sin vueltas",
+      "items": [
+        "Traés tu receta del oftalmólogo, en papel o foto",
+        "Elegís armazón y cristales sin quedarte en la cartilla básica",
+        "Te damos la factura con los conceptos que pide tu cobertura"
+      ]
+    },
+    {
+      "type": "number",
+      "dato": "La factura",
+      "title": "Es lo que hace que el reintegro entre",
+      "body": "Detallada con los conceptos que exige la Superintendencia de Servicios de Salud. Sin eso, el trámite vuelve."
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "Lo que casi nadie te aclara",
+      "items": [
+        "El reintegro *se suma* a las cuotas sin interés y al descuento por transferencia",
+        "Cuánto te cubre depende de tu plan: preguntáselo a tu cobertura antes de comprar",
+        "La receta vence: pedila con fecha, número de afiliado, firma y sello"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Consultá por la tuya",
+      "body": "Mandanos la foto de tu orden por WhatsApp y te pasamos el presupuesto detallado. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

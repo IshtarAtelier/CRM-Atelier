@@ -13,7 +13,14 @@
     "",
     "Las de producto se regeneran desde la base con:",
     "  node scripts/social/generar-story-producto.mjs --produccion --cantidad 20",
-    "Eso las actualiza con los precios y las fotos vigentes."
+    "Eso las actualiza con los precios y las fotos vigentes.",
+    "",
+    "Esa misma corrida es la que les pone la llamada a la acción (campo `cta` de",
+    "la slide: «Pedí tu presupuesto 👉 WhatsApp»). Las de producto que ya están",
+    "en esta lista se generaron ANTES de que existiera el campo, así que salen",
+    "sin CTA hasta que se las regenere y se las vuelva a renderizar.",
+    "El texto se cambia con --cta y se saca con --sin-cta; nunca puede llevar un",
+    "importe adentro — el precio sale de la base (regla R6)."
   ],
   "carriles": {
     "contenido": [
