@@ -22,6 +22,13 @@ export const ANALYTICS_EVENT_TYPES = [
   'wholesale_catalog_view', // abrió el link del catálogo mayorista (/mayorista/catalogo)
   'whatsapp_click', // tocó cualquier link a wa.me del sitio
   'phone_click', // tocó el botón de llamar
+  // Cartel de cookies: se registra que se MOSTRÓ y qué se decidió. Con esos dos
+  // números sale la tasa de "lo ignoró", que es la porción de visitantes que
+  // Meta no puede ver (el Pixel solo carga con consentimiento). Sin esto, la
+  // pérdida de medición es una intuición y no un número. Va por la analítica
+  // propia, que no usa cookies y por eso puede registrarlo sin consentimiento.
+  'consent_shown',
+  'consent_decision',
 ] as const;
 
 export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];

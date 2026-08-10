@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { track } from '@/lib/client-analytics';
 
 const CONSENT_KEY = 'ate_consent';
 const EVENT = 'ate-consent-change';
@@ -27,6 +28,10 @@ function setConsent(v: ConsentValue) {
     // (que es cuando más hace falta el envío server-side) esa cookie no existe.
     document.cookie = `${CONSENT_KEY}=${v}; max-age=15552000; path=/; SameSite=Lax`;
     window.dispatchEvent(new Event(EVENT));
+    // Qué decidió. Cruzado con `consent_shown` da la tasa de aceptación y, por
+    // resta, cuántos ignoran el cartel — o sea el tamaño del punto ciego de
+    // Meta. Va por la analítica propia, que no usa cookies.
+    track('consent_decision', { meta: { decision: v } });
   } catch {
     /* noop */
   }
@@ -52,7 +57,11 @@ export default function CookieConsent() {
   const [decided, setDecided] = useState(true); // asumir decidido hasta montar (evita flash SSR)
 
   useEffect(() => {
-    setDecided(getConsent() !== null);
+    const yaDecidio = getConsent() !== null;
+    setDecided(yaDecidio);
+    // Se registra una sola vez, cuando el cartel realmente se muestra. Es el
+    // denominador: sin él, "10 aceptaron" no dice nada.
+    if (!yaDecidio) track('consent_shown');
   }, []);
 
   if (decided) return null;
