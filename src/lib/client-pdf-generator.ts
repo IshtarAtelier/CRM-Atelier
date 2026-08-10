@@ -1,4 +1,5 @@
 import { formatDate } from '@/lib/format-date';
+import { PricingService } from '@/services/PricingService';
 import { WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -94,7 +95,11 @@ function getClientHtml(client: any): string {
         } catch {
             ordDate = '-';
         }
-        const remaining = Math.max(0, ord.total - ord.paid);
+        // El saldo lo calcula PricingService, no una resta: hay que convertir
+        // cada pago a su equivalente de lista antes de restarlo. Con la resta
+        // nominal, todo descuento por método de pago reaparecía como deuda en el
+        // PDF que recibe el CLIENTE — el peor lugar para un saldo inventado.
+        const remaining = Math.max(0, PricingService.calculateOrderFinancials(ord).remainingCard);
         const statusLabel = ord.status === 'COMPLETED' ? 'Completado' : ord.status === 'PENDING' ? 'Pendiente' : ord.status;
         const typeLabel = ord.orderType === 'SALE' ? 'Venta' : 'Presupuesto';
         
@@ -535,7 +540,11 @@ async function generateClientPDFWithJsPDF(client: any, filename: string): Promis
     (client.orders || []).forEach((ord: any) => {
         let ordDate = '';
         try { ordDate = format(new Date(ord.createdAt), "dd/MM/yyyy"); } catch { ordDate = '-'; }
-        const remaining = Math.max(0, ord.total - ord.paid);
+        // El saldo lo calcula PricingService, no una resta: hay que convertir
+        // cada pago a su equivalente de lista antes de restarlo. Con la resta
+        // nominal, todo descuento por método de pago reaparecía como deuda en el
+        // PDF que recibe el CLIENTE — el peor lugar para un saldo inventado.
+        const remaining = Math.max(0, PricingService.calculateOrderFinancials(ord).remainingCard);
         const itemsList = (ord.items || []).map((it: any) => {
             return `${it.product?.brand || it.productBrandSnapshot || ''} (x${it.quantity})`;
         }).join(', ');

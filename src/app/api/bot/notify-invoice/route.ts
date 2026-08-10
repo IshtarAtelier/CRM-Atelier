@@ -33,7 +33,13 @@ export async function POST(request: Request) {
                         include: {
                             items: {
                                 include: { product: true }
-                            }
+                            },
+                            // Los pagos son imprescindibles: el PDF que recibe el
+                            // cliente calcula el saldo con PricingService, y ese
+                            // cálculo necesita convertir cada pago a su
+                            // equivalente de lista. Sin esta relación el saldo
+                            // salía de `total − paid`, que es la resta prohibida.
+                            payments: true,
                         }
                     },
                     interactions: { orderBy: { createdAt: 'desc' }, take: 10 },

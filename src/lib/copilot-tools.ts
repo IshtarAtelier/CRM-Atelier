@@ -670,6 +670,13 @@ const getClientHistory: CopilotTool = {
         total: true,
         paid: true,
         createdAt: true,
+        // Lo que necesita PricingService para calcular el saldo de verdad:
+        // el precio de lista y los pagos con su método, para convertir cada uno
+        // a su equivalente de lista antes de restarlo.
+        subtotalWithMarkup: true,
+        discountCash: true,
+        discountTransfer: true,
+        payments: { select: { amount: true, method: true } },
         items: {
           select: {
             productNameSnapshot: true,
@@ -690,7 +697,12 @@ const getClientHistory: CopilotTool = {
       estado: o.status,
       total: `$${o.total.toLocaleString('es-AR')}`,
       pagado: `$${o.paid.toLocaleString('es-AR')}`,
-      saldo: `$${Math.max(0, o.total - o.paid).toLocaleString('es-AR')}`,
+      // El saldo sale de PricingService, no de `total − paid`. Con la resta
+      // nominal, cada descuento por método de pago volvía como deuda: es la
+      // fórmula que inventó 76 saldos fantasma en producción. Acá pesa doble
+      // porque es lo que el Copilot le responde al staff cuando pregunta
+      // "cuánto debe este cliente", y con eso se le reclama plata a la gente.
+      saldo: `$${Math.max(0, PricingService.calculateOrderFinancials(o).remainingCard).toLocaleString('es-AR')}`,
       fecha: o.createdAt.toISOString().split('T')[0],
       items: o.items.map(i => `${i.quantity}x ${i.productBrandSnapshot || ''} ${i.productNameSnapshot || ''} (${i.productCategorySnapshot || ''}) - $${i.price.toLocaleString('es-AR')}`),
     })));
