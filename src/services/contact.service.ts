@@ -199,15 +199,6 @@ export async function syncContactTags(
     }
 }
 
-/**
- * Alias histórico. El canal ya no se pasa por parámetro: `syncContactTags` lo
- * lee de la ficha junto con el `adTag`, que es lo que la vuelve idempotente y
- * llamable desde el cron sin cargar nada.
- * @deprecated usar `syncContactTags(clientId)`.
- */
-export async function syncContactSourceTag(clientId: string, _contactSource?: string | null) {
-    await syncContactTags(clientId);
-}
 
 /**
  * Aviso de excedente de cobro.
