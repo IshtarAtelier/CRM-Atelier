@@ -62,11 +62,11 @@ Duplicación de reglas, transacciones, estructura, observabilidad. Detalle en la
 
 ## 🔴 LO URGENTE (hoy)
 
-- [ ] 🔒 **Subir los 3 commits pendientes.** Un solo comando; resuelve también lo de abajo:
+- [ ] 🔒 **Subir los 7 commits pendientes.** Un solo comando:
       `cd /Users/ishtarpissano/proyectos/atelier-auditoria && git push origin deploy/bot-recetas:main`
-- [ ] 🔒 **La tienda no mide nada desde el deploy de hoy.** Ni píxel, ni Analytics, ni Google Ads. Causa identificada: la home se prerenderiza y el build horneó las variables como `undefined`. El push de arriba dispara el rebuild y lo arregla — ya va con una guarda que impide que se repita.
-- [ ] 🔒 **Sacar el aviso "PREVENTA" de las fichas.** Script listo, simula por defecto. Escribe en producción, por eso necesita tu OK:
-      `DATABASE_URL="$PROD_DATABASE_URL" node scripts/maintenance/sacar-aviso-preventa.mjs`
+- [x] ✅ **La tienda volvió a medir.** Verificado el 10/8 contra el HTML servido de atelieroptica.com.ar: GA4 (`G-DGYJPFKJMY`, `G-S4C9E97Q4K`), Google Ads (`AW-16543752866`) y el pixel de Meta (`789449199606215`, detrás del consentimiento, como corresponde). Cero `undefined` horneados. La guarda de build impide que vuelva a pasar.
+- [x] ✅ **Sacar el aviso "PREVENTA" de las fichas.** HECHO el 10/8/2026 con tu autorización: 117 descripciones limpias en producción, verificado en la tienda en vivo (teseo-c1, nashira-c3, adhara-c4). El script ahora toma `--produccion` y sigue simulando por defecto:
+      `node --env-file=.env scripts/maintenance/sacar-aviso-preventa.mjs --produccion`
 
 ---
 
@@ -93,7 +93,7 @@ Duplicación de reglas, transacciones, estructura, observabilidad. Detalle en la
 ### A.2 Quick wins (QW1–QW15)
 
 - [x] ✅ **QW1** — CTAs mobile destapados
-- [ ] 🔒 **QW2** — Sacar "PREVENTA" de las fichas *(ver LO URGENTE)*
+- [x] ✅ **QW2** — Sacar "PREVENTA" de las fichas *(117 fichas, hecho el 10/8)*
 - [x] ✅ **QW3** — Multifocales en el hero y en el nav *(también en el menú mobile, que decía "Cristales")*
 - [x] ✅ **QW4** — Carrusel sin pantalla negra + CTAs que dejaron de parpadear
 - [x] ✅ **QW5** — og:image AVIF → WebP *(los links de WhatsApp salían sin foto)*

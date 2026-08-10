@@ -16,17 +16,30 @@
  * descripción. No toca `stock` ni la disponibilidad — si un producto es
  * realmente preventa, eso se marca por stock, no con un texto pegado adelante.
  *
- * Uso:
+ * Uso (base local):
  *   node scripts/maintenance/sacar-aviso-preventa.mjs             → simula
  *   node scripts/maintenance/sacar-aviso-preventa.mjs --aplicar   → escribe
  *
- * Contra PRODUCCIÓN (requiere autorización explícita de la dueña):
- *   DATABASE_URL="$PROD_DATABASE_URL" node scripts/maintenance/sacar-aviso-preventa.mjs
+ * Contra PRODUCCIÓN — requiere autorización explícita de la dueña. `--produccion`
+ * usa PROD_DATABASE_URL en lugar de DATABASE_URL, así no hay que armar la variable
+ * a mano en la línea de comandos (que es como se termina apuntando a la base
+ * equivocada por un typo):
+ *   node --env-file=.env scripts/maintenance/sacar-aviso-preventa.mjs --produccion
+ *   node --env-file=.env scripts/maintenance/sacar-aviso-preventa.mjs --produccion --aplicar
  */
 import { PrismaClient } from '@prisma/client';
 
 const APLICAR = process.argv.includes('--aplicar');
-const prisma = new PrismaClient();
+const PRODUCCION = process.argv.includes('--produccion');
+
+if (PRODUCCION && !process.env.PROD_DATABASE_URL) {
+  console.error('Falta PROD_DATABASE_URL. Corré el comando con --env-file=.env desde la carpeta que tiene el .env.');
+  process.exit(1);
+}
+
+const prisma = new PrismaClient(
+  PRODUCCION ? { datasources: { db: { url: process.env.PROD_DATABASE_URL } } } : {},
+);
 
 /**
  * El aviso, en las variantes que aparecieron. Se saca solo si está al PRINCIPIO:
@@ -35,7 +48,7 @@ const prisma = new PrismaClient();
  */
 const PATRON = /^\s*(⏳\s*)?PREVENTA\s*[·:.-]?\s*Entrega estimada en\s*~?\s*1\s*semana[^\n.]*\.?\s*/i;
 
-const url = process.env.DATABASE_URL || '';
+const url = (PRODUCCION ? process.env.PROD_DATABASE_URL : process.env.DATABASE_URL) || '';
 const esProd = !url.includes('localhost') && !url.includes('127.0.0.1');
 console.log(`Base: ${esProd ? '⚠️  PRODUCCIÓN' : 'local'} · modo: ${APLICAR ? 'APLICAR (escribe)' : 'simulación'}\n`);
 
