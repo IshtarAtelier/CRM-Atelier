@@ -14,10 +14,14 @@
 //
 // QUÉ NO TOCA
 // Las etiquetas de negocio ("Multifocal", "Bot Lead", "Sin Seguimiento",
-// "Ocusis", "VIP"…). El portero es `esEtiquetaAdministrada()` de
+// "Ocusis", "VIP"…). El portero del borrado es `esEtiquetaDesconectable()` de
 // `src/lib/contact-tags.ts` — el MISMO que usa `syncContactTags()` en el
 // service, así que script y app no pueden opinar distinto sobre qué es suyo.
 // Acá solo vive la mecánica de recorrer en lote; ninguna decisión.
+//
+// Ojo con la asimetría, que es a propósito: "Calle", "Referido" y "Otros" se
+// CONECTAN pero nunca se desconectan (son palabras que el bot puede inventar
+// con otro significado y `Tag` no guarda quién la puso).
 //
 // CONTRA QUÉ BASE PEGA
 //   sin flags → DATABASE_URL del .env (docker local: postgres@localhost:5432)
@@ -67,7 +71,7 @@ registerHooks({
     },
 });
 
-const { etiquetasQueLeCorresponden, esEtiquetaAdministrada, TAG_POR_CANAL, COLOR_ANUNCIO, PREFIJO_ANUNCIO } =
+const { etiquetasQueLeCorresponden, esEtiquetaAdministrada, esEtiquetaDesconectable, TAG_POR_CANAL, COLOR_ANUNCIO, PREFIJO_ANUNCIO } =
     await import(pathToFileURL(resolve(RAIZ, 'src/lib/contact-tags.ts')).href);
 
 const COMMIT = process.argv.includes('--commit');
@@ -84,6 +88,18 @@ if (!url) {
 }
 // Se imprime SOLO el host: la URL lleva la contraseña adentro.
 const host = (() => { try { return new URL(url).host; } catch { return '(host ilegible)'; } })();
+
+// El camino accidental a producción NO es olvidarse un flag: es que el
+// DATABASE_URL del .env haya quedado apuntando a Railway (pasó en este proyecto).
+// Sin --prod exigimos que la base sea local, así "correrlo en local" no puede
+// escribir en producción por una variable mal puesta.
+const esLocal = /^(localhost|127\.0\.0\.1|\[::1\])(:|$)/.test(host);
+if (!PROD && !esLocal) {
+    console.error(`❌ Sin --prod esto solo corre contra una base LOCAL, y DATABASE_URL apunta a "${host}".`);
+    console.error('   Si de verdad querías producción, pedí OK y usá --prod (que lee PROD_DATABASE_URL).');
+    process.exit(1);
+}
+
 const prisma = new PrismaClient({ datasources: { db: { url } } });
 
 /** Color canónico de una etiqueta administrada, o null si no es administrada. */
@@ -110,7 +126,7 @@ async function revertir(archivo) {
             select: { tags: { select: { id: true, name: true } } },
         });
         if (!actual) continue;
-        const administradasAhora = actual.tags.filter(t => esEtiquetaAdministrada(t.name));
+        const administradasAhora = actual.tags.filter(t => esEtiquetaDesconectable(t.name));
         const tags = await prisma.tag.findMany({ where: { name: { in: c.etiquetasAdministradas } } });
         await prisma.client.update({
             where: { id: c.id },
@@ -162,7 +178,7 @@ async function main() {
 
         const nombresDeseados = new Set(deseadas.map(t => t.name));
         const faltan = deseadas.filter(t => !c.tags.some(a => a.name === t.name));
-        const sobran = c.tags.filter(a => esEtiquetaAdministrada(a.name) && !nombresDeseados.has(a.name));
+        const sobran = c.tags.filter(a => esEtiquetaDesconectable(a.name) && !nombresDeseados.has(a.name));
         if (!faltan.length && !sobran.length) continue;
 
         for (const t of faltan) porConectar.set(t.name, (porConectar.get(t.name) || 0) + 1);
