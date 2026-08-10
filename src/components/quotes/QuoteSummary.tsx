@@ -509,10 +509,22 @@ export default function QuoteSummary({
                     </div>
                 </div>
 
+                {/* Con un descuento especial que cubre todo el presupuesto, el saldo da
+                    0 y la fila mostraba "PAGADO" a secas: parecía cobrado cuando en
+                    realidad fue bonificado. El aviso va antes del estado, y solo si
+                    hubo descuento. */}
+                {financials.specialDiscount > 0 && (
+                    <div className="hidden md:flex items-center px-4 border-l border-stone-100 dark:border-stone-700 ml-4">
+                        <span className="px-3 py-1 bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-200 dark:border-rose-800">
+                            Dto. especial −${Math.round(financials.specialDiscount).toLocaleString()}
+                        </span>
+                    </div>
+                )}
+
                 {!financials.hasBalance && (
                     <div className="hidden md:flex items-center gap-2 px-4 border-l border-stone-100 dark:border-stone-700 ml-4">
                          <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800">
-                            PAGADO
+                            {financials.specialDiscount > 0 && financials.paidReal === 0 ? 'BONIFICADO' : 'PAGADO'}
                         </span>
                     </div>
                 )}
@@ -848,6 +860,25 @@ export default function QuoteSummary({
                         <Calculator className="w-4 h-4 text-stone-400" />
                         <h4 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Totales por Método</h4>
                     </div>
+                    {/* Solo si el admin aplicó un descuento especial. Sin esto, los tres
+                        totales aparecen ya descontados y no hay forma de saber por qué —
+                        con un descuento que cubre todo el presupuesto, quedaban tres $0
+                        sin ninguna explicación en pantalla. */}
+                    {financials.specialDiscount > 0 && (
+                        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 rounded-3xl bg-rose-50 dark:bg-rose-950/30 border-2 border-rose-100/70 dark:border-rose-900/50">
+                            <div>
+                                <p className="text-[10px] font-black text-rose-700 dark:text-rose-300 uppercase tracking-widest">Descuento especial</p>
+                                <p className="text-[9px] font-bold text-stone-600 dark:text-stone-400 mt-0.5">Lo aplicó el administrador</p>
+                            </div>
+                            <p className="text-sm font-black text-rose-700 dark:text-rose-300">
+                                ${Math.round(financials.listPriceBeforeSpecial).toLocaleString()}
+                                <span className="mx-1.5 font-bold">−</span>
+                                ${Math.round(financials.specialDiscount).toLocaleString()}
+                                <span className="mx-1.5 font-bold">=</span>
+                                ${Math.round(financials.listPrice).toLocaleString()}
+                            </p>
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {[
                             { label: 'Efectivo', amount: financials.totalCash, color: 'emerald', discount: financials.discountCash },
