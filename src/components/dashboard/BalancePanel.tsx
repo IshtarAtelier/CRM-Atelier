@@ -69,7 +69,13 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
             <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
                 {orders.length > 0 ? (
                     orders.map(order => {
-                        const balance = order.balance || (order.total - order.paid);
+                        // Los tres saldos ya vienen calculados por PricingService en
+                        // ContactService.getOrdersWithBalance. Acá NO se recalcula nada:
+                        // el fallback que había (`order.total - order.paid`) era la resta
+                        // directa que el proyecto prohíbe —hay que convertir cada pago a
+                        // su equivalente de lista, si no se inventan saldos— y encima era
+                        // código muerto: la consulta filtra por `balance > 1000`, así que
+                        // ningún pedido llega acá sin sus saldos calculados.
                         const bizDays = getBusinessDays(new Date(order.createdAt), today);
 
                         // Semáforo de plazo, calculado en el server por pedido y
@@ -80,13 +86,13 @@ export default function BalancePanel({ orders, onClose }: BalancePanelProps) {
                         const isOverdue = timing === 'vencido';
                         const isInTime = timing === 'en-plazo';
 
-                        let displayBalance = order.remainingCash ?? balance;
+                        let displayBalance = order.remainingCash ?? 0;
                         let activeColorClass = 'text-emerald-600 dark:text-emerald-400';
                         if (viewMode === 'transfer') {
-                            displayBalance = order.remainingTransfer ?? balance;
+                            displayBalance = order.remainingTransfer ?? 0;
                             activeColorClass = 'text-violet-600 dark:text-violet-400';
                         } else if (viewMode === 'card') {
-                            displayBalance = order.remainingCard ?? balance;
+                            displayBalance = order.remainingCard ?? 0;
                             activeColorClass = 'text-orange-600 dark:text-orange-400';
                         }
 

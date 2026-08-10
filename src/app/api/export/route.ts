@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { PricingService } from '@/services/PricingService';
 
 function escapeCSV(val: any): string {
     if (val == null) return '';
@@ -91,18 +92,29 @@ export async function GET(request: Request) {
                 orderBy: { createdAt: 'desc' }
             });
 
-            const headers = ['Fecha', 'Cliente', 'Vendedor', 'Médico', 'Total', 'Pagado', 'Saldo', 'Métodos de Pago', 'Productos'];
-            const rows = orders.map(o => [
-                new Date(o.createdAt).toLocaleDateString('es-AR'),
-                o.client.name,
-                o.user.name,
-                o.client.doctor || '',
-                o.total,
-                o.paid,
-                o.total - o.paid,
-                [...new Set(o.payments.map(p => p.method))].join(' / '),
-                o.items.map(i => `${i.product?.brand || i.productBrandSnapshot || ''} ${i.product?.name || i.productNameSnapshot || ''} x${i.quantity}`).join(' | '),
-            ]);
+            // El saldo sale del PricingService, NUNCA de `total - paid`: cada pago
+            // hay que convertirlo a su equivalente de lista (un pago en efectivo
+            // sobre una venta con 20% de descuento vale 1/0,80 de lista). La resta
+            // directa que había acá mezclaba el total con descuento de efectivo
+            // contra la suma nominal de los pagos: el número no significaba nada.
+            // Se separan además las dos cifras que "Total" confundía en una sola.
+            const headers = ['Fecha', 'Cliente', 'Vendedor', 'Médico', 'Precio de lista', 'Dto. especial', 'Total efectivo', 'Pagado', 'Saldo (lista)', 'Métodos de Pago', 'Productos'];
+            const rows = orders.map(o => {
+                const f = PricingService.calculateOrderFinancials(o);
+                return [
+                    new Date(o.createdAt).toLocaleDateString('es-AR'),
+                    o.client.name,
+                    o.user.name,
+                    o.client.doctor || '',
+                    Math.round(f.listPrice),
+                    Math.round(f.specialDiscount),
+                    f.totalCash,
+                    Math.round(f.paidReal),
+                    f.remainingList,
+                    [...new Set(o.payments.map(p => p.method))].join(' / '),
+                    o.items.map(i => `${i.product?.brand || i.productBrandSnapshot || ''} ${i.product?.name || i.productNameSnapshot || ''} x${i.quantity}`).join(' | '),
+                ];
+            });
             csv = toCSV(headers, rows);
             filename = `ventas_${Date.now()}.csv`;
 
