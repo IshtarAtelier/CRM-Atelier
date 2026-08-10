@@ -47,6 +47,12 @@ jobs:
       - name: Build Next.js app
         run: npm run build
         env:
+          # Este build es un CHEQUEO DE COMPILACIÓN, no el que se publica: el sitio
+          # lo buildea y sirve Railway, con sus propias variables. Por eso se usa
+          # la escotilla de la guarda de medición — acá no hay ids de píxel ni
+          # falta que los haya. La guarda sigue cubriendo el build de Railway,
+          # que es el único que hornea el HTML que ve el cliente.
+          PERMITIR_BUILD_SIN_MEDICION: '1'
           # Si tienes variables de entorno requeridas para el build, asegúrate de añadirlas en GitHub Secrets
           # NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           CI: true
