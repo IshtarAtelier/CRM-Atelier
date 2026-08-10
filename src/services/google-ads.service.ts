@@ -297,4 +297,62 @@ export class GoogleAdsService {
       })
       .catch((e) => console.error('[GoogleAdsService] Excepción enviando la conversión:', e));
   }
+
+  /**
+   * Gasto de Google Ads del mes en curso, en pesos.
+   *
+   * Es la mitad que faltaba para poder vigilar el techo mensual de inversión:
+   * de Meta ya se leía el gasto (`src/lib/ads/meta-insights.ts`), de Google no
+   * — este service solo sabía escribir conversiones.
+   *
+   * Devuelve `null` si la integración no está configurada o si la consulta
+   * falla, para que quien vigila el techo pueda decir "no pude leer Google" en
+   * vez de informar un gasto de cero, que se interpretaría como "hay margen".
+   * Esa distinción importa: un cero falso invita a gastar de más.
+   */
+  public static async getMonthToDateSpendArs(): Promise<number | null> {
+    const customerId = this.customerId();
+    const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+    if (!customerId || !developerToken) return null;
+
+    const accessToken = await this.getAccessToken();
+    if (!accessToken) return null;
+
+    const hoy = new Date();
+    const desde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+    const hasta = hoy.toISOString().slice(0, 10);
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      'developer-token': developerToken,
+      'Content-Type': 'application/json',
+    };
+    if (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID) {
+      headers['login-customer-id'] = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID.replace(/-/g, '');
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/${API_VERSION}/customers/${customerId}/googleAds:search`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          query: `SELECT metrics.cost_micros FROM customer WHERE segments.date BETWEEN '${desde}' AND '${hasta}'`,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (!res.ok) {
+        // El cuerpo del error puede traer el customer id pero no credenciales.
+        console.error(`[GoogleAdsService] No se pudo leer el gasto del mes (HTTP ${res.status}).`);
+        return null;
+      }
+
+      const body = (await res.json()) as { results?: Array<{ metrics?: { costMicros?: string } }> };
+      const micros = (body.results ?? []).reduce((acc, r) => acc + Number(r.metrics?.costMicros ?? 0), 0);
+      return micros / 1_000_000;
+    } catch (err) {
+      console.error('[GoogleAdsService] Excepción leyendo el gasto del mes:', err);
+      return null;
+    }
+  }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
+import { AdsBudgetService } from '@/services/ads-budget.service';
 import {
   metaAdsConfigured,
   fetchCampaignInsights,
@@ -12,6 +13,7 @@ import {
 // El cruce anuncio ↔ chats ↔ ventas ya no vive acá: lo calcula el service, que
 // es el mismo que lee la pantalla /admin/analitica/atribucion. Un solo lugar.
 import { AttributionService, arDayStart, calcularRoas } from '@/services/attribution.service';
+import { syncContactTags } from '@/services/contact.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -116,10 +118,17 @@ function campaignRow(
  * para los clientes que se vincularon por caminos que no propagan en el momento
  * (cambio de teléfono, merge, fix-phones, pipeline). Primer toque: el chat más
  * viejo gana y un adTag ya grabado nunca se pisa.
+ *
+ * Además sincroniza la etiqueta VISIBLE del anuncio ("Meta · ishvarilux") de los
+ * clientes que acaba de completar: si el adTag solo quedara como columna, el
+ * anuncio seguiría siendo invisible en el buscador y en los filtros de etiquetas,
+ * que es justo lo que el sistema de etiquetas unificadas vino a resolver.
+ * `RETURNING` acota el trabajo a las filas realmente tocadas — un día normal son
+ * cero o un puñado, no la base entera.
  */
-async function barridoAdTagClientes(): Promise<void> {
+async function barridoAdTagClientes(): Promise<number> {
   try {
-    await prisma.$executeRaw`
+    const tocados = await prisma.$queryRaw<{ id: string }[]>`
       UPDATE "Client" c SET "adTag" = t."adTag"
       FROM (
         SELECT DISTINCT ON ("clientId") "clientId", "adTag"
@@ -127,9 +136,18 @@ async function barridoAdTagClientes(): Promise<void> {
         WHERE "clientId" IS NOT NULL AND "adTag" IS NOT NULL
         ORDER BY "clientId", "createdAt" ASC
       ) t
-      WHERE c.id = t."clientId" AND c."adTag" IS NULL`;
+      WHERE c.id = t."clientId" AND c."adTag" IS NULL
+      RETURNING c.id`;
+
+    // Secuencial y con el error contenido por cliente: `syncContactTags` nunca
+    // lanza, así que un cliente raro no puede voltear el reporte diario.
+    for (const { id } of tocados) {
+      await syncContactTags(id);
+    }
+    return tocados.length;
   } catch (e) {
     console.error('[Ads Report] Error en barrido adTag → clientes:', e);
+    return 0;
   }
 }
 
@@ -270,9 +288,28 @@ export async function GET(request: Request) {
         <p style="font-size:10px;color:#a89c90;margin:6px 0 0;">Presup. = clientes que recibieron presupuesto (${money(roasTotal.presupuestado)} presupuestados en total). Cierre = venta con plata cobrada o pedido en laboratorio — cobrado hasta hoy: ${money(roasTotal.cobrado)}. "Vendió" es facturación de esas ventas reales, no ganancia. ⚠️ = gastó sin traer una sola conversación.</p>`
       : '';
 
+    // Techo mensual de inversión. Va PRIMERO y antes de las alertas de campaña:
+    // es el único número que puede obligar a apagar algo hoy mismo.
+    const techo = await AdsBudgetService.getEstado();
+    const colorTecho =
+      techo.estado === 'excedido' ? '#b42318' : techo.estado === 'atencion' ? '#b45309' : '#1a7d4b';
+    const techoHtml = `
+      <div style="background:${techo.estado === 'ok' ? '#f2f8f4' : '#fdf6ec'};border-left:4px solid ${colorTecho};padding:10px 14px;margin:16px 0;">
+        <p style="margin:0 0 4px 0;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;">
+          Techo del mes · ${money(techo.techoArs)}
+        </p>
+        <p style="margin:4px 0;font-size:12px;color:${colorTecho};font-weight:600;">${techo.mensaje}</p>
+        <p style="margin:4px 0 0;font-size:11px;color:#706359;">
+          Van ${money(techo.gastadoArs ?? 0)} en ${techo.diaDelMes} de ${techo.diasDelMes} días
+          (Meta ${techo.meta !== null ? money(techo.meta) : 'sin leer'} ·
+          Google ${techo.google !== null ? money(techo.google) : 'sin leer'}).
+        </p>
+      </div>`;
+
     const html = `
       <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;color:#433831;">
         <h2 style="font-size:18px;border-bottom:2px solid #9e7f65;padding-bottom:8px;">📊 Ads — reporte diario</h2>
+        ${techoHtml}
         ${
           alerts.length
             ? `<div style="background:#fdf6ec;border-left:4px solid #b45309;padding:10px 14px;margin:16px 0;">

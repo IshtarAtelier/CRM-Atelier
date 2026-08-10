@@ -37,8 +37,22 @@ function variacion(actual: number, anterior: number): number | null {
  * venta), tráfico web, clics a WhatsApp y clientes nuevos, con variación
  * intermensual para ver la tendencia de un vistazo.
  */
+type Techo = {
+  techoArs: number;
+  gastadoArs: number | null;
+  meta: number | null;
+  google: number | null;
+  sinLeer: string[];
+  diaDelMes: number;
+  diasDelMes: number;
+  proyeccionArs: number | null;
+  estado: 'ok' | 'atencion' | 'excedido' | 'sin_datos';
+  mensaje: string;
+};
+
 export default function GrowthPanel() {
   const [meses, setMeses] = useState<Mes[] | null>(null);
+  const [techo, setTecho] = useState<Techo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,6 +62,7 @@ export default function GrowthPanel() {
         if (!res.ok) throw new Error('No se pudo calcular el crecimiento');
         const json = await res.json();
         setMeses(json.meses);
+        setTecho(json.techo ?? null);
       } catch (e: any) {
         setError(e.message || 'Error');
       }
@@ -76,6 +91,35 @@ export default function GrowthPanel() {
       <p className="text-xs text-muted-foreground mb-3">
         Cobrado real (pagos registrados), tráfico y contactos. El mes en curso es parcial.
       </p>
+
+      {/* Techo de inversión publicitaria del mes. Va acá porque se lee junto al
+          crecimiento: cuánto creciste y cuánto estás gastando para lograrlo. */}
+      {techo && (
+        <div
+          className={`mb-4 rounded-lg border p-3 ${
+            techo.estado === 'excedido'
+              ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30'
+              : techo.estado === 'ok'
+                ? 'border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/30'
+                : 'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30'
+          }`}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide">
+              Techo publicitario del mes · {money(techo.techoArs)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              día {techo.diaDelMes} de {techo.diasDelMes}
+            </span>
+          </div>
+          <p className="text-sm font-medium mt-1">{techo.mensaje}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Van {money(techo.gastadoArs ?? 0)} — Meta{' '}
+            {techo.meta !== null ? money(techo.meta) : 'sin leer'} · Google{' '}
+            {techo.google !== null ? money(techo.google) : 'sin leer'}
+          </p>
+        </div>
+      )}
 
       {ultimo && anteultimo && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
