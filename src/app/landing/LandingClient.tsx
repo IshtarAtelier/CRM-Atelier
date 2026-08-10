@@ -46,6 +46,16 @@ interface LandingClientProps {
    * puede pasar en la parte que construye confianza.
    */
   reviews?: LandingReview[];
+  /**
+   * Precio "desde" de los cristales, en pesos. Solo lo pasa `/multifocales`,
+   * que es una página indexable y necesita un ancla de precio para competir con
+   * quien publica un número en la búsqueda.
+   *
+   * Llega como `null` cuando no se pudo calcular desde la base, y en ese caso
+   * NO se muestra nada: la regla R6 del proyecto dice que un precio publicado
+   * sale de la base o no sale. Nunca un valor por defecto escrito a mano.
+   */
+  precioDesde?: number | null;
 }
 
 // Fondo del hero: crossfade en CSS puro + crédito de obra. El contenido del hero
@@ -135,6 +145,7 @@ export function LandingClient({
   rating = 0,
   products = [],
   reviews: googleReviews = [],
+  precioDesde = null,
 }: LandingClientProps) {
   const config = CAMPAIGNS[slug] ?? CAMPAIGNS.default;
 
@@ -295,9 +306,26 @@ export function LandingClient({
               </em>
             </h1>
 
-            <p className="text-base md:text-lg text-stone-300 font-light leading-relaxed max-w-xl mb-10">
+            <p className="text-base md:text-lg text-stone-300 font-light leading-relaxed max-w-xl mb-6">
               {config.hero.subtitle}
             </p>
+
+            {/* Ancla de precio. Solo aparece si el número vino de la base: sin
+                un precio a la vista, la página no puede competir con quien sí
+                publica uno, pero un precio escrito a mano que queda viejo es
+                justo el daño que la regla R6 existe para impedir. Dice
+                "cristales", no "anteojos": el armazón va aparte. */}
+            {precioDesde && precioDesde > 0 ? (
+              <p className="mb-10 text-sm md:text-base text-stone-200">
+                <span className="text-stone-400">Cristales multifocales desde</span>{" "}
+                <strong className="text-[#E2C784] text-lg md:text-xl font-semibold">
+                  ${Math.round(precioDesde).toLocaleString("es-AR")}
+                </strong>{" "}
+                <span className="text-stone-400">· el armazón lo elegís vos</span>
+              </p>
+            ) : (
+              <div className="mb-10" />
+            )}
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-6">
               <motion.button

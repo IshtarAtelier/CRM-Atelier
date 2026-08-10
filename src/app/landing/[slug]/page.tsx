@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { getGoogleReviews } from "@/lib/googleReviews";
 import { getCampaign, campaignSlugs } from "@/lib/landing/campaigns";
@@ -47,6 +47,14 @@ export default async function CampaignLandingPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+
+  // "multifocales" tiene ahora una página propia e INDEXABLE en /multifocales:
+  // es un término que la gente tipea con intención de comprar, así que no puede
+  // vivir bajo /landing/*, que lleva noindex a propósito. Se redirige para que
+  // exista UNA sola versión de la página, y para que los anuncios que todavía
+  // apunten acá terminen en la buena.
+  if (slug === "multifocales") permanentRedirect("/multifocales");
+
   const campaign = getCampaign(slug);
   if (!campaign) notFound();
 

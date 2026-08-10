@@ -17,6 +17,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/contacto',
     '/nuestro-local',
     '/optica-cordoba',
+    // La página del producto que más factura. Va en el sitemap porque, a
+    // diferencia de las landings de campaña (/landing/*, que son noindex),
+    // ésta existe justamente para captar a quien busca "multifocales".
+    '/multifocales',
     '/lentes-de-sol',
     '/receta',
     '/lentes-de-contacto',
