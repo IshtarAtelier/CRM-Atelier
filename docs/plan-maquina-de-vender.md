@@ -117,28 +117,33 @@ Definido por la dueña el 9/8/2026. Es un techo **duro**: ninguna campaña se pr
 
 Medición de respaldo (`node --env-file=.env scripts/checks/gasto-historico.mjs`, 6 meses):
 
-| Cuenta | mar | abr | may | jun | jul | Promedio mensual |
-|---|---|---|---|---|---|---|
-| Google Ads (ARS) | $504.577 | $390.403 | $527.247 | $579.580 | $595.096 | **$519.381** |
-| Meta ARS | $356.099 | $417.685 | $433.764 | $412.552 | $120.828 | **$348.186** |
-| Meta USD | — | — | — | US$87 | US$362 | **US$225** |
+| Cuenta | mar | abr | may | jun | Promedio de referencia |
+|---|---|---|---|---|---|
+| Google Ads (ARS) | $504.577 | $390.403 | $527.247 | $579.580 | **$519.381** *(incluye jul $595.096)* |
+| **Meta ARS** ← la referencia | $356.099 | $417.685 | $433.764 | $412.552 | **~$405.000** |
 
-**Dato que ordena todo el capítulo: la operación de Meta se está mudando a la cuenta USD.** La ARS cae de $412.552 (junio) a $120.828 (julio) y a ~$0 en agosto, mientras la USD sube de US$87 a US$362. Es deliberado: en USD se evita una carga impositiva. Por eso el plan **consolida Meta en la cuenta USD** y deja la ARS en cero — lo contrario de lo que decía la síntesis original ("una sola cuenta, la de ARS"), que además se apoyaba en la medición equivocada de que Meta gastaba $0.
+**Por qué la referencia de Meta es la cuenta en PESOS y no la suma.** Las dos cuentas estuvieron activas en paralelo apenas unas semanas: la USD es nueva, se abrió en junio, y su gasto no representa un nivel histórico sino la mudanza en curso. Promediar las dos juntas infla el pasado. Y julio de la cuenta ARS ($120.828) tampoco cuenta como mes normal: es el mes en que se estaba migrando.
+
+Referencia histórica total: **$519.381 (Google) + ~$405.000 (Meta) = ~$924.000/mes.** El techo de $1.000.000 que fijó la dueña deja ~$76.000 de aire sobre ese nivel.
+
+**Decisión de cuentas (dueña, 9/8/2026): Meta pasa 100% a la cuenta USD y la de pesos queda desactivada.** El motivo es impositivo. Esto invierte la recomendación de la síntesis original ("una sola cuenta, la de ARS"), que además se apoyaba en la medición equivocada de que Meta gastaba $0.
 
 **Reparto del techo:**
 
-| Plataforma | Cuenta | Tope mensual | vs. su promedio |
+| Plataforma | Cuenta | Tope mensual | vs. su referencia |
 |---|---|---|---|
 | Google Ads | ARS | **$420.000** | −19% |
-| Meta | **USD** (act_2107444353167176) | **el equivalente a $580.000** — a $1.570/USD son ~US$369/mes (US$12,3/día) | consolida lo de las dos cuentas |
-| Meta | ARS (act_901723834933651) | **$0** — se deja viva pero sin presupuesto | ya está de hecho |
+| Meta | **USD** (act_2107444353167176) — única cuenta activa | **el equivalente a $580.000** — a $1.570/USD son ~US$369/mes (US$12,3/día) | +43% sobre los ~$405.000 |
+| Meta | ARS (act_901723834933651) | **$0 — desactivada** | — |
 | | | **$1.000.000** | |
+
+O sea: el techo no recorta a Meta, la **agranda** un 43% sobre su nivel histórico, y eso se financia recortando 19% en Google y apagando lo que no produce conversaciones. Es la mezcla que dice el diagnóstico: Meta convierte a $771-1.871 por conversación y Google se lleva el 44% del gasto en clics de dirección.
 
 **La conversión del dólar la fija la dueña, no este documento.** Si el costo efectivo por dólar es menor al oficial (que es el motivo de usar la cuenta USD), esos US$369 cuestan menos de $580.000 y el sobrante queda como margen dentro del mismo techo — nunca como excusa para subir el gasto sin decidirlo.
 
 **Cómo se hace cumplir (ya construido).** Ninguna de las dos plataformas puede sostener este techo sola: el límite de gasto de Meta es **de por vida, no mensual** (se acumula contra el gastado histórico y hay que resetearlo a mano) y Google, en cuentas que pagan con tarjeta, no tiene tope de cuenta. Por eso el techo lo vigila `AdsBudgetService`: lee el gasto del mes de las dos plataformas, proyecta a fin de mes y aparece **arriba de todo en el email diario de ads** y en `/admin/analitica`. Avisa, no apaga — apagar sola una campaña recién prendida sería peor que el problema. El valor vive en `SystemSetting.ads_monthly_cap_ars`, así que se cambia sin deployar.
 
-Primera lectura real (9/8, día 9 de 31): **$280.423 gastados** (Meta $104.860 + Google $175.563), proyección **$965.903 = 97% del techo** → estado *atención*. O sea: el ritmo actual ya roza el límite **antes** de aplicar la reasignación. Es exactamente el margen que la reasignación libera.
+Primera lectura real (9/8, día 9 de 31): **$280.423 gastados** (Meta $104.860 + Google $175.563), proyección **$965.903 = 97% del techo** → estado *atención*. Agosto viene bajo porque la mudanza de cuentas frenó a Meta; el mes que hay que mirar para dimensionar el recorte es **julio: $688.760 de Meta + $595.096 de Google = $1.283.856**, un 28% por encima del techo. Ahí se ve que esto no es solo reasignar: hay que apagar gasto de verdad, y las cuatro campañas que no producen conversaciones son de dónde sacarlo.
 
 ### 4.1 Gasto real medido (últimos 30 días, 10/7→9/8, leído hoy con `scripts/ads/meta_report.js` y `google_report.js`)
 
