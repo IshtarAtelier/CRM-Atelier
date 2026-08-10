@@ -268,11 +268,19 @@ export function track(type: string, props: TrackProps = {}): void {
       value: props.value ?? null,
       quantity: props.quantity ?? null,
       orderId: props.orderId ?? null,
+      // wbraid/gbraid viajan igual que el gclid, no como un extra: en iOS y en
+      // los navegadores que limitan cookies, Google NO manda gclid — manda uno
+      // de estos dos. Se capturaban desde el principio pero se quedaban en el
+      // localStorage sin subir nunca, así que la venta de un click de iPhone
+      // llegaba sin nada con qué atribuirla y la subida de conversiones offline
+      // no podía casarla con la campaña que la trajo.
       meta:
-        props.meta || attr.fbclid || attr.gclid
+        props.meta || attr.fbclid || attr.gclid || attr.wbraid || attr.gbraid
           ? {
               ...(attr.fbclid ? { fbclid: attr.fbclid } : {}),
               ...(attr.gclid ? { gclid: attr.gclid } : {}),
+              ...(attr.wbraid ? { wbraid: attr.wbraid } : {}),
+              ...(attr.gbraid ? { gbraid: attr.gbraid } : {}),
               ...(props.meta ?? {}),
             }
           : null,
