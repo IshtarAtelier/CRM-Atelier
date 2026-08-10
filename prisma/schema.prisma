@@ -716,12 +716,25 @@ model CheckoutSession {
   // como oportunidad de cierre: el seguimiento queda registrado en la ficha y
   // el panel deduplica por cliente en vez de por teléfono suelto.
   clientId     String?
+  // Recupero multi-toque. Va aparte de `status` a propósito: `status` es el
+  // ciclo de vida que leen el panel de Oportunidades de Cierre y el de
+  // analítica, y si el toque de la hora lo moviera, el carrito se le
+  // desaparecería a la vendedora una hora después de abandonado.
+  //   0 = sin tocar · 1 = toque temprano (~1h) · 2 = toque de las 24hs
+  // Se marca ANTES de mandar, con un UPDATE condicional (`recoveryStage < N`),
+  // para que dos corridas del cron no manden el mismo toque dos veces.
+  recoveryStage   Int       @default(0)
+  recoveryTouchAt DateTime?
+  /// Por dónde salió el último toque: 'EMAIL' o 'WHATSAPP'.
+  recoveryChannel String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   client       Client?  @relation(fields: [clientId], references: [id])
 
   @@index([status])
   @@index([clientId])
+  // El cron busca por estado + etapa dentro de una ventana de tiempo.
+  @@index([status, recoveryStage])
 }
 
 model BlogPost {

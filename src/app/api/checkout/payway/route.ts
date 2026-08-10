@@ -476,7 +476,15 @@ export async function POST(req: Request) {
 
     // 1. Encontrar o crear cliente
     const normalizedPhone = normalizeArgentinePhone(customer.phone);
-    
+
+    // La fecha de nacimiento del checkout es un campo OPCIONAL: puede no venir,
+    // y si viene solo se acepta el "YYYY-MM-DD" que emite el input date. Basura
+    // se descarta acá y no llega al service: nunca vale la pena arriesgar la
+    // compra por un dato accesorio.
+    const birthDateInput = typeof customer.birthDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(customer.birthDate.trim())
+      ? customer.birthDate.trim()
+      : null;
+
     // OJO: un email/dni vacío como `{ email: undefined }` no filtra nada para
     // Prisma (lo ignora), así que esa rama del OR matchearía cualquier cliente.
     // Solo se incluye cada condición si el dato realmente vino en el body.
@@ -497,6 +505,7 @@ export async function POST(req: Request) {
           email: customer.email,
           phone: normalizedPhone,
           dni: customer.dni,
+          birthDate: birthDateInput,
           address: `${customer.address}, ${customer.city}, ${customer.state} ${customer.zip}`,
           // Ficha nueva: no hay atribución previa que perder, la tienda ES el origen.
           contactSource: ORIGEN_CHECKOUT_WEB,
@@ -527,6 +536,20 @@ export async function POST(req: Request) {
 
     if (!client) {
       throw new Error("No se pudo obtener o crear el cliente.");
+    }
+
+    // Ficha que ya existía: la fecha de nacimiento se COMPLETA, nunca se pisa.
+    // La de la ficha suele venir del mostrador con el DNI a la vista; la del
+    // checkout la tipea el comprador apurado. Vale la que ya estaba, igual que
+    // con el origen. Si la ficha no la tenía, esta es la que después destraba
+    // el gate de fábrica de una venta con cristales sin llamar a nadie.
+    // Envuelto en try: un dato opcional no puede voltear una compra.
+    if (birthDateInput && !client.birthDate) {
+      try {
+        client = await ContactService.update(client.id, { birthDate: birthDateInput });
+      } catch (e) {
+        console.error("[PAYWAY CHECKOUT] No se pudo guardar la fecha de nacimiento:", e);
+      }
     }
 
     // IDEMPOTENCIA DURA: si el mismo intento (misma idempotencyKey) ya generó una

@@ -1,19 +1,40 @@
 import { NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
-import { sendRecoveryEmailForSession } from '@/lib/checkout/recovery';
+import { runRecoveryTouch, RECOVERY_STAGE, type RecoveryTouch } from '@/lib/checkout/recovery';
 
 /**
- * Recuperación de carritos abandonados (SOLO tienda, por email).
- * A las ~24hs de la última actividad, si el carrito sigue sin comprarse, se envía
- * el email de recuperación con el cupón (si hay uno configurado y válido).
- * El candado dentro de sendRecoveryEmailForSession evita mandar a quien ya compró.
- * Se envía una sola vez (la sesión pasa a EMAIL_SENT).
+ * Recuperación de carritos abandonados (tienda), multi-toque.
  *
- * Alta del cron: GET horario a /api/cron/abandoned-carts?secret=CRON_SECRET.
+ * Dos oportunidades, no una:
+ *  - ~1h de la última actividad: mail corto de recordatorio, SIN cupón.
+ *  - ~24h: el mail con cupón de siempre — o, si la persona ya tiene chat de
+ *    WhatsApp con mensajes entrantes, una ClientTask '[CARRITO]' que manda el
+ *    pipeline de seguimientos EN LUGAR del segundo mail (nunca los dos).
+ *
+ * Piso de 72h: un carrito de hace cuatro días ya no se recupera, se persigue.
+ *
+ * El candado de "ya compró" y el reclamo del toque viven en
+ * `src/lib/checkout/recovery.ts`; acá solo se elige a quién le toca.
+ *
+ * Alta del cron: GET a /api/cron/abandoned-carts?secret=CRON_SECRET. Con el
+ * segundo toque conviene que corra CADA HORA: con una corrida diaria el toque
+ * temprano casi nunca cae en su ventana y el carrito recibe solo el de 24hs
+ * (que es exactamente el comportamiento anterior, así que no rompe nada).
  * El `vercel.json` de la raíz declara el schedule pero NO lo ejecuta nadie: el
  * deploy es Railway, así que el alta hay que hacerla en el scheduler externo
  * (mismo criterio que el resto de los crons del proyecto).
  */
+
+/** Horas desde la última actividad del cliente para cada toque. */
+const TOQUE_TEMPRANO_HS = 1;
+const TOQUE_TARDIO_HS = 24;
+/** Piso: no perseguir carritos de hace más de 3 días. */
+const VENTANA_MAXIMA_HS = 72;
+
+/** Con casilla utilizable: `not: null` no alcanza, en la base hay strings vacíos. */
+const CON_EMAIL: Prisma.CheckoutSessionWhereInput = { email: { not: null, notIn: [''] } };
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -35,48 +56,93 @@ export async function GET(request: Request) {
     }
 
     const now = Date.now();
-    const twentyFourHoursAgo = new Date(now - 24 * 60 * 60 * 1000);
-    // Piso: no perseguir carritos de hace más de 3 días
-    const threeDaysAgo = new Date(now - 72 * 60 * 60 * 1000);
+    const haceUnaHora = new Date(now - TOQUE_TEMPRANO_HS * 60 * 60 * 1000);
+    const hace24Horas = new Date(now - TOQUE_TARDIO_HS * 60 * 60 * 1000);
+    const hace72Horas = new Date(now - VENTANA_MAXIMA_HS * 60 * 60 * 1000);
 
-    const abandonedSessions = await prisma.checkoutSession.findMany({
+    // Toque temprano: entre 1h y 24h, sin ningún toque previo. Solo por mail,
+    // así que exige email. `updatedAt` es el reloj del abandono — si el cliente
+    // volvió a tocar su carrito, se reinicia y no lo estamos interrumpiendo.
+    const tempranos = await prisma.checkoutSession.findMany({
       where: {
         status: 'PENDING',
-        updatedAt: {
-          lte: twentyFourHoursAgo,
-          gte: threeDaysAgo
-        },
-        email: {
-          not: null,
-          notIn: ['']
-        }
+        recoveryStage: 0,
+        updatedAt: { lte: haceUnaHora, gt: hace24Horas },
+        ...CON_EMAIL,
       }
     });
 
-    let sent = 0;
-    let skippedPurchased = 0;
-    let failed = 0;
-
-    for (const session of abandonedSessions) {
-      try {
-        const result = await sendRecoveryEmailForSession(session);
-        if (result.sent) sent++;
-        else if (result.skipped === 'purchased') skippedPurchased++;
-        else failed++;
-      } catch (err: any) {
-        console.error(`[Cron Abandoned Cart] Error en sesión ${session.id}:`, err.message);
-        failed++;
+    // Toque de las 24hs: el que ya existía. `recoveryStage < 2` deja entrar
+    // tanto al que recibió el temprano como al que se lo salteó (cron caído,
+    // o carrito abandonado hace 30hs que nunca estuvo en la ventana de 1h).
+    // Alcanza con teléfono: sin mail, el único canal posible es WhatsApp.
+    const tardios = await prisma.checkoutSession.findMany({
+      where: {
+        status: 'PENDING',
+        recoveryStage: { lt: RECOVERY_STAGE.LATE },
+        updatedAt: { lte: hace24Horas, gte: hace72Horas },
+        OR: [
+          CON_EMAIL,
+          { phone: { not: null, notIn: [''] } },
+        ],
       }
-    }
+    });
 
-    console.log(`[Cron Abandoned Cart] ${sent} emails enviados, ${skippedPurchased} omitidos (ya compró), ${failed} fallidos de ${abandonedSessions.length}`);
+    const stats = {
+      early: 0,
+      late: 0,
+      whatsapp: 0,
+      skippedPurchased: 0,
+      alreadyTouched: 0,
+      // Dejó teléfono pero no mail, y no tiene chat con entrantes: no hay canal
+      // por dónde tocarlo. No es una falla, es un carrito anónimo.
+      sinCanal: 0,
+      failed: 0,
+    };
+
+    const procesar = async (sessions: typeof tempranos, touch: RecoveryTouch) => {
+      for (const session of sessions) {
+        try {
+          const result = await runRecoveryTouch(session, touch);
+          if (result.sent) {
+            if (result.channel === 'WHATSAPP') stats.whatsapp++;
+            else if (touch === 'EARLY') stats.early++;
+            else stats.late++;
+          } else if (result.skipped === 'purchased') {
+            stats.skippedPurchased++;
+          } else if (result.skipped === 'already_touched') {
+            // Otra corrida se lo llevó (o el scheduler disparó dos veces): no es
+            // un error, es justamente lo que el reclamo previo tiene que evitar.
+            stats.alreadyTouched++;
+          } else if (result.skipped === 'no_email') {
+            stats.sinCanal++;
+          } else {
+            stats.failed++;
+          }
+        } catch (err: any) {
+          console.error(`[Cron Abandoned Cart] Error en sesión ${session.id} (${touch}):`, err.message);
+          stats.failed++;
+        }
+      }
+    };
+
+    await procesar(tempranos, 'EARLY');
+    await procesar(tardios, 'LATE');
+
+    const processed = tempranos.length + tardios.length;
+    console.log(
+      `[Cron Abandoned Cart] ${stats.early} recordatorios (1h), ${stats.late} emails (24h), ` +
+      `${stats.whatsapp} toques por WhatsApp, ${stats.skippedPurchased} omitidos (ya compró), ` +
+      `${stats.alreadyTouched} ya tocados, ${stats.sinCanal} sin canal, ${stats.failed} fallidos de ${processed}`
+    );
 
     return NextResponse.json({
       success: true,
-      processed: abandonedSessions.length,
-      sent,
-      skippedPurchased,
-      failed
+      processed,
+      // `sent` es el total de toques efectivos: lo que miraban los reportes
+      // cuando esto mandaba un solo mail.
+      sent: stats.early + stats.late + stats.whatsapp,
+      ...stats,
     });
   } catch (error: any) {
     console.error('[Cron Abandoned Cart] Error:', error);

@@ -95,6 +95,7 @@ export function CheckoutClient({
     firstName: "",
     lastName: "",
     dni: "",
+    birthDate: "",
     phone: "",
     address: "",
     city: "",
@@ -158,7 +159,12 @@ export function CheckoutClient({
     const saved = localStorage.getItem("atelier-checkout-form");
     if (saved) {
       try {
-        setFormData(JSON.parse(saved));
+        // Se MEZCLA con el estado inicial en vez de reemplazarlo: el borrador
+        // guardado en el navegador es de una versión anterior del form y no
+        // tiene los campos nuevos. Pisando el objeto entero, cada campo agregado
+        // después queda en `undefined` y su input pasa de controlado a no
+        // controlado (React lo rompe y avisa en consola).
+        setFormData(prev => ({ ...prev, ...JSON.parse(saved) }));
       } catch (e) {}
     }
     
