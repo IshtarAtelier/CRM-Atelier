@@ -4,6 +4,7 @@ import path from 'node:path';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { publicarStory, origenPublico } from '@/services/social-publisher.service';
+import { evaluarFrescura, leerPieza } from '@/lib/social/frescura';
 
 /**
  * Una story de Instagram por día, sin que nadie la dispare.
@@ -139,10 +140,26 @@ export async function GET(request: Request) {
             carril: string; id: string; tipo?: string; url: string;
             ok: boolean; storyId?: string; error?: string;
         }> = [];
+        /** Piezas con precio vencido: se avisan juntas al final, no una por una. */
+        const vencidas: Array<{ id: string; motivo: string }> = [];
         for (const e of conUrl) {
             if (yaSalioHoy(e.id)) {
                 resultados.push({ ...e, ok: true, storyId: '(ya salió hoy, no se repite)' });
                 continue;
+            }
+
+            // GUARDA DE FRESCURA. Las story-producto llevan el precio y las
+            // cuotas escritos adentro; si se generaron hace mucho, ese número ya
+            // no rige. Publicar un precio viejo es justo lo que este sistema
+            // existe para impedir (regla R6), así que no sale y se avisa.
+            const json = await leerPieza(e.id);
+            if (json) {
+                const veredicto = evaluarFrescura(json);
+                if (!veredicto.fresca) {
+                    vencidas.push({ id: e.id, motivo: veredicto.motivo });
+                    resultados.push({ ...e, ok: false, error: `Precio vencido: ${veredicto.motivo}` });
+                    continue;
+                }
             }
             const r = await publicarStory(e.url, e.id);
             resultados.push({ ...e, ...r });
@@ -173,6 +190,13 @@ export async function GET(request: Request) {
                             No se reintenta solo, para no terminar con la misma story publicada dos veces.
                             Se puede publicar a mano desde el celular, o revisar qué pasó y esperar a mañana.
                         </p>
+                        ${vencidas.length ? `
+                        <div style="background:#fdf6ec;border-left:4px solid #b45309;padding:10px 14px;margin:16px 0">
+                            <p style="margin:0 0 6px;font-size:14px;font-weight:700">Precios vencidos: hay que regenerar</p>
+                            ${vencidas.map(v => `<p style="margin:4px 0;font-size:13px">• <strong>${v.id}</strong>: ${v.motivo}</p>`).join('')}
+                            <pre style="background:#f3f4f6;padding:10px;border-radius:6px;font-size:12px;white-space:pre-wrap">node scripts/social/generar-story-producto.mjs --produccion
+for f in social/contenido/story-producto-*.json; do node scripts/social/render.mjs "$f"; done</pre>
+                        </div>` : ''}
                         <p style="margin-top:22px;font-size:12px;color:#6b7280">
                             Si la causa es "la imagen no responde 200", falta deployar la placa.
                         </p>

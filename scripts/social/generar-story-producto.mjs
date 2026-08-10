@@ -155,6 +155,11 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
                 // Marca de origen: el validador exige que toda pieza con precio
                 // venga de la base (R6). Escrita a mano, no renderiza.
                 fuente: 'base',
+                // Cuándo se leyeron esos precios. Sin esta fecha no hay forma de
+                // probar que el número sigue vigente, y el cron de stories no la
+                // publica (src/lib/social/frescura.ts). Las 13 stories que ya
+                // existían no la traían: podían salir con un precio de meses.
+                generadoEl: new Date().toISOString().slice(0, 10),
                 temas: ['armazones'],
                 producto: { nombre, slug: w.slug, marca: p.brand, categoria: w.category },
                 caption: `${nombre} · ${p.brand}\n\n${cond.textoCuotas} de ${precioAr(cuota)}\n${precioAr(alContado)} en efectivo o transferencia (ahorrás ${cond.descuento}%)\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`,
