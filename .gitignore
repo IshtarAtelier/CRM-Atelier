@@ -34,12 +34,16 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
-.env
-.env.local
-.env.*.local
+# Regla amplia a propósito: cualquier .env, y también sus COPIAS. El 9/8/2026
+# apareció un `.env.bak-pre-write-token` (backup hecho antes de rotar un token)
+# que no matcheaba ninguna regla y quedaba listo para entrar con un `git add -A`,
+# con todos los secretos reales adentro. Un backup del .env es tan secreto como
+# el .env. La excepción explícita es el ejemplo, que no tiene valores.
+.env*
 !.env.example
-bot-service/.env
-wa-service/.env
+bot-service/.env*
+wa-service/.env*
+!wa-service/.env.example
 
 # vercel
 .vercel
