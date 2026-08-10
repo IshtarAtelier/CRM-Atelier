@@ -75,7 +75,9 @@ Duplicación de reglas, transacciones, estructura, observabilidad. Detalle en la
 ### A.1 Bloqueantes (B1–B15)
 
 - [x] ✅ **B1** — Banner de cookies tapaba los dos CTAs del hero en celular
-- [ ] 🔒 **B2** — Higiene de conversiones en Google Ads: pasar a secundarias las 5 acciones locales y la de Tiendanube. *Es lo que le enseña a la puja a comprar clics de "Cómo llegar" — el 44% del gasto.* **NO cargar la etiqueta de compra**: ya entra por GA4 y contaría doble
+- [x] ✅ **B2** — Google Ads: por qué puja cada campaña. **El diagnóstico original estaba mal apuntado**: pasar a secundarias las acciones locales no hubiera hecho nada (a nivel cuenta ya estaban en "solo mide", y además Google las crea él y son inmutables por API). Lo que dirige la puja son los `campaign_conversion_goal`, y ahí estaba el problema: **Search - Multifocales y Search - Óptica pujaban SOLO por "cómo llegar"** ($83.702/mes contra gente tipeando "multifocales precio"). El 10/8 se les agregó PURCHASE/WEBSITE y CONTACT/WEBSITE. Verificado. **NO cargar la etiqueta de compra**: ya entra por GA4 y contaría doble
+- [ ] 🔒 **B2b** — Sacarle "cómo llegar" a esas dos Search. Sumar la venta no alcanza: las indicaciones son ~100x más frecuentes, así que la puja las va a seguir persiguiendo. Sacarlas es el cambio de verdad, y es más agresivo
+- [ ] 🔒 **B2c** — **$344.419/mes en "Máximo rendimiento al local"** (55% del gasto) sin ningún objetivo de venta, y $123.416 en "Google Maps". De $620.548 mensuales, solo $32.394 (5%) está en una campaña que persigue una venta. Decisión tuya: puede ser deliberado (sos óptica física), pero hay que decidirlo, no heredarlo
 - [x] ✅ **B3** — Purchase en las 3 ramas de pago + se cerró un doble conteo
 - [x] ✅ **B4** — Consent Mode v2 + medir cuánta gente ignora el cartel
 - [x] ✅ **B5** — Chat de WhatsApp ↔ ficha del cliente
