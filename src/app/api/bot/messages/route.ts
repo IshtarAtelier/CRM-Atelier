@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { prefillAdTag } from '@/lib/ads/ad-tag';
+import { vincularChatSiCorresponde } from '@/lib/whatsapp/vincular-chat';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +82,24 @@ export async function POST(request: Request) {
                     status: 'OPEN'
                 }
             });
+        }
+
+        // Enganchar el chat con la ficha del cliente, si esa persona ya existe.
+        // Hasta ahora el vínculo se armaba SOLO al crear una ficha (ahí
+        // contact.service busca los chats sueltos con ese teléfono); si el
+        // WhatsApp entraba primero —que es el caso normal cuando alguien
+        // responde un anuncio— el chat quedaba con clientId en null para
+        // siempre. Y como el reporte de ROAS cruza gasto contra ventas POR
+        // clientId, las ventas de esa gente eran invisibles para la atribución:
+        // el retorno de cada anuncio se subestimaba. Bloqueante B5 del plan.
+        //
+        // Se intenta en cada mensaje, no solo al crear el chat: la ficha puede
+        // haberse creado después (alguien vino al local y la cargó a mano), y
+        // el próximo mensaje del mismo chat cierra el vínculo. Es barato: sale
+        // por el `if (chat.clientId)` sin tocar la base cuando ya está atado.
+        if (!chat.clientId) {
+            const vinculado = await vincularChatSiCorresponde(chat);
+            if (vinculado) chat = { ...chat, clientId: vinculado };
         }
 
         // Registrar el mensaje. Con id de WhatsApp se hace UPSERT: si el emisor
