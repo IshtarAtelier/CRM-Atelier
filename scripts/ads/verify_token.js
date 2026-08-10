@@ -20,10 +20,13 @@ const { get, debugToken, MetaApiError } = require('./lib/meta_client');
 const checkingWrite = process.argv.includes('--write');
 
 async function main() {
+  // El de escritura acepta los dos nombres (ver writeToken() en meta_client).
   const varName = checkingWrite ? 'META_ADS_WRITE_TOKEN' : 'META_ADS_TOKEN';
-  const token = process.env[varName];
+  const token = checkingWrite
+    ? process.env.META_ADS_WRITE_TOKEN || process.env.META_ADS_TOKEN_WRITE
+    : process.env.META_ADS_TOKEN;
   if (!token) {
-    console.error(`No hay ${varName} en el entorno.`);
+    console.error(`No hay ${varName} (ni META_ADS_TOKEN_WRITE) en el entorno.`);
     process.exit(2);
   }
 

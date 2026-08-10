@@ -54,7 +54,12 @@ function readToken() {
 }
 
 function writeToken() {
-  const t = process.env.META_ADS_WRITE_TOKEN;
+  // Se aceptan los dos nombres: el `.env` del proyecto lo tiene cargado como
+  // META_ADS_TOKEN_WRITE y el cliente lo buscaba solo como META_ADS_WRITE_TOKEN,
+  // así que toda escritura fallaba con "falta el token" aunque el token
+  // estuviera ahí. Antes que renombrar a mano en cada entorno (y que el próximo
+  // se olvide), se soportan los dos.
+  const t = process.env.META_ADS_WRITE_TOKEN || process.env.META_ADS_TOKEN_WRITE;
   if (!t) {
     throw new MetaApiError('Falta META_ADS_WRITE_TOKEN: la escritura usa un token dedicado.', {
       fatal: true,
@@ -74,7 +79,14 @@ function appsecretProof(token) {
 /** Borra cualquier secreto de un string antes de loguearlo o mostrarlo. */
 function redact(text) {
   let out = String(text ?? '');
-  for (const t of [process.env.META_ADS_TOKEN, process.env.META_ADS_WRITE_TOKEN, process.env.META_APP_SECRET]) {
+  // Los dos nombres del token de escritura: si solo se redacta uno, el otro se
+  // imprime entero en meta_api.log ante el primer error.
+  for (const t of [
+    process.env.META_ADS_TOKEN,
+    process.env.META_ADS_WRITE_TOKEN,
+    process.env.META_ADS_TOKEN_WRITE,
+    process.env.META_APP_SECRET,
+  ]) {
     if (t) out = out.split(t).join('***');
   }
   return out.replace(/access_token=[^&\s"']+/gi, 'access_token=***');
