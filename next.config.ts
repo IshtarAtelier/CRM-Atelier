@@ -217,15 +217,28 @@ const nextConfig: NextConfig = {
     // Se comparte entre la CSP activa y la Report-Only a propósito: estaban
     // duplicados y derivaron — la activa se quedó sin estos hosts y estuvo
     // bloqueando PageView, ViewContent y AddToCart.
+    //
+    // Los cuatro hosts de Google Ads (`googleadservices`, `googleads.g.doubleclick`,
+    // `google.com` y `google.com.ar`) son la misma historia que los de Meta, un
+    // año después: gtag manda la conversión a
+    // `googleads.g.doubleclick.net/pagead/viewthroughconversion/…` y las listas
+    // de remarketing a `google.com/ads/ga-audiences`, las dos como <img>/<script>.
+    // Faltaban en la CSP, así que Google Ads no recibió NUNCA una conversión del
+    // sitio ni pudo armar un público de remarketing — sin un solo error visible.
+    // El ccTLD importa: un visitante argentino pega contra `google.com.ar`.
     const imgSrc =
-      "img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.g.doubleclick.net";
+      "img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com https://www.google.com.ar";
+    // script-src también se comparte entre las dos CSP: estaba duplicado y es
+    // exactamente así como la activa se quedó atrás la vez anterior.
+    const scriptSrc = (allowEval: boolean) =>
+      `script-src 'self' ${allowEval ? "'unsafe-eval' " : ""}'unsafe-inline' https://live.decidir.com https://developers.decidir.com https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net`;
     const cspStrict = [
       "default-src 'self'",
-      `script-src 'self' ${isDev ? "'unsafe-eval' " : ""}'unsafe-inline' https://live.decidir.com https://developers.decidir.com https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com`,
+      scriptSrc(isDev),
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       imgSrc,
       "font-src 'self' data: https://fonts.gstatic.com",
-      `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://mercados.ambito.com${waOrigins}`,
+      `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://mercados.ambito.com${waOrigins}`,
       "frame-src 'self' https://maps.google.com https://www.google.com",
       "media-src 'self' blob:",
       "object-src 'none'",
@@ -236,7 +249,7 @@ const nextConfig: NextConfig = {
     // de Decidir; lo único que cambió es que ahora comparte `imgSrc`.
     const cspActive = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://live.decidir.com https://developers.decidir.com https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com",
+      scriptSrc(true),
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       imgSrc,
       "font-src 'self' data: https://fonts.gstatic.com",
