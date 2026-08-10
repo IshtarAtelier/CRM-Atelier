@@ -7,14 +7,22 @@ Este documento reemplaza a `docs/plan-campanias-meta-google.md` (que propone pre
 violan el techo) y consolida `docs/plan-maquina-de-vender.md` §4 con lo verificado hoy.
 Donde dos auditorías se contradicen, la contradicción está resuelta y explicada en el texto.
 
-> **Advertencia de ramas antes de ejecutar nada.**
-> El árbol de trabajo está en `fix/csp-google-ads`. Los planes previos, el guardián del techo
-> (`src/services/ads-budget.service.ts`) y el fix de vínculo chat↔ficha viven en `deploy/bot-recetas`,
-> que está **39 commits adelante de `origin/main`** (`git cherry -v origin/main deploy/bot-recetas`).
-> Las 16 placas del lote `ad-atp` viven en `claude/keen-fermat-12abe7` (10 commits).
-> `src/app/multifocales/page.tsx` y `src/lib/pricing/multifocal-desde.ts` están **untracked**:
-> no existen en ninguna rama y se pierden con cualquier `checkout`.
-> `origin/main` está en `ec014097`.
+> **Advertencia de ramas — ACTUALIZADA el 10/8/2026, el bloque original ya no era cierto.**
+> `origin/main` está en **`3fb22950`** (no en `ec014097`) y **`deploy/bot-recetas` ya está
+> íntegramente mergeado**: `git rev-list --left-right --count origin/main...deploy/bot-recetas`
+> devuelve `0 0`. Los "39 commits sin deployar" **ya se deployaron** — con ellos el guardián del
+> techo (`src/services/ads-budget.service.ts`), el vínculo chat↔ficha (`f254da27`), la guarda de
+> frescura de stories y el arreglo del cron de carritos. **B5 y B7 de la §2.1 están resueltos.**
+>
+> Lo que sigue vivo:
+> - `src/app/multifocales/page.tsx` y `src/lib/pricing/` siguen **untracked**: no existen en
+>   ninguna rama y se pierden con cualquier `checkout`. B4 sigue en pie.
+> - La **CSP** de `origin/main` sigue sin `googleadservices` ni `googleads.g.doubleclick.net`
+>   (`git show origin/main:next.config.ts | grep -c googleadservices` → `0`), así que Google Ads
+>   no puede recibir una conversión ni armar un público de remarketing. Arreglado en
+>   `fix/csp-google-ads`, **sin deployar**.
+> - El lote `ad-atp` vive en `claude/keen-fermat-12abe7`: son **5 piezas × 4 tamaños = 20 JPEG**
+>   y **12 commits** (el texto original decía 16 placas y 10 commits).
 
 ---
 
@@ -22,9 +30,18 @@ Donde dos auditorías se contradicen, la contradicción está resuelta y explica
 
 **Qué hacer:** reencender Meta con objetivo *Mensajes* (click-to-WhatsApp) como motor, sostener
 Google solo en Búsqueda por intención tipeada, y no tocar PMax, Maps, Shopping, catálogo ni
-objetivo Tráfico. Nada de esto es una apuesta: en abril y mayo de 2026 la pauta que hoy está
-apagada devolvió **4,7 pesos de margen por cada peso de Meta y 4,0 de Google**, con un CPA real
-de $37.815 y $55.400 por venta contra un punto de equilibrio de $205.366.
+objetivo Tráfico. En abril y mayo de 2026 la pauta que hoy está apagada devolvió **~5,0 pesos de
+margen por cada peso de Meta y ~3,8 de Google**, con un CPA de **$40.840** (Meta) y **$55.400**
+(Google) por venta contra un punto de equilibrio de $205.366.
+
+> **Corregido el 10/8.** Decía "4,7 y 4,0" con un CPA de $37.815. Las cuatro cifras no podían ser
+> ciertas a la vez: ROAS = margen ÷ CPA, y $205.366 ÷ $37.815 da 5,43x, no 4,7x. El CPA de Meta
+> además dividía por 27 ventas cuando la base tiene 25 no borradas ($1.021.000 ÷ 25 = $40.840).
+> Los valores de arriba son los reconstruidos con margen del 56,3% sobre lo cobrado por canal.
+> **Y ojo con la frase "nada de esto es una apuesta", que se borró:** el CPA cruza un gasto
+> cargado a mano en `FixedCost` con el `contactSource` **del cliente**, no de la orden — la propia
+> §12.1 (R5) lo describe como atribución manual que no distingue Meta pago de Meta orgánico.
+> La dirección es sólida; la precisión de dos decimales no.
 
 **Cuánto invertir:** no arrancar con el techo puesto. Rampa de tres meses hasta $1.000.000.
 
@@ -55,9 +72,16 @@ con compras exigiría $1.109.471/día), campaña de lentes de sol de vidriera (1
 como negativas: sería contradecir su propia política).
 
 **Si la dueña solo lee esto:** el punto de equilibrio son **3 ventas atribuidas en el mes 1 y 5 en
-el mes 3**. En abril y mayo las fuentes pagas produjeron 62 y 72 órdenes. El techo de $1.000.000 no
-es un riesgo financiero — el riesgo es gastarlo sin poder medirlo, y por eso los bloqueantes de la
-sección 2 van primero.
+el mes 3**. En abril y mayo las fuentes pagas produjeron **27 y 19 ventas reales**. El techo de
+$1.000.000 no es un riesgo financiero — el riesgo es gastarlo sin poder medirlo, y por eso los
+bloqueantes de la sección 2 van primero.
+
+> **Corregido el 10/8.** Este párrafo decía "62 y 72 órdenes". Eran órdenes, pero **con los
+> presupuestos adentro** (35 `QUOTE` en abril, 53 en mayo). Las ventas reales fueron 27 y 19 — es
+> el mismo error que la propia §2.3 declara falso 90 líneas más abajo, aplicado acá. El colchón
+> contra el equilibrio es de **~4x, no de ~14x**, y la participación de las fuentes pagas sobre
+> facturación real **baja** de abril a mayo (65,9% → 53,7%) en vez de subir. El plan se sostiene;
+> el margen de error es mucho más chico de lo que este párrafo daba a entender.
 
 ---
 
@@ -73,9 +97,11 @@ Lista corta y bloqueante. Cada fila dice qué cuesta saltearla.
 | B2 | 301 de `promo.atelieroptica.com.ar` al dominio principal (o noindex + bajar la página, vía Wave Publicidad) | subdominio externo | "2x1 por tiempo limitado" sin fecha ni condiciones = práctica engañosa (Decreto 274/2019) y *Misrepresentation* en Google. Además manda los leads al WhatsApp **mayorista** (+54 9 3541 21-5971), que no atiende el bot ni queda en el CRM |
 | B3 | Bajar el titular "Garantía de adaptación 90 días" de la PMax al local | `scripts/ads/google_titulos.js:16,47` vs `src/app/politicas-de-cambio/page.tsx:58-61` | Está vivo en la campaña que se lleva el **56% del gasto de Google** y contradice la política publicada (30 días, solo Varilux y Super Blue, con receta nueva). Un reclamo a los 60 días con el anuncio en la mano se gana: un cambio de multifocales Varilux se come el margen entero de la venta |
 | B4 | Commitear `src/app/multifocales/` **junto con** `src/lib/pricing/` en un mismo commit | untracked | La página importa `precioMultifocalDesde` de esa carpeta: commitear una sin la otra rompe el build. Es la landing del producto que factura el 62,5%, y hoy vive solo en este disco |
-| B5 | Deployar los 39 commits de `deploy/bot-recetas` a `origin/main` | rama | Ahí viven: el guardián del techo (`ads-budget.service.ts`), el vínculo chat↔ficha (`f254da27`), la guarda de frescura de stories y el arreglo de seguridad del cron de carritos. Sin el vínculo, la tabla de ROAS por anuncio devuelve **$0 aunque la venta exista** — y alguien va a apagar una campaña que está vendiendo |
+| ~~B5~~ | ~~Deployar los 39 commits de `deploy/bot-recetas`~~ · **RESUELTO el 10/8**: ya están en `origin/main` (`rev-list --left-right --count` = `0 0`). Con ellos el guardián del techo, el vínculo chat↔ficha, la frescura de stories y el cron de carritos | — | — |
+| **B5-bis** | **Deployar la CSP** (`fix/csp-google-ads`): `origin/main` no lista `googleadservices` ni `googleads.g.doubleclick.net` en `script-src`/`img-src` | `next.config.ts` | gtag manda la conversión a `googleads.g.doubleclick.net/pagead/viewthroughconversion/` y las listas de remarketing a `google.com/ads/ga-audiences`: **las dos vienen bloqueadas y fallan en silencio**. Google Ads no recibió nunca una conversión del sitio ni pudo armar un público, aunque las etiquetas de WhatsApp y Llamada estén bien cargadas. Encender Búsqueda sin esto es pagar clicks que el algoritmo no puede aprender a elegir |
 | B6 | Cargar `GOOGLE_ADS_CONVERSION_LABEL` en Railway y reiniciar | Railway | Verificado en producción: `adsPurchaseLabel` llega como `"$undefined"`. Google Ads **no registra ninguna venta web**. WhatsApp y Llamada sí disparan; la compra no |
-| B7 | Sacar `.env.bak-pre-write-token` de la raíz y cambiar la regla del `.gitignore` de `.env` a `.env*` | raíz | 82 líneas con 16 claves con pinta de secreto, untracked y **no ignoradas**. Un `git add -A` distraído las publica en GitHub |
+| ~~B7~~ | ~~`.gitignore` de `.env` a `.env*`~~ · **RESUELTO el 10/8**: la regla `.env*` está en `origin/main` y `git check-ignore` confirma que `.env.bak-pre-write-token` queda ignorado. Borrar igual el archivo del disco | raíz | — |
+| **B7-bis** | **Rotar `CRON_SECRET` en Railway** | Railway | El valor viejo estuvo hardcodeado como fallback en `src/app/api/cron/abandoned-carts/route.ts` y publicado en `origin/main` desde `569e0fed`. La ruta ya está arreglada (falla cerrada, sin el bypass `?x=localhost` que salteaba la auth entera), pero **el secreto quedó en la historia de git** y de ahí no se saca |
 
 ### 2.2 Bloqueantes de medición — se puede encender Meta, pero no escalar sin esto
 
@@ -94,9 +120,9 @@ Lista corta y bloqueante. Cada fila dice qué cuesta saltearla.
 |---|---|---|
 | "34 commits de medición sin deployar" | **Falso.** El embudo Pixel+CAPI está en `origin/main` desde el 2/8 (`0bf9d11c`), verificado contra el sitio vivo. Lo que falta son 39 commits de `deploy/bot-recetas`, que son otra cosa (guardián, vínculo chat↔ficha, frescura) | `git cherry -v origin/main`; payload RSC de producción |
 | "El tag de Google está vacío" | **Falso en producción.** `AW-16543752866`, `G-DGYJPFKJMY` y el pixel `789449199606215` están cargados. El vacío es el `.env` **local**. Lo que falta es la etiqueta de la acción de *compra* (B6) | payload RSC de `atelieroptica.com.ar` |
-| "El guardián del techo está implementado en `src/services/ads-budget.service.ts`" | **Falso en `origin/main`.** Existe pero en `deploy/bot-recetas` (commit `23d50b1c`). Hoy **nada** frena el gasto | `git log --all -- src/services/ads-budget.service.ts` |
-| "Gasto de los últimos 30 días: $0, todo pausado" | **Probablemente falso.** `plan-maquina-de-vender.md` §4.2 corrigió el falso negativo el mismo día: era leer la campaña y no el conjunto/anuncio. Meta gastaría ~$545.000/mes con 502 conversaciones, concentradas en `Mensajes ✉️` de la cuenta USD (454 conv a ~$771) | `docs/plan-maquina-de-vender.md` (`3dbb2bc2`) |
-| "Facturado abril $52,8M / mayo $54,1M" | **No es facturación.** Son presupuestos ($35,4M en 66 QUOTE) + ventas ($19,0M de lista). Lo **cobrado** fue $17,0M en abril y $12,7M en mayo | base local: sumas de `Order` por `orderType` y tabla `Payment` |
+| "El guardián del techo está implementado en `src/services/ads-budget.service.ts`" | ~~Falso en `origin/main`~~ → **Cierto desde el 10/8**: `deploy/bot-recetas` se mergeó y el guardián está en `origin/main`. Sigue sin servir hasta dar de alta `ads-report` (M6): es su único consumidor | `git show origin/main:src/services/ads-budget.service.ts` |
+| "Gasto de los últimos 30 días: $0, todo pausado" | ~~Probablemente falso~~ → **Sin resolver, y la refutación no se sostiene.** Los "454 conversaciones en 30 días" de `plan-maquina-de-vender.md` serían el **73% de las 620 de todo el año** en esa campaña, y sus US$223 el **61% del gasto anual** de la cuenta USD. Los 30 días no pueden ser eso. Idem "Tráfico IG: 8 conv y $133.450/mes" contra 29 conv y $41.786/mes de promedio anual. **No inventar el dato: mirarlo en el Ads Manager** (recuadro de abajo) | lectura de 365 días de las dos cuentas vía `meta_report.js` |
+| "Facturado abril $52,8M / mayo $54,1M" | **No es facturación.** Son presupuestos ($35,84M en **76** QUOTE) + ventas ($19,0M de lista). Lo **cobrado** fue $17,0M en abril y $12,7M en mayo | base local: sumas de `Order` por `orderType` y tabla `Payment` |
 | "`/multifocales` da 404 por un bug" | **No es un bug: nunca se commiteó.** Y hay una landing viva y usable hoy: `/landing/multifocales` (200, con FAQ de adaptación y CTA a WhatsApp), `noindex` a propósito — lo cual no importa para pauta | `git status`; curl a producción |
 
 > **Verificación de 2 minutos, obligatoria antes de tocar un presupuesto.**
@@ -317,13 +343,24 @@ Advantage+ **menos Audience Network** · entrega 24/7 (el bot atiende) · los 4 
 | M3 | Control de miopía | — | — | — | — | **$0 permanente** | — |
 | M4 | Catálogo / Ventas | — | — | — | — | **$0 permanente** | — |
 
-**M1 no se crea: se renombra.** Es `Mensajes ✉️` de la cuenta USD, que trae 454 conversaciones a
-~$771 en 30 días. Se le cambia el nombre, se le ajusta el presupuesto a nivel **conjunto** (ABO) y
-se le renombran los anuncios con `[metaXxx]`. **No se le toca el mensaje precargado** (eso es
-edición de creative y resetea el aprendizaje de la única campaña rentable de la cuenta).
+**M1 se renombra O se crea — depende de lo que muestre el Ads Manager, y hay que mirarlo.**
 
-**Lo único que se pausa:** `Campaña de Tráfico en Instagram` (8 conversaciones a $16.681 en 30 días,
-~$133.450/mes liberados).
+> **Corregido el 10/8.** Este bloque afirmaba que `Mensajes ✉️` (USD) "trae 454 conversaciones a
+> ~$771 en 30 días" y daba el renombrado por hecho. Ese número es incompatible con los totales
+> verificados de la cuenta: **620 conversaciones y US$364 en 365 días**. 454 conversaciones en un
+> mes serían el 73% del año entero, y su gasto el 61% del anual. Y la lectura de los últimos 30
+> días da **$0**.
+
+- **Si el conjunto está gastando** (verificar a nivel conjunto/anuncio, no campaña): se **renombra**.
+  Cambio de nombre, presupuesto a nivel conjunto (ABO), anuncios renombrados con `[metaXxx]`, y
+  **no se toca el mensaje precargado** — eso es edición de creative y resetea el aprendizaje.
+- **Si está en $0** (lo que dice el dato duro): es un **encendido**, con 7-14 días de aprendizaje
+  antes de juzgar nada. El presupuesto del mes 1 no cambia; lo que cambia es la expectativa de las
+  primeras dos semanas y cuándo se evalúa el primer corte.
+
+**Lo único que se pausa:** `Campaña de Tráfico en Instagram`. Con datos verificados de 365 días son
+**29 conversaciones y $501.438** (~$41.786/mes, $17.291 por conversación) — no las "8 conv a $16.681
+en 30 días / $133.450 liberados" que decía acá. La decisión no cambia: es 20x peor que Mensajes.
 
 ### 5.2 Decisiones que hay que dejar escritas
 
@@ -953,6 +990,26 @@ de verano.
 | **Feb** | **$1.000.000** | **Mes pico de vuelta al cole**, foco **8 al 25/2**. Control de miopía infantil (Stellest, MyoFix) y anteojos para chicos | **25/1** | Material ya producido: `ad-l3-stellest-frena`, `ad-l3-control-con-mas-aumento`, `reels/lente-stellest`, `lente-myofix`. **Confirmar la fecha de inicio de clases 2027 en Córdoba** cuando la provincia la publique (en 2026 fue el 2/3) — **NO VERIFICADO** |
 | **Total 7 meses** | **$5.600.000** | promedio $800.000/mes, siempre bajo el techo | | |
 
+> **Corregido el 10/8 — el calendario choca con el tope diario del §10.7.**
+> El techo de $1.000.000/mes se traduce a un tope de **$33.000/día** que el §10.7 declara y el
+> §5.3 refuerza con "nunca duplicar de un día para otro". Estas dos filas lo violan:
+>
+> | Fila | Lo que dice | Ritmo diario que implica | Tope |
+> |---|---|---:|---:|
+> | Nov | 60% de $1.000.000 en las 6 ventanas de Cyber+Black | **$100.000/día** | $33.000 |
+> | Dic | $800.000 del 1 al 20 (20 días) | **$40.000/día** | $33.000 |
+>
+> Hay que elegir una de dos, y dejarla escrita: **(a)** el tope diario es un promedio mensual y la
+> concentración en fechas pico está permitida —entonces reescribir el guardrail 6 del §10.7 para
+> que diga eso, porque hoy dice lo contrario—, o **(b)** el tope es duro, y entonces noviembre
+> concentra como mucho ~$200.000 en las seis ventanas, no $600.000. Sin esta decisión, quien opere
+> en noviembre va a ver saltar la alarma del guardián todos los días y la va a terminar ignorando,
+> que es exactamente el modo en que un guardrail deja de servir.
+>
+> Menor, del mismo tipo: agosto asigna $600.000 a la ventana 12-31/8 (20 días = $30.000/día)
+> mientras el §4.1 define el mes 1 como 12/8–11/9 (30 días = $20.000/día). El mismo monto con dos
+> ritmos distintos según qué tabla se lea.
+
 **Tarea de calendario, deadline 26/10:** `social/feed-programacion.json` **termina el 31/10** (49
 entradas: 14 de agosto, 17 de septiembre, 18 de octubre). Noviembre, diciembre, enero y febrero
 están vacíos — justo cuando arranca el mes de mayor inversión. Si el feed orgánico se corta, se paga
@@ -1062,10 +1119,17 @@ Tres cosas que son invisibles desde el Ads Manager y que ningún punto del check
 **$33.000 ARS/día como máximo** (= $1.000.000/mes). Verificarlo en el Ads Manager antes de activar.
 No repartir "a ojo": escribir el reparto (§4.1) y comparar cada lunes contra eso.
 
-> **Advertencia:** el promedio de meses cerrados que cita el propio guardián (Google ~$519.000 +
-> Meta ARS ~$348.000 + Meta USD ~US$225) suma **~$1.220.250/mes = 122% del techo**. Volver al ritmo
-> histórico dispara "excedido" alrededor del **día 3 de cada mes**, y una alerta que aparece siempre
-> deja de leerse en dos semanas. Por eso la rampa arranca en $600.000, no en el techo.
+> **Corregido el 10/8 — esta advertencia estaba inflada y ya no aplica.** Decía que el ritmo
+> histórico suma ~$1.220.250/mes = **122% del techo**, usando **US$225/mes** en la cuenta en
+> dólares. El gasto verificado de esa cuenta es **US$511 en 365 días = US$42,6/mes**: el número
+> estaba **5,3 veces** por encima. Con datos reales: Google ~$554.000 (promedio `FixedCost`
+> abr-may) + Meta ARS ~$363.333 + Meta USD ~$66.900 ≈ **$984.000/mes, o sea 98% del techo**.
+>
+> Consecuencia: el ritmo histórico **entra** bajo el techo, la alerta no se dispararía el día 3, y
+> la rampa de tres meses **pierde esta justificación**. La rampa sigue siendo la decisión correcta,
+> pero por el otro motivo, que es el bueno: un conjunto necesita 7-14 días y ~50 conversiones
+> semanales para salir de aprendizaje, y abrir tres conjuntos a la vez con el techo puesto reparte
+> el presupuesto en pedazos que no aprenden. No por miedo a excederse.
 
 ---
 
@@ -1157,3 +1221,51 @@ La lista honesta de lo que falta para cerrar el plan, con cómo conseguirlo.
 *Documento generado el 9/8/2026 a partir de 20 auditorías independientes. Toda cifra sin fuente
 explícita está marcada "(supuesto)" o "NO VERIFICADO". Las cifras de la base local salen de una
 copia con datos hasta el 18/6/2026: son orden de magnitud, no cifras de cierre contable.*
+
+---
+
+## Apéndice V — Verificación adversarial (10/8/2026)
+
+Este documento pasó por un verificador cuyo único trabajo era refutarlo, cruzando cada cifra
+contra la base local, el árbol de git y las lecturas de 365 días de las dos cuentas de Meta.
+Las correcciones que **cambian una decisión** ya están aplicadas arriba, en recuadros marcados
+"Corregido el 10/8". Acá queda el resto, para que no se pierda.
+
+### V.1 Pendientes de resolver — necesitan una decisión, no una corrección
+
+| # | Qué dice el documento | El problema | Corrección |
+|---|---|---|---|
+| 1 | §4.5: "Promedio ponderado \| $205.366" | Los pesos de esa tabla suman **90,4%**, no 100%. El promedio ponderado real de esa columna da **$188.691** ($208.729 normalizado). El $205.366 viene de otro lado: 56,3% del ticket de $365.011 | Elegir un solo método y declararlo |
+| 2 | §4.4 proyecta con **$200.000/venta**; §1 y §4.5 usan **$205.366** | Dos puntos de equilibrio distintos en el mismo documento | Unificar |
+| 3 | §7.3/§7.4 y apéndice: "178 compradores", exclusión global X1 | En la base hay 179 clientes con **alguna orden**, pero solo **86-87 con una venta**. Los 178 son *presupuestados*. X1 se aplica a todos los conjuntos, frío incluido → **sacaría de la prospección a ~92 personas que pidieron presupuesto y nunca compraron**, que son el público más caliente que tiene el negocio, y a los que el propio §7.3-E7c quiere reactivar | Partir X1 en dos listas: compradores (excluir) y presupuestados sin compra (**no** excluir del frío) |
+| 4 | §7-E7b: "los 64 clientes con multifocal" | Son ~21-22 **ventas** de multifocal en abr-jun. Mismo error que arriba | Recontar sobre `SALE` |
+| 5 | El gasto de Google aparece con **tres** valores: $519.000 (§10.7), ~$636.000 (§4.2+§6) y $554.000 (`FixedCost`, que es la base del CPA de $55.400) | "La PMax se lleva el 56% del gasto de Google" solo funciona con el denominador de $638.766; contra $519.000 sería el **69%** | Reconciliar contra `FixedCost` y usar ese |
+| 6 | CPA de remarketing: **$1.328** en §3.1 y §7.1, **$1.871** en §4.2 y §5.2 | $1.328 se deriva de los datos ($518.039 ÷ 390). El $1.871 no tiene fuente, y es el que sostiene "M2 no aprende" y todo el argumento de ABO sobre CBO. Con $1.328 el mismo presupuesto da 79 conv/mes en vez de 56 | Usar $1.328 y rehacer §5.2 |
+| 7 | El reparto 62/38 nunca dice lo que cuesta | §4.4 aplica la **misma** tasa de cierre del 6% a Meta y a Google, cuando el supuesto dice que se derivó sobre fichas `contactSource='Meta'`. Con esa tasa, poner todo en Meta daría 115 ventas en 3 meses contra 94: el 38% a Google cuesta **~21 ventas ≈ $4,2M de contribución**. Y es incompatible con §12.1 ("para que Google empate necesita cerrar 2,6 veces mejor: es plausible, no es un hecho") | Poner el número sobre la mesa y defender el 38% por lo que de verdad lo justifica: riesgo de plataforma única + intención tipeada |
+| 8 | §5.3: "el piso de US$5/día son $7.850 = **41%** del presupuesto de Meta del mes 1" | $7.850 × 30 = $235.500 contra los $370.000 del mes 1 = **63,6%**. El 41% corresponde al mes 2 | Corregir el porcentaje |
+
+### V.2 Menores, verificados
+
+- §6: "168 JPEG públicos" → en las carpetas de placas hay **154** (los otros 14 son portadas de reels).
+- §5.3: "57 veces el presupuesto diario entero de Meta" → es **90x** (mes 1) o **54x** (mes 3).
+- Apéndice: "cada 1% que vuelva son $1.267.984" → 1% de 778 × $205.366 = **$1.597.748**.
+- §2.3: "el vacío es el `.env` **local**" → la variable **está** cargada en el `.env` local
+  (comprobado con `grep -c`, sin imprimirla). Lo de Railway sigue sin verificar.
+- §12: "90 de 305 ítems sin `productCostSnapshot`" → en la copia local son **82 de 276**.
+- §8: cita `scripts/ads/subir_creatividades.js` sin advertir que **solo existe en
+  `claude/keen-fermat-12abe7`**, la misma advertencia de rama que sí le pone al lote ad-atp.
+- §4.5: "efectivo paga el 80%… ambos caminos dejan el 80%" → la relación cobrado/lista medida es
+  **85,5%** ($365.011 / $427.054), que es la que el propio documento usa dos líneas más abajo.
+
+### V.3 Lo que resistió el ataque
+
+Para no perder tiempo revisando lo que ya está bien: **no hay mezcla de ventanas temporales** en el
+CPA — sale de `FixedCost` de abril-mayo cruzado con ventas de abril-mayo, no de los 365 días de la
+API. Toda la aritmética de §4.4 (conversaciones, ventas, contribución, retorno, equilibrio) cierra
+al peso. Los presupuestos de §4.1 suman exacto y respetan el techo los tres meses. El §7.1 —por qué
+el remarketing salió 1,55x más caro— reproduce perfecto desde los datos crudos, contrafáctico
+incluido. Los costos fijos de mayo, el ticket de lista, los 111 productos `is2x1`, los 248
+placeholders telefónicos, los 12 SKU de sol, las 49 entradas del feed y las **14 fechas del
+calendario** (Día del Niño, Día de la Madre, Black Friday, vencimiento del SAC) están todas
+verificadas y correctas. De ~35 rutas de archivo y número de línea citadas, **todas existen y dicen
+lo que el documento dice que dicen**.
