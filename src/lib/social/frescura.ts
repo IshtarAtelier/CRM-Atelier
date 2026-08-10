@@ -34,9 +34,27 @@ export interface VeredictoFrescura {
  * `generadoEl` se considera vencida a propósito: no se puede probar que el
  * precio sea de hoy, y ante la duda no se publica.
  */
-export function evaluarFrescura(pieza: { id?: string; fuente?: string; generadoEl?: string }): VeredictoFrescura {
+export function evaluarFrescura(pieza: {
+  id?: string;
+  fuente?: string;
+  generadoEl?: string;
+  generadoDesde?: string;
+}): VeredictoFrescura {
   if (pieza?.fuente !== 'base') {
     return { fresca: true, dias: null, motivo: 'La pieza no trae precios de la base.' };
+  }
+  // Generada contra docker, no contra producción. El catálogo local está
+  // desincronizado —es la misma razón por la que los snapshots no se commitean
+  // desde acá— así que su precio puede ser de hace semanas aunque el JSON diga
+  // que se generó hoy. La fecha prueba CUÁNDO se generó, no CONTRA QUÉ: sin este
+  // corte, `generadoEl: hoy` alcanzaba para publicar un precio viejo, que es
+  // exactamente lo que R6 existe para impedir.
+  if (pieza.generadoDesde && pieza.generadoDesde !== 'produccion') {
+    return {
+      fresca: false,
+      dias: null,
+      motivo: `Los precios salieron de la base "${pieza.generadoDesde}", no de producción. Regenerar con --produccion.`,
+    };
   }
   if (!pieza.generadoEl) {
     return {

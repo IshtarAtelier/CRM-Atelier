@@ -94,6 +94,12 @@ async function fotoLocal(url, nombre) {
 
 export async function generarPiezaDeProductos({ destacados = false, marca = null, categoria = null, idPieza = null, titulo = null, limite = 3, saltear = 0 } = {}) {
     const { PrismaClient } = await import('@prisma/client');
+    // Producción si está disponible; local es el respaldo. Cuál de las dos se
+    // usó queda escrito en la pieza (`generadoDesde`): el catálogo de docker
+    // está desincronizado, así que un precio leído de ahí puede ser de hace
+    // semanas y la fecha de generación no lo delata. La guarda de frescura mira
+    // ese campo para negarse a publicar.
+    const desdeProduccion = Boolean(process.env.PROD_DATABASE_URL);
     const prisma = new PrismaClient({
         datasources: { db: { url: process.env.PROD_DATABASE_URL || process.env.DATABASE_URL } },
     });
@@ -227,6 +233,7 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             // publicar una pieza de base con más de 10 días: publicar precios
             // viejos es exactamente lo que este sistema existe para impedir.
             generadoEl: new Date().toISOString().slice(0, 10),
+            generadoDesde: desdeProduccion ? 'produccion' : 'local',
             // R1-R4 pasan a aviso: en un carrusel de catálogo cada slide ES un
             // armazón, y la foto del armazón no es decoración sino el producto.
             // Exigirle un 60% de slides sin imagen lo volvería otra cosa.

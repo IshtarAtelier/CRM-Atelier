@@ -15,11 +15,13 @@
  * R4  como máximo el 60% de las slides con imagen
  * R5  toda imagen citada existe de verdad en el banco
  * R6  una pieza con precio se genera desde la base, nunca a mano  ← propia
+ * R7  un testimonio cita una reseña real, con autor y fuente pública ← propia
  *
  * Única excepción: `images_waived` a nivel pieza, CON una razón escrita. Sin
  * razón no hay excepción — una excepción sin motivo es la puerta por la que se
- * cae el estándar entero. R5 y R6 no se eximen nunca.
+ * cae el estándar entero. R5, R6 y R7 no se eximen nunca.
  */
+import { FUENTES_DE_RESENA } from './plantillas.mjs';
 
 const error = (regla, mensaje) => ({ nivel: 'error', regla, mensaje });
 const aviso = (regla, mensaje) => ({ nivel: 'aviso', regla, mensaje });
@@ -30,11 +32,35 @@ function pareceUnPrecio(texto) {
     return /\$\s?\d|(\b\d{4,}\s*(pesos|ars)\b)/i.test(String(texto));
 }
 
-/** Todo el texto visible de una slide, para revisarlo de una. */
+/**
+ * Todo el texto visible de una slide, para revisarlo de una.
+ *
+ * La cita del testimonio entra acá a propósito: es texto que se publica, así que
+ * un precio mencionado dentro de una reseña ("me salieron $80.000") también cae
+ * en R6. Es incómodo pero correcto — ese precio es tan viejo como la reseña, y
+ * el que lo lee no distingue una cita de una oferta. La salida es elegir otra
+ * reseña o recortarla con […], nunca eximir la regla.
+ */
 function textoDeSlide(slide) {
-    return [slide.title, slide.subtitle, slide.body, ...(slide.items || [])]
+    // TODO campo de texto visible va acá. Si mañana se agrega uno a las
+    // plantillas y no se suma a esta lista, R6 deja de mirarlo y por esa rendija
+    // se puede publicar un precio escrito a mano — que es justo lo que pasó con
+    // `cta` el 10/8/2026.
+    return [slide.title, slide.subtitle, slide.body, slide.cita, slide.cta, ...(slide.items || [])]
         .filter(Boolean).join(' ');
 }
+
+/** Largo máximo de una cita: más que esto no entra en la placa y sale cortado. */
+const TOPE_CITA = 180;
+
+/**
+ * Un autor de mentira: el placeholder que quedó sin reemplazar (`{Nombre}`,
+ * `[Cliente]`) o un genérico que no identifica a nadie ("un cliente", "anónimo").
+ * Los copys del plan traen `{Nombre}` escrito así, y copiar-pegar el copy en un
+ * JSON es exactamente el camino por el que se publica una cita sin dueño.
+ */
+const AUTOR_DE_MENTIRA =
+    /^\s*[[{<(]|^\s*(nombre|cliente|clienta|usuario|paciente|an[oó]nimo|una?\s+client[ae])\b/i;
 
 export function validarPieza(pieza) {
     const problemas = [];
@@ -71,6 +97,66 @@ export function validarPieza(pieza) {
                     `Slide ${i + 1}: tiene un precio escrito a mano. Las piezas con precio se generan ` +
                     `desde la base (que es la que sabe el precio de hoy), no se tipean.`));
             }
+        }
+    }
+
+    // ── R7: un testimonio cita una reseña real (nunca se exime) ─────────────
+    //
+    // Hermana de R6 y con el mismo criterio: publicar una cita inventada tiene
+    // que ser IMPOSIBLE, no "algo a tener cuidado". El precio viejo cuesta plata;
+    // la cita inventada cuesta la palabra de la óptica, que es más cara.
+    //
+    // Por eso la placa no pide "un texto lindo entre comillas": pide la frase
+    // textual, el nombre real de quien la escribió y la plataforma pública donde
+    // cualquiera puede ir a leerla. Sin las tres cosas no renderiza.
+    for (const [i, s] of slides.entries()) {
+        if (s.type !== 'testimonio') continue;
+        const donde = `Slide ${i + 1} (testimonio)`;
+        const resena = s.resena || {};
+
+        const cita = typeof s.cita === 'string' ? s.cita.trim() : '';
+        if (!cita) {
+            problemas.push(error('R7',
+                `${donde}: falta \`cita\` con el texto TEXTUAL de la reseña. ` +
+                `No se redacta ni se "mejora": se copia y, si es larga, se recorta con […].`));
+        } else if (cita.length > TOPE_CITA) {
+            problemas.push(error('R7',
+                `${donde}: la cita tiene ${cita.length} caracteres (máximo ${TOPE_CITA}). ` +
+                `Recortá con […] respetando las palabras que quedan; más largo sale ilegible en la placa.`));
+        }
+
+        const autor = typeof resena.autor === 'string' ? resena.autor.trim() : '';
+        if (!autor) {
+            problemas.push(error('R7',
+                `${donde}: falta \`resena.autor\` con el nombre real de quien dejó la reseña.`));
+        } else if (autor.length < 2 || AUTOR_DE_MENTIRA.test(autor)) {
+            problemas.push(error('R7',
+                `${donde}: \`resena.autor\` es "${autor}", que no identifica a nadie ` +
+                `(¿quedó el placeholder del copy?). Va el nombre tal como figura en la reseña.`));
+        }
+
+        if (!FUENTES_DE_RESENA[resena.fuente]) {
+            problemas.push(error('R7',
+                `${donde}: \`resena.fuente\` tiene que ser una plataforma pública donde la reseña ` +
+                `se pueda ir a leer (${Object.keys(FUENTES_DE_RESENA).join(', ')}), no texto libre.`));
+        }
+
+        // Las estrellas son una afirmación sobre la calificación: si vienen,
+        // vienen bien. Si no vienen, la plantilla no dibuja ninguna (mejor
+        // ninguna que cinco inventadas).
+        if (resena.estrellas !== undefined &&
+            !(Number.isInteger(resena.estrellas) && resena.estrellas >= 1 && resena.estrellas <= 5)) {
+            problemas.push(error('R7',
+                `${donde}: \`resena.estrellas\` tiene que ser un entero de 1 a 5, o no estar.`));
+        }
+
+        // No bloquea (una reseña de Google no siempre tiene link estable), pero
+        // sin url ni fecha nadie puede reencontrarla dentro de seis meses para
+        // comprobar que la citamos bien.
+        if (!resena.url && !resena.fecha) {
+            problemas.push(aviso('R7',
+                `${donde}: sin \`resena.url\` ni \`resena.fecha\` no queda rastro de dónde salió la cita. ` +
+                `Anotá al menos el mes.`));
         }
     }
 

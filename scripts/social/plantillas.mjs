@@ -8,9 +8,10 @@
  * PROHIBIDO escribir un color o una fuente literal acá: todo sale de
  * `identidad.mjs`, que a su vez lee `globals.css`.
  *
- * Se arranca con TRES tipos (cover, list, cta). La guía propone ocho; cada uno
- * es una plantilla más para mantener, así que se suman cuando una pieza real los
- * necesite, no antes.
+ * Se arrancó con TRES tipos (cover, list, cta) y hoy son cinco: se sumó `number`
+ * para las piezas de precio y `testimonio` para las de prueba social. La guía
+ * propone ocho; cada uno es una plantilla más para mantener, así que se suman
+ * cuando una pieza real los necesite, no antes.
  */
 
 /** Escapa el texto para que un `&` o un `<` en el contenido no rompa el HTML. */
@@ -52,6 +53,55 @@ function fondoDeImagen(imagen) {
             <div class="velo"></div>`;
 }
 
+/**
+ * De dónde puede salir una reseña citada.
+ *
+ * Es una lista cerrada A PROPÓSITO: son plataformas públicas donde cualquiera
+ * puede ir a buscar la reseña y comprobar que existe. Si `fuente` fuera texto
+ * libre, "un cliente" o "WhatsApp" pasarían el control y volveríamos a poder
+ * publicar una frase que no dijo nadie. Lo lee también el validador (R7), así
+ * que la lista vive en un solo lugar.
+ */
+export const FUENTES_DE_RESENA = {
+    google: 'Google',
+    facebook: 'Facebook',
+    instagram: 'Instagram',
+};
+
+/**
+ * La firma de la cita: quién la dijo y dónde se puede leer.
+ *
+ * La fecha es opcional y va al final cuando está: una reseña de hace tres años
+ * sigue siendo verdadera, pero el que la lee tiene derecho a saber cuándo fue.
+ */
+function firmaDeResena(resena) {
+    const donde = FUENTES_DE_RESENA[resena.fuente];
+    const cuando = resena.fecha ? `, ${resena.fecha}` : '';
+    return `${resena.autor} — reseña en ${donde}${cuando}`;
+}
+
+/**
+ * Las estrellas, dibujadas en SVG inline (no hay emoji ni fuente de íconos que
+ * se vea igual en el navegador que captura y en el celular del que mira).
+ *
+ * Si la reseña no declara `estrellas`, NO se dibuja ninguna. Poner cinco por
+ * defecto sería afirmar una calificación que nadie dio — el mismo pecado que
+ * inventar la cita, con otra cara.
+ */
+function estrellasDeResena(resena) {
+    const puntaje = resena.estrellas;
+    if (typeof puntaje !== 'number') return '';
+
+    const estrella = (llena) =>
+        `<svg class="${llena ? '' : 'vacia'}" viewBox="0 0 24 24" aria-hidden="true">` +
+        `<path fill="currentColor" d="M12 2.6l2.9 5.9 6.5.95-4.7 4.58 1.11 6.47L12 17.44 6.19 20.5l1.11-6.47L2.6 9.45l6.5-.95z"/>` +
+        `</svg>`;
+
+    return `<div class="estrellas" role="img" aria-label="${puntaje} de 5 estrellas">
+        ${Array.from({ length: 5 }, (_, i) => estrella(i < puntaje)).join('')}
+      </div>`;
+}
+
 const PLANTILLAS = {
     /** Portada: el gancho. Título fuerte, bajada corta, imagen de fondo. */
     cover: (slide, id) => `
@@ -85,8 +135,41 @@ const PLANTILLAS = {
       <p class="rotulo">${resaltar(slide.title)}</p>
       <p class="dato">${esc(slide.dato)}</p>
       ${slide.body ? `<p class="cuerpo">${resaltar(slide.body)}</p>` : ''}
+      ${slide.cta ? `<p class="llamado">${esc(slide.cta)}</p>` : ''}
     </div>
     ${pie(id)}`,
+
+    /**
+     * Testimonio: la palabra de un cliente, textual.
+     *
+     * La pieza que más convierte es la que no escribimos nosotros, y por eso
+     * mismo es la más fácil de arruinar: alcanza con "mejorar" una frase para
+     * que la placa pase a decir algo que nadie dijo. Contra eso hay dos candados:
+     *   1. la cita se escapa con `esc` y NUNCA con `resaltar` — resaltar media
+     *      frase en bronce es editar palabras ajenas, aunque no se toque el texto;
+     *   2. el guard de abajo tira la pieza si falta la cita o la reseña, además
+     *      de la R7 del validador. La R7 es la que da el mensaje entendible; esto
+     *      es la red por si alguien llama a htmlDeSlide sin pasar por render.mjs.
+     */
+    testimonio: (slide, id) => {
+        const resena = slide.resena || {};
+        if (!slide.cita || !resena.autor || !FUENTES_DE_RESENA[resena.fuente]) {
+            throw new Error(
+                'Una slide `testimonio` necesita `cita` (textual) y ' +
+                '`resena: { autor, fuente }` con fuente entre ' +
+                `${Object.keys(FUENTES_DE_RESENA).join(', ')}. Ver R7 en validador.mjs.`
+            );
+        }
+        return `
+    ${fondoDeImagen(slide.imagenResuelta)}
+    <div class="contenido testimonio">
+      <p class="comillas" aria-hidden="true">&ldquo;</p>
+      <blockquote class="cita">${esc(slide.cita)}</blockquote>
+      ${estrellasDeResena(resena)}
+      <p class="firma">${esc(firmaDeResena(resena))}</p>
+    </div>
+    ${pie(id)}`;
+    },
 
     /** Cierre: qué hacer ahora. Una sola acción concreta. */
     cta: (slide, id) => `
@@ -113,6 +196,11 @@ export function htmlDeSlide(slide, id, pieza) {
     const oscuro = pieza.theme !== 'light';
     const fondo = oscuro ? id.oscuro : id.colores.fondo;
     const texto = oscuro ? '#ffffff' : id.colores.texto;
+    // El bronce que se lee sobre ESTE fondo. En oscuro es el del tema oscuro
+    // (pasa de 9:1); en claro, el normal. Lo usan las estrellas, que son texto
+    // chico a los ojos del contraste y necesitan 4,5:1 — una de la óptica ve
+    // poco y las piezas se revisan con ese piso.
+    const acento = oscuro ? id.colores.marcaClara : id.colores.marca;
     const esStory = id.formato?.nombre === '9:16';
     const esApaisado = id.formato?.nombre === '1.91:1';
     const esCuadrado = id.formato?.nombre === '1:1';
@@ -208,11 +296,40 @@ export function htmlDeSlide(slide, id, pieza) {
     margin-top:14px; color:${id.colores.marca};
   }
 
+  /* Testimonio: la cita manda y ocupa el centro óptico de la placa.
+     Las comillas grandes hacen el trabajo que en el feed hace el contexto —
+     avisan de un vistazo que eso lo dijo otro, antes de que nadie lo lea. */
+  .contenido.testimonio { justify-content:center; }
+  .comillas {
+    font-family:${id.fuentes.titulo};
+    font-size:150px; line-height:.6; font-weight:900;
+    color:${id.colores.marca}; margin-bottom:10px;
+  }
+  /* pre-line igual que el cuerpo: si la reseña original tenía dos párrafos,
+     se respetan. Cambiarle los saltos también es editarla. */
+  .cita {
+    font-size:58px; line-height:1.22; font-weight:700;
+    letter-spacing:-.015em; white-space:pre-line;
+  }
+  .estrellas { display:flex; gap:12px; margin-top:40px; color:${acento}; }
+  .estrellas svg { width:40px; height:40px; display:block; }
+  .estrellas .vacia { opacity:.28; }
+  .firma { margin-top:22px; font-size:30px; font-weight:500; opacity:.7; }
+
   .bajada { margin-top:32px; font-size:34px; line-height:1.4; font-weight:400; opacity:.86; }
   /* pre-line: los saltos de línea del texto se respetan. Sin esto, un cuerpo
      con dos horarios en dos líneas sale todo corrido en un párrafo y no se
      entiende dónde termina uno y empieza el otro. */
   .cuerpo { margin-top:28px; font-size:36px; line-height:1.38; font-weight:400; opacity:.9; white-space:pre-line; }
+
+  /* El renglón que dice QUÉ HACER. Va en bronce y con peso, separado del cuerpo:
+     mezclado ahí abajo se lee como una condición de pago más y no lo ve nadie.
+     Usa el acento del tema y no el bronce fijo: en oscuro el bronce normal no
+     llega al 4,5:1 que necesita un texto de este tamaño. */
+  .llamado {
+    margin-top:26px; font-size:34px; line-height:1.3;
+    font-weight:700; color:${acento};
+  }
 
   ul { list-style:none; display:flex; flex-direction:column; gap:30px; }
   li {
@@ -257,8 +374,16 @@ export function htmlDeSlide(slide, id, pieza) {
   h1 { font-size:104px; }
   h2 { font-size:78px; }
   .cuerpo { font-size:44px; margin-top:40px; }
+  .llamado { font-size:42px; margin-top:36px; }
   .bajada { font-size:42px; margin-top:40px; }
   .item { font-size:44px; }
+  /* El testimonio ya va centrado, así que hereda el .contenido de arriba:
+     acá solo crece la tipografía, que es lo que pide una story. */
+  .comillas { font-size:190px; margin-bottom:14px; }
+  .cita { font-size:68px; }
+  .estrellas { margin-top:48px; gap:14px; }
+  .estrellas svg { width:50px; height:50px; }
+  .firma { font-size:36px; margin-top:28px; }
   /* El velo del feed se oscurece hacia abajo porque ahí va el texto; acá el
      texto está al medio, donde ese gradiente todavía es claro. */
   .velo { background:linear-gradient(180deg,
@@ -282,6 +407,11 @@ export function htmlDeSlide(slide, id, pieza) {
   h1 { font-size:74px; }
   h2 { font-size:58px; margin-bottom:34px; }
   .producto { height:52%; }
+  .comillas { font-size:124px; }
+  .cita { font-size:50px; }
+  .estrellas { margin-top:32px; }
+  .estrellas svg { width:35px; height:35px; }
+  .firma { font-size:27px; margin-top:18px; }
   ` : ''}
 
   ${esApaisado ? `
@@ -300,6 +430,7 @@ export function htmlDeSlide(slide, id, pieza) {
   .rotulo { font-size:25px; }
   .dato { font-size:82px; margin-top:6px; }
   .cuerpo { font-size:25px; margin-top:14px; line-height:1.3; }
+  .llamado { font-size:24px; margin-top:14px; line-height:1.25; }
   .bajada { font-size:25px; margin-top:14px; line-height:1.3; }
   .item { font-size:25px; }
   /* El pie se achica y se ancla a la izquierda: con 628px de alto, el de 74px
@@ -307,6 +438,15 @@ export function htmlDeSlide(slide, id, pieza) {
   .pie { left:60px; right:auto; bottom:124px; gap:12px; }
   .logo { height:34px; }
   .handle { font-size:19px; }
+  /* El padding-right:50% de arriba reserva la franja de .producto, que el
+     testimonio no usa: su foto (si la lleva) va a sangre con velo. Sin este
+     override la cita queda en media placa y sale partida en ocho renglones. */
+  .contenido.testimonio { padding-right:60px; }
+  .comillas { font-size:86px; margin-bottom:2px; }
+  .cita { font-size:34px; line-height:1.2; }
+  .estrellas { margin-top:16px; gap:8px; }
+  .estrellas svg { width:26px; height:26px; }
+  .firma { font-size:20px; margin-top:12px; }
   ` : ''}
 </style></head>
 <body>${plantilla(slide, id)}</body></html>`;

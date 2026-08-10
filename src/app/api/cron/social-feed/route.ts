@@ -4,6 +4,7 @@ import path from 'node:path';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { publicarCarrusel, publicarReel, origenPublico } from '@/services/social-publisher.service';
+import { evaluarFrescura } from '@/lib/social/frescura';
 
 /**
  * Publica el carrusel del día en el feed de Facebook + Instagram.
@@ -171,26 +172,28 @@ export async function GET(request: Request) {
         // por mail cómo regenerarla y NO publica. Programar octubre hoy es
         // posible justamente gracias a esto: si nadie regenera cerca de la
         // fecha, sale un aviso y no un precio de agosto.
-        if (pieza.fuente === 'base') {
-            const dias = pieza.generadoEl
-                ? Math.floor((Date.now() - new Date(`${pieza.generadoEl}T12:00:00Z`).getTime()) / 86400000)
-                : Infinity;
-            if (dias > 10) {
-                await sendEmail({
-                    to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
-                    subject: `⚠️ Carrusel "${pieza.id}" no salió: precios de hace ${dias === Infinity ? 'fecha desconocida' : `${dias} días`}`,
-                    html: `
-                        <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
-                            <h2 style="color:#b45309">El carrusel de hoy tiene precios viejos</h2>
-                            <p style="font-size:15px">"${pieza.id}" se generó ${pieza.generadoEl ? `el ${pieza.generadoEl}` : 'en fecha desconocida'}
-                            y los precios pueden haber cambiado. No se publicó.</p>
-                            <p style="font-size:14px">Para regenerarlo con los precios de hoy y publicarlo:</p>
-                            <pre style="background:#f3f4f6;padding:10px;border-radius:6px;font-size:12px">node scripts/social/generar-producto.mjs ${pieza.id === 'sol-seleccion' ? '--categoria "Sol" --id sol-seleccion' : pieza.id === 'receta-seleccion' ? '--categoria "Receta" --id receta-seleccion --saltear 3' : ''} --render
+        // La regla vive en `evaluarFrescura` y NO se reimplementa acá: este cron
+        // y el de stories tienen que negarse por lo mismo. Cuando estaba
+        // duplicada, el helper aprendió a rechazar los precios sacados de la base
+        // local y esta copia siguió aceptándolos.
+        const veredicto = evaluarFrescura(pieza);
+        if (!veredicto.fresca) {
+            const cuando = veredicto.dias === null
+                ? 'fecha desconocida'
+                : `hace ${veredicto.dias} días`;
+            await sendEmail({
+                to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
+                subject: `⚠️ Carrusel "${pieza.id}" no salió: precios de ${cuando}`,
+                html: `
+                    <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
+                        <h2 style="color:#b45309">El carrusel de hoy no se publicó</h2>
+                        <p style="font-size:15px">${veredicto.motivo}</p>
+                        <p style="font-size:14px">Para regenerarlo con los precios de hoy y publicarlo:</p>
+                        <pre style="background:#f3f4f6;padding:10px;border-radius:6px;font-size:12px">node scripts/social/generar-producto.mjs ${pieza.id === 'sol-seleccion' ? '--categoria "Sol" --id sol-seleccion' : pieza.id === 'receta-seleccion' ? '--categoria "Receta" --id receta-seleccion --saltear 3' : ''} --produccion --render
 node scripts/social/publicar.mjs social/contenido/${pieza.id}.json --facebook --instagram</pre>
-                        </div>`,
-                }).catch(console.error);
-                return NextResponse.json({ ok: false, pieza: pieza.id, motivo: `Precios de hace ${dias} días: no se publica. Mail enviado.` });
-            }
+                    </div>`,
+            }).catch(console.error);
+            return NextResponse.json({ ok: false, pieza: pieza.id, motivo: `${veredicto.motivo} No se publica. Mail enviado.` });
         }
 
         const urls = (pieza.slides || []).map((_: any, i: number) =>

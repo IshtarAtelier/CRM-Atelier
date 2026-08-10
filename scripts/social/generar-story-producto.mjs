@@ -3,6 +3,9 @@
  *
  *   node scripts/social/generar-story-producto.mjs --produccion --marca "Cápsula Escarlata" --cantidad 20
  *
+ * Opciones de la llamada a la acción: `--cta "otro texto"` la cambia,
+ * `--sin-cta` la saca. Sin nada, sale la de CTA_POR_DEFECTO.
+ *
  * POR QUÉ SE GENERAN Y NO SE ESCRIBEN (regla R6):
  * una pieza con un precio escrito a mano no renderiza. El precio y la foto
  * salen de la base, así que publicar un valor viejo deja de ser posible en vez
@@ -25,6 +28,37 @@ import path from 'node:path';
 import { RAIZ } from './identidad.mjs';
 
 const SALIDA = path.join(RAIZ, 'social', 'contenido');
+
+/**
+ * La llamada a la acción de toda story de producto.
+ *
+ * Salían ~120 stories de producto por mes mostrando el precio y nada más: se
+ * veía cuánto sale y no se decía qué hacer con eso. El que la miraba tenía que
+ * inventar el próximo paso, y el que no lo inventa se va. El paso que pedimos
+ * es el presupuesto por WhatsApp porque es la puerta que ya está atendida (el
+ * bot contesta 24/7) y la que después se puede medir.
+ *
+ * NUNCA lleva un número adentro — ver `sinPrecio()` abajo.
+ */
+const CTA_POR_DEFECTO = 'Pedí tu presupuesto 👉 WhatsApp';
+
+/**
+ * El CTA no puede traer un importe.
+ *
+ * La pieza sale marcada `fuente: "base"`, y con esa marca el validador deja
+ * pasar los precios sin revisarlos (R6 confía en que los puso la base). Un
+ * importe tipeado en `--cta` entraría por esa puerta y quedaría congelado en la
+ * placa aunque el precio de la base cambie mañana. Se corta acá, que es donde
+ * el texto se escribe a mano.
+ */
+function sinPrecio(cta) {
+    if (cta && /\$\s?\d|\b\d{4,}\s*(pesos|ars)\b/i.test(cta)) {
+        throw new Error(
+            `El CTA no puede llevar un precio adentro: "${cta}". El precio de la placa ` +
+            `sale de la base (regla R6); escrito a mano queda viejo y nadie se entera.`);
+    }
+    return cta;
+}
 
 function arg(nombre, porDefecto = null) {
     const i = process.argv.indexOf(`--${nombre}`);
@@ -84,9 +118,13 @@ async function condicionesDeVenta(prisma) {
     return { cuotas, textoCuotas: texto, descuento };
 }
 
-export async function generarStoriesDeProducto({ marca, cantidad, produccion, tienda, categoria, nombre }) {
+export async function generarStoriesDeProducto({ marca, cantidad, produccion, tienda, categoria, nombre, cta = CTA_POR_DEFECTO }) {
     const url = produccion ? process.env.PROD_DATABASE_URL : process.env.DATABASE_URL;
     if (!url) throw new Error(`Falta ${produccion ? 'PROD_DATABASE_URL' : 'DATABASE_URL'} en el .env`);
+
+    // Antes de abrir la base: si el CTA está mal, que falle en el primer segundo
+    // y no después de escribir veinte archivos que hay que volver a generar.
+    const llamado = sinPrecio(cta);
 
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient({ datasources: { db: { url } } });
@@ -125,6 +163,7 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
 
         const cond = await condicionesDeVenta(prisma);
         console.log(`  · condiciones (de la tienda): ${cond.textoCuotas} · ${cond.descuento}% al contado`);
+        console.log(`  · llamada a la acción: ${llamado || '(ninguna — placa sin CTA)'}`);
 
         const elegidos = usables.slice(0, cantidad);
         const generadas = [];
@@ -160,6 +199,12 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
                 // publica (src/lib/social/frescura.ts). Las 13 stories que ya
                 // existían no la traían: podían salir con un precio de meses.
                 generadoEl: new Date().toISOString().slice(0, 10),
+                // CONTRA QUÉ base se leyeron. La fecha sola no alcanza: el
+                // catálogo de docker está desincronizado, así que una pieza
+                // generada hoy contra local puede traer un precio de hace
+                // semanas y `generadoEl` la daría fresca igual. Con esto, la
+                // guarda de frescura la rechaza y pide regenerar --produccion.
+                generadoDesde: produccion ? 'produccion' : 'local',
                 temas: ['armazones'],
                 producto: { nombre, slug: w.slug, marca: p.brand, categoria: w.category },
                 caption: `${nombre} · ${p.brand}\n\n${cond.textoCuotas} de ${precioAr(cuota)}\n${precioAr(alContado)} en efectivo o transferencia (ahorrás ${cond.descuento}%)\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`,
@@ -174,6 +219,12 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
                         title: `${nombre} · ${p.brand}`,
                         dato: precioAr(cuota),
                         body: `${cond.textoCuotas}\n${precioAr(alContado)} en efectivo o transferencia`,
+                        // El renglón que dice QUÉ HACER. Va como campo aparte y
+                        // no pegado al `body` para que la plantilla pueda darle
+                        // su propio peso y color: mezclado en el cuerpo se lee
+                        // como una condición de pago más y se pierde.
+                        // Opcional: sin `cta` la placa sale como salía antes.
+                        ...(llamado ? { cta: llamado } : {}),
                     },
                 ],
             };
@@ -199,6 +250,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             cantidad: Number(arg('cantidad', 20)),
             categoria: arg('categoria'),
             nombre: arg('nombre'),
+            // `--sin-cta` existe para el caso puntual (una story que ya lleva el
+            // sticker de link puesto a mano, donde el rótulo repite la acción).
+            // El default es CON llamada: que aparezca no puede depender de que
+            // alguien se acuerde de pedirla.
+            cta: process.argv.includes('--sin-cta') ? null : arg('cta', CTA_POR_DEFECTO),
             produccion: process.argv.includes('--produccion'),
             tienda: process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar',
         });
