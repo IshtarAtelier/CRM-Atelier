@@ -1820,15 +1820,27 @@ export class OrderService {
                 // distintas: el comentario de arriba decía "Meta/Google" pero
                 // sólo se le avisaba a Meta, así que Google pujaba sin saber
                 // nunca qué clic terminaba en venta.
-                GoogleAdsService.sendOfflineConversion({
-                    orderId: updatedOrder.id,
-                    value: updatedOrder.total ?? 0,
-                    occurredAt: updatedOrder.createdAt ?? new Date(),
-                    client: {
-                        email: updatedOrder.client?.email,
-                        phone: updatedOrder.client?.phone,
-                    },
-                });
+                //
+                // El gclid se busca ANTES de mandar: sin identificador de clic
+                // Google no puede atribuirle la venta al anuncio que la trajo, y
+                // la conversión se sube sin servir para pujar. Vive en
+                // `AnalyticsEvent` (lo guarda el tracker de la tienda), no en la
+                // orden, por eso hay que ir a buscarlo. Todo el bloque sigue
+                // siendo fire-and-forget: medir no puede frenar ni romper la venta.
+                GoogleAdsService.findClickIds(updatedOrder.id)
+                    .then(clickIds => {
+                        GoogleAdsService.sendOfflineConversion({
+                            orderId: updatedOrder.id,
+                            value: updatedOrder.total ?? 0,
+                            occurredAt: updatedOrder.createdAt ?? new Date(),
+                            client: {
+                                email: updatedOrder.client?.email,
+                                phone: updatedOrder.client?.phone,
+                            },
+                            ...clickIds,
+                        });
+                    })
+                    .catch(err => console.error('Error al resolver el clic de Google para la conversión offline:', err));
 
                 // Enviar vCard por WhatsApp (Sincronización de Contacto)
                 if (updatedOrder.client) {

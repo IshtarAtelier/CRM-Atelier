@@ -33,12 +33,22 @@
  */
 import crypto from 'crypto';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+import { prisma } from '@/lib/db';
 
 const API_VERSION = 'v24';
 const API_BASE = 'https://googleads.googleapis.com';
 
 /** Argentina no tiene horario de verano, así que el offset es fijo. */
 const AR_UTC_OFFSET_HOURS = -3;
+
+/**
+ * Ventana hacia atrás para buscar el clic de la sesión que compró.
+ *
+ * Google descarta las conversiones cuyo clic queda fuera de la ventana de
+ * conversión de la acción (90 días es el techo habitual), así que rescatar un
+ * gclid más viejo que eso no sirve: la conversión se sube y la rechazan.
+ */
+const VENTANA_CLIC_MS = 90 * 24 * 60 * 60 * 1000;
 
 interface OfflineClient {
   email?: string | null;
@@ -58,6 +68,13 @@ export interface OfflineConversionInput {
   /** Variantes de gclid para iOS/app; se mandan en su lugar si están. */
   wbraid?: string | null;
   gbraid?: string | null;
+}
+
+/** Los identificadores de clic de Google, tal como los guarda el checkout web. */
+export interface ClickIds {
+  gclid?: string;
+  wbraid?: string;
+  gbraid?: string;
 }
 
 export interface UploadResult {
@@ -114,6 +131,83 @@ export class GoogleAdsService {
     if (!raw) return null;
     if (raw.startsWith('customers/')) return raw;
     return `customers/${customerId}/conversionActions/${raw.replace(/\D/g, '')}`;
+  }
+
+  /** Saca los identificadores de clic del `meta` de un AnalyticsEvent, si los tiene. */
+  private static leerClickIds(meta: unknown): ClickIds | null {
+    if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return null;
+    const m = meta as Record<string, unknown>;
+    const texto = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+    const ids: ClickIds = {
+      gclid: texto(m.gclid),
+      wbraid: texto(m.wbraid),
+      gbraid: texto(m.gbraid),
+    };
+    return ids.gclid || ids.wbraid || ids.gbraid ? ids : null;
+  }
+
+  /**
+   * Busca el clic de Google que trajo la venta.
+   *
+   * DE DÓNDE SALE. El tracker de la tienda guarda el gclid (y sus variantes de
+   * app) en `localStorage` y lo manda con cada evento; el checkout lo repite en
+   * el evento `purchase`, que es el único que queda atado a la orden por
+   * `AnalyticsEvent.orderId`. O sea: el dato ya estaba en la base, pero el
+   * llamador que sube la venta a Google no lo leía y toda conversión offline
+   * viajaba sin identificador de clic. Sin gclid, Google no puede decir qué
+   * anuncio produjo esa venta: la conversión se sube y no sirve para pujar.
+   *
+   * POR QUÉ TAMBIÉN SE MIRA LA SESIÓN. El evento de compra no siempre trae el
+   * `meta` completo (una compra por transferencia o un pedido cargado a mano
+   * pueden no repetirlo), pero la sesión que compró suele tener el gclid en el
+   * `page_view` con el que entró desde el anuncio. Se limita a la ventana de
+   * conversión y a eventos anteriores a la compra, para no atribuirle la venta a
+   * un clic posterior ni a uno que Google ya va a rechazar por viejo.
+   *
+   * Nunca lanza: si la lectura falla, devuelve vacío y la conversión sale por el
+   * camino de los identificadores hasheados, que es el que ya existía.
+   */
+  public static async findClickIds(orderId: string): Promise<ClickIds> {
+    if (!orderId) return {};
+    try {
+      const deLaOrden = await prisma.analyticsEvent.findMany({
+        where: { orderId },
+        orderBy: { createdAt: 'desc' },
+        select: { sessionId: true, meta: true, createdAt: true },
+        take: 20,
+      });
+
+      for (const evento of deLaOrden) {
+        const ids = this.leerClickIds(evento.meta);
+        if (ids) return ids;
+      }
+
+      const referencia = deLaOrden[0];
+      if (!referencia?.sessionId) return {};
+
+      const deLaSesion = await prisma.analyticsEvent.findMany({
+        where: {
+          sessionId: referencia.sessionId,
+          createdAt: {
+            lte: referencia.createdAt,
+            gte: new Date(referencia.createdAt.getTime() - VENTANA_CLIC_MS),
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { meta: true },
+        take: 50,
+      });
+
+      for (const evento of deLaSesion) {
+        const ids = this.leerClickIds(evento.meta);
+        if (ids) return ids;
+      }
+
+      return {};
+    } catch (err) {
+      console.error(`[GoogleAdsService] No se pudo leer el clic de la orden ${orderId}:`, err);
+      return {};
+    }
   }
 
   /** Access token vía refresh token de OAuth2. Se cachea hasta poco antes de vencer. */
@@ -284,6 +378,10 @@ export class GoogleAdsService {
   /**
    * Envoltorio para el runtime: dispara y se olvida. Nunca lanza ni frena la
    * venta, y deja constancia en consola de por qué se salteó cuando aplica.
+   *
+   * El llamador debería resolver antes los identificadores de clic con
+   * `findClickIds(orderId)` y pasarlos en el input: sin ellos la conversión sale
+   * igual, pero apoyada sólo en el match por mail/teléfono.
    */
   public static sendOfflineConversion(input: OfflineConversionInput): void {
     this.uploadOfflineConversion(input)
