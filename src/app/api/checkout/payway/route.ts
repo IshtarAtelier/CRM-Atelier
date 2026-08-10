@@ -1209,6 +1209,39 @@ export async function POST(req: Request) {
               labNotes: `[⚠️ COBRO OK, POST-PROCESO FALLÓ - REVISAR] tx Payway ${chargedTransactionId}: ${error?.message || 'Error interno'}\n\n` + (order.labNotes || '')
             }
           });
+
+          // La FILA DE PAGO, no solo el campo `paid`.
+          //
+          // Acá se escribía únicamente `paid: chargedAmount`. Pero la regla del
+          // proyecto es que `Order.paid` NO prueba que se haya cobrado: la venta
+          // real se mide por filas de `Payment`. O sea que este cobro —que
+          // existió de verdad, con tarjeta y número de transacción— quedaba
+          // invisible para el saldo del cliente, para los reportes, para el ROAS
+          // y para la conciliación. Justo en el caso que MÁS necesita rastro:
+          // el cliente pagó y algo se rompió después.
+          //
+          // Idempotente por `authNumber`: si el mismo cargo entra dos veces
+          // (reintento, webhook duplicado), no se duplica la fila.
+          const yaRegistrado = chargedTransactionId
+            ? await prisma.payment.findFirst({
+                where: { orderId: order.id, authNumber: String(chargedTransactionId) },
+                select: { id: true },
+              })
+            : null;
+
+          if (!yaRegistrado) {
+            await prisma.payment.create({
+              data: {
+                orderId: order.id,
+                amount: chargedAmount,
+                method: 'TARJETA',
+                cardMode: 'LINK',
+                authNumber: chargedTransactionId ? String(chargedTransactionId) : null,
+                notes: `Cobro Payway acreditado; el post-proceso del checkout falló. Registrado automáticamente para no perder el rastro del dinero.`,
+                createdByName: 'Sistema (Payway)',
+              },
+            });
+          }
         } catch (updateErr) {
           console.error("Error marcando orden cobrada-con-fallo:", updateErr);
         }
