@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/email';
 import { BACKFILL_LABS, emailsEnabled, isQuietLab } from './backfill';
-import { ALERT_MIN_DIFF, LAB_LABELS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
+import { ALERT_MIN_DIFF, LAB_LABELS, UNMATCHED_GRACE_MS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
 
 /**
  * AVISOS de la conciliación de costos de laboratorio.
@@ -212,7 +212,13 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
     // estampando en silencio); el resto sigue el dedupe normal.
     const quietPorLab: Record<string, boolean> = {};
     for (const l of BACKFILL_LABS) quietPorLab[l] = await isQuietLab(l);
-    const nuevos = candidatos.filter(e => !quietPorLab[e.lab] && (!e.alertedAt || e.alertedStatus !== e.status));
+    // Un SIN VENTA recién aparecido no es huérfano todavía: el vendedor tiene
+    // el margen de UNMATCHED_GRACE_MS para cargarle el nº de operación a la
+    // venta antes de que se lo dé por perdido. No se marca alertado, así que
+    // sigue entrando en cada corrida hasta que se cumpla el margen (o consiga venta).
+    const listoParaAvisar = (e: any) => e.status !== 'UNMATCHED'
+        || Date.now() - new Date(e.createdAt).getTime() >= UNMATCHED_GRACE_MS;
+    const nuevos = candidatos.filter(e => !quietPorLab[e.lab] && (!e.alertedAt || e.alertedStatus !== e.status) && listoParaAvisar(e));
     if (nuevos.length === 0) return { alerted: 0 };
 
     // En el modo `urgente` todo lo que entra son huérfanos: van sí o sí.

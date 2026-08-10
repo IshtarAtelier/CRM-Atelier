@@ -55,6 +55,16 @@ export const ALERT_MIN_DIFF = (() => {
 export const OPTOVISION_DIAS_FACTURA_A_LISTO = 5;
 
 /**
+ * Margen antes de avisar un pedido SIN VENTA (pedido del administrador el
+ * 10/8/2026): el aviso `urgente` corre cada 10 min y puede pasar apenas
+ * segundos después de que el pedido apareció en el portal/factura del
+ * laboratorio — el vendedor todavía no tuvo tiempo de cargarle el nº de
+ * operación a la venta. Se espera este margen desde el alta de la entrada
+ * (LabCostEntry.createdAt) antes de darlo por huérfano.
+ */
+export const UNMATCHED_GRACE_MS = 5 * 60 * 1000;
+
+/**
  * Qué ítems de la orden pertenecen a cada laboratorio (el resto de la orden
  * —armazón, accesorios— no lo factura el lab y no debe entrar en el cruce).
  * SUMAR UN LABORATORIO = agregar su patrón acá + su proveedor en lab-providers.
