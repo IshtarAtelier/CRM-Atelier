@@ -184,34 +184,31 @@ export async function GET(request: Request) {
         }, 0);
         const totalPaidMonth = currentMonthOrders.reduce((acc: number, order: any) => acc + (order.paid || 0), 0);
         
-        let globalPendingBalance = 0;
-        if (!isStaff) {
-            const clientBalances = await prisma.$queryRaw`
-                WITH ClientSales AS (
-                    SELECT "clientId", SUM(COALESCE(NULLIF("subtotalWithMarkup", 0), "total", 0)) as "totalSales"
-                    FROM "Order"
-                    WHERE "isDeleted" = false AND "orderType" = 'SALE' AND "clientId" IS NOT NULL
-                    GROUP BY "clientId"
-                ),
-                ClientPayments AS (
-                    SELECT o."clientId", SUM(p."amount") as "totalPaid"
-                    FROM "Payment" p
-                    JOIN "Order" o ON p."orderId" = o."id"
-                    WHERE o."isDeleted" = false AND o."clientId" IS NOT NULL
-                    GROUP BY o."clientId"
-                )
-                SELECT 
-                    cs."clientId", 
-                    cs."totalSales", 
-                    COALESCE(cp."totalPaid", 0) as "totalPaid"
-                FROM ClientSales cs
-                LEFT JOIN ClientPayments cp ON cs."clientId" = cp."clientId"
-            `;
-
-            globalPendingBalance = (clientBalances as any[]).reduce((acc, row) => {
-                return acc + Math.max(0, Number(row.totalSales || 0) - Number(row.totalPaid || 0));
-            }, 0);
-        }
+        // El saldo global sale de PricingService, no de una resta.
+        //
+        // Acá vivía un $queryRaw que hacía `SUM(lista) − SUM(pagos)` por cliente:
+        // exactamente la fórmula que el proyecto prohíbe, la misma que inventó 76
+        // saldos fantasma en producción. Tenía tres defectos encimados:
+        //   1. Resta nominal — un pago hay que convertirlo a su equivalente de
+        //      lista antes de restarlo; si no, cada descuento por método de pago
+        //      reaparece como deuda.
+        //   2. Los pagos no filtraban `orderType`, así que un cobro sobre un
+        //      PRESUPUESTO descontaba deuda de las VENTAS.
+        //   3. Agregaba por cliente y no por orden, así que un cobro de más en
+        //      una venta tapaba la deuda de otra.
+        // Medido contra la base local daba $5.583.845 contra $3.419.152 del
+        // cálculo canónico: 63% inflado. Y es el número que el dueño lee como
+        // "Deuda pendiente global".
+        //
+        // Lo llamativo es que la respuesta correcta ya estaba en esta misma
+        // función: `pendingBalancesList` recorre orden por orden con
+        // PricingService y se serializa en la respuesta. Solo faltaba sumarla.
+        // Por eso se calcula acá arriba: lo usan los dos lugares.
+        const pendingBalancesList = !isStaff ? await ContactService.getOrdersWithBalance() : [];
+        const globalPendingBalance = pendingBalancesList.reduce(
+            (acc: number, c: { balance?: number }) => acc + Math.max(0, Number(c.balance || 0)),
+            0,
+        );
 
         const ordersCountMonth = currentMonthOrders.length;
         const ticketPromedioMonth = ordersCountMonth > 0 ? totalSoldMonth / ordersCountMonth : 0;
@@ -619,7 +616,8 @@ export async function GET(request: Request) {
             console.warn('Could not resolve monthly targets:', e);
         }
 
-        const pendingBalancesList = !isStaff ? await ContactService.getOrdersWithBalance() : [];
+        // (`pendingBalancesList` se calcula arriba, junto al saldo global: es la
+        // misma consulta y antes se hacía dos veces en la misma request.)
 
         let personalSoldMonth = 0;
         let personalConfirmedCount = 0;
