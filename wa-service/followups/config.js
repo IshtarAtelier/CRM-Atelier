@@ -167,6 +167,22 @@ const MAX_MESSAGE_LENGTH = 250;                     // ~40 palabras máximo
 const MAX_WORD_COUNT = 45;                          // Límite duro por palabras
 
 // ──────────────────────────────────────────────
+// Cierre con la tienda
+// ──────────────────────────────────────────────
+/**
+ * Renglón que se agrega al final de los seguimientos comerciales.
+ *
+ * Va APARTE del texto que redacta el modelo, y a propósito: una URL metida en
+ * el prompt vuelve deformada la mitad de las veces (le come la barra, le agrega
+ * un punto final, la escribe con otro dominio), y un link roto en un mensaje
+ * comercial es peor que no mandar link. Acá sale siempre igual porque no pasa
+ * por el modelo, y por lo mismo queda fuera del tope de 250 caracteres: ese
+ * tope existe para que el modelo no escriba un testamento, no para el pie.
+ */
+const LINK_TIENDA = 'https://atelieroptica.com.ar/tienda';
+const CIERRE_TIENDA = `\n\nMientras tanto podés ver todos los modelos acá: ${LINK_TIENDA}`;
+
+// ──────────────────────────────────────────────
 // Tipeo simulado
 // ──────────────────────────────────────────────
 const TYPING_MS_PER_CHAR = 40;
@@ -200,6 +216,8 @@ module.exports = {
     MAX_RETRIES,
     MIN_MESSAGE_LENGTH,
     MAX_MESSAGE_LENGTH,
+    LINK_TIENDA,
+    CIERRE_TIENDA,
     MAX_WORD_COUNT,
     TYPING_MS_PER_CHAR,
     TYPING_MIN_MS,

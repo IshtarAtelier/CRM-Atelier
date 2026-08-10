@@ -25,6 +25,8 @@ const {
     STALE_CLAIM_MINUTES,
     SEND_DELAY_MIN_MINUTES,
     SEND_DELAY_MAX_MINUTES,
+    CIERRE_TIENDA,
+    LINK_TIENDA,
 } = require('./config');
 
 let isTaskExecutorRunning = false;
@@ -107,7 +109,13 @@ async function generateSmartTaskMessage(client, taskDescription, recentMessages)
                 continue;
             }
 
-            return { text };
+            // El link a la tienda se pega DESPUÉS de validar, no se le pide al
+            // modelo: una URL dentro del prompt vuelve deformada seguido (sin la
+            // barra, con un punto pegado al final, con otro dominio), y un link
+            // roto en un mensaje comercial es peor que no mandar ninguno.
+            // Si el propio mensaje ya mandó un link nuestro, no se duplica.
+            const yaTieneLink = text.includes('atelieroptica.com.ar');
+            return { text: yaTieneLink ? text : text + CIERRE_TIENDA };
 
         } catch (err) {
             console.error(`  ❌ [SmartTaskGen] Error Gemini (intento ${attempt + 1}):`, err.message);
@@ -201,7 +209,22 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
 
             // Pausa cruzada puesta por la compuerta o por otro sistema
             // ("hablamos a fin de mes"): sin gastar una llamada de LLM.
+            //
+            // La tarea se corre hasta que termina la pausa, y ESO ES LO QUE
+            // IMPORTA. Con un `continue` pelado se quedaba clavada al frente de
+            // la cola: como el lote se arma con `orderBy: dueDate asc` y se
+            // toman MAX_TASKS_PER_CYCLE, seis tareas de chats pausados ocupaban
+            // los seis lugares, se salteaban, y el ciclo siguiente volvía a
+            // tomar exactamente las mismas seis. La cola nunca llegaba a la
+            // séptima. Medido en producción el 10/8/2026: 4 enviadas de 934,
+            // con 698 elegibles esperando y 66 chats pausados tapando la boca.
+            // Todos los demás caminos de salteo de este archivo ya empujan el
+            // vencimiento por esta misma razón; este era el que faltaba.
             if (chat.followUpPausedUntil && new Date(chat.followUpPausedUntil) > now) {
+                await prisma.clientTask.updateMany({
+                    where: { id: task.id, status: task.status },
+                    data: { dueDate: new Date(chat.followUpPausedUntil) },
+                }).catch(() => {});
                 continue;
             }
 
@@ -290,9 +313,16 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
                 continue;
             }
 
-            // Anti-colisión
+            // Anti-colisión: el bot está contestando en ese chat ahora mismo.
+            // Se corre 15 minutos por lo mismo que la pausa de arriba — es una
+            // espera corta, pero si no se empuja el vencimiento la tarea vuelve
+            // a salir primera en el próximo ciclo y le come el lugar a otra.
             if (botReplyingTo && botReplyingTo.has(chat.waId)) {
-                console.log(`  ⚠️ Bot activo hablando con ${client.name}. Omitiendo.`);
+                console.log(`  ⚠️ Bot activo hablando con ${client.name}. Omitiendo 15 min.`);
+                await prisma.clientTask.updateMany({
+                    where: { id: task.id, status: task.status },
+                    data: { dueDate: new Date(now.getTime() + 15 * 60 * 1000) },
+                }).catch(() => {});
                 continue;
             }
 
