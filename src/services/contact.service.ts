@@ -6,7 +6,7 @@ import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
 import { logAudit } from '@/lib/audit';
-import type { Actor } from '@/lib/actor';
+import { SYSTEM_ACTOR, type Actor } from '@/lib/actor';
 import { notifyDirectedNote } from '@/lib/note-notify';
 import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
 import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
@@ -14,6 +14,7 @@ import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/
 import { calculateEstimatedDays } from '@/lib/business-days';
 import { syncAdTagFromChats } from '@/lib/ads/ad-tag';
 import { matchContactSource, SIN_ORIGEN } from '@/lib/contact-source';
+import { etiquetasQueLeCorresponden, esEtiquetaAdministrada } from '@/lib/contact-tags';
 
 
 // Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
@@ -100,39 +101,112 @@ export function normalizeContactSource(source: string | null | undefined): strin
     return matchContactSource(clean) ?? clean;
 }
 
-export async function syncContactSourceTag(clientId: string, contactSource: string | null) {
-    if (!contactSource) return;
+/**
+ * Deja las etiquetas ADMINISTRADAS de un cliente (canal de origen + anuncio que
+ * lo trajo) exactamente como corresponde a su `contactSource` y su `adTag`.
+ *
+ * Antes esto solo CONECTABA, y solo para 3 de los 9 canales. Dos consecuencias:
+ * el resto de los canales no se veía como etiqueta (no se podía filtrar por
+ * ellos), y un cliente que pasaba de Meta a Google Ads se quedaba con las dos
+ * etiquetas pegadas, mintiendo para siempre. El vocabulario, los nombres y los
+ * colores viven en `src/lib/contact-tags.ts`.
+ *
+ * Qué puede desconectar: SOLO lo que `esEtiquetaAdministrada()` reconoce como
+ * propio (los 9 nombres de canal + lo que empieza con "Meta · " / "Google · ").
+ * Las etiquetas de negocio que pone el staff o el bot —"Multifocal", "Bot Lead",
+ * "Sin Seguimiento", "Ocusis", "VIP"— quedan intactas por definición.
+ *
+ * Guarda contra el borrado por ignorancia: si el cliente no tiene canal NI
+ * anuncio, no sabemos nada y no se toca nada. Importa porque el bot etiqueta
+ * "Meta Ads" al ver un mensaje con `[metaX]` (wa-service/index.js) y el `adTag`
+ * del cliente recién se completa en el barrido del cron: en esa ventana, sin la
+ * guarda, una edición cualquiera de la ficha borraría lo que detectó el bot.
+ *
+ * Idempotente: calcula el estado deseado y aplica solo la diferencia. Correrla
+ * dos veces seguidas no duplica, no desconecta de más y la segunda no escribe.
+ * Nunca lanza — etiquetar no puede voltear el alta ni la edición de una ficha.
+ *
+ * @param audit  registrar el cambio en AuditLog (default true). El backfill lo
+ *               apaga: escribe su propio archivo de reversa y un solo renglón
+ *               de auditoría para toda la corrida, en vez de mil.
+ */
+export async function syncContactTags(
+    clientId: string,
+    opts: { audit?: boolean } = {}
+): Promise<{ conectadas: string[]; desconectadas: string[] }> {
+    const vacio = { conectadas: [] as string[], desconectadas: [] as string[] };
+    try {
+        const client = await prisma.client.findUnique({
+            where: { id: clientId },
+            select: { contactSource: true, adTag: true, tags: { select: { id: true, name: true } } },
+        });
+        if (!client) return vacio;
 
-    let tagName = '';
-    let color = '#1677ff'; // blue by default
-    if (contactSource === 'Google Ads') {
-        tagName = 'Google Ads';
-        color = '#1677ff';
-    } else if (contactSource === 'Meta') {
-        tagName = 'Meta Ads';
-        color = '#E91E63'; // pink/magenta
-    } else if (contactSource === 'Ya es Cliente') {
-        tagName = 'Ya es cliente';
-        color = '#4CAF50'; // green
-    }
+        const deseadas = etiquetasQueLeCorresponden(client.contactSource, client.adTag);
+        // Ni canal ni anuncio: no sabemos nada, no borramos nada (ver guarda arriba).
+        if (deseadas.length === 0) return vacio;
 
-    if (tagName) {
-        try {
+        const nombresDeseados = new Set(deseadas.map(t => t.name));
+        const actuales = client.tags;
+
+        const faltan = deseadas.filter(t => !actuales.some(a => a.name === t.name));
+        const sobran = actuales.filter(a => esEtiquetaAdministrada(a.name) && !nombresDeseados.has(a.name));
+
+        if (faltan.length === 0 && sobran.length === 0) return vacio;
+
+        // El color se pone SOLO al crear la etiqueta: si el staff se lo cambió a
+        // mano desde el gestor de etiquetas, el sync no se lo pisa. Corregir el
+        // color de las etiquetas viejas es trabajo del backfill, que lo informa.
+        const conectar: { id: string }[] = [];
+        for (const t of faltan) {
             const tag = await prisma.tag.upsert({
-                where: { name: tagName },
+                where: { name: t.name },
                 update: {},
-                create: { name: tagName, color }
+                create: { name: t.name, color: t.color },
             });
-            await prisma.client.update({
-                where: { id: clientId },
-                data: {
-                    tags: { connect: { id: tag.id } }
-                }
-            });
-        } catch (err) {
-            console.error(`[Contact Tag Sync] Error syncing tag "${tagName}" for client ${clientId}:`, err);
+            conectar.push({ id: tag.id });
         }
+
+        await prisma.client.update({
+            where: { id: clientId },
+            data: {
+                tags: {
+                    ...(conectar.length ? { connect: conectar } : {}),
+                    ...(sobran.length ? { disconnect: sobran.map(t => ({ id: t.id })) } : {}),
+                },
+            },
+        });
+
+        const resultado = {
+            conectadas: faltan.map(t => t.name),
+            desconectadas: sobran.map(t => t.name),
+        };
+
+        if (opts.audit !== false) {
+            logAudit({
+                userName: SYSTEM_ACTOR.name,
+                action: 'UPDATE',
+                entityType: 'CONTACT',
+                entityId: clientId,
+                details: { etiquetasDeOrigen: resultado },
+            }).catch(console.error);
+        }
+
+        return resultado;
+    } catch (err) {
+        console.error(`[Contact Tag Sync] Error sincronizando etiquetas del cliente ${clientId}:`, err);
+        return vacio;
     }
+}
+
+/**
+ * Alias histórico. El canal ya no se pasa por parámetro: `syncContactTags` lo
+ * lee de la ficha junto con el `adTag`, que es lo que la vuelve idempotente y
+ * llamable desde el cron sin cargar nada.
+ * @deprecated usar `syncContactTags(clientId)`.
+ */
+export async function syncContactSourceTag(clientId: string, _contactSource?: string | null) {
+    await syncContactTags(clientId);
 }
 
 /**
@@ -556,8 +630,8 @@ export const ContactService = {
             },
         }).catch(console.error);
 
-        // Auto-tag based on contactSource
-        await syncContactSourceTag(createdClient.id, createdClient.contactSource);
+        // Etiquetas visibles de origen: canal + anuncio.
+        await syncContactTags(createdClient.id);
 
         // Link any unlinked chats matching the new client's phone number
         if (normalizedIncomingPhone && normalizedIncomingPhone.length >= 8) {
@@ -581,6 +655,10 @@ export const ContactService = {
                     });
                     console.log(`[Contact Create Sync] Linked unlinked chats to new client ${createdClient.id}`);
                     await syncAdTagFromChats(createdClient.id);
+                    // Recién ahora puede haber `adTag` (salió de los chats que
+                    // se acaban de vincular): segunda pasada para la etiqueta
+                    // del anuncio. Es idempotente, así que no rehace la del canal.
+                    await syncContactTags(createdClient.id);
                 }
             } catch (syncErr) {
                 console.error('[Contact Create Sync] Error auto-linking chats:', syncErr);
@@ -780,11 +858,12 @@ export const ContactService = {
             data: updateData
         });
 
-        // Auto-tag based on contactSource update. Se mira `updateData` y no
-        // `data` para que la etiqueta también se cree cuando el origen lo
-        // completó `contactSourceIfEmpty`.
+        // Etiquetas visibles de origen (canal + anuncio). Se mira `updateData` y
+        // no `data` para que también corra cuando el origen lo completó
+        // `contactSourceIfEmpty`. Acá es donde se limpia la etiqueta vieja
+        // cuando el canal cambia (Meta → Google Ads, p. ej.).
         if (updateData.contactSource !== undefined) {
-            await syncContactSourceTag(updatedClient.id, updatedClient.contactSource);
+            await syncContactTags(updatedClient.id);
         }
 
         // Sync WhatsApp chats if phone changed
