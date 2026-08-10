@@ -14,7 +14,7 @@ import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/
 import { calculateEstimatedDays } from '@/lib/business-days';
 import { syncAdTagFromChats } from '@/lib/ads/ad-tag';
 import { matchContactSource, SIN_ORIGEN } from '@/lib/contact-source';
-import { etiquetasQueLeCorresponden, esEtiquetaAdministrada } from '@/lib/contact-tags';
+import { etiquetasQueLeCorresponden, esEtiquetaDesconectable } from '@/lib/contact-tags';
 
 
 // Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
@@ -111,10 +111,14 @@ export function normalizeContactSource(source: string | null | undefined): strin
  * etiquetas pegadas, mintiendo para siempre. El vocabulario, los nombres y los
  * colores viven en `src/lib/contact-tags.ts`.
  *
- * Qué puede desconectar: SOLO lo que `esEtiquetaAdministrada()` reconoce como
- * propio (los 9 nombres de canal + lo que empieza con "Meta · " / "Google · ").
- * Las etiquetas de negocio que pone el staff o el bot —"Multifocal", "Bot Lead",
- * "Sin Seguimiento", "Ocusis", "VIP"— quedan intactas por definición.
+ * Qué puede desconectar: SOLO lo que `esEtiquetaDesconectable()` reconoce como
+ * propio Y inequívoco ("Meta Ads", "Google Ads", "Google Maps", "Google
+ * orgánico", "Tienda online", "Ya es cliente" y lo que empieza con "Meta · " /
+ * "Google · "). Las etiquetas de negocio que pone el staff o el bot
+ * —"Multifocal", "Bot Lead", "Sin Seguimiento", "Ocusis", "VIP"— quedan
+ * intactas por definición, y "Calle" / "Referido" / "Otros" también, porque son
+ * palabras corrientes que el bot puede inventar con otro sentido (el porqué
+ * largo está en `contact-tags.ts`). Esas tres se conectan pero no se sacan.
  *
  * Guarda contra el borrado por ignorancia: si el cliente no tiene canal NI
  * anuncio, no sabemos nada y no se toca nada. Importa porque el bot etiqueta
@@ -150,7 +154,7 @@ export async function syncContactTags(
         const actuales = client.tags;
 
         const faltan = deseadas.filter(t => !actuales.some(a => a.name === t.name));
-        const sobran = actuales.filter(a => esEtiquetaAdministrada(a.name) && !nombresDeseados.has(a.name));
+        const sobran = actuales.filter(a => esEtiquetaDesconectable(a.name) && !nombresDeseados.has(a.name));
 
         if (faltan.length === 0 && sobran.length === 0) return vacio;
 

@@ -103,15 +103,59 @@ export const NOMBRES_ADMINISTRADOS: ReadonlySet<string> = new Set(
 );
 
 /**
- * ¿Esta etiqueta la administra el sistema (canal o anuncio)?
+ * ¿Esta etiqueta la ESCRIBE el sistema (canal o anuncio)?
  *
- * Es el único portero del borrado: `syncContactTags()` solo desconecta
- * etiquetas para las que esto devuelve true. Todo lo demás —lo que pone el
- * staff a mano, lo que pone el bot— es intocable.
+ * Responde "¿puedo crearla y conectarla yo?". NO alcanza para borrar: para eso
+ * está `esEtiquetaDesconectable()`, que es más estrecha a propósito.
  */
 export function esEtiquetaAdministrada(name: string | null | undefined): boolean {
     if (!name) return false;
     return NOMBRES_ADMINISTRADOS.has(name) || PREFIJOS_ANUNCIO.some(p => name.startsWith(p));
+}
+
+/**
+ * Nombres administrados que el sistema NO se anima a desconectar, porque son
+ * palabras corrientes que alguien más pudo haber usado con otro significado.
+ *
+ * POR QUÉ existe: `Tag` es una fila ÚNICA por nombre y la relación con el
+ * cliente no guarda quién la puso. O sea: no hay forma de distinguir un
+ * "Referido" que escribió este sync de un "Referido" que puso el staff o el bot
+ * queriendo decir "vino recomendado". Y el bot los escribe con nombre LIBRE: la
+ * tool `add_tags` (wa-service/agent-tools.js) recibe `tagName: z.string()`
+ * inventado por el LLM, y `passive-extractor.js` manda `parsed.interestTag`, que
+ * es texto libre del modelo. Encima `graph.js` le mete al prompt los nombres de
+ * las etiquetas que tengan `autoAssignCondition`: en cuanto estas etiquetas
+ * existan como fila, la dueña puede ponerles una condición desde el gestor y el
+ * bot va a empezar a aplicarlas.
+ *
+ * Verificado el 9/8/2026 contra la base local: con "Referido" en la ficha de un
+ * cliente de canal 'Meta', el sync la desconectaba en silencio.
+ *
+ * La decisión es asimétrica a propósito: una etiqueta de más es ruido visual,
+ * una etiqueta de menos es información perdida sin dejar rastro en la ficha.
+ * Estas tres se siguen CONECTANDO (la dueña las quería visibles); lo único que
+ * no se hace es sacárselas a nadie.
+ *
+ * Las que sí se desconectan son las que nadie escribiría a mano con otro
+ * sentido: "Meta Ads", "Google Ads", "Google Maps", "Google orgánico",
+ * "Tienda online", "Ya es cliente" y todo lo que empieza con "Meta · " /
+ * "Google · ". Con eso alcanza para el caso que motivó todo esto: el cliente que
+ * pasa de Meta a Google Ads y quedaba con las dos pegadas.
+ */
+const NO_DESCONECTABLES: ReadonlySet<string> = new Set(['Calle', 'Referido', 'Otros']);
+
+/**
+ * ¿Esta etiqueta se le puede SACAR a un cliente?
+ *
+ * Es el único portero del borrado: `syncContactTags()` y el backfill solo
+ * desconectan etiquetas para las que esto devuelve true. Todo lo demás —lo que
+ * pone el staff a mano, lo que pone el bot, y las tres ambiguas de arriba— es
+ * intocable.
+ */
+export function esEtiquetaDesconectable(name: string | null | undefined): boolean {
+    if (!name) return false;
+    if (NO_DESCONECTABLES.has(name)) return false;
+    return esEtiquetaAdministrada(name);
 }
 
 /**
