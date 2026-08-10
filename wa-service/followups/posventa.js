@@ -19,6 +19,7 @@ const { prisma } = require('../db');
 const { TAGS_SIN_BOT } = require('../utils');
 const { pickSpreadDueDate } = require('./task-generator');
 const { COOLDOWN_HOURS } = require('./config');
+const { abrirTurnos } = require('./retencion-exclusion');
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
@@ -33,14 +34,6 @@ const POSVENTA_DIAS = Number(process.env.POSVENTA_DIAS) || 10;
  * entrega se da por perdida y no se le escribe.
  */
 const POSVENTA_VENTANA_DIAS = Number(process.env.POSVENTA_VENTANA_DIAS) || 4;
-
-/**
- * Un solo toque de retención por cliente cada N días. Los flujos de retención
- * (posventa, reseña, renovación, segundo par) miran la MISMA base instalada:
- * sin esta regla, al mismo cliente le pueden caer tres mensajes distintos en la
- * misma semana, que es exactamente lo que hace que la gente silencie el número.
- */
-const RETENCION_EXCLUSION_DIAS = Number(process.env.RETENCION_EXCLUSION_DIAS) || 14;
 
 /**
  * Tope de tareas nuevas por día. El volumen normal es de entregas (decenas por
@@ -197,19 +190,14 @@ async function generarTareasPosventa() {
         // Los dos filtros que necesitan otra tabla se resuelven en una consulta
         // cada uno, no una por cliente: el barrido corre cada 30 minutos.
         const clientIds = [...new Set(orders.map(o => o.clientId).filter(Boolean))];
-        const limiteRetencion = new Date(now.getTime() - RETENCION_EXCLUSION_DIAS * DIA_MS);
-        const toquesRecientes = clientIds.length
-            ? await prisma.clientTask.findMany({
-                // Cualquier estado: una tarea de retención cancelada o fallada
-                // igual consumió el turno del cliente. Y de paso esto es el
-                // dedup del propio flujo: creada la tarea, el cliente queda
-                // bloqueado por 14 días y la ventana no la vuelve a crear.
-                where: { clientId: { in: clientIds }, createdBy: CREADO_POR, createdAt: { gte: limiteRetencion } },
-                select: { clientId: true },
-                distinct: ['clientId'],
-            })
-            : [];
-        const conToqueReciente = new Set(toquesRecientes.map(t => t.clientId));
+
+        // Un solo toque de retención por cliente cada 14 días, compartido con los
+        // demás flujos (`retencion-exclusion.js`). La posventa es la de mayor
+        // prioridad —su ventana es de días y no vuelve— así que además de mirar
+        // si el turno está libre, le corre la fecha a lo que esté pendiente y
+        // pueda esperar (renovación, segundo par). También es el dedup del propio
+        // flujo: creada la tarea, la ventana no la vuelve a crear.
+        const turnos = await abrirTurnos(clientIds, 'POSVENTA', { now });
 
         const chatIds = orders.flatMap(o => (o.client?.whatsappChats || []).slice(0, 1).map(c => c.id));
         const chatsConInbound = chatIds.length
@@ -255,9 +243,17 @@ async function generarTareasPosventa() {
                 if (horas < COOLDOWN_HOURS) continue;
             }
 
-            if (conToqueReciente.has(client.id)) continue;
+            const turno = turnos.disponible(client.id);
+            if (!turno.ok) {
+                console.log(`  ⏭️ [Posventa] ${client.name}: ${turno.motivo}`);
+                continue;
+            }
 
             if (cupoRestante <= 0) { frenadasPorCupo++; continue; }
+
+            // Toma el turno (y corre para adelante lo menos urgente que haya
+            // pendiente) recién ahora, cuando ya sabemos que la tarea se crea.
+            if (!(await turnos.tomar(client.id))) continue;
 
             const fechaEntrega = entregas.get(order.id);
             const dias = Math.round((now.getTime() - new Date(fechaEntrega).getTime()) / DIA_MS);
@@ -289,7 +285,6 @@ async function generarTareasPosventa() {
                 },
             });
 
-            conToqueReciente.add(client.id); // dos entregas del mismo cliente en la ventana: una sola posventa
             creadas++;
             cupoRestante--;
 

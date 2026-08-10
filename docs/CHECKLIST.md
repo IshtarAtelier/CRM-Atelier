@@ -125,9 +125,9 @@ Duplicación de reglas, transacciones, estructura, observabilidad. Detalle en la
 ### A.4 Retención
 
 - [ ] 🔒 **Flujo 1** — Prender el carrito abandonado *(código terminado, falta el alta del cron)*
-- [ ] ⬜ **Flujo 2** — Reseña de Google automatizada *(las tareas se crean y nadie las levanta)*
+- [x] 🚫 **Flujo 2** — ~~Reseña de Google automatizada~~ **DESCARTADO 10/8/2026, decisión del dueño.** Pedirle la reseña a alguien que está esperando un pedido demorado o que tuvo un problema de posventa cosecha una estrella, y una reseña mala no se borra. El pedido lo sigue haciendo una persona. Las tareas `REVIEW_REQUEST` se crean igual al entregar (`order.service.ts`) y las levanta el mostrador; el bot no las toca (`createdBy: 'Sistema'` no está en la lista blanca, y `[RESENA]` se sacó de `AUTO_SENDABLE_TASK_PREFIXES`). **El área de reseñas queda como está.**
 - [x] ✅ **Flujo 3** — Habilitante del pipeline *(whitelist a array + firma `Bot`)*
-- [ ] 🔄 **Flujo 4** — Posventa a los 10 días + reseña encadenada
+- [ ] 🔄 **Flujo 4** — Posventa a los 10 días *(sin reseña encadenada — ver Flujo 2)*
 - [ ] 🔒 **Flujo 5** — Renovación de receta a 12-18 meses. **El mayor ROI del plan**: a $834.000 el ticket, 5 reactivaciones al mes lo pagan todo. *Requiere dimensionar la cohorte contra producción*
 - [ ] ⬜ **Flujo 6** — Carrito multi-toque
 - [ ] 🔒 **Flujo 7** — Segundo par con descuento *(falta aprobar el cupón)*

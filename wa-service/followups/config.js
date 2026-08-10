@@ -96,13 +96,22 @@ const STALE_CLAIM_MINUTES = 45;
 const AUTO_SENDABLE_TASK_PREFIXES = [
     '[Extracción Inteligente]',
     // Flujos de retención sobre la base instalada (renovación de receta,
-    // posventa, pedido de reseña, segundo par). Van por el MISMO pipeline y la
-    // misma cola anti-ban que el resto: el plan es explícito en no construir un
-    // sexto sistema de seguimientos. Cada prefijo se agrega acá cuando el flujo
-    // que lo emite existe, no antes.
+    // posventa, segundo par). Van por el MISMO pipeline y la misma cola anti-ban
+    // que el resto: el plan es explícito en no construir un sexto sistema de
+    // seguimientos. Cada prefijo se agrega acá cuando el flujo que lo emite
+    // existe, no antes.
+    //
+    // EL PEDIDO DE RESEÑA NO VA ACÁ, Y ES A PROPÓSITO. Es la única acción de
+    // retención que se decidió dejar en manos de una persona: pedirle la opinión
+    // a alguien que está esperando un pedido demorado o que tuvo un problema de
+    // posventa es la forma más rápida de cosechar una estrella, y una reseña
+    // mala no se borra. Las tareas REVIEW_REQUEST que crea el CRM al entregar
+    // llevan `createdBy: 'Sistema'`, que tampoco está en la lista blanca de
+    // creadores de abajo: quedan como recordatorio en la ficha y las levanta el
+    // mostrador. No agregar '[RESENA]' acá sin hablarlo.
+    '[CARRITO]',
     '[RENOVACION]',
     '[POSVENTA]',
-    '[RESENA]',
     '[SEGUNDO PAR]',
 ];
 

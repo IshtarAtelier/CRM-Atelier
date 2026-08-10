@@ -2060,9 +2060,13 @@ server.listen(PORT, '0.0.0.0', async () => {
             const { checkAndSendSmartTasks } = require('./followups/smart-task-executor');
 
             await generateFollowUpTasks();
-            // Posventa a los 10 días de la entrega. Solo CREA la ClientTask
-            // [POSVENTA]: quien la redacta y la manda es el mismo ejecutor de
-            // abajo, cuando la tarea vence. No es un sistema de envío aparte.
+            // Los barridos de retención van en ORDEN DE PRIORIDAD (posventa >
+            // renovación > cumpleaños > segundo par): comparten la regla de un
+            // solo toque por cliente cada 14 días, así que el que corre primero
+            // se queda con el turno cuando los dos lo quieren.
+            // Posventa a los 10 días de la entrega. Ninguno ENVÍA: solo CREAN la
+            // ClientTask, y quien la redacta y la manda es el mismo ejecutor de
+            // abajo cuando la tarea vence. No son sistemas de envío aparte.
             await generarTareasPosventa();
             await checkAndSendSalesFollowUps(cronDeps);
             await checkAndSendSmartTasks(cronDeps);

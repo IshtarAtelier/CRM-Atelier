@@ -300,14 +300,24 @@ Resultado: **cada semana con ≥1 pieza de acción o prueba**. Stories en parale
 
 ## 8. Retención y base instalada
 
-**Principio: NO construir un 6º sistema.** Todo se monta sobre el pipeline existente ClientTask → smart-task-executor → sender → cola anti-ban (30/h, 120/día), que trae gratis: interruptor de pánico `followups_enabled`, patrón SENDING anti-pérdida, compuerta LLM CANCEL/POSTPONE/SKIP, etiqueta SIN_SEGUIMIENTO, corte por contacto frío, ventana horaria 9-19 L-V / 10-16 sáb. **Cambio habilitante único (S):** `AUTO_SENDABLE_TASK_PREFIX` (hoy un string, `config.js:96`) pasa a array `AUTO_SENDABLE_TASK_PREFIXES` + aceptar `createdBy: 'Sistema (Retención)'`. De paso, corregir el bug menor: la Interaction del envío se crea sin `userName: 'Bot'` (`smart-task-executor.js:355-361`). Regla de exclusión mutua nueva: un solo toque de retención por cliente cada 14 días; prioridad posventa > reseña > renovación > cumpleaños > segundo par.
+**Principio: NO construir un 6º sistema.** Todo se monta sobre el pipeline existente ClientTask → smart-task-executor → sender → cola anti-ban (30/h, 120/día), que trae gratis: interruptor de pánico `followups_enabled`, patrón SENDING anti-pérdida, compuerta LLM CANCEL/POSTPONE/SKIP, etiqueta SIN_SEGUIMIENTO, corte por contacto frío, ventana horaria 9-19 L-V / 10-16 sáb. **Cambio habilitante único (S):** `AUTO_SENDABLE_TASK_PREFIX` (hoy un string, `config.js:96`) pasa a array `AUTO_SENDABLE_TASK_PREFIXES` + aceptar `createdBy: 'Sistema (Retención)'`. De paso, corregir el bug menor: la Interaction del envío se crea sin `userName: 'Bot'` (`smart-task-executor.js:355-361`). Regla de exclusión mutua nueva: un solo toque de retención por cliente cada 14 días; prioridad posventa > renovación > cumpleaños > segundo par.
+
+> 🚫 **El pedido de reseña NO se automatiza. Decisión del dueño, 10/8/2026.**
+> Fue un error de diseño de este plan haberlo puesto acá. El bot no puede saber
+> si el cliente está enojado: pedirle la opinión a alguien que espera un pedido
+> demorado o que tuvo un problema de posventa cosecha una estrella, y una reseña
+> mala no se borra nunca. El pedido lo hace una persona, que conoce el caso.
+> Queda como está: la tarea `REVIEW_REQUEST` se crea al entregar y la levanta el
+> mostrador. `[RESENA]` NO está en `AUTO_SENDABLE_TASK_PREFIXES` y `createdBy:
+> 'Sistema'` no está en la lista de creadores auto-enviables — las dos puertas
+> cerradas, a propósito. No reabrir sin hablarlo.
 
 | # | Flujo | Tipo | Esf. | Cuándo | Métrica objetivo |
 |---|---|---|---|---|---|
 | 1 | **Carrito abandonado: PRENDER** (código terminado que nunca corrió; cupón QUIEROMISLENTES jamás enviado; 5 PENDING / 0 EMAIL_SENT en local) | prender | S | ya | 5-10% recuperación solo email; ≥15% con multi-toque |
-| 2 | **Reseña Google automatizada**: plantilla FIJA por `sendFollowUp()` (NO Gemini — no puede inventar el link y el texto probado excede el validador), gatillada por REVIEW_REQUEST vencida | automatizar existente | S-M | semana 1 | ≥10% envío→reseña; reseñas nuevas/mes en GBP |
-| 3 | Whitelist→array + firma Bot | habilitante | S | semana 1 (mismo PR que 2) | — |
-| 4 | **Posventa `[POSVENTA]`** a 10 días de DELIVERED (el guardián de la adaptación multifocal) + reseña encadenada a +3 días si no hay reclamo | construir | M | semanas 2-3 | ≥40% respuesta; detección temprana de PostSaleCase = éxito |
+| 2 | ~~Reseña Google automatizada~~ | 🚫 **DESCARTADO** (ver recuadro arriba) | — | — | sigue siendo manual, y está bien así |
+| 3 | Whitelist→array + firma Bot | habilitante | S | semana 1 | — |
+| 4 | **Posventa `[POSVENTA]`** a 10 días de DELIVERED (el guardián de la adaptación multifocal) | construir | M | semanas 2-3 | ≥40% respuesta; detección temprana de PostSaleCase = éxito |
 | 5 | **Renovación de receta `[RENOVACION]`** 12-18 meses — **el mayor ROI de todo el informe**: reactivar base propia, costo cero de ads. Cupo propio 10/día; rama `[RENOVACION MANUAL]` para clientes sin chat (mostrador puro) al panel del CRM | construir | M | semanas 3-4 | ≥10% con QUOTE ≤30 días; ≥5% con SALE ≤60 días (a $834k, 5 ventas/mes extra justifica todo el plan) |
 | 6 | Carrito multi-toque (1h + 24h) + toque WhatsApp `[CARRITO]` si hay chat con inbound | extender | M | mes 2 | recuperación ≥15% |
 | 7 | **Segundo par** `[SEGUNDO PAR]` 30-45 días post-entrega: sol con su misma receta, 15% off, cupón desde la base | construir | M | mes 2 | canje de cupón; ventas SUN de clientes existentes (histórico: 3 unidades) |
