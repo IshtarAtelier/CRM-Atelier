@@ -2,8 +2,13 @@
  * Datos comerciales de Atelier Óptica — fuente única para prompts de agentes,
  * mensajes automáticos y validaciones.
  *
- * Los porcentajes de descuento reflejan los defaults de PricingService
- * (discountCash 20, discountTransfer 15). Si se cambian allí, actualizar acá.
+ * Los porcentajes de descuento tienen que reflejar la promo REAL de la tienda
+ * (`web_promo_cash_discount`, hoy 15% tanto en efectivo como en transferencia,
+ * usado por el checkout y la tienda). NO son el fallback de `PricingService`
+ * (order.discountCash ?? 20) — ese es un default histórico por-orden para
+ * ventas viejas sin el campo cargado, no la promo vigente. Confundir los dos
+ * es cómo `/optica-cordoba` terminó anunciando "20% de descuento en efectivo"
+ * mientras el cartel de arriba de la misma página y el checkout decían 15%.
  */
 
 export const BUSINESS_INFO = {
@@ -45,7 +50,7 @@ export const BUSINESS_INFO = {
     },
   ],
   appointmentSlots: "de 8:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 (Sábados)",
-  discountCashPercent: 20,
+  discountCashPercent: 15,
   discountTransferPercent: 15,
   installmentsPromo: "3 o 6 cuotas sin interés con tarjeta",
 } as const;
