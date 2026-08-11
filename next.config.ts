@@ -226,12 +226,19 @@ const nextConfig: NextConfig = {
     // Faltaban en la CSP, así que Google Ads no recibió NUNCA una conversión del
     // sitio ni pudo armar un público de remarketing — sin un solo error visible.
     // El ccTLD importa: un visitante argentino pega contra `google.com.ar`.
+    // `h.online-metrix.net` es el fingerprinting de dispositivo (ThreatMetrix)
+    // que carga el propio decidir.js de Payway para puntuar fraude. No estaba en
+    // ninguna de las dos CSP, así que la ACTIVA lo bloqueaba —script e imagen—
+    // en cada checkout: "The action has been blocked" en consola, y el análisis
+    // antifraude de la pasarela corriendo a ciegas. Tercera vez que esta CSP
+    // rompe una integración en silencio (Meta, Google Ads, y ahora pagos): el
+    // host propio del proveedor va junto a los suyos que ya estaban permitidos.
     const imgSrc =
-      "img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com https://www.google.com.ar";
+      "img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com https://www.google.com.ar https://h.online-metrix.net";
     // script-src también se comparte entre las dos CSP: estaba duplicado y es
     // exactamente así como la activa se quedó atrás la vez anterior.
     const scriptSrc = (allowEval: boolean) =>
-      `script-src 'self' ${allowEval ? "'unsafe-eval' " : ""}'unsafe-inline' https://live.decidir.com https://developers.decidir.com https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net`;
+      `script-src 'self' ${allowEval ? "'unsafe-eval' " : ""}'unsafe-inline' https://live.decidir.com https://developers.decidir.com https://h.online-metrix.net https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net`;
     const cspStrict = [
       "default-src 'self'",
       scriptSrc(isDev),
