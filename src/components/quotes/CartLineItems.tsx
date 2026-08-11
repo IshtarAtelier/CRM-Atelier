@@ -160,13 +160,13 @@ export default function CartLineItems({
                                 <div className="mb-3 flex items-center gap-1.5">
                                     <Palette className="w-3 h-3 text-violet-400 shrink-0" />
                                     <label className="text-[9px] font-bold text-violet-500 dark:text-violet-400 uppercase tracking-wider shrink-0">
-                                        Grado / color a pedido
+                                        Intensidad / color a pedido
                                     </label>
                                     <input
                                         type="text"
                                         defaultValue={item.crystalColorNote || ''}
                                         onBlur={e => onUpdateItemNote?.(idx, e.target.value)}
-                                        placeholder="Ej: 60%, más oscuro arriba..."
+                                        placeholder="Ej: 60% de intensidad, más oscuro arriba..."
                                         className="flex-1 min-w-0 px-2 py-1 rounded-lg text-[11px] font-medium border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/20 outline-none transition-all"
                                     />
                                 </div>
