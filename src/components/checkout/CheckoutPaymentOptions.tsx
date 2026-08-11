@@ -71,82 +71,15 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
         </div>
       ) : (
         <div className="flex flex-col gap-3 mb-10">
-          <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'PAYWAY' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
-            <input type="radio" name="paymentMethod" value="PAYWAY" checked={formData.paymentMethod === 'PAYWAY'} onChange={handleChange} className="accent-black mt-1" />
-            <div className="flex-1">
-              <div className="flex justify-between items-center mb-1 gap-2 flex-wrap">
-                <p className="text-sm font-bold">Tarjeta de Crédito / Débito</p>
-                <span className="text-[9px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1">{webSettings?.web_promo_installments || "6 cuotas sin interés"}</span>
-              </div>
-              <p className="text-[11px] text-stone-500 leading-relaxed mb-2">Procesado de forma segura por Payway. {webSettings?.web_promo_installments ? `Promo: ${webSettings.web_promo_installments}` : "Hasta 6 cuotas sin interés"} con tarjetas bancarias.</p>
-              
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 mr-1">Aceptamos:</span>
-                <div className="h-6 px-2.5 bg-[#1434CB] text-white rounded font-mono font-bold text-[9px] flex items-center justify-center tracking-tighter shadow-sm select-none">
-                  VISA
-                </div>
-                <div className="h-6 px-2.5 bg-stone-900 text-white rounded flex items-center gap-1 font-mono font-bold text-[9px] shadow-sm select-none">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#EB001B] -mr-1" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF5F00]" />
-                  MC
-                </div>
-                <div className="h-6 px-2 bg-[#005B94] text-white rounded font-mono font-bold text-[9.5px] flex items-center justify-center uppercase tracking-tight shadow-sm select-none">
-                  Cabal
-                </div>
-                <div className="h-6 px-2 bg-[#5d2e8c] text-white rounded font-sans font-black text-[9px] flex items-center justify-center uppercase tracking-widest shadow-sm select-none">
-                  Payway
-                </div>
-              </div>
-
-              <div className="mt-4 p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3 select-none">
-                <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider text-stone-900 block">
-                    Conexión 100% Encriptada
-                  </span>
-                  <span className="text-[10px] text-stone-500 block leading-relaxed">
-                    Tus datos se procesan mediante la pasarela segura oficial de <strong>Payway (Prisma Medios de Pago)</strong> con cifrado SSL.
-                  </span>
-                </div>
-              </div>
-              
-              {formData.paymentMethod === 'PAYWAY' && (
-                <div role="button" tabIndex={0} className="mt-6 flex flex-col gap-4 p-5 border border-stone-100 bg-white" onClick={(e) => e.stopPropagation()}>
-                  <div>
-                    <input type="text" name="cardNumber" value={formData.cardNumber} onChange={handleCardNumberChange} placeholder="Número de Tarjeta (Ej: 4500 1234 5678 9000)" maxLength={19} autoComplete="cc-number" className={`w-full border p-3 text-sm focus:outline-none transition-colors font-mono tracking-widest ${getBorderColor(formData.cardNumber, 15)}`} />
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <input type="text" name="cardExp" value={formData.cardExp} onChange={handleCardExpChange} placeholder="Vencimiento (MM/AA)" maxLength={5} autoComplete="cc-exp" className={`w-full border p-3 text-sm focus:outline-none transition-colors font-mono tracking-widest text-center ${getBorderColor(formData.cardExp, 5)}`} />
-                    </div>
-                    <div className="flex-1">
-                      <input type="password" name="cardCvc" value={formData.cardCvc} onChange={handleChange} placeholder="CVC (Ej: 123)" maxLength={4} autoComplete="cc-csc" className={`w-full border p-3 text-sm focus:outline-none transition-colors font-mono tracking-widest text-center ${getBorderColor(formData.cardCvc, 3)}`} />
-                    </div>
-                  </div>
-                  <div>
-                    <input type="text" name="cardName" value={formData.cardName} onChange={handleChange} placeholder="Titular (Como figura en la tarjeta)" autoComplete="cc-name" className={`w-full border p-3 text-sm focus:outline-none transition-colors uppercase ${getBorderColor(formData.cardName, 4)}`} />
-                  </div>
-                  <div>
-                    {/* El valor de cada cuota va en la opción misma: es el número
-                        con el que la persona decide, y tenerlo que calcular de
-                        cabeza en el checkout es fricción pura. */}
-                    <select name="installments" value={formData.installments || "1"} onChange={handleChange} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors bg-white">
-                      <option value="1">1 pago sin interés{montoFmt ? ` · ${montoFmt}` : ""}</option>
-                      <option value="3">3 cuotas sin interés{porCuota(3)}</option>
-                      <option value="6">6 cuotas sin interés (Cuota Simple){porCuota(6)}</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
-          </label>
-          
           {/* Mercado Pago: pasarela de respaldo. Solo aparece con el interruptor
               prendido (MP_ENABLED), que es lo que se activa el día que la
               pasarela principal falla. El cobro ocurre en mercadopago.com: por
               eso acá no hay campos de tarjeta y el aviso de que se sale del
               sitio va explícito — una redirección inesperada en el paso del
-              pago se lee como algo raro y frena la compra. */}
+              pago se lee como algo raro y frena la compra.
+              Va primera en la lista mientras Payway está caído: es la única vía
+              de tarjeta disponible. Colapsada igual que Transferencia — el
+              detalle completo solo se despliega si la persona la elige. */}
           {mercadoPagoEnabled && (
             <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'MERCADO_PAGO' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
               <input type="radio" name="paymentMethod" value="MERCADO_PAGO" checked={formData.paymentMethod === 'MERCADO_PAGO'} onChange={handleChange} className="accent-black mt-1" />
@@ -155,24 +88,98 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                   <p className="text-sm font-bold">Mercado Pago</p>
                   <span className="text-[9px] font-black uppercase tracking-widest bg-[#009EE3] text-white px-2 py-1">Tarjeta, dinero en cuenta o efectivo</span>
                 </div>
-                <p className="text-[11px] text-stone-500 leading-relaxed mb-2">
-                  Te llevamos al sitio de Mercado Pago para completar el pago y volvés acá al terminar. Podés pagar con tarjeta, con tu saldo de Mercado Pago o en efectivo por Pago Fácil y Rapipago.
+                <p className="text-[11px] text-stone-500 leading-relaxed">
+                  Te llevamos al sitio de Mercado Pago para completar el pago y volvés acá al terminar.
                 </p>
 
-                <div className="mt-3 p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3 select-none">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[11px] font-black uppercase tracking-wider text-stone-900 block">
-                      Tus datos no pasan por nuestro sitio
-                    </span>
-                    <span className="text-[10px] text-stone-500 block leading-relaxed">
-                      La tarjeta se carga directamente en <strong>Mercado Pago</strong>. Nosotros nunca vemos ni guardamos esos datos.
-                    </span>
+                {formData.paymentMethod === 'MERCADO_PAGO' && (
+                  <div className="mt-3 p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3 select-none">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-stone-900 block">
+                        Tus datos no pasan por nuestro sitio
+                      </span>
+                      <span className="text-[10px] text-stone-500 block leading-relaxed">
+                        La tarjeta se carga directamente en <strong>Mercado Pago</strong>. Nosotros nunca vemos ni guardamos esos datos. Podés pagar con tarjeta, saldo de Mercado Pago o efectivo por Pago Fácil y Rapipago.
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </label>
           )}
+
+          <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'PAYWAY' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
+            <input type="radio" name="paymentMethod" value="PAYWAY" checked={formData.paymentMethod === 'PAYWAY'} onChange={handleChange} className="accent-black mt-1" />
+            <div className="flex-1">
+              <div className="flex justify-between items-center mb-1 gap-2 flex-wrap">
+                <p className="text-sm font-bold">Tarjeta de Crédito / Débito</p>
+                <span className="text-[9px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1">{webSettings?.web_promo_installments || "6 cuotas sin interés"}</span>
+              </div>
+              <p className="text-[11px] text-stone-500 leading-relaxed">Procesado de forma segura por Payway. {webSettings?.web_promo_installments ? `Promo: ${webSettings.web_promo_installments}` : "Hasta 6 cuotas sin interés"} con tarjetas bancarias.</p>
+
+              {formData.paymentMethod === 'PAYWAY' && (
+                <>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 mr-1">Aceptamos:</span>
+                    <div className="h-6 px-2.5 bg-[#1434CB] text-white rounded font-mono font-bold text-[9px] flex items-center justify-center tracking-tighter shadow-sm select-none">
+                      VISA
+                    </div>
+                    <div className="h-6 px-2.5 bg-stone-900 text-white rounded flex items-center gap-1 font-mono font-bold text-[9px] shadow-sm select-none">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#EB001B] -mr-1" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#FF5F00]" />
+                      MC
+                    </div>
+                    <div className="h-6 px-2 bg-[#005B94] text-white rounded font-mono font-bold text-[9.5px] flex items-center justify-center uppercase tracking-tight shadow-sm select-none">
+                      Cabal
+                    </div>
+                    <div className="h-6 px-2 bg-[#5d2e8c] text-white rounded font-sans font-black text-[9px] flex items-center justify-center uppercase tracking-widest shadow-sm select-none">
+                      Payway
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3 select-none">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-stone-900 block">
+                        Conexión 100% Encriptada
+                      </span>
+                      <span className="text-[10px] text-stone-500 block leading-relaxed">
+                        Tus datos se procesan mediante la pasarela segura oficial de <strong>Payway (Prisma Medios de Pago)</strong> con cifrado SSL.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div role="button" tabIndex={0} className="mt-6 flex flex-col gap-4 p-5 border border-stone-100 bg-white" onClick={(e) => e.stopPropagation()}>
+                    <div>
+                      <input type="text" name="cardNumber" value={formData.cardNumber} onChange={handleCardNumberChange} placeholder="Número de Tarjeta (Ej: 4500 1234 5678 9000)" maxLength={19} autoComplete="cc-number" className={`w-full border p-3 text-sm focus:outline-none transition-colors font-mono tracking-widest ${getBorderColor(formData.cardNumber, 15)}`} />
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <input type="text" name="cardExp" value={formData.cardExp} onChange={handleCardExpChange} placeholder="Vencimiento (MM/AA)" maxLength={5} autoComplete="cc-exp" className={`w-full border p-3 text-sm focus:outline-none transition-colors font-mono tracking-widest text-center ${getBorderColor(formData.cardExp, 5)}`} />
+                      </div>
+                      <div className="flex-1">
+                        <input type="password" name="cardCvc" value={formData.cardCvc} onChange={handleChange} placeholder="CVC (Ej: 123)" maxLength={4} autoComplete="cc-csc" className={`w-full border p-3 text-sm focus:outline-none transition-colors font-mono tracking-widest text-center ${getBorderColor(formData.cardCvc, 3)}`} />
+                      </div>
+                    </div>
+                    <div>
+                      <input type="text" name="cardName" value={formData.cardName} onChange={handleChange} placeholder="Titular (Como figura en la tarjeta)" autoComplete="cc-name" className={`w-full border p-3 text-sm focus:outline-none transition-colors uppercase ${getBorderColor(formData.cardName, 4)}`} />
+                    </div>
+                    <div>
+                      {/* El valor de cada cuota va en la opción misma: es el número
+                          con el que la persona decide, y tenerlo que calcular de
+                          cabeza en el checkout es fricción pura. */}
+                      <select name="installments" value={formData.installments || "1"} onChange={handleChange} className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors bg-white">
+                        <option value="1">1 pago sin interés{montoFmt ? ` · ${montoFmt}` : ""}</option>
+                        <option value="3">3 cuotas sin interés{porCuota(3)}</option>
+                        <option value="6">6 cuotas sin interés (Cuota Simple){porCuota(6)}</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </label>
 
           <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'TRANSFER' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
             <input type="radio" name="paymentMethod" value="TRANSFER" checked={formData.paymentMethod === 'TRANSFER'} onChange={handleChange} className="accent-black mt-1" />
