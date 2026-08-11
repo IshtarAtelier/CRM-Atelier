@@ -72,19 +72,28 @@ export async function GET(request: Request) {
                 continue;
             }
 
-            // Actualizar estado de la orden a READY (Terminado)
-            await prisma.order.update({
-                where: { id: order.id },
-                data: { labStatus: 'READY' }
-            });
-            // Update order object for BotService if it checks it
-            order.labStatus = 'READY';
-
-            // Si llegamos acá, el pedido sigue en FINISHED (ahora READY) y pasaron 24 hs.
-            // Enviar WhatsApp al cliente informando saldo, dirección y horarios.
+            // AVISAR PRIMERO, PERSISTIR DESPUÉS.
+            //
+            // Antes esto pasaba la orden a READY en la base ANTES de mandar el
+            // WhatsApp, y si el envío fallaba solo dejaba un "Failed to send" en
+            // la respuesta del cron. El problema aparecía en la corrida
+            // siguiente: el guard de arriba veía `labStatus === 'READY'` pero el
+            // mensaje NO decía "Cliente notificado" (nunca se había enviado),
+            // así que caía al else y RESOLVÍA la notificación. Resultado: el
+            // pedido quedaba listo, la campanita del vendedor se apagaba sola y
+            // el cliente no se enteraba nunca de que podía pasar a retirarlo.
+            //
+            // Ahora, si el envío falla, la orden queda en FINISHED y la
+            // notificación PENDING: la próxima corrida lo reintenta.
+            order.labStatus = 'READY'; // solo en memoria, para el texto del bot
             const sent = await BotService.notifyOrderReady(order);
 
             if (sent) {
+                await prisma.order.update({
+                    where: { id: order.id },
+                    data: { labStatus: 'READY' }
+                });
+
                 // Modificar la notificación en lugar de resolverla para que el vendedor
                 // sepa que el cliente ya fue avisado y lo pase a entregado cuando venga.
                 const updatedMessage = notif.message.replace('Pedido finalizado en laboratorio', '🛍️ Cliente notificado (Listo para Retirar)');
@@ -95,8 +104,10 @@ export async function GET(request: Request) {
 
                 results.push({ orderId: order.id, status: 'Sent & Notification Updated' });
             } else {
-                // Si falla el envío (ej: número de WhatsApp inválido), lo dejamos pendiente
-                results.push({ orderId: order.id, status: 'Failed to send' });
+                // No se persiste READY: la orden sigue FINISHED y la notificación
+                // PENDING, así el próximo cron vuelve a intentar el aviso.
+                console.error(`[Cron Pickup Reminder] No se pudo avisar al cliente de la orden ${order.id}; queda FINISHED para reintentar.`);
+                results.push({ orderId: order.id, status: 'Failed to send — queda pendiente para reintentar' });
             }
         }
 
