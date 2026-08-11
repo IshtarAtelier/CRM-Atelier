@@ -166,12 +166,18 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     src={item.img}
                     alt={`Anteojos ${item.category || ''} ${item.brand || ''} ${item.name} en Atelier Óptica Córdoba`}
                     fill
-                    // Sin `priority`: este carrusel está DEBAJO del hero, que ya
-                    // reserva su preload para la imagen del LCP. Marcar 4 miniaturas
-                    // como prioritarias las ponía a competir por el ancho de banda
-                    // justo con lo que define la velocidad percibida en celular.
-                    // `eager` en las primeras alcanza para que no titilen al entrar.
-                    loading={i < 4 ? "eager" : "lazy"}
+                    // Sin `priority` NI `eager`: este carrusel está DEBAJO del hero,
+                    // que reserva su preload para la imagen del LCP.
+                    //
+                    // Antes esto era `eager` en las 4 primeras, puesto para sacarles
+                    // el `priority` y que dejaran de competir por ancho de banda. No
+                    // alcanzó: Next igual emite un <link rel="preload"> por cada
+                    // imagen eager, así que las 4 seguían compitiendo con el hero
+                    // exactamente igual (medido: 7 preloads de imagen en la home,
+                    // 6 de ellos de este carrusel). En lazy el navegador las trae
+                    // igual antes de que entren en pantalla, sin robarle el ancho
+                    // de banda al primer pintado.
+                    loading="lazy"
                     sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
                     className={`object-contain p-6 transition-opacity duration-500 ease-in-out ${item.secondImg ? 'md:group-hover:opacity-0' : ''}`}
                   />
@@ -186,11 +192,10 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     src={item.secondImg}
                     alt={`${item.name} Try-On`}
                     fill
-                    // Ídem: además esta segunda imagen solo se ve al pasar el
-                    // mouse por encima (opacity-0 hasta el hover), así que
-                    // precargarla con prioridad era gastar el presupuesto de red
-                    // del primer pintado en algo que en celular no se ve nunca.
-                    loading={i < 2 ? "eager" : "lazy"}
+                    // Ídem, y acá pesa más: esta segunda imagen solo se ve al pasar
+                    // el mouse por encima (opacity-0 hasta el hover), así que en
+                    // celular no se muestra NUNCA — y aun así se precargaba.
+                    loading="lazy"
                     sizes="(max-width: 768px) 45vw, (max-width: 1024px) 33vw, 25vw"
                     className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
                   />
