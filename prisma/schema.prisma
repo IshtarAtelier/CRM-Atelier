@@ -851,6 +851,15 @@ model CrystalColor {
   @@index([category, active])
 }
 
+// Precio del tratamiento de teñido POR ESTILO (Compacto/Muestra/Degradé) —
+// no varía por color específico. Compacto/Muestra/Degradé son las únicas
+// categorías válidas (ver COLOR_CATEGORIES en crystal-color-utils.ts).
+model TintStylePrice {
+  category  String   @id
+  price     Float
+  updatedAt DateTime @updatedAt
+}
+
 model TeamMessage {
   id        String   @id @default(cuid())
   sender    String

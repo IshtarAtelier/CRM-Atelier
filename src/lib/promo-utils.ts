@@ -340,14 +340,21 @@ export function recalculateCrystalPrices(items: any[]): boolean {
 
 /**
  * Bonifica el tratamiento de Teñido (compacto, degradé o según muestra — son
- * estilos del mismo producto "Teñido", no cambian el precio) cuando la orden
- * tiene la promo 2x1 multifocal activa Y el Teñido es el ÚNICO tratamiento
- * agregado. Si hay cualquier otro ítem de categoría 'Tratamiento' además del
- * Teñido, no se bonifica.
+ * estilos del mismo producto "Teñido") cuando la orden tiene la promo 2x1
+ * multifocal activa Y el Teñido es el ÚNICO tratamiento agregado. Si hay
+ * cualquier otro ítem de categoría 'Tratamiento' además del Teñido, no se
+ * bonifica.
+ *
+ * Cuando NO es elegible para la bonificación, el precio se resuelve por
+ * ESTILO (item.crystalColorType → COMPACTO/MUESTRA/DEGRADE) usando
+ * `tintStylePrices` (cargado en Stock → Paleta de Colores). Si el estilo no
+ * tiene precio cargado, o el ítem todavía no tiene estilo elegido, cae al
+ * precio de lista del producto "Teñido".
+ *
  * Mutates the items in-place (updating item.customPrice / item.price and item.isPromo).
  * Returns true if any prices or flags were modified, false otherwise.
  */
-export function applyTeñidoPromoDiscount(items: any[]): boolean {
+export function applyTeñidoPromoDiscount(items: any[], tintStylePrices?: Record<string, number>): boolean {
     if (!items || items.length === 0) return false;
 
     const teñidoItems = items.filter(i => isTeñidoAddon(i.product));
@@ -362,7 +369,8 @@ export function applyTeñidoPromoDiscount(items: any[]): boolean {
 
     let modified = false;
     for (const item of teñidoItems) {
-        const expectedPrice = isEligible ? 0 : safePrice(item.product?.price);
+        const stylePrice = item.crystalColorType ? tintStylePrices?.[item.crystalColorType] : undefined;
+        const expectedPrice = isEligible ? 0 : (stylePrice ?? safePrice(item.product?.price));
         const currentPrice = item.customPrice !== undefined ? item.customPrice : item.price;
         if (currentPrice !== expectedPrice) {
             if (item.customPrice !== undefined) item.customPrice = expectedPrice;

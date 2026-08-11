@@ -610,7 +610,10 @@ export class OrderService {
                         it.product = dbProducts.find(p => p.id === it.productId) || it.product;
                     });
                     recalculateCrystalPrices(items);
-                    applyTeñidoPromoDiscount(items);
+                    const tintStylePrices = Object.fromEntries(
+                        (await prisma.tintStylePrice.findMany()).map(t => [t.category, t.price])
+                    );
+                    applyTeñidoPromoDiscount(items, tintStylePrices);
                 }
 
                 // Map items for calculateQuoteTotals utility

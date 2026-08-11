@@ -51,6 +51,7 @@ interface CotizadorCartProps {
     editingQuoteId?: string | null;
     onCancelEdit?: () => void;
     crystalColors?: any[];
+    tintStylePrices?: Record<string, number>;
     isCard?: boolean;
 }
 
@@ -86,6 +87,7 @@ export default function CotizadorCart({
     editingQuoteId,
     onCancelEdit,
     crystalColors = [],
+    tintStylePrices = {},
     isCard = true,
 }: CotizadorCartProps) {
 
@@ -270,11 +272,13 @@ export default function CotizadorCart({
                 onUpdateQuantity={(idx, delta) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))}
                 onRemoveItem={(idx) => setItems(prev => prev.filter((_, i) => i !== idx))}
                 onUpdateItemColor={(idx, color, colorType) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, crystalColor: color, crystalColorType: colorType } : item))}
+                onUpdateItemStyle={(idx, style) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, crystalColorType: style } : item))}
                 onUpdateItemNote={(idx, note) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, crystalColorNote: note } : item))}
                 markup={markup}
                 secondFrameUid={secondFrameUid}
                 promoFrameDiscount={promoFrameDiscount}
                 crystalColors={crystalColors}
+                tintStylePrices={tintStylePrices}
             />
 
             {hasAnyMultifocal && (

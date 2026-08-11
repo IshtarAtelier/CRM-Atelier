@@ -145,6 +145,8 @@ function CotizadorPageContent() {
 
     // Crystal colors for teñido addon
     const [crystalColors, setCrystalColors] = useState<any[]>([]);
+    // Precio por estilo de teñido (Compacto/Muestra/Degradé), cargado en Stock → Paleta de Colores
+    const [tintStylePrices, setTintStylePrices] = useState<Record<string, number>>({});
 
     const searchRef = useRef<HTMLInputElement>(null);
     const contactSearchRef = useRef<HTMLInputElement>(null);
@@ -170,6 +172,9 @@ function CotizadorPageContent() {
     useEffect(() => {
         fetch('/api/doctors').then(res => res.json()).then(data => { if (Array.isArray(data)) setDoctors(data); }).catch((err) => console.error("Error fetching doctors:", err));
         fetch('/api/crystal-colors').then(res => res.json()).then(data => { if (Array.isArray(data)) setCrystalColors(data); }).catch((err) => console.error("Error fetching crystal colors:", err));
+        fetch('/api/tint-style-prices').then(res => res.json()).then(data => {
+            if (Array.isArray(data)) setTintStylePrices(Object.fromEntries(data.map((t: any) => [t.category, t.price])));
+        }).catch((err) => console.error("Error fetching tint style prices:", err));
     }, []);
 
     useEffect(() => {
@@ -282,11 +287,11 @@ function CotizadorPageContent() {
     // Recalculate crystal prices dynamically when quoteItems change to prevent promo price evasion
     useEffect(() => {
         const crystalsChanged = recalculateCrystalPrices(quoteItems);
-        const teñidoChanged = applyTeñidoPromoDiscount(quoteItems);
+        const teñidoChanged = applyTeñidoPromoDiscount(quoteItems, tintStylePrices);
         if (crystalsChanged || teñidoChanged) {
             setQuoteItems([...quoteItems]);
         }
-    }, [quoteItems]);
+    }, [quoteItems, tintStylePrices]);
 
     // Filter logic
     const availableCategories = useMemo(() => {
@@ -1108,6 +1113,7 @@ function CotizadorPageContent() {
                                         )
                                     }
                                     crystalColors={crystalColors}
+                                    tintStylePrices={tintStylePrices}
                                 />
                             ) : (
                                 <div className="bg-white dark:bg-stone-800 border border-primary/20 rounded-2xl p-6 shadow-xl relative animate-in zoom-in-95 duration-300">
@@ -1303,6 +1309,7 @@ function CotizadorPageContent() {
                                             )
                                         }
                                         crystalColors={crystalColors}
+                                        tintStylePrices={tintStylePrices}
                                     />
                                 ) : (
                                     <div className="bg-white dark:bg-stone-800 border border-primary/20 rounded-2xl p-6 shadow-xl relative animate-in zoom-in-95 duration-300">

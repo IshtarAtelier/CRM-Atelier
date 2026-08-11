@@ -56,6 +56,11 @@ export default function InventarioPage() {
     const [colorForm, setColorForm] = useState({ id: '', name: '', category: 'COMPACTO', hexColor: '#000000', sortOrder: 0, active: true });
     const [showColorForm, setShowColorForm] = useState(false);
     const [savingColor, setSavingColor] = useState(false);
+    // -- State for Tint Style Prices (Compacto/Muestra/Degradé) --
+    const [tintStylePrices, setTintStylePrices] = useState<Record<string, number>>({});
+    const [editingTintStyle, setEditingTintStyle] = useState<string | null>(null);
+    const [editTintPriceValue, setEditTintPriceValue] = useState('');
+    const [savingTintPrice, setSavingTintPrice] = useState(false);
 
     const loadColors = async () => {
         setLoadingColors(true);
@@ -95,6 +100,45 @@ export default function InventarioPage() {
             alert('Error de conexión');
         } finally {
             setSavingColor(false);
+        }
+    };
+
+    const loadTintStylePrices = async () => {
+        try {
+            const res = await fetch('/api/tint-style-prices');
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setTintStylePrices(Object.fromEntries(data.map((t: any) => [t.category, t.price])));
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleSaveTintStylePrice = async (category: string) => {
+        const price = parseFloat(editTintPriceValue.replace(',', '.'));
+        if (!Number.isFinite(price) || price < 0) {
+            alert('Precio inválido');
+            return;
+        }
+        setSavingTintPrice(true);
+        try {
+            const res = await fetch(`/api/tint-style-prices/${category}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ price })
+            });
+            if (res.ok) {
+                setEditingTintStyle(null);
+                loadTintStylePrices();
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Error al guardar el precio');
+            }
+        } catch (error) {
+            alert('Error de conexión');
+        } finally {
+            setSavingTintPrice(false);
         }
     };
 
@@ -143,6 +187,7 @@ export default function InventarioPage() {
         }).catch(console.error);
 
         loadColors();
+        loadTintStylePrices();
     }, []);
 
     const isAdmin = userRole === 'ADMIN';
@@ -712,6 +757,42 @@ export default function InventarioPage() {
                         >
                             <Plus className="w-4 h-4" /> Nuevo Color
                         </button>
+                    </div>
+
+                    <div>
+                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Precio del Teñido por Estilo</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {[{ key: 'COMPACTO', label: 'Color Compacto' }, { key: 'MUESTRA', label: 'Color Según Muestra' }, { key: 'DEGRADE', label: 'Color Degradé' }].map(style => (
+                                <div key={style.key} className="bg-white dark:bg-stone-900 p-4 rounded-2xl border border-violet-200 dark:border-violet-900/50 flex items-center justify-between gap-3">
+                                    <span className="text-xs font-bold text-stone-700 dark:text-stone-200">{style.label}</span>
+                                    {editingTintStyle === style.key ? (
+                                        <input
+                                            type="text"
+                                            value={editTintPriceValue}
+                                            onChange={e => setEditTintPriceValue(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') handleSaveTintStylePrice(style.key);
+                                                else if (e.key === 'Escape') setEditingTintStyle(null);
+                                            }}
+                                            onBlur={() => handleSaveTintStylePrice(style.key)}
+                                            autoFocus
+                                            disabled={savingTintPrice}
+                                            className="w-24 px-2 py-1 text-xs font-black text-right border-2 border-violet-500 rounded-lg outline-none bg-white dark:bg-stone-900"
+                                        />
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                setEditingTintStyle(style.key);
+                                                setEditTintPriceValue(String(tintStylePrices[style.key] ?? ''));
+                                            }}
+                                            className="text-sm font-black text-violet-600 dark:text-violet-400 hover:underline"
+                                        >
+                                            {typeof tintStylePrices[style.key] === 'number' ? `$${tintStylePrices[style.key].toLocaleString()}` : 'Sin precio'}
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
