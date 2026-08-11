@@ -1,7 +1,7 @@
 import React from "react";
 import { ShieldCheck } from "lucide-react";
 
-export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale, payableTotal }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean, payableTotal?: number }) {
+export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale, payableTotal, mercadoPagoEnabled }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean, payableTotal?: number, mercadoPagoEnabled?: boolean }) {
   // El monto en el botón mata la última duda ("¿cuánto termino pagando?") justo
   // en el clic que cierra la venta. Se calcula igual que el resumen de la derecha.
   const montoFmt = payableTotal && payableTotal > 0
@@ -141,6 +141,39 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
             </div>
           </label>
           
+          {/* Mercado Pago: pasarela de respaldo. Solo aparece con el interruptor
+              prendido (MP_ENABLED), que es lo que se activa el día que la
+              pasarela principal falla. El cobro ocurre en mercadopago.com: por
+              eso acá no hay campos de tarjeta y el aviso de que se sale del
+              sitio va explícito — una redirección inesperada en el paso del
+              pago se lee como algo raro y frena la compra. */}
+          {mercadoPagoEnabled && (
+            <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'MERCADO_PAGO' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
+              <input type="radio" name="paymentMethod" value="MERCADO_PAGO" checked={formData.paymentMethod === 'MERCADO_PAGO'} onChange={handleChange} className="accent-black mt-1" />
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-1 gap-2 flex-wrap">
+                  <p className="text-sm font-bold">Mercado Pago</p>
+                  <span className="text-[9px] font-black uppercase tracking-widest bg-[#009EE3] text-white px-2 py-1">Tarjeta, dinero en cuenta o efectivo</span>
+                </div>
+                <p className="text-[11px] text-stone-500 leading-relaxed mb-2">
+                  Te llevamos al sitio de Mercado Pago para completar el pago y volvés acá al terminar. Podés pagar con tarjeta, con tu saldo de Mercado Pago o en efectivo por Pago Fácil y Rapipago.
+                </p>
+
+                <div className="mt-3 p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3 select-none">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-stone-900 block">
+                      Tus datos no pasan por nuestro sitio
+                    </span>
+                    <span className="text-[10px] text-stone-500 block leading-relaxed">
+                      La tarjeta se carga directamente en <strong>Mercado Pago</strong>. Nosotros nunca vemos ni guardamos esos datos.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </label>
+          )}
+
           <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'TRANSFER' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
             <input type="radio" name="paymentMethod" value="TRANSFER" checked={formData.paymentMethod === 'TRANSFER'} onChange={handleChange} className="accent-black mt-1" />
             <div className="flex-1">
@@ -176,6 +209,12 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
         ) : formData.paymentMethod === 'PAYWAY' ? (
           <>
             {etiquetaPago || "Pagar con Tarjeta"} <ShieldCheck className="w-4 h-4" />
+          </>
+        ) : formData.paymentMethod === 'MERCADO_PAGO' ? (
+          // Dice que se sale del sitio, porque se sale del sitio. El botón que
+          // promete "pagar" y en cambio redirige es el que hace abandonar.
+          <>
+            {montoFmt ? `Continuar a Mercado Pago · ${montoFmt}` : "Continuar a Mercado Pago"} <ShieldCheck className="w-4 h-4" />
           </>
         ) : (
           <>

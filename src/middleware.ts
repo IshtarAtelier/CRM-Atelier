@@ -84,8 +84,15 @@ export async function middleware(request: NextRequest) {
     // monitor externo (cron-job.org) que no tiene sesión. Sin esto devolvía 401
     // siempre y la alerta de links legados rotos nunca podía dispararse.
     const isPublicGetApi = request.method === 'GET' && (pathname === '/api/settings' || pathname === '/api/reviews' || pathname === '/api/health' || pathname === '/api/seo-guard');
-    
-    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !isCheckoutBypass && !pathname.startsWith('/api/storage/view') && !pathname.startsWith('/api/admin/alert') && !isPublicGetApi) {
+    // Webhooks de pasarelas de pago (hoy: Mercado Pago). Los manda un servidor
+    // de la pasarela, que no tiene ni puede tener una sesión nuestra: sin este
+    // bypass el aviso de "se acreditó el pago" comía un 401 y la venta quedaba
+    // cobrada en la pasarela y sin registrar en el CRM, en silencio.
+    // No queda abierto: cada webhook valida la firma HMAC de su pasarela y
+    // vuelve a consultarle el estado del pago antes de tocar una venta.
+    const isWebhook = pathname.startsWith('/api/webhooks/');
+
+    if (isApiRoute && !isAuthRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/api/bot/') && !pathname.startsWith('/api/whatsapp/') && !pathname.startsWith('/api/upload') && !pathname.startsWith('/api/store/') && !pathname.startsWith('/api/web/') && !isCheckoutBypass && !isWebhook && !pathname.startsWith('/api/storage/view') && !pathname.startsWith('/api/admin/alert') && !isPublicGetApi) {
         if (!token) {
             return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
         }

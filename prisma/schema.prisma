@@ -401,6 +401,7 @@ model Order {
   user                   User           @relation(fields: [userId], references: [id])
   items                  OrderItem[]
   payments               Payment[]
+  paymentIntents         WebPaymentIntent[]
   tags                   Tag[]          @relation("OrderToTag")
 
   @@index([clientId])
@@ -508,6 +509,63 @@ model Payment {
   @@index([orderId])
   @@index([createdById])
   @@index([date])
+}
+
+/// Intento de cobro por una pasarela que cobra FUERA de nuestro servidor
+/// (hoy: Mercado Pago Checkout Pro).
+///
+/// Payway no necesita esto porque cobra dentro del mismo request: se pide el
+/// cargo y se sabe el resultado antes de responder. Con Checkout Pro el
+/// comprador se va a mercadopago.com y el resultado vuelve MINUTOS después por
+/// un webhook que manda un servidor de MP — sin el carrito, sin el navegador
+/// del comprador y sin el body original del checkout. Esta fila es lo que une
+/// las dos puntas.
+///
+/// Cumple tres funciones, todas de plata:
+///  1. Idempotencia dura: `paymentId` es único, así que el MISMO pago de MP no
+///     puede acreditarse dos veces por más veces que MP reintente el aviso
+///     (reintenta, y con gusto).
+///  2. Contexto: `checkoutContext` guarda lo que hace falta para que el email
+///     al cliente salga IGUAL que el de una compra por Payway. Reconstruirlo
+///     desde las líneas de la orden daría otro mail (los cristales se guardan
+///     partidos en OD/OI), y un cliente no tiene por qué recibir un correo
+///     distinto según por qué puerta pagó.
+///  3. Rastro: si una venta no acredita, acá está el intento, su estado y el
+///     último error, sin depender del panel de Mercado Pago.
+model WebPaymentIntent {
+  id      String @id @default(cuid())
+  orderId String
+  gateway String @default("MERCADO_PAGO")
+
+  /// Id de la preferencia de MP (la "intención de cobro" que abre la URL de pago).
+  preferenceId String? @unique
+  /// Id del pago en MP. Único: es el candado que impide acreditar dos veces.
+  paymentId    String? @unique
+
+  /// PENDING | APPROVED | REJECTED | EXPIRED — estado NUESTRO del intento.
+  status String @default("PENDING")
+  /// Estado crudo que devolvió MP, tal cual, para poder diagnosticar sin el panel.
+  gatewayStatus String?
+  amount        Float
+
+  /// Cupón aplicado. Su uso se cuenta al acreditar, nunca al iniciar el pago:
+  /// un checkout abandonado no puede gastar el cupón de nadie.
+  couponCode String?
+
+  /// JSON con el contexto del checkout (cliente, ítems del carrito, envío,
+  /// datos de atribución). Lo lee el webhook para armar mails y medición.
+  checkoutContext String?
+
+  processedAt DateTime?
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Doctor {

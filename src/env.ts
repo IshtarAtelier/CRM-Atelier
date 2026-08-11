@@ -30,6 +30,21 @@ const envSchema = z.object({
   PAYWAY_PRIVATE_KEY: z.string().optional(),
   PAYWAY_ENVIRONMENT: z.enum(['development', 'sandbox', 'production']).default('development'),
 
+  // Mercado Pago (Checkout Pro) — pasarela de respaldo del checkout web.
+  // Nace APAGADA: `MP_ENABLED` es el interruptor que la muestra en la tienda.
+  // Se prende sin deploy (variable de entorno en Railway) el día que Payway
+  // falle, y se apaga igual de rápido si el respaldo es el que falla.
+  //
+  // MP_ACCESS_TOKEN es la credencial PRIVADA (empieza con APP_USR- en producción
+  // o TEST- en sandbox): firma los cobros, jamás se expone al navegador.
+  // MP_WEBHOOK_SECRET es la "clave secreta" de la notificación webhook que da el
+  // panel de MP; sin ella no se puede probar que un aviso de acreditación vino
+  // de Mercado Pago y no de alguien que descubrió la URL.
+  MP_ACCESS_TOKEN: z.string().optional(),
+  MP_PUBLIC_KEY: z.string().optional(),
+  MP_WEBHOOK_SECRET: z.string().optional(),
+  MP_ENABLED: z.enum(['true', 'false']).default('false'),
+
   // WhatsApp
   META_ACCESS_TOKEN: z.string().optional(),
   WA_SERVER_URL: z.string().url().default('http://127.0.0.1:3100'),
@@ -68,6 +83,10 @@ try {
     PAYWAY_PUBLIC_KEY: process.env.PAYWAY_PUBLIC_KEY,
     PAYWAY_PRIVATE_KEY: process.env.PAYWAY_PRIVATE_KEY,
     PAYWAY_ENVIRONMENT: process.env.PAYWAY_ENVIRONMENT,
+    MP_ACCESS_TOKEN: process.env.MP_ACCESS_TOKEN,
+    MP_PUBLIC_KEY: process.env.MP_PUBLIC_KEY,
+    MP_WEBHOOK_SECRET: process.env.MP_WEBHOOK_SECRET,
+    MP_ENABLED: process.env.MP_ENABLED,
     META_ACCESS_TOKEN: process.env.META_ACCESS_TOKEN,
     WA_SERVER_URL: process.env.WA_SERVER_URL,
     WA_API_KEY: process.env.WA_API_KEY,
