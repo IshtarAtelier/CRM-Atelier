@@ -61,6 +61,17 @@ export default function ProductReviews({ productId }: { productId: string }) {
     }
   };
 
+  // Sin reseñas de ESTE producto, el bloque entero no se muestra.
+  //
+  // Estaba dando el efecto contrario al que busca: aparecía "Sé el primero en
+  // opinar" con cero estrellas justo debajo de las 677 reseñas de Google con
+  // 5,0 que trae la ficha. La lectura de alguien que está por gastar $225.000
+  // no es "qué oportunidad de opinar", es "nadie compró esto todavía".
+  // La tienda es nueva y todavía no vendió online: hasta que haya una reseña
+  // real, el vacío resta más de lo que el formulario suma. Cuando entre la
+  // primera, el bloque vuelve solo.
+  if (count === 0) return null;
+
   return (
     <div className="border-t border-border pt-6 mt-6">
       <div className="flex items-center justify-between mb-4">
@@ -73,7 +84,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
       <div className="flex items-center gap-2 mb-4">
         <Stars value={Math.round(average)} />
         <span className="text-sm text-muted-foreground">
-          {count > 0 ? `${average} · ${count} reseña${count === 1 ? '' : 's'}` : 'Sé el primero en opinar'}
+          {average} · {count} reseña{count === 1 ? '' : 's'}
         </span>
       </div>
 
