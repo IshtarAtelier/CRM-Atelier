@@ -4,6 +4,7 @@ import { getProductAttributes } from '@/utils/product-controllers';
 import { serverCache } from '@/lib/cache';
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
 import { canSeeWholesalePrices } from '@/lib/wholesale-access';
+import { normalizarTexto } from '@/lib/text-normalize';
 
 export const dynamic = 'force-dynamic';
 
@@ -143,12 +144,19 @@ export async function GET(request: NextRequest) {
         }
 
         // 6) Filtrado por Búsqueda (Search)
+        //
+        // normalizarTexto() saca tildes en los dos lados de la comparación:
+        // sin esto, "andromeda" (como lo tipea la mayoría en un buscador) daba
+        // CERO resultados contra "Andrómeda" — se lee como "no tienen", no
+        // como "escribiste sin tilde". Y `brand` faltaba directamente: el
+        // campo prometía buscar por marca pero nunca la miraba.
         if (search) {
-            const query = search.toLowerCase().trim();
-            filtered = filtered.filter(p => 
-                (p.model || '').toLowerCase().includes(query) ||
-                (p.modelCode || '').toLowerCase().includes(query) ||
-                (p.category || '').toLowerCase().includes(query)
+            const query = normalizarTexto(search);
+            filtered = filtered.filter(p =>
+                normalizarTexto(p.model).includes(query) ||
+                normalizarTexto(p.modelCode).includes(query) ||
+                normalizarTexto(p.category).includes(query) ||
+                normalizarTexto(p.brand).includes(query)
             );
         }
 
