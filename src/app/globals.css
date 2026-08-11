@@ -6,7 +6,15 @@
 :root {
   --background: #faf8f5;
   --foreground: #433831;
-  --primary: #9e7f65;
+  /* Era #9e7f65 y daba 3,7:1 — abajo del piso de 4,5:1, y fallaba de los dos
+     lados: como texto sobre blanco Y como fondo con texto blanco encima (chips,
+     botones). Un escalón más oscuro del mismo dorado cálido lo lleva a 5,65:1
+     sobre blanco y 5,33 sobre el crema, con margen para no volver a caer si el
+     fondo cambia. En modo oscuro `--primary` es otro valor y ya da 9,9:1: ahí
+     no se toca nada. Se corrige el token y no cada clase por el mismo motivo
+     que los grises de abajo: son 78 archivos, y así las pantallas nuevas nacen
+     con el piso puesto. */
+  --primary: #7d6249;
   --primary-foreground: #ffffff;
   --sidebar: #ffffff;
   --sidebar-border: #e8e2db;

@@ -59,7 +59,9 @@ export default function ComoComprarPage() {
               <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-6">
                 {step.icon}
               </div>
-              <h3 className="text-xl font-bold text-stone-900 dark:text-white mb-3">{step.title}</h3>
+              {/* h2, no h3: son los pasos que siguen directo al <h1> y saltaban
+                  un nivel (el único h2 de la página venía después). */}
+              <h2 className="text-xl font-bold text-stone-900 dark:text-white mb-3">{step.title}</h2>
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed">
                 {step.description}
               </p>

@@ -19,7 +19,11 @@ export function CristalFeatures({ features }: CristalFeaturesProps) {
             <div className="flex items-center gap-3">
               <span className="text-white text-xl">{feature.icon}</span>
               <div>
-                <h4 className="text-white font-bold text-sm">{feature.title}</h4>
+                {/* <p>, no <h4>: es la etiqueta de una tira de íconos ("100% UV",
+                    "Antirreflejo"…), no una sección del documento. Como h4 caía
+                    justo después del <h1> del hero y saltaba dos niveles, en las
+                    12 páginas de /cristales-opticos que montan esta tira. */}
+                <p className="text-white font-bold text-sm">{feature.title}</p>
                 <p className="text-white/60 text-xs mt-0.5">{feature.subtitle}</p>
               </div>
             </div>

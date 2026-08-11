@@ -669,7 +669,7 @@ export function CheckoutClient({
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-between font-sans text-black">
         <StorefrontNavbar theme="light" />
-        <div className="text-center mt-32 max-w-md mx-auto px-5 mb-32">
+        <main className="text-center mt-32 max-w-md mx-auto px-5 mb-32">
           <ShieldCheck className="w-16 h-16 mx-auto mb-6 text-emerald-500" />
           <h2 className="text-3xl md:text-4xl font-serif text-stone-950 mb-3">¡Gracias por tu compra!</h2>
           <p className="text-stone-500 mb-8 leading-relaxed">
@@ -781,7 +781,7 @@ export function CheckoutClient({
           <Link href="/tienda" className="inline-block bg-stone-900 text-white px-8 py-4 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors">
             Volver a la Tienda
           </Link>
-        </div>
+        </main>
         {footer}
       </div>
     );
@@ -791,12 +791,15 @@ export function CheckoutClient({
     return (
       <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center font-sans text-black">
         <StorefrontNavbar theme="light" />
-        <div className="text-center mt-32">
+        {/* <main> también acá: las tres ramas de este componente se renderizan
+            como páginas completas, y el carrito vacío es la que ve cualquiera
+            que entre al checkout sin nada cargado (la que mide Lighthouse). */}
+        <main className="text-center mt-32">
           <h2 className="text-2xl font-light mb-4">Tu carrito está vacío</h2>
           <Link href="/tienda" className="inline-block bg-stone-900 text-white px-6 py-3 text-[11px] font-bold uppercase tracking-widest hover:bg-[#c8a55c] transition-colors">
             Volver a la Tienda
           </Link>
-        </div>
+        </main>
       </div>
     );
   }

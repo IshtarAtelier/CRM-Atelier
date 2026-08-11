@@ -135,12 +135,17 @@ export default async function Home() {
           lo usa el div del layout (destino del "Saltar al contenido principal") y
           repetirlo daría dos elementos con el mismo id. */}
       <main>
+      {/* El h1 va ANTES del hero. Iba después, y como el hero rotativo titula
+          cada cuadro con un <h2> ("La Gioconda"…), el primer encabezado de la
+          home era el nombre de un cuadro: quien navega con lector de pantalla
+          entraba al sitio sin saber de qué óptica se trata. Es sr-only, así que
+          moverlo no cambia nada de lo que se ve. */}
+      <h1 className="sr-only">Atelier Óptica Córdoba — Anteojos de Receta, Lentes de Sol y Multifocales</h1>
+
       {/* ═══════════════════════════════════════════════ */}
       {/* FILMMAKER REEL — Hero principal cinematográfico   */}
       {/* ═══════════════════════════════════════════════ */}
       <FilmmakerReel reviewCount={reviewsData.userRatingCount} rating={reviewsData.rating} />
-
-      <h1 className="sr-only">Atelier Óptica Córdoba — Anteojos de Receta, Lentes de Sol y Multifocales</h1>
 
       {/* ═══════════════════════════════════════════════ */}
       {/* MARQUEE — Texto deslizante entre secciones      */}

@@ -77,7 +77,9 @@ export function ContactoClient({
     <main className="pt-36 pb-24 px-5 max-w-[1100px] mx-auto min-h-[80vh] flex flex-col gap-16">
       {/* Header Premium */}
       <div className="max-w-2xl text-left md:text-center md:mx-auto">
-        <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#c8a55c] block mb-3">
+        {/* `text-primary` en vez del dorado #c8a55c hardcodeado: en 10px sobre
+            blanco ese dorado daba 2,3:1. El token ya trae el piso puesto. */}
+        <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary block mb-3">
           Atención Personalizada
         </span>
         <h1 className="font-serif text-4xl md:text-5xl tracking-tight mb-4 text-stone-950">

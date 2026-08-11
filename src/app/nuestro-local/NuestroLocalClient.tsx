@@ -329,7 +329,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
                     <MapPin className="w-5 h-5 text-[#c8a55c]" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-1.5">Dirección</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-stone-300 mb-1.5">Dirección</p>
                     <p className="text-base font-medium text-white/90">{settings.addressLine}</p>
                     <p className="text-sm text-white/50">{settings.localityLine}</p>
                   </div>
@@ -341,14 +341,14 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
                     <Clock className="w-5 h-5 text-[#c8a55c]" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-2">Horarios</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-stone-300 mb-2">Horarios</p>
                     <div className="flex flex-wrap gap-2">
                       <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-0.5">Lun – Vie</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-stone-300 mb-0.5">Lun – Vie</p>
                         <p className="text-sm font-medium text-white/80">8:00 – 20:00</p>
                       </div>
                       <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-0.5">Sábados</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-stone-300 mb-0.5">Sábados</p>
                         <p className="text-sm font-medium text-white/80">9:00 – 17:00</p>
                       </div>
                     </div>
@@ -361,7 +361,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
                     <Phone className="w-5 h-5 text-[#c8a55c]" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-1.5">Contacto</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-stone-300 mb-1.5">Contacto</p>
                     <p className="text-base font-medium text-white/90">{settings.phone}</p>
                   </div>
                 </div>

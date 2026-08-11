@@ -263,7 +263,7 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
                   <Eye className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-lg font-bold text-white">Visión de Lejos (Superior)</h4>
+                  <h3 className="text-lg font-bold text-white">Visión de Lejos (Superior)</h3>
                   <p className="text-gray-400 text-sm">Ideal para manejar, caminar o ver paisajes sin distorsión periférica.</p>
                 </div>
               </div>
@@ -272,7 +272,7 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-lg font-bold text-white">Visión Intermedia (Centro)</h4>
+                  <h3 className="text-lg font-bold text-white">Visión Intermedia (Centro)</h3>
                   <p className="text-gray-400 text-sm">La transición suave, perfecta para la computadora o el tablero del auto.</p>
                 </div>
               </div>
@@ -281,7 +281,7 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
                   <Glasses className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-lg font-bold text-white">Visión de Cerca (Inferior)</h4>
+                  <h3 className="text-lg font-bold text-white">Visión de Cerca (Inferior)</h3>
                   <p className="text-gray-400 text-sm">Enfoque ultra nítido para leer el celular, libros o menú del restaurante.</p>
                 </div>
               </div>
@@ -337,7 +337,7 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
                   />
                 </div>
                 <div className="p-6 border-t border-gray-100 bg-[#FCFCFC]">
-                  <h4 className="text-lg font-bold text-[#0F0F0F]">{glass.title}</h4>
+                  <h3 className="text-lg font-bold text-[#0F0F0F]">{glass.title}</h3>
                   <p className="text-sm text-gray-500 uppercase tracking-wider">{glass.desc}</p>
                 </div>
               </motion.div>
@@ -377,7 +377,7 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
                     {rev.initial}
                   </div>
                   <div>
-                    <h4 className="text-white font-medium text-base">{rev.name}</h4>
+                    <h3 className="text-white font-medium text-base">{rev.name}</h3>
                     <div className="flex text-[#C5A059] mt-1">
                       {[...Array(5)].map((_, j) => <Star key={j} className="w-3.5 h-3.5 fill-current" />)}
                     </div>

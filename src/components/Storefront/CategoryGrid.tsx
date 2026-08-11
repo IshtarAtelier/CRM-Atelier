@@ -137,7 +137,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                   </div>
 
                   <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
-                    ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transferencia <span className="text-emerald-600 dark:text-emerald-500 font-bold text-xs uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
+                    ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transferencia <span className="text-emerald-800 dark:text-emerald-500 font-bold text-xs uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
                   </p>
                   {/* La promesa más fuerte de la tienda solo vivía en la cinta superior:
                       acá acompaña al precio, que es donde se compara. */}

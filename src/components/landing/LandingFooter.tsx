@@ -21,11 +21,15 @@ export function LandingFooter({ theme = "dark" }: { theme?: "dark" | "light" }) 
   const wrap = isDark
     ? "bg-[#0F0F0F] border-white/10"
     : "bg-[#FCFCFC] border-gray-200";
+  // Los tonos apagados cumplen el piso de 4,5:1 en las DOS variantes. Antes no:
+  // en claro `gray-400` daba 2,5:1 y en oscuro `stone-500`/`stone-400` daban 4,0:1
+  // — y la variante oscura es la que usan las landings de campaña, o sea la
+  // primera pantalla del tráfico pago.
   const strong = isDark ? "text-stone-300" : "text-gray-700";
-  const muted = isDark ? "text-stone-500" : "text-gray-400";
+  const muted = isDark ? "text-stone-300" : "text-gray-600";
   const linkCls = isDark
-    ? "text-stone-400 hover:text-white underline underline-offset-4 decoration-white/20"
-    : "text-gray-500 hover:text-black underline underline-offset-4 decoration-gray-300";
+    ? "text-stone-300 hover:text-white underline underline-offset-4 decoration-white/20"
+    : "text-gray-600 hover:text-black underline underline-offset-4 decoration-gray-300";
 
   return (
     <footer className={`w-full border-t py-12 px-6 text-center ${wrap}`}>

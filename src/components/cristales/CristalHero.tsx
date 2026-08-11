@@ -10,7 +10,8 @@ export function CristalHero({ preTitle, title, description }: CristalHeroProps) 
   return (
     <section className="relative w-full pt-10 pb-20 px-6 md:pt-16 md:pb-28 bg-[#faf8f5]">
       <div className="max-w-5xl mx-auto text-center">
-        <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-black/50 mb-6">
+        {/* Ídem: `text-black/50` sobre el crema daba 3,9:1, abajo del piso. */}
+        <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-stone-600 mb-6">
           {preTitle}
         </p>
         <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8">

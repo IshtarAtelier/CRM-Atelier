@@ -45,7 +45,9 @@ export function CristalesTabs() {
     <div className="flex flex-col md:flex-row md:flex-wrap items-start md:items-center gap-x-8 gap-y-6 w-full pb-2 min-w-max">
       {tabGroups.map((group) => (
         <div key={group.label} className="flex flex-col gap-2.5">
-          <span className="text-[11px] font-bold uppercase tracking-widest text-black/40 px-2">
+          {/* Color sólido, no `text-black/40`: opacado sobre el crema daba 2,8:1.
+              La jerarquía va por tamaño y peso, no bajando el contraste. */}
+          <span className="text-[11px] font-bold uppercase tracking-widest text-stone-600 px-2">
             {group.label}
           </span>
           <nav className="flex items-center gap-2">

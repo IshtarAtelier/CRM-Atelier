@@ -108,8 +108,13 @@ function Kicker({ children, light = false }: { children: React.ReactNode; light?
   return (
     <div className="flex items-center gap-3 mb-6">
       <span className="block w-8 h-[1px] bg-[#C5A059]" />
+      {/* La ternaria tenía el MISMO color en las dos ramas, así que `light` no
+          hacía nada: el dorado claro se usaba igual sobre el fondo claro, donde
+          da 2,4:1 en 10px. `light` significa texto claro (o sea, fondo oscuro):
+          ahí el dorado va bien (7,8:1) y se queda. Sobre fondo claro va el
+          dorado oscuro que ya usa el resto del archivo. */}
       <span
-        className={`text-[10px] font-bold uppercase tracking-[0.3em] ${light ? "text-[#C5A059]" : "text-[#C5A059]"}`}
+        className={`text-[10px] font-bold uppercase tracking-[0.3em] ${light ? "text-[#C5A059]" : "text-[#8a6f3d]"}`}
       >
         {children}
       </span>
@@ -384,7 +389,7 @@ export function LandingClient({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-14">
             {config.benefits.map((b, i) => (
               <div key={i} className="border-t border-black/15 pt-6">
-                <span className="font-serif italic text-[#C5A059] text-2xl">0{i + 1}</span>
+                <span className="font-serif italic text-[#8a6f3d] text-2xl">0{i + 1}</span>
                 <h3 className="mt-4 mb-3 text-[13px] font-bold uppercase tracking-[0.2em]">{b.title}</h3>
                 <p className="text-[15px] leading-relaxed text-stone-600">{b.desc}</p>
               </div>
@@ -426,7 +431,7 @@ export function LandingClient({
                     />
                   </div>
                   <div className="px-5 pb-6">
-                    <h4 className="text-[11px] font-bold uppercase tracking-[0.12em] truncate">{p.name}</h4>
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.12em] truncate">{p.name}</h3>
                     {p.price && <p className="text-[11px] text-stone-500 mt-1">{p.price}</p>}
                   </div>
                 </div>
@@ -461,7 +466,7 @@ export function LandingClient({
               {config.editorial.title}{" "}
               <em className="italic text-[#C5A059]">{config.editorial.titleAccent}</em>
             </h2>
-            <p className="text-stone-400 text-lg font-light leading-relaxed mb-10 max-w-md">
+            <p className="text-stone-300 text-lg font-light leading-relaxed mb-10 max-w-md">
               {config.editorial.copy}
             </p>
             <button onClick={handleWhatsAppClick} className={`${goldButton} w-full sm:w-auto self-start`}>
@@ -484,7 +489,7 @@ export function LandingClient({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8 mb-16">
             {steps.map((step) => (
               <div key={step.num} className="border-t border-black/15 pt-6">
-                <span className="font-serif italic text-[#C5A059] text-2xl">{step.num}</span>
+                <span className="font-serif italic text-[#8a6f3d] text-2xl">{step.num}</span>
                 <h3 className="mt-4 mb-2 text-[12px] font-bold uppercase tracking-[0.2em]">{step.title}</h3>
                 <p className="text-[13px] text-stone-500">{step.desc}</p>
               </div>
@@ -590,7 +595,7 @@ export function LandingClient({
         <h2 className="font-serif text-white leading-[1.02] text-[clamp(2.4rem,6vw,5rem)] max-w-4xl mx-auto mb-6">
           {config.finalCtaTitle}
         </h2>
-        <p className="text-stone-400 text-lg font-light mb-12 max-w-xl mx-auto">{config.finalCtaSubtitle}</p>
+        <p className="text-stone-300 text-lg font-light mb-12 max-w-xl mx-auto">{config.finalCtaSubtitle}</p>
         <motion.button
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
