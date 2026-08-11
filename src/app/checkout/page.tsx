@@ -3,6 +3,7 @@ import { CheckoutClient } from './CheckoutClient';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { prisma } from '@/lib/db';
 import { defaultWebSettings } from '@/lib/web-settings';
+import { isMercadoPagoEnabled } from '@/services/mercadopago.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,11 @@ export default async function CheckoutPage() {
     publicKey: process.env.PAYWAY_PUBLIC_KEY || '',
     environment: process.env.PAYWAY_ENVIRONMENT || 'sandbox'
   };
+
+  // Interruptor de la pasarela de respaldo. Se resuelve en el servidor y en
+  // cada request (la página es force-dynamic), así que prender MP_ENABLED en
+  // Railway lo muestra al reiniciar, sin build ni deploy de código.
+  const mercadoPagoEnabled = isMercadoPagoEnabled();
 
   const webSettings = { ...defaultWebSettings };
   try {
@@ -43,10 +49,11 @@ export default async function CheckoutPage() {
   };
 
   return (
-    <CheckoutClient 
-      paywayConfig={paywayConfig} 
-      initialSettings={initialSettings} 
-      footer={<StorefrontFooter />} 
+    <CheckoutClient
+      paywayConfig={paywayConfig}
+      mercadoPagoEnabled={mercadoPagoEnabled}
+      initialSettings={initialSettings}
+      footer={<StorefrontFooter />}
     />
   );
 }

@@ -37,13 +37,16 @@ function clearIdempotencyKey() {
 }
 
 export function CheckoutClient({ 
-  paywayConfig, 
-  initialSettings, 
-  footer 
-}: { 
-  paywayConfig: { publicKey: string; environment: string }; 
-  initialSettings?: any; 
-  footer?: React.ReactNode 
+  paywayConfig,
+  mercadoPagoEnabled = false,
+  initialSettings,
+  footer
+}: {
+  paywayConfig: { publicKey: string; environment: string };
+  /** Pasarela de respaldo prendida. Lo resuelve el servidor; acá solo se muestra. */
+  mercadoPagoEnabled?: boolean;
+  initialSettings?: any;
+  footer?: React.ReactNode
 }) {
   const { items, getCartTotal, clearCart } = useCart();
   const [mounted, setMounted] = useState(false);
@@ -225,6 +228,73 @@ export function CheckoutClient({
     };
   }, []);
 
+  // ── Vuelta desde Mercado Pago ──
+  // Mercado Pago devuelve al comprador con ?mp=aprobado|pendiente|rechazado.
+  // Esto es SOLO la pantalla que ve la persona: quien decide si la venta está
+  // cobrada es el webhook, que ya corrió del lado del servidor. Por eso acá no
+  // se marca nada como pagado, solo se muestra el resultado y se limpia el
+  // carrito cuando el pago salió bien.
+  const mpVueltaRef = useRef(false);
+  useEffect(() => {
+    if (!mounted || mpVueltaRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const estado = params.get('mp');
+    if (!estado) return;
+    mpVueltaRef.current = true;
+
+    const orderId = params.get('mp_order');
+    // Sacar los parámetros de la URL: si la persona recarga, no tiene que
+    // volver a ver la pantalla de "listo" de una compra que ya pasó.
+    window.history.replaceState({}, '', '/checkout');
+
+    if (estado === 'aprobado') {
+      setFormData(prev => ({ ...prev, paymentMethod: 'MERCADO_PAGO' }));
+
+      const sessionId = localStorage.getItem("atelier-checkout-session-id");
+      if (sessionId) {
+        fetch('/api/checkout/session', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, status: 'COMPLETED' })
+        }).catch(console.error);
+        localStorage.removeItem("atelier-checkout-session-id");
+      }
+
+      try {
+        // Mismo criterio que las otras ramas: el event_id es el id de la orden,
+        // así Meta descarta el duplicado contra el que ya mandó el servidor.
+        if (orderId) trackPurchase(orderId, getCartTotal(isWholesale), items);
+      } catch (e) {
+        console.error("Purchase tracking error:", e);
+      }
+
+      // Total en 0 a propósito: al volver de Mercado Pago el cupón aplicado ya
+      // no está en memoria, así que cualquier cifra que armemos acá puede ser
+      // la equivocada. El importe exacto va en el mail de confirmación, que
+      // sale del servidor. Preferimos no decir un número antes que decir uno mal.
+      setOrdenHecha({ id: orderId, total: 0 });
+      clearCart();
+      setIsSuccess(true);
+      return;
+    }
+
+    if (estado === 'pendiente') {
+      toast.info("Tu pago está en proceso. Te avisamos por email en cuanto se acredite.", { duration: 10000 });
+      return;
+    }
+
+    toast.error("El pago no se completó. Tu carrito sigue acá: podés reintentar o elegir otro medio de pago.", { duration: 10000 });
+  }, [mounted]);
+
+  // Si el respaldo se apagó mientras alguien tenía el checkout a medio llenar,
+  // su borrador guardado en el navegador sigue diciendo MERCADO_PAGO y al pagar
+  // se comería un error del servidor. Se vuelve a tarjeta en silencio.
+  useEffect(() => {
+    if (!mercadoPagoEnabled && formData.paymentMethod === 'MERCADO_PAGO') {
+      setFormData(prev => ({ ...prev, paymentMethod: 'PAYWAY' }));
+    }
+  }, [mercadoPagoEnabled, formData.paymentMethod]);
+
   useEffect(() => {
     if (mounted) {
       const { cardNumber, cardExp, cardCvc, cardName, ...safeFormData } = formData;
@@ -324,6 +394,50 @@ export function CheckoutClient({
     setIsProcessing(true);
 
     try {
+      // MERCADO PAGO: se arma el pedido acá y el cobro ocurre en mercadopago.com.
+      // Por eso NO se vacía el carrito ni se mide la compra: todavía no hay
+      // venta. Si el pago falla o el comprador abandona, vuelve y su carrito
+      // sigue intacto para reintentar por otro medio.
+      if (formData.paymentMethod === 'MERCADO_PAGO') {
+        const res = await fetch("/api/checkout/payway", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer: {
+              ...formData,
+              shippingMethod: formData.shippingMethod,
+              shippingBranch: formData.shippingBranch
+            },
+            items: items,
+            total: getCartTotal(isWholesale),
+            couponCode: appliedCoupon?.code || null,
+            paymentToken: null,
+            analyticsSessionId: getSessionId(),
+            adsMatch: getAdsMatchData(),
+            idempotencyKey: getIdempotencyKey()
+          })
+        });
+
+        const data = await res.json().catch(() => ({} as any));
+
+        if (res.ok && data?.redirectUrl) {
+          // La clave de idempotencia se rota ANTES de salir del sitio: el pedido
+          // ya quedó creado, así que si la persona vuelve y reintenta tiene que
+          // ser un intento nuevo y no chocar contra su propia orden anterior.
+          // El guard anti doble cobro del backend (mismo total, 2 minutos) sigue
+          // cubriendo el reintento apurado.
+          clearIdempotencyKey();
+          // `replace` y no `href`: así el botón "atrás" del navegador desde
+          // Mercado Pago no vuelve a disparar el checkout.
+          window.location.replace(data.redirectUrl);
+          return;
+        }
+
+        if (res.status !== 409) clearIdempotencyKey();
+        toast.error(data?.error || "No pudimos abrir el pago con Mercado Pago. Probá con otro medio de pago.");
+        return;
+      }
+
       if (formData.paymentMethod === 'TRANSFER' || formData.paymentMethod === 'TRANSFER_MAYORISTA' || formData.paymentMethod === 'ACORDAR_MAYORISTA') {
         const res = await fetch("/api/checkout/payway", {
           method: "POST",
@@ -716,6 +830,7 @@ export function CheckoutClient({
                 paywayLoaded={paywayLoaded}
                 isWholesale={isWholesale}
                 payableTotal={payableTotal}
+                mercadoPagoEnabled={mercadoPagoEnabled}
               />
             </fieldset>
           </form>

@@ -820,6 +820,146 @@ export async function POST(req: Request) {
       details: { orderType: order.orderType, paymentMethod: customer.paymentMethod, total: order.total }
     }).catch(err => console.error('Error en logAudit de compra web:', err));
 
+    // MERCADO PAGO (Checkout Pro) — pasarela de RESPALDO.
+    //
+    // Va acá, después de crear la orden, para que use EXACTAMENTE los mismos
+    // controles que el cobro con Payway: recálculo de precios contra la base,
+    // guard anti pago-de-menos, cupón, idempotencia, guard anti doble cobro y
+    // reserva atómica de stock. Duplicar ese bloque para el respaldo sería
+    // repetir, línea por línea, todo lo que costó plata aprender.
+    //
+    // A diferencia de Payway, acá NO se cobra en este request: se abre la
+    // intención de cobro y se manda al comprador a mercadopago.com. La orden
+    // queda WEB_PENDING y el estado real llega después por el webhook
+    // (/api/webhooks/mercadopago), que es el único que la marca acreditada.
+    if (customer.paymentMethod === 'MERCADO_PAGO') {
+      const { isMercadoPagoEnabled, createPreference } = await import('@/services/mercadopago.service');
+
+      // El interruptor se revalida en el servidor: que el navegador haya
+      // mandado MERCADO_PAGO no alcanza. Si está apagado, la orden recién
+      // creada se cancela y el stock vuelve — no puede quedar mercadería
+      // reservada por un medio de pago que no existe.
+      if (!isMercadoPagoEnabled()) {
+        if (globalRestoreStock) await globalRestoreStock();
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { isDeleted: true, status: 'CANCELED', idempotencyKey: null, labNotes: `[MERCADO PAGO DESHABILITADO]\n\n` + (order.labNotes || '') },
+        });
+        return NextResponse.json(
+          { error: 'El pago con Mercado Pago no está disponible en este momento.' },
+          { status: 503 },
+        );
+      }
+
+      const mpTotal = finalItemsTotal;
+
+      // Contexto para el webhook: llega desde un servidor de Mercado Pago, sin
+      // el carrito y sin el navegador del comprador. Lo que no se guarde acá,
+      // allá no existe (ver WebPaymentIntent en schema.prisma).
+      const checkoutContext = {
+        customer: {
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          email: customer.email,
+          phone: customer.phone,
+          address: customer.address,
+          city: customer.city,
+          state: customer.state,
+          zip: customer.zip,
+          paymentMethod: 'MERCADO_PAGO',
+        },
+        items: sanitizedItems,
+        shippingMethodLabel,
+        emailTotal: mpTotal,
+        tracking: {
+          analyticsSessionId: body?.analyticsSessionId ?? null,
+          fbp: typeof body?.adsMatch?.fbp === 'string' ? body.adsMatch.fbp.slice(0, 100) : null,
+          fbc: typeof body?.adsMatch?.fbc === 'string' ? body.adsMatch.fbc.slice(0, 500) : null,
+          gclid: body?.adsMatch?.gclid ?? null,
+          clientIp: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null,
+          userAgent: req.headers.get('user-agent'),
+        },
+      };
+
+      const intent = await prisma.webPaymentIntent.create({
+        data: {
+          orderId: order.id,
+          gateway: 'MERCADO_PAGO',
+          amount: mpTotal,
+          couponCode: appliedCouponCode,
+          checkoutContext: JSON.stringify(checkoutContext),
+        },
+      });
+
+      try {
+        const preference = await createPreference({
+          orderId: order.id,
+          amount: mpTotal,
+          description: `Atelier Óptica · Pedido #${order.id.slice(-6).toUpperCase()}`,
+          payer: {
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            email: customer.email,
+            phone: customer.phone,
+          },
+          tracking: { intent_id: intent.id },
+        });
+
+        await prisma.webPaymentIntent.update({
+          where: { id: intent.id },
+          data: { preferenceId: preference.id },
+        });
+
+        console.log(`[MERCADO PAGO] Preferencia ${preference.id} creada para la orden ${order.id}.`);
+
+        // Notificación al CRM: hay stock reservado esperando un pago que puede
+        // no llegar nunca. Sin este aviso, un abandono en la pantalla de MP es
+        // invisible hasta que alguien nota que falta mercadería.
+        await prisma.notification.create({
+          data: {
+            type: 'WEB_SALE',
+            message: `Venta Web #${order.id.slice(-4).toUpperCase()} de ${customer.firstName} ${customer.lastName} por $${mpTotal.toLocaleString('es-AR')} esperando pago en Mercado Pago.`,
+            orderId: order.id,
+            requestedBy: 'Sistema (Mercado Pago)',
+            status: 'PENDING',
+          },
+        }).catch((err) => console.error('Error creando notificación de pago MP pendiente:', err));
+
+        // La medición NO se dispara acá: todavía no hay compra. La hace el
+        // webhook cuando la plata entra de verdad. Mandarla ahora contaría como
+        // venta cada checkout abandonado en la pantalla de Mercado Pago y le
+        // enseñaría a Meta a buscar gente que no compra.
+        return NextResponse.json({
+          success: true,
+          redirectUrl: preference.initPoint,
+          orderId: order.id,
+          message: 'Redirigiendo a Mercado Pago',
+        });
+      } catch (mpErr: any) {
+        console.error('[MERCADO PAGO] Error creando la preferencia:', mpErr);
+        // No se llegó a cobrar nada: devolver el stock y cancelar, igual que
+        // ante un rechazo de Payway.
+        if (globalRestoreStock) await globalRestoreStock();
+        await prisma.webPaymentIntent.update({
+          where: { id: intent.id },
+          data: { status: 'REJECTED', lastError: String(mpErr?.message || mpErr).slice(0, 500), processedAt: new Date() },
+        }).catch(() => {});
+        await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            isDeleted: true,
+            status: 'CANCELED',
+            idempotencyKey: null,
+            labNotes: `[ERROR MERCADO PAGO]: ${mpErr?.message || 'Error creando la preferencia'}\n\n` + (order.labNotes || ''),
+          },
+        });
+        return NextResponse.json(
+          { error: 'No pudimos abrir el pago con Mercado Pago. Probá de nuevo o elegí otro medio de pago.' },
+          { status: 502 },
+        );
+      }
+    }
+
     // 4. Enviar email de confirmación (asincrónico, usando sendEmail centralizado)
     const isTransfer = customer.paymentMethod === 'TRANSFER';
     const emailTotal = isTransfer ? finalItemsTotal * transferMultiplier : finalItemsTotal;
