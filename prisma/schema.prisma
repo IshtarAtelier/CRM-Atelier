@@ -472,6 +472,7 @@ model OrderItem {
   productNameSnapshot     String?
   crystalColor            String?
   crystalColorType        String?
+  crystalColorNote        String?
   laboratorySnapshot      String?
   productCostSnapshot     Float?
   productTypeSnapshot      String?

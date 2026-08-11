@@ -20,6 +20,7 @@ interface CartLineItemsProps {
     onUpdateQuantity: (idx: number, delta: number) => void;
     onRemoveItem: (idx: number) => void;
     onUpdateItemColor?: (idx: number, color: string, colorType: string) => void;
+    onUpdateItemNote?: (idx: number, note: string) => void;
     markup: number;
     secondFrameUid: number | null;
     promoFrameDiscount: number;
@@ -31,6 +32,7 @@ export default function CartLineItems({
     onUpdateQuantity,
     onRemoveItem,
     onUpdateItemColor,
+    onUpdateItemNote,
     markup,
     secondFrameUid,
     promoFrameDiscount,
@@ -60,6 +62,7 @@ export default function CartLineItems({
                 const showColorSelector = needsColorSelection(item.product);
                 const isColorExpanded = expandedColorIdx === idx;
                 const hasColor = !!item.crystalColor;
+                const hasNote = !!item.crystalColorNote;
 
                 return (
                     <div key={idx} className="space-y-0">
@@ -90,27 +93,29 @@ export default function CartLineItems({
                                             {formatLensRange(item.product)}
                                         </span>
                                     )}
-                                    {hasColor && (
+                                    {(hasColor || hasNote) && (
                                         <span className="inline-flex items-center gap-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                                             <Palette className="w-3 h-3" />
-                                            {item.crystalColorType === 'DEGRADE' ? 'Degradé' : item.crystalColorType === 'MUESTRA' ? 'Muestra' : 'Compacto'} · {item.crystalColor}
+                                            {hasColor && <>{item.crystalColorType === 'DEGRADE' ? 'Degradé' : item.crystalColorType === 'MUESTRA' ? 'Muestra' : 'Compacto'} · {item.crystalColor}</>}
+                                            {hasColor && hasNote && ' — '}
+                                            {hasNote && item.crystalColorNote}
                                         </span>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Color toggle button for crystals needing color */}
-                            {showColorSelector && crystalColors.length > 0 && (
+                            {/* Color toggle button for crystals/tratamientos needing color */}
+                            {showColorSelector && (
                                 <button
                                     onClick={() => { setExpandedColorIdx(isColorExpanded ? null : idx); setSelectedStyle(null); }}
                                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${
-                                        hasColor
+                                        (hasColor || hasNote)
                                             ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800 hover:bg-violet-100'
                                             : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100 animate-pulse'
                                     }`}
                                 >
                                     <Palette className="w-3 h-3" />
-                                    {hasColor ? 'Cambiar' : 'Color'}
+                                    {(hasColor || hasNote) ? 'Cambiar' : 'Color'}
                                     <ChevronDown className={`w-3 h-3 transition-transform ${isColorExpanded ? 'rotate-180' : ''}`} />
                                 </button>
                             )}
@@ -144,9 +149,26 @@ export default function CartLineItems({
                             <button onClick={() => onRemoveItem(idx)} className="text-stone-300 hover:text-red-500 transition-colors p-1"><X className="w-4 h-4" /></button>
                         </div>
 
-                        {/* Inline Color Selector — Two-step: Style → Color */}
-                        {showColorSelector && isColorExpanded && crystalColors.length > 0 && (
+                        {/* Inline Color Selector — Nota libre + Two-step: Style → Color */}
+                        {showColorSelector && isColorExpanded && (
                             <div className="bg-violet-50/50 dark:bg-violet-950/20 border-x border-b border-stone-200/60 dark:border-stone-800 rounded-b-2xl p-4 animate-in slide-in-from-top-1 duration-300">
+                                {/* Color y grado a mano — el cliente puede pedir un color/intensidad que no está en la lista */}
+                                <div className="mb-4">
+                                    <label className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                                        <Palette className="w-3.5 h-3.5" />
+                                        Grado de teñido / color a pedido
+                                    </label>
+                                    <input
+                                        type="text"
+                                        defaultValue={item.crystalColorNote || ''}
+                                        onBlur={e => onUpdateItemNote?.(idx, e.target.value)}
+                                        placeholder="Ej: 60%, más oscuro arriba, o el color exacto si no está en la lista"
+                                        className="w-full px-3 py-2 rounded-xl text-xs font-medium border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 outline-none transition-all"
+                                    />
+                                </div>
+
+                                {crystalColors.length > 0 && (
+                                <>
                                 {/* Step 1: Select Style */}
                                 <div className="flex items-center gap-2 mb-3">
                                     <Palette className="w-3.5 h-3.5 text-violet-500" />
@@ -211,6 +233,8 @@ export default function CartLineItems({
                                             })}
                                         </div>
                                     </div>
+                                )}
+                                </>
                                 )}
                             </div>
                         )}

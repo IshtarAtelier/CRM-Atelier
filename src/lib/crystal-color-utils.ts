@@ -15,9 +15,9 @@ export function needsColorSelection(product: any): boolean {
   const type = (product.type || '').toLowerCase();
   const category = (product.category || '').toLowerCase();
 
-  // Dedicated Teñido addon product
-  if (type === 'addon' && name === 'teñido') return true;
-  
+  // Dedicated Teñido treatment product (category: 'Tratamiento', name: 'Teñido')
+  if (category === 'tratamiento' && (name === 'teñido' || name === 'tenido')) return true;
+
   // Check if it's a crystal
   const isCrystalProduct = category === 'cristal' || type.includes('cristal');
   if (!isCrystalProduct) return false;

@@ -1862,7 +1862,7 @@ export default function PedidosPage() {
 
                                             {/* Teñido — Info del Cotizador */}
                                             {(() => {
-                                                const tintItems = order.items?.filter((i: any) => i.crystalColor) || [];
+                                                const tintItems = order.items?.filter((i: any) => i.crystalColor || i.crystalColorNote) || [];
                                                 const treatmentTint = order.items?.find((i: any) => {
                                                     const n = (i.product?.name || i.productNameSnapshot || '').toLowerCase();
                                                     return n.includes('teñi') || n.includes('tenido') || n.includes('tinte');
@@ -1875,8 +1875,9 @@ export default function PedidosPage() {
                                                             {tintItems.map((item: any, i: number) => (
                                                                 <div key={i} className="flex items-center gap-3">
                                                                     {item.eye && <span className="text-[9px] font-bold bg-violet-200 dark:bg-violet-800 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-md uppercase">{item.eye}</span>}
+                                                                    {item.crystalColor && (
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="w-4 h-4 rounded-full border border-violet-300 shadow-sm flex-shrink-0" style={{ backgroundColor: 
+                                                                        <span className="w-4 h-4 rounded-full border border-violet-300 shadow-sm flex-shrink-0" style={{ backgroundColor:
                                                                             item.crystalColor?.includes('Gris') ? '#555555' :
                                                                             item.crystalColor?.includes('Marrón') ? '#6b4c3a' :
                                                                             item.crystalColor?.includes('Verde') ? '#2c4c3b' :
@@ -1890,6 +1891,12 @@ export default function PedidosPage() {
                                                                             {item.crystalColorType === 'DEGRADE' ? 'Degradé' : item.crystalColorType === 'MUESTRA' ? 'Según Muestra' : 'Compacto'} — {item.crystalColor}
                                                                         </span>
                                                                     </div>
+                                                                    )}
+                                                                    {item.crystalColorNote && (
+                                                                        <span className="text-xs font-bold text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/40 px-2 py-0.5 rounded-md">
+                                                                            {item.crystalColorNote}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             ))}
                                                             {treatmentTint && !tintItems.length && (

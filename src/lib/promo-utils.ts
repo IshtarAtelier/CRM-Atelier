@@ -65,6 +65,28 @@ export const isMiPrimerVarilux = (p: any): boolean => {
 };
 
 /**
+ * Detects the dedicated "Teñido" treatment product (tinting: compacto,
+ * degradé o según muestra — el estilo no cambia el producto, es metadata en
+ * `crystalColorType` del OrderItem). El producto real en catálogo tiene
+ * category: 'Tratamiento', type: 'Tratamientos' — NO 'ADDON' (a diferencia de
+ * lo que asume `needsColorSelection` en crystal-color-utils.ts).
+ */
+export const isTeñidoAddon = (p: any): boolean => {
+    if (!p) return false;
+    if (p.category !== 'Tratamiento') return false;
+    const name = (p.name || '').toLowerCase();
+    return name === 'teñido' || name === 'tenido';
+};
+
+/**
+ * Robust check if a product is a treatment (categoría 'Tratamiento').
+ */
+export const isTreatment = (p: any): boolean => {
+    if (!p) return false;
+    return p.category === 'Tratamiento';
+};
+
+/**
  * Robust check if a product is a frame (armazón).
  */
 export const isFrame = (p: any): boolean => {
@@ -312,6 +334,46 @@ export function recalculateCrystalPrices(items: any[]): boolean {
             modified = true;
         }
     });
+
+    return modified;
+}
+
+/**
+ * Bonifica el tratamiento de Teñido (compacto, degradé o según muestra — son
+ * estilos del mismo producto "Teñido", no cambian el precio) cuando la orden
+ * tiene la promo 2x1 multifocal activa Y el Teñido es el ÚNICO tratamiento
+ * agregado. Si hay cualquier otro ítem de categoría 'Tratamiento' además del
+ * Teñido, no se bonifica.
+ * Mutates the items in-place (updating item.customPrice / item.price and item.isPromo).
+ * Returns true if any prices or flags were modified, false otherwise.
+ */
+export function applyTeñidoPromoDiscount(items: any[]): boolean {
+    if (!items || items.length === 0) return false;
+
+    const teñidoItems = items.filter(i => isTeñidoAddon(i.product));
+    if (teñidoItems.length === 0) return false;
+
+    const hasMultifocalPromo = items.some(
+        it => isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product)
+    );
+    // "Solo ese tratamiento": ningún otro ítem de categoría Tratamiento en la orden
+    const treatmentItems = items.filter(i => isTreatment(i.product));
+    const isEligible = hasMultifocalPromo && treatmentItems.length === teñidoItems.length;
+
+    let modified = false;
+    for (const item of teñidoItems) {
+        const expectedPrice = isEligible ? 0 : safePrice(item.product?.price);
+        const currentPrice = item.customPrice !== undefined ? item.customPrice : item.price;
+        if (currentPrice !== expectedPrice) {
+            if (item.customPrice !== undefined) item.customPrice = expectedPrice;
+            else item.price = expectedPrice;
+            modified = true;
+        }
+        if (item.isPromo !== isEligible) {
+            item.isPromo = isEligible;
+            modified = true;
+        }
+    }
 
     return modified;
 }

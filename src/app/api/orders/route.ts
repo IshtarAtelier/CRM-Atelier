@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
-import { isMultifocal2x1, recalculateCrystalPrices } from '@/lib/promo-utils';
+import { isMultifocal2x1, recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { descuentoNegativo, excedeTopeVendedor } from '@/lib/constants/descuentos';
@@ -68,6 +68,7 @@ export async function POST(request: Request) {
             it.product = dbProducts.find(p => p.id === it.productId);
         });
         recalculateCrystalPrices(items);
+        applyTeñidoPromoDiscount(items);
 
         // Map items for calculateQuoteTotals utility
         const cartItems = items.map((it: any) => ({
@@ -149,7 +150,7 @@ export async function POST(request: Request) {
                         select: {
                             id: true, price: true, quantity: true, eye: true,
                             sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
-                            crystalColor: true, crystalColorType: true,
+                            crystalColor: true, crystalColorType: true, crystalColorNote: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                             laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
                             product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true, origin: true } }
@@ -187,7 +188,7 @@ export async function POST(request: Request) {
                     userFrameNotes: userFrameNotes || null,
                     prescriptionId: prescriptionId || null,
                     items: {
-                        create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number; crystalColor?: string; crystalColorType?: string }) => {
+                        create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number; crystalColor?: string; crystalColorType?: string; crystalColorNote?: string }) => {
                             const dbProd = dbProducts.find(p => p.id === item.productId);
                             return {
                                 productId: item.productId,
@@ -200,6 +201,7 @@ export async function POST(request: Request) {
                                 additionVal: item.additionVal ?? null,
                                 crystalColor: item.crystalColor || null,
                                 crystalColorType: item.crystalColorType || null,
+                                crystalColorNote: item.crystalColorNote || null,
                                 ...snapshotFromProduct(dbProd),
                             };
                         }),
@@ -228,7 +230,7 @@ export async function POST(request: Request) {
                         select: {
                             id: true, price: true, quantity: true, eye: true,
                             sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
-                            crystalColor: true, crystalColorType: true,
+                            crystalColor: true, crystalColorType: true, crystalColorNote: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                             laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
                             product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true, origin: true } }
@@ -446,7 +448,7 @@ export async function GET(request: Request) {
                     id: true, price: true, quantity: true, eye: true,
                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
                     pdVal: true, heightVal: true, prismVal: true,
-                    crystalColor: true, crystalColorType: true,
+                    crystalColor: true, crystalColorType: true, crystalColorNote: true,
                     productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                     laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
                     product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true, lensIndex: true, origin: true } }

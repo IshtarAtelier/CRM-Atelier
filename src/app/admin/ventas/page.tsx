@@ -949,11 +949,13 @@ export default function VentasPage() {
         <div class='info-row'><span class='info-label'>Tratamiento</span><span class='info-value'>${order.labTreatment || 'Normal'}</span></div>
         <div class='info-row'><span class='info-label'>Color</span><span class='info-value'>${order.labColor || 'Blanco'}</span></div>
         ${(() => {
-            const tintItems = items.filter((i: any) => i.crystalColor);
+            const tintItems = items.filter((i: any) => i.crystalColor || i.crystalColorNote);
             if (tintItems.length === 0) return '';
-            return tintItems.map((i: any) => 
-                `<div class='info-row' style='background:#f3e8ff;border-radius:8px;padding:4px 8px;margin-top:4px;'><span class='info-label'>🎨 Teñido${i.eye ? ` (${i.eye})` : ''}</span><span class='info-value' style='color:#7c3aed;font-weight:900;'>${i.crystalColorType === 'DEGRADE' ? 'Degradé' : i.crystalColorType === 'MUESTRA' ? 'Según Muestra' : 'Compacto'} — ${i.crystalColor}</span></div>`
-            ).join('');
+            return tintItems.map((i: any) => {
+                const colorLabel = i.crystalColor ? `${i.crystalColorType === 'DEGRADE' ? 'Degradé' : i.crystalColorType === 'MUESTRA' ? 'Según Muestra' : 'Compacto'} — ${i.crystalColor}` : '';
+                const noteLabel = i.crystalColorNote ? `${colorLabel ? ' · ' : ''}${i.crystalColorNote}` : '';
+                return `<div class='info-row' style='background:#f3e8ff;border-radius:8px;padding:4px 8px;margin-top:4px;'><span class='info-label'>🎨 Teñido${i.eye ? ` (${i.eye})` : ''}</span><span class='info-value' style='color:#7c3aed;font-weight:900;'>${colorLabel}${noteLabel}</span></div>`;
+            }).join('');
         })()}
     </div>
 </div>

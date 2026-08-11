@@ -5,7 +5,7 @@ import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
-import { recalculateCrystalPrices } from '@/lib/promo-utils';
+import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
 import { TOPE_VENDEDOR } from '@/lib/constants/descuentos';
 import { z } from 'zod';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
@@ -37,6 +37,7 @@ const OrderItemSchema = z.object({
     additionVal: z.number().nullable().optional(),
     crystalColor: z.string().nullable().optional(),
     crystalColorType: z.string().nullable().optional(),
+    crystalColorNote: z.string().nullable().optional(),
     productBrandSnapshot: z.string().nullable().optional(),
     productNameSnapshot: z.string().nullable().optional(),
     productCategorySnapshot: z.string().nullable().optional(),
@@ -185,6 +186,9 @@ export class OrderService {
                         cylinderVal: true,
                         axisVal: true,
                         additionVal: true,
+                        crystalColor: true,
+                        crystalColorType: true,
+                        crystalColorNote: true,
                         productNameSnapshot: true,
                         productBrandSnapshot: true,
                         productCategorySnapshot: true,
@@ -606,6 +610,7 @@ export class OrderService {
                         it.product = dbProducts.find(p => p.id === it.productId) || it.product;
                     });
                     recalculateCrystalPrices(items);
+                    applyTeñidoPromoDiscount(items);
                 }
 
                 // Map items for calculateQuoteTotals utility
@@ -811,6 +816,7 @@ export class OrderService {
                         ...snap,
                         crystalColor: item.crystalColor || null,
                         crystalColorType: item.crystalColorType || null,
+                        crystalColorNote: item.crystalColorNote || null,
                     };
                 }),
             };

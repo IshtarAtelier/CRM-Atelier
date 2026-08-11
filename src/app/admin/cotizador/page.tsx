@@ -28,12 +28,13 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
-import { 
-    isCrystal, 
+import {
+    isCrystal,
     getCategoryKey,
     isMultifocal2x1,
     safePrice,
-    recalculateCrystalPrices
+    recalculateCrystalPrices,
+    applyTeñidoPromoDiscount
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals } from '@/services/PricingService';
 import { 
@@ -77,6 +78,7 @@ interface QuoteItem {
     eye?: 'OD' | 'OI';
     crystalColor?: string;
     crystalColorType?: string;
+    crystalColorNote?: string;
     productBrandSnapshot?: string | null;
     productNameSnapshot?: string | null;
     productCategorySnapshot?: string | null;
@@ -196,6 +198,9 @@ function CotizadorPageContent() {
                             quantity: it.quantity,
                             customPrice: it.price,
                             eye: it.eye,
+                            crystalColor: it.crystalColor,
+                            crystalColorType: it.crystalColorType,
+                            crystalColorNote: it.crystalColorNote,
                             uid: Date.now() + idx,
                             productNameSnapshot: it.productNameSnapshot,
                             productBrandSnapshot: it.productBrandSnapshot,
@@ -276,8 +281,9 @@ function CotizadorPageContent() {
 
     // Recalculate crystal prices dynamically when quoteItems change to prevent promo price evasion
     useEffect(() => {
-        const hasChanges = recalculateCrystalPrices(quoteItems);
-        if (hasChanges) {
+        const crystalsChanged = recalculateCrystalPrices(quoteItems);
+        const teñidoChanged = applyTeñidoPromoDiscount(quoteItems);
+        if (crystalsChanged || teñidoChanged) {
             setQuoteItems([...quoteItems]);
         }
     }, [quoteItems]);
@@ -487,6 +493,7 @@ function CotizadorPageContent() {
                         eye: it.eye,
                         crystalColor: it.crystalColor || null,
                         crystalColorType: it.crystalColorType || null,
+                        crystalColorNote: it.crystalColorNote || null,
                         productBrandSnapshot: it.productBrandSnapshot || it.product?.brand || null,
                         productNameSnapshot: it.productNameSnapshot || it.product?.name || it.product?.model || null,
                         productCategorySnapshot: it.productCategorySnapshot || it.product?.category || null,
@@ -654,6 +661,9 @@ function CotizadorPageContent() {
             quantity: it.quantity,
             customPrice: it.price,
             eye: it.eye,
+            crystalColor: it.crystalColor,
+            crystalColorType: it.crystalColorType,
+            crystalColorNote: it.crystalColorNote,
             uid: Date.now() + idx,
             productBrandSnapshot: it.productBrandSnapshot,
             productNameSnapshot: it.productNameSnapshot,
