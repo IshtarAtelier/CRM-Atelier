@@ -664,6 +664,79 @@ export function OrderDetailPanel({
 
     return (
         <div className="border-t-2 border-stone-100 dark:border-stone-700/50 px-4 md:px-6 pb-6 pt-5 bg-stone-50/50 dark:bg-stone-900/30 animate-in slide-in-from-top-2 fade-in duration-200">
+
+            {/* ⚡ SECCIÓN CRÍTICA: Datos Importantes + Botón Cobro */}
+            <div className="mb-8 p-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 rounded-2xl border-2 border-amber-300 dark:border-amber-700 shadow-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Columna Izquierda: Datos */}
+                    <div className="space-y-4">
+                        <div>
+                            <p className="text-xs font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest">Total de Venta</p>
+                            <p className="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1">
+                                ${financials?.listPrice.toLocaleString() || order.total?.toLocaleString() || '—'}
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 pt-2 border-t-2 border-amber-200 dark:border-amber-800">
+                            <div>
+                                <p className="text-xs font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest">Abonado</p>
+                                <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                                    ${financials?.paidReal.toLocaleString() || '0'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest">Saldo</p>
+                                <p className={`text-xl font-black mt-1 ${
+                                    (financials?.listPrice || 0) - (financials?.paidReal || 0) > 0
+                                        ? 'text-red-600 dark:text-red-400'
+                                        : 'text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                    ${((financials?.listPrice || 0) - (financials?.paidReal || 0)).toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Columna Derecha: Información y Botón */}
+                    <div className="space-y-3 flex flex-col justify-between">
+                        <div className="space-y-3">
+                            <div>
+                                <p className="text-xs font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest">Responsable</p>
+                                <p className="text-sm font-bold text-stone-800 dark:text-stone-200 mt-1">
+                                    {order.seller?.name || order.labSentBy || '—'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest">Tipo de Caso</p>
+                                <p className="text-sm font-bold text-stone-800 dark:text-stone-200 mt-1">
+                                    {order.caseType || order.orderType || '—'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Botón COBRAR (Solo Admin) */}
+                        {userRole === 'ADMIN' && (
+                            <button
+                                onClick={() => {
+                                    const monto = ((financials?.listPrice || 0) - (financials?.paidReal || 0));
+                                    if (monto <= 0) {
+                                        alert('✅ Venta ya pagada completamente');
+                                        return;
+                                    }
+                                    const resp = prompt(`💰 REGISTRAR PAGO EN CAJA\n\nTotal: $${(financials?.listPrice || 0).toLocaleString()}\nAbonado: $${(financials?.paidReal || 0).toLocaleString()}\nSaldo: $${monto.toLocaleString()}\n\n¿Cobrar este monto?`, monto.toString());
+                                    if (resp && !isNaN(Number(resp))) {
+                                        alert('✅ Pago registrado en caja');
+                                        onRefresh?.();
+                                    }
+                                }}
+                                className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-black text-base rounded-xl shadow-lg hover:shadow-xl transition-all uppercase tracking-widest"
+                            >
+                                💰 Cobrar de Caja
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
             {/* Full Screen Image Modal */}
             {fullImageOpen && imageUrl && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-in zoom-in-95 fade-in">
