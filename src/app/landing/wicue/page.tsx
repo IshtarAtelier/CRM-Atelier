@@ -42,12 +42,17 @@ export default function WicueLandingPage() {
         <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
           {/* Fondo de Video / Imagen Cinemática */}
           <div className="absolute inset-0 z-0 bg-stone-900">
-            {/* Es la imagen más grande arriba de todo: sin `priority` compite
+            {/* Era la foto de un Ray-Ban Meta —marca ajena, con su logo
+                legible— ocupando toda la primera pantalla de una landing que
+                vende Wicue. Meta puede rechazar el anuncio por mostrar marca
+                de otro, y aunque no lo rechace, es la peor confusión posible:
+                alguien que vino a ver Wicue ve otro producto primero.
+                Es la imagen más grande arriba de todo: sin `priority` compite
                 con el resto de la carga y sin `sizes` Next pide la variante de
                 3840 px hasta en un celular. */}
             <Image
-              src="/images/landing/ray_ban_meta.png"
-              alt="Ray-Ban Meta Smart Glasses"
+              src="/images/landing/wicue_glasses.png"
+              alt="Anteojos Wicue de tinte electrónico"
               fill
               priority
               sizes="100vw"

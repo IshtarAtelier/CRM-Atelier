@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { rethrowUnlessBuild } from '@/lib/db-guard';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { parseFrameSpecs, pickDescriptiveAlt } from '@/lib/catalog/frame-specs';
+import { normalizarTexto } from '@/lib/text-normalize';
 
 export const revalidate = 300;
 import { ProductClient } from './ProductClient';
@@ -232,9 +233,6 @@ const CANTIDAD_RECOMENDADOS = 4;
 // (hoy ~110). El tope está para que la ficha no empiece a bajarse la tienda
 // entera el día que el catálogo crezca.
 const POOL_RECOMENDADOS = 200;
-
-const normalizarTexto = (valor?: string | null) =>
-  (valor || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 
 // La forma puede venir compuesta ("Cuadrado, XL"): se compara por tokens para
 // que un XL matchee con un "Cuadrado, XL" en vez de fallar por el string entero.

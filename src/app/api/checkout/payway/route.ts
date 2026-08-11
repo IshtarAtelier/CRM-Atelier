@@ -982,14 +982,13 @@ export async function POST(req: Request) {
       ? parseInt(customer.installments || "1", 10)
       : 1;
 
-    // Cuota Simple MiPyme: sin `plan_id`, Decidir aplica el plan GENÉRICO de esa
-    // cantidad de cuotas (el que factura interés al comercio), no el plan
-    // registrado como MiPyme. La cantidad de cuotas sola no alcanza — se venía
-    // mandando `installments: 3 / 6` sin `plan_id` y Decidir nunca aplicaba
-    // Cuota Simple, aunque la pantalla del checkout dijera "(Cuota Simple)".
-    // Códigos confirmados con la dueña el 10/8/2026: 13 para 3 cuotas, 16 para 6.
-    const PLAN_ID_CUOTA_SIMPLE: Record<number, number> = { 3: 13, 6: 16 };
-    const planId = PLAN_ID_CUOTA_SIMPLE[installments];
+    // REVERTIDO el 10/8/2026: se probó `plan_id: 13/16` para Cuota Simple
+    // MiPyme y Decidir lo rechazó con "Error de validación: plan_id
+    // (invalid_param)" — esos códigos NO son válidos para esta cuenta. Con el
+    // plan_id puesto, CUALQUIER compra real en 3 o 6 cuotas quedaba rechazada,
+    // no solo la de prueba. Se vuelve a mandar solo `installments`, que es lo
+    // que estaba funcionando. Antes de reintentar esto hay que conseguir los
+    // códigos correctos con el representante de Payway/Decidir — no adivinarlos.
 
     const paywayRequest = {
       site_transaction_id: `WEB-${order.id}`,
@@ -999,7 +998,6 @@ export async function POST(req: Request) {
       amount: amountInCents,
       currency: "ARS",
       installments,
-      ...(planId ? { plan_id: planId } : {}),
       description: "Compra Atelier Óptica Web",
       payment_type: "single",
       sub_payments: [],
