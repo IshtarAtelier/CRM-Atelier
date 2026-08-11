@@ -54,8 +54,12 @@ import LensOriginBadge from '@/components/ui/LensOriginBadge';
 import { formatLensRange } from '@/lib/lens-range';
 import Image from "next/image";
 
-const getTypeConfig = (type: string | null, category?: string | null) => {
-    const key = getCategoryKey(type, category);
+// Recibe la CLAVE ya resuelta (p.ej. 'Cristal', 'Tratamiento') — no la vuelve a
+// derivar. `getTypeConfig(cat)` reinvocaba getCategoryKey tratando la clave como
+// si fuera un `type` crudo; funcionaba de casualidad para claves que también
+// matchean por substring de tipo (Cristal, Armazón, Sol...) pero rompía para
+// 'Tratamiento', que solo se detecta por `category`, no por texto de `type`.
+const getTypeConfigByKey = (key: string) => {
     switch (key) {
         case 'Armazón': return { icon: Glasses, label: 'Armazones', color: 'bg-amber-50 text-amber-600 border-amber-200' };
         case 'Cristal': return { icon: Eye, label: 'Cristales', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
@@ -69,6 +73,8 @@ const getTypeConfig = (type: string | null, category?: string | null) => {
         default: return { icon: Box, label: 'Otros', color: 'bg-stone-50 text-stone-400 border-stone-200' };
     }
 };
+
+const getTypeConfig = (type: string | null, category?: string | null) => getTypeConfigByKey(getCategoryKey(type, category));
 
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 
@@ -771,7 +777,7 @@ function CotizadorPageContent() {
                             🌐 Web
                         </button>
                         {availableCategories.map(cat => {
-                            const config = getTypeConfig(cat);
+                            const config = getTypeConfigByKey(cat);
                             const count = products.filter(p => getCategoryKey(p.type, p.category) === cat).length;
                             const Icon = config.icon;
                             return (
@@ -1121,7 +1127,7 @@ function CotizadorPageContent() {
                 {/* Right Column: Desktop Cart (Sticky Sidebar) */}
                 {quoteItems.length > 0 && (
                     <div className="hidden lg:flex w-[400px] xl:w-[460px] border-l border-sidebar-border bg-white dark:bg-stone-900 relative z-50 shadow-xl flex-col h-full overflow-y-auto flex-shrink-0 animate-in slide-in-from-right duration-300" style={{ scrollbarWidth: 'thin' }}>
-                        <div className="flex-1 p-6">
+                        <div className="flex-1 p-6 pb-28">
                             {!showRegister ? (
                                 <CotizadorCart 
                                     items={quoteItems}
@@ -1317,9 +1323,9 @@ function CotizadorPageContent() {
                     {/* Expanded Content */}
                     {cartExpanded && (
                         <div className="h-[calc(100%-64px)] overflow-hidden flex flex-col">
-                            <div className="flex-1 overflow-y-auto p-6" style={{ scrollbarWidth: 'thin' }}>
+                            <div className="flex-1 overflow-y-auto p-6 pb-28" style={{ scrollbarWidth: 'thin' }}>
                                 {!showRegister ? (
-                                    <CotizadorCart 
+                                    <CotizadorCart
                                         items={quoteItems}
                                         setItems={setQuoteItems}
                                         markup={markup}
