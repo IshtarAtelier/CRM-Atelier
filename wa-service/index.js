@@ -29,7 +29,7 @@ const { recuperarExtraccionesPendientes } = require('./cron/extraccion-pendiente
 const { TAGS_SIN_BOT, getFileExtension, getAdminWaId } = require('./utils');
 const { downloadMediaWithRetry, uploadMediaToCrm } = require('./shared/media');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
-const { parseAdTag, prefillAdTag, stripAdTags } = require('./shared/ad-tag');
+const { parseAdTag, prefillAdTag, fallbackAdTag, stripAdTags } = require('./shared/ad-tag');
 const { serializedId, resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage, wasSentByBot } = require('./shared/message-id');
 const { BotReplyingSet } = require('./shared/bot-replying');
 const { findChatByWaId, esChatDePersona } = require('./shared/chat-lookup');
@@ -1232,7 +1232,12 @@ const handleMessage = async (msg) => {
     // para que la atribución no dependa de que el historial sobreviva. Ahora
     // incluye Google (como `google:campaña`): antes el regex exigía el literal
     // `meta` y un anuncio de Google era invisible aunque tuviera su etiqueta.
-    const metaAdTag = prefillAdTag(body);
+    // El fallback cubre los prefills SIN etiqueta (quick replies genéricas y el
+    // autofill default de Meta en formatos imagen/video) como 'generico': solo
+    // atribución de primer toque — a propósito NO alimenta isMetaAdsMessage,
+    // porque esas frases las puede escribir un humano en una charla atendida y
+    // forzar el bot ahí pisaría la conversación.
+    const metaAdTag = prefillAdTag(body) || fallbackAdTag(body);
     const originalBody = body; // Preservar body original (con tag) para guardar en DB
     // Limpiar el tag del body para que no interfiera con detecciones de negativos,
     // post-venta, hostilidad, etc. El tag original ya fue evaluado arriba.

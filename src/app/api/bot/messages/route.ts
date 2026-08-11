@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { prefillAdTag } from '@/lib/ads/ad-tag';
+import { prefillAdTag, fallbackAdTag } from '@/lib/ads/ad-tag';
 import { vincularChatSiCorresponde } from '@/lib/whatsapp/vincular-chat';
 
 export const dynamic = 'force-dynamic';
@@ -132,7 +132,9 @@ export async function POST(request: Request) {
         // una etiqueta ya grabada nunca se pisa). El wa-service hace lo mismo en su
         // ingestión directa; esto cubre lo que entre por esta ruta.
         if (direction === 'INBOUND' && !chat.adTag) {
-            const tag = prefillAdTag(content);
+            // Mismo criterio que el wa-service: etiqueta con corchetes primero,
+            // y si no hay, el fallback de prefills genéricos → 'generico'.
+            const tag = prefillAdTag(content) || fallbackAdTag(content);
             if (tag) {
                 await prisma.whatsAppChat.updateMany({
                     where: { id: chat.id, adTag: null },
