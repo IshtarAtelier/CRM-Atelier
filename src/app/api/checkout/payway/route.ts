@@ -12,6 +12,7 @@ import { recalculateItemPrice, effectiveFramePrice } from '@/lib/checkout/checko
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { notifyPaymentFailed } from '@/lib/payment-failed-alert';
+import { enforceRateLimit } from '@/lib/api-guard';
 import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
 import { AdsService } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
@@ -241,6 +242,18 @@ function medirCompraWeb(opts: {
 }
 
 export async function POST(req: Request) {
+  // Endpoint PÚBLICO (el middleware lo deja pasar sin sesión, `isCheckoutBypass`
+  // en src/middleware.ts) y es el más caro del sistema: crea la ficha del
+  // cliente, crea la orden, DESCUENTA STOCK REAL y cobra una tarjeta. Sin
+  // freno, un script anónimo vacía el stock del catálogo sin comprar nada:
+  // cada intento reserva unidades y, si el pago falla, recién ahí se devuelven.
+  //
+  // El límite es holgado a propósito — una persona reintentando con otra
+  // tarjeta tras un rechazo no puede quedar trabada (hoy los rechazos del
+  // emisor son frecuentes). Corta el abuso automatizado, no la compra legítima.
+  const limitado = enforceRateLimit(req, 'checkout-payway', { limit: 12, windowMs: 10 * 60 * 1000 });
+  if (limitado) return limitado;
+
   let globalRestoreStock: (() => Promise<void>) | null = null;
   let order: any = null;
   // Se pone en true en cuanto Payway aprueba el cargo. Si después falla algo

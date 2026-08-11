@@ -948,7 +948,13 @@ async function reportInvoiceRequest({ clientId }) {
 
 
 
-        const adminPhone = '3541215971@c.us';
+        // getAdminWaId() y no el número a mano: escrito así ("3541215971@c.us")
+        // le faltaba el 549, WhatsApp no resolvía el destino y esta alerta no
+        // llegaba NUNCA a nadie — mientras el bot le decía al cliente que ya
+        // había derivado su pedido de factura. El `.catch` de abajo se comía el
+        // error, así que el fallo era invisible. Es el mismo problema que ya
+        // estaba documentado y resuelto 270 líneas más arriba (notifyPhone).
+        const adminPhone = getAdminWaId();
         const baseUrl = process.env.CRM_API_URL ? process.env.CRM_API_URL.replace('/api/bot', '') : 'http://localhost:3000';
         const crmLink = `${baseUrl}/admin/contactos?id=${client.id}`;
         
