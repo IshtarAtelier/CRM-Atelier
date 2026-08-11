@@ -32,12 +32,10 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
     // decide si el bot CONTESTA), pero respetan su propio interruptor: es el
     // botón de pánico para frenar todo lo saliente sin dejar de atender chats.
     if (isFollowupsEnabled && !isFollowupsEnabled()) {
-        console.log('[Bot Executor] Seguimientos apagados desde el CRM. Sin envíos.');
         return;
     }
 
     isFollowUpRunning = true;
-    console.log('\n[Bot Executor] Buscando tareas de seguimiento pendientes y vencidas...');
 
     try {
         // Tareas vencidas listas para ejecutar, más las que quedaron reclamadas
@@ -65,9 +63,7 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
             where: { type: 'FOLLOWUP', status: 'PENDING', dueDate: { lt: inicioDiaART } },
             data: { status: 'CANCELLED' },
         });
-        if (olvidadas.count > 0) {
-            console.log(`[Bot Executor] ${olvidadas.count} seguimiento(s) de días anteriores dados de baja (no se arrastran).`);
-        }
+        // Silenciado: tareas olvidadas se cancelan sin ruido
 
         const pendingTasks = await prisma.clientTask.findMany({
             where: {
@@ -93,7 +89,6 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
         });
 
         if (pendingTasks.length === 0) {
-            console.log('[Bot Executor] No hay tareas de seguimiento pendientes para ejecutar.');
             isFollowUpRunning = false;
             return;
         }
@@ -133,11 +128,10 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
             // frenaría el duplicado. Se marca fallida y, si hace falta, el
             // vendedor vuelve a poner el tag.
             if (isManual && task.status === 'SENDING') {
-                console.log(`  🚫 [Bot Executor] Tarea manual de ${client.name} quedó a medias en un reinicio. Se marca FAILED (re-taggear si corresponde).`);
                 await prisma.clientTask.update({
                     where: { id: task.id },
                     data: { status: 'FAILED', updatedAt: new Date() }
-                }).catch(e => console.error(`  ❌ No se pudo marcar FAILED la tarea ${task.id}:`, e.message));
+                }).catch(() => {});
                 continue;
             }
             const { eligible, followUpType, label, reason } = await checkEligibility({
@@ -150,7 +144,6 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
             });
 
             if (!eligible) {
-                console.log(`  🚫 [Bot Executor] Tarea cancelada para ${client.name}: ${reason}`);
                 await cancelTask(task.id, `Ya no es elegible: ${reason}`);
                 continue;
             }
@@ -190,7 +183,6 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
                     where: { id: chat.id },
                     data: { followUpPausedUntil: new Date(now.getTime() + days * 24 * 3600 * 1000) }
                 }).catch(() => {});
-                console.log(`  ⏸️ [Gate] Seguimiento de ${client.name} pospuesto ${days} días: ${gate.reason}`);
                 continue;
             }
             if (gate.decision === 'SKIP') {
@@ -200,11 +192,8 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
                     where: { id: task.id, status: task.status },
                     data: { dueDate: new Date(now.getTime() + 2 * 3600 * 1000), status: 'PENDING' }
                 }).catch(() => {});
-                console.log(`  ⏭️ [Gate] Seguimiento de ${client.name} salteado 2hs: ${gate.reason}`);
                 continue;
             }
-
-            console.log(`  🤖 [Bot Executor] Generando mensaje para ${client.name} (${followUpType})...`);
             const generated = await generateFollowUpMessage({
                 client,
                 chat,
@@ -231,7 +220,6 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
 
             // Anti-duplicado in-memory
             if (botReplyingToRef && botReplyingToRef.has(chat.waId)) {
-                console.log(`  ⚠️ Bot ya respondiendo a ${client.name}. Omitiendo.`);
                 continue;
             }
 
@@ -258,15 +246,12 @@ async function checkAndSendSalesFollowUps({ isAgentEnabled, isFollowupsEnabled, 
                 data: { status: 'SENDING', updatedAt: claimStamp }
             });
             if (claimed.count === 0) {
-                console.log(`  ⚠️ Tarea de ${client.name} ya fue tomada por otra corrida. Omitiendo.`);
                 continue;
             }
 
             // Programar el envío diferido en la cola
             const randomDelayMinutes = Math.random() * (SEND_DELAY_MAX_MINUTES - SEND_DELAY_MIN_MINUTES) + SEND_DELAY_MIN_MINUTES;
             queueDelay += randomDelayMinutes * 60 * 1000;
-
-            console.log(`  🕒 [Bot Executor] Programando envío a ${client.name} en ${(queueDelay / 60000).toFixed(1)} minutos.`);
 
             setTimeout(() => {
                 executeTaskAndSend(task.id, client.id, chat.waId, chat.id, generated.text, label, client.name, followUpType, claimStamp)

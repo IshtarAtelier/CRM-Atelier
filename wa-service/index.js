@@ -64,7 +64,6 @@ app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json({ limit: '10mb' }));
 
 io.on('connection', (socket) => {
-    console.log('🔌 Nuevo cliente WebSocket conectado:', socket.id);
     const status = getStatus();
     socket.emit('bot_status', { ...status, connected: status.isReady, phone: status.connectedPhone, qr: status.qrCode, agentEnabled, followupsEnabled, prompt: agentPrompt });
 });
@@ -134,7 +133,7 @@ async function obtenerImagenDelMensaje(msg, chatId) {
         const mimeType = (res.headers['content-type'] || 'image/jpeg').split(';')[0].trim();
         if (!mimeType.startsWith('image/')) return null;
 
-        console.log(`  🔁 Imagen ${msg.waMessageId} recuperada del CRM (no estaba en caché).`);
+        // Imagen recuperada del CRM
         // Se repuebla la caché: la usa también save_prescription_data para
         // adjuntar la foto de la receta a la ficha del cliente.
         return cachearMedia(chatId, {
@@ -188,7 +187,7 @@ async function loadConfig() {
             dailyContext = conf.dailyContext || '';
         }
         
-        console.log(`🤖 Bot configuration loaded from DB. Enabled: ${agentEnabled}, Seguimientos: ${followupsEnabled}, Prompt length: ${agentPrompt.length}, Daily context length: ${dailyContext.length}`);
+        // Config cargada desde DB
     } catch (e) {
         console.error("❌ Error loading configuration from DB, falling back to file:", e);
         if (fs.existsSync(configPath)) {
@@ -245,7 +244,7 @@ const handleMessageCreate = async (msg) => {
         // A. Detección por patrones de texto conocidos de auto-respuestas
         if (msg.body && isMetaAutoReplyText(msg.body)) {
             isMetaAutoReply = true;
-            console.log(`  🤖 [Meta Auto-Reply] Detectado por patrón de texto: "${msg.body.substring(0, 80)}". Ignorando.`);
+            // Meta auto-reply detectado por patrón
         }
 
         // B. Detección por proximidad temporal: si el chat se creó hace < 15 segundos,
@@ -257,7 +256,7 @@ const handleMessageCreate = async (msg) => {
                     const chatAgeMs = Date.now() - new Date(chatForTiming.createdAt).getTime();
                     if (chatAgeMs < 15000) {
                         isMetaAutoReply = true;
-                        console.log(`  🤖 [Meta Auto-Reply] Chat creado hace ${Math.round(chatAgeMs/1000)}s. Outbound inmediato = auto-reply. Ignorando.`);
+                        // Meta auto-reply detectado por timing
                     }
 
                     // C. Si el último inbound tiene tag [meta...] y este outbound llega < 30s después
@@ -271,7 +270,7 @@ const handleMessageCreate = async (msg) => {
                             const hasMetaTag = /\[meta[^\]]*\]/i.test(lastInbound.content || '');
                             if (hasMetaTag && timeSinceInbound < 30000) {
                                 isMetaAutoReply = true;
-                                console.log(`  🤖 [Meta Auto-Reply] Outbound ${Math.round(timeSinceInbound/1000)}s después de mensaje [meta]. Ignorando.`);
+                                // Meta auto-reply detectado por tag meta
                             }
                         }
                     }
@@ -286,7 +285,7 @@ const handleMessageCreate = async (msg) => {
             // la otra identidad, el waId no matchea y antes se salía en silencio.
             const { chat, via, telefono, ambiguo } = await findChatByWaId(prisma, waId, { lidToPhone });
             if (via === 'telefono') {
-                console.log(`  🔀 [Saliente] waId=${waId} no matcheaba ninguna fila; resuelto por teléfono ${telefono} → chat ${chat.waId}.`);
+                // Outbound chat resuelto por teléfono
             }
             if (chat) {
                 if (chat.botEnabled && !isBotReplying && !isMetaAutoReply) {
@@ -322,7 +321,7 @@ const handleMessageCreate = async (msg) => {
                                 });
                             }
                         } else {
-                            console.log(`  ⏱️ Apagado por saliente a ${Math.round(secsSinceInbound)}s del inbound (posible auto-respuesta no reconocida). Sin marca permanente: recuperable por Auto-Resume.`);
+                            // Bot desactivado por outbound temprano
                         }
                     } catch (labelErr) {
                         console.error('Error persistiendo label de apagado por intervención humana:', labelErr.message);
