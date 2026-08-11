@@ -11,6 +11,7 @@ import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTrans
 import { recalculateItemPrice, effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
+import { notifyPaymentFailed } from '@/lib/payment-failed-alert';
 import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
 import { AdsService } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
@@ -1084,12 +1085,29 @@ export async function POST(req: Request) {
       // Actualizar orden a fallida/rechazada (se marca isDeleted para ocultarla de ventas)
       await prisma.order.update({
         where: { id: order.id },
-        data: { 
+        data: {
           isDeleted: true,
-          status: "CANCELED", 
-          labNotes: `[PAGO RECHAZADO PAYWAY]: ${errorMessage}\n\n` + order.labNotes 
+          status: "CANCELED",
+          labNotes: `[PAGO RECHAZADO PAYWAY]: ${errorMessage}\n\n` + order.labNotes
         }
       });
+
+      // AVISAR que se perdió la venta. Sin esto la orden se esconde
+      // (`isDeleted`), el stock vuelve y no queda más rastro que un
+      // `console.error` — así se perdió una compra de $160.000 el 29/07/2026 sin
+      // que nadie se enterara ni llamara al cliente. La ficha ya existe con
+      // teléfono y mail: lo único que faltaba era avisar. Fire-and-forget.
+      notifyPaymentFailed({
+        orderId: order.id,
+        clientId: client.id,
+        customerName: `${customer.firstName} ${customer.lastName}`.trim(),
+        email: customer.email,
+        phone: normalizedPhone || customer.phone,
+        amount: finalItemsTotal,
+        reason: errorMessage,
+        installments,
+        items: sanitizedItems.map((it: any) => ({ model: it.model, brand: it.brand, quantity: it.quantity })),
+      }).catch(err => console.error('[checkout] fallo la alerta de venta perdida:', err));
 
       return NextResponse.json(
         { error: `Pago rechazado: ${errorMessage}` },
@@ -1317,6 +1335,33 @@ export async function POST(req: Request) {
         });
       } catch (updateErr) {
         console.error("Error actualizando orden fallida en catch principal:", updateErr);
+      }
+
+      // Misma pérdida que en el rechazo de tarjeta, por otro camino: acá el
+      // fetch a Decidir se cayó (timeout, corte de red) y la venta desaparece
+      // igual. Los datos se releen de la orden porque `client` y `customer`
+      // viven en el scope del try y no llegan hasta acá.
+      try {
+        const perdida = await prisma.order.findUnique({
+          where: { id: order.id },
+          select: {
+            total: true,
+            client: { select: { id: true, name: true, email: true, phone: true } },
+          },
+        });
+        if (perdida?.client) {
+          await notifyPaymentFailed({
+            orderId: order.id,
+            clientId: perdida.client.id,
+            customerName: perdida.client.name || 'Cliente sin nombre',
+            email: perdida.client.email,
+            phone: perdida.client.phone,
+            amount: perdida.total || 0,
+            reason: `No se pudo completar el pago: ${error?.message || 'error interno'}`,
+          });
+        }
+      } catch (alertErr) {
+        console.error('[checkout] fallo la alerta de venta perdida (catch):', alertErr);
       }
     }
     return NextResponse.json(
