@@ -1,0 +1,21 @@
+{
+  "id": "ad-l2-descuento-para-vos",
+  "format": "1:1",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "temas": [
+    "remarketing",
+    "descuento"
+  ],
+  "caption": "Tenemos un descuento pensado para vos. Comunicate con nosotros y descubrí todos los beneficios de Atelier Óptica. Tus próximos lentes te están esperando.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "No lo pienses más, *tenemos un descuento pensado para vos*",
+      "body": "Comunicate con nosotros y descubrí todos los beneficios de Atelier Óptica. Tus próximos lentes te están esperando."
+    }
+  ]
+}
