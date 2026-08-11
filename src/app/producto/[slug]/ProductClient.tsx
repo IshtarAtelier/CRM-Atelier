@@ -516,10 +516,11 @@ export function ProductClient({
             )}
 
             <div className="flex flex-col gap-3 mb-6 mt-4">
-              {/* En Receta el flujo real es configurar cristales: ese es el CTA
-                  primario. "Comprar solo el armazón" queda como secundario para
-                  quien de verdad quiere solo el frame. En Sol/Clip-On/Cristal el
-                  primario sigue siendo comprar directo. */}
+              {/* En Receta hay dos caminos y los dos son CTA plenos: configurar
+                  cristales (negro) o llevarse el armazón solo (verde). Antes el
+                  segundo era un botón chico de contorno que decía "Comprar solo
+                  el armazón" y se leía como una opción menor y confusa. En
+                  Sol/Clip-On/Cristal el único camino es comprar directo. */}
               {product.category === "Receta" && !isWholesale && (
                 <button
                   disabled={product.stock !== undefined && product.stock <= 0}
@@ -565,16 +566,19 @@ export function ProductClient({
                   }, 500);
                 }}
                 className={
+                  // Verde -700, no -600: con texto blanco el -600 da ~3,3:1 y el
+                  // piso del proyecto es 4,5:1 (ver globals.css y la regla de
+                  // contraste). El -700 llega a ~5:1 y se sigue leyendo verde.
                   product.category === "Receta" && !isWholesale
-                    ? `w-full px-8 py-4 text-[12px] font-bold uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed border ${isAdded ? 'bg-green-600 text-white border-green-600' : 'bg-white text-black border-stone-300 hover:border-black disabled:opacity-50 disabled:bg-stone-100'}`
-                    : `w-full px-8 py-5 text-[15px] font-black uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed shadow-xl hover:scale-[1.02] ${isAdded ? 'bg-green-600 text-white' : 'bg-black text-white hover:bg-stone-900 disabled:opacity-50 disabled:bg-stone-400 disabled:hover:scale-100 disabled:shadow-none'}`
+                    ? `w-full px-8 py-5 text-[15px] font-black uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed shadow-xl hover:scale-[1.02] ${isAdded ? 'bg-green-800 text-white' : 'bg-green-700 text-white hover:bg-green-800 disabled:opacity-50 disabled:bg-stone-400 disabled:hover:scale-100 disabled:shadow-none'}`
+                    : `w-full px-8 py-5 text-[15px] font-black uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed shadow-xl hover:scale-[1.02] ${isAdded ? 'bg-green-700 text-white' : 'bg-black text-white hover:bg-stone-900 disabled:opacity-50 disabled:bg-stone-400 disabled:hover:scale-100 disabled:shadow-none'}`
                 }
               >
                 {isAdded
                   ? "Agregado al carrito ✓"
                   : ((product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal")
                     ? "Agotado"
-                    : (product.category === "Receta" && !isWholesale ? "Comprar solo el armazón" : "Comprar Ahora >"))}
+                    : (product.category === "Receta" && !isWholesale ? "Comprar" : "Comprar Ahora >"))}
               </button>
             </div>
 
