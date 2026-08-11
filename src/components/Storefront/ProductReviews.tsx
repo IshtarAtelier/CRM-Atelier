@@ -75,7 +75,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
   return (
     <div className="border-t border-border pt-6 mt-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Reseñas</h3>
+        <h2 className="text-lg font-semibold">Reseñas</h2>
         <button onClick={() => setShowForm((s) => !s)} className="text-sm underline">
           {showForm ? 'Cancelar' : 'Escribir una reseña'}
         </button>

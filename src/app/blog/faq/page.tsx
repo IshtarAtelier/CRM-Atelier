@@ -120,7 +120,9 @@ export default function FAQPage() {
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20 font-sans">
       <StorefrontNavbar theme="light" />
-      
+
+      {/* Sin id: #main-content ya lo usa el div del layout raíz. */}
+      <main>
       {/* Schema Injection */}
       <script
         type="application/ld+json"
@@ -191,6 +193,8 @@ export default function FAQPage() {
           </a>
         </div>
       </div>
+
+      </main>
 
       <StorefrontFooter />
       

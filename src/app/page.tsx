@@ -129,6 +129,12 @@ export default async function Home() {
       {/* ═══════════════════════════════════════════════ */}
       <StorefrontNavbar theme="dark" initialSettings={webSettings} />
 
+      {/* El <main> va por página y no en el layout raíz: /tienda, /checkout y
+          /cristales-opticos ya traen el suyo, así que ponerlo arriba dejaría dos
+          landmarks y rompería el audit por el otro lado. Sin id: #main-content ya
+          lo usa el div del layout (destino del "Saltar al contenido principal") y
+          repetirlo daría dos elementos con el mismo id. */}
+      <main>
       {/* ═══════════════════════════════════════════════ */}
       {/* FILMMAKER REEL — Hero principal cinematográfico   */}
       {/* ═══════════════════════════════════════════════ */}
@@ -203,6 +209,7 @@ export default async function Home() {
       {/* LOCAL PREVIEW — Boutique Cerro de las Rosas     */}
       {/* ═══════════════════════════════════════════════ */}
       <HomeStorePreview />
+      </main>
 
       {/* ═══════════════════════════════════════════════ */}
       {/* FOOTER Y WIDGETS                               */}

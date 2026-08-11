@@ -61,6 +61,8 @@ export default async function BlogPage() {
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20">
       <StorefrontNavbar theme="light" />
+      {/* Sin id: #main-content ya lo usa el div del layout raíz. */}
+      <main>
       <div className="bg-primary/5 py-16 lg:py-24 border-b border-primary/10 pt-32">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl lg:text-5xl font-black text-stone-900 dark:text-white tracking-tight mb-4">
@@ -206,6 +208,7 @@ export default async function BlogPage() {
       )}
 
       <SeoAccordion keywords={seoKeywords} />
+      </main>
 
       <StorefrontFooter />
       

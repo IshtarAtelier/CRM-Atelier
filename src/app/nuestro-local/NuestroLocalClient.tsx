@@ -66,6 +66,9 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
     <div className="bg-[#faf8f5] min-h-screen text-[#1a1714] font-sans selection:bg-black selection:text-white overflow-x-hidden">
       <StorefrontNavbar theme="dark" />
 
+      {/* Sin id: #main-content ya lo usa el div del layout raíz. `children` es el
+          footer que inyecta la page, así que el <main> cierra antes. */}
+      <main>
       {/* ═══════════════════════════════════════════════════════ */}
       {/* HERO — Full-Screen Cinematic                           */}
       {/* ═══════════════════════════════════════════════════════ */}
@@ -401,9 +404,10 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
           </div>
         </div>
       </section>
+      </main>
 
       {children}
-      
+
     </div>
   );
 }

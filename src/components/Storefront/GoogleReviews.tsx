@@ -74,7 +74,12 @@ export function GoogleReviews() {
           
           {/* Left Panel: Score & CTA */}
           <div className="flex-shrink-0 w-full lg:w-1/3 flex flex-col justify-center text-center lg:text-left">
-            <div className="inline-flex items-center justify-center lg:justify-start gap-2 text-amber-600 text-[10px] font-black uppercase tracking-[0.25em] mb-4">
+            {/* amber-700, no -600: en 10px sobre el crema #faf8f5 el -600 da 3:1,
+                muy por debajo del piso de 4,5:1. Es el patrón de chip de siempre
+                (un tono -600 sobre su propio fondo claro no alcanza para texto
+                chico). Este bloque se monta también en la ficha de producto y en
+                la tienda, así que el fix vale para las tres pantallas. */}
+            <div className="inline-flex items-center justify-center lg:justify-start gap-2 text-amber-700 text-[10px] font-black uppercase tracking-[0.25em] mb-4">
               <Sparkles className="w-3.5 h-3.5" />
               La Óptica Mejor Calificada
             </div>

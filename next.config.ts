@@ -238,7 +238,14 @@ const nextConfig: NextConfig = {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       imgSrc,
       "font-src 'self' data: https://fonts.gstatic.com",
-      `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://mercados.ambito.com${waOrigins}`,
+      // `pagead2.googlesyndication.com` es el destino del ping de conversión que
+      // gtag manda por fetch (`/ccm/collect`). Faltaba, así que la Report-Only
+      // venía logueando una violación por página: nada se bloqueaba —la activa lo
+      // permite por `https://*`— pero es exactamente la misma forma en que Meta y
+      // Google Ads quedaron sin medir antes, y el día que esta política se
+      // promueva a activa cortaría la conversión de verdad. Se agrega ahora, con
+      // la política todavía en modo reporte, que es cuando sale gratis.
+      `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://mercados.ambito.com${waOrigins}`,
       "frame-src 'self' https://maps.google.com https://www.google.com",
       "media-src 'self' blob:",
       "object-src 'none'",

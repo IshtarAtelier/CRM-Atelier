@@ -141,6 +141,8 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
         </div>
       </header>
 
+      {/* Sin id: #main-content ya lo usa el div del layout raíz. */}
+      <main>
       {/* Hero Section */}
       <section className="relative w-full bg-[#0F0F0F] pt-20 pb-32 px-6 overflow-hidden">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
@@ -455,6 +457,7 @@ export function PromoClient({ reviewCount = 0, reviews: googleReviews = [] }: Pr
           )}
         </button>
       </div>
+      </main>
 
       {/* Exit Intent Popup */}
       <AnimatePresence>

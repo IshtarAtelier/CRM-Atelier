@@ -79,7 +79,8 @@ export default async function CategoriaDeBlogPage(
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(listaLd) }} />
             <StorefrontNavbar theme="light" />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 lg:pt-36">
+            {/* Sin id: #main-content ya lo usa el div del layout raíz. */}
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 lg:pt-36">
                 <Link
                     href="/blog"
                     className="inline-flex items-center gap-2 text-sm font-bold text-stone-500 hover:text-primary transition-colors mb-6"
@@ -151,7 +152,7 @@ export default async function CategoriaDeBlogPage(
                         </div>
                     </div>
                 )}
-            </div>
+            </main>
 
             <StorefrontFooter />
         </div>

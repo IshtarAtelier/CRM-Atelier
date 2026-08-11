@@ -14,6 +14,14 @@ export async function HomeStorePreview() {
   const phone = settings.web_store_phone || BUSINESS_INFO.phone;
   const whatsappPhoneId = settings.web_store_whatsapp_id || WHATSAPP_PHONE;
 
+  // El texto secundario de esta sección va en `stone-300`, no en `stone-400/500`.
+  // No es capricho estético: el fondo es `bg-stone-950` LITERAL, oscuro siempre,
+  // sin importar el theme. Y `globals.css` corre los tokens `stone-300/400` un
+  // escalón hacia el oscuro en `:root` para que se lean sobre fondo CLARO — así
+  // que acá esos tokens hacen justo lo contrario, y `stone-400` y `stone-500`
+  // terminan en el mismo hex (#78716c), a 4,1:1 contra el fondo. Debajo del piso
+  // de 4,5:1. Aclarar el token global no es la salida: rompería el fondo claro,
+  // que es para lo que se corrió. La sección oscura elige su propio tono.
   return (
     <section className="relative w-full bg-stone-950 pt-24 lg:pt-32 pb-16 lg:pb-20 overflow-hidden border-t border-stone-900">
       {/* Dynamic Background Effects */}
@@ -44,7 +52,7 @@ export async function HomeStorePreview() {
                 <p className="text-[#e6d0a3] text-lg font-medium leading-relaxed max-w-md">
                   Si no te animaste a comprar en la web, ¡te esperamos en nuestro local!
                 </p>
-                <p className="text-stone-400 text-base md:text-lg font-light leading-relaxed max-w-md">
+                <p className="text-stone-300 text-base md:text-lg font-light leading-relaxed max-w-md">
                   Vení a conocer nuestro espacio en Córdoba Capital. Te brindamos asesoramiento estético (visagismo) y técnico especializado en un ambiente diseñado para tu comodidad.
                 </p>
               </div>
@@ -57,9 +65,9 @@ export async function HomeStorePreview() {
                   <MapPin className="w-6 h-6 text-[#b08f4c] group-hover:scale-110 transition-transform duration-500" />
                 </div>
                 <div className="space-y-1 pt-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Dirección</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-300">Dirección</p>
                   <p className="text-base font-medium text-stone-200">{addressLine}</p>
-                  <p className="text-sm text-stone-400">{localityLine}</p>
+                  <p className="text-sm text-stone-300">{localityLine}</p>
                 </div>
               </div>
 
@@ -69,15 +77,15 @@ export async function HomeStorePreview() {
                   <Clock className="w-6 h-6 text-[#b08f4c] group-hover:scale-110 transition-transform duration-500" />
                 </div>
                 <div className="space-y-1 pt-1.5 w-full">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-2">Horarios de Atención</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-300 mb-2">Horarios de Atención</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-stone-200">Lunes a Viernes</p>
-                      <p className="text-sm text-stone-400">08:00 - 20:00 hs</p>
+                      <p className="text-sm text-stone-300">08:00 - 20:00 hs</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-stone-200">Sábados</p>
-                      <p className="text-sm text-stone-400">09:00 - 17:00 hs</p>
+                      <p className="text-sm text-stone-300">09:00 - 17:00 hs</p>
                     </div>
                   </div>
                 </div>
@@ -89,7 +97,7 @@ export async function HomeStorePreview() {
                   <Phone className="w-6 h-6 text-[#b08f4c] group-hover:scale-110 transition-transform duration-500" />
                 </div>
                 <div className="space-y-1 pt-1.5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-500">Contacto directo</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-stone-300">Contacto directo</p>
                   <p className="text-base font-medium text-stone-200">{phone}</p>
                 </div>
               </div>

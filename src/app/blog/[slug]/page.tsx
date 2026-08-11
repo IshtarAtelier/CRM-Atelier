@@ -1600,6 +1600,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       )}
       <StorefrontNavbar theme="light" />
 
+      {/* Sin id: #main-content ya lo usa el div del layout raíz. */}
+      <main>
       <div className="bg-[#faf8f5] border-b border-black/5  pt-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
           <Link href="/blog" className="inline-flex items-center text-sm font-medium tracking-tight text-[#555] hover:text-[#111] transition-colors mb-8 group">
@@ -1611,7 +1613,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <span className="flex items-center text-xs font-bold uppercase tracking-widest text-[#111] bg-[#111]/10 px-3 py-1 rounded-full">
               <Tag className="w-3 h-3 mr-1" /> {post.category}
             </span>
-            <span className="flex items-center text-xs text-[#777] font-medium">
+            <span className="flex items-center text-xs text-stone-600 font-medium">
               <Calendar className="w-3 h-3 mr-1" />
               {new Date(post.date).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
@@ -1672,7 +1674,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <div className="mt-20">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <p className="text-[10px] font-medium tracking-tight uppercase tracking-[0.2em] text-[#777] mb-1">Seguir leyendo</p>
+              <p className="text-[10px] font-medium tracking-tight uppercase tracking-[0.2em] text-stone-600 mb-1">Seguir leyendo</p>
               <h2 className="text-2xl font-medium tracking-tight text-[#111] ">Más artículos</h2>
             </div>
             <Link href="/blog" className="flex items-center gap-2 text-sm font-medium tracking-tight text-[#111] hover:gap-3 transition-all">
@@ -1700,9 +1702,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         {/* ═══ BARRA EXPLORAR TIENDA ═══ */}
         <div className="mt-12 bg-stone-900 dark:bg-stone-800 rounded-3xl p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div>
-            <p className="text-[10px] font-medium tracking-tight uppercase tracking-[0.2em] text-[#777] mb-1">Atelier Óptica</p>
+            {/* Caja oscura: acá el texto tenue va MÁS claro, no más oscuro. El
+                #777 que estaba servía para los dos fondos y no alcanzaba para
+                ninguno (4,2:1 sobre el crema, 3,9:1 sobre esta caja). */}
+            <p className="text-[10px] font-medium tracking-tight uppercase tracking-[0.2em] text-stone-300 mb-1">Atelier Óptica</p>
             <h3 className="text-xl font-medium tracking-tight text-white">Explorá nuestra colección de armazones</h3>
-            <p className="text-[#777] text-sm mt-1">Diseños exclusivos con tu graduación incluida</p>
+            <p className="text-stone-300 text-sm mt-1">Diseños exclusivos con tu graduación incluida</p>
           </div>
           <div className="flex gap-3 shrink-0">
             <Link href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#111] rounded-full text-sm font-medium tracking-tight hover:bg-stone-100 transition-colors">
@@ -1715,8 +1720,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </div>
       </div>
 
+      </main>
+
       <StorefrontFooter />
-      
+
     </div>
   );
 }

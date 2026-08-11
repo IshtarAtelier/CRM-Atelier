@@ -66,6 +66,8 @@ function LoginForm() {
                 <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-amber-900/5 rounded-full blur-3xl" />
             </div>
 
+            {/* Sin id: #main-content ya lo usa el div del layout raíz. */}
+            <main>
             <div className="sm:mx-auto sm:w-full sm:max-w-md animate-in slide-in-from-bottom-4 fade-in duration-700">
                 <div className="flex justify-center">
                     <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center shadow-inner overflow-hidden border-2 border-primary/20 p-1">
@@ -205,6 +207,7 @@ function LoginForm() {
                     </div>
                 </div>
             </div>
+            </main>
         </div>
     );
 }

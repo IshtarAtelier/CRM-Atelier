@@ -29,7 +29,9 @@ export default function QuienesSomosPage() {
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 pb-20">
       <StorefrontNavbar theme="light" />
-      
+
+      {/* Sin id: #main-content ya lo usa el div del layout raíz. */}
+      <main>
       {/* Hero Section */}
       <div className="bg-primary/5 py-16 lg:py-24 border-b border-primary/10 pt-32">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -136,6 +138,8 @@ export default function QuienesSomosPage() {
         </div>
 
       </div>
+
+      </main>
 
       <StorefrontFooter />
       

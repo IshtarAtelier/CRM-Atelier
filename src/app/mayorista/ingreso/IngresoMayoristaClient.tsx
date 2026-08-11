@@ -46,7 +46,8 @@ export default function IngresoMayoristaClient() {
 
   return (
     <div className="min-h-screen bg-[#141110] text-[#faf8f5] flex flex-col justify-center px-6 py-12">
-      <div className="w-full max-w-md mx-auto">
+      {/* Sin id: #main-content ya lo usa el div del layout raíz. */}
+      <main className="w-full max-w-md mx-auto">
         <p className="text-xs tracking-[0.2em] uppercase text-[#c8a55c] mb-3 text-center">
           Cápsula Escarlata
         </p>
@@ -131,7 +132,7 @@ export default function IngresoMayoristaClient() {
           {/* Sin link al catálogo: /capsulaescarlata dejó de ser público (son
               precios netos B2B). El link se manda uno a uno desde el panel. */}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

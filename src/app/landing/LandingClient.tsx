@@ -290,6 +290,8 @@ export function LandingClient({
         </div>
       </header>
 
+      {/* Sin id: #main-content ya lo usa el div del layout raíz. */}
+      <main>
       {/* ═══════════════ HERO EDITORIAL ═══════════════ */}
       <section className="relative w-full bg-[#0F0F0F] min-h-[92svh] flex items-end md:items-center overflow-hidden">
         <HeroBackdrop images={config.hero.images} />
@@ -603,6 +605,8 @@ export function LandingClient({
 
       {/* Datos del negocio + legales: sin navegación a la tienda, pero con lo
           que Google Ads y Meta piden ver en el destino de un anuncio. */}
+      </main>
+
       <LandingFooter theme="dark" />
 
       {/* El WhatsApp flotante persistente lo inyecta el layout raíz (<FloatingWhatsApp/>). */}

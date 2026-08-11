@@ -150,9 +150,12 @@ export function GlassesDiagram({ productId, measures: initialMeasures, editable 
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex justify-between items-center group cursor-pointer border-b border-[#e5e5e5] pb-4"
       >
-        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-black">
+        {/* h2, no h3: en la ficha de producto este es el primer encabezado
+            después del <h1> del modelo, y con h3 el nivel saltaba uno. Este
+            componente solo se monta ahí, así que el nivel es seguro. */}
+        <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-black">
           Medidas y Calce
-        </h3>
+        </h2>
         <span className="text-xl font-light text-stone-400 group-hover:text-black transition-colors">
           {isOpen ? "−" : "+"}
         </span>

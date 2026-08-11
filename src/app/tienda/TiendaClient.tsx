@@ -382,7 +382,7 @@ export function TiendaClient({
             
             {/* Espacio vacío para equilibrar en desktop si fuera necesario, o promos a la izquierda */}
             <div className="hidden xl:flex flex-1 items-center gap-3">
-               <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full whitespace-nowrap">
+               <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full whitespace-nowrap">
                   ENVÍO GRATIS A TODO EL PAÍS
                </span>
             </div>
@@ -428,11 +428,11 @@ export function TiendaClient({
                     Tarifa Mayorista Activa
                  </span>
                ) : (
-                 <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-3 py-1.5 rounded-full whitespace-nowrap">
+                 <span className="text-[10px] font-black uppercase text-red-700 bg-red-50 px-3 py-1.5 rounded-full whitespace-nowrap">
                     {discountRate * 100}% OFF TRANSFERENCIA
                  </span>
                )}
-               <span className="xl:hidden text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full whitespace-nowrap">
+               <span className="xl:hidden text-[10px] font-black uppercase text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full whitespace-nowrap">
                   ENVÍO GRATIS
                </span>
             </div>
@@ -574,7 +574,7 @@ export function TiendaClient({
                             />
                           </div>
                         ) : (
-                          <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 text-stone-300">
+                          <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 text-stone-500">
                             <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
                               <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
                             </svg>
@@ -736,7 +736,7 @@ export function TiendaClient({
         )}
         
         {displayedProducts.length > 0 && (
-          <p className="mt-8 text-center text-[10px] text-stone-300 uppercase tracking-widest font-bold">
+          <p className="mt-8 text-center text-[10px] text-stone-500 uppercase tracking-widest font-bold">
             Mostrando {displayedProducts.length} de {totalCount} {totalCount === 1 ? "modelo" : "modelos"} · {isWholesale ? "Cápsula Escarlata" : "Atelier Óptica"}
           </p>
         )}

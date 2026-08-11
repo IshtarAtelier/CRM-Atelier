@@ -194,14 +194,21 @@ export function ProductClient({
   return (
     <div className="min-h-screen bg-white text-black selection:bg-black selection:text-white font-sans">
       <StorefrontNavbar theme="light" />
-      
+
+      {/* Sin id: #main-content ya lo usa el div del layout raíz (destino del
+          "Saltar al contenido principal"), y repetirlo daría dos ids iguales. */}
+      <main>
       <div className="flex flex-col lg:flex-row min-h-screen pt-16 lg:pt-0">
         
         <div className="w-full lg:w-[60%] bg-white relative flex items-center justify-center p-0 lg:p-12 min-h-[50vh] lg:h-screen lg:max-h-[56rem] lg:sticky lg:top-0 border-r border-[#e5e5e5] overflow-hidden group">
           
-          <div className="absolute inset-0 flex flex-col justify-center items-center opacity-[0.03] pointer-events-none overflow-hidden select-none">
+          {/* Marca de agua decorativa (3% de opacidad). El modelo iba como <h2>:
+              al estar antes del <h1> real, era el PRIMER encabezado del documento
+              y un lector de pantalla anunciaba el nombre dos veces, arrancando por
+              un nivel que no correspondía. Es decoración: div + aria-hidden. */}
+          <div aria-hidden="true" className="absolute inset-0 flex flex-col justify-center items-center opacity-[0.03] pointer-events-none overflow-hidden select-none">
             <div className="text-[15vw] leading-none font-bold tracking-tighter whitespace-nowrap">{product.brand}</div>
-            <h2 className="text-[10vw] leading-none font-medium tracking-tight whitespace-nowrap">{product.model}</h2>
+            <div className="text-[10vw] leading-none font-medium tracking-tight whitespace-nowrap">{product.model}</div>
           </div>
 
           {images.length > 1 && (
@@ -847,7 +854,7 @@ export function ProductClient({
       {similarProducts && similarProducts.length > 0 && (
         <div className="px-8 lg:px-14 pb-12 bg-white">
           <div className="border-t border-[#e5e5e5] pt-12">
-            <h3 className="text-xs font-black uppercase tracking-widest text-black mb-6">Productos que te pueden interesar</h3>
+            <h2 className="text-xs font-black uppercase tracking-widest text-black mb-6">Productos que te pueden interesar</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {similarProducts.map((p: any, idx: number) => (
                 <Link 
@@ -865,7 +872,7 @@ export function ProductClient({
                     />
                   </div>
                   <p className="text-xs text-stone-500 font-bold uppercase tracking-wider">{p.brand}</p>
-                  <h4 className="text-xs font-bold text-stone-900 truncate uppercase mt-0.5">{p.model}</h4>
+                  <h3 className="text-xs font-bold text-stone-900 truncate uppercase mt-0.5">{p.model}</h3>
                   <p className="text-xs text-stone-600 font-medium mt-1">
                     {(() => {
                       const pSale = p.salePrice != null && p.salePrice > 0 && p.salePrice < p.price;
@@ -888,6 +895,7 @@ export function ProductClient({
 
       {/* Prueba social: reseñas reales de Google, pegadas al punto de decisión */}
       <GoogleReviews />
+      </main>
 
       {footer}
 
