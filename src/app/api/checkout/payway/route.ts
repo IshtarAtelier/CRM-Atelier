@@ -978,6 +978,19 @@ export async function POST(req: Request) {
     // Cobramos el total con el cupón ya aplicado (la tarjeta no tiene descuento por método de pago).
     const amountInCents = Math.round(finalItemsTotal * 100);
 
+    const installments = [1, 3, 6].includes(parseInt(customer.installments || "1", 10))
+      ? parseInt(customer.installments || "1", 10)
+      : 1;
+
+    // Cuota Simple MiPyme: sin `plan_id`, Decidir aplica el plan GENÉRICO de esa
+    // cantidad de cuotas (el que factura interés al comercio), no el plan
+    // registrado como MiPyme. La cantidad de cuotas sola no alcanza — se venía
+    // mandando `installments: 3 / 6` sin `plan_id` y Decidir nunca aplicaba
+    // Cuota Simple, aunque la pantalla del checkout dijera "(Cuota Simple)".
+    // Códigos confirmados con la dueña el 10/8/2026: 13 para 3 cuotas, 16 para 6.
+    const PLAN_ID_CUOTA_SIMPLE: Record<number, number> = { 3: 13, 6: 16 };
+    const planId = PLAN_ID_CUOTA_SIMPLE[installments];
+
     const paywayRequest = {
       site_transaction_id: `WEB-${order.id}`,
       token: paymentToken,
@@ -985,8 +998,8 @@ export async function POST(req: Request) {
       bin: bin,
       amount: amountInCents,
       currency: "ARS",
-      // Solo planes ofrecidos por el comercio: 1 pago, 3 o 6 cuotas (los demás valores caen a 1 pago)
-      installments: [1, 3, 6].includes(parseInt(customer.installments || "1", 10)) ? parseInt(customer.installments || "1", 10) : 1,
+      installments,
+      ...(planId ? { plan_id: planId } : {}),
       description: "Compra Atelier Óptica Web",
       payment_type: "single",
       sub_payments: [],

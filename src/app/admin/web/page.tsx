@@ -26,6 +26,7 @@ import {
 import Link from "next/link";
 import CouponsManager from '@/components/admin/CouponsManager';
 import AnalyticsDashboard from '@/components/admin/analytics/AnalyticsDashboard';
+import VeredictoTienda from '@/components/admin/web/VeredictoTienda';
 import { LineChart } from 'lucide-react';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { WHATSAPP_PHONE } from '@/lib/constants';
@@ -949,11 +950,20 @@ export default function WebManagementPage() {
       </div>
 
       {/* TAB 0: ANALÍTICA (default — todo lo de la tienda arranca acá) */}
-      {activeTab === 'analitica' && userRole === 'ADMIN' && <AnalyticsDashboard />}
+      {activeTab === 'analitica' && userRole === 'ADMIN' && (
+        <>
+          <VeredictoTienda />
+          <AnalyticsDashboard />
+        </>
+      )}
 
       {/* TAB 1: PRODUCTS LIST */}
       {activeTab === 'products' && (
         <div className="space-y-6">
+          {/* El diagnóstico va ARRIBA del listado, no abajo: lo que hay que
+              cambiar del catálogo se decide antes de ponerse a editar fichas
+              una por una. */}
+          <VeredictoTienda />
           {/* SEARCH BAR */}
           <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 p-4 rounded-2xl shadow-sm">
             <div className="flex-1 relative">
