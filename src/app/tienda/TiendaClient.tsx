@@ -662,6 +662,24 @@ export function TiendaClient({
                         // (price), nunca salePrice, para que un mismo producto muestre el
                         // mismo valor (cuotas + eft/transf) en la home y en la tienda.
                         const base = (p.price || 0);
+
+                        // ¿Está REALMENTE en oferta? Es lo único que se grita.
+                        //
+                        // Antes las 114 tarjetas llevaban el mismo cartel verde
+                        // "15% OFF 🔥". Ese 15% es cierto, pero es una CONDICIÓN
+                        // DE PAGO (efectivo o transferencia), no una oferta: no
+                        // depende del producto y está en todos por igual. Con el
+                        // mismo cartel en todas, el ojo lo deja de ver a la
+                        // tercera tarjeta — y, peor, quemaba el único lugar
+                        // donde una oferta de verdad podía gritarse. La tarjeta
+                        // ni siquiera miraba `salePrice`: un producto rebajado
+                        // se veía igual que uno que no.
+                        // Ahora el cartel llamativo es exclusivo de la rebaja
+                        // real, y el 15% se dice donde corresponde: al lado del
+                        // precio de contado, como la condición que es.
+                        const oferta = (p.salePrice || 0) > 0 && p.salePrice < base;
+                        const ahorro = oferta ? Math.round((1 - p.salePrice / base) * 100) : 0;
+
                         return (
                           <div className="pt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex flex-col gap-0.5">
@@ -670,17 +688,23 @@ export function TiendaClient({
                                   {installmentsCount} cuotas de
                                 </span>
                                 <span className="text-[15px] font-black text-stone-900 tracking-tight whitespace-nowrap">
-                                  ${Math.round(base / installmentsCount).toLocaleString("es-AR")}
+                                  ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
                                 </span>
                               </p>
                               <p className="text-[10px] text-stone-500 font-medium">
-                                ${Math.round(base * (1 - discountRate)).toLocaleString("es-AR")} eft/transf
+                                ${Math.round((oferta ? p.salePrice : base) * (1 - discountRate)).toLocaleString("es-AR")} eft/transf
+                                {" "}
+                                <span className="text-stone-400">
+                                  (−{webSettings.web_promo_cash_discount}%)
+                                </span>
                               </p>
                             </div>
                             <div className="flex flex-row flex-wrap gap-1 sm:flex-col sm:items-end">
-                              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
-                                {webSettings.web_promo_cash_discount}% OFF 🔥
-                              </span>
+                              {oferta && (
+                                <span className="text-[10px] font-black uppercase tracking-widest text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+                                  {ahorro}% OFF 🔥
+                                </span>
+                              )}
                               <span className="text-[10px] font-black uppercase tracking-widest text-stone-700 bg-stone-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
                                 Envío Gratis
                               </span>
