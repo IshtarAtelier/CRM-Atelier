@@ -37,15 +37,16 @@ import {
     applyTeñidoPromoDiscount
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals } from '@/services/PricingService';
-import { 
-    Glasses, 
-    Sun, 
-    Eye, 
-    Activity, 
-    Box, 
-    Watch, 
-    Droplets, 
-    Gem 
+import {
+    Glasses,
+    Sun,
+    Eye,
+    Activity,
+    Box,
+    Watch,
+    Droplets,
+    Gem,
+    FlaskConical
 } from 'lucide-react';
 import type { Product } from '@/types/orders';
 import { normalizeLensOrigin, lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
@@ -64,6 +65,7 @@ const getTypeConfig = (type: string | null, category?: string | null) => {
         case 'Reloj': return { icon: Watch, label: 'Relojería', color: 'bg-blue-50 text-blue-600 border-blue-200' };
         case 'Líquido / Solución': return { icon: Droplets, label: 'Líquidos', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' };
         case 'Joyería': return { icon: Gem, label: 'Joyería', color: 'bg-rose-50 text-rose-600 border-rose-200' };
+        case 'Tratamiento': return { icon: FlaskConical, label: 'Tratamientos', color: 'bg-violet-50 text-violet-600 border-violet-200' };
         default: return { icon: Box, label: 'Otros', color: 'bg-stone-50 text-stone-400 border-stone-200' };
     }
 };
@@ -957,6 +959,60 @@ function CotizadorPageContent() {
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs">${Math.round(pTotal).toLocaleString()}</td>
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs text-emerald-650">${Math.round(pCash).toLocaleString()}</td>
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs text-violet-650">${Math.round(pTrans).toLocaleString()}</td>
+                                                        <td className="px-3 py-2.5 text-center">
+                                                            {inQuote ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> : <Plus className="w-4 h-4 text-stone-300 group-hover:text-primary mx-auto transition-colors" />}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    ) : activeType === 'Tratamiento' ? (
+                        <div className="max-w-[1500px] mx-auto">
+                            <div className="rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden shadow-md bg-white dark:bg-stone-900">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse" style={{ minWidth: 700 }}>
+                                        <thead>
+                                            <tr className="bg-stone-50 dark:bg-stone-800/80 text-stone-500 dark:text-stone-400 border-b border-stone-200/60 dark:border-stone-800">
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Producto</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[120px]">Tipo</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[80px]">Índice</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[120px]">Stock</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[120px]">P. Minorista</th>
+                                                {userRole === 'ADMIN' && (
+                                                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[120px] text-blue-600 dark:text-blue-400">P. Mayorista</th>
+                                                )}
+                                                <th className="px-3 py-3 w-12 text-center"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filtered.map((product, idx) => {
+                                                const inQuote = quoteItems.find(i => i.product?.id === product.id);
+                                                return (
+                                                    <tr
+                                                        key={product.id}
+                                                        onClick={() => addToQuote(product)}
+                                                        className={`cursor-pointer transition-colors border-b border-stone-100 dark:border-stone-800 ${idx % 2 === 0 ? 'bg-white dark:bg-stone-900' : 'bg-stone-50/30 dark:bg-stone-850/20'} hover:bg-primary/5`}
+                                                    >
+                                                        <td className="px-4 py-2.5">
+                                                            <p className="text-xs font-semibold whitespace-normal break-words">{product.name || '—'}</p>
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-center">
+                                                            <span className="text-[10px] font-bold uppercase text-stone-400">{product.type || '—'}</span>
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-center">
+                                                            <span className="text-[10px] font-bold">{product.lensIndex || '—'}</span>
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-center">
+                                                            <span className="text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">{product.laboratory || 'A Pedido'}</span>
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-right font-bold text-xs">${safePrice(product.price).toLocaleString()}</td>
+                                                        {userRole === 'ADMIN' && (
+                                                            <td className="px-4 py-2.5 text-right font-bold text-xs text-blue-600 dark:text-blue-400">${safePrice(product.wholesalePrice).toLocaleString()}</td>
+                                                        )}
                                                         <td className="px-3 py-2.5 text-center">
                                                             {inQuote ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> : <Plus className="w-4 h-4 text-stone-300 group-hover:text-primary mx-auto transition-colors" />}
                                                         </td>

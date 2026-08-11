@@ -111,6 +111,7 @@ export function getCategoryKey(type: string | null, category?: string | null): s
     
     if (isFrame(p)) return 'Armazón';
     if (isCrystal(p)) return 'Cristal';
+    if (isTreatment(p)) return 'Tratamiento';
 
     // Fallbacks for other specific types
     const t = normalizeText(type || '');

@@ -199,6 +199,7 @@ export interface Product {
     category: string;
     price: number;
     cost?: number;
+    wholesalePrice?: number;
     stock: number;
     lensIndex?: string | null;
     unitType?: string | null;
