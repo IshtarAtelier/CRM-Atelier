@@ -73,17 +73,47 @@ async function main() {
 
     const rows = Array.isArray(st.rows) ? st.rows : [];
     const sinCargar = rows.filter(r => !r.enSistema);
-    const sinVenta = rows.filter(r => r.enSistema && r.gemelo?.tipo === 'SIN_VENTA');
     const conVenta = rows.filter(r => r.gemelo?.tipo === 'VENTA');
     const conPostventa = rows.filter(r => r.gemelo?.tipo === 'POSTVENTA');
+
+    // LO QUE ESTE INFORME NO PUEDE EQUIVOCAR: decir "no está en el sistema"
+    // de algo que sí está. Una factura que llegó sin nº de pedido queda sin
+    // venta enganchada, pero la venta puede estar cargada perfectamente — lo
+    // que falta es el dato en el papel. Antes las dos cosas caían en la misma
+    // bolsa ("sin venta que las respalde") y eso hacía sonar grave lo que no
+    // lo era, y perderse lo que sí. Acá se separan, y de las que no traen nº
+    // se busca activamente la venta antes de darlas por huérfanas.
+    const esClaveSinNumero = p => !p || /^S\/PEDIDO/.test(String(p)) || !/^\d{5,}$/.test(String(p).trim());
+    const sinVentaCrudo = rows.filter(r => r.enSistema && r.gemelo?.tipo === 'SIN_VENTA');
+    const sinNumero = [];   // la factura no trae el nº: la venta puede existir
+    const huerfanas = [];   // pedido con nº propio y sin ninguna venta: lo grave
+    for (const r of sinVentaCrudo) {
+        if (esClaveSinNumero(r.gemelo?.pedido)) {
+            // ¿Sabemos a qué pedido corresponde? (planilla física) ¿y hay venta?
+            const dato = PENDIENTES_DE_ASIGNAR.find(p => normalizar(p.comprobante) === String(r.invoiceNumber));
+            let venta = null;
+            if (dato) {
+                const v = await prisma.$queryRaw`
+                    select o."labOrderNumber", c.name as cliente, o."clientId"
+                    from "Order" o left join "Client" c on c.id = o."clientId"
+                    where o."isDeleted" = false and o."labOrderNumber" like ${'%' + dato.pedido + '%'}`;
+                venta = v[0] || null;
+            }
+            sinNumero.push({ ...r, pedidoConocido: dato?.pedido || null, venta });
+        } else {
+            huerfanas.push(r);
+        }
+    }
+    const sinVenta = sinVentaCrudo;
 
     console.log(`Resumen de cuenta de Optovisión (Essilor)`);
     console.log(`  al ${fecha(st.statementDate)} · ${st.invoiceCount} facturas · deuda ${pesos(st.totalDebt)}`);
     console.log(`  archivo: ${st.sourceFile || '—'} · leído el ${fecha(st.createdAt)}\n`);
-    console.log(`  con venta enganchada .......... ${conVenta.length}`);
-    console.log(`  con postventa (reproceso) ..... ${conPostventa.length}`);
-    console.log(`  cargadas pero SIN venta ....... ${sinVenta.length}`);
-    console.log(`  NO están en el sistema ........ ${sinCargar.length}`);
+    console.log(`  con venta enganchada .............. ${conVenta.length}`);
+    console.log(`  con postventa (reproceso) ......... ${conPostventa.length}`);
+    console.log(`  la factura no trae el nº de pedido  ${sinNumero.length}  (la venta puede estar cargada)`);
+    console.log(`  pedido SIN venta en el sistema .... ${huerfanas.length}  ← lo grave`);
+    console.log(`  factura que no entró al sistema ... ${sinCargar.length}  ← lo grave`);
 
     const importeDe = r => r.importe ?? r.saldo ?? null;
     const totalSinCargar = sinCargar.reduce((a, r) => a + (importeDe(r) || 0), 0);
@@ -93,10 +123,21 @@ async function main() {
             console.log(`  ${String(r.invoiceNumber).padEnd(16)} ${fecha(r.fecha).padEnd(12)} ${pesos(importeDe(r))}`);
         }
     }
-    if (sinVenta.length) {
-        console.log(`\nCARGADAS PERO SIN VENTA QUE LAS RESPALDE:`);
-        for (const r of sinVenta) {
+    if (huerfanas.length) {
+        console.log(`\nPEDIDOS FACTURADOS SIN NINGUNA VENTA EN EL SISTEMA:`);
+        for (const r of huerfanas) {
             console.log(`  ${String(r.invoiceNumber).padEnd(16)} pedido ${r.gemelo?.pedido || '—'} · ${pesos(importeDe(r))}`);
+        }
+    }
+    if (sinNumero.length) {
+        console.log(`\nFACTURAS QUE NO TRAEN EL Nº DE PEDIDO (la venta puede estar cargada):`);
+        for (const r of sinNumero) {
+            const donde = r.venta
+                ? `es de ${r.venta.cliente} (${r.venta.labOrderNumber})`
+                : r.pedidoConocido
+                    ? `sería el pedido ${r.pedidoConocido}, que no figura en ninguna venta`
+                    : 'falta identificar a qué pedido corresponde';
+            console.log(`  ${String(r.invoiceNumber).padEnd(16)} ${pesos(importeDe(r)).padStart(12)} · ${donde}`);
         }
     }
 
@@ -194,10 +235,10 @@ async function main() {
         console.log(`\n\n(Informe no enviado. Para mandarlo por email: --enviar)`);
         return;
     }
-    await enviar({ st, rows, sinCargar, sinVenta, conVenta, conPostventa, asignables, conLetra, totalSinCargar });
+    await enviar({ st, rows, sinCargar, huerfanas, sinNumero, conVenta, conPostventa, asignables, conLetra, totalSinCargar });
 }
 
-async function enviar({ st, rows, sinCargar, sinVenta, conVenta, conPostventa, asignables, conLetra, totalSinCargar }) {
+async function enviar({ st, rows, sinCargar, huerfanas, sinNumero, conVenta, conPostventa, asignables, conLetra, totalSinCargar }) {
     const key = process.env.RESEND_API_KEY;
     const to = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
     const from = process.env.EMAIL_FROM || 'Atelier Óptica <onboarding@resend.dev>';
@@ -218,11 +259,29 @@ async function enviar({ st, rows, sinCargar, sinVenta, conVenta, conPostventa, a
             ${sinCargar.map(r => `<tr><td style="${td};font-family:monospace">${r.invoiceNumber}</td><td style="${td}">${fecha(r.fecha)}</td><td style="${td};text-align:right">${pesos(r.importe)}</td><td style="${td};text-align:right">${pesos(r.saldo)}</td></tr>`).join('')}
         </table>` : '<p style="color:#047857"><strong>Todas las facturas del resumen están cargadas en el sistema.</strong></p>';
 
-    const tablaSinVenta = sinVenta.length ? `
-        <h3 style="color:#c2410c">Cargadas, pero sin venta que las respalde (${sinVenta.length})</h3>
+    const tablaHuerfanas = huerfanas.length ? `
+        <h3 style="color:#b91c1c">Pedidos facturados que NO están en el sistema (${huerfanas.length})</h3>
+        <p>El laboratorio cobró estos pedidos y no hay ninguna venta ni postventa que los respalde. Esto es lo grave: o falta cargar la venta, o hay que reclamárselo al laboratorio.</p>
         <table style="border-collapse:collapse;width:100%;font-size:13px">
             <tr><th style="${th}">Comprobante</th><th style="${th}">Pedido</th><th style="${th}">Importe</th></tr>
-            ${sinVenta.map(r => `<tr><td style="${td};font-family:monospace">${r.invoiceNumber}</td><td style="${td};font-family:monospace">${r.gemelo?.pedido || '—'}</td><td style="${td};text-align:right">${pesos(importeDe(r))}</td></tr>`).join('')}
+            ${huerfanas.map(r => `<tr><td style="${td};font-family:monospace">${r.invoiceNumber}</td><td style="${td};font-family:monospace">${r.gemelo?.pedido || '—'}</td><td style="${td};text-align:right">${pesos(importeDe(r))}</td></tr>`).join('')}
+        </table>` : '';
+
+    const tablaSinNumero = sinNumero.length ? `
+        <h3 style="color:#c2410c">Facturas que no traen el nº de pedido (${sinNumero.length})</h3>
+        <p><strong>Esto no es "sin venta".</strong> Optovisión emite algunas facturas contra remito, sin decir a qué pedido corresponden.
+        La venta puede estar cargada perfectamente — lo que falta es el dato en el papel para engancharlas.</p>
+        <table style="border-collapse:collapse;width:100%;font-size:13px">
+            <tr><th style="${th}">Comprobante</th><th style="${th}">Importe</th><th style="${th}">A qué venta corresponde</th></tr>
+            ${sinNumero.map(r => `<tr>
+                <td style="${td};font-family:monospace">${r.invoiceNumber}</td>
+                <td style="${td};text-align:right">${pesos(importeDe(r))}</td>
+                <td style="${td}">${r.venta
+                    ? `<strong>${r.venta.cliente}</strong> — pedido ${r.venta.labOrderNumber} <span style="color:#047857">(identificada: falta asignarla)</span>`
+                    : r.pedidoConocido
+                        ? `sería el pedido ${r.pedidoConocido}, que <span style="color:#b91c1c">no figura en ninguna venta</span>`
+                        : 'falta identificar a qué pedido corresponde'}</td>
+            </tr>`).join('')}
         </table>` : '';
 
     const tablaAsignar = `
@@ -255,7 +314,8 @@ async function enviar({ st, rows, sinCargar, sinVenta, conVenta, conPostventa, a
             <p>Resumen al <strong>${fecha(st.statementDate)}</strong>: ${st.invoiceCount} facturas, deuda ${pesos(st.totalDebt)}.
             De esas, ${conVenta.length} tienen venta enganchada y ${conPostventa.length} son reprocesos de postventa.</p>
             ${tablaSinCargar}
-            ${tablaSinVenta}
+            ${tablaHuerfanas}
+            ${tablaSinNumero}
             ${tablaAsignar}
             ${tablaLetra}
         </div>`;
