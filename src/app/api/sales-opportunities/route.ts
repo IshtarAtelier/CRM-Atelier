@@ -36,10 +36,11 @@ export async function GET() {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        // 45 días: los tickets grandes (multifocales, controles de miopía,
-        // graduaciones altas) se piensan más — 30 días los soltaba demasiado pronto.
-        const fortyFiveDaysAgo = new Date();
-        fortyFiveDaysAgo.setDate(fortyFiveDaysAgo.getDate() - 45);
+        // Ventana de 30 días, por definición del negocio (12/8/2026): "cierres es
+        // todos los que no hayan comprado aún, que tengan dentro de los 30 días y
+        // sean tickets altos". Más viejo que eso ya no se persigue desde el panel.
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
         const opportunities: any[] = [];
 
@@ -117,7 +118,7 @@ export async function GET() {
                 ? new Date(Math.max(...dates.map(d => d.getTime())))
                 : client.createdAt;
 
-            if (lastActivity < threeDaysAgo && lastActivity > fortyFiveDaysAgo) {
+            if (lastActivity < threeDaysAgo && lastActivity > thirtyDaysAgo) {
                 const latestRx = client.prescriptions[0];
                 const latestOrder = client.orders[0];
 
@@ -175,20 +176,20 @@ export async function GET() {
                 isDeleted: false,
                 createdAt: {
                     lt: threeDaysAgo,
-                    gt: fortyFiveDaysAgo
+                    gt: thirtyDaysAgo
                 },
+                // "No compró AÚN" = no hay venta POSTERIOR a este presupuesto
+                // (se resuelve abajo, en JS, mirando las ventas del cliente).
+                //
+                // Antes acá se exigía además `status notIn CLIENT/active` y
+                // "cero ventas en la historia": un cliente viejo que volvía a
+                // pedir presupuesto quedaba invisible para siempre — y son
+                // justamente los más fáciles de cerrar. Medido contra
+                // producción (12/8/2026): entre ese filtro y la exclusión por
+                // nombre/teléfono de más abajo, el panel llevaba semanas en
+                // cero con 76 clientes reales para perseguir.
                 client: {
-                    isDeleted: false,
-                    status: { notIn: ['CLIENT', 'active'] },
-                    orders: {
-                        none: {
-                            OR: [
-                                { orderType: 'SALE' },
-                                { status: 'CONFIRMED', updatedAt: { gte: sevenDaysAgo } }
-                            ],
-                            isDeleted: false
-                        }
-                    }
+                    isDeleted: false
                 }
             },
             select: {
@@ -202,7 +203,19 @@ export async function GET() {
                         name: true,
                         phone: true,
                         email: true,
-                        opportunityDismissedAt: true
+                        opportunityDismissedAt: true,
+                        // Para decidir "compró después" y "venta en curso" sin
+                        // una query por presupuesto.
+                        orders: {
+                            where: {
+                                isDeleted: false,
+                                OR: [
+                                    { orderType: 'SALE' },
+                                    { status: 'CONFIRMED', updatedAt: { gte: sevenDaysAgo } }
+                                ]
+                            },
+                            select: { id: true, orderType: true, status: true, createdAt: true, updatedAt: true }
+                        }
                     }
                 },
                 items: {
@@ -225,6 +238,21 @@ export async function GET() {
             if (quote.client.opportunityDismissedAt && quote.createdAt < quote.client.opportunityDismissedAt) {
                 continue;
             }
+
+            // "No compró aún": si hay una VENTA posterior al presupuesto, este
+            // presupuesto se cerró (o quedó superado) — afuera. Una venta
+            // ANTERIOR no lo tapa: cliente que vuelve es oportunidad de nuevo.
+            const boughtAfter = quote.client.orders.some(o =>
+                o.orderType === 'SALE' && o.createdAt > quote.createdAt
+            );
+            if (boughtAfter) continue;
+
+            // Venta en curso: algo del cliente quedó CONFIRMED hace <7 días y
+            // no es este mismo presupuesto frío — un vendedor ya está encima.
+            const inProgress = quote.client.orders.some(o =>
+                o.id !== quote.id && o.status === 'CONFIRMED' && o.updatedAt >= sevenDaysAgo
+            );
+            if (inProgress) continue;
 
             const hasHighValue = quote.total >= 250000;
             let hasHighGraduation = false;
@@ -289,7 +317,7 @@ export async function GET() {
                 },
                 createdAt: {
                     lt: oneDayAgo,
-                    gt: fortyFiveDaysAgo
+                    gt: thirtyDaysAgo
                 }
             },
             orderBy: {
@@ -395,24 +423,27 @@ export async function GET() {
             }
         });
 
-        // Llaves de clientes ya convertidos: teléfono normalizado, email y nombre.
+        // Llaves de clientes ya convertidos: teléfono normalizado y email.
+        //
+        // SIN nombre, y SOLO para carritos. Esta exclusión mataba el panel
+        // entero: medido contra producción (12/8/2026), los 5 presupuestos que
+        // sobrevivían a todos los demás filtros caían acá — "fernando" a secas
+        // coincidía con cualquier cliente convertido llamado Fernando, y un
+        // teléfono compartido (madre e hija) tapaba a la persona que no compró.
+        // Para presupuestos y favoritos la ficha es conocida y "¿compró?" ya se
+        // decide mirando SUS ventas; el match difuso solo aporta para carritos
+        // web, donde la identidad es un formulario a medio llenar.
         const clientPhones = new Set<string>();
-        const clientNames = new Set<string>();
         const clientEmails = new Set<string>();
 
         for (const c of clientsWithSales) {
-            clientNames.add(c.name.trim().toLowerCase());
             const pk = phoneKey(c.phone);
             if (pk) clientPhones.add(pk);
             if (c.email) clientEmails.add(c.email.trim().toLowerCase());
         }
 
-        // Excluir oportunidades de gente que ya es cliente (nombre exacto,
-        // teléfono normalizado o email).
         const filteredOpportunities = opportunities.filter(opp => {
-            if (clientNames.has(opp.clientName.trim().toLowerCase())) {
-                return false;
-            }
+            if (opp.type !== 'ABANDONED_CART') return true;
             const pk = phoneKey(opp.phone);
             if (pk && clientPhones.has(pk)) {
                 return false;
