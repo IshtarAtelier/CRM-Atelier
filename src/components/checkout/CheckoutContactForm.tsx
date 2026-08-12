@@ -72,37 +72,14 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             onChange={handleChange}
           />
         </div>
-        <div className="col-span-full">
-          {/* Opcional a propósito: es el único dato de esta sección que no hace
-              falta para cobrar, y un campo obligatorio más frena a alguien que
-              ya decidió comprar. Se pide igual porque casi ninguna ficha la
-              tiene, y sin ella pasan dos cosas: el saludo de cumpleaños es
-              imposible, y toda venta con cristales se traba en el gate de
-              fábrica —que la exige— hasta que alguien la carga a mano. */}
-          <label
-            htmlFor="checkout-birthdate"
-            className="block text-[11px] uppercase tracking-widest text-stone-500 mb-1"
-          >
-            Fecha de nacimiento <span className="normal-case tracking-normal">(opcional)</span>
-          </label>
-          <input
-            id="checkout-birthdate"
-            type="date"
-            name="birthDate"
-            value={formData.birthDate || ""}
-            max={new Date().toISOString().slice(0, 10)}
-            autoComplete="bday"
-            className="w-full border border-stone-200 p-3 text-sm text-stone-700 focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors"
-            onChange={handleChange}
-          />
-          {/* No promete un beneficio de cumpleaños: ese flujo está DIFERIDO
-              hasta juntar ≥200 fichas con fecha (hoy son 2 de 1096), o sea meses.
-              Prometerlo ahora es quedar mal con cada persona que lo lea y no
-              reciba nada. Cuando el flujo exista, se actualiza este texto. */}
-          <p className="mt-1 text-[11px] leading-snug text-stone-500">
-            Nos sirve para saludarte, y si tu pedido lleva cristales nos evita pedírtela después.
-          </p>
-        </div>
+        {/* La fecha de nacimiento se sacó del checkout el 11/8/2026: un campo
+            más entre "ya decidí comprar" y el pago, a cambio de un dato que no
+            hace falta para cobrar.
+            Consecuencia asumida: el gate de fábrica la exige, así que toda venta
+            con cristales queda esperando a que alguien la cargue a mano en la
+            ficha. El backend sigue aceptando `birthDate` (payway/route.ts la
+            guarda si viene), así que volver a mostrarla es reponer este bloque
+            —no hay nada más que tocar. */}
       </div>
     </section>
   );
