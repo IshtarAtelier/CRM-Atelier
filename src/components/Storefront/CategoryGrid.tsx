@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
@@ -79,13 +78,20 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
           ? 'p-0 scale-125' 
           : (isDiana ? 'p-0 scale-110' : 'p-6');
 
+        // Fundido por CSS (`.tienda-grid-fade`, ya en globals.css y anulado bajo
+        // prefers-reduced-motion) en vez de framer-motion.
+        //
+        // El fade escalonado (`delay: index * 0.05`) hacía que cada tarjeta
+        // entrara a destiempo y quedara ratos en opacidad parcial: los textos
+        // medían 3,3-4,1:1 de contraste en vez del color declarado, porque el
+        // color efectivo depende de en qué punto del fundido se los mire. Con la
+        // animación pareja el texto tiene siempre su color real. De paso, estas
+        // pantallas (/receta, /lentes-de-sol, /clip-on) dejan de bajar
+        // framer-motion: era su único uso en el componente.
         return (
-          <motion.div 
+          <div
             key={p.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05, duration: 0.5 }}
-            className="group cursor-pointer flex flex-col"
+            className="group cursor-pointer flex flex-col tienda-grid-fade"
           >
             <Link href={`/producto/${p.slug}`} className="flex-1 flex flex-col">
               <div className="relative aspect-square mb-4 bg-[#fdfdfd] border border-[#f0f0f0] overflow-hidden rounded-xl isolate">
@@ -145,7 +151,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                   </p>
                   {/* La promesa más fuerte de la tienda solo vivía en la cinta superior:
                       acá acompaña al precio, que es donde se compara. */}
-                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-500">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800 dark:text-emerald-500">
                     Envío gratis a todo el país
                   </p>
                   
@@ -155,7 +161,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                 </div>
               </div>
             </Link>
-          </motion.div>
+          </div>
         );
       })}
     </div>
