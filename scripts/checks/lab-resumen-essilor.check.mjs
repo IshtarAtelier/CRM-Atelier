@@ -127,6 +127,38 @@ async function main() {
         if (yaCargado[0]) console.log(`    ojo: ya existe una entrada con el pedido ${p.pedido} (${yaCargado[0].status})`);
     }
 
+    // ── Pedidos que caen DENTRO de un rango ───────────────────────────────
+    // Las ventas cargan los pedidos como rango: "588966 - 588968". El cruce
+    // lee los números sueltos (/\d{4,}/g), así que ve el 588966 y el 588968
+    // pero NO el 588967: la factura del pedido del medio queda huérfana para
+    // siempre aunque su venta esté cargada.
+    const conRango = await prisma.$queryRaw`
+        select o.id, o."labOrderNumber", c.name as cliente
+        from "Order" o left join "Client" c on c.id = o."clientId"
+        where o."isDeleted" = false
+          and o."labOrderNumber" ~ '[0-9]{5,}[^0-9]+[0-9]{5,}'`;
+    const rangos = conRango.map(o => {
+        const nums = (o.labOrderNumber.match(/\d{5,}/g) || []).map(Number);
+        return { ...o, desde: Math.min(...nums), hasta: Math.max(...nums), sueltos: new Set(nums) };
+    }).filter(r => r.hasta - r.desde > 1 && r.hasta - r.desde < 20);
+
+    const enRango = n => rangos.find(r => n > r.desde && n < r.hasta && !r.sueltos.has(n));
+
+    console.log(`\n\nPEDIDOS QUE CAEN EN EL MEDIO DE UN RANGO`);
+    console.log(`  ventas con rango de más de dos números: ${rangos.length}`);
+    for (const p of PENDIENTES_DE_ASIGNAR) {
+        const r = enRango(Number(p.pedido));
+        if (r) console.log(`  pedido ${p.pedido} está DENTRO de "${r.labOrderNumber}" — ${r.cliente}`);
+    }
+    const huerfanos = await prisma.$queryRaw`
+        select "labOrderNumber" from "LabCostEntry"
+        where status = 'UNMATCHED' and "labOrderNumber" ~ '^[0-9]{5,8}$'`;
+    const rescatables = huerfanos
+        .map(h => ({ num: Number(h.labOrderNumber), venta: enRango(Number(h.labOrderNumber)) }))
+        .filter(x => x.venta);
+    console.log(`  facturas huérfanas cuyo pedido cae dentro del rango de una venta: ${rescatables.length}`);
+    for (const x of rescatables) console.log(`    ${x.num} → "${x.venta.labOrderNumber}" (${x.venta.cliente})`);
+
     // ── El identificador "con letra" (TI-7101093) ─────────────────────────
     // En el sistema el número está pelado, sin la T: lo que se cargó es
     // 7101093. Se reconoce por el LARGO, que es la firma de cada identificador:
