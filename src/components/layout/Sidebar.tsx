@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store, LineChart, Star } from "lucide-react";
+import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, ChevronDown, Wrench, Globe, FlaskConical, Store, LineChart, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -68,9 +68,17 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       // email en OPTICAS_LEADS_EMAILS — Milena entra por URL directa si no es ADMIN)
       { href: "/admin/opticas", label: "↳ Captación Ópticas", icon: Store, adminOnly: true, isSubLink: true },
       { href: "/admin/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
-      { href: "/admin/web", label: "Sitio Web", icon: ShoppingCart, adminOnly: true },
-      { href: "/admin/analitica", label: "↳ Analítica Web", icon: LineChart, adminOnly: true, isSubLink: true },
-      { href: "/admin/resenas", label: "↳ Reseñas", icon: Star, adminOnly: true, isSubLink: true },
+      // Todo lo de la tienda online cuelga de "Sitio Web" como grupo desplegable.
+      // Antes eran hermanos con una flechita en el texto: parecían anidados pero
+      // el menú era una lista plana, así que quien buscaba las reseñas las leía
+      // como una sección más del CRM y no como parte de la web.
+      {
+        href: "/admin/web", label: "Sitio Web", icon: ShoppingCart, adminOnly: true,
+        children: [
+          { href: "/admin/analitica", label: "Analítica Web", icon: LineChart, adminOnly: true },
+          { href: "/admin/resenas", label: "Reseñas", icon: Star, adminOnly: true },
+        ],
+      },
       { href: "/admin/cotizador", label: "Cotizador", icon: Calculator, adminOnly: false },
       { href: "/admin/ventas", label: "Ventas / Laboratorio", icon: ClipboardList, adminOnly: false },
       { href: "/admin/ventas?mode=WEB", label: "↳ Ventas Web", icon: Globe, adminOnly: false, isSubLink: true },
@@ -87,7 +95,106 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/configuracion", label: "Configuración", icon: Cog, adminOnly: true },
     ];
 
-  const links = allLinks.filter(link => !link.adminOnly || isAdmin);
+  const links = allLinks
+    .filter(link => !link.adminOnly || isAdmin)
+    .map(link =>
+      link.children
+        ? { ...link, children: link.children.filter(hijo => !hijo.adminOnly || isAdmin) }
+        : link,
+    );
+
+  /** ¿La ruta actual es la del grupo "Sitio Web" o la de alguno de sus hijos? */
+  const rutaDelGrupoWeb = (p: string) =>
+    p.startsWith('/admin/web') || p.startsWith('/admin/analitica') || p.startsWith('/admin/resenas');
+
+  // El grupo arranca abierto si ya estás parada adentro: llegar a /admin/resenas
+  // desde un link y encontrar el menú cerrado, sin nada resaltado, deja sin
+  // saber dónde estás.
+  const [webAbierto, setWebAbierto] = useState(() => rutaDelGrupoWeb(pathname));
+  useEffect(() => {
+    if (rutaDelGrupoWeb(pathname)) setWebAbierto(true);
+  }, [pathname]);
+
+  type LinkMenu = { href: string; label: string; icon: any; adminOnly?: boolean; isSubLink?: boolean; children?: LinkMenu[] };
+
+  const esActivo = (link: LinkMenu) => {
+    if (link.href === '/admin/caja') return pathname === '/admin/caja';
+    if (link.href === '/admin/ventas') {
+      return pathname === '/admin/ventas' && searchParams.get('mode') !== 'POST_VENTA' && searchParams.get('mode') !== 'WEB';
+    }
+    if (link.href === '/admin/ventas?mode=POST_VENTA') {
+      return pathname === '/admin/ventas' && searchParams.get('mode') === 'POST_VENTA';
+    }
+    if (link.href === '/admin/ventas?mode=WEB') {
+      return pathname === '/admin/ventas' && searchParams.get('mode') === 'WEB';
+    }
+    return pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href) && !link.href.includes('?'));
+  };
+
+  const renderLink = (link: LinkMenu, esHijo: boolean) => {
+    const Icon = link.icon;
+    const isActive = esActivo(link);
+
+    return (
+      <Link
+        key={link.href}
+        href={link.href}
+        title={isCollapsed ? link.label : undefined}
+        className={`relative flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 group ${
+          isCollapsed ? 'justify-center px-0' : esHijo ? 'pl-8 pr-3' : 'px-3'
+        } ${isActive ? 'text-[#c2a38a]' : 'text-stone-400 hover:text-stone-100 hover:bg-white/[0.03]'}`}
+      >
+        {isActive && (
+          <motion.div
+            layoutId="active-pill"
+            className="absolute inset-0 bg-gradient-to-r from-[#c2a38a]/18 to-[#c2a38a]/4 rounded-xl border-l-[3px] border-[#c2a38a] shadow-[0_0_15px_rgba(194,163,138,0.1)]"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+        <div className={`relative z-10 flex items-center gap-3 w-full transition-transform duration-300 ${isActive ? 'translate-x-0.5' : 'group-hover:translate-x-1'}`}>
+          <Icon size={18} className={`transition-all duration-300 w-[18px] h-[18px] shrink-0 ${isActive ? 'text-[#c2a38a] drop-shadow-[0_0_8px_rgba(194,163,138,0.4)]' : 'text-stone-500 group-hover:text-[#c2a38a]'}`} />
+          {!isCollapsed && <span className={`text-[10px] font-semibold whitespace-nowrap tracking-wide uppercase transition-colors ${isActive ? 'text-white font-bold' : 'text-stone-400 group-hover:text-stone-200'}`}>{link.label}</span>}
+          {link.label === "WhatsApp" && !isCollapsed && <WhatsAppBadge />}
+          {link.label === "↳ Ventas Web" && !isCollapsed && <WebSalesBadge />}
+          {link.label === "Contactos y Clientes" && !isCollapsed && <ContactsAttentionBadge />}
+          {link.label === "WhatsApp" && isCollapsed && (
+            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#12100f] shadow-[0_0_8px_#22c55e]"></div>
+          )}
+          {link.label === "Contactos y Clientes" && isCollapsed && <ContactsAttentionBadge collapsed />}
+        </div>
+      </Link>
+    );
+  };
+
+  /**
+   * Grupo desplegable. El nombre sigue siendo un link (entrar a "Sitio Web"
+   * tiene que seguir llevando a /admin/web) y la flechita es un botón aparte:
+   * si el chevron fuera parte del link, abrir el grupo obligaría a navegar.
+   */
+  const renderGrupo = (link: LinkMenu) => {
+    const abierto = webAbierto;
+    return (
+      <div key={link.href} className="space-y-1.5">
+        <div className="relative flex items-center">
+          <div className="flex-1">{renderLink(link, false)}</div>
+          <button
+            type="button"
+            onClick={() => setWebAbierto(v => !v)}
+            aria-expanded={abierto}
+            aria-label={`${abierto ? 'Contraer' : 'Expandir'} ${link.label}`}
+            className="absolute right-1 z-20 p-1.5 rounded-lg text-stone-500 hover:text-[#c2a38a] hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2a38a]"
+          >
+            <ChevronDown size={14} className={`transition-transform duration-300 ${abierto ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+        {abierto && (
+          <div className="space-y-1.5 border-l border-white/[0.06] ml-4">
+            {(link.children || []).map(hijo => renderLink(hijo, true))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const sidebarContent = (
     <>
@@ -109,50 +216,14 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       </div>
 
       <nav className={`flex-1 overflow-y-auto space-y-1.5 no-scrollbar ${isCollapsed ? 'px-2' : 'px-4'}`}>
-        {links.map((link) => {
-          const Icon = link.icon;
-          let isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href) && !link.href.includes('?'));
-          
-          if (link.href === '/admin/caja') {
-             isActive = pathname === '/admin/caja';
-          } else if (link.href === '/admin/ventas') {
-             isActive = pathname === '/admin/ventas' && searchParams.get('mode') !== 'POST_VENTA' && searchParams.get('mode') !== 'WEB';
-          } else if (link.href === '/admin/ventas?mode=POST_VENTA') {
-             isActive = pathname === '/admin/ventas' && searchParams.get('mode') === 'POST_VENTA';
-          } else if (link.href === '/admin/ventas?mode=WEB') {
-             isActive = pathname === '/admin/ventas' && searchParams.get('mode') === 'WEB';
-          }
-
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              title={isCollapsed ? link.label : undefined}
-              className={`relative flex items-center gap-3 py-2.5 rounded-xl transition-all duration-300 group ${
-                isCollapsed ? 'justify-center px-0' : 'px-3'
-              } ${isActive ? 'text-[#c2a38a]' : 'text-stone-400 hover:text-stone-100 hover:bg-white/[0.03]'}`}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="active-pill"
-                  className="absolute inset-0 bg-gradient-to-r from-[#c2a38a]/18 to-[#c2a38a]/4 rounded-xl border-l-[3px] border-[#c2a38a] shadow-[0_0_15px_rgba(194,163,138,0.1)]"
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
-              <div className={`relative z-10 flex items-center gap-3 w-full transition-transform duration-300 ${isActive ? 'translate-x-0.5' : 'group-hover:translate-x-1'}`}>
-                <Icon size={18} className={`transition-all duration-300 w-[18px] h-[18px] shrink-0 ${isActive ? 'text-[#c2a38a] drop-shadow-[0_0_8px_rgba(194,163,138,0.4)]' : 'text-stone-500 group-hover:text-[#c2a38a]'}`} />
-                {!isCollapsed && <span className={`text-[10px] font-semibold whitespace-nowrap tracking-wide uppercase transition-colors ${isActive ? 'text-white font-bold' : 'text-stone-400 group-hover:text-stone-200'}`}>{link.label}</span>}
-                {link.label === "WhatsApp" && !isCollapsed && <WhatsAppBadge />}
-                {link.label === "↳ Ventas Web" && !isCollapsed && <WebSalesBadge />}
-                {link.label === "Contactos y Clientes" && !isCollapsed && <ContactsAttentionBadge />}
-                {link.label === "WhatsApp" && isCollapsed && (
-                  <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#12100f] shadow-[0_0_8px_#22c55e]"></div>
-                )}
-                {link.label === "Contactos y Clientes" && isCollapsed && <ContactsAttentionBadge collapsed />}
-              </div>
-            </Link>
-          );
-        })}
+        {links.map((link) =>
+          link.children?.length && !isCollapsed
+            ? renderGrupo(link)
+            // Con la barra en modo íconos no hay lugar para desplegar nada, así
+            // que los hijos se muestran al mismo nivel: escondidos detrás de un
+            // grupo que no se puede abrir quedarían inalcanzables.
+            : [renderLink(link, false), ...(link.children || []).map(hijo => renderLink(hijo, false))]
+        )}
       </nav>
 
       <div className="mt-auto relative pb-4">
