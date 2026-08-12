@@ -498,7 +498,14 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
             data: { alertedAt: ahora, alertedStatus: st },
         }).catch(err => console.error('[LabCost] Error marcando hallazgos alertados:', err));
     }
-    return { alerted: findings.length, ...(pendientes > 0 ? { pendientes } : {}) };
+    // Los 2x1 se informan aparte en el resultado: si solo salieron ellos,
+    // `alerted: 0` haría parecer que el cron no avisó nada (y un run verde que
+    // miente es cómo se pierde de vista que algo dejó de funcionar).
+    return {
+        alerted: findings.length,
+        ...(doblesMostrados.length ? { dobleCobro: doblesMostrados.length } : {}),
+        ...(pendientes > 0 ? { pendientes } : {}),
+    };
 }
 
 

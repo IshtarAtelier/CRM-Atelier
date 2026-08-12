@@ -104,7 +104,6 @@ async function main() {
             huerfanas.push(r);
         }
     }
-    const sinVenta = sinVentaCrudo;
 
     console.log(`Resumen de cuenta de Optovisión (Essilor)`);
     console.log(`  al ${fecha(st.statementDate)} · ${st.invoiceCount} facturas · deuda ${pesos(st.totalDebt)}`);

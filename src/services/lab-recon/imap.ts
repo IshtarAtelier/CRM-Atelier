@@ -1,7 +1,7 @@
 import imaps from 'imap-simple';
 import { simpleParser } from 'mailparser';
 import { prisma } from '../../lib/db';
-import { notaFacturaCompartida } from '../../lib/lab-factura';
+import { CLAVE_SIN_NUMERO, notaFacturaCompartida } from '../../lib/lab-factura';
 import { OptovisionParserService } from '../optovision-parser.service';
 import { upsertEntry } from './cost-matching';
 
@@ -159,8 +159,13 @@ export async function scanOptovisionInbox(sinceDays = 35) {
                         const nroFactura = (invoice.rawText || '').match(/FACTURA N°\s*([\d]{4})\s*-?\s*([\d]{6,})/);
                         const remito = (invoice.rawText || '').match(/\b(E\d)\s+(\d{5,})\b/);
                         const clave = nroFactura
-                            ? `S/PEDIDO ${nroFactura[1]}-${nroFactura[2]}`
-                            : `S/PEDIDO ${(attachment.filename || 'factura').replace(/\.pdf$/i, '')}`;
+                            // El prefijo sale de la MISMA constante que lo lee
+                            // después (`esFacturaSinNumero`): con el texto escrito
+                            // a mano en cada punta, el día que uno cambie el otro
+                            // deja de reconocerlo en silencio y estas facturas
+                            // vuelven a acusarse como "sin venta".
+                            ? `${CLAVE_SIN_NUMERO} ${nroFactura[1]}-${nroFactura[2]}`
+                            : `${CLAVE_SIN_NUMERO} ${(attachment.filename || 'factura').replace(/\.pdf$/i, '')}`;
 
                         if (total !== null && total > 0) {
                             const entry = await upsertEntry({
