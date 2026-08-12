@@ -11,8 +11,11 @@
 #   14:00 UTC = 11:00 ART → carrusel del feed, si hay programado
 #   21:00 UTC = 18:00 ART → mail de cadencia (después de todo lo del día)
 #
-# GitHub puede demorar un schedule algunos minutos en horas pico: para publicar
-# en redes no importa. Cada endpoint tiene su propio dedup, así que si un run se
+# GitHub demora los schedules bastante más que "algunos minutos": lo medido en
+# agosto de 2026 son 40 a 80 minutos todos los días. Para publicar en redes el
+# atraso da igual, pero NO da igual quién dispara: por eso cuál cron corrió se
+# lee de `github.event.schedule` y nunca del reloj (ver el paso "Elegir
+# endpoint"). Cada endpoint tiene su propio dedup, así que si un run se
 # repitiera, no se publica dos veces.
 #
 # CRON_SECRET vive en los secrets del repo (Settings → Secrets → Actions).
@@ -45,19 +48,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Elegir endpoint según la hora (o el input manual)
+      - name: Elegir endpoint según el cron que disparó (o el input manual)
         id: cual
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             CUAL="${{ inputs.cual }}"
           else
-            # El schedule no dice cuál cron disparó: se deduce de la hora UTC.
-            HORA=$(date -u +%H)
-            case "$HORA" in
-              13) CUAL="stories" ;;
-              14) CUAL="feed" ;;
-              21) CUAL="cadencia" ;;
-              *)  CUAL="stories" ;;   # colchón por si el schedule llegó tarde
+            # QUÉ CRON DISPARÓ SE LEE DEL EVENTO, NO DEL RELOJ.
+            # Antes se deducía con `date -u +%H`, y eso rompió las stories: los
+            # schedules de las 13:00 y 13:40 llegaron a las 14:20 y 14:40 (GitHub
+            # los demora 40-80 min a diario, no "algunos minutos"), la hora ya era
+            # 14, y los DOS disparos de stories llamaron al feed. El 12/8 no salió
+            # ninguna story y los dos runs quedaron en verde, porque el feed
+            # respondía ok:true. Los días anteriores las stories salieron de
+            # rebote: los runs del feed caían en la hora 15, que no estaba en el
+            # case, y el default las mandaba. Un cron atrasado tiene que hacer
+            # tarde LO SUYO, nunca lo del vecino.
+            case "${{ github.event.schedule }}" in
+              '0 13 * * *'|'40 13 * * *') CUAL="stories" ;;
+              '0 14 * * *'|'40 14 * * *') CUAL="feed" ;;
+              '0 21 * * *')               CUAL="cadencia" ;;
+              *)
+                echo "::error::Schedule sin mapear: '${{ github.event.schedule }}'. Agregarlo al case."
+                exit 1
+                ;;
             esac
           fi
           case "$CUAL" in
