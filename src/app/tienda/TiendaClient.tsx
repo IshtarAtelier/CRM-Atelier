@@ -574,7 +574,7 @@ export function TiendaClient({
                             />
                           </div>
                         ) : (
-                          <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 text-stone-500">
+                          <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 text-stone-600">
                             <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
                               <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
                             </svg>
@@ -736,7 +736,7 @@ export function TiendaClient({
         )}
         
         {displayedProducts.length > 0 && (
-          <p className="mt-8 text-center text-[10px] text-stone-500 uppercase tracking-widest font-bold">
+          <p className="mt-8 text-center text-[10px] text-stone-600 uppercase tracking-widest font-bold">
             Mostrando {displayedProducts.length} de {totalCount} {totalCount === 1 ? "modelo" : "modelos"} · {isWholesale ? "Cápsula Escarlata" : "Atelier Óptica"}
           </p>
         )}
