@@ -193,6 +193,16 @@ porqué de cada decisión están en `docs/plan-publicacion-meta.md`.
 - **Nada se publica sin aprobación**: `publicar.mjs` sin `--facebook`/`--instagram`
   solo muestra qué haría. Es el comportamiento por defecto, no una opción.
 - Ante cualquier falla de publicación, empezar por `node scripts/social/meta-check.mjs`.
+- **`npm run check:social` dice si lo programado va a poder salir**: archivos que
+  faltan, piezas cuyo precio vence antes de su fecha, y si la regeneración de los
+  viernes sigue corriendo. Corre sin base ni red. El mismo diagnóstico llega por
+  mail todos los días (cron `social-cadencia`).
+- **Los crons de redes NO deducen del reloj cuál les toca.** GitHub demora los
+  schedules 40-80 min y el 12/8 los dos disparos de stories terminaron llamando
+  al feed: no salió ninguna story y los runs quedaron en verde. Cuál cron corrió
+  se lee de `github.event.schedule`.
+- **Un run verde no prueba que se publicó.** El job solo mira que la respuesta
+  traiga `ok:true`, y responde el endpoint que se haya llamado.
 - **Las credenciales `META_ACCESS_TOKEN` / `META_ADS_TOKEN` / `META_PIXEL_ID` son
   de Ads y Pixel: NO sirven para publicar.** Publicar usa `META_SYSTEM_USER_TOKEN`
   con otros seis permisos. Verificado: el token de Ads no tiene ninguno de ellos.

@@ -13,6 +13,12 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    // Deja escribir `from './frescura.ts'`. Los checks de `scripts/checks/` corren
+    // con `node --experimental-strip-types` e importan helpers de `src/lib`; Node
+    // en ESM no adivina la extensión como sí hace el bundler, así que sin esto un
+    // helper con imports relativos no se puede chequear desde un script y termina
+    // duplicando su regla. No cambia nada en runtime (ya hay `noEmit`).
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",

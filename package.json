@@ -16,6 +16,7 @@
     "check:catalog": "node --experimental-strip-types scripts/checks/catalog-resilience.check.mjs",
     "check:comprobantes": "node --experimental-strip-types scripts/checks/receipt-references.check.mjs",
     "check:adtag": "node --experimental-strip-types scripts/checks/ad-tag-paridad.check.mjs",
+    "check:social": "node --experimental-strip-types scripts/checks/social-programacion.check.mjs",
     "snapshot:catalog": "node --experimental-strip-types scripts/maintenance/refresh-catalog-snapshots.mjs",
     "db:backup": "node scripts/maintenance/backup-db.js",
     "db:migrate": "node scripts/maintenance/backup-db.js && npx prisma migrate dev",
