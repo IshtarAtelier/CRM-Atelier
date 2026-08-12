@@ -30,6 +30,14 @@ export interface LabCostInput {
      * el importe quede a la vista en vez de descartarse en silencio.
      */
     claveLiteral?: boolean;
+    /**
+     * OTROS identificadores del MISMO pedido, para poder encontrar la venta
+     * aunque se haya cargado con uno distinto del que usa el sistema. Hoy: el
+     * número de la planilla de Optovisión ("Ped: TI-7101568(587979)" → alias
+     * "7101568" del pedido 587979). Se usan solo para BUSCAR la venta; la
+     * entrada se sigue guardando con el nº de pedido como clave.
+     */
+    aliases?: string[];
 }
 
 /** Tolerancia en pesos para diferencias de redondeo entre lista y factura. */

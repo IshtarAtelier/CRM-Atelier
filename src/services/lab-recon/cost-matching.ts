@@ -85,12 +85,20 @@ export async function upsertEntry(input: LabCostInput) {
 
     // Buscar la venta cuyo labOrderNumber contiene ese número (o un caso de
     // postventa que generó un pedido nuevo con ese número).
+    //
+    // Y TAMBIÉN por los otros identificadores del pedido (`aliases`): la
+    // factura de Optovisión trae dos números por pedido —"Ped: TI-7101568
+    // (587979)"— y el vendedor a veces carga en la venta el de la planilla
+    // (7101568) en vez del pedido (587979). Buscando por los dos, la venta
+    // aparece; buscando por uno solo, la factura queda huérfana con la venta
+    // cargada delante de las narices.
+    const claves = [cleanNumber, ...(input.aliases || []).filter(a => a && a !== cleanNumber)];
     const candidatos = await prisma.order.findMany({
         where: {
             isDeleted: false,
             OR: [
-                { labOrderNumber: { contains: cleanNumber } },
-                { postSaleCases: { some: { newOrderNumber: { contains: cleanNumber } } } },
+                ...claves.map(k => ({ labOrderNumber: { contains: k } })),
+                ...claves.map(k => ({ postSaleCases: { some: { newOrderNumber: { contains: k } } } })),
             ],
         },
         include: {
@@ -119,13 +127,30 @@ export async function upsertEntry(input: LabCostInput) {
     // eclipsaba a la venta correcta. Sin match exacto → huérfano (mejor un
     // huérfano visible que colgar la factura de la venta equivocada).
     const numbersOf = (s: string | null | undefined): string[] => s?.match(/\d{4,}/g) || [];
+    /** ¿Alguno de los identificadores del pedido está en ese campo? */
+    const tieneClave = (s: string | null | undefined) => {
+        const nums = numbersOf(s);
+        return claves.some(k => nums.includes(k));
+    };
+    // El nº de pedido manda: solo si NINGUNA venta lo tiene se busca por el
+    // identificador de la planilla (así una venta cargada con el número
+    // correcto nunca pierde contra una que tiene el alias).
     const order =
         candidatos.find(o => numbersOf(o.labOrderNumber).includes(cleanNumber))
         ?? candidatos.find(o => o.postSaleCases?.some((c: any) => numbersOf(c.newOrderNumber).includes(cleanNumber)))
+        ?? candidatos.find(o => tieneClave(o.labOrderNumber))
+        ?? candidatos.find(o => o.postSaleCases?.some((c: any) => tieneClave(c.newOrderNumber)))
         ?? null;
 
+    // ¿Enganchó por el identificador de la planilla y no por el nº de pedido?
+    // Se deja dicho en la nota: el número que ve el administrador en la venta
+    // no es el mismo que el de la factura, y sin la aclaración parece un error.
+    const aliasUsado = order && !numbersOf(order.labOrderNumber).includes(cleanNumber)
+        ? (input.aliases || []).find(a => numbersOf(order.labOrderNumber).includes(a)) || null
+        : null;
+
     // ¿El número matcheó por POSTVENTA (reproceso) y no por la venta original?
-    const pvCase = order?.postSaleCases?.find((c: any) => numbersOf(c.newOrderNumber).includes(cleanNumber)) || null;
+    const pvCase = order?.postSaleCases?.find((c: any) => tieneClave(c.newOrderNumber)) || null;
 
     const existing = await prisma.labCostEntry.findUnique({
         where: { lab_labOrderNumber: { lab: input.lab, labOrderNumber: cleanNumber } },
@@ -232,6 +257,11 @@ export async function upsertEntry(input: LabCostInput) {
     const multiNote = multiPedido && !baseNotes?.includes('pedidos de lab')
         ? `La venta tiene ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber}); el costo sistema es el total de la venta.`
         : null;
+    // Enganchó por el nº de la planilla: decirlo, porque el número que figura
+    // en la venta no es el de la factura y si no parece un cruce equivocado.
+    const aliasNote = aliasUsado && !baseNotes?.includes('nº de la planilla')
+        ? `Enganchado por el nº de la planilla (${aliasUsado}), que es con el que se cargó la venta; en la factura el pedido es ${cleanNumber}.`
+        : null;
     // Resolución conocida del administrador (p. ej. "COSTO VENDEDOR"): queda
     // fija en el detalle de la entrada, venga de la fuente que venga.
     const resolucion = RESOLUCIONES_CONOCIDAS[cleanNumber];
@@ -250,7 +280,7 @@ export async function upsertEntry(input: LabCostInput) {
     // administrador. Ahora los dos lados usan la MISMA constante.
     const reworkMark = existing?.notes?.includes(REWORK_MARK) && !baseNotes?.includes(REWORK_MARK)
         ? REWORK_MARK : null;
-    const notes = [resolucionNote, pvNote, baseNotes, multiNote, reworkMark].filter(Boolean).join(' ') || null;
+    const notes = [resolucionNote, pvNote, baseNotes, multiNote, aliasNote, reworkMark].filter(Boolean).join(' ') || null;
 
     const data = {
         orderId: order?.id ?? null,
