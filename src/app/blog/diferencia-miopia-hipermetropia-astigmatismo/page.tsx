@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function MiopiaHipermetropiaAstigmatismoBlog() {
   return (
     <div className="min-h-screen flex flex-col bg-stone-50">
-      <StorefrontNavbar />
+      <StorefrontNavbar theme="light" />
       
       <main className="flex-grow container mx-auto px-4 py-12 max-w-3xl">
         <article className="blog-article w-full max-w-none">
@@ -92,7 +92,7 @@ export default function MiopiaHipermetropiaAstigmatismoBlog() {
               href={`https://wa.me/${WHATSAPP_PHONE}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-[#25D366] text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[#1ebe57] transition-all hover:scale-105"
+              className="inline-flex items-center justify-center bg-[#25D366] text-stone-950 px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[#1ebe57] transition-all hover:scale-105"
             >
               Consultar por WhatsApp
             </a>

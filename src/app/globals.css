@@ -172,7 +172,6 @@ button:disabled {
 .blog-article h2 {
   font-size: 1.75rem;
   font-weight: 600;
-  color: #111;
   margin-top: 3rem;
   margin-bottom: 1.25rem;
   padding-bottom: 0.75rem;
@@ -184,7 +183,6 @@ button:disabled {
 .blog-article h3 {
   font-size: 1.35rem;
   font-weight: 600;
-  color: #1a1a1a;
   margin-top: 2.25rem;
   margin-bottom: 1rem;
   letter-spacing: -0.02em;
@@ -196,17 +194,35 @@ button:disabled {
 .blog-article h4 {
   font-size: 1.15rem;
   font-weight: 600;
-  color: #333;
   margin-top: 1.75rem;
   margin-bottom: 0.75rem;
   letter-spacing: -0.015em;
 }
 
+
+/* El color del artículo cede ante una clase de color puesta a mano en el JSX.
+   Sin esto, `.blog-article h3` (0,1,1 de especificidad) le ganaba a `text-white`
+   (0,1,0 y encima en @layer utilities, que pierde contra CSS sin capa): un <h3
+   text-white dentro de un recuadro oscuro se pintaba #1a1a1a sobre negro —1,2:1,
+   texto invisible—. La tipografía (tamaños, márgenes, la barrita lateral) sigue
+   aplicándose siempre; lo único condicionado es el color. */
+.blog-article h2:not([class*="text-"]) { color: #111; }
+.blog-article h3:not([class*="text-"]) { color: #1a1a1a; }
+.blog-article h4:not([class*="text-"]) { color: #333; }
+.blog-article p:not([class*="text-"]) { color: #333; }
+/* `strong` y `a` HEREDAN el color en vez de fijarlo. Un <strong> sin clase dentro
+   de un recuadro `bg-black text-white` no puede heredar el blanco si la regla del
+   artículo le impone #111: quedaba negro sobre negro (1,1:1), invisible. Heredando,
+   el color lo decide el contenedor y nunca se contradice con su fondo. En el
+   cuerpo del artículo pasan a valer #333 en vez de #111 — la diferencia no se
+   nota y el énfasis ya lo da el peso (y el subrayado, en los links). */
+.blog-article strong { color: inherit; }
+.blog-article a:not([class*="text-"]) { color: inherit; }
+
 /* ── Paragraphs ───────────────────────────────────────────── */
 
 .blog-article p {
   margin-bottom: 1.5rem;
-  color: #333;
   line-height: 1.85;
 }
 
@@ -223,13 +239,11 @@ button:disabled {
 
 .blog-article strong {
   font-weight: 700;
-  color: #111;
 }
 
 /* ── Links ────────────────────────────────────────────────── */
 
 .blog-article a {
-  color: #111;
   text-decoration: underline;
   text-decoration-color: #c4a882;
   text-underline-offset: 3px;

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function LentesDeContactoBlog() {
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-stone-800">
-      <StorefrontNavbar />
+      <StorefrontNavbar theme="light" />
       
       <main className="flex-grow">
         <div className="container mx-auto px-4 py-16 max-w-3xl">
