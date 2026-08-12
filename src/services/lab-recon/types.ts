@@ -62,17 +62,16 @@ export const OPTOVISION_DIAS_FACTURA_A_LISTO = 5;
  * operación a la venta. Se espera este margen desde el alta de la entrada
  * (LabCostEntry.createdAt) antes de darlo por huérfano.
  *
- * 12/8/2026: 5 minutos era demasiado poco. El pedido entra al portal apenas se
- * manda a fábrica, pero el nº de operación se carga en la venta un rato
- * después —cuando el laboratorio lo procesa—, así que casi todo lo que se
- * mandaba ese día caía en el aviso: tres pedidos de la misma mañana marcados
- * "DUDOSO, revisar con urgencia" que se resolvían solos al rato. Un aviso en
- * el que casi todo es falsa alarma no se lee. Con 2 h, `recheckUnmatched()`
- * (que corre en cada pase de 10 min) ya enganchó los que iban a engancharse y
- * solo avisa lo que de verdad quedó huérfano. Sigue siendo el mismo día: lo
- * que a las 2 h no tiene venta, se reclama o se asigna igual.
+ * LA OPERATIVA (administradora, 12/8/2026), que es lo que este margen modela:
+ * el vendedor procesa el pedido en el laboratorio, el laboratorio le devuelve
+ * el nº de operación, y recién ahí el vendedor lo sube a nuestro sistema. O
+ * sea: el pedido SIEMPRE existe primero en el lab y después en la venta. El
+ * aviso no puede salir en el momento en que el pedido aparece — tiene que
+ * anotarse el número, esperar, volver a fijarse si ya está en el sistema, y
+ * avisar solo si no llegó. Eso es exactamente lo que hace el par
+ * `recheckUnmatched()` (cada pase de 10 min) + este margen.
  */
-export const UNMATCHED_GRACE_MS = 2 * 60 * 60 * 1000;
+export const UNMATCHED_GRACE_MS = 4 * 60 * 1000;
 
 /**
  * Qué ítems de la orden pertenecen a cada laboratorio (el resto de la orden
