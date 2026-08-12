@@ -314,40 +314,66 @@ Respond ONLY with the raw JSON. No markdown.
                 }
             }
 
-            // Crear Tarea Inteligente si fue detectada
+            // Tarea Inteligente: UNA viva por cliente, que se ACTUALIZA.
+            //
+            // El anti-duplicado anterior comparaba la descripción EXACTA, y la IA
+            // redacta distinto en cada ronda ("Hacer seguimiento sobre el
+            // descuento…" vs "Confirmar validez del presupuesto…"): nunca
+            // coincidía, así que cada tanda de mensajes de una conversación
+            // creaba OTRA tarea. Medido en producción (12/8/2026): 1.273 tareas
+            // pendientes de este origen, 1.011 de sobra — una clienta juntó 88.
+            //
+            // Ahora el extractor corre igual en cada tanda, pero pisa su propia
+            // tarea pendiente en vez de apilar: mientras la conversación sigue,
+            // la tarea se refina; cuando termina, queda UNA sola con la
+            // conclusión final. Se busca por el prefijo (que es fijo), no por el
+            // texto (que es de la IA). Solo pisa PENDING: una tarea que el
+            // ejecutor de seguimientos ya reclamó (SENDING) no se toca.
             if (parsed.suggestedTask && parsed.suggestedTask.description) {
-                // Check if a similar task already exists for this client (to avoid duplicates in every message)
-                const existingTasks = await prisma.clientTask.findMany({
-                    where: { 
-                        clientId: currentClientId, 
-                        status: 'PENDING',
-                        description: `[Extracción Inteligente] ${parsed.suggestedTask.description}`
-                    }
-                });
-                
-                if (existingTasks.length === 0) {
-                    const rawDate = parsed.suggestedTask.dueDate ? new Date(parsed.suggestedTask.dueDate) : new Date(Date.now() + 24 * 60 * 60 * 1000);
-                    // Asegurar que la tarea caiga a las 10:00 AM del día pautado
-                    rawDate.setHours(10, 0, 0, 0);
+                const rawDate = parsed.suggestedTask.dueDate ? new Date(parsed.suggestedTask.dueDate) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+                // Asegurar que la tarea caiga a las 10:00 AM del día pautado
+                rawDate.setHours(10, 0, 0, 0);
+                const descripcion = `[Extracción Inteligente] ${parsed.suggestedTask.description}`;
 
+                const tareaViva = await prisma.clientTask.findFirst({
+                    where: {
+                        clientId: currentClientId,
+                        status: 'PENDING',
+                        description: { startsWith: '[Extracción Inteligente]' }
+                    },
+                    select: { id: true }
+                });
+
+                if (tareaViva) {
+                    console.log(`  📅 [Ficha Inteligente] Actualizando la tarea existente: ${parsed.suggestedTask.description}`);
+                    // Efecto deliberado: el update cambia updatedAt, que es el
+                    // token de reclamo (claimStamp) del ejecutor de seguimientos
+                    // — si esta tarea estaba encolada para autoenvío, el preflight
+                    // la suelta. Correcto: el cliente siguió hablando y lo que se
+                    // iba a mandar quedó viejo.
+                    await prisma.clientTask.update({
+                        where: { id: tareaViva.id },
+                        data: { description: descripcion, dueDate: rawDate }
+                    }).catch(e => console.error("Error actualizando tarea pasiva:", e.message));
+                } else {
                     console.log(`  📅 [Ficha Inteligente] Creando Tarea: ${parsed.suggestedTask.description}`);
                     await prisma.clientTask.create({
                         data: {
                             clientId: currentClientId,
-                            description: `[Extracción Inteligente] ${parsed.suggestedTask.description}`,
+                            description: descripcion,
                             type: 'TASK',
                             dueDate: rawDate,
                             createdBy: 'Sistema (Pasivo)'
                         }
                     }).catch(e => console.error("Error creando tarea pasiva:", e.message));
+                }
 
-                    // Notificar al sistema
-                    if (global.io) {
-                        global.io.emit('task_created', {
-                            clientId: currentClientId,
-                            description: `[Extracción Inteligente] ${parsed.suggestedTask.description}`
-                        });
-                    }
+                // Notificar al sistema (la UI refresca igual en ambos casos)
+                if (global.io) {
+                    global.io.emit('task_created', {
+                        clientId: currentClientId,
+                        description: descripcion
+                    });
                 }
             }
 
@@ -399,18 +425,38 @@ Respond ONLY with the raw JSON. No markdown.
                     }
                 }).catch(() => {});
 
-                // 5. Create a calendar follow-up task for the SALESPERSON (humano)
+                // 5. Tarea de seguimiento para el VENDEDOR: una viva por cliente.
+                // No tenía dedup: cada ronda del extractor que volvía a detectar
+                // la misma postergación creaba OTRA tarea (medido en producción:
+                // 46 clientes con 156 tareas donde debían ser 46). Mismo criterio
+                // que la Tarea Inteligente de arriba: si ya hay una pendiente se
+                // actualiza fecha y razón; la conversación termina y queda UNA.
                 const humanTaskDescription = `[Seguimiento Manual] Contactar a ${chatInfo.client?.name || 'cliente'} - Razón: "${parsed.summary || 'Postergación detectada'}"`;
-                await prisma.clientTask.create({
-                    data: {
+                const seguimientoVivo = await prisma.clientTask.findFirst({
+                    where: {
                         clientId: currentClientId,
-                        description: humanTaskDescription,
-                        type: 'TASK',
                         status: 'PENDING',
-                        dueDate: resumeDate,
-                        createdBy: 'Sistema (Pasivo)'
-                    }
-                }).catch((e) => console.error("Error creating human task:", e.message));
+                        description: { startsWith: '[Seguimiento Manual]' }
+                    },
+                    select: { id: true }
+                });
+                if (seguimientoVivo) {
+                    await prisma.clientTask.update({
+                        where: { id: seguimientoVivo.id },
+                        data: { description: humanTaskDescription, dueDate: resumeDate }
+                    }).catch((e) => console.error("Error actualizando human task:", e.message));
+                } else {
+                    await prisma.clientTask.create({
+                        data: {
+                            clientId: currentClientId,
+                            description: humanTaskDescription,
+                            type: 'TASK',
+                            status: 'PENDING',
+                            dueDate: resumeDate,
+                            createdBy: 'Sistema (Pasivo)'
+                        }
+                    }).catch((e) => console.error("Error creating human task:", e.message));
+                }
 
                 console.log(`  ✅ [Ficha Inteligente] Proactive followups paused. Rescheduled resume task and created human task for ${resumeDate.toLocaleDateString()}`);
             }
