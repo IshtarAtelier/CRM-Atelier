@@ -1738,6 +1738,57 @@ export class OrderService {
                         data: { status: 'CLIENT', isFavorite: false }
                     });
 
+                    // 2.5 Al convertirse la venta, el cliente sale SOLO de todo lo
+                    // automático (regla del negocio, 12/8/2026: "deben salirse en
+                    // cuanto el pedido se convierte en venta; solo queda lo que el
+                    // vendedor registró de forma específica"). Se borran las tareas
+                    // pendientes que generó el sistema —extractor pasivo, tiers de
+                    // seguimiento del bot— y las etiquetas SEGUIMIENTO_* de sus
+                    // chats, que son las que alimentan los seguimientos automáticos.
+                    // Las tareas creadas a mano por un vendedor NO se tocan.
+                    const purgaTareas = await tx.clientTask.deleteMany({
+                        where: {
+                            clientId: existingOrder.client.id,
+                            status: 'PENDING',
+                            OR: [
+                                { type: 'FOLLOWUP' },
+                                { createdBy: { startsWith: 'Sistema' } },
+                                { createdBy: 'Bot' },
+                            ],
+                        },
+                    });
+                    const chatsDelCliente = await tx.whatsAppChat.findMany({
+                        where: { clientId: existingOrder.client.id },
+                        select: { id: true, chatLabels: true },
+                    });
+                    for (const c of chatsDelCliente) {
+                        const limpio = (c.chatLabels || []).filter((l: string) => !l.startsWith('SEGUIMIENTO_'));
+                        if (limpio.length !== (c.chatLabels || []).length) {
+                            await tx.whatsAppChat.update({
+                                where: { id: c.id },
+                                data: { chatLabels: limpio, followUpPausedUntil: null },
+                            });
+                        }
+                    }
+                    if (purgaTareas.count > 0) {
+                        console.log(`[Venta] Purga de automatismos del cliente ${existingOrder.client.id}: ${purgaTareas.count} tareas del sistema eliminadas.`);
+                        // Borrado destructivo → auditoría esperada (regla del
+                        // proyecto). logAudit nunca lanza, así que no puede
+                        // voltear la venta.
+                        await logAudit({
+                            userId,
+                            userName,
+                            action: 'DELETE',
+                            entityType: 'TASK',
+                            entityId: existingOrder.client.id,
+                            details: {
+                                motivo: 'Conversión a venta: purga de tareas automáticas y etiquetas de seguimiento',
+                                orderId: id,
+                                tareasEliminadas: purgaTareas.count,
+                            }
+                        });
+                    }
+
                     // 3. Update order
                     const ord = await tx.order.update({
                         where: { id },

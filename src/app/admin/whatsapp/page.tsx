@@ -1917,8 +1917,21 @@ function WhatsAppPageContent() {
                                             </button>
                                         )}
                                         {(selectedChat.chatLabels || []).filter(l => l !== 'Fijado').length > 0 && (
-                                            <div className="hidden lg:flex flex-wrap gap-1 mr-2 border-r border-stone-200/50 dark:border-stone-700 pr-2">
-                                                {selectedChat.chatLabels.filter(l => l !== 'Fijado').map(lbl => {
+                                            <div className="hidden lg:flex items-center gap-1 mr-2 border-r border-stone-200/50 dark:border-stone-700 pr-2">
+                                                {/* Header compacto: chips de ESTADO (seguimientos, siempre —
+                                                    son accionables) + 2 etiquetas + "+N" que abre el selector
+                                                    de siempre. Antes se pintaban TODAS con flex-wrap: con las
+                                                    8-10 que acumulaba la IA, la fila envolvía y tapaba el
+                                                    nombre del cliente y los botones del header. */}
+                                                {(() => {
+                                                    const sinFijado = selectedChat.chatLabels.filter(l => l !== 'Fijado');
+                                                    const esEstado = (l: string) => l.startsWith('SEGUIMIENTO_') || l === 'SIN_SEGUIMIENTO';
+                                                    const estado = sinFijado.filter(esEstado);
+                                                    const comunes = sinFijado.filter(l => !esEstado(l));
+                                                    const MAX_VISIBLES = 2;
+                                                    const visibles = comunes.slice(0, MAX_VISIBLES);
+                                                    const ocultas = comunes.length - visibles.length;
+                                                    return [...estado, ...visibles].map(lbl => {
     const isSeguimiento = lbl.startsWith('SEGUIMIENTO_');
     const isSinSeguimiento = lbl === 'SIN_SEGUIMIENTO';
     const tagObj = dbTags.find(t => t.name === lbl);
@@ -1957,10 +1970,20 @@ function WhatsAppPageContent() {
     }
     
     if (tagObj && tagObj.color) {
-        return <span key={lbl} style={getLabelStyleInline(tagObj.color)} className="px-2 py-0.5 rounded-full text-[9px] font-bold border">{lbl}</span>;
+        return <span key={lbl} title={lbl} style={getLabelStyleInline(tagObj.color)} className="px-2 py-0.5 rounded-full text-[9px] font-bold border max-w-[140px] truncate">{lbl}</span>;
     }
-    return <span key={lbl} className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${getLabelStyle(lbl)}`}>{lbl}</span>;
-})}
+    return <span key={lbl} title={lbl} className={`px-2 py-0.5 rounded-full text-[9px] font-bold border max-w-[140px] truncate ${getLabelStyle(lbl)}`}>{lbl}</span>;
+}).concat(ocultas > 0 ? [
+    <button
+        key="__mas"
+        onClick={() => setShowLabelPicker(true)}
+        title={`${ocultas} etiquetas más — click para ver y editar todas`}
+        className="px-2 py-0.5 rounded-full text-[9px] font-bold border bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
+    >
+        +{ocultas}
+    </button>
+] : []);
+                                                })()}
                                             </div>
                                         )}
                                         

@@ -169,7 +169,13 @@ Your task is to return a strictly valid JSON object with the following fields:
    apellido), tal como lo dijo en la charla. Si solo se saludó y nunca dijo su
    nombre, devolvé null — NO inventes, NO uses frases como "Hola quiero info",
    NO uses el número de teléfono, NO uses el nombre del negocio.
-2. "interestTag": string or null.
+2. "interestTag": string or null. DEBE ser EXACTAMENTE una de estas (o null si ninguna aplica):
+   "Multifocales", "Monofocales", "Bifocales", "Armazones", "Anteojos de Sol",
+   "Clip-On", "Lentes de Contacto", "Cristales", "Filtro Azul", "Fotocromáticos",
+   "Control Miopía", "Niños", "Alta Graduación", "Obra Social", "Proveedor".
+   PROHIBIDO inventar variantes, agregar detalles o combinar ("Lentes teñidos
+   (amarillo)", "Armazones (Steffany)", "Multifocal 2x1" → NO). El detalle fino
+   va en "summary", no acá: la etiqueta es para filtrar, no para describir.
 3. "insurance": string or null.
 4. "summary": string or null.
 5. "suggestedTask": object or null {"description": string, "dueDate": "YYYY-MM-DD"}.

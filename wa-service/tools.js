@@ -618,9 +618,29 @@ async function addTagToClient({ clientId, tagName }) {
     if (!clientId || clientId === 'none') {
         return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo agregar la etiqueta porque falta el clientId.' };
     }
-    
+
+    // ── Saneo del nombre (12/8/2026) ─────────────────────────────────────────
+    // Este upsert era la fábrica de las 397 etiquetas: la IA mandaba cualquier
+    // texto y acá se creaba tal cual — incluidas ORACIONES enteras ("Interesado
+    // en armazones finitos para cara pequeña, quiere probarse, solicitó…").
+    // 1. Se normaliza el espaciado.
+    // 2. Un texto largo no es una etiqueta, es un resumen: se rechaza (el
+    //    extractor ya guarda ese contenido en el summary del chat).
+    // 3. Si ya existe una etiqueta igual ignorando mayúsculas, SE REUSA en vez
+    //    de crear la variante ("Clipones" vs "clipones").
+    tagName = String(tagName || '').replace(/\s+/g, ' ').trim();
+    if (!tagName) {
+        return { success: false, message: '[INSTRUCCIÓN INTERNA] Etiqueta vacía: no se creó nada.' };
+    }
+    if (tagName.length > 40) {
+        return { success: false, message: '[INSTRUCCIÓN INTERNA] Ese texto es una descripción, no una etiqueta. No se creó. El detalle va en el resumen del chat.' };
+    }
+
     try {
-        const tag = await prisma.tag.upsert({
+        const existente = await prisma.tag.findFirst({
+            where: { name: { equals: tagName, mode: 'insensitive' } },
+        });
+        const tag = existente ?? await prisma.tag.upsert({
             where: { name: tagName },
             update: {},
             create: { name: tagName, color: '#1677ff' } // azul por defecto
