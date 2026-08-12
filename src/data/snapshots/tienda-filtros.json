@@ -715,38 +715,6 @@
       }
     },
     {
-      "name": "Atlas C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "G7008 C1",
-        "seoTags": "Metal"
-      }
-    },
-    {
-      "name": "Atlas C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "G7008 C2",
-        "seoTags": "Metal"
-      }
-    },
-    {
-      "name": "Atlas C3",
-      "product": {
-        "brand": "Atelier",
-        "model": "G7008 C3",
-        "seoTags": "Metal"
-      }
-    },
-    {
-      "name": "Jano C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "G7010 C1",
-        "seoTags": "Metal"
-      }
-    },
-    {
       "name": "Orión C1",
       "product": {
         "brand": "Atelier",
@@ -759,54 +727,6 @@
       "product": {
         "brand": "Atelier",
         "model": "G7013 C1",
-        "seoTags": "Metal"
-      }
-    },
-    {
-      "name": "Eros C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "GS7008S C1",
-        "seoTags": "Metal"
-      }
-    },
-    {
-      "name": "Eros C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "GS7008S C2",
-        "seoTags": "Metal"
-      }
-    },
-    {
-      "name": "Apolo C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "GS7010S C1",
-        "seoTags": "Metal"
-      }
-    },
-    {
-      "name": "Apolo C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "GS7010S C2",
-        "seoTags": "Metal"
-      }
-    },
-    {
-      "name": "Ares C2",
-      "product": {
-        "brand": "Atelier",
-        "model": "GS7014S C2",
-        "seoTags": "Metal"
-      }
-    },
-    {
-      "name": "Febo C1",
-      "product": {
-        "brand": "Atelier",
-        "model": "GS7017S C1",
         "seoTags": "Metal"
       }
     },

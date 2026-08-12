@@ -10,7 +10,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createResilientSource, defaultIsEmpty } from '../../src/lib/catalog/resilience.ts';
 import { CATALOG_SOURCE_KEYS } from '../../src/lib/catalog/queries.ts';
 import { formatProducts as formatProductsRaw, countProducts, hasProducts } from '../../src/lib/home-fallback.ts';
@@ -122,6 +122,39 @@ for (const key of ['sol', 'receta']) {
   check(`${key}: products y meta con filas`, d.products.length > 0 && d.meta.length > 0);
 }
 check('arma-tus-lentes: filas con stock > 0', snapshots['arma-tus-lentes'].data.every((r) => (r.product?.stock || 0) > 0));
+
+// ── Las fotos que promete el snapshot tienen que existir ────────────────────
+// El snapshot es lo que se sirve si la base no responde. De nada sirve que
+// tenga productos si sus imágenes ya no están en `public/`: la tienda de
+// emergencia saldría con los cuadros rotos.
+//
+// Y es más que estética: cuando un producto se da de baja, sus fotos se borran
+// del repo pero la fila queda congelada en el snapshot commiteado. Así se
+// colaron 8 productos —apolo, ares, atlas, eros, febo, jano, nestor— cuyas
+// fichas hoy devuelven 404 en producción. Con la base caída, el visitante los
+// vería listados y al tocarlos caería en una pared. La foto faltante es la
+// señal barata y local de que la fila está muerta.
+const rutasDeImagen = new Set();
+const recolectar = (x) => {
+  if (typeof x === 'string') {
+    if (/^\/(images|assets)\//.test(x)) rutasDeImagen.add(x);
+  } else if (Array.isArray(x)) x.forEach(recolectar);
+  else if (x && typeof x === 'object') Object.values(x).forEach(recolectar);
+};
+Object.values(snapshots).forEach(recolectar);
+
+const publicDir = new URL('../../public/', import.meta.url);
+const faltantes = [...rutasDeImagen]
+  .filter((ruta) => !existsSync(new URL(`.${ruta}`, publicDir)))
+  .sort();
+
+if (faltantes.length) {
+  console.error(`\n  ✗ ${faltantes.length} imágenes referenciadas por los snapshots NO existen en public/:`);
+  for (const f of faltantes) console.error(`      ${f}`);
+  console.error('\n  Suele significar que el snapshot quedó viejo y arrastra productos dados de baja.');
+  console.error('  Se arregla regenerándolo contra la base de producción: npm run snapshot:catalog\n');
+}
+check(`snapshots: las ${rutasDeImagen.size} imágenes referenciadas existen en public/`, faltantes.length === 0);
 
 console.log('\n— Formato del carrusel del home —\n');
 
