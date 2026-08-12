@@ -112,7 +112,7 @@ export function CheckoutShippingForm({ formData, handleChange, hasCrystals }: { 
             name="shippingBranch" 
             value={formData.shippingBranch || ""}
             placeholder="Ej: Sucursal Cerro de las Rosas (Av. Rafael Núñez 4200) o dejas vacío y coordinamos por WhatsApp" 
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors rounded-lg bg-stone-50/30" 
+            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors rounded-lg bg-stone-50/30" 
             onChange={handleChange} 
           />
         </div>
@@ -128,7 +128,7 @@ export function CheckoutShippingForm({ formData, handleChange, hasCrystals }: { 
             required 
             placeholder="Dirección (Calle, Número, Depto)" 
             autoComplete="street-address"
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -140,7 +140,7 @@ export function CheckoutShippingForm({ formData, handleChange, hasCrystals }: { 
             required 
             placeholder="Ciudad" 
             autoComplete="address-level2"
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -152,7 +152,7 @@ export function CheckoutShippingForm({ formData, handleChange, hasCrystals }: { 
             required 
             placeholder="Provincia" 
             autoComplete="address-level1"
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -164,7 +164,7 @@ export function CheckoutShippingForm({ formData, handleChange, hasCrystals }: { 
             required 
             placeholder="Código Postal" 
             autoComplete="postal-code"
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange}
           />
         </div>
