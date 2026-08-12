@@ -39,12 +39,15 @@ function clearIdempotencyKey() {
 export function CheckoutClient({ 
   paywayConfig,
   mercadoPagoEnabled = false,
+  paywayEnabled = true,
   initialSettings,
   footer
 }: {
   paywayConfig: { publicKey: string; environment: string };
   /** Pasarela de respaldo prendida. Lo resuelve el servidor; acá solo se muestra. */
   mercadoPagoEnabled?: boolean;
+  /** Payway visible. Hoy va en false: Mercado Pago es la principal (ver lib/checkout/gateways.ts). */
+  paywayEnabled?: boolean;
   initialSettings?: any;
   footer?: React.ReactNode
 }) {
@@ -93,6 +96,16 @@ export function CheckoutClient({
 
   const hasCrystals = items.some(item => item.lensConfig && (item.lensConfig.lensType !== "NONE" || item.lensConfig.color));
 
+  // Método preseleccionado. Mercado Pago manda mientras sea la pasarela
+  // principal; Payway solo si está visible; y si no hay ninguna tarjeta, la
+  // transferencia es la única opción real y arrancar ahí evita un formulario
+  // de tarjeta que no lleva a ningún lado.
+  const metodoPorDefecto = mercadoPagoEnabled
+    ? "MERCADO_PAGO"
+    : paywayEnabled
+      ? "PAYWAY"
+      : "TRANSFER";
+
   const [formData, setFormData] = useState({
     email: "",
     firstName: "",
@@ -106,7 +119,7 @@ export function CheckoutClient({
     zip: "",
     shippingMethod: "CORREO_DOMICILIO",
     shippingBranch: "",
-    paymentMethod: "PAYWAY",
+    paymentMethod: metodoPorDefecto,
     cardNumber: "",
     cardExp: "",
     cardCvc: "",
@@ -123,7 +136,10 @@ export function CheckoutClient({
   const whatsappPhoneId = webSettings?.web_store_whatsapp_id || WHATSAPP_PHONE;
 
   useEffect(() => {
-    if (paywayConfig) {
+    // Con Payway oculto no se inyecta decidir.js: es un script de terceros que
+    // además arrastra el fingerprinting de ThreatMetrix, y cargarlo para una
+    // pasarela que nadie puede elegir es peso y ruido de consola gratis.
+    if (paywayConfig && paywayEnabled) {
       // Load Decidir SDK immediately on mount using server props
       const initDecidir = () => {
         setPaywayLoaded(true);
@@ -154,7 +170,7 @@ export function CheckoutClient({
       script.onload = initDecidir;
       document.body.appendChild(script);
     }
-  }, [paywayConfig]);
+  }, [paywayConfig, paywayEnabled]);
 
   useEffect(() => {
     let isMounted = true;
@@ -167,7 +183,23 @@ export function CheckoutClient({
         // tiene los campos nuevos. Pisando el objeto entero, cada campo agregado
         // después queda en `undefined` y su input pasa de controlado a no
         // controlado (React lo rompe y avisa en consola).
-        setFormData(prev => ({ ...prev, ...JSON.parse(saved) }));
+        const borrador = JSON.parse(saved);
+        // El borrador sobrevive a los cambios de pasarela: alguien que dejó el
+        // checkout por la mitad con "PAYWAY" guardado vuelve hoy, que Payway ya
+        // no se muestra, y quedaría con un método seleccionado que no está en
+        // pantalla — sin caja de tarjeta y con el botón de pagar deshabilitado.
+        // Si el método guardado ya no se ofrece, se descarta y manda el default.
+        const metodosVisibles = [
+          ...(mercadoPagoEnabled ? ["MERCADO_PAGO"] : []),
+          ...(paywayEnabled ? ["PAYWAY"] : []),
+          "TRANSFER",
+          "TRANSFER_MAYORISTA",
+          "ACORDAR_MAYORISTA",
+        ];
+        if (borrador.paymentMethod && !metodosVisibles.includes(borrador.paymentMethod)) {
+          delete borrador.paymentMethod;
+        }
+        setFormData(prev => ({ ...prev, ...borrador }));
       } catch (e) {}
     }
     
@@ -834,6 +866,7 @@ export function CheckoutClient({
                 isWholesale={isWholesale}
                 payableTotal={payableTotal}
                 mercadoPagoEnabled={mercadoPagoEnabled}
+                paywayEnabled={paywayEnabled}
               />
             </fieldset>
           </form>

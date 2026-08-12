@@ -4,6 +4,7 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { prisma } from '@/lib/db';
 import { defaultWebSettings } from '@/lib/web-settings';
 import { isMercadoPagoEnabled } from '@/services/mercadopago.service';
+import { isPaywayEnabled } from '@/lib/checkout/gateways';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,9 @@ export default async function CheckoutPage() {
   // cada request (la página es force-dynamic), así que prender MP_ENABLED en
   // Railway lo muestra al reiniciar, sin build ni deploy de código.
   const mercadoPagoEnabled = isMercadoPagoEnabled();
+
+  // Payway está oculto mientras Mercado Pago sea la principal (ver gateways.ts).
+  const paywayEnabled = isPaywayEnabled();
 
   const webSettings = { ...defaultWebSettings };
   try {
@@ -52,6 +56,7 @@ export default async function CheckoutPage() {
     <CheckoutClient
       paywayConfig={paywayConfig}
       mercadoPagoEnabled={mercadoPagoEnabled}
+      paywayEnabled={paywayEnabled}
       initialSettings={initialSettings}
       footer={<StorefrontFooter />}
     />

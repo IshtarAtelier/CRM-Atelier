@@ -1,7 +1,7 @@
 import React from "react";
 import { ShieldCheck } from "lucide-react";
 
-export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale, payableTotal, mercadoPagoEnabled }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean, payableTotal?: number, mercadoPagoEnabled?: boolean }) {
+export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale, payableTotal, mercadoPagoEnabled, paywayEnabled = true }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean, payableTotal?: number, mercadoPagoEnabled?: boolean, paywayEnabled?: boolean }) {
   // El monto en el botón mata la última duda ("¿cuánto termino pagando?") justo
   // en el clic que cierra la venta. Se calcula igual que el resumen de la derecha.
   const montoFmt = payableTotal && payableTotal > 0
@@ -109,6 +109,11 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
             </label>
           )}
 
+          {/* Payway: oculto mientras Mercado Pago sea la principal. Dos cajas de
+              "tarjeta" casi idénticas confundían al comprador. El interruptor
+              vive en el servidor (lib/checkout/gateways.ts) y garantiza que si
+              Mercado Pago se apaga, esta opción vuelve sola. */}
+          {paywayEnabled && (
           <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'PAYWAY' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
             <input type="radio" name="paymentMethod" value="PAYWAY" checked={formData.paymentMethod === 'PAYWAY'} onChange={handleChange} className="accent-black mt-1" />
             <div className="flex-1">
@@ -180,6 +185,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
               )}
             </div>
           </label>
+          )}
 
           <label className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${formData.paymentMethod === 'TRANSFER' ? 'border-black bg-stone-50' : 'border-stone-200 hover:border-stone-300'}`}>
             <input type="radio" name="paymentMethod" value="TRANSFER" checked={formData.paymentMethod === 'TRANSFER'} onChange={handleChange} className="accent-black mt-1" />
