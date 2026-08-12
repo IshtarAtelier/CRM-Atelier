@@ -68,7 +68,22 @@ function getGateModel() {
             // gemini-2.5-flash gasta tokens de razonamiento internos que
             // descuentan de este presupuesto: con 250 la respuesta JSON llegaba
             // TRUNCADA y el parser la rechazaba (fail-closed permanente).
-            maxOutputTokens: 1024,
+            //
+            // Volvió a pasar con 1024 (12/8/2026): medido contra la API real, el
+            // razonamiento se comía ~982 de los 1024 y quedaban 38 para el texto
+            // — el JSON cortaba en medio de `"adaptHint":"Enviar` y, sin llave de
+            // cierre, el parser devolvía null. Resultado: TODOS los seguimientos
+            // caían en "Respuesta de la compuerta inválida (fail-closed)". 7 de 7
+            // en los logs de producción.
+            //
+            // Subir el número otra vez es la misma curita que ya falló dos veces.
+            // Esto es una CLASIFICACIÓN de cuatro opciones, no un problema que
+            // requiera razonar: se apaga el razonamiento. Medido: baja de ~982 a
+            // ~283 tokens y la respuesta entra entera. El tope se deja igual en
+            // 2048 como red, porque `thinkingBudget: 0` reduce el razonamiento
+            // pero no lo elimina del todo.
+            thinkingBudget: 0,
+            maxOutputTokens: 2048,
             apiKey: process.env.GOOGLE_GENAI_API_KEY || process.env.GOOGLE_API_KEY,
         });
     }
@@ -163,8 +178,22 @@ async function evaluateConversationGate({ chat, recentMessages, context }) {
             'Timeout en compuerta de conversación'
         );
 
-        const verdict = parseGateResponse(contenidoATexto(response.content));
+        const crudo = contenidoATexto(response.content);
+        const verdict = parseGateResponse(crudo);
         if (!verdict) {
+            // Qué contestó el modelo, recortado. Sin esto el fallo es CIEGO: los
+            // logs decían "respuesta inválida" y nada más, así que un corte por
+            // presupuesto de tokens y un cambio de formato del modelo se ven
+            // exactamente igual. Costó una caída total de seguimientos descubrir
+            // cuál de los dos era. Va con los tokens usados, que es lo que
+            // delata el truncado (output chico + total grande = se lo comió el
+            // razonamiento).
+            const uso = response.usage_metadata || {};
+            console.warn(
+                `⚠️ [Gate] Respuesta no parseable (${crudo.length} chars, ` +
+                `in=${uso.input_tokens ?? '?'} out=${uso.output_tokens ?? '?'} total=${uso.total_tokens ?? '?'}): ` +
+                JSON.stringify(crudo.slice(0, 300))
+            );
             return { decision: 'SKIP', signal: 'OTHER', reason: 'Respuesta de la compuerta inválida (fail-closed)', adaptHint: null, postponeDays: null };
         }
         return verdict;
