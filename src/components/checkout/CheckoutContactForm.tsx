@@ -13,7 +13,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             required 
             placeholder="Correo Electrónico" 
             autoComplete="email"
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -25,7 +25,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             required 
             placeholder="Nombre" 
             autoComplete="given-name"
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -37,7 +37,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             required 
             placeholder="Apellido" 
             autoComplete="family-name"
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange} 
           />
         </div>
@@ -54,7 +54,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             pattern="[0-9]{7,11}"
             title="Ingresá un DNI o CUIL válido (7 a 11 números sin puntos ni guiones)"
             placeholder={formData.paymentMethod === 'PAYWAY' ? "DNI / CUIL (Ej: 35123456)" : "DNI / CUIL (opcional)"}
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors"
+            className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors"
             onChange={handleChange}
           />
         </div>
@@ -68,7 +68,7 @@ export function CheckoutContactForm({ formData, handleChange }: { formData: any,
             title="Ingresá un teléfono válido, incluyendo código de área (ej: +543511234567 o 3511234567)"
             placeholder="WhatsApp (Ej: +543511234567)" 
             autoComplete="tel"
-            className="w-full border border-stone-200 p-3 text-sm focus:border-black focus:focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
+            className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors" 
             onChange={handleChange}
           />
         </div>
