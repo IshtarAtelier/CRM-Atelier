@@ -103,9 +103,14 @@ jobs:
             git commit \
               -m "chore(social): regeneracion semanal de piezas con precio" \
               -m "Precios y fotos releidos de la base de produccion (solo lectura) y placas re-renderizadas. Corrida automatica del workflow social-regeneracion."
-            # El job tarda ~10 min: main puede haber avanzado mientras tanto y un
-            # push directo se rechazaria. Rebase antes de empujar; si aun asi
+            # El job tarda ~10 min: la rama puede haber avanzado mientras tanto y
+            # un push directo se rechazaria. Rebase antes de empujar; si aun asi
             # falla, que falle fuerte (el paso corta y el run queda rojo).
-            git pull --rebase origin main
-            git push
+            #
+            # Contra la rama en la que corre, NO contra main: probar este workflow
+            # disparandolo sobre otra rama —la unica forma de validarlo sin tocar
+            # produccion— chocaba add/add con este mismo archivo y el paso moria
+            # antes de llegar al push.
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin HEAD:"$GITHUB_REF_NAME"
           fi
