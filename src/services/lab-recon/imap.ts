@@ -1,6 +1,7 @@
 import imaps from 'imap-simple';
 import { simpleParser } from 'mailparser';
 import { prisma } from '../../lib/db';
+import { notaFacturaCompartida } from '../../lib/lab-factura';
 import { OptovisionParserService } from '../optovision-parser.service';
 import { upsertEntry } from './cost-matching';
 
@@ -190,14 +191,16 @@ export async function scanOptovisionInbox(sinceDays = 35) {
                         const entry = await upsertEntry({
                             lab: 'OPTOVISION',
                             labOrderNumber: ped,
+                            // El otro número del pedido ("Ped: TI-7101568(587979)"):
+                            // con esto la venta aparece aunque se haya cargado con
+                            // el número de la planilla.
+                            aliases: invoice.aliasPorPedido?.[ped] ? [invoice.aliasPorPedido[ped]] : undefined,
                             billedNet: invoice.subtotal !== null ? invoice.subtotal / peds.length : null,
                             billedTotal: invoice.total !== null ? invoice.total / peds.length : null,
                             source: 'IMAP_PDF',
                             sourceFile: attachment.filename || 'factura.pdf',
                             invoiceDate: parsed.date || null,
-                            notes: peds.length > 1
-                                ? `Factura compartida entre ${peds.length} pedidos (${peds.join(', ')}); importe prorrateado.`
-                                : null,
+                            notes: peds.length > 1 ? notaFacturaCompartida(peds) : null,
                         });
 
                         if (entry) {

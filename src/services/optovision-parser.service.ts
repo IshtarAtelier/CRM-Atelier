@@ -3,8 +3,11 @@ import PDFParser from 'pdf2json';
 export interface OptovisionInvoiceData {
     labOrderNumber: string | null;
     /** TODOS los pedidos de la línea "Ped:" — Optovision a veces factura 2-3
-     *  juntos: "Ped: TI-7101568(587979) /TI-7101583(588049) /TI-7101638(588966)". */
+     *  juntos: "Ped: TI-7101568(587979) /TI-7101583(588049) /TI-7101638(588966)".
+     *  Ese ejemplo es real y son TRES CLIENTES distintos en un mismo comprobante. */
     labOrderNumbers: string[];
+    /** pedido → el otro identificador, el de la planilla ("587979" → "7101568"). */
+    aliasPorPedido: Record<string, string>;
     subtotal: number | null;
     total: number | null;
     rawText: string;
@@ -73,6 +76,20 @@ export class OptovisionParserService {
                     ? [...pedLine[0].matchAll(/\((\d{5,})\)/g)].map(m => m[1])
                     : [];
                 const labOrderNumber = labOrderNumbers[0] ?? null;
+
+                // 1b. EL OTRO IDENTIFICADOR. Cada pedido viene con DOS números:
+                // "Ped: TI-7101568(587979)". El de paréntesis es el pedido; el de
+                // la T es el que Optovisión escribe en la planilla que recibe el
+                // vendedor, y es el que a veces termina cargado en la venta (sin
+                // la letra: 7101568). Guardar los dos es lo único que permite
+                // encontrar la venta cuando se cargó con el de la planilla — si
+                // no, la factura queda huérfana para siempre con la venta ahí.
+                const aliasPorPedido: Record<string, string> = {};
+                if (pedLine) {
+                    for (const m of pedLine[0].matchAll(/([A-Za-z]{1,3})-?(\d{5,})\s*\((\d{5,})\)/g)) {
+                        aliasPorPedido[m[3]] = m[2];
+                    }
+                }
                 
                 // 2. Extract Subtotal (tolera miles con '.' y decimal con ',')
                 const subtotalMatch = text.match(/Subtotal:\s*\$?\s*([0-9][0-9.,]*)/);
@@ -97,6 +114,7 @@ export class OptovisionParserService {
                 resolve({
                     labOrderNumber,
                     labOrderNumbers,
+                    aliasPorPedido,
                     subtotal,
                     total,
                     rawText: text

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
 import { labPortalClientName } from '@/lib/lab-portal-client-name';
+import { aclaracionImporte, esFacturaSinNumero, etiquetaSinVenta } from '@/lib/lab-factura';
 
 interface LabCostEntry {
     id: string;
@@ -949,7 +950,12 @@ export default function LabCostosPage() {
                                                     {entry.order.client?.name || 'Ver venta'}
                                                 </Link>
                                             ) : (
-                                                <span className="text-gray-400" title={entry.notes || undefined}>sin venta</span>
+                                                // "Sin venta" y "la factura no trae el nº" son cosas
+                                                // distintas: en la segunda la venta puede estar
+                                                // cargada y lo que falta es el dato en el papel.
+                                                <span className="text-gray-400" title={etiquetaSinVenta(entry.labOrderNumber).detalle}>
+                                                    {esFacturaSinNumero(entry.labOrderNumber) ? 'la factura no trae el nº' : 'sin venta'}
+                                                </span>
                                             )}
                                         </td>
                                         {/* Lo que la óptica escribió al cargar el pedido en el portal
@@ -983,7 +989,18 @@ export default function LabCostosPage() {
                                         </td>
                                         <td className="px-4 py-3 text-gray-600">{fmtDate(entry.invoiceDate)}</td>
                                         <td className="px-4 py-3 text-right text-gray-900">{fmt(entry.systemCost)}</td>
-                                        <td className="px-4 py-3 text-right text-gray-900">{fmt(billed)}</td>
+                                        <td className="px-4 py-3 text-right text-gray-900">
+                                            {fmt(billed)}
+                                            {/* Una factura puede traer varios pedidos (y hasta de
+                                                clientes distintos): el importe se reparte en partes
+                                                iguales, así que no es exacto. Se dice acá, al lado
+                                                del número, que es donde se lo lee. */}
+                                            {aclaracionImporte(entry.notes) && (
+                                                <span className="block text-[10px] font-normal text-amber-700" title={aclaracionImporte(entry.notes)!}>
+                                                    ≈ factura compartida
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className={`px-4 py-3 text-right font-semibold ${
                                             entry.difference === null ? 'text-gray-400'
                                                 : entry.difference > 100 ? 'text-red-600'
@@ -993,7 +1010,12 @@ export default function LabCostosPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex flex-col gap-1 items-start">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${meta.badge}`}>{meta.label}</span>
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${meta.badge}`}
+                                                    title={entry.status === 'UNMATCHED' ? etiquetaSinVenta(entry.labOrderNumber).detalle : undefined}>
+                                                    {entry.status === 'UNMATCHED'
+                                                        ? etiquetaSinVenta(entry.labOrderNumber).label
+                                                        : meta.label}
+                                                </span>
                                                 {entry.alertedAt && ['UNMATCHED', 'OVERCOST', 'UNDERCOST'].includes(entry.alertedStatus || '') && (
                                                     <span className="text-[10px] text-gray-400" title={`Avisado por email el ${fmtDate(entry.alertedAt)}`}>
                                                         ✉️ avisado {fmtDate(entry.alertedAt)}

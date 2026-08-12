@@ -1,7 +1,9 @@
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/email';
+import { aclaracionImporte, etiquetaSinVenta } from '../../lib/lab-factura';
 import { labPortalClientName } from '../../lib/lab-portal-client-name';
 import { BACKFILL_LABS, emailsEnabled, isQuietLab } from './backfill';
+import { dobleCobroNuevos, marcarDobleCobroAvisado } from './dos-por-uno';
 import { LAB_LABELS, UNMATCHED_GRACE_MS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
 
 /**
@@ -201,6 +203,9 @@ export async function markAlerted(id: string, status: string) {
  */
 export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {}) {
     const modo = opts.modo ?? 'diario';
+    // Se calcula ANTES de los cortes por "no hay novedades": un 2x1 cobrado dos
+    // veces tiene que salir aunque ese día no se haya movido nada más.
+    const dobles = modo === 'diario' ? await dobleCobroNuevos().catch(() => []) : [];
     const estados = modo === 'urgente'
         ? ['UNMATCHED']
         : ['OVERCOST', 'UNDERCOST', 'OK', 'PENDING'];
@@ -220,7 +225,7 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
     const listoParaAvisar = (e: any) => e.status !== 'UNMATCHED'
         || Date.now() - new Date(e.createdAt).getTime() >= UNMATCHED_GRACE_MS;
     const nuevos = candidatos.filter(e => !quietPorLab[e.lab] && (!e.alertedAt || e.alertedStatus !== e.status) && listoParaAvisar(e));
-    if (nuevos.length === 0) return { alerted: 0 };
+    if (nuevos.length === 0 && dobles.length === 0) return { alerted: 0 };
 
     // En el modo `urgente` todo lo que entra son huérfanos: van sí o sí.
     // En el `diario` solo entran las entradas que ya tienen COSTO REAL — un
@@ -267,7 +272,7 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
     // Las diferencias chicas se estampan acá (en prod): sin esto quedarían
     // como "pendientes de alertar" y se re-evaluarían en cada corrida.
     for (const c of chicos) await markAlerted(c.id, c.status);
-    if (findings.length === 0) return { alerted: 0, silenciados: chicos.length };
+    if (findings.length === 0 && dobles.length === 0) return { alerted: 0, silenciados: chicos.length };
 
     const appUrl = appUrlFn();
     const fmt = fmtARS;
@@ -338,6 +343,13 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
 
     const rows = findings.map((f, i) => {
         const m = META[f.status] || { label: f.status, color: '#374151' };
+        // "Sin venta" es la acusación grave: el lab facturó algo que no existe
+        // en el sistema. Una factura que llegó SIN nº de pedido no es eso — la
+        // venta suele estar cargada y lo que falta es el dato en el papel.
+        // Decirle "sin venta" a las dos cosas quema el aviso que importa.
+        const etiqueta = f.status === 'UNMATCHED'
+            ? etiquetaSinVenta(f.labOrderNumber).label.toUpperCase()
+            : m.label;
         // Sin venta enganchada, la columna mostraba un guión aunque el portal
         // hubiera mandado el nombre del cliente en la nota. Ese nombre es la
         // única pista para encontrarle el dueño al pedido: se muestra.
@@ -379,24 +391,63 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
             <td style="padding:6px 8px;border:1px solid #e5e7eb">${LABS[f.lab] || f.lab}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb">${cliente}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right">${fmt(f.systemCost)}</td>
-            <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;font-weight:bold">${fmt(real)}</td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;font-weight:bold">${fmt(real)}${
+                aclaracionImporte(f.notes)
+                    ? `<br><span style="font-size:10px;font-weight:normal;color:#b45309">≈ factura compartida</span>`
+                    : ''}</td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;color:${(f.difference ?? 0) > 0 ? '#b91c1c' : '#047857'}">${f.difference != null ? fmt(f.difference) : '—'}</td>
-            <td style="padding:6px 8px;border:1px solid #e5e7eb"><span style="color:${m.color};font-weight:bold">${m.label}</span></td>
+            <td style="padding:6px 8px;border:1px solid #e5e7eb"><span style="color:${m.color};font-weight:bold">${etiqueta}</span></td>
             <td style="padding:6px 8px;border:1px solid #e5e7eb;font-size:12px">${ultima}</td>
         </tr>`;
     }).join('');
 
+    // 2x1 CON LOS DOS PARES COBRADOS: sección propia del resumen del día. Es
+    // plata a reclamar, y el cruce normal no lo ve cuando los pedidos quedaron
+    // huérfanos (sin venta no hay contra qué comparar).
+    // Solo se marcan como avisados los que SALEN en este email (mismo criterio
+    // que el tope de filas de arriba): el resto tiene que salir en el próximo.
+    const doblesMostrados = dobles.slice(0, 25);
+    const tablaDobles = dobles.length ? `
+        <h3 style="color:#b91c1c;margin-top:22px">Posible 2x1 cobrado dos veces (${dobles.length})</h3>
+        <p style="font-size:13px">En el 2x1 el laboratorio cobra un par y el otro va sin cargo. Acá los dos vinieron con cargo:
+        <strong>${fmtARS(dobles.reduce((a, d) => a + d.aReclamar, 0))}</strong> a revisar. Ojo que puede ser legítimo
+        (dos anteojos distintos comprados juntos), por eso van los dos importes.</p>
+        <table style="border-collapse:collapse;width:100%;font-size:13px">
+            <tr style="background:#111827;color:#fff">
+                <th style="padding:8px;text-align:left">Cliente</th><th style="padding:8px;text-align:left">Pedidos</th>
+                <th style="padding:8px;text-align:right">Cobrado</th><th style="padding:8px;text-align:right">A reclamar</th>
+            </tr>
+            ${doblesMostrados.map((d, i) => `<tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
+                <td style="padding:6px 8px;border:1px solid #e5e7eb">${
+                    d.clientId ? `<a href="${appUrl}/admin/contactos?clientId=${d.clientId}">${d.cliente || 'ver ficha'}</a>` : (d.cliente || '—')
+                }${d.origen === 'PORTAL' ? '<br><span style="font-size:11px;color:#6b7280">nombre del portal, sin venta</span>' : ''}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;font-family:monospace">${d.pedidos.map(p => p.labOrderNumber).join(' · ')}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right">${d.pedidos.map(p => fmtARS(p.importe)).join('<br>')}</td>
+                <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:right;font-weight:bold;color:#b91c1c">${fmtARS(d.aReclamar)}${
+                    d.mismoImporte ? '<br><span style="font-size:10px;font-weight:normal;color:#6b7280">mismo importe</span>' : ''}</td>
+            </tr>`).join('')}
+        </table>${dobles.length > 25
+            ? `<p style="font-size:12px;color:#6b7280">Se muestran los 25 de mayor importe; los otros ${dobles.length - 25} salen en el próximo resumen.</p>`
+            : ''}` : '';
+
     const esUrgente = modo === 'urgente';
     const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
+    // Día sin movimientos pero con un 2x1 cobrado dos veces: el asunto tiene
+    // que hablar de ESO, no anunciar "0 movimientos".
+    const soloDobles = findings.length === 0 && dobles.length > 0;
     const asunto = esUrgente
         ? `🚨 ${findings.length} pedido(s) de laboratorio SIN VENTA en el sistema`
-        : `📋 Laboratorios ${hoy}: ${findings.length} movimiento(s) — ${partes}`;
+        : soloDobles
+            ? `🚨 Laboratorios ${hoy}: ${dobles.length} posible 2x1 cobrado dos veces`
+            : `📋 Laboratorios ${hoy}: ${findings.length} movimiento(s) — ${partes}${dobles.length ? ` · ${dobles.length} posible 2x1 cobrado dos veces` : ''}`;
     const titulo = esUrgente
         ? '🚨 Pedidos de laboratorio sin venta que los respalde'
         : `📋 Resumen del día — laboratorios`;
     const bajada = esUrgente
         ? `Aparecieron <strong>${findings.length}</strong> pedido(s) facturados por el laboratorio que no tienen ninguna venta ni postventa que los respalde. Conviene resolverlos ahora: asignarle el número a la venta que corresponda, vincularlo a un caso de postventa, o reclamárselo al laboratorio.`
-        : `Todo lo que se movió hoy en los dos laboratorios, junto: ${partes}. Los pedidos sin venta se avisan aparte, en el momento.`;
+        : soloDobles
+            ? `Hoy no se movió nada en los laboratorios, pero hay algo para revisar.`
+            : `Todo lo que se movió hoy en los dos laboratorios, junto: ${partes}. Los pedidos sin venta se avisan aparte, en el momento.`;
 
     const res: any = await sendEmail({
         to: adminInbox(),
@@ -406,7 +457,7 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
                 <h2 style="color:${esUrgente ? '#b91c1c' : '#1f2937'}">${titulo}</h2>
                 <p>${bajada}</p>
                 ${pendientes > 0 ? `<p style="background:#fef3c7;border-left:4px solid #f59e0b;padding:10px 12px;font-size:13px">Se movieron <strong>${total}</strong> en total: acá van los <strong>${MAX_FILAS} más importantes</strong> y los otros <strong>${pendientes}</strong> salen en el próximo resumen (no se pierde ninguno). Están todos en <a href="${appUrl}/admin/laboratorio/costos">la pantalla de conciliación</a>.</p>` : ''}
-                <table style="border-collapse:collapse;width:100%;font-size:13px">
+                ${findings.length ? `<table style="border-collapse:collapse;width:100%;font-size:13px">
                     <tr style="background:#111827;color:#fff">
                         <th style="padding:8px;text-align:left">Nº operación</th><th style="padding:8px;text-align:left">Comprobante</th>
                         <th style="padding:8px;text-align:left">Fecha</th><th style="padding:8px;text-align:left">Lab</th>
@@ -414,7 +465,8 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
                         <th style="padding:8px;text-align:right">Costo real</th><th style="padding:8px;text-align:right">Dif.</th>
                         <th style="padding:8px;text-align:left">Estado</th><th style="padding:8px;text-align:left">Detalle</th>
                     </tr>${rows}
-                </table>
+                </table>` : ''}
+                ${tablaDobles}
                 <p style="margin-top:14px"><a href="${appUrl}/admin/laboratorio/costos">Ver conciliación completa en el CRM</a></p>
             </div>
         `,
@@ -426,6 +478,8 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
         console.error('[LabCost] alertNewFindings: el email NO salió; se reintenta en la próxima corrida.');
         return { alerted: 0, failed: findings.length };
     }
+    // Igual que los hallazgos: el 2x1 se marca SOLO si el email salió.
+    await marcarDobleCobroAvisado(doblesMostrados);
     // Se marca SOLO lo que salió en este email (con los hermanos de esas
     // ventas): lo que quedó fuera del tope sigue pendiente para el próximo.
     // Un updateMany por estado en vez de N updates: con lotes grandes, N
