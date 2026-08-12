@@ -9,6 +9,7 @@ import {
     ChevronDown, ChevronUp
 } from 'lucide-react';
 import { syncUrlParams, getUrlParam } from '@/lib/url-filters';
+import { labPortalClientName } from '@/lib/lab-portal-client-name';
 
 interface LabCostEntry {
     id: string;
@@ -911,6 +912,7 @@ export default function LabCostosPage() {
                                 <th className="px-4 py-3">Nº pedido</th>
                                 <th className="px-4 py-3">Lab</th>
                                 <th className="px-4 py-3">Cliente</th>
+                                <th className="px-4 py-3">Cargado en el lab</th>
                                 <th className="px-4 py-3">Producto (ver/ajustar costo)</th>
                                 <th className="px-4 py-3">Fecha factura</th>
                                 <th className="px-4 py-3 text-right">Costo sistema</th>
@@ -949,6 +951,18 @@ export default function LabCostosPage() {
                                             ) : (
                                                 <span className="text-gray-400" title={entry.notes || undefined}>sin venta</span>
                                             )}
+                                        </td>
+                                        {/* Lo que la óptica escribió al cargar el pedido en el portal
+                                            del lab. Sin venta enganchada es la única pista para
+                                            encontrarle el dueño, y hasta ahora solo se veía haciendo
+                                            hover sobre el nº de pedido, mezclado con el resto de la nota. */}
+                                        <td className="px-4 py-3 text-xs">
+                                            {(() => {
+                                                const cargado = labPortalClientName(entry.notes);
+                                                return cargado
+                                                    ? <span className="text-amber-700 font-medium">{cargado}</span>
+                                                    : <span className="text-gray-300" title="No le cargaron ningún dato al pedido en el portal del laboratorio">sin dato</span>;
+                                            })()}
                                         </td>
                                         <td className="px-4 py-3 text-xs">
                                             {entry.productos && entry.productos.length > 0 ? (

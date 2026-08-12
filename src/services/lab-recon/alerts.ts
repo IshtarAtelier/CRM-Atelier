@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/email';
+import { labPortalClientName } from '../../lib/lab-portal-client-name';
 import { BACKFILL_LABS, emailsEnabled, isQuietLab } from './backfill';
 import { LAB_LABELS, UNMATCHED_GRACE_MS, adminInbox, appUrl as appUrlFn, fmtARS, fmtFecha } from './types';
 
@@ -340,10 +341,10 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
         // Sin venta enganchada, la columna mostraba un guión aunque el portal
         // hubiera mandado el nombre del cliente en la nota. Ese nombre es la
         // única pista para encontrarle el dueño al pedido: se muestra.
-        const delPortal = (f.notes || '').match(/portal del laboratorio \(([^,)]{3,60})[,)]/)?.[1]?.trim();
+        const delPortal = labPortalClientName(f.notes);
         const cliente = f.order
             ? `<a href="${appUrl}/admin/contactos?clientId=${f.order.clientId}">${f.order.client?.name || 'ver ficha'}</a>`
-            : delPortal && !/^ingreso\b/i.test(delPortal)
+            : delPortal
                 ? `<span style="color:#b45309">${delPortal}</span><br><span style="font-size:11px;color:#6b7280">nombre del portal, sin venta</span>`
                 : '<span style="color:#b91c1c">—</span>';
         const nroOperacion = ES_PEDIDO.test(String(f.labOrderNumber || '').trim())
