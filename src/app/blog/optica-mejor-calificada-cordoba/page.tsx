@@ -117,13 +117,13 @@ export default async function OpticaMejorCalificadaPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <StorefrontNavbar />
+      <StorefrontNavbar theme="light" />
 
       <main className="flex-grow">
         {/* HERO */}
         <section className="pt-32 pb-16 md:pt-40 md:pb-20 bg-white">
           <div className="max-w-4xl mx-auto px-6 text-center">
-            <span className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4 block">
+            <span className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-600 mb-4 block">
               Nuestra forma de trabajar
             </span>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-6 text-[#111]">

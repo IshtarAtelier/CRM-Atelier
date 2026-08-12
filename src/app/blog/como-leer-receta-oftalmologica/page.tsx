@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function LeerRecetaOftalmologicaPage() {
   return (
     <div className="min-h-screen bg-[#faf8f5] font-sans text-[#111]">
-      <StorefrontNavbar />
+      <StorefrontNavbar theme="light" />
       
       <main className="max-w-4xl mx-auto px-6 py-16">
         <article className="bg-white rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-black/5 p-8 md:p-12">
@@ -37,10 +37,10 @@ export default function LeerRecetaOftalmologicaPage() {
             </p>
 
             <div className="bg-[#f5f5f5] border-l-4 border-black/10 p-6 rounded-r-lg mb-10">
-              <h3 className="text-[#111] font-semibold text-lg flex items-center mb-2">
+              <h2 className="text-[#111] font-semibold text-lg flex items-center mb-2">
                 <Eye className="w-5 h-5 mr-2" />
                 Un recordatorio importante
-              </h3>
+              </h2>
               <p className="text-[#111] m-0">
                 Como especialistas en salud visual y estética, nuestro trabajo es interpretar la receta de tu médico oftalmólogo para asesorarte sobre los mejores cristales y armazones para vos. <strong>Nosotros no medimos la vista, no diagnosticamos patologías ni recetamos tratamientos.</strong> Si sentís que no estás viendo bien, el primer paso siempre debe ser visitar a tu médico oftalmólogo de confianza.
               </p>

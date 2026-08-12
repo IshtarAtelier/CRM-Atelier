@@ -93,7 +93,7 @@ export default function ControlMiopiaInfantilPage() {
               href={`https://wa.me/${WHATSAPP_PHONE}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-[#25D366] text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[#1ebe57] transition-all hover:scale-105"
+              className="inline-flex items-center justify-center bg-[#25D366] text-stone-950 px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[#1ebe57] transition-all hover:scale-105"
             >
               Consultar por WhatsApp
             </a>

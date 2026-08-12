@@ -38,13 +38,13 @@ export default function GlassesFrameGuidePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       
-      <StorefrontNavbar />
+      <StorefrontNavbar theme="light" />
 
       <main className="flex-grow">
         {/* HERO SECTION */}
         <section className="pt-32 pb-16 md:pt-40 md:pb-20 bg-white">
           <div className="max-w-4xl mx-auto px-6 text-center">
-            <span className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4 block">
+            <span className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-600 mb-4 block">
               Asesoramiento Estético Exclusivo
             </span>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-6 text-[#111]">
@@ -69,7 +69,7 @@ export default function GlassesFrameGuidePage() {
               <div className="bg-neutral-100 p-6 rounded-lg border border-black/10 mb-10 flex gap-4 items-start">
                 <Info className="w-6 h-6 text-[#444] flex-shrink-0 mt-1" />
                 <div>
-                  <h3 className="text-lg font-medium text-[#111] m-0 mb-2">Un paso previo y fundamental</h3>
+                  <h2 className="text-lg font-medium text-[#111] m-0 mb-2">Un paso previo y fundamental</h2>
                   <p className="text-neutral-700 m-0 text-sm">
                     Antes de pensar en cuál es tu marco ideal, es vital <strong>visitar a tu médico oftalmólogo</strong>. En nuestra óptica en Córdoba no diagnosticamos ni recetamos. Nuestra vocación es técnica y estética: armar tus <strong>anteojos de receta</strong> con precisión milimétrica basándonos exclusivamente en tu prescripción médica. Una vez que tengas tu receta oftalmológica actualizada, ¡ahí sí empezamos con la magia de la elección estética!
                   </p>
@@ -173,7 +173,7 @@ export default function GlassesFrameGuidePage() {
               href={`https://wa.me/${WHATSAPP_PHONE}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-[#25D366] text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[#1ebe57] transition-all hover:scale-105"
+              className="inline-flex items-center justify-center bg-[#25D366] text-stone-950 px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[#1ebe57] transition-all hover:scale-105"
             >
               Consultar por WhatsApp
             </a>

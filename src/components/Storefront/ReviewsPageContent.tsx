@@ -221,9 +221,12 @@ export function ReviewsPageContent({
                         </div>
                       )}
                       <div>
-                        <h4 className="text-sm font-black text-stone-800 dark:text-white tracking-tight">
+                        {/* h2, no h4: el nombre de quien deja la reseña es el
+                            primer encabezado después del <h1> de la página y
+                            saltaba dos niveles de una. */}
+                        <h2 className="text-sm font-black text-stone-800 dark:text-white tracking-tight">
                           {review.author_name}
-                        </h4>
+                        </h2>
                         <span className="text-xs text-stone-500 dark:text-stone-400 uppercase tracking-widest font-medium">
                           {review.relative_time_description}
                         </span>

@@ -19,7 +19,7 @@ export default function ComoLimpiarAnteojosPage() {
       <main className="max-w-3xl mx-auto px-5 pt-32 pb-24">
         {/* Header del Artículo */}
         <header className="mb-12">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-black/50 mb-6">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-stone-600 mb-6">
             <Link href="/blog" className="hover:text-black transition-colors">Blog</Link>
             <span>/</span>
             <span>Cuidado y Mantenimiento</span>
@@ -121,7 +121,7 @@ export default function ComoLimpiarAnteojosPage() {
               href={`https://wa.me/${WHATSAPP_PHONE}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center bg-[#25D366] text-white px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[#1ebe57] transition-all hover:scale-105"
+              className="inline-flex items-center justify-center bg-[#25D366] text-stone-950 px-8 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-[#1ebe57] transition-all hover:scale-105"
             >
               Consultar por WhatsApp
             </a>

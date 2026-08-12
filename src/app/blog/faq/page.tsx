@@ -186,7 +186,7 @@ export default function FAQPage() {
             href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent('Hola, tengo una consulta sobre anteojos/cristales.')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-8 py-4 bg-[#25D366] text-white rounded-full font-bold text-lg shadow-lg hover:bg-[#20bd5a] hover:-translate-y-1 transition-all"
+            className="inline-flex items-center justify-center px-8 py-4 bg-[#25D366] text-stone-950 rounded-full font-bold text-lg shadow-lg hover:bg-[#20bd5a] hover:-translate-y-1 transition-all"
           >
             <MessageSquare className="w-5 h-5 mr-2" />
             Hacer mi consulta
