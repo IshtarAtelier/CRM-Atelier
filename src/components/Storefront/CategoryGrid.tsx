@@ -93,7 +93,11 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                   src={imageUrl} 
                   alt={`${p.brand} ${p.model}`}
                   fill
-                  priority={index < 4}
+                  // Sin `priority`: marcaba 4 miniaturas como prioritarias y Next
+                  // emite un <link rel="preload"> por cada una, compitiendo por
+                  // ancho de banda con lo que define el primer pintado. Mismo
+                  // caso que ya se corrigió en el carrusel de la home.
+                  loading="lazy"
                   style={{ transform: "translateZ(0)" }}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${imagePaddingClass} ${hasSecondImage ? 'md:group-hover:opacity-0 ' : ''}`}
@@ -125,18 +129,18 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
 
               <div className="flex flex-col flex-1 px-1">
                 {/* Marca como <p>: iba como <h3> antes del <h2> del modelo. */}
-                <p className="text-[10px] text-stone-500 dark:text-stone-400 font-bold uppercase tracking-[0.20em] mb-1">{p.brand}</p>
+                <p className="text-[10px] text-stone-600 dark:text-stone-400 font-bold uppercase tracking-[0.20em] mb-1">{p.brand}</p>
                 <h2 className="text-base font-serif tracking-tight text-stone-900 dark:text-white mb-2 leading-tight flex-1">{p.model}</h2>
                 
                 <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40 flex flex-col gap-1">
                   <div className="flex items-baseline justify-between">
                     <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
-                      {webSettings.web_promo_installments} de <span className="font-extrabold text-[#8a6d3b] dark:text-[#c8a55c]">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
+                      {webSettings.web_promo_installments} de <span className="font-extrabold text-[#7d6249] dark:text-[#c8a55c]">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
                     </p>
                     <span className="text-xs text-stone-900 dark:text-white uppercase tracking-wider font-bold group-hover:text-[#8a6d3b] dark:group-hover:text-[#c8a55c] transition-colors shrink-0">Ver anteojos ›</span>
                   </div>
 
-                  <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
+                  <p className="text-[11px] text-stone-600 dark:text-stone-400 font-medium">
                     ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transferencia <span className="text-emerald-800 dark:text-emerald-500 font-bold text-xs uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
                   </p>
                   {/* La promesa más fuerte de la tienda solo vivía en la cinta superior:
@@ -145,7 +149,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                     Envío gratis a todo el país
                   </p>
                   
-                  <p className="text-xs text-stone-500 dark:text-stone-600">
+                  <p className="text-xs text-stone-600 dark:text-stone-400">
                     Precio de lista: ${(p.price || 0).toLocaleString("es-AR")}
                   </p>
                 </div>
