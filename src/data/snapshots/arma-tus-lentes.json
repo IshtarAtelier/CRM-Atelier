@@ -479,26 +479,6 @@
       }
     },
     {
-      "name": "Néstor C1",
-      "imageUrl": "/images/products/nestor-c1.webp",
-      "category": "Receta",
-      "slug": "nestor-c1",
-      "images": [
-        "/images/products/nestor-c1.webp",
-        "/images/products/nestor-c1-2.webp"
-      ],
-      "product": {
-        "id": "cmrbevktm000f2mqo76x8jmkq",
-        "model": "G7013 C1",
-        "price": 200000,
-        "stock": 5,
-        "imagenesCatalogo": [
-          "/images/products/nestor-c1.webp",
-          "/images/products/nestor-c1-2.webp"
-        ]
-      }
-    },
-    {
       "name": "Orión C1",
       "imageUrl": "/images/products/orion-c1.webp",
       "category": "Receta",
@@ -517,84 +497,6 @@
           "/images/products/orion-c1.webp",
           "/images/products/orion-c1-2.webp",
           "/images/products/orion-c1-3.webp"
-        ]
-      }
-    },
-    {
-      "name": "Jano C1",
-      "imageUrl": "/images/products/jano-c1.webp",
-      "category": "Receta",
-      "slug": "jano-c1",
-      "images": [
-        "/images/products/jano-c1.webp",
-        "/images/products/jano-c1-2.webp"
-      ],
-      "product": {
-        "id": "cmrbevktf00092mqopjhpipl8",
-        "model": "G7010 C1",
-        "price": 200000,
-        "stock": 5,
-        "imagenesCatalogo": [
-          "/images/products/jano-c1.webp",
-          "/images/products/jano-c1-2.webp"
-        ]
-      }
-    },
-    {
-      "name": "Atlas C3",
-      "imageUrl": "/images/products/atlas-c3.webp",
-      "category": "Receta",
-      "slug": "atlas-c3",
-      "images": [
-        "/images/products/atlas-c3.webp",
-        "/images/products/atlas-c3-2.webp"
-      ],
-      "product": {
-        "id": "cmrbevktc00062mqonybp65g8",
-        "model": "G7008 C3",
-        "price": 200000,
-        "stock": 5,
-        "imagenesCatalogo": [
-          "/images/products/atlas-c3.webp",
-          "/images/products/atlas-c3-2.webp"
-        ]
-      }
-    },
-    {
-      "name": "Atlas C2",
-      "imageUrl": "/images/products/atlas-c2.webp",
-      "category": "Receta",
-      "slug": "atlas-c2",
-      "images": [
-        "/images/products/atlas-c2.webp"
-      ],
-      "product": {
-        "id": "cmrbevkt800032mqojo6ys9q2",
-        "model": "G7008 C2",
-        "price": 200000,
-        "stock": 5,
-        "imagenesCatalogo": [
-          "/images/products/atlas-c2.webp"
-        ]
-      }
-    },
-    {
-      "name": "Atlas C1",
-      "imageUrl": "/images/products/atlas-c1.webp",
-      "category": "Receta",
-      "slug": "atlas-c1",
-      "images": [
-        "/images/products/atlas-c1.webp",
-        "/images/products/atlas-c1-2.webp"
-      ],
-      "product": {
-        "id": "cmrbevkss00002mqo5cyk168f",
-        "model": "G7008 C1",
-        "price": 200000,
-        "stock": 5,
-        "imagenesCatalogo": [
-          "/images/products/atlas-c1.webp",
-          "/images/products/atlas-c1-2.webp"
         ]
       }
     },
