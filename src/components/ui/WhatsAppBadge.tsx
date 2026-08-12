@@ -6,6 +6,21 @@ export function WhatsAppBadge() {
     const [count, setCount] = useState(0);
 
     useEffect(() => {
+        // Desmontado antes de que termine la cadena de promesas de abajo, y el
+        // socket que haya llegado a crearse. Los dos hacen falta para cortar de
+        // verdad: el `return () => socket.disconnect()` que había estaba DENTRO
+        // del `.then()`, así que era el valor de retorno de la promesa y no el
+        // cleanup del efecto — el socket no se cerraba nunca.
+        //
+        // Este componente vive en la barra lateral y se monta/desmonta cada vez
+        // que se colapsa y se vuelve a abrir (`!isCollapsed && <WhatsAppBadge/>`),
+        // así que cada apertura dejaba OTRA conexión viva escuchando
+        // `new_message_received`. De ahí el sonido repetido: con tres sockets
+        // colgados, un mensaje entrante sonaba tres veces. Y de paso eran tres
+        // conexiones al bot por pestaña.
+        let cancelado = false;
+        let socketVivo: { disconnect: () => void } | null = null;
+
         const fetchCount = async () => {
             try {
                 const res = await fetch('/api/whatsapp/chats/unread-count');
@@ -25,7 +40,9 @@ export function WhatsAppBadge() {
         const interval = setInterval(fetchCount, 120000);
 
         import('socket.io-client').then(({ io }) => {
+            if (cancelado) return;
             fetch('/api/whatsapp/status').then(r => r.json()).then(statusData => {
+                if (cancelado) return;
                 const socketUrl = process.env.NEXT_PUBLIC_WA_URL || statusData.socketUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
                 const socket = io(socketUrl, {
                 transports: ['websocket'],
@@ -62,11 +79,18 @@ export function WhatsAppBadge() {
 
             socket.on('chat_read_status', fetchCount);
 
-                return () => { socket.disconnect(); };
+                socketVivo = socket;
+                // El desmontaje pudo ocurrir mientras se resolvían las promesas:
+                // si ya pasó, este socket nace huérfano y hay que cerrarlo acá.
+                if (cancelado) socket.disconnect();
             }).catch(console.error);
         });
 
-        return () => clearInterval(interval);
+        return () => {
+            cancelado = true;
+            clearInterval(interval);
+            socketVivo?.disconnect();
+        };
     }, []);
 
     if (count === 0) return null;
