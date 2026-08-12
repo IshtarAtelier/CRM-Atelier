@@ -34,6 +34,16 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
     qualities: [60, 75],
     minimumCacheTTL: 2678400,
+    // Tope en 1600: es el ancho real de la imagen más grande que se muestra a
+    // pantalla completa (los héroes editoriales son de 1024-1600 px). Por
+    // defecto Next ofrece hasta 3840, así que en un monitor grande el navegador
+    // pedía w=1920/2048/3840 y el servidor AGRANDABA el original: la fachada de
+    // /nuestro-local se servía en 286 KB cuando el archivo pesa 185 KB. Más
+    // bytes, más espera y ni un píxel de detalle extra — no se puede inventar
+    // resolución que la foto no tiene. Con el tope, el máximo baja a ~200 KB.
+    // Las fotos de producto son de 6000 px pero se muestran a 25vw, así que
+    // nunca llegaban a pedir estos anchos.
+    deviceSizes: [640, 750, 828, 1080, 1200, 1600],
     remotePatterns: [
       { protocol: 'https', hostname: '*.firebasestorage.googleapis.com' },
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },

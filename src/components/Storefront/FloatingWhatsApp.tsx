@@ -18,6 +18,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   // Escarlata, no los de Atelier. Señal = localStorage 'user' (la cookie es
   // httpOnly). Ver el patrón en StorefrontNavbar.
   const [isOptica, setIsOptica] = useState(false);
+  const [tituloNota, setTituloNota] = useState<string | null>(null);
   const pathname = usePathname();
   // Sin decisión de cookies (null) el banner ocupa el pie de la pantalla y se
   // superpone con esta burbuja. Es un estado de un solo toque: se espera.
@@ -62,6 +63,36 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     } catch { /* noop */ }
   }, []);
 
+  // Título de la nota del blog que se está leyendo.
+  //
+  // Quien escribe desde un artículo ya declaró su tema —miopía infantil, cómo
+  // leer una receta, multifocales— y ese es el dato más útil para arrancar la
+  // conversación. Hasta acá el mensaje llegaba genérico ("Los vi en la nueva
+  // web") y el asesor tenía que preguntar de cero lo que la persona ya había
+  // dicho con su lectura.
+  //
+  // Se lee el <h1> del DOM en vez de pasar el título por props: las notas son de
+  // dos clases —las de la base (/blog/[slug]) y las ~20 escritas a mano, cada
+  // una su propio archivo— y ninguna renderiza este componente; lo pone el
+  // layout raíz. Tomarlo del <h1> cubre las dos de una y no obliga a tocar cada
+  // artículo ni a acordarse de pasarlo en el próximo que se escriba. Verificado:
+  // ambas variantes traen exactamente un <h1>, que es el titular del artículo.
+  useEffect(() => {
+    const esNota =
+      pathname?.startsWith("/blog/") &&
+      !pathname.startsWith("/blog/categoria/") &&
+      !pathname.startsWith("/blog/busquedas/") &&
+      pathname !== "/blog/faq";
+    if (!esNota) {
+      setTituloNota(null);
+      return;
+    }
+    const texto = document.querySelector("h1")?.textContent?.replace(/\s+/g, " ").trim();
+    // Los titulares SEO son largos ("… en Córdoba: Todo lo que necesitás
+    // saber"); recortado, el mensaje sigue entrando de un vistazo en WhatsApp.
+    setTituloNota(texto ? (texto.length > 80 ? `${texto.slice(0, 79).trimEnd()}…` : texto) : null);
+  }, [pathname]);
+
   // El catálogo (/capsulaescarlata) ya trae su propia barra de CTA con WhatsApp
   // fija abajo (mismo ancho de pantalla): la burbuja flotante quedaba superpuesta.
   if (
@@ -84,16 +115,19 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     defaultText = `¡Hola! Tengo dudas sobre el modelo ${productName} y me gustaría recibir asesoramiento.`;
   } else if (message) {
     defaultText = message;
+  } else if (tituloNota) {
+    defaultText = `¡Hola Atelier! Estaba leyendo "${tituloNota}" y me gustaría recibir asesoramiento.`;
   } else if (pathname?.includes("/tienda") || pathname?.includes("/producto/")) {
     defaultText = "¡Hola Atelier! Estoy recorriendo la tienda online y me gustaría recibir asesoramiento.";
   } else if (pathname?.includes("/arma-tus-lentes")) {
     defaultText = "¡Hola Atelier! Me gustaría recibir asesoramiento para armar mis lentes.";
   }
 
-  // En ficha de producto y tienda mandamos también el link de la página: WhatsApp
-  // arma la previsualización con la foto, así el asesor ve qué está mirando.
+  // En ficha de producto, tienda y notas del blog mandamos también el link de la
+  // página: WhatsApp arma la previsualización, así el asesor ve qué está mirando
+  // y puede abrir la nota para responder sobre lo mismo que la persona leyó.
   const sharesPageUrl = Boolean(
-    productName || pathname?.includes("/producto/") || pathname?.includes("/tienda")
+    productName || pathname?.includes("/producto/") || pathname?.includes("/tienda") || tituloNota
   );
 
   const WHATSAPP_URL = buildWhatsAppUrl(defaultText, {
