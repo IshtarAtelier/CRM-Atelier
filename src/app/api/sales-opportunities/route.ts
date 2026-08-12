@@ -178,18 +178,17 @@ export async function GET() {
                     lt: threeDaysAgo,
                     gt: thirtyDaysAgo
                 },
-                // "No compró AÚN" = no hay venta POSTERIOR a este presupuesto
-                // (se resuelve abajo, en JS, mirando las ventas del cliente).
-                //
-                // Antes acá se exigía además `status notIn CLIENT/active` y
-                // "cero ventas en la historia": un cliente viejo que volvía a
-                // pedir presupuesto quedaba invisible para siempre — y son
-                // justamente los más fáciles de cerrar. Medido contra
-                // producción (12/8/2026): entre ese filtro y la exclusión por
-                // nombre/teléfono de más abajo, el panel llevaba semanas en
-                // cero con 76 clientes reales para perseguir.
+                // `status notIn CLIENT/active` se quedó tras verificarlo contra
+                // los datos reales (12/8/2026): acá una venta cerrada muchas
+                // veces NO deja Order SALE ni Payment — lo único que cambia es
+                // que la ficha pasa a CLIENT (Sonia Guzman: presupuesto de
+                // $1.021.074 "pendiente", cero pagos registrados, y ya compró).
+                // Al sacar este filtro el panel se llenó de clientes cerrados,
+                // que es peor que vacío: un vendedor persiguiendo a quien ya
+                // compró. La señal operativa de cierre ES el status.
                 client: {
-                    isDeleted: false
+                    isDeleted: false,
+                    status: { notIn: ['CLIENT', 'active'] }
                 }
             },
             select: {
@@ -423,27 +422,30 @@ export async function GET() {
             }
         });
 
-        // Llaves de clientes ya convertidos: teléfono normalizado y email.
+        // Llaves de clientes ya convertidos: teléfono normalizado, email y nombre.
         //
-        // SIN nombre, y SOLO para carritos. Esta exclusión mataba el panel
-        // entero: medido contra producción (12/8/2026), los 5 presupuestos que
-        // sobrevivían a todos los demás filtros caían acá — "fernando" a secas
-        // coincidía con cualquier cliente convertido llamado Fernando, y un
-        // teléfono compartido (madre e hija) tapaba a la persona que no compró.
-        // Para presupuestos y favoritos la ficha es conocida y "¿compró?" ya se
-        // decide mirando SUS ventas; el match difuso solo aporta para carritos
-        // web, donde la identidad es un formulario a medio llenar.
+        // Verificado contra los datos (12/8/2026) antes de intentar "mejorarla":
+        // esta exclusión difusa es la que tapa las FICHAS DUPLICADAS de gente
+        // que ya compró — Viviana Espeche tiene una ficha CONTACT con el
+        // presupuesto viejo y otra CLIENT con la compra; sin el match por
+        // nombre, la ficha vieja reaparece en el panel como falsa oportunidad.
+        // El costo (un homónimo real queda tapado) es menor que el de mandar a
+        // un vendedor a perseguir a quien ya compró.
         const clientPhones = new Set<string>();
+        const clientNames = new Set<string>();
         const clientEmails = new Set<string>();
 
         for (const c of clientsWithSales) {
+            clientNames.add(c.name.trim().toLowerCase());
             const pk = phoneKey(c.phone);
             if (pk) clientPhones.add(pk);
             if (c.email) clientEmails.add(c.email.trim().toLowerCase());
         }
 
         const filteredOpportunities = opportunities.filter(opp => {
-            if (opp.type !== 'ABANDONED_CART') return true;
+            if (clientNames.has(opp.clientName.trim().toLowerCase())) {
+                return false;
+            }
             const pk = phoneKey(opp.phone);
             if (pk && clientPhones.has(pk)) {
                 return false;
