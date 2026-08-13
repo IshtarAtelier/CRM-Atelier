@@ -14,6 +14,7 @@ import { GoogleAdsService } from '@/services/google-ads.service';
 import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { formatDateTime } from '@/lib/format-date';
+import { DETALLE_MARK } from '@/lib/order-detail-summary';
 import { frameRecapText, prescriptionRecapText } from '@/lib/sale-recap-text';
 import { sendSaleConfirmation } from '@/lib/sale-confirmation';
 import { logAudit } from '@/lib/audit';
@@ -2063,10 +2064,13 @@ export class OrderService {
                 const rxParaNota = recetaCongeladaTx || updatedOrder.prescription;
                 const enviadaEl = updatedOrder.labSentAt ? formatDateTime(updatedOrder.labSentAt) : null;
 
+                // Resumen de una línea arriba y el repaso completo detrás del
+                // separador: la ficha lo muestra colapsado, así el historial sigue
+                // siendo escaneable y el detalle está a un clic.
                 const historyContent = [
                     `🛒 ${confirmedBy} confirmó el presupuesto #${updatedOrder.id.slice(-4).toUpperCase()} como VENTA por $${(updatedOrder.total || 0).toLocaleString('es-AR')}`,
-                    ``,
                     `Enviada a fábrica por: ${updatedOrder.labSentBy || confirmedBy}${enviadaEl ? ` — ${enviadaEl}` : ''}`,
+                ].join('\n') + DETALLE_MARK + [
                     `Abonado: $${(updatedOrder.paid || 0).toLocaleString('es-AR')} · Saldo: $${Math.max(0, (updatedOrder.total || 0) - (updatedOrder.paid || 0)).toLocaleString('es-AR')}`,
                     ``,
                     `Productos:`,
@@ -2309,17 +2313,14 @@ export class OrderService {
                 data: {
                     clientId: order.clientId,
                     type: 'SISTEMA',
-                    content: [
-                        `✅ ${userName || 'Sistema'} RE-CONFIRMÓ la venta #${id.slice(-4).toUpperCase()} después de reabrirla (versión ${version} del pedido). Lo que va a fábrica es esta versión.`,
-                        ...(reconf ? [
-                            ``,
+                    content: `✅ ${userName || 'Sistema'} RE-CONFIRMÓ la venta #${id.slice(-4).toUpperCase()} después de reabrirla (versión ${version} del pedido). Lo que va a fábrica es esta versión.`
+                        + (reconf ? DETALLE_MARK + [
                             `— ARMAZÓN Y TEÑIDO (v${version}) —`,
                             frameRecapText(reconf),
                             ``,
                             `— RECETA (v${version}) —`,
                             prescriptionRecapText(rxReconf),
-                        ] : []),
-                    ].join('\n'),
+                        ].join('\n') : ''),
                     imageUrl: rxReconf?.imageUrl || null,
                     userId: userId || null,
                     userName: userName || 'Sistema',

@@ -74,6 +74,16 @@ export function buildOrderDetailSummary(order: any): string {
     // Totales y saldo: SIEMPRE de PricingService (regla del proyecto).
     const f = PricingService.calculateOrderFinancials(order);
     const totales = [`TOTAL (precio de lista): ${money(f.listPrice)}`];
+
+    // Las tres formas de pago con sus cuotas, igual que el PDF. Sin esto la nota
+    // decía un solo número y no se entendía qué se le había cotizado: el cliente
+    // recibe tres precios distintos y dos planes de cuotas.
+    totales.push(`💵 Efectivo (-${f.discountCash}%): ${money(f.totalCash)}`);
+    totales.push(`🏦 Transferencia (-${f.discountTransfer}%): ${money(f.totalTransfer)}`);
+    totales.push(`💳 Tarjeta (lista): ${money(f.totalCard)}`);
+    totales.push(`   ↳ 3 cuotas sin interés de ${money(f.installment3)}`);
+    totales.push(`   ↳ 6 cuotas sin interés de ${money(f.installment6)}`);
+
     if (f.hasBalance) {
         totales.push(`Saldo en efectivo: ${money(f.remainingCash)}`);
         totales.push(`Saldo por transferencia: ${money(f.remainingTransfer)}`);

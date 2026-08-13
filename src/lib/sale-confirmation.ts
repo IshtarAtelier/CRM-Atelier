@@ -25,6 +25,7 @@ import { STORE_ORIGIN } from '@/lib/constants';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
 import { logAudit } from '@/lib/audit';
+import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
 /** Marca de la nota que registra el envío: sirve de candado de idempotencia. */
 const MARCA_NOTA = '📧 Confirmación de compra enviada al cliente';
@@ -314,15 +315,15 @@ export async function sendSaleConfirmation(
         resultado.pdfUrl = pdfUrl;
 
         // ── Registro en la ficha, con el resultado real de cada canal ────────
+        // Resumen arriba, y detrás del separador la COPIA EXACTA que recibió el
+        // cliente (la ficha la muestra colapsada). Es lo que se le contesta a un
+        // "a mí me dijeron otra cosa".
         const detalle = [
             sello,
-            ``,
             `Email: ${resultado.email ? `✅ enviado a ${order.client.email}` : (order.client.email ? '❌ NO se pudo enviar' : '— sin email cargado')}`,
             `WhatsApp: ${resultado.whatsapp ? `✅ enviado al ${order.client.phone}` : (tel.length >= 10 ? '❌ NO se pudo enviar' : '— sin teléfono válido')}`,
             pdfUrl ? `PDF del pedido: ${resolveStorageUrl(pdfUrl)}` : `PDF del pedido: ❌ no se pudo generar`,
-            ``,
-            `Se le pidió al cliente que confirme con un OK, que corrobore el estilo del armazón (y mande una foto), y que confirme color y grado si son de sol.`,
-        ].join('\n');
+        ].join('\n') + DETALLE_MARK + conf.waText;
 
         await prisma.interaction.create({
             data: {
