@@ -44,3 +44,23 @@ export const ESTILOS_TENIDO = [
     { key: 'MUESTRA', label: 'Color Según Muestra' },
     { key: 'DEGRADE', label: 'Color Degradé' },
 ] as const;
+
+/**
+ * Qué estilo de teñido es, según el PRODUCTO.
+ *
+ * El estilo ya viene decidido cuando se elige el producto — "Teñido Degradé" es
+ * degradé, no hay nada que preguntar. Mostrarlo otra vez como un paso a elegir
+ * pedía un dato que el sistema ya sabe, y encima dejaba contradecirlo: se podía
+ * cargar un "Teñido Degradé" marcado como compacto y mandarlo así a fábrica.
+ */
+export function estiloDeTenidoDelProducto(product: any): 'COMPACTO' | 'MUESTRA' | 'DEGRADE' | null {
+    const n = (product?.name || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '');
+    if (!n.includes('tenido')) return null;
+    if (n.includes('degrade')) return 'DEGRADE';
+    if (n.includes('muestra')) return 'MUESTRA';
+    if (n.includes('compacto')) return 'COMPACTO';
+    return null;
+}

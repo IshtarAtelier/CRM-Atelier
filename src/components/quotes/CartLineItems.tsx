@@ -4,8 +4,8 @@ import React from 'react';
 import { ShoppingBag, X, Minus, Plus, Palette, ChevronDown } from 'lucide-react';
 import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice } from '@/lib/promo-utils';
 import { formatLensRange } from '@/lib/lens-range';
-import { needsColorSelection, COLOR_CATEGORIES } from '@/lib/crystal-color-utils';
-import { INTENSIDADES_TENIDO } from '@/lib/constants/tenido';
+import { needsColorSelection } from '@/lib/crystal-color-utils';
+import { INTENSIDADES_TENIDO, estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
 import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 
@@ -21,6 +21,7 @@ interface CartLineItemsProps {
     onUpdateQuantity: (idx: number, delta: number) => void;
     onRemoveItem: (idx: number) => void;
     onUpdateItemColor?: (idx: number, color: string, colorType: string) => void;
+    /** @deprecated El estilo lo define el producto; ya no se elige en el carrito. */
     onUpdateItemStyle?: (idx: number, style: string) => void;
     onUpdateItemNote?: (idx: number, note: string) => void;
     markup: number;
@@ -35,16 +36,15 @@ export default function CartLineItems({
     onUpdateQuantity,
     onRemoveItem,
     onUpdateItemColor,
-    onUpdateItemStyle,
+    onUpdateItemStyle: _onUpdateItemStyle,
     onUpdateItemNote,
     markup,
     secondFrameUid,
     promoFrameDiscount,
     crystalColors = [],
-    tintStylePrices = {}
+    tintStylePrices: _tintStylePrices = {}
 }: CartLineItemsProps) {
     const [expandedColorIdx, setExpandedColorIdx] = React.useState<number | null>(null);
-    const [selectedStyle, setSelectedStyle] = React.useState<string | null>(null);
 
     // La paleta se busca ACÁ si nadie la pasó.
     //
@@ -76,11 +76,6 @@ export default function CartLineItems({
         );
     }
 
-    // Get unique colors for the selected style
-    const colorsForStyle = selectedStyle
-        ? colores.filter(c => c.category === selectedStyle)
-        : [];
-
     return (
         <div className="space-y-3 mb-6">
             {items.map((item, idx) => {
@@ -88,10 +83,16 @@ export default function CartLineItems({
                 const isColorExpanded = expandedColorIdx === idx;
                 const hasColor = !!item.crystalColor;
                 const hasNote = !!item.crystalColorNote;
+                // El estilo lo define el PRODUCTO ("Teñido Degradé" es degradé).
+                // Si el producto no lo dice, se respeta lo que ya tenga el item.
+                const estiloDelItem = estiloDeTenidoDelProducto(item.product) || item.crystalColorType || 'COMPACTO';
+                // Un tono por nombre: la paleta es la misma para los tres estilos,
+                // así que repetirla tres veces solo agregaba ruido.
+                const tonosParaElegir = colores
+                    .filter(c => c.category === estiloDelItem)
+                    .filter((c, i, arr) => arr.findIndex(o => o.name === c.name) === i);
                 // La muestra del tono elegido, para que el botón la lleve puesta.
-                const colorHex = colores.find(c => c.name === item.crystalColor && c.category === item.crystalColorType)?.hexColor
-                    || colores.find(c => c.name === item.crystalColor)?.hexColor
-                    || null;
+                const colorHex = colores.find(c => c.name === item.crystalColor)?.hexColor || null;
 
                 return (
                     <div key={idx} className="space-y-0">
@@ -141,7 +142,7 @@ export default function CartLineItems({
                 con la muestra del tono cuando ya está elegido. */}
                             {showColorSelector && (
                                 <button
-                                    onClick={() => { setExpandedColorIdx(isColorExpanded ? null : idx); setSelectedStyle(null); }}
+                                    onClick={() => setExpandedColorIdx(isColorExpanded ? null : idx)}
                                     aria-expanded={isColorExpanded}
                                     title={hasColor ? 'Cambiar el color o la intensidad del teñido' : 'Elegir el color y la intensidad del teñido'}
                                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shrink-0 shadow-sm hover:scale-[1.03] active:scale-95 ${
@@ -221,61 +222,25 @@ export default function CartLineItems({
                                     </datalist>
                                 </div>
 
-                                {colores.length > 0 ? (
-                                <>
-                                {/* Step 1: Select Style */}
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Palette className="w-3.5 h-3.5 text-violet-500" />
-                                    <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
-                                        {selectedStyle ? '← Cambiar estilo' : '1. Estilo de teñido'}
-                                    </span>
-                                </div>
-
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                    {COLOR_CATEGORIES.map(cat => {
-                                        const isActive = selectedStyle === cat.key;
-                                        const hasColorsInCat = colores.some(c => c.category === cat.key);
-                                        if (!hasColorsInCat) return null;
-                                        return (
-                                            <button
-                                                key={cat.key}
-                                                onClick={() => {
-                                                    setSelectedStyle(isActive ? null : cat.key);
-                                                    if (!isActive) onUpdateItemStyle?.(idx, cat.key);
-                                                }}
-                                                className={`px-4 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all border ${
-                                                    isActive
-                                                        ? 'bg-violet-600 text-white border-violet-700 shadow-md shadow-violet-500/20 scale-105'
-                                                        : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-violet-300 hover:bg-violet-50'
-                                                }`}
-                                            >
-                                                {cat.label}
-                                                {typeof tintStylePrices[cat.key] === 'number' && (
-                                                    <span className={`ml-1.5 font-black ${isActive ? 'text-white/80' : 'text-violet-500'}`}>
-                                                        ${tintStylePrices[cat.key].toLocaleString()}
-                                                    </span>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Step 2: Select Color (only shown after style is picked) */}
-                                {selectedStyle && colorsForStyle.length > 0 && (
-                                    <div className="animate-in slide-in-from-top-1 duration-200">
+                                {/* Los COLORES, directo. El estilo (compacto / degradé /
+                                    según muestra) NO se elige acá: ya lo definió el producto
+                                    —"Teñido Degradé" es degradé— y volver a preguntarlo pedía
+                                    un dato que el sistema ya sabe, además de dejar que se lo
+                                    contradiga y se mande así a fábrica. */}
+                                {tonosParaElegir.length > 0 ? (
+                                    <div>
                                         <p className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-2">
-                                            2. Color
+                                            Color
                                         </p>
                                         <div className="flex flex-wrap gap-2">
-                                            {colorsForStyle.map(color => {
-                                                const isSelected = item.crystalColor === color.name && item.crystalColorType === selectedStyle;
+                                            {tonosParaElegir.map(color => {
+                                                const isSelected = item.crystalColor === color.name;
                                                 return (
                                                     <button
                                                         key={color.id}
                                                         onClick={() => {
-                                                            onUpdateItemColor?.(idx, color.name, selectedStyle);
+                                                            onUpdateItemColor?.(idx, color.name, estiloDelItem);
                                                             setExpandedColorIdx(null);
-                                                            setSelectedStyle(null);
                                                         }}
                                                         className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 border ${
                                                             isSelected
@@ -295,8 +260,6 @@ export default function CartLineItems({
                                             })}
                                         </div>
                                     </div>
-                                )}
-                                </>
                                 ) : (
                                     // Que el vendedor SEPA por qué no puede elegir, en vez de
                                     // encontrarse un desplegable vacío sin explicación.
