@@ -13,6 +13,7 @@ const { SystemMessage, HumanMessage } = require("@langchain/core/messages");
 const { withTimeout } = require('../utils');
 const { evaluateConversationGate, applyCancelVerdict } = require('./conversation-gate');
 const { validateMessage, sanitizeMessage } = require('./message-validator');
+const { evaluarElegibilidad, MOTIVOS } = require('./politica');
 const {
     MAX_OUTPUT_TOKENS,
     TEMPERATURE,
@@ -207,49 +208,39 @@ async function checkAndSendSmartTasks({ isAgentEnabled, isFollowupsEnabled, botR
             // sin que saliera un solo seguimiento. El corte por conversación es
             // la etiqueta SIN_SEGUIMIENTO, que valida el sender antes de enviar.
 
-            // Pausa cruzada puesta por la compuerta o por otro sistema
-            // ("hablamos a fin de mes"): sin gastar una llamada de LLM.
+            // Una sola consulta a la POLÍTICA, y después se decide QUÉ hacer con
+            // cada rechazo. Antes los checks estaban escritos acá con sus propios
+            // umbrales; ahora lo único propio de este ejecutor es el desenlace:
+            // hay motivos que cancelan la tarea y motivos que solo la corren de
+            // fecha. Confundirlos cuesta caro en los dos sentidos — cancelar de
+            // más borra trabajo del vendedor, y saltear sin correr la fecha tapa
+            // la cola (el 10/8/2026: 4 enviadas de 934, con 66 chats pausados
+            // ocupando los seis lugares del lote ciclo tras ciclo).
             //
-            // La tarea se corre hasta que termina la pausa, y ESO ES LO QUE
-            // IMPORTA. Con un `continue` pelado se quedaba clavada al frente de
-            // la cola: como el lote se arma con `orderBy: dueDate asc` y se
-            // toman MAX_TASKS_PER_CYCLE, seis tareas de chats pausados ocupaban
-            // los seis lugares, se salteaban, y el ciclo siguiente volvía a
-            // tomar exactamente las mismas seis. La cola nunca llegaba a la
-            // séptima. Medido en producción el 10/8/2026: 4 enviadas de 934,
-            // con 698 elegibles esperando y 66 chats pausados tapando la boca.
-            // Todos los demás caminos de salteo de este archivo ya empujan el
-            // vencimiento por esta misma razón; este era el que faltaba.
-            if (chat.followUpPausedUntil && new Date(chat.followUpPausedUntil) > now) {
-                await prisma.clientTask.updateMany({
-                    where: { id: task.id, status: task.status },
-                    data: { dueDate: new Date(chat.followUpPausedUntil) },
-                }).catch(() => {});
-                continue;
-            }
-
-            // Validar si es un contacto frío (debe tener al menos un mensaje entrante registrado)
-            const inboundCount = await prisma.whatsAppMessage.count({
-                where: {
-                    chatId: chat.id,
-                    direction: 'INBOUND',
-                },
+            // El interruptor global no se mira acá: ya lo miró el ciclo antes de
+            // llamar a este ejecutor, y una tarea no debe cancelarse porque
+            // alguien apagó los seguimientos un rato.
+            const veredicto = await evaluarElegibilidad({
+                client, chat, now,
+                mirarInterruptorGlobal: false,
+                mirarCooldown: false,
+                actividadHoras: GRACE_PERIOD_HOURS,
             });
-            if (inboundCount === 0) {
-                console.log(`  🚫 [Smart Task Executor] Tarea cancelada: ${client.name} es un contacto frío (sin mensajes entrantes).`);
-                await cancelTask(task.id);
-                continue;
-            }
 
-            // Validar si hubo actividad reciente (el humano le contestó)
-            if (chat.lastMessageAt) {
-                // Consideramos que si el humano habló en las últimas 2 horas, tal vez ya cumplió la tarea.
-                const hoursSinceActivity = (now.getTime() - new Date(chat.lastMessageAt).getTime()) / 3600000;
-                if (hoursSinceActivity < GRACE_PERIOD_HOURS) {
-                    console.log(`  🚫 [Smart Task Executor] Cancelada por actividad reciente en el chat de ${client.name}.`);
-                    await cancelTask(task.id);
+            if (!veredicto.ok) {
+                // Correr la fecha (la razón se va a vencer sola)
+                if (veredicto.codigo === MOTIVOS.PAUSADO && chat.followUpPausedUntil) {
+                    await prisma.clientTask.updateMany({
+                        where: { id: task.id, status: task.status },
+                        data: { dueDate: new Date(chat.followUpPausedUntil) },
+                    }).catch(() => {});
                     continue;
                 }
+                // Cancelar (la razón no se va a ir: ya compró, pidió que no le
+                // escriban, o el vendedor está hablando con él ahora)
+                console.log(`  🚫 [Smart Task Executor] ${veredicto.motivo}. Cancelando la tarea.`);
+                await cancelTask(task.id);
+                continue;
             }
 
             // Generar Mensaje

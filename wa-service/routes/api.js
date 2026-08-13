@@ -13,6 +13,7 @@ const path = require('path');
 const fs = require('fs');
 const { getFileExtension, clasificarFalloDeEnvio } = require('../utils');
 const { resolveWaMessageId } = require('../shared/message-id');
+const { olvidarInterruptor } = require('../followups/politica');
 
 const configPath = path.join(__dirname, '..', 'agent_config.json');
 
@@ -557,6 +558,11 @@ function createApiRouter(deps) {
                     update: { value: String(agentState.followupsEnabled) },
                     create: { key: 'followups_enabled', value: String(agentState.followupsEnabled) }
                 });
+                // La política cachea el interruptor 30s para no leerlo una vez
+                // por cliente evaluado. Al tocarlo desde el panel, el efecto
+                // tiene que ser inmediato: apagar los seguimientos y que igual
+                // salgan medio minuto más no es aceptable.
+                olvidarInterruptor();
             }
         } catch (e) {
             console.error("❌ Error persisting config to database:", e);
