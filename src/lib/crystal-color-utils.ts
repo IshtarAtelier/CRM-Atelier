@@ -1,3 +1,5 @@
+import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
+import { isTeñidoAddon } from '@/lib/promo-utils';
 /**
  * Crystal Color Utilities
  * 
@@ -10,28 +12,20 @@
  */
 export function needsColorSelection(product: any): boolean {
   if (!product) return false;
-  
+
   const name = (product.name || '').toLowerCase();
-  const type = (product.type || '').toLowerCase();
   const category = (product.category || '').toLowerCase();
 
-  // Dedicated Teñido treatment product (category: 'Tratamiento', name: 'Teñido')
+  // El teñido a pedido: su color lo elige el cliente.
+  if (isTeñidoAddon(product)) return true;
   if (category === 'tratamiento' && (name === 'teñido' || name === 'tenido')) return true;
 
-  // Check if it's a crystal
-  const isCrystalProduct = category === 'cristal' || type.includes('cristal');
-  if (!isCrystalProduct) return false;
-
-  return (
-    name.includes('teñido') ||
-    name.includes('tenido') ||
-    name.includes('tintado') ||
-    name.includes('fotocromatico') ||
-    name.includes('fotocromático') ||
-    name.includes('transitions') ||
-    name.includes('acclimates') ||
-    name.includes('smart color')
-  );
+  // Para todo lo demás manda LA PALETA: si ese cristal tiene colores para
+  // elegir, el selector se abre. Antes esto era una segunda lista de palabras
+  // clave que había que mantener sincronizada a mano — y no lo estaba: los 15
+  // cristales Xperio tenían su paleta cargada pero el botón no aparecía nunca,
+  // así que el vendedor no podía llegar a ella.
+  return paletaDeFotocromatico(product) !== null;
 }
 
 /**

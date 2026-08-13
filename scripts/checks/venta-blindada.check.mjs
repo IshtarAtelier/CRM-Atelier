@@ -432,6 +432,17 @@ check('un SKU que se llama "(Gris)" ofrece solo gris',
 check('un cristal sin color no abre paleta',
     paletaDeFotocromatico({ name: 'ORMA 1.50 + CRIZAL' }) === null);
 
+// Que la paleta exista no alcanza: el BOTÓN tiene que aparecer, o el vendedor
+// no llega nunca. Los 15 Xperio tenían su paleta cargada y el botón no salía.
+const { needsColorSelection } = await import('../../src/lib/crystal-color-utils.ts');
+const abre = (name) => needsColorSelection({ name, category: 'Cristal' });
+check('un Xperio abre el selector de color', abre('COMFORT - ORMA XPERIO + CRIZAL 2x1'));
+check('un Gen S abre el selector', abre('COMFORT - ORMA TRANSITIONS GEN S + CRIZAL 2x1'));
+check('un Xtractive abre el selector', abre('COMFORT - ORMA TRANSITIONS XTRACTIVE + CRIZAL 2x1'));
+check('un Acclimates abre el selector', abre('ESPACE PLUS DIGITAL - ORMA ACCLIMATES + CRIZAL 2x1'));
+check('el teñido a pedido abre el selector', needsColorSelection({ name: 'Teñido Compacto', category: 'Cristal' }));
+check('un cristal común NO abre el selector', !abre('COMFORT - ORMA + CRIZAL 2x1'));
+
 // ── 6. El presupuesto que queda en la ficha ES la copia que recibió el cliente ─
 const { buildQuoteMessage } = await import('../../src/lib/quote-message.ts');
 const { splitDetalle, DETALLE_MARK, buildOrderDetailSummary } = await import('../../src/lib/order-detail-summary.ts');
