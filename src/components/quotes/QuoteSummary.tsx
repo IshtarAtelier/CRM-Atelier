@@ -81,6 +81,8 @@ export default function QuoteSummary({
     const [isSendingWhatsApp, setIsSendingWhatsApp] = React.useState(false);
     const [isSendingPDF, setIsSendingPDF] = React.useState(false);
     const [isUpdatingLock, setIsUpdatingLock] = React.useState(false);
+    const [showReopenConfirm, setShowReopenConfirm] = React.useState(false);
+    const [reopenReason, setReopenReason] = React.useState('');
 
     const [labFrameShape, setLabFrameShape] = React.useState(order.labFrameShape || '');
     const [frameA, setFrameA] = React.useState(order.frameA || '');
@@ -146,16 +148,16 @@ export default function QuoteSummary({
     };
 
     const handleUnlock = async () => {
-        // El motivo es OBLIGATORIO: la reapertura queda en el historial de la
-        // ficha con quién, cuándo y por qué (regla del 12/8/2026 — antes
-        // reabrir no dejaba rastro en ningún lado).
-        const reason = window.prompt('¿Por qué se reabre esta venta? El motivo queda registrado en el historial:');
-        if (reason === null) return; // canceló
-        if (!reason.trim()) {
-            alert('La reapertura necesita un motivo. No se reabrió.');
-            return;
-        }
+        // Confirmación explícita antes de tocar nada.
+        //
+        // Reabrir una venta enviada a fábrica no es un cambio menor: destraba
+        // la receta y las medidas de un pedido que ya se está fabricando. El
+        // botón está al lado de otros de uso diario, así que un toque sin
+        // querer no puede alcanzar — hay que decir que sí Y escribir el motivo.
+        const reason = (reopenReason || '').trim();
+        if (!reason) return;
         setIsUpdatingLock(true);
+        setShowReopenConfirm(false);
         try {
             const res = await fetch(`/api/orders/${order.id}`, {
                 method: 'PATCH',
@@ -707,6 +709,66 @@ export default function QuoteSummary({
                     presupuestos y para una venta reabierta por administración. */}
                 {isSale && isLockedSale && <FrameRecapReadOnly order={order} />}
 
+                {/* Confirmación de reapertura.
+                    Reabrir una venta enviada destraba la receta y las medidas de
+                    un pedido que la fábrica ya está haciendo, y el botón vive al
+                    lado de otros de uso diario. Un toque sin querer no puede
+                    alcanzar: hay que confirmar Y escribir el motivo, que queda
+                    en el historial con quién y cuándo. */}
+                {showReopenConfirm && (
+                    <div
+                        className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-[2px]"
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-label="Confirmar la reapertura de la venta"
+                        onClick={() => setShowReopenConfirm(false)}
+                    >
+                        <div
+                            className="w-full max-w-md bg-white dark:bg-stone-900 rounded-[2rem] border-2 border-amber-300 dark:border-amber-800 shadow-2xl p-7"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center">
+                                <Unlock className="w-6 h-6 text-amber-600" />
+                            </div>
+                            <h3 className="text-sm font-black uppercase tracking-widest text-amber-600 text-center mb-3">
+                                ¿Reabrir esta venta?
+                            </h3>
+                            <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed text-center mb-5">
+                                Esta venta ya se envió a fábrica. Al reabrirla se destraban la receta y
+                                las medidas de un pedido que ya se está fabricando. Queda registrado en
+                                la ficha con tu nombre, la hora y el motivo.
+                            </p>
+                            <label htmlFor="motivo-reapertura" className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                Motivo (obligatorio)
+                            </label>
+                            <textarea
+                                id="motivo-reapertura"
+                                autoFocus
+                                value={reopenReason}
+                                onChange={(e) => setReopenReason(e.target.value)}
+                                rows={3}
+                                placeholder="Ej: el cliente cambió el armazón"
+                                className="w-full px-3 py-2 rounded-xl text-sm font-medium border-2 border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 focus:border-amber-400 outline-none resize-none"
+                            />
+                            <div className="mt-5 flex gap-3">
+                                <button
+                                    onClick={() => setShowReopenConfirm(false)}
+                                    className="flex-1 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest border-2 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
+                                >
+                                    No, dejarla como está
+                                </button>
+                                <button
+                                    onClick={handleUnlock}
+                                    disabled={!reopenReason.trim() || isUpdatingLock}
+                                    className="flex-1 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest bg-amber-500 text-white hover:bg-amber-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    {isUpdatingLock ? 'Reabriendo…' : 'Sí, reabrir'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Un cuadro por armazón, y la cantidad la marcan los PARES DE
                     CRISTALES: cuatro pares son cuatro anteojos, cada uno con sus
                     medidas, su altura y su foto. Guardar uno nunca toca a los
@@ -1047,7 +1109,7 @@ export default function QuoteSummary({
                         ) : isLockedSale ? (
                             currentUserRole === 'ADMIN' ? (
                                 <button 
-                                    onClick={handleUnlock}
+                                    onClick={() => { setReopenReason(''); setShowReopenConfirm(true); }}
                                     disabled={isUpdatingLock}
                                     className="sm:col-span-4 py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
