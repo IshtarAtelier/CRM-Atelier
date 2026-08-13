@@ -1636,6 +1636,33 @@ export class OrderService {
         if (labFrameType !== undefined) data.labFrameType = labFrameType;
         if (labBevelPosition !== undefined) data.labBevelPosition = labBevelPosition;
 
+        // ── Espejo de vuelta: columnas viejas → tabla de armazones ──────────
+        //
+        // El Repaso Final guarda el armazón en las columnas del pedido
+        // (frameA…, frameImageUrl…), pero la fuente de verdad es `OrderFrame` y
+        // es la que mira la validación. Sin esta sincronización, una foto
+        // cargada desde el repaso no existía para el validador y la venta se
+        // frenaba con un "falta la foto del armazón" que el vendedor ya había
+        // subido — el peor tipo de error: el sistema contradiciendo lo que la
+        // persona está viendo en pantalla.
+        const COLUMNAS_ARMAZON: Record<number, Record<string, string>> = {
+            1: { shape: 'labFrameShape', a: 'frameA', b: 'frameB', dbl: 'frameDbl', edc: 'frameEdc', details: 'labFrameDetails', imageUrl: 'frameImageUrl', heightOD: 'labHeightOD', heightOI: 'labHeightOI' },
+            2: { shape: 'labFrameShape2', a: 'frameA2', b: 'frameB2', dbl: 'frameDbl2', edc: 'frameEdc2', details: 'labFrameDetails2', imageUrl: 'frameImageUrl2', heightOD: 'labHeightOD2', heightOI: 'labHeightOI2' },
+        };
+        for (const [pos, mapa] of Object.entries(COLUMNAS_ARMAZON)) {
+            const tocadas = Object.values(mapa).filter(col => data[col] !== undefined);
+            if (tocadas.length === 0) continue;
+            const valores: Record<string, unknown> = {};
+            Object.entries(mapa).forEach(([campo, col]) => {
+                if (data[col] !== undefined) valores[campo] = data[col];
+            });
+            await prisma.orderFrame.upsert({
+                where: { orderId_position: { orderId: id, position: Number(pos) } },
+                create: { orderId: id, position: Number(pos), ...valores },
+                update: valores,
+            }).catch(err => console.error(`[Espejo de armazón ${pos}]`, err.message));
+        }
+
         let existingOrder: any = null;
         if (orderType) {
             // Prevent reverting a SALE back to QUOTE

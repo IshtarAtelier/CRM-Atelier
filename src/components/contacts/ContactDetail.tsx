@@ -231,10 +231,38 @@ export default function ContactDetail({
                         </div>
                     )}
 
+                    {/* El motivo por el que no se pudo vender va en un cartel FLOTANTE
+                        al medio, no en una banda arriba de todo: ahí arriba se perdía
+                        entre el resto de la ficha —y muchas veces fuera de la parte
+                        visible— justo cuando es lo único que el vendedor necesita leer. */}
                     {convertError && (
-                        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 flex items-center gap-3">
-                            <span className="font-black text-xs uppercase tracking-widest italic">⚠️ {convertError}</span>
-                            <button onClick={() => setConvertError(null)} className="ml-auto text-red-400">×</button>
+                        <div
+                            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-[2px]"
+                            role="alertdialog"
+                            aria-modal="true"
+                            aria-label="No se pudo convertir en venta"
+                            onClick={() => setConvertError(null)}
+                        >
+                            <div
+                                className="w-full max-w-md bg-white dark:bg-stone-900 rounded-[2rem] border-2 border-red-200 dark:border-red-900/50 shadow-2xl p-7 text-center"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 dark:bg-red-950/40 flex items-center justify-center">
+                                    <span className="text-2xl">⚠️</span>
+                                </div>
+                                <h3 className="text-sm font-black uppercase tracking-widest text-red-600 mb-3">
+                                    No se puede convertir en venta
+                                </h3>
+                                <p className="text-sm font-medium text-stone-700 dark:text-stone-300 leading-relaxed">
+                                    {convertError.replace(/^No se puede convertir en venta:\s*/i, '')}
+                                </p>
+                                <button
+                                    onClick={() => setConvertError(null)}
+                                    className="mt-6 w-full px-6 py-3 bg-stone-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-transform"
+                                >
+                                    Entendido
+                                </button>
+                            </div>
                         </div>
                     )}
 

@@ -232,6 +232,10 @@ const armazonProd = await prisma.product.findFirst({ where: { category: { contai
 const cristalProd = await prisma.product.findFirst({ where: { category: { contains: 'CRISTAL', mode: 'insensitive' }, ...sinPromo }, select: { id: true } });
 
 async function presupuestoParaConvertir({ dosPares = false, foto1 = null, foto2 = null } = {}) {
+    // Cada conversión descuenta stock: sin reponerlo, el check se queda sin
+    // unidades después de un par de corridas y falla por un motivo que no es el
+    // que está probando.
+    await prisma.product.updateMany({ where: { id: { in: [armazonProd.id, cristalProd.id] } }, data: { stock: 99 } });
     const orden = await prisma.order.create({
         data: {
             clientId: cliente.id, userId: vendedor.id,
@@ -297,8 +301,21 @@ check('1 par de cristales → 1 armazón', cantidadDeArmazones({ items: parDe(1)
 check('2 pares de cristales → 2 armazones (sin promo)', cantidadDeArmazones({ items: parDe(2) }) === 2);
 check('4 pares de cristales → 4 armazones', cantidadDeArmazones({ items: parDe(4) }) === 4);
 check('un pedido sin cristales igual pide 1 armazón', cantidadDeArmazones({ items: [] }) === 1);
-check('la promo 2x1 sirve de piso en pedidos viejos sin ojo cargado',
+check('la promo 2x1 sirve de piso SOLO en pedidos viejos sin ojo cargado',
     cantidadDeArmazones({ items: [{ quantity: 1, product: { name: 'Armazón' } }], appliedPromoName: 'Promo 2x1' }) === 2);
+// Caso real de producción: el cristal se llama "…2x1" pero hay UN solo par. Si
+// el nombre pisara el conteo, la venta quedaba trabada pidiendo la foto de un
+// segundo armazón que no existe.
+const cristal2x1 = { name: 'SMART Multifocal SMART FREE 2x1', category: 'Cristal', type: 'Cristal' };
+check('1 par de cristales llamados "2x1" → UN armazón (el nombre no manda)',
+    cantidadDeArmazones({ items: [
+        { quantity: 1, eye: 'RIGHT', product: cristal2x1 }, { quantity: 1, eye: 'LEFT', product: cristal2x1 },
+    ] }) === 1);
+check('2 pares de esos cristales → dos armazones',
+    cantidadDeArmazones({ items: [
+        { quantity: 1, eye: 'RIGHT', product: cristal2x1 }, { quantity: 1, eye: 'LEFT', product: cristal2x1 },
+        { quantity: 1, eye: 'RIGHT', product: cristal2x1 }, { quantity: 1, eye: 'LEFT', product: cristal2x1 },
+    ] }) === 2);
 check('4 pares → se arman 4 cuadros para cargar', framesDeLaOrden({ items: parDe(4) }).length === 4);
 check('el repaso de 4 pares lista los 4 armazones',
     describeLabFrameDetails({ items: parDe(4) }).pairs.length === 4);
