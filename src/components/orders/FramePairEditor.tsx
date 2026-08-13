@@ -15,7 +15,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { useState } from 'react';
-import { Glasses } from 'lucide-react';
+import { Glasses, ChevronDown } from 'lucide-react';
 import FramePhotoUploader from './FramePhotoUploader';
 
 interface FramePairValues {
@@ -109,55 +109,88 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
         </div>
     );
 
+    // Con dos armazones en pantalla el scroll se hace largo, así que el cuadro
+    // arranca PLEGADO cuando ya está completo: lo que falta cargar se ve, lo
+    // que ya está hecho se resume en una línea y se abre con un clic.
+    const completo = !!(v.shape && v.a && v.b && v.dbl && v.edc && v.imageUrl);
+    const [abierto, setAbierto] = useState(!completo);
+
+    const resumen = [v.shape, [v.a, v.b, v.edc, v.dbl].filter(Boolean).join('/'),
+        v.heightOD || v.heightOI ? `Alt ${v.heightOD || '—'}/${v.heightOI || '—'}` : null]
+        .filter(Boolean).join(' · ');
+
     return (
-        <div className={`bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] p-6 border-2 ${borde}`}>
-            <div className="flex items-center gap-2 mb-4">
-                <Glasses className={`w-5 h-5 ${iconoColor}`} />
-                <h4 className={`text-[10px] font-black ${tituloColor} uppercase tracking-widest`}>
-                    {title} — medidas, forma y foto
-                </h4>
-            </div>
+        <div className={`bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] px-5 py-4 border-2 ${borde}`}>
+            <div className="flex items-center gap-2">
+                <Glasses className={`w-4 h-4 shrink-0 ${iconoColor}`} />
+                <h4 className={`text-[10px] font-black ${tituloColor} uppercase tracking-widest shrink-0`}>{title}</h4>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {campo('Forma / Aro', 'shape', 'Ej: Redondo, Cuadrado')}
-                {campo('Horizontal (A)', 'a', 'Ej: 52')}
-                {campo('Vertical (B)', 'b', 'Ej: 45')}
-                {campo('Puente (Pte / DBL)', 'dbl', 'Ej: 18')}
-                {campo('Diagonal (ED / EDC)', 'edc', 'Ej: 54')}
-                {campo('Detalles / Notas del Armazón', 'details', 'Ej: Patillas con flex, acetato negro', 'col-span-2 sm:col-span-3')}
-            </div>
+                {/* Plegado: el resumen de una línea reemplaza al cuadro entero. */}
+                {!abierto && (
+                    <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 truncate flex-1">
+                        {resumen || 'sin cargar'}
+                        {v.imageUrl ? ' · 📷' : ''}
+                    </span>
+                )}
+                {abierto && <span className="flex-1" />}
 
-            {/* Altura pupilar: se toma CON el armazón puesto, así que es de este
-                armazón. La DNP no va acá: es del cliente y vive en la receta. */}
-            <div className="mt-4 pt-4 border-t border-stone-200 dark:border-stone-700">
-                <p className="text-[9px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-widest mb-3">
-                    Altura pupilar de este armazón
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {campo('Altura OD', 'heightOD', 'Ej: 20')}
-                    {campo('Altura OI', 'heightOI', 'Ej: 20')}
-                </div>
-            </div>
+                {completo && !abierto && <span className="text-[10px] font-black text-emerald-600 shrink-0">✓</span>}
+                {saved && <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 shrink-0">Guardado</span>}
 
-            <div className="mt-5 pt-4 border-t border-stone-200 dark:border-stone-700">
-                <FramePhotoUploader
-                    label={`Foto del ${title.toLowerCase()} *`}
-                    value={v.imageUrl}
-                    onChange={set('imageUrl')}
-                    hint="La ve el cliente en la confirmación de compra."
-                />
-            </div>
-
-            <div className="mt-4 flex items-center justify-end gap-3">
-                {saved && <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">✓ Guardado</span>}
+                {abierto && (
+                    <button
+                        onClick={guardar}
+                        disabled={saving}
+                        className="px-4 py-2 bg-stone-900 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50 shrink-0"
+                    >
+                        {saving ? 'Guardando...' : 'Guardar'}
+                    </button>
+                )}
                 <button
-                    onClick={guardar}
-                    disabled={saving}
-                    className="px-6 py-2.5 bg-stone-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                    type="button"
+                    onClick={() => setAbierto(o => !o)}
+                    aria-expanded={abierto}
+                    aria-label={abierto ? `Plegar ${title}` : `Desplegar ${title}`}
+                    className="p-1 text-stone-400 hover:text-stone-600 shrink-0"
                 >
-                    {saving ? 'Guardando...' : `Guardar ${title}`}
+                    <ChevronDown className={`w-4 h-4 transition-transform ${abierto ? 'rotate-180' : ''}`} />
                 </button>
             </div>
+
+            {abierto && (
+                <>
+                    {/* Todo en una sola grilla: medidas y altura juntas, sin
+                        separadores ni subtítulos que solo agregan alto. La altura
+                        va acá porque varía con el armazón; la DNP es del cliente
+                        y vive en la receta. */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mt-3">
+                        {campo('Forma / Aro', 'shape', 'Redondo')}
+                        {campo('Horiz. (A)', 'a', '52')}
+                        {campo('Vert. (B)', 'b', '45')}
+                        {campo('Puente', 'dbl', '18')}
+                        {campo('Diag. (ED)', 'edc', '54')}
+                        {campo('Altura OD', 'heightOD', '20')}
+                        {campo('Altura OI', 'heightOI', '20')}
+                    </div>
+
+                    {/* Foto y detalles en la misma fila: la foto es chica y deja
+                        todo el resto del ancho al texto. */}
+                    <div className="flex gap-4 mt-3">
+                        <FramePhotoUploader
+                            label="Foto *"
+                            value={v.imageUrl}
+                            onChange={set('imageUrl')}
+                            compact
+                        />
+                        <div className="flex-1">
+                            {campo('Detalles / Notas del Armazón', 'details', 'Ej: Patillas con flex, acetato negro')}
+                            <p className="mt-1 text-[10px] font-medium text-stone-400">
+                                La foto la ve el cliente en la confirmación de compra.
+                            </p>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

@@ -230,6 +230,7 @@ const SELECT_CONFIRMACION = {
     frameA: true, frameB: true, frameDbl: true, frameEdc: true,
     labFrameShape2: true, labFrameDetails2: true,
     frameImageUrl: true, frameImageUrl2: true,
+    labHeightOD: true, labHeightOI: true, labHeightOD2: true, labHeightOI2: true,
     frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
     labColor: true, labTreatment: true, labNotes: true,
     client: { select: { id: true, name: true, email: true, phone: true } },

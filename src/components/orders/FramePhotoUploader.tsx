@@ -9,9 +9,8 @@
 // forma más segura de que no haga ninguna de las dos cosas. La foto la saca
 // quien lo tiene en la mano.
 //
-// Un 2x1 puede entrar en UNA sola foto: cuando el vendedor sube la primera y
-// marca "los dos pares están en esta foto", la segunda se guarda vacía. Es lo
-// más práctico en el mostrador, que es donde esto se usa.
+// En un 2x1 hay una foto POR armazón: son dos armazones distintos, con medidas
+// distintas, y cada imagen tiene que corresponderse con los datos de su cuadro.
 // ────────────────────────────────────────────────────────────────────────────
 
 import { useState } from 'react';
@@ -27,16 +26,43 @@ interface Props {
     readOnly?: boolean;
     /** Ayuda debajo del recuadro. */
     hint?: string;
+    /** Recuadro chico, para cuando conviven dos armazones en pantalla. */
+    compact?: boolean;
 }
 
-export default function FramePhotoUploader({ value, onChange, label, readOnly = false, hint }: Props) {
+export default function FramePhotoUploader({ value, onChange, label, readOnly = false, hint, compact = false }: Props) {
     const [subiendo, setSubiendo] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    /** El archivo en base64, para poder mostrárselo al verificador. */
+    const aBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+        fr.onerror = () => reject(new Error('No se pudo leer el archivo'));
+        fr.readAsDataURL(file);
+    });
 
     const subir = async (file: File) => {
         setError(null);
         setSubiendo(true);
         try {
+            // 1. ¿Es un armazón? Se verifica ANTES de subir: si no lo es, no se
+            //    guarda nada. Sin este paso, la forma más rápida de cumplir el
+            //    requisito obligatorio es subir cualquier imagen — y esa foto no
+            //    prueba nada el día del reclamo.
+            const base64 = await aBase64(file);
+            const ver = await fetch('/api/frame-photo/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ base64, mimeType: file.type }),
+            }).then(r => r.json()).catch(() => ({ ok: true }));
+
+            if (ver?.ok === false) {
+                setError(`Esa foto no es un armazón: ${ver.motivo} Sacale una foto al anteojo.`);
+                return;
+            }
+
+            // 2. Recién ahora se sube.
             const fd = new FormData();
             fd.append('file', file);
             const res = await fetch('/api/upload', { method: 'POST', body: fd });
@@ -54,6 +80,7 @@ export default function FramePhotoUploader({ value, onChange, label, readOnly = 
     };
 
     const src = value ? resolveStorageUrl(value) : null;
+    const caja = compact ? 'w-20 h-20' : 'w-32 h-32';
 
     return (
         <div>
@@ -65,7 +92,7 @@ export default function FramePhotoUploader({ value, onChange, label, readOnly = 
                     <img
                         src={src}
                         alt={`Foto del armazón — ${label}`}
-                        className="w-32 h-32 object-cover rounded-2xl border-2 border-stone-200 dark:border-stone-700"
+                        className={`${caja} object-cover rounded-2xl border-2 border-stone-200 dark:border-stone-700`}
                     />
                     {!readOnly && (
                         <button
@@ -83,13 +110,13 @@ export default function FramePhotoUploader({ value, onChange, label, readOnly = 
                     <AlertTriangle className="w-3.5 h-3.5" /> Sin foto del armazón
                 </p>
             ) : (
-                <label className="w-32 h-32 rounded-2xl border-2 border-dashed border-stone-300 dark:border-stone-600 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 transition-colors">
+                <label className={`${caja} rounded-2xl border-2 border-dashed border-stone-300 dark:border-stone-600 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 transition-colors`}>
                     {subiendo ? (
                         <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
                     ) : (
                         <>
-                            <Camera className="w-6 h-6 text-stone-400" />
-                            <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">Subir foto</span>
+                            <Camera className={compact ? 'w-5 h-5 text-stone-400' : 'w-6 h-6 text-stone-400'} />
+                            <span className="text-[8px] font-black uppercase tracking-widest text-stone-400 text-center px-1">Subir foto</span>
                         </>
                     )}
                     <input

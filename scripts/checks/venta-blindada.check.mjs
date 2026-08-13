@@ -37,6 +37,16 @@ async function limpiar() {
         await prisma.prescription.deleteMany({ where: { clientId: c.id } });
         await prisma.client.delete({ where: { id: c.id } }).catch(() => {});
     }
+    // Los pedidos referencian al usuario: si una corrida anterior se cortó a la
+    // mitad, quedan órdenes huérfanas que impiden borrar los usuarios de prueba.
+    // Se limpian por usuario, no solo por cliente, para que el check se pueda
+    // volver a correr siempre.
+    const us = await prisma.user.findMany({ where: { email: { startsWith: 'check-venta-' } }, select: { id: true } });
+    for (const u of us) {
+        await prisma.orderItem.deleteMany({ where: { order: { userId: u.id } } });
+        await prisma.payment.deleteMany({ where: { order: { userId: u.id } } });
+        await prisma.order.deleteMany({ where: { userId: u.id } });
+    }
     await prisma.user.deleteMany({ where: { email: { startsWith: 'check-venta-' } } });
 }
 
@@ -211,8 +221,11 @@ check('confirmación re-enviada: avisa que reemplaza a la anterior', /PEDIDO ACT
 // ── 5b. La foto de CADA armazón es obligatoria para convertir ───────────────
 // Sin foto no hay con qué contestarle a un "yo elegí otro armazón". En un 2x1
 // son dos armazones distintos: cada uno lleva la suya.
-const armazonProd = await prisma.product.findFirst({ where: { category: { contains: 'ARMAZ', mode: 'insensitive' } }, select: { id: true } });
-const cristalProd = await prisma.product.findFirst({ where: { category: { contains: 'CRISTAL', mode: 'insensitive' } }, select: { id: true } });
+// Productos SIN "2x1" en el nombre: `isTwoPairOrder` mira el nombre del item, y
+// con un producto 2x1 del catálogo el caso "un solo armazón" dejaba de serlo.
+const sinPromo = { NOT: { name: { contains: '2x1', mode: 'insensitive' } } };
+const armazonProd = await prisma.product.findFirst({ where: { category: { contains: 'ARMAZ', mode: 'insensitive' }, ...sinPromo }, select: { id: true } });
+const cristalProd = await prisma.product.findFirst({ where: { category: { contains: 'CRISTAL', mode: 'insensitive' }, ...sinPromo }, select: { id: true } });
 
 async function presupuestoParaConvertir({ dosPares = false, foto1 = null, foto2 = null } = {}) {
     return prisma.order.create({
@@ -239,7 +252,7 @@ if (armazonProd && cristalProd) {
     const sinFoto = await presupuestoParaConvertir();
     const errSinFoto = await rechaza(() => OrderService.updateOrder(sinFoto.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
     check('conversión: SIN la foto del armazón no se puede vender',
-        !!errSinFoto && /foto del armaz/i.test(errSinFoto));
+        !!errSinFoto && /foto del (1º )?armaz/i.test(errSinFoto));
 
     const conFoto1 = await presupuestoParaConvertir({ foto1: '/uploads/a1.jpg' });
     const errConFoto = await rechaza(() => OrderService.updateOrder(conFoto1.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
