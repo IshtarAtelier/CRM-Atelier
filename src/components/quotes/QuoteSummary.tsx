@@ -696,8 +696,13 @@ export default function QuoteSummary({
                     presupuestos y para una venta reabierta por administración. */}
                 {isSale && isLockedSale && <FrameRecapReadOnly order={order} />}
 
-                {/* Medidas y Forma del Armazón (Repaso de la Venta / Cotización) */}
-                {isSale && !isLockedSale && (
+                {/* Medidas, forma y FOTO del armazón.
+                    Iba detrás de `isSale`, así que en un presupuesto no se veía —
+                    y el presupuesto es justo el momento en que el vendedor tiene
+                    el armazón en la mano. Ahora aparece también ahí; lo único que
+                    lo esconde es que la venta ya esté enviada a fábrica (en ese
+                    caso se muestra el bloque de solo lectura). */}
+                {!isLockedSale && (
                     <div className="bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] p-6 border-2 border-stone-200 dark:border-stone-700">
                         <div className="flex items-center gap-2 mb-4">
                             <Glasses className="w-5 h-5 text-indigo-500" />
@@ -783,7 +788,7 @@ export default function QuoteSummary({
                             reconocer su armazón en la confirmación, no fotografiarlo. */}
                         <div className="mt-5 pt-4 border-t border-stone-200 dark:border-stone-700">
                             <p className="text-[9px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-widest mb-3">
-                                Fotos del armazón (obligatorias) — van en la confirmación que recibe el cliente
+                                {labFrame.pairs.length > 1 ? 'Fotos de los armazones (obligatorias)' : 'Foto del armazón (obligatoria)'} — va en la confirmación que recibe el cliente
                             </p>
                             <div className="flex flex-wrap gap-5">
                                 <FramePhotoUploader
