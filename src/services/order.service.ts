@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { ContactService } from '@/services/contact.service';
 import { BotService } from '@/services/bot.service';
@@ -262,8 +261,10 @@ export class OrderService {
             }
         });
 
+        // La ruta traduce este mensaje a un 404. Devolver un NextResponse desde
+        // acá hacía que la ruta lo re-serializara y el 404 saliera como 200.
         if (!order) {
-            return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+            throw new Error('Order not found');
         }
 
         const mapped = mapOrderPostSale(order);
@@ -482,19 +483,68 @@ export class OrderService {
             if (body.isLocked === false && existingForGuard.isLocked && role !== 'ADMIN') {
                 throw new Error('Solo el administrador puede reabrir una venta.');
             }
+            // 1.5 La reapertura exige MOTIVO: queda registrado en el historial
+            // de la ficha (quién, cuándo, por qué). Sin motivo no hay reapertura.
+            if (body.isLocked === false && existingForGuard.isLocked) {
+                if (!(body.reopenReason || '').toString().trim()) {
+                    throw new Error('La reapertura necesita un motivo: quedará registrado en el historial de la ficha.');
+                }
+            }
 
-            // 2. Financial changes/items changes are only allowed if the sale is currently unlocked
-            // or if the admin is unlocking it in this same request.
-            const financialFields = [
-                'items', 'markup', 'discountCash', 'discountTransfer', 
-                'discountCard', 'specialDiscount', 'total', 'subtotalWithMarkup',
-                'clientId', 'userId', 'orderType'
-            ];
-            const hasFinancialEdits = Object.keys(body).some(key => financialFields.includes(key));
+            // 2. CANDADO TOTAL (12/8/2026). Antes solo se frenaban los campos
+            // financieros: las medidas del armazón, el teñido, la receta y las
+            // notas de lab de una venta YA ENVIADA A FÁBRICA se podían pisar
+            // desde la pestaña Ventas sin dejar rastro — "yo lo cargué bien" era
+            // indemostrable. Regla del negocio: en una venta enviada no se
+            // modifica NADA del pedido; lo único que puede avanzar es el flujo
+            // posterior (laboratorio, despacho, post-venta, notas nuevas) y la
+            // reapertura del admin.
             const isUnlockingNow = body.isLocked === false;
-            
-            if (existingForGuard.isLocked && !isUnlockingNow && hasFinancialEdits) {
-                throw new Error('La venta está bloqueada. El administrador debe reabrirla para poder editar.');
+            if (existingForGuard.isLocked && !isUnlockingNow) {
+                // Lo ÚNICO que puede tocar una venta enviada:
+                const PERMITIDOS_VENTA_ENVIADA = new Set([
+                    'labStatus', 'labOrderNumber', 'smartLabScreenshot',   // flujo de laboratorio
+                    'shippingCarrier', 'trackingNumber', 'trackingUrl', 'markDispatched', // despacho
+                    'clientNote', 'postSaleNoteEntry', 'postSaleNoteImageUrl', // notas nuevas
+                    'isLocked', 'authorizedByAdmin', 'reopenReason',       // administración
+                ]);
+                // Campos del PEDIDO que quedan congelados con la venta.
+                const CONGELADOS: string[] = [
+                    'labNotes', 'labColor', 'labTreatment', 'labDiameter',
+                    'labPdOd', 'labPdOi', 'labPrismOD', 'labPrismOI', 'labBaseCurve',
+                    'labFrameType', 'labBevelPosition', 'labFrameShape', 'labFrameDetails',
+                    'frameA', 'frameB', 'frameDbl', 'frameEdc',
+                    'frameA2', 'frameB2', 'frameDbl2', 'frameEdc2', 'labFrameShape2', 'labFrameDetails2',
+                    'frameSource', 'userFrameBrand', 'userFrameModel', 'userFrameNotes',
+                    'prescriptionId', 'total', 'markup', 'subtotalWithMarkup',
+                    'discountCash', 'discountTransfer', 'discountCard', 'specialDiscount',
+                    'orderType', 'clientId', 'userId',
+                ];
+                const tocados = Object.keys(body).filter(k =>
+                    !PERMITIDOS_VENTA_ENVIADA.has(k) && !k.startsWith('postSale')
+                );
+                if (tocados.length > 0) {
+                    // Varias pantallas reenvían campos sin cambios en cada guardado
+                    // (patrón del cotizador con los descuentos): rechazar solo lo
+                    // que efectivamente CAMBIA, comparando contra lo guardado.
+                    const actual: any = await prisma.order.findUnique({
+                        where: { id },
+                        select: Object.fromEntries(CONGELADOS.filter(c => c !== 'items').map(c => [c, true])) as any,
+                    });
+                    const cambiados = tocados.filter(k => {
+                        if (!CONGELADOS.includes(k)) return true; // campo desconocido sobre venta enviada: afuera
+                        const nuevo = body[k];
+                        const viejo = actual?.[k];
+                        if (nuevo === undefined) return false;
+                        if (typeof nuevo === 'number' || typeof viejo === 'number') {
+                            return Number(nuevo ?? 0) !== Number(viejo ?? 0);
+                        }
+                        return String(nuevo ?? '') !== String(viejo ?? '');
+                    });
+                    if (cambiados.length > 0) {
+                        throw new Error(`Venta enviada a fábrica: no se puede modificar ${cambiados.join(', ')}. Para corregirla, un admin debe reabrirla (el cambio queda registrado).`);
+                    }
+                }
             }
         }
 
@@ -503,6 +553,13 @@ export class OrderService {
                 throw new Error('No se pueden modificar los ítems de una venta bloqueada. Solicitá reapertura al administrador.');
             }
         }
+
+        // Transiciones del candado de una VENTA — se registran en el historial
+        // después del update (regla del 12/8/2026: el paso a paso completo).
+        const esReapertura = existingForGuard?.orderType === 'SALE'
+            && existingForGuard.isLocked && body.isLocked === false;
+        const esReconfirmacion = existingForGuard?.orderType === 'SALE'
+            && !existingForGuard.isLocked && body.isLocked === true;
 
         // ── Guard: authorizedByAdmin can only be changed by ADMIN ──
         if (body.authorizedByAdmin !== undefined && role !== 'ADMIN') {
@@ -577,6 +634,36 @@ export class OrderService {
 
         const data: any = {};
         if (isLocked !== undefined) data.isLocked = isLocked;
+
+        // Re-confirmación de una venta reabierta: el snapshot de la receta se
+        // VERSIONA — la versión anterior no se pisa, se apila en `history`. El
+        // "pedido nuevo" que exige el negocio queda materializado como versión
+        // + su propio evento en el historial; la que vale para fábrica es
+        // siempre la última.
+        if (esReconfirmacion) {
+            const actualParaSnap = await prisma.order.findUnique({
+                where: { id },
+                select: { prescriptionId: true, prescriptionSnapshot: true },
+            });
+            const rxId = prescriptionId ?? actualParaSnap?.prescriptionId;
+            if (rxId) {
+                const rxCompleta = await prisma.prescription.findUnique({ where: { id: rxId } });
+                if (rxCompleta) {
+                    let prevSnap: any = null;
+                    try { prevSnap = actualParaSnap?.prescriptionSnapshot ? JSON.parse(actualParaSnap.prescriptionSnapshot) : null; } catch { /* snapshot ilegible: se arranca de cero */ }
+                    const history = prevSnap
+                        ? [...(prevSnap.history || []), { v: prevSnap.v, frozenAt: prevSnap.frozenAt, frozenBy: prevSnap.frozenBy, rx: prevSnap.rx }]
+                        : [];
+                    data.prescriptionSnapshot = JSON.stringify({
+                        v: (prevSnap?.v || 0) + 1,
+                        frozenAt: new Date().toISOString(),
+                        frozenBy: userName || 'Sistema',
+                        rx: rxCompleta,
+                        history,
+                    });
+                }
+            }
+        }
         if (authorizedByAdmin !== undefined) data.authorizedByAdmin = authorizedByAdmin;
         
         // Use existing values if not provided in body (need to fetch order first if totals are missing)
@@ -1691,6 +1778,30 @@ export class OrderService {
                     data.labStatus = 'SENT';
                     data.labSentAt = new Date();
                 }
+                // Vendedor de una venta = quien la envió a fábrica (regla del
+                // negocio). Hasta hoy quedaban en null y el dueño de la venta
+                // era indeterminable.
+                data.labSentBy = userName || null;
+                data.labSentById = userId || null;
+
+                // ── SNAPSHOT INMUTABLE de la receta (12/8/2026) ──────────────
+                // La venta mostraba la receta VIVA por referencia: editarla desde
+                // la ficha cambiaba retroactivamente una venta ya enviada, sin
+                // rastro. Acá se congela COMPLETA (todos los campos + la foto)
+                // en el momento exacto del envío a fábrica. La pantalla de la
+                // venta lee esto; la relación viva queda solo como linaje.
+                const rxIdFinal = prescriptionId ?? existingOrder?.prescriptionId;
+                if (rxIdFinal) {
+                    const rxCompleta = await prisma.prescription.findUnique({ where: { id: rxIdFinal } });
+                    if (rxCompleta) {
+                        data.prescriptionSnapshot = JSON.stringify({
+                            v: 1,
+                            frozenAt: new Date().toISOString(),
+                            frozenBy: userName || 'Sistema',
+                            rx: rxCompleta,
+                        });
+                    }
+                }
             }
 
             // Stock decrement: when converting to SALE, atomically decrement stock
@@ -2081,6 +2192,52 @@ export class OrderService {
             },
         });
 
+        // ── Historial: reapertura y re-confirmación de una VENTA ────────────
+        // Antes reabrir no dejaba rastro en ningún lado (solo un logAudit
+        // genérico con `changes:['isLocked']`): un vendedor podía reabrir,
+        // cambiar el pedido y re-trabar sin que la ficha mostrara nada.
+        if (esReapertura) {
+            const motivo = (body.reopenReason || '').toString().trim();
+            await prisma.interaction.create({
+                data: {
+                    clientId: order.clientId,
+                    type: 'SISTEMA',
+                    content: `🔓 ${userName || 'Sistema'} REABRIÓ la venta #${id.slice(-4).toUpperCase()} para editarla — motivo: "${motivo}". El pedido queda editable hasta que se vuelva a confirmar.`,
+                    userId: userId || null,
+                    userName: userName || 'Sistema',
+                },
+            }).catch(err => console.error('Error registrando reapertura en ficha:', err));
+            logAudit({
+                userId: userId || null,
+                userName: userName || 'Sistema',
+                action: 'STATUS_CHANGE',
+                entityType: 'ORDER',
+                entityId: id,
+                details: { evento: 'REAPERTURA', motivo },
+            }).catch(err => console.error('Error auditando reapertura:', err));
+        }
+        if (esReconfirmacion) {
+            let version = 2;
+            try { version = JSON.parse(data.prescriptionSnapshot || '{}').v || 2; } catch { /* usar 2 */ }
+            await prisma.interaction.create({
+                data: {
+                    clientId: order.clientId,
+                    type: 'SISTEMA',
+                    content: `✅ ${userName || 'Sistema'} RE-CONFIRMÓ la venta #${id.slice(-4).toUpperCase()} después de reabrirla (versión ${version} del pedido). Lo que va a fábrica es esta versión.`,
+                    userId: userId || null,
+                    userName: userName || 'Sistema',
+                },
+            }).catch(err => console.error('Error registrando re-confirmación en ficha:', err));
+            logAudit({
+                userId: userId || null,
+                userName: userName || 'Sistema',
+                action: 'STATUS_CHANGE',
+                entityType: 'ORDER',
+                entityId: id,
+                details: { evento: 'RE_CONFIRMACION', version },
+            }).catch(err => console.error('Error auditando re-confirmación:', err));
+        }
+
         // ── Historial: cambio de estado de laboratorio en la ficha del cliente ──
         if (prevState && data.labStatus !== undefined && prevState.labStatus !== data.labStatus) {
             const LAB_LABELS: Record<string, string> = {
@@ -2136,6 +2293,7 @@ export class OrderService {
 
                 // Un mismo nº de operación en dos pedidos rompe la conciliación de
                 // costos (cruza factura del lab por ese número). No se bloquea
+                // (continúa abajo)
                 // —a veces es legítimo— pero nunca puede pasar en silencio.
                 if (newNumber) {
                     alertDuplicateLabOrderNumber({ orderId: id, labOrderNumber: newNumber, actorName: who })

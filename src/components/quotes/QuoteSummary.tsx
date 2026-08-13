@@ -22,6 +22,7 @@ import { lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
+import FrameRecapReadOnly from '@/components/orders/FrameRecapReadOnly';
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
@@ -139,14 +140,21 @@ export default function QuoteSummary({
     };
 
     const handleUnlock = async () => {
-        const confirmUnlock = window.confirm('¿Estás seguro de que querés reabrir esta venta para edición?');
-        if (!confirmUnlock) return;
+        // El motivo es OBLIGATORIO: la reapertura queda en el historial de la
+        // ficha con quién, cuándo y por qué (regla del 12/8/2026 — antes
+        // reabrir no dejaba rastro en ningún lado).
+        const reason = window.prompt('¿Por qué se reabre esta venta? El motivo queda registrado en el historial:');
+        if (reason === null) return; // canceló
+        if (!reason.trim()) {
+            alert('La reapertura necesita un motivo. No se reabrió.');
+            return;
+        }
         setIsUpdatingLock(true);
         try {
             const res = await fetch(`/api/orders/${order.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isLocked: false })
+                body: JSON.stringify({ isLocked: false, reopenReason: reason.trim() })
             });
             if (res.ok) {
                 if (onRefreshContact) await onRefreshContact();
@@ -262,6 +270,26 @@ export default function QuoteSummary({
     const isSale = order.orderType === 'SALE' || order.orderType === 'MAYORISTA';
     const isQuote = !isSale;
     const isLockedSale = isSale && order.isLocked !== false;
+
+    // La receta tal cual quedó congelada al enviar a fábrica. Las ventas viejas
+    // (anteriores al congelado) no tienen snapshot: ahí se sigue mostrando la
+    // receta viva, que es lo único que hay.
+    // Sin useMemo a propósito: acá arriba hay returns condicionales, y un hook
+    // después de un return rompe el orden de hooks. El parseo es un JSON chico.
+    const { receta: recetaCongelada, por: congeladaPor, el: congeladaEl } = (() => {
+        const vacio = { receta: null, por: null, el: null };
+        if (!order.prescriptionSnapshot) return vacio;
+        try {
+            const snap = JSON.parse(order.prescriptionSnapshot);
+            return {
+                receta: snap?.rx || null,
+                por: snap?.frozenBy || null,
+                el: snap?.frozenAt ? format(new Date(snap.frozenAt), "dd/MM/yyyy 'a las' HH:mm", { locale: es }) : null,
+            };
+        } catch {
+            return vacio;
+        }
+    })();
 
     // Resumen de lo cargado en el Repaso Final (origen del armazón, medidas de
     // cada par y teñido) — mismo dato que se muestra en "la venta" y en el PDF.
@@ -673,10 +701,26 @@ export default function QuoteSummary({
                     specialDiscount={order.specialDiscount}
                 />
 
-                <PrescriptionDetails prescription={order.prescription} />
+                {/* En una venta enviada la receta que vale es la CONGELADA al enviarla a
+                    fábrica, no la viva de la ficha: si alguien corrige la receta del
+                    cliente más adelante, la venta tiene que seguir mostrando lo que se
+                    fabricó. */}
+                <PrescriptionDetails prescription={recetaCongelada || order.prescription} />
+                {isLockedSale && recetaCongelada && (
+                    <p className="-mt-2 px-6 text-[10px] font-bold text-stone-500 dark:text-stone-400">
+                        🔒 Receta congelada al enviar a fábrica{congeladaEl ? ` el ${congeladaEl}` : ''}
+                        {congeladaPor ? ` por ${congeladaPor}` : ''}. Editar la receta en la ficha del cliente
+                        no cambia esta venta.
+                    </p>
+                )}
+
+                {/* Repaso del armazón. Con la venta ya en fábrica es SOLO LECTURA
+                    (y muestra los dos pares de un 2x1); el editor queda para
+                    presupuestos y para una venta reabierta por administración. */}
+                {isSale && isLockedSale && <FrameRecapReadOnly order={order} />}
 
                 {/* Medidas y Forma del Armazón (Repaso de la Venta / Cotización) */}
-                {isSale && (
+                {isSale && !isLockedSale && (
                     <div className="bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] p-6 border-2 border-stone-200 dark:border-stone-700">
                         <div className="flex items-center gap-2 mb-4">
                             <Glasses className="w-5 h-5 text-indigo-500" />
@@ -1280,7 +1324,17 @@ export default function QuoteSummary({
                                 labMeasureA2: data.labMeasureA2,
                                 labMeasureB2: data.labMeasureB2,
                                 labMeasureEd2: data.labMeasureEd2,
-                                authorizedByAdmin: data.authorizedByAdmin
+                                authorizedByAdmin: data.authorizedByAdmin,
+                                // Estos cuatro se cargan en el checkout y acá se
+                                // PERDÍAN (llegaban undefined a la conversión):
+                                // solo sobrevivían si el vendedor había apretado
+                                // "Guardar datos" antes de confirmar. El origen
+                                // del armazón y sus datos son parte del pedido
+                                // que se congela con la venta.
+                                frameSource: data.frameSource,
+                                userFrameBrand: data.userFrameBrand,
+                                userFrameModel: data.userFrameModel,
+                                clientData: data.clientData,
                             });
                             setShowCheckout(false);
                         }
