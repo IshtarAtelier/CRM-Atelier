@@ -6,6 +6,7 @@ import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice } from '@/lib/pro
 import { formatLensRange } from '@/lib/lens-range';
 import { needsColorSelection } from '@/lib/crystal-color-utils';
 import { INTENSIDADES_TENIDO, estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
+import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
 import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 
@@ -86,13 +87,23 @@ export default function CartLineItems({
                 // El estilo lo define el PRODUCTO ("Teñido Degradé" es degradé).
                 // Si el producto no lo dice, se respeta lo que ya tenga el item.
                 const estiloDelItem = estiloDeTenidoDelProducto(item.product) || item.crystalColorType || 'COMPACTO';
-                // Un tono por nombre: la paleta es la misma para los tres estilos,
-                // así que repetirla tres veces solo agregaba ruido.
-                const tonosParaElegir = colores
-                    .filter(c => c.category === estiloDelItem)
-                    .filter((c, i, arr) => arr.findIndex(o => o.name === c.name) === i);
+
+                // QUÉ COLORES se ofrecen depende del cristal: un Transitions
+                // Gen S viene en 8, un Xtractive en gris, y el teñido a pedido
+                // tiene los tonos de SmartLab. Ofrecer colores que ese cristal no
+                // tiene es un pedido rebotado; esconder los que sí tiene es una
+                // venta que no se hace.
+                const paleta = paletaDeFotocromatico(item.product);
+                const tonosParaElegir = paleta
+                    ? paleta.tonos.map(t => ({ id: `${paleta.id}-${t.name}`, name: t.name, category: estiloDelItem, hexColor: t.hexColor }))
+                    : colores
+                        .filter(c => c.category === estiloDelItem)
+                        .filter((c, i, arr) => arr.findIndex(o => o.name === c.name) === i);
+
                 // La muestra del tono elegido, para que el botón la lleve puesta.
-                const colorHex = colores.find(c => c.name === item.crystalColor)?.hexColor || null;
+                const colorHex = tonosParaElegir.find(c => c.name === item.crystalColor)?.hexColor
+                    || colores.find(c => c.name === item.crystalColor)?.hexColor
+                    || null;
 
                 return (
                     <div key={idx} className="space-y-0">
@@ -230,8 +241,14 @@ export default function CartLineItems({
                                 {tonosParaElegir.length > 0 ? (
                                     <div>
                                         <p className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-2">
-                                            Color
+                                            Color{paleta ? ` — ${paleta.label}` : ''}
                                         </p>
+                                        {paleta?.porConfirmar && (
+                                            <p className="text-[10px] font-bold text-amber-600 dark:text-amber-500 mb-2">
+                                                ⚠️ Esta lista todavía no está confirmada contra la lista de precios —
+                                                chequeá con el laboratorio antes de mandarlo.
+                                            </p>
+                                        )}
                                         <div className="flex flex-wrap gap-2">
                                             {tonosParaElegir.map(color => {
                                                 const isSelected = item.crystalColor === color.name;
