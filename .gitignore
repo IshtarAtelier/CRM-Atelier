@@ -101,3 +101,6 @@ scripts/packaging/salida/
 
 # Frames intermedios de los reels (se borran solos, pero por si un render se corta)
 social/contenido/reels/salida/.frames-*/
+
+# Vista previa generada por check:venta
+scripts/checks/.confirmacion-compra.preview.html

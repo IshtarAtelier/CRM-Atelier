@@ -145,6 +145,63 @@ const notaReconf = await prisma.interaction.findFirst({
 });
 check('la re-confirmación quedó registrada en la ficha', !!notaReconf);
 
+// ── 5. Confirmación de compra: qué le llega al cliente ───────────────────────
+const { buildSaleConfirmation } = await import('../../src/lib/sale-confirmation.ts');
+
+const base = {
+    id: 'cmxxxxxxxxxxxxxxxxxab12',
+    total: 100000, paid: 40000,
+    client: { name: 'Ana Pérez', email: 'ana@ejemplo.com', phone: '3510000000' },
+    prescription: { sphereOD: -1.25, sphereOI: -1, cylinderOD: -0.5, axisOD: 90, pd: 62, heightOD: 20, heightOI: 20, imageUrl: '/uploads/receta.jpg' },
+    items: [{ quantity: 1, price: 100000, product: { name: 'Cápsula Escarlata', brand: 'Atelier', imagenesCatalogo: [] } }],
+    frameSource: 'OPTICA',
+    labFrameShape: 'CATEYE', frameA: '52', frameB: '32', frameDbl: '18', frameEdc: '54',
+};
+
+const sinTenido = buildSaleConfirmation(base);
+check('confirmación: dice explícitamente que NO lleva teñido', sinTenido.waText.includes('NO lleva teñido'));
+check('confirmación: muestra el saldo pendiente', sinTenido.waText.includes('Saldo pendiente: $60.000'));
+check('confirmación: muestra lo abonado', sinTenido.waText.includes('Abonado: $40.000'));
+check('confirmación: pide el OK', /Respondenos \*OK\*/.test(sinTenido.waText));
+check('confirmación: pide corroborar el estilo del armazón y una foto',
+    /estilo que elegiste/.test(sinTenido.waText) && /foto/.test(sinTenido.waText));
+check('confirmación: pide color y grado si son de sol', /color\* y el \*grado\*/.test(sinTenido.waText));
+check('confirmación: invita a preguntar los términos que no se entienden', /preguntanos ahora/.test(sinTenido.waText));
+check('confirmación: adjunta la foto de la receta', !!sinTenido.prescriptionImageUrl);
+check('confirmación: nunca dice "undefined" ni "null"',
+    !/undefined|\bnull\b/.test(sinTenido.waText) && !/undefined/.test(sinTenido.emailHtml));
+
+const conTenido = buildSaleConfirmation({ ...base, labColor: 'Gris Oscuro (Grado 80%)', labTreatment: 'Teñido' });
+check('confirmación: cuando hay teñido, lo dice con color y grado',
+    conTenido.waText.includes('Teñido: Teñido - Gris Oscuro (Grado 80%)'));
+
+const foto = buildSaleConfirmation({
+    ...base,
+    items: [{ quantity: 1, price: 1, product: { name: 'Cristal Fotocromático 1.60', imagenesCatalogo: [] } }],
+});
+check('confirmación: aclara qué es un fotocromático', /se oscurecen solos con el sol/.test(foto.waText));
+
+const dosPares = buildSaleConfirmation({
+    ...base,
+    appliedPromoName: 'Promo 2x1',
+    labFrameShape2: 'REDONDO', frameA2: '48', frameB2: '40', frameDbl2: '20', frameEdc2: '50',
+});
+check('confirmación 2x1: aparece el PRIMER par', dosPares.waText.includes('Armazón — Par 1'));
+check('confirmación 2x1: aparece el SEGUNDO par con sus medidas',
+    dosPares.waText.includes('Armazón — Par 2') && dosPares.waText.includes('A: 48'));
+check('confirmación 2x1: avisa que el teñido no dice a qué par corresponde',
+    buildSaleConfirmation({ ...base, appliedPromoName: 'Promo 2x1', labColor: 'Gris' })
+        .waText.includes('confirmar a cuál corresponde'));
+
+const actualizada = buildSaleConfirmation(base, true);
+check('confirmación re-enviada: avisa que reemplaza a la anterior', /PEDIDO ACTUALIZADO/.test(actualizada.waText));
+
+// Deja el mail renderizado para poder mirarlo con los ojos.
+const { writeFileSync } = await import('node:fs');
+const salida = 'scripts/checks/.confirmacion-compra.preview.html';
+writeFileSync(salida, dosPares.emailHtml);
+console.log(`\n  📄 Vista previa del mail: ${salida}`);
+
 await limpiar();
 await prisma.$disconnect();
 console.log(`\n✅ ${passed} checks OK — la venta enviada es inmutable y todo cambio deja rastro\n`);
