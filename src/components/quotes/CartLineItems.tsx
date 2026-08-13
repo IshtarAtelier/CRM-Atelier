@@ -46,6 +46,26 @@ export default function CartLineItems({
     const [expandedColorIdx, setExpandedColorIdx] = React.useState<number | null>(null);
     const [selectedStyle, setSelectedStyle] = React.useState<string | null>(null);
 
+    // La paleta se busca ACÁ si nadie la pasó.
+    //
+    // Antes dependía de que cada pantalla que monta el carrito se acordara de
+    // cargarla: el cotizador lo hacía, la ficha del cliente no, y en la ficha
+    // el vendedor veía el botón COLOR pero abría vacío — sin forma de elegir el
+    // tono y sin ningún aviso de por qué. Un componente que necesita un dato
+    // para funcionar no puede depender de que el de arriba se acuerde.
+    const [coloresPropios, setColoresPropios] = React.useState<CrystalColorOption[]>([]);
+    React.useEffect(() => {
+        if (crystalColors.length > 0) return;
+        let vivo = true;
+        fetch('/api/crystal-colors')
+            .then(r => (r.ok ? r.json() : []))
+            .then(data => { if (vivo && Array.isArray(data)) setColoresPropios(data); })
+            .catch(err => console.error('[Colores de teñido] No se pudieron cargar:', err));
+        return () => { vivo = false; };
+    }, [crystalColors.length]);
+
+    const colores: CrystalColorOption[] = crystalColors.length > 0 ? crystalColors : coloresPropios;
+
     if (items.length === 0) {
         return (
             <div className="py-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-[2.5rem] bg-stone-50/50 dark:bg-stone-900/20">
@@ -58,7 +78,7 @@ export default function CartLineItems({
 
     // Get unique colors for the selected style
     const colorsForStyle = selectedStyle
-        ? crystalColors.filter(c => c.category === selectedStyle)
+        ? colores.filter(c => c.category === selectedStyle)
         : [];
 
     return (
@@ -180,7 +200,7 @@ export default function CartLineItems({
                                     </datalist>
                                 </div>
 
-                                {crystalColors.length > 0 && (
+                                {colores.length > 0 ? (
                                 <>
                                 {/* Step 1: Select Style */}
                                 <div className="flex items-center gap-2 mb-3">
@@ -193,7 +213,7 @@ export default function CartLineItems({
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     {COLOR_CATEGORIES.map(cat => {
                                         const isActive = selectedStyle === cat.key;
-                                        const hasColorsInCat = crystalColors.some(c => c.category === cat.key);
+                                        const hasColorsInCat = colores.some(c => c.category === cat.key);
                                         if (!hasColorsInCat) return null;
                                         return (
                                             <button
@@ -256,6 +276,12 @@ export default function CartLineItems({
                                     </div>
                                 )}
                                 </>
+                                ) : (
+                                    // Que el vendedor SEPA por qué no puede elegir, en vez de
+                                    // encontrarse un desplegable vacío sin explicación.
+                                    <p className="text-[10px] font-bold text-amber-600 dark:text-amber-500">
+                                        Cargando los colores del laboratorio… si no aparecen, recargá la página.
+                                    </p>
                                 )}
                             </div>
                         )}
