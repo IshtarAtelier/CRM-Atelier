@@ -88,6 +88,10 @@ export default function CartLineItems({
                 const isColorExpanded = expandedColorIdx === idx;
                 const hasColor = !!item.crystalColor;
                 const hasNote = !!item.crystalColorNote;
+                // La muestra del tono elegido, para que el botón la lleve puesta.
+                const colorHex = colores.find(c => c.name === item.crystalColor && c.category === item.crystalColorType)?.hexColor
+                    || colores.find(c => c.name === item.crystalColor)?.hexColor
+                    || null;
 
                 return (
                     <div key={idx} className="space-y-0">
@@ -129,19 +133,33 @@ export default function CartLineItems({
                                 </div>
                             </div>
 
-                            {/* Color toggle button for crystals/tratamientos needing color */}
+            {/* El botón que abre el selector de color e intensidad.
+                Era una pastilla chiquita que decía "Color" y pasaba desapercibida
+                —el vendedor no encontraba dónde cargar el dato, y sin color el
+                pedido no se puede convertir en venta—. Ahora es un botón lleno,
+                dice qué hay que hacer, y mientras falta el color se ve en ámbar
+                con la muestra del tono cuando ya está elegido. */}
                             {showColorSelector && (
                                 <button
                                     onClick={() => { setExpandedColorIdx(isColorExpanded ? null : idx); setSelectedStyle(null); }}
-                                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border ${
-                                        (hasColor || hasNote)
-                                            ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800 hover:bg-violet-100'
-                                            : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100 animate-pulse'
+                                    aria-expanded={isColorExpanded}
+                                    title={hasColor ? 'Cambiar el color o la intensidad del teñido' : 'Elegir el color y la intensidad del teñido'}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shrink-0 shadow-sm hover:scale-[1.03] active:scale-95 ${
+                                        hasColor
+                                            ? 'bg-violet-600 text-white hover:bg-violet-700 shadow-violet-500/25'
+                                            : 'bg-amber-500 text-white hover:bg-amber-600 shadow-amber-500/30 ring-2 ring-amber-300/60 animate-pulse'
                                     }`}
                                 >
-                                    <Palette className="w-3 h-3" />
-                                    {(hasColor || hasNote) ? 'Cambiar' : 'Color'}
-                                    <ChevronDown className={`w-3 h-3 transition-transform ${isColorExpanded ? 'rotate-180' : ''}`} />
+                                    {hasColor && colorHex ? (
+                                        <span
+                                            className="w-4 h-4 rounded-full border-2 border-white/70 shadow-sm shrink-0"
+                                            style={{ backgroundColor: colorHex }}
+                                        />
+                                    ) : (
+                                        <Palette className="w-4 h-4 shrink-0" />
+                                    )}
+                                    {hasColor ? `${item.crystalColor}${hasNote ? ` · ${item.crystalColorNote}` : ''}` : 'Elegir color'}
+                                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isColorExpanded ? 'rotate-180' : ''}`} />
                                 </button>
                             )}
 
@@ -176,7 +194,10 @@ export default function CartLineItems({
 
                         {/* Inline Color Selector — Nota libre + Two-step: Style → Color */}
                         {showColorSelector && isColorExpanded && (
-                            <div className="bg-violet-50/50 dark:bg-violet-950/20 border-x border-b border-stone-200/60 dark:border-stone-800 rounded-b-2xl p-4 animate-in slide-in-from-top-1 duration-300">
+                            <div className="bg-violet-50 dark:bg-violet-950/30 border-x-2 border-b-2 border-violet-300 dark:border-violet-800 rounded-b-2xl p-4 animate-in slide-in-from-top-1 duration-300">
+                                <p className="text-[10px] font-black text-violet-700 dark:text-violet-300 uppercase tracking-widest mb-3">
+                                    Teñido — elegí el color y el grado
+                                </p>
                                 {/* Intensidad: se sugieren los valores que ofrece SmartLab, pero
                                     el campo se puede ESCRIBIR. Hay pedidos que piden cosas como
                                     "60% más oscuro arriba", y encerrar eso en una lista obligaría
@@ -184,7 +205,7 @@ export default function CartLineItems({
                                 <div className="mb-3 flex items-center gap-1.5">
                                     <Palette className="w-3 h-3 text-violet-400 shrink-0" />
                                     <label htmlFor={`grado-${idx}`} className="text-[9px] font-bold text-violet-500 dark:text-violet-400 uppercase tracking-wider shrink-0">
-                                        Grado / intensidad
+                                        Grado
                                     </label>
                                     <input
                                         id={`grado-${idx}`}
@@ -206,7 +227,7 @@ export default function CartLineItems({
                                 <div className="flex items-center gap-2 mb-3">
                                     <Palette className="w-3.5 h-3.5 text-violet-500" />
                                     <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
-                                        {selectedStyle ? '← Estilo' : '1. Elegí el estilo de teñido'}
+                                        {selectedStyle ? '← Cambiar estilo' : '1. Estilo de teñido'}
                                     </span>
                                 </div>
 
@@ -243,7 +264,7 @@ export default function CartLineItems({
                                 {selectedStyle && colorsForStyle.length > 0 && (
                                     <div className="animate-in slide-in-from-top-1 duration-200">
                                         <p className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-2">
-                                            2. Elegí el color
+                                            2. Color
                                         </p>
                                         <div className="flex flex-wrap gap-2">
                                             {colorsForStyle.map(color => {
