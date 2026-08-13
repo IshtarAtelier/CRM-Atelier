@@ -1,16 +1,12 @@
 /**
- * Determina si un prospecto califica para recibir un seguimiento de venta.
- * Encapsula TODOS los filtros de elegibilidad en un solo módulo testeable.
+ * Qué ESCALÓN de seguimiento le toca a un presupuesto (DÍA 1 / 4 / 15).
+ *
+ * Los filtros de "¿se le puede escribir?" ya no viven acá: los resuelve
+ * `politica.js`, que es el único módulo que los implementa para todo el sistema.
  */
 
-const { prisma } = require('../db');
-const { TAGS_SIN_BOT } = require('../utils');
-const {
-    FOLLOWUP_TIERS,
-    COOLDOWN_HOURS,
-    ACTIVITY_WINDOW_HOURS,
-    TIER_GRACE_HOURS,
-} = require('./config');
+const { evaluarElegibilidad } = require('./politica');
+const { FOLLOWUP_TIERS, TIER_GRACE_HOURS } = require('./config');
 
 /**
  * Verifica si un cliente/chat/presupuesto califica para seguimiento.
@@ -25,110 +21,23 @@ const {
  */
 async function checkEligibility({ client, chat, quote, now, isManual = false, taskDescription = null }) {
 
-    // 1. SON DOS INTERRUPTORES DISTINTOS, y este módulo solo mira el suyo.
+    // Los filtros comunes (interruptor global, SIN_SEGUIMIENTO, etiquetas de
+    // exclusión, pausa del cliente, cooldown, actividad reciente, convertido,
+    // compra/pago posterior y contacto frío) los resuelve la POLÍTICA. Antes
+    // estaban escritos acá y copiados en otros cuatro archivos con umbrales
+    // distintos; ahora hay una sola implementación.
     //
-    //    · `chat.botEnabled` y el label [SISTEMA - BOT APAGADO] gobiernan al
-    //      AGENTE: si CONTESTA o no en ese chat. Se apagan solos apenas una
-    //      persona responde (index.js:270, "Intervención humana").
-    //    · Los SEGUIMIENTOS tienen los suyos: el interruptor global del panel
-    //      (lo aplica el ejecutor) y, por conversación, la etiqueta
-    //      SIN_SEGUIMIENTO.
-    //
-    //    Hasta el 4/8/2026 acá se exigía `chat.botEnabled`, y eso ataba una cosa
-    //    a la otra: medido sobre 20 días, 308 de 308 presupuestos con chat
-    //    tenían el bot apagado, así que NUNCA salía un seguimiento. Y era al
-    //    revés de lo que el negocio necesita: el presupuesto lo arma una persona
-    //    hablando con el cliente —lo que apaga el bot en ese chat—, o sea que
-    //    quien más merece seguimiento era justamente a quien nunca se le escribía.
-    //
-    //    Para frenar los seguimientos de UNA conversación: etiqueta SIN_SEGUIMIENTO.
-    //    Para frenarlos TODOS: el interruptor "Seguimientos" del panel.
+    // Lo que queda en este módulo es lo único que le es propio: qué escalón de
+    // seguimiento (DÍA 1 / 4 / 15) le toca a un presupuesto según su antigüedad.
+    const veredicto = await evaluarElegibilidad({
+        client, chat, now, isManual,
+        desde: quote.createdAt,
+    });
+    if (!veredicto.ok) {
+        return { eligible: false, reason: veredicto.motivo, codigo: veredicto.codigo };
+    }
 
-    // 2. No tiene SIN_SEGUIMIENTO (Only block if NOT manual trigger)
     const labels = chat.chatLabels || [];
-    if (!isManual && labels.includes('SIN_SEGUIMIENTO')) {
-        return { eligible: false, reason: `${client.name} tiene SIN_SEGUIMIENTO` };
-    }
-
-    // 3. No tiene tags de exclusión en el cliente
-    const tieneTagExclusion = (client.tags || []).some(tag =>
-        TAGS_SIN_BOT.some(t => tag.name.toLowerCase().includes(t))
-    );
-    if (tieneTagExclusion) {
-        return { eligible: false, reason: `${client.name} tiene tag de exclusión` };
-    }
-
-    // 4. Etiquetas del chat que excluyen del seguimiento (post-venta, ya es
-    //    cliente, etc.). OJO: acá NO va [SISTEMA - BOT APAGADO] — ese label solo
-    //    dice que el agente dejó de contestar en la charla, que es lo normal
-    //    apenas la toma una persona. Frenar el seguimiento por eso era la causa
-    //    de que nunca saliera ninguno (ver nota del punto 1).
-    const tieneLabelExclusion = labels.some(label =>
-        TAGS_SIN_BOT.some(t => label.toLowerCase().includes(t))
-    );
-    if (tieneLabelExclusion) {
-        return { eligible: false, reason: `Chat de ${client.name} tiene etiqueta de exclusión` };
-    }
-
-    // 4b. Pausa puesta por la compuerta de conversación ("hablamos a fin de
-    // mes"): vale para todos los sistemas. El trigger manual la respeta también:
-    // si el cliente pidió una fecha, taggearlo no debería adelantársela.
-    if (chat.followUpPausedUntil && new Date(chat.followUpPausedUntil) > now) {
-        return { eligible: false, reason: `Seguimientos de ${client.name} pausados hasta ${new Date(chat.followUpPausedUntil).toLocaleDateString('es-AR')}` };
-    }
-
-    // 5. Cooldown: mínimo COOLDOWN_HOURS desde último follow-up (Bypassed if manual trigger)
-    if (!isManual && chat.lastFollowUpAt) {
-        const hoursSinceLastFU = (now.getTime() - new Date(chat.lastFollowUpAt).getTime()) / 3600000;
-        if (hoursSinceLastFU < COOLDOWN_HOURS) {
-            return { eligible: false, reason: `${client.name} recibió follow-up hace ${hoursSinceLastFU.toFixed(1)}hs (cooldown: ${COOLDOWN_HOURS}hs)` };
-        }
-    }
-
-    // 6. Chat sin actividad reciente (Bypassed if manual trigger)
-    if (!isManual && chat.lastMessageAt) {
-        const hoursSinceLastMsg = (now.getTime() - new Date(chat.lastMessageAt).getTime()) / 3600000;
-        if (hoursSinceLastMsg < ACTIVITY_WINDOW_HOURS) {
-            return { eligible: false, reason: `Chat de ${client.name} tuvo actividad hace ${hoursSinceLastMsg.toFixed(1)}hs` };
-        }
-    }
-
-    // 7. No tiene compras/pedidos posteriores al presupuesto (query DB)
-    const completedOrders = await prisma.order.findFirst({
-        where: {
-            clientId: client.id,
-            orderType: { in: ['SALE', 'ORDER'] },
-            createdAt: { gt: quote.createdAt },
-            isDeleted: false,
-        },
-    });
-    if (completedOrders) {
-        return { eligible: false, reason: `${client.name} ya realizó compras posteriores` };
-    }
-
-    // 8. No tiene pagos posteriores al presupuesto (query DB)
-    const completedPayments = await prisma.payment.findFirst({
-        where: {
-            order: { clientId: client.id },
-            date: { gt: quote.createdAt },
-        },
-    });
-    if (completedPayments) {
-        return { eligible: false, reason: `${client.name} ya registró pagos posteriores` };
-    }
-
-    // 8.5. No es un contacto frío (debe tener al menos un mensaje entrante registrado) (Bypassed if manual trigger)
-    if (!isManual) {
-        const inboundCount = await prisma.whatsAppMessage.count({
-            where: {
-                chatId: chat.id,
-                direction: 'INBOUND',
-            },
-        });
-        if (inboundCount === 0) {
-            return { eligible: false, reason: `${client.name} es un contacto frío (sin mensajes entrantes)` };
-        }
-    }
 
     // 9. Determinar qué tier de seguimiento le corresponde
     if (isManual && taskDescription) {

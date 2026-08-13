@@ -18,7 +18,7 @@
 const { prisma } = require('../db');
 const { TAGS_SIN_BOT } = require('../utils');
 const { pickSpreadDueDate } = require('./task-generator');
-const { COOLDOWN_HOURS } = require('./config');
+const { evaluarElegibilidad } = require('./politica');
 const { abrirTurnos } = require('./retencion-exclusion');
 
 const DIA_MS = 24 * 60 * 60 * 1000;
@@ -223,25 +223,31 @@ async function generarTareasPosventa() {
             if (!tieneCristales(order.items)) continue;
             if (order.postSaleCases.length > 0) continue;
 
-            if ((client.tags || []).some(tag => TAGS_EXCLUSION.some(t => tag.name.toLowerCase().includes(t)))) continue;
-
             const chat = (client.whatsappChats || [])[0];
             if (!chat) continue; // sin WhatsApp no hay por dónde: es trabajo de mostrador
 
-            const labels = chat.chatLabels || [];
-            if (labels.includes('SIN_SEGUIMIENTO')) continue;
-            if (labels.some(l => TAGS_EXCLUSION.some(t => l.toLowerCase().includes(t)))) continue;
-            if (chat.followUpPausedUntil && new Date(chat.followUpPausedUntil) > now) continue;
+            // Los filtros comunes los decide la POLÍTICA. Dos particularidades de
+            // la posventa, expresadas como PARÁMETROS y no como una copia con
+            // otros umbrales:
+            //  · la lista de etiquetas es la recortada (para este flujo,
+            //    "post-venta" y "ya es cliente" describen al destinatario, no lo excluyen);
+            //  · `mirarConvertido` apagado: le escribe justamente a quien acaba de comprar.
+            const veredicto = await evaluarElegibilidad({
+                client, chat, now,
+                tagsExclusion: TAGS_EXCLUSION,
+                mirarConvertido: false,
+                // El contacto frío ya viene resuelto en lote (`tieneInbound`):
+                // repetir la query por cliente sería una por pedido entregado.
+                exigirEntrante: false,
+                // Este flujo mira la entrega, no la actividad del chat: el cliente
+                // acaba de retirar y es normal que haya escrito hace poco.
+                actividadHoras: 0,
+            });
+            if (!veredicto.ok) continue;
 
             // Contacto frío: nunca nos escribió. El ejecutor lo cancelaría igual,
             // pero cancelándolo deja una tarea muerta en la ficha del cliente.
             if (!tieneInbound.has(chat.id)) continue;
-
-            // No apilar la posventa sobre un seguimiento recién enviado.
-            if (chat.lastFollowUpAt) {
-                const horas = (now.getTime() - new Date(chat.lastFollowUpAt).getTime()) / 3600000;
-                if (horas < COOLDOWN_HOURS) continue;
-            }
 
             const turno = turnos.disponible(client.id);
             if (!turno.ok) {

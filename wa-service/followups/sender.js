@@ -5,6 +5,7 @@
 
 const { prisma } = require('../db');
 const outbox = require('./outbox');
+const { evaluarElegibilidad } = require('./politica');
 const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const { runOutputGuardrail } = require('../services/ai.service');
 const { resolveWaMessageId, rememberBotMessage } = require('../shared/message-id');
@@ -33,23 +34,37 @@ async function preSendValidation(chatId, waId) {
         return { canSend: false, reason: `Chat ${chatId} ya no existe` };
     }
 
-    // Acá NO se mira `botEnabled` ni [SISTEMA - BOT APAGADO]: gobiernan si el
-    // AGENTE contesta, y se apagan solos apenas una persona toma la charla —
-    // que es justo lo que pasa cuando se arma un presupuesto. El corte del
-    // seguimiento por conversación es la etiqueta SIN_SEGUIMIENTO.
+    // Entre que este mensaje se aprobó y llega su turno en la cola pueden pasar
+    // horas: en el medio el cliente pudo comprar, pedir que no le escriban, o
+    // alguien pudo etiquetar la conversación. Se vuelve a preguntar a la MISMA
+    // política que lo aprobó — antes acá había una copia recortada de los checks
+    // y por eso el re-chequeo dejaba pasar cosas que el filtro de entrada frenaba.
+    //
+    // Dos diferencias legítimas, y por eso son parámetros:
+    //  · el cooldown NO se mira (este envío ya fue aprobado; mirarlo lo mataría);
+    //  · la ventana de actividad es corta (2hs): acá solo interesa no pisar una
+    //    conversación que está pasando AHORA.
+    const cliente = freshChat.clientId
+        ? await prisma.client.findUnique({
+            where: { id: freshChat.clientId },
+            select: { id: true, name: true, status: true, tags: { select: { name: true } } },
+        })
+        : null;
 
-    // Etiquetas de corte: pueden haberse aplicado (por un humano o por la
-    // compuerta de conversación) DESPUÉS de que este envío se generó y encoló.
-    const labels = freshChat.chatLabels || [];
-    if (labels.includes('SIN_SEGUIMIENTO')) {
-        return { canSend: false, reason: `Etiqueta SIN_SEGUIMIENTO en ${freshChat.profileName || waId}` };
-    }
+    // Sin cliente en la ficha no hay nada que consultar más allá del chat: se
+    // evalúa con un cliente mínimo para que igual corran los checks del chat.
+    const veredicto = await evaluarElegibilidad({
+        client: cliente || { id: freshChat.id, name: freshChat.profileName || waId, tags: [] },
+        chat: freshChat,
+        mirarCooldown: false,
+        actividadHoras: PRE_SEND_ACTIVITY_WINDOW_HOURS,
+        // El contacto frío ya se filtró al generar; re-mirarlo acá es una query
+        // por mensaje sin cambiar ninguna decisión.
+        exigirEntrante: false,
+    });
 
-    if (freshChat.lastMessageAt) {
-        const hoursSinceLastMsg = (Date.now() - new Date(freshChat.lastMessageAt).getTime()) / 3600000;
-        if (hoursSinceLastMsg < PRE_SEND_ACTIVITY_WINDOW_HOURS) {
-            return { canSend: false, reason: `Actividad reciente en ${freshChat.profileName || waId} (hace ${hoursSinceLastMsg.toFixed(1)}hs)` };
-        }
+    if (!veredicto.ok) {
+        return { canSend: false, reason: veredicto.motivo, codigo: veredicto.codigo };
     }
 
     return { canSend: true, chat: freshChat };

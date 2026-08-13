@@ -7,6 +7,7 @@
  * EXCLUSIÓN MUTUA: Respeta etiquetas de sales-followups.
  */
 const { prisma } = require('../db');
+const { evaluarElegibilidad } = require('../followups/politica');
 const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const { isBusinessHours } = require('../shared/business-hours');
 const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
@@ -112,38 +113,36 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                 continue;
             }
 
-            // DEDUP #2: Verificar cooldown persistente (24hs desde último follow-up)
-            if (chat.lastFollowUpAt) {
-                const timeSinceLastFollowUp = now.getTime() - new Date(chat.lastFollowUpAt).getTime();
-                if (timeSinceLastFollowUp < FOLLOW_UP_COOLDOWN_MS) {
-                    continue;
-                }
-            }
-
             // EXCLUSIÓN MUTUA: Si sales-followups ya está gestionando este chat, no enviar
             if (chat.chatLabels && ALL_FOLLOWUP_LABELS.some(label => chat.chatLabels.includes(label))) {
                 continue;
             }
 
-            // Verificar si el cliente tiene compras recientes (no enviar si ya compró)
-            if (chat.clientId) {
-                const recentOrders = await prisma.order.findFirst({
-                    where: {
-                        clientId: chat.clientId,
-                        orderType: { in: ['SALE', 'ORDER'] },
-                        isDeleted: false,
-                        createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-                    }
-                });
-                if (recentOrders) {
-                    continue;
-                }
-            }
+            // El resto de los filtros los decide la POLÍTICA — hasta ahora este
+            // cron era el único camino que enviaba SIN pasar por ninguno de los
+            // controles comunes, con su propio cooldown (48hs escrito acá) y su
+            // propia idea de "ya compró" (órdenes de los últimos 7 días). Ahora
+            // hereda las mismas reglas que todo lo demás, incluida la señal de
+            // convertido, que este flujo no miraba.
+            //
+            // La ventana de actividad va en 0: el disparador de este cron ES la
+            // inactividad del chat, y se mide más abajo contra el último mensaje.
+            const cliente = chat.clientId
+                ? await prisma.client.findUnique({
+                    where: { id: chat.clientId },
+                    select: { id: true, name: true, status: true, tags: { select: { name: true } } },
+                })
+                : null;
 
-            // Excluir si tiene label SIN_SEGUIMIENTO
-            if (chat.chatLabels && chat.chatLabels.includes('SIN_SEGUIMIENTO')) {
-                continue;
-            }
+            const veredicto = await evaluarElegibilidad({
+                client: cliente || { id: chat.id, name: chat.profileName || chat.waId, tags: [] },
+                chat, now,
+                cooldownHoras: FOLLOW_UP_COOLDOWN_MS / 3600000,
+                actividadHoras: 0,
+                desde: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+                exigirEntrante: false,
+            });
+            if (!veredicto.ok) continue;
 
             const diffMs = now.getTime() - new Date(lastMsg.createdAt).getTime();
             const diffHours = diffMs / (1000 * 60 * 60);
@@ -247,18 +246,28 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                         // pedir que no lo contacten.
                         preflight: async () => {
                             const fresh = await prisma.whatsAppChat.findUnique({ where: { id: chat.id } });
-                            if (!fresh || !fresh.botEnabled) return { ok: false, reason: 'bot apagado' };
-                            const labels = fresh.chatLabels || [];
-                            if (labels.includes('SIN_SEGUIMIENTO') || labels.includes('[SISTEMA - BOT APAGADO]')) {
-                                return { ok: false, reason: 'etiqueta de corte aplicada' };
+                            if (!fresh) return { ok: false, reason: 'el chat ya no existe' };
+
+                            // Acá `botEnabled` SÍ corresponde, al revés que en los
+                            // seguimientos de venta: este recordatorio es el bot
+                            // retomando SU propia conversación (el último mensaje
+                            // fue suyo). Si una persona tomó la charla, el bot no
+                            // tiene nada que retomar.
+                            if (!fresh.botEnabled || (fresh.chatLabels || []).includes('[SISTEMA - BOT APAGADO]')) {
+                                return { ok: false, reason: 'la charla la tomó una persona' };
                             }
-                            if (fresh.followUpPausedUntil && fresh.followUpPausedUntil > new Date()) {
-                                return { ok: false, reason: 'seguimientos pausados para este chat' };
-                            }
-                            if (fresh.lastMessageAt && (Date.now() - new Date(fresh.lastMessageAt).getTime()) < 2 * 3600 * 1000) {
-                                return { ok: false, reason: 'actividad reciente en el chat' };
-                            }
-                            return { ok: true };
+
+                            // El resto lo decide la política, con la ventana corta
+                            // del último segundo. El cooldown no se re-mira: este
+                            // envío ya fue aprobado hace instantes.
+                            const v = await evaluarElegibilidad({
+                                client: cliente || { id: fresh.id, name: fresh.profileName || fresh.waId, tags: [] },
+                                chat: fresh,
+                                mirarCooldown: false,
+                                actividadHoras: 2,
+                                exigirEntrante: false,
+                            });
+                            return v.ok ? { ok: true } : { ok: false, reason: v.motivo };
                         },
                     });
 
