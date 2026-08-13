@@ -783,21 +783,21 @@ export default function QuoteSummary({
                             reconocer su armazón en la confirmación, no fotografiarlo. */}
                         <div className="mt-5 pt-4 border-t border-stone-200 dark:border-stone-700">
                             <p className="text-[9px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-widest mb-3">
-                                Foto del armazón — va en la confirmación que recibe el cliente
+                                Fotos del armazón (obligatorias) — van en la confirmación que recibe el cliente
                             </p>
                             <div className="flex flex-wrap gap-5">
                                 <FramePhotoUploader
-                                    label={labFrame.pairs.length > 1 ? 'Par 1 (o los dos juntos)' : 'Armazón'}
+                                    label={labFrame.pairs.length > 1 ? 'Foto del 1º armazón *' : 'Foto del armazón *'}
                                     value={frameImageUrl}
                                     onChange={setFrameImageUrl}
-                                    hint={labFrame.pairs.length > 1 ? 'Si los dos pares entran en una sola foto, alcanza con esta.' : undefined}
+                                    hint="La ve el cliente en la confirmación de compra."
                                 />
                                 {labFrame.pairs.length > 1 && (
                                     <FramePhotoUploader
-                                        label="Par 2 (opcional)"
+                                        label="Foto del 2º armazón *"
                                         value={frameImageUrl2}
                                         onChange={setFrameImageUrl2}
-                                        hint="Solo si preferís una foto por par."
+                                        hint="Cada armazón lleva SU foto: son dos distintos."
                                     />
                                 )}
                             </div>

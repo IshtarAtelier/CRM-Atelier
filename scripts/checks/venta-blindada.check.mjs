@@ -52,7 +52,8 @@ const admin = await prisma.user.create({
 });
 
 const cliente = await prisma.client.create({
-    data: { name: MARCA, phone: '5490000000000', dni: '00000000', address: 'Calle 1', birthDate: new Date('1990-01-01'), status: 'CLIENT' },
+    // Ficha completa: la conversión exige estos datos antes de mirar nada más.
+    data: { name: MARCA, phone: '5490000000000', email: 'check-venta@ejemplo.local', dni: '00000000', address: 'Calle 1', birthDate: new Date('1990-01-01'), status: 'CLIENT' },
 });
 const receta = await prisma.prescription.create({
     data: { clientId: cliente.id, sphereOD: -1, sphereOI: -1, pd: 60, heightOD: 20, heightOI: 20, imageUrl: '/x.jpg' },
@@ -206,6 +207,55 @@ check('confirmación 2x1: avisa que el teñido no dice a qué par corresponde',
 
 const actualizada = buildSaleConfirmation(base, true);
 check('confirmación re-enviada: avisa que reemplaza a la anterior', /PEDIDO ACTUALIZADO/.test(actualizada.waText));
+
+// ── 5b. La foto de CADA armazón es obligatoria para convertir ───────────────
+// Sin foto no hay con qué contestarle a un "yo elegí otro armazón". En un 2x1
+// son dos armazones distintos: cada uno lleva la suya.
+const armazonProd = await prisma.product.findFirst({ where: { category: { contains: 'ARMAZ', mode: 'insensitive' } }, select: { id: true } });
+const cristalProd = await prisma.product.findFirst({ where: { category: { contains: 'CRISTAL', mode: 'insensitive' } }, select: { id: true } });
+
+async function presupuestoParaConvertir({ dosPares = false, foto1 = null, foto2 = null } = {}) {
+    return prisma.order.create({
+        data: {
+            clientId: cliente.id, userId: vendedor.id,
+            orderType: 'QUOTE', status: 'PENDING',
+            total: 1000, subtotalWithMarkup: 1000, paid: 1000,
+            prescriptionId: receta.id,
+            frameSource: 'OPTICA',
+            frameImageUrl: foto1, frameImageUrl2: foto2,
+            ...(dosPares ? { appliedPromoName: 'Promo 2x1' } : {}),
+            items: { create: [
+                { productId: armazonProd.id, quantity: 1, price: 500 },
+                { productId: cristalProd.id, quantity: 1, price: 500 },
+            ] },
+        },
+    });
+}
+
+if (armazonProd && cristalProd) {
+    // La receta necesita los datos que ya exige la conversión.
+    await prisma.prescription.update({ where: { id: receta.id }, data: { heightOD: 20, heightOI: 20, pd: 60, imageUrl: '/x.jpg' } });
+
+    const sinFoto = await presupuestoParaConvertir();
+    const errSinFoto = await rechaza(() => OrderService.updateOrder(sinFoto.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
+    check('conversión: SIN la foto del armazón no se puede vender',
+        !!errSinFoto && /foto del armaz/i.test(errSinFoto));
+
+    const conFoto1 = await presupuestoParaConvertir({ foto1: '/uploads/a1.jpg' });
+    const errConFoto = await rechaza(() => OrderService.updateOrder(conFoto1.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
+    check('conversión: CON la foto, la venta pasa', errConFoto === null);
+
+    const dos1 = await presupuestoParaConvertir({ dosPares: true, foto1: '/uploads/a1.jpg' });
+    const errDos = await rechaza(() => OrderService.updateOrder(dos1.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
+    check('conversión 2x1: con UNA sola foto NO alcanza',
+        !!errDos && /2º armaz/i.test(errDos));
+
+    const dos2 = await presupuestoParaConvertir({ dosPares: true, foto1: '/uploads/a1.jpg', foto2: '/uploads/a2.jpg' });
+    const errDos2 = await rechaza(() => OrderService.updateOrder(dos2.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
+    check('conversión 2x1: con la foto de CADA armazón, pasa', errDos2 === null);
+} else {
+    console.log('  … sin catálogo local: se saltean los checks de foto obligatoria');
+}
 
 // ── 6. El presupuesto que queda en la ficha ES la copia que recibió el cliente ─
 const { buildQuoteMessage } = await import('../../src/lib/quote-message.ts');

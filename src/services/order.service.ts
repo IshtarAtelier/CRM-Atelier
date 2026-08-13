@@ -16,6 +16,7 @@ import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { formatDateTime } from '@/lib/format-date';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 import { frameRecapText, prescriptionRecapText } from '@/lib/sale-recap-text';
+import { isTwoPairOrder } from '@/lib/lab-frame-summary';
 import { sendSaleConfirmation } from '@/lib/sale-confirmation';
 import { logAudit } from '@/lib/audit';
 import { sendClientEmail, escHtml } from '@/lib/client-email';
@@ -1633,6 +1634,9 @@ export class OrderService {
                         frameSource: true,
                         userFrameBrand: true,
                         userFrameModel: true,
+                        frameImageUrl: true,
+                        frameImageUrl2: true,
+                        appliedPromoName: true,
                         client: true,
                         items: {
                             select: {
@@ -1754,6 +1758,27 @@ export class OrderService {
                     const effModel = userFrameModel || existingOrder.userFrameModel;
                     if (!effBrand && !effModel) {
                         throw new Error('Debe completar al menos la marca o modelo del armazón del usuario');
+                    }
+                }
+
+                // Check: la foto de CADA armazón es obligatoria.
+                //
+                // Es lo que el cliente mira en la confirmación para reconocer lo que
+                // se lleva, y lo único que después prueba qué se le vendió cuando
+                // aparece un "yo elegí otro". En un 2x1 son dos armazones distintos,
+                // con medidas distintas: cada uno lleva SU foto, así se corresponde
+                // con sus datos. Se exige con el mismo alcance que las medidas
+                // (pedido con cristales y armazón), así una venta de solo cristales
+                // no queda trabada.
+                if (hasCrystals && effectiveFrameSource) {
+                    const foto1 = body.frameImageUrl ?? existingOrder.frameImageUrl;
+                    const foto2 = body.frameImageUrl2 ?? existingOrder.frameImageUrl2;
+                    const dosPares = isTwoPairOrder(existingOrder as any);
+                    const faltanFotos: string[] = [];
+                    if (!foto1) faltanFotos.push(dosPares ? 'la foto del 1º armazón' : 'la foto del armazón');
+                    if (dosPares && !foto2) faltanFotos.push('la foto del 2º armazón');
+                    if (faltanFotos.length > 0) {
+                        throw new Error(`No se puede convertir en venta: falta ${faltanFotos.join(' y ')}. La saca el vendedor y viaja en la confirmación que recibe el cliente.`);
                     }
                 }
 

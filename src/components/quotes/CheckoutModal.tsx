@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import FramePhotoUploader from '@/components/orders/FramePhotoUploader';
 import { PricingService } from '@/services/PricingService';
 import { isMultifocal2x1 } from '@/lib/promo-utils';
 import { lensOriginFromItem, LENS_ORIGIN } from '@/lib/lens-origin';
@@ -143,6 +144,10 @@ export default function CheckoutModal({
     const [frameMeasureA2, setFrameMeasureA2] = useState<string>(order.frameA2 || '');
     const [frameMeasureB2, setFrameMeasureB2] = useState<string>(order.frameB2 || '');
     const [frameMeasureEd2, setFrameMeasureEd2] = useState<string>(order.frameEdc2 || '');
+    // Foto de CADA armazón: en un 2x1 son dos armazones distintos, con medidas
+    // distintas, así que cada uno lleva la suya y se corresponde con sus datos.
+    const [frameImageUrl, setFrameImageUrl] = useState<string | null>(order.frameImageUrl || null);
+    const [frameImageUrl2, setFrameImageUrl2] = useState<string | null>(order.frameImageUrl2 || null);
     const [frameShape2, setFrameShape2] = useState<string>(order.labFrameShape2 || '');
     const [frameDetails2, setFrameDetails2] = useState<string>(order.labFrameDetails2 || '');
 
@@ -254,12 +259,17 @@ export default function CheckoutModal({
         if (!frameMeasureB.trim()) faltantes.push('Medida B del armazón');
         if (!frameMeasureEd.trim()) faltantes.push('Medida ED del armazón');
         if (frameSource === 'USUARIO' && !userFrameBrand.trim() && !userFrameModel.trim()) faltantes.push('Marca o modelo del armazón que trae el cliente');
+        // La foto es obligatoria: es lo que el cliente mira para reconocer su
+        // armazón en la confirmación, y lo único que prueba después qué se le
+        // vendió si aparece un "yo elegí otro".
+        if (!frameImageUrl) faltantes.push(is2x1 ? 'Foto del 1º armazón' : 'Foto del armazón');
         if (is2x1) {
             if (!frameDetails2.trim()) faltantes.push('Detalle del 2º armazón (promo 2x1)');
             if (!frameMeasurePte2.trim()) faltantes.push('Medida puente (DBL) del 2º armazón');
             if (!frameMeasureA2.trim()) faltantes.push('Medida A del 2º armazón');
             if (!frameMeasureB2.trim()) faltantes.push('Medida B del 2º armazón');
             if (!frameMeasureEd2.trim()) faltantes.push('Medida ED del 2º armazón');
+            if (!frameImageUrl2) faltantes.push('Foto del 2º armazón');
         }
     }
 
@@ -401,6 +411,8 @@ export default function CheckoutModal({
             if (frameMeasureA2) patchBody.frameA2 = frameMeasureA2;
             if (frameMeasureB2) patchBody.frameB2 = frameMeasureB2;
             if (frameMeasureEd2) patchBody.frameEdc2 = frameMeasureEd2;
+            if (frameImageUrl) patchBody.frameImageUrl = frameImageUrl;
+            if (frameImageUrl2) patchBody.frameImageUrl2 = frameImageUrl2;
             if (frameShape2) patchBody.labFrameShape2 = frameShape2;
             if (frameDetails2) patchBody.labFrameDetails2 = frameDetails2;
 
@@ -823,6 +835,18 @@ export default function CheckoutModal({
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Foto del armazón — OBLIGATORIA. La saca el vendedor y es
+                                            la que el cliente mira en su confirmación para reconocerlo. */}
+                                        <div className="mb-4 p-4 rounded-2xl bg-white/50 dark:bg-stone-900/30 border border-blue-100 dark:border-blue-900/50">
+                                            <FramePhotoUploader
+                                                label={is2x1 ? 'Foto del 1º armazón *' : 'Foto del armazón *'}
+                                                value={frameImageUrl}
+                                                onChange={setFrameImageUrl}
+                                                hint="La ve el cliente en la confirmación de compra."
+                                            />
+                                        </div>
+
                                     
 
                                 <div className="space-y-2 mb-4">
@@ -927,6 +951,16 @@ export default function CheckoutModal({
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <div className="mb-4 p-4 rounded-2xl bg-white/50 dark:bg-stone-900/30 border border-orange-100 dark:border-orange-900/50">
+                                            <FramePhotoUploader
+                                                label="Foto del 2º armazón *"
+                                                value={frameImageUrl2}
+                                                onChange={setFrameImageUrl2}
+                                                hint="Cada armazón lleva SU foto: son dos distintos."
+                                            />
+                                        </div>
+
 
                                         <div className="space-y-2">
                                             <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block">Detalles del Segundo Armazón <span className="text-red-500">*</span></label>
