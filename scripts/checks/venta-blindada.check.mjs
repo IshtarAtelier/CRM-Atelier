@@ -534,6 +534,45 @@ if (armazonProd && cristalProd) {
     }
 }
 
+// ── 5h. El registro completo de la venta en la ficha ───────────────────────
+// Es el documento al que se recurre "ante cualquier eventualidad": tiene que
+// alcanzar SOLO para reconstruir qué se vendió, sin abrir el pedido.
+const { ventaRecapCompleto } = await import('../../src/lib/sale-recap-text.ts');
+const cristalP = { name: 'Cristal Multifocal', category: 'Cristal', type: 'Cristal' };
+const tenidoP = { name: 'Teñido Degradé', category: 'Cristal' };
+const ventaCompleta = {
+    total: 300000, paid: 200000, frameSource: 'OPTICA', labNotes: 'Bisel al frente',
+    frames: [
+        { position: 1, shape: 'CATEYE', a: '52', b: '32', dbl: '18', edc: '54', details: 'Acetato negro', imageUrl: '/f1.jpg', heightOD: 20, heightOI: 20 },
+        { position: 2, shape: 'REDONDO', a: '48', b: '40', dbl: '20', edc: '50', details: 'Metal dorado', imageUrl: null, heightOD: 19, heightOI: 19 },
+    ],
+    items: [
+        { quantity: 1, eye: 'RIGHT', price: 75000, product: cristalP },
+        { quantity: 1, eye: 'LEFT', price: 75000, product: cristalP },
+        { quantity: 1, eye: 'RIGHT', price: 75000, product: cristalP },
+        { quantity: 1, eye: 'LEFT', price: 75000, product: cristalP },
+        { quantity: 1, price: 0, product: tenidoP, crystalColor: 'Gris', crystalColorType: 'DEGRADE', crystalColorNote: '4', framePosition: 2 },
+    ],
+};
+const registro = ventaRecapCompleto(ventaCompleta, {
+    prescriptionType: 'MULTIFOCAL', sphereOD: -1.25, sphereOI: -1, cylinderOD: -0.5, axisOD: 90,
+    additionOD: 1.75, additionOI: 1.75, pd: 62, heightOD: 20, heightOI: 20, notes: 'Dr. Gómez',
+});
+
+check('el registro trae lo abonado y el saldo', registro.includes('Abonado: $200.000') && registro.includes('Saldo: $100.000'));
+check('el registro lista los productos con su precio', registro.includes('$75.000'));
+check('marca lo que va sin cargo', registro.includes('SIN CARGO'));
+check('el teñido dice color, grado y a qué armazón va',
+    registro.includes('Gris') && registro.includes('grado 4') && registro.includes('→ 2º armazón'));
+check('el registro trae las medidas de los DOS armazones',
+    registro.includes('A: 52') && registro.includes('A: 48'));
+check('y las alturas de cada uno', registro.includes('Altura OD 20') && registro.includes('Altura OD 19'));
+check('dice qué armazón NO lleva teñido', registro.includes('SIN teñido'));
+check('avisa si a un armazón le falta la foto', registro.includes('SIN FOTO'));
+check('la receta va completa', registro.includes('Esf -1.25') && registro.includes('DNP') && registro.includes('Dr. Gómez'));
+check('trae las notas del laboratorio', registro.includes('Bisel al frente'));
+check('y no las repite dos veces', (registro.match(/Bisel al frente/g) || []).length === 1);
+
 // ── 6. El presupuesto que queda en la ficha ES la copia que recibió el cliente ─
 const { buildQuoteMessage } = await import('../../src/lib/quote-message.ts');
 const { splitDetalle, DETALLE_MARK, buildOrderDetailSummary } = await import('../../src/lib/order-detail-summary.ts');

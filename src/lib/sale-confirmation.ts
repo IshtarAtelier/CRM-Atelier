@@ -25,6 +25,7 @@ import { STORE_ORIGIN } from '@/lib/constants';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
 import { logAudit } from '@/lib/audit';
+import { SELECT_REPASO_CON_CLIENTE } from '@/lib/order-recap-select';
 import { isTeñidoAddon } from '@/lib/promo-utils';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
@@ -299,29 +300,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
 }
 
 /** Todo lo que la confirmación necesita leer de la orden, en un solo lugar. */
-const SELECT_CONFIRMACION = {
-    id: true, total: true, paid: true, orderType: true, isLocked: true,
-    clientId: true, labSentBy: true, labSentAt: true,
-    appliedPromoName: true, prescriptionSnapshot: true,
-    frameSource: true, userFrameBrand: true, userFrameModel: true,
-    labFrameShape: true, labFrameDetails: true,
-    frameA: true, frameB: true, frameDbl: true, frameEdc: true,
-    labFrameShape2: true, labFrameDetails2: true,
-    frameImageUrl: true, frameImageUrl2: true,
-    frames: { orderBy: { position: 'asc' } },
-    labHeightOD: true, labHeightOI: true, labHeightOD2: true, labHeightOI2: true,
-    frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
-    labColor: true, labTreatment: true, labNotes: true,
-    client: { select: { id: true, name: true, email: true, phone: true } },
-    prescription: true,
-    items: {
-        select: {
-            id: true, quantity: true, price: true, eye: true,
-            productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true,
-            product: { select: { name: true, brand: true, category: true, type: true, imagenesCatalogo: true } },
-        },
-    },
-} as const;
+const SELECT_CONFIRMACION = SELECT_REPASO_CON_CLIENTE;
 
 export interface EnvioConfirmacionResultado {
     email: boolean;

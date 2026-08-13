@@ -15,8 +15,9 @@ import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { formatDateTime } from '@/lib/format-date';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
-import { frameRecapText, prescriptionRecapText } from '@/lib/sale-recap-text';
+import { ventaRecapCompleto } from '@/lib/sale-recap-text';
 import { framesDeLaOrden, cantidadDeArmazones } from '@/lib/order-frames';
+import { SELECT_REPASO, SELECT_ITEMS_REPASO, SELECT_FRAMES_REPASO } from '@/lib/order-recap-select';
 import { sendSaleConfirmation } from '@/lib/sale-confirmation';
 import { logAudit } from '@/lib/audit';
 import { sendClientEmail, escHtml } from '@/lib/client-email';
@@ -2064,7 +2065,7 @@ export class OrderService {
                             frameImageUrl: true, frameImageUrl2: true,
                             labHeightOD: true, labHeightOI: true,
                             labHeightOD2: true, labHeightOI2: true,
-                            frames: { orderBy: { position: 'asc' as const } },
+                            frames: SELECT_FRAMES_REPASO,
                             frameSource: true,
                             userFrameBrand: true,
                             userFrameModel: true,
@@ -2076,10 +2077,12 @@ export class OrderService {
                             },
                             items: {
                                 select: {
-                                    id: true, price: true, quantity: true, eye: true,
+                                    // El repaso (color y armazón del teñido) sale del
+                                    // select ÚNICO; lo de acá es lo que además necesita
+                                    // esta rama para stock y precios.
+                                    ...SELECT_ITEMS_REPASO,
                                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, pdVal: true, heightVal: true, prismVal: true,
-                                    productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true,
-                                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true, imagenesCatalogo: true } }
+                                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true, is2x1: true, imagenesCatalogo: true } },
                                 }
                             },
                             payments: true,
@@ -2203,18 +2206,7 @@ export class OrderService {
                 const historyContent = [
                     `🛒 ${confirmedBy} confirmó el presupuesto #${updatedOrder.id.slice(-4).toUpperCase()} como VENTA por $${(updatedOrder.total || 0).toLocaleString('es-AR')}`,
                     `Enviada a fábrica por: ${updatedOrder.labSentBy || confirmedBy}${enviadaEl ? ` — ${enviadaEl}` : ''}`,
-                ].join('\n') + DETALLE_MARK + [
-                    `Abonado: $${(updatedOrder.paid || 0).toLocaleString('es-AR')} · Saldo: $${Math.max(0, (updatedOrder.total || 0) - (updatedOrder.paid || 0)).toLocaleString('es-AR')}`,
-                    ``,
-                    `Productos:`,
-                    `• ${saleSummaries}`,
-                    ``,
-                    `— ARMAZÓN Y TEÑIDO —`,
-                    frameRecapText(updatedOrder as any),
-                    ``,
-                    `— RECETA (congelada al enviar a fábrica) —`,
-                    prescriptionRecapText(rxParaNota as any),
-                ].join('\n');
+                ].join('\n') + DETALLE_MARK + ventaRecapCompleto(updatedOrder as any, rxParaNota as any);
 
                 await prisma.interaction.create({
                     data: {
@@ -2425,19 +2417,9 @@ export class OrderService {
             // sin ir a comparar campos entre notas.
             const reconf: any = await prisma.order.findUnique({
                 where: { id },
-                select: {
-                    total: true, paid: true, appliedPromoName: true, prescriptionSnapshot: true,
-                    frameSource: true, userFrameBrand: true, userFrameModel: true,
-                    labFrameShape: true, labFrameDetails: true,
-                    frameA: true, frameB: true, frameDbl: true, frameEdc: true,
-                    labFrameShape2: true, labFrameDetails2: true,
-                    frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
-                    labColor: true, labTreatment: true, labNotes: true,
-                    labHeightOD: true, labHeightOI: true, labHeightOD2: true, labHeightOI2: true,
-                    frames: { orderBy: { position: 'asc' as const } },
-                    prescription: true,
-                    items: { select: { productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true, product: { select: { name: true, category: true, type: true } } } },
-                },
+                // El repaso completo, del select ÚNICO: acá se escribía a mano y
+                // por eso la re-confirmación salía sin el color del teñido.
+                select: SELECT_REPASO,
             }).catch(() => null);
 
             const rxReconf = (() => {
@@ -2449,13 +2431,7 @@ export class OrderService {
                     clientId: order.clientId,
                     type: 'SISTEMA',
                     content: `✅ ${userName || 'Sistema'} RE-CONFIRMÓ la venta #${id.slice(-4).toUpperCase()} después de reabrirla (versión ${version} del pedido). Lo que va a fábrica es esta versión.`
-                        + (reconf ? DETALLE_MARK + [
-                            `— ARMAZÓN Y TEÑIDO (v${version}) —`,
-                            frameRecapText(reconf),
-                            ``,
-                            `— RECETA (v${version}) —`,
-                            prescriptionRecapText(rxReconf),
-                        ].join('\n') : ''),
+                        + (reconf ? DETALLE_MARK + ventaRecapCompleto(reconf, rxReconf) : ''),
                     imageUrl: rxReconf?.imageUrl || null,
                     userId: userId || null,
                     userName: userName || 'Sistema',

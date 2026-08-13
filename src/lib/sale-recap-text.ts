@@ -134,3 +134,63 @@ export function prescriptionRecapText(rx: RecapPrescription | null | undefined, 
 
     return lineas.join('\n');
 }
+
+
+/**
+ * EL REGISTRO COMPLETO de la venta, para la ficha del cliente.
+ *
+ * Es el documento al que se recurre "ante cualquier eventualidad": tiene que
+ * alcanzar por sí solo para reconstruir qué se vendió, sin abrir el pedido ni
+ * cruzar pantallas. Va detrás del separador de detalle, así que la ficha lo
+ * muestra colapsado y el historial sigue siendo escaneable.
+ *
+ * A diferencia del mensaje al cliente, acá NO se recorta nada: las medidas, las
+ * alturas y la receta completa son justamente lo que hace falta si hay que
+ * rehacer un par o discutir con el laboratorio.
+ */
+export function ventaRecapCompleto(order: any, rx: RecapPrescription | null | undefined): string {
+    const plata = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
+    const total = order?.total || 0;
+    const pagado = order?.paid || 0;
+    const bloques: string[] = [];
+
+    bloques.push([
+        `Abonado: ${plata(pagado)} · Saldo: ${plata(Math.max(0, total - pagado))}`,
+    ].join('\n'));
+
+    // Productos con su precio, y el teñido con su color y a qué armazón va.
+    const items: any[] = order?.items || [];
+    if (items.length > 0) {
+        const lineas = items.map((it: any) => {
+            const nombre = [it.product?.brand || it.productBrandSnapshot, it.product?.name || it.productNameSnapshot]
+                .filter(Boolean).join(' · ') || 'Artículo';
+            const extras = [
+                it.eye ? (it.eye === 'RIGHT' || it.eye === 'OD' ? 'OD' : 'OI') : null,
+                it.crystalColor || null,
+                it.crystalColorNote ? `grado ${it.crystalColorNote}` : null,
+                it.framePosition ? `→ ${it.framePosition}º armazón` : null,
+            ].filter(Boolean);
+            const precio = (it.price || 0) === 0 ? 'SIN CARGO' : plata(it.price);
+            return `• ${nombre}${extras.length ? ` (${extras.join(' · ')})` : ''} — ${precio}`;
+        });
+        bloques.push([`PRODUCTOS`, ...lineas].join('\n'));
+    }
+
+    bloques.push([`ARMAZÓN Y TEÑIDO`, frameRecapText(order)].join('\n'));
+
+    // Qué armazones tienen foto: si falta alguna, que se vea acá y no cuando
+    // haga falta para responder un reclamo.
+    const armazones = describeLabFrameDetails(order).pairs;
+    if (armazones.length > 0) {
+        const fotos = armazones.map(p =>
+            `${p.label}: ${p.imageUrl ? 'foto cargada ✓' : 'SIN FOTO'}`);
+        bloques.push([`FOTOS DEL ARMAZÓN`, ...fotos].join('\n'));
+    }
+
+    bloques.push([`RECETA (congelada al enviar a fábrica)`, prescriptionRecapText(rx)].join('\n'));
+
+    // Las notas de laboratorio ya salen dentro de ARMAZÓN Y TEÑIDO: repetirlas
+    // en su propio bloque hacía leer dos veces lo mismo.
+
+    return bloques.join('\n\n');
+}
