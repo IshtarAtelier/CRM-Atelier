@@ -13,6 +13,9 @@ import { AdsService } from '@/services/ads.service';
 import { GoogleAdsService } from '@/services/google-ads.service';
 import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
+import { formatDateTime } from '@/lib/format-date';
+import { frameRecapText, prescriptionRecapText } from '@/lib/sale-recap-text';
+import { sendSaleConfirmation } from '@/lib/sale-confirmation';
 import { logAudit } from '@/lib/audit';
 import { sendClientEmail, escHtml } from '@/lib/client-email';
 import { getOrderShippedHtml } from '@/lib/checkout/checkout-emails';
@@ -1910,14 +1913,39 @@ export class OrderService {
                             paid: true,
                             createdAt: true,
                             updatedAt: true,
+                            // El repaso completo del armazón (los dos pares del 2x1,
+                            // teñido y notas de laboratorio) y la receta congelada:
+                            // sin estos campos la nota del historial y la
+                            // confirmación al cliente salían a medias.
+                            orderType: true,
+                            isLocked: true,
+                            labSentBy: true,
+                            labSentAt: true,
+                            labStatus: true,
+                            labColor: true,
+                            labTreatment: true,
+                            labNotes: true,
+                            labFrameShape: true,
+                            labFrameDetails: true,
+                            frameA: true, frameB: true, frameDbl: true, frameEdc: true,
+                            labFrameShape2: true,
+                            labFrameDetails2: true,
+                            frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
+                            frameSource: true,
+                            userFrameBrand: true,
+                            userFrameModel: true,
+                            userFrameNotes: true,
+                            appliedPromoName: true,
+                            prescriptionSnapshot: true,
                             client: {
-                                select: { name: true, email: true, phone: true }
+                                select: { id: true, name: true, email: true, phone: true }
                             },
                             items: {
                                 select: {
                                     id: true, price: true, quantity: true, eye: true,
                                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, pdVal: true, heightVal: true, prismVal: true,
-                                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true } }
+                                    productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true,
+                                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true, imagenesCatalogo: true } }
                                 }
                             },
                             payments: true,
@@ -2025,12 +2053,38 @@ export class OrderService {
                 // Registrar conversión a VENTA en el historial del cliente — con el vendedor que confirmó
                 const saleSummaries = formatOrderItemsSummary(updatedOrder.items);
                 const confirmedBy = userName || 'Sistema';
-                const historyContent = `🛒 ${confirmedBy} confirmó el presupuesto #${updatedOrder.id.slice(-4).toUpperCase()} como VENTA por $${(updatedOrder.total || 0).toLocaleString('es-AR')}\n\nProductos:\n• ${saleSummaries}`;
+                // La nota lleva el repaso ENTERO, no un resumen: es el registro al
+                // que se recurre "ante cualquier eventualidad", y tiene que decir
+                // quién la envió a fábrica, a qué hora y exactamente qué se fabrica.
+                // La foto de la receta va en la interacción misma (imageUrl).
+                const recetaCongeladaTx = (() => {
+                    try { return updatedOrder.prescriptionSnapshot ? JSON.parse(updatedOrder.prescriptionSnapshot)?.rx : null; } catch { return null; }
+                })();
+                const rxParaNota = recetaCongeladaTx || updatedOrder.prescription;
+                const enviadaEl = updatedOrder.labSentAt ? formatDateTime(updatedOrder.labSentAt) : null;
+
+                const historyContent = [
+                    `🛒 ${confirmedBy} confirmó el presupuesto #${updatedOrder.id.slice(-4).toUpperCase()} como VENTA por $${(updatedOrder.total || 0).toLocaleString('es-AR')}`,
+                    ``,
+                    `Enviada a fábrica por: ${updatedOrder.labSentBy || confirmedBy}${enviadaEl ? ` — ${enviadaEl}` : ''}`,
+                    `Abonado: $${(updatedOrder.paid || 0).toLocaleString('es-AR')} · Saldo: $${Math.max(0, (updatedOrder.total || 0) - (updatedOrder.paid || 0)).toLocaleString('es-AR')}`,
+                    ``,
+                    `Productos:`,
+                    `• ${saleSummaries}`,
+                    ``,
+                    `— ARMAZÓN Y TEÑIDO —`,
+                    frameRecapText(updatedOrder as any),
+                    ``,
+                    `— RECETA (congelada al enviar a fábrica) —`,
+                    prescriptionRecapText(rxParaNota as any),
+                ].join('\n');
+
                 await prisma.interaction.create({
                     data: {
                         clientId: existingOrder.client.id,
                         type: 'SALE_CONFIRMED',
                         content: historyContent,
+                        imageUrl: (rxParaNota as any)?.imageUrl || null,
                         userId: userId || null,
                         userName: confirmedBy,
                     },
@@ -2046,6 +2100,15 @@ export class OrderService {
                     entityId: updatedOrder.id,
                     details: { from: 'QUOTE', to: 'SALE', total: updatedOrder.total, paid: updatedOrder.paid }
                 }).catch(err => console.error('Error logging audit for sale confirmation:', err));
+
+                // Confirmación de compra al cliente (mail + WhatsApp + PDF). Es el
+                // momento previo a que la fábrica empiece: si un dato está mal, este
+                // mensaje es la única chance de detectarlo a tiempo.
+                // Fire-and-forget a propósito — la venta ya está hecha; un aviso que
+                // falla no puede voltearla (y si fallan los dos canales, la propia
+                // función deja una tarea para mandarla a mano).
+                sendSaleConfirmation(updatedOrder.id, { version: 1 })
+                    .catch(err => console.error('Error enviando la confirmación de compra:', err));
 
                 // Enviar mensaje al grupo de ventas
                 try {
@@ -2219,15 +2282,53 @@ export class OrderService {
         if (esReconfirmacion) {
             let version = 2;
             try { version = JSON.parse(data.prescriptionSnapshot || '{}').v || 2; } catch { /* usar 2 */ }
+
+            // El repaso completo se repite en CADA versión: leer la ficha de arriba
+            // a abajo tiene que alcanzar para saber qué se fabricó en cada intento,
+            // sin ir a comparar campos entre notas.
+            const reconf: any = await prisma.order.findUnique({
+                where: { id },
+                select: {
+                    total: true, paid: true, appliedPromoName: true, prescriptionSnapshot: true,
+                    frameSource: true, userFrameBrand: true, userFrameModel: true,
+                    labFrameShape: true, labFrameDetails: true,
+                    frameA: true, frameB: true, frameDbl: true, frameEdc: true,
+                    labFrameShape2: true, labFrameDetails2: true,
+                    frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
+                    labColor: true, labTreatment: true, labNotes: true,
+                    prescription: true,
+                    items: { select: { productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true, product: { select: { name: true, category: true, type: true } } } },
+                },
+            }).catch(() => null);
+
+            const rxReconf = (() => {
+                try { return reconf?.prescriptionSnapshot ? JSON.parse(reconf.prescriptionSnapshot)?.rx : null; } catch { return null; }
+            })() || reconf?.prescription || null;
+
             await prisma.interaction.create({
                 data: {
                     clientId: order.clientId,
                     type: 'SISTEMA',
-                    content: `✅ ${userName || 'Sistema'} RE-CONFIRMÓ la venta #${id.slice(-4).toUpperCase()} después de reabrirla (versión ${version} del pedido). Lo que va a fábrica es esta versión.`,
+                    content: [
+                        `✅ ${userName || 'Sistema'} RE-CONFIRMÓ la venta #${id.slice(-4).toUpperCase()} después de reabrirla (versión ${version} del pedido). Lo que va a fábrica es esta versión.`,
+                        ...(reconf ? [
+                            ``,
+                            `— ARMAZÓN Y TEÑIDO (v${version}) —`,
+                            frameRecapText(reconf),
+                            ``,
+                            `— RECETA (v${version}) —`,
+                            prescriptionRecapText(rxReconf),
+                        ] : []),
+                    ].join('\n'),
+                    imageUrl: rxReconf?.imageUrl || null,
                     userId: userId || null,
                     userName: userName || 'Sistema',
                 },
             }).catch(err => console.error('Error registrando re-confirmación en ficha:', err));
+
+            // Y el cliente recibe el repaso corregido, marcado como actualización.
+            sendSaleConfirmation(id, { esActualizacion: true, version })
+                .catch(err => console.error('Error re-enviando la confirmación de compra:', err));
             logAudit({
                 userId: userId || null,
                 userName: userName || 'Sistema',
