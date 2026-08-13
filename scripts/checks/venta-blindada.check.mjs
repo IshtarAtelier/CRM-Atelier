@@ -191,7 +191,11 @@ check('confirmación: y le pide que la mire para confirmar', /Mir[aá] la foto d
 check('confirmación: con dos armazones entran las dos fotos',
     buildSaleConfirmation({ ...base, appliedPromoName: 'Promo 2x1', frameImageUrl: '/uploads/a.jpg', frameImageUrl2: '/uploads/b.jpg' })
         .emailHtml.includes('/uploads/b.jpg'));
-check('confirmación: pide color y grado si son de sol', /color\* y el \*grado\*/.test(sinTenido.waText));
+// El pedido de confirmación del teñido es CONCRETO: si lleva, dice cuál y pide
+// que lo confirme; si no lleva, lo dice y ofrece agregarlo. La versión genérica
+// ("si son de sol, confirmanos el color") le pedía al cliente un dato que el
+// sistema ya tiene.
+check('sin teñido: lo dice y ofrece agregarlo', /va SIN teñido/.test(sinTenido.waText));
 check('confirmación: invita a preguntar los términos que no se entienden', /preguntanos ahora/.test(sinTenido.waText));
 check('confirmación: adjunta la foto de la receta', !!sinTenido.prescriptionImageUrl);
 check('confirmación: nunca dice "undefined" ni "null"',
@@ -200,6 +204,8 @@ check('confirmación: nunca dice "undefined" ni "null"',
 const conTenido = buildSaleConfirmation({ ...base, labColor: 'Gris Oscuro (Grado 80%)', labTreatment: 'Teñido' });
 check('confirmación: cuando hay teñido, lo dice con color y grado',
     conTenido.waText.includes('Teñido: Teñido - Gris Oscuro (Grado 80%)'));
+check('con teñido: dice CUÁL es y pide confirmarlo',
+    conTenido.waText.includes('El teñido va *Teñido - Gris Oscuro (Grado 80%)*'));
 
 const foto = buildSaleConfirmation({
     ...base,
@@ -213,8 +219,15 @@ const dosPares = buildSaleConfirmation({
     labFrameShape2: 'REDONDO', frameA2: '48', frameB2: '40', frameDbl2: '20', frameEdc2: '50',
 });
 check('confirmación 2x1: aparece el PRIMER armazón', dosPares.waText.includes('Armazón — 1º'));
-check('confirmación 2x1: aparece el SEGUNDO armazón con sus medidas',
-    dosPares.waText.includes('Armazón — 2º') && dosPares.waText.includes('A: 48'));
+check('confirmación 2x1: aparece el SEGUNDO armazón', dosPares.waText.includes('Armazón — 2º'));
+// Las medidas NO van al cliente —no puede confirmarlas y tapan lo que sí— pero
+// adentro (ficha y laboratorio) tienen que estar completas.
+const { frameRecapText } = await import('../../src/lib/sale-recap-text.ts');
+const repasoInterno = frameRecapText({ ...base, appliedPromoName: 'Promo 2x1',
+    labFrameShape2: 'REDONDO', frameA2: '48', frameB2: '40', frameDbl2: '20', frameEdc2: '50' });
+check('el repaso INTERNO sí lleva las medidas', repasoInterno.includes('A: 48'));
+check('el mensaje al cliente NO lleva las medidas del armazón',
+    !dosPares.waText.includes('A: 48') && !/Pte:/.test(dosPares.waText));
 check('confirmación 2x1: avisa que el teñido no dice a qué par corresponde',
     buildSaleConfirmation({ ...base, appliedPromoName: 'Promo 2x1', labColor: 'Gris' })
         .waText.includes('confirmar a cuál corresponde'));
@@ -379,8 +392,17 @@ check('el teñido NO cuenta como par de cristales',
         { product: multi2x1, eye: 'RIGHT' }, { product: multi2x1, eye: 'LEFT' },
         { product: tenidoProd, eye: 'RIGHT' }, { product: tenidoProd, eye: 'LEFT' },
     ] }) === 1);
-check('el repaso informa el teñido del 2x1',
-    describeLabFrameDetails(orden2x1).tint?.text === 'Teñido - Degradé Gris');
+// El teñido se lee de los ITEMS, que es donde el vendedor lo carga hoy. Mirar
+// solo labColor/labTreatment hacía que la confirmación al cliente dijera "NO
+// lleva teñido" en un pedido que sí lo llevaba — reportado en producción.
+const conColorEnItems = { ...orden2x1, items: orden2x1.items.map(i =>
+    isTeñidoAddon(i.product) ? { ...i, crystalColor: 'Gris', crystalColorType: 'DEGRADE', crystalColorNote: '4' } : i) };
+check('el repaso lee el teñido de los items (color y grado)',
+    describeLabFrameDetails(conColorEnItems).tint?.text === 'Degradé · Gris · grado 4');
+check('un teñido cargado sin color lo dice, no lo oculta',
+    describeLabFrameDetails(orden2x1).tint?.text === 'sin color elegido');
+check('los items MANDAN sobre labColor/labTreatment',
+    describeLabFrameDetails({ ...conColorEnItems, labColor: 'Verde', labTreatment: 'Teñido' }).tint?.text === 'Degradé · Gris · grado 4');
 check('con una línea de teñido por par NO avisa ambigüedad',
     describeLabFrameDetails(orden2x1).tint?.ambiguousPair === false);
 check('con UNA línea para dos pares, avisa que no se sabe a cuál corresponde',

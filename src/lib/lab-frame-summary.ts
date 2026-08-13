@@ -1,4 +1,5 @@
 import { framesDeLaOrden, cantidadDeArmazones } from './order-frames';
+import { isTeñidoAddon } from './promo-utils';
 // ────────────────────────────────────────────────────────────────────────────
 // Resumen de lo que el vendedor cargó en el Repaso Final (armazón, medidas,
 // forma, teñido) para mostrarlo IGUAL en los tres lugares donde alguien lo
@@ -13,6 +14,9 @@ import { framesDeLaOrden, cantidadDeArmazones } from './order-frames';
 
 export interface LabFrameOrderItem {
     eye?: string | null;
+    crystalColor?: string | null;
+    crystalColorType?: string | null;
+    crystalColorNote?: string | null;
     product?: { name?: string | null; category?: string | null; type?: string | null } | null;
     productNameSnapshot?: string | null;
     productCategorySnapshot?: string | null;
@@ -170,8 +174,30 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
         };
     });
 
+    // El teñido sale PRIMERO de los items del pedido, que es donde el vendedor
+    // lo carga hoy: una línea "Teñido Compacto/Degradé" con su color y su grado.
+    // Los campos labColor/labTreatment del pedido son el camino viejo y quedan
+    // de respaldo — mirarlos solo a ellos hacía que la confirmación al cliente
+    // dijera "NO lleva teñido" en un pedido que sí lo llevaba.
     let tint: TintSummary | null = null;
-    if (order.labTreatment || order.labColor) {
+
+    const itemsTenido = (order.items || []).filter(it => isTeñidoAddon(it.product || {
+        name: it.productNameSnapshot, category: it.productCategorySnapshot, type: it.productTypeSnapshot,
+    }));
+
+    if (itemsTenido.length > 0) {
+        const descripciones = itemsTenido.map((it: any) => {
+            const estilo = it.crystalColorType === 'DEGRADE' ? 'Degradé'
+                : it.crystalColorType === 'MUESTRA' ? 'Según muestra'
+                : it.crystalColorType === 'COMPACTO' ? 'Compacto' : null;
+            const partes = [estilo, it.crystalColor, it.crystalColorNote ? `grado ${it.crystalColorNote}` : null].filter(Boolean);
+            return partes.length > 0 ? partes.join(' · ') : 'sin color elegido';
+        });
+        tint = {
+            text: [...new Set(descripciones)].join('  |  '),
+            ambiguousPair: total > 1 && itemsTenido.length < total,
+        };
+    } else if (order.labTreatment || order.labColor) {
         const partes = [order.labTreatment, order.labColor].filter(Boolean);
         tint = {
             text: partes.join(' - '),

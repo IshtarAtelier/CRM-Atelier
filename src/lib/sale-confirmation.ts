@@ -75,6 +75,26 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     const saldo = Math.max(0, total - pagado);
 
     const items: any[] = order.items || [];
+
+    // Una línea por producto, y si es un teñido, CON su color y su grado. Decir
+    // "Teñido Degradé" a secas y más abajo listar el color por separado obliga
+    // al cliente a atar cabos; junto se lee de una.
+    const lineasDeItems = (lista: any[]): string[] => {
+        const vistos = new Set<string>();
+        const salida: string[] = [];
+        for (const it of lista) {
+            const nombre = it.product?.name || it.productNameSnapshot || 'Producto';
+            const detalle = [it.crystalColor, it.crystalColorNote ? `grado ${it.crystalColorNote}` : null]
+                .filter(Boolean).join(', ');
+            const linea = `• ${nombre}${detalle ? ` — ${detalle}` : ''}`;
+            // Los cristales vienen por ojo (OD y OI): al cliente le importa el
+            // par, no la línea contable de cada ojo.
+            if (vistos.has(linea)) continue;
+            vistos.add(linea);
+            salida.push(linea);
+        }
+        return salida;
+    };
     const fotoReceta = urlAbsoluta(rx?.imageUrl);
 
     // Fotos del armazón sacadas por el vendedor. Se le MUESTRAN al cliente: no
@@ -91,14 +111,12 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         `Hola ${nombre}! Tu pedido ya salió a fabricación. Te pasamos el detalle *exacto* de cómo se va a fabricar para que lo revises.`,
         ``,
         `*Lo que encargaste*`,
-        ...items.map(it => `• ${it.product?.name || it.productNameSnapshot || 'Producto'}${it.quantity > 1 ? ` x${it.quantity}` : ''}`),
+        ...lineasDeItems(items),
         ``,
         `*Armazón y teñido*`,
-        frameRecapText(order),
+        frameRecapText(order, true),
         ``,
-        `*Tu receta (tal cual está cargada)*`,
-        prescriptionRecapText(rx),
-        ``,
+        ...(prescriptionRecapText(rx, true) ? [`*Tu receta (tal cual está cargada)*`, prescriptionRecapText(rx, true), ``] : []),
         `*Pago*`,
         `Total: ${money(total)}`,
         `Abonado: ${money(pagado)}`,
@@ -109,7 +127,9 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         fotosArmazon.length
             ? `• Mirá la foto del armazón que te adjuntamos: ¿es el que elegiste?`
             : `• ¿El armazón es el que elegiste?`,
-        `• Si son de sol: confirmanos el *color* y el *grado* del teñido.`,
+        resumen.tint
+            ? `• El teñido va *${resumen.tint.text}*: confirmanos que es el que pediste.`
+            : `• Si querés que lleven teñido, decinos ahora — este pedido va SIN teñido.`,
         `• Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos ahora y te lo explicamos.`,
         ``,
         `Respondenos *OK* si está todo bien, o contanos qué corregir. Es el momento: una vez fabricado no se puede cambiar.`,
@@ -205,7 +225,9 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           <p style="margin:0 0 10px;font-size:14px;line-height:1.7;color:#333">Revisá que esté todo bien: <strong>así es como se va a fabricar</strong>.</p>
           <ul style="margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.8;color:#333">
             <li>${fotosArmazon.length ? 'Mirá la foto del armazón acá arriba: ¿es el que elegiste?' : '¿El armazón es el que elegiste?'}</li>
-            <li>Si son anteojos de sol, confirmanos el <strong>color</strong> y el <strong>grado</strong> del teñido.</li>
+            <li>${resumen.tint
+                ? `El teñido va <strong>${escHtml(resumen.tint.text)}</strong>: confirmanos que es el que pediste.`
+                : 'Si querés que lleven teñido, decinos ahora — este pedido va sin teñido.'}</li>
             <li>Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos con gusto.</li>
           </ul>
           <p style="margin:0;font-size:14px;line-height:1.7;color:#333">Respondé este mail o escribinos por WhatsApp con un <strong>OK</strong> si está todo bien, o contanos qué hay que corregir. Una vez fabricado ya no se puede cambiar.</p>

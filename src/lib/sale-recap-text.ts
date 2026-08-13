@@ -38,21 +38,43 @@ export function tienePhotocromatico(order: LabFrameOrder & { labTreatment?: stri
     return enItems || enTratamiento.includes('fotocrom') || enTratamiento.includes('transitions');
 }
 
-/** El repaso del armazón (los dos pares si es 2x1), teñido y notas, en texto. */
-export function frameRecapText(order: LabFrameOrder): string {
+/**
+ * El repaso del armazón, teñido y notas, en texto.
+ *
+ * @param paraCliente Recorta lo que el cliente NO puede verificar: las medidas
+ *   (A/B/ED/Puente) y la altura pupilar son datos de fabricación. Nadie los
+ *   confirma mirando sus anteojos, y llenan el mensaje de números que tapan lo
+ *   único que sí hay que revisar. Adentro (ficha, laboratorio) van completos.
+ */
+export function frameRecapText(order: LabFrameOrder, paraCliente = false): string {
     const r = describeLabFrameDetails(order);
     const lineas: string[] = [];
 
-    if (r.origin) lineas.push(`Armazón: ${r.origin}`);
+    // Adentro, el origen va en su propia línea. Para el cliente se fusiona con la
+    // descripción del armazón: dos líneas seguidas que empiezan con "Armazón:"
+    // se leen como un error de copiado.
+    if (r.origin && !paraCliente) lineas.push(`Armazón: ${r.origin}`);
 
     for (const par of r.pairs) {
         if (par.isEmpty) {
-            lineas.push(`${par.label}: sin medidas cargadas`);
+            if (!paraCliente) lineas.push(`${par.label}: sin medidas cargadas`);
             continue;
         }
-        const partes = [par.shape, par.measurements, par.fitting, par.details].filter(Boolean);
-        lineas.push(`${par.label}: ${partes.join(' · ')}`);
+        const partes = paraCliente
+            ? [par.shape, par.details].filter(Boolean)
+            : [par.shape, par.measurements, par.fitting, par.details].filter(Boolean);
+        if (partes.length === 0) continue;
+        // Al cliente le alcanza saber de quién es el armazón, no la marca y el
+        // modelo repetidos: eso ya está en la descripción de la línea.
+        const deQuien = (order as any).frameSource === 'USUARIO' ? 'el tuyo'
+            : (order as any).frameSource === 'OPTICA' ? 'de la óptica' : null;
+        const sufijo = paraCliente && deQuien && lineas.length === 0 ? ` (${deQuien})` : '';
+        lineas.push(`${par.label}: ${partes.join(' · ')}${sufijo}`);
     }
+
+    // Si el cliente trajo su armazón y no se cargó nada más, igual hay que
+    // decírselo: es parte de lo que tiene que reconocer.
+    if (paraCliente && lineas.length === 0 && r.origin) lineas.push(`Armazón: ${r.origin}`);
 
     // El teñido se dice SIEMPRE, también cuando no lleva: el silencio es lo que
     // hace dudar a quien lee (y lo que genera el reclamo después).
@@ -70,8 +92,17 @@ export function frameRecapText(order: LabFrameOrder): string {
 }
 
 /** La receta tal cual está cargada, en dos filas OD/OI. */
-export function prescriptionRecapText(rx: RecapPrescription | null | undefined): string {
-    if (!rx) return 'Receta: no hay una receta cargada en este pedido.';
+export function prescriptionRecapText(rx: RecapPrescription | null | undefined, paraCliente = false): string {
+    if (!rx) return paraCliente ? '' : 'Receta: no hay una receta cargada en este pedido.';
+
+    // Para el cliente: si la receta está vacía (todo en cero o sin cargar), no
+    // se manda una tabla de guiones. Una fila que dice "Esf 0 · Cil — · Eje —"
+    // no informa nada y hace dudar de todo lo demás.
+    if (paraCliente) {
+        const algo = [rx.sphereOD, rx.sphereOI, rx.cylinderOD, rx.cylinderOI, rx.additionOD, rx.additionOI, rx.pd]
+            .some(v => v !== null && v !== undefined && v !== '' && Number(v) !== 0);
+        if (!algo) return '';
+    }
 
     const ojo = (lado: 'OD' | 'OI') => {
         const esf = lado === 'OD' ? rx.sphereOD : rx.sphereOI;
