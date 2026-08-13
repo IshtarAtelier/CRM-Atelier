@@ -20,7 +20,7 @@ import { escHtml, sendClientEmail } from '@/lib/client-email';
 import { fetchWa } from '@/lib/wa-config';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 import { resolveStorageUrl } from '@/lib/utils/storage';
-import { uploadFile } from '@/lib/storage';
+import { uploadFile, getFileBuffer } from '@/lib/storage';
 import { STORE_ORIGIN } from '@/lib/constants';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
@@ -41,6 +41,34 @@ function urlAbsoluta(src?: string | null): string | null {
     return `${STORE_ORIGIN}${resuelta.startsWith('/') ? '' : '/'}${resuelta}`;
 }
 
+/**
+ * Los bytes de una imagen guardada, para poder adjuntarla por WhatsApp.
+ *
+ * Prueba primero el almacenamiento (nube o disco) y, si el valor guardado es
+ * una ruta pública del sitio, la baja por HTTP. Devuelve null si no se pudo:
+ * una foto que no se puede adjuntar no puede voltear la confirmación entera.
+ */
+async function bytesDeImagen(valor: string): Promise<{ base64: string; mimetype: string; filename: string } | null> {
+    const extension = (valor.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
+    const mimetype = extension === 'png' ? 'image/png' : extension === 'webp' ? 'image/webp' : 'image/jpeg';
+    const filename = `armazon.${extension === 'png' ? 'png' : extension === 'webp' ? 'webp' : 'jpg'}`;
+    try {
+        const buf = await getFileBuffer(valor);
+        if (buf) return { base64: buf.toString('base64'), mimetype, filename };
+    } catch { /* sigue por HTTP */ }
+    try {
+        const url = urlAbsoluta(valor);
+        if (!url) return null;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const ab = await res.arrayBuffer();
+        return { base64: Buffer.from(ab).toString('base64'), mimetype, filename };
+    } catch (e: any) {
+        console.error('[Confirmación de compra] No se pudieron leer los bytes de la foto:', e?.message);
+        return null;
+    }
+}
+
 /** La receta que vale: la congelada al enviar a fábrica; si no hay, la viva. */
 export function recetaDeLaVenta(order: any): any {
     try {
@@ -56,6 +84,8 @@ export interface SaleConfirmation {
     waText: string;
     /** Foto de la receta, absoluta, para adjuntar/mostrar. null si no hay. */
     prescriptionImageUrl: string | null;
+    /** Fotos del armazón: el valor guardado, la URL y el pie de cada una. */
+    fotosArmazon: { valor: string; url: string; titulo: string }[];
 }
 
 /**
@@ -104,9 +134,18 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
 
     // Fotos del armazón sacadas por el vendedor. Se le MUESTRAN al cliente: no
     // se le piden. Él tiene que reconocer su armazón, no fotografiarlo.
+    // Cada foto lleva el valor GUARDADO (para poder leer sus bytes y adjuntarla
+    // por WhatsApp) y la URL absoluta (para mostrarla en el mail).
     const fotosArmazon = resumen.pairs
-        .map(p => urlAbsoluta(p.imageUrl))
-        .filter(Boolean) as string[];
+        .filter(p => p.imageUrl)
+        .map(p => ({
+            valor: p.imageUrl as string,
+            url: urlAbsoluta(p.imageUrl) as string,
+            titulo: resumen.pairs.length > 1
+                ? `Foto de tu ${p.pair}º armazón — ¿es el que elegiste?`
+                : 'Foto de tu armazón — ¿es el que elegiste?',
+        }))
+        .filter(f => !!f.url);
 
     // ── WhatsApp ─────────────────────────────────────────────────────────────
     //
@@ -226,7 +265,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
             </table>
             ${fotosArmazon.length ? `
               <p style="margin:16px 0 8px;font-size:13px;color:#666">Así es el armazón que te llevás:</p>
-              <div>${fotosArmazon.map(u => `<img src="${u}" alt="Foto de tu armazón" style="max-width:260px;width:100%;border-radius:12px;border:1px solid #e5e1da;margin:0 8px 8px 0" />`).join('')}</div>` : ''}`)}
+              <div>${fotosArmazon.map(f => `<img src="${f.url}" alt="Foto de tu armazón" style="max-width:260px;width:100%;border-radius:12px;border:1px solid #e5e1da;margin:0 8px 8px 0" />`).join('')}</div>` : ''}`)}
 
         ${bloque('Tu receta, tal cual está cargada', recetaHtml)}
 
@@ -255,6 +294,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         emailHtml,
         waText,
         prescriptionImageUrl: fotoReceta,
+        fotosArmazon,
     };
 }
 
@@ -360,6 +400,31 @@ export async function sendSaleConfirmation(
                     }),
                 });
                 resultado.whatsapp = res.ok;
+
+                // Y las FOTOS del armazón, una por mensaje.
+                //
+                // El texto le dice al cliente "mirá la foto que te adjuntamos",
+                // pero por WhatsApp solo viajaba el PDF: la foto quedaba dentro
+                // del adjunto, que muchos ni abren. Y es justo lo que tiene que
+                // mirar para reconocer su armazón — el único control que puede
+                // hacer de verdad. El endpoint del bot manda un archivo por
+                // mensaje, así que van de a una.
+                if (res.ok) {
+                    for (const foto of conf.fotosArmazon) {
+                        const img = await bytesDeImagen(foto.valor);
+                        if (!img) continue;
+                        await fetchWa('/api/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chatId: `${normalizeArgentinePhone(tel)}@c.us`,
+                                message: foto.titulo,
+                                senderName: 'Sistema Atelier',
+                                media: { base64: img.base64, mimetype: img.mimetype, filename: img.filename },
+                            }),
+                        }).catch(err => console.error('[Confirmación de compra] No se pudo enviar la foto del armazón:', err));
+                    }
+                }
             } catch (err) {
                 console.error('[Confirmación de compra] WhatsApp falló:', err);
             }

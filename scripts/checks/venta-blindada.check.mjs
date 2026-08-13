@@ -188,6 +188,23 @@ check('confirmación: cuando hay foto del armazón, se la MUESTRA', conFoto.emai
 check('confirmación: y le pide que la mire para confirmar',
     /Mir[aá] la foto que te adjuntamos/.test(conFoto.waText));
 
+// La foto tiene que VIAJAR, no solo mencionarse. Por WhatsApp iba únicamente el
+// PDF: el mensaje decía "mirá la foto que te adjuntamos" y no había ninguna.
+const parDeCristales = () => ([
+    { quantity: 1, eye: 'RIGHT', product: { name: 'Cristal Monofocal', category: 'Cristal', type: 'Cristal' } },
+    { quantity: 1, eye: 'LEFT', product: { name: 'Cristal Monofocal', category: 'Cristal', type: 'Cristal' } },
+]);
+const conUnaFoto = buildSaleConfirmation({ ...base, items: parDeCristales(), frameImageUrl: '/uploads/a1.jpg' });
+check('la foto del armazón queda lista para adjuntar', conUnaFoto.fotosArmazon.length === 1);
+check('con el valor guardado (para leer sus bytes) y la URL absoluta (para el mail)',
+    conUnaFoto.fotosArmazon[0].valor === '/uploads/a1.jpg' && conUnaFoto.fotosArmazon[0].url.startsWith('http'));
+const conDosFotos = buildSaleConfirmation({ ...base, items: [...parDeCristales(), ...parDeCristales()],
+    frameImageUrl: '/uploads/a1.jpg', frameImageUrl2: '/uploads/a2.jpg' });
+check('dos armazones → viajan las dos fotos, cada una identificada',
+    conDosFotos.fotosArmazon.length === 2 && conDosFotos.fotosArmazon[1].titulo.includes('2º'));
+check('sin foto no se promete ninguna',
+    buildSaleConfirmation({ ...base, items: parDeCristales() }).fotosArmazon.length === 0);
+
 // Prolijidad: el mensaje se lee de un vistazo o no se lee. Las secciones van
 // separadas por una línea en blanco, y el teñido aparece UNA sola vez.
 check('el mensaje separa las secciones con líneas en blanco',
