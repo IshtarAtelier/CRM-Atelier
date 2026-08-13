@@ -420,6 +420,12 @@ model Order {
   frameEdc2            String?
   labFrameDetails2     String?
   labFrameShape2       String?
+  // Foto del armazón que saca el VENDEDOR al cerrar la venta y que viaja en la
+  // confirmación de compra. No se le pide al cliente: él tiene que reconocer su
+  // armazón, no fotografiarlo. Si el 2x1 entra en una sola foto, va toda en
+  // `frameImageUrl` y la segunda queda vacía.
+  frameImageUrl        String?
+  frameImageUrl2       String?
   // ── Despacho al cliente ──
   // Una compra web se cobraba y después el cliente no recibía NADA hasta que
   // retiraba: hasta dos semanas de silencio. Estos campos existen para poder

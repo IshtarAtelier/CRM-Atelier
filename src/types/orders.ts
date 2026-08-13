@@ -180,6 +180,8 @@ export interface Order {
     smartLabDetails?: string | null;
     prescriptionId?: string | null;
     prescriptionSnapshot?: string | null;
+    frameImageUrl?: string | null;
+    frameImageUrl2?: string | null;
     prescription?: OrderPrescription | null;
     client: OrderClient;
     user?: { name: string };

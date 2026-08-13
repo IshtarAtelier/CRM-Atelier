@@ -22,6 +22,7 @@ import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import FrameRecapReadOnly from '@/components/orders/FrameRecapReadOnly';
+import FramePhotoUploader from '@/components/orders/FramePhotoUploader';
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
@@ -86,6 +87,9 @@ export default function QuoteSummary({
     const [frameDbl, setFrameDbl] = React.useState(order.frameDbl || '');
     const [frameEdc, setFrameEdc] = React.useState(order.frameEdc || '');
     const [labFrameDetails, setLabFrameDetails] = React.useState(order.labFrameDetails || '');
+    // Fotos del armazón que saca el vendedor (ver FramePhotoUploader).
+    const [frameImageUrl, setFrameImageUrl] = React.useState<string | null>(order.frameImageUrl || null);
+    const [frameImageUrl2, setFrameImageUrl2] = React.useState<string | null>(order.frameImageUrl2 || null);
     const [isSavingFrame, setIsSavingFrame] = React.useState(false);
 
 
@@ -120,7 +124,9 @@ export default function QuoteSummary({
                     frameB,
                     frameDbl,
                     frameEdc,
-                    labFrameDetails
+                    labFrameDetails,
+                    frameImageUrl,
+                    frameImageUrl2
                 })
             });
             if (res.ok) {
@@ -773,6 +779,30 @@ export default function QuoteSummary({
                                 />
                             </div>
                         </div>
+                        {/* La foto la saca el VENDEDOR, no el cliente: él tiene que
+                            reconocer su armazón en la confirmación, no fotografiarlo. */}
+                        <div className="mt-5 pt-4 border-t border-stone-200 dark:border-stone-700">
+                            <p className="text-[9px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-widest mb-3">
+                                Foto del armazón — va en la confirmación que recibe el cliente
+                            </p>
+                            <div className="flex flex-wrap gap-5">
+                                <FramePhotoUploader
+                                    label={labFrame.pairs.length > 1 ? 'Par 1 (o los dos juntos)' : 'Armazón'}
+                                    value={frameImageUrl}
+                                    onChange={setFrameImageUrl}
+                                    hint={labFrame.pairs.length > 1 ? 'Si los dos pares entran en una sola foto, alcanza con esta.' : undefined}
+                                />
+                                {labFrame.pairs.length > 1 && (
+                                    <FramePhotoUploader
+                                        label="Par 2 (opcional)"
+                                        value={frameImageUrl2}
+                                        onChange={setFrameImageUrl2}
+                                        hint="Solo si preferís una foto por par."
+                                    />
+                                )}
+                            </div>
+                        </div>
+
                         <div className="mt-4 flex justify-end">
                             <button
                                 onClick={handleSaveFrameMeasures}

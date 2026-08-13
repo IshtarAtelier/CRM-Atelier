@@ -77,6 +77,12 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     const items: any[] = order.items || [];
     const fotoReceta = urlAbsoluta(rx?.imageUrl);
 
+    // Fotos del armazón sacadas por el vendedor. Se le MUESTRAN al cliente: no
+    // se le piden. Él tiene que reconocer su armazón, no fotografiarlo.
+    const fotosArmazon = [order.frameImageUrl, order.frameImageUrl2]
+        .map(u => urlAbsoluta(u))
+        .filter(Boolean) as string[];
+
     // ── WhatsApp: texto plano, el mismo contenido ────────────────────────────
     const waText = [
         `*Confirmación de compra — Pedido #${nro}*`,
@@ -100,7 +106,9 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         ``,
         `*Necesitamos tu OK* 🙏`,
         `Revisá que esté todo bien: así es como se va a fabricar.`,
-        `• ¿El armazón es el estilo que elegiste? Si podés, mandanos una foto tuya con él puesto o del armazón — nos sirve para chequear.`,
+        fotosArmazon.length
+            ? `• Mirá la foto del armazón que te adjuntamos: ¿es el que elegiste?`
+            : `• ¿El armazón es el que elegiste?`,
         `• Si son de sol: confirmanos el *color* y el *grado* del teñido.`,
         `• Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos ahora y te lo explicamos.`,
         ``,
@@ -178,7 +186,10 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
               ${fila('Teñido', resumen.tint ? resumen.tint.text : 'NO lleva teñido')}
               ${tienePhotocromatico(order) ? fila('Fotocromático', 'Sí — los cristales se oscurecen solos con el sol y se aclaran en interiores.') : ''}
               ${resumen.notes ? fila('Notas de laboratorio', resumen.notes) : ''}
-            </table>`)}
+            </table>
+            ${fotosArmazon.length ? `
+              <p style="margin:16px 0 8px;font-size:13px;color:#666">Así es el armazón que te llevás:</p>
+              <div>${fotosArmazon.map(u => `<img src="${u}" alt="Foto de tu armazón" style="max-width:260px;width:100%;border-radius:12px;border:1px solid #e5e1da;margin:0 8px 8px 0" />`).join('')}</div>` : ''}`)}
 
         ${bloque('Tu receta, tal cual está cargada', recetaHtml)}
 
@@ -192,7 +203,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           <p style="margin:0 0 10px;font-size:16px;font-weight:800;color:#111">Necesitamos tu OK 🙏</p>
           <p style="margin:0 0 10px;font-size:14px;line-height:1.7;color:#333">Revisá que esté todo bien: <strong>así es como se va a fabricar</strong>.</p>
           <ul style="margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.8;color:#333">
-            <li>¿El armazón es el estilo que elegiste? Si podés, mandanos una foto tuya con él puesto (o del armazón) — nos sirve para chequear.</li>
+            <li>${fotosArmazon.length ? 'Mirá la foto del armazón acá arriba: ¿es el que elegiste?' : '¿El armazón es el que elegiste?'}</li>
             <li>Si son anteojos de sol, confirmanos el <strong>color</strong> y el <strong>grado</strong> del teñido.</li>
             <li>Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos con gusto.</li>
           </ul>
@@ -217,6 +228,7 @@ const SELECT_CONFIRMACION = {
     labFrameShape: true, labFrameDetails: true,
     frameA: true, frameB: true, frameDbl: true, frameEdc: true,
     labFrameShape2: true, labFrameDetails2: true,
+    frameImageUrl: true, frameImageUrl2: true,
     frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
     labColor: true, labTreatment: true, labNotes: true,
     client: { select: { id: true, name: true, email: true, phone: true } },

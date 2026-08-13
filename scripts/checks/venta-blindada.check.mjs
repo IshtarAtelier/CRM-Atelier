@@ -163,8 +163,19 @@ check('confirmación: dice explícitamente que NO lleva teñido', sinTenido.waTe
 check('confirmación: muestra el saldo pendiente', sinTenido.waText.includes('Saldo pendiente: $60.000'));
 check('confirmación: muestra lo abonado', sinTenido.waText.includes('Abonado: $40.000'));
 check('confirmación: pide el OK', /Respondenos \*OK\*/.test(sinTenido.waText));
-check('confirmación: pide corroborar el estilo del armazón y una foto',
-    /estilo que elegiste/.test(sinTenido.waText) && /foto/.test(sinTenido.waText));
+check('confirmación: pide corroborar el armazón', /es el que elegiste/.test(sinTenido.waText));
+// La foto la saca el VENDEDOR. Pedírsela al cliente estaba al revés: él tiene
+// que RECONOCER su armazón, no fotografiarlo.
+check('confirmación: NO le pide una foto al cliente',
+    !/mandanos una foto|mand[aá] una foto|envianos una foto/i.test(sinTenido.waText)
+    && !/mandanos una foto/i.test(sinTenido.emailHtml));
+
+const conFoto = buildSaleConfirmation({ ...base, frameImageUrl: '/uploads/armazon.jpg' });
+check('confirmación: cuando hay foto del armazón, se la MUESTRA', conFoto.emailHtml.includes('/uploads/armazon.jpg'));
+check('confirmación: y le pide que la mire para confirmar', /Mir[aá] la foto del armaz/.test(conFoto.waText));
+check('confirmación 2x1: entran las dos fotos si hay dos',
+    buildSaleConfirmation({ ...base, frameImageUrl: '/uploads/a.jpg', frameImageUrl2: '/uploads/b.jpg' })
+        .emailHtml.includes('/uploads/b.jpg'));
 check('confirmación: pide color y grado si son de sol', /color\* y el \*grado\*/.test(sinTenido.waText));
 check('confirmación: invita a preguntar los términos que no se entienden', /preguntanos ahora/.test(sinTenido.waText));
 check('confirmación: adjunta la foto de la receta', !!sinTenido.prescriptionImageUrl);

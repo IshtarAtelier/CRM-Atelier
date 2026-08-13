@@ -511,6 +511,12 @@ export class OrderService {
                     'shippingCarrier', 'trackingNumber', 'trackingUrl', 'markDispatched', // despacho
                     'clientNote', 'postSaleNoteEntry', 'postSaleNoteImageUrl', // notas nuevas
                     'isLocked', 'authorizedByAdmin', 'reopenReason',       // administración
+                    // La foto del armazón DOCUMENTA lo que se vendió, no lo define:
+                    // agregarla después no cambia una sola medida de lo que va a
+                    // fabricar la fábrica. Si quedara congelada, una venta enviada
+                    // sin foto no podría tenerla nunca — y el vendedor muchas veces
+                    // la saca al entregar el armazón, no al cargar el pedido.
+                    'frameImageUrl', 'frameImageUrl2',
                 ]);
                 // Campos del PEDIDO que quedan congelados con la venta.
                 const CONGELADOS: string[] = [
@@ -1932,6 +1938,7 @@ export class OrderService {
                             labFrameShape2: true,
                             labFrameDetails2: true,
                             frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
+                            frameImageUrl: true, frameImageUrl2: true,
                             frameSource: true,
                             userFrameBrand: true,
                             userFrameModel: true,

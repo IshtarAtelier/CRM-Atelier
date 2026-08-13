@@ -411,6 +411,8 @@ export async function GET(request: Request) {
             frameEdc2: true,
             labFrameShape2: true,
             labFrameDetails2: true,
+            frameImageUrl: true,
+            frameImageUrl2: true,
             prescriptionId: true,
             // La receta congelada al enviar a fábrica: es la que la venta muestra,
             // aunque después alguien corrija la receta viva en la ficha.
