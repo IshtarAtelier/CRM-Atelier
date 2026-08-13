@@ -398,6 +398,40 @@ check('los tres estilos de teñido siguen estando', ESTILOS_TENIDO.length === 3)
 check('las intensidades son las de SmartLab',
     JSON.stringify([...INTENSIDADES_TENIDO]) === JSON.stringify(['0.5', '1', '2', '3', '4']));
 
+// ── 5f. Cada cristal ofrece SUS colores ─────────────────────────────────────
+// Ofrecer un color que ese cristal no tiene es un pedido rebotado. La regla la
+// dio el negocio contra la Lista de Precios Optovision del 3/8/2026, y MANDA
+// sobre lo que diga el nombre del producto — los nombres del catálogo mienten.
+const { paletaDeFotocromatico } = await import('../../src/lib/constants/paletas-color.ts');
+const tonosDe = (name) => (paletaDeFotocromatico({ name })?.tonos || []).map(t => t.name);
+
+check('Gen S en ORMA → los 8 colores',
+    tonosDe('COMFORT - ORMA TRANSITIONS GEN S + CRIZAL 2x1').length === 8);
+check('Gen S en Airwear → solo Gris y Café',
+    JSON.stringify(tonosDe('COMFORT - AIRWEAR 1.59 TRANSITIONS GEN S + CRIZAL 2x1')) === JSON.stringify(['Gris', 'Café / Marrón']));
+check('Gen S en Stylis → solo Gris y Café',
+    tonosDe('EYEZEN BOOST - STYLIS 1.67 TRANSITIONS GEN S + CRIZAL 2x1').length === 2);
+check('Xtractive → solo gris',
+    JSON.stringify(tonosDe('COMFORT - ORMA TRANSITIONS XTRACTIVE + CRIZAL 2x1')) === JSON.stringify(['Gris']));
+check('Acclimates → Gris y Café',
+    tonosDe('ESPACE PLUS DIGITAL - ORMA ACCLIMATES + CRIZAL 2x1').length === 2);
+check('Xperio en ORMA → Gris, Café y Verde',
+    JSON.stringify(tonosDe('COMFORT - ORMA XPERIO + CRIZAL 2x1')) === JSON.stringify(['Gris', 'Café / Marrón', 'Verde / Esmeralda']));
+check('Xperio en Airwear → Gris y Café',
+    tonosDe('COMFORT - AIRWEAR 1.59 XPERIO + CRIZAL 2x1').length === 2);
+
+// La excepción del XR Design: su Gen S en ORMA son 3 colores, NO 8 — aunque el
+// nombre del producto diga "(fotocromáticos 8)". El nombre miente; la lista no.
+check('XR Design Gen S en ORMA → 3 colores, no 8 (el nombre dice 8)',
+    tonosDe('XR DESIGN - ORMA TRANSITIONS GEN S + CRIZAL Prevencia (fotocromáticos 8) 2x1').length === 3);
+check('XR Design Gen S en Airwear → 2 colores (el nombre también dice 8)',
+    tonosDe('XR DESIGN - AIRWEAR 1.59 TRANSITIONS GEN S + CRIZAL (fotocromáticos 8) 2x1').length === 2);
+
+check('un SKU que se llama "(Gris)" ofrece solo gris',
+    tonosDe('EYEZEN BOOST - ORMA TRANSITIONS GEN S (Gris) + CRIZAL 2x1').length === 1);
+check('un cristal sin color no abre paleta',
+    paletaDeFotocromatico({ name: 'ORMA 1.50 + CRIZAL' }) === null);
+
 // ── 6. El presupuesto que queda en la ficha ES la copia que recibió el cliente ─
 const { buildQuoteMessage } = await import('../../src/lib/quote-message.ts');
 const { splitDetalle, DETALLE_MARK, buildOrderDetailSummary } = await import('../../src/lib/order-detail-summary.ts');

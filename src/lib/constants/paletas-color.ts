@@ -1,16 +1,19 @@
 // ────────────────────────────────────────────────────────────────────────────
 // Qué colores puede elegir el cliente, según el CRISTAL.
 //
-// No hay una paleta única: un Transitions Gen S viene en 8 colores, un
-// Xtractive en gris, y el teñido a pedido tiene los tonos que ofrece SmartLab.
-// Ofrecerle al vendedor colores que ese cristal no tiene es garantía de un
-// pedido rebotado — y ocultarle los que sí existen es una venta que no se hace.
+// No hay una paleta única: un Transitions Gen S en ORMA viene en 8 colores, en
+// Airwear o Stylis en 2, un Xtractive solo en gris y un Xperio en 3. Ofrecerle
+// al vendedor colores que ese cristal no tiene es un pedido rebotado; esconder
+// los que sí tiene es una venta que no se hace.
 //
-// Cada paleta se declara ACÁ y viaja con el deploy. Agregar una es tres líneas;
-// no hace falta tocar la base ni cargar producto por producto, porque el propio
-// NOMBRE del producto dice qué lleva ("fotocromáticos 8", "(Gris)", "(Colores)").
+// QUIÉN MANDA: el MATERIAL (ORMA / Airwear / Stylis) y la tecnología, no lo que
+// diga el nombre del producto. Los nombres del catálogo mienten: los tres
+// "XR DESIGN … TRANSITIONS GEN S" dicen "(fotocromáticos 8)" y en Airwear y
+// Stylis son 2 — y el XR DESIGN en ORMA son 3, no 8. Confirmado con la Lista de
+// Precios Optovision del 3/8/2026.
 //
-// Fuente: Lista de Precios Optovision — 03 de agosto de 2026.
+// Agregar o corregir una paleta se hace ACÁ y viaja con el deploy: no hay que
+// tocar la base ni cargar producto por producto.
 // ────────────────────────────────────────────────────────────────────────────
 
 export interface Tono {
@@ -42,62 +45,84 @@ export interface Paleta {
     porConfirmar?: boolean;
 }
 
-/** Transitions Gen S completo: los 8 colores. */
+/** Transitions Gen S en ORMA: los 8 colores. */
 export const GEN_S_8: Paleta = {
     id: 'GEN_S_8',
-    label: 'Transitions Gen S — 8 colores',
+    label: 'Gen S — 8 colores',
     tonos: [T.GRIS, T.CAFE, T.VERDE, T.ZAFIRO, T.RUBI, T.AMBAR, T.AMATISTA, T.GRAFITO],
 };
 
-/** Gen S en los materiales que solo salen en dos colores (Airwear, Stylis). */
-export const GEN_S_2: Paleta = {
-    id: 'GEN_S_2',
-    label: 'Transitions Gen S — 2 colores',
+/** Gris y café: Airwear, Stylis y Acclimates. */
+export const GRIS_CAFE: Paleta = {
+    id: 'GRIS_CAFE',
+    label: '2 colores',
     tonos: [T.GRIS, T.CAFE],
-    porConfirmar: true,
 };
 
-/** Un solo color: los que el nombre declara como "(Gris)". */
+/** Xperio en ORMA y el Gen S del XR Design en ORMA. */
+export const GRIS_CAFE_VERDE: Paleta = {
+    id: 'GRIS_CAFE_VERDE',
+    label: '3 colores',
+    tonos: [T.GRIS, T.CAFE, T.VERDE],
+};
+
+/** Un solo color: Xtractive y los SKU que el nombre declara "(Gris)". */
 export const SOLO_GRIS: Paleta = {
     id: 'SOLO_GRIS',
-    label: 'Un solo color',
+    label: 'Solo gris',
     tonos: [T.GRIS],
 };
 
-export const PALETAS = { GEN_S_8, GEN_S_2, SOLO_GRIS };
+export const PALETAS = { GEN_S_8, GRIS_CAFE, GRIS_CAFE_VERDE, SOLO_GRIS };
 
 const normalizar = (s: string) =>
     (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /**
- * La paleta que corresponde a un cristal fotocromático.
+ * La paleta que corresponde a un cristal.
  *
- * Se lee del NOMBRE del producto, que ya declara lo que lleva. Devuelve null
- * cuando el cristal no es fotocromático o cuando su paleta todavía no está
- * cargada: en ese caso la pantalla lo dice, en vez de ofrecer colores
- * inventados que el laboratorio no va a poder hacer.
+ * Devuelve null cuando el cristal no lleva color a elegir. El orden de las
+ * reglas importa: primero las excepciones concretas, después el material.
  */
 export function paletaDeFotocromatico(product: any): Paleta | null {
     const n = normalizar(product?.name);
-    const esFotocromatico = n.includes('transitions') || n.includes('fotocromatic')
-        || n.includes('acclimates') || n.includes('xtractive');
-    if (!esFotocromatico) return null;
 
-    // Lo que el nombre declara MANDA, sea cual sea la tecnología.
+    const esGenS = n.includes('gen s');
+    const esXtractive = n.includes('xtractive');
+    const esAcclimates = n.includes('acclimates');
+    const esXperio = n.includes('xperio');
+    const esFotocromatico = n.includes('transitions') || n.includes('fotocromatic');
+
+    if (!esGenS && !esXtractive && !esAcclimates && !esXperio && !esFotocromatico) return null;
+
+    const esOrma = n.includes('orma');
+    const esAirwear = n.includes('airwear');
+    const esStylis = n.includes('stylis');
+
+    // 1. SKU que ya viene atado a un solo color: el nombre lo declara y es el
+    //    producto entero, no una interpretación de cuántos colores hay.
     if (n.includes('(gris)') || n.includes('fotocromatico gris') || n.includes('fotocromatica gris')) return SOLO_GRIS;
-    if (n.includes('fotocromaticos 2')) return GEN_S_2;
-    if (n.includes('8 colores') || n.includes('fotocromaticos 8') || n.includes('(colores)')) return GEN_S_8;
+    if (n.includes('cafe / gris') || n.includes('cafe/gris')) return GRIS_CAFE;
 
-    // Sin declaración en el nombre, manda el MATERIAL — es lo que muestra la
-    // lista de precios: las filas de ORMA traen los 8 colores, y las de Airwear
-    // y Stylis solo dos. El material está en el nombre del producto.
-    if (n.includes('xtractive')) return { ...SOLO_GRIS, label: 'Transitions XTRActive', porConfirmar: true };
-    if (n.includes('acclimates')) return { ...GEN_S_2, label: 'Acclimates', porConfirmar: true };
-    if (n.includes('gen s')) {
-        if (n.includes('airwear') || n.includes('stylis')) return GEN_S_2;
-        if (n.includes('orma')) return GEN_S_8;
+    // 2. Tecnologías con paleta propia, sin importar el material.
+    if (esXtractive) return SOLO_GRIS;
+    if (esAcclimates) return GRIS_CAFE;
+
+    // 3. Xperio (polarizado): en ORMA son 3; en el resto de los materiales, 2.
+    if (esXperio) return esOrma ? GRIS_CAFE_VERDE : GRIS_CAFE;
+
+    // 4. Transitions Gen S — manda el MATERIAL.
+    if (esGenS) {
+        // El XR Design en ORMA es la excepción: 3 colores, no 8, por más que el
+        // nombre del producto diga "(fotocromáticos 8)".
+        if (n.includes('xr design') || n.includes('x design')) {
+            return esOrma ? GRIS_CAFE_VERDE : GRIS_CAFE;
+        }
+        if (esAirwear || esStylis) return GRIS_CAFE;
+        if (esOrma) return GEN_S_8;
         return { ...GEN_S_8, porConfirmar: true };
     }
 
-    return null;
+    // 5. Fotocromático sin tecnología reconocible (los genéricos de otros labs).
+    return { ...SOLO_GRIS, label: 'Fotocromático', porConfirmar: true };
 }
