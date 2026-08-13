@@ -60,9 +60,10 @@ export function frameRecapText(order: LabFrameOrder, paraCliente = false): strin
             if (!paraCliente) lineas.push(`${par.label}: sin medidas cargadas`);
             continue;
         }
+        const tenidoDelPar = par.tint ? `teñido ${par.tint}` : (r.pairs.length > 1 ? 'SIN teñido' : null);
         const partes = paraCliente
-            ? [par.shape, par.details].filter(Boolean)
-            : [par.shape, par.measurements, par.fitting, par.details].filter(Boolean);
+            ? [par.shape, par.details, tenidoDelPar].filter(Boolean)
+            : [par.shape, par.measurements, par.fitting, par.details, tenidoDelPar].filter(Boolean);
         if (partes.length === 0) continue;
         // Al cliente le alcanza saber de quién es el armazón, no la marca y el
         // modelo repetidos: eso ya está en la descripción de la línea.
@@ -76,11 +77,15 @@ export function frameRecapText(order: LabFrameOrder, paraCliente = false): strin
     // decírselo: es parte de lo que tiene que reconocer.
     if (paraCliente && lineas.length === 0 && r.origin) lineas.push(`Armazón: ${r.origin}`);
 
-    // El teñido se dice SIEMPRE, también cuando no lleva: el silencio es lo que
-    // hace dudar a quien lee (y lo que genera el reclamo después).
-    lineas.push(`Teñido: ${r.tint ? r.tint.text : 'NO lleva teñido'}`);
+    // Con UN armazón, el teñido va en su propia línea y se dice siempre, también
+    // cuando no lleva: el silencio es lo que hace dudar a quien lee. Con varios,
+    // ya quedó pegado a cada armazón arriba — repetirlo suelto sería justo lo
+    // que genera la confusión de "¿cuál va teñido?".
+    if (r.pairs.length <= 1) {
+        lineas.push(`Teñido: ${r.tint ? r.tint.text : 'NO lleva teñido'}`);
+    }
     if (r.tint?.ambiguousPair) {
-        lineas.push('⚠️ Hay dos pares y una sola línea de teñido: confirmar a cuál corresponde.');
+        lineas.push('⚠️ Hay un teñido sin asignar a ningún armazón: confirmar a cuál corresponde antes de fabricar.');
     }
     if (tienePhotocromatico(order)) {
         lineas.push('Fotocromático: SÍ — los cristales se oscurecen solos con el sol.');

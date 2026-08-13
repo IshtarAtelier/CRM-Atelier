@@ -14,6 +14,7 @@ import { isTeñidoAddon } from './promo-utils';
 
 export interface LabFrameOrderItem {
     eye?: string | null;
+    framePosition?: number | null;
     crystalColor?: string | null;
     crystalColorType?: string | null;
     crystalColorNote?: string | null;
@@ -116,6 +117,8 @@ export interface LabFramePairSummary {
     details: string | null;
     /** Foto del armazón sacada por el vendedor. */
     imageUrl: string | null;
+    /** El teñido de ESTE armazón, si lo lleva. null = no lleva. */
+    tint: string | null;
     /** Ninguno de los campos de este par tiene datos cargados todavía. */
     isEmpty: boolean;
 }
@@ -170,6 +173,7 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
             fitting: fittingLabel(f.heightOD, f.heightOI),
             details: f.details,
             imageUrl: f.imageUrl,
+            tint: null,
             isEmpty: !f.shape && !medidas && !f.details,
         };
     });
@@ -185,17 +189,33 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
         name: it.productNameSnapshot, category: it.productCategorySnapshot, type: it.productTypeSnapshot,
     }));
 
+    const describirTenido = (it: any): string => {
+        const estilo = it.crystalColorType === 'DEGRADE' ? 'Degradé'
+            : it.crystalColorType === 'MUESTRA' ? 'Según muestra'
+            : it.crystalColorType === 'COMPACTO' ? 'Compacto' : null;
+        const partes = [estilo, it.crystalColor, it.crystalColorNote ? `grado ${it.crystalColorNote}` : null].filter(Boolean);
+        return partes.length > 0 ? partes.join(' · ') : 'sin color elegido';
+    };
+
+    // A QUÉ armazón va cada teñido. Con un solo armazón no hay nada que atar.
+    // Con varios, manda `framePosition` del item; si no está cargado (pedidos
+    // anteriores) queda sin asignar y se avisa, en vez de adivinar y mandar
+    // teñido el anteojo equivocado.
+    if (total > 1) {
+        for (const par of pairs) {
+            const suyos = itemsTenido.filter((it: any) => it.framePosition === par.pair);
+            par.tint = suyos.length > 0 ? [...new Set(suyos.map(describirTenido))].join(' · ') : null;
+        }
+    } else if (itemsTenido.length > 0 && pairs[0]) {
+        pairs[0].tint = [...new Set(itemsTenido.map(describirTenido))].join(' · ');
+    }
+
     if (itemsTenido.length > 0) {
-        const descripciones = itemsTenido.map((it: any) => {
-            const estilo = it.crystalColorType === 'DEGRADE' ? 'Degradé'
-                : it.crystalColorType === 'MUESTRA' ? 'Según muestra'
-                : it.crystalColorType === 'COMPACTO' ? 'Compacto' : null;
-            const partes = [estilo, it.crystalColor, it.crystalColorNote ? `grado ${it.crystalColorNote}` : null].filter(Boolean);
-            return partes.length > 0 ? partes.join(' · ') : 'sin color elegido';
-        });
+        const descripciones = itemsTenido.map(describirTenido);
+        const sinAsignar = total > 1 && itemsTenido.some((it: any) => !it.framePosition);
         tint = {
             text: [...new Set(descripciones)].join('  |  '),
-            ambiguousPair: total > 1 && itemsTenido.length < total,
+            ambiguousPair: sinAsignar,
         };
     } else if (order.labTreatment || order.labColor) {
         const partes = [order.labTreatment, order.labColor].filter(Boolean);

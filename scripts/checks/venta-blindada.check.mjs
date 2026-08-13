@@ -430,8 +430,18 @@ check('un teñido cargado sin color lo dice, no lo oculta',
     describeLabFrameDetails(orden2x1).tint?.text === 'sin color elegido');
 check('los items MANDAN sobre labColor/labTreatment',
     describeLabFrameDetails({ ...conColorEnItems, labColor: 'Verde', labTreatment: 'Teñido' }).tint?.text === 'Degradé · Gris · grado 4');
-check('con una línea de teñido por par NO avisa ambigüedad',
-    describeLabFrameDetails(orden2x1).tint?.ambiguousPair === false);
+// Con varios armazones, la ambigüedad ya no se mide por CANTIDAD de líneas: se
+// mide por si cada teñido dice a qué armazón va. Dos líneas sin asignar siguen
+// siendo ambiguas; una sola bien asignada, no.
+const asignados = { ...orden2x1, items: orden2x1.items.map((i, n) =>
+    isTeñidoAddon(i.product) ? { ...i, crystalColor: 'Gris', framePosition: n % 2 === 0 ? 1 : 2 } : i) };
+check('con cada teñido asignado a su armazón NO avisa ambigüedad',
+    describeLabFrameDetails(asignados).tint?.ambiguousPair === false);
+check('con un teñido SIN asignar sí avisa',
+    describeLabFrameDetails({ ...orden2x1, items: orden2x1.items.map(i =>
+        isTeñidoAddon(i.product) ? { ...i, crystalColor: 'Gris' } : i) }).tint?.ambiguousPair === true);
+check('el repaso pone el teñido DEBAJO del armazón que le toca',
+    describeLabFrameDetails(asignados).pairs[1].tint?.includes('Gris'));
 check('con UNA línea para dos pares, avisa que no se sabe a cuál corresponde',
     describeLabFrameDetails({ items: items2x1.slice(0, 4).concat([{ product: tenidoProd, price: 0 }]), appliedPromoName: 'Promo 2x1', labTreatment: 'Teñido', labColor: 'Gris' }).tint?.ambiguousPair === true);
 
@@ -491,6 +501,38 @@ check('un Xtractive abre el selector', abre('COMFORT - ORMA TRANSITIONS XTRACTIV
 check('un Acclimates abre el selector', abre('ESPACE PLUS DIGITAL - ORMA ACCLIMATES + CRIZAL 2x1'));
 check('el teñido a pedido abre el selector', needsColorSelection({ name: 'Teñido Compacto', category: 'Cristal' }));
 check('un cristal común NO abre el selector', !abre('COMFORT - ORMA + CRIZAL 2x1'));
+
+// ── 5g. Con varios armazones, el teñido dice a CUÁL va ──────────────────────
+if (armazonProd && cristalProd) {
+    const tenidoProdBD = await prisma.product.findFirst({ where: { name: { contains: 'Teñido', mode: 'insensitive' } }, select: { id: true } });
+    if (tenidoProdBD) {
+        const dosAnteojosConTenido = async (asignado) => {
+            await prisma.product.updateMany({ where: { id: { in: [armazonProd.id, cristalProd.id, tenidoProdBD.id] } }, data: { stock: 99 } });
+            return prisma.order.create({ data: {
+                clientId: cliente.id, userId: vendedor.id, orderType: 'QUOTE', status: 'PENDING',
+                total: 1000, subtotalWithMarkup: 1000, paid: 1000,
+                prescriptionId: receta.id, frameSource: 'OPTICA',
+                frames: { create: [{ position: 1, imageUrl: '/u/1.jpg' }, { position: 2, imageUrl: '/u/2.jpg' }] },
+                items: { create: [
+                    { productId: cristalProd.id, quantity: 1, price: 250, eye: 'RIGHT' },
+                    { productId: cristalProd.id, quantity: 1, price: 250, eye: 'LEFT' },
+                    { productId: cristalProd.id, quantity: 1, price: 250, eye: 'RIGHT' },
+                    { productId: cristalProd.id, quantity: 1, price: 250, eye: 'LEFT' },
+                    { productId: tenidoProdBD.id, quantity: 1, price: 0, crystalColor: 'Gris', framePosition: asignado ? 2 : null },
+                ] },
+            } });
+        };
+
+        const sinAsignar = await dosAnteojosConTenido(false);
+        const errSA = await rechaza(() => OrderService.updateOrder(sinAsignar.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
+        check('dos armazones + teñido sin asignar → no deja vender',
+            !!errSA && /sin asignar/i.test(errSA));
+
+        const asignado = await dosAnteojosConTenido(true);
+        const errA = await rechaza(() => OrderService.updateOrder(asignado.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
+        check('con el teñido asignado a su armazón, la venta pasa', errA === null);
+    }
+}
 
 // ── 6. El presupuesto que queda en la ficha ES la copia que recibió el cliente ─
 const { buildQuoteMessage } = await import('../../src/lib/quote-message.ts');

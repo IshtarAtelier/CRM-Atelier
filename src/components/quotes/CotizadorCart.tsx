@@ -274,6 +274,7 @@ export default function CotizadorCart({
                 onUpdateItemColor={(idx, color, colorType) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, crystalColor: color, crystalColorType: colorType } : item))}
                 onUpdateItemStyle={(idx, style) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, crystalColorType: style } : item))}
                 onUpdateItemNote={(idx, note) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, crystalColorNote: note } : item))}
+                onUpdateItemFrame={(idx, framePosition) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, framePosition } : item))}
                 markup={markup}
                 secondFrameUid={secondFrameUid}
                 promoFrameDiscount={promoFrameDiscount}

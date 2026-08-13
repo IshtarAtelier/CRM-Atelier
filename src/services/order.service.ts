@@ -16,7 +16,7 @@ import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { formatDateTime } from '@/lib/format-date';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 import { frameRecapText, prescriptionRecapText } from '@/lib/sale-recap-text';
-import { framesDeLaOrden } from '@/lib/order-frames';
+import { framesDeLaOrden, cantidadDeArmazones } from '@/lib/order-frames';
 import { sendSaleConfirmation } from '@/lib/sale-confirmation';
 import { logAudit } from '@/lib/audit';
 import { sendClientEmail, escHtml } from '@/lib/client-email';
@@ -42,6 +42,7 @@ const OrderItemSchema = z.object({
     crystalColor: z.string().nullable().optional(),
     crystalColorType: z.string().nullable().optional(),
     crystalColorNote: z.string().nullable().optional(),
+    framePosition: z.number().int().nullable().optional(),
     productBrandSnapshot: z.string().nullable().optional(),
     productNameSnapshot: z.string().nullable().optional(),
     productCategorySnapshot: z.string().nullable().optional(),
@@ -199,6 +200,7 @@ export class OrderService {
                         crystalColor: true,
                         crystalColorType: true,
                         crystalColorNote: true,
+                        framePosition: true,
                         productNameSnapshot: true,
                         productBrandSnapshot: true,
                         productCategorySnapshot: true,
@@ -926,6 +928,7 @@ export class OrderService {
                         crystalColor: item.crystalColor || null,
                         crystalColorType: item.crystalColorType || null,
                         crystalColorNote: item.crystalColorNote || null,
+                        framePosition: item.framePosition ?? null,
                     };
                 }),
             };
@@ -1700,6 +1703,7 @@ export class OrderService {
                                 eye: true,
                                 crystalColor: true,
                                 crystalColorType: true,
+                                framePosition: true,
                             }
                         },
                         payments: true,
@@ -1829,6 +1833,20 @@ export class OrderService {
                 );
                 if (teñidosSinColor.length > 0) {
                     throw new Error('No se puede convertir en venta: el teñido no tiene color elegido. Abrí el desplegable COLOR en la línea del teñido y elegí el tono.');
+                }
+
+                // Con más de un armazón, cada teñido tiene que decir a CUÁL va.
+                // Si no, la fábrica recibe un pedido de dos anteojos y un teñido
+                // suelto: alguien va a tener que llamar para preguntar, y el
+                // pedido queda parado mientras tanto.
+                const armazonesDelPedido = cantidadDeArmazones(existingOrder as any);
+                if (armazonesDelPedido > 1) {
+                    const teñidosSinArmazon = (existingOrder.items || []).filter((it: any) =>
+                        isTeñidoAddon(it.product) && !it.framePosition
+                    );
+                    if (teñidosSinArmazon.length > 0) {
+                        throw new Error(`No se puede convertir en venta: el pedido tiene ${armazonesDelPedido} armazones y hay un teñido sin asignar. Marcá en la línea del teñido a cuál de los armazones corresponde.`);
+                    }
                 }
 
                 // Check: la foto de CADA armazón es obligatoria.

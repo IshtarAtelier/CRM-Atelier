@@ -1,12 +1,14 @@
 'use client';
 
 import React from 'react';
-import { ShoppingBag, X, Minus, Plus, Palette, ChevronDown } from 'lucide-react';
+import { ShoppingBag, X, Minus, Plus, Palette, ChevronDown, Glasses } from 'lucide-react';
 import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice } from '@/lib/promo-utils';
 import { formatLensRange } from '@/lib/lens-range';
 import { needsColorSelection } from '@/lib/crystal-color-utils';
 import { INTENSIDADES_TENIDO, estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
 import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
+import { cantidadDeArmazones } from '@/lib/order-frames';
+import { isTeñidoAddon } from '@/lib/promo-utils';
 import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 
@@ -25,6 +27,8 @@ interface CartLineItemsProps {
     /** @deprecated El estilo lo define el producto; ya no se elige en el carrito. */
     onUpdateItemStyle?: (idx: number, style: string) => void;
     onUpdateItemNote?: (idx: number, note: string) => void;
+    /** A qué armazón pertenece la línea (1..N), en pedidos de varios anteojos. */
+    onUpdateItemFrame?: (idx: number, framePosition: number) => void;
     markup: number;
     secondFrameUid: number | null;
     promoFrameDiscount: number;
@@ -39,6 +43,7 @@ export default function CartLineItems({
     onUpdateItemColor,
     onUpdateItemStyle: _onUpdateItemStyle,
     onUpdateItemNote,
+    onUpdateItemFrame,
     markup,
     secondFrameUid,
     promoFrameDiscount,
@@ -66,6 +71,10 @@ export default function CartLineItems({
     }, [crystalColors.length]);
 
     const colores: CrystalColorOption[] = crystalColors.length > 0 ? crystalColors : coloresPropios;
+
+    // Cuántos armazones lleva el pedido: con más de uno hay que decir a cuál va
+    // cada teñido, o el laboratorio termina llamando para preguntar.
+    const totalArmazones = cantidadDeArmazones({ items });
 
     if (items.length === 0) {
         return (
@@ -210,6 +219,37 @@ export default function CartLineItems({
                                 <p className="text-[10px] font-black text-violet-700 dark:text-violet-300 uppercase tracking-widest mb-3">
                                     Teñido — elegí el color y el grado
                                 </p>
+                                {/* A qué armazón va este teñido. Solo aparece cuando el pedido
+                                    lleva más de uno: con uno solo no hay nada que preguntar. */}
+                                {totalArmazones > 1 && isTeñidoAddon(item.product) && (
+                                    <div className="mb-3 flex items-center gap-2 flex-wrap">
+                                        <Glasses className="w-3 h-3 text-violet-400 shrink-0" />
+                                        <span className="text-[9px] font-bold text-violet-500 dark:text-violet-400 uppercase tracking-wider shrink-0">
+                                            ¿Para cuál armazón? *
+                                        </span>
+                                        {Array.from({ length: totalArmazones }, (_, i) => i + 1).map(pos => {
+                                            const elegido = item.framePosition === pos;
+                                            return (
+                                                <button
+                                                    key={pos}
+                                                    type="button"
+                                                    onClick={() => onUpdateItemFrame?.(idx, pos)}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all ${
+                                                        elegido
+                                                            ? 'bg-violet-600 text-white border-violet-700'
+                                                            : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-violet-300'
+                                                    }`}
+                                                >
+                                                    {pos}º armazón
+                                                </button>
+                                            );
+                                        })}
+                                        {!item.framePosition && (
+                                            <span className="text-[10px] font-bold text-amber-600">← elegí uno</span>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* Grado: desplegable con los valores de SmartLab, igual que el
                                     del laboratorio. Se elige de la lista y listo — el campo
                                     escribible obligaba a tipear un número que ya está. */}

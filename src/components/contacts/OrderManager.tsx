@@ -114,6 +114,7 @@ export default function OrderManager({
                         crystalColor: i.crystalColor || null,
                         crystalColorType: i.crystalColorType || null,
                         crystalColorNote: i.crystalColorNote || null,
+                        framePosition: i.framePosition ?? null,
                     })),
                     markup: quoteMarkup,
                     discountCash: quoteDiscountCash,
@@ -157,7 +158,14 @@ export default function OrderManager({
             uid: Date.now() + idx,
             productBrandSnapshot: it.productBrandSnapshot,
             productNameSnapshot: it.productNameSnapshot,
-            productCategorySnapshot: it.productCategorySnapshot
+            productCategorySnapshot: it.productCategorySnapshot,
+            // Sin esto, ABRIR un presupuesto para editarlo borraba el teñido:
+            // se cargaban los items sin color ni grado y el siguiente guardado
+            // los pisaba con null. El dato se perdía por mirarlo.
+            crystalColor: it.crystalColor,
+            crystalColorType: it.crystalColorType,
+            crystalColorNote: it.crystalColorNote,
+            framePosition: it.framePosition,
         })));
         setQuoteMarkup(order.markup || 0);
         setQuoteDiscountCash(order.discountCash ?? 20);

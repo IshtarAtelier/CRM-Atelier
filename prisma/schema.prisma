@@ -560,6 +560,12 @@ model OrderItem {
   crystalColor             String?
   crystalColorType         String?
   crystalColorNote         String?
+  // A QUÉ armazón pertenece esta línea (1..N), cuando el pedido lleva más de
+  // uno. Sin esto, un pedido de dos anteojos con un solo teñido no decía cuál
+  // de los dos va teñido: el laboratorio tenía que llamar para preguntar.
+  // Null = el pedido tiene un solo armazón, o es una línea que no depende del
+  // armazón (un accesorio, un servicio).
+  framePosition            Int?
   laboratorySnapshot       String?
   productCostSnapshot      Float?
   productTypeSnapshot      String?
