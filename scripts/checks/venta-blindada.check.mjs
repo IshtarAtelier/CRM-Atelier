@@ -324,6 +324,50 @@ check('con 4 armazones el 2º NO dice "bonificado"',
 check('con un 2x1 real el 2º SÍ dice "bonificado"',
     describeLabFrameDetails({ items: parDe(2), appliedPromoName: 'Promo 2x1' }).pairs[1].label.includes('bonificado'));
 
+// ── 5d. El teñido SIN CARGO del 2x1 ─────────────────────────────────────────
+// Regla del negocio: con un multifocal 2x1 el teñido va gratis, pero SOLO si no
+// hay otro tratamiento en el pedido. Es plata: si se regala de más, se pierde en
+// cada venta; si se cobra de más, el cliente reclama con razón.
+const { applyTeñidoPromoDiscount } = await import('../../src/lib/promo-utils.ts');
+
+const multi2x1 = { name: 'Multifocal SMART FREE 2x1', category: 'Cristal', type: 'Cristal', is2x1: true, price: 72500 };
+const tenidoProd = { name: 'Teñido', category: 'Tratamiento', price: 15000 };
+const antirreflejo = { name: 'Antirreflejo', category: 'Tratamiento', price: 20000 };
+
+const items2x1 = [
+    { product: multi2x1, eye: 'RIGHT', price: 72500 }, { product: multi2x1, eye: 'LEFT', price: 72500 },
+    { product: multi2x1, eye: 'RIGHT', price: 0 }, { product: multi2x1, eye: 'LEFT', price: 0 },
+    { product: tenidoProd, price: 15000 }, { product: tenidoProd, price: 15000 },
+];
+applyTeñidoPromoDiscount(items2x1);
+check('2x1: las dos líneas de teñido quedan en $0',
+    items2x1.filter(i => i.product.category === 'Tratamiento').every(t => t.price === 0));
+
+const conOtroTrat = [
+    { product: multi2x1, eye: 'RIGHT', price: 72500 }, { product: multi2x1, eye: 'LEFT', price: 72500 },
+    { product: tenidoProd, price: 15000 }, { product: antirreflejo, price: 20000 },
+];
+applyTeñidoPromoDiscount(conOtroTrat);
+check('2x1 con OTRO tratamiento: el teñido se cobra',
+    conOtroTrat.find(i => i.product.name === 'Teñido').price === 15000);
+
+const monofocal = { name: 'Monofocal 1.60', category: 'Cristal', type: 'Cristal', price: 50000 };
+const sinPromo2x1 = [
+    { product: monofocal, eye: 'RIGHT', price: 50000 }, { product: monofocal, eye: 'LEFT', price: 50000 },
+    { product: tenidoProd, price: 15000 },
+];
+applyTeñidoPromoDiscount(sinPromo2x1);
+check('sin 2x1: el teñido se cobra', sinPromo2x1.find(i => i.product.name === 'Teñido').price === 15000);
+
+const orden2x1 = { items: items2x1, appliedPromoName: 'Promo 2x1', labTreatment: 'Teñido', labColor: 'Degradé Gris' };
+check('el 2x1 con teñido sigue pidiendo 2 armazones', cantidadDeArmazones(orden2x1) === 2);
+check('el repaso informa el teñido del 2x1',
+    describeLabFrameDetails(orden2x1).tint?.text === 'Teñido - Degradé Gris');
+check('con una línea de teñido por par NO avisa ambigüedad',
+    describeLabFrameDetails(orden2x1).tint?.ambiguousPair === false);
+check('con UNA línea para dos pares, avisa que no se sabe a cuál corresponde',
+    describeLabFrameDetails({ items: items2x1.slice(0, 4).concat([{ product: tenidoProd, price: 0 }]), appliedPromoName: 'Promo 2x1', labTreatment: 'Teñido', labColor: 'Gris' }).tint?.ambiguousPair === true);
+
 // ── 6. El presupuesto que queda en la ficha ES la copia que recibió el cliente ─
 const { buildQuoteMessage } = await import('../../src/lib/quote-message.ts');
 const { splitDetalle, DETALLE_MARK, buildOrderDetailSummary } = await import('../../src/lib/order-detail-summary.ts');
