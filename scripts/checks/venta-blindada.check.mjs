@@ -328,10 +328,13 @@ check('con un 2x1 real el 2º SÍ dice "bonificado"',
 // Regla del negocio: con un multifocal 2x1 el teñido va gratis, pero SOLO si no
 // hay otro tratamiento en el pedido. Es plata: si se regala de más, se pierde en
 // cada venta; si se cobra de más, el cliente reclama con razón.
-const { applyTeñidoPromoDiscount } = await import('../../src/lib/promo-utils.ts');
+const { applyTeñidoPromoDiscount, isTeñidoAddon } = await import('../../src/lib/promo-utils.ts');
 
 const multi2x1 = { name: 'Multifocal SMART FREE 2x1', category: 'Cristal', type: 'Cristal', is2x1: true, price: 72500 };
-const tenidoProd = { name: 'Teñido', category: 'Tratamiento', price: 15000 };
+// El producto REAL del catálogo: se llama "Teñido Compacto" y es categoría
+// Cristal. La detección vieja pedía nombre exacto "Teñido" + categoría
+// Tratamiento, así que NINGUNA variante entraba y el teñido del 2x1 se cobraba.
+const tenidoProd = { name: 'Teñido Compacto', brand: 'Color', category: 'Cristal', price: 15000 };
 const antirreflejo = { name: 'Antirreflejo', category: 'Tratamiento', price: 20000 };
 
 const items2x1 = [
@@ -349,7 +352,7 @@ const conOtroTrat = [
 ];
 applyTeñidoPromoDiscount(conOtroTrat);
 check('2x1 con OTRO tratamiento: el teñido se cobra',
-    conOtroTrat.find(i => i.product.name === 'Teñido').price === 15000);
+    conOtroTrat.find(i => isTeñidoAddon(i.product)).price === 15000);
 
 const monofocal = { name: 'Monofocal 1.60', category: 'Cristal', type: 'Cristal', price: 50000 };
 const sinPromo2x1 = [
@@ -357,10 +360,25 @@ const sinPromo2x1 = [
     { product: tenidoProd, price: 15000 },
 ];
 applyTeñidoPromoDiscount(sinPromo2x1);
-check('sin 2x1: el teñido se cobra', sinPromo2x1.find(i => i.product.name === 'Teñido').price === 15000);
+check('sin 2x1: el teñido se cobra', sinPromo2x1.find(i => isTeñidoAddon(i.product)).price === 15000);
+
+// Qué es y qué NO es un add-on de teñido
+check('"Teñido Degradé" también se reconoce',
+    isTeñidoAddon({ name: 'Teñido Degradé', category: 'Cristal' }));
+check('el "Teñido" viejo (categoría Tratamiento) sigue reconociéndose',
+    isTeñidoAddon({ name: 'Teñido', category: 'Tratamiento' }));
+check('un cristal fotocromático NO es add-on de teñido (se cobra)',
+    !isTeñidoAddon({ name: 'ESSILOR Orma Transitions GEN S (fotocromático 8 colores) 2x1', category: 'Cristal' }));
 
 const orden2x1 = { items: items2x1, appliedPromoName: 'Promo 2x1', labTreatment: 'Teñido', labColor: 'Degradé Gris' };
 check('el 2x1 con teñido sigue pidiendo 2 armazones', cantidadDeArmazones(orden2x1) === 2);
+// El teñido se factura como categoría Cristal: si se contara como un cristal
+// más, agregaría un anteojo fantasma con medidas y foto que nadie puede cargar.
+check('el teñido NO cuenta como par de cristales',
+    cantidadDeArmazones({ items: [
+        { product: multi2x1, eye: 'RIGHT' }, { product: multi2x1, eye: 'LEFT' },
+        { product: tenidoProd, eye: 'RIGHT' }, { product: tenidoProd, eye: 'LEFT' },
+    ] }) === 1);
 check('el repaso informa el teñido del 2x1',
     describeLabFrameDetails(orden2x1).tint?.text === 'Teñido - Degradé Gris');
 check('con una línea de teñido por par NO avisa ambigüedad',

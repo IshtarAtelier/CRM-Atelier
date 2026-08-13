@@ -13,7 +13,7 @@
 // cliente y la validación del servidor, todos sobre el mismo criterio.
 // ────────────────────────────────────────────────────────────────────────────
 
-import { isCrystal } from './promo-utils';
+import { isCrystal, isTeñidoAddon } from './promo-utils';
 
 export interface FrameItemLike {
     eye?: string | null;
@@ -62,7 +62,13 @@ export function contarParesDeCristales(items: FrameItemLike[] | null | undefined
 /** Igual que `contarParesDeCristales`, pero además dice si el conteo es CONFIABLE
  *  (los cristales traen el ojo cargado) o si hubo que estimarlo. */
 function contarPares(items: FrameItemLike[] | null | undefined): { pares: number; confiable: boolean } {
-    const cristales = (items || []).filter(it => isCrystal(productoDe(it)));
+    // El teñido se factura como categoría Cristal, pero es un TRATAMIENTO sobre
+    // el cristal, no un cristal más: contarlo agregaba un anteojo fantasma y el
+    // sistema pedía las medidas y la foto de un armazón que no existe.
+    const cristales = (items || []).filter(it => {
+        const prod = productoDe(it);
+        return isCrystal(prod) && !isTeñidoAddon(prod);
+    });
     if (cristales.length === 0) return { pares: 0, confiable: false };
 
     const cuenta = (lado: string[]) => cristales

@@ -14,7 +14,7 @@ import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import FramePhotoUploader from '@/components/orders/FramePhotoUploader';
 import { PricingService } from '@/services/PricingService';
-import { isMultifocal2x1 } from '@/lib/promo-utils';
+import { isMultifocal2x1, isTeñidoAddon } from '@/lib/promo-utils';
 import { lensOriginFromItem, LENS_ORIGIN } from '@/lib/lens-origin';
 import { minimumDeposit, depositClearsFactoryGate } from '@/lib/factory-gate';
 
@@ -263,6 +263,12 @@ export default function CheckoutModal({
         // armazón en la confirmación, y lo único que prueba después qué se le
         // vendió si aparece un "yo elegí otro".
         if (!frameImageUrl) faltantes.push(is2x1 ? 'Foto del 1º armazón' : 'Foto del armazón');
+    }
+    // El teñido sin color es una orden que la fábrica no puede ejecutar. El grado
+    // se escribe aparte y puede ir vacío; el color no.
+    {
+        const sinColor = (order.items || []).filter((it: any) => isTeñidoAddon(it.product) && !(it.crystalColor || '').trim());
+        if (sinColor.length > 0) faltantes.push('Color del teñido (elegilo en el desplegable COLOR de esa línea)');
         if (is2x1) {
             if (!frameDetails2.trim()) faltantes.push('Detalle del 2º armazón (promo 2x1)');
             if (!frameMeasurePte2.trim()) faltantes.push('Medida puente (DBL) del 2º armazón');

@@ -4,7 +4,7 @@ import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
-import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
+import { recalculateCrystalPrices, applyTeñidoPromoDiscount, isTeñidoAddon } from '@/lib/promo-utils';
 import { TOPE_VENDEDOR } from '@/lib/constants/descuentos';
 import { z } from 'zod';
 import { fetchWa, getAdminChatId } from '@/lib/wa-config';
@@ -1697,7 +1697,9 @@ export class OrderService {
                             select: {
                                 product: { select: { type: true, category: true, brand: true, model: true, name: true, stock: true } },
                                 quantity: true,
-                                eye: true
+                                eye: true,
+                                crystalColor: true,
+                                crystalColorType: true,
                             }
                         },
                         payments: true,
@@ -1814,6 +1816,19 @@ export class OrderService {
                     if (!effBrand && !effModel) {
                         throw new Error('Debe completar al menos la marca o modelo del armazón del usuario');
                     }
+                }
+
+                // Check: si el pedido lleva TEÑIDO, el color tiene que estar elegido.
+                //
+                // El teñido sin color es una orden que la fábrica no puede ejecutar:
+                // alguien va a tener que llamar para preguntar de qué color, y
+                // mientras tanto el pedido queda parado. El grado/intensidad se
+                // escribe aparte y puede ir vacío; el COLOR no.
+                const teñidosSinColor = (existingOrder.items || []).filter((it: any) =>
+                    isTeñidoAddon(it.product) && !(it.crystalColor || '').trim()
+                );
+                if (teñidosSinColor.length > 0) {
+                    throw new Error('No se puede convertir en venta: el teñido no tiene color elegido. Abrí el desplegable COLOR en la línea del teñido y elegí el tono.');
                 }
 
                 // Check: la foto de CADA armazón es obligatoria.

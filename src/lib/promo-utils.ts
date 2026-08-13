@@ -73,9 +73,19 @@ export const isMiPrimerVarilux = (p: any): boolean => {
  */
 export const isTeñidoAddon = (p: any): boolean => {
     if (!p) return false;
-    if (p.category !== 'Tratamiento') return false;
-    const name = (p.name || '').toLowerCase();
-    return name === 'teñido' || name === 'tenido';
+    // El add-on de teñido se reconoce por lo que ES, no por un nombre exacto.
+    //
+    // La versión anterior exigía categoría 'Tratamiento' y nombre exactamente
+    // "Teñido". En el catálogo real los productos se llaman "Teñido Compacto",
+    // "Teñido Degradé", "Teñido según muestra" y viven en categoría Cristal, así
+    // que NINGUNO entraba: el teñido de un 2x1 de multifocales se cobraba $15.000
+    // por ojo cuando tenía que ir bonificado.
+    //
+    // Se pide que el nombre EMPIECE con teñido: alcanza para las variantes y
+    // deja afuera a los cristales que solo lo mencionan (un multifocal
+    // fotocromático no es un add-on de teñido y se cobra).
+    const nombre = normalizeText(p.name || '');
+    return nombre === 'tenido' || nombre.startsWith('tenido ');
 };
 
 /**
@@ -364,9 +374,14 @@ export function applyTeñidoPromoDiscount(items: any[], tintStylePrices?: Record
     const hasMultifocalPromo = items.some(
         it => isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product)
     );
-    // "Solo ese tratamiento": ningún otro ítem de categoría Tratamiento en la orden
-    const treatmentItems = items.filter(i => isTreatment(i.product));
-    const isEligible = hasMultifocalPromo && treatmentItems.length === teñidoItems.length;
+    // "Solo ese tratamiento": ningún OTRO tratamiento además del teñido.
+    //
+    // Antes se comparaban cantidades (`treatmentItems.length === teñidoItems.length`),
+    // lo que daba falso apenas el teñido dejaba de ser categoría Tratamiento —
+    // 0 tratamientos contra 2 teñidos no es igual, y la promo no se aplicaba.
+    // Lo que importa es si hay otro tratamiento, no cuántos.
+    const otrosTratamientos = items.filter(i => isTreatment(i.product) && !isTeñidoAddon(i.product));
+    const isEligible = hasMultifocalPromo && otrosTratamientos.length === 0;
 
     let modified = false;
     for (const item of teñidoItems) {
