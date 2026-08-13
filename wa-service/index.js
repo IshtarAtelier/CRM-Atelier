@@ -2074,10 +2074,56 @@ server.listen(PORT, '0.0.0.0', async () => {
             await generarTareasPosventa();
             await checkAndSendSalesFollowUps(cronDeps);
             await checkAndSendSmartTasks(cronDeps);
+
+            // ── Resumen del ciclo (observabilidad, Fase 1 del motor) ──────────
+            // Una línea con el estado real, derivada de datos y no de contadores
+            // en RAM: responde "¿está funcionando?" sin arqueología de logs. Se
+            // guarda también en SystemSetting para que el panel la muestre.
+            try {
+                const { resumen } = require('./followups/outbox');
+                // Mismo cálculo del día argentino que usa el task-generator para
+                // el cupo — los dos números tienen que hablar del mismo "hoy".
+                const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
+                const artNow = new Date(Date.now() - ART_OFFSET_MS);
+                const inicioDiaAR = new Date(Date.UTC(artNow.getUTCFullYear(), artNow.getUTCMonth(), artNow.getUTCDate()) + ART_OFFSET_MS);
+                const [generadasHoy, r] = await Promise.all([
+                    prisma.clientTask.count({ where: { type: 'FOLLOWUP', createdBy: 'Bot', createdAt: { gte: inicioDiaAR } } }),
+                    resumen(35),
+                ]);
+                const e = r.porEstado;
+                const linea = `[Seguimientos] ciclo: tareas hoy ${generadasHoy}/${process.env.FOLLOWUP_MAX_NEW_PER_DAY || 25}` +
+                    ` · outbox 35min: encolados ${e.QUEUED || 0} · enviados ${e.SENT || 0}` +
+                    ` · salteados ${e.SKIPPED || 0} · fallados ${e.FAILED || 0}` +
+                    ` · esperando en cola ${r.pendientes}`;
+                console.log(linea);
+                await prisma.systemSetting.upsert({
+                    where: { key: 'followups_last_cycle' },
+                    update: { value: JSON.stringify({ at: new Date().toISOString(), generadasHoy, ...e, pendientes: r.pendientes }) },
+                    create: { key: 'followups_last_cycle', value: JSON.stringify({ at: new Date().toISOString(), generadasHoy, ...e, pendientes: r.pendientes }) },
+                });
+            } catch (obsErr) {
+                console.error('⚠️ Resumen de ciclo falló (no afecta los envíos):', obsErr.message);
+            }
         } catch (e) {
             console.error("❌ Error en follow-ups de ventas/tareas:", e.message);
         }
     }, 30 * 60 * 1000);
+
+    // ── Recuperación de la outbox (Fase 1 del motor) ─────────────────────────
+    // Lo aprobado que quedó QUEUED en un proceso anterior se reenvía por el
+    // camino normal; lo que estaba SENDING se marca incierto y NO se reenvía.
+    // A los 90s del boot: le da tiempo a la sesión de WhatsApp a conectarse
+    // (si aún no está lista, la cola anti-ban retiene igual que siempre).
+    setTimeout(() => {
+        try {
+            const { recuperarPendientes } = require('./followups/outbox');
+            const { sendFollowUp } = require('./followups/sender');
+            recuperarPendientes(sendFollowUp)
+                .catch(e => console.error('❌ Error recuperando outbox:', e.message));
+        } catch (e) {
+            console.error('❌ Error cargando la recuperación de outbox:', e.message);
+        }
+    }, 90 * 1000);
     
     try {
         await initWhatsApp({ 

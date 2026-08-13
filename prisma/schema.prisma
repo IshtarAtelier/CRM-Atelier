@@ -9,56 +9,56 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String
-  email         String         @unique
-  password      String
-  role          String         @default("STAFF")
+  id                String            @id @default(cuid())
+  name              String
+  email             String            @unique
+  password          String
+  role              String            @default("STAFF")
   // Encargado de caja: ve el saldo total de la caja en efectivo aunque no sea
   // ADMIN (los STAFF comunes ven cada movimiento pero no el acumulado).
-  cashManager   Boolean        @default(false)
+  cashManager       Boolean           @default(false)
   // Casilla propia para avisos dirigidos (notas, pedidos, saldos). Si es null
   // se usa la casilla compartida del local (ver src/lib/vendor-email.ts).
   notificationEmail String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  cashMovements CashMovement[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  cashMovements     CashMovement[]
   vendorCashEntries VendorCashEntry[] @relation("VendorCashEntries")
-  orders        Order[]
+  orders            Order[]
 }
 
 model Client {
-  id            String         @id @default(cuid())
-  name          String
-  email         String?        @unique
-  phone         String?
-  dni           String?
-  birthDate     DateTime?
-  status        String         @default("CONTACT")
-  contactSource String?
-  interest      String?
-  expectedValue Float?         @default(0.0)
-  priority      Int            @default(0)
-  isFavorite    Boolean        @default(false)
-  address       String?
-  insurance     String?
-  doctor        String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  wantsInvoice  Boolean?
-  metaLid       String?
-  adTag         String?
-  createdBy     String?        @default("Sistema")
-  isDeleted     Boolean        @default(false)
+  id                     String            @id @default(cuid())
+  name                   String
+  email                  String?           @unique
+  phone                  String?
+  dni                    String?
+  birthDate              DateTime?
+  status                 String            @default("CONTACT")
+  contactSource          String?
+  interest               String?
+  expectedValue          Float?            @default(0.0)
+  priority               Int               @default(0)
+  isFavorite             Boolean           @default(false)
+  address                String?
+  insurance              String?
+  doctor                 String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  wantsInvoice           Boolean?
+  metaLid                String?
+  adTag                  String?
+  createdBy              String?           @default("Sistema")
+  isDeleted              Boolean           @default(false)
   opportunityDismissedAt DateTime?
-  tasks         ClientTask[]
-  interactions  Interaction[]
-  orders        Order[]
-  prescriptions Prescription[]
-  whatsappChats WhatsAppChat[]
-  postSaleCases PostSaleCase[]
-  checkoutSessions CheckoutSession[]
-  tags          Tag[]          @relation("ClientToTag")
+  tasks                  ClientTask[]
+  interactions           Interaction[]
+  orders                 Order[]
+  prescriptions          Prescription[]
+  whatsappChats          WhatsAppChat[]
+  postSaleCases          PostSaleCase[]
+  checkoutSessions       CheckoutSession[]
+  tags                   Tag[]             @relation("ClientToTag")
 
   @@index([status])
   @@index([doctor])
@@ -92,8 +92,8 @@ model CashMovement {
 model VendorCashEntry {
   id            String   @id @default(cuid())
   vendorId      String
-  type          String   // 'CREDITO' (a favor) | 'DEBITO' (descuento)
-  amount        Float    // siempre positivo; el signo lo da `type`
+  type          String // 'CREDITO' (a favor) | 'DEBITO' (descuento)
+  amount        Float // siempre positivo; el signo lo da `type`
   reason        String
   category      String   @default("OTRO") // PAGO|COMISION|ADELANTO|POST_VENTA|OTRO
   receiptUrl    String?
@@ -155,22 +155,22 @@ model CashCount {
 }
 
 model Interaction {
-  id        String   @id @default(cuid())
-  clientId  String
-  type      String   @default("NOTE")
-  content   String
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  clientId       String
+  type           String   @default("NOTE")
+  content        String
+  createdAt      DateTime @default(now())
   // Actor: quién ejecutó la acción (denormalizado para que el historial
   // sobreviva al borrado/renombrado de usuarios). null = registros previos.
-  userId    String?
-  userName  String?
+  userId         String?
+  userName       String?
   // Nota dirigida: a quién va destinada (se le avisa por email con link a la
   // ficha). Denormalizado igual que el actor.
   directedToId   String?
   directedToName String?
   // Imagen adjunta a la nota (comprobante, foto del lente, etc.)
   imageUrl       String?
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
 }
@@ -184,6 +184,42 @@ model Tag {
   autoAssignCondition String?
   clients             Client[] @relation("ClientToTag")
   orders              Order[]  @relation("OrderToTag")
+}
+
+// ── Outbox de envíos proactivos de WhatsApp (Fase 1 del motor de seguimientos) ──
+// Un mensaje aprobado podía esperar hasta 13 horas en la cola EN RAM del
+// anti-ban (retención nocturna) y cada deploy reiniciaba el bot y lo evaporaba
+// sin rastro — la causa real de "a veces no sale nada". Acá el mensaje queda
+// persistido desde que se aprueba hasta que se manda:
+//   QUEUED → SENDING → SENT | SKIPPED | FAILED | CANCELLED
+// Al arrancar, el bot re-encola los QUEUED; los SENDING huérfanos de un proceso
+// muerto se marcan SKIPPED (inciertos: quizá salieron — nunca reenviar a ciegas;
+// la ClientTask asociada se re-toma sola por el mecanismo de stale-claim).
+model EnvioProgramado {
+  id           String    @id @default(cuid())
+  waId         String // destino (@c.us / @lid)
+  chatId       String?
+  clientId     String?
+  taskId       String? // ClientTask origen, si la hay
+  origen       String // SALES_TIER | INACTIVIDAD | SMART_TASK | POSVENTA | BROADCAST | MANUAL
+  contenido    String
+  mediaUrl     String?
+  // Etiqueta de seguimiento a aplicar al chat si el envío sale (SEGUIMIENTO_DIA_*)
+  label        String?
+  // Nombre del cliente al momento de encolar (solo para logs y recuperación)
+  clientName   String?
+  // Reclamo optimista de la tarea origen (espejo del claim en RAM): permite
+  // reconstruir el preflight tras un reinicio sin riesgo de doble envío.
+  claimStamp   DateTime?
+  scheduledFor DateTime  @default(now())
+  estado       String    @default("QUEUED")
+  intentos     Int       @default(0)
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([estado, scheduledFor])
+  @@index([taskId])
 }
 
 model ClientTask {
@@ -202,6 +238,11 @@ model ClientTask {
   client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
+  // Las queries calientes de los ejecutores de seguimiento barren por
+  // type+status+dueDate (sales-followups) y createdBy+status (smart-task
+  // executor / cupo diario del generador) — hasta ahora sin índice.
+  @@index([type, status, dueDate])
+  @@index([createdBy, status, createdAt])
 }
 
 model Prescription {
@@ -255,7 +296,7 @@ model Product {
   laboratory            String?
   price                 Float        @default(0.0)
   cost                  Float        @default(0.0)
-  baseCost              Float?       // Costo "pelado": lo que factura el lab de lista, ANTES de sumar calibrado e IVA. `cost` es siempre el final.
+  baseCost              Float? // Costo "pelado": lo que factura el lab de lista, ANTES de sumar calibrado e IVA. `cost` es siempre el final.
   sphereMin             Float?
   sphereMax             Float?
   cylinderMin           Float?
@@ -288,7 +329,7 @@ model Product {
   diameterMin           Float?
   wholesalePrice        Float        @default(0.0)
   publishToWholesale    Boolean      @default(false)
-  salePrice             Float?       // Precio de oferta web ("precio tachado"). Si es > 0 y < price, se muestra y se cobra este.
+  salePrice             Float? // Precio de oferta web ("precio tachado"). Si es > 0 y < price, se muestra y se cobra este.
   orderItems            OrderItem[]
   webProducts           WebProduct[]
 
@@ -302,83 +343,83 @@ model Product {
 }
 
 model Order {
-  id                     String         @id @default(cuid())
-  clientId               String
-  userId                 String
+  id                   String             @id @default(cuid())
+  clientId             String
+  userId               String
   // Clave de idempotencia del checkout web: evita crear/cobrar dos veces la misma
   // compra ante reintentos (timeout de red, reintento manual). Único a nivel DB.
-  idempotencyKey         String?        @unique
-  status                 String         @default("PENDING")
-  total                  Float          @default(0.0)
-  paid                   Float          @default(0.0)
-  isDeleted              Boolean        @default(false)
-  deletedReason          String?
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
-  prescriptionId         String?
-  labStatus              String?        @default("NONE")
-  labSentAt              DateTime?
+  idempotencyKey       String?            @unique
+  status               String             @default("PENDING")
+  total                Float              @default(0.0)
+  paid                 Float              @default(0.0)
+  isDeleted            Boolean            @default(false)
+  deletedReason        String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  prescriptionId       String?
+  labStatus            String?            @default("NONE")
+  labSentAt            DateTime?
   // Quién apretó "enviar a fábrica" (denormalizado: sobrevive rename/borrado del usuario)
-  labSentBy              String?
-  labSentById            String?
-  labNotes               String?
+  labSentBy            String?
+  labSentById          String?
+  labNotes             String?
   // Observación que escribe el vendedor y SALE EN EL PDF que recibe el cliente
   // al procesarse el pedido. Distinta de labNotes (esa va al laboratorio).
-  clientNote             String?
-  labOrderNumber         String?
-  discount               Float?         @default(0.0)
-  markup                 Float?         @default(0.0)
-  discountCash           Float?         @default(0.0)
-  discountTransfer       Float?         @default(0.0)
-  discountCard           Float?         @default(0.0)
-  subtotalWithMarkup     Float?         @default(0.0)
-  orderType              String?        @default("QUOTE")
-  frameSource            String?
-  userFrameBrand         String?
-  userFrameModel         String?
-  userFrameNotes         String?
-  labColor               String?
-  labTreatment           String?
-  labDiameter            String?
-  labPdOd                Float?
-  labPdOi                Float?
-  frameA                 String?
-  frameB                 String?
-  frameDbl               String?
-  frameEdc               String?
-  labPrismOD             String?
-  labPrismOI             String?
-  labBaseCurve           String?
-  labFrameType           String?
-  labBevelPosition       String?
-  smartLabScreenshot     String?
-  appliedPromoDiscount   Float?
-  appliedPromoName       String?
-  prescriptionSnapshot   String?
-  specialDiscount        Float?         @default(0)
-  smartLabSector         String?
-  smartLabProgress       Int?
-  smartLabLastSync       DateTime?
-  smartLabEntryDate      String?
-  smartLabDays           Int?
-  smartLabDetails        String?
-  labEdgeInStore         Boolean        @default(false)
-  labHeightOD            Float?
-  labHeightOI            Float?
-  labMaterial            String?
-  labNearPdOd            Float?
-  labNearPdOi            Float?
-  labType                String?
-  isLocked               Boolean        @default(true)
-  labFrameDetails        String?
-  labFrameShape          String?
-  authorizedByAdmin      Boolean        @default(false)
-  frameA2                String?
-  frameB2                String?
-  frameDbl2              String?
-  frameEdc2              String?
-  labFrameDetails2       String?
-  labFrameShape2         String?
+  clientNote           String?
+  labOrderNumber       String?
+  discount             Float?             @default(0.0)
+  markup               Float?             @default(0.0)
+  discountCash         Float?             @default(0.0)
+  discountTransfer     Float?             @default(0.0)
+  discountCard         Float?             @default(0.0)
+  subtotalWithMarkup   Float?             @default(0.0)
+  orderType            String?            @default("QUOTE")
+  frameSource          String?
+  userFrameBrand       String?
+  userFrameModel       String?
+  userFrameNotes       String?
+  labColor             String?
+  labTreatment         String?
+  labDiameter          String?
+  labPdOd              Float?
+  labPdOi              Float?
+  frameA               String?
+  frameB               String?
+  frameDbl             String?
+  frameEdc             String?
+  labPrismOD           String?
+  labPrismOI           String?
+  labBaseCurve         String?
+  labFrameType         String?
+  labBevelPosition     String?
+  smartLabScreenshot   String?
+  appliedPromoDiscount Float?
+  appliedPromoName     String?
+  prescriptionSnapshot String?
+  specialDiscount      Float?             @default(0)
+  smartLabSector       String?
+  smartLabProgress     Int?
+  smartLabLastSync     DateTime?
+  smartLabEntryDate    String?
+  smartLabDays         Int?
+  smartLabDetails      String?
+  labEdgeInStore       Boolean            @default(false)
+  labHeightOD          Float?
+  labHeightOI          Float?
+  labMaterial          String?
+  labNearPdOd          Float?
+  labNearPdOi          Float?
+  labType              String?
+  isLocked             Boolean            @default(true)
+  labFrameDetails      String?
+  labFrameShape        String?
+  authorizedByAdmin    Boolean            @default(false)
+  frameA2              String?
+  frameB2              String?
+  frameDbl2            String?
+  frameEdc2            String?
+  labFrameDetails2     String?
+  labFrameShape2       String?
   // ── Despacho al cliente ──
   // Una compra web se cobraba y después el cliente no recibía NADA hasta que
   // retiraba: hasta dos semanas de silencio. Estos campos existen para poder
@@ -387,22 +428,22 @@ model Order {
   // empresa (varía según cuál sea, por eso se guarda y no se arma en el código).
   // `dispatchNotifiedAt` marca que el aviso YA salió: reeditar el pedido no
   // vuelve a mandarlo.
-  shippingCarrier        String?
-  trackingNumber         String?
-  trackingUrl            String?
-  shippedAt              DateTime?
-  dispatchNotifiedAt     DateTime?
-  postSaleCases          PostSaleCase[]
-  invoices               Invoice[]
-  notifications          Notification[]
-  labCostEntries         LabCostEntry[]
-  client                 Client         @relation(fields: [clientId], references: [id])
-  prescription           Prescription?  @relation(fields: [prescriptionId], references: [id])
-  user                   User           @relation(fields: [userId], references: [id])
-  items                  OrderItem[]
-  payments               Payment[]
-  paymentIntents         WebPaymentIntent[]
-  tags                   Tag[]          @relation("OrderToTag")
+  shippingCarrier      String?
+  trackingNumber       String?
+  trackingUrl          String?
+  shippedAt            DateTime?
+  dispatchNotifiedAt   DateTime?
+  postSaleCases        PostSaleCase[]
+  invoices             Invoice[]
+  notifications        Notification[]
+  labCostEntries       LabCostEntry[]
+  client               Client             @relation(fields: [clientId], references: [id])
+  prescription         Prescription?      @relation(fields: [prescriptionId], references: [id])
+  user                 User               @relation(fields: [userId], references: [id])
+  items                OrderItem[]
+  payments             Payment[]
+  paymentIntents       WebPaymentIntent[]
+  tags                 Tag[]              @relation("OrderToTag")
 
   @@index([clientId])
   @@index([orderType, isDeleted])
@@ -419,21 +460,21 @@ model Order {
 }
 
 model Invoice {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   orderId        String
   cae            String
   caeExpiration  String
   voucherNumber  Int
-  voucherType    Int      @default(11)
+  voucherType    Int       @default(11)
   pointOfSale    Int
-  concept        Int      @default(1)
+  concept        Int       @default(1)
   totalAmount    Float
-  docType        Int      @default(99)
-  docNumber      String   @default("0")
+  docType        Int       @default(99)
+  docNumber      String    @default("0")
   pdfUrl         String?
-  billingAccount String   @default("ISH")
-  status         String   @default("COMPLETED")
-  createdAt      DateTime @default(now())
+  billingAccount String    @default("ISH")
+  status         String    @default("COMPLETED")
+  createdAt      DateTime  @default(now())
   // Fecha FISCAL del comprobante (CbteFch en ARCA). Puede diferir de createdAt si
   // se backdatea la emisión; el tope mensual de monotributo se mide por esta fecha,
   // no por createdAt. Nullable para filas históricas anteriores a la columna.
@@ -446,7 +487,7 @@ model Invoice {
   items          Json?
   // Actor: qué usuario emitió la factura en ARCA
   createdByName  String?
-  order          Order    @relation(fields: [orderId], references: [id])
+  order          Order     @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
   @@index([cae])
@@ -454,33 +495,33 @@ model Invoice {
 }
 
 model OrderItem {
-  id                      String   @id @default(cuid())
-  orderId                 String
-  productId               String?
-  quantity                Int      @default(1)
-  price                   Float    @default(0.0)
-  eye                     String?
-  sphereVal               Float?
-  cylinderVal             Float?
-  axisVal                 Int?
-  additionVal             Float?
-  pdVal                   Float?
-  heightVal               Float?
-  prismVal                String?
-  productBrandSnapshot    String?
-  productCategorySnapshot String?
-  productNameSnapshot     String?
-  crystalColor            String?
-  crystalColorType        String?
-  crystalColorNote        String?
-  laboratorySnapshot      String?
-  productCostSnapshot     Float?
+  id                       String   @id @default(cuid())
+  orderId                  String
+  productId                String?
+  quantity                 Int      @default(1)
+  price                    Float    @default(0.0)
+  eye                      String?
+  sphereVal                Float?
+  cylinderVal              Float?
+  axisVal                  Int?
+  additionVal              Float?
+  pdVal                    Float?
+  heightVal                Float?
+  prismVal                 String?
+  productBrandSnapshot     String?
+  productCategorySnapshot  String?
+  productNameSnapshot      String?
+  crystalColor             String?
+  crystalColorType         String?
+  crystalColorNote         String?
+  laboratorySnapshot       String?
+  productCostSnapshot      Float?
   productTypeSnapshot      String?
   productLensIndexSnapshot String?
   productUnitTypeSnapshot  String?
   productOriginSnapshot    String?
-  order                   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product                 Product? @relation(fields: [productId], references: [id])
+  order                    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product                  Product? @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@index([productId])
@@ -544,7 +585,7 @@ model WebPaymentIntent {
   paymentId    String? @unique
 
   /// PENDING | APPROVED | REJECTED | EXPIRED — estado NUESTRO del intento.
-  status String @default("PENDING")
+  status        String  @default("PENDING")
   /// Estado crudo que devolvió MP, tal cual, para poder diagnosticar sin el panel.
   gatewayStatus String?
   amount        Float
@@ -577,29 +618,29 @@ model Doctor {
 }
 
 model WhatsAppChat {
-  id             String            @id @default(cuid())
-  clientId       String?
-  waId           String            @unique
-  profileName    String?
-  lastMessageAt  DateTime?
-  status         String            @default("OPEN")
-  unreadCount    Int               @default(0)
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  botEnabled     Boolean           @default(true)
-  archived       Boolean           @default(false)
-  chatLabels     String[]          @default([])
-  realPhone      String?
-  chatSummary    String?
-  lastFollowUpAt DateTime?
+  id                  String            @id @default(cuid())
+  clientId            String?
+  waId                String            @unique
+  profileName         String?
+  lastMessageAt       DateTime?
+  status              String            @default("OPEN")
+  unreadCount         Int               @default(0)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  botEnabled          Boolean           @default(true)
+  archived            Boolean           @default(false)
+  chatLabels          String[]          @default([])
+  realPhone           String?
+  chatSummary         String?
+  lastFollowUpAt      DateTime?
   // Pausa de seguimientos decidida por la compuerta de conversación (el cliente
   // pidió retomar más adelante, o hay una pregunta sin responder). Persistente:
   // antes vivía en nada y el cron de inactividad re-consultaba al LLM cada 15
   // minutos y perdía los "hablamos a fin de mes" en cada reinicio.
   followUpPausedUntil DateTime?
-  adTag          String?
-  client         Client?           @relation(fields: [clientId], references: [id])
-  messages       WhatsAppMessage[]
+  adTag               String?
+  client              Client?           @relation(fields: [clientId], references: [id])
+  messages            WhatsAppMessage[]
 
   @@index([clientId])
   @@index([status])
@@ -762,19 +803,19 @@ model Coupon {
 }
 
 model CheckoutSession {
-  id           String   @id @default(cuid())
-  email        String?
-  firstName    String?
-  lastName     String?
-  phone        String?
-  cartData     Json
-  shippingData Json?
-  status       String   @default("PENDING")
-  total        Float    @default(0.0)
+  id              String    @id @default(cuid())
+  email           String?
+  firstName       String?
+  lastName        String?
+  phone           String?
+  cartData        Json
+  shippingData    Json?
+  status          String    @default("PENDING")
+  total           Float     @default(0.0)
   // Ficha del CRM asociada. Se completa cuando el carrito abandonado califica
   // como oportunidad de cierre: el seguimiento queda registrado en la ficha y
   // el panel deduplica por cliente en vez de por teléfono suelto.
-  clientId     String?
+  clientId        String?
   // Recupero multi-toque. Va aparte de `status` a propósito: `status` es el
   // ciclo de vida que leen el panel de Oportunidades de Cierre y el de
   // analítica, y si el toque de la hora lo moviera, el carrito se le
@@ -786,9 +827,9 @@ model CheckoutSession {
   recoveryTouchAt DateTime?
   /// Por dónde salió el último toque: 'EMAIL' o 'WHATSAPP'.
   recoveryChannel String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  client       Client?  @relation(fields: [clientId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  client          Client?   @relation(fields: [clientId], references: [id])
 
   @@index([status])
   @@index([clientId])
@@ -943,44 +984,44 @@ model LabAccountStatement {
 // cuántos quedaron sin correspondencia). Es el "libro de auditoría" que permite
 // demostrar que el control se ejecuta a diario y ver la evolución en el tiempo.
 model LabAuditRun {
-  id            String   @id @default(cuid())
-  runAt         DateTime @default(now())
-  trigger       String   @default("CRON") // CRON | MANUAL
-  providers     Json // estado por proveedor: { OPTOVISION: {...}, GRUPO_OPTICO: {...} }
-  staleSources  String[] @default([]) // fuentes caídas 3+ días
-  totalEntries  Int      @default(0) // total de pedidos de lab en seguimiento
-  conVenta      Int      @default(0) // corresponden a una venta del sistema
-  postventa     Int      @default(0) // corresponden a un caso de postventa
-  sinVenta      Int      @default(0) // UNMATCHED — sin venta que los respalde
-  esperandoFact Int      @default(0) // PENDING — con venta, sin costo facturado aún
-  ok            Int      @default(0)
-  overcost      Int      @default(0)
-  undercost     Int      @default(0)
-  nuevosSinVenta Int     @default(0) // huérfanos nuevos detectados en esta corrida
-  notes         String?
+  id             String   @id @default(cuid())
+  runAt          DateTime @default(now())
+  trigger        String   @default("CRON") // CRON | MANUAL
+  providers      Json // estado por proveedor: { OPTOVISION: {...}, GRUPO_OPTICO: {...} }
+  staleSources   String[] @default([]) // fuentes caídas 3+ días
+  totalEntries   Int      @default(0) // total de pedidos de lab en seguimiento
+  conVenta       Int      @default(0) // corresponden a una venta del sistema
+  postventa      Int      @default(0) // corresponden a un caso de postventa
+  sinVenta       Int      @default(0) // UNMATCHED — sin venta que los respalde
+  esperandoFact  Int      @default(0) // PENDING — con venta, sin costo facturado aún
+  ok             Int      @default(0)
+  overcost       Int      @default(0)
+  undercost      Int      @default(0)
+  nuevosSinVenta Int      @default(0) // huérfanos nuevos detectados en esta corrida
+  notes          String?
 
   @@index([runAt])
 }
 
 model PostSaleCase {
-  id               String                  @id @default(cuid())
+  id             String  @id @default(cuid())
   // Blindaje: un caso de post-venta NO se pierde nunca. Por eso guarda su propio
   // clientId y un snapshot del contexto de la venta, y el orderId es opcional con
   // onDelete: SetNull — si se hace hard-delete de la venta, el caso sobrevive
   // (queda huérfano de Order pero sigue ligado al cliente y visible en su ficha).
-  orderId          String?
-  clientId         String?
-  orderLabel       String?
-  status           String                  @default("SENT")
-  cost             Float                   @default(0.0)
-  newOrderNumber   String?
-  notes            String?
-  orderOption      String?
-  responsible      String?
-  caseType         String?
-  fault            String?
-  coverage         String?
-  rxData           String?
+  orderId        String?
+  clientId       String?
+  orderLabel     String?
+  status         String  @default("SENT")
+  cost           Float   @default(0.0)
+  newOrderNumber String?
+  notes          String?
+  orderOption    String?
+  responsible    String?
+  caseType       String?
+  fault          String?
+  coverage       String?
+  rxData         String?
 
   // ── COSTO EN DOS ETAPAS Y SU IMPUTACIÓN A CAJA ──────────────────────────────
   // El costo de un caso no se conoce de entrada: primero el vendedor asigna lo
@@ -992,26 +1033,26 @@ model PostSaleCase {
   // La imputación a caja NO puede dispararse con la estimación: exige costSource
   // = LAB **y** la corroboración del administrador (costConfirmedAt), porque el
   // monto que carga el vendedor puede no coincidir con lo que factura el lab.
-  costEstimated    Float?
-  costSource       String?                 // MANUAL | LAB
-  costConfirmedAt  DateTime?
-  costConfirmedBy  String?
+  costEstimated   Float?
+  costSource      String? // MANUAL | LAB
+  costConfirmedAt DateTime?
+  costConfirmedBy String?
   // Quién de la óptica cometió el error. La atribución (`fault`) solo distingue
   // Laboratorio/Óptica/Cliente/Médico — no alcanza para saber a qué caja va el
   // descuento cuando la culpa es de la óptica. Vacío = lo cubre Atelier (caja
   // del administrador).
-  faultUserId      String?
+  faultUserId     String?
   // Movimiento de caja generado por este caso. Su presencia es el candado que
   // impide imputar dos veces el mismo costo.
-  cashEntryId      String?                 @unique
+  cashEntryId     String?   @unique
 
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  order            Order?                  @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  client           Client?                 @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  notesList        PostSaleNote[]
-  statusHistory    PostSaleStatusHistory[]
+  order         Order?                  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  client        Client?                 @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  notesList     PostSaleNote[]
+  statusHistory PostSaleStatusHistory[]
 
   @@index([orderId])
   @@index([clientId])
@@ -1019,26 +1060,26 @@ model PostSaleCase {
 }
 
 model PostSaleNote {
-  id             String       @id @default(cuid())
-  caseId         String
-  content        String
-  createdBy      String?
+  id           String       @id @default(cuid())
+  caseId       String
+  content      String
+  createdBy    String?
   // Imagen adjunta a la observación del caso (foto del lente, comprobante, etc.)
-  imageUrl       String?
-  createdAt      DateTime     @default(now())
-  postSaleCase   PostSaleCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  imageUrl     String?
+  createdAt    DateTime     @default(now())
+  postSaleCase PostSaleCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
 }
 
 model PostSaleStatusHistory {
-  id             String       @id @default(cuid())
-  caseId         String
-  fromStatus     String
-  toStatus       String
-  changedBy      String?
-  createdAt      DateTime     @default(now())
-  postSaleCase   PostSaleCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  id           String       @id @default(cuid())
+  caseId       String
+  fromStatus   String
+  toStatus     String
+  changedBy    String?
+  createdAt    DateTime     @default(now())
+  postSaleCase PostSaleCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
 
   @@index([caseId])
 }
@@ -1046,28 +1087,28 @@ model PostSaleStatusHistory {
 // Leads de ópticas para captación mayorista B2B (panel /admin/opticas,
 // acceso restringido: ADMIN o emails en OPTICAS_LEADS_EMAILS).
 model OpticaLead {
-  id            String    @id @default(cuid())
-  name          String
-  phone         String?   // como se scrapeó/cargó
-  phoneWa       String?   // normalizado para wa.me (549...)
-  rating        Float?
-  reviewsCount  Int?
-  category      String?   // rubro que reporta Maps ("Óptica", "Optometrista"...)
-  address       String?
-  city          String?
-  province      String?
-  mapsUrl       String?
-  placeId       String?   @unique
-  website       String?
-  instagram     String?
-  status        String    @default("NUEVO") // NUEVO | CONTACTADO | RESPONDIO | CLIENTE | BLOCKLIST | OCULTO
-  hasWhatsapp   Boolean?  // null = sin verificar
-  notes         String?
-  contactedAt   DateTime?
-  contactedBy   String?
-  source        String?   // "maps" | "csv" | "manual"
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  name         String
+  phone        String? // como se scrapeó/cargó
+  phoneWa      String? // normalizado para wa.me (549...)
+  rating       Float?
+  reviewsCount Int?
+  category     String? // rubro que reporta Maps ("Óptica", "Optometrista"...)
+  address      String?
+  city         String?
+  province     String?
+  mapsUrl      String?
+  placeId      String?   @unique
+  website      String?
+  instagram    String?
+  status       String    @default("NUEVO") // NUEVO | CONTACTADO | RESPONDIO | CLIENTE | BLOCKLIST | OCULTO
+  hasWhatsapp  Boolean? // null = sin verificar
+  notes        String?
+  contactedAt  DateTime?
+  contactedBy  String?
+  source       String? // "maps" | "csv" | "manual"
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([status])
   @@index([city])
@@ -1103,8 +1144,8 @@ model AnalyticsEvent {
   orderId     String?
 
   // Contexto de cliente (no PII)
-  device  String? // mobile | tablet | desktop
-  meta    Json?
+  device String? // mobile | tablet | desktop
+  meta   Json?
 
   createdAt DateTime @default(now())
 

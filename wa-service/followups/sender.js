@@ -4,6 +4,7 @@
  */
 
 const { prisma } = require('../db');
+const outbox = require('./outbox');
 const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const { runOutputGuardrail } = require('../services/ai.service');
 const { resolveWaMessageId, rememberBotMessage } = require('../shared/message-id');
@@ -71,8 +72,21 @@ async function preSendValidation(chatId, waId) {
  *   pospuso, el updatedAt cambió y este envío se descarta solo — sin duplicados.
  * @returns {Promise<{ sent: boolean, reason?: string }>}
  */
-async function sendFollowUp({ waId, text, chatId, label, clientName, followUpType, claim }) {
+async function sendFollowUp({ waId, text, chatId, label, clientName, followUpType, claim, origen, outboxId }) {
     const logPrefix = TEST_MODE ? '[TEST Follow-Up]' : '[Follow-Up]';
+
+    // Outbox (Fase 1 del motor): el envío queda persistido desde acá hasta su
+    // resultado. Si el proceso muere con el mensaje esperando en la cola del
+    // anti-ban (minutos u horas), la fila QUEUED lo recupera al arrancar.
+    // `outboxId` viene seteado solo desde esa recuperación (se reusa la fila).
+    let filaOutbox = outboxId || null;
+    if (!filaOutbox) {
+        filaOutbox = await outbox.persistir({
+            waId, chatId, contenido: text, label, clientName,
+            origen: origen || followUpType || 'MANUAL',
+            taskId: claim?.taskId, claimStamp: claim?.claimStamp,
+        });
+    }
 
     try {
         // 0. Guardrail de salida: mismo filtro final que el bot conversacional
@@ -80,6 +94,7 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
         const guardrail = runOutputGuardrail(text);
         if (!guardrail.safe) {
             console.warn(`  🚫 ${logPrefix} Bloqueado por guardrail (${guardrail.reason}): "${(text || '').substring(0, 80)}"`);
+            await outbox.marcar(filaOutbox, 'SKIPPED', `Guardrail: ${guardrail.reason}`);
             return { sent: false, reason: `Guardrail: ${guardrail.reason}` };
         }
 
@@ -87,6 +102,7 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
         const preCheck = await preSendValidation(chatId, waId);
         if (!preCheck.canSend) {
             console.log(`  🚫 ${logPrefix} ${preCheck.reason}. Cancelando envío.`);
+            await outbox.marcar(filaOutbox, 'SKIPPED', preCheck.reason);
             return { sent: false, reason: preCheck.reason };
         }
 
@@ -132,16 +148,21 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
                     if (!t || t.status !== 'SENDING') {
                         return { ok: false, reason: `La tarea ya no está en SENDING (${t ? t.status : 'no existe'})` };
                     }
-                    if (claim.claimStamp && t.updatedAt.getTime() !== claim.claimStamp.getTime()) {
+                    if (claim.claimStamp && t.updatedAt.getTime() !== new Date(claim.claimStamp).getTime()) {
                         return { ok: false, reason: 'La tarea fue reclamada por otra corrida (token vencido)' };
                     }
                 }
+                // Vía libre: el envío físico sale en segundos. Desde acá el
+                // resultado es incierto ante un reinicio → SENDING (la
+                // recuperación NUNCA reenvía un SENDING).
+                await outbox.marcar(filaOutbox, 'SENDING');
                 return { ok: true };
             },
         });
 
         if (sent && sent.skipped) {
             console.log(`  🚦 ${logPrefix} Envío a ${clientName} descartado en cola: ${sent.reason}`);
+            await outbox.marcar(filaOutbox, 'SKIPPED', `Preflight: ${sent.reason}`);
             return { sent: false, reason: `Preflight: ${sent.reason}` };
         }
 
@@ -190,10 +211,12 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
         }
 
         console.log(`  ✅ ${logPrefix} Mensaje enviado a ${clientName} — etiqueta ${label} aplicada.`);
+        await outbox.marcar(filaOutbox, 'SENT');
         return { sent: true };
 
     } catch (err) {
         console.error(`  ❌ ${logPrefix} Error enviando a ${clientName}:`, err.message);
+        await outbox.marcar(filaOutbox, 'FAILED', err.message);
         return { sent: false, reason: err.message };
 
     } finally {
