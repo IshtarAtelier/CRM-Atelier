@@ -1,3 +1,4 @@
+import { framesDeLaOrden, cantidadDeArmazones } from './order-frames';
 // ────────────────────────────────────────────────────────────────────────────
 // Resumen de lo que el vendedor cargó en el Repaso Final (armazón, medidas,
 // forma, teñido) para mostrarlo IGUAL en los tres lugares donde alguien lo
@@ -48,7 +49,13 @@ export interface LabFrameOrder {
 }
 
 /** ¿Es un pedido "2x1" (dos pares de armazón/cristal)? Mismo criterio en toda la app. */
+export { cantidadDeArmazones };
+
 export function isTwoPairOrder(order: LabFrameOrder): boolean {
+    // Se mide por los CRISTALES, no por la promo: dos pares son dos anteojos
+    // lleve o no lleve 2x1 en el nombre. Se conserva la señal de la promo como
+    // respaldo para pedidos viejos cargados sin ojo en los items.
+    if (cantidadDeArmazones(order as any) > 1) return true;
     if ((order.appliedPromoName || '').toLowerCase().includes('2x1')) return true;
     return !!order.items?.some(it => {
         const name = (it.product?.name || it.productNameSnapshot || '').toLowerCase();
@@ -94,14 +101,17 @@ export function measurementsLabel(a?: string | null, b?: string | null, dbl?: st
 }
 
 export interface LabFramePairSummary {
-    pair: 1 | 2;
-    /** Etiqueta del par: "Armazón" para pedidos de un solo par, "Par 1" / "Par 2" para 2x1. */
+    /** Posición del armazón: 1..N (uno por par de cristales). */
+    pair: number;
+    /** "Armazón" si es uno solo; "Armazón — 2º" en adelante si son varios. */
     label: string;
     shape: string | null;
     measurements: string | null;
     /** "Altura OD 20 · OI 20" — la altura varía según el armazón elegido. */
     fitting: string | null;
     details: string | null;
+    /** Foto del armazón sacada por el vendedor. */
+    imageUrl: string | null;
     /** Ninguno de los campos de este par tiene datos cargados todavía. */
     isEmpty: boolean;
 }
@@ -134,41 +144,40 @@ export interface LabFrameSummary {
  * corresponde mostrar.
  */
 export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
-    const twoPairs = isTwoPairOrder(order);
+    // Cuántos armazones y cuáles: un armazón por PAR DE CRISTALES. La promo ya
+    // no decide nada acá — un pedido de dos pares sin promo también son dos
+    // anteojos, y antes el segundo quedaba invisible.
+    const armazones = framesDeLaOrden(order as any);
+    const total = armazones.length;
 
-    const pair1Measurements = measurementsLabel(order.frameA, order.frameB, order.frameDbl, order.frameEdc);
-    const pair1Fitting = fittingLabel(order.labHeightOD, order.labHeightOI);
-    const pair1: LabFramePairSummary = {
-        pair: 1,
-        label: twoPairs ? 'Armazón — Par 1' : 'Armazón',
-        shape: order.labFrameShape || null,
-        measurements: pair1Measurements,
-        fitting: pair1Fitting,
-        details: order.labFrameDetails || null,
-        isEmpty: !order.labFrameShape && !pair1Measurements && !order.labFrameDetails
-    };
+    // "(bonificado)" solo cuando hay una promo 2x1 de verdad: en un pedido de
+    // cuatro pares sin promo, el segundo no es un regalo.
+    const hayPromo2x1 = (order.appliedPromoName || '').toLowerCase().includes('2x1');
 
-    const pairs: LabFramePairSummary[] = [pair1];
-
-    if (twoPairs) {
-        const pair2Measurements = measurementsLabel(order.frameA2, order.frameB2, order.frameDbl2, order.frameEdc2);
-        pairs.push({
-            pair: 2,
-            label: 'Armazón — Par 2 (bonificado)',
-            shape: order.labFrameShape2 || null,
-            measurements: pair2Measurements,
-            fitting: fittingLabel(order.labHeightOD2, order.labHeightOI2),
-            details: order.labFrameDetails2 || null,
-            isEmpty: !order.labFrameShape2 && !pair2Measurements && !order.labFrameDetails2
-        });
-    }
+    const pairs: LabFramePairSummary[] = armazones.map(f => {
+        const medidas = measurementsLabel(f.a, f.b, f.dbl, f.edc);
+        return {
+            pair: f.position,
+            label: total <= 1
+                ? 'Armazón'
+                : `Armazón — ${f.position}º${f.position === 2 && hayPromo2x1 ? ' (bonificado)' : ''}`,
+            shape: f.shape,
+            measurements: medidas,
+            fitting: fittingLabel(f.heightOD, f.heightOI),
+            details: f.details,
+            imageUrl: f.imageUrl,
+            isEmpty: !f.shape && !medidas && !f.details,
+        };
+    });
 
     let tint: TintSummary | null = null;
     if (order.labTreatment || order.labColor) {
         const partes = [order.labTreatment, order.labColor].filter(Boolean);
         tint = {
             text: partes.join(' - '),
-            ambiguousPair: twoPairs && tintServiceCount(order) < 2
+            // Con más de un armazón y una sola línea de teñido no se sabe a cuál
+            // corresponde: el dato es del pedido, no del par. Lo resuelve una persona.
+            ambiguousPair: total > 1 && tintServiceCount(order) < total
         };
     }
 

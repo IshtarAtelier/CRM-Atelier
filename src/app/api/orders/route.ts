@@ -413,6 +413,7 @@ export async function GET(request: Request) {
             labFrameDetails2: true,
             frameImageUrl: true,
             frameImageUrl2: true,
+            frames: { orderBy: { position: 'asc' as const } },
             prescriptionId: true,
             // La receta congelada al enviar a fábrica: es la que la venta muestra,
             // aunque después alguien corrija la receta viva en la ficha.

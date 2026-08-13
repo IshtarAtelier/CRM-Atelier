@@ -23,6 +23,7 @@ import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import FrameRecapReadOnly from '@/components/orders/FrameRecapReadOnly';
 import FramePairEditor from '@/components/orders/FramePairEditor';
+import { framesDeLaOrden, etiquetaArmazon } from '@/lib/order-frames';
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
@@ -299,8 +300,8 @@ export default function QuoteSummary({
     // Resumen de lo cargado en el Repaso Final (origen del armazón, medidas de
     // cada par y teñido) — mismo dato que se muestra en "la venta" y en el PDF.
     const labFrame = describeLabFrameDetails(order as any);
-    // ¿Dos armazones? (2x1). Decide si se muestra el cuadro del 2º par.
-    const esDosPares = labFrame.pairs.length > 1;
+    // Los armazones del pedido: uno por PAR DE CRISTALES.
+    const armazones = framesDeLaOrden(order as any);
 
     // Altura pupilar y DNP: el valor guardado en el PEDIDO manda; si todavía no
     // hay, se precarga desde la receta como punto de partida. Varían según el
@@ -706,49 +707,30 @@ export default function QuoteSummary({
                     presupuestos y para una venta reabierta por administración. */}
                 {isSale && isLockedSale && <FrameRecapReadOnly order={order} />}
 
-                {/* El cuadro completo de CADA armazón (medidas, forma, detalles y
-                    foto), con guardado individual. En un 2x1 son dos armazones
-                    distintos: el cuadro se repite, uno arriba y otro abajo, y
-                    guardar uno jamás pisa lo cargado en el otro (cada botón
-                    escribe SOLO sus columnas). Solo desaparece cuando la venta ya
-                    está enviada a fábrica: ahí manda el bloque de solo lectura. */}
-                {!isLockedSale && (
+                {/* Un cuadro por armazón, y la cantidad la marcan los PARES DE
+                    CRISTALES: cuatro pares son cuatro anteojos, cada uno con sus
+                    medidas, su altura y su foto. Guardar uno nunca toca a los
+                    otros (cada cuadro tiene su endpoint por posición). Solo
+                    desaparecen cuando la venta ya salió a fábrica: ahí manda el
+                    bloque de solo lectura. */}
+                {!isLockedSale && armazones.map(f => (
                     <FramePairEditor
-                        key={`p1-${order.id}-${order.updatedAt || ''}`}
+                        key={`f${f.position}-${order.id}`}
                         orderId={order.id}
-                        pair={1}
-                        title={esDosPares ? '1º Armazón' : 'Armazón'}
+                        pair={f.position}
+                        title={etiquetaArmazon(f.position, armazones.length)}
+                        accent={f.position % 2 === 0 ? 'orange' : 'stone'}
                         initial={{
-                            shape: order.labFrameShape || '',
-                            a: order.frameA || '', b: order.frameB || '',
-                            dbl: order.frameDbl || '', edc: order.frameEdc || '',
-                            details: order.labFrameDetails || '',
-                            imageUrl: order.frameImageUrl || null,
-                            heightOD: dato(oAny.labHeightOD, rxBase?.heightOD),
-                            heightOI: dato(oAny.labHeightOI, rxBase?.heightOI),
+                            shape: f.shape || '',
+                            a: f.a || '', b: f.b || '', dbl: f.dbl || '', edc: f.edc || '',
+                            details: f.details || '',
+                            imageUrl: f.imageUrl,
+                            heightOD: f.heightOD != null ? String(f.heightOD) : dato(null, rxBase?.heightOD),
+                            heightOI: f.heightOI != null ? String(f.heightOI) : dato(null, rxBase?.heightOI),
                         }}
                         onSaved={onRefreshContact}
                     />
-                )}
-                {!isLockedSale && esDosPares && (
-                    <FramePairEditor
-                        key={`p2-${order.id}-${order.updatedAt || ''}`}
-                        orderId={order.id}
-                        pair={2}
-                        title="2º Armazón"
-                        accent="orange"
-                        initial={{
-                            shape: order.labFrameShape2 || '',
-                            a: order.frameA2 || '', b: order.frameB2 || '',
-                            dbl: order.frameDbl2 || '', edc: order.frameEdc2 || '',
-                            details: order.labFrameDetails2 || '',
-                            imageUrl: order.frameImageUrl2 || null,
-                            heightOD: dato(oAny.labHeightOD2, rxBase?.heightOD),
-                            heightOI: dato(oAny.labHeightOI2, rxBase?.heightOI),
-                        }}
-                        onSaved={onRefreshContact}
-                    />
-                )}
+                ))}
 
                 {/* SmartLab Info Block - Expanded View */}
                 {isSale && !isOptovision && order.smartLabProgress != null && order.smartLabProgress > 0 && (

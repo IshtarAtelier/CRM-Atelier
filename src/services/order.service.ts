@@ -16,7 +16,7 @@ import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { formatDateTime } from '@/lib/format-date';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 import { frameRecapText, prescriptionRecapText } from '@/lib/sale-recap-text';
-import { isTwoPairOrder } from '@/lib/lab-frame-summary';
+import { framesDeLaOrden } from '@/lib/order-frames';
 import { sendSaleConfirmation } from '@/lib/sale-confirmation';
 import { logAudit } from '@/lib/audit';
 import { sendClientEmail, escHtml } from '@/lib/client-email';
@@ -1793,20 +1793,30 @@ export class OrderService {
                 //
                 // Es lo que el cliente mira en la confirmación para reconocer lo que
                 // se lleva, y lo único que después prueba qué se le vendió cuando
-                // aparece un "yo elegí otro". En un 2x1 son dos armazones distintos,
-                // con medidas distintas: cada uno lleva SU foto, así se corresponde
-                // con sus datos. Se exige con el mismo alcance que las medidas
-                // (pedido con cristales y armazón), así una venta de solo cristales
-                // no queda trabada.
+                // aparece un "yo elegí otro". Cuántos armazones son lo dicen los
+                // PARES DE CRISTALES: cuatro pares son cuatro anteojos, cada uno con
+                // su foto. Se exige con el mismo alcance que las medidas (pedido con
+                // cristales y armazón), así una venta de solo cristales no queda trabada.
                 if (hasCrystals && effectiveFrameSource) {
-                    const foto1 = body.frameImageUrl ?? existingOrder.frameImageUrl;
-                    const foto2 = body.frameImageUrl2 ?? existingOrder.frameImageUrl2;
-                    const dosPares = isTwoPairOrder(existingOrder as any);
-                    const faltanFotos: string[] = [];
-                    if (!foto1) faltanFotos.push(dosPares ? 'la foto del 1º armazón' : 'la foto del armazón');
-                    if (dosPares && !foto2) faltanFotos.push('la foto del 2º armazón');
-                    if (faltanFotos.length > 0) {
-                        throw new Error(`No se puede convertir en venta: falta ${faltanFotos.join(' y ')}. La saca el vendedor y viaja en la confirmación que recibe el cliente.`);
+                    const conFrames = await prisma.order.findUnique({
+                        where: { id },
+                        select: {
+                            appliedPromoName: true,
+                            frames: { select: { position: true, imageUrl: true } },
+                            items: { select: { eye: true, quantity: true, productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true, product: { select: { name: true, category: true, type: true } } } },
+                            labFrameShape: true, frameA: true, frameB: true, frameDbl: true, frameEdc: true,
+                            labFrameDetails: true, frameImageUrl: true, labHeightOD: true, labHeightOI: true,
+                            labFrameShape2: true, frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
+                            labFrameDetails2: true, frameImageUrl2: true, labHeightOD2: true, labHeightOI2: true,
+                        },
+                    });
+                    const armazones = framesDeLaOrden(conFrames as any);
+                    const sinFoto = armazones.filter(f => !f.imageUrl);
+                    if (sinFoto.length > 0) {
+                        const cuales = armazones.length === 1
+                            ? 'la foto del armazón'
+                            : sinFoto.map(f => `la foto del ${f.position}º armazón`).join(' y ');
+                        throw new Error(`No se puede convertir en venta: falta ${cuales}. La saca el vendedor y viaja en la confirmación que recibe el cliente.`);
                     }
                 }
 
@@ -1994,6 +2004,7 @@ export class OrderService {
                             frameImageUrl: true, frameImageUrl2: true,
                             labHeightOD: true, labHeightOI: true,
                             labHeightOD2: true, labHeightOI2: true,
+                            frames: { orderBy: { position: 'asc' as const } },
                             frameSource: true,
                             userFrameBrand: true,
                             userFrameModel: true,
@@ -2363,6 +2374,7 @@ export class OrderService {
                     frameA2: true, frameB2: true, frameDbl2: true, frameEdc2: true,
                     labColor: true, labTreatment: true, labNotes: true,
                     labHeightOD: true, labHeightOI: true, labHeightOD2: true, labHeightOI2: true,
+                    frames: { orderBy: { position: 'asc' as const } },
                     prescription: true,
                     items: { select: { productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true, product: { select: { name: true, category: true, type: true } } } },
                 },

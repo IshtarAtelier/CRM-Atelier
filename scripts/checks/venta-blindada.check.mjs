@@ -30,6 +30,7 @@ const MARCA = 'CHECK_VENTA_BLINDADA';
 async function limpiar() {
     const cs = await prisma.client.findMany({ where: { name: MARCA }, select: { id: true } });
     for (const c of cs) {
+        await prisma.orderFrame.deleteMany({ where: { order: { clientId: c.id } } });
         await prisma.orderItem.deleteMany({ where: { order: { clientId: c.id } } });
         await prisma.order.deleteMany({ where: { clientId: c.id } });
         await prisma.interaction.deleteMany({ where: { clientId: c.id } });
@@ -43,6 +44,7 @@ async function limpiar() {
     // volver a correr siempre.
     const us = await prisma.user.findMany({ where: { email: { startsWith: 'check-venta-' } }, select: { id: true } });
     for (const u of us) {
+        await prisma.orderFrame.deleteMany({ where: { order: { userId: u.id } } });
         await prisma.orderItem.deleteMany({ where: { order: { userId: u.id } } });
         await prisma.payment.deleteMany({ where: { order: { userId: u.id } } });
         await prisma.order.deleteMany({ where: { userId: u.id } });
@@ -184,8 +186,10 @@ check('confirmación: NO le pide una foto al cliente',
 const conFoto = buildSaleConfirmation({ ...base, frameImageUrl: '/uploads/armazon.jpg' });
 check('confirmación: cuando hay foto del armazón, se la MUESTRA', conFoto.emailHtml.includes('/uploads/armazon.jpg'));
 check('confirmación: y le pide que la mire para confirmar', /Mir[aá] la foto del armaz/.test(conFoto.waText));
-check('confirmación 2x1: entran las dos fotos si hay dos',
-    buildSaleConfirmation({ ...base, frameImageUrl: '/uploads/a.jpg', frameImageUrl2: '/uploads/b.jpg' })
+// Dos fotos existen solo si hay DOS armazones: la cantidad la marcan los pares
+// de cristales (o la promo 2x1 como piso), no las columnas sueltas.
+check('confirmación: con dos armazones entran las dos fotos',
+    buildSaleConfirmation({ ...base, appliedPromoName: 'Promo 2x1', frameImageUrl: '/uploads/a.jpg', frameImageUrl2: '/uploads/b.jpg' })
         .emailHtml.includes('/uploads/b.jpg'));
 check('confirmación: pide color y grado si son de sol', /color\* y el \*grado\*/.test(sinTenido.waText));
 check('confirmación: invita a preguntar los términos que no se entienden', /preguntanos ahora/.test(sinTenido.waText));
@@ -208,9 +212,9 @@ const dosPares = buildSaleConfirmation({
     appliedPromoName: 'Promo 2x1',
     labFrameShape2: 'REDONDO', frameA2: '48', frameB2: '40', frameDbl2: '20', frameEdc2: '50',
 });
-check('confirmación 2x1: aparece el PRIMER par', dosPares.waText.includes('Armazón — Par 1'));
-check('confirmación 2x1: aparece el SEGUNDO par con sus medidas',
-    dosPares.waText.includes('Armazón — Par 2') && dosPares.waText.includes('A: 48'));
+check('confirmación 2x1: aparece el PRIMER armazón', dosPares.waText.includes('Armazón — 1º'));
+check('confirmación 2x1: aparece el SEGUNDO armazón con sus medidas',
+    dosPares.waText.includes('Armazón — 2º') && dosPares.waText.includes('A: 48'));
 check('confirmación 2x1: avisa que el teñido no dice a qué par corresponde',
     buildSaleConfirmation({ ...base, appliedPromoName: 'Promo 2x1', labColor: 'Gris' })
         .waText.includes('confirmar a cuál corresponde'));
@@ -228,7 +232,7 @@ const armazonProd = await prisma.product.findFirst({ where: { category: { contai
 const cristalProd = await prisma.product.findFirst({ where: { category: { contains: 'CRISTAL', mode: 'insensitive' }, ...sinPromo }, select: { id: true } });
 
 async function presupuestoParaConvertir({ dosPares = false, foto1 = null, foto2 = null } = {}) {
-    return prisma.order.create({
+    const orden = await prisma.order.create({
         data: {
             clientId: cliente.id, userId: vendedor.id,
             orderType: 'QUOTE', status: 'PENDING',
@@ -243,6 +247,13 @@ async function presupuestoParaConvertir({ dosPares = false, foto1 = null, foto2 
             ] },
         },
     });
+    // La foto vive en la tabla de armazones (las columnas del pedido son solo
+    // el espejo para lo que todavía las lee).
+    const fotos = dosPares ? [foto1, foto2] : [foto1];
+    for (let i = 0; i < fotos.length; i++) {
+        await prisma.orderFrame.create({ data: { orderId: orden.id, position: i + 1, imageUrl: fotos[i] } });
+    }
+    return orden;
 }
 
 if (armazonProd && cristalProd) {
@@ -261,7 +272,7 @@ if (armazonProd && cristalProd) {
     const dos1 = await presupuestoParaConvertir({ dosPares: true, foto1: '/uploads/a1.jpg' });
     const errDos = await rechaza(() => OrderService.updateOrder(dos1.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
     check('conversión 2x1: con UNA sola foto NO alcanza',
-        !!errDos && /2º armaz/i.test(errDos));
+        !!errDos && /2º armaz/i.test(errDos) && /foto/i.test(errDos));
 
     const dos2 = await presupuestoParaConvertir({ dosPares: true, foto1: '/uploads/a1.jpg', foto2: '/uploads/a2.jpg' });
     const errDos2 = await rechaza(() => OrderService.updateOrder(dos2.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
@@ -269,6 +280,32 @@ if (armazonProd && cristalProd) {
 } else {
     console.log('  … sin catálogo local: se saltean los checks de foto obligatoria');
 }
+
+// ── 5c. Un armazón POR PAR DE CRISTALES ─────────────────────────────────────
+// La cantidad no la decide la promo: la decide cuántos pares de cristales lleva
+// el pedido. Cuatro pares son cuatro anteojos, cada uno con sus medidas y su foto.
+const { cantidadDeArmazones, framesDeLaOrden } = await import('../../src/lib/order-frames.ts');
+const { describeLabFrameDetails } = await import('../../src/lib/lab-frame-summary.ts');
+
+const cristal = { name: 'Cristal Monofocal 1.60', category: 'Cristal', type: 'Cristal' };
+const parDe = (n) => Array.from({ length: n }, (_, i) => ([
+    { quantity: 1, eye: 'RIGHT', product: cristal },
+    { quantity: 1, eye: 'LEFT', product: cristal },
+])).flat();
+
+check('1 par de cristales → 1 armazón', cantidadDeArmazones({ items: parDe(1) }) === 1);
+check('2 pares de cristales → 2 armazones (sin promo)', cantidadDeArmazones({ items: parDe(2) }) === 2);
+check('4 pares de cristales → 4 armazones', cantidadDeArmazones({ items: parDe(4) }) === 4);
+check('un pedido sin cristales igual pide 1 armazón', cantidadDeArmazones({ items: [] }) === 1);
+check('la promo 2x1 sirve de piso en pedidos viejos sin ojo cargado',
+    cantidadDeArmazones({ items: [{ quantity: 1, product: { name: 'Armazón' } }], appliedPromoName: 'Promo 2x1' }) === 2);
+check('4 pares → se arman 4 cuadros para cargar', framesDeLaOrden({ items: parDe(4) }).length === 4);
+check('el repaso de 4 pares lista los 4 armazones',
+    describeLabFrameDetails({ items: parDe(4) }).pairs.length === 4);
+check('con 4 armazones el 2º NO dice "bonificado"',
+    !describeLabFrameDetails({ items: parDe(4) }).pairs[1].label.includes('bonificado'));
+check('con un 2x1 real el 2º SÍ dice "bonificado"',
+    describeLabFrameDetails({ items: parDe(2), appliedPromoName: 'Promo 2x1' }).pairs[1].label.includes('bonificado'));
 
 // ── 6. El presupuesto que queda en la ficha ES la copia que recibió el cliente ─
 const { buildQuoteMessage } = await import('../../src/lib/quote-message.ts');

@@ -446,6 +446,7 @@ model Order {
   shippedAt            DateTime?
   dispatchNotifiedAt   DateTime?
   postSaleCases        PostSaleCase[]
+  frames               OrderFrame[]
   invoices             Invoice[]
   notifications        Notification[]
   labCostEntries       LabCostEntry[]
@@ -504,6 +505,39 @@ model Invoice {
   @@index([orderId])
   @@index([cae])
   @@index([fiscalDate])
+}
+
+// Los armazones de un pedido: UNO POR PAR DE CRISTALES.
+//
+// Antes vivían en columnas fijas del pedido (frameA…, frameA2…), o sea que solo
+// entraban DOS. Pero la cantidad de armazones no la decide una promo: la decide
+// cuántos pares de cristales lleva el pedido. Cuatro pares de cristales son
+// cuatro anteojos, cada uno con SUS medidas y SU foto — y con columnas fijas
+// eso no existía.
+//
+// `position` es 1..N en el orden en que se cargan. Las posiciones 1 y 2 se
+// siguen espejando a las columnas viejas del pedido para no romper lo que
+// todavía las lee (SmartLab, el PDF, los paneles de laboratorio); esta tabla es
+// la fuente de verdad para todo lo nuevo.
+model OrderFrame {
+  id         String   @id @default(cuid())
+  orderId    String
+  position   Int
+  shape      String?
+  a          String?
+  b          String?
+  dbl        String?
+  edc        String?
+  details    String?
+  imageUrl   String?
+  heightOD   Float?
+  heightOI   Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, position])
+  @@index([orderId])
 }
 
 model OrderItem {

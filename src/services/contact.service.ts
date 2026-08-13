@@ -1266,6 +1266,8 @@ export const ContactService = {
                         labFrameDetails2: true,
                         frameImageUrl: true,
                         frameImageUrl2: true,
+                        // Los armazones del pedido: uno por par de cristales.
+                        frames: { orderBy: { position: 'asc' } },
                         labHeightOD: true,
                         labHeightOI: true,
                         labHeightOD2: true,

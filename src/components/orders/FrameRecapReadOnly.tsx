@@ -80,6 +80,14 @@ export default function FrameRecapReadOnly({ order, defaultOpen = false }: Props
                                             {par.measurements && <Dato label="Medidas" value={par.measurements} />}
                                             {par.fitting && <Dato label="Altura y DNP" value={par.fitting} />}
                                             {par.details && <Dato label="Detalles" value={par.details} />}
+                                            {par.imageUrl && (
+                                                <div>
+                                                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Foto</p>
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img src={resolveStorageUrl(par.imageUrl)} alt={`Foto del ${par.label}`}
+                                                        className="w-24 h-24 object-cover rounded-xl border border-stone-200 dark:border-stone-700" />
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -97,24 +105,7 @@ export default function FrameRecapReadOnly({ order, defaultOpen = false }: Props
 
                             {resumen.notes && <Dato label="Notas para el laboratorio" value={resumen.notes} />}
 
-                            {/* Las fotos que sacó el vendedor: es lo que el cliente vio
-                                en su confirmación, así que tienen que poder mirarse acá. */}
-                            {(order.frameImageUrl || order.frameImageUrl2) && (
-                                <div>
-                                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-2">Foto del armazón</p>
-                                    <div className="flex flex-wrap gap-3">
-                                        {[order.frameImageUrl, order.frameImageUrl2].filter(Boolean).map((u, i) => (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img
-                                                key={i}
-                                                src={resolveStorageUrl(u as string)}
-                                                alt={`Foto del armazón ${i + 1}`}
-                                                className="w-28 h-28 object-cover rounded-2xl border-2 border-stone-200 dark:border-stone-700"
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+
                         </>
                     )}
 

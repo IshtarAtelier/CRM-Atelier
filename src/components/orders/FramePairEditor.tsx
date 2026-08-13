@@ -35,9 +35,9 @@ interface FramePairValues {
 
 interface Props {
     orderId: string;
-    /** 1 = campos base (frameA…), 2 = campos del segundo par (frameA2…). */
-    pair: 1 | 2;
-    /** Título del cuadro: "Armazón" o "1º / 2º armazón". */
+    /** Posición del armazón: 1..N (uno por par de cristales). */
+    pair: number;
+    /** Título del cuadro: "Armazón" o "1º / 2º / 3º…". */
     title: string;
     initial: FramePairValues;
     /** Aviso al padre después de un guardado exitoso (refresca la ficha). */
@@ -45,14 +45,6 @@ interface Props {
     /** Estilo del par 2 en el resto del sistema: borde naranja. */
     accent?: 'stone' | 'orange';
 }
-
-/** A qué columnas de la orden escribe cada par. */
-const CAMPOS: Record<1 | 2, Record<keyof FramePairValues, string>> = {
-    1: { shape: 'labFrameShape', a: 'frameA', b: 'frameB', dbl: 'frameDbl', edc: 'frameEdc', details: 'labFrameDetails', imageUrl: 'frameImageUrl',
-         heightOD: 'labHeightOD', heightOI: 'labHeightOI' },
-    2: { shape: 'labFrameShape2', a: 'frameA2', b: 'frameB2', dbl: 'frameDbl2', edc: 'frameEdc2', details: 'labFrameDetails2', imageUrl: 'frameImageUrl2',
-         heightOD: 'labHeightOD2', heightOI: 'labHeightOI2' },
-};
 
 export default function FramePairEditor({ orderId, pair, title, initial, onSaved, accent = 'stone' }: Props) {
     const [v, setV] = useState<FramePairValues>(initial);
@@ -67,14 +59,12 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
     const guardar = async () => {
         setSaving(true);
         try {
-            const campos = CAMPOS[pair];
-            const body: Record<string, unknown> = {};
-            (Object.keys(campos) as (keyof FramePairValues)[]).forEach(k => { body[campos[k]] = v[k] || null; });
-
-            const res = await fetch(`/api/orders/${orderId}`, {
-                method: 'PATCH',
+            // Un endpoint por POSICIÓN: guardar este armazón nunca toca a los
+            // otros, por más que haya cuatro en pantalla.
+            const res = await fetch(`/api/orders/${orderId}/frames/${pair}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
+                body: JSON.stringify(v),
             });
             if (res.ok) {
                 setSaved(true);
