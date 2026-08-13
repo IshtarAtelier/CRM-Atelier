@@ -26,6 +26,7 @@ import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
 import { logAudit } from '@/lib/audit';
 import { SELECT_REPASO_CON_CLIENTE } from '@/lib/order-recap-select';
+import { cristalesPorArmazon } from '@/lib/order-frames';
 import { isTeñidoAddon } from '@/lib/promo-utils';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
@@ -107,6 +108,11 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     const saldo = Math.max(0, total - pagado);
 
     const items: any[] = order.items || [];
+    const cristalesDe = cristalesPorArmazon(order);
+    const asignados = new Set<any>();
+    cristalesDe.forEach(lista => lista.forEach((it: any) => asignados.add(it)));
+    // Lo que no es cristal de ningún anteojo (armazones sueltos, accesorios).
+    const otrosItems = items.filter(it => !asignados.has(it) && !isTeñidoAddon(it.product));
 
     // Una línea por producto, y si es un teñido, CON su color y su grado. Decir
     // "Teñido Degradé" a secas y más abajo listar el color por separado obliga
@@ -163,7 +169,16 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         `Hola ${nombre}! Tu pedido ya salió a fabricación. Te pasamos el detalle *exacto* de cómo se va a fabricar para que lo revises.`,
         ``,
         `*LO QUE ENCARGASTE*`,
-        ...lineasDeItems(items),
+        ...(resumen.pairs.length > 1
+            // Con dos anteojos, listar los cristales en una sola bolsa no dice
+            // cuál lleva qué: se agrupan por anteojo.
+            ? resumen.pairs.flatMap(p => {
+                const suyos = cristalesDe.get(p.pair) || [];
+                const lineas = lineasDeItems(suyos);
+                return lineas.length ? [`${p.label}:`, ...lineas.map(l => `  ${l}`)] : [];
+            })
+            : lineasDeItems(items)),
+        ...(otrosItems.length ? lineasDeItems(otrosItems) : []),
         ``,
         `*TU ANTEOJO*`,
         frameRecapText(order, true),
@@ -182,9 +197,14 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         fotosArmazon.length
             ? `• Mirá la foto que te adjuntamos: ¿es el armazón que elegiste?`
             : `• ¿El armazón es el que elegiste?`,
-        resumen.tint
-            ? `• El teñido va *${resumen.tint.text}*: confirmanos que es el que pediste.`
-            : `• Este pedido va *SIN teñido*. Si lo querés con color, decinos ahora.`,
+        // Con varios anteojos hay que decir CUÁL va teñido, o el cliente
+        // confirma un color creyendo que es para el otro.
+        ...(resumen.pairs.filter(p => p.tint).length > 0
+            ? resumen.pairs.filter(p => p.tint).map(p =>
+                resumen.pairs.length > 1
+                    ? `• El *${p.label.replace('Armazón — ', '')} armazón* va teñido *${p.tint}*: confirmanos que es el que pediste.`
+                    : `• El teñido va *${p.tint}*: confirmanos que es el que pediste.`)
+            : [`• Este pedido va *SIN teñido*. Si lo querés con color, decinos ahora.`]),
         `• Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos.`,
         ``,
         `Respondenos *OK* si está todo bien, o contanos qué corregir. Es el momento: una vez fabricado no se puede cambiar.`,

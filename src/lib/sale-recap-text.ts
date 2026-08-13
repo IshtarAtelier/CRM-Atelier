@@ -61,9 +61,12 @@ export function frameRecapText(order: LabFrameOrder, paraCliente = false): strin
             continue;
         }
         const tenidoDelPar = par.tint ? `teñido ${par.tint}` : (r.pairs.length > 1 ? 'SIN teñido' : null);
+        // El fotocromático es de ESTE anteojo: con dos armazones puede ser uno
+        // solo, y decirlo suelto hacía creer que los dos lo eran.
+        const fotoDelPar = r.pairs.length > 1 && par.photochromic ? 'fotocromático' : null;
         const partes = paraCliente
-            ? [par.shape, par.details, tenidoDelPar].filter(Boolean)
-            : [par.shape, par.measurements, par.fitting, par.details, tenidoDelPar].filter(Boolean);
+            ? [par.shape, par.details, tenidoDelPar, fotoDelPar].filter(Boolean)
+            : [par.shape, par.measurements, par.fitting, par.details, tenidoDelPar, fotoDelPar].filter(Boolean);
         if (partes.length === 0) continue;
         // Al cliente le alcanza saber de quién es el armazón, no la marca y el
         // modelo repetidos: eso ya está en la descripción de la línea.
@@ -87,8 +90,13 @@ export function frameRecapText(order: LabFrameOrder, paraCliente = false): strin
     if (r.tint?.ambiguousPair) {
         lineas.push('⚠️ Hay un teñido sin asignar a ningún armazón: confirmar a cuál corresponde antes de fabricar.');
     }
-    if (tienePhotocromatico(order)) {
+    // Con UN armazón, el fotocromático va suelto y explicado. Con varios ya
+    // quedó pegado a cada uno arriba: repetirlo acá es lo que hacía creer que
+    // todos los anteojos del pedido lo eran.
+    if (r.pairs.length <= 1 && tienePhotocromatico(order)) {
         lineas.push('Fotocromático: SÍ — los cristales se oscurecen solos con el sol.');
+    } else if (r.pairs.length > 1 && r.pairs.some(p => p.photochromic)) {
+        lineas.push('(Fotocromático = los cristales se oscurecen solos con el sol.)');
     }
 
     if (r.notes) lineas.push(`Notas para el laboratorio: ${r.notes}`);

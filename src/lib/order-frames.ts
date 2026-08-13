@@ -184,3 +184,49 @@ export function framesDeLaOrden(order: any): OrderFrameData[] {
 export function etiquetaArmazon(position: number, total: number): string {
     return total <= 1 ? 'Armazón' : `${position}º Armazón`;
 }
+
+
+/**
+ * Qué cristales le tocan a cada armazón.
+ *
+ * Si el item dice `framePosition`, manda eso. Si no —los cristales todavía no
+ * se asignan a mano— se reparten POR ORDEN: el primer par OD/OI es el primer
+ * anteojo, el segundo par el segundo. Es exactamente el mismo criterio con el
+ * que se cuentan los armazones, así que no agrega un supuesto nuevo.
+ *
+ * Devuelve un mapa posición → items.
+ */
+export function cristalesPorArmazon(order: any): Map<number, any[]> {
+    const mapa = new Map<number, any[]>();
+    const total = cantidadDeArmazones(order);
+    for (let p = 1; p <= total; p++) mapa.set(p, []);
+
+    const cristales = (order?.items || []).filter((it: any) => {
+        const prod = productoDe(it);
+        return isCrystal(prod) && !isTeñidoAddon(prod);
+    });
+
+    // Los que ya saben a qué armazón van.
+    const sinAsignar: any[] = [];
+    for (const it of cristales) {
+        if (it.framePosition && mapa.has(it.framePosition)) mapa.get(it.framePosition)!.push(it);
+        else sinAsignar.push(it);
+    }
+
+    // El resto, por orden: se completa un anteojo (OD + OI) antes de pasar al
+    // siguiente. Un cristal sin ojo cuenta como medio par.
+    let pos = 1;
+    const ojosUsados = new Set<string>();
+    for (const it of sinAsignar) {
+        const ojo = (it.eye || '').toUpperCase();
+        const clave = `${pos}|${ojo}`;
+        if (ojo && ojosUsados.has(clave) && pos < total) {
+            pos++;
+            ojosUsados.clear();
+        }
+        mapa.get(Math.min(pos, total))!.push(it);
+        if (ojo) ojosUsados.add(`${pos}|${ojo}`);
+    }
+
+    return mapa;
+}

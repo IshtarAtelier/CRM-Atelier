@@ -232,7 +232,7 @@ check('confirmación: cuando hay teñido, lo dice con color y grado',
 check('con teñido: dice CUÁL es y pide confirmarlo',
     conTenido.waText.includes('El teñido va *Teñido - Gris Oscuro (Grado 80%)*'));
 check('el teñido no se repite en "lo que encargaste"',
-    (conTenido.waText.match(/Teñido/g) || []).length <= 3);
+    !conTenido.waText.split('*TU ANTEOJO*')[0].includes('Teñido'));
 
 const foto = buildSaleConfirmation({
     ...base,
@@ -572,6 +572,38 @@ check('avisa si a un armazón le falta la foto', registro.includes('SIN FOTO'));
 check('la receta va completa', registro.includes('Esf -1.25') && registro.includes('DNP') && registro.includes('Dr. Gómez'));
 check('trae las notas del laboratorio', registro.includes('Bisel al frente'));
 check('y no las repite dos veces', (registro.match(/Bisel al frente/g) || []).length === 1);
+
+// ── 5i. El fotocromático es de CADA anteojo, no del pedido ─────────────────
+// Reportado: con dos armazones el mensaje decía "Fotocromático: SÍ" una sola
+// vez y el cliente entendía que los DOS lo eran, cuando era solo el primero.
+const fotocProd = { name: 'AIRWEAR 1.59 TRANSITIONS GEN S', category: 'Cristal', type: 'Cristal' };
+const comunProd = { name: 'ORMA 1.50 Blanco', category: 'Cristal', type: 'Cristal' };
+const mixto = {
+    frameSource: 'OPTICA',
+    frames: [{ position: 1, shape: 'CATEYE', imageUrl: '/1.jpg' }, { position: 2, shape: 'REDONDO', imageUrl: '/2.jpg' }],
+    items: [
+        { quantity: 1, eye: 'RIGHT', product: fotocProd }, { quantity: 1, eye: 'LEFT', product: fotocProd },
+        { quantity: 1, eye: 'RIGHT', product: comunProd }, { quantity: 1, eye: 'LEFT', product: comunProd },
+    ],
+};
+const paresMixto = describeLabFrameDetails(mixto).pairs;
+check('el 1º armazón queda marcado como fotocromático', paresMixto[0].photochromic === true);
+check('y el 2º NO', paresMixto[1].photochromic === false);
+const textoMixto = frameRecapText(mixto);
+check('el repaso dice fotocromático solo en el armazón que lo lleva',
+    (textoMixto.match(/· fotocromático/g) || []).length === 1);
+
+const ambosFotoc = { ...mixto, items: [
+    { quantity: 1, eye: 'RIGHT', product: fotocProd }, { quantity: 1, eye: 'LEFT', product: fotocProd },
+    { quantity: 1, eye: 'RIGHT', product: fotocProd }, { quantity: 1, eye: 'LEFT', product: fotocProd },
+] };
+check('si los dos son fotocromáticos, los dos lo dicen',
+    (frameRecapText(ambosFotoc).match(/· fotocromático/g) || []).length === 2);
+
+check('un cristal común no se marca como fotocromático',
+    describeLabFrameDetails({ frames: [{ position: 1 }], items: [
+        { quantity: 1, eye: 'RIGHT', product: comunProd }, { quantity: 1, eye: 'LEFT', product: comunProd },
+    ] }).pairs[0].photochromic === false);
 
 // ── 6. El presupuesto que queda en la ficha ES la copia que recibió el cliente ─
 const { buildQuoteMessage } = await import('../../src/lib/quote-message.ts');

@@ -1,5 +1,13 @@
-import { framesDeLaOrden, cantidadDeArmazones } from './order-frames';
+import { framesDeLaOrden, cantidadDeArmazones, cristalesPorArmazon } from './order-frames';
 import { isTeñidoAddon } from './promo-utils';
+
+/** ¿Este cristal es fotocromático? Mismo criterio en todo el sistema. */
+function esFotocromatico(product: any): boolean {
+    const t = `${product?.name || ''} ${product?.type || ''} ${product?.category || ''}`
+        .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return t.includes('fotocromatic') || t.includes('transitions')
+        || t.includes('acclimates') || t.includes('xtractive');
+}
 // ────────────────────────────────────────────────────────────────────────────
 // Resumen de lo que el vendedor cargó en el Repaso Final (armazón, medidas,
 // forma, teñido) para mostrarlo IGUAL en los tres lugares donde alguien lo
@@ -119,6 +127,8 @@ export interface LabFramePairSummary {
     imageUrl: string | null;
     /** El teñido de ESTE armazón, si lo lleva. null = no lleva. */
     tint: string | null;
+    /** Los cristales de ESTE armazón son fotocromáticos. */
+    photochromic: boolean;
     /** Ninguno de los campos de este par tiene datos cargados todavía. */
     isEmpty: boolean;
 }
@@ -174,6 +184,7 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
             details: f.details,
             imageUrl: f.imageUrl,
             tint: null,
+            photochromic: false,
             isEmpty: !f.shape && !medidas && !f.details,
         };
     });
@@ -197,6 +208,17 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
         return partes.length > 0 ? partes.join(' · ') : 'sin color elegido';
     };
 
+    // El fotocromático es de LOS CRISTALES de cada anteojo, no del pedido: en un
+    // 2x1 es normal que uno sea fotocromático y el otro no. Decirlo una sola vez
+    // para todo el pedido hacía creer al cliente que los dos lo eran.
+    const cristalesDe = cristalesPorArmazon(order as any);
+    for (const par of pairs) {
+        const suyos = cristalesDe.get(par.pair) || [];
+        par.photochromic = suyos.some((it: any) => esFotocromatico(it.product || {
+            name: it.productNameSnapshot, type: it.productTypeSnapshot, category: it.productCategorySnapshot,
+        }));
+    }
+
     // A QUÉ armazón va cada teñido. Con un solo armazón no hay nada que atar.
     // Con varios, manda `framePosition` del item; si no está cargado (pedidos
     // anteriores) queda sin asignar y se avisa, en vez de adivinar y mandar
@@ -219,6 +241,10 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
         };
     } else if (order.labTreatment || order.labColor) {
         const partes = [order.labTreatment, order.labColor].filter(Boolean);
+        // Teñido por el camino viejo (campos del pedido, sin item): se le
+        // atribuye al primer armazón. Sin esto, un pedido viejo con teñido
+        // aparecía como "SIN teñido" en el mensaje al cliente.
+        if (pairs[0]) pairs[0].tint = partes.join(' - ');
         tint = {
             text: partes.join(' - '),
             // Con más de un armazón y una sola línea de teñido no se sabe a cuál
