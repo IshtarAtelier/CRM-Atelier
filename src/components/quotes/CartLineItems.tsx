@@ -5,6 +5,7 @@ import { ShoppingBag, X, Minus, Plus, Palette, ChevronDown } from 'lucide-react'
 import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice } from '@/lib/promo-utils';
 import { formatLensRange } from '@/lib/lens-range';
 import { needsColorSelection, COLOR_CATEGORIES } from '@/lib/crystal-color-utils';
+import { INTENSIDADES_TENIDO } from '@/lib/constants/tenido';
 import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 
@@ -156,19 +157,27 @@ export default function CartLineItems({
                         {/* Inline Color Selector — Nota libre + Two-step: Style → Color */}
                         {showColorSelector && isColorExpanded && (
                             <div className="bg-violet-50/50 dark:bg-violet-950/20 border-x border-b border-stone-200/60 dark:border-stone-800 rounded-b-2xl p-4 animate-in slide-in-from-top-1 duration-300">
-                                {/* Color y grado a mano — el cliente puede pedir un color/intensidad que no está en la lista */}
+                                {/* Intensidad: se sugieren los valores que ofrece SmartLab, pero
+                                    el campo se puede ESCRIBIR. Hay pedidos que piden cosas como
+                                    "60% más oscuro arriba", y encerrar eso en una lista obligaría
+                                    al vendedor a elegir algo que no es lo que pidió el cliente. */}
                                 <div className="mb-3 flex items-center gap-1.5">
                                     <Palette className="w-3 h-3 text-violet-400 shrink-0" />
-                                    <label className="text-[9px] font-bold text-violet-500 dark:text-violet-400 uppercase tracking-wider shrink-0">
-                                        Intensidad / color a pedido
+                                    <label htmlFor={`grado-${idx}`} className="text-[9px] font-bold text-violet-500 dark:text-violet-400 uppercase tracking-wider shrink-0">
+                                        Grado / intensidad
                                     </label>
                                     <input
+                                        id={`grado-${idx}`}
                                         type="text"
+                                        list={`grados-tenido-${idx}`}
                                         defaultValue={item.crystalColorNote || ''}
                                         onBlur={e => onUpdateItemNote?.(idx, e.target.value)}
-                                        placeholder="Ej: 60% de intensidad, más oscuro arriba..."
+                                        placeholder="0.5 · 1 · 2 · 3 · 4 — o escribí el detalle"
                                         className="flex-1 min-w-0 px-2 py-1 rounded-lg text-[11px] font-medium border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/20 outline-none transition-all"
                                     />
+                                    <datalist id={`grados-tenido-${idx}`}>
+                                        {INTENSIDADES_TENIDO.map(g => <option key={g} value={g} />)}
+                                    </datalist>
                                 </div>
 
                                 {crystalColors.length > 0 && (

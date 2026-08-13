@@ -386,6 +386,18 @@ check('con una línea de teñido por par NO avisa ambigüedad',
 check('con UNA línea para dos pares, avisa que no se sabe a cuál corresponde',
     describeLabFrameDetails({ items: items2x1.slice(0, 4).concat([{ product: tenidoProd, price: 0 }]), appliedPromoName: 'Promo 2x1', labTreatment: 'Teñido', labColor: 'Gris' }).tint?.ambiguousPair === true);
 
+// ── 5e. Los tonos de teñido son los que acepta el laboratorio ───────────────
+// Si el vendedor elige un tono que SmartLab no tiene, alguien va a tener que
+// llamar para corregirlo y el pedido queda parado.
+const { TONOS_TENIDO, ESTILOS_TENIDO, INTENSIDADES_TENIDO } = await import('../../src/lib/constants/tenido.ts');
+check('los tonos son los 8 de SmartLab, en su orden',
+    JSON.stringify(TONOS_TENIDO.map(t => t.name)) ===
+    JSON.stringify(['Gris', 'Verde', 'Sepia', 'G15', 'Nigth Drive', 'Azul', 'Rosa', 'Rojo']));
+check('cada tono tiene su muestra de color', TONOS_TENIDO.every(t => /^#[0-9a-f]{6}$/i.test(t.hexColor)));
+check('los tres estilos de teñido siguen estando', ESTILOS_TENIDO.length === 3);
+check('las intensidades son las de SmartLab',
+    JSON.stringify([...INTENSIDADES_TENIDO]) === JSON.stringify(['0.5', '1', '2', '3', '4']));
+
 // ── 6. El presupuesto que queda en la ficha ES la copia que recibió el cliente ─
 const { buildQuoteMessage } = await import('../../src/lib/quote-message.ts');
 const { splitDetalle, DETALLE_MARK, buildOrderDetailSummary } = await import('../../src/lib/order-detail-summary.ts');
