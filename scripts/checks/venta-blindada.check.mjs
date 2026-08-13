@@ -196,6 +196,49 @@ check('confirmación 2x1: avisa que el teñido no dice a qué par corresponde',
 const actualizada = buildSaleConfirmation(base, true);
 check('confirmación re-enviada: avisa que reemplaza a la anterior', /PEDIDO ACTUALIZADO/.test(actualizada.waText));
 
+// ── 6. El presupuesto que queda en la ficha ES la copia que recibió el cliente ─
+const { buildQuoteMessage } = await import('../../src/lib/quote-message.ts');
+const { splitDetalle, DETALLE_MARK, buildOrderDetailSummary } = await import('../../src/lib/order-detail-summary.ts');
+
+const presupuesto = {
+    id: 'cmyyyyyyyyyyyyyyyycd34',
+    orderType: 'QUOTE',
+    total: 200000, subtotalWithMarkup: 200000, paid: 50000, markup: 0,
+    discountCash: 10, discountTransfer: 5, discountCard: 0,
+    items: [
+        { quantity: 1, price: 120000, product: { name: 'Cápsula Escarlata', brand: 'Atelier' } },
+        { quantity: 1, price: 40000, eye: 'RIGHT', product: { name: 'Cristal Monofocal 1.60' } },
+        { quantity: 1, price: 40000, eye: 'LEFT', product: { name: 'Cristal Monofocal 1.60' } },
+    ],
+    payments: [{ amount: 50000, method: 'CASH' }],
+};
+
+const copia = buildQuoteMessage(presupuesto, 'Ana Pérez');
+check('presupuesto: dice PRESUPUESTO (no VENTA)', copia.includes('*PRESUPUESTO — ATELIER ÓPTICA*'));
+check('presupuesto: trae las 3 cuotas sin interés', copia.includes('3 cuotas sin interés'));
+check('presupuesto: trae las 6 cuotas sin interés', copia.includes('6 cuotas sin interés'));
+check('presupuesto: trae los tres medios de pago',
+    copia.includes('Transf.') && copia.includes('Efectivo') && copia.includes('Tarjeta (Lista)'));
+check('presupuesto: los dos cristales del mismo modelo son UNA línea',
+    (copia.match(/Cristal Monofocal 1\.60/g) || []).length === 1);
+check('presupuesto: muestra lo ya abonado y el saldo', copia.includes('Ya abonaste: $50.000') && copia.includes('Saldo en efectivo:'));
+check('presupuesto: nunca dice "undefined" ni "NaN"', !/undefined|NaN/.test(copia));
+
+const ventaMsg = buildQuoteMessage({ ...presupuesto, orderType: 'SALE' }, 'Ana Pérez');
+check('presupuesto: una venta se titula VENTA', ventaMsg.includes('*VENTA — ATELIER ÓPTICA*'));
+
+// La nota de la ficha: resumen visible + copia exacta colapsada.
+const nota = `📄 Presupuesto enviado por Yani: por WhatsApp al 3510000000.${DETALLE_MARK}${copia}`;
+const partido = splitDetalle(nota);
+check('nota de presupuesto: el resumen queda en una línea legible', !partido.resumen.includes('cuotas'));
+check('nota de presupuesto: el detalle colapsado es EXACTAMENTE la copia enviada', partido.detalle === copia);
+
+// El detalle del PDF también tiene que traer las cuotas.
+const detallePdf = buildOrderDetailSummary(presupuesto);
+check('detalle del PDF: incluye las cuotas', detallePdf.includes('3 cuotas sin interés') && detallePdf.includes('6 cuotas sin interés'));
+check('detalle del PDF: incluye los tres medios de pago',
+    detallePdf.includes('💵 Efectivo') && detallePdf.includes('🏦 Transferencia') && detallePdf.includes('💳 Tarjeta'));
+
 // Deja el mail renderizado para poder mirarlo con los ojos.
 const { writeFileSync } = await import('node:fs');
 const salida = 'scripts/checks/.confirmacion-compra.preview.html';

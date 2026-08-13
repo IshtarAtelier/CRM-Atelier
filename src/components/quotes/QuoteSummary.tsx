@@ -18,7 +18,6 @@ import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
 // Modular Components
 import QuoteLineItems from './QuoteLineItems';
-import { lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
@@ -385,51 +384,23 @@ export default function QuoteSummary({
         return labels[method] || method;
     };
 
+    // El texto ya no se arma acá: lo arma el servidor desde el pedido, así la
+    // copia que recibe el cliente y la que queda en la ficha son el mismo string
+    // (y el navegador no puede tocar los importes).
     const handleWhatsApp = async () => {
-        const items = order.items || [];
-        const summary: Record<string, { brand: string, name: string, origin: string }> = {};
-        items.forEach((it: any) => {
-            const brand = it.product?.brand || it.productBrandSnapshot || '';
-            const name = it.product?.name || it.productNameSnapshot || 'Producto';
-            const origin = lensOriginSuffix(lensOriginFromItem(it));
-            const key = `${brand}|${name}`;
-            if (!summary[key]) summary[key] = { brand, name, origin };
-        });
-
-        const itemLines = Object.values(summary).map((g) => `• ${g.brand ? g.brand + ' · ' : ''}${g.name}${g.origin}`).join('\n');
-        
-        let text = `✨ *${isSale ? 'VENTA' : 'PRESUPUESTO'} — ATELIER ÓPTICA* ✨\n`;
-        text += `👤 *Cliente:* ${contact.name}\n\n`;
-        text += `${itemLines}\n\n`;
-        // Si el admin aplicó un descuento especial, el mensaje lo dice en vez de
-        // mostrar un precio de lista más bajo sin explicación: `listPrice` ya viene
-        // neto, así que se parte del precio previo y se muestra la resta.
-        if (financials.specialDiscount > 0) {
-            text += `Precio Lista: $${Math.round(financials.listPriceBeforeSpecial).toLocaleString()}\n`;
-            text += `✨ *Descuento especial: -$${Math.round(financials.specialDiscount).toLocaleString()}*\n`;
-            text += `*Precio con tu descuento: $${Math.round(financials.listPrice).toLocaleString()}*\n`;
-        } else {
-            text += `*Precio Lista: $${Math.round(financials.listPrice).toLocaleString()}*\n`;
-        }
-        text += `🏦 *Transf. (-${financials.discountTransfer}%): $${financials.totalTransfer.toLocaleString()}*\n`;
-        text += `💵 *Efectivo (-${financials.discountCash}%): $${financials.totalCash.toLocaleString()}*\n`;
-        text += `💳 *Tarjeta (Lista): $${financials.totalCard.toLocaleString()}*\n`;
-        text += `   ↳ 3 cuotas sin interés: $${financials.installment3.toLocaleString()} c/u\n`;
-        text += `   ↳ 6 cuotas sin interés: $${financials.installment6.toLocaleString()} c/u\n`;
-
         const formattedPhone = formatPhoneForWhatsApp(contact.phone);
         if (!formattedPhone || formattedPhone === '549') return;
 
         setIsSendingWhatsApp(true);
         try {
-            const res = await fetch('/api/whatsapp/send', {
+            const res = await fetch(`/api/orders/${order.id}/send-quote`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatId: `${formattedPhone}@c.us`, message: text })
+                body: JSON.stringify({ formattedPhone })
             });
 
             if (res.ok) {
-                alert(`✅ ${isSale ? 'Venta' : 'Presupuesto'} enviado por WhatsApp`);
+                alert(`✅ ${isSale ? 'Venta' : 'Presupuesto'} enviado por WhatsApp y registrado en la ficha`);
             } else {
                 const errData = await res.json().catch(() => ({}));
                 console.error('[WhatsApp Text] Error:', res.status, errData);

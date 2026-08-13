@@ -62,7 +62,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             // separador que la ficha usa para mostrarlo colapsado.
             let cuerpo = `${ok ? '📄' : '⚠️'} Presupuesto ${ok ? 'enviado' : 'NO enviado'} por ${senderName}: ${detalle}`;
             try {
-                cuerpo += `${DETALLE_MARK}${buildOrderDetailSummary(order)}`;
+                // Primero el mensaje textual que acompañó al PDF (lo que el
+                // cliente ve en el chat), después el contenido del PDF.
+                cuerpo += `${DETALLE_MARK}Mensaje enviado al cliente:\n${text}\n\n— CONTENIDO DEL PDF —\n${buildOrderDetailSummary(order)}`;
             } catch (e) {
                 // El detalle es un extra: si falla, la nota igual tiene que quedar.
                 console.error('[send-pdf] No se pudo armar el detalle del presupuesto:', e);
