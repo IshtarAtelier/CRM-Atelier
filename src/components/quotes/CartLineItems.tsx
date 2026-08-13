@@ -210,27 +210,28 @@ export default function CartLineItems({
                                 <p className="text-[10px] font-black text-violet-700 dark:text-violet-300 uppercase tracking-widest mb-3">
                                     Teñido — elegí el color y el grado
                                 </p>
-                                {/* Intensidad: se sugieren los valores que ofrece SmartLab, pero
-                                    el campo se puede ESCRIBIR. Hay pedidos que piden cosas como
-                                    "60% más oscuro arriba", y encerrar eso en una lista obligaría
-                                    al vendedor a elegir algo que no es lo que pidió el cliente. */}
-                                <div className="mb-3 flex items-center gap-1.5">
+                                {/* Grado: desplegable con los valores de SmartLab, igual que el
+                                    del laboratorio. Se elige de la lista y listo — el campo
+                                    escribible obligaba a tipear un número que ya está. */}
+                                <div className="mb-3 flex items-center gap-2">
                                     <Palette className="w-3 h-3 text-violet-400 shrink-0" />
                                     <label htmlFor={`grado-${idx}`} className="text-[9px] font-bold text-violet-500 dark:text-violet-400 uppercase tracking-wider shrink-0">
                                         Grado
                                     </label>
-                                    <input
+                                    <select
                                         id={`grado-${idx}`}
-                                        type="text"
-                                        list={`grados-tenido-${idx}`}
-                                        defaultValue={item.crystalColorNote || ''}
-                                        onBlur={e => onUpdateItemNote?.(idx, e.target.value)}
-                                        placeholder="0.5 · 1 · 2 · 3 · 4 — o escribí el detalle"
-                                        className="flex-1 min-w-0 px-2 py-1 rounded-lg text-[11px] font-medium border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/20 outline-none transition-all"
-                                    />
-                                    <datalist id={`grados-tenido-${idx}`}>
-                                        {INTENSIDADES_TENIDO.map(g => <option key={g} value={g} />)}
-                                    </datalist>
+                                        value={item.crystalColorNote || ''}
+                                        onChange={e => onUpdateItemNote?.(idx, e.target.value)}
+                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 focus:border-violet-400 focus:ring-1 focus:ring-violet-400/20 outline-none transition-all"
+                                    >
+                                        <option value="">— elegí —</option>
+                                        {INTENSIDADES_TENIDO.map(g => <option key={g} value={g}>{g}</option>)}
+                                        {/* Un grado cargado antes que no esté en la lista no se
+                                            pierde ni se pisa en silencio. */}
+                                        {item.crystalColorNote && !INTENSIDADES_TENIDO.includes(item.crystalColorNote) && (
+                                            <option value={item.crystalColorNote}>{item.crystalColorNote}</option>
+                                        )}
+                                    </select>
                                 </div>
 
                                 {/* Los COLORES, directo. El estilo (compacto / degradé /

@@ -30,13 +30,11 @@ export const TONOS_TENIDO: TonoTenido[] = [
 ];
 
 /**
- * Intensidades que ofrece SmartLab.
- *
- * Se muestran como sugerencia, pero el campo SIGUE siendo escribible: hay
- * pedidos que piden cosas como "60% más oscuro arriba" y encerrar eso en una
- * lista obligaría al vendedor a elegir algo que no es lo que el cliente pidió.
+ * Los grados de teñido que ofrece SmartLab, en un desplegable igual al del
+ * laboratorio. Un grado cargado antes que no esté en esta lista se sigue
+ * mostrando: corregir el catálogo no puede borrar lo que ya se pidió.
  */
-export const INTENSIDADES_TENIDO = ['0.5', '1', '2', '3', '4'] as const;
+export const INTENSIDADES_TENIDO: readonly string[] = ['0.5', '1', '2', '3', '4'];
 
 /** Los tres estilos de teñido, con el nombre que usa el laboratorio. */
 export const ESTILOS_TENIDO = [

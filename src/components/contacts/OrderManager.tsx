@@ -107,6 +107,13 @@ export default function OrderManager({
                         productBrandSnapshot: i.productBrandSnapshot || i.product?.brand || null,
                         productNameSnapshot: i.productNameSnapshot || i.product?.name || i.product?.model || null,
                         productCategorySnapshot: i.productCategorySnapshot || i.product?.category || null,
+                        // El color y el grado del teñido faltaban en este payload:
+                        // el vendedor los elegía, los veía en pantalla, guardaba…
+                        // y se perdían en silencio. El cotizador sí los mandaba;
+                        // la ficha del cliente no.
+                        crystalColor: i.crystalColor || null,
+                        crystalColorType: i.crystalColorType || null,
+                        crystalColorNote: i.crystalColorNote || null,
                     })),
                     markup: quoteMarkup,
                     discountCash: quoteDiscountCash,
