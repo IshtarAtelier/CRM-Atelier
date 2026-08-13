@@ -222,6 +222,47 @@ export default function CheckoutModal({
                        (!hasCrystals || (selectedRxId && isFrameDataComplete)) &&
                        isRxComplete;
 
+    // ── QUÉ falta, con nombre y apellido (pedido del 12/8/2026) ──────────────
+    // El botón deshabilitado sin explicación hacía perder tiempo a los
+    // vendedores: no se daban cuenta de QUÉ faltaba y revisaban todo a mano.
+    // Esta lista se deriva de LAS MISMAS condiciones que arman canConvert —si
+    // el botón está apagado, acá está el porqué, ítem por ítem. Se muestra en
+    // un cartel fijo arriba de todo (no scrollea) y al lado del botón.
+    const faltantes: string[] = [];
+    if (!depositClearsFactoryGate({ paid, total, authorizedByAdmin: isAuthorized })) {
+        faltantes.push(`Seña: lleva $${paid.toLocaleString('es-AR')} y el mínimo es $${minRequired.toLocaleString('es-AR')} (o tilde de autorización de un admin)`);
+    }
+    if (!clientForm.dni?.trim()) faltantes.push('DNI del cliente');
+    if (!clientForm.address?.trim()) faltantes.push('Dirección del cliente');
+    if (!clientForm.phone?.trim()) faltantes.push('Teléfono del cliente');
+    if (!clientForm.email?.trim()) faltantes.push('Email del cliente');
+    if (!clientForm.birthDate) faltantes.push('Fecha de nacimiento del cliente');
+    if (hasCrystals && !isContactLens) {
+        if (!selectedRx) {
+            faltantes.push('Seleccionar (o cargar) una receta');
+        } else {
+            if (!selectedRx.imageUrl) faltantes.push('Foto de la receta');
+            if (!(selectedRx.distanceOD != null || selectedRx.distanceOI != null || selectedRx.pd != null)) faltantes.push('DNP (distancia pupilar) en la receta');
+            if (needsHeightOD && selectedRx.heightOD == null) faltantes.push('Altura OD en la receta');
+            if (needsHeightOI && selectedRx.heightOI == null) faltantes.push('Altura OI en la receta');
+        }
+    }
+    if (hasCrystals && needsFrameData) {
+        if (!frameDetails.trim()) faltantes.push('Detalle del armazón (forma/material)');
+        if (!frameMeasurePte.trim()) faltantes.push('Medida puente (DBL) del armazón');
+        if (!frameMeasureA.trim()) faltantes.push('Medida A del armazón');
+        if (!frameMeasureB.trim()) faltantes.push('Medida B del armazón');
+        if (!frameMeasureEd.trim()) faltantes.push('Medida ED del armazón');
+        if (frameSource === 'USUARIO' && !userFrameBrand.trim() && !userFrameModel.trim()) faltantes.push('Marca o modelo del armazón que trae el cliente');
+        if (is2x1) {
+            if (!frameDetails2.trim()) faltantes.push('Detalle del 2º armazón (promo 2x1)');
+            if (!frameMeasurePte2.trim()) faltantes.push('Medida puente (DBL) del 2º armazón');
+            if (!frameMeasureA2.trim()) faltantes.push('Medida A del 2º armazón');
+            if (!frameMeasureB2.trim()) faltantes.push('Medida B del 2º armazón');
+            if (!frameMeasureEd2.trim()) faltantes.push('Medida ED del 2º armazón');
+        }
+    }
+
     // Tilde de autorización dentro del checkout (solo ADMIN). Persiste authorizedByAdmin
     // en la orden, igual que el checkbox de la tarjeta del presupuesto.
     const handleAuthorize = async (checked: boolean) => {
@@ -409,6 +450,24 @@ export default function CheckoutModal({
                         <X className="w-6 h-6" />
                     </button>
                 </header>
+
+                {/* Cartel de faltantes: FUERA del área que scrollea, así queda
+                    adelante del todo siempre. Rojo y enumerado: el vendedor ve
+                    de un vistazo qué completar en vez de adivinar por qué el
+                    botón de enviar está apagado. */}
+                {faltantes.length > 0 && (
+                    <div className="px-8 py-4 bg-red-50 dark:bg-red-950/30 border-b-2 border-red-200 dark:border-red-900 shrink-0">
+                        <p className="flex items-center gap-2 text-xs font-black text-red-700 dark:text-red-300 uppercase tracking-widest mb-1.5">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            Para enviar a fábrica falta{faltantes.length > 1 ? `n ${faltantes.length} datos` : ' 1 dato'}:
+                        </p>
+                        <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-0.5 pl-6">
+                            {faltantes.map(f => (
+                                <li key={f} className="text-[11px] font-bold text-red-800 dark:text-red-200 list-disc">{f}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 <main className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
                     
@@ -1064,9 +1123,10 @@ export default function CheckoutModal({
                                 <><Save className="w-4 h-4" /> GUARDAR DATOS</>
                             )}
                         </button>
-                        <button 
+                        <button
                             onClick={handleConfirm}
                             disabled={loading || !canConvert}
+                            title={!canConvert && faltantes.length > 0 ? `Falta: ${faltantes.join(' · ')}` : undefined}
                             className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:scale-100"
                         >
                             {loading ? (
