@@ -199,25 +199,32 @@ export default function PrescriptionDetails({
                         <Activity className="w-4 h-4 opacity-50" />
                     </div>
                     <div className="grid grid-cols-1 divide-y divide-amber-100 dark:divide-amber-900/30">
-                        {/* OD Cerca */}
-                        <div className="grid grid-cols-4 sm:grid-cols-6 items-center bg-amber-50/30 dark:bg-amber-950/10">
+                        {/* OD Cerca. La Adición también acá (pedido del 12/8/2026):
+                            es EL dato que define la visión de cerca y no se veía en
+                            esta sección — el vendedor tenía que subir a la tabla de
+                            lejos para verla o cargarla. Es el mismo campo
+                            additionOD/OI (la adición es una sola por ojo), editable
+                            desde cualquiera de las dos tablas. */}
+                        <div className="grid grid-cols-4 sm:grid-cols-7 items-center bg-amber-50/30 dark:bg-amber-950/10">
                             <div className="px-6 py-4 bg-emerald-500/5 border-r border-amber-100 dark:border-amber-900/30">
                                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-500 text-white text-[10px] font-black">OD</span>
                             </div>
                             {renderCell('Esfera', prescription?.nearSphereOD, 'nearSphereOD')}
                             {renderCell('Cilindro', prescription?.nearCylinderOD, 'nearCylinderOD')}
                             {renderCell('Eje', prescription?.nearAxisOD, 'nearAxisOD', '°')}
+                            {renderCell('Add', prescription?.additionOD ?? prescription?.addition, 'additionOD', '', '+')}
                             {renderCell('DNP', prescription?.nearDistanceOD, 'nearDistanceOD')}
                             {renderCell('Altura', prescription?.heightOD, 'heightOD')}
                         </div>
                         {/* OI Cerca */}
-                        <div className="grid grid-cols-4 sm:grid-cols-6 items-center bg-white/50 dark:bg-stone-900/5">
+                        <div className="grid grid-cols-4 sm:grid-cols-7 items-center bg-white/50 dark:bg-stone-900/5">
                             <div className="px-6 py-4 bg-blue-500/5 border-r border-amber-100 dark:border-amber-900/30">
                                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-500 text-white text-[10px] font-black">OI</span>
                             </div>
                             {renderCell('Esfera', prescription?.nearSphereOI, 'nearSphereOI')}
                             {renderCell('Cilindro', prescription?.nearCylinderOI, 'nearCylinderOI')}
                             {renderCell('Eje', prescription?.nearAxisOI, 'nearAxisOI', '°')}
+                            {renderCell('Add', prescription?.additionOI ?? prescription?.addition, 'additionOI', '', '+')}
                             {renderCell('DNP', prescription?.nearDistanceOI, 'nearDistanceOI')}
                             {renderCell('Altura', prescription?.heightOI, 'heightOI')}
                         </div>
