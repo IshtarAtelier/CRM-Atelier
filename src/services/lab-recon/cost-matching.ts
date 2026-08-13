@@ -3,7 +3,8 @@ import { RESOLUCIONES_CONOCIDAS } from '../lab-providers/resoluciones';
 import { isQuietLab } from './backfill';
 import { sendChargedReworkAlert } from './alerts';
 import { completePostSaleCost } from './order-status';
-import { LabCostInput, LabName, LAB_ITEM_PATTERNS, TOLERANCE } from './types';
+import type { LabCostInput, LabName } from './types';
+import { LAB_ITEM_PATTERNS, TOLERANCE } from './types';
 
 /**
  * EL NÚCLEO DEL CRUCE: registra el costo que facturó un laboratorio por un nº de

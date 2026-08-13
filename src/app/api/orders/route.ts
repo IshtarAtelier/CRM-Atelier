@@ -412,6 +412,14 @@ export async function GET(request: Request) {
             labFrameShape2: true,
             labFrameDetails2: true,
             prescriptionId: true,
+            // La receta congelada al enviar a fábrica: es la que la venta muestra,
+            // aunque después alguien corrija la receta viva en la ficha.
+            prescriptionSnapshot: true,
+            isLocked: true,
+            labSentBy: true,
+            // Sin esto, un 2x1 detectado por promo (y no por el nombre del item)
+            // no muestra el segundo par en el repaso.
+            appliedPromoName: true,
             postSaleCases: {
                 orderBy: { createdAt: 'desc' as const },
                 select: {

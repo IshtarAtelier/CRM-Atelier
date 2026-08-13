@@ -17,12 +17,9 @@ import { matchContactSource, SIN_ORIGEN } from '@/lib/contact-source';
 import { etiquetasQueLeCorresponden, esEtiquetaDesconectable } from '@/lib/contact-tags';
 
 
-// Estados de laboratorio en los que el pedido ya está EN PROCESO de fabricación
-// (o más avanzado). A partir de "Procesado" la receta queda congelada: cambiarla
-// en el lugar alteraría lo que fábrica ya está produciendo. Solo un ADMIN puede
-// autorizar el cambio; de lo contrario hay que manejarlo como Post-Venta / Reproceso.
-// (Nota: 'SENT' = "Falta procesar" NO bloquea; todavía se puede corregir.)
-const LAB_PROCESSED_STATUSES = ['IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
+// Qué congela la receta ya NO se decide por estado de laboratorio: se decide por
+// el candado de la venta (`Order.isLocked`). Mirar los estados dejaba pasar
+// 'SENT' — y una venta en 'SENT' ya se mandó a fábrica. Ver _assertPrescriptionEditable.
 const LAB_STATUS_LABELS: Record<string, string> = {
     SENT: 'Falta procesar',
     IN_PROGRESS: 'Procesado',
@@ -1634,15 +1631,25 @@ export const ContactService = {
     },
 
     async _assertPrescriptionEditable(presId: string, role?: string | null) {
-        // El ADMIN puede modificar la receta aunque el pedido esté procesado:
-        // su acción ES la autorización requerida.
-        if (role === 'ADMIN') return;
-
+        // Regla del negocio (12/8/2026): la receta de una venta ENVIADA no se
+        // toca — NADIE, tampoco el ADMIN. Este guard tenía dos agujeros que
+        // costaron un incidente real el mismo día:
+        //   1. `if (role === 'ADMIN') return` — el admin editaba en silencio y
+        //      la venta cambiaba retroactivamente sin registro alguno. El
+        //      camino del admin ES reabrir la venta (queda registrado quién,
+        //      cuándo y por qué), no saltarse el candado.
+        //   2. Solo miraba LAB_PROCESSED_STATUSES, y 'SENT' ("Falta procesar")
+        //      no está en la lista: una venta recién convertida quedaba
+        //      editable para cualquiera.
+        // Ahora el candado es el mismo de la venta: orderType SALE + isLocked.
+        // Una venta REABIERTA por el admin (isLocked=false) sí permite editar —
+        // ese es el único camino, y deja rastro en el historial.
         const lockedOrder = await prisma.order.findFirst({
             where: {
                 prescriptionId: presId,
                 isDeleted: false,
-                labStatus: { in: LAB_PROCESSED_STATUSES },
+                orderType: 'SALE',
+                isLocked: true,
             },
             select: { id: true, labStatus: true, labOrderNumber: true },
             orderBy: { labSentAt: 'desc' },
@@ -1651,8 +1658,9 @@ export const ContactService = {
             const label = LAB_STATUS_LABELS[lockedOrder.labStatus || ''] || lockedOrder.labStatus;
             const opRef = lockedOrder.labOrderNumber ? ` (OP ${lockedOrder.labOrderNumber})` : '';
             const err: any = new Error(
-                `No se puede modificar la receta: el pedido ya está en fábrica${opRef} (estado "${label}"). ` +
-                `Se requiere autorización del administrador. Si corresponde un cambio, manejalo como caso de Post-Venta / Reproceso.`
+                `Esta receta está usada en la venta #${lockedOrder.id.slice(-4).toUpperCase()} ya enviada a fábrica${opRef} (estado "${label}"). ` +
+                `No se puede modificar: un administrador debe REABRIR la venta (queda registrado) y recién ahí editar. ` +
+                `Si el trabajo ya se fabricó, corresponde un caso de Post-Venta / Reproceso.`
             );
             err.code = 'PRESCRIPTION_LOCKED';
             throw err;
