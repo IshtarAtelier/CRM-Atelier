@@ -185,7 +185,14 @@ check('confirmación: NO le pide una foto al cliente',
 
 const conFoto = buildSaleConfirmation({ ...base, frameImageUrl: '/uploads/armazon.jpg' });
 check('confirmación: cuando hay foto del armazón, se la MUESTRA', conFoto.emailHtml.includes('/uploads/armazon.jpg'));
-check('confirmación: y le pide que la mire para confirmar', /Mir[aá] la foto del armaz/.test(conFoto.waText));
+check('confirmación: y le pide que la mire para confirmar',
+    /Mir[aá] la foto que te adjuntamos/.test(conFoto.waText));
+
+// Prolijidad: el mensaje se lee de un vistazo o no se lee. Las secciones van
+// separadas por una línea en blanco, y el teñido aparece UNA sola vez.
+check('el mensaje separa las secciones con líneas en blanco',
+    conFoto.waText.includes('\n\n*LO QUE ENCARGASTE*'));
+
 // Dos fotos existen solo si hay DOS armazones: la cantidad la marcan los pares
 // de cristales (o la promo 2x1 como piso), no las columnas sueltas.
 check('confirmación: con dos armazones entran las dos fotos',
@@ -195,8 +202,9 @@ check('confirmación: con dos armazones entran las dos fotos',
 // que lo confirme; si no lleva, lo dice y ofrece agregarlo. La versión genérica
 // ("si son de sol, confirmanos el color") le pedía al cliente un dato que el
 // sistema ya tiene.
-check('sin teñido: lo dice y ofrece agregarlo', /va SIN teñido/.test(sinTenido.waText));
-check('confirmación: invita a preguntar los términos que no se entienden', /preguntanos ahora/.test(sinTenido.waText));
+check('sin teñido: lo dice y ofrece agregarlo', /\*SIN teñido\*/.test(sinTenido.waText));
+check('confirmación: invita a preguntar los términos que no se entienden',
+    /preguntanos y te lo explicamos/.test(sinTenido.waText));
 check('confirmación: adjunta la foto de la receta', !!sinTenido.prescriptionImageUrl);
 check('confirmación: nunca dice "undefined" ni "null"',
     !/undefined|\bnull\b/.test(sinTenido.waText) && !/undefined/.test(sinTenido.emailHtml));
@@ -206,6 +214,8 @@ check('confirmación: cuando hay teñido, lo dice con color y grado',
     conTenido.waText.includes('Teñido: Teñido - Gris Oscuro (Grado 80%)'));
 check('con teñido: dice CUÁL es y pide confirmarlo',
     conTenido.waText.includes('El teñido va *Teñido - Gris Oscuro (Grado 80%)*'));
+check('el teñido no se repite en "lo que encargaste"',
+    (conTenido.waText.match(/Teñido/g) || []).length <= 3);
 
 const foto = buildSaleConfirmation({
     ...base,

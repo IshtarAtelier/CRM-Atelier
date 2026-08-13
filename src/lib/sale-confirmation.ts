@@ -25,6 +25,7 @@ import { STORE_ORIGIN } from '@/lib/constants';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
 import { logAudit } from '@/lib/audit';
+import { isTeñidoAddon } from '@/lib/promo-utils';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
 /** Marca de la nota que registra el envío: sirve de candado de idempotencia. */
@@ -83,6 +84,10 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         const vistos = new Set<string>();
         const salida: string[] = [];
         for (const it of lista) {
+            // El teñido tiene su propia línea en "Tu anteojo", con color y grado.
+            // Repetirlo acá hacía que el cliente lo leyera dos veces y dudara de
+            // si eran dos cosas distintas.
+            if (isTeñidoAddon(it.product)) continue;
             const nombre = it.product?.name || it.productNameSnapshot || 'Producto';
             const detalle = [it.crystalColor, it.crystalColorNote ? `grado ${it.crystalColorNote}` : null]
                 .filter(Boolean).join(', ');
@@ -103,37 +108,47 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         .map(p => urlAbsoluta(p.imageUrl))
         .filter(Boolean) as string[];
 
-    // ── WhatsApp: texto plano, el mismo contenido ────────────────────────────
-    const waText = [
+    // ── WhatsApp ─────────────────────────────────────────────────────────────
+    //
+    // Las líneas vacías son las que separan las secciones: sin ellas el mensaje
+    // es un bloque de texto que nadie lee hasta el final, que es justo lo que
+    // acá hace falta. Por eso lo condicional se marca con `null` y se filtra
+    // eso — no las cadenas vacías, que son los espacios a propósito.
+    const L = (...lineas: (string | null)[]) => lineas.filter(l => l !== null) as string[];
+
+    const waText = L(
         `*Confirmación de compra — Pedido #${nro}*`,
-        esActualizacion ? `\n⚠️ *PEDIDO ACTUALIZADO* — este repaso reemplaza al anterior.` : '',
+        esActualizacion ? `⚠️ *PEDIDO ACTUALIZADO* — este repaso reemplaza al anterior.` : null,
         ``,
         `Hola ${nombre}! Tu pedido ya salió a fabricación. Te pasamos el detalle *exacto* de cómo se va a fabricar para que lo revises.`,
         ``,
-        `*Lo que encargaste*`,
+        `*LO QUE ENCARGASTE*`,
         ...lineasDeItems(items),
         ``,
-        `*Armazón y teñido*`,
+        `*TU ANTEOJO*`,
         frameRecapText(order, true),
         ``,
-        ...(prescriptionRecapText(rx, true) ? [`*Tu receta (tal cual está cargada)*`, prescriptionRecapText(rx, true), ``] : []),
-        `*Pago*`,
+        ...(prescriptionRecapText(rx, true)
+            ? [`*TU RECETA* (tal cual está cargada)`, prescriptionRecapText(rx, true), ``]
+            : []),
+        `*PAGO*`,
         `Total: ${money(total)}`,
         `Abonado: ${money(pagado)}`,
         saldo > 0 ? `Saldo pendiente: ${money(saldo)}` : `Saldo: totalmente abonado ✅`,
         ``,
-        `*Necesitamos tu OK* 🙏`,
+        `*NECESITAMOS TU OK* 🙏`,
         `Revisá que esté todo bien: así es como se va a fabricar.`,
+        ``,
         fotosArmazon.length
-            ? `• Mirá la foto del armazón que te adjuntamos: ¿es el que elegiste?`
+            ? `• Mirá la foto que te adjuntamos: ¿es el armazón que elegiste?`
             : `• ¿El armazón es el que elegiste?`,
         resumen.tint
             ? `• El teñido va *${resumen.tint.text}*: confirmanos que es el que pediste.`
-            : `• Si querés que lleven teñido, decinos ahora — este pedido va SIN teñido.`,
-        `• Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos ahora y te lo explicamos.`,
+            : `• Este pedido va *SIN teñido*. Si lo querés con color, decinos ahora.`,
+        `• Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos.`,
         ``,
         `Respondenos *OK* si está todo bien, o contanos qué corregir. Es el momento: una vez fabricado no se puede cambiar.`,
-    ].filter(l => l !== '').join('\n');
+    ).join('\n');
 
     // ── Email ────────────────────────────────────────────────────────────────
     const fila = (label: string, valor: string) => `
@@ -148,7 +163,8 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           ${cuerpo}
         </div>`;
 
-    const itemsHtml = items.map(it => {
+    // Mismo criterio que el WhatsApp: el teñido va en su bloque, no repetido acá.
+    const itemsHtml = items.filter(it => !isTeñidoAddon(it.product)).map(it => {
         const foto = urlAbsoluta((it.product?.imagenesCatalogo || [])[0]);
         const nombreItem = it.product?.name || it.productNameSnapshot || 'Producto';
         const marca = it.product?.brand || '';
