@@ -426,6 +426,12 @@ model Order {
   // `frameImageUrl` y la segunda queda vacía.
   frameImageUrl        String?
   frameImageUrl2       String?
+  // Altura pupilar del SEGUNDO par: la altura varía según el armazón elegido,
+  // así que en un 2x1 cada armazón lleva la suya. (Las del par 1 son
+  // labHeightOD/labHeightOI, que ya existían. La DNP es del cliente y queda en
+  // la receta.)
+  labHeightOD2         Float?
+  labHeightOI2         Float?
   // ── Despacho al cliente ──
   // Una compra web se cobraba y después el cliente no recibía NADA hasta que
   // retiraba: hasta dos semanas de silencio. Estos campos existen para poder

@@ -483,6 +483,9 @@ export async function GET(request: Request) {
             labHeightOI: true,
             labPdOd: true,
             labPdOi: true,
+            // Altura del segundo armazón (2x1): cada par lleva la suya.
+            labHeightOD2: true,
+            labHeightOI2: true,
             labPrismOD: true,
             labPrismOI: true,
             labBaseCurve: true,

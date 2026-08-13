@@ -78,6 +78,7 @@ export default function FrameRecapReadOnly({ order, defaultOpen = false }: Props
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                             {par.shape && <Dato label="Forma / Aro" value={par.shape} />}
                                             {par.measurements && <Dato label="Medidas" value={par.measurements} />}
+                                            {par.fitting && <Dato label="Altura y DNP" value={par.fitting} />}
                                             {par.details && <Dato label="Detalles" value={par.details} />}
                                         </div>
                                     )}

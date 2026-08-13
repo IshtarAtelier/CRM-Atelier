@@ -50,7 +50,7 @@ export function frameRecapText(order: LabFrameOrder): string {
             lineas.push(`${par.label}: sin medidas cargadas`);
             continue;
         }
-        const partes = [par.shape, par.measurements, par.details].filter(Boolean);
+        const partes = [par.shape, par.measurements, par.fitting, par.details].filter(Boolean);
         lineas.push(`${par.label}: ${partes.join(' · ')}`);
     }
 

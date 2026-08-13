@@ -39,6 +39,12 @@ export interface LabFrameOrder {
     labColor?: string | null;
     labTreatment?: string | null;
     labNotes?: string | null;
+    labHeightOD?: number | null;
+    labHeightOI?: number | null;
+    labPdOd?: number | null;
+    labPdOi?: number | null;
+    labHeightOD2?: number | null;
+    labHeightOI2?: number | null;
 }
 
 /** ¿Es un pedido "2x1" (dos pares de armazón/cristal)? Mismo criterio en toda la app. */
@@ -68,6 +74,15 @@ export function frameOriginLabel(order: LabFrameOrder): string | null {
     return null;
 }
 
+/** "Altura OD 20 · OI 20" con lo que haya; null si no hay nada.
+ *  Solo alturas: la DNP es del cliente y se muestra con la receta. */
+export function fittingLabel(hOD?: number | null, hOI?: number | null): string | null {
+    const partes: string[] = [];
+    if (hOD != null) partes.push(`Altura OD ${hOD}`);
+    if (hOI != null) partes.push(`OI ${hOI}`);
+    return partes.length ? partes.join(' · ') : null;
+}
+
 /** "A: 52  B: 38  ED: 13  Pte: 18" con lo que haya cargado; null si no hay nada. */
 export function measurementsLabel(a?: string | null, b?: string | null, dbl?: string | null, edc?: string | null): string | null {
     const partes: string[] = [];
@@ -84,6 +99,8 @@ export interface LabFramePairSummary {
     label: string;
     shape: string | null;
     measurements: string | null;
+    /** "Altura OD 20 · OI 20" — la altura varía según el armazón elegido. */
+    fitting: string | null;
     details: string | null;
     /** Ninguno de los campos de este par tiene datos cargados todavía. */
     isEmpty: boolean;
@@ -120,11 +137,13 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
     const twoPairs = isTwoPairOrder(order);
 
     const pair1Measurements = measurementsLabel(order.frameA, order.frameB, order.frameDbl, order.frameEdc);
+    const pair1Fitting = fittingLabel(order.labHeightOD, order.labHeightOI);
     const pair1: LabFramePairSummary = {
         pair: 1,
         label: twoPairs ? 'Armazón — Par 1' : 'Armazón',
         shape: order.labFrameShape || null,
         measurements: pair1Measurements,
+        fitting: pair1Fitting,
         details: order.labFrameDetails || null,
         isEmpty: !order.labFrameShape && !pair1Measurements && !order.labFrameDetails
     };
@@ -138,6 +157,7 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
             label: 'Armazón — Par 2 (bonificado)',
             shape: order.labFrameShape2 || null,
             measurements: pair2Measurements,
+            fitting: fittingLabel(order.labHeightOD2, order.labHeightOI2),
             details: order.labFrameDetails2 || null,
             isEmpty: !order.labFrameShape2 && !pair2Measurements && !order.labFrameDetails2
         });

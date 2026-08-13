@@ -98,6 +98,12 @@ const OrderUpdateSchema = z.object({
     frameEdc2: z.string().nullable().optional(),
     labFrameShape2: z.string().nullable().optional(),
     labFrameDetails2: z.string().nullable().optional(),
+    frameImageUrl: z.string().nullable().optional(),
+    frameImageUrl2: z.string().nullable().optional(),
+    labHeightOD: z.union([z.string(), z.number()]).nullable().optional(),
+    labHeightOI: z.union([z.string(), z.number()]).nullable().optional(),
+    labHeightOD2: z.union([z.string(), z.number()]).nullable().optional(),
+    labHeightOI2: z.union([z.string(), z.number()]).nullable().optional(),
     // Promo
     appliedPromoName: z.string().nullable().optional(),
     authorizedByAdmin: z.boolean().optional(),
@@ -522,7 +528,9 @@ export class OrderService {
                 // Campos del PEDIDO que quedan congelados con la venta.
                 const CONGELADOS: string[] = [
                     'labNotes', 'labColor', 'labTreatment', 'labDiameter',
-                    'labPdOd', 'labPdOi', 'labPrismOD', 'labPrismOI', 'labBaseCurve',
+                    'labPdOd', 'labPdOi',
+                    'labHeightOD', 'labHeightOI', 'labHeightOD2', 'labHeightOI2',
+                    'labPrismOD', 'labPrismOI', 'labBaseCurve',
                     'labFrameType', 'labBevelPosition', 'labFrameShape', 'labFrameDetails',
                     'frameA', 'frameB', 'frameDbl', 'frameEdc',
                     'frameA2', 'frameB2', 'frameDbl2', 'frameEdc2', 'labFrameShape2', 'labFrameDetails2',
@@ -1599,6 +1607,26 @@ export class OrderService {
         if (frameEdc2 !== undefined) data.frameEdc2 = frameEdc2;
         if (labFrameShape2 !== undefined) data.labFrameShape2 = labFrameShape2;
         if (labFrameDetails2 !== undefined) data.labFrameDetails2 = labFrameDetails2;
+
+        // Fotos del armazón. OJO: estos campos estaban en la lista blanca del
+        // candado pero NUNCA se copiaban a `data` — la pantalla los mandaba y
+        // el service los tiraba en silencio. El zod es passthrough, así que un
+        // campo sin mapeo explícito simplemente no se guarda.
+        if (body.frameImageUrl !== undefined) data.frameImageUrl = body.frameImageUrl;
+        if (body.frameImageUrl2 !== undefined) data.frameImageUrl2 = body.frameImageUrl2;
+
+        // Altura pupilar POR ARMAZÓN: varía según el armazón elegido (se toma
+        // con el armazón puesto), así que en un 2x1 cada par lleva la suya.
+        // Mismo parseo numérico tolerante que labPdOd (la pantalla manda strings).
+        const numerico = (v: unknown) => {
+            if (v === null || v === '' || v === undefined) return null;
+            const n = parseFloat(String(v));
+            return isNaN(n) ? null : n;
+        };
+        if (body.labHeightOD !== undefined) data.labHeightOD = numerico(body.labHeightOD);
+        if (body.labHeightOI !== undefined) data.labHeightOI = numerico(body.labHeightOI);
+        if (body.labHeightOD2 !== undefined) data.labHeightOD2 = numerico(body.labHeightOD2);
+        if (body.labHeightOI2 !== undefined) data.labHeightOI2 = numerico(body.labHeightOI2);
         if (smartLabScreenshot !== undefined) data.smartLabScreenshot = smartLabScreenshot;
 
         // High-precision lab fields

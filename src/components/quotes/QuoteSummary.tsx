@@ -22,7 +22,7 @@ import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import FrameRecapReadOnly from '@/components/orders/FrameRecapReadOnly';
-import FramePhotoUploader from '@/components/orders/FramePhotoUploader';
+import FramePairEditor from '@/components/orders/FramePairEditor';
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
@@ -299,6 +299,16 @@ export default function QuoteSummary({
     // Resumen de lo cargado en el Repaso Final (origen del armazón, medidas de
     // cada par y teñido) — mismo dato que se muestra en "la venta" y en el PDF.
     const labFrame = describeLabFrameDetails(order as any);
+    // ¿Dos armazones? (2x1). Decide si se muestra el cuadro del 2º par.
+    const esDosPares = labFrame.pairs.length > 1;
+
+    // Altura pupilar y DNP: el valor guardado en el PEDIDO manda; si todavía no
+    // hay, se precarga desde la receta como punto de partida. Varían según el
+    // armazón elegido, por eso viven en el cuadro de cada armazón.
+    const oAny = order as any;
+    const rxBase = order.prescription as any;
+    const dato = (delPedido: unknown, deReceta: unknown) =>
+        delPedido !== null && delPedido !== undefined ? String(delPedido) : (deReceta !== null && deReceta !== undefined ? String(deReceta) : '');
     
     // Integración con PricingService
     const financials = PricingService.calculateOrderFinancials(order);
@@ -696,128 +706,48 @@ export default function QuoteSummary({
                     presupuestos y para una venta reabierta por administración. */}
                 {isSale && isLockedSale && <FrameRecapReadOnly order={order} />}
 
-                {/* Medidas, forma y FOTO del armazón.
-                    Iba detrás de `isSale`, así que en un presupuesto no se veía —
-                    y el presupuesto es justo el momento en que el vendedor tiene
-                    el armazón en la mano. Ahora aparece también ahí; lo único que
-                    lo esconde es que la venta ya esté enviada a fábrica (en ese
-                    caso se muestra el bloque de solo lectura). */}
+                {/* El cuadro completo de CADA armazón (medidas, forma, detalles y
+                    foto), con guardado individual. En un 2x1 son dos armazones
+                    distintos: el cuadro se repite, uno arriba y otro abajo, y
+                    guardar uno jamás pisa lo cargado en el otro (cada botón
+                    escribe SOLO sus columnas). Solo desaparece cuando la venta ya
+                    está enviada a fábrica: ahí manda el bloque de solo lectura. */}
                 {!isLockedSale && (
-                    <div className="bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] p-6 border-2 border-stone-200 dark:border-stone-700">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Glasses className="w-5 h-5 text-indigo-500" />
-                            <h4 className="text-[10px] font-black text-stone-700 dark:text-stone-300 uppercase tracking-widest">
-                                Medidas y Forma del Armazón (Laboratorio)
-                            </h4>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            <div>
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
-                                    Forma / Aro
-                                </label>
-                                <input
-                                    type="text"
-                                    value={labFrameShape}
-                                    onChange={(e) => setLabFrameShape(e.target.value)}
-                                    placeholder="Ej: Redondo, Cuadrado"
-                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200 uppercase"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
-                                    Horizontal (A)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={frameA}
-                                    onChange={(e) => setFrameA(e.target.value)}
-                                    placeholder="Ej: 52"
-                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
-                                    Vertical (B)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={frameB}
-                                    onChange={(e) => setFrameB(e.target.value)}
-                                    placeholder="Ej: 45"
-                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
-                                    Puente (Pte / DBL)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={frameDbl}
-                                    onChange={(e) => setFrameDbl(e.target.value)}
-                                    placeholder="Ej: 18"
-                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200"
-                                />
-                            </div>
-                            <div>
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
-                                    Diagonal (ED / EDC)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={frameEdc}
-                                    onChange={(e) => setFrameEdc(e.target.value)}
-                                    placeholder="Ej: 54"
-                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200"
-                                />
-                            </div>
-                            <div className="col-span-2 sm:col-span-3">
-                                <label className="text-[8px] font-black text-stone-400 uppercase tracking-widest block mb-1">
-                                    Detalles / Notas del Armazón
-                                </label>
-                                <input
-                                    type="text"
-                                    value={labFrameDetails}
-                                    onChange={(e) => setLabFrameDetails(e.target.value)}
-                                    placeholder="Ej: Patillas con flex, acetato negro"
-                                    className="w-full px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl text-xs font-bold text-stone-800 dark:text-stone-200"
-                                />
-                            </div>
-                        </div>
-                        {/* La foto la saca el VENDEDOR, no el cliente: él tiene que
-                            reconocer su armazón en la confirmación, no fotografiarlo. */}
-                        <div className="mt-5 pt-4 border-t border-stone-200 dark:border-stone-700">
-                            <p className="text-[9px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-widest mb-3">
-                                {labFrame.pairs.length > 1 ? 'Fotos de los armazones (obligatorias)' : 'Foto del armazón (obligatoria)'} — va en la confirmación que recibe el cliente
-                            </p>
-                            <div className="flex flex-wrap gap-5">
-                                <FramePhotoUploader
-                                    label={labFrame.pairs.length > 1 ? 'Foto del 1º armazón *' : 'Foto del armazón *'}
-                                    value={frameImageUrl}
-                                    onChange={setFrameImageUrl}
-                                    hint="La ve el cliente en la confirmación de compra."
-                                />
-                                {labFrame.pairs.length > 1 && (
-                                    <FramePhotoUploader
-                                        label="Foto del 2º armazón *"
-                                        value={frameImageUrl2}
-                                        onChange={setFrameImageUrl2}
-                                        hint="Cada armazón lleva SU foto: son dos distintos."
-                                    />
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="mt-4 flex justify-end">
-                            <button
-                                onClick={handleSaveFrameMeasures}
-                                disabled={isSavingFrame}
-                                className="px-6 py-2.5 bg-stone-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
-                            >
-                                {isSavingFrame ? 'Guardando...' : 'Guardar Medidas del Armazón'}
-                            </button>
-                        </div>
-                    </div>
+                    <FramePairEditor
+                        key={`p1-${order.id}-${order.updatedAt || ''}`}
+                        orderId={order.id}
+                        pair={1}
+                        title={esDosPares ? '1º Armazón' : 'Armazón'}
+                        initial={{
+                            shape: order.labFrameShape || '',
+                            a: order.frameA || '', b: order.frameB || '',
+                            dbl: order.frameDbl || '', edc: order.frameEdc || '',
+                            details: order.labFrameDetails || '',
+                            imageUrl: order.frameImageUrl || null,
+                            heightOD: dato(oAny.labHeightOD, rxBase?.heightOD),
+                            heightOI: dato(oAny.labHeightOI, rxBase?.heightOI),
+                        }}
+                        onSaved={onRefreshContact}
+                    />
+                )}
+                {!isLockedSale && esDosPares && (
+                    <FramePairEditor
+                        key={`p2-${order.id}-${order.updatedAt || ''}`}
+                        orderId={order.id}
+                        pair={2}
+                        title="2º Armazón"
+                        accent="orange"
+                        initial={{
+                            shape: order.labFrameShape2 || '',
+                            a: order.frameA2 || '', b: order.frameB2 || '',
+                            dbl: order.frameDbl2 || '', edc: order.frameEdc2 || '',
+                            details: order.labFrameDetails2 || '',
+                            imageUrl: order.frameImageUrl2 || null,
+                            heightOD: dato(oAny.labHeightOD2, rxBase?.heightOD),
+                            heightOI: dato(oAny.labHeightOI2, rxBase?.heightOI),
+                        }}
+                        onSaved={onRefreshContact}
+                    />
                 )}
 
                 {/* SmartLab Info Block - Expanded View */}
