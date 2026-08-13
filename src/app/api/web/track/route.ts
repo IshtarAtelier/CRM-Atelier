@@ -46,14 +46,12 @@ const CAPI_EVENT: Record<string, 'ViewContent' | 'AddToCart' | 'InitiateCheckout
  * que usa el Pixel (fbp/fbc/IP/user-agent) y el `eventId` que generó el cliente,
  * así Meta deduplica y no cuenta doble.
  *
- * Solo corre con consentimiento explícito: lo dice la cookie propia `ate_consent`
- * que escribe el banner (ver CookieConsent). No se usa `_fbp` como semáforo
- * porque esa cookie falta justo cuando un adblocker voltea al Pixel, que es el
- * caso donde el envío server-side es lo único que queda.
+ * Corre para todo el tráfico: el cartel de cookies se retiró del sitio el
+ * 13/8/2026 (decisión del dueño; la Ley 25.326 no lo exige en Argentina). El
+ * gate anterior por la cookie `ate_consent` dejaba el espejo casi apagado —
+ * los públicos de remarketing web juntaban ~20 personas.
  */
 function mirrorToMetaCapi(events: AnalyticsEventInput[], req: Request) {
-  if (readCookie(req, 'ate_consent') !== 'granted') return;
-
   const fbp = readCookie(req, '_fbp');
   const fbc = readCookie(req, '_fbc');
   const ip = clientIp(req);

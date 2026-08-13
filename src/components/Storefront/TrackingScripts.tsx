@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
-import { useConsent } from "@/components/Storefront/CookieConsent";
 
 interface TrackingScriptsProps {
   /** Medición de GA4 (G-XXXXXXXXXX). Lo resuelve el layout en el servidor. */
@@ -64,29 +63,17 @@ export function TrackingScripts({
   const GOOGLE_ADS_PURCHASE_LABEL =
     adsPurchaseLabel || process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL;
   const META_PIXEL_ID = pixelId || process.env.NEXT_PUBLIC_META_PIXEL_ID;
-  const consent = useConsent();
 
-  // Consent Mode v2 (Google): el tag SIEMPRE carga, pero arranca con todo
-  // DENEGADO. Sin consentimiento no escribe ninguna cookie ni identificador —
-  // manda pings sin cookies que Google usa solo para modelar agregados. Cuando
-  // el visitante acepta, se emite un `consent update` y recién ahí hay cookies.
-  //
-  // Por qué cambió: antes este componente devolvía null sin consentimiento, así
-  // que quien ignoraba el banner (la mayoría) no se medía de ninguna forma. No
-  // era más privado, era ciego: la persona igual navegaba, pero el negocio no
-  // podía saber siquiera cuánta gente había. Denegado-por-defecto es el
-  // comportamiento que Google espera y el que corresponde.
-  //
-  // El Pixel de Meta NO tiene equivalente cookieless, así que ese sigue atado a
-  // "granted"; su respaldo sin consentimiento es el Conversions API del server,
-  // que a su vez exige la cookie propia `ate_consent` (ver api/web/track).
+  // SIN cartel de cookies (decisión del dueño, 13/8/2026): en Argentina la
+  // Ley 25.326 no exige consentimiento previo para cookies de medición, y el
+  // banner tenía un costo real — la mayoría lo ignoraba, el Pixel no cargaba
+  // y los públicos de remarketing web juntaban ~20 personas con el sitio
+  // recibiendo miles de visitas. Los tags cargan siempre; Consent Mode de
+  // Google queda declarado en "granted" para que gtag opere completo.
   //
   // Los Script van con strategy="afterInteractive", NO "lazyOnload": lazyOnload
-  // espera el evento `load` de la ventana, que en esta pantalla ya pasó cuando
-  // el visitante toca "Aceptar" — el evento no vuelve a dispararse y los scripts
-  // no se inyectaban nunca. Resultado: la visita entera en la que aceptaba se
-  // perdía (recién medía si recargaba la página).
-  const otorgado = consent === "granted";
+  // espera el evento `load` de la ventana y en navegaciones SPA no vuelve a
+  // dispararse — los scripts no se inyectaban nunca.
 
   // Un solo gtag.js alcanza para GA4 y Google Ads: se carga una vez con
   // cualquiera de los dos IDs y después se hace un gtag('config', …) por destino.
@@ -115,13 +102,12 @@ export function TrackingScripts({
     "window.dataLayer = window.dataLayer || [];",
     "function gtag(){window.dataLayer.push(arguments);}",
     `gtag('consent', 'default', {
-      ad_storage: 'denied',
-      ad_user_data: 'denied',
-      ad_personalization: 'denied',
-      analytics_storage: 'denied',
+      ad_storage: 'granted',
+      ad_user_data: 'granted',
+      ad_personalization: 'granted',
+      analytics_storage: 'granted',
       functionality_storage: 'granted',
-      security_storage: 'granted',
-      wait_for_update: 500
+      security_storage: 'granted'
     });`,
     "gtag('js', new Date());",
     GA_MEASUREMENT_ID ? `gtag('config', '${GA_MEASUREMENT_ID}');` : null,
@@ -133,19 +119,6 @@ export function TrackingScripts({
   ]
     .filter(Boolean)
     .join("\n");
-
-  // Se emite solo cuando el visitante aceptó. Va en su propio <Script> con una
-  // key distinta para que Next lo monte al cambiar el consentimiento, sin
-  // recargar la página (el hook useConsent re-renderiza este componente).
-  const gtagUpdate = `
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){window.dataLayer.push(arguments);}
-    gtag('consent', 'update', {
-      ad_storage: 'granted',
-      ad_user_data: 'granted',
-      ad_personalization: 'granted',
-      analytics_storage: 'granted'
-    });`;
 
   // PageView del Pixel en cada navegación del App Router.
   //
@@ -160,11 +133,11 @@ export function TrackingScripts({
   // obligaría a envolver el layout entero en <Suspense> y a renderizar en
   // cliente todas las páginas. Filtros y utm_* no definen públicos por URL.
   const pathname = usePathname();
-  const pixelActivo = otorgado && Boolean(META_PIXEL_ID);
+  const pixelActivo = Boolean(META_PIXEL_ID);
   // Última ruta ya contada. En null significa "el Pixel todavía no arrancó":
   // la primera corrida con el Pixel activo NO dispara nada, porque de esa vista
   // ya se encarga el `fbq('track','PageView')` del snippet — así no se duplica
-  // ni la carga inicial ni la vista en la que el visitante toca "Aceptar".
+  // la carga inicial.
   const ultimaRutaMedida = useRef<string | null>(null);
 
   useEffect(() => {
@@ -192,17 +165,11 @@ export function TrackingScripts({
           <Script id="google-gtag" strategy="afterInteractive">
             {gtagInit}
           </Script>
-          {/* Se monta recién cuando hay consentimiento y libera las cookies. */}
-          {otorgado && (
-            <Script id="google-consent-update" strategy="afterInteractive">
-              {gtagUpdate}
-            </Script>
-          )}
         </>
       )}
 
-      {/* Meta Pixel: sin modo cookieless, va solo con consentimiento. */}
-      {otorgado && META_PIXEL_ID && (
+      {/* Meta Pixel: carga siempre (sin cartel de consentimiento). */}
+      {META_PIXEL_ID && (
         <Script id="meta-pixel" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s)

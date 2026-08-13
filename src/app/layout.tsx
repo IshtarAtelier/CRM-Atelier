@@ -75,7 +75,6 @@ import { FloatingWhatsApp } from "@/components/Storefront/FloatingWhatsApp";
 import { ChunkReloadGuard } from "@/components/ChunkReloadGuard";
 import AnalyticsTracker from "@/components/Storefront/AnalyticsTracker";
 import WhatsAppAttribution from "@/components/Storefront/WhatsAppAttribution";
-import CookieConsent from "@/components/Storefront/CookieConsent";
 
 export default function RootLayout({
   children,
@@ -112,7 +111,6 @@ export default function RootLayout({
           />
           <AnalyticsTracker />
           <WhatsAppAttribution />
-          <CookieConsent />
           <ChunkReloadGuard />
         </ThemeProvider>
       </body>
