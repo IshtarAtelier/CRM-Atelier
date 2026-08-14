@@ -104,3 +104,7 @@ social/contenido/reels/salida/.frames-*/
 
 # Vista previa generada por check:venta
 scripts/checks/.confirmacion-compra.preview.html
+
+# Logs y borradores: se generan solos, no van en git (la carpeta queda en disco).
+logs/
+scratch/
