@@ -151,6 +151,15 @@ export default function CartLineItems({
                                             {hasNote && item.crystalColorNote}
                                         </span>
                                     )}
+                                    {/* A qué armazón va, en la línea plegada. El dato se
+                                        guardaba bien, pero solo se veía con el selector
+                                        abierto: cerrarlo parecía haberlo perdido. */}
+                                    {item.framePosition && totalArmazones > 1 && (
+                                        <span className="inline-flex items-center gap-1 bg-violet-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                            <Glasses className="w-3 h-3" />
+                                            {item.framePosition}º armazón
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 

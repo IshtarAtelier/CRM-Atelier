@@ -156,14 +156,13 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
                 </button>
             </div>
 
-            {/* Qué cristal lleva este armazón. Siempre visible, plegado o abierto:
-                es el dato que el vendedor necesita para no confundir los dos
-                anteojos, y el que el cliente va a ver junto a la foto. */}
-            {(tint || photochromic) && (
+            {/* Plegado, el cristal de este armazón se resume en una tira fina:
+                el cuadro cerrado tiene que decir qué lleva sin ocupar alto. */}
+            {!abierto && (tint || photochromic) && (
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
                     {tint && (
-                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-primary/10 text-primary">
-                            Cristal teñido · {tint}
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-violet-600 text-white">
+                            Teñido · {tint}
                         </span>
                     )}
                     {photochromic && (
@@ -206,6 +205,32 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
                             </p>
                         </div>
                     </div>
+
+                    {/* Qué cristal va en ESTE armazón. Va abajo de todo y en
+                        grande a propósito: es lo último que se lee antes de
+                        guardar, y es el dato que el cliente va a ver junto a
+                        esta misma foto. Se carga en la línea del pedido — acá
+                        se muestra para poder controlarlo, no para editarlo. */}
+                    {(tint || photochromic) && (
+                        <div className="mt-3 rounded-2xl border-2 border-violet-300 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 px-4 py-3">
+                            <p className="text-[9px] font-black text-violet-500 dark:text-violet-400 uppercase tracking-widest mb-1">
+                                El cristal de este armazón
+                            </p>
+                            {tint && (
+                                <p className="text-sm font-black text-violet-800 dark:text-violet-200 uppercase tracking-wide">
+                                    Cristal teñido · {tint}
+                                </p>
+                            )}
+                            {photochromic && (
+                                <p className="text-sm font-black text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+                                    Cristal fotocromático
+                                </p>
+                            )}
+                            <p className="mt-1 text-[10px] font-medium text-violet-500 dark:text-violet-400">
+                                Se elige en la línea del teñido, arriba. Esto es lo que va a leer el cliente al lado de la foto.
+                            </p>
+                        </div>
+                    )}
                 </>
             )}
         </div>
