@@ -44,9 +44,18 @@ interface Props {
     onSaved?: () => void | Promise<void>;
     /** Estilo del par 2 en el resto del sistema: borde naranja. */
     accent?: 'stone' | 'orange';
+    /**
+     * El teñido que va en ESTE armazón ("Compacto · Sepia · grado 3"), tal cual
+     * quedó cargado en la línea del pedido. Se muestra acá porque es donde se
+     * lee sin adivinar: el teñido se elige en la línea del cristal, y con dos
+     * anteojos en pantalla no había forma de ver a cuál de los dos le tocaba.
+     */
+    tint?: string | null;
+    /** Los cristales de este armazón son fotocromáticos. */
+    photochromic?: boolean;
 }
 
-export default function FramePairEditor({ orderId, pair, title, initial, onSaved, accent = 'stone' }: Props) {
+export default function FramePairEditor({ orderId, pair, title, initial, onSaved, accent = 'stone', tint = null, photochromic = false }: Props) {
     const [v, setV] = useState<FramePairValues>(initial);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -146,6 +155,24 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
                     <ChevronDown className={`w-4 h-4 transition-transform ${abierto ? 'rotate-180' : ''}`} />
                 </button>
             </div>
+
+            {/* Qué cristal lleva este armazón. Siempre visible, plegado o abierto:
+                es el dato que el vendedor necesita para no confundir los dos
+                anteojos, y el que el cliente va a ver junto a la foto. */}
+            {(tint || photochromic) && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    {tint && (
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-primary/10 text-primary">
+                            Cristal teñido · {tint}
+                        </span>
+                    )}
+                    {photochromic && (
+                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                            Fotocromático
+                        </span>
+                    )}
+                </div>
+            )}
 
             {abierto && (
                 <>

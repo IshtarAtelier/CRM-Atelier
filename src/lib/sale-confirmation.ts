@@ -143,15 +143,24 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     // se le piden. Él tiene que reconocer su armazón, no fotografiarlo.
     // Cada foto lleva el valor GUARDADO (para poder leer sus bytes y adjuntarla
     // por WhatsApp) y la URL absoluta (para mostrarla en el mail).
+    //
+    // El pie de cada foto dice el teñido de ESE armazón. Es donde el dato sirve:
+    // el cliente está mirando el anteojo, no una lista más abajo — y con dos
+    // anteojos, leer "teñido sepia" lejos de la foto obliga a adivinar cuál era.
     const fotosArmazon = resumen.pairs
         .filter(p => p.imageUrl)
-        .map(p => ({
-            valor: p.imageUrl as string,
-            url: urlAbsoluta(p.imageUrl) as string,
-            titulo: resumen.pairs.length > 1
-                ? `Foto de tu ${p.pair}º armazón — ¿es el que elegiste?`
-                : 'Foto de tu armazón — ¿es el que elegiste?',
-        }))
+        .map(p => {
+            const cual = resumen.pairs.length > 1 ? `tu ${p.pair}º armazón` : 'tu armazón';
+            const extras = [
+                p.tint ? `Cristal teñido ${p.tint}` : null,
+                p.photochromic ? 'Cristal fotocromático (se oscurece solo con el sol)' : null,
+            ].filter(Boolean);
+            return {
+                valor: p.imageUrl as string,
+                url: urlAbsoluta(p.imageUrl) as string,
+                titulo: `Foto de ${cual} — ¿es el que elegiste?${extras.length ? `\n${extras.join('\n')}` : ''}`,
+            };
+        })
         .filter(f => !!f.url);
 
     // ── WhatsApp ─────────────────────────────────────────────────────────────
@@ -286,7 +295,10 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
             </table>
             ${fotosArmazon.length ? `
               <p style="margin:16px 0 8px;font-size:13px;color:#666">Así es el armazón que te llevás:</p>
-              <div>${fotosArmazon.map(f => `<img src="${f.url}" alt="Foto de tu armazón" style="max-width:260px;width:100%;border-radius:12px;border:1px solid #e5e1da;margin:0 8px 8px 0" />`).join('')}</div>` : ''}`)}
+              <div>${fotosArmazon.map(f => `<div style="display:inline-block;vertical-align:top;max-width:260px;margin:0 8px 12px 0">
+                <img src="${f.url}" alt="Foto de tu armazón" style="max-width:260px;width:100%;border-radius:12px;border:1px solid #e5e1da" />
+                <p style="margin:6px 0 0;font-size:12px;line-height:1.5;color:#666">${escHtml(f.titulo).replace(/\n/g, '<br>')}</p>
+              </div>`).join('')}</div>` : ''}`)}
 
         ${bloque('Tu receta, tal cual está cargada', recetaHtml)}
 

@@ -68,10 +68,10 @@ export function frameRecapText(order: LabFrameOrder, paraCliente = false): strin
             ? [par.shape, par.details, tenidoDelPar, fotoDelPar].filter(Boolean)
             : [par.shape, par.measurements, par.fitting, par.details, tenidoDelPar, fotoDelPar].filter(Boolean);
         if (partes.length === 0) continue;
-        // Al cliente le alcanza saber de quién es el armazón, no la marca y el
-        // modelo repetidos: eso ya está en la descripción de la línea.
-        const deQuien = (order as any).frameSource === 'USUARIO' ? 'el tuyo'
-            : (order as any).frameSource === 'OPTICA' ? 'de la óptica' : null;
+        // Al cliente solo se le aclara el origen cuando el armazón es SUYO: que
+        // el armazón salga de la óptica es lo normal y decirlo sobra — ocupa
+        // lugar en el mensaje sin agregar nada que el cliente no sepa.
+        const deQuien = (order as any).frameSource === 'USUARIO' ? 'el tuyo' : null;
         const sufijo = paraCliente && deQuien && lineas.length === 0 ? ` (${deQuien})` : '';
         lineas.push(`${par.label}: ${partes.join(' · ')}${sufijo}`);
     }

@@ -790,6 +790,11 @@ export default function QuoteSummary({
                             heightOD: f.heightOD != null ? String(f.heightOD) : dato(null, rxBase?.heightOD),
                             heightOI: f.heightOI != null ? String(f.heightOI) : dato(null, rxBase?.heightOI),
                         }}
+                        // El teñido y el fotocromático de ESTE armazón salen del
+                        // mismo resumen que ve el cliente: una sola fuente, así
+                        // la pantalla no puede decir algo distinto al mensaje.
+                        tint={labFrame.pairs.find(p => p.pair === f.position)?.tint || null}
+                        photochromic={!!labFrame.pairs.find(p => p.pair === f.position)?.photochromic}
                         onSaved={onRefreshContact}
                     />
                 ))}
