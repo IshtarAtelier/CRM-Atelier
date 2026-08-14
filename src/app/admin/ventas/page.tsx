@@ -17,6 +17,7 @@ import { webPaymentGatewayLabel } from '@/lib/checkout/payment-gateway';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
+import { itemsDeTenido, colorLineaLabel, esItemDeTenido } from '@/lib/crystal-color';
 
 const LAB_STATUS: Record<string, { key: string, label: string; color: string; icon: any; bg: string; text: string; ring: string }> = {
     'NONE': { key: 'NONE', label: 'Sin enviar', color: 'bg-stone-100 text-stone-500', bg: 'bg-stone-100 dark:bg-stone-800', text: 'text-stone-500 dark:text-stone-400', ring: 'ring-stone-200 dark:ring-stone-700', icon: Clock },
@@ -224,9 +225,14 @@ export default function VentasPage() {
                 }
             }
 
-            // Fallback: use crystalColor/crystalColorType from order items (set in cotizador)
+            // Fallback: el color cargado en la línea del TEÑIDO.
+            //
+            // Mira SOLO las líneas de teñido. Desde que el fotocromático guarda
+            // su tono, "el primer item con crystalColor" podía ser un
+            // Transitions — y su color se habría ido a fábrica como un teñido a
+            // hacer, que el laboratorio no tiene cómo detectar.
             if (!color_tenido || !tipo_tenido) {
-                const tintItem = order.items?.find((i: any) => i.crystalColor);
+                const tintItem = itemsDeTenido(order.items).find((i: any) => i.crystalColor);
                 if (tintItem) {
                     if (!color_tenido) color_tenido = tintItem.crystalColor || '';
                     if (!tipo_tenido) {
@@ -950,12 +956,14 @@ export default function VentasPage() {
         <div class='info-row'><span class='info-label'>Tratamiento</span><span class='info-value'>${order.labTreatment || 'Normal'}</span></div>
         <div class='info-row'><span class='info-label'>Color</span><span class='info-value'>${order.labColor || 'Blanco'}</span></div>
         ${(() => {
-            const tintItems = items.filter((i: any) => i.crystalColor || i.crystalColorNote);
-            if (tintItems.length === 0) return '';
-            return tintItems.map((i: any) => {
-                const colorLabel = i.crystalColor ? `${i.crystalColorType === 'DEGRADE' ? 'Degradé' : i.crystalColorType === 'MUESTRA' ? 'Según Muestra' : 'Compacto'} — ${i.crystalColor}` : '';
-                const noteLabel = i.crystalColorNote ? `${colorLabel ? ' · ' : ''}${i.crystalColorNote}` : '';
-                return `<div class='info-row' style='background:#f3e8ff;border-radius:8px;padding:4px 8px;margin-top:4px;'><span class='info-label'>🎨 Teñido${i.eye ? ` (${i.eye})` : ''}</span><span class='info-value' style='color:#7c3aed;font-weight:900;'>${colorLabel}${noteLabel}</span></div>`;
+            // Teñido y fotocromático se listan por separado y con su nombre:
+            // etiquetar un Transitions como "🎨 Teñido" es decirle a quien lo
+            // lee que hay que pintarlo.
+            const conColor = items.filter((i: any) => colorLineaLabel(i));
+            if (conColor.length === 0) return '';
+            return conColor.map((i: any) => {
+                const esT = esItemDeTenido(i);
+                return `<div class='info-row' style='background:${esT ? '#f3e8ff' : '#fff7ed'};border-radius:8px;padding:4px 8px;margin-top:4px;'><span class='info-label'>${esT ? '🎨 Teñido' : '🕶️ Fotocromático'}${i.eye ? ` (${i.eye})` : ''}</span><span class='info-value' style='color:${esT ? '#7c3aed' : '#b45309'};font-weight:900;'>${colorLineaLabel(i)}</span></div>`;
             }).join('');
         })()}
     </div>

@@ -153,7 +153,7 @@ export async function POST(request: Request) {
                         select: {
                             id: true, price: true, quantity: true, eye: true,
                             sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
-                            crystalColor: true, crystalColorType: true, crystalColorNote: true,
+                            crystalColor: true, crystalColorType: true, crystalColorNote: true, framePosition: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                             laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
                             product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true, origin: true } }
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
                     userFrameNotes: userFrameNotes || null,
                     prescriptionId: prescriptionId || null,
                     items: {
-                        create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number; crystalColor?: string; crystalColorType?: string; crystalColorNote?: string }) => {
+                        create: items.map((item: { productId: string; quantity: number; price: number; eye?: string; sphereVal?: number; cylinderVal?: number; axisVal?: number; additionVal?: number; crystalColor?: string; crystalColorType?: string; crystalColorNote?: string; framePosition?: number }) => {
                             const dbProd = dbProducts.find(p => p.id === item.productId);
                             return {
                                 productId: item.productId,
@@ -205,6 +205,11 @@ export async function POST(request: Request) {
                                 crystalColor: item.crystalColor || null,
                                 crystalColorType: item.crystalColorType || null,
                                 crystalColorNote: item.crystalColorNote || null,
+                                // A qué armazón va el teñido. Faltaba: al CREAR un
+                                // presupuesto se perdía en silencio, y recién se
+                                // guardaba si después se editaba. El vendedor lo
+                                // elegía, guardaba, y volvía sin asignar.
+                                framePosition: item.framePosition ?? null,
                                 ...snapshotFromProduct(dbProd),
                             };
                         }),
@@ -233,7 +238,7 @@ export async function POST(request: Request) {
                         select: {
                             id: true, price: true, quantity: true, eye: true,
                             sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
-                            crystalColor: true, crystalColorType: true, crystalColorNote: true,
+                            crystalColor: true, crystalColorType: true, crystalColorNote: true, framePosition: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                             laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
                             product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true, origin: true } }
@@ -462,7 +467,7 @@ export async function GET(request: Request) {
                     id: true, price: true, quantity: true, eye: true,
                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
                     pdVal: true, heightVal: true, prismVal: true,
-                    crystalColor: true, crystalColorType: true, crystalColorNote: true,
+                    crystalColor: true, crystalColorType: true, crystalColorNote: true, framePosition: true,
                     productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                     laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
                     product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true, lensIndex: true, origin: true } }

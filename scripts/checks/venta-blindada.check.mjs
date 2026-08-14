@@ -600,6 +600,45 @@ if (armazonProd) {
     }
 }
 
+// ── 5g-ter. Teñido y fotocromático NO son lo mismo en ningún lado ──────────
+// El día que el fotocromático empezó a guardar su tono, todo lo que decía
+// "cualquier item con crystalColor es teñido" pasó a mentir — incluido el
+// armado del pedido para SmartLab, que le habría mandado a la fábrica el color
+// de un Transitions como un teñido A HACER. El laboratorio no tiene cómo saberlo.
+{
+    const cc = await import('../../src/lib/crystal-color.ts');
+    const tenido = { product: { name: 'Teñido Compacto', category: 'Cristal' }, crystalColor: 'Sepia', crystalColorType: 'COMPACTO', crystalColorNote: '3', framePosition: 2 };
+    const fotoc = { product: { name: 'COMFORT - ORMA TRANSITIONS GEN S + CRIZAL (Fotocromático)', category: 'Cristal' }, crystalColor: 'Zafiro (Azul)' };
+    const comun = { product: { name: 'ORMA 1.50 Blanco', category: 'Cristal' } };
+
+    check('el teñido se reconoce como teñido', cc.esItemDeTenido(tenido) === true);
+    check('un fotocromático con color NO es teñido', cc.esItemDeTenido(fotoc) === false);
+    check('lo que va a fábrica como teñido excluye al fotocromático',
+        cc.itemsDeTenido([tenido, fotoc, comun]).length === 1);
+    check('cada uno se escribe con su nombre',
+        cc.colorLineaLabel(tenido) === 'Teñido · Compacto · Sepia · grado 3 · 2º armazón'
+        && cc.colorLineaLabel(fotoc) === 'Fotocromático · Zafiro (Azul)');
+    check('un cristal común no muestra color', cc.colorLineaLabel(comun) === null);
+    check('la muestra del tono sale del catálogo, no de un includes a mano',
+        cc.hexDelColor('Zafiro (Azul)') === '#2a4b8d' && cc.hexDelColor('Sepia') === '#7a5c3a');
+
+    // La regla de qué falta es UNA: la misma que lista el checkout y la que
+    // aplica el servidor. Si se separan, la pantalla deja apretar y la
+    // conversión rebota con un error que nadie anticipó.
+    const codigos = (items, total) => cc.faltantesDeColor(items, total).map(f => f.code);
+    check('teñido sin nada: pide color, grado y armazón',
+        JSON.stringify(codigos([{ product: { name: 'Teñido Compacto', category: 'Cristal' } }], 2))
+        === JSON.stringify(['COLOR_TENIDO', 'GRADO_TENIDO', 'ARMAZON_TENIDO']));
+    check('con UN armazón no pregunta a cuál va',
+        !codigos([{ product: { name: 'Teñido Compacto', category: 'Cristal' } }], 1).includes('ARMAZON_TENIDO'));
+    check('fotocromático sin tono: pide el tono y NADA más',
+        JSON.stringify(codigos([{ product: { name: 'COMFORT - ORMA TRANSITIONS GEN S (Fotocromático)', category: 'Cristal' } }], 1))
+        === JSON.stringify(['COLOR_FOTOCROMATICO']));
+    check('un fotocromático de un solo color no pide nada',
+        codigos([{ product: { name: 'ORMA TRANSITIONS XTRACTIVE (Fotocromático)', category: 'Cristal' } }], 1).length === 0);
+    check('completos, no falta nada', cc.faltantesDeColor([tenido, fotoc, comun], 2).length === 0);
+}
+
 // ── 5h. El registro completo de la venta en la ficha ───────────────────────
 // Es el documento al que se recurre "ante cualquier eventualidad": tiene que
 // alcanzar SOLO para reconstruir qué se vendió, sin abrir el pedido.

@@ -18,7 +18,7 @@ import React, { useState } from 'react';
 import { Palette, Glasses, Check } from 'lucide-react';
 import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
 import { TONOS_TENIDO, INTENSIDADES_TENIDO, estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
-import { isTeñidoAddon } from '@/lib/promo-utils';
+import { colorLineaLabel, esItemDeTenido, productoDeItem } from '@/lib/crystal-color';
 
 interface Props {
     orderId: string;
@@ -30,18 +30,9 @@ interface Props {
     onSaved?: () => void | Promise<void>;
 }
 
-/** El producto de la línea, mirando también los snapshots (pedidos viejos). */
-function productoDe(item: any) {
-    return item?.product || {
-        name: item?.productNameSnapshot,
-        category: item?.productCategorySnapshot,
-        type: item?.productTypeSnapshot,
-    };
-}
-
 export default function LineaColorEditor({ orderId, item, totalArmazones, editable, onSaved }: Props) {
-    const producto = productoDe(item);
-    const esTenido = isTeñidoAddon(producto);
+    const producto = productoDeItem(item);
+    const esTenido = esItemDeTenido(item);
     const paleta = paletaDeFotocromatico(producto);
 
     // Una línea que no lleva color a elegir no muestra nada: ni teñido ni
@@ -95,12 +86,10 @@ export default function LineaColorEditor({ orderId, item, totalArmazones, editab
         }
     };
 
-    // Lo que se lee de un vistazo, esté abierto o cerrado.
-    const resumen = [
-        esTenido && estilo ? (estilo === 'DEGRADE' ? 'Degradé' : estilo === 'MUESTRA' ? 'Según muestra' : 'Compacto') : null,
-        item.crystalColor,
-        esTenido && item.crystalColorNote ? `grado ${item.crystalColorNote}` : null,
-    ].filter(Boolean).join(' · ');
+    // Lo que se lee de un vistazo, esté abierto o cerrado. Sale del mismo
+    // helper que el PDF, la lista de pedidos y el mensaje al cliente: una sola
+    // redacción para todos.
+    const resumen = colorLineaLabel(item) || (esTenido ? 'Teñido · sin color' : 'Fotocromático · sin color');
 
     return (
         <div className="mt-1.5">
@@ -119,17 +108,11 @@ export default function LineaColorEditor({ orderId, item, totalArmazones, editab
                     {hex
                         ? <span className="w-3 h-3 rounded-full border border-white/70" style={{ backgroundColor: hex }} />
                         : <Palette className="w-3 h-3" />}
-                    {esTenido ? 'Teñido' : 'Fotocromático'}
-                    {resumen ? ` · ${resumen}` : ' · sin color'}
+                    {resumen}
                 </button>
 
-                {esTenido && item.framePosition && totalArmazones > 1 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-stone-200 text-stone-600 dark:bg-stone-700 dark:text-stone-300">
-                        <Glasses className="w-3 h-3" />
-                        {item.framePosition}º Armazón
-                    </span>
-                )}
-
+                {/* A qué armazón va ya viene dentro del texto del chip: repetirlo
+                    en una pastilla aparte era decir dos veces lo mismo. */}
                 {falta && editable && (
                     <span className="text-[10px] font-bold text-amber-600">
                         falta {[faltaColor && 'el color', faltaGrado && 'el grado', faltaArmazon && 'a qué armazón va'].filter(Boolean).join(', ')}

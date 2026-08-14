@@ -1,50 +1,14 @@
-import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
-import { isTeñidoAddon } from '@/lib/promo-utils';
-/**
- * Crystal Color Utilities
- * 
- * Determines if a crystal product needs color selection (e.g., tinted or photochromic lenses).
- */
+// Este módulo quedó partido en dos con `crystal-color.ts`, que hacía la misma
+// pregunta con otro nombre. Todo vive allá ahora; esto es solo el puente para
+// no romper imports viejos.
+//
+// NO agregar nada acá: lo nuevo va en `crystal-color.ts`.
 
-/**
- * Check if a crystal product needs a color selection.
- * Returns true for the dedicated "Teñido" addon and for photochromic lenses.
- */
-export function needsColorSelection(product: any): boolean {
-  if (!product) return false;
+export { needsColorSelection } from './crystal-color';
 
-  const name = (product.name || '').toLowerCase();
-  const category = (product.category || '').toLowerCase();
-
-  // El teñido a pedido: su color lo elige el cliente.
-  if (isTeñidoAddon(product)) return true;
-  if (category === 'tratamiento' && (name === 'teñido' || name === 'tenido')) return true;
-
-  // Para todo lo demás manda LA PALETA: si ese cristal tiene colores para
-  // elegir, el selector se abre. Antes esto era una segunda lista de palabras
-  // clave que había que mantener sincronizada a mano — y no lo estaba: los 15
-  // cristales Xperio tenían su paleta cargada pero el botón no aparecía nunca,
-  // así que el vendedor no podía llegar a ella.
-  return paletaDeFotocromatico(product) !== null;
-}
-
-/**
- * Get a display label for the color type category
- */
-function getColorCategoryLabel(category: string): string {
-  switch (category) {
-    case 'COMPACTO': return 'Color Compacto';
-    case 'MUESTRA': return 'Color Según Muestra';
-    case 'DEGRADE': return 'Color Degradé';
-    default: return category;
-  }
-}
-
-/**
- * Color categories available
- */
+/** Los tres estilos de teñido. La lista viva está en `constants/tenido.ts`. */
 export const COLOR_CATEGORIES = [
-  { key: 'COMPACTO', label: 'Color Compacto' },
-  { key: 'MUESTRA', label: 'Color Según Muestra' },
-  { key: 'DEGRADE', label: 'Color Degradé' },
+    { key: 'COMPACTO', label: 'Color Compacto' },
+    { key: 'MUESTRA', label: 'Color Según Muestra' },
+    { key: 'DEGRADE', label: 'Color Degradé' },
 ] as const;

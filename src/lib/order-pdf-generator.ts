@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale';
 import { PricingService } from '@/services/PricingService';
 import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
-import { isTeñidoAddon } from '@/lib/promo-utils';
+import { colorLineaLabel } from '@/lib/crystal-color';
 import fs from 'fs';
 import path from 'path';
 
@@ -192,21 +192,9 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
                 const origin = lensOriginLabel(lensOriginFromItem(it));
 
-                // El COLOR del cristal en la línea que lo lleva. Es lo que el
-                // cliente puede reconocer del cristal, y sin esto el
-                // presupuesto de dos fotocromáticos de distinto color salía
-                // con las dos líneas idénticas.
-                const esTenidoPdf = isTeñidoAddon(it.product || {
-                    name: it.productNameSnapshot, category: it.productCategorySnapshot, type: it.productTypeSnapshot,
-                });
-                const colorLinea = it.crystalColor
-                    ? [
-                        esTenidoPdf ? 'Teñido' : 'Fotocromático',
-                        it.crystalColor,
-                        esTenidoPdf && it.crystalColorNote ? `grado ${it.crystalColorNote}` : null,
-                        esTenidoPdf && it.framePosition ? `${it.framePosition}º armazón` : null,
-                    ].filter(Boolean).join(' · ')
-                    : '';
+                // El COLOR del cristal en la línea que lo lleva, con la misma
+                // redacción que la pantalla y el mensaje al cliente.
+                const colorLinea = colorLineaLabel(it) || '';
                 return `
                 <tr>
                     <td>

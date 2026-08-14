@@ -1,5 +1,6 @@
 import { framesDeLaOrden, cantidadDeArmazones, cristalesPorArmazon } from './order-frames';
 import { isTeñidoAddon } from './promo-utils';
+import { tintItemLabel } from './crystal-color';
 
 /** ¿Este cristal es fotocromático? Mismo criterio en todo el sistema. */
 function esFotocromatico(product: any): boolean {
@@ -61,6 +62,10 @@ export interface LabFrameOrder {
     labHeightOI2?: number | null;
 }
 
+/** La redacción del teñido vive en `crystal-color`; se re-exporta para
+ *  no obligar a cambiar el import en todos lados. */
+export { tintItemLabel };
+
 /** ¿Es un pedido "2x1" (dos pares de armazón/cristal)? Mismo criterio en toda la app. */
 export { cantidadDeArmazones };
 
@@ -82,28 +87,6 @@ export function tintServiceCount(order: LabFrameOrder): number {
         const str = `${it.product?.type || it.productTypeSnapshot || ''} ${it.product?.category || it.productCategorySnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.toLowerCase();
         return str.includes('teñido') || str.includes('tenido') || str.includes('coloracion') || str.includes('coloración');
     }).length;
-}
-
-/**
- * Cómo se describe UNA línea de teñido: "Compacto · Sepia · grado 3".
- *
- * Vive acá y se exporta porque el mismo texto se muestra en cuatro lugares —
- * la línea del presupuesto, el cuadro del armazón, el repaso al cliente y el
- * pie de la foto. Escrito cuatro veces, cada copia iba a decir algo distinto.
- *
- * "sin color elegido" no es relleno: es el faltante que traba la venta, y
- * verlo escrito es lo que le dice al vendedor qué le falta cargar.
- */
-export function tintItemLabel(it: {
-    crystalColorType?: string | null;
-    crystalColor?: string | null;
-    crystalColorNote?: string | null;
-}): string {
-    const estilo = it.crystalColorType === 'DEGRADE' ? 'Degradé'
-        : it.crystalColorType === 'MUESTRA' ? 'Según muestra'
-        : it.crystalColorType === 'COMPACTO' ? 'Compacto' : null;
-    const partes = [estilo, it.crystalColor, it.crystalColorNote ? `grado ${it.crystalColorNote}` : null].filter(Boolean);
-    return partes.length > 0 ? partes.join(' · ') : 'sin color elegido';
 }
 
 /** "De la óptica" o "Del cliente — Marca Modelo"; null si no hay nada cargado. */

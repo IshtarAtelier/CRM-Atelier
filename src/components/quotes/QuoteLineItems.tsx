@@ -33,24 +33,30 @@ export default function QuoteLineItems({
     // Detect if this order has a 2x1 promo applied (either multifocal or generic)
     const hasPromo = appliedPromoName && (appliedPromoName.includes('2x1') || appliedPromoName.includes('Bonificado'));
 
-    // Identify the bonified frame (aesthetic only)
+    // Cuál armazón va bonificado (solo para mostrarlo; la plata la calcula
+    // PricingService).
+    //
+    // Se cuenta por UNIDADES, no por líneas: dos armazones iguales entran como
+    // una sola línea con cantidad 2, y mirando líneas ese caso no encontraba
+    // "dos armazones" y no marcaba ninguno — o peor, marcaba la línea entera
+    // como sin cargo cuando uno de los dos sí se cobra.
     const bonifiedItemId = React.useMemo(() => {
-        if (!hasPromo || !items || items.length < 2) return null;
-        
-        // Filter frames
+        if (!hasPromo || !items || items.length === 0) return null;
+
         const frames = items.filter(it => {
             const cat = (it.product?.category || it.productCategorySnapshot || '').toLowerCase();
             const type = (it.product?.type || it.productTypeSnapshot || '').toLowerCase();
-            return cat === 'FRAME' || cat === 'ATELIER' || cat === 'SUNGLASS' || type.includes('armazon') || type.includes('marco');
+            return cat === 'frame' || cat === 'atelier' || cat === 'sunglass'
+                || cat.includes('armaz') || type.includes('armazon') || type.includes('marco');
         });
 
-        if (frames.length < 2) return null;
+        // Una unidad por anteojo, igual que en el cotizador.
+        const unidades = frames.flatMap(f => Array.from({ length: f.quantity || 1 }, () => f));
+        if (unidades.length < 2) return null;
 
-        // Sort by price descending (same logic as PricingService)
-        const sorted = [...frames].sort((a, b) => b.price - a.price);
-        
-        // The second frame is the one bonified
-        return sorted[1]?.id;
+        // El segundo más caro es el bonificado (mismo criterio que PricingService).
+        const ordenadas = [...unidades].sort((a, b) => b.price - a.price);
+        return ordenadas[1]?.id ?? null;
     }, [items, hasPromo]);
 
     return (
@@ -105,13 +111,27 @@ export default function QuoteLineItems({
                         </div>
                         <div className="text-right">
                             {isBonified ? (
-                                <div className="flex flex-col">
+                                // Se bonifica UNA unidad. Si la línea trae dos
+                                // armazones iguales (cantidad 2), decir "SIN CARGO"
+                                // a secas hacía parecer que los dos eran gratis
+                                // cuando uno se cobra: se tacha el bruto de la
+                                // línea y abajo va lo que realmente se cobra.
+                                <div className="flex flex-col items-end">
                                     <span className="text-[10px] line-through text-stone-400 font-bold">
                                         ${priceWithMarkup.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                                     </span>
-                                    <span className="text-sm font-black text-emerald-500">
-                                        SIN CARGO
-                                    </span>
+                                    {item.quantity > 1 ? (
+                                        <>
+                                            <span className="text-sm font-black text-emerald-500">
+                                                ${(item.price * (item.quantity - 1) * (1 + markup / 100)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                            </span>
+                                            <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider">
+                                                1 de {item.quantity} bonificado
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span className="text-sm font-black text-emerald-500">SIN CARGO</span>
+                                    )}
                                 </div>
                             ) : (
                                 <span className="text-sm font-black tracking-tight text-stone-900 dark:text-stone-100">

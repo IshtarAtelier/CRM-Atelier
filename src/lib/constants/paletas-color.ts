@@ -22,7 +22,7 @@ export interface Tono {
 }
 
 /** Catálogo maestro de tonos: un solo lugar donde vive cada color y su muestra. */
-const T = {
+export const TONOS = {
     GRIS: { name: 'Gris', hexColor: '#555555' },
     CAFE: { name: 'Café / Marrón', hexColor: '#6b4c3a' },
     VERDE: { name: 'Verde / Esmeralda', hexColor: '#2f6b4f' },
@@ -49,28 +49,28 @@ export interface Paleta {
 export const GEN_S_8: Paleta = {
     id: 'GEN_S_8',
     label: 'Gen S — 8 colores',
-    tonos: [T.GRIS, T.CAFE, T.VERDE, T.ZAFIRO, T.RUBI, T.AMBAR, T.AMATISTA, T.GRAFITO],
+    tonos: [TONOS.GRIS, TONOS.CAFE, TONOS.VERDE, TONOS.ZAFIRO, TONOS.RUBI, TONOS.AMBAR, TONOS.AMATISTA, TONOS.GRAFITO],
 };
 
 /** Gris y café: Airwear, Stylis y Acclimates. */
 export const GRIS_CAFE: Paleta = {
     id: 'GRIS_CAFE',
     label: '2 colores',
-    tonos: [T.GRIS, T.CAFE],
+    tonos: [TONOS.GRIS, TONOS.CAFE],
 };
 
 /** Xperio en ORMA y el Gen S del XR Design en ORMA. */
 export const GRIS_CAFE_VERDE: Paleta = {
     id: 'GRIS_CAFE_VERDE',
     label: '3 colores',
-    tonos: [T.GRIS, T.CAFE, T.VERDE],
+    tonos: [TONOS.GRIS, TONOS.CAFE, TONOS.VERDE],
 };
 
 /** Un solo color: Xtractive y los SKU que el nombre declara "(Gris)". */
 export const SOLO_GRIS: Paleta = {
     id: 'SOLO_GRIS',
     label: 'Solo gris',
-    tonos: [T.GRIS],
+    tonos: [TONOS.GRIS],
 };
 
 export const PALETAS = { GEN_S_8, GRIS_CAFE, GRIS_CAFE_VERDE, SOLO_GRIS };

@@ -14,7 +14,9 @@ import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import FramePhotoUploader from '@/components/orders/FramePhotoUploader';
 import { PricingService } from '@/services/PricingService';
-import { isMultifocal2x1, isTeñidoAddon } from '@/lib/promo-utils';
+import { isMultifocal2x1 } from '@/lib/promo-utils';
+import { faltantesDeColor } from '@/lib/crystal-color';
+import { cantidadDeArmazones } from '@/lib/order-frames';
 import { lensOriginFromItem, LENS_ORIGIN } from '@/lib/lens-origin';
 import { minimumDeposit, depositClearsFactoryGate } from '@/lib/factory-gate';
 
@@ -264,11 +266,14 @@ export default function CheckoutModal({
         // vendió si aparece un "yo elegí otro".
         if (!frameImageUrl) faltantes.push(is2x1 ? 'Foto del 1º armazón' : 'Foto del armazón');
     }
-    // El teñido sin color es una orden que la fábrica no puede ejecutar. El grado
-    // se escribe aparte y puede ir vacío; el color no.
+    // Lo que le falta al COLOR de los cristales: la MISMA regla que aplica el
+    // servidor al convertir (`faltantesDeColor`). Antes acá había una lista
+    // propia, más corta, así que el checkout dejaba apretar y la conversión
+    // rebotaba con un error que esta pantalla nunca había mencionado.
     {
-        const sinColor = (order.items || []).filter((it: any) => isTeñidoAddon(it.product) && !(it.crystalColor || '').trim());
-        if (sinColor.length > 0) faltantes.push('Color del teñido (elegilo en el desplegable COLOR de esa línea)');
+        for (const f of faltantesDeColor(order.items as any, cantidadDeArmazones(order as any))) {
+            if (!faltantes.includes(f.mensaje)) faltantes.push(f.mensaje);
+        }
         if (is2x1) {
             if (!frameDetails2.trim()) faltantes.push('Detalle del 2º armazón (promo 2x1)');
             if (!frameMeasurePte2.trim()) faltantes.push('Medida puente (DBL) del 2º armazón');

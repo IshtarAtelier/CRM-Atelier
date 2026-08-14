@@ -220,10 +220,33 @@ export default function CartLineItems({
                             )}
                             <div className="w-24 text-right pr-1">
                                 {item.uid === secondFrameUid && promoFrameDiscount > 0 ? (
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] line-through text-stone-400 font-semibold">${item.customPrice.toLocaleString()}</span>
-                                        <span className="text-xs font-extrabold text-emerald-500">${Math.max(0, item.customPrice - promoFrameDiscount).toLocaleString()}</span>
-                                    </div>
+                                    // La bonificación es de UNA unidad, no de la línea entera.
+                                    // Con dos armazones iguales cargados en una sola línea
+                                    // (cantidad 2), mostrar el precio de uno tachado hacía
+                                    // parecer que los dos iban sin cargo — cuando en el total
+                                    // uno se cobra, que es lo correcto. Ahora se tacha el
+                                    // BRUTO de la línea y abajo va lo que realmente se cobra.
+                                    (() => {
+                                        const cant = item.quantity || 1;
+                                        const conMarkup = (v: number) => v * (1 + markup / 100);
+                                        const bruto = conMarkup(item.customPrice * cant);
+                                        const neto = conMarkup(Math.max(0, item.customPrice * cant - promoFrameDiscount));
+                                        return (
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-[10px] line-through text-stone-400 font-semibold">
+                                                    ${bruto.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                </span>
+                                                <span className="text-xs font-extrabold text-emerald-500">
+                                                    ${neto.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                </span>
+                                                {cant > 1 && (
+                                                    <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider">
+                                                        1 de {cant} bonificado
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })()
                                 ) : item.isPromo ? (
                                     <span className="text-[10px] font-bold text-emerald-500">SIN CARGO</span>
                                 ) : (

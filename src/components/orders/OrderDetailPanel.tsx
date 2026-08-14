@@ -925,18 +925,40 @@ export function OrderDetailPanel({
                                                 <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{pair.details}</p>
                                             </div>
                                         )}
+                                        {/* El cristal de ESTE anteojo. En un 2x1 puede ir
+                                            teñido uno y fotocromático el otro: decirlo una
+                                            sola vez abajo no dice de cuál se habla. */}
+                                        {(pair.tint || pair.photochromic) && (
+                                            <div className="col-span-2 border-t border-dashed border-stone-100 dark:border-stone-700/50 pt-2 mt-1">
+                                                <p className={`text-[8px] font-black uppercase tracking-widest ${i === 0 ? 'text-stone-400' : 'text-orange-500'}`}>Cristal {i === 1 ? '(Par 2)' : ''}</p>
+                                                {pair.tint && (
+                                                    <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">Teñido · {pair.tint}</p>
+                                                )}
+                                                {pair.photochromic && (
+                                                    <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mt-1">
+                                                        Fotocromático · {pair.photochromicColor || 'sin color elegido'}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
                                     </React.Fragment>
                                 ))}
-                                {labFrame.tint && (
+                                {/* Con varios anteojos el teñido ya quedó pegado a cada uno
+                                    arriba: repetirlo suelto acá es lo que hace preguntar
+                                    "¿cuál va teñido?". */}
+                                {labFrame.tint && labFrame.pairs.length <= 1 && (
                                     <div className="col-span-2">
                                         <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Tratamiento / Teñido</p>
                                         <p className="text-xs font-bold text-stone-800 dark:text-stone-200 mt-1">{labFrame.tint.text}</p>
-                                        {labFrame.tint.ambiguousPair && (
-                                            <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
-                                                <AlertCircle className="w-3 h-3" /> Es un 2x1 y solo hay una línea de teñido cargada: confirmar a qué par corresponde.
-                                            </p>
-                                        )}
                                     </div>
+                                )}
+                                {/* El aviso de teñido sin asignar va SIEMPRE, y va aparte:
+                                    solo pasa con varios anteojos, así que dentro del bloque
+                                    de un solo anteojo no se mostraría nunca. */}
+                                {labFrame.tint?.ambiguousPair && (
+                                    <p className="col-span-2 text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 shrink-0" /> Hay un teñido sin asignar a ningún armazón: confirmar a cuál corresponde antes de fabricar.
+                                    </p>
                                 )}
                                 {labFrame.notes && (
                                     <div className="col-span-2">

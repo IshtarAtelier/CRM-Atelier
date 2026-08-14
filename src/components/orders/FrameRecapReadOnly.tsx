@@ -80,6 +80,15 @@ export default function FrameRecapReadOnly({ order, defaultOpen = false }: Props
                                             {par.measurements && <Dato label="Medidas" value={par.measurements} />}
                                             {par.fitting && <Dato label="Altura y DNP" value={par.fitting} />}
                                             {par.details && <Dato label="Detalles" value={par.details} />}
+                                            {/* El cristal de ESTE anteojo. Sin esto, el repaso
+                                                de una venta enviada decía el teñido suelto al
+                                                final —sin aclarar de cuál de los dos era— y del
+                                                fotocromático no decía nada. */}
+                                            {par.tint && <Dato label="Cristal teñido" value={par.tint} />}
+                                            {par.photochromic && (
+                                                <Dato label="Cristal fotocromático"
+                                                    value={par.photochromicColor || 'sin color elegido'} />
+                                            )}
                                             {par.imageUrl && (
                                                 <div>
                                                     <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Foto</p>
@@ -93,9 +102,13 @@ export default function FrameRecapReadOnly({ order, defaultOpen = false }: Props
                                 </div>
                             ))}
 
-                            {/* El teñido se dice SIEMPRE, incluso cuando no lleva: que no aparezca
-                                nada es justo lo que hace dudar a quien lee. */}
-                            <Dato label="Teñido" value={resumen.tint ? resumen.tint.text : 'No lleva teñido'} />
+                            {/* Con UN anteojo el teñido se dice acá, y se dice SIEMPRE —también
+                                cuando no lleva: que no aparezca nada es lo que hace dudar a
+                                quien lee. Con varios ya quedó pegado a cada armazón arriba, y
+                                repetirlo suelto es justo lo que genera el "¿cuál va teñido?". */}
+                            {resumen.pairs.length <= 1 && (
+                                <Dato label="Teñido" value={resumen.tint ? resumen.tint.text : 'No lleva teñido'} />
+                            )}
                             {resumen.tint?.ambiguousPair && (
                                 <p className="text-[10px] font-bold text-amber-600 dark:text-amber-500 flex items-center gap-1.5">
                                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />

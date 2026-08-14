@@ -20,6 +20,7 @@ import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 
 import { LAB_STEPS } from '@/components/orders/OrderDetailPanel';
 import LabNumberEditor from '@/components/orders/LabNumberEditor';
+import { itemsDeTenido, colorLineaLabel, hexDelColor } from '@/lib/crystal-color';
 
 function getLabStep(status: string) {
     return LAB_STEPS.find(s => s.key === status) || LAB_STEPS[0];
@@ -643,9 +644,11 @@ export default function PedidosPage() {
                 }
             }
 
-            // Fallback: use crystalColor/crystalColorType from order items (set in cotizador)
+            // Fallback: el color cargado en la línea del TEÑIDO. Solo esas: el
+            // tono de un fotocromático NO es un teñido a hacer, y mandárselo a
+            // la fábrica así es un cristal arruinado.
             if (!color_tenido || !tipo_tenido) {
-                const tintItem = order.items?.find((i: any) => i.crystalColor);
+                const tintItem = itemsDeTenido(order.items).find((i: any) => i.crystalColor);
                 if (tintItem) {
                     if (!color_tenido) color_tenido = tintItem.crystalColor || '';
                     if (!tipo_tenido) {
@@ -1860,46 +1863,39 @@ export default function PedidosPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Teñido — Info del Cotizador */}
+                                            {/* El color de cada cristal, cargado en su línea.
+                                                Teñido y fotocromático van con su nombre y su
+                                                color: mostrar un Transitions bajo el cartel
+                                                "Teñido" le dice a quien lo lee que hay que
+                                                pintarlo. La muestra del tono sale del catálogo
+                                                de colores, no de una escalera de `includes`
+                                                que se desactualiza sola. */}
                                             {(() => {
-                                                const tintItems = order.items?.filter((i: any) => i.crystalColor || i.crystalColorNote) || [];
+                                                const conColor = (order.items || []).filter((i: any) => colorLineaLabel(i));
                                                 const treatmentTint = order.items?.find((i: any) => {
                                                     const n = (i.product?.name || i.productNameSnapshot || '').toLowerCase();
                                                     return n.includes('teñi') || n.includes('tenido') || n.includes('tinte');
                                                 });
-                                                if (tintItems.length === 0 && !treatmentTint) return null;
+                                                if (conColor.length === 0 && !treatmentTint) return null;
                                                 return (
                                                     <div className="border-2 border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/30 rounded-2xl p-4">
-                                                        <label className="text-[9px] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest block mb-2">🎨 Teñido (Grupo Óptico)</label>
+                                                        <label className="text-[9px] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest block mb-2">🎨 Color de los cristales</label>
                                                         <div className="space-y-2">
-                                                            {tintItems.map((item: any, i: number) => (
+                                                            {conColor.map((item: any, i: number) => (
                                                                 <div key={i} className="flex items-center gap-3">
                                                                     {item.eye && <span className="text-[9px] font-bold bg-violet-200 dark:bg-violet-800 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-md uppercase">{item.eye}</span>}
-                                                                    {item.crystalColor && (
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="w-4 h-4 rounded-full border border-violet-300 shadow-sm flex-shrink-0" style={{ backgroundColor:
-                                                                            item.crystalColor?.includes('Gris') ? '#555555' :
-                                                                            item.crystalColor?.includes('Marrón') ? '#6b4c3a' :
-                                                                            item.crystalColor?.includes('Verde') ? '#2c4c3b' :
-                                                                            item.crystalColor?.includes('Rosa') ? '#d4a3a3' :
-                                                                            item.crystalColor?.includes('Amarillo') ? '#e1b854' :
-                                                                            item.crystalColor?.includes('Naranja') ? '#d6804a' :
-                                                                            item.crystalColor?.includes('Rojo') ? '#ab4040' :
-                                                                            item.crystalColor?.includes('Azul') ? '#4a7fb5' : '#999'
-                                                                        }} />
+                                                                        {hexDelColor(item.crystalColor) && (
+                                                                            <span className="w-4 h-4 rounded-full border border-violet-300 shadow-sm flex-shrink-0"
+                                                                                style={{ backgroundColor: hexDelColor(item.crystalColor) as string }} />
+                                                                        )}
                                                                         <span className="text-sm font-bold text-violet-900 dark:text-violet-200">
-                                                                            {item.crystalColorType === 'DEGRADE' ? 'Degradé' : item.crystalColorType === 'MUESTRA' ? 'Según Muestra' : 'Compacto'} — {item.crystalColor}
+                                                                            {colorLineaLabel(item)}
                                                                         </span>
                                                                     </div>
-                                                                    )}
-                                                                    {item.crystalColorNote && (
-                                                                        <span className="text-xs font-bold text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/40 px-2 py-0.5 rounded-md">
-                                                                            {item.crystalColorNote}
-                                                                        </span>
-                                                                    )}
                                                                 </div>
                                                             ))}
-                                                            {treatmentTint && !tintItems.length && (
+                                                            {treatmentTint && !conColor.length && (
                                                                 <span className="text-sm font-bold text-violet-900 dark:text-violet-200">
                                                                     {treatmentTint.product?.name || treatmentTint.productNameSnapshot}
                                                                 </span>
