@@ -17,6 +17,7 @@ import { formatDateTime } from '@/lib/format-date';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 import { ventaRecapCompleto } from '@/lib/sale-recap-text';
 import { framesDeLaOrden, cantidadDeArmazones } from '@/lib/order-frames';
+import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
 import { SELECT_REPASO, SELECT_ITEMS_REPASO, SELECT_FRAMES_REPASO } from '@/lib/order-recap-select';
 import { sendSaleConfirmation } from '@/lib/sale-confirmation';
 import { logAudit } from '@/lib/audit';
@@ -1704,7 +1705,16 @@ export class OrderService {
                                 eye: true,
                                 crystalColor: true,
                                 crystalColorType: true,
+                                // El GRADO del teñido: sin traerlo acá, la
+                                // validación lo lee `undefined` y traba toda
+                                // venta con teñido, esté cargado o no.
+                                crystalColorNote: true,
                                 framePosition: true,
+                                // La foto congelada del producto, para los
+                                // pedidos cuyo producto ya no está en catálogo.
+                                productNameSnapshot: true,
+                                productCategorySnapshot: true,
+                                productTypeSnapshot: true,
                             }
                         },
                         payments: true,
@@ -1823,17 +1833,50 @@ export class OrderService {
                     }
                 }
 
-                // Check: si el pedido lleva TEÑIDO, el color tiene que estar elegido.
+                // Check: si el pedido lleva TEÑIDO, sus TRES datos tienen que estar.
                 //
-                // El teñido sin color es una orden que la fábrica no puede ejecutar:
-                // alguien va a tener que llamar para preguntar de qué color, y
-                // mientras tanto el pedido queda parado. El grado/intensidad se
-                // escribe aparte y puede ir vacío; el COLOR no.
+                // Un teñido incompleto es una orden que la fábrica no puede
+                // ejecutar: alguien va a tener que llamar para preguntar y el
+                // pedido queda parado. Los tres son igual de obligatorios —
+                // el color, el grado (qué tan oscuro) y, cuando hay más de un
+                // anteojo, a cuál de ellos va.
                 const teñidosSinColor = (existingOrder.items || []).filter((it: any) =>
                     isTeñidoAddon(it.product) && !(it.crystalColor || '').trim()
                 );
                 if (teñidosSinColor.length > 0) {
                     throw new Error('No se puede convertir en venta: el teñido no tiene color elegido. Abrí el desplegable COLOR en la línea del teñido y elegí el tono.');
+                }
+
+                const teñidosSinGrado = (existingOrder.items || []).filter((it: any) =>
+                    isTeñidoAddon(it.product) && !(it.crystalColorNote || '').trim()
+                );
+                if (teñidosSinGrado.length > 0) {
+                    throw new Error('No se puede convertir en venta: el teñido no tiene grado elegido. Abrí el desplegable COLOR en la línea del teñido y elegí el grado (0.5 a 4).');
+                }
+
+                // Check: el fotocromático también se pide POR COLOR.
+                //
+                // Un Transitions no es un teñido —viene así de fábrica y se
+                // oscurece solo con el sol— pero se fabrica en un tono: gris,
+                // café, verde… Mandarlo sin elegir es un pedido que la fábrica
+                // no puede ejecutar, igual que el teñido sin color. No lleva
+                // grado: eso es del teñido.
+                //
+                // Solo se exige cuando ese cristal TIENE tonos para elegir
+                // (`paletaDeFotocromatico`): un fotocromático que viene en un
+                // solo color no tiene nada que preguntar.
+                const fotocromaticosSinColor = (existingOrder.items || []).filter((it: any) => {
+                    if (isTeñidoAddon(it.product)) return false;
+                    const prod = it.product || {
+                        name: it.productNameSnapshot, category: it.productCategorySnapshot, type: it.productTypeSnapshot,
+                    };
+                    const paleta = paletaDeFotocromatico(prod);
+                    return !!paleta && paleta.tonos.length > 1 && !(it.crystalColor || '').trim();
+                });
+                if (fotocromaticosSinColor.length > 0) {
+                    const cual = fotocromaticosSinColor[0].product?.name
+                        || fotocromaticosSinColor[0].productNameSnapshot || 'el cristal fotocromático';
+                    throw new Error(`No se puede convertir en venta: falta elegir de qué color se pone el fotocromático (${cual}). Abrí ELEGIR COLOR en esa línea y elegí el tono.`);
                 }
 
                 // Con más de un armazón, cada teñido tiene que decir a CUÁL va.

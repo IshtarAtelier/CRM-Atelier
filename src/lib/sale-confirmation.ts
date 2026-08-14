@@ -153,7 +153,9 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
             const cual = resumen.pairs.length > 1 ? `tu ${p.pair}º armazón` : 'tu armazón';
             const extras = [
                 p.tint ? `Cristal teñido ${p.tint}` : null,
-                p.photochromic ? 'Cristal fotocromático (se oscurece solo con el sol)' : null,
+                p.photochromic
+                    ? `Cristal fotocromático${p.photochromicColor ? ` ${p.photochromicColor}` : ''} (se oscurece solo con el sol)`
+                    : null,
             ].filter(Boolean);
             return {
                 valor: p.imageUrl as string,

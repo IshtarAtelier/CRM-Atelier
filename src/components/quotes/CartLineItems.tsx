@@ -103,6 +103,14 @@ export default function CartLineItems({
                 // tiene es un pedido rebotado; esconder los que sí tiene es una
                 // venta que no se hace.
                 const paleta = paletaDeFotocromatico(item.product);
+
+                // Un TEÑIDO y un FOTOCROMÁTICO no son lo mismo, y tratarlos
+                // igual pedía datos que no existen. El teñido es un color que se
+                // le manda a hacer al cristal: se elige el tono, cuánto de
+                // oscuro (el grado) y a qué anteojo va. El fotocromático ya
+                // viene así de fábrica —se oscurece solo con el sol—: solo se
+                // elige de qué color se pone. No tiene grado.
+                const esTenido = isTeñidoAddon(item.product);
                 const tonosParaElegir = paleta
                     ? paleta.tonos.map(t => ({ id: `${paleta.id}-${t.name}`, name: t.name, category: estiloDelItem, hexColor: t.hexColor }))
                     : colores
@@ -146,7 +154,12 @@ export default function CartLineItems({
                                     {(hasColor || hasNote) && (
                                         <span className="inline-flex items-center gap-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                                             <Palette className="w-3 h-3" />
-                                            {hasColor && <>{item.crystalColorType === 'DEGRADE' ? 'Degradé' : item.crystalColorType === 'MUESTRA' ? 'Muestra' : 'Compacto'} · {item.crystalColor}</>}
+                                            {hasColor && <>{
+                                                item.crystalColorType === 'DEGRADE' ? 'Degradé · '
+                                                    : item.crystalColorType === 'MUESTRA' ? 'Muestra · '
+                                                    : item.crystalColorType === 'COMPACTO' ? 'Compacto · '
+                                                    : ''
+                                            }{item.crystalColor}</>}
                                             {hasColor && hasNote && ' — '}
                                             {hasNote && item.crystalColorNote}
                                         </span>
@@ -226,8 +239,13 @@ export default function CartLineItems({
                         {showColorSelector && isColorExpanded && (
                             <div className="bg-violet-50 dark:bg-violet-950/30 border-x-2 border-b-2 border-violet-300 dark:border-violet-800 rounded-b-2xl p-4 animate-in slide-in-from-top-1 duration-300">
                                 <p className="text-[10px] font-black text-violet-700 dark:text-violet-300 uppercase tracking-widest mb-3">
-                                    Teñido — elegí el color y el grado
+                                    {esTenido ? 'Teñido — elegí el color y el grado' : 'Fotocromático — elegí el color'}
                                 </p>
+                                {!esTenido && (
+                                    <p className="text-[10px] font-medium text-violet-500 dark:text-violet-400 -mt-2 mb-3">
+                                        Este cristal se oscurece solo con la luz del sol. Elegí de qué color se pone; no lleva grado.
+                                    </p>
+                                )}
                                 {/* A qué armazón va este teñido. Solo aparece cuando el pedido
                                     lleva más de uno: con uno solo no hay nada que preguntar. */}
                                 {totalArmazones > 1 && isTeñidoAddon(item.product) && (
@@ -261,11 +279,14 @@ export default function CartLineItems({
 
                                 {/* Grado: desplegable con los valores de SmartLab, igual que el
                                     del laboratorio. Se elige de la lista y listo — el campo
-                                    escribible obligaba a tipear un número que ya está. */}
+                                    escribible obligaba a tipear un número que ya está.
+                                    Solo para el TEÑIDO: un fotocromático no tiene grado, y
+                                    ofrecerlo era pedir un dato que no existe. */}
+                                {esTenido && (
                                 <div className="mb-3 flex items-center gap-2">
                                     <Palette className="w-3 h-3 text-violet-400 shrink-0" />
                                     <label htmlFor={`grado-${idx}`} className="text-[9px] font-bold text-violet-500 dark:text-violet-400 uppercase tracking-wider shrink-0">
-                                        Grado
+                                        Grado *
                                     </label>
                                     <select
                                         id={`grado-${idx}`}
@@ -281,7 +302,11 @@ export default function CartLineItems({
                                             <option value={item.crystalColorNote}>{item.crystalColorNote}</option>
                                         )}
                                     </select>
+                                    {!item.crystalColorNote && (
+                                        <span className="text-[10px] font-bold text-amber-600">← elegí uno</span>
+                                    )}
                                 </div>
+                                )}
 
                                 {/* Los COLORES, directo. El estilo (compacto / degradé /
                                     según muestra) NO se elige acá: ya lo definió el producto
@@ -306,7 +331,11 @@ export default function CartLineItems({
                                                     <button
                                                         key={color.id}
                                                         onClick={() => {
-                                                            onUpdateItemColor?.(idx, color.name, estiloDelItem);
+                                                            // El estilo (compacto / degradé) es del TEÑIDO.
+                                                            // Guardárselo a un fotocromático lo hacía
+                                                            // aparecer como "Compacto · Gris", que es
+                                                            // describirlo como algo que no es.
+                                                            onUpdateItemColor?.(idx, color.name, esTenido ? estiloDelItem : null);
                                                             setExpandedColorIdx(null);
                                                         }}
                                                         className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all hover:scale-105 active:scale-95 border ${

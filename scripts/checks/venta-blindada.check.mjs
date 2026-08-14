@@ -267,7 +267,19 @@ check('confirmación re-enviada: avisa que reemplaza a la anterior', /PEDIDO ACT
 // son dos armazones distintos: cada uno lleva la suya.
 // Productos SIN "2x1" en el nombre: `isTwoPairOrder` mira el nombre del item, y
 // con un producto 2x1 del catálogo el caso "un solo armazón" dejaba de serlo.
-const sinPromo = { NOT: { name: { contains: '2x1', mode: 'insensitive' } } };
+// Y SIN fotocromático: ese pide elegir el tono para poder venderse, y con un
+// Transitions de fixture todos los casos rebotaban por el color, no por lo que
+// cada uno quiere probar. El fotocromático tiene su propio check más abajo.
+const sinPromo = {
+    NOT: [
+        { name: { contains: '2x1', mode: 'insensitive' } },
+        { name: { contains: 'fotocrom', mode: 'insensitive' } },
+        { name: { contains: 'transitions', mode: 'insensitive' } },
+        { name: { contains: 'xtractive', mode: 'insensitive' } },
+        { name: { contains: 'acclimates', mode: 'insensitive' } },
+        { name: { contains: 'xperio', mode: 'insensitive' } },
+    ],
+};
 const armazonProd = await prisma.product.findFirst({ where: { category: { contains: 'ARMAZ', mode: 'insensitive' }, ...sinPromo }, select: { id: true } });
 const cristalProd = await prisma.product.findFirst({ where: { category: { contains: 'CRISTAL', mode: 'insensitive' }, ...sinPromo }, select: { id: true } });
 
@@ -506,7 +518,10 @@ check('un cristal común NO abre el selector', !abre('COMFORT - ORMA + CRIZAL 2x
 if (armazonProd && cristalProd) {
     const tenidoProdBD = await prisma.product.findFirst({ where: { name: { contains: 'Teñido', mode: 'insensitive' } }, select: { id: true } });
     if (tenidoProdBD) {
-        const dosAnteojosConTenido = async (asignado) => {
+        // Los TRES datos del teñido son obligatorios para vender: color, grado
+        // y a qué armazón va. El fixture los trae completos salvo el que cada
+        // check quiere ver faltar.
+        const dosAnteojosConTenido = async (asignado, grado = '3') => {
             await prisma.product.updateMany({ where: { id: { in: [armazonProd.id, cristalProd.id, tenidoProdBD.id] } }, data: { stock: 99 } });
             return prisma.order.create({ data: {
                 clientId: cliente.id, userId: vendedor.id, orderType: 'QUOTE', status: 'PENDING',
@@ -518,7 +533,7 @@ if (armazonProd && cristalProd) {
                     { productId: cristalProd.id, quantity: 1, price: 250, eye: 'LEFT' },
                     { productId: cristalProd.id, quantity: 1, price: 250, eye: 'RIGHT' },
                     { productId: cristalProd.id, quantity: 1, price: 250, eye: 'LEFT' },
-                    { productId: tenidoProdBD.id, quantity: 1, price: 0, crystalColor: 'Gris', framePosition: asignado ? 2 : null },
+                    { productId: tenidoProdBD.id, quantity: 1, price: 0, crystalColor: 'Gris', crystalColorNote: grado, framePosition: asignado ? 2 : null },
                 ] },
             } });
         };
@@ -528,9 +543,60 @@ if (armazonProd && cristalProd) {
         check('dos armazones + teñido sin asignar → no deja vender',
             !!errSA && /sin asignar/i.test(errSA));
 
+        // El GRADO también es obligatorio: un teñido sin grado es un pedido que
+        // la fábrica no puede ejecutar igual que uno sin color.
+        const sinGrado = await dosAnteojosConTenido(true, null);
+        const errSG = await rechaza(() => OrderService.updateOrder(sinGrado.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
+        check('teñido sin grado → no deja vender',
+            !!errSG && /grado/i.test(errSG));
+
         const asignado = await dosAnteojosConTenido(true);
         const errA = await rechaza(() => OrderService.updateOrder(asignado.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
-        check('con el teñido asignado a su armazón, la venta pasa', errA === null);
+        check('con el teñido completo (color, grado y armazón), la venta pasa', errA === null);
+    }
+}
+
+// ── 5g-bis. El FOTOCROMÁTICO también se pide por color ──────────────────────
+// No es teñido —viene así de fábrica y se oscurece con el sol— pero se fabrica
+// en un tono. Mandarlo sin elegir es un pedido que la fábrica no puede hacer.
+// No lleva grado: eso es del teñido, y pedirlo sería inventar un dato.
+if (armazonProd) {
+    const fotoProd = await prisma.product.findFirst({
+        where: {
+            category: { contains: 'CRISTAL', mode: 'insensitive' },
+            name: { contains: 'ORMA TRANSITIONS GEN S', mode: 'insensitive' },
+            NOT: { name: { contains: '(Gris)', mode: 'insensitive' } },
+        },
+        select: { id: true, name: true },
+    });
+    if (fotoProd) {
+        const { paletaDeFotocromatico } = await import('../../src/lib/constants/paletas-color.ts');
+        check('el Gen S en ORMA ofrece los 8 tonos', (paletaDeFotocromatico(fotoProd)?.tonos.length || 0) === 8);
+
+        const conFotocromatico = async (color) => {
+            await prisma.product.updateMany({ where: { id: { in: [armazonProd.id, fotoProd.id] } }, data: { stock: 99 } });
+            return prisma.order.create({ data: {
+                clientId: cliente.id, userId: vendedor.id, orderType: 'QUOTE', status: 'PENDING',
+                total: 1000, subtotalWithMarkup: 1000, paid: 1000,
+                prescriptionId: receta.id, frameSource: 'OPTICA',
+                frames: { create: [{ position: 1, imageUrl: '/u/1.jpg' }] },
+                items: { create: [
+                    { productId: fotoProd.id, quantity: 1, price: 250, eye: 'RIGHT', crystalColor: color },
+                    { productId: fotoProd.id, quantity: 1, price: 250, eye: 'LEFT', crystalColor: color },
+                ] },
+            } });
+        };
+
+        const sinTono = await conFotocromatico(null);
+        const errST = await rechaza(() => OrderService.updateOrder(sinTono.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
+        check('fotocromático sin tono elegido → no deja vender',
+            !!errST && /color se pone el fotocrom/i.test(errST));
+        check('el error NO le pide grado a un fotocromático',
+            !!errST && !/grado/i.test(errST));
+
+        const conTono = await conFotocromatico('Zafiro (Azul)');
+        const errCT = await rechaza(() => OrderService.updateOrder(conTono.id, { orderType: 'SALE' }, vendedor.id, 'Vendedor', 'STAFF'));
+        check('con el tono elegido, el fotocromático pasa a venta', errCT === null);
     }
 }
 

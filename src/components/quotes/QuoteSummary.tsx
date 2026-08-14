@@ -684,11 +684,17 @@ export default function QuoteSummary({
             </div>
 
             <main className="space-y-8 relative z-10">
-                <QuoteLineItems 
+                <QuoteLineItems
                     items={order.items || []}
                     markup={order.markup || 0}
                     appliedPromoName={order.appliedPromoName}
                     specialDiscount={order.specialDiscount}
+                    // El color del cristal se corrige acá mismo, sin abrir el
+                    // presupuesto entero para editar: guarda esa sola línea.
+                    orderId={order.id}
+                    editable={!isLockedSale}
+                    totalArmazones={armazones.length}
+                    onSaved={onRefreshContact}
                 />
 
                 {/* En una venta enviada la receta que vale es la CONGELADA al enviarla a
@@ -795,6 +801,7 @@ export default function QuoteSummary({
                         // la pantalla no puede decir algo distinto al mensaje.
                         tint={labFrame.pairs.find(p => p.pair === f.position)?.tint || null}
                         photochromic={!!labFrame.pairs.find(p => p.pair === f.position)?.photochromic}
+                        photochromicColor={labFrame.pairs.find(p => p.pair === f.position)?.photochromicColor || null}
                         onSaved={onRefreshContact}
                     />
                 ))}
@@ -1143,7 +1150,18 @@ export default function QuoteSummary({
                                 </button>
                             </div>
                         ) : null}
-                        
+
+                        {/* Abonar es una acción de plata, del mismo peso que convertir
+                            en venta: va del mismo tamaño y ancho, no perdido entre los
+                            botones chicos de enviar. Los cuatro chicos quedan en una
+                            sola línea abajo. */}
+                        <button
+                            onClick={() => setShowPayment(true)}
+                            className="sm:col-span-4 py-4 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Banknote className="w-5 h-5" /> ABONAR
+                        </button>
+
                         {/* ── FACTURACIÓN (solo ventas) ──
                             Mismas reglas que /admin/ventas: se factura únicamente contra
                             lo pagado y no facturado todavía. ADMIN emite en ARCA; el
@@ -1207,12 +1225,6 @@ export default function QuoteSummary({
                             className="py-3 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-30"
                         >
                             <Download className={`w-3.5 h-3.5 ${isSendingPDF ? 'animate-bounce' : ''}`} /> {isSendingPDF ? 'Enviando...' : 'Enviar PDF'}
-                        </button>
-                        <button 
-                            onClick={() => setShowPayment(true)}
-                            className="py-3 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all flex items-center justify-center gap-2"
-                        >
-                            <Banknote className="w-3.5 h-3.5" /> Abonar
                         </button>
                         {/* Ocultar botón eliminar para vendedores en ventas ya cerradas */}
                         {!isLockedSale && (

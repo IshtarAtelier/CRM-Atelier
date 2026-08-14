@@ -151,6 +151,14 @@ export interface LabFramePairSummary {
     tint: string | null;
     /** Los cristales de ESTE armazón son fotocromáticos. */
     photochromic: boolean;
+    /**
+     * De qué color se pone el fotocromático al sol ("Café / Marrón").
+     *
+     * El fotocromático se elige por color igual que el teñido, y decir solo
+     * "fotocromático" deja afuera el único dato que el cliente puede
+     * reconocer y confirmar. null = todavía no se eligió.
+     */
+    photochromicColor: string | null;
     /** Ninguno de los campos de este par tiene datos cargados todavía. */
     isEmpty: boolean;
 }
@@ -207,6 +215,7 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
             imageUrl: f.imageUrl,
             tint: null,
             photochromic: false,
+            photochromicColor: null,
             isEmpty: !f.shape && !medidas && !f.details,
         };
     });
@@ -230,9 +239,13 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
     const cristalesDe = cristalesPorArmazon(order as any);
     for (const par of pairs) {
         const suyos = cristalesDe.get(par.pair) || [];
-        par.photochromic = suyos.some((it: any) => esFotocromatico(it.product || {
+        const fotocromaticos = suyos.filter((it: any) => esFotocromatico(it.product || {
             name: it.productNameSnapshot, type: it.productTypeSnapshot, category: it.productCategorySnapshot,
         }));
+        par.photochromic = fotocromaticos.length > 0;
+        // Los dos cristales de un anteojo llevan el mismo color; alcanza con el
+        // primero que lo tenga cargado.
+        par.photochromicColor = fotocromaticos.find((it: any) => it.crystalColor)?.crystalColor || null;
     }
 
     // A QUÉ armazón va cada teñido. Con un solo armazón no hay nada que atar.

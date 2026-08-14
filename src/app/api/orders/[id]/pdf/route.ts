@@ -20,7 +20,11 @@ export async function GET(
                     }
                 },
                 prescription: true,
-                payments: true
+                payments: true,
+                // Los armazones del pedido: el repaso del PDF sale del mismo
+                // resumen que la pantalla, y sin esto del 3º en adelante no
+                // aparecía ninguno (las columnas viejas solo llegan a dos).
+                frames: { orderBy: { position: 'asc' } },
             }
         });
 

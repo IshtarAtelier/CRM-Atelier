@@ -63,7 +63,11 @@ export function frameRecapText(order: LabFrameOrder, paraCliente = false): strin
         const tenidoDelPar = par.tint ? `teñido ${par.tint}` : (r.pairs.length > 1 ? 'SIN teñido' : null);
         // El fotocromático es de ESTE anteojo: con dos armazones puede ser uno
         // solo, y decirlo suelto hacía creer que los dos lo eran.
-        const fotoDelPar = r.pairs.length > 1 && par.photochromic ? 'fotocromático' : null;
+        // El color del fotocromático es lo único que el cliente puede
+        // reconocer del cristal: decir solo "fotocromático" lo deja afuera.
+        const fotoDelPar = r.pairs.length > 1 && par.photochromic
+            ? `fotocromático${par.photochromicColor ? ` ${par.photochromicColor}` : ''}`
+            : null;
         const partes = paraCliente
             ? [par.shape, par.details, tenidoDelPar, fotoDelPar].filter(Boolean)
             : [par.shape, par.measurements, par.fitting, par.details, tenidoDelPar, fotoDelPar].filter(Boolean);
@@ -94,7 +98,8 @@ export function frameRecapText(order: LabFrameOrder, paraCliente = false): strin
     // quedó pegado a cada uno arriba: repetirlo acá es lo que hacía creer que
     // todos los anteojos del pedido lo eran.
     if (r.pairs.length <= 1 && tienePhotocromatico(order)) {
-        lineas.push('Fotocromático: SÍ — los cristales se oscurecen solos con el sol.');
+        const color = r.pairs[0]?.photochromicColor;
+        lineas.push(`Fotocromático: SÍ${color ? ` — color ${color}` : ''} — los cristales se oscurecen solos con el sol.`);
     } else if (r.pairs.length > 1 && r.pairs.some(p => p.photochromic)) {
         lineas.push('(Fotocromático = los cristales se oscurecen solos con el sol.)');
     }

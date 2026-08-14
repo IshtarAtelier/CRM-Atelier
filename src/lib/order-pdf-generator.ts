@@ -5,6 +5,7 @@ import { es } from 'date-fns/locale';
 import { PricingService } from '@/services/PricingService';
 import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
+import { isTeñidoAddon } from '@/lib/promo-utils';
 import fs from 'fs';
 import path from 'path';
 
@@ -190,12 +191,29 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
 
                 const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
                 const origin = lensOriginLabel(lensOriginFromItem(it));
+
+                // El COLOR del cristal en la línea que lo lleva. Es lo que el
+                // cliente puede reconocer del cristal, y sin esto el
+                // presupuesto de dos fotocromáticos de distinto color salía
+                // con las dos líneas idénticas.
+                const esTenidoPdf = isTeñidoAddon(it.product || {
+                    name: it.productNameSnapshot, category: it.productCategorySnapshot, type: it.productTypeSnapshot,
+                });
+                const colorLinea = it.crystalColor
+                    ? [
+                        esTenidoPdf ? 'Teñido' : 'Fotocromático',
+                        it.crystalColor,
+                        esTenidoPdf && it.crystalColorNote ? `grado ${it.crystalColorNote}` : null,
+                        esTenidoPdf && it.framePosition ? `${it.framePosition}º armazón` : null,
+                    ].filter(Boolean).join(' · ')
+                    : '';
                 return `
                 <tr>
                     <td>
                         <div style="font-weight: 900;">${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}</div>
                         ${refIndex ? `<div style="font-size:10px; color:#c2410c; font-weight: 700; margin-top: 1px;">Índice de Refracción: ${refIndex}</div>` : ''}
                         ${origin ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Origen: ${origin}</div>` : ''}
+                        ${colorLinea ? `<div style="font-size:10px; color:#6d28d9; font-weight: 800; margin-top: 1px;">Color: ${colorLinea}</div>` : ''}
                         ${eyeLabel ? `<div style="font-size:10px; color:#78716c; font-weight: 600;">Lado: ${eyeLabel}</div>` : ''}
                         ${itemPrice === 0 ? `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">* Bonificado por Promoción</div>` : ''}
                     </td>

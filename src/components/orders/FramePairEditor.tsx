@@ -53,9 +53,11 @@ interface Props {
     tint?: string | null;
     /** Los cristales de este armazón son fotocromáticos. */
     photochromic?: boolean;
+    /** De qué color se pone el fotocromático al sol. */
+    photochromicColor?: string | null;
 }
 
-export default function FramePairEditor({ orderId, pair, title, initial, onSaved, accent = 'stone', tint = null, photochromic = false }: Props) {
+export default function FramePairEditor({ orderId, pair, title, initial, onSaved, accent = 'stone', tint = null, photochromic = false, photochromicColor = null }: Props) {
     const [v, setV] = useState<FramePairValues>(initial);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -108,15 +110,23 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
         </div>
     );
 
-    // Con dos armazones en pantalla el scroll se hace largo, así que el cuadro
-    // arranca PLEGADO cuando ya está completo: lo que falta cargar se ve, lo
-    // que ya está hecho se resume en una línea y se abre con un clic.
+    // Los cuadros arrancan SIEMPRE plegados. Abiertos, dos armazones empujan
+    // los botones de enviar el presupuesto media pantalla para abajo, y las
+    // medidas se cargan una sola vez mientras que el presupuesto se manda
+    // muchas. Lo que falta cargar no se esconde: se dice en la tira plegada.
     const completo = !!(v.shape && v.a && v.b && v.dbl && v.edc && v.imageUrl);
-    const [abierto, setAbierto] = useState(!completo);
+    const [abierto, setAbierto] = useState(false);
 
     const resumen = [v.shape, [v.a, v.b, v.edc, v.dbl].filter(Boolean).join('/'),
         v.heightOD || v.heightOI ? `Alt ${v.heightOD || '—'}/${v.heightOI || '—'}` : null]
         .filter(Boolean).join(' · ');
+
+    // Qué le falta a este armazón, plegado. Es lo que traba el pase a venta.
+    const faltan = [
+        !v.shape && 'forma',
+        !(v.a && v.b && v.dbl && v.edc) && 'medidas',
+        !v.imageUrl && 'la foto',
+    ].filter(Boolean) as string[];
 
     return (
         <div className={`bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] px-5 py-4 border-2 ${borde}`}>
@@ -126,9 +136,14 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
 
                 {/* Plegado: el resumen de una línea reemplaza al cuadro entero. */}
                 {!abierto && (
-                    <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400 truncate flex-1">
-                        {resumen || 'sin cargar'}
-                        {v.imageUrl ? ' · 📷' : ''}
+                    <span className="text-[11px] font-bold truncate flex-1">
+                        <span className="text-stone-500 dark:text-stone-400">
+                            {resumen || 'sin cargar'}
+                            {v.imageUrl ? ' · 📷' : ''}
+                        </span>
+                        {faltan.length > 0 && (
+                            <span className="text-amber-600 dark:text-amber-500"> · falta {faltan.join(', ')}</span>
+                        )}
                     </span>
                 )}
                 {abierto && <span className="flex-1" />}
@@ -167,7 +182,7 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
                     )}
                     {photochromic && (
                         <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400">
-                            Fotocromático
+                            Fotocromático{photochromicColor ? ` · ${photochromicColor}` : ''}
                         </span>
                     )}
                 </div>
@@ -223,11 +238,11 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
                             )}
                             {photochromic && (
                                 <p className="text-sm font-black text-amber-700 dark:text-amber-400 uppercase tracking-wide">
-                                    Cristal fotocromático
+                                    Cristal fotocromático{photochromicColor ? ` · ${photochromicColor}` : ' · sin color elegido'}
                                 </p>
                             )}
                             <p className="mt-1 text-[10px] font-medium text-violet-500 dark:text-violet-400">
-                                Se elige en la línea del teñido, arriba. Esto es lo que va a leer el cliente al lado de la foto.
+                                Se elige en la línea del cristal, arriba. Esto es lo que va a leer el cliente al lado de la foto.
                             </p>
                         </div>
                     )}

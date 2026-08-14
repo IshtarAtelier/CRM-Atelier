@@ -4,21 +4,31 @@ import React from 'react';
 import { Plus } from 'lucide-react';
 import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
-import { tintItemLabel } from '@/lib/lab-frame-summary';
-import { isTeñidoAddon } from '@/lib/promo-utils';
+import LineaColorEditor from './LineaColorEditor';
 
 interface QuoteLineItemsProps {
     items: any[];
     markup: number;
     appliedPromoName?: string;
     specialDiscount?: number;
+    /** Con el id del pedido, el color de cada línea se corrige acá mismo. */
+    orderId?: string;
+    /** false en una venta ya enviada: se ve, no se toca. */
+    editable?: boolean;
+    /** Cuántos armazones lleva el pedido (para preguntar a cuál va el teñido). */
+    totalArmazones?: number;
+    onSaved?: () => void | Promise<void>;
 }
 
 export default function QuoteLineItems({
     items,
     markup,
     appliedPromoName,
-    specialDiscount = 0
+    specialDiscount = 0,
+    orderId,
+    editable = false,
+    totalArmazones = 1,
+    onSaved,
 }: QuoteLineItemsProps) {
     // Detect if this order has a 2x1 promo applied (either multifocal or generic)
     const hasPromo = appliedPromoName && (appliedPromoName.includes('2x1') || appliedPromoName.includes('Bonificado'));
@@ -57,15 +67,6 @@ export default function QuoteLineItems({
                 const name = item.product?.name || item.productNameSnapshot || 'Producto eliminado';
                 const typeLabel = item.product?.type || item.product?.category || item.productTypeSnapshot || item.productCategorySnapshot || '';
 
-                // El teñido se cargaba con su color, su grado y a qué armazón va,
-                // y la línea mostraba solo "Teñido · Tratamientos x1": el dato
-                // estaba guardado pero era invisible, así que parecía perdido.
-                const esTenido = isTeñidoAddon(item.product || {
-                    name: item.productNameSnapshot, category: item.productCategorySnapshot, type: item.productTypeSnapshot,
-                });
-                const detalleTenido = esTenido ? tintItemLabel(item) : null;
-                const faltaColor = esTenido && !item.crystalColor;
-
                 return (
                     <div key={item.id} className={`flex justify-between items-center bg-stone-50/50 dark:bg-stone-900/30 px-5 py-3 rounded-2xl border ${isBonified ? 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/30' : 'border-stone-100 dark:border-stone-800'} backdrop-blur-sm group/item hover:border-primary/30 transition-all`}>
                         <div className="flex items-center gap-3">
@@ -87,17 +88,18 @@ export default function QuoteLineItems({
                                     <LensOriginBadge origin={lensOriginFromItem(item)} />
                                 </div>
                                 <span className="text-[10px] font-bold text-stone-400">{typeLabel} x{item.quantity}</span>
-                                {detalleTenido && (
-                                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                        <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg ${faltaColor ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-primary/10 text-primary'}`}>
-                                            {detalleTenido}
-                                        </span>
-                                        {item.framePosition && (
-                                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg bg-stone-200 text-stone-600 dark:bg-stone-700 dark:text-stone-300">
-                                                {item.framePosition}º Armazón
-                                            </span>
-                                        )}
-                                    </div>
+                                {/* El color del cristal (el tono del fotocromático, o el
+                                    color y el grado del teñido) vive acá: donde está el
+                                    cristal, se lee y se corrige sin abrir el presupuesto
+                                    entero. */}
+                                {orderId && (
+                                    <LineaColorEditor
+                                        orderId={orderId}
+                                        item={item}
+                                        totalArmazones={totalArmazones}
+                                        editable={editable}
+                                        onSaved={onSaved}
+                                    />
                                 )}
                             </div>
                         </div>
