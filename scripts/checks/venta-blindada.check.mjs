@@ -14,6 +14,14 @@
 // Correr:  npm run check:venta
 // ────────────────────────────────────────────────────────────────────────────
 
+// NADIE recibe un mensaje por una corrida de prueba.
+//
+// Este check convierte ventas sintéticas para probar el candado, y cada
+// conversión disparaba la confirmación de compra DE VERDAD: mails y WhatsApp
+// de pedidos que no existen, a buzones reales. Se marca acá, antes de importar
+// nada, para que valga aunque a alguien se le olvide ponerlo al correr.
+process.env.ATELIER_SIN_ENVIOS = '1';
+
 import assert from 'node:assert/strict';
 import { PrismaClient } from '@prisma/client';
 import { OrderService } from '../../src/services/order.service.ts';
@@ -637,6 +645,20 @@ if (armazonProd) {
     check('un fotocromático de un solo color no pide nada',
         codigos([{ product: { name: 'ORMA TRANSITIONS XTRACTIVE (Fotocromático)', category: 'Cristal' } }], 1).length === 0);
     check('completos, no falta nada', cc.faltantesDeColor([tenido, fotoc, comun], 2).length === 0);
+}
+
+// ── 5g-quater. Una corrida de prueba NO le escribe a nadie ─────────────────
+// Este check convierte ventas sintéticas, y cada conversión disparaba la
+// confirmación de compra de verdad: mails y WhatsApp de pedidos que no existen,
+// a buzones reales. La guarda es de una sola dirección —hay que PEDIR que no se
+// envíe— para que producción no quede muda por una variable mal puesta.
+{
+    const { sendSaleConfirmation } = await import('../../src/lib/sale-confirmation.ts');
+    check('la corrida de prueba tiene los envíos apagados',
+        process.env.ATELIER_SIN_ENVIOS === '1');
+    const r = await sendSaleConfirmation('pedido-inexistente-no-debe-enviar');
+    check('el envío se omite y lo dice',
+        r.omitida === true && r.email === false && r.whatsapp === false);
 }
 
 // ── 5h. El registro completo de la venta en la ficha ───────────────────────

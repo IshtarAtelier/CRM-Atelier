@@ -19,7 +19,7 @@
     "check:social": "node --experimental-strip-types scripts/checks/social-programacion.check.mjs",
     "check:outbox": "node scripts/checks/outbox.check.mjs",
     "check:politica": "node scripts/checks/politica.check.mjs",
-    "check:venta": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-blindada.check.mjs",
+    "check:venta": "ATELIER_SIN_ENVIOS=1 node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-blindada.check.mjs",
     "snapshot:catalog": "node --experimental-strip-types scripts/maintenance/refresh-catalog-snapshots.mjs",
     "db:backup": "node scripts/maintenance/backup-db.js",
     "db:migrate": "node scripts/maintenance/backup-db.js && npx prisma migrate dev",

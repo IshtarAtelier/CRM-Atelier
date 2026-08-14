@@ -341,6 +341,8 @@ export interface EnvioConfirmacionResultado {
     whatsapp: boolean;
     /** No se envió porque ya se había enviado antes para esta versión del pedido. */
     yaEnviada?: boolean;
+    /** No se envió porque la corrida pidió no enviar nada (ATELIER_SIN_ENVIOS=1). */
+    omitida?: boolean;
     pdfUrl?: string | null;
 }
 
@@ -357,6 +359,18 @@ export async function sendSaleConfirmation(
 ): Promise<EnvioConfirmacionResultado> {
     const { esActualizacion = false, version } = opts;
     const resultado: EnvioConfirmacionResultado = { email: false, whatsapp: false };
+
+    // Los checks convierten ventas sintéticas para probar el candado, y cada
+    // conversión disparaba una confirmación REAL: mails y WhatsApp de pedidos
+    // que no existen, a buzones de verdad. Un script de prueba no puede
+    // escribirle a nadie.
+    //
+    // La guarda es explícita y de una sola dirección: hay que PEDIR que no se
+    // envíe. Así producción nunca queda muda por una variable mal puesta.
+    if (process.env.ATELIER_SIN_ENVIOS === '1') {
+        console.log('[Confirmación de compra] ATELIER_SIN_ENVIOS=1 — no se envía nada (corrida de prueba).');
+        return { ...resultado, omitida: true };
+    }
 
     try {
         const order: any = await prisma.order.findUnique({ where: { id: orderId }, select: SELECT_CONFIRMACION });
