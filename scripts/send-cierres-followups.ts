@@ -243,8 +243,14 @@ async function generateFollowUp(opp: any): Promise<string | null> {
 // Envío a producción
 // ──────────────────────────────────────────────
 async function sendWhatsApp(phone: string, text: string): Promise<boolean> {
-  const BOT_API_KEY = process.env.BOT_API_KEY || 'atelier-bot-secret-key-2026';
-  const url = 'https://crm-atelier-production-ae72.up.railway.app/api/whatsapp/send';
+  // Sin fallback hardcodeado: si falta la clave, el script debe frenar acá y
+  // no quedar una copia de la credencial en el repo (auditoría 15/8/2026).
+  const BOT_API_KEY = process.env.BOT_API_KEY;
+  if (!BOT_API_KEY) {
+    console.error('❌ Falta BOT_API_KEY en el entorno. Abortando envío.');
+    return false;
+  }
+  const url = process.env.WA_SEND_URL || 'https://crm-atelier-production-ae72.up.railway.app/api/whatsapp/send';
 
   // Normalización completa (0 de área, "15" intercalado): el recorte de los
   // últimos 10 dígitos mandaba el mensaje a un número equivocado con los
