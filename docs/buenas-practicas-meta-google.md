@@ -12,6 +12,76 @@ las ráfagas son lo que los algoritmos de riesgo castigan.
 
 ---
 
+# PARTE 0 · Regla de oro y operación "bajo la lupa"
+
+**La sección más importante, y escrita para que la dueña NO tenga que distinguir
+sola qué es riesgoso.** Distinguirlo es tarea del asistente (ver "Deber del
+asistente"). Nació del aviso de Instagram del 15/8/2026 y de una frase textual de
+la dueña: *"yo no sé distinguir qué sí y qué no"*.
+
+> ## ⛔ Regla nº 1 (la más concreta)
+> **NO usar Meta desde la extensión de Claude en Chrome. Ni desde ninguna otra IA.**
+>
+> Meta —Instagram, Facebook, Business Manager, Administrador de Anuncios— se usa
+> **a mano**, siempre.
+>
+> **Por qué:** el 15/8/2026 Instagram avisó "sospechamos comportamiento
+> automatizado" en @atelieroptica_. La causa más probable fue una IA moviéndose
+> dentro de la cuenta con la sesión abierta. Cuando una IA hace los clics adentro
+> de tu cuenta, a Meta le parece **un robot usándola** — y por eso salta la alarma.
+>
+> **En la práctica:** mirar tus campañas o tu Instagram vos misma, con tu mano,
+> siempre estuvo bien y sigue estando bien. Lo que no va es pedirle a Claude (o a
+> cualquier IA) que entre y opere ahí adentro por vos.
+
+## Para la dueña — en criollo
+
+- **Nunca dejes que una IA opere DENTRO de tu cuenta de Meta abierta.** El
+  Business Manager, el Administrador de Anuncios, o tu Instagram/Facebook
+  logueados: ahí los clics los hacés **vos, con tu mano**. Mirar tus campañas a
+  mano siempre estuvo bien; que las mire u opere una IA por vos, no — a Meta le
+  parece "un robot usando tu cuenta" (fue el candidato más probable del aviso).
+- **La extensión "Claude en Chrome" queda en modo "Al hacer clic"**
+  (`chrome://extensions` → Claude → Detalles → Acceso al sitio → **Al hacer
+  clic**). Así nunca actúa sola en ninguna página. Y no la invoques estando en
+  pantallas de Meta.
+- **Códigos, contraseñas y verificación en dos pasos los ponés siempre vos**,
+  jamás un agente ni una herramienta.
+- **Nada se publica, se activa, se migra ni se manda masivo sin que vos digas
+  que sí.**
+
+## Estado actual: cuenta BAJO OBSERVACIÓN (desde 15/8/2026)
+
+Instagram @atelieroptica_ recibió el aviso "sospechamos comportamiento
+automatizado". Mientras dure (mínimo 2–3 semanas de prudencia), cuidado extra:
+- No sumar automatizaciones nuevas sobre las cuentas.
+- No operar Meta con IA (ver arriba).
+- Ante cualquier duda, elegir el lado **humano y espaciado**.
+- Detalle del incidente y la auditoría completa:
+  `auditoria-automatizaciones-meta-15ago2026.md`.
+
+## Deber del asistente (Claude / cualquier agente) — OBLIGATORIO
+
+La dueña dijo que no puede distinguir el riesgo sola. Por lo tanto el asistente
+**no puede dar por sentado que ella lo detecte**: antes de hacer cualquier cosa
+de la lista de abajo, **FRENÁ y AVISÁ** en castellano simple — *"esto toca tal
+cosa, y estando bajo la lupa no conviene / conviene hacerlo así"*— y esperá su
+OK. Nunca de una.
+
+Frenar-y-avisar SIEMPRE antes de:
+- Operar, o dejar que una IA opere, dentro de una sesión logueada de Meta/IG/FB.
+- Cambiar la cadencia, el volumen o el horario de cualquier publicación o envío
+  automático (stories, feed, seguimientos de WhatsApp).
+- Publicar contenido, activar campañas, o mandar cualquier mensaje masivo.
+- Tocar tokens, permisos, apps de terceros o accesos de las cuentas.
+- Vincular o desvincular dispositivos/números de WhatsApp.
+- Cualquier acción irreversible o de cara al público sobre las cuentas.
+
+Cómo avisar: **qué** se va a tocar, **por qué** puede ser sensible AHORA (bajo la
+lupa) y **qué alternativa** hay. En una o dos frases, sin tecnicismos.
+
+---
+
 # PARTE I · Meta
 
 ## 1. Lo que banea (y cómo lo evitamos)
