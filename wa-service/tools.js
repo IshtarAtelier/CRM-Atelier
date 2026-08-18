@@ -5,7 +5,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { prisma } = require('./db');
-const { getAdminWaId, withTimeout, normalizarTelefonoAr } = require('./utils');
+const { getAdminWaId, withTimeout } = require('./utils');
 const CRM_API_URL = process.env.CRM_API_URL;
 const BOT_API_KEY = process.env.BOT_API_KEY;
 if (!BOT_API_KEY) {
@@ -689,22 +689,28 @@ async function addTagToClient({ clientId, tagName }) {
             console.error("[Etiqueta Automation] Error push chatLabel:", labelErr.message);
         }
 
-        // 2. Notification Automation
-        if (tag.notifyPhone) {
-            try {
-                const message = `🔔 *NOTIFICACIÓN DEL CRM*\nSe ha aplicado la etiqueta *${tag.name}* al cliente *${client.name || 'Sin nombre'}* (ID: ${client.id}).`;
-                // Se normaliza: los notifyPhone se cargan a mano y vienen sin el
-                // 549 ("3541215971"). Sin esto WhatsApp no resuelve el destino y
-                // el envío falla en cada etiqueta aplicada.
-                const notifyWaId = tag.notifyPhone.includes('@')
-                    ? tag.notifyPhone
-                    : `${normalizarTelefonoAr(tag.notifyPhone)}@c.us`;
-                await sendMessage(notifyWaId, message, null, { isProactive: false });
-                console.log(`[Etiqueta Automation] Notificación enviada a ${notifyWaId}`);
-            } catch (err) {
-                console.error("[Etiqueta Automation] Error enviando notificación:", err.message);
-            }
-        }
+        // 2. Notification Automation — DADA DE BAJA el 18/8/2026.
+        //
+        // Mandaba un WhatsApp al número de `tag.notifyPhone` cada vez que se
+        // aplicaba una etiqueta: "🔔 NOTIFICACIÓN DEL CRM / Se ha aplicado la
+        // etiqueta X al cliente Y (ID: ...)". Salían de a decenas por día,
+        // siempre con el mismo texto y el mismo emoji, disparadas en el
+        // instante exacto del evento en la base: la firma más reconocible de
+        // un bot que existe en todo el sistema. Y encima iban con
+        // `isProactive: false`, así que salteaban el anti-ban entero (sin
+        // tipeo simulado, sin jitter, sin límite horario).
+        //
+        // Contexto: el 15/8/2026 Instagram avisó "sospechamos comportamiento
+        // automatizado" en la cuenta del negocio. Este canal es el bot NO
+        // oficial (whatsapp-web.js sobre Puppeteer) — ver
+        // docs/auditoria-automatizaciones-meta-15ago2026.md.
+        //
+        // La etiqueta se sigue aplicando y se sigue viendo en el CRM (el
+        // `chat_updated` de arriba refresca el panel en vivo). Lo único que se
+        // fue es el WhatsApp. El campo `notifyPhone` queda en el schema pero
+        // ya no dispara nada: si alguna vez se quiere recuperar el aviso, va
+        // por la campanita del panel (NotificationBell) o por mail, no por
+        // WhatsApp.
 
         return { success: true, message: `Etiqueta '${tagName}' agregada correctamente al cliente.` };
     } catch (e) {
