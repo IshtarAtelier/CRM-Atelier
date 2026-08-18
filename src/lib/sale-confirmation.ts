@@ -527,6 +527,19 @@ export async function sendSaleConfirmation(
                     fotos.push({ url: p.url, caption: p.nombre, nombre: 'producto.jpg' });
                 }
 
+                // Tope duro de adjuntos. Un pedido con muchos armazones (o uno
+                // donde la cantidad no empareja con los pares y se listan todos)
+                // llegaba a 7 mensajes seguidos: molesto para el cliente y es la
+                // ráfaga que castiga WhatsApp — el canal es el cliente NO
+                // oficial. Con 4 entran la receta y hasta 3 armazones, que cubre
+                // el 2x1 con margen. El resto igual se ve en el mail y en el PDF.
+                const TOPE_FOTOS = 4;
+                const recortadas = Math.max(0, fotos.length - TOPE_FOTOS);
+                if (recortadas > 0) {
+                    console.warn(`[Confirmación de compra] ${recortadas} foto(s) no se envían por WhatsApp (tope de ${TOPE_FOTOS}); van en el mail.`);
+                    fotos.length = TOPE_FOTOS;
+                }
+
                 for (const [i, foto] of fotos.entries()) {
                     // Espaciado entre adjuntos: una ráfaga de imágenes seguidas
                     // es justo el patrón que castiga WhatsApp (el canal es el
