@@ -163,8 +163,14 @@ check('confirmación: dice explícitamente que NO lleva teñido', sinTenido.waTe
 check('confirmación: muestra el saldo pendiente', sinTenido.waText.includes('Saldo pendiente: $60.000'));
 check('confirmación: muestra lo abonado', sinTenido.waText.includes('Abonado: $40.000'));
 check('confirmación: pide el OK', /Respondenos \*OK\*/.test(sinTenido.waText));
-check('confirmación: pide corroborar el estilo del armazón y una foto',
-    /estilo que elegiste/.test(sinTenido.waText) && /foto/.test(sinTenido.waText));
+// Antes se le pedía al cliente que mandara una foto suya con el armazón puesto
+// para corroborar el estilo. Se dio de baja el 18/8/2026 por decisión de la
+// dueña: ahora se le manda la foto de CADA armazón con su detalle, así que ve
+// exactamente lo que se va a fabricar y no hay nada que corroborar a ciegas.
+check('confirmación: NO le pide al cliente una foto suya con el armazón',
+    !/foto tuya/.test(sinTenido.waText) && !/estilo que elegiste/.test(sinTenido.waText));
+check('confirmación: lo remite a las fotos de los armazones que se le mandan',
+    /fotos/.test(sinTenido.waText) && /armazones/.test(sinTenido.waText));
 check('confirmación: pide color y grado si son de sol', /color\* y el \*grado\*/.test(sinTenido.waText));
 check('confirmación: invita a preguntar los términos que no se entienden', /preguntanos ahora/.test(sinTenido.waText));
 check('confirmación: adjunta la foto de la receta', !!sinTenido.prescriptionImageUrl);

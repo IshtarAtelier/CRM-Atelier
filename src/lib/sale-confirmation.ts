@@ -23,6 +23,7 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 import { uploadFile } from '@/lib/storage';
 import { STORE_ORIGIN } from '@/lib/constants';
 import { frameRecapText, prescriptionRecapText, prescriptionRecapStructure } from '@/lib/sale-recap-text';
+import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { logAudit } from '@/lib/audit';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
@@ -159,7 +160,10 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         ``,
         `*Necesitamos tu OK* 🙏`,
         `Revisá que esté todo bien: así es como se va a fabricar.`,
-        `• ¿El armazón es el estilo que elegiste? Si podés, mandanos una foto tuya con él puesto o del armazón — nos sirve para chequear.`,
+        // Se le manda la foto de CADA armazón con su detalle (ver el envío de
+        // fotos más abajo), así que no hace falta pedirle que mande una foto
+        // suya para chequear el estilo: lo ve directamente.
+        `• Mirá las fotos que te mandamos: son los armazones que van a fabricarse.`,
         `• Si son de sol: confirmanos el *color* y el *grado* del teñido.`,
         `• Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos ahora y te lo explicamos.`,
         ``,
@@ -228,9 +232,6 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         const foto = urlAbsoluta((it.product?.imagenesCatalogo || [])[0]);
         const nombreItem = it.product?.name || it.productNameSnapshot || 'Producto';
         const marca = it.product?.brand || '';
-        if (foto && !productImages.some(p => p.url === foto)) {
-            productImages.push({ url: foto, nombre: `${marca} ${nombreItem}`.trim() });
-        }
         return `
         <tr>
           <td width="72" style="padding:10px 14px 10px 0;border-bottom:1px solid #eee;vertical-align:middle">
@@ -244,6 +245,67 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           </td>
         </tr>`;
     }).join('');
+
+    // ── Los armazones: cada uno con SU foto y SU detalle debajo ──────────────
+    //
+    // Antes el mail listaba las medidas en una tabla y las fotos aparecían
+    // aparte, arriba, mezcladas con los cristales: el cliente no tenía cómo
+    // saber qué medidas correspondían a qué armazón (y en un 2x1, cuál era
+    // cuál). Ahora va foto + detalle juntos, uno abajo del otro.
+    //
+    // El emparejamiento foto↔par: los datos del par (forma, medidas) viven
+    // sueltos en el pedido (labFrameShape, frameA…) y NO tienen vínculo con el
+    // producto, así que no hay un campo que diga "esta foto es la del par 2".
+    // Cuando la cantidad de armazones comprados coincide con la cantidad de
+    // pares, se emparejan por orden, que es como se cargan. Si no coincide, se
+    // muestran las fotos y los detalles sin afirmar una correspondencia que el
+    // dato no respalda — antes que mostrarle al cliente la foto equivocada.
+    const CATEGORIAS_SIN_FOTO_PROPIA = ['cristal', 'tratamiento'];
+    const esArmazon = (it: any) => {
+        const cat = `${it.product?.category || it.productCategorySnapshot || ''}`.toLowerCase();
+        return cat !== '' && !CATEGORIAS_SIN_FOTO_PROPIA.some(c => cat.includes(c));
+    };
+    const armazonesComprados = items.filter(esArmazon).map(it => ({
+        nombre: `${it.product?.brand || ''} ${it.product?.name || it.productNameSnapshot || 'Armazón'}`.trim(),
+        foto: urlAbsoluta((it.product?.imagenesCatalogo || [])[0]),
+    }));
+
+    const resumenArmazon = describeLabFrameDetails(order);
+    const emparejaPorOrden = armazonesComprados.length === resumenArmazon.pairs.length;
+
+    /** Las líneas de detalle de un par, sin el prefijo de la etiqueta. */
+    const detalleDelPar = (par: typeof resumenArmazon.pairs[number]) => par.isEmpty
+        ? ['sin medidas cargadas']
+        : [par.shape, par.measurements, par.details].filter(Boolean) as string[];
+
+    const fichaArmazon = (titulo: string, foto: string | null, nombre: string | null, detalles: string[]) => `
+          <div style="margin:0 0 16px;padding-bottom:14px;border-bottom:1px solid #eee">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:800;color:#4b3f2f">${escHtml(titulo)}</p>
+            ${foto ? `<p style="margin:0 0 10px"><img src="${escHtml(foto)}" alt="${escHtml(nombre || titulo)}" style="display:block;width:100%;max-width:280px;border-radius:12px;border:1px solid #e5e1da;background:#f0ece5" /></p>` : ''}
+            ${nombre ? `<p style="margin:0 0 6px;font-size:15px;color:#111;font-weight:600">${escHtml(nombre)}</p>` : ''}
+            ${detalles.length ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${detalles.map(d => `<tr><td style="padding:3px 0;font-size:13px;color:#555">${escHtml(d)}</td></tr>`).join('')}</table>` : ''}
+          </div>`;
+
+    const armazonesHtml = `
+        ${resumenArmazon.pairs.map((par, i) => {
+        const comprado = emparejaPorOrden ? armazonesComprados[i] : null;
+        if (comprado?.foto && !productImages.some(p => p.url === comprado.foto)) {
+            // El pie de la foto en WhatsApp lleva el MISMO detalle que va
+            // debajo de la foto en el mail: los dos canales, igual de completos.
+            productImages.push({
+                url: comprado.foto,
+                nombre: [`*${par.label}*`, comprado.nombre, ...detalleDelPar(par)].join('\n'),
+            });
+        }
+        return fichaArmazon(par.label, comprado?.foto || null, comprado?.nombre || null, detalleDelPar(par));
+    }).join('')}
+        ${!emparejaPorOrden ? armazonesComprados.filter(a => a.foto).map(a => {
+        if (!productImages.some(p => p.url === a.foto)) productImages.push({ url: a.foto!, nombre: a.nombre });
+        return fichaArmazon(a.nombre, a.foto, null, []);
+    }).join('') : ''}
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${recapTextToHtmlRows(
+        frameRecapText(order).split('\n').filter(l => !/^Armazón/.test(l) && !/^Par \d/.test(l) && !/^Armazón — Par/.test(l)).join('\n')
+    )}</table>`;
 
     // Misma fuente que el WhatsApp (prescriptionRecapText): no puede decir
     // algo distinto de un canal al otro.
@@ -279,7 +341,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
 
         ${bloque('Lo que encargaste', `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${itemsHtml}</table>`)}
 
-        ${bloque('Armazón y teñido', `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${recapTextToHtmlRows(frameRecapText(order))}</table>`)}
+        ${bloque('Armazón y teñido', armazonesHtml)}
 
         ${bloque('Tu receta, tal cual está cargada', recetaHtml)}
 
@@ -293,7 +355,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           <p style="margin:0 0 10px;font-size:16px;font-weight:800;color:#111">Necesitamos tu OK 🙏</p>
           <p style="margin:0 0 10px;font-size:14px;line-height:1.7;color:#333">Revisá que esté todo bien: <strong>así es como se va a fabricar</strong>.</p>
           <ul style="margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.8;color:#333">
-            <li>¿El armazón es el estilo que elegiste? Si podés, mandanos una foto tuya con él puesto (o del armazón) — nos sirve para chequear.</li>
+            <li>Mirá las fotos de arriba: son los armazones que van a fabricarse, con sus medidas.</li>
             <li>Si son anteojos de sol, confirmanos el <strong>color</strong> y el <strong>grado</strong> del teñido.</li>
             <li>Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos con gusto.</li>
           </ul>
