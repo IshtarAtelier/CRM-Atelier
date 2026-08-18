@@ -10,6 +10,7 @@ import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { descuentoNegativo, excedeTopeVendedor } from '@/lib/constants/descuentos';
 import { mapOrderPostSale } from '@/types/orders';
+import { facturasDeLasVentas } from '@/lib/lab-invoices-summary';
 
 // POST /api/orders — Create order from inline cotizador
 export async function POST(request: Request) {
@@ -266,6 +267,23 @@ export async function POST(request: Request) {
 }
 
 // GET /api/orders — List all orders (paginated or limited list)
+/**
+ * Le cuelga a cada venta las facturas del laboratorio.
+ *
+ * En UNA consulta para toda la página: el listado muestra decenas de ventas y
+ * una consulta por venta lo volvería lento sin necesidad. Nunca lanza — que no
+ * se pueda leer una factura no puede voltear el listado de ventas entero.
+ */
+async function conFacturasDeLab<T extends { id: string }>(orders: T[]): Promise<T[]> {
+    try {
+        const mapa = await facturasDeLasVentas(orders as any);
+        return orders.map(o => ({ ...o, labInvoices: mapa.get(o.id) || [] }));
+    } catch (err) {
+        console.error('[Ventas] No se pudieron leer las facturas del laboratorio:', err);
+        return orders.map(o => ({ ...o, labInvoices: [] }));
+    }
+}
+
 export async function GET(request: Request) {
     try {
         const role = request.headers.get('x-user-role') || 'STAFF';
@@ -559,7 +577,7 @@ export async function GET(request: Request) {
                 const totalRevenue = ordersWithBalance.reduce((s: number, o: any) => s + (o.total || 0), 0);
                 const paginated = ordersWithBalance.slice(skip, skip + limit);
                 return NextResponse.json({
-                    orders: paginated,
+                    orders: await conFacturasDeLab(paginated),
                     totalRevenue: isAdmin ? totalRevenue : 0,
                     pagination: {
                         total,
@@ -569,7 +587,7 @@ export async function GET(request: Request) {
                     }
                 });
             } else {
-                return NextResponse.json(ordersWithBalance);
+                return NextResponse.json(await conFacturasDeLab(ordersWithBalance));
             }
         }
 
@@ -587,7 +605,7 @@ export async function GET(request: Request) {
             ]);
 
             return NextResponse.json({
-                orders: orders.map(mapOrderPostSale),
+                orders: await conFacturasDeLab(orders.map(mapOrderPostSale)),
                 totalRevenue: isAdmin ? (aggregate._sum.total || 0) : 0,
                 pagination: {
                     total,
@@ -604,7 +622,7 @@ export async function GET(request: Request) {
                 orderBy,
                 take: 100, // Safety limit to avoid 502/timeouts
             });
-            return NextResponse.json(orders.map(mapOrderPostSale));
+            return NextResponse.json(await conFacturasDeLab(orders.map(mapOrderPostSale)));
         }
     } catch (error: any) {
         console.error('Error fetching orders:', error);

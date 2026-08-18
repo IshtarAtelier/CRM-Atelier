@@ -1581,6 +1581,34 @@ export default function VentasPage() {
                                                 )}
                                             </button>
                                         )}
+
+                                        {/* Facturas del laboratorio. El dato lo trae la
+                                            conciliación (LabCostEntry) y lo arma el helper
+                                            lab-invoices-summary: acá solo se muestra. Puede
+                                            haber varias — el 2x1 y los pedidos partidos
+                                            entran como operaciones separadas, y cada caso
+                                            de post-venta factura aparte. */}
+                                        {(order.labInvoices || []).length > 0 && (
+                                            <div className="mt-1.5 px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl">
+                                                <span className="text-[8px] lg:text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-1">
+                                                    {(order.labInvoices || []).length > 1 ? `${(order.labInvoices || []).length} Facturas del lab` : 'Factura del lab'}
+                                                </span>
+                                                <div className="space-y-1">
+                                                    {(order.labInvoices || []).map((f: any, i: number) => (
+                                                        <div key={`${f.pedidoLab}-${f.numero}-${i}`} className="flex items-baseline gap-1.5 flex-wrap">
+                                                            <span className="text-[11px] lg:text-xs font-black text-stone-800 dark:text-white tabular-nums">{f.numero}</span>
+                                                            <span className="text-[9px] font-bold text-stone-400">{f.labNombre}</span>
+                                                            {f.dePostVenta && (
+                                                                <span className="text-[8px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">post-venta</span>
+                                                            )}
+                                                            {f.importe != null && (
+                                                                <span className="text-[9px] font-bold text-stone-500 tabular-nums">${Math.round(f.importe).toLocaleString('es-AR')}</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Total on Desktop */}

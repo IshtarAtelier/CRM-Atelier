@@ -185,7 +185,25 @@ export interface Order {
     user?: { name: string };
     items: OrderItem[];
     payments: OrderPayment[];
+    /** Facturas de AFIP emitidas al cliente. */
     invoices?: OrderInvoice[];
+    /**
+     * Facturas que el LABORATORIO nos hizo a nosotros por esta venta — otra cosa
+     * que `invoices`, que son las de AFIP al cliente. Las arma
+     * `src/lib/lab-invoices-summary.ts` desde la conciliación; incluye las de los
+     * casos de post-venta, marcadas con `dePostVenta`.
+     */
+    labInvoices?: Array<{
+        numero: string | null;
+        lab: string;
+        labNombre: string;
+        pedidoLab: string;
+        fecha: string | Date | null;
+        importe: number | null;
+        estado: string;
+        dePostVenta: boolean;
+        postSaleCaseId?: string;
+    }>;
 }
 
 // ── Tipos para Productos ──
