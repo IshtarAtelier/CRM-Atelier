@@ -2077,7 +2077,7 @@ export class OrderService {
                     `• ${saleSummaries}`,
                     ``,
                     `— ARMAZÓN Y TEÑIDO —`,
-                    frameRecapText(updatedOrder as any),
+                    frameRecapText(updatedOrder as any, { interno: true }),
                     ``,
                     `— RECETA (congelada al enviar a fábrica) —`,
                     prescriptionRecapText(rxParaNota as any),
@@ -2316,7 +2316,7 @@ export class OrderService {
                     content: `✅ ${userName || 'Sistema'} RE-CONFIRMÓ la venta #${id.slice(-4).toUpperCase()} después de reabrirla (versión ${version} del pedido). Lo que va a fábrica es esta versión.`
                         + (reconf ? DETALLE_MARK + [
                             `— ARMAZÓN Y TEÑIDO (v${version}) —`,
-                            frameRecapText(reconf),
+                            frameRecapText(reconf, { interno: true }),
                             ``,
                             `— RECETA (v${version}) —`,
                             prescriptionRecapText(rxReconf),

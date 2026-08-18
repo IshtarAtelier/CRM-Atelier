@@ -22,7 +22,7 @@ import { normalizeArgentinePhone } from '@/services/contact.service';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { uploadFile } from '@/lib/storage';
 import { STORE_ORIGIN } from '@/lib/constants';
-import { frameRecapText, prescriptionRecapText } from '@/lib/sale-recap-text';
+import { frameRecapText, prescriptionRecapText, prescriptionRecapStructure } from '@/lib/sale-recap-text';
 import { logAudit } from '@/lib/audit';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
@@ -65,6 +65,27 @@ function stripHtmlToText(html: string): string {
         .join('\n');
 }
 
+/**
+ * Baja una imagen y la devuelve en base64, que es lo único que acepta el
+ * `/api/send` del bot (no toma URLs). Devuelve null y sigue: que no se pueda
+ * bajar una foto no puede voltear la confirmación de una venta.
+ */
+async function imagenABase64(url: string): Promise<{ base64: string; mimetype: string } | null> {
+    try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+        if (!res.ok) return null;
+        const buf = Buffer.from(await res.arrayBuffer());
+        // Tope de 5 MB: WhatsApp rechaza más, y el bot se cuelga esperando.
+        if (!buf.length || buf.length > 5 * 1024 * 1024) return null;
+        return {
+            base64: buf.toString('base64'),
+            mimetype: res.headers.get('content-type') || 'image/jpeg',
+        };
+    } catch {
+        return null;
+    }
+}
+
 function urlAbsoluta(src?: string | null): string | null {
     if (!src) return null;
     const resuelta = resolveStorageUrl(src);
@@ -88,6 +109,12 @@ export interface SaleConfirmation {
     waText: string;
     /** Foto de la receta, absoluta, para adjuntar/mostrar. null si no hay. */
     prescriptionImageUrl: string | null;
+    /**
+     * Fotos de los productos, absolutas, con su nombre. El mail las incrusta y
+     * el WhatsApp las manda como adjuntos: las dos vías salen de esta lista, así
+     * que no puede pasar que un canal muestre una foto que el otro no.
+     */
+    productImages: Array<{ url: string; nombre: string }>;
 }
 
 /**
@@ -193,10 +220,17 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           ${cuerpo}
         </div>`;
 
+    // Una sola lista de fotos para los dos canales: el mail las incrusta acá
+    // abajo y el WhatsApp las manda como adjuntos desde `productImages`.
+    const productImages: Array<{ url: string; nombre: string }> = [];
+
     const itemsHtml = items.map(it => {
         const foto = urlAbsoluta((it.product?.imagenesCatalogo || [])[0]);
         const nombreItem = it.product?.name || it.productNameSnapshot || 'Producto';
         const marca = it.product?.brand || '';
+        if (foto && !productImages.some(p => p.url === foto)) {
+            productImages.push({ url: foto, nombre: `${marca} ${nombreItem}`.trim() });
+        }
         return `
         <tr>
           <td width="72" style="padding:10px 14px 10px 0;border-bottom:1px solid #eee;vertical-align:middle">
@@ -213,7 +247,27 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
 
     // Misma fuente que el WhatsApp (prescriptionRecapText): no puede decir
     // algo distinto de un canal al otro.
-    const recetaHtml = `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${recapTextToHtmlRows(prescriptionRecapText(rx))}</table>
+    // La receta con el MISMO cuadro de columnas que se ve en el sistema, pero
+    // dibujado desde `prescriptionRecapStructure` — la misma estructura de la
+    // que sale el texto del WhatsApp. Mismos datos, dos formas de mostrarlos.
+    const rxEstructura = prescriptionRecapStructure(rx);
+    const th = (t: string, primera = false) =>
+        `<th style="padding:6px 8px;font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#8a7f6d;background:#f3efe8;border:1px solid #e5e1da;text-align:${primera ? 'left' : 'center'}">${escHtml(t)}</th>`;
+    const td = (t: string, primera = false) =>
+        `<td style="padding:7px 8px;font-size:13px;color:#111;border:1px solid #e5e1da;text-align:${primera ? 'left' : 'center'};${primera ? 'font-weight:700;background:#fbfaf8' : ''}">${escHtml(t)}</td>`;
+
+    const tablaHtml = (t: typeof rxEstructura.tablas[number]) => `
+          ${rxEstructura.tablas.length > 1 ? `<p style="margin:14px 0 6px;font-size:12px;font-weight:800;color:#4b3f2f">${escHtml(t.titulo)}</p>` : ''}
+          <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-bottom:6px">
+            <tr>${th('Ojo', true)}${t.columnas.map(c => th(c)).join('')}</tr>
+            ${t.filas.map(f => `<tr>${td(f.ojo, true)}${f.valores.map(v => td(v)).join('')}</tr>`).join('')}
+          </table>`;
+
+    const recetaHtml = rxEstructura.vacia
+        ? `<p style="margin:0;font-size:14px;color:#666">No hay una receta cargada en este pedido.</p>`
+        : `${rxEstructura.tipo ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${fila('Tipo de lente', rxEstructura.tipo)}</table>` : ''}
+        ${rxEstructura.tablas.map(tablaHtml).join('')}
+        ${rxEstructura.extras.length ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin-top:8px">${rxEstructura.extras.map(x => fila(x.label, x.valor)).join('')}</table>` : ''}
         ${fotoReceta ? `<p style="margin:14px 0 0"><img src="${escHtml(fotoReceta)}" alt="Foto de tu receta" style="max-width:100%;border-radius:10px;border:1px solid #e5e1da" /></p>` : ''}`;
 
     const emailHtml = `
@@ -252,6 +306,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         emailHtml,
         waText,
         prescriptionImageUrl: fotoReceta,
+        productImages,
     };
 }
 
@@ -283,6 +338,9 @@ export interface EnvioConfirmacionResultado {
     /** No se envió porque ya se había enviado antes para esta versión del pedido. */
     yaEnviada?: boolean;
     pdfUrl?: string | null;
+    /** Fotos que salieron por WhatsApp, y cuántas se intentaron. */
+    fotosEnviadas?: number;
+    fotosTotales?: number;
 }
 
 /**
@@ -357,6 +415,52 @@ export async function sendSaleConfirmation(
             } catch (err) {
                 console.error('[Confirmación de compra] WhatsApp falló:', err);
             }
+
+            // ── Las fotos, por WhatsApp ──────────────────────────────────────
+            // El mail las incrusta; acá van como adjuntos, para que los dos
+            // canales muestren lo mismo. Salen de la MISMA lista que el mail
+            // (`conf.prescriptionImageUrl` y `conf.productImages`), así que no
+            // puede pasar que una foto viaje por un canal y no por el otro.
+            //
+            // Solo si el mensaje principal salió: mandar fotos sueltas sin el
+            // repaso que las explica es peor que no mandarlas.
+            if (resultado.whatsapp) {
+                const fotos: Array<{ url: string; caption: string; nombre: string }> = [];
+                if (conf.prescriptionImageUrl) {
+                    fotos.push({ url: conf.prescriptionImageUrl, caption: 'La receta que usamos para fabricar tus lentes.', nombre: 'receta.jpg' });
+                }
+                for (const p of conf.productImages) {
+                    fotos.push({ url: p.url, caption: p.nombre, nombre: 'producto.jpg' });
+                }
+
+                for (const [i, foto] of fotos.entries()) {
+                    // Espaciado entre adjuntos: una ráfaga de imágenes seguidas
+                    // es justo el patrón que castiga WhatsApp (el canal es el
+                    // cliente no oficial). 4 s alcanza y no molesta a nadie.
+                    if (i > 0) await new Promise(r => setTimeout(r, 4000));
+                    const img = await imagenABase64(foto.url);
+                    if (!img) {
+                        console.error(`[Confirmación de compra] No se pudo bajar la foto ${foto.url}`);
+                        continue;
+                    }
+                    try {
+                        await fetchWa('/api/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chatId: `${normalizeArgentinePhone(tel)}@c.us`,
+                                message: foto.caption,
+                                senderName: 'Sistema Atelier',
+                                media: { base64: img.base64, mimetype: img.mimetype, filename: foto.nombre },
+                            }),
+                        });
+                        resultado.fotosEnviadas = (resultado.fotosEnviadas || 0) + 1;
+                    } catch (err) {
+                        console.error('[Confirmación de compra] Falló una foto por WhatsApp:', err);
+                    }
+                }
+                resultado.fotosTotales = fotos.length;
+            }
         }
 
         resultado.pdfUrl = pdfUrl;
@@ -372,6 +476,9 @@ export async function sendSaleConfirmation(
             sello,
             `Email: ${resultado.email ? `✅ enviado a ${order.client.email}` : (order.client.email ? '❌ NO se pudo enviar' : '— sin email cargado')}`,
             `WhatsApp: ${resultado.whatsapp ? `✅ enviado al ${order.client.phone}` : (tel.length >= 10 ? '❌ NO se pudo enviar' : '— sin teléfono válido')}`,
+            resultado.fotosTotales
+                ? `Fotos por WhatsApp: ${resultado.fotosEnviadas || 0} de ${resultado.fotosTotales}${(resultado.fotosEnviadas || 0) < resultado.fotosTotales ? ' ⚠️' : ' ✅'} (receta y productos)`
+                : `Fotos por WhatsApp: — no había ninguna para enviar`,
             pdfUrl ? `PDF del pedido: ${resolveStorageUrl(pdfUrl)}` : `PDF del pedido: ❌ no se pudo generar`,
         ].join('\n') + DETALLE_MARK
             + `── Copia exacta enviada por WhatsApp ──\n${conf.waText}`
