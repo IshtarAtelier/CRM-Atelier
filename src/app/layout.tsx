@@ -99,6 +99,9 @@ export default function RootLayout({
           </div>
           <Toaster position="top-right" richColors />
           <FloatingWhatsApp />
+          {/* Antes que TrackingScripts: opt-out por defecto, así su efecto que
+              sincroniza la cookie de consentimiento corre primero. */}
+          <CookieConsent />
           {/* IDs resueltos en el servidor: ver la nota en TrackingScripts sobre
               por qué no se leen con process.env del lado del cliente. */}
           <TrackingScripts
@@ -112,7 +115,6 @@ export default function RootLayout({
           />
           <AnalyticsTracker />
           <WhatsAppAttribution />
-          <CookieConsent />
           <ChunkReloadGuard />
         </ThemeProvider>
       </body>

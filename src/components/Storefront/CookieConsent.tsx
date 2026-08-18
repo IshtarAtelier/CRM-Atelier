@@ -8,7 +8,7 @@ const EVENT = 'ate-consent-change';
 
 export type ConsentValue = 'granted' | 'denied';
 
-export function getConsent(): ConsentValue | null {
+function readStored(): ConsentValue | null {
   if (typeof window === 'undefined') return null;
   try {
     const v = localStorage.getItem(CONSENT_KEY);
@@ -18,19 +18,31 @@ export function getConsent(): ConsentValue | null {
   }
 }
 
-function setConsent(v: ConsentValue) {
+/**
+ * Opt-out: sin decisión explícita se mide igual (devuelve 'granted'). Antes
+ * era opt-in y el cartel bloqueaba la medición hasta un clic que casi nadie
+ * daba — los públicos de remarketing de la tienda quedaban vacíos aunque el
+ * píxel estuviera sano. Ver PARTE 0 de docs/buenas-practicas-meta-google.md.
+ */
+export function getConsent(): ConsentValue {
+  return readStored() === 'denied' ? 'denied' : 'granted';
+}
+
+function writeCookie(v: ConsentValue) {
+  try {
+    // Única forma de que el servidor sepa si puede medir (ver api/web/track).
+    document.cookie = `${CONSENT_KEY}=${v}; max-age=15552000; path=/; SameSite=Lax`;
+  } catch {
+    /* noop */
+  }
+}
+
+function decidir(v: ConsentValue) {
   try {
     localStorage.setItem(CONSENT_KEY, v);
-    // Además del localStorage, una cookie propia: es la ÚNICA forma de que el
-    // servidor sepa si puede medir. La usa /api/web/track para decidir si
-    // espeja el evento al Conversions API de Meta — no alcanza con mirar la
-    // cookie _fbp del Pixel, porque justamente cuando un adblocker lo bloquea
-    // (que es cuando más hace falta el envío server-side) esa cookie no existe.
-    document.cookie = `${CONSENT_KEY}=${v}; max-age=15552000; path=/; SameSite=Lax`;
+    writeCookie(v);
     window.dispatchEvent(new Event(EVENT));
-    // Qué decidió. Cruzado con `consent_shown` da la tasa de aceptación y, por
-    // resta, cuántos ignoran el cartel — o sea el tamaño del punto ciego de
-    // Meta. Va por la analítica propia, que no usa cookies.
+    // Cruzado con `consent_shown` da cuántos tocan "Rechazar" de verdad.
     track('consent_decision', { meta: { decision: v } });
   } catch {
     /* noop */
@@ -38,73 +50,69 @@ function setConsent(v: ConsentValue) {
 }
 
 /** Hook para componentes que deben reaccionar al consentimiento (ver TrackingScripts). */
-export function useConsent(): ConsentValue | null {
-  const [consent, setState] = useState<ConsentValue | null>(null);
+export function useConsent(): ConsentValue {
+  const [consent, setConsentState] = useState<ConsentValue>('granted');
   useEffect(() => {
-    setState(getConsent());
-    const handler = () => setState(getConsent());
+    setConsentState(getConsent());
+    const handler = () => setConsentState(getConsent());
     window.addEventListener(EVENT, handler);
     return () => window.removeEventListener(EVENT, handler);
   }, []);
   return consent;
 }
 
+/** Si el cartel sigue en pantalla (nadie lo cerró todavía). Ver FloatingWhatsApp. */
+export function useCookieBannerVisible(): boolean {
+  const [visible, setVisible] = useState(false); // false hasta montar: evita flash SSR
+  useEffect(() => {
+    const actualizar = () => setVisible(readStored() === null);
+    actualizar();
+    window.addEventListener(EVENT, actualizar);
+    return () => window.removeEventListener(EVENT, actualizar);
+  }, []);
+  return visible;
+}
+
 /**
- * Banner de consentimiento. Solo gobierna las cookies de marketing (Meta Pixel / GA).
- * La analítica propia de la tienda no usa cookies ni PII, así que sigue funcionando.
+ * Cartel de cookies, chico y parejo entre sus dos botones. La medición NO
+ * espera a que se cierre: ya está midiendo desde que se monta la página
+ * (ver el `writeCookie` de acá abajo, corrido en cuanto entra el visitante).
+ * "Aceptar" solo cierra el cartel; "Rechazar" es el único que cambia algo.
  */
 export default function CookieConsent() {
-  const [decided, setDecided] = useState(true); // asumir decidido hasta montar (evita flash SSR)
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const yaDecidio = getConsent() !== null;
-    setDecided(yaDecidio);
-    // Se registra una sola vez, cuando el cartel realmente se muestra. Es el
-    // denominador: sin él, "10 aceptaron" no dice nada.
-    if (!yaDecidio) track('consent_shown');
+    // Sincroniza la cookie del servidor con el valor por defecto (granted)
+    // desde el primer render, sin esperar ningún clic.
+    writeCookie(getConsent());
+    const noDecidioTodavia = readStored() === null;
+    setVisible(noDecidioTodavia);
+    if (noDecidioTodavia) track('consent_shown');
   }, []);
 
-  if (decided) return null;
+  if (!visible) return null;
 
   return (
     <div
       role="region"
       aria-label="Consentimiento de cookies"
-      className="fixed bottom-0 inset-x-0 z-[90] p-2 sm:p-5 pointer-events-none animate-[tiendaFadeUp_0.35s_ease-out]"
+      className="fixed bottom-0 inset-x-0 z-[90] p-2 pointer-events-none animate-[tiendaFadeUp_0.35s_ease-out]"
     >
-      {/* Fondo OPACO y a contramano del sitio (la tienda es blanca): el banner
-          tiene que leerse como una capa aparte, no como parte de la página.
-          Nada de bg-card/border-border acá — esos tokens no existen en el
-          @theme de globals.css y Tailwind los resuelve a "sin color", que es
-          justo lo que dejaba el cartel transparente sobre el hero.
-
-          En celular va en UNA FILA y con el texto corto: apilado ocupaba ~190px
-          y tapaba los dos CTAs del hero (que viven entre 116 y 220px del borde
-          inferior en 375x812). Así queda en ~76px, por debajo de los botones.
-          El aviso completo se lee en /privacidad; el banner solo tiene que
-          alcanzar para decidir. */}
-      <div className="pointer-events-auto mx-auto max-w-3xl rounded-2xl bg-stone-900 text-white ring-1 ring-[#c8a55c]/50 shadow-2xl shadow-black/40 p-3 sm:p-6 flex items-center gap-3 sm:gap-6">
-        <p className="text-[13px] sm:text-[15px] leading-snug sm:leading-relaxed text-white/90 flex-1">
-          <span className="sm:hidden">Usamos cookies de medición.</span>
-          <span className="hidden sm:inline">
-            Usamos cookies de medición para mejorar tu experiencia y nuestras campañas.
-            Podés aceptarlas o rechazarlas. La analítica interna del sitio no usa cookies ni datos personales.
-          </span>
-        </p>
-        <div className="flex gap-2 sm:gap-3 shrink-0">
-          <button
-            onClick={() => { setConsent('denied'); setDecided(true); }}
-            className="px-3 py-2 sm:px-5 sm:py-3 rounded-full border border-white/35 text-[12px] sm:text-sm text-white/85 hover:bg-white/10 transition-colors"
-          >
-            Rechazar
-          </button>
-          <button
-            onClick={() => { setConsent('granted'); setDecided(true); }}
-            className="px-4 py-2 sm:px-7 sm:py-3 rounded-full bg-[#c8a55c] text-stone-900 text-[12px] sm:text-sm font-bold uppercase tracking-widest hover:bg-[#d8b76d] transition-colors shadow-lg shadow-[#c8a55c]/25"
-          >
-            Aceptar
-          </button>
-        </div>
+      <div className="pointer-events-auto mx-auto max-w-md rounded-xl bg-stone-900/90 text-white/70 shadow-lg p-2 flex items-center gap-2 text-[11px] leading-snug">
+        <p className="flex-1">Usamos cookies para mejorar tu experiencia.</p>
+        <button
+          onClick={() => { decidir('denied'); setVisible(false); }}
+          className="underline hover:text-white/90 transition-colors shrink-0"
+        >
+          Rechazar
+        </button>
+        <button
+          onClick={() => { decidir('granted'); setVisible(false); }}
+          className="underline hover:text-white/90 transition-colors shrink-0"
+        >
+          Aceptar
+        </button>
       </div>
     </div>
   );

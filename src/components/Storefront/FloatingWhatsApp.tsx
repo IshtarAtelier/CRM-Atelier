@@ -7,7 +7,7 @@ import { WHOLESALE_WHATSAPP_PHONE } from "@/lib/constants";
 import { BUSINESS_INFO } from "@/lib/business-info";
 import { trackPhoneClick } from "@/lib/tracking";
 import { usePathname } from "next/navigation";
-import { useConsent } from "@/components/Storefront/CookieConsent";
+import { useCookieBannerVisible } from "@/components/Storefront/CookieConsent";
 
 export function FloatingWhatsApp({ message, productName }: { message?: string; productName?: string } = {}) {
   const [tiempoCumplido, setTiempoCumplido] = useState(false);
@@ -22,7 +22,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   const pathname = usePathname();
   // Sin decisión de cookies (null) el banner ocupa el pie de la pantalla y se
   // superpone con esta burbuja. Es un estado de un solo toque: se espera.
-  const bannerDeCookiesVisible = useConsent() === null;
+  const bannerDeCookiesVisible = useCookieBannerVisible();
 
   // 1,5s, no 5s: WhatsApp es el canal donde se cierra la venta de ticket alto y
   // este es el botón más visible del sitio. A los 5 segundos, buena parte del
