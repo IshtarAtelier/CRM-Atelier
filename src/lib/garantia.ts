@@ -99,6 +99,7 @@ const CATEGORIAS_QUE_NO_SON_CRISTAL = ['armazón', 'armazon', 'lentes de sol', '
 
 export interface ItemConGarantia {
     productNameSnapshot?: string | null;
+    productBrandSnapshot?: string | null;
     productCategorySnapshot?: string | null;
     product?: { name?: string | null; brand?: string | null; category?: string | null } | null;
 }
@@ -121,7 +122,11 @@ export function esCristal(item: ItemConGarantia): boolean {
 export function cristalTieneGarantia(item: ItemConGarantia): boolean {
     if (!esCristal(item)) return false;
     const nombre = `${item.product?.name || item.productNameSnapshot || ''}`.toLowerCase();
-    const marca = `${item.product?.brand || ''}`.toLowerCase();
+    // El snapshot como respaldo: cuando el producto se borra del catálogo, `product`
+    // viene null y solo sobreviven los *Snapshot. Sin esto, un Varilux de un pedido
+    // viejo salía "SIN garantía" — un falso negativo que le niega al cliente una
+    // garantía que sí tiene.
+    const marca = `${item.product?.brand || item.productBrandSnapshot || ''}`.toLowerCase();
     if (LINEAS_CON_GARANTIA.some(l => nombre.includes(l))) return true;
     return MARCAS_CON_GARANTIA.some(m => marca === m || marca.includes(m));
 }

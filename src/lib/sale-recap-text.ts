@@ -116,7 +116,10 @@ export function frameRecapText(order: LabFrameOrder, { interno = false } = {}): 
     // para que revise antes de fabricar, y ya le pide que confirme color y
     // grado. (El PDF lo excluye — esa es la que habría que alinear.)
     if (r.tint?.ambiguousPair) {
-        lineas.push('⚠️ Hay dos pares y una sola línea de teñido: confirmar a cuál corresponde.');
+        // Redactado para el CLIENTE, que es quien lo lee: antes decía "hay dos
+        // pares y una sola línea de teñido: confirmar a cuál corresponde", que
+        // es jerga interna y suena a una instrucción para el vendedor.
+        lineas.push('⚠️ Tenés dos armazones y un solo teñido cargado: confirmanos si el teñido va en los dos o solo en uno.');
     }
     if (tienePhotocromatico(order)) {
         lineas.push('Fotocromático: SÍ — los cristales se oscurecen solos con el sol.');

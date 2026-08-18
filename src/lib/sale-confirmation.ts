@@ -420,7 +420,7 @@ const SELECT_CONFIRMACION = {
     items: {
         select: {
             id: true, quantity: true, price: true, eye: true,
-            productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true,
+            productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true,
             product: { select: { name: true, brand: true, category: true, type: true, imagenesCatalogo: true } },
         },
     },

@@ -195,9 +195,11 @@ const dosPares = buildSaleConfirmation({
 check('confirmación 2x1: aparece el PRIMER par', dosPares.waText.includes('Armazón — Par 1'));
 check('confirmación 2x1: aparece el SEGUNDO par con sus medidas',
     dosPares.waText.includes('Armazón — Par 2') && dosPares.waText.includes('A: 48'));
+// El aviso está redactado para el CLIENTE, no para el vendedor: le pregunta si
+// el teñido va en los dos armazones o en uno. No usar jerga interna acá.
 check('confirmación 2x1: avisa que el teñido no dice a qué par corresponde',
     buildSaleConfirmation({ ...base, appliedPromoName: 'Promo 2x1', labColor: 'Gris' })
-        .waText.includes('confirmar a cuál corresponde'));
+        .waText.includes('confirmanos si el teñido va en los dos o solo en uno'));
 
 const actualizada = buildSaleConfirmation(base, true);
 check('confirmación re-enviada: avisa que reemplaza a la anterior', /PEDIDO ACTUALIZADO/.test(actualizada.waText));
