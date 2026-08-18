@@ -24,6 +24,7 @@ import { uploadFile } from '@/lib/storage';
 import { STORE_ORIGIN } from '@/lib/constants';
 import { frameRecapText, prescriptionRecapText, prescriptionRecapStructure } from '@/lib/sale-recap-text';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
+import { garantiaDeLosCristales, GARANTIA_ADAPTACION } from '@/lib/garantia';
 import { logAudit } from '@/lib/audit';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
@@ -137,6 +138,26 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     const items: any[] = order.items || [];
     const fotoReceta = urlAbsoluta(rx?.imageUrl);
 
+    // ── Garantía, cristal por cristal ────────────────────────────────────────
+    // El alcance sale de `garantia.ts`, que es la política publicada: si un día
+    // cambia, cambia en un solo lugar y este mensaje lo sigue. Decir qué NO
+    // tiene garantía es tan importante como decir qué sí — el silencio es lo
+    // que después genera el reclamo.
+    const garantia = garantiaDeLosCristales(items);
+    const lineasGarantia: string[] = [];
+    if (garantia.conGarantia.length) {
+        lineasGarantia.push(
+            `✅ CON garantía de adaptación: ${garantia.conGarantia.join(', ')}.`,
+            `${GARANTIA_ADAPTACION.RESUMEN} ${GARANTIA_ADAPTACION.REQUISITO}`,
+        );
+    }
+    if (garantia.sinGarantia.length) {
+        lineasGarantia.push(
+            `❌ SIN garantía de adaptación: ${garantia.sinGarantia.join(', ')}.`,
+            `Estos cristales no se pueden cambiar si no te adaptás, así que asegurate de que ves bien con esta graduación antes de que salgan a fabricarse. Si tenés dudas, decinos y lo revisamos juntos ahora.`,
+        );
+    }
+
     // ── WhatsApp: texto plano, el mismo contenido ────────────────────────────
     const waText = [
         `*Confirmación de compra — Pedido #${nro}*`,
@@ -153,6 +174,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         `*Tu receta (tal cual está cargada)*`,
         prescriptionRecapText(rx),
         ``,
+        ...(lineasGarantia.length ? [`*Garantía de tus cristales*`, ...lineasGarantia, ``] : []),
         `*Pago*`,
         `Total: ${money(total)}`,
         `Abonado: ${money(pagado)}`,
@@ -344,6 +366,16 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         ${bloque('Armazón y teñido', armazonesHtml)}
 
         ${bloque('Tu receta, tal cual está cargada', recetaHtml)}
+
+        ${lineasGarantia.length ? bloque('Garantía de tus cristales', `
+            ${garantia.conGarantia.length ? `
+            <p style="margin:0 0 4px;font-size:14px;color:#1d6b45;font-weight:700">✅ CON garantía de adaptación</p>
+            <p style="margin:0 0 6px;font-size:14px;color:#111">${escHtml(garantia.conGarantia.join(', '))}</p>
+            <p style="margin:0 0 14px;font-size:13px;line-height:1.6;color:#555">${escHtml(`${GARANTIA_ADAPTACION.RESUMEN} ${GARANTIA_ADAPTACION.REQUISITO}`)}</p>` : ''}
+            ${garantia.sinGarantia.length ? `
+            <p style="margin:0 0 4px;font-size:14px;color:#993c1d;font-weight:700">❌ SIN garantía de adaptación</p>
+            <p style="margin:0 0 6px;font-size:14px;color:#111">${escHtml(garantia.sinGarantia.join(', '))}</p>
+            <p style="margin:0;font-size:13px;line-height:1.6;color:#555">Estos cristales no se pueden cambiar si no te adaptás, así que <strong>asegurate de que ves bien con esta graduación</strong> antes de que salgan a fabricarse. Si tenés dudas, decinos y lo revisamos juntos ahora.</p>` : ''}`) : ''}
 
         ${bloque('Pago', `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
               ${fila('Total', money(total))}

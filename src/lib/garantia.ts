@@ -44,19 +44,20 @@ export const GARANTIA_ADAPTACION = {
    * monofocales comunes.
    */
   ALCANCE:
-    "La garantía cubre los cristales multifocales Varilux y los monofocales Super Blue " +
-    "(monofocales con filtro de luz azul). Los demás cristales monofocales no tienen " +
-    "garantía de adaptación.",
+    "La garantía cubre los cristales multifocales Varilux, Kodak y Sygnus, los multifocales " +
+    "Smart Free, y los monofocales Super Blue (monofocales con filtro de luz azul). " +
+    "Los demás cristales no tienen garantía de adaptación.",
 
   /** Una frase, en segunda persona. Para tarjetas de beneficios y bajadas. */
   RESUMEN:
-    `Si no te adaptás a tus multifocales Varilux o a tus monofocales Super Blue dentro de ` +
-    `los primeros ${GARANTIA_PLAZO_DIAS} días, te cambiamos los cristales sin costo.`,
+    `Si no te adaptás a tus cristales con garantía dentro de los primeros ` +
+    `${GARANTIA_PLAZO_DIAS} días, te los cambiamos sin costo.`,
 
   /** Letra chica. Nunca prometer el cambio sin acompañarlo de esto. */
   REQUISITO:
     `Para hacerla efectiva hay que presentar una receta nueva de tu oftalmólogo, ` +
-    `emitida a menos de ${GARANTIA_DIAS_ENTRE_RECETAS} días de la anterior.`,
+    `emitida a menos de ${GARANTIA_DIAS_ENTRE_RECETAS} días de la anterior. ` +
+    `El cambio se puede hacer una sola vez.`,
 
   /**
    * Párrafo de /politicas-de-cambio, en el registro formal ("el paciente") que usa
@@ -64,11 +65,80 @@ export const GARANTIA_ADAPTACION = {
    */
   CONDICIONES:
     `Si el paciente no logra adaptarse dentro de los primeros ${GARANTIA_PLAZO_DIAS} días, ` +
-    `nos comprometemos a reemplazar los cristales sin costo adicional. Para hacer efectiva ` +
-    `esta garantía, será indispensable la presentación de una nueva receta emitida por el ` +
-    `médico oftalmólogo tratante (no deben transcurrir más de ${GARANTIA_DIAS_ENTRE_RECETAS} ` +
-    `días entre ambas recetas).`,
+    `nos comprometemos a reemplazar los cristales sin costo adicional, por única vez. Para ` +
+    `hacer efectiva esta garantía, será indispensable la presentación de una nueva receta ` +
+    `emitida por el médico oftalmólogo tratante (no deben transcurrir más de ` +
+    `${GARANTIA_DIAS_ENTRE_RECETAS} días entre ambas recetas).`,
 } as const;
+
+// ────────────────────────────────────────────────────────────────────────────
+// Qué cristal tiene garantía y cuál no
+//
+// El alcance de arriba está en prosa, para leerlo. Esto es lo mismo pero
+// ejecutable, para poder decírselo al cliente cristal por cristal en la
+// confirmación de compra. Las dos cosas viven en este archivo a propósito: si
+// cambia la política, cambian juntas o no cambian.
+//
+// Se decide por marca y por línea, que es como está organizado el catálogo:
+// verificado contra la base el 18/8/2026.
+// ────────────────────────────────────────────────────────────────────────────
+
+/** Marcas cuyos cristales tienen garantía en todas sus líneas. */
+const MARCAS_CON_GARANTIA = ['varilux', 'mi primer varilux', 'kodak', 'sygnus'];
+
+/**
+ * Dentro de la marca Smart conviven cristales con garantía y sin ella: los
+ * SMART FREE y el Super Blue la tienen; los "Multifocal NEW (BASE)",
+ * "Multifocal ONE (estandar)", el Ocupacional y el Polarizado de sol, no.
+ * Por eso Smart se resuelve por nombre y no por marca.
+ */
+const LINEAS_CON_GARANTIA = ['smart free', 'super blue'];
+
+/** Categorías que NO son cristales: un armazón no tiene garantía de adaptación. */
+const CATEGORIAS_QUE_NO_SON_CRISTAL = ['armazón', 'armazon', 'lentes de sol', 'lentes de contacto', 'tratamiento'];
+
+export interface ItemConGarantia {
+    productNameSnapshot?: string | null;
+    productCategorySnapshot?: string | null;
+    product?: { name?: string | null; brand?: string | null; category?: string | null } | null;
+}
+
+/** ¿Este ítem es un cristal? (lo demás no lleva garantía de adaptación) */
+export function esCristal(item: ItemConGarantia): boolean {
+    const cat = `${item.product?.category || item.productCategorySnapshot || ''}`.toLowerCase();
+    if (!cat) return false;
+    if (CATEGORIAS_QUE_NO_SON_CRISTAL.some(c => cat.includes(c))) return false;
+    return true;
+}
+
+/**
+ * ¿Este cristal tiene garantía de adaptación?
+ *
+ * Devuelve false ante la duda (marca desconocida, ítem sin datos): prometer una
+ * garantía que no existe es peor que no mencionarla — la promesa por escrito
+ * nos obliga. Ver la nota del encabezado del archivo.
+ */
+export function cristalTieneGarantia(item: ItemConGarantia): boolean {
+    if (!esCristal(item)) return false;
+    const nombre = `${item.product?.name || item.productNameSnapshot || ''}`.toLowerCase();
+    const marca = `${item.product?.brand || ''}`.toLowerCase();
+    if (LINEAS_CON_GARANTIA.some(l => nombre.includes(l))) return true;
+    return MARCAS_CON_GARANTIA.some(m => marca === m || marca.includes(m));
+}
+
+/** Los cristales del pedido, separados según tengan garantía o no. */
+export function garantiaDeLosCristales(items: ItemConGarantia[]): {
+    conGarantia: string[];
+    sinGarantia: string[];
+} {
+    const nombre = (it: ItemConGarantia) =>
+        `${it.product?.name || it.productNameSnapshot || 'Cristal'}`.trim();
+    const cristales = (items || []).filter(esCristal);
+    return {
+        conGarantia: cristales.filter(cristalTieneGarantia).map(nombre),
+        sinGarantia: cristales.filter(it => !cristalTieneGarantia(it)).map(nombre),
+    };
+}
 
 /**
  * Versión larga para secciones de contenido: alcance + promesa + letra chica.
@@ -88,10 +158,10 @@ export const GARANTIA_TEXTO_CORTO = GARANTIA_ADAPTACION.RESUMEN;
 export const GARANTIA_FAQ = {
   q: "¿Tienen garantía los cristales multifocales?",
   a:
-    `Sí. Todos nuestros cristales multifocales Varilux, y los cristales Super Blue de ` +
-    `monofocales, tienen garantía de adaptación. Si no te adaptás dentro de los primeros ` +
-    `${GARANTIA_PLAZO_DIAS} días, te cambiamos los cristales sin costo. Es requisito ` +
-    `presentar una nueva receta emitida por tu oftalmólogo, y entre ambas recetas no deben ` +
-    `pasar más de ${GARANTIA_DIAS_ENTRE_RECETAS} días. Los demás cristales monofocales no ` +
-    `tienen garantía de adaptación.`,
+    `Sí. Tienen garantía de adaptación los multifocales Varilux, Kodak y Sygnus, los ` +
+    `multifocales Smart Free, y los monofocales Super Blue. Si no te adaptás dentro de los ` +
+    `primeros ${GARANTIA_PLAZO_DIAS} días, te cambiamos los cristales sin costo, por única ` +
+    `vez. Es requisito presentar una nueva receta emitida por tu oftalmólogo, y entre ambas ` +
+    `recetas no deben pasar más de ${GARANTIA_DIAS_ENTRE_RECETAS} días. Los demás cristales ` +
+    `no tienen garantía de adaptación.`,
 } as const;
