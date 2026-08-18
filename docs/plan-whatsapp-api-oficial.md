@@ -402,6 +402,56 @@ plantilla.
 B7-bis, B15, B16, B17, B18, B19: seis avisos internos que **todavía** salen por
 WhatsApp. Se pasan a email en el próximo commit de Fase 0.
 
+## 3-ter. Estado de la construcción (18/8/2026, rama `whatsapp-api-oficial`)
+
+**Fase 2 construida y probada en local** (contra un mock de Graph y la base
+docker). Nada de esto cambia producción hasta setear `WA_TRANSPORT=cloud`: el
+default es `webjs` y el buzón sigue exactamente igual.
+
+| Pieza | Archivo | Estado |
+|---|---|---|
+| Interruptor de transporte | `wa-service/start.js` (`WA_TRANSPORT=cloud\|webjs`), `Dockerfile`, `railway.toml` | ✅ |
+| Cliente Graph | `wa-service/transport/cloud-api.js` | ✅ texto, medios, plantillas, leído, bajar medios, estado del número, listar/crear plantillas |
+| Transporte con misma interfaz que el legacy | `wa-service/transport/cloud-transport.js` | ✅ ventana 24 h → `WINDOW_CLOSED`; reintento en 429/5xx |
+| Webhook firmado | `wa-service/transport/webhook.js` (`/webhook/whatsapp`) | ✅ verify token, HMAC, 200 inmediato |
+| Persistencia sin bot | `wa-service/transport/inbound.js` | ✅ idempotente por wamid, candado por remitente, migra `@c.us` al vuelo, vincula ficha, `referral` de Ads, estados sent/delivered/read/failed |
+| Rutas propias | `wa-service/transport/cloud-routes.js` | ✅ `/api/templates`, `/api/chats/:id/window`, 410 para bot/followups |
+| Entrada sin Chromium/IA | `wa-service/cloud.js` | ✅ misma auth, `/health`, socket.io |
+| `/api/send` | `wa-service/routes/api.js` | ✅ E.164 pelado, `template`, 409 `needsTemplate`, 422 número/plantilla |
+| Schema | `WhatsAppChat.lastInboundAt`, `WhatsAppMessage.templateName`, `WhatsAppTemplate` | ✅ migración `20260818230000_whatsapp_cloud_api` |
+| Helper único del CRM | `src/lib/whatsapp/send.ts` (`sendWhatsApp`) | ✅ texto → 409 → plantilla con el mismo adjunto |
+| Catálogo de plantillas | `src/lib/whatsapp/templates.ts` (11) | ✅ texto a aprobar, variables, `toMetaComponents` |
+| Flujos migrados | A1–A7, A11–A15 (ver §3-bis) | ✅ mismos botones |
+| Buzón | `src/app/admin/whatsapp/page.tsx`, `TemplatePromptModal.tsx` | ✅ chip de ventana, modal de plantilla al 409, tildes, sin QR/toggles en cloud |
+| Avisos internos | B1–B20 | ✅ todos por email o eliminados; **ninguno por WhatsApp** |
+| Cron de salud | `/api/cron/whatsapp-calidad` | ✅ (dar de alta en cron-job.org al migrar) |
+| Scripts | `scripts/maintenance/whatsapp-api-oficial/` | ✅ plantillas (alta/estado), migración de waId (dry-run: 227 chats, 44 a revisar) |
+
+**Variables del bot en Railway (servicio "Pagina Web") para encender la API oficial**:
+`WA_TRANSPORT=cloud`, `WA_CLOUD_TOKEN`, `WA_CLOUD_PHONE_NUMBER_ID`,
+`WA_CLOUD_WABA_ID`, `WA_CLOUD_VERIFY_TOKEN`, `META_APP_SECRET`. Se sacan
+después: `WA_WEB_VERSION`, el volumen de sesión, `GOOGLE_GENAI_API_KEY` (si no
+se usa para otra cosa).
+
+**URL del webhook a cargar en la app de Meta**:
+`https://magnificent-courage-production-83d7.up.railway.app/webhook/whatsapp`
+(campo suscrito: `messages`; token de verificación = `WA_CLOUD_VERIFY_TOKEN`).
+
+**Qué falta y de quién depende**
+- Meta (dueña + acompañamiento, un paso por mensaje): Fase 1 completa (WABA,
+  nombre, verificación del negocio, app con producto WhatsApp, system user y
+  token, método de pago) y Fase 4 (migrar el número).
+- Plantillas con encabezado de documento (`venta_confirmada`, `comprobante_pago`,
+  `presupuesto_pdf`, `factura_electronica`): Meta pide una muestra de PDF al
+  crearlas — se hacen desde el WhatsApp Manager con el texto del catálogo. Las
+  demás las da de alta el script.
+- Merge de la rama a `main` y deploy: **con OK explícito**. Hasta setear
+  `WA_TRANSPORT=cloud`, el deploy es inofensivo.
+- Cuando el número ya esté en la API: correr `migrar-waid-e164.mjs --prod`
+  (con OK) y dar de alta el cron de calidad.
+- Limpieza posterior (Fase 4 paso 9): borrar Chromium del Dockerfile, la
+  sesión, `whatsapp/`, `anti-ban.js`, la IA y los followups del repo.
+
 ## 4. Lo que se pierde y hay que aceptar
 
 - **El bot vendedor "Matías" no vuelve como está.** Automatizar respuestas en
