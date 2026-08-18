@@ -1215,7 +1215,7 @@ export const ContactService = {
     },
 
     async getById(id: string) {
-        return await prisma.client.findUnique({
+        const contacto = await prisma.client.findUnique({
             where: { id },
             include: {
                 tags: true,
@@ -1344,6 +1344,25 @@ export const ContactService = {
                 }
             }
         });
+
+        // Las facturas del laboratorio de cada caso de post-venta. Se cuelgan
+        // acá y no en la consulta porque viven en LabCostEntry, que se cruza por
+        // número de operación y no por relación. Nunca lanza: que no se pueda
+        // leer una factura no puede dejar sin abrir la ficha del cliente.
+        if (contacto?.postSaleCases?.length) {
+            try {
+                const { facturasDeCasosPostVenta } = await import('@/lib/lab-invoices-summary');
+                const porCaso = await facturasDeCasosPostVenta(contacto.postSaleCases);
+                (contacto as any).postSaleCases = contacto.postSaleCases.map((c: any) => ({
+                    ...c,
+                    labInvoices: porCaso.get(c.id) || [],
+                }));
+            } catch (err) {
+                console.error('[Ficha] No se pudieron leer las facturas de post-venta:', err);
+            }
+        }
+
+        return contacto;
     },
 
     async getTasks(clientId: string) {

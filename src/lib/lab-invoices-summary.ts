@@ -68,6 +68,62 @@ export interface FacturaDeLab {
     postSaleCaseId?: string;
 }
 
+/**
+ * Las facturas de cada caso de post-venta, por su número de operación nuevo.
+ *
+ * Un caso puede tener más de un número (cuando se rehacen los dos pares) y cada
+ * uno se factura por separado: por eso devuelve una lista por caso. Es la misma
+ * lectura que hace la conciliación para cerrar el costo del caso
+ * (lab-recon/order-status.ts), pero para mostrar.
+ */
+export async function facturasDeCasosPostVenta(
+    casos: Array<{ id: string; newOrderNumber?: string | null }>,
+): Promise<Map<string, FacturaDeLab[]>> {
+    const resultado = new Map<string, FacturaDeLab[]>();
+    if (!casos?.length) return resultado;
+
+    const porNumero = new Map<string, string[]>();
+    for (const c of casos) {
+        for (const n of numerosDe(c.newOrderNumber)) {
+            porNumero.set(n, [...(porNumero.get(n) || []), c.id]);
+        }
+    }
+    if (!porNumero.size) return resultado;
+
+    const entradas = await prisma.labCostEntry.findMany({
+        where: { labOrderNumber: { in: [...porNumero.keys()] } },
+        select: {
+            lab: true, labOrderNumber: true, sourceFile: true,
+            invoiceDate: true, billedTotal: true, status: true,
+        },
+    });
+
+    for (const e of entradas) {
+        const numeros = numerosDeFactura(e.sourceFile);
+        if (!numeros.length) continue;
+        for (const casoId of porNumero.get(e.labOrderNumber) || []) {
+            const lista = resultado.get(casoId) || [];
+            for (const numero of numeros) {
+                if (lista.some(f => f.numero === numero && f.pedidoLab === e.labOrderNumber)) continue;
+                lista.push({
+                    numero,
+                    lab: e.lab,
+                    labNombre: nombreDelLab(e.lab),
+                    pedidoLab: e.labOrderNumber,
+                    fecha: e.invoiceDate,
+                    importe: numero === numeros[0] ? e.billedTotal : null,
+                    estado: e.status,
+                    dePostVenta: true,
+                    postSaleCaseId: casoId,
+                });
+            }
+            resultado.set(casoId, lista);
+        }
+    }
+
+    return resultado;
+}
+
 /** Los números de operación de laboratorio que hay que buscar, por venta. */
 interface ClavesDeVenta {
     orderId: string;

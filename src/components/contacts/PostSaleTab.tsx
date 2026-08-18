@@ -43,6 +43,17 @@ interface PostSaleCase {
     cashEntryId?: string | null;
     order?: { id: string; total?: number | null; createdAt?: string | Date | null; labOrderNumber?: string | null } | null;
     notesList?: PostSaleNote[];
+    /**
+     * Las facturas que el laboratorio hizo por la operación NUEVA de este caso.
+     * Las adjunta contact.service desde lab-invoices-summary; pueden ser varias
+     * cuando el caso rehizo los dos pares.
+     */
+    labInvoices?: Array<{
+        numero: string | null;
+        labNombre: string;
+        pedidoLab: string;
+        importe: number | null;
+    }>;
 }
 
 /** Los números de operación que tiene cargados el caso ("80530908 - 80530914" → dos). */
@@ -433,6 +444,30 @@ function CaseCard({ c, isAdmin, userRole, highlighted, onRefresh }: {
                                     <CoverageField coverage={c.coverage} />
                                     <Field label="Costo" value={c.cost != null && c.cost > 0 ? `$${c.cost.toLocaleString('es-AR')}` : null} />
                                 </div>
+                                {/* Con qué factura vino la operación nueva del caso.
+                                    Es el dato que cierra el costo real (lo mismo que
+                                    mira la conciliación), y hasta ahora solo estaba
+                                    en los mails. */}
+                                {(c.labInvoices || []).length > 0 && (
+                                    <div className="pt-1">
+                                        <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">
+                                            {(c.labInvoices || []).length > 1 ? 'Facturas del lab' : 'Factura del lab'}
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {(c.labInvoices || []).map((f, i) => (
+                                                <span key={`${f.pedidoLab}-${f.numero}-${i}`}
+                                                    className="inline-flex items-baseline gap-1.5 rounded-lg bg-stone-50 dark:bg-stone-800/50 border border-stone-200/60 dark:border-stone-800 px-2 py-1">
+                                                    <span className="text-[11px] font-black text-stone-800 dark:text-white tabular-nums">{f.numero}</span>
+                                                    <span className="text-[9px] font-bold text-stone-400">{f.labNombre}</span>
+                                                    <span className="text-[9px] font-bold text-stone-400">op. {f.pedidoLab}</span>
+                                                    {f.importe != null && (
+                                                        <span className="text-[9px] font-bold text-stone-500 tabular-nums">${Math.round(f.importe).toLocaleString('es-AR')}</span>
+                                                    )}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="space-y-2 pt-1">
                                     <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest">Observaciones</p>
                                     {(c.notesList && c.notesList.length > 0) ? (
