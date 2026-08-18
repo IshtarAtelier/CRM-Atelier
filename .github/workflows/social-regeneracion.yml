@@ -29,6 +29,16 @@ jobs:
   regenerar:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # SIN ESTO EL WORKFLOW NUNCA SIRVIÓ. El repo tiene el token de Actions en
+    # `read` por defecto (Settings → Actions → Workflow permissions), así que el
+    # último paso moría con "Permission to ... denied to github-actions[bot], 403"
+    # después de haber regenerado y renderizado todo bien. Los dos intentos del
+    # 6/8 fallaron por esto, el schedule de los viernes nunca llegó a completar y
+    # las piezas con precio se venían regenerando a mano sin que se notara.
+    # Se pide acá y no se cambia el default del repo: el resto de los workflows
+    # no necesita escribir nada.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -93,5 +103,14 @@ jobs:
             git commit \
               -m "chore(social): regeneracion semanal de piezas con precio" \
               -m "Precios y fotos releidos de la base de produccion (solo lectura) y placas re-renderizadas. Corrida automatica del workflow social-regeneracion."
-            git push
+            # El job tarda ~10 min: la rama puede haber avanzado mientras tanto y
+            # un push directo se rechazaria. Rebase antes de empujar; si aun asi
+            # falla, que falle fuerte (el paso corta y el run queda rojo).
+            #
+            # Contra la rama en la que corre, NO contra main: probar este workflow
+            # disparandolo sobre otra rama —la unica forma de validarlo sin tocar
+            # produccion— chocaba add/add con este mismo archivo y el paso moria
+            # antes de llegar al push.
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin HEAD:"$GITHUB_REF_NAME"
           fi
