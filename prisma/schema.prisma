@@ -691,6 +691,10 @@ model WhatsAppChat {
   // minutos y perdía los "hablamos a fin de mes" en cada reinicio.
   followUpPausedUntil DateTime?
   adTag               String?
+  // API oficial (Cloud API): último mensaje ENTRANTE del cliente. Define la
+  // ventana de servicio de 24 h: dentro se puede escribir texto libre; fuera,
+  // solo plantillas aprobadas. Lo escribe el webhook; lo lee /api/send.
+  lastInboundAt       DateTime?
   client              Client?           @relation(fields: [clientId], references: [id])
   messages            WhatsAppMessage[]
 
@@ -710,6 +714,9 @@ model WhatsAppMessage {
   status      String       @default("SENT")
   createdAt   DateTime     @default(now())
   senderName  String?
+  // API oficial: nombre de la plantilla si el saliente fue una plantilla
+  // (null = texto libre dentro de la ventana de 24 h, o mensaje legacy).
+  templateName String?
   // Restrict, NO Cascade: una conversación es prueba de lo que se habló con el
   // cliente y no se borra nunca. Con Cascade, borrar un chat (desde un script,
   // Prisma Studio o código futuro) se llevaba TODO su historial en silencio.
@@ -717,6 +724,28 @@ model WhatsAppMessage {
   chat        WhatsAppChat @relation(fields: [chatId], references: [id], onDelete: Restrict)
 
   @@index([chatId, createdAt(sort: Desc)])
+}
+
+// ── Plantillas de la API oficial de WhatsApp (Cloud API) ─────────────────────
+// Espejo local de GET /{waba_id}/message_templates. La verdad vive en Meta;
+// acá se cachea para que el CRM sepa qué plantillas existen, en qué estado
+// están y qué variables piden, sin pegarle a Graph en cada render. Se
+// sincroniza con POST /api/templates/sync del wa-service.
+model WhatsAppTemplate {
+  id         String   @id @default(cuid())
+  name       String
+  language   String   @default("es_AR")
+  category   String // UTILITY | MARKETING | AUTHENTICATION
+  status     String // APPROVED | PENDING | REJECTED | PAUSED | DISABLED
+  // Componentes tal cual los devuelve Meta (header/body/footer/buttons), para
+  // renderizar la vista previa y contar variables.
+  components Json
+  metaId     String?  @unique
+  syncedAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([name, language])
 }
 
 model DoctorPayment {

@@ -341,29 +341,51 @@ function createApiRouter(deps) {
         // manuales prioritarios y salteaban TODO el anti-ban), y (2) NO se apaga
         // el bot del chat ni se marca "intervención humana", porque no la hubo.
         const proactive = isProactive === true;
+        // template (API oficial): { name, language?, bodyParams?, headerDocument?, headerImage?, buttonUrlParams? }
+        // Con plantilla el envío vale aunque la ventana de 24 h esté cerrada.
+        const template = req.body.template && typeof req.body.template === 'object' ? req.body.template : null;
         let waId = chatId; // fuera del try: el catch necesita limpiar botReplyingTo
         try {
             let dbChatId = null;
+            if (!chatId || typeof chatId !== 'string') return res.status(400).json({ error: 'chatId requerido' });
 
-            if (!chatId.includes('@c.us') && !chatId.includes('@lid')) {
+            // Tres formas de destino: id de la tabla (cuid), waId legacy
+            // ("<num>@c.us" / "<lid>@lid") o teléfono E.164 pelado (API oficial).
+            const esWaIdLegacy = chatId.includes('@c.us') || chatId.includes('@lid');
+            const esTelefono = /^\+?\d{10,15}$/.test(chatId);
+            if (!esWaIdLegacy && !esTelefono) {
                 const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
                 if (!chat) return res.status(404).json({ error: 'Chat not found' });
                 waId = chat.waId;
                 dbChatId = chat.id;
             } else {
-                // Si es un waId directo, intentamos buscar si ya existe en la DB por waId o realPhone
-                const cleanPhone = chatId.replace('@c.us', '').replace('@lid', '');
+                // Buscar el chat existente por cualquiera de sus identidades.
+                const cleanPhone = chatId.replace('@c.us', '').replace('@lid', '').replace(/\D/g, '');
                 const chat = await prisma.whatsAppChat.findFirst({
                     where: {
                         OR: [
                             { waId: chatId },
+                            { waId: cleanPhone },
+                            { waId: `${cleanPhone}@c.us` },
                             { realPhone: cleanPhone }
                         ]
-                    }
+                    },
+                    orderBy: { lastMessageAt: 'desc' }
                 });
                 if (chat) {
                     dbChatId = chat.id;
                     waId = chat.waId; // Usamos el waId real de la DB (por si es @lid!)
+                } else if (esTelefono) {
+                    // API oficial: se puede escribir (con plantilla) a alguien que
+                    // nunca escribió. Se crea el chat para que el saliente tenga
+                    // dónde guardarse y aparezca en el buzón.
+                    waId = cleanPhone;
+                    if (template) {
+                        const nuevo = await prisma.whatsAppChat.create({
+                            data: { waId: cleanPhone, realPhone: cleanPhone, status: 'OPEN', botEnabled: false, lastMessageAt: new Date() }
+                        });
+                        dbChatId = nuevo.id;
+                    }
                 }
             }
             
@@ -389,8 +411,10 @@ function createApiRouter(deps) {
                 }, 90000);
             }
 
+            const sendOpts = proactive ? { isProactive: true, isAutomated: true } : { isProactive: false, isAutomated: false };
+            if (template) sendOpts.template = template;
             if (media?.base64) {
-                sent = await sendMessage(waId, message, media, proactive ? { isProactive: true, isAutomated: true } : { isProactive: false, isAutomated: false });
+                sent = await sendMessage(waId, message, media, sendOpts);
 
                 // Subir al CRM para tener el pre-render
                 try {
@@ -428,7 +452,7 @@ function createApiRouter(deps) {
                     console.error("Error subiendo media saliente a CRM:", err.message);
                 }
             } else {
-                sent = await sendMessage(waId, message, null, proactive ? { isProactive: true, isAutomated: true } : { isProactive: false, isAutomated: false });
+                sent = await sendMessage(waId, message, null, sendOpts);
             }
 
             // Se guarda aunque WhatsApp Web no devuelva su id: el mensaje salió, así que
@@ -445,7 +469,7 @@ function createApiRouter(deps) {
                                     : 'DOCUMENT')))
                         : 'TEXT';
 
-                    const content = message || '[Media]';
+                    const content = message || (template ? `[Plantilla ${template.name}]` : '[Media]');
                     const waMessageId = resolveWaMessageId(sent, { waId, direction: 'OUTBOUND', content });
 
                     await prisma.whatsAppMessage.upsert({
@@ -459,9 +483,11 @@ function createApiRouter(deps) {
                             mediaUrl: mediaUrl,
                             waMessageId,
                             senderName: senderName || 'CRM',
-                            status: 'SENT'
+                            status: 'SENT',
+                            templateName: template ? template.name : null,
                         }
                     });
+                    await prisma.whatsAppChat.update({ where: { id: dbChatId }, data: { lastMessageAt: new Date() } }).catch(() => {});
                 } catch (e) {
                     console.error('Error guardando el saliente del CRM:', e.message);
                 }
@@ -501,6 +527,16 @@ function createApiRouter(deps) {
             if (code === 'NOT_CONNECTED') {
                 botReplyingTo.delete(waId);
                 return res.status(503).json({ error: e.message, code, notSent: true });
+            }
+            // API oficial: pasaron más de 24 h desde el último mensaje del cliente.
+            // Nada salió; el CRM tiene que ofrecer una plantilla aprobada.
+            if (code === 'WINDOW_CLOSED') {
+                botReplyingTo.delete(waId);
+                return res.status(409).json({ error: e.message, code, notSent: true, needsTemplate: true, lastInboundAt: e.lastInboundAt || null });
+            }
+            if (code === 'INVALID_NUMBER' || code === 'RECIPIENT_NOT_ALLOWED' || code === 'TEMPLATE_ERROR') {
+                botReplyingTo.delete(waId);
+                return res.status(422).json({ error: e.message, code, notSent: true });
             }
             res.status(500).json({ error: e.message, code });
         }

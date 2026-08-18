@@ -46,4 +46,4 @@ EXPOSE 3100
 # The wwebjs session volume is mounted fresh (owned by root) at container start, so we
 # start as root just long enough to hand it to `node`, then drop privileges for the app
 # and its Chrome child processes.
-CMD ["sh", "-c", "if [ -n \"$RAILWAY_VOLUME_MOUNT_PATH\" ]; then mkdir -p \"$RAILWAY_VOLUME_MOUNT_PATH\" && chown -R node:node \"$RAILWAY_VOLUME_MOUNT_PATH\"; fi; exec su -s /bin/sh node -c 'exec node index.js'"]
+CMD ["sh", "-c", "if [ -n \"$RAILWAY_VOLUME_MOUNT_PATH\" ]; then mkdir -p \"$RAILWAY_VOLUME_MOUNT_PATH\" && chown -R node:node \"$RAILWAY_VOLUME_MOUNT_PATH\"; fi; exec su -s /bin/sh node -c 'exec node start.js'"]

@@ -2,11 +2,11 @@
   "name": "wa-service",
   "version": "1.0.0",
   "description": "WhatsApp + Bot Multi-Agente para Atelier Óptica CRM",
-  "main": "index.js",
+  "main": "start.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
+    "start": "node start.js",
+    "dev": "node start.js"
   },
   "dependencies": {
     "@langchain/core": "^1.1.48",
