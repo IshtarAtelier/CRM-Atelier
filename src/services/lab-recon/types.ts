@@ -78,8 +78,20 @@ export const OPTOVISION_DIAS_FACTURA_A_LISTO = 5;
  * anotarse el número, esperar, volver a fijarse si ya está en el sistema, y
  * avisar solo si no llegó. Eso es exactamente lo que hace el par
  * `recheckUnmatched()` (cada pase de 10 min) + este margen.
+ *
+ * POR QUÉ UNA HORA (administradora, 18/8/2026). Con 4 minutos el aviso salía
+ * antes de que el vendedor llegara a cargar el número, y el mail terminaba
+ * avisando lo que se iba a resolver solo. La medición de 90 días de
+ * producción (scripts/checks/lab-desfase-numero-operacion.check.mjs) lo
+ * confirma: de 94 pedidos, en 57 el número YA estaba cargado antes de que el
+ * pedido apareciera en el lab (nunca alertan), y de los 37 restantes solo 10
+ * entraban dentro de los 4 minutos — la mediana real es de 18,8 min y el
+ * pelotón grande cae entre 4 y 15 min. La regla del negocio: en una hora el
+ * número tiene que estar cargado; si pasó una hora y no está, ahí sí es un
+ * hallazgo y hay que avisar. Los casos de horas o días (18 de 37) siguen
+ * alertando igual, que es para lo que sirve el aviso.
  */
-export const UNMATCHED_GRACE_MS = 4 * 60 * 1000;
+export const UNMATCHED_GRACE_MS = 60 * 60 * 1000;
 
 /**
  * Qué ítems de la orden pertenecen a cada laboratorio (el resto de la orden
