@@ -41,17 +41,26 @@ const money = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
 function stripHtmlToText(html: string): string {
     return html
         .replace(/<style[\s\S]*?<\/style>/gi, '')
-        .replace(/<(tr|p|div|h1|li)[^>]*>/gi, '\n')
-        .replace(/<td[^>]*>/gi, '  ')
+        // La foto de la receta deja constancia: sin esto, la copia no dice que
+        // el mail la llevaba incrustada.
+        .replace(/<img[^>]*>/gi, '\n[imagen adjunta]')
+        .replace(/<(tr|p|div|h1|li|br)[^>]*>/gi, '\n')
+        .replace(/<\/(p|div|h1|li)>/gi, '\n')
+        .replace(/<td[^>]*>/gi, '\t')
         .replace(/<[^>]+>/g, '')
         .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
+        // `&amp;` va ÚLTIMO: si se decodifica primero, un texto que contenga
+        // literalmente "&lt;" (escapado a "&amp;lt;") se decodificaría dos
+        // veces y saldría como "<".
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, '&')
         .split('\n')
-        .map(l => l.replace(/[ \t]+/g, ' ').trim())
+        // Se colapsan espacios pero se respeta el tabulador que separa
+        // etiqueta de valor: sin él "Total $86.000" queda sin delimitador.
+        .map(l => l.replace(/[ ]+/g, ' ').replace(/\t+/g, ': ').replace(/^:\s*/, '').trim())
         .filter(Boolean)
         .join('\n');
 }
@@ -142,13 +151,41 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     // segunda redacción del contenido: es el mismo texto, mostrado distinto.
     // Antes el mail rearmaba esto a mano y no mostraba el prisma ni el aviso
     // de teñido ambiguo — ver auditoría 18/8/2026.
-    const recapTextToHtmlRows = (texto: string) => texto.split('\n').map(linea => {
-        if (linea.startsWith('⚠️')) {
-            return `<tr><td colspan="2" style="padding:6px 0;font-size:13px;color:#7a4a00;font-weight:700">${escHtml(linea)}</td></tr>`;
+    // Un renglón que NO abre etiqueta nueva es la continuación del anterior:
+    // labNotes, labFrameDetails y rx.notes son texto libre y pueden traer
+    // saltos de línea. Partiéndolos, "Retira: martes" se volvía una etiqueta
+    // "Retira" que el vendedor nunca escribió — el mail inventaba un campo que
+    // el WhatsApp mostraba bien. Se pegan al valor de su propia fila.
+    const recapTextToHtmlRows = (texto: string) => {
+        const filas: Array<{ label: string; valor: string } | { aviso: string }> = [];
+        for (const linea of texto.split('\n')) {
+            if (linea.startsWith('⚠️')) { filas.push({ aviso: linea }); continue; }
+            const m = linea.match(/^([^:]+):[ ]?(.*)$/);
+            const ultima = filas[filas.length - 1];
+            if (m) {
+                filas.push({ label: m[1], valor: m[2] });
+            } else if (ultima && 'valor' in ultima) {
+                ultima.valor += `\n${linea}`;
+            } else {
+                filas.push({ label: '', valor: linea });
+            }
         }
-        const m = linea.match(/^([^:]+):\s?(.*)$/);
-        return m ? fila(m[1], m[2]) : `<tr><td colspan="2" style="padding:6px 0;font-size:14px;color:#111">${escHtml(linea)}</td></tr>`;
-    }).join('');
+        return filas.map(f => {
+            if ('aviso' in f) {
+                return `<tr><td colspan="2" style="padding:6px 0;font-size:13px;color:#7a4a00;font-weight:700">${escHtml(f.aviso)}</td></tr>`;
+            }
+            // El salto se conserva como <br>: mismo contenido que el WhatsApp.
+            const valorHtml = escHtml(f.valor).replace(/\n/g, '<br>');
+            if (!f.label) {
+                return `<tr><td colspan="2" style="padding:6px 0;font-size:14px;color:#111">${valorHtml}</td></tr>`;
+            }
+            return `
+        <tr>
+          <td style="padding:6px 12px 6px 0;font-size:13px;color:#666;white-space:nowrap;vertical-align:top">${escHtml(f.label)}</td>
+          <td style="padding:6px 0;font-size:14px;color:#111;font-weight:600">${valorHtml}</td>
+        </tr>`;
+        }).join('');
+    };
 
     const bloque = (titulo: string, cuerpo: string) => `
         <div style="margin:24px 0;padding:18px;border:1px solid #e5e1da;border-radius:12px;background:#fbfaf8">
@@ -164,7 +201,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         <tr>
           <td width="72" style="padding:10px 14px 10px 0;border-bottom:1px solid #eee;vertical-align:middle">
             ${foto
-                ? `<img src="${foto}" alt="" width="72" height="72" style="display:block;width:72px;height:72px;border-radius:10px;object-fit:cover;background:#f0ece5" />`
+                ? `<img src="${escHtml(foto)}" alt="" width="72" height="72" style="display:block;width:72px;height:72px;border-radius:10px;object-fit:cover;background:#f0ece5" />`
                 : `<div style="width:72px;height:72px;border-radius:10px;background:#f0ece5"></div>`}
           </td>
           <td style="padding:10px 0;border-bottom:1px solid #eee;vertical-align:middle">
@@ -177,7 +214,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     // Misma fuente que el WhatsApp (prescriptionRecapText): no puede decir
     // algo distinto de un canal al otro.
     const recetaHtml = `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${recapTextToHtmlRows(prescriptionRecapText(rx))}</table>
-        ${fotoReceta ? `<p style="margin:14px 0 0"><img src="${fotoReceta}" alt="Foto de tu receta" style="max-width:100%;border-radius:10px;border:1px solid #e5e1da" /></p>` : ''}`;
+        ${fotoReceta ? `<p style="margin:14px 0 0"><img src="${escHtml(fotoReceta)}" alt="Foto de tu receta" style="max-width:100%;border-radius:10px;border:1px solid #e5e1da" /></p>` : ''}`;
 
     const emailHtml = `
       <div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:620px;margin:0 auto;color:#111">

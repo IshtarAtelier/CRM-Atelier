@@ -28,6 +28,18 @@ export interface RecapPrescription {
 
 const dato = (v: unknown): string => (v === null || v === undefined || v === '' ? '—' : String(v));
 
+/**
+ * Un renglón por campo, siempre.
+ *
+ * Los campos de texto libre (notas de laboratorio, detalles del armazón,
+ * observaciones de la receta) los escribe una persona y pueden traer saltos de
+ * línea. Si se cuelan, el renglón se parte y deja de haber una correspondencia
+ * "una línea = un campo": el mail lo renderiza como si la continuación fuera
+ * un campo nuevo e inventa etiquetas que nadie escribió. Se aplana acá, en la
+ * fuente, para que WhatsApp y mail muestren exactamente lo mismo.
+ */
+const unaLinea = (v: string): string => v.replace(/\s*\n+\s*/g, ' · ').trim();
+
 /** ¿Alguno de los items es fotocromático? Hay que aclarárselo al cliente. */
 export function tienePhotocromatico(order: LabFrameOrder & { labTreatment?: string | null }): boolean {
     const enItems = (order.items || []).some(it => {
@@ -43,7 +55,7 @@ export function frameRecapText(order: LabFrameOrder): string {
     const r = describeLabFrameDetails(order);
     const lineas: string[] = [];
 
-    if (r.origin) lineas.push(`Armazón: ${r.origin}`);
+    if (r.origin) lineas.push(`Armazón: ${unaLinea(r.origin)}`);
 
     for (const par of r.pairs) {
         if (par.isEmpty) {
@@ -51,12 +63,12 @@ export function frameRecapText(order: LabFrameOrder): string {
             continue;
         }
         const partes = [par.shape, par.measurements, par.details].filter(Boolean);
-        lineas.push(`${par.label}: ${partes.join(' · ')}`);
+        lineas.push(`${par.label}: ${unaLinea(partes.join(' · '))}`);
     }
 
     // El teñido se dice SIEMPRE, también cuando no lleva: el silencio es lo que
     // hace dudar a quien lee (y lo que genera el reclamo después).
-    lineas.push(`Teñido: ${r.tint ? r.tint.text : 'NO lleva teñido'}`);
+    lineas.push(`Teñido: ${r.tint ? unaLinea(r.tint.text) : 'NO lleva teñido'}`);
     if (r.tint?.ambiguousPair) {
         lineas.push('⚠️ Hay dos pares y una sola línea de teñido: confirmar a cuál corresponde.');
     }
@@ -64,7 +76,7 @@ export function frameRecapText(order: LabFrameOrder): string {
         lineas.push('Fotocromático: SÍ — los cristales se oscurecen solos con el sol.');
     }
 
-    if (r.notes) lineas.push(`Notas para el laboratorio: ${r.notes}`);
+    if (r.notes) lineas.push(`Notas para el laboratorio: ${unaLinea(r.notes)}`);
 
     return lineas.join('\n');
 }
@@ -89,11 +101,11 @@ export function prescriptionRecapText(rx: RecapPrescription | null | undefined):
     };
 
     const lineas = [
-        rx.prescriptionType ? `Tipo de lente: ${rx.prescriptionType}` : null,
+        rx.prescriptionType ? `Tipo de lente: ${unaLinea(String(rx.prescriptionType))}` : null,
         ojo('OD'),
         ojo('OI'),
         `Distancia interpupilar (DNP): ${dato(rx.pd)}`,
-        rx.notes ? `Observaciones de la receta: ${rx.notes}` : null,
+        rx.notes ? `Observaciones de la receta: ${unaLinea(String(rx.notes))}` : null,
     ].filter(Boolean) as string[];
 
     return lineas.join('\n');
