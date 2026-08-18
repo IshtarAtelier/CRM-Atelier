@@ -15,6 +15,7 @@ import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { BotPricingSection } from '@/components/config/BotPricingSection';
 import { ChatLabelPicker } from '@/components/whatsapp/ChatLabelPicker';
+import { TemplatePromptModal } from '@/components/whatsapp/TemplatePromptModal';
 import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
@@ -112,6 +113,8 @@ interface Chat {
     archived: boolean;
     chatLabels: string[];
     chatSummary?: string | null;
+    /** API oficial: último mensaje entrante (ventana de 24 h). */
+    lastInboundAt?: string | null;
     client?: { id: string; name: string; phone: string; status: string; isFavorite?: boolean } | null;
     messages?: Message[];
 }
@@ -126,13 +129,19 @@ interface Message {
     status: string;
     senderName?: string | null;
     createdAt: string;
+    /** API oficial: nombre de la plantilla si salió como plantilla. */
+    templateName?: string | null;
 }
 
 // ── Main Component ────────────────────────────────
 function WhatsAppPageContent() {
-    const [status, setStatus] = useState<{ connected: boolean; phone: string | null; qr: string | null; agentEnabled: boolean }>({
+    const [status, setStatus] = useState<{ connected: boolean; phone: string | null; qr: string | null; agentEnabled: boolean; transport?: string; qualityRating?: string | null; messagingLimitTier?: string | null; error?: string | null }>({
         connected: false, phone: null, qr: null, agentEnabled: false
     });
+    // API oficial (Cloud API): sin QR, sin bot, con ventana de 24 h y plantillas.
+    const esApiOficial = status.transport === 'cloud';
+    // Pedido de plantilla pendiente: el envío chocó con la ventana cerrada.
+    const [templatePrompt, setTemplatePrompt] = useState<{ chatId: string; texto: string } | null>(null);
     const [dbTags, setDbTags] = useState<Tag[]>([]);
     const [showTagManager, setShowTagManager] = useState(false);
     const [editingTag, setEditingTag] = useState<Partial<Tag> | null>(null);
@@ -312,9 +321,18 @@ function WhatsAppPageContent() {
                 media: { base64, mimetype, filename: `audio_${Date.now()}.webm` },
                 senderName: userName
             };
-            await fetch('/api/whatsapp/send', {
+            const audioRes = await fetch('/api/whatsapp/send', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
             });
+            if (!audioRes.ok) {
+                const err = await audioRes.json().catch(() => ({}));
+                setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+                alert(audioRes.status === 409
+                    ? 'El cliente no escribió en las últimas 24 h: los audios solo se pueden mandar con la conversación abierta. Mandale primero la plantilla "retomar conversación".'
+                    : `❌ No se pudo enviar el audio: ${err?.error || `HTTP ${audioRes.status}`}`);
+                setSending(false);
+                return;
+            }
             setSelectedChat(prev => prev ? { ...prev, botEnabled: false } : prev);
             setChats(prev => prev.map(c => c.id === currentChatId ? { ...c, botEnabled: false } : c));
             await fetchMessages(currentChatId);
@@ -745,7 +763,7 @@ function WhatsAppPageContent() {
                 });
 
                 socket.on('bot_status', (statusData: any) => {
-                    setStatus({ connected: statusData.connected, phone: statusData.phone, qr: statusData.qr, agentEnabled: statusData.agentEnabled });
+                    setStatus({ connected: statusData.connected, phone: statusData.phone, qr: statusData.qr, agentEnabled: statusData.agentEnabled, transport: statusData.transport, qualityRating: statusData.qualityRating, messagingLimitTier: statusData.messagingLimitTier, error: statusData.error });
                     if (statusData.agentEnabled !== undefined) setAgentEnabled(statusData.agentEnabled);
                     if (statusData.followupsEnabled !== undefined) setFollowupsEnabled(statusData.followupsEnabled);
                     if (statusData.prompt !== undefined) setAgentPrompt(statusData.prompt);
@@ -972,11 +990,25 @@ function WhatsAppPageContent() {
         try {
             const body: Record<string, unknown> = { chatId: currentChatId, message: messageText, senderName: userName };
             if (messageImage) body.media = messageImage;
-            await fetch('/api/whatsapp/send', {
+            const sendRes = await fetch('/api/whatsapp/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
+            if (!sendRes.ok) {
+                const err = await sendRes.json().catch(() => ({}));
+                // El optimista se retira: nada salió.
+                setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+                if (sendRes.status === 409 && err?.needsTemplate) {
+                    // API oficial: el cliente no escribió en 24 h. Se ofrece la
+                    // plantilla "retomar conversación" con el texto como tema.
+                    setTemplatePrompt({ chatId: currentChatId, texto: messageText });
+                } else {
+                    alert(`❌ No se pudo enviar: ${err?.error || `HTTP ${sendRes.status}`}`);
+                }
+                setSending(false);
+                return;
+            }
             
             // Si el humano envía un mensaje desde la interfaz, apagamos el bot instantáneamente
             if (selectedChat?.id === currentChatId) {
@@ -1301,13 +1333,16 @@ function WhatsAppPageContent() {
                     <div>
                         <h1 className="text-xl font-black text-stone-800 dark:text-white tracking-tight">Comunicaciones</h1>
                         <p className="text-[11px] font-bold text-stone-500 flex items-center gap-1.5 uppercase tracking-widest mt-0.5">
-                            {status.connected ? <><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Activo ({status.phone})</> : <><span className="w-2 h-2 rounded-full bg-red-500" /> Desconectado</>}
+                            {status.connected
+                                ? <><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {esApiOficial ? 'API oficial' : 'Activo'} ({status.phone}){esApiOficial && status.qualityRating ? ` · calidad ${status.qualityRating}` : ''}</>
+                                : <><span className="w-2 h-2 rounded-full bg-red-500" /> {esApiOficial ? `Sin conexión con la API${status.error ? `: ${status.error}` : ''}` : 'Desconectado'}</>}
                         </p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-3 bg-white/60 dark:bg-stone-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-800 shadow-sm transition-all">
+                    {/* API oficial: no hay bot ni seguimientos automáticos — los dos interruptores no aplican. */}
+                    <div className={`flex items-center gap-3 bg-white/60 dark:bg-stone-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-800 shadow-sm transition-all ${esApiOficial ? 'hidden' : ''}`}>
                         <div className="flex flex-col items-end">
                             <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500 leading-none mb-0.5">Asistente IA</span>
                             <span className={`text-[11px] font-bold leading-none transition-colors ${agentEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400'}`}>
@@ -1328,7 +1363,7 @@ function WhatsAppPageContent() {
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3 bg-white/60 dark:bg-stone-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-800 shadow-sm transition-all">
+                    <div className={`flex items-center gap-3 bg-white/60 dark:bg-stone-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-800 shadow-sm transition-all ${esApiOficial ? 'hidden' : ''}`}>
                         <div className="flex flex-col items-end">
                             <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500 leading-none mb-0.5">Seguimientos</span>
                             <span className={`text-[11px] font-bold leading-none transition-colors ${followupsEnabled ? 'text-sky-600 dark:text-sky-400' : 'text-stone-500 dark:text-stone-400'}`}>
@@ -1363,7 +1398,7 @@ function WhatsAppPageContent() {
                         </button>
                     </div>
 
-                    {status.connected && (
+                    {status.connected && !esApiOficial && (
                         <button
                             onClick={handleSync}
                             disabled={syncing}
@@ -1378,12 +1413,14 @@ function WhatsAppPageContent() {
                         </button>
                     )}
 
+                    {!esApiOficial && (
                     <button
                         onClick={() => setShowTestChat(true)}
                         className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600 hover:scale-105"
                     >
                         <Play className="w-4 h-4" /> Probar Chat
                     </button>
+                    )}
 
                     <button
                         onClick={() => setShowTagManager(true)}
@@ -1612,7 +1649,22 @@ function WhatsAppPageContent() {
                 de desconectado/QR aparece solo cuando el status YA respondió que
                 no hay sesión — antes tapaba todo hasta 100s si wa-service estaba
                 ocupado, y eso se percibía como "tarda en traer las conversaciones". */}
-            {!status.connected && !loadingStatus ? (
+            {!status.connected && !loadingStatus && esApiOficial ? (
+                /* ── API OFICIAL SIN CONEXIÓN: no hay QR que escanear ── */
+                <div className="flex-1 overflow-y-auto p-4 lg:p-12 flex items-center justify-center">
+                    <div className="bg-white/70 dark:bg-stone-900/70 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-white/10 p-12 text-center max-w-lg shadow-2xl">
+                        <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/40 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                            <WhatsAppIcon className="w-10 h-10 text-amber-600" />
+                        </div>
+                        <h2 className="text-2xl font-black text-stone-800 dark:text-white tracking-tight mb-2">La API de WhatsApp no responde</h2>
+                        <p className="text-sm text-stone-500 mb-4 font-medium">{status.error || 'Faltan credenciales o Meta no contesta.'}</p>
+                        <p className="text-xs text-stone-400 mb-8">Con la API oficial no hay QR ni teléfono que vincular: si esto persiste, revisar en Railway las variables WA_CLOUD_TOKEN, WA_CLOUD_PHONE_NUMBER_ID y el estado del número en el WhatsApp Manager.</p>
+                        <button onClick={fetchStatus} className="px-6 py-3 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-2xl font-bold text-sm hover:scale-105 active:scale-95 transition-all flex items-center gap-2 mx-auto shadow-xl">
+                            <RefreshCw className="w-4 h-4" /> Reintentar
+                        </button>
+                    </div>
+                </div>
+            ) : !status.connected && !loadingStatus ? (
                 /* ── PANTALLA DE DESCONECTADO PREMIUM ── */
                 <div className="flex-1 overflow-y-auto p-4 lg:p-12 flex items-center justify-center">
                     <div className="bg-white/70 dark:bg-stone-900/70 backdrop-blur-2xl rounded-[2.5rem] border border-white/50 dark:border-white/10 p-12 text-center max-w-lg shadow-2xl">
@@ -1902,6 +1954,17 @@ function WhatsAppPageContent() {
                                                         )}
                                                     </button>
                                                 )}
+                                                {esApiOficial && (() => {
+                                                    // Ventana de servicio de 24 h (API oficial): dentro, texto libre;
+                                                    // fuera, solo plantilla. Se calcula acá con lastInboundAt.
+                                                    const t = selectedChat.lastInboundAt ? new Date(selectedChat.lastInboundAt).getTime() : 0;
+                                                    const restante = t ? 24 * 3600e3 - (Date.now() - t) : 0;
+                                                    if (restante > 0) {
+                                                        const h = Math.floor(restante / 3600e3), m = Math.floor((restante % 3600e3) / 60e3);
+                                                        return <span className="ml-1.5 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-[9px] uppercase tracking-wider font-black" title="El cliente escribió hace menos de 24 h: se puede responder con texto libre">Conversación abierta · {h > 0 ? `${h} h ${m} min` : `${m} min`}</span>;
+                                                    }
+                                                    return <span className="ml-1.5 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[9px] uppercase tracking-wider font-black" title="Pasaron más de 24 h desde el último mensaje del cliente: solo se puede mandar una plantilla aprobada">Conversación cerrada · solo plantilla</span>;
+                                                })()}
                                             </p>
                                         </div>
                                     </div>
@@ -2294,7 +2357,16 @@ function WhatsAppPageContent() {
                                                                 <span className="mr-1 opacity-80 uppercase tracking-widest">{msg.senderName ? msg.senderName : 'Teléfono'}</span>
                                                             )}
                                                             <span>{format(new Date(msg.createdAt), "HH:mm")}</span>
-                                                            {isOut && <CheckCircle2 className="w-3 h-3" />}
+                                                            {isOut && msg.templateName && <span className="opacity-80" title={`Plantilla ${msg.templateName}`}>· plantilla</span>}
+                                                            {isOut && (
+                                                                msg.status === 'FAILED'
+                                                                    ? <span className="text-red-200 font-black" title="No se entregó">✕</span>
+                                                                    : msg.status === 'READ'
+                                                                        ? <span className="text-sky-200 font-black" title="Leído">✓✓</span>
+                                                                        : msg.status === 'DELIVERED'
+                                                                            ? <span className="font-black" title="Entregado">✓✓</span>
+                                                                            : <CheckCircle2 className="w-3 h-3" />
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2457,6 +2529,16 @@ function WhatsAppPageContent() {
                 </div>
             )}
             <TestChatModal isOpen={showTestChat} onClose={() => setShowTestChat(false)} />
+            {templatePrompt && (
+                <TemplatePromptModal
+                    open
+                    chatId={templatePrompt.chatId}
+                    nombre={(selectedChat?.client?.name || selectedChat?.profileName || '').split(' ')[0]}
+                    textoOriginal={templatePrompt.texto}
+                    onClose={() => setTemplatePrompt(null)}
+                    onSent={() => { if (selectedChat) fetchMessages(selectedChat.id); fetchChats(); }}
+                />
+            )}
 
             {/* Create Task Modal */}
             {showTaskModal && selectedChat?.client && (

@@ -93,6 +93,7 @@ function createApiRouter(deps) {
                 realPhone: true,
                 chatSummary: true,
                 lastFollowUpAt: true,
+                lastInboundAt: true, // API oficial: ventana de 24 h
                 client: { select: { id: true, name: true, phone: true, isFavorite: true } },
                 messages: {
                     orderBy: { createdAt: 'desc' },
