@@ -1,0 +1,49 @@
+{
+  "id": "armazones-clip-on",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-08-17",
+  "generadoDesde": "produccion",
+  "images_waived": "Carrusel de catálogo: cada slide es un armazón y su foto es el producto, no un fondo.",
+  "generado": "2026-08-17",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "catalogo-social/clip-on-genova-7036-c2-lentes-de-sol-armazon.jpg",
+      "title": "Recetados y de *sol*, en un mismo anteojo",
+      "subtitle": "Diseño de autor, en 6 cuotas sin interés y con envío sin cargo."
+    },
+    {
+      "type": "number",
+      "role": "bisagra",
+      "image": "catalogo-social/clip-on-genova-7036-c2-lentes-de-sol-armazon.jpg",
+      "title": "Génova · Cápsula Escarlata",
+      "dato": "$29.167",
+      "body": "6 cuotas sin interés\n$148.750 en efectivo o transferencia"
+    },
+    {
+      "type": "number",
+      "image": "catalogo-social/lentes-sol-clip-on-siena-g5921-c2.jpg",
+      "title": "Siena · Cápsula Escarlata",
+      "dato": "$29.167",
+      "body": "6 cuotas sin interés\n$148.750 en efectivo o transferencia"
+    },
+    {
+      "type": "number",
+      "image": "catalogo-social/lentes-sol-clipon-capri-c5-g5929.jpg",
+      "title": "Capri · Cápsula Escarlata",
+      "dato": "$29.167",
+      "body": "6 cuotas sin interés\n$148.750 en efectivo o transferencia"
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Probátelos en el local",
+      "body": "Cerro de las Rosas. También te los mostramos por WhatsApp si estás lejos."
+    }
+  ]
+}
