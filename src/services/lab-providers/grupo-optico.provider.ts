@@ -187,7 +187,17 @@ export class GrupoOpticoProvider {
                     billedNet: billed,
                     billedTotal: billed,
                     source: 'SCRAPER',
-                    sourceFile: o.factura ? `Fact ${o.factura}` : null,
+                    // TODAS las facturas del pedido, no solo la primera. El portal
+                    // devuelve `invoices` como lista y un mismo pedido se factura
+                    // en más de un comprobante seguido (el 2x1 y los pedidos
+                    // partidos entran como operaciones separadas). Hasta el
+                    // 18/8/2026 se guardaba `invoices[0]` y las demás se perdían:
+                    // la lista ya se calculaba acá arriba para cruzar importes,
+                    // pero nunca se persistía. Ante un "¿con qué factura vino
+                    // esto?" faltaba la mitad de la respuesta.
+                    sourceFile: o.invoiceNumbers.length
+                        ? `Fact ${o.invoiceNumbers.join(', ')}`
+                        : (o.factura ? `Fact ${o.factura}` : null),
                     // El portal manda la fecha de cada pedido (FechaRegistro) y
                     // hasta acá se escribía SOLO dentro de la nota: la columna
                     // quedaba vacía en las 284 filas de Grupo Óptico, y cualquier
@@ -204,7 +214,13 @@ export class GrupoOpticoProvider {
                 });
                 if (entry) {
                     summary.registered++;
-                    if (billed) summary.withCost++;
+                    // `!== null` y no truthy: 0 es un importe VÁLIDO (el par
+                    // gratis del 2x1 se factura $0). Con la comparación truthy,
+                    // esos pedidos se registraban con su importe pero no se
+                    // contaban como "con costo", y el resumen de la corrida
+                    // reportaba de menos — el mismo error que el comentario de
+                    // `billed` unas líneas más arriba se ocupa de evitar.
+                    if (billed !== null) summary.withCost++;
                     if (entry.status === 'UNMATCHED') summary.unmatched++;
                     if (entry.status === 'OVERCOST') summary.overcost++;
                 }
