@@ -5,7 +5,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { prisma } = require('./db');
-const { getAdminWaId, withTimeout, normalizarTelefonoAr } = require('./utils');
+const { withTimeout } = require('./utils');
 const CRM_API_URL = process.env.CRM_API_URL;
 const BOT_API_KEY = process.env.BOT_API_KEY;
 if (!BOT_API_KEY) {
@@ -689,21 +689,18 @@ async function addTagToClient({ clientId, tagName }) {
             console.error("[Etiqueta Automation] Error push chatLabel:", labelErr.message);
         }
 
-        // 2. Notification Automation
+        // 2. Notification Automation — por EMAIL. Hasta el 18/8/2026 esto
+        // mandaba un WhatsApp "NOTIFICACIÓN DEL CRM" desde el número del bot al
+        // teléfono cargado en la etiqueta: tráfico automático evidente, y la
+        // cuenta de Meta está bajo observación. `notifyPhone` queda solo como
+        // señal de "esta etiqueta avisa"; el aviso llega al mail de la administración.
         if (tag.notifyPhone) {
-            try {
-                const message = `🔔 *NOTIFICACIÓN DEL CRM*\nSe ha aplicado la etiqueta *${tag.name}* al cliente *${client.name || 'Sin nombre'}* (ID: ${client.id}).`;
-                // Se normaliza: los notifyPhone se cargan a mano y vienen sin el
-                // 549 ("3541215971"). Sin esto WhatsApp no resuelve el destino y
-                // el envío falla en cada etiqueta aplicada.
-                const notifyWaId = tag.notifyPhone.includes('@')
-                    ? tag.notifyPhone
-                    : `${normalizarTelefonoAr(tag.notifyPhone)}@c.us`;
-                await sendMessage(notifyWaId, message, null, { isProactive: false });
-                console.log(`[Etiqueta Automation] Notificación enviada a ${notifyWaId}`);
-            } catch (err) {
-                console.error("[Etiqueta Automation] Error enviando notificación:", err.message);
-            }
+            const { notifyAdminDown } = require('./whatsapp/client');
+            const crmBase = (CRM_API_URL || '').replace('/api/bot', '');
+            await notifyAdminDown(
+                `Etiqueta "${tag.name}" aplicada a ${client.name || 'Sin nombre'}`,
+                `Se aplicó la etiqueta "${tag.name}" al cliente ${client.name || 'Sin nombre'}.\nFicha: ${crmBase}/admin/contactos?id=${client.id}`
+            );
         }
 
         return { success: true, message: `Etiqueta '${tagName}' agregada correctamente al cliente.` };
@@ -793,17 +790,10 @@ async function reportComplaint({ clientId, details }) {
             content: `[RECLAMO POST-VENTA] ${details}`
         });
 
-        // Enviar notificación por WhatsApp a la administración
-        try {
-            const client = await prisma.client.findUnique({ where: { id: clientId } });
-            const clientName = client ? client.name : clientId;
-            
-            const adminWaId = getAdminWaId();
-            const waMsg = `🚨 *NUEVO RECLAMO POST-VENTA* 🚨\n\n*Cliente:* ${clientName}\n\n*Detalles:*\n${details}\n\nRevisa el correo para más información.`;
-            await sendMessage(adminWaId, waMsg, null, { isProactive: false });
-        } catch (adminErr) {
-            console.error('Error enviando WhatsApp de reclamo a administración:', adminErr.message);
-        }
+        // 18/8/2026: la administración se entera del reclamo por el email que
+        // ya manda /api/complaints del CRM. Se apagó el WhatsApp del bot al
+        // admin ("NUEVO RECLAMO POST-VENTA"): tráfico automático innecesario
+        // con la cuenta de Meta bajo observación.
 
         return { success: true, message: `Reclamo reportado exitosamente.` };
     } catch (e) {
@@ -968,21 +958,12 @@ async function reportInvoiceRequest({ clientId }) {
 
 
 
-        // getAdminWaId() y no el número a mano: escrito así ("3541215971@c.us")
-        // le faltaba el 549, WhatsApp no resolvía el destino y esta alerta no
-        // llegaba NUNCA a nadie — mientras el bot le decía al cliente que ya
-        // había derivado su pedido de factura. El `.catch` de abajo se comía el
-        // error, así que el fallo era invisible. Es el mismo problema que ya
-        // estaba documentado y resuelto 270 líneas más arriba (notifyPhone).
-        const adminPhone = getAdminWaId();
         const baseUrl = process.env.CRM_API_URL ? process.env.CRM_API_URL.replace('/api/bot', '') : 'http://localhost:3000';
         const crmLink = `${baseUrl}/admin/contactos?id=${client.id}`;
-        
-        // 1. WhatsApp a Administración
-        const waText = `🚨 *URGENCIA: Solicitud de factura* 🚨\nEl cliente *${client.name || 'Desconocido'}* acaba de solicitar su factura.\n\nFicha: ${crmLink}`;
-        
-        const { sendMessage } = require('./whatsapp/client');
-        await sendMessage(adminPhone, waText, null, { isProactive: false }).catch(e => console.error("Error enviando alerta WA de factura:", e.message));
+
+        // 1. (18/8/2026) El WhatsApp del bot a la administración se apagó: la
+        // alerta va solo por email. Menos tráfico automático desde el número
+        // mientras la cuenta de Meta está bajo observación.
 
         // 2. Email a Administración
         const emailDest = 'pisano.ishtar@gmail.com';

@@ -20,13 +20,13 @@ const fs = require('fs');
 
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const { initWhatsApp, getStatus, getClient, sendMessage, sendTypingState } = require('./whatsapp/client');
+const { initWhatsApp, getStatus, getClient, sendMessage, sendTypingState, notifyAdminDown } = require('./whatsapp/client');
 const { processPassiveExtraction } = require('./passive-extractor');
 const { transcribeAudio } = require('./transcriber');
 const { checkAndSendSalesFollowUps } = require('./sales-followups');
 const { checkAndSendInactivityFollowUps } = require('./cron/inactivity-followups');
 const { recuperarExtraccionesPendientes } = require('./cron/extraccion-pendiente');
-const { TAGS_SIN_BOT, getFileExtension, getAdminWaId } = require('./utils');
+const { TAGS_SIN_BOT, getFileExtension } = require('./utils');
 const { downloadMediaWithRetry, uploadMediaToCrm } = require('./shared/media');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
 const { parseAdTag, prefillAdTag, fallbackAdTag, stripAdTags } = require('./shared/ad-tag');
@@ -542,14 +542,12 @@ async function handleTransientBotFailure(chat, waId, profileName, realPhone, rea
         });
     }
 
-    try {
-        const adminNotifyPhone = getAdminWaId();
-        const alertMsg = `🚨 *ERROR TÉCNICO EN BOT* 🚨\nConversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: Falló en ${MAX_CONSECUTIVE_FAILED_TURNS} turnos seguidos (falla persistente). El cliente NO recibió ningún mensaje de error.\nDetalle: ${(reasonText || '').substring(0, 150)}`;
-        await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
-        console.log(`  🔔 Alerta de falla persistente enviada al administrador`);
-    } catch (alertErr) {
-        console.error('Error enviando alerta al administrador:', alertErr.message);
-    }
+    // 18/8/2026: aviso por EMAIL, no por WhatsApp del bot al admin (cuenta de
+    // Meta bajo observación: el número no emite tráfico automático interno).
+    await notifyAdminDown(
+        'Bot apagado en un chat por errores persistentes',
+        `Conversación con bot apagado: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: falló en ${MAX_CONSECUTIVE_FAILED_TURNS} turnos seguidos. El cliente NO recibió ningún mensaje de error.\nDetalle: ${(reasonText || '').substring(0, 300)}`
+    );
 
     return true; // Bot apagado
 }
@@ -1792,10 +1790,11 @@ const handleMessage = async (msg) => {
                 // Lead sin registrar: no hay ficha donde crear la tarea, avisar al
                 // administrador para que la conversación no quede muda sin que nadie se entere
                 try {
-                    const adminNotifyPhone = getAdminWaId();
-                    const alertMsg = `⚠️ *ATENCIÓN HUMANA REQUERIDA* ⚠️\nChat sin registrar necesita atención: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: ${filterReason}\nEl bot quedó apagado para ese chat.`;
-                    await sendMessage(adminNotifyPhone, alertMsg, null, { isProactive: false, isAutomated: false });
-                    console.log(`  🔔 Alerta de filtro de seguridad (lead sin registrar) enviada al administrador`);
+                    // 18/8/2026: por email, no por WhatsApp del bot al admin.
+                    await notifyAdminDown(
+                        'Atención humana requerida: chat sin registrar',
+                        `Chat sin registrar necesita atención: ${profileName || 'Cliente'} (${realPhone || waId.split('@')[0]})\nMotivo: ${filterReason}\nEl bot quedó apagado para ese chat.`
+                    );
                 } catch (alertErr) {
                     console.error('Error enviando alerta de filtro de seguridad:', alertErr.message);
                 }
@@ -1945,20 +1944,13 @@ if (!WA_API_KEY) {
     console.warn('⚠️ WARNING: ni BOT_API_KEY ni WA_API_KEY están seteadas. API endpoints are UNPROTECTED.');
     // El warn de arriba vivió meses en logs que nadie lee, con la API pública en
     // internet: cualquiera podía mandar WhatsApp firmados como la óptica. Un
-    // agujero de seguridad tiene que gritar donde se lo escucha: WhatsApp del
-    // admin, apenas la sesión esté lista. Reintenta hasta lograrlo (una sola vez).
-    const avisoSinClave = setInterval(() => {
-        try {
-            if (!getStatus().isReady) return;
-            clearInterval(avisoSinClave);
-            sendMessage(
-                getAdminWaId(),
-                `🚨 *API DEL BOT SIN CLAVE*\n\nEl wa-service arrancó sin BOT_API_KEY ni WA_API_KEY: cualquiera que conozca la URL puede mandar mensajes como la óptica y cambiar la configuración del bot.\n\nSetear BOT_API_KEY en el servicio del bot en Railway (la misma que usa para llamar al CRM) y redeployar.`
-            ).catch(e => console.error('[Seguridad] No se pudo avisar la falta de clave de API:', e.message));
-        } catch (e) {
-            console.error('[Seguridad] Error en el aviso de clave de API faltante:', e.message);
-        }
-    }, 60000);
+    // agujero de seguridad tiene que gritar donde se lo escucha: el email de la
+    // administración (18/8/2026: antes era un WhatsApp del bot al admin; con la
+    // cuenta de Meta bajo observación el número no emite avisos automáticos).
+    notifyAdminDown(
+        'API del bot sin clave',
+        'El wa-service arrancó sin BOT_API_KEY ni WA_API_KEY: cualquiera que conozca la URL puede mandar mensajes como la óptica y cambiar la configuración del bot.\n\nSetear BOT_API_KEY en el servicio del bot en Railway (la misma que usa para llamar al CRM) y redeployar.'
+    ).catch(e => console.error('[Seguridad] No se pudo avisar la falta de clave de API:', e.message));
 }
 function apiAuth(req, res, next) {
     if (!WA_API_KEY) return next(); // Sin key configurada, permitir (modo legacy)

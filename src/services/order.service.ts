@@ -11,7 +11,6 @@ import { fetchWa } from '@/lib/wa-config';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 import { AdsService } from '@/services/ads.service';
 import { GoogleAdsService } from '@/services/google-ads.service';
-import { GoogleContactsService } from '@/services/google-contacts.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { formatDateTime } from '@/lib/format-date';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
@@ -2181,14 +2180,11 @@ export class OrderService {
                     })
                     .catch(err => console.error('Error al resolver el clic de Google para la conversión offline:', err));
 
-                // Enviar vCard por WhatsApp (Sincronización de Contacto)
-                if (updatedOrder.client) {
-                    GoogleContactsService.syncClient({
-                        name: updatedOrder.client.name,
-                        phone: updatedOrder.client.phone,
-                        email: updatedOrder.client.email
-                    }).catch(err => console.error('Error syncClient:', err));
-                }
+                // 18/8/2026: apagado el envío de la vCard por WhatsApp al propio
+                // número del local (GoogleContactsService.syncClient): dos mensajes
+                // automáticos "CRM Automático" por cada venta confirmada, tráfico
+                // robótico visible mientras la cuenta de Meta está bajo observación.
+                // El servicio queda para reactivarlo si alguna vez hace falta.
 
                 // Registrar conversión a VENTA en el historial del cliente — con el vendedor que confirmó
                 const saleSummaries = formatOrderItemsSummary(updatedOrder.items);

@@ -1,5 +1,5 @@
 const { prisma } = require('../db');
-const { getAdminWaId, isValidRecipient, isLidFormat } = require('../utils');
+const { isValidRecipient, isLidFormat } = require('../utils');
 
 /**
  * Envuelve una promesa con un timeout duro. Si la promesa no resuelve/rechaza
@@ -311,17 +311,16 @@ class AntiBanQueue {
                 console.error(`[AntiBanQueue] 🚨 CIRCUIT BREAKER ACTIVADO (${this.consecutiveFailures} fallos consecutivos). Pausando cola por 1 HORA.`);
                 this.isPaused = true;
 
+                // 18/8/2026: aviso por EMAIL (antes WhatsApp del bot al admin; con
+                // la cuenta de Meta bajo observación el número no emite avisos
+                // automáticos internos). Además así no depende de la sesión que
+                // justo está fallando.
                 try {
-                    const adminWaId = getAdminWaId();
-                    if (this.client) {
-                        // Con timeout: si el fallo de fondo es la página zombie,
-                        // este aviso también cuelga — y sin tope dejaba la cola
-                        // trabada DENTRO del manejador de errores.
-                        await withTimeout(this.client.sendMessage(
-                            adminWaId,
-                            `🚨 *CIRCUIT BREAKER ACTIVADO* 🚨\n\nSe han detectado ${this.consecutiveFailures} fallos de envío consecutivos en WhatsApp. La cola ha sido PAUSADA durante 1 hora de forma preventiva.`
-                        ), 25000, 'aviso de circuit breaker al admin');
-                    }
+                    const { notifyAdminDown } = require('./client');
+                    await notifyAdminDown(
+                        'Circuit breaker del bot activado',
+                        `Se detectaron ${this.consecutiveFailures} fallos de envío consecutivos en WhatsApp. La cola quedó PAUSADA 1 hora de forma preventiva.`
+                    );
                 } catch (adminErr) {
                     console.error('[AntiBanQueue] Error notificando circuit breaker al admin:', adminErr.message);
                 }
@@ -336,13 +335,11 @@ class AntiBanQueue {
                 // Alerta temprana a los 3 fallos consecutivos
                 console.warn(`[AntiBanQueue] ⚠️ Tasa de fallos consecutivos elevada (${this.consecutiveFailures}). Emitiendo advertencia.`);
                 try {
-                    const adminWaId = getAdminWaId();
-                    if (this.client) {
-                        await withTimeout(this.client.sendMessage(
-                            adminWaId,
-                            `⚠️ *ADVERTENCIA ANTIBAN* ⚠️\nSe detectaron ${this.consecutiveFailures} fallos consecutivos en los envíos de WhatsApp. Por favor, verificar estado.`
-                        ), 25000, 'advertencia antiban al admin');
-                    }
+                    const { notifyAdminDown } = require('./client');
+                    await notifyAdminDown(
+                        'Advertencia anti-ban del bot',
+                        `Se detectaron ${this.consecutiveFailures} fallos consecutivos en los envíos de WhatsApp. Verificar el estado de la sesión.`
+                    );
                 } catch (e) { /* ignore */ }
             }
 

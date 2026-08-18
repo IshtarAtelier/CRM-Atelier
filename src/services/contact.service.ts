@@ -908,50 +908,14 @@ export const ContactService = {
             }
         }
 
-        // If a follow-up tag was added, trigger the follow-up process
-        if ((data as any).addTagName) {
-            const addedTag = (data as any).addTagName;
-            let taskDesc = null;
-
-            if (addedTag === 'Seguimiento 1') {
-                taskDesc = '[SISTEMA] DIA_1 - Seguimiento de Venta';
-            } else if (addedTag === 'Seguimiento 2') {
-                taskDesc = '[SISTEMA] DIA_4 - Seguimiento de Venta';
-            } else if (['Frío', 'Frio', 'Seguimiento 10dias'].includes(addedTag)) {
-                taskDesc = '[SISTEMA] DIA_15 - Seguimiento de Venta';
-            }
-
-            if (taskDesc) {
-                try {
-                    // First delete any other pending follow-up task to avoid duplicate/conflicting tasks
-                    await prisma.clientTask.deleteMany({
-                        where: {
-                            clientId: id,
-                            type: 'FOLLOWUP',
-                            status: 'PENDING'
-                        }
-                    });
-
-                    // Create the task immediately due
-                    await prisma.clientTask.create({
-                        data: {
-                            clientId: id,
-                            description: taskDesc,
-                            type: 'FOLLOWUP',
-                            status: 'PENDING',
-                            dueDate: new Date(),
-                            createdBy: 'Bot Trigger'
-                        }
-                    });
-
-                    // Call the wa-service endpoint to process immediately using the centralized fetchWa helper
-                    fetchWa('/api/followups/trigger', { method: 'POST' })
-                        .catch((err: any) => console.error('[Bot Trigger] Error triggering bot followups endpoint:', err.message));
-                } catch (taskErr: any) {
-                    console.error('[Bot Trigger] Error creating manual follow-up task:', taskErr.message);
-                }
-            }
-        }
+        // 18/8/2026: se ELIMINÓ el disparo automático por etiqueta. Poner
+        // "Seguimiento 1", "Seguimiento 2", "Frío" o "Seguimiento 10dias" creaba
+        // una ClientTask FOLLOWUP vencida y le pegaba a /api/followups/trigger
+        // del bot para que redactara y mandara el WhatsApp al instante. Con la
+        // cuenta de Meta bajo observación, ninguna etiqueta manda mensajes:
+        // la etiqueta es solo una etiqueta. Cuando el canal pase a la API
+        // oficial (docs/plan-whatsapp-api-oficial.md) se decide si vuelve como
+        // plantilla aprobada, nunca como texto libre generado por IA.
 
         return updatedClient;
     },
