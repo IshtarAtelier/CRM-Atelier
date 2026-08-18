@@ -1,0 +1,25 @@
+{
+  "id": "campania-cupon-quieromislentes",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "ubicacion": "Feed de Instagram y Facebook",
+  "temas": [
+    "tienda",
+    "descuento",
+    "remarketing"
+  ],
+  "caption": "10% de descuento en la tienda online con el código QUIEROMISLENTES.\n\nLo escribís en el checkout de atelieroptica.com.ar y el descuento se aplica solo. Válido hasta el 30/09 en compras desde $100.000 — son 10 cupones, el que llega, lo usa.\n\nEnvíos a todo el país. José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "encuadre": "cover",
+      "title": "En la tienda online, con el código *QUIEROMISLENTES*",
+      "dato": "10% OFF",
+      "body": "Lo escribís en el checkout de atelieroptica.com.ar y listo. Válido hasta el 30/09 — cupos limitados."
+    }
+  ]
+}
