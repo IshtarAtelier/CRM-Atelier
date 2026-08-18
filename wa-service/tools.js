@@ -689,19 +689,10 @@ async function addTagToClient({ clientId, tagName }) {
             console.error("[Etiqueta Automation] Error push chatLabel:", labelErr.message);
         }
 
-        // 2. Notification Automation — por EMAIL. Hasta el 18/8/2026 esto
-        // mandaba un WhatsApp "NOTIFICACIÓN DEL CRM" desde el número del bot al
-        // teléfono cargado en la etiqueta: tráfico automático evidente, y la
-        // cuenta de Meta está bajo observación. `notifyPhone` queda solo como
-        // señal de "esta etiqueta avisa"; el aviso llega al mail de la administración.
-        if (tag.notifyPhone) {
-            const { notifyAdminDown } = require('./whatsapp/client');
-            const crmBase = (CRM_API_URL || '').replace('/api/bot', '');
-            await notifyAdminDown(
-                `Etiqueta "${tag.name}" aplicada a ${client.name || 'Sin nombre'}`,
-                `Se aplicó la etiqueta "${tag.name}" al cliente ${client.name || 'Sin nombre'}.\nFicha: ${crmBase}/admin/contactos?id=${client.id}`
-            );
-        }
+        // 2. (18/8/2026) La "NOTIFICACIÓN DEL CRM: se aplicó la etiqueta X" se
+        // ELIMINÓ por completo — ni WhatsApp ni email; la dueña pidió que no
+        // llegue por ningún lado. `Tag.notifyPhone` sigue existiendo en la
+        // base y en la pantalla de etiquetas, pero ya no hace nada.
 
         return { success: true, message: `Etiqueta '${tagName}' agregada correctamente al cliente.` };
     } catch (e) {
