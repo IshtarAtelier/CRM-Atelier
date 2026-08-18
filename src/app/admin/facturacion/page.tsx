@@ -126,7 +126,10 @@ export default function BillingPage() {
                         base64: pdfResult.base64,
                         mimetype: 'application/pdf',
                         filename: pdfResult.fileName
-                    }
+                    },
+                    // API oficial: si el cliente no escribió en 24 h, sale la
+                    // plantilla "factura_electronica" (A11) con el PDF adjunto.
+                    template: { name: 'factura_electronica', bodyParams: [order.client.name.split(' ')[0]] }
                 })
             });
 

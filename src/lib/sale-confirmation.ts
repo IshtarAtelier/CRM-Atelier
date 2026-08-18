@@ -17,7 +17,8 @@
 
 import { prisma } from '@/lib/db';
 import { escHtml, sendClientEmail } from '@/lib/client-email';
-import { fetchWa } from '@/lib/wa-config';
+import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
+import { templateSpec } from '@/lib/whatsapp/templates';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { uploadFile, getFileBuffer } from '@/lib/storage';
@@ -416,17 +417,22 @@ export async function sendSaleConfirmation(
         const tel = (order.client.phone || '').replace(/\D/g, '');
         if (tel.length >= 10) {
             try {
-                const res = await fetchWa('/api/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chatId: `${normalizeArgentinePhone(tel)}@c.us`,
-                        message: conf.waText,
-                        senderName: 'Sistema Atelier',
-                        ...(pdf ? { media: { base64: pdf.base64, mimetype: 'application/pdf', filename: pdf.filename } } : {}),
-                    }),
+                // Texto libre + PDF dentro de la ventana de 24 h; si está
+                // cerrada, plantilla "venta_confirmada" (A2) con el PDF de encabezado.
+                const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
+                const res = await sendWhatsApp({
+                    chatId: `${normalizeArgentinePhone(tel)}@c.us`,
+                    message: conf.waText,
+                    senderName: 'Sistema Atelier',
+                    isProactive: true,
+                    media: pdf ? { base64: pdf.base64, mimetype: 'application/pdf', filename: pdf.filename } : null,
+                    // Sin PDF la plantilla con documento no se puede armar: se
+                    // deja sin plantilla y, si la ventana está cerrada, queda
+                    // registrado como no enviado (el email igual salió).
+                    template: pdf ? templateSpec('venta_confirmada', [order.client.name.split(' ')[0], nro, `$ ${Number(order.total || 0).toLocaleString('es-AR')}`]) : null,
                 });
                 resultado.whatsapp = res.ok;
+                if (!res.ok) console.warn('[Confirmación de compra] WhatsApp no salió:', explainSendFailure(res));
 
                 // Y las FOTOS del armazón, una por mensaje.
                 //
@@ -436,19 +442,19 @@ export async function sendSaleConfirmation(
                 // mirar para reconocer su armazón — el único control que puede
                 // hacer de verdad. El endpoint del bot manda un archivo por
                 // mensaje, así que van de a una.
-                if (res.ok) {
+                // Con la API oficial las fotos sueltas solo pueden ir con la ventana
+                // abierta (una plantilla lleva un solo encabezado): si el
+                // principal salió como plantilla, las fotos ya están en el PDF.
+                if (res.ok && res.via !== 'template') {
                     for (const foto of conf.fotosArmazon) {
                         const img = await bytesDeImagen(foto.valor);
                         if (!img) continue;
-                        await fetchWa('/api/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                chatId: `${normalizeArgentinePhone(tel)}@c.us`,
-                                message: foto.titulo,
-                                senderName: 'Sistema Atelier',
-                                media: { base64: img.base64, mimetype: img.mimetype, filename: img.filename },
-                            }),
+                        await sendWhatsApp({
+                            chatId: `${normalizeArgentinePhone(tel)}@c.us`,
+                            message: foto.titulo,
+                            senderName: 'Sistema Atelier',
+                            isProactive: true,
+                            media: { base64: img.base64, mimetype: img.mimetype, filename: img.filename },
                         }).catch(err => console.error('[Confirmación de compra] No se pudo enviar la foto del armazón:', err));
                     }
                 }

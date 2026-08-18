@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/db';
 import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
-import { fetchWa } from '@/lib/wa-config';
+import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
+import { templateSpec } from '@/lib/whatsapp/templates';
 import { PricingService } from './PricingService';
 import { normalizeArgentinePhone } from './contact.service';
 import { BUSINESS_INFO } from '@/lib/business-info';
@@ -213,13 +214,19 @@ ${saldoHtml}
             if (clientPhone) {
                 const formattedPhone = normalizeArgentinePhone(clientPhone);
                 if (formattedPhone) {
-                    const res = await fetchWa('/api/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chatId: `${formattedPhone}@c.us`,
-                            message
-                        }),
+                    // Texto libre si el cliente escribió en las últimas 24 h; si
+                    // no, plantilla aprobada (A1 / A12 del plan de la API oficial).
+                    const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
+                    const fmt = (n: number) => `$ ${Number(n || 0).toLocaleString('es-AR')}`;
+                    const template = financials.hasBalance
+                        ? templateSpec('pedido_listo_saldo', [clientName, nro, fmt(financials.remainingCard), fmt(financials.remainingTransfer), fmt(financials.remainingCash)])
+                        : templateSpec('pedido_listo', [clientName, nro]);
+                    const res = await sendWhatsApp({
+                        chatId: `${formattedPhone}@c.us`,
+                        message,
+                        senderName: 'Sistema',
+                        isProactive: true,
+                        template,
                     });
 
                     whatsappEnviado = res.ok;
@@ -227,9 +234,8 @@ ${saldoHtml}
                     // enviado, tirar acá crearía una tarea de "notificar a mano"
                     // por un cliente que ya está avisado.
                     if (!res.ok && !emailEnviado) {
-                        const errText = await res.text();
-                        console.warn('[Auto-Notify READY] WhatsApp server returned error:', errText);
-                        throw new Error(errText || `HTTP ${res.status}`);
+                        console.warn('[Auto-Notify READY] WhatsApp server returned error:', res.error);
+                        throw new Error(explainSendFailure(res));
                     }
                     if (!res.ok) {
                         console.warn('[Auto-Notify READY] WhatsApp falló pero el email salió: no se escala.');

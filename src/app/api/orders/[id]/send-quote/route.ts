@@ -11,7 +11,9 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { fetchWa } from '@/lib/wa-config';
+import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
+import { templateSpec } from '@/lib/whatsapp/templates';
+import { PricingService } from '@/services/PricingService';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
 import { buildQuoteMessage } from '@/lib/quote-message';
@@ -72,23 +74,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         };
 
         try {
-            const res = await fetchWa('/api/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatId: destino, message: texto, senderName: actor.name }),
+            // Texto libre dentro de la ventana de 24 h; plantilla "presupuesto" (A4) si está cerrada.
+            const f = PricingService.calculateOrderFinancials(order);
+            const money = (n: number) => `$ ${Number(n || 0).toLocaleString('es-AR')}`;
+            const res = await sendWhatsApp({
+                chatId: destino,
+                message: texto,
+                senderName: actor.name,
+                template: templateSpec('presupuesto', [order.client.name.split(' ')[0], money(f.totalCard), money(f.totalTransfer), money(f.totalCash)]),
             });
 
             if (res.ok) {
-                await registrar(`por WhatsApp al ${order.client.phone || formattedPhone}.`, true);
-                return NextResponse.json({ success: true });
+                await registrar(`por WhatsApp al ${order.client.phone || formattedPhone}${res.via === 'template' ? ' (plantilla, fuera de la ventana de 24 h)' : ''}.`, true);
+                return NextResponse.json({ success: true, via: res.via });
             }
 
-            const detalle = await res.text();
-            // 503 = el wa-service garantiza que no salió nada: se puede reintentar
-            // sin miedo a duplicar.
-            if (res.status === 503 && detalle.includes('notSent')) {
-                await registrar('WhatsApp estaba reconectando, no salió nada. Hay que reintentar.', false);
-                return NextResponse.json({ error: 'WhatsApp se está reconectando: NO se envió nada. Esperá unos segundos y reintentá.' }, { status: 503 });
+            // notSent = el wa-service garantiza que no salió nada: se puede
+            // reintentar sin miedo a duplicar.
+            if (res.notSent) {
+                await registrar(`no salió nada: ${explainSendFailure(res)}`, false);
+                return NextResponse.json({ error: explainSendFailure(res), code: res.code }, { status: res.status === 503 ? 503 : 409 });
             }
 
             await registrar(`el bot no pudo enviarlo (HTTP ${res.status}). Verificar si le llegó antes de reintentar.`, false);

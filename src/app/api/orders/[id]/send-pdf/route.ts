@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { fetchWa } from '@/lib/wa-config';
+import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
+import { templateSpec } from '@/lib/whatsapp/templates';
+import { PricingService } from '@/services/PricingService';
 import { generateOrderPDF } from '@/lib/order-pdf-generator';
 import { getActor } from '@/lib/actor';
 import { sendClientEmail, escHtml } from '@/lib/client-email';
@@ -129,38 +131,43 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         // Devolvemos error y que el humano verifique antes de reintentar.
         if (pdfResult) {
             try {
-                const res = await fetchWa('/api/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chatId: chatIdForBot,
-                        message: text,
-                        senderName,
-                        media: {
-                            base64: pdfResult.base64,
-                            mimetype: 'application/pdf',
-                            filename: pdfResult.filename
-                        }
-                    }),
+                // Texto libre + PDF dentro de la ventana de 24 h; si está cerrada,
+                // plantilla "presupuesto_pdf" (A5) con el mismo PDF de encabezado.
+                const fin = PricingService.calculateOrderFinancials(order);
+                const esVenta = order.orderType === 'SALE' || order.orderType === 'MAYORISTA';
+                const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
+                const money = (n: number) => `$ ${Number(n || 0).toLocaleString('es-AR')}`;
+                const template = esVenta
+                    ? templateSpec('venta_confirmada', [order.client.name.split(' ')[0], nro, money(fin.totalCard)])
+                    : templateSpec('presupuesto_pdf', [order.client.name.split(' ')[0], money(fin.totalCard), '7']);
+                const res = await sendWhatsApp({
+                    chatId: chatIdForBot,
+                    message: text,
+                    senderName,
+                    media: {
+                        base64: pdfResult.base64,
+                        mimetype: 'application/pdf',
+                        filename: pdfResult.filename
+                    },
+                    template,
                 });
 
                 if (res.ok) {
                     console.log('[send-pdf] PDF sent successfully as media to:', formattedPhone);
-                    await registrarEnFicha(`PDF adjunto por WhatsApp al ${formattedPhone}${sufijoEmail}.`, true);
-                    return NextResponse.json({ success: true, method: 'media', email: emailEnviado });
+                    await registrarEnFicha(`PDF adjunto por WhatsApp al ${formattedPhone}${res.via === 'template' ? ' (plantilla, fuera de la ventana de 24 h)' : ''}${sufijoEmail}.`, true);
+                    return NextResponse.json({ success: true, method: 'media', via: res.via, email: emailEnviado });
                 }
 
-                const responseText = await res.text();
-                console.error('[send-pdf] Media send failed (sin fallback a link para evitar duplicados):', res.status, responseText.substring(0, 200));
+                console.error('[send-pdf] Media send failed (sin fallback a link para evitar duplicados):', res.status, res.error);
 
-                // 503 = el wa-service garantiza que el mensaje nunca salió (sesión
-                // reconectando). Ahí sí podemos decirle al vendedor que reintente
-                // tranquilo, sin la duda de "¿le habrá llegado igual?".
-                if (res.status === 503 && responseText.includes('notSent')) {
-                    await registrarEnFicha(`WhatsApp estaba reconectando, no salió nada${sufijoEmail ? `. Sí se envió${sufijoEmail}` : ''}. Hay que reintentar.`, false);
+                // notSent = el wa-service garantiza que el mensaje nunca salió.
+                // Ahí sí podemos decirle al vendedor que reintente tranquilo,
+                // sin la duda de "¿le habrá llegado igual?".
+                if (res.notSent) {
+                    await registrarEnFicha(`no salió nada: ${explainSendFailure(res)}${sufijoEmail ? `. Sí se envió${sufijoEmail}` : ''}.`, false);
                     return NextResponse.json(
-                        { error: 'WhatsApp se está reconectando: NO se envió nada. Esperá unos segundos y reintentá.' },
-                        { status: 503 }
+                        { error: explainSendFailure(res), code: res.code },
+                        { status: res.status === 503 ? 503 : 409 }
                     );
                 }
 
@@ -199,14 +206,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         const fallbackText = `${text}\n\n📄 *Descargar Documento:* ${pdfUrl}`;
 
         try {
-            const resLink = await fetchWa('/api/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chatId: chatIdForBot,
-                    message: fallbackText,
-                    senderName
-                }),
+            // Sin PDF no hay plantilla con documento: el link va como texto libre
+            // (o plantilla "presupuesto" con los totales si la ventana está cerrada).
+            const finB = PricingService.calculateOrderFinancials(order);
+            const moneyB = (n: number) => `$ ${Number(n || 0).toLocaleString('es-AR')}`;
+            const resLink = await sendWhatsApp({
+                chatId: chatIdForBot,
+                message: fallbackText,
+                senderName,
+                template: templateSpec('presupuesto', [order.client.name.split(' ')[0], moneyB(finB.totalCard), moneyB(finB.totalTransfer), moneyB(finB.totalCash)]),
             });
 
             if (resLink.ok) {
@@ -214,10 +222,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 await registrarEnFicha(`no se pudo generar el PDF, se envió el LINK de descarga por WhatsApp al ${formattedPhone}.`, true);
                 return NextResponse.json({ success: true, method: 'link' });
             } else {
-                const responseText = await resLink.text();
-                console.error('[send-pdf] Bot API Error on Link Fallback:', resLink.status, responseText);
-                await registrarEnFicha(`falló el PDF y también el link de respaldo por WhatsApp (HTTP ${resLink.status}).`, false);
-                return NextResponse.json({ error: `Error del bot al enviar link (${resLink.status})` }, { status: 500 });
+                console.error('[send-pdf] Bot API Error on Link Fallback:', resLink.status, resLink.error);
+                await registrarEnFicha(`falló el PDF y también el link de respaldo por WhatsApp (${explainSendFailure(resLink)}).`, false);
+                return NextResponse.json({ error: explainSendFailure(resLink), code: resLink.code }, { status: 500 });
             }
         } catch (linkErr: any) {
             console.error('[send-pdf] Network error sending link:', linkErr.message);

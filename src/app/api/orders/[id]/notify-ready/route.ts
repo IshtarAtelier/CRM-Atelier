@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { fetchWa } from '@/lib/wa-config';
+import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
+import { templateSpec } from '@/lib/whatsapp/templates';
 import { PricingService } from '@/services/PricingService';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 import { BUSINESS_INFO } from '@/lib/business-info';
@@ -78,26 +79,31 @@ ${saldoHtml}
 
         // 5. Enviar por WhatsApp (canal principal)
         let whatsappEnviado = false;
+        let waDetalle: string | undefined;
         if (order.client.phone) {
-            const res = await fetchWa('/api/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chatId: chatIdForBot,
-                    message: msgText,
-                    senderName: 'Sistema Atelier'
-                }),
+            // Texto libre dentro de la ventana de 24 h; plantilla A1/A12 si está cerrada.
+            const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
+            const fmt = (n: number) => `$ ${Number(n || 0).toLocaleString('es-AR')}`;
+            const template = financials.hasBalance
+                ? templateSpec('pedido_listo_saldo', [shortName, nro, fmt(financials.remainingCard), fmt(financials.remainingTransfer), fmt(financials.remainingCash)])
+                : templateSpec('pedido_listo', [shortName, nro]);
+            const res = await sendWhatsApp({
+                chatId: chatIdForBot,
+                message: msgText,
+                senderName: 'Sistema Atelier',
+                template,
             });
             whatsappEnviado = res.ok;
+            if (!res.ok) waDetalle = explainSendFailure(res);
             // Solo es un fallo real si NINGÚN canal llegó: si el mail salió, el
             // cliente ya está avisado y cortar con error haría que el vendedor
             // reintente y mande el aviso dos veces.
             if (!res.ok && !emailEnviado) {
-                throw new Error('Fallo en wa-service');
+                return NextResponse.json({ error: waDetalle, code: res.code, notSent: res.notSent }, { status: 502 });
             }
         }
 
-        return NextResponse.json({ success: true, whatsapp: whatsappEnviado, email: emailEnviado });
+        return NextResponse.json({ success: true, whatsapp: whatsappEnviado, email: emailEnviado, whatsappDetalle: waDetalle });
 
     } catch (error: any) {
         console.error('[Notify Ready] Error:', error.message);

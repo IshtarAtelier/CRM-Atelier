@@ -640,16 +640,25 @@ function CotizadorPageContent() {
             const res = await fetch('/api/whatsapp/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chatId: `${phone}@c.us`, message: msg })
+                body: JSON.stringify({
+                    chatId: `${phone}@c.us`,
+                    message: msg,
+                    // API oficial, fuera de la ventana de 24 h: plantilla "presupuesto" (A14).
+                    template: { name: 'presupuesto', bodyParams: [pendingContact.name.split(' ')[0], `$ ${listPrice.toLocaleString('es-AR')}`, `$ ${Math.round(totalWithMarkup * (1 - discountTransfer / 100)).toLocaleString('es-AR')}`, `$ ${Math.round(totalCash).toLocaleString('es-AR')}`] },
+                })
             });
 
             if (res.ok) {
                 alert('✅ Presupuesto enviado por WhatsApp');
             } else {
-                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                // 18/8/2026: se sacó el fallback a wa.me (abría el WhatsApp del
+                // celular del vendedor, por fuera del buzón y del número de la
+                // óptica). Si no salió, se dice por qué y se reintenta desde el CRM.
+                const errData = await res.json().catch(() => ({}));
+                alert(`❌ No se pudo enviar el presupuesto: ${errData?.error || 'error desconocido'}`);
             }
-        } catch (err) {
-            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+        } catch (err: any) {
+            alert(`❌ No se pudo enviar el presupuesto: ${err?.message || 'error de red'}`);
         }
     };
 

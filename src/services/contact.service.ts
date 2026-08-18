@@ -4,7 +4,8 @@ import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAY
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
-import { fetchWa } from '@/lib/wa-config';
+import { sendWhatsApp } from '@/lib/whatsapp/send';
+import { templateSpec } from '@/lib/whatsapp/templates';
 import { logAudit } from '@/lib/audit';
 import { SYSTEM_ACTOR, type Actor } from '@/lib/actor';
 import { notifyDirectedNote } from '@/lib/note-notify';
@@ -1160,15 +1161,13 @@ export const ContactService = {
                     const link = `${appUrl}/admin/contactos?id=${client.id}`;
                     const groupMessage = `📍 *Ingreso de cliente al Atelier*\n👤 *Cliente:* ${client.name}\n\n⚠️ _Aclarar si es calle / meta / referido_\n🔗 *Ficha:* ${link}`;
                     
-                    fetchWa('/api/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chatId: process.env.WHATSAPP_SALES_GROUP_ID || '120363321589178129@g.us',
-                            message: groupMessage,
-                            senderName: 'Sistema Atelier'
-                        }),
-                    }).catch(err => console.error('[Store Visit Notification] Error:', err));
+                    // 18/8/2026 (B19 del plan de la API oficial): el aviso al grupo
+                    // de ventas pasa a email — la API oficial no tiene grupos.
+                    sendEmail({
+                        to: process.env.SALES_NOTIFY_EMAIL || process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                        subject: `📍 Ingreso al local — ${client.name}`,
+                        html: `<pre style="font-family:inherit;white-space:pre-wrap">${groupMessage.replace(/[*_]/g, '')}</pre>`,
+                    }).catch(err => console.error('[Store Visit Notification] Error enviando email:', err));
                 }
             } catch (e) {
                 console.error('Error sending store visit notification:', e);
@@ -2300,31 +2299,34 @@ export const ContactService = {
                         // whatsapp-web.js mientras el texto sale siempre; en un solo
                         // mensaje, el adjunto roto se llevaba la confirmación con él
                         // y el cliente no recibía NADA.
-                        const resClient = await fetchWa('/api/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                chatId: phoneTo,
-                                message: clientMsgText,
-                                senderName: 'Sistema Atelier'
-                            }),
+                        // API oficial, ventana de 24 h cerrada: sale la plantilla
+                        // "comprobante_pago" (A3) con el PDF de encabezado — un solo
+                        // mensaje, texto y recibo juntos. Con ventana abierta (o
+                        // transporte legacy) sigue el camino de dos mensajes.
+                        const nroPedido = `#${String(orderId).slice(-4).toUpperCase()}`;
+                        const resClient = await sendWhatsApp({
+                            chatId: phoneTo,
+                            message: clientMsgText,
+                            senderName: 'Sistema Atelier',
+                            isProactive: true,
+                            template: pdfMedia
+                                ? templateSpec('comprobante_pago', [result.clientName.split(' ')[0], `$ ${amount.toLocaleString('es-AR')}`, nroPedido])
+                                : null,
+                            // El PDF va como encabezado SOLO si cae a plantilla; en
+                            // texto libre sigue yendo en el 2º mensaje (abajo).
+                            templateMedia: pdfMedia,
                         });
+                        const pdfYaEntregadoPorPlantilla = resClient.ok && resClient.via === 'template';
 
                         if (!resClient.ok) {
-                            const errText = await resClient.text();
-                            console.error('[Payment Notification] Failed to send WhatsApp to Client:', errText);
+                            console.error('[Payment Notification] Failed to send WhatsApp to Client:', resClient.error);
 
                             // El wa-service devuelve `code` con el motivo real. Sin
                             // leerlo, un timeout o una sesión trabada se avisaban
                             // como "el número es falso" y mandaban a corregir una
                             // ficha que estaba perfecta.
-                            let failCode = 'UNKNOWN';
-                            let failDetail = errText;
-                            try {
-                                const parsed = JSON.parse(errText);
-                                failCode = parsed.code || 'UNKNOWN';
-                                failDetail = parsed.error || errText;
-                            } catch { /* el body no era JSON: queda el texto crudo */ }
+                            const failCode = resClient.code || 'UNKNOWN';
+                            const failDetail = resClient.error || `HTTP ${resClient.status}`;
 
                             const esCulpaDelNumero = failCode === 'INVALID_NUMBER';
                             const motivo = esCulpaDelNumero
@@ -2365,28 +2367,19 @@ export const ContactService = {
                             // El texto llegó. Ahora el PDF, en mensaje aparte; si el
                             // adjunto muere (timeout de whatsapp-web.js), el recibo
                             // viaja igual como link de descarga.
-                            let comoLlegoElPdf: 'adjunto' | 'link' | null = null;
+                            let comoLlegoElPdf: 'adjunto' | 'link' | null = pdfYaEntregadoPorPlantilla ? 'adjunto' : null;
 
-                            if (pdfMedia) {
+                            if (pdfMedia && !pdfYaEntregadoPorPlantilla) {
                                 try {
-                                    const resPdf = await fetchWa('/api/send', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        // 150s: la cadena completa del adjunto en el
-                                        // wa-service (cola + tipeo + subida + los 90s
-                                        // del envío) puede superar los 100s del default
-                                        // de fetchWa; cortar antes perdía el envío sin
-                                        // pasar por ninguna rama de alerta.
-                                        signal: AbortSignal.timeout(150000),
-                                        body: JSON.stringify({
-                                            chatId: phoneTo,
-                                            message: '',
-                                            senderName: 'Sistema Atelier',
-                                            media: pdfMedia
-                                        }),
+                                    const resPdf = await sendWhatsApp({
+                                        chatId: phoneTo,
+                                        message: '',
+                                        senderName: 'Sistema Atelier',
+                                        isProactive: true,
+                                        media: pdfMedia,
                                     });
                                     if (resPdf.ok) comoLlegoElPdf = 'adjunto';
-                                    else console.error('[Payment Notification] PDF adjunto rechazado:', await resPdf.text());
+                                    else console.error('[Payment Notification] PDF adjunto rechazado:', resPdf.error);
                                 } catch (pdfSendErr: any) {
                                     console.error('[Payment Notification] PDF adjunto falló:', pdfSendErr.message);
                                 }
@@ -2406,14 +2399,11 @@ export const ContactService = {
                                         let url = await getSignedUrl(key);
                                         if (url.startsWith('/')) url = `${STORE_ORIGIN}${url}`;
 
-                                        const resLink = await fetchWa('/api/send', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                chatId: phoneTo,
-                                                message: `🧾 Podés descargar tu recibo desde este enlace: ${url}`,
-                                                senderName: 'Sistema Atelier'
-                                            }),
+                                        const resLink = await sendWhatsApp({
+                                            chatId: phoneTo,
+                                            message: `🧾 Podés descargar tu recibo desde este enlace: ${url}`,
+                                            senderName: 'Sistema Atelier',
+                                            isProactive: true,
                                         });
                                         if (resLink.ok) comoLlegoElPdf = 'link';
                                     } catch (linkErr: any) {

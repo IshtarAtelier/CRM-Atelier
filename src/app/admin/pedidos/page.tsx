@@ -468,13 +468,16 @@ export default function PedidosPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chatId: `${phone}@c.us`,
-                    message: text
+                    message: text,
+                    // API oficial, fuera de la ventana de 24 h: plantilla "estado_pedido" (A13).
+                    template: { name: 'estado_pedido', bodyParams: [order.client.name.split(' ')[0], `#${order.id.slice(-4).toUpperCase()}`, labStepLabel.toLowerCase()] },
                 })
             });
             if (res.ok) {
-                alert('✅ Resumen enviado por WhatsApp al cliente a través del Bot.');
+                alert('✅ Resumen enviado por WhatsApp al cliente.');
             } else {
-                alert('❌ Error al enviar el WhatsApp.');
+                const errData = await res.json().catch(() => ({}));
+                alert(`❌ Error al enviar el WhatsApp: ${errData?.error || 'Error desconocido'}`);
             }
         } catch (error) {
             console.error('Error sending whatsapp:', error);

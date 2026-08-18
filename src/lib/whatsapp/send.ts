@@ -1,0 +1,121 @@
+/**
+ * Envío de WhatsApp desde el CRM — el ÚNICO helper que los flujos de negocio
+ * deben usar para escribirle a un cliente (pedido listo, presupuesto,
+ * comprobante, factura, tracking…). Encapsula la diferencia entre el
+ * transporte legacy (WhatsApp Web: siempre texto libre) y la API oficial
+ * (texto libre solo dentro de la ventana de 24 h; fuera, plantilla).
+ *
+ * Cómo decide:
+ *   1. Manda el texto libre tal cual (con el PDF/imagen si hay). Con el
+ *      transporte legacy esto siempre alcanza. Con la API oficial también,
+ *      si el cliente escribió en las últimas 24 h.
+ *   2. Si el wa-service responde 409 `needsTemplate` (ventana cerrada) y el
+ *      llamador pasó `template`, reenvía como plantilla (mismo adjunto como
+ *      encabezado). Si no pasó plantilla, devuelve `needsTemplate: true` y el
+ *      llamador decide (avisar al vendedor, mandar email, etc.).
+ *
+ * Nunca lanza por errores de envío: devuelve `{ ok:false, … }` con el
+ * código real (NOT_CONNECTED, WINDOW_CLOSED, INVALID_NUMBER, …) para que el
+ * mensaje al vendedor diga la verdad. Lanza solo por mal uso (sin destino).
+ */
+
+import { fetchWa } from '@/lib/wa-config';
+import type { TemplateSpec } from './templates';
+
+export interface WhatsAppMedia {
+    base64: string;
+    mimetype: string;
+    filename?: string;
+}
+
+export interface SendWhatsAppInput {
+    /** Id del chat (cuid), waId legacy ("<num>@c.us") o teléfono E.164 ("549…"). */
+    chatId: string;
+    /** Texto libre (o caption del adjunto). Puede ir vacío si hay media. */
+    message: string;
+    media?: WhatsAppMedia | null;
+    /** Quién lo manda (queda en el buzón). */
+    senderName?: string;
+    /** true = lo dispara un proceso automático, no una persona (afecta al transporte legacy). */
+    isProactive?: boolean;
+    /** Plantilla a usar si la ventana de 24 h está cerrada (API oficial). */
+    template?: TemplateSpec | null;
+    /**
+     * Adjunto que va SOLO con la plantilla (como encabezado), no con el texto
+     * libre. Para flujos que en texto libre mandan el archivo en un 2º mensaje.
+     */
+    templateMedia?: WhatsAppMedia | null;
+    /** Si es true, va DIRECTO como plantilla sin intentar texto libre. */
+    forceTemplate?: boolean;
+}
+
+export interface SendWhatsAppResult {
+    ok: boolean;
+    /** Cómo salió: texto libre o plantilla. */
+    via?: 'text' | 'template';
+    /** La ventana estaba cerrada y no había plantilla para caer. */
+    needsTemplate?: boolean;
+    /** Garantía de que NADA salió (para reintentar sin miedo a duplicar). */
+    notSent?: boolean;
+    status?: number;
+    code?: string;
+    error?: string;
+}
+
+async function post(body: Record<string, unknown>): Promise<{ res: Response; json: Record<string, unknown> | null }> {
+    const res = await fetchWa('/api/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    let json: Record<string, unknown> | null = null;
+    try { json = await res.clone().json(); } catch { /* texto plano o vacío */ }
+    return { res, json };
+}
+
+export async function sendWhatsApp(input: SendWhatsAppInput): Promise<SendWhatsAppResult> {
+    if (!input.chatId) throw new Error('sendWhatsApp: falta chatId');
+    const base = {
+        chatId: input.chatId,
+        message: input.message ?? '',
+        media: input.media ?? undefined,
+        senderName: input.senderName,
+        isProactive: input.isProactive === true,
+    };
+
+    const asTemplate = async (): Promise<SendWhatsAppResult> => {
+        const { res, json } = await post({ ...base, media: input.templateMedia ?? base.media, template: input.template });
+        if (res.ok) return { ok: true, via: 'template', status: res.status };
+        return { ok: false, via: 'template', status: res.status, code: String(json?.code ?? ''), error: String(json?.error ?? `HTTP ${res.status}`), notSent: json?.notSent === true };
+    };
+
+    if (input.forceTemplate && input.template) return asTemplate();
+
+    const { res, json } = await post(base);
+    if (res.ok) return { ok: true, via: 'text', status: res.status };
+
+    const needsTemplate = res.status === 409 && json?.needsTemplate === true;
+    if (needsTemplate && input.template) return asTemplate();
+
+    return {
+        ok: false,
+        via: 'text',
+        needsTemplate,
+        status: res.status,
+        code: String(json?.code ?? ''),
+        error: String(json?.error ?? `HTTP ${res.status}`),
+        notSent: json?.notSent === true,
+    };
+}
+
+/** Texto corto para mostrarle al vendedor cuando un envío no salió. */
+export function explainSendFailure(r: SendWhatsAppResult): string {
+    switch (r.code) {
+        case 'WINDOW_CLOSED': return 'El cliente no escribió en las últimas 24 h y no hay plantilla para este mensaje: hay que mandarle una plantilla aprobada.';
+        case 'NOT_CONNECTED': return 'WhatsApp no está conectado en este momento. Nada salió: reintentá en unos minutos.';
+        case 'INVALID_NUMBER': return 'El número no tiene WhatsApp o está mal cargado en la ficha.';
+        case 'RECIPIENT_NOT_ALLOWED': return 'El número de prueba de Meta solo puede escribirle a los números de la lista de prueba.';
+        case 'TEMPLATE_ERROR': return 'La plantilla no está aprobada o las variables no coinciden con lo que Meta espera.';
+        default: return r.error || 'No se pudo enviar el WhatsApp.';
+    }
+}

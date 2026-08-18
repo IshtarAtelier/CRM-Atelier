@@ -50,15 +50,24 @@ export default function CarritosAbandonadosPage() {
       const res = await fetch('/api/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatId: `${phoneFormat}@c.us`, message })
+        body: JSON.stringify({
+          chatId: `${phoneFormat}@c.us`,
+          message,
+          // API oficial: quien dejó un carrito casi nunca escribió antes → la
+          // ventana está cerrada; sale la plantilla "retomar_conversacion" (A15).
+          template: { name: 'retomar_conversacion', bodyParams: [name, `tu carrito con ${items}`] },
+        })
       });
       if (!res.ok) {
-        const waUrl = `https://wa.me/${phoneFormat}?text=${encodeURIComponent(message)}`;
-        window.open(waUrl, "_blank");
+        // 18/8/2026: sin fallback a wa.me (salía del celular del vendedor, por
+        // fuera del número de la óptica). Se avisa el motivo y listo.
+        const errData = await res.json().catch(() => ({}));
+        alert(`❌ No se pudo enviar el WhatsApp: ${errData?.error || 'error desconocido'}`);
+        return;
       }
-    } catch (e) {
-      const waUrl = `https://wa.me/${phoneFormat}?text=${encodeURIComponent(message)}`;
-      window.open(waUrl, "_blank");
+    } catch (e: any) {
+      alert(`❌ No se pudo enviar el WhatsApp: ${e?.message || 'error de red'}`);
+      return;
     }
 
     // Marcar como recuperado (opcional, en una futura iteración)

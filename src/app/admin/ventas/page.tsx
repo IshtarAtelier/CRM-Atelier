@@ -363,7 +363,10 @@ export default function VentasPage() {
                         base64: pdfResult.base64,
                         mimetype: 'application/pdf',
                         filename: pdfResult.fileName
-                    }
+                    },
+                    // API oficial: si el cliente no escribió en 24 h, sale la
+                    // plantilla "factura_electronica" (A11) con el PDF adjunto.
+                    template: { name: 'factura_electronica', bodyParams: [order.client.name.split(' ')[0]] }
                 })
             });
 
@@ -1729,7 +1732,14 @@ export default function VentasPage() {
                                                         const res = await fetch('/api/whatsapp/send', {
                                                             method: 'POST',
                                                             headers: { 'Content-Type': 'application/json' },
-                                                            body: JSON.stringify({ chatId: `${phone}@c.us`, message: msg })
+                                                            body: JSON.stringify({
+                                                                chatId: `${phone}@c.us`,
+                                                                message: msg,
+                                                                // API oficial, fuera de la ventana de 24 h: plantilla A1 / A12.
+                                                                template: financials.hasBalance
+                                                                    ? { name: 'pedido_listo_saldo', bodyParams: [(order.client?.name || 'cliente').split(' ')[0], `#${order.id.slice(-4).toUpperCase()}`, `$ ${financials.remainingCard.toLocaleString('es-AR')}`, `$ ${financials.remainingTransfer.toLocaleString('es-AR')}`, `$ ${financials.remainingCash.toLocaleString('es-AR')}`] }
+                                                                    : { name: 'pedido_listo', bodyParams: [(order.client?.name || 'cliente').split(' ')[0], `#${order.id.slice(-4).toUpperCase()}`] },
+                                                            })
                                                         });
                                                         if (res.ok) {
                                                             alert('✅ Mensaje enviado por WhatsApp al cliente.');

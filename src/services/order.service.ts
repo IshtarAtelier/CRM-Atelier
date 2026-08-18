@@ -7,7 +7,8 @@ import { PricingService, calculateQuoteTotals } from '@/services/PricingService'
 import { recalculateCrystalPrices, applyTeñidoPromoDiscount, isTeñidoAddon } from '@/lib/promo-utils';
 import { TOPE_VENDEDOR } from '@/lib/constants/descuentos';
 import { z } from 'zod';
-import { fetchWa } from '@/lib/wa-config';
+import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
+import { templateSpec } from '@/lib/whatsapp/templates';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 import { AdsService } from '@/services/ads.service';
 import { GoogleAdsService } from '@/services/google-ads.service';
@@ -410,14 +411,17 @@ export class OrderService {
             if (clientPhone) {
                 const formattedPhone = normalizeArgentinePhone(clientPhone);
                 if (formattedPhone) {
-                    const res = await fetchWa('/api/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chatId: `${formattedPhone}@c.us`, message }),
+                    // Texto libre dentro de la ventana; plantilla "pedido_enviado" (A6) si está cerrada.
+                    const res = await sendWhatsApp({
+                        chatId: `${formattedPhone}@c.us`,
+                        message,
+                        senderName: 'Sistema',
+                        isProactive: true,
+                        template: templateSpec('pedido_enviado', [clientName, `#${shortId}`, carrier || 'correo', tracking || '-']),
                     });
                     whatsappEnviado = res.ok;
                     if (!res.ok) {
-                        console.warn('[Auto-Notify DESPACHO] WhatsApp devolvió error:', await res.text());
+                        console.warn('[Auto-Notify DESPACHO] WhatsApp devolvió error:', explainSendFailure(res));
                     }
                 }
             }
@@ -1158,18 +1162,24 @@ export class OrderService {
 
                             const formattedPhone = normalizeArgentinePhone(phone);
 
-                            fetchWa('/api/send', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    chatId: `${formattedPhone}@c.us`,
-                                    message: msg,
-                                    senderName: 'Sistema Atelier',
-                                    media: pdfMedia
-                                })
+                            // Texto + PDF dentro de la ventana de 24 h; plantilla
+                            // "estado_pedido" (A7→A13) si está cerrada (sin PDF: la
+                            // plantilla no lleva documento; el detalle ya lo tiene
+                            // de la confirmación de compra).
+                            sendWhatsApp({
+                                chatId: `${formattedPhone}@c.us`,
+                                message: msg,
+                                senderName: 'Sistema Atelier',
+                                isProactive: true,
+                                media: pdfMedia,
+                                template: templateSpec('estado_pedido', [
+                                    (fullOrder.client?.name || 'cliente').split(' ')[0],
+                                    `#${String(fullOrder.id).slice(-4).toUpperCase()}`,
+                                    `ya fue enviado a fabricar, con fecha aproximada de entrega ${estimatedDate}`,
+                                ]),
                             }).then(async (res) => {
                                 if (!res.ok) {
-                                    throw new Error(`HTTP ${res.status}`);
+                                    throw new Error(explainSendFailure(res));
                                 }
                             }).catch(async (err) => {
                                 console.error('[Lab Status] Error enviando WhatsApp:', err);
@@ -2251,15 +2261,15 @@ export class OrderService {
                         `Detalle:\n• ${saleSummaries}\n` +
                         `🔗 *Ficha:* ${link}`;
 
-                    fetchWa('/api/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chatId: process.env.WHATSAPP_SALES_GROUP_ID || '120363321589178129@g.us', // Requiere el ID real en .env
-                            message: groupMessage,
-                            senderName: 'Sistema Atelier'
-                        }),
-                    }).catch(err => console.error('[Sales Notification] Error sending WhatsApp:', err));
+                    // 18/8/2026 (B18 del plan de la API oficial): el aviso al
+                    // GRUPO de ventas de WhatsApp pasa a email. La API oficial no
+                    // tiene grupos y, mientras la cuenta está bajo observación,
+                    // el número del bot no emite avisos internos.
+                    sendEmail({
+                        to: process.env.SALES_NOTIFY_EMAIL || process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                        subject: `🎉 Venta confirmada — ${existingOrder.client.name} ($${(updatedOrder.total || 0).toLocaleString('es-AR')})`,
+                        html: `<pre style="font-family:inherit;white-space:pre-wrap">${groupMessage.replace(/\*/g, '')}</pre>`,
+                    }).catch(err => console.error('[Sales Notification] Error enviando email:', err));
                 } catch (e) {
                     console.error('Error al preparar mensaje de venta al grupo WhatsApp:', e);
                 }
