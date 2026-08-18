@@ -2,7 +2,7 @@ import Parser from 'rss-parser';
 import { ChatVertexAI } from "@langchain/google-vertexai-web";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { prisma } from '@/lib/db';
-import { fetchWa } from '@/lib/wa-config';
+import { sendEmail } from '@/lib/email';
 
 const parser = new Parser();
 
@@ -106,20 +106,21 @@ El formato de salida DEBE ser estrictamente un objeto JSON plano, sin backticks 
 
     console.log('[Blog Agent] Artículo guardado en BD como Borrador:', newPost.slug);
 
-    // 5. Enviar mensaje de WhatsApp al Admin
-    const waMessage = `🤖 *Asistente Atelier (Blog IA)*\n\nHe redactado un nuevo artículo para el blog basado en noticias internacionales.\n\n*Título:* ${newPost.title}\n*Categoría:* ${newPost.category}\n\nEl artículo se ha guardado como *Borrador* en el sistema. Puedes revisarlo en el panel de administración para publicarlo.`;
+    // 5. Aviso a la administración por EMAIL (18/8/2026: antes WhatsApp del
+    // bot al admin; con la cuenta de Meta bajo observación el número no emite
+    // avisos internos).
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+    await sendEmail({
+      to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+      subject: `📝 Nuevo borrador del blog: ${newPost.title}`,
+      text: `El asistente redactó un nuevo artículo para el blog.
 
-    if (adminPhone) {
-      await fetchWa('/api/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: adminPhone,
-          message: waMessage
-        }),
-      });
-      console.log('[Blog Agent] Notificación de WhatsApp enviada al admin');
-    }
+Título: ${newPost.title}
+Categoría: ${newPost.category}
+
+Quedó guardado como BORRADOR. Revisalo en ${appUrl}/admin/blog para publicarlo.`,
+    }).catch(e => console.error('[Blog Agent] No se pudo avisar por email:', e));
+    void adminPhone; // parámetro conservado por compatibilidad con /api/blog/generate
 
     return newPost;
 

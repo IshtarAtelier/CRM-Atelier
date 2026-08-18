@@ -240,33 +240,6 @@ export default function PedidosPage() {
         setUpdatingId(null);
     };
 
-    const notifyWhatsApp = async (order: Order, status: string) => {
-        if (!order.client.phone) {
-            alert('⚠️ El cliente no tiene teléfono registrado');
-            return;
-        }
-        try {
-            const res = await fetch('/api/whatsapp/notify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    orderId: order.id,
-                    clientPhone: order.client?.phone,
-                    clientName: order.client?.name,
-                    status: status || order.labStatus || 'NONE',
-                    orderNumber: order.id.slice(-4).toUpperCase(),
-                }),
-            });
-            if (res.ok) {
-                alert('✅ Notificación enviada por WhatsApp');
-            } else {
-                const data = await res.json();
-                alert(`❌ ${data.error || 'Error al enviar'}`);
-            }
-        } catch {
-            alert('❌ Error: verificá que el servidor WhatsApp esté corriendo');
-        }
-    };
 
     const saveLabOrderNumber = async (order: Order) => {
         setUpdatingId(order.id);

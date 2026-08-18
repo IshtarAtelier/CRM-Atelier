@@ -1,5 +1,4 @@
 import { sendEmail } from '@/lib/email';
-import { fetchWa } from '@/lib/wa-config';
 
 /**
  * Global handler for AI processes to gracefully catch and alert on Quota/429 errors.
@@ -35,22 +34,7 @@ export async function handleAIError(error: any, context: string) {
             console.error('Error enviando alerta por correo:', emailErr);
         }
 
-        // Attempt to send WhatsApp alert via internal WhatsApp Bot API (if ADMIN_PHONE is set in the environment)
-        const adminPhone = process.env.ADMIN_PHONE;
-        if (adminPhone) {
-            try {
-                await fetchWa('/api/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chatId: adminPhone.includes('@c.us') ? adminPhone : `${adminPhone}@c.us`,
-                        message: `🤖 *Alerta del Sistema*\n\nSe han agotado los créditos de Inteligencia Artificial al ejecutar el proceso: *${context}*.\n\nPor favor, recarga saldo en Google Cloud.`
-                    }),
-                });
-            } catch (waErr) {
-                console.error('Error enviando alerta por WhatsApp:', waErr);
-            }
-        }
+        // (18/8/2026) El aviso por WhatsApp al admin se apagó: alcanza el email.
 
         throw new Error(`Se agotaron los créditos de la IA al ejecutar ${context}. Se ha enviado una alerta al administrador.`);
     }

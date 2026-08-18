@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { fetchWa } from '@/lib/wa-config';
-import { WHATSAPP_PHONE } from '@/lib/constants';
+import { sendEmail } from '@/lib/email';
 import { generateClientPDF } from '@/lib/client-pdf-generator';
 
 export async function POST(request: Request) {
@@ -15,10 +14,6 @@ export async function POST(request: Request) {
             realPhone,
             messageContentLength: messageContent?.length || 0
         });
-
-        // Determinar número del administrador
-        const adminPhone = process.env.ADMIN_PHONE || WHATSAPP_PHONE;
-        const adminWaId = adminPhone.includes('@') ? adminPhone : `${adminPhone.replace(/[^0-9]/g, '')}@c.us`;
 
         // Si hay un cliente registrado
         if (clientId) {
@@ -59,35 +54,22 @@ export async function POST(request: Request) {
                     console.error('[notify-invoice] Client PDF generation failed, sending without file:', pdfError.message);
                 }
 
-                const adminMessage = `📢 *Solicitud de Factura Detectada*\n\nEl cliente *${client.name || profileName}* (${client.phone || realPhone}) ha solicitado una factura.\n\n💬 Mensaje recibido: "${messageContent}"\n\nAdjuntamos su ficha de cliente.`;
-
-                const payload: any = {
-                    chatId: adminWaId,
-                    message: adminMessage,
-                    senderName: 'Sistema Atelier'
-                };
-
-                if (pdfResult) {
-                    payload.media = {
-                        base64: pdfResult.base64,
-                        mimetype: 'application/pdf',
-                        filename: pdfResult.filename
-                    };
-                }
-
-                const res = await fetchWa('/api/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                // 18/8/2026 (B7-bis del plan de la API oficial): la ficha del
+                // cliente le llega a la administración por EMAIL con el PDF
+                // adjunto — antes era un WhatsApp del bot al número del admin.
+                const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
+                const ok = await sendEmail({
+                    to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                    subject: `🧾 Solicitud de factura — ${client.name || profileName}`,
+                    text: `El cliente ${client.name || profileName} (${client.phone || realPhone}) pidió factura por WhatsApp.\n\nMensaje recibido: "${messageContent}"\n\nFicha: ${appUrl}/admin/contactos?id=${client.id}${pdfResult ? '\n\nAdjuntamos su ficha en PDF.' : ''}`,
+                    ...(pdfResult ? { attachments: [{ filename: pdfResult.filename, content: pdfResult.base64, contentType: 'application/pdf' }] } : {}),
                 });
-
-                if (!res.ok) {
-                    const errorText = await res.text();
-                    console.error('[notify-invoice] Failed to send WhatsApp to admin:', res.status, errorText);
-                    return NextResponse.json({ error: `Error enviando WhatsApp al admin: ${errorText}` }, { status: 500 });
+                if (!ok) {
+                    console.error('[notify-invoice] No se pudo enviar el email al admin');
+                    return NextResponse.json({ error: 'Error enviando el aviso por email' }, { status: 500 });
                 }
 
-                console.log('[notify-invoice] Invoice request notification sent to admin with client sheet.');
+                console.log('[notify-invoice] Invoice request notification sent to admin by email with client sheet.');
                 return NextResponse.json({ success: true, notified: 'with_pdf' });
             }
         }
