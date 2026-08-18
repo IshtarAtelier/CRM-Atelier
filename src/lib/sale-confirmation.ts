@@ -22,8 +22,7 @@ import { normalizeArgentinePhone } from '@/services/contact.service';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { uploadFile } from '@/lib/storage';
 import { STORE_ORIGIN } from '@/lib/constants';
-import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
-import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
+import { frameRecapText, prescriptionRecapText } from '@/lib/sale-recap-text';
 import { logAudit } from '@/lib/audit';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
@@ -31,6 +30,31 @@ import { DETALLE_MARK } from '@/lib/order-detail-summary';
 const MARCA_NOTA = '📧 Confirmación de compra enviada al cliente';
 
 const money = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
+
+/**
+ * El HTML del mail, vuelto texto legible para guardar en la ficha. No es una
+ * segunda redacción del contenido (eso es justo lo que había que evitar): es
+ * el mismo HTML que se mandó, con las etiquetas sacadas — la prueba real de
+ * qué decía el mail, no una reconstrucción aparte que podría desalinearse.
+ * HTML propio y controlado (no de terceros): un stripper simple alcanza.
+ */
+function stripHtmlToText(html: string): string {
+    return html
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<(tr|p|div|h1|li)[^>]*>/gi, '\n')
+        .replace(/<td[^>]*>/gi, '  ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .split('\n')
+        .map(l => l.replace(/[ \t]+/g, ' ').trim())
+        .filter(Boolean)
+        .join('\n');
+}
 
 function urlAbsoluta(src?: string | null): string | null {
     if (!src) return null;
@@ -68,7 +92,6 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     const nro = String(order.id).slice(-4).toUpperCase();
     const nombre = (order.client?.name || '').split(' ')[0] || '';
     const rx = recetaDeLaVenta(order);
-    const resumen = describeLabFrameDetails(order);
 
     const total = order.total || 0;
     const pagado = order.paid || 0;
@@ -114,6 +137,19 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           <td style="padding:6px 0;font-size:14px;color:#111;font-weight:600">${escHtml(valor)}</td>
         </tr>`;
 
+    // Convierte el MISMO texto que recibe el cliente por WhatsApp
+    // (frameRecapText/prescriptionRecapText) en filas de HTML. No es una
+    // segunda redacción del contenido: es el mismo texto, mostrado distinto.
+    // Antes el mail rearmaba esto a mano y no mostraba el prisma ni el aviso
+    // de teñido ambiguo — ver auditoría 18/8/2026.
+    const recapTextToHtmlRows = (texto: string) => texto.split('\n').map(linea => {
+        if (linea.startsWith('⚠️')) {
+            return `<tr><td colspan="2" style="padding:6px 0;font-size:13px;color:#7a4a00;font-weight:700">${escHtml(linea)}</td></tr>`;
+        }
+        const m = linea.match(/^([^:]+):\s?(.*)$/);
+        return m ? fila(m[1], m[2]) : `<tr><td colspan="2" style="padding:6px 0;font-size:14px;color:#111">${escHtml(linea)}</td></tr>`;
+    }).join('');
+
     const bloque = (titulo: string, cuerpo: string) => `
         <div style="margin:24px 0;padding:18px;border:1px solid #e5e1da;border-radius:12px;background:#fbfaf8">
           <p style="margin:0 0 12px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#8a7f6d">${escHtml(titulo)}</p>
@@ -138,29 +174,10 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         </tr>`;
     }).join('');
 
-    const paresHtml = resumen.pairs.map(par => {
-        const filas = par.isEmpty
-            ? fila('Medidas', 'sin cargar')
-            : [
-                par.shape ? fila('Forma / aro', par.shape) : '',
-                par.measurements ? fila('Medidas', par.measurements) : '',
-                par.details ? fila('Detalles', par.details) : '',
-            ].join('');
-        return `
-          <p style="margin:14px 0 6px;font-size:12px;font-weight:800;color:#4b3f2f">${escHtml(par.label)}</p>
-          <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${filas}</table>`;
-    }).join('');
-
-    const recetaHtml = rx
-        ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
-             ${rx.prescriptionType ? fila('Tipo de lente', String(rx.prescriptionType)) : ''}
-             ${fila('Ojo derecho (OD)', `Esf ${rx.sphereOD ?? '—'} · Cil ${rx.cylinderOD ?? '—'} · Eje ${rx.axisOD ?? '—'} · Add ${rx.additionOD ?? rx.addition ?? '—'} · Altura ${rx.heightOD ?? '—'}`)}
-             ${fila('Ojo izquierdo (OI)', `Esf ${rx.sphereOI ?? '—'} · Cil ${rx.cylinderOI ?? '—'} · Eje ${rx.axisOI ?? '—'} · Add ${rx.additionOI ?? rx.addition ?? '—'} · Altura ${rx.heightOI ?? '—'}`)}
-             ${fila('Distancia interpupilar', String(rx.pd ?? '—'))}
-             ${rx.notes ? fila('Observaciones', String(rx.notes)) : ''}
-           </table>
-           ${fotoReceta ? `<p style="margin:14px 0 0"><img src="${fotoReceta}" alt="Foto de tu receta" style="max-width:100%;border-radius:10px;border:1px solid #e5e1da" /></p>` : ''}`
-        : `<p style="margin:0;font-size:14px;color:#666">No hay una receta cargada en este pedido.</p>`;
+    // Misma fuente que el WhatsApp (prescriptionRecapText): no puede decir
+    // algo distinto de un canal al otro.
+    const recetaHtml = `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${recapTextToHtmlRows(prescriptionRecapText(rx))}</table>
+        ${fotoReceta ? `<p style="margin:14px 0 0"><img src="${fotoReceta}" alt="Foto de tu receta" style="max-width:100%;border-radius:10px;border:1px solid #e5e1da" /></p>` : ''}`;
 
     const emailHtml = `
       <div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:620px;margin:0 auto;color:#111">
@@ -171,14 +188,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
 
         ${bloque('Lo que encargaste', `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${itemsHtml}</table>`)}
 
-        ${bloque('Armazón y teñido', `
-            ${resumen.origin ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${fila('Armazón', resumen.origin)}</table>` : ''}
-            ${paresHtml}
-            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin-top:10px">
-              ${fila('Teñido', resumen.tint ? resumen.tint.text : 'NO lleva teñido')}
-              ${tienePhotocromatico(order) ? fila('Fotocromático', 'Sí — los cristales se oscurecen solos con el sol y se aclaran en interiores.') : ''}
-              ${resumen.notes ? fila('Notas de laboratorio', resumen.notes) : ''}
-            </table>`)}
+        ${bloque('Armazón y teñido', `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${recapTextToHtmlRows(frameRecapText(order))}</table>`)}
 
         ${bloque('Tu receta, tal cual está cargada', recetaHtml)}
 
@@ -315,15 +325,20 @@ export async function sendSaleConfirmation(
         resultado.pdfUrl = pdfUrl;
 
         // ── Registro en la ficha, con el resultado real de cada canal ────────
-        // Resumen arriba, y detrás del separador la COPIA EXACTA que recibió el
-        // cliente (la ficha la muestra colapsada). Es lo que se le contesta a un
-        // "a mí me dijeron otra cosa".
+        // Resumen arriba, y detrás del separador las COPIAS EXACTAS de los DOS
+        // canales (la ficha las muestra colapsadas). No un resumen aparte: el
+        // texto de WhatsApp es el mismo string que se mandó, y el del mail sale
+        // de sacarle las etiquetas al HTML real que se mandó — así, ante un
+        // "a mí me dijeron otra cosa", queda qué dijo CADA canal, tal cual.
+        const copiaEmail = stripHtmlToText(conf.emailHtml);
         const detalle = [
             sello,
             `Email: ${resultado.email ? `✅ enviado a ${order.client.email}` : (order.client.email ? '❌ NO se pudo enviar' : '— sin email cargado')}`,
             `WhatsApp: ${resultado.whatsapp ? `✅ enviado al ${order.client.phone}` : (tel.length >= 10 ? '❌ NO se pudo enviar' : '— sin teléfono válido')}`,
             pdfUrl ? `PDF del pedido: ${resolveStorageUrl(pdfUrl)}` : `PDF del pedido: ❌ no se pudo generar`,
-        ].join('\n') + DETALLE_MARK + conf.waText;
+        ].join('\n') + DETALLE_MARK
+            + `── Copia exacta enviada por WhatsApp ──\n${conf.waText}`
+            + `\n\n── Copia exacta enviada por email ──\n${copiaEmail}`;
 
         await prisma.interaction.create({
             data: {
