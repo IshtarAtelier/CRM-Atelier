@@ -44,7 +44,7 @@ export const GARANTIA_ADAPTACION = {
    * monofocales comunes.
    */
   ALCANCE:
-    "La garantía cubre los cristales multifocales Varilux, Kodak y Sygnus, los multifocales " +
+    "La garantía cubre los cristales multifocales Varilux y Kodak, los multifocales " +
     "Smart Free, y los monofocales Super Blue (monofocales con filtro de luz azul). " +
     "Los demás cristales no tienen garantía de adaptación.",
 
@@ -83,14 +83,26 @@ export const GARANTIA_ADAPTACION = {
 // verificado contra la base el 18/8/2026.
 // ────────────────────────────────────────────────────────────────────────────
 
-/** Marcas cuyos cristales tienen garantía en todas sus líneas. */
-const MARCAS_CON_GARANTIA = ['varilux', 'mi primer varilux', 'kodak', 'sygnus'];
+/**
+ * Marcas cuyos cristales tienen garantía en todas sus líneas: los multifocales
+ * de OPTOVISION.
+ *
+ * La lista arranca corta A PROPÓSITO (decisión de la dueña, 18/8/2026): lo que
+ * no está confirmado sale "sin garantía" y se va sumando. Prometer de menos se
+ * corrige con una disculpa; prometer de más nos obliga a cumplirlo.
+ *
+ * Fuera por ahora, a la espera de confirmación del laboratorio: Sygnus (Essilor
+ * New Editions), Espace Plus Digital e Interview (multifocales de Essilor por
+ * Optovision), Myofix y Myolens (Grupo Óptico), y los Smart Multifocal ONE y
+ * NEW (BASE).
+ */
+const MARCAS_CON_GARANTIA = ['varilux', 'mi primer varilux', 'kodak'];
 
 /**
- * Dentro de la marca Smart conviven cristales con garantía y sin ella: los
- * SMART FREE y el Super Blue la tienen; los "Multifocal NEW (BASE)",
- * "Multifocal ONE (estandar)", el Ocupacional y el Polarizado de sol, no.
- * Por eso Smart se resuelve por nombre y no por marca.
+ * Líneas sueltas de GRUPO ÓPTICO con garantía. Dentro de la marca Smart
+ * conviven cristales con garantía y sin ella —los "Multifocal NEW (BASE)",
+ * "Multifocal ONE (estandar)", el Ocupacional y el Polarizado de sol no la
+ * tienen— así que Smart se resuelve por nombre de línea y no por marca.
  */
 const LINEAS_CON_GARANTIA = ['smart free', 'super blue'];
 
@@ -163,7 +175,7 @@ export const GARANTIA_TEXTO_CORTO = GARANTIA_ADAPTACION.RESUMEN;
 export const GARANTIA_FAQ = {
   q: "¿Tienen garantía los cristales multifocales?",
   a:
-    `Sí. Tienen garantía de adaptación los multifocales Varilux, Kodak y Sygnus, los ` +
+    `Sí. Tienen garantía de adaptación los multifocales Varilux y Kodak, los ` +
     `multifocales Smart Free, y los monofocales Super Blue. Si no te adaptás dentro de los ` +
     `primeros ${GARANTIA_PLAZO_DIAS} días, te cambiamos los cristales sin costo, por única ` +
     `vez. Es requisito presentar una nueva receta emitida por tu oftalmólogo, y entre ambas ` +
