@@ -276,6 +276,93 @@ Secuencia exacta, para hacer con el celular del local en la mano:
 
 ---
 
+## 3-bis. Inventario completo: todo lo que hoy sale por WhatsApp y qué le pasa
+
+Relevado el 18/8/2026 sobre `src/`, `wa-service/`, `scripts/` y los crons.
+Cada mensaje tiene nombre propio para poder hablar de él sin ambigüedad.
+Leyenda de destino: **PLANTILLA** = sigue saliendo por la API oficial como
+plantilla aprobada · **EMAIL** = pasa a email/CRM · **BUZÓN** = lo escribe un
+humano desde `/admin/whatsapp` · **SE VA** = no vuelve.
+
+### A. Mensajes a clientes (atención — se conservan)
+
+| # | Nombre | Cuándo sale | Dónde vive hoy | Destino |
+|---|---|---|---|---|
+| A1 | **Pedido listo** | el lab termina el trabajo / botón "avisar" en la venta / recordatorio de retiro (cron `pickup-reminder`) | `orders/[id]/notify-ready/route.ts`, `bot.service.ts:216`, `cron/pickup-reminder/route.ts:89`, `copilot-tools.ts:412` | PLANTILLA `pedido_listo` (nombre, nº pedido; botón "Cómo llegar") |
+| A2 | **Confirmación de compra** | se confirma una venta | `sale-confirmation.ts:419/443` (texto + PDF) | PLANTILLA `venta_confirmada` (nombre, nº, total; PDF de encabezado) |
+| A3 | **Comprobante de pago** | se registra un pago | `contact.service.ts:2339/2408/2445` (texto + PDF + link de respaldo) | PLANTILLA `comprobante_pago` (nombre, importe; PDF de encabezado) |
+| A4 | **Presupuesto (texto)** | botón "enviar presupuesto" | `orders/[id]/send-quote/route.ts:75`, texto en `quote-message.ts` | PLANTILLA `presupuesto_pdf` (nombre, total; PDF) — texto y PDF se unifican en un mensaje |
+| A5 | **Presupuesto (PDF)** | botón "enviar PDF" | `orders/[id]/send-pdf/route.ts:132/202` | idem A4 |
+| A6 | **Pedido enviado / tracking** | se carga el envío | `order.service.ts:414` | PLANTILLA `pedido_enviado` (nombre, transporte, código) |
+| A7 | **Cambio de estado en laboratorio + PDF de la orden** | cambia `labStatus` | `order.service.ts:1162` | Se **funde con A1**: el cliente recibe solo "listo"; los estados intermedios no se le avisan (hoy es ruido) |
+| A8 | **Confirmación "recibimos tu comprobante"** | el cliente manda una foto de transferencia | `wa-service/index.js:1838` (respuesta del bot) | BUZÓN (el staff contesta) — o, si se decide un auto-respondedor identificado, plantilla `comprobante_recibido` |
+| A9 | **Respuestas del staff** | siempre | `api/whatsapp/send/route.ts` → `/api/send` | BUZÓN, texto libre dentro de 24 h; fuera de 24 h PLANTILLA `retomar_conversacion` |
+| A10 | **Chat interno del equipo** (Matías/Ishtar por el CRM) | siempre | `api/equipo/mensajes/route.ts:51` | BUZÓN (es un chat más) |
+
+### B. Avisos internos a la administración / staff (pasan a email o CRM)
+
+| # | Nombre | Dónde vivía | Estado |
+|---|---|---|---|
+| B1 | **Nuevo pago registrado** | `contact.service.ts` | EMAIL — hecho `27ebd046` |
+| B2 | **Recibo no entregado / envío fallido del recibo** | `contact.service.ts` | EMAIL — hecho `27ebd046` |
+| B3 | **Copia del recibo enviado** | `contact.service.ts` | EMAIL — hecho `27ebd046` |
+| B4 | **Pedido enviado a fábrica (con PDF)** | `order.service.ts` | EMAIL — hecho `27ebd046` |
+| B5 | **Pedidos trabados en SmartLab** | `smartlab.service.ts` | EMAIL — hecho `27ebd046` |
+| B6 | **SmartLab caído / restablecido** | `cron/smartlab-sync/route.ts` | EMAIL — hecho `27ebd046` |
+| B7 | **Solicitud de factura (bot detecta que el cliente pide factura)** | `wa-service/tools.js` + `api/bot/notify-invoice/route.ts` | EMAIL — hecho `8201b8b0` (la ruta del CRM `notify-invoice` aún manda WA: **pendiente**, ver B7-bis) |
+| B7-bis | **Ficha PDF de la solicitud de factura** | `api/bot/notify-invoice/route.ts:78` | EMAIL — pendiente (mismo tratamiento que B7) |
+| B8 | **Reclamo post-venta** | `wa-service/tools.js` | EMAIL — hecho (`/api/complaints` ya mandaba mail) |
+| B9 | **Circuit breaker / advertencia anti-ban** | `anti-ban.js` | EMAIL — hecho `8201b8b0`; **desaparece** con la API oficial (no hay cola anti-ban) |
+| B10 | **Bot apagado por errores persistentes** | `wa-service/index.js:546` | EMAIL — hecho; desaparece con la API oficial (no hay bot) |
+| B11 | **Atención humana requerida (chat sin registrar)** | `wa-service/index.js:1795` | EMAIL — hecho; con la API oficial pasa a ser un **badge en el buzón** |
+| B12 | **API del bot sin clave** | `wa-service/index.js` | EMAIL — hecho |
+| B13 | **Se aplicó la etiqueta X** (`Tag.notifyPhone`) | `wa-service/tools.js` | **SE VA** — hecho `82da5570` (ni WA ni email, pedido de la dueña) |
+| B14 | **vCard del cliente nuevo al propio número** | `google-contacts.service.ts` | **SE VA** — hecho `8201b8b0` |
+| B15 | **Créditos de IA agotados** | `ai-error-handler.ts:42` | EMAIL — pendiente (hoy WA a `ADMIN_PHONE`) |
+| B16 | **Nuevo borrador de blog** | `blog-agent.service.ts:113` | EMAIL — pendiente |
+| B17 | **Notificación de orden al staff** | `api/whatsapp/notify/route.ts` → `/api/notify-order` | EMAIL / CRM — pendiente (verificar si alguien la usa; candidata a SE VA) |
+| B18 | **Venta confirmada → grupo de ventas** | `order.service.ts:2258` (grupo `120363321589178129@g.us`) | EMAIL o notificación en el CRM — pendiente; **imposible** en la API oficial (no hay grupos) |
+| B19 | **Cliente ingresó al local → grupo de ventas** | `contact.service.ts:1199` | idem B18 |
+| B20 | **Aviso de caída del bot** | `whatsapp/client.js:notifyAdminDown` | ya era EMAIL |
+
+### C. Automatizaciones que hablan solas (se van, o vuelven solo como plantilla)
+
+| # | Nombre | Dónde vive | Destino |
+|---|---|---|---|
+| C1 | **Bot vendedor "Matías"** (contesta a leads nuevos como persona) | `wa-service/graph.js`, `prompts/salesPrompt.js`, `index.js:959` | **SE VA** como está. Interruptor "Asistente IA" (`bot_enabled`) apagado por la dueña el 18/8. Rediseño posible después, identificado como automático |
+| C2 | **Bot ejecutivo** (clientes existentes) | `prompts/executivePrompt.js` | SE VA (idem) |
+| C3 | **Seguimientos de venta DIA_1 / DIA_4 / DIA_15** | `wa-service/sales-followups.js` | SE VA. Lo que valga como recordatorio transaccional vuelve como plantilla, decidido caso por caso |
+| C4 | **Seguimiento por inactividad del chat (>24 h)** | `wa-service/cron/inactivity-followups.js` | SE VA. Su reemplazo humano: botón `retomar_conversacion` en el buzón |
+| C5 | **Tareas [Extracción Inteligente] auto-enviables** | `followups/smart-task-executor.js` | SE VA |
+| C6 | **Posventa automática** | `followups/posventa.js` | SE VA como IA; candidata a plantilla `como_te_fue` (marketing, con opt-in) — decisión aparte |
+| C7 | **Broadcast de seguimientos de cierre** | `scripts/broadcast-followup.ts` (cron `/api/cron/followups`) | SE VA (script se borra) |
+| C8 | **Seguimientos de cierre manual** | `scripts/send-cierres-followups.ts` | SE VA (script se borra; tiene una clave hardcodeada) |
+| C9 | **Carrito abandonado — toque WhatsApp** | `checkout/recovery.ts:272` → tarea `[CARRITO]` → C5 | SE VA por WhatsApp; el toque por **email** sigue |
+| C10 | **Disparo por etiqueta "Seguimiento 1/2", "Frío"** | `contact.service.ts:911` | **SE VA** — hecho `8201b8b0` |
+| C11 | **Etiquetado automático por IA (`add_tags`, `autoAssignCondition`)** | `wa-service/agent-tools.js:316`, `graph.js:247` | SE VA con el bot |
+| C12 | **Extractor pasivo** (lee cada chat y arma ficha/tareas con IA) | `wa-service/passive-extractor.js` | Se **desconecta**. No manda mensajes, pero es IA leyendo chats; puede volver como herramienta del staff ("resumir este chat") a pedido |
+| C13 | **Transcripción de audios** | `wa-service/transcriber.js` | Se desconecta; reconectable (no manda nada) |
+| C14 | **Resumen automático del chat** | `wa-service/index.js:1041` | idem C12 |
+| C15 | **Cola anti-ban** (jitter, spintax, límites, retención nocturna, 3er intento) | `whatsapp/anti-ban.js` | **SE VA entera**: existe para no parecer bot; la API oficial no la necesita |
+| C16 | **Outbox `EnvioProgramado`** | `followups/outbox.js` | Se conserva la tabla como cola simple de reintentos de plantillas |
+
+### D. Infraestructura que cambia
+
+| # | Qué | Hoy | Después |
+|---|---|---|---|
+| D1 | Transporte | `whatsapp-web.js` + Chromium + sesión QR en volumen | `transport/cloud-api.js` (HTTPS a Graph) |
+| D2 | Entrada de mensajes | evento `message` de la sesión | `POST /webhook/whatsapp` firmado por Meta |
+| D3 | Ids | `@c.us` / `@lid` | número E.164; migración de `WhatsAppChat.waId` |
+| D4 | Estado "conectado" | `isReady` de puppeteer + QR en el panel | token válido + número activo; sin QR |
+| D5 | Estados de entrega | no hay | enviado / entregado / leído / fallido en cada burbuja |
+| D6 | Grupos | grupo de ventas | no existen → email/CRM (B18, B19) |
+| D7 | Dockerfile del bot | `node:20-slim` + Chrome for Testing | solo Node (deploy en segundos) |
+| D8 | Env vars | `WA_SERVER_URL`, `BOT_API_KEY`, `WA_WEB_VERSION`, `ADMIN_PHONE` | + `WA_CLOUD_TOKEN`, `WA_CLOUD_WABA_ID`, `WA_CLOUD_PHONE_NUMBER_ID`, `WA_CLOUD_VERIFY_TOKEN`, `META_APP_SECRET`; − `WA_WEB_VERSION` |
+
+### Pendientes chicos de Fase 0 que salieron del inventario
+B7-bis, B15, B16, B17, B18, B19: seis avisos internos que **todavía** salen por
+WhatsApp. Se pasan a email en el próximo commit de Fase 0.
+
 ## 4. Lo que se pierde y hay que aceptar
 
 - **El bot vendedor "Matías" no vuelve como está.** Automatizar respuestas en
