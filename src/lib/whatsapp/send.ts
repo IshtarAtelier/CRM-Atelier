@@ -20,7 +20,7 @@
  */
 
 import { fetchWa } from '@/lib/wa-config';
-import type { TemplateSpec } from './templates';
+import { renderTemplate, WHATSAPP_TEMPLATES, type TemplateSpec, type TemplateName } from './templates';
 
 export interface WhatsAppMedia {
     base64: string;
@@ -84,7 +84,15 @@ export async function sendWhatsApp(input: SendWhatsAppInput): Promise<SendWhatsA
     };
 
     const asTemplate = async (): Promise<SendWhatsAppResult> => {
-        const { res, json } = await post({ ...base, media: input.templateMedia ?? base.media, template: input.template });
+        // El buzón guarda `message` como contenido del saliente: se manda el
+        // texto de la plantilla ya renderizado para que se lea lo que vio el
+        // cliente (el wa-service no conoce el catálogo; en modo plantilla no
+        // usa `message` para el envío).
+        const tpl = input.template!;
+        const preview = (tpl.name in WHATSAPP_TEMPLATES && tpl.bodyParams)
+            ? renderTemplate(tpl.name as TemplateName, tpl.bodyParams)
+            : `[Plantilla ${tpl.name}]`;
+        const { res, json } = await post({ ...base, message: preview, media: input.templateMedia ?? base.media, template: tpl });
         if (res.ok) return { ok: true, via: 'template', status: res.status };
         return { ok: false, via: 'template', status: res.status, code: String(json?.code ?? ''), error: String(json?.error ?? `HTTP ${res.status}`), notSent: json?.notSent === true };
     };

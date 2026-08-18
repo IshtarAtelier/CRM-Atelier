@@ -19,7 +19,8 @@
  *      WA_CLOUD_API_VERSION (default v21.0).
  */
 
-const GRAPH = 'https://graph.facebook.com';
+// Solo para pruebas locales (mock de Graph): en producción NO se setea.
+const GRAPH = process.env.WA_CLOUD_GRAPH_URL || 'https://graph.facebook.com';
 const API_VERSION = process.env.WA_CLOUD_API_VERSION || 'v21.0';
 const SERVICE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
