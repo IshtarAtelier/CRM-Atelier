@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
-import { fetchWa, getAdminChatId } from '@/lib/wa-config';
+
 import { CRM_ORIGIN } from '@/lib/constants';
 import { LabCostReconciliationService } from './lab-cost-reconciliation.service';
 
@@ -535,17 +535,9 @@ export class SmartLabService {
                             html: `<h3 style="color: #d32f2f;">⚠️ Alerta de Pedidos Trabados</h3><p>Se detectaron nuevos pedidos con más de 2 días de demora en el ingreso/validación en SmartLab:</p><ul>${orderDetailsHtml}</ul><p>Por favor, realiza el seguimiento con el laboratorio.</p><p style="margin-top:20px;text-align:center;"><a href="${CRM_ORIGIN}/admin/pedidos" style="display:inline-block;padding:12px 24px;background-color:#d32f2f;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;">Ver pedidos en el CRM</a></p>`
                         }).catch(err => { console.error('Error enviando email de alerta stuck orders:', err); return { success: false } as any; });
 
-                        // Enviar WhatsApp
-                        const waRes = await fetchWa('/api/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                chatId: getAdminChatId(),
-                                message: `⚠️ *Atelier Alerta - Pedidos Trabados en SmartLab*\n\nSe detectaron nuevos pedidos demorados en el ingreso/validación:\n\n${orderDetailsText}\n\n_Por favor, realiza el seguimiento con el laboratorio._`
-                            })
-                        }).then((r: any) => !!r?.ok).catch(err => { console.error('Error enviando WhatsApp de alerta stuck orders:', err); return false; });
-
-                        const alertDelivered = (emailRes && emailRes.success) || waRes;
+                        // La pata de WhatsApp se apagó el 18/8/2026: el email alcanza
+                        // y el número del bot deja de generar tráfico automático.
+                        const alertDelivered = emailRes && emailRes.success;
                         if (alertDelivered) {
                             const updatedNotifiedNums = [...notifiedNums, ...newStuckOrders.map(o => o.num)];
                             await prisma.systemSetting.upsert({

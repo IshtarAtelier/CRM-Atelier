@@ -4,7 +4,7 @@ import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAY
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
-import { fetchWa, getAdminChatId } from '@/lib/wa-config';
+import { fetchWa } from '@/lib/wa-config';
 import { logAudit } from '@/lib/audit';
 import { SYSTEM_ACTOR, type Actor } from '@/lib/actor';
 import { notifyDirectedNote } from '@/lib/note-notify';
@@ -2187,21 +2187,11 @@ export const ContactService = {
                 discountTransfer: financials.discountTransfer
             };
         }, { maxWait: 25000, timeout: 25000 }).then(async result => {
-            // Si es efectivo, verificar alerta de saldo fuera de la transacción
+            // Si es efectivo, verificar alerta de saldo fuera de la transacción.
+            // (El email del pago sale más abajo para TODOS los métodos — antes
+            // acá había uno solo para efectivo, quedó unificado el 18/8/2026.)
             if (method === 'EFECTIVO' || method === 'CASH') {
                 CashService.checkBalanceAndAlert().catch(err => console.error('Error in cash alert:', err));
-                
-                try {
-                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
-                    const clientLink = `${appUrl}/admin/contactos?id=${result.clientId}`;
-                    sendEmail({
-                        to: 'pisano.ishtar@gmail.com',
-                        subject: `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')}`,
-                        text: `${actorName} registró un nuevo pago en EFECTIVO en el sistema.\n\n👤 Cliente: ${result.clientName}\n💰 Monto: $${amount.toLocaleString('es-AR')}\n🧑 Registrado por: ${actorName}\n\nFicha del cliente: ${clientLink}`
-                    }).catch(console.error);
-                } catch (e) {
-                    console.error('Error sending cash email alert:', e);
-                }
             }
             // Registro de auditoría: quién cargó el pago, cuánto y cómo.
             // Awaited (logAudit nunca lanza): garantiza la fila commiteada antes
@@ -2246,34 +2236,31 @@ export const ContactService = {
                         remainingText = `✅ *Pedido totalmente abonado*`;
                     }
 
-                    let msgText = `💵 *Nuevo Pago Registrado (${tipoPago})*\n`;
-                    msgText += `👤 *Cliente:* ${result.clientName}\n`;
-                    msgText += `🧑 *Cargado por:* ${actorName}\n`;
-                    msgText += `💰 *Monto de este Pago:* $${amount.toLocaleString('es-AR')}\n`;
-                    msgText += `💳 *Método:* ${method}\n`;
-                    msgText += `📈 *Total de la Operación:* $${result.totalOperacion.toLocaleString('es-AR')}\n`;
+                    // Aviso a la administración por EMAIL (antes salía por WhatsApp;
+                    // cambiado el 18/8/2026 para que el número del bot no genere
+                    // tráfico automático hacia el chat de la dueña).
+                    const esEfectivo = method === 'EFECTIVO' || method === 'CASH';
+                    let msgText = `Nuevo pago registrado (${tipoPago})\n`;
+                    msgText += `👤 Cliente: ${result.clientName}\n`;
+                    msgText += `🧑 Cargado por: ${actorName}\n`;
+                    msgText += `💰 Monto de este pago: $${amount.toLocaleString('es-AR')}\n`;
+                    msgText += `💳 Método: ${method}\n`;
+                    msgText += `📈 Total de la operación: $${result.totalOperacion.toLocaleString('es-AR')}\n`;
                     if (notes && notes.trim()) {
-                        msgText += `📝 *Referencia/Notas:* ${notes.trim()}\n`;
+                        msgText += `📝 Referencia/Notas: ${notes.trim()}\n`;
                     }
-                    msgText += `${remainingText}\n`;
-                    msgText += `🔗 *Ficha del cliente:* ${clientLink}`;
+                    msgText += `${remainingText.replace(/\*/g, '')}\n`;
+                    msgText += `Ficha del cliente: ${clientLink}`;
 
-                    const resAdmin = await fetchWa('/api/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chatId: getAdminChatId(),
-                            message: msgText,
-                            senderName: 'Sistema Atelier'
-                        }),
-                    });
-
-                    if (!resAdmin.ok) {
-                        const errText = await resAdmin.text();
-                        console.error('[Payment Notification] Failed to send WhatsApp to Admin:', errText);
-                    } else {
-                        console.log('[Payment Notification] WhatsApp sent successfully to Admin');
-                    }
+                    await sendEmail({
+                        to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                        subject: esEfectivo
+                            ? `💵 Ingreso de Efectivo: $${amount.toLocaleString('es-AR')} — ${result.clientName}`
+                            : `💵 Nuevo pago (${tipoPago}): $${amount.toLocaleString('es-AR')} — ${result.clientName}`,
+                        text: msgText,
+                    }).then(r => {
+                        if (!r?.success) console.error('[Payment Notification] Email a administración no salió');
+                    }).catch(err => console.error('[Payment Notification] Error email administración:', err));
 
                     const today = new Date().toLocaleDateString('es-AR');
                     let methodLabel = method;
@@ -2397,22 +2384,16 @@ export const ContactService = {
                                     }
                                 });
 
-                                // Notificar a Ishtar por WhatsApp. Sin adjunto: si los
-                                // adjuntos están rotos (el caso de hoy), la alerta con
-                                // PDF moriría por el mismo timeout y no llegaría nada.
+                                // Notificar a Ishtar por EMAIL (antes WhatsApp; 18/8/2026).
                                 const accion = esCulpaDelNumero
-                                    ? `🔗 *Corregir Ficha:* ${clientLink}`
-                                    : `Reenviale el recibo a mano desde la ficha.\n🔗 *Ficha:* ${clientLink}`;
+                                    ? `Corregir la ficha: ${clientLink}`
+                                    : `Reenviale el recibo a mano desde la ficha.\nFicha: ${clientLink}`;
 
-                                await fetchWa('/api/send', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        chatId: getAdminChatId(),
-                                        message: `🚨 *Alerta de Envío Fallido*\n\nNo se pudo enviar el recibo automático a *${result.clientName}* porque ${motivo}.\n\n🧾 *Motivo técnico:* ${failDetail}\n\n${accion}`,
-                                        senderName: 'Sistema Atelier'
-                                    })
-                                });
+                                await sendEmail({
+                                    to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                                    subject: `🚨 Recibo sin enviar — ${result.clientName}`,
+                                    text: `No se pudo enviar el recibo automático a ${result.clientName} porque ${motivo}.\n\nMotivo técnico: ${failDetail}\n\n${accion}`,
+                                }).catch(err => console.error('[Payment Notification] Error email alerta envío fallido:', err));
                             } catch(e) {
                                 console.error('[Payment Notification] Error saving failure alert:', e);
                             }
@@ -2488,15 +2469,11 @@ export const ContactService = {
                                                 content: `⚠️ El cliente recibió la confirmación del pago por WhatsApp, pero el PDF del recibo no se pudo entregar (ni adjunto ni como link). Reenviarlo a mano desde la ficha.`
                                             }
                                         });
-                                        await fetchWa('/api/send', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                chatId: getAdminChatId(),
-                                                message: `🚨 *Recibo sin entregar*\n\n*${result.clientName}* recibió la confirmación del pago por texto, pero el PDF del recibo no salió (ni adjunto ni como link). El número está bien.\n\n🔗 *Ficha:* ${clientLink}`,
-                                                senderName: 'Sistema Atelier'
-                                            })
-                                        });
+                                        await sendEmail({
+                                            to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                                            subject: `🚨 Recibo sin entregar — ${result.clientName}`,
+                                            text: `${result.clientName} recibió la confirmación del pago por texto, pero el PDF del recibo no salió (ni adjunto ni como link). El número está bien.\n\nFicha: ${clientLink}`,
+                                        }).catch(err => console.error('[Payment Notification] Error email recibo sin entregar:', err));
                                     } catch (e) {
                                         console.error('[Payment Notification] Error avisando recibo sin entregar:', e);
                                     }
@@ -2505,17 +2482,13 @@ export const ContactService = {
 
                             // Copia a Ishtar SOLO si el cliente lo recibió: la copia
                             // decía "enviada al cliente" aunque el envío hubiera
-                            // fallado un segundo antes. Sin adjunto, por lo mismo que
-                            // la alerta: si los adjuntos están rotos, no llegaría.
-                            await fetchWa('/api/send', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    chatId: getAdminChatId(),
-                                    message: `🤖 *[Copia enviada al cliente]*\n\n${clientMsgText}${comoLlegoElPdf ? `\n\n(El recibo le llegó como ${comoLlegoElPdf}.)` : ''}`,
-                                    senderName: 'Sistema Atelier'
-                                }),
-                            });
+                            // fallado un segundo antes. Por EMAIL (antes WhatsApp;
+                            // 18/8/2026 — menos tráfico automático del bot).
+                            await sendEmail({
+                                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                                subject: `✅ Recibo enviado al cliente — ${result.clientName}`,
+                                text: `Copia del mensaje que recibió el cliente por WhatsApp:\n\n${clientMsgText.replace(/\*/g, '')}${comoLlegoElPdf ? `\n\n(El recibo le llegó como ${comoLlegoElPdf}.)` : ''}\n\nFicha: ${clientLink}`,
+                            }).catch(err => console.error('[Payment Notification] Error email copia recibo:', err));
                         }
                     }
 

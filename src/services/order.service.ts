@@ -7,7 +7,7 @@ import { PricingService, calculateQuoteTotals } from '@/services/PricingService'
 import { recalculateCrystalPrices, applyTeñidoPromoDiscount, isTeñidoAddon } from '@/lib/promo-utils';
 import { TOPE_VENDEDOR } from '@/lib/constants/descuentos';
 import { z } from 'zod';
-import { fetchWa, getAdminChatId } from '@/lib/wa-config';
+import { fetchWa } from '@/lib/wa-config';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 import { AdsService } from '@/services/ads.service';
 import { GoogleAdsService } from '@/services/google-ads.service';
@@ -1190,17 +1190,19 @@ export class OrderService {
                                 }
                             });
 
-                            // Enviar copia al admin
-                            fetchWa('/api/send', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    chatId: getAdminChatId(),
-                                    message: `🏭 *[Pedido enviado a fábrica — Copia]*\n\n👤 *Cliente:* ${fullOrder.client?.name || ''}\n📋 *N° Operación:* ${labOrderNumber || fullOrder.labOrderNumber || 'Sin asignar'}\n\n${msg}`,
-                                    senderName: 'Sistema Atelier',
-                                    media: pdfMedia
-                                })
-                            }).catch(err => console.error('[Lab Status] Error enviando copia al admin:', err));
+                            // Copia a la administración por EMAIL (antes WhatsApp;
+                            // 18/8/2026 — menos tráfico automático del bot). Con el
+                            // mismo PDF adjunto que recibe el cliente.
+                            sendEmail({
+                                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
+                                subject: `🏭 Pedido enviado a fábrica — ${fullOrder.client?.name || ''} (Op. ${labOrderNumber || fullOrder.labOrderNumber || 'sin asignar'})`,
+                                text: `Copia del mensaje que recibió el cliente por WhatsApp:\n\n${msg}`,
+                                attachments: pdfMedia ? [{
+                                    filename: pdfMedia.filename,
+                                    content: pdfMedia.base64,
+                                    contentType: 'application/pdf',
+                                }] : undefined,
+                            }).catch(err => console.error('[Lab Status] Error enviando copia al admin por email:', err));
                         }
                     } catch (err: any) {
                         console.error('[Lab Status Notification Error]:', err.message);

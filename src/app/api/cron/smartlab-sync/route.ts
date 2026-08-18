@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { SmartLabService } from '@/services/smartlab.service';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { sendEmail } from '@/lib/email';
-import { fetchWa, getAdminChatId } from '@/lib/wa-config';
+
 import { prisma } from '@/lib/db';
 import { GrupoOpticoProvider } from '@/services/lab-providers/grupo-optico.provider';
 import { LabCostReconciliationService } from '@/services/lab-cost-reconciliation.service';
@@ -98,16 +98,9 @@ export async function GET(req: Request) {
                         html: `<h3 style="color: #2e7d32;">✅ SmartLab Restablecido</h3><p>La sincronización con el laboratorio (Grupo Óptico) se ha restablecido correctamente tras <b>${formatDowntime(downtime)}</b> sin conexión.</p><p><b>Último Sync:</b> exitoso (${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados)</p><p><b>Fecha:</b> ${new Date().toLocaleString('es-AR')}</p>`
                     });
 
-                    await fetchWa('/api/send', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chatId: getAdminChatId(),
-                            message: `✅ *Atelier Restablecido - SmartLab*\n\nLa sincronización con el laboratorio (Grupo Óptico) se ha restablecido correctamente tras ${formatDowntime(downtime)} sin conexión.\n\n*Último Sync:* exitoso (${result.matched || 0} actualizados, ${result.newlyFinished || 0} nuevos fabricados)\n*Fecha:* ${new Date().toLocaleString('es-AR')}`
-                        })
-                    });
-
-                    console.log('[CRON SmartLab] Alertas de restauración enviadas a Ishtar.');
+                    // (18/8/2026: la pata de WhatsApp se apagó — el email alcanza y
+                    // el número del bot deja de generar tráfico automático.)
+                    console.log('[CRON SmartLab] Alerta de restauración enviada a Ishtar por email.');
                 } else if (downSince) {
                     console.log('[CRON SmartLab] Recuperado de un corte corto (sin alerta previa) — no se avisa.');
                 }
@@ -260,22 +253,13 @@ export async function GET(req: Request) {
                     html: `<h3 style="color: #d32f2f;">${subject}</h3><p>La sincronización con el laboratorio (Grupo Óptico) lleva <b>${formatDowntime(downtimeMs)}</b> sin funcionar (desde ${new Date(downSince).toLocaleString('es-AR')}).</p><p><b>Último error:</b> ${errorMessage}</p><p><b>Fecha:</b> ${new Date().toLocaleString('es-AR')}</p><p style="color:#888;font-size:12px;">Si sigue caído, recibirás otra alerta en 12 horas. Al recuperarse te llega un aviso de restablecido.</p>`
                 }).catch((err: any) => { console.error('[CRON SmartLab] Error email:', err); return { success: false } as any; });
 
-                // Enviar alerta por WhatsApp
-                const waRes = await fetchWa('/api/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chatId: getAdminChatId(),
-                        message: `⚠️ *Atelier Alerta - SmartLab*\n\nLa sincronización con el laboratorio (Grupo Óptico) lleva *${formatDowntime(downtimeMs)}* sin funcionar.\n\n*Último error:* ${errorMessage}\n\n_Si sigue caído, te aviso de nuevo en 12 hs._`
-                    })
-                }).then((r: any) => !!r?.ok).catch((err: any) => { console.error('[CRON SmartLab] Error WhatsApp:', err); return false; });
-
-                // Solo registrar el envío si al menos un canal salió (si no, se reintenta).
-                if ((emailRes && emailRes.success) || waRes) {
-                    console.log('[CRON SmartLab] Alertas enviadas a Ishtar.');
+                // (18/8/2026: la pata de WhatsApp se apagó — solo email.)
+                // Solo registrar el envío si salió (si no, se reintenta).
+                if (emailRes && emailRes.success) {
+                    console.log('[CRON SmartLab] Alerta enviada a Ishtar por email.');
                     await setSetting(KEY_ALERTED_AT, new Date().toISOString());
                 } else {
-                    console.error('[CRON SmartLab] Alerta de caída NO entregada (email y WhatsApp fallaron): se reintentará.');
+                    console.error('[CRON SmartLab] Alerta de caída NO entregada (el email falló): se reintentará.');
                 }
             } else {
                 const reason = downtimeMs < DOWN_ALERT_THRESHOLD_MS
