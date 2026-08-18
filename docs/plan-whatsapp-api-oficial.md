@@ -220,7 +220,10 @@ Mínimo viable, todas categoría **utilidad**:
 
 | Nombre | Uso | Variables |
 |---|---|---|
-| `pedido_listo` | reemplaza `notifyOrderReady` | nombre, nº pedido |
+| `pedido_listo` | reemplaza `notifyOrderReady` (A1) | nombre, nº pedido |
+| `pedido_listo_saldo` | A12: listo + saldo por medio de pago | nombre, saldo tarjeta, transferencia, efectivo |
+| `factura_electronica` | A11 (header documento) | nombre |
+| `estado_pedido` | A13, solo fuera de 24 h | nombre, nº, estado |
 | `presupuesto_pdf` | reemplaza `send-quote` / `send-pdf` (header documento) | nombre, total |
 | `comprobante_pago` | reemplaza el recibo de `contact.service.ts` (header documento) | nombre, importe |
 | `pedido_enviado` | tracking (`order.service.ts:414`) | nombre, transporte, código |
@@ -298,6 +301,42 @@ humano desde `/admin/whatsapp` · **SE VA** = no vuelve.
 | A8 | **Confirmación "recibimos tu comprobante"** | el cliente manda una foto de transferencia | `wa-service/index.js:1838` (respuesta del bot) | BUZÓN (el staff contesta) — o, si se decide un auto-respondedor identificado, plantilla `comprobante_recibido` |
 | A9 | **Respuestas del staff** | siempre | `api/whatsapp/send/route.ts` → `/api/send` | BUZÓN, texto libre dentro de 24 h; fuera de 24 h PLANTILLA `retomar_conversacion` |
 | A10 | **Chat interno del equipo** (Matías/Ishtar por el CRM) | siempre | `api/equipo/mensajes/route.ts:51` | BUZÓN (es un chat más) |
+
+| A11 | **Factura electrónica (PDF)** | botón en Facturación y en Ventas | `admin/facturacion/page.tsx:117`, `admin/ventas/page.tsx:354` (texto "te enviamos adjunta tu factura") | PLANTILLA `factura_electronica` (nombre; PDF de encabezado). **Mismo botón** |
+| A12 | **Pedido listo con detalle de saldo** (tarjeta / transferencia / efectivo) | botón en Ventas cuando está READY o hay saldo | `admin/ventas/page.tsx:1706` | PLANTILLA `pedido_listo_saldo` (nombre, saldo tarjeta, transferencia, efectivo) — variante de A1. **Mismo botón** |
+| A13 | **Pedido en proceso** (estado del lab + detalle) | botón en Pedidos | `admin/pedidos/page.tsx:442` | Dentro de 24 h: texto libre como hoy; fuera: PLANTILLA `estado_pedido` (nombre, nº, estado). **Mismo botón** |
+| A14 | **Cotización desde el Cotizador** | botón "enviar por WhatsApp" del cotizador | `admin/cotizador/page.tsx:640` (manda por el bot; si falla abre `wa.me`) | PLANTILLA `presupuesto_pdf` (misma que A4) o texto libre dentro de 24 h. El fallback `wa.me` (abre el WhatsApp del celular) se **saca** — con la API el envío no falla por "sesión caída" |
+| A15 | **Recuperación de carrito desde el panel de desarrollo** | botón manual | `admin/desarrollo/carritos/page.tsx:50` | Igual que A14 (texto libre / plantilla `retomar_conversacion`); fallback `wa.me` se saca |
+
+### E. Botones y enlaces del sistema (la mecánica del staff — nada de esto se pierde)
+
+Estos no mandan nada solos: **abren el buzón con el chat del cliente** (a veces
+con un texto precargado que el staff revisa y manda). Con la API oficial siguen
+funcionando igual; el buzón resuelve por debajo si va texto libre (24 h) o
+plantilla.
+
+| # | Nombre | Dónde | Qué hace | Después |
+|---|---|---|---|---|
+| E1 | **Ícono de WhatsApp en la ficha del cliente** (dos lugares) | `contacts/ContactHeader.tsx:100/213` | abre `/admin/whatsapp?phone=…` con el chat del cliente | Igual. Si el chat aún no existe se crea con el número (E.164) |
+| E2 | **Tareas de la ficha → "escribirle"** | `contacts/TaskManager.tsx:168` | abre el buzón con texto precargado | Igual; si la ventana está cerrada el buzón ofrece `retomar_conversacion` |
+| E3 | **Panel Tareas del dashboard** | `dashboard/TasksPanel.tsx:173` | idem | Igual |
+| E4 | **Panel Oportunidades de cierre** | `dashboard/OpportunitiesPanel.tsx:106` | idem | Igual |
+| E5 | **Panel Reseñas** (pedido de reseña, siempre manual) | `dashboard/ReviewRequestsPanel.tsx:103` | abre el buzón con el texto; **nunca automático** (regla de la casa) | Igual, sigue manual |
+| E6 | **Tarjeta de lead → "abrir chat"** | `leads/LeadCard.tsx:172` | link a `/admin/whatsapp?chatId=…` | Igual (con número E.164 en vez de `@c.us`) |
+| E7 | **Buzón `/admin/whatsapp` con `?phone=&text=`** | `admin/whatsapp/page.tsx:374/443` | busca/crea el chat y precarga el texto | Igual + indicador de ventana 24 h y estado entregado/leído |
+| E8 | **Ópticas mayoristas → link `wa.me`** | `admin/opticas/page.tsx:138` | abre el WhatsApp del celular del staff hacia la óptica | Fuera del plan (usa el número mayorista, no la API) |
+| E9 | **Botones "Hablanos por WhatsApp" de la tienda** (flotante, footer, producto, checkout, FAQ, contacto, landings, blog, popup, configurador de cristales, emails de checkout, página de error) | `Storefront/FloatingWhatsApp.tsx`, `WhatsAppAttribution.tsx`, `whatsapp-link.ts`, `constants.ts:WHATSAPP_PHONE`, `checkout-emails.ts:26` y ~55 archivos más | link `wa.me/5493518685644?text=…` — lo abre **el cliente** en su celular | **No cambia nada**: el cliente le escribe al mismo número, el mensaje entra por el webhook y aparece en el buzón. La atribución `[metaXxx]` en el texto precargado sigue funcionando |
+| E10 | **Anuncios click-to-WhatsApp de Meta Ads** | campañas "Mensajes" del plan publicitario | el anuncio abre un chat al número | Igual; además, con la API oficial Meta **atribuye la conversación al anuncio** por webhook (`referral`), mejor que hoy |
+| E11 | **Enlace al chat desde emails internos / notificaciones** (`/admin/whatsapp?…`) | varios | link al buzón | Igual |
+| E12 | **QR y "conectar teléfono" del panel del bot** | `admin/whatsapp/page.tsx` (config), `admin/configuracion/page.tsx` | escanear la sesión | **SE VA**: no hay QR en la API oficial. Se reemplaza por "número conectado ✅ / token vencido ⚠️" |
+| E13 | **Toggle "Asistente IA" y "Seguimientos automáticos"** | `admin/whatsapp/page.tsx` | prenden el bot y los followups | SE VAN (o quedan apagados y ocultos) — no hay bot ni followups por IA |
+| E14 | **Toggle "bot por chat" y etiqueta "cancelar bot"** | `api/whatsapp/chats/[id]/bot`, `TAGS_SIN_BOT` | apagar el bot en un chat | SE VA |
+| E15 | **Chat de prueba (simulador del bot)** | `ui/TestChatModal.tsx`, `/api/test/chat` | probar el prompt | SE VA |
+| E16 | **Galería de fotos de WhatsApp** | `admin/whatsapp/fotos/page.tsx` | ver medias recibidas | Igual (los medios llegan por webhook y se guardan como hoy) |
+| E17 | **Badge de no leídos y toasts de mensaje nuevo** | `ui/WhatsAppBadge.tsx`, `ui/LeadToastNotifications.tsx` | socket.io | Igual (el webhook emite los mismos eventos de socket) |
+| E18 | **Vincular chat ↔ ficha / extraer cliente del chat** | `lib/whatsapp/vincular-chat.ts`, `chats/[id]/extract-client` | asocia el chat a un cliente | Igual, más simple: el número viene siempre real (adiós `@lid`) |
+| E19 | **Grabar y mandar audio desde el buzón** | `admin/whatsapp/page.tsx:248` | nota de voz | Igual (audio ogg/opus por `/media`) — solo dentro de 24 h (las plantillas no llevan audio) |
+| E20 | **Adjuntar imagen/PDF desde el buzón** | `admin/whatsapp/page.tsx` | media | Igual dentro de 24 h; fuera, plantilla con documento |
 
 ### B. Avisos internos a la administración / staff (pasan a email o CRM)
 
