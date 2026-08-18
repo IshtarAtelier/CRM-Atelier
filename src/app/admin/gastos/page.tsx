@@ -84,7 +84,11 @@ function ExpenseRow({ expense, onSave, onDelete }: { expense: any, onSave: (e: a
                         onKeyDown={handleKeyDown}
                         placeholder="0"
                         disabled={expense.isCalculated}
-                        title={expense.isCalculated ? "Este gasto se calcula automáticamente de las ventas del mes." : ""}
+                        title={expense.isCalculated
+                            ? (expense.category === 'MARKETING'
+                                ? "Este gasto lo actualiza solo el cron diario, leído directo de Meta / Google Ads."
+                                : "Este gasto se calcula automáticamente de las ventas del mes.")
+                            : ""}
                         className={`w-28 sm:w-36 pl-7 pr-3 py-2 rounded-lg text-right font-black outline-none transition-all text-sm
                             ${expense.isCalculated 
                                 ? 'bg-stone-200/50 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-transparent cursor-not-allowed opacity-90' 

@@ -94,12 +94,26 @@ export async function GET(request: Request) {
         const filteredExpenses = expenses.filter(e => {
             if (manualToExclude.includes(e.name) && e.amount === 0) {
                 // Si existe un dinámico o simplemente lo queremos ocultar
-                return false; 
+                return false;
             }
             return true;
         });
 
-        return NextResponse.json([...filteredExpenses, ...dynamicExpenses]);
+        // "Meta Ads" y "Google Ads" los mantiene al día el cron diario
+        // (gastos-ads.service.ts), igual que a los costos de laboratorio los
+        // mantiene al día esta misma ruta. Se marcan `isCalculated` para que la
+        // fila salga bloqueada con el mismo candado visual que usa el resto de
+        // la pantalla — así nadie tipea un número que el cron de mañana va a
+        // pisar sin avisar, ni al revés: alguien anota un ajuste a mano y no
+        // entiende por qué "desapareció" al día siguiente.
+        const nombresSincronizados = new Set(['Meta Ads', 'Google Ads']);
+        const conCalculados = filteredExpenses.map(e =>
+            nombresSincronizados.has(e.name) && e.category === 'MARKETING'
+                ? { ...e, isCalculated: true }
+                : e
+        );
+
+        return NextResponse.json([...conCalculados, ...dynamicExpenses]);
     } catch (error: any) {
         console.error('Error fetching expenses:', error);
         return NextResponse.json({ error: error.message || 'Error fetching expenses' }, { status: 500 });
