@@ -154,7 +154,7 @@ mostró lo que ningún panel decía:
 | Número | **+54 9 351 868-5644**, id **`570077836186956`** |
 | Plataforma | **`CLOUD_API`** · estado **CONNECTED** · calidad **GREEN** · modo **LIVE** |
 | ¿También en la app del celular? | **`is_on_biz_app: true`** → **coexistencia activa**: el número vive a la vez en la app de WhatsApp Business del local y en la Cloud API |
-| Webhook | **suscrita la app "Prometheo"** (`1069056334743106`, `prometheoapp.itesa.ar`) — **NO es nuestra**. Nuestra app no recibe nada |
+| Webhook | estaba suscrita la app **"Prometheo"** (`1069056334743106`) — **eliminada el 18/8**, hoy `subscribed_apps` está vacío |
 | Plantillas ya existentes | `derivation_notification_2` (aprobada), `derivation_notification` (rechazada) — no son nuestras |
 | Puede enviar | **LIMITED**, por dos motivos: el **nombre para mostrar no está aprobado** (`name_status: NON_EXISTS`) y el **negocio no pasó la verificación** (error 141010) |
 
@@ -164,11 +164,14 @@ mostró lo que ningún panel decía:
    re-verificar el número por SMS: la coexistencia ya está activa y el número ya
    está registrado en la Cloud API. Migrar pasa a ser "apuntar el webhook a
    nuestro servicio y encender `WA_TRANSPORT=cloud`".
-2. **Hay un tercero en el canal.** Los mensajes entrantes del número hoy se
-   entregan al webhook de **Prometheo**. Hay que decidir con la dueña: sumar
-   nuestra app al webhook (conviven) o sacar a Prometheo. **Nada se toca sin OK.**
-   También conviene saber si Prometheo manda mensajes automáticos: sería otra
-   automatización sobre el mismo número, justo lo que se está tratando de bajar.
+2. **Había un tercero en el canal — RESUELTO el 18/8.** Los mensajes entrantes
+   se entregaban al webhook de **Prometheo CRM** (`prometheoapp.itesa.ar`, otro
+   "CRM conversacional con IA"), que además figuraba como **socio del negocio
+   con acceso TOTAL a la cuenta de WhatsApp y a la Página de Facebook**. La
+   dueña confirmó que es una app que usaba antes y ya no usa. Se le quitaron
+   todos los accesos (Configuración → Socios → Administrar → Eliminar acceso).
+   Verificado por API: `subscribed_apps` quedó **vacío** y `agencies` solo tiene
+   Nuvemshop. El canal quedó libre para suscribir nuestra app.
 3. **Dos tareas de la dueña para levantar el límite de envío:** aprobar el
    **nombre para mostrar** ("Atelier Óptica") y completar la **verificación del
    negocio** (CUIT/documentos). Sin eso el número queda en LIMITED.
