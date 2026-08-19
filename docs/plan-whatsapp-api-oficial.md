@@ -132,7 +132,27 @@ desvinculado** — es el otro cliente no oficial de la casa.
 
 ### Fase 1 — Alta del activo en Meta (dueña + acompañamiento, ~1-2 días de espera)
 
+**Dato clave (18/8):** el número ya estuvo vinculado a la API oficial antes.
+Es probable que la cuenta de WhatsApp Business (WABA) **ya exista** en el
+Business "Atelier Óptica" (`796163885437265`) y que parte de esto esté hecho.
+Los tres tokens que hay en `.env` son de contenido/ads y no ven WhatsApp; por
+eso el paso 0 es un token con permisos de WhatsApp y correr el diagnóstico —
+que dice solo qué existe y qué falta, y arma las variables:
+
+```bash
+node scripts/checks/whatsapp-cloud-check.mjs
+```
+
 Todo en el Business Manager, un paso por vez (regla de estilo). El orden:
+
+0. **Token con permisos de WhatsApp**: `business.facebook.com` → Configuración
+   → Usuarios del sistema → (el system user existente) → Generar nuevo token →
+   elegir la app → marcar `whatsapp_business_management` y
+   `whatsapp_business_messaging` → **sin vencimiento**. Pegarlo en `.env` como
+   `WA_CLOUD_TOKEN` (y después en Railway). Si el system user no tiene la WABA
+   asignada como activo, agregarla en "Activos asignados" (aparece recién
+   cuando la WABA existe). Correr el diagnóstico: si ya hay WABA + número,
+   los pasos 1, 2 y 4 se saltean.
 
 1. `business.facebook.com` → Configuración → **Cuentas de WhatsApp** → Agregar
    → crear la **WhatsApp Business Account (WABA)** dentro del portfolio de
