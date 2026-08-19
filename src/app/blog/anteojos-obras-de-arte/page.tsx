@@ -111,6 +111,22 @@ export default function AnteojosObrasDeArtePage() {
             </section>
 
             <section className="border-t border-black/10 pt-12">
+              <h2 className="text-2xl font-medium mb-6">Mi hermana y la Cápsula Escarlata</h2>
+              <p className="mb-6">
+                Hay una parte de esta historia que es de ella. La <strong>Cápsula Escarlata</strong>, nuestra línea mayorista, está inspirada en mi hermana: la que lideró el primer año de Atelier, el más difícil de todos.
+              </p>
+              <p className="mb-6">
+                Lo hizo mientras terminaba su licenciatura en Nutrición, estudiaba un curso de inglés para aplicar a una visa en el exterior y viajaba una hora todos los días para llegar. Con ese tiempo, que no le sobraba, llevó adelante la gestión de nuestro primer cliente. En ese corto tiempo nacimos.
+              </p>
+              <p className="mb-6">
+                Nacimos en la <strong>Galería Gitana</strong>. Fue nuestro primer rinconcito: ahí nos ayudaron a nacer, a crear y a pensar. Pero teníamos que salir a la calle para poder llegar a la gente. Un día la llamé y le dije: <em>&quot;Hermana, levantá el piso, que nos mudamos&quot;</em>. Entre risas y llanto entendió que no era un chistecito. Y ahí nos vimos, sentadas en Cremolatti, mirando el pequeño localcito al que nos íbamos a mudar.
+              </p>
+              <p className="mb-6">
+                Así que fuimos: una mudanza fugaz, reinventarnos otra vez, y dejar atrás el primer rinconcito que fue nuestro. Todo lo que Atelier es hoy empezó ahí, en ese año que ella sostuvo cuando casi no tenía horas.
+              </p>
+            </section>
+
+            <section className="border-t border-black/10 pt-12">
               <h2 className="text-2xl font-medium mb-3">Más de cien procesos que no se ven</h2>
               <p className="mb-8 text-[#666]">
                 Un anteojo bien hecho pasa por más de cien procesos productivos antes de llegar a tu cara. Estos son los que más me importan.
