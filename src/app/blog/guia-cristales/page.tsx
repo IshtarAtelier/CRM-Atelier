@@ -22,7 +22,7 @@ export default function CrystalGuidePage() {
           ATELIER ÓPTICA
         </Link>
         <div className="flex gap-5">
-           <button className="text-[13px] font-medium hover:opacity-60 transition-opacity" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>Carrito(0)</button>
+           
         </div>
       </header>
 
@@ -63,7 +63,7 @@ export default function CrystalGuidePage() {
                </div>
                <div className="p-6 lg:p-8 bg-[#f9f9f9]">
                   <h3 className="text-[13px] font-bold uppercase tracking-widest mb-3">Filtro Azul</h3>
-                  <p className="text-[13px] text-[#666] leading-relaxed">Bloquea la luz nociva de pantallas y monitores. Si pasás horas frente a la computadora, este tratamiento es vital para cuidar tu vista y prevenir el insomnio al final de cada jornada de trabajo.</p>
+                  <p className="text-[13px] text-[#666] leading-relaxed">Bloquea la luz nociva de pantallas y monitores. Si pasás horas frente a la computadora, este tratamiento suma confort visual en jornadas largas frente a monitores.</p>
                </div>
                <div className="p-6 lg:p-8 bg-[#f9f9f9]">
                   <h3 className="text-[13px] font-bold uppercase tracking-widest mb-3">Lentes de Sol a Medida</h3>

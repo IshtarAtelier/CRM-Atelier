@@ -35,7 +35,7 @@ export default function ControlMiopiaInfantilPage() {
             ¿Qué significa realmente &quot;control de miopía&quot;?
           </h2>
           <p className="text-stone-700 leading-relaxed mb-6">
-            Es crucial entender que la miopía no tiene cura, pero sí se puede frenar su avance. Cuando el oftalmopediatra detecta que la graduación de tu hijo aumenta rápidamente, suele indicar tratamientos ópticos específicos. En <strong>Atelier Óptica</strong>, ubicados estratégicamente para atender a familias de <strong>Cerro de las Rosas, Nueva Córdoba</strong> y toda la <strong>Ciudad de Córdoba</strong>, trabajamos con los laboratorios líderes a nivel mundial: <strong>Stellest de Essilor</strong> y <strong>MyoFix</strong>.
+            Es crucial entender que la miopía no tiene cura, pero sí se puede frenar su avance. Cuando el oftalmopediatra detecta que la graduación de tu hijo aumenta rápidamente, suele indicar tratamientos ópticos específicos. En <strong>Atelier Óptica</strong>, ubicados estratégicamente para atender a familias de <strong>Cerro de las Rosas, Nueva Córdoba</strong> y toda la <strong>Ciudad de Córdoba</strong>, trabajamos con <strong>Stellest de Essilor</strong> — el referente mundial en control de miopía — y con <strong>MyoFix</strong>, una alternativa de laboratorio nacional.
           </p>
 
           <h2 className="text-2xl font-serif text-stone-900 mt-10 mb-4">

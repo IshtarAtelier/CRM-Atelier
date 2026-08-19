@@ -51,7 +51,7 @@ export default function MaterialesArmazonesPage() {
                   <strong>Estética:</strong> Inigualable. Posee un brillo natural y permite acabados pulidos a mano que lucen increíblemente sofisticados. Además, logra tramas de colores profundas (como los codiciados diseños carey o habana) imposibles de imitar con otros materiales.
                 </li>
                 <li>
-                  <strong>Alergias:</strong> Gracias a su origen vegetal, es un material <strong>100% hipoalergénico</strong>. Es la opción número uno si tenés piel sensible y querés evitar rojeces o irritaciones cutáneas.
+                  <strong>Alergias:</strong> Gracias a su origen vegetal, es un material <strong>hipoalergénico</strong>. Es la opción número uno si tenés piel sensible y querés evitar rojeces o irritaciones cutáneas.
                 </li>
               </ul>
             </section>
@@ -63,7 +63,7 @@ export default function MaterialesArmazonesPage() {
               </p>
               <ul className="list-disc pl-5 space-y-4 mb-6">
                 <li>
-                  <strong>Durabilidad:</strong> Excelente. Su resistencia depende de la aleación elegida. El titanio es, sin dudas, el campeón invicto: es irrompible, ultraliviano e inmune a la corrosión del sudor. A diferencia del acetato, el metal utiliza plaquetas nasales, lo que nos permite ajustar el anteojo al milímetro sobre el puente de tu nariz.
+                  <strong>Durabilidad:</strong> Excelente. Su resistencia depende de la aleación elegida. El titanio es, sin dudas, el campeón invicto: es extremadamente resistente, ultraliviano e inmune a la corrosión del sudor. A diferencia del acetato, el metal utiliza plaquetas nasales, lo que nos permite ajustar el anteojo al milímetro sobre el puente de tu nariz.
                 </li>
                 <li>
                   <strong>Estética:</strong> Minimalista, súper ligera y elegante. Despejan la mirada y aportan un estilo sutil, limpio y distinguido.

@@ -38,8 +38,8 @@ export default function MatiasTurchiPage() {
       }
     },
     "description": "Profesional óptico especialista en adaptación de lentes de alta tecnología, multifocales y cristales Essilor Varilux en Córdoba.",
-    "image": "https://atelieroptica.com/images/blog/matias-turchi.png",
-    "url": "https://atelieroptica.com/blog/matias-turchi"
+    "image": "https://atelieroptica.com.ar/images/blog/matias-turchi.png",
+    "url": "https://atelieroptica.com.ar/blog/matias-turchi"
   };
 
   return (

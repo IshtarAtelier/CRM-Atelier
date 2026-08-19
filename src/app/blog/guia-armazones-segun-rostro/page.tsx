@@ -26,7 +26,7 @@ export default function GlassesFrameGuidePage() {
       "name": "Atelier Óptica",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://atelieroptica.com/logo.png"
+        "url": "https://atelieroptica.com.ar/logo.png"
       }
     }
   };

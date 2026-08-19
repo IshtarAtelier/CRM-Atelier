@@ -28,7 +28,7 @@ export default function VariluxVsKodakVsZeissPage() {
               Varilux, Zeiss o Kodak: ¿Cuál es el Mejor Multifocal Prémium para Vos?
             </h1>
             <p className="text-lg text-black/60 md:text-xl">
-              Comparativa definitiva de adaptación, campos visuales y tecnologías para que invirtás con seguridad en tu salud visual, partiendo siempre de la receta de tu oftalmólogo.
+              Comparativa definitiva de adaptación, campos visuales y tecnologías para que inviertas con seguridad en tu salud visual, partiendo siempre de la receta de tu oftalmólogo.
             </p>
           </header>
 

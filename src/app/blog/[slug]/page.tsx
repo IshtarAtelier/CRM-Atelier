@@ -15,6 +15,14 @@ import blogFaqs from '@/lib/blog-faqs.json';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
 
+// ISR: las notas (estáticas y de DB) se cachean y regeneran cada 5 minutos.
+// Sin esto, cada visita pagaba render + query a Postgres en Singapur.
+export const revalidate = 300;
+
+export function generateStaticParams() {
+  return Object.keys(posts).map((slug) => ({ slug }));
+}
+
 async function getPostBySlug(slug: string) {
   try {
     const dbPost = await prisma.blogPost.findUnique({
@@ -160,7 +168,7 @@ const posts: Record<string, Post> = {
         <p>A diferencia de intentos anteriores (como las Google Glass), la colaboración entre la legendaria marca Ray-Ban y Meta (la empresa de Mark Zuckerberg detrás de WhatsApp e Instagram) se centró en dos cosas: <strong>diseño y funcionalidad invisible</strong>.</p>
 
         <h3>1. Cámara Ultra Wide de 12 MP</h3>
-        <p>En las esquinas del armazón, escondidas de forma casi imperceptible, se encuentran cámaras de altísima definición. Podés sacar fotos y grabar videos de hasta 60 segundos en 1080p simplemente apretando un botoncito en la patilla o usando el comando de voz "Hey Meta, take a video". Es la forma más natural e inmersiva de grabar un concierto, un paseo en bicicleta o jugar con tus hijos, sin tener que sostener el celular con las manos.</p>
+        <p>En las esquinas del armazón, escondidas de forma casi imperceptible, se encuentra una cámara de 12 MP de altísima definición. Podés sacar fotos y grabar videos de hasta 3 minutos en 1080p simplemente apretando un botoncito en la patilla o usando el comando de voz "Hey Meta, take a video". Es la forma más natural e inmersiva de grabar un concierto, un paseo en bicicleta o jugar con tus hijos, sin tener que sostener el celular con las manos.</p>
 
         <h3>2. Audio Direccional In-Ear Invisible</h3>
         <p>Olvidate de los auriculares. Las patillas de los Ray-Ban Meta tienen parlantes abiertos (open-ear audio) direccionales. Podés ir caminando por la calle escuchando tu lista de Spotify o respondiendo una llamada telefónica, y la persona que va caminando al lado tuyo no va a escuchar nada. Además, como no tapan tu canal auditivo, seguís escuchando el tráfico y tu entorno de forma segura.</p>
@@ -198,7 +206,7 @@ const posts: Record<string, Post> = {
         <h2>La magia de Wicue: Pantallas LCD en tus ojos</h2>
         <p>Los anteojos <strong>Wicue</strong> no dependen del sol ni de reacciones químicas. El cristal es en realidad un panel de cristal líquido (LCD) súper delgado y flexible. En la patilla del armazón hay un microchip y un sensor táctil o un botón.</p>
         
-        <p>Al deslizar el dedo por la patilla, le enviás un micro-voltaje al cristal líquido. Las moléculas del cristal cambian de alineación casi a la velocidad de la luz (0.1 segundos), oscureciendo o aclarando el lente a tu gusto.</p>
+        <p>Al deslizar el dedo por la patilla, le enviás un micro-voltaje al cristal líquido. Las moléculas del cristal cambian de alineación en apenas 0,1 segundos, oscureciendo o aclarando el lente a tu gusto.</p>
 
         <h2>Beneficios de la tecnología Electrocrómica</h2>
         <ul>
@@ -239,7 +247,7 @@ const posts: Record<string, Post> = {
         <h2>Tecnología Essilor Stellest</h2>
         <p>El estándar de oro actual en lentes oftálmicas para control de miopía es el lente <strong>Essilor Stellest</strong>. A simple vista parece un cristal común y corriente, lo cual es excelente para la autoestima del niño, pero en su interior esconde una constelación de 1021 microlentes invisibles distribuidos en 11 anillos concéntricos.</p>
         <ul>
-          <li><strong>Eficacia comprobada:</strong> Estudios clínicos han demostrado que los lentes Stellest ralentizan la progresión de la miopía en un 67% en promedio, comparado con lentes monofocales estándar.</li>
+          <li><strong>Eficacia comprobada:</strong> Estudios clínicos han demostrado que los lentes Stellest ralentizan la progresión de la miopía en un 67% en promedio, comparado con lentes monofocales estándar, cuando se usan al menos 12 horas por día.</li>
           <li><strong>Adaptación rápida:</strong> Al ser estéticamente idénticos a los lentes comunes, los niños se adaptan casi instantáneamente y disfrutan de una visión nítida en todas las distancias.</li>
         </ul>
 
@@ -273,7 +281,7 @@ const posts: Record<string, Post> = {
         <p><strong>Crizal</strong> es la marca de tratamientos de Essilor. No es solo un antirreflex, es un escudo completo de 5 beneficios para tu lente. En Atelier Óptica trabajamos con las dos líneas principales:</p>
 
         <h3>1. Crizal Sapphire HR (High Resistance)</h3>
-        <p>Es el antirreflex más transparente del mercado mundial. Su tecnología de alta resistencia lo hace excepcionalmente duradero contra rayaduras accidentales. Además, tiene propiedades hidrofóbicas (el agua resbala) y oleofóbicas (repele la grasa de los dedos). Si buscás estética perfecta y que el lente parezca "invisible", esta es tu opción.</p>
+        <p>Es uno de los antirreflex más transparentes de su categoría. Su tecnología de alta resistencia lo hace excepcionalmente duradero contra rayaduras accidentales. Además, tiene propiedades hidrofóbicas (el agua resbala) y oleofóbicas (repele la grasa de los dedos). Si buscás estética perfecta y que el lente parezca "invisible", esta es tu opción.</p>
 
         <h3>2. Crizal Prevencia</h3>
         <p>Si trabajás todo el día frente a pantallas, este es tu escudo. Además de tener todos los beneficios del Sapphire (anti-rayas, polvo, agua), el Prevencia bloquea selectivamente la <strong>luz azul-violeta dañina</strong> que emiten las pantallas LED, permitiendo el paso de la luz azul turquesa esencial para tu reloj biológico. Vas a notar un leve reflejo color púrpura en el lente: es la luz nociva rebotando lejos de tu ojo.</p>
@@ -310,7 +318,7 @@ const posts: Record<string, Post> = {
 
         <h2>Disponibles con y sin graduación</h2>
         <p>Podés hacer tus lentes Eyezen incluso si no tenés miopía ni astigmatismo. Si ya usás lentes recetados para ver de lejos, Eyezen reemplaza tu cristal monofocal tradicional brindándote esta tecnología extra para el mundo digital.</p>
-        <p>Visitá <strong>Atelier Óptica</strong> en Cerro de las Rosas y enterate de cuál de las 4 variaciones de potencia de Eyezen (Start, Plus, Pro o Max) es la ideal para tu estilo de vida.</p>
+        <p>Visitá <strong>Atelier Óptica</strong> en Cerro de las Rosas y enterate de cuál de las variantes de Eyezen (Start, o Boost con sus 4 niveles de refuerzo: 0,4 / 0,6 / 0,85 / 1,1) es la ideal para tu estilo de vida.</p>
       <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
@@ -339,7 +347,7 @@ const posts: Record<string, Post> = {
 
         <h2>Resultados Clínicos Comprobados</h2>
         <ul>
-          <li><strong>Ralentización del avance:</strong> En promedio, los lentes Stellest ralentizan la progresión de la miopía en un <strong>67%</strong> comparado con los lentes tradicionales.</li>
+          <li><strong>Ralentización del avance:</strong> En promedio, los lentes Stellest ralentizan la progresión de la miopía en un <strong>67%</strong> comparado con los lentes tradicionales, usándolos al menos 12 horas por día.</li>
           <li><strong>Freno en el crecimiento ocular:</strong> Evitan el elongamiento del globo ocular en la mayoría de los casos.</li>
           <li><strong>Visión Nítida y Confort:</strong> A nivel estético son idénticos a los lentes comunes y los niños se adaptan en cuestión de horas.</li>
         </ul>
@@ -369,13 +377,13 @@ const posts: Record<string, Post> = {
         <p>El <strong>Varilux XR Series</strong> es el primer lente del mundo diseñado con <strong>Inteligencia Artificial (IA) conductual</strong>.</p>
 
         <h2>Inteligencia Artificial aplicada a tu visión</h2>
-        <p>Los ingenieros de Essilor recopilaron datos de más de un millón de pacientes en todo el mundo. Utilizando IA, lograron crear un cristal que literalmente <strong>predice cómo vas a mover los ojos</strong> antes de que lo hagas. Esto significa que ya no tenés que mover la cabeza incómodamente para buscar el "punto de enfoque" en el lente: el lente ya sabe dónde vas a mirar.</p>
+        <p>Los ingenieros de Essilor recopilaron más de un millón de mediciones de comportamiento visual en todo el mundo. Utilizando IA, lograron crear un cristal que <strong>anticipa el comportamiento visual más probable según tu receta</strong>. Esto significa que ya no tenés que mover la cabeza incómodamente para buscar el "punto de enfoque" en el lente: el lente ya sabe dónde vas a mirar.</p>
 
         <h2>Beneficios inmediatos del XR Series</h2>
         <ul>
           <li><strong>Visión fluida en movimiento:</strong> Podés bajar escaleras, usar el celular y mirar el tráfico mientras caminás, sin sentir ese molesto efecto "péndulo" o mareo.</li>
           <li><strong>Campo visual ampliado:</strong> Ofrece hasta un 49% más de volumen de visión en comparación con generaciones premium anteriores. Las zonas borrosas a los costados prácticamente desaparecen.</li>
-          <li><strong>Adaptación instantánea:</strong> 9 de cada 10 pacientes se adaptan el mismo día que se los ponen, sin el clásico período de acostumbramiento.</li>
+          <li><strong>Adaptación rápida:</strong> nitidez instantánea incluso en movimiento, con un período de acostumbramiento mucho más corto que los progresivos tradicionales.</li>
         </ul>
 
         <h2>¿Para quién es ideal?</h2>
@@ -410,9 +418,9 @@ const posts: Record<string, Post> = {
 
         <h2>Beneficios de la línea Comfort Max</h2>
         <ul>
-          <li><strong>Flexibilidad postural:</strong> 227 posturas diferentes evaluadas durante su diseño garantizan que veas bien sin forzar el cuello.</li>
+          <li><strong>Flexibilidad postural:</strong> su diseño Flex Optim contempla cientos de posturas más que la generación anterior, para que veas bien sin forzar el cuello.</li>
           <li><strong>Transición suave:</strong> El paso de la visión de lejos (mirar por la ventana) a la visión intermedia (el monitor) y a cerca (el celular) es el más natural de su segmento.</li>
-          <li><strong>Ideal para usuarios nuevos:</strong> Si es tu primer multifocal y le tenés miedo a no adaptarte, esta es la línea más amigable y de más rápida adaptación en el mercado de gama media-alta.</li>
+          <li><strong>Ideal para usuarios nuevos:</strong> Si es tu primer multifocal y le tenés miedo a no adaptarte, esta es una de las líneas más amigables para adaptarse dentro de la gama media-alta.</li>
         </ul>
 
         <h2>El Combo Perfecto en Atelier Óptica</h2>
@@ -474,7 +482,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/blog1_header.png',
     content: (
       <>
-        <p className="lead"><strong>¡Atención Córdoba!</strong> Si buscás la <strong>mejor óptica para multifocales en Córdoba</strong>, llegaste al lugar correcto. En <strong>Atelier Óptica</strong>, ubicada en José Luis de Tejeda 4380, Cerro de las Rosas, nos especializamos en lentes progresivos con una tasa de adaptación que supera el 98%. No es casualidad que seamos la <strong>óptica con mejores comentarios de Córdoba Capital</strong>.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Si buscás la <strong>mejor óptica para multifocales en Córdoba</strong>, llegaste al lugar correcto. En <strong>Atelier Óptica</strong>, ubicada en José Luis de Tejeda 4380, Cerro de las Rosas, nos especializamos en lentes progresivos con garantía de adaptación de 30 días. No es casualidad que seamos la <strong>óptica con mejores comentarios de Córdoba Capital</strong>.</p>
 
         <h2>¿Qué hace que una óptica sea la mejor para multifocales?</h2>
         <p>Comprar lentes multifocales no es lo mismo que comprar un par de anteojos de sol. Un multifocal mal hecho puede generarte mareos, dolor de cuello y una frustración enorme. La diferencia entre una buena y una mala experiencia está en tres factores clave:</p>
@@ -569,7 +577,7 @@ const posts: Record<string, Post> = {
         <p>Trabajamos con las mejores marcas del mundo:</p>
         <ul>
           <li><strong>Varilux (Essilor):</strong> El creador del lente progresivo. Líneas premium con inteligencia artificial para campos visuales inmensos.</li>
-          <li><strong>Novar:</strong> Tecnología de tallado digital argentina-alemana con la mejor relación calidad-precio del mercado.</li>
+          <li><strong>Novar:</strong> Laboratorio argentino con tallado digital de excelente relación calidad-precio.</li>
           <li><strong>Kodak:</strong> El prestigio de una marca óptica estadounidense, con tallado digital Freeform y gran nitidez de imagen en toda la superficie del lente.</li>
         </ul>
 
@@ -633,7 +641,7 @@ const posts: Record<string, Post> = {
         <p>En Atelier Óptica te asesoramos para que elijas un armazón que sea estéticamente perfecto para tu rostro <strong>y</strong> funcionalmente óptimo para tus cristales.</p>
 
         <h2>Paso 5: Confiá en el proceso de adaptación</h2>
-        <p>Los primeros 5 a 7 días con tus nuevos multifocales vas a sentir que el mundo está &ldquo;un poquito diferente&rdquo;. Es completamente normal. Tu cerebro necesita recalibrarse. Usálos desde temprano a la mañana, girá la cabeza (no solo los ojos) y bajá escaleras mirando por la parte superior del cristal. En una semana vas a preguntarte cómo viviste sin ellos.</p>
+        <p>Los primeros 5 a 7 días con tus nuevos multifocales vas a sentir que el mundo está &ldquo;un poquito diferente&rdquo;. Es completamente normal. Tu cerebro necesita recalibrarse. Usalos desde temprano a la mañana, girá la cabeza (no solo los ojos) y bajá escaleras mirando por la parte superior del cristal. En una semana vas a preguntarte cómo viviste sin ellos.</p>
 
         <h2>¿Dónde comprar tus primeros multifocales en Córdoba?</h2>
         <p>En <strong>Atelier Óptica, José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba Capital</strong>. Somos la <strong>óptica con mejor atención de Córdoba</strong> y te acompañamos desde el primer día hasta que veas perfecto a todas las distancias. Contactanos por WhatsApp o visitanos personalmente.</p>
@@ -709,12 +717,12 @@ const posts: Record<string, Post> = {
         <h2>Consejos para una adaptación rápida</h2>
         <ul>
           <li><strong>Usalos todos los días:</strong> La constancia es clave. Tu cerebro necesita unos días para acostumbrarse a las nuevas áreas de visión.</li>
-          <li><strong>Mové la cabeza, no solo los ojos:</strong> Al principio, acostúmbrate a apuntar con la nariz hacia lo que querés mirar, especialmente hacia los lados.</li>
+          <li><strong>Mové la cabeza, no solo los ojos:</strong> Al principio, acostumbrate a apuntar con la nariz hacia lo que querés mirar, especialmente hacia los lados.</li>
           <li><strong>Ajuste perfecto:</strong> El armazón debe estar calibrado a la perfección en tu rostro. Por eso en Atelier Óptica tomamos medidas precisas bajo un estricto proceso certificado por Essilor, bajo la supervisión de nuestra Óptica Contactóloga Ishtar Pissano.</li>
         </ul>
 
         <h2>¿Por qué elegirnos?</h2>
-        <p>Estamos ubicados en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Brindamos asesoramiento personalizado y garantía de adaptación. ¡Visitános y volvé a ver el mundo con claridad!</p>
+        <p>Estamos ubicados en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Brindamos asesoramiento personalizado y garantía de adaptación. ¡Visitanos y volvé a ver el mundo con claridad!</p>
       <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
@@ -748,7 +756,7 @@ const posts: Record<string, Post> = {
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Acetato | Color: Rosa cristal translúcido con patillas carey oscuro</p>
               <p className="text-[#444]  text-xs leading-relaxed mb-4">Este modelo Aurora destaca por su elegante frontal en rosa cristal translúcido que aporta ligereza y sofisticación, combinado con patillas en un clásico carey oscuro. Su diseño de suave forma cuadrada favorece la mayoría de los rostros, añadiendo un toque chic y moderno a cualquier look.</p>
             </div>
-            <Link href="/producto/aurora-c1" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
+            <Link href="/tienda" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -761,7 +769,7 @@ const posts: Record<string, Post> = {
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Marrón oscuro con varillas plateadas y terminales marrones</p>
               <p className="text-[#444]  text-xs leading-relaxed mb-4">El modelo Hera fusiona una estética moderna y sofisticada con un diseño cuadrado suavizado que incorpora un sutil levantamiento en los ángulos exteriores. Este estilo favorece especialmente a rostros redondos u ovalados, aportando definición y un toque chic.</p>
             </div>
-            <Link href="/producto/atelier-hera-dwcn" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
+            <Link href="/tienda" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -774,7 +782,7 @@ const posts: Record<string, Post> = {
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Combinado | Color: Dorado pálido con detalles superiores y patillas en marrón mate</p>
               <p className="text-[#444]  text-xs leading-relaxed mb-4">Este modelo Leda fusiona elegancia minimalista con un toque moderno, destacando por su fina montura metálica y una barra superior en contraste. Su silueta cuadrada y ligeramente oversized es perfecta para aportar estructura y sofisticación a rostros redondos u ovalados.</p>
             </div>
-            <Link href="/producto/atelier-leda-1yn2" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
+            <Link href="/tienda" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -793,7 +801,7 @@ const posts: Record<string, Post> = {
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Plateado con terminales negros</p>
               <p className="text-[#444]  text-xs leading-relaxed mb-4">El modelo Iris se distingue por su diseño minimalista y elegante en metal plateado, que aporta un toque de sofisticación discreta. Su forma ovalada es ideal para suavizar los rasgos y complementar una amplia variedad de tipos de rostro.</p>
             </div>
-            <Link href="/producto/atelier-iris-8u55" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
+            <Link href="/tienda" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -806,7 +814,7 @@ const posts: Record<string, Post> = {
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Acetato | Color: Negro pulido clásico</p>
               <p className="text-[#444]  text-xs leading-relaxed mb-4">El modelo 'Julieta' redefine la elegancia cotidiana con su silueta redondeada y sofisticado acabado en acetato negro. Los sutiles remaches plateados en los frontales aportan un toque distintivo, haciéndolo ideal para suavizar rasgos en rostros cuadrados u ovalados, o complementar armoniosamente un rostro en forma de corazón.</p>
             </div>
-            <Link href="/producto/julieta-c1" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
+            <Link href="/tienda" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -819,7 +827,7 @@ const posts: Record<string, Post> = {
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Plateado satinado con terminales negras</p>
               <p className="text-[#444]  text-xs leading-relaxed mb-4">Este modelo Pandora destaca por su diseño de metal fino en tono plateado, combinando una forma ovalada clásica con sutiles toques angulares en la parte superior para un estilo moderno y elegante. Favorece a la mayoría de los rostros, aportando un toque de sofisticación discreta y contemporánea.</p>
             </div>
-            <Link href="/producto/atelier-pandora-my5d" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
+            <Link href="/tienda" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -838,7 +846,7 @@ const posts: Record<string, Post> = {
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Combinado | Color: Dorado satinado con patillas blancas</p>
               <p className="text-[#444]  text-xs leading-relaxed mb-4">El modelo Diana irradia elegancia con su delicada montura Cat-Eye en un sofisticado dorado satinado. Las patillas blancas, adornadas con sutiles detalles incrustados, añaden un contraste chic que favorece especialmente a rostros ovalados y redondos, aportando un toque de glamour distintivo.</p>
             </div>
-            <Link href="/producto/atelier-diana-k0k7" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
+            <Link href="/tienda" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -851,7 +859,7 @@ const posts: Record<string, Post> = {
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Dorado satinado con borde rosa palo</p>
               <p className="text-[#444]  text-xs leading-relaxed mb-4">Estas monturas Athena, de diseño Cat-Eye sutilmente anguloso, combinan la sofisticación del dorado satinado con un delicado borde interior rosa palo. Su forma audaz y ligera es ideal para estilizar rostros redondos u ovalados, aportando un toque de elegancia contemporánea.</p>
             </div>
-            <Link href="/producto/atelier-athena-906p" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
+            <Link href="/tienda" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -864,7 +872,7 @@ const posts: Record<string, Post> = {
               <p className="text-[10px] text-[#111] font-medium tracking-tight uppercase tracking-widest mb-3">Material: Metal | Color: Gris plomo satinado con detalles metálicos</p>
               <p className="text-[#444]  text-xs leading-relaxed mb-4">El modelo Ceres ofrece una reinterpretación moderna y chic del clásico Cat-Eye, con un sofisticado acabado gris plomo satinado que aporta elegancia. Sus patillas, adornadas con un delicado patrón geométrico y un sutil emblema, realzan la mirada y estilizan rostros de forma redonda u ovalada.</p>
             </div>
-            <Link href="/producto/atelier-ceres-rpg5" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
+            <Link href="/tienda" className="inline-flex items-center text-xs font-medium tracking-tight text-[#111] hover:gap-1.5 transition-all mt-2">
               Ver en tienda <ShoppingBag className="w-4 h-4 ml-1.5 shrink-0" />
             </Link>
           </div>
@@ -978,7 +986,7 @@ const posts: Record<string, Post> = {
   'filtro-azul-pantallas': {
     slug: 'filtro-azul-pantallas',
     title: 'Filtro Azul (Blue Light Cut): ¿Mito o necesidad si trabajás frente a pantallas?',
-    excerpt: 'Si sentís fatiga visual o dolores de cabeza después de tu jornada de trabajo, enterate por qué los cristales con filtro azul son fundamentales.',
+    excerpt: 'Si sentís fatiga visual o dolores de cabeza después de tu jornada de trabajo, enterate qué puede aportar un cristal con filtro azul y qué no.',
     metaTitle: 'Lentes con Filtro Azul en Córdoba | ¿Sirven para la computadora? | Atelier Óptica',
     metaDescription: 'Evitá el cansancio visual, ojos secos y dolores de cabeza con cristales Blue Light Cut. Anteojos de descanso para la computadora en Córdoba.',
     date: '2026-04-26',
@@ -989,17 +997,18 @@ const posts: Record<string, Post> = {
         <p className="lead"><strong>¡Atención Córdoba!</strong> Si pasás más de 6 horas al día frente a la computadora, el celular o la tablet, es probable que hayas experimentado dolores de cabeza, ardor en los ojos o problemas para dormir. ¿La solución? Los lentes con <strong>Filtro Azul (Blue Light Cut)</strong>.</p>
         
         <h2>¿Qué es la luz azul?</h2>
-        <p>Las pantallas LED emiten una gran cantidad de luz azul de alta energía visible. Aunque parte de la luz azul es natural y nos ayuda a estar despiertos durante el día, la sobreexposición constante a muy corta distancia genera un estrés enorme para nuestra retina.</p>
+        <p>Las pantallas LED emiten una gran cantidad de luz azul de alta energía visible. Aunque parte de la luz azul es natural y nos ayuda a estar despiertos durante el día, la exposición prolongada a corta distancia se asocia con fatiga y molestias visuales al final del día.</p>
 
         <h2>Beneficios de usar cristales con Filtro Azul</h2>
         <ul>
           <li><strong>Adiós a la fatiga visual:</strong> Reducen el esfuerzo que hace el ojo para enfocar la luz de la pantalla.</li>
-          <li><strong>Mejoran el sueño:</strong> La luz azul bloquea la producción de melatonina (la hormona del sueño). Usar este filtro a la noche ayuda a dormir mejor.</li>
+          <li><strong>Uso nocturno más amigable:</strong> la luz azul interviene en la regulación de la melatonina; filtrar parte de esa luz a la noche puede hacer más llevadero el uso de pantallas antes de dormir.</li>
           <li><strong>Previenen dolores de cabeza:</strong> Disminuyen el brillo y los reflejos molestos.</li>
         </ul>
 
         <h2>¿Sirven si no tengo aumento?</h2>
         <p>¡Totalmente! Los anteojos de descanso pueden hacerse sin ninguna graduación (neutros) o combinarlos con tu receta para miopía o astigmatismo. Si vivís en Córdoba y trabajás remoto, visitanos para armarte tus anteojos para la PC con los armazones más lindos y livianos.</p>
+        <p><em>Aclaración importante: en la óptica no diagnosticamos ni recetamos. Si tenés molestias visuales persistentes, tu primer paso es el control con tu médico oftalmólogo.</em></p>
       <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
@@ -1028,7 +1037,7 @@ const posts: Record<string, Post> = {
         </ol>
 
         <h2>¿Vienen en distintos colores?</h2>
-        <p>¡Sí! Las marcas premium con las que trabajamos (como <strong>Transitions Gen 8</strong>) permiten que el cristal se oscurezca en tonos gris, marrón y verde, para que combine perfecto con el armazón que elijas. Vení a conocerlos a nuestro local en Cerro de las Rosas.</p>
+        <p>¡Sí! Las marcas premium con las que trabajamos (como <strong>Transitions GEN S</strong>, la generación más reciente) permiten que el cristal se oscurezca en tonos gris, marrón y verde, para que combine perfecto con el armazón que elijas. Vení a conocerlos a nuestro local en Cerro de las Rosas.</p>
       <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
@@ -1122,7 +1131,7 @@ const posts: Record<string, Post> = {
         <p>Tienen un diseño básico, tallado en la cara externa del cristal. Sus canales de visión intermedia y de lectura suelen ser estrechos. <strong>¿Para quién son?</strong> Para usuarios con presbicia incipiente (adición baja, ej: +1.00) que tienen un presupuesto ajustado y mucha paciencia para adaptar los movimientos de su cabeza.</p>
 
         <h2>2. Novar (Tecnología Digital Argentina-Alemana)</h2>
-        <p><strong>Novar</strong> es hoy en día el líder en relación calidad-precio. Usan tecnología de tallado digital (Freeform) punto por punto en la cara interna del cristal. Esto acerca el diseño visual al ojo, ampliando el campo de visión hasta un 30% respecto a los genéricos. Ofrecen líneas excelentes con adaptación garantizada, siendo una opción inmejorable para la gran mayoría de los pacientes.</p>
+        <p><strong>Novar</strong> es hoy en día el líder en relación calidad-precio. Usan tecnología de tallado digital (Freeform) punto por punto en la cara interna del cristal. Esto acerca el diseño visual al ojo, ampliando notablemente el campo de visión respecto a los genéricos. Ofrecen líneas excelentes con adaptación garantizada, siendo una opción inmejorable para la gran mayoría de los pacientes.</p>
 
         <h2>3. Varilux (Essilor - La línea Premium)</h2>
         <p><strong>Varilux</strong> (creadores del multifocal) es el estándar de oro a nivel mundial. Sus lentes de alta gama (como las líneas Comfort Max, Physio o XR Series) utilizan inteligencia artificial y parámetros biométricos (cómo movés los ojos vs. cómo movés la cabeza) para fabricar un lente hecho a medida. <strong>¿El resultado?</strong> Campos visuales inmensos, casi nula distorsión lateral y una adaptación ultra rápida y natural.</p>

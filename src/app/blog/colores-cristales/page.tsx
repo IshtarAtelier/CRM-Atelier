@@ -23,7 +23,7 @@ export default function ColorsGuidePage() {
           ATELIER ÓPTICA
         </Link>
         <div className="flex gap-5">
-           <button className="text-[13px] font-medium hover:opacity-60 transition-opacity" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.3)" }}>Carrito(0)</button>
+           
         </div>
       </header>
 
@@ -70,7 +70,7 @@ export default function ColorsGuidePage() {
                   <div className="absolute top-0 right-0 w-16 h-16 bg-[#e1b854] opacity-20 rounded-bl-full" />
                   <div className="w-6 h-6 rounded-full shadow-inner mb-4 bg-[#e1b854] opacity-90" />
                   <h3 className="text-[13px] font-bold uppercase tracking-widest mb-3">Amarillo: Máxima Agudeza</h3>
-                  <p className="text-[13px] text-[#666] leading-relaxed">Proporciona un contraste extremo al bloquear casi por completo la luz azul y la bruma. Su uso es altamente técnico: conducción nocturna, días de niebla densa o largas sesiones frente a pantallas. Ideal para mantener la alerta visual al máximo.</p>
+                  <p className="text-[13px] text-[#666] leading-relaxed">Proporciona un contraste extremo al bloquear casi por completo la luz azul y la bruma. Su uso es técnico: días de niebla densa o deportes de tiro y precisión, donde el contraste manda. Importante: no se recomiendan para conducir de noche — filtran luz en una situación donde ya hay poca, y la evidencia muestra que no mejoran la visión nocturna.</p>
                </div>
 
                <div className="p-6 lg:p-8 bg-[#f9f9f9] relative overflow-hidden">

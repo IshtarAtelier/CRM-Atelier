@@ -51,7 +51,7 @@ export const staticPosts: StaticBlogPost[] = [
   {
     slug: 'matias-turchi',
     title: 'Matías Turchi: Nuestro Especialista en Multifocales Essilor Expert',
-    excerpt: 'Conocé al profesional detrás de nuestras mediciones de precisión. Matías cuenta con múltiples certificaciones y años de experiencia en adaptación de lentes de alta tecnología.',
+    excerpt: 'Conocé al profesional detrás de nuestras mediciones de precisión. Matías cuenta con la certificación Essilor Expert y años de experiencia en adaptación de lentes de alta tecnología.',
     date: '2026-05-19',
     category: 'Nuestro Equipo',
     imageUrl: '/images/blog/matias-turchi.png'

@@ -82,7 +82,7 @@ export default function BlogPegamentoAnteojos() {
             <div className="absolute top-0 left-0 w-1.5 h-full bg-[#c8a55c]"></div>
             <h3 className="font-medium tracking-tight text-lg text-[#433831] mb-3">Un recordatorio importante para tu salud visual</h3>
             <p className="text-stone-600 text-sm md:text-base leading-relaxed">
-              Recordá que en la óptica nos especializamos en el armado, reparación estética y calibración de tus anteojos basándonos en tu receta. <strong className="font-semibold">Es fundamental que visités a tu médico oftalmólogo de confianza al menos una vez al año</strong>. El oftalmólogo es el único profesional capacitado para evaluar la salud integral de tus ojos, diagnosticar condiciones visuales y emitir la receta. Una vez que tengas tu graduación actualizada, ¡te esperamos para brindarte la mejor asesoría estética y técnica!
+              Recordá que en la óptica nos especializamos en el armado, reparación estética y calibración de tus anteojos basándonos en tu receta. <strong className="font-semibold">Es fundamental que visites a tu médico oftalmólogo de confianza al menos una vez al año</strong>. El oftalmólogo es el único profesional capacitado para evaluar la salud integral de tus ojos, diagnosticar condiciones visuales y emitir la receta. Una vez que tengas tu graduación actualizada, ¡te esperamos para brindarte la mejor asesoría estética y técnica!
             </p>
           </div>
 

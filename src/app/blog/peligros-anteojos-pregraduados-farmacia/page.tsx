@@ -33,7 +33,7 @@ export default function PeligrosAnteojosFarmaciaPage() {
               Salud Visual y Prevención
             </p>
             <h1 className="text-3xl lg:text-5xl font-normal tracking-tight mb-6 lg:mb-8 leading-tight">
-              Por qué los anteojos de farmacia o calle están arruinando tu vista
+              Por qué los anteojos de farmacia o calle te hacen mal
             </h1>
             <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed max-w-xl mx-auto">
               Seguro alguna vez te tentaste con esos lentes de lectura listos para usar que venden en cualquier farmacia. Parecen una solución rápida y barata, pero lo que estás comprando en realidad es un pasaje directo hacia la fatiga visual.
