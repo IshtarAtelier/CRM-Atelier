@@ -143,6 +143,22 @@ que dice solo qué existe y qué falta, y arma las variables:
 node scripts/checks/whatsapp-cloud-check.mjs
 ```
 
+**Avance real del 18/8 (hecho en el navegador, verificado en pantalla):**
+- La app **"Atelier Optica Contenido"** (`1036999705858814`) ya tiene el caso de
+  uso **"Conectarte con los clientes a través de WhatsApp"** → los permisos
+  `whatsapp_business_messaging` / `whatsapp_business_management` YA aparecen al
+  generar tokens (antes no existían).
+- Se creó la **WABA de prueba**: "Test WhatsApp Business Account",
+  ID **`4406229772928268`**, con el **número de prueba de Meta +1 555-653-8727**
+  (estado "No verificado", normal en un número de prueba).
+- En Cuentas de WhatsApp del negocio aparece además **"Atelier Óptica — App de
+  WhatsApp Business"**: ése es el número de la tienda registrado en la **app**
+  de WhatsApp Business, NO en la API. Confirma que la vinculación vieja a la API
+  oficial no dejó ninguna WABA usable: la Fase 4 hay que hacerla completa.
+- La generación del token quedó frenada en **"Ya casi terminas → Verificar
+  cuenta"**: Meta pide verificación de identidad de la cuenta personal (código
+  al celular). **Ese código lo ingresa la dueña, nunca un agente.**
+
 Todo en el Business Manager, un paso por vez (regla de estilo). El orden:
 
 0. **Token con permisos de WhatsApp**: `business.facebook.com` → Configuración
