@@ -11,7 +11,7 @@ export const staticPosts: StaticBlogPost[] = [
   {
     slug: 'anteojos-obras-de-arte',
     title: 'Los anteojos son auténticas obras de arte: más de 100 procesos detrás de cada par',
-    excerpt: 'Arte, comercio y salud visual. Ishtar Pissano, creadora de Atelier, cuenta por qué un anteojo es una obra de arte y cómo nació una óptica donde se fusionan el arte y el diseño.',
+    excerpt: 'Una familia de artistas, escultura y grabado, doce años de óptica contactóloga, diez de gerencia comercial y ópticas recorridas por el mundo. Ishtar Pissano cuenta cómo nació Atelier en un papelito escrito con su hermana.',
     date: '2026-08-18',
     category: 'Manifiesto',
     imageUrl: '/images/blog/arte-en-foco/01-monalisa.jpg'

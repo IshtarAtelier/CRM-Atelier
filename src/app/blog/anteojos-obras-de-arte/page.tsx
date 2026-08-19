@@ -75,7 +75,7 @@ export default function AnteojosObrasDeArtePage() {
             </h1>
             <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed max-w-2xl mx-auto">
               Detrás de cada par hay más de cien procesos productivos que nadie ve y todos notan cuando enfocan bien.
-              Esta es la historia de por qué abrí una óptica donde se fusionan mis dos amores: el arte y el diseño.
+              Esta es la historia de por qué, con mi hermana, creamos una óptica donde se fusionan mis dos amores: el arte y el diseño.
             </p>
             <p className="mt-6 text-[12px] uppercase tracking-[0.18em] text-[#999]">Por Ishtar Pissano · Creadora de Atelier Óptica</p>
           </header>
@@ -94,7 +94,16 @@ export default function AnteojosObrasDeArtePage() {
                 como mundos separados. Atelier nació el día que entendí que eran el mismo.
               </p>
               <p className="mb-6">
-                Un anteojo es el único objeto que usás sobre la cara todos los días, que te cambia la expresión y que además te devuelve el mundo nítido. Es un objeto de diseño, es una pieza de comercio y es un dispositivo de salud. Tratarlo como una sola de esas tres cosas es quedarse corto.
+                Vengo de una familia envuelta en el arte desde siempre: mis padres, mis abuelos y todas las generaciones que recuerdo lo vivieron de una forma u otra. Yo estudié arte y elegí la escultura, el grabado y la pintura. Y después la vida, mi amor por los anteojos y por la moda me dejaron en la puerta de la salud visual: hace doce años me recibí de óptica contactóloga.
+              </p>
+              <p className="mb-6">
+                Luego vino otro camino: más de diez años como gerente comercial, liderando grandes equipos en una empresa muy importante. Ahí aprendí la otra mitad del oficio, la que hace que una cosa hermosa llegue a alguien.
+              </p>
+              <p className="mb-6">
+                Y soy amante de los viajes, de conocer miles de mundos. En cada país entré a ópticas: las recorrí, las miré con ojo de artista y de comerciante, y me traje partecitas de todas. Atelier reúne muchos países, muchas ópticas recorridas y miles de ideas.
+              </p>
+              <p className="mb-6">
+                Un día la vida me juntó con el arte de nuevo, y con la creación me unió con mi hermana. Escribimos todo en un papelito que todavía guardamos: ahí diseñamos en nuestra mente esta óptica, armada con pedacitos de todas las que yo había conocido y que me inspiraron.
               </p>
               <p className="mb-6">
                 Por eso el nombre. Un atelier no es un negocio ni un consultorio: es un taller donde se hacen obras. Y por eso las imágenes que nos acompañan son la Gioconda, la Venus, la chica de la perla, Dalí. No es un chiste visual: es una declaración. <em>El arte fue pensado para mirarlo con precisión.</em> Tu vida también.
@@ -139,7 +148,7 @@ export default function AnteojosObrasDeArtePage() {
                 El arte me enseñó a mirar el detalle. El comercio me enseñó que una cosa hermosa que no llega a nadie no sirve. Y la salud visual me recordó que, al final, esto no es sobre objetos: es sobre personas que quieren ver bien y verse bien.
               </p>
               <p className="mb-6">
-                Atelier es el lugar donde esas tres cosas dejan de pelearse. Un espacio en el Cerro de las Rosas pensado para que elijas tus anteojos como se elige una prenda de autor, con el respaldo técnico de un laboratorio propio y una garantía de adaptación que nos obliga a hacerlo bien.
+                Atelier es el lugar donde esas tres cosas dejan de pelearse. Un espacio en el Cerro de las Rosas, hecho de todo lo que vi en el mundo, pensado para que elijas tus anteojos como se elige una prenda de autor, con el respaldo técnico de un laboratorio propio y una garantía de adaptación que nos obliga a hacerlo bien.
               </p>
               <blockquote className="border-l-2 border-black pl-6 my-10 text-xl leading-relaxed italic">
                 Somos ópticos creativos. Tu visión es nuestra obra maestra.
