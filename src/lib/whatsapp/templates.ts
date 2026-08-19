@@ -114,6 +114,60 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, te enviamos adjunta la factura electrónica de tu compra en Atelier Óptica. ¡Gracias por elegirnos!',
         params: [{ label: 'nombre', example: 'Julio' }],
     },
+    // ── Seguimientos y reseñas: textos TAL CUAL los del sistema ──────────────
+    // No se redactó nada nuevo. Son los mismos textos que hoy precargan los
+    // botones del dashboard; lo único que cambia es que lo variable pasa a ser
+    // {{n}}: el nombre y el saludo por hora (`greetingFor`) en los seguimientos,
+    // y los productos de la última venta en el pedido de reseña. Se toma la
+    // primera de las cuatro redacciones de `src/lib/whatsapp-followup.ts` —
+    // las otras tres existían solo para que WhatsApp Web no viera textos
+    // idénticos (anti-ban), algo que la API oficial no necesita.
+    seguimiento_presupuesto: {
+        name: 'seguimiento_presupuesto',
+        inventario: 'E4 (Oportunidades de cierre · presupuesto pendiente)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    seguimiento_lentes: {
+        name: 'seguimiento_lentes',
+        inventario: 'E4 (Oportunidades de cierre · charla frenada)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te escribo por los lentes que estuvimos viendo, ¿seguís con la idea? Si querés te mando fotitos de los modelos que tenemos ahora.',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    seguimiento_carrito: {
+        name: 'seguimiento_carrito',
+        inventario: 'E4 / A15 (carrito abandonado)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Vi que te quedaron unos productos en el carrito de la tienda, ¿te surgió alguna duda? Si querés te doy una mano para terminarlo.',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    invitacion_local: {
+        name: 'invitacion_local',
+        inventario: 'E4 (segundo seguimiento: invitar al local)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te mandé? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 8:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo?',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    // Marketing, no utilidad: menciona un descuento. Meta la cobra más caro y
+    // el cliente puede bloquearla — es el texto del tercer toque, tal cual.
+    ultimo_seguimiento: {
+        name: 'ultimo_seguimiento',
+        inventario: 'E4 (tercer seguimiento)',
+        category: 'MARKETING',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te quería invitar a seguirnos en Instagram, ahí subimos los modelos que van entrando: https://www.instagram.com/atelieroptica_. Y contame, ¿al final resolviste lo de tus anteojitos? Si todavía no, tengo un descuento especial para hacerte.',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    // Reseñas: SIEMPRE manual — la plantilla no cambia eso, la dispara una
+    // persona desde el panel. Texto idéntico al de ReviewRequestsPanel.
+    pedido_resena: {
+        name: 'pedido_resena',
+        inventario: 'E5 (Reseñas pendientes)',
+        category: 'MARKETING',
+        body: 'Hola {{1}}, Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus {{2}}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'productos de la última venta', example: 'multifocales Crizal' }],
+    },
     retomar_conversacion: {
         name: 'retomar_conversacion',
         inventario: 'A9',
