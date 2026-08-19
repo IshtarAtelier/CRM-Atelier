@@ -109,18 +109,18 @@ export default function AnteojosObrasDeArtePage() {
               <p className="mb-6">
                 Luego vino otro camino: más de diez años como gerente comercial, liderando grandes equipos en una empresa muy importante. Ahí aprendí la otra mitad del oficio, la que hace que una cosa hermosa llegue a alguien.
               </p>
-              <figure className="my-10 grid grid-cols-2 gap-3">
-                <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
-                  <Image src="/images/blog/ishtar/ishtar-viaje.jpg" alt="Ishtar Pissano de viaje" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" />
-                </div>
-                <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
-                  <Image src="/images/blog/ishtar/ishtar-retrato.jpg" alt="Ishtar Pissano" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" />
-                </div>
-                <figcaption className="col-span-2 text-center text-[12px] text-[#999]">Viajar, mirar, traerse partecitas de cada óptica del mundo.</figcaption>
-              </figure>
               <p className="mb-6">
                 Y soy amante de los viajes, de conocer miles de mundos. En cada país entré a ópticas: las recorrí, las miré con ojo de artista y de comerciante, y me traje partecitas de todas. Atelier reúne muchos países, muchas ópticas recorridas y miles de ideas.
               </p>
+              <figure className="my-10 grid grid-cols-2 gap-3">
+                <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
+                  <Image src="/images/blog/ishtar/ishtar-miami.jpg" alt="Ishtar Pissano en Miami Beach" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" />
+                </div>
+                <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
+                  <Image src="/images/blog/ishtar/ishtar-orlando.jpg" alt="Ishtar Pissano de viaje" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" />
+                </div>
+                <figcaption className="col-span-2 text-center text-[12px] text-[#999]">Viajar, mirar, traerse partecitas de cada óptica del mundo.</figcaption>
+              </figure>
               <p className="mb-6">
                 Un día la vida me juntó con el arte de nuevo, y con la creación me unió con mi hermana. Escribimos todo en un papelito que todavía guardamos: ahí diseñamos en nuestra mente esta óptica, armada con pedacitos de todas las que yo había conocido y que me inspiraron.
               </p>
