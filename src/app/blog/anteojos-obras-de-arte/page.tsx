@@ -88,7 +88,7 @@ export default function AnteojosObrasDeArtePage() {
           <figure className="mb-14 lg:mb-20">
             <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
               <div className="relative aspect-[4/5] overflow-hidden rounded-sm shadow-xl">
-                <Image src="/images/blog/ishtar/ishtar-vidriera.jpg" alt="Ishtar Pissano frente a la vidriera de Atelier Óptica" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" priority />
+                <Image src="/images/blog/ishtar/ishtar-vidriera.jpg" alt="Ishtar Pissano" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" priority />
               </div>
               <div className="relative aspect-[4/5] overflow-hidden rounded-sm shadow-xl">
                 <Image src="/images/blog/arte-en-foco/01-monalisa.jpg" alt={OBRAS[0].alt} fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" priority />
