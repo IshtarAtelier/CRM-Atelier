@@ -207,6 +207,20 @@ Descartado: no es la verificación del negocio (ya `verified`), no es el usuario
 del sistema (tiene acceso total), no es la app (está suscrita a la WABA), no es
 la categoría (probado Utilidad y Marketing).
 
+**🎫 CASO ABIERTO CON META — nº `1084135437339421`** (19/8, agente: Detzi, Meta
+Pro Team; seguimiento también a pisano.ishtar@gmail.com). Pedido: habilitar la
+administración de plantillas de la WABA `468158943058448`. El asistente
+automático confirmó que la cuenta es "elegible para soporte humano" y derivó a
+un especialista que puede **forzar la actualización de los permisos**.
+
+Diagnóstico que dio el soporte antes de derivar (dos frenos, ninguno grave):
+1. **Perfil de WhatsApp incompleto**: falta *categoría* y *descripción* del
+   negocio en Herramientas de la cuenta → Perfil de WhatsApp.
+2. **Número en estado "Sin conexión / Pendiente"** en la API — según el soporte,
+   error de sincronización típico de la coexistencia, que se corrige al
+   completar el perfil del punto 1.
+Estado de la cuenta según Meta: **Activo · Restricciones: Ninguna · Calidad: Alta**.
+
 **RESPUESTA DEL SOPORTE DE META (19/8, caso abierto desde el Inicio de ayuda
 para empresas):** el subcódigo 2494160 se debe a que **falta aceptar las
 Condiciones del servicio de WhatsApp Business** en el portafolio — un paso legal
