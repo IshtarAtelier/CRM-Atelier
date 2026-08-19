@@ -207,7 +207,27 @@ Descartado: no es la verificación del negocio (ya `verified`), no es el usuario
 del sistema (tiene acceso total), no es la app (está suscrita a la WABA), no es
 la categoría (probado Utilidad y Marketing).
 
-Queda como causa más probable la **coexistencia** (`is_on_biz_app: true`): el
+**RESPUESTA DEL SOPORTE DE META (19/8, caso abierto desde el Inicio de ayuda
+para empresas):** el subcódigo 2494160 se debe a que **falta aceptar las
+Condiciones del servicio de WhatsApp Business** en el portafolio — un paso legal
+obligatorio, independiente de tener el negocio verificado y el número
+configurado. Textual: *"Debes aceptar las Condiciones del servicio de WhatsApp
+Business en el Administrador de WhatsApp para habilitar la creación y edición de
+plantillas… aunque el número esté en modo coexistencia, la administración de
+plantillas para la API requiere que estos términos estén vigentes en el
+portafolio empresarial."*
+
+Pasos que indicó: Administrador de WhatsApp → buscar el banner "Revisar y
+aceptar" los términos → si no aparece, Configuración del negocio → Cuentas de
+WhatsApp → Atelier Óptica → pestaña de configuración.
+
+**Estado al cierre del 19/8:** ese banner NO aparece en ninguno de los dos
+lugares (las pestañas disponibles de la WABA son Resumen, Personas, Socios,
+Números de teléfono y Preferencias, y esta última solo tiene notificaciones por
+email). Se repreguntó al soporte pidiendo la URL exacta o derivación a un agente
+humano. **Pendiente de respuesta.**
+
+Hipótesis secundaria (si el soporte no lo resuelve): la **coexistencia** (`is_on_biz_app: true`): el
 número vive a la vez en la app de WhatsApp Business del celular y en la Cloud
 API, y en ese modo Meta restringe la administración de plantillas de la WABA.
 
