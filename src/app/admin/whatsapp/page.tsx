@@ -16,6 +16,7 @@ import { useSearchParams } from 'next/navigation';
 import { BotPricingSection } from '@/components/config/BotPricingSection';
 import { ChatLabelPicker } from '@/components/whatsapp/ChatLabelPicker';
 import { TemplatePromptModal } from '@/components/whatsapp/TemplatePromptModal';
+import InboxHeader from '@/components/whatsapp/InboxHeader';
 import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
@@ -1324,129 +1325,47 @@ function WhatsAppPageContent() {
                 ))}
             </div>
 
-            {/* Header Flotante / Premium */}
-            <div className="flex items-center justify-between px-8 py-5 border-b border-white/40 dark:border-white/5 bg-white/40 dark:bg-black/30 backdrop-blur-2xl flex-shrink-0 z-20 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                        <WhatsAppIcon className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-black text-stone-800 dark:text-white tracking-tight">Comunicaciones</h1>
-                        <p className="text-[11px] font-bold text-stone-500 flex items-center gap-1.5 uppercase tracking-widest mt-0.5">
-                            {status.connected
-                                ? <><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {esApiOficial ? 'API oficial' : 'Activo'} ({status.phone}){esApiOficial && status.qualityRating ? ` · calidad ${status.qualityRating}` : ''}</>
-                                : <><span className="w-2 h-2 rounded-full bg-red-500" /> {esApiOficial ? `Sin conexión con la API${status.error ? `: ${status.error}` : ''}` : 'Desconectado'}</>}
-                        </p>
-                    </div>
-                </div>
+            {/* La jerarquía de esta barra (estado · interruptores · acción ·
+                el resto en un menú) vive documentada en el componente. */}
+            <InboxHeader
+                conectado={status.connected}
+                telefono={status.phone}
+                esApiOficial={esApiOficial}
+                calidad={status.qualityRating}
+                error={status.error}
+                asistenteActivo={agentEnabled}
+                onToggleAsistente={(next) => {
+                    setAgentEnabled(next);
+                    fetch('/api/whatsapp/agent', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: next }),
+                    });
+                }}
+                seguimientosActivos={followupsEnabled}
+                onToggleSeguimientos={(next) => {
+                    // Apagar es el botón de pánico: no pedimos confirmación.
+                    // Encender sí la pide, porque reanuda mensajes salientes
+                    // automáticos a clientes reales.
+                    if (next && !confirm('Vas a reactivar los seguimientos automáticos por WhatsApp.\n\nEl bot va a volver a escribirle solo a los clientes con presupuestos pendientes y charlas sin respuesta. ¿Confirmás?')) return;
+                    setFollowupsEnabled(next);
+                    fetch('/api/whatsapp/agent', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ followupsEnabled: next }),
+                    }).then(res => {
+                        if (!res.ok) throw new Error();
+                    }).catch(() => {
+                        // Si el servicio no confirmó, la UI no puede quedarse
+                        // mostrando un estado que no rige.
+                        setFollowupsEnabled(!next);
+                        alert('No se pudo cambiar el estado de los seguimientos: el servidor de WhatsApp no respondió. El estado real no cambió.');
+                    });
+                }}
+                sincronizando={syncing}
+                onSincronizar={handleSync}
+                onProbarChat={() => setShowTestChat(true)}
+                onAbrirEtiquetas={() => setShowTagManager(true)}
+                onAbrirPersonalidad={() => { setShowConfig(!showConfig); if (!showConfig) fetchAgent(); }}
+                personalidadAbierta={showConfig}
+            />
 
-                <div className="flex items-center gap-6">
-                    {/* API oficial: no hay bot ni seguimientos automáticos — los dos interruptores no aplican. */}
-                    <div className={`flex items-center gap-3 bg-white/60 dark:bg-stone-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-800 shadow-sm transition-all ${esApiOficial ? 'hidden' : ''}`}>
-                        <div className="flex flex-col items-end">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500 leading-none mb-0.5">Asistente IA</span>
-                            <span className={`text-[11px] font-bold leading-none transition-colors ${agentEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400'}`}>
-                                {agentEnabled ? 'Activa' : 'Inactiva'}
-                            </span>
-                        </div>
-                        <button
-                            onClick={() => {
-                                const next = !agentEnabled;
-                                setAgentEnabled(next);
-                                fetch('/api/whatsapp/agent', {
-                                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: next }),
-                                });
-                            }}
-                            className={`w-11 h-6 rounded-full transition-colors relative shadow-inner focus:outline-none ${agentEnabled ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-stone-700'}`}
-                        >
-                            <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${agentEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
-                        </button>
-                    </div>
-
-                    <div className={`flex items-center gap-3 bg-white/60 dark:bg-stone-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-stone-200/50 dark:border-stone-800 shadow-sm transition-all ${esApiOficial ? 'hidden' : ''}`}>
-                        <div className="flex flex-col items-end">
-                            <span className="text-[9px] font-black uppercase tracking-widest text-stone-400 dark:text-stone-500 leading-none mb-0.5">Seguimientos</span>
-                            <span className={`text-[11px] font-bold leading-none transition-colors ${followupsEnabled ? 'text-sky-600 dark:text-sky-400' : 'text-stone-500 dark:text-stone-400'}`}>
-                                {followupsEnabled ? 'Activos' : 'Pausados'}
-                            </span>
-                        </div>
-                        <button
-                            onClick={() => {
-                                const next = !followupsEnabled;
-                                // Apagar es el botón de pánico: no pedimos confirmación.
-                                // Encender sí la pide, porque reanuda mensajes salientes
-                                // automáticos a clientes reales.
-                                if (next && !confirm('Vas a reactivar los seguimientos automáticos por WhatsApp.\n\nEl bot va a volver a escribirle solo a los clientes con presupuestos pendientes y charlas sin respuesta. ¿Confirmás?')) return;
-                                setFollowupsEnabled(next);
-                                fetch('/api/whatsapp/agent', {
-                                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ followupsEnabled: next }),
-                                }).then(res => {
-                                    if (!res.ok) throw new Error();
-                                }).catch(() => {
-                                    // Si el servicio no confirmó, la UI no puede
-                                    // quedarse mostrando un estado que no rige.
-                                    setFollowupsEnabled(!next);
-                                    alert('No se pudo cambiar el estado de los seguimientos: el servidor de WhatsApp no respondió. El estado real no cambió.');
-                                });
-                            }}
-                            title={followupsEnabled
-                                ? 'Pausar todos los seguimientos automáticos salientes'
-                                : 'Reanudar los seguimientos automáticos salientes'}
-                            className={`w-11 h-6 rounded-full transition-colors relative shadow-inner focus:outline-none ${followupsEnabled ? 'bg-sky-500' : 'bg-stone-300 dark:bg-stone-700'}`}
-                        >
-                            <div className={`w-5 h-5 rounded-full bg-white shadow-sm absolute top-0.5 transition-transform ${followupsEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
-                        </button>
-                    </div>
-
-                    {status.connected && !esApiOficial && (
-                        <button
-                            onClick={handleSync}
-                            disabled={syncing}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border ${
-                                syncing
-                                    ? 'bg-stone-300 dark:bg-stone-700 text-stone-500 cursor-not-allowed'
-                                    : 'bg-indigo-500 text-white border-indigo-400 hover:bg-indigo-600 hover:scale-105'
-                            }`}
-                        >
-                            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                            {syncing ? 'Sincronizar' : 'Sincronizar'}
-                        </button>
-                    )}
-
-                    {!esApiOficial && (
-                    <button
-                        onClick={() => setShowTestChat(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600 hover:scale-105"
-                    >
-                        <Play className="w-4 h-4" /> Probar Chat
-                    </button>
-                    )}
-
-                    <button
-                        onClick={() => setShowTagManager(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border bg-white/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 border-white/50 dark:border-white/10 hover:bg-white hover:scale-105"
-                    >
-                        <Tag className="w-4 h-4" /> Etiquetas
-                    </button>
-
-                    <Link
-                        href="/admin/whatsapp/fotos"
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border bg-white/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 border-white/50 dark:border-white/10 hover:bg-white hover:scale-105"
-                    >
-                        <ImageIcon className="w-4 h-4 text-indigo-500" /> Galería Fotos
-                    </Link>
-
-                    <button
-                        onClick={() => { setShowConfig(!showConfig); if (!showConfig) fetchAgent(); }}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-sm transition-all shadow-sm border ${showConfig
-                            ? 'bg-violet-600 text-white border-violet-500 shadow-violet-500/20'
-                            : 'bg-white/80 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 border-white/50 dark:border-white/10 hover:bg-white hover:scale-105'
-                            }`}
-                    >
-                        <Settings className="w-4 h-4" /> Personalidad
-                    </button>
-                </div>
-            </div>
 
             
             {showTagManager && (
