@@ -45,7 +45,7 @@ const PROCESOS = [
   {
     titulo: 'El cristal',
     texto:
-      'Se calcula para tu receta, se talla, se pule, se trata y se calibra al eje exacto de tu mirada. En nuestro taller lo montamos nosotros: por eso sabemos qué pasó en cada paso.',
+      'Se calcula para tu receta, se talla, se pule, se trata y se calibra al eje exacto de tu mirada.',
   },
   {
     titulo: 'El ajuste',
@@ -128,7 +128,7 @@ export default function AnteojosObrasDeArtePage() {
             <section className="border-t border-black/10 pt-12">
               <h2 className="text-2xl font-medium mb-6">Cada anteojo es una cosmovisión</h2>
               <p className="mb-6">
-                Elegir un armazón es elegir cómo querés mirar el mundo y cómo querés que el mundo te mire. Volúmenes, materiales, un color de acetato, el peso de un metal fino: todo eso es una forma de ver. Por eso en Atelier no vendemos por tendencia. Elegimos cada pieza como se elige una obra: por el detalle. Y la completamos con cristales hechos en nuestro propio taller, porque el arte sin técnica es una intención.
+                Elegir un armazón es elegir cómo querés mirar el mundo y cómo querés que el mundo te mire. Volúmenes, materiales, un color de acetato, el peso de un metal fino: todo eso es una forma de ver. Por eso en Atelier no vendemos por tendencia. Elegimos cada pieza como se elige una obra: por el detalle. Porque el arte sin técnica es una intención.
               </p>
               <div className="grid grid-cols-2 gap-4 my-10">
                 {OBRAS.map((o) => (
@@ -148,7 +148,7 @@ export default function AnteojosObrasDeArtePage() {
                 El arte me enseñó a mirar el detalle. El comercio me enseñó que una cosa hermosa que no llega a nadie no sirve. Y la salud visual me recordó que, al final, esto no es sobre objetos: es sobre personas que quieren ver bien y verse bien.
               </p>
               <p className="mb-6">
-                Atelier es el lugar donde esas tres cosas dejan de pelearse. Un espacio en el Cerro de las Rosas, hecho de todo lo que vi en el mundo, pensado para que elijas tus anteojos como se elige una prenda de autor, con el respaldo técnico de un laboratorio propio y una garantía de adaptación que nos obliga a hacerlo bien.
+                Atelier es el lugar donde esas tres cosas dejan de pelearse. Un espacio en el Cerro de las Rosas, hecho de todo lo que vi en el mundo, pensado para que elijas tus anteojos como se elige una prenda de autor, con una garantía de adaptación que nos obliga a hacerlo bien.
               </p>
               <blockquote className="border-l-2 border-black pl-6 my-10 text-xl leading-relaxed italic">
                 Somos ópticos creativos. Tu visión es nuestra obra maestra.
