@@ -113,7 +113,7 @@ export default function AnteojosObrasDeArtePage() {
             <section className="border-t border-black/10 pt-12">
               <h2 className="text-2xl font-medium mb-6">Mi hermana y la Cápsula Escarlata</h2>
               <p className="mb-6">
-                Hay una parte de esta historia que es de ella. La <strong>Cápsula Escarlata</strong>, nuestra línea mayorista, está inspirada en mi hermana: amante de la salud en todas sus formas, nutricionista, vegetariana, apasionada y metódica. La que lideró el primer año de Atelier, el más difícil de todos.
+                Hay una parte de esta historia que es de ella. La <strong>Cápsula Escarlata</strong>, nuestra línea mayorista, está inspirada en mi hermana: amante de la salud en todas sus formas, licenciada en Nutrición, vegetariana, apasionada y metódica. La que lideró el primer año de Atelier, el más difícil de todos.
               </p>
               <p className="mb-6">
                 Lo hizo mientras terminaba su licenciatura en Nutrición, estudiaba un curso de inglés para aplicar a una visa en el exterior y viajaba una hora todos los días para llegar. Con ese tiempo, que no le sobraba, llevó adelante la gestión de nuestro primer cliente. En ese corto tiempo nacimos.
