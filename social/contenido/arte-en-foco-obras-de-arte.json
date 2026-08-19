@@ -1,0 +1,18 @@
+{
+  "id": "arte-en-foco-obras-de-arte",
+  "format": "4:5",
+  "pilar": "marca",
+  "fuente": "quienes-somos",
+  "temas": ["armazones", "cristales"],
+  "nota": "Placas ya renderizadas a mano en social/arte-en-foco-items/ (feed) y -story/ (9:16). Publicar con scripts/social/publicar-directo.mjs social/arte-en-foco-items \"<caption>\" --instagram",
+  "caption": "LOS ANTEOJOS SON AUTÉNTICAS OBRAS DE ARTE.\n\nDetrás de cada montura hay más de 100 procesos productivos: el acetato que se corta, se talla y se pule a mano; el metal que se suelda, se baña y se ajusta; los cristales que se calculan, se tallan y se calibran para tu mirada. Un proceso casi escultórico donde la técnica y la artesanía se funden en una pieza única.\n\nCada anteojo es una cosmovisión: una forma de mirar el mundo, con identidad propia, volúmenes, materiales y una estética que se nota cuando enfocás bien.\n\nEn @atelieroptica_ elegimos esas piezas como se elige una obra: por el detalle. Y las combinamos con cristales hechos en nuestro taller.\n\nDonde se fusionan mis dos amores: el arte y el diseño.\n— Ishtar Pissano, creadora de Atelier Óptica\n\nTu visión es nuestra obra maestra.",
+  "slides": [
+    {"image": "social/arte-en-foco-items/01-armazones.jpg", "title": "Armazones"},
+    {"image": "social/arte-en-foco-items/02-receta.jpg", "title": "Lentes de receta"},
+    {"image": "social/arte-en-foco-items/03-sol.jpg", "title": "Lentes de sol"},
+    {"image": "social/arte-en-foco-items/04-clip-on.jpg", "title": "Clip-On"},
+    {"image": "social/arte-en-foco-items/05-contacto.jpg", "title": "Lentes de contacto"},
+    {"image": "social/arte-en-foco-items/06-cristales.jpg", "title": "Cristales"},
+    {"image": "social/arte-en-foco-items/07-frida.jpg", "title": "La Frida"}
+  ]
+}

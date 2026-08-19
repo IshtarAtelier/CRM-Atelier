@@ -9,6 +9,14 @@ export interface StaticBlogPost {
 
 export const staticPosts: StaticBlogPost[] = [
   {
+    slug: 'anteojos-obras-de-arte',
+    title: 'Los anteojos son auténticas obras de arte: más de 100 procesos detrás de cada par',
+    excerpt: 'Arte, comercio y salud visual. Ishtar Pissano, creadora de Atelier, cuenta por qué un anteojo es una obra de arte y cómo nació una óptica donde se fusionan el arte y el diseño.',
+    date: '2026-08-18',
+    category: 'Manifiesto',
+    imageUrl: '/images/blog/arte-en-foco/01-monalisa.jpg'
+  },
+  {
     slug: 'optica-mejor-calificada-cordoba',
     title: 'Por qué somos la óptica mejor calificada de Córdoba',
     excerpt: 'Laboratorio propio, medición Essilor Expert, garantía de adaptación de 30 días y asesoramiento sin apuro: las seis cosas que explican nuestras reseñas en Google.',

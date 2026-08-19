@@ -51,6 +51,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const physicalBlogRoutes = [
+    '/blog/anteojos-obras-de-arte',
     '/blog/colores-cristales',
     '/blog/como-leer-receta-oftalmologica',
     '/blog/como-limpiar-anteojos-sin-rayar',
