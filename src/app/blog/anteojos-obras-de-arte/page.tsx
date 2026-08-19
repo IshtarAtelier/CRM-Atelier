@@ -169,7 +169,7 @@ export default function AnteojosObrasDeArtePage() {
               <h2 className="text-3xl lg:text-5xl font-normal leading-tight mb-8">La Cápsula Escarlata</h2>
               <div className="space-y-6 text-white/65 text-[15px] lg:text-base leading-relaxed">
                 <p>
-                  Hay una parte de esta historia que es de ella. La <span className="text-white">Cápsula Escarlata</span>, nuestra línea mayorista, está inspirada en mi hermana: amante de la salud en todas sus formas, licenciada en Nutrición, vegetariana, apasionada y metódica. La que lideró el primer año de Atelier, el más difícil de todos.
+                  Hay una parte de esta historia que es de ella. La <span className="text-white">Cápsula Escarlata</span>, nuestra línea mayorista, está inspirada en mi hermana Yani: amante de la salud en todas sus formas, licenciada en Nutrición, vegetariana, apasionada y metódica. La que lideró el primer año de Atelier, el más difícil de todos.
                 </p>
                 <p>
                   Lo hizo mientras terminaba su licenciatura en Nutrición, estudiaba un curso de inglés para aplicar a una visa en el exterior y viajaba una hora todos los días para llegar. Con ese tiempo, que no le sobraba, llevó adelante la gestión de nuestro primer cliente. En ese corto tiempo nacimos.
@@ -184,13 +184,13 @@ export default function AnteojosObrasDeArtePage() {
             </div>
             <div className="grid grid-cols-3">
               <div className="relative aspect-[3/4]">
-                <Image src="/images/blog/ishtar/hermana-retrato.jpg" alt="Mi hermana" fill sizes="33vw" className="object-cover grayscale" />
+                <Image src="/images/blog/ishtar/hermana-diploma.jpg" alt="Yani, mi hermana, el día de su graduación como Licenciada en Nutrición" fill sizes="33vw" className="object-cover grayscale" />
               </div>
               <div className="relative aspect-[3/4]">
-                <Image src="/images/blog/ishtar/hermana-salon-optica.jpg" alt="Mi hermana en el Salón de la Óptica" fill sizes="33vw" className="object-cover grayscale" />
+                <Image src="/images/blog/ishtar/hermanas-diploma.jpg" alt="Ishtar y su hermana Yani el día de su graduación" fill sizes="33vw" className="object-cover grayscale" />
               </div>
               <div className="relative aspect-[3/4]">
-                <Image src="/images/blog/ishtar/hermana-armazon.jpg" alt="Mi hermana mostrando un armazón" fill sizes="33vw" className="object-cover grayscale" />
+                <Image src="/images/blog/ishtar/hermana-diploma-2.jpg" alt="Ishtar sosteniendo el diploma de su hermana Yani" fill sizes="33vw" className="object-cover grayscale" />
               </div>
             </div>
             <p className="text-center text-[11px] uppercase tracking-[0.25em] text-white/35 py-6 border-b border-white/10">
