@@ -88,7 +88,7 @@ export default function AnteojosObrasDeArtePage() {
           <figure className="mb-14 lg:mb-20">
             <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
               <div className="relative aspect-[4/5] overflow-hidden rounded-sm shadow-xl">
-                <Image src="/images/blog/ishtar/ishtar-arte.jpg" alt="Ishtar Pissano junto a un retrato gigante con anteojos" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" priority />
+                <Image src="/images/blog/ishtar/ishtar-vidriera.jpg" alt="Ishtar Pissano frente a la vidriera de Atelier Óptica" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" priority />
               </div>
               <div className="relative aspect-[4/5] overflow-hidden rounded-sm shadow-xl">
                 <Image src="/images/blog/arte-en-foco/01-monalisa.jpg" alt={OBRAS[0].alt} fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" priority />
@@ -111,12 +111,12 @@ export default function AnteojosObrasDeArtePage() {
               </p>
               <figure className="my-10 grid grid-cols-2 gap-3">
                 <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
-                  <Image src="/images/blog/ishtar/ishtar-salon-optica.jpg" alt="Ishtar Pissano con su credencial en el Salón de la Óptica" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" />
+                  <Image src="/images/blog/ishtar/ishtar-viaje.jpg" alt="Ishtar Pissano de viaje" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" />
                 </div>
                 <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
-                  <Image src="/images/blog/ishtar/ishtar-armazon.jpg" alt="Ishtar Pissano mostrando un armazón" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" />
+                  <Image src="/images/blog/ishtar/ishtar-retrato.jpg" alt="Ishtar Pissano" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" />
                 </div>
-                <figcaption className="col-span-2 text-center text-[12px] text-[#999]">Arte, comercio y salud visual: en el Salón de la Óptica, buscando piezas.</figcaption>
+                <figcaption className="col-span-2 text-center text-[12px] text-[#999]">Viajar, mirar, traerse partecitas de cada óptica del mundo.</figcaption>
               </figure>
               <p className="mb-6">
                 Y soy amante de los viajes, de conocer miles de mundos. En cada país entré a ópticas: las recorrí, las miré con ojo de artista y de comerciante, y me traje partecitas de todas. Atelier reúne muchos países, muchas ópticas recorridas y miles de ideas.
@@ -143,11 +143,17 @@ export default function AnteojosObrasDeArtePage() {
               <p className="mb-6">
                 Así que fuimos: una mudanza fugaz, reinventarnos otra vez, y dejar atrás el primer rinconcito que fue nuestro. Todo lo que Atelier es hoy empezó ahí, en ese año que ella sostuvo cuando casi no tenía horas.
               </p>
-              <figure className="my-10">
-                <div className="relative aspect-[4/3] w-full max-w-xl mx-auto overflow-hidden rounded-sm shadow-md">
-                  <Image src="/images/blog/ishtar/hermanas.jpg" alt="Ishtar Pissano y su hermana" fill sizes="(max-width: 768px) 100vw, 576px" className="object-cover" />
+              <figure className="my-10 grid grid-cols-3 gap-3">
+                <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
+                  <Image src="/images/blog/ishtar/hermana-retrato.jpg" alt="Mi hermana" fill sizes="(max-width: 768px) 33vw, 230px" className="object-cover" />
                 </div>
-                <figcaption className="text-center text-[12px] text-[#999] mt-3">Con mi hermana. El papelito todavía lo guardamos.</figcaption>
+                <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
+                  <Image src="/images/blog/ishtar/hermana-salon-optica.jpg" alt="Mi hermana en el Salón de la Óptica" fill sizes="(max-width: 768px) 33vw, 230px" className="object-cover" />
+                </div>
+                <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
+                  <Image src="/images/blog/ishtar/hermana-armazon.jpg" alt="Mi hermana mostrando un armazón" fill sizes="(max-width: 768px) 33vw, 230px" className="object-cover" />
+                </div>
+                <figcaption className="col-span-3 text-center text-[12px] text-[#999]">Mi hermana. Metódica, apasionada, la que sostuvo el primer año.</figcaption>
               </figure>
             </section>
 
