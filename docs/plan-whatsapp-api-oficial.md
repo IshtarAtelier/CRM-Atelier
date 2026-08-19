@@ -193,7 +193,39 @@ puntos de contacto) para que no vuelva a aparecer.
 **Apenas Meta apruebe**, el único comando pendiente es:
 `node scripts/maintenance/whatsapp-api-oficial/crear-plantillas.mjs --apply`
 
-**🔴 19/8 — el bloqueo de plantillas NO era la verificación: es la coexistencia**
+**🔴 19/8 — CONFIRMADO: la WABA no puede administrar plantillas (ni por API ni por UI)**
+
+Se probó por las dos vías y el mensaje es idéntico:
+> "Esta cuenta de WhatsApp Business no tiene permiso para crear ni actualizar plantillas."
+
+- Por API: `code 100 · error_subcode 2494160`.
+- Por el WhatsApp Manager: el asistente deja completar TODO (nombre, idioma
+  Spanish (ARG), cuerpo con variables, muestras) y al enviar tira el mismo
+  cartel + "Se produjo un error al crear tu plantilla".
+
+Descartado: no es la verificación del negocio (ya `verified`), no es el usuario
+del sistema (tiene acceso total), no es la app (está suscrita a la WABA), no es
+la categoría (probado Utilidad y Marketing).
+
+Queda como causa más probable la **coexistencia** (`is_on_biz_app: true`): el
+número vive a la vez en la app de WhatsApp Business del celular y en la Cloud
+API, y en ese modo Meta restringe la administración de plantillas de la WABA.
+
+**Camino a evaluar con la dueña (decisión, no técnica):**
+1. **Sacar el número de la app del celular** para que quede exclusivo de la Cloud
+   API. Destraba las plantillas, pero el celular pierde ese WhatsApp (que era
+   justo lo que la coexistencia evitaba).
+2. **Abrir un ticket de soporte** en el Centro de ayuda para empresas pidiendo
+   habilitar la administración de plantillas de la WABA `468158943058448`.
+3. **Mientras tanto**: se puede seguir usando `derivation_notification_2` (la
+   única aprobada) o trabajar solo dentro de la ventana de 24 h (texto libre),
+   que cubre todas las respuestas del staff.
+
+Nota adicional: el clasificador de Meta marca como **Marketing** incluso el
+aviso mínimo "tu pedido {{2}} ya está listo para retirar". Cuando se destrabe,
+conviene aceptar esa categoría para no acumular rechazos.
+
+**(obsoleto) 19/8 — primera hipótesis: la coexistencia**
 
 Con el negocio ya `verified` (confirmado por API: `GET /{business_id}?fields=verification_status`),
 la API **sigue** devolviendo `error_subcode 2494160` al crear plantillas. Pero el
