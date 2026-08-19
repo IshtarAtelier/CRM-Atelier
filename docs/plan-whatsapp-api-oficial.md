@@ -176,6 +176,29 @@ mostró lo que ningún panel decía:
    **nombre para mostrar** ("Atelier Óptica") y completar la **verificación del
    negocio** (CUIT/documentos). Sin eso el número queda en LIMITED.
 
+**🔴 Bloqueo verificado el 18/8 — las plantillas no se pueden crear todavía**
+
+Con la app ya conectada a la WABA (`subscribed_apps` = "Atelier Optica
+Contenido") y el usuario del sistema con **acceso total** a la cuenta, Meta
+sigue rechazando la creación de plantillas:
+
+```
+code 100 · error_subcode 2494160
+"Esta cuenta de WhatsApp Business no tiene permiso para crear ni actualizar plantillas."
+```
+
+Lo que queda sin resolver del lado de Meta (y no depende del código):
+- **Verificación del negocio** (`BUSINESS … error 141010: The Business has not
+  passed business verification`). Es el candidato principal: sin negocio
+  verificado, una WABA propia no administra plantillas. Las dos que ya existen
+  (`derivation_notification*`) las creó Prometheo, que es proveedor verificado.
+- **Nombre para mostrar**: figura `AVAILABLE_WITHOUT_REVIEW` — hay que enviarlo
+  a aprobación para levantar el límite de mensajes del número.
+
+Las 16 plantillas quedan **listas en el código** (`src/lib/whatsapp/templates.ts`)
+y el alta es un solo comando cuando Meta lo permita:
+`node scripts/maintenance/whatsapp-api-oficial/crear-plantillas.mjs --apply`
+
 **Avance real del 18/8 (hecho en el navegador, verificado en pantalla):**
 - La app **"Atelier Optica Contenido"** (`1036999705858814`) ya tiene el caso de
   uso **"Conectarte con los clientes a través de WhatsApp"** → los permisos
