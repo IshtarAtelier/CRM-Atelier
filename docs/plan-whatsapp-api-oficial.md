@@ -176,7 +176,24 @@ mostró lo que ningún panel decía:
    **nombre para mostrar** ("Atelier Óptica") y completar la **verificación del
    negocio** (CUIT/documentos). Sin eso el número queda en LIMITED.
 
-**🔴 Bloqueo verificado el 18/8 — las plantillas no se pueden crear todavía**
+**✅ 19/8 — verificación del negocio ENVIADA, en revisión de Meta (≈2 días hábiles)**
+
+Se completó el trámite entero (Centro de seguridad → Verificación del negocio):
+tipo **sociedad unipersonal · registrado**, nombre legal **PISSANO, ISHTAR** con
+nombre comercial **Atelier Óptica**, dirección **Tejeda José Luis de 4380,
+Córdoba, 5009** (Meta la encontró sola en los registros públicos y coincidió
+exacto, junto con el CUIT), sitio **atelieroptica.com.ar**, teléfono actualizado
+al celular de la dueña, y confirmación por **verificación de identidad** (DNI).
+Estado: **En revisión**.
+
+Nota: el teléfono que Meta traía del registro público (+54 3541 43-6532) ya no
+existe; se corrigió también en ARCA (Sistema Registral → Administración de
+puntos de contacto) para que no vuelva a aparecer.
+
+**Apenas Meta apruebe**, el único comando pendiente es:
+`node scripts/maintenance/whatsapp-api-oficial/crear-plantillas.mjs --apply`
+
+**🔴 Bloqueo del 18/8 — las plantillas no se pudieron crear (causa: la verificación de arriba)**
 
 Con la app ya conectada a la WABA (`subscribed_apps` = "Atelier Optica
 Contenido") y el usuario del sistema con **acceso total** a la cuenta, Meta
