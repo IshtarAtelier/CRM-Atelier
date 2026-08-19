@@ -143,6 +143,36 @@ que dice solo qué existe y qué falta, y arma las variables:
 node scripts/checks/whatsapp-cloud-check.mjs
 ```
 
+### 🔴 HALLAZGO DEL 18/8 — el número YA está en la API oficial, y un tercero recibe sus mensajes
+
+Con el token nuevo, el diagnóstico (`scripts/checks/whatsapp-cloud-check.mjs`)
+mostró lo que ningún panel decía:
+
+| Dato | Valor |
+|---|---|
+| WABA de la tienda | **`468158943058448`** — "Atelier Óptica", revisión APPROVED |
+| Número | **+54 9 351 868-5644**, id **`570077836186956`** |
+| Plataforma | **`CLOUD_API`** · estado **CONNECTED** · calidad **GREEN** · modo **LIVE** |
+| ¿También en la app del celular? | **`is_on_biz_app: true`** → **coexistencia activa**: el número vive a la vez en la app de WhatsApp Business del local y en la Cloud API |
+| Webhook | **suscrita la app "Prometheo"** (`1069056334743106`, `prometheoapp.itesa.ar`) — **NO es nuestra**. Nuestra app no recibe nada |
+| Plantillas ya existentes | `derivation_notification_2` (aprobada), `derivation_notification` (rechazada) — no son nuestras |
+| Puede enviar | **LIMITED**, por dos motivos: el **nombre para mostrar no está aprobado** (`name_status: NON_EXISTS`) y el **negocio no pasó la verificación** (error 141010) |
+
+**Tres consecuencias que cambian el plan:**
+
+1. **La Fase 4 se simplifica muchísimo.** No hay que borrar WhatsApp del celular ni
+   re-verificar el número por SMS: la coexistencia ya está activa y el número ya
+   está registrado en la Cloud API. Migrar pasa a ser "apuntar el webhook a
+   nuestro servicio y encender `WA_TRANSPORT=cloud`".
+2. **Hay un tercero en el canal.** Los mensajes entrantes del número hoy se
+   entregan al webhook de **Prometheo**. Hay que decidir con la dueña: sumar
+   nuestra app al webhook (conviven) o sacar a Prometheo. **Nada se toca sin OK.**
+   También conviene saber si Prometheo manda mensajes automáticos: sería otra
+   automatización sobre el mismo número, justo lo que se está tratando de bajar.
+3. **Dos tareas de la dueña para levantar el límite de envío:** aprobar el
+   **nombre para mostrar** ("Atelier Óptica") y completar la **verificación del
+   negocio** (CUIT/documentos). Sin eso el número queda en LIMITED.
+
 **Avance real del 18/8 (hecho en el navegador, verificado en pantalla):**
 - La app **"Atelier Optica Contenido"** (`1036999705858814`) ya tiene el caso de
   uso **"Conectarte con los clientes a través de WhatsApp"** → los permisos
