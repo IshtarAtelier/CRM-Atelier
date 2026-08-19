@@ -77,12 +77,22 @@ export default function AnteojosObrasDeArtePage() {
               Detrás de cada par hay más de cien procesos productivos que nadie ve y todos notan cuando enfocan bien.
               Esta es la historia de por qué, con mi hermana, creamos una óptica donde se fusionan mis dos amores: el arte y el diseño.
             </p>
-            <p className="mt-6 text-[12px] uppercase tracking-[0.18em] text-[#999]">Por Ishtar Pissano · Creadora de Atelier Óptica</p>
+            <div className="mt-8 flex items-center justify-center gap-3">
+              <span className="relative w-12 h-12 rounded-full overflow-hidden ring-1 ring-black/10">
+                <Image src="/images/blog/ishtar/ishtar-retrato.jpg" alt="Ishtar Pissano" fill sizes="48px" className="object-cover object-top" />
+              </span>
+              <p className="text-[12px] uppercase tracking-[0.18em] text-[#999] text-left leading-relaxed">Por Ishtar Pissano<br />Creadora de Atelier Óptica</p>
+            </div>
           </header>
 
           <figure className="mb-14 lg:mb-20">
-            <div className="relative aspect-[4/5] w-full max-w-md mx-auto overflow-hidden rounded-sm shadow-xl">
-              <Image src="/images/blog/arte-en-foco/01-monalisa.jpg" alt={OBRAS[0].alt} fill sizes="(max-width: 768px) 100vw, 448px" className="object-cover" priority />
+            <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-sm shadow-xl">
+                <Image src="/images/blog/ishtar/ishtar-arte.jpg" alt="Ishtar Pissano junto a un retrato gigante con anteojos" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" priority />
+              </div>
+              <div className="relative aspect-[4/5] overflow-hidden rounded-sm shadow-xl">
+                <Image src="/images/blog/arte-en-foco/01-monalisa.jpg" alt={OBRAS[0].alt} fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" priority />
+              </div>
             </div>
             <figcaption className="text-center text-[12px] text-[#999] mt-4">Hay detalles que solo aparecen cuando se mira con precisión.</figcaption>
           </figure>
@@ -99,6 +109,15 @@ export default function AnteojosObrasDeArtePage() {
               <p className="mb-6">
                 Luego vino otro camino: más de diez años como gerente comercial, liderando grandes equipos en una empresa muy importante. Ahí aprendí la otra mitad del oficio, la que hace que una cosa hermosa llegue a alguien.
               </p>
+              <figure className="my-10 grid grid-cols-2 gap-3">
+                <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
+                  <Image src="/images/blog/ishtar/ishtar-salon-optica.jpg" alt="Ishtar Pissano con su credencial en el Salón de la Óptica" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" />
+                </div>
+                <div className="relative aspect-[3/4] overflow-hidden rounded-sm shadow-md">
+                  <Image src="/images/blog/ishtar/ishtar-armazon.jpg" alt="Ishtar Pissano mostrando un armazón" fill sizes="(max-width: 768px) 50vw, 340px" className="object-cover" />
+                </div>
+                <figcaption className="col-span-2 text-center text-[12px] text-[#999]">Arte, comercio y salud visual: en el Salón de la Óptica, buscando piezas.</figcaption>
+              </figure>
               <p className="mb-6">
                 Y soy amante de los viajes, de conocer miles de mundos. En cada país entré a ópticas: las recorrí, las miré con ojo de artista y de comerciante, y me traje partecitas de todas. Atelier reúne muchos países, muchas ópticas recorridas y miles de ideas.
               </p>
@@ -124,6 +143,12 @@ export default function AnteojosObrasDeArtePage() {
               <p className="mb-6">
                 Así que fuimos: una mudanza fugaz, reinventarnos otra vez, y dejar atrás el primer rinconcito que fue nuestro. Todo lo que Atelier es hoy empezó ahí, en ese año que ella sostuvo cuando casi no tenía horas.
               </p>
+              <figure className="my-10">
+                <div className="relative aspect-[4/3] w-full max-w-xl mx-auto overflow-hidden rounded-sm shadow-md">
+                  <Image src="/images/blog/ishtar/hermanas.jpg" alt="Ishtar Pissano y su hermana" fill sizes="(max-width: 768px) 100vw, 576px" className="object-cover" />
+                </div>
+                <figcaption className="text-center text-[12px] text-[#999] mt-3">Con mi hermana. El papelito todavía lo guardamos.</figcaption>
+              </figure>
             </section>
 
             <section className="border-t border-black/10 pt-12">
