@@ -193,7 +193,27 @@ puntos de contacto) para que no vuelva a aparecer.
 **Apenas Meta apruebe**, el único comando pendiente es:
 `node scripts/maintenance/whatsapp-api-oficial/crear-plantillas.mjs --apply`
 
-**🔴 Bloqueo del 18/8 — las plantillas no se pudieron crear (causa: la verificación de arriba)**
+**🔴 19/8 — el bloqueo de plantillas NO era la verificación: es la coexistencia**
+
+Con el negocio ya `verified` (confirmado por API: `GET /{business_id}?fields=verification_status`),
+la API **sigue** devolviendo `error_subcode 2494160` al crear plantillas. Pero el
+**WhatsApp Manager sí abre el asistente de "Crear plantilla"** con esa misma cuenta.
+
+Conclusión: el número está en **coexistencia** (`is_on_biz_app: true` — vive a la
+vez en la app del celular y en la Cloud API), y en ese modo Meta **no permite
+administrar plantillas por API**: hay que crearlas desde el panel.
+
+Consecuencias para el plan:
+- `crear-plantillas.mjs` **no sirve para el alta** mientras el número esté en
+  coexistencia. Queda útil para *listar* y para el día que el número sea
+  exclusivo de la Cloud API.
+- Las 16 plantillas se cargan **a mano en el WhatsApp Manager** (los textos ya
+  están todos en `src/lib/whatsapp/templates.ts`, con sus variables y ejemplos).
+- Alternativa a evaluar: sacar el número de la app del celular (deja de haber
+  coexistencia) — pero eso es justo lo que la coexistencia nos ahorraba, así que
+  conviene primero cargar las plantillas por UI y decidir después.
+
+**🔴 Bloqueo del 18/8 — las plantillas no se pudieron crear (causa: ver arriba)**
 
 Con la app ya conectada a la WABA (`subscribed_apps` = "Atelier Optica
 Contenido") y el usuario del sistema con **acceso total** a la cuenta, Meta
