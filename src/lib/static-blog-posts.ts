@@ -17,6 +17,14 @@ export const staticPosts: StaticBlogPost[] = [
     imageUrl: '/images/blog/arte-en-foco/01-monalisa.jpg'
   },
   {
+    slug: 'lentes-eyezen-boost-cordoba',
+    title: 'Eyezen Boost: el monofocal de Essilor con ayuda de enfoque para la generación de las pantallas',
+    excerpt: 'No es un lente de descanso genérico: Eyezen Boost trae un refuerzo de potencia calibrado por edad (de 0,4 a 1,1 dioptrías) en la zona de lectura. Cómo funciona y para quién es.',
+    date: '2026-08-19',
+    category: 'Tecnología Essilor',
+    imageUrl: '/images/blog/muestrario-smart-lens.webp'
+  },
+  {
     slug: 'optica-mejor-calificada-cordoba',
     title: 'Por qué somos la óptica mejor calificada de Córdoba',
     excerpt: 'Laboratorio propio, medición Essilor Expert, garantía de adaptación de 30 días y asesoramiento sin apuro: las seis cosas que explican nuestras reseñas en Google.',

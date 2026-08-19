@@ -101,6 +101,48 @@ interface Post {
 }
 
 const posts: Record<string, Post> = {
+  'lentes-eyezen-boost-cordoba': {
+    slug: 'lentes-eyezen-boost-cordoba',
+    title: 'Eyezen Boost: el monofocal de Essilor con ayuda de enfoque para la generación de las pantallas',
+    excerpt: 'No es un lente de descanso genérico: Eyezen Boost trae un refuerzo de potencia calibrado por edad (de 0,4 a 1,1 dioptrías) en la zona de lectura. Te contamos cómo funciona y para quién es.',
+    metaTitle: 'Lentes Eyezen Boost de Essilor en Córdoba | Atelier Óptica',
+    metaDescription: 'Fatiga visual por pantallas entre los 18 y 50 años. Conocé Eyezen Boost de Essilor: 4 niveles de refuerzo de enfoque según tu edad, con filtro de luz azul incorporado. Atelier Óptica Córdoba.',
+    date: '2026-08-19',
+    category: 'Tecnología Essilor',
+    imageUrl: '/images/blog/muestrario-smart-lens.webp',
+    content: (
+      <>
+        <p className="lead">Si tenés entre 18 y 50 años y terminás el día con los ojos cansados, ardor o dolor de cabeza después de horas de celular y computadora, esta nota es para vos. <strong>Eyezen Boost</strong> es la línea de monofocales de Essilor pensada exactamente para ese problema — y a diferencia de un &quot;lente de descanso&quot; genérico, acá el refuerzo se elige a medida.</p>
+
+        <h2>¿Qué es exactamente el &quot;Boost&quot;?</h2>
+        <p>Eyezen Boost es un lente de visión sencilla que incorpora la tecnología <strong>Eyezen Focus</strong>: un leve refuerzo de potencia ubicado en la parte inferior del cristal, justo en la zona por donde mirás cuando leés el celular o la pantalla. Ese refuerzo acompaña el esfuerzo de acomodación del ojo: el músculo ciliar trabaja menos, y eso se traduce en menos fatiga al final del día y una postura más natural frente a los dispositivos.</p>
+
+        <h2>Cuatro niveles, según tu edad visual</h2>
+        <p>Acá está la diferencia con cualquier lente de descanso estándar. El refuerzo de Eyezen Boost viene en <strong>cuatro niveles de potencia adicional</strong>, porque el esfuerzo de enfoque que hace tu ojo a los 22 no es el mismo que a los 45:</p>
+        <ul>
+          <li><strong>Boost 0,4</strong> — para las edades más jóvenes del rango, que ya sienten fatiga digital.</li>
+          <li><strong>Boost 0,6</strong> — cuando el esfuerzo de cerca empieza a notarse más.</li>
+          <li><strong>Boost 0,85</strong> — para quienes se acercan a la presbicia.</li>
+          <li><strong>Boost 1,1</strong> — el refuerzo máximo, en la puerta de los multifocales.</li>
+        </ul>
+        <p>La elección del nivel no es adivinanza: se define con tu edad, tu receta y tus hábitos de pantalla. Ese es nuestro trabajo en el mostrador.</p>
+
+        <h2>Filtro de luz azul incorporado en el material</h2>
+        <p>Todos los Eyezen traen el filtrado de luz azul-violeta <strong>dentro del propio material del lente</strong>, no como una capa amarillenta agregada. El cristal se mantiene prácticamente transparente y los colores de tu pantalla se ven reales.</p>
+
+        <h2>¿Es para vos?</h2>
+        <ul>
+          <li>Si usás anteojos recetados y pasás muchas horas frente a pantallas: Eyezen Boost reemplaza tu monofocal común, con tu misma graduación más el refuerzo.</li>
+          <li>Si no tenés graduación pero terminás el día con los ojos agotados: también existe en versión sin receta.</li>
+          <li>Si ya tenés presbicia declarada, probablemente tu camino sea un multifocal — te lo decimos honestamente en el local.</li>
+        </ul>
+
+        <h2>Nuestro consejo como ópticos</h2>
+        <p>Primero, el control con tu médico oftalmólogo: en la óptica no diagnosticamos ni recetamos. Con tu receta al día, en <strong>Atelier Óptica</strong> te medimos, definimos juntos el nivel de Boost que corresponde a tu edad y tu rutina, y lo combinamos con el tratamiento antirreflex adecuado.</p>
+      <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
+      </>
+    )
+  },
   'ray-ban-meta-smart-glasses-cordoba': {
     slug: 'ray-ban-meta-smart-glasses-cordoba',
     title: 'Ray-Ban Meta: Los anteojos inteligentes que graban tu vida ya están en Córdoba',

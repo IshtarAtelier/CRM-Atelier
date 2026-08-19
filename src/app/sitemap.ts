@@ -80,6 +80,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const fallbackBlogSlugs = [
+    'lentes-eyezen-boost-cordoba',
     'ray-ban-meta-smart-glasses-cordoba',
     'lentes-wicue-oscurecen-con-boton',
     'tratamiento-antirreflex-crizal-sapphire',
