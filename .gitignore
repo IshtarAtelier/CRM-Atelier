@@ -104,3 +104,4 @@ social/contenido/reels/salida/.frames-*/
 
 # Vista previa generada por check:venta
 scripts/checks/.confirmacion-compra.preview.html
+scripts/maintenance/etiquetas-limpieza/respaldo-*.json

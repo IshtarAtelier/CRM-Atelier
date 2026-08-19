@@ -619,32 +619,31 @@ async function addTagToClient({ clientId, tagName }) {
         return { success: false, message: '[INSTRUCCIÓN INTERNA] No se pudo agregar la etiqueta porque falta el clientId.' };
     }
 
-    // ── Saneo del nombre (12/8/2026) ─────────────────────────────────────────
-    // Este upsert era la fábrica de las 397 etiquetas: la IA mandaba cualquier
-    // texto y acá se creaba tal cual — incluidas ORACIONES enteras ("Interesado
-    // en armazones finitos para cara pequeña, quiere probarse, solicitó…").
-    // 1. Se normaliza el espaciado.
-    // 2. Un texto largo no es una etiqueta, es un resumen: se rechaza (el
-    //    extractor ya guarda ese contenido en el summary del chat).
-    // 3. Si ya existe una etiqueta igual ignorando mayúsculas, SE REUSA en vez
-    //    de crear la variante ("Clipones" vs "clipones").
+    // ── La IA NO crea etiquetas (19/8/2026) ──────────────────────────────────
+    // El saneo del 12/8 (recortar espacios, rechazar textos largos, reusar la
+    // variante en otra capitalización) achicó el daño pero no lo frenó: seguía
+    // habiendo un upsert, así que cualquier nombre nuevo que se le ocurriera a
+    // la IA nacía como etiqueta. El 19/8 la base tenía 407, de las cuales ~330
+    // colgaban de UN solo cliente: eran la descripción de una charla
+    // ("Armazones - Cat Eye, Acetato"), no una categoría.
+    //
+    // Ahora el catálogo es CERRADO: se busca la etiqueta y si no existe, no
+    // pasa nada. Crear etiquetas es de la dueña, desde el panel — el único
+    // lugar que además firma quién la creó en el AuditLog. La IA solo puede
+    // poner una que ya exista.
     tagName = String(tagName || '').replace(/\s+/g, ' ').trim();
     if (!tagName) {
-        return { success: false, message: '[INSTRUCCIÓN INTERNA] Etiqueta vacía: no se creó nada.' };
-    }
-    if (tagName.length > 40) {
-        return { success: false, message: '[INSTRUCCIÓN INTERNA] Ese texto es una descripción, no una etiqueta. No se creó. El detalle va en el resumen del chat.' };
+        return { success: false, message: '[INSTRUCCIÓN INTERNA] Etiqueta vacía: no se hizo nada.' };
     }
 
     try {
-        const existente = await prisma.tag.findFirst({
+        const tag = await prisma.tag.findFirst({
             where: { name: { equals: tagName, mode: 'insensitive' } },
         });
-        const tag = existente ?? await prisma.tag.upsert({
-            where: { name: tagName },
-            update: {},
-            create: { name: tagName, color: '#1677ff' } // azul por defecto
-        });
+        if (!tag) {
+            console.log(`[addTagToClient] "${tagName}" no está en el catálogo: no se crea.`);
+            return { success: false, message: `[INSTRUCCIÓN INTERNA] La etiqueta '${tagName}' no existe y no se puede crear. Usá solo etiquetas del catálogo; si hace falta una nueva, la crea el equipo desde el panel.` };
+        }
 
         const clientExists = await prisma.client.findUnique({ where: { id: clientId } });
         if (!clientExists) {
