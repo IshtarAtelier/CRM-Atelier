@@ -359,6 +359,12 @@ export function ProductClient({
               className="flex flex-wrap items-center gap-2 mb-6 text-[11px] text-stone-500"
             >
               <span className="uppercase tracking-widest font-bold">SKU: {product.id?.substring(0, 8).toUpperCase() || 'ATELIER'}</span>
+              {product.modelCode && (
+                <>
+                  <span className="mx-1">•</span>
+                  <span className="uppercase tracking-widest font-bold">COD: {product.modelCode}</span>
+                </>
+              )}
               <span className="mx-1">•</span>
               {product.stock !== undefined && product.stock !== null ? (
                 product.stock <= 0 ? (
@@ -564,7 +570,8 @@ export function ProductClient({
                       color: null,
                       prescriptionFile: null
                     },
-                    quantity: 1
+                    quantity: 1,
+                    stock: typeof product.stock === 'number' ? product.stock : undefined
                   });
                   setIsAdded(true);
                   setTimeout(() => {
@@ -924,7 +931,10 @@ export function ProductClient({
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             <LensConfigurator
-              basePrice={product.price || 0}
+              /* effectivePrice, no product.price: con oferta activa, el precio de
+                 lista inflaba el total del carrito y el "importe a transferir"
+                 quedaba por encima de lo que el backend cobra (auditoría 19/8). */
+              basePrice={effectivePrice || 0}
               wholesaleBasePrice={productWholesalePrice}
               productId={product.id}
               productInfo={{ brand: product.brand, model: product.model, image: images[0] || "/images/placeholder.svg" }}
