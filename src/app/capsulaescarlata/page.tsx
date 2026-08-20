@@ -73,7 +73,7 @@ async function getWholesaleCatalog(): Promise<WholesaleProduct[]> {
     const rows = await prisma.webProduct.findMany({
       where: {
         isActive: true,
-        product: { publishToWholesale: true, wholesalePrice: { gt: 0 } },
+        product: { publishToWholesale: true, wholesalePrice: { gt: 0 }, stock: { gt: 0 } },
       },
       select: {
         id: true,

@@ -138,38 +138,38 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
           where: {
             isActive: true,
             isFeatured: true, // solo destacados en el carrusel del home
-            product: { publishToWeb: true, category: { not: "Cristal" } },
+            product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } },
           },
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24, // margen para la dedup de variantes
         }),
         prisma.webProduct.findMany({
-          where: { isActive: true, category: "Clip-On", product: { publishToWeb: true } },
+          where: { isActive: true, category: "Clip-On", product: { publishToWeb: true, stock: { gt: 0 } } },
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24,
         }),
         prisma.webProduct.findMany({
-          where: { isActive: true, category: "Sol", product: { publishToWeb: true } },
+          where: { isActive: true, category: "Sol", product: { publishToWeb: true, stock: { gt: 0 } } },
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24,
         }),
         prisma.webProduct.findMany({
-          where: { isActive: true, category: "Receta", product: { publishToWeb: true } },
+          where: { isActive: true, category: "Receta", product: { publishToWeb: true, stock: { gt: 0 } } },
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24,
         }),
         prisma.webProduct.findMany({
-          where: { isActive: true, product: { publishToWeb: true, category: { not: "Cristal" } } },
+          where: { isActive: true, product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } } },
           select: HOME_SELECT,
           orderBy: { createdAt: "desc" },
           take: 24,
         }),
         prisma.webProduct.count({
-          where: { isActive: true, product: { publishToWeb: true, category: { not: "Cristal" } } },
+          where: { isActive: true, product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } } },
         }),
       ]);
       return { destacados, clipon, sol, receta, nuevos, count };
@@ -180,7 +180,7 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
       return prisma.webProduct.findMany({
         where: {
           isActive: true,
-          product: { publishToWeb: true, category: { not: "Cristal" } },
+          product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } },
         },
         select: {
           name: true,
@@ -194,7 +194,7 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
       return prisma.webProduct.findMany({
         where: {
           isActive: true,
-          product: { publishToWeb: true, category: { not: "Cristal" } },
+          product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } },
         },
         select: TIENDA_SELECT,
         // Destacados primero, luego lo más nuevo: la vitrina abre por lo curado.

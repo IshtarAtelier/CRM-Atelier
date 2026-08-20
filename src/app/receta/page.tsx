@@ -52,7 +52,9 @@ export default async function RecetaPage() {
   const whereClause = {
     category: { contains: "Receta", mode: "insensitive" as const },
     isActive: true,
-    product: { category: { not: 'Cristal' } },
+    // Sin stock no se muestra (regla 19/8): el stock es compartido con el CRM
+    // y un modelo agotado seguía en vitrina hasta despublicarlo a mano.
+    product: { category: { not: 'Cristal' }, stock: { gt: 0 } },
   };
 
   // Execute Queries in parallel
