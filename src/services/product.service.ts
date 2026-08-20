@@ -186,11 +186,13 @@ async function syncToWebProduct(p: any) {
 
     const existing = await prisma.webProduct.findFirst({ where: { productId: p.id } });
     if (existing) {
+        // REGLA: el nombre y el slug de un WebProduct existente son CURADOS
+        // (nombre estelar + color, campaña del 27/7). Pisarlos con
+        // "marca + código" destruyó fichas en prod (Dionisio, 19/8). El sync
+        // solo refresca lo derivado del producto: imágenes y visibilidad.
         await prisma.webProduct.update({
             where: { id: existing.id },
             data: {
-                name: displayName,
-                slug: slug,
                 category: category,
                 imageUrl: images[0] || null,
                 images: images,

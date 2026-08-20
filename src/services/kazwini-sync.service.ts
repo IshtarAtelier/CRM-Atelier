@@ -62,11 +62,11 @@ async function syncToWebProduct(p: any, tx: any) {
 
     const existing = await tx.webProduct.findFirst({ where: { productId: p.id } });
     if (existing) {
+        // REGLA: nombre y slug de un WebProduct existente son curados (estelar +
+        // color); el sync no los pisa. Ver product.service.ts, mismo motivo.
         await tx.webProduct.update({
             where: { id: existing.id },
             data: {
-                name: displayName,
-                slug: slug,
                 category: category,
                 imageUrl: images[0] || null,
                 images: images,
