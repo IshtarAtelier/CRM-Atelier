@@ -1777,6 +1777,7 @@ export const ContactService = {
                     paid: true, 
                     total: true, 
                     subtotalWithMarkup: true,
+                    isDeleted: true,
                     client: {
                         select: {
                             id: true,
@@ -1788,6 +1789,10 @@ export const ContactService = {
                 }
             });
             if (!order) throw new Error('Orden no encontrada');
+            // Una orden eliminada no puede recibir pagos: la caja y las rendiciones
+            // filtran isDeleted, así que un cobro cargado acá desaparecía de todo
+            // arqueo (plata cobrada que nadie reclama). Auditoría 20/8, C2.
+            if (order.isDeleted) throw new Error('La orden fue eliminada: no se le pueden cargar pagos. Verificá con el administrador.');
 
             if (order.client?.status === 'CONTACT') {
                 await tx.client.update({
@@ -2468,7 +2473,7 @@ export const ContactService = {
         });
     },
 
-    async deletePayment(paymentId: string) {
+    async deletePayment(paymentId: string, actor?: Actor) {
         return await prisma.$transaction(async (tx) => {
             const payment = await tx.payment.findUnique({
                 where: { id: paymentId }
@@ -2511,9 +2516,32 @@ export const ContactService = {
             });
 
             // Eliminar el registro de pago
-            return await tx.payment.delete({
+            const deleted = await tx.payment.delete({
                 where: { id: paymentId }
             });
+
+            // AuditLog DENTRO de la transacción: borrar plata es una mutación
+            // destructiva y el rastro no puede depender de que la ruta lo cree
+            // después (auditoría 20/8, A4). Si esta fila no se escribe, el
+            // borrado tampoco.
+            await tx.auditLog.create({
+                data: {
+                    action: 'DELETE',
+                    entityType: 'PAYMENT',
+                    entityId: paymentId,
+                    userId: actor?.id || SYSTEM_ACTOR.id,
+                    userName: actor?.name || SYSTEM_ACTOR.name,
+                    details: JSON.stringify({
+                        orderId: payment.orderId,
+                        amount: payment.amount,
+                        method: payment.method,
+                        reference: payment.notes || null,
+                        snapshot: payment,
+                    }),
+                }
+            });
+
+            return deleted;
         }, { maxWait: 25000, timeout: 25000 });
     },
 

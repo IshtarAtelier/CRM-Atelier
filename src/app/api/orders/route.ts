@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
+import { auditarPreciosBajoLista } from '@/services/order.service';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { isMultifocal2x1, recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
             quantity: it.quantity,
             customPrice: it.price
         }));
+
 
         // Fetch all products for Atelier average price calculation (only if needed by a 2x1 promo)
         const hasPromo = cartItems.some((it: any) => isMultifocal2x1(it.product));
@@ -262,6 +264,19 @@ export async function POST(request: Request) {
 
             return createdOrder;
         }, { maxWait: 25000, timeout: 25000 });
+
+        // A3 (auditoría 20/8): firmar precios bajo lista contra la base REAL
+        // (no contra it.product, que también viene del cliente). No bloquea.
+        try {
+            const idsParaAuditar = items.map((it: any) => it.productId).filter(Boolean);
+            if (idsParaAuditar.length > 0) {
+                const dbParaAuditar = await prisma.product.findMany({
+                    where: { id: { in: idsParaAuditar } },
+                    select: { id: true, brand: true, name: true, category: true, price: true, salePrice: true, wholesalePrice: true }
+                });
+                auditarPreciosBajoLista(order.id, items, dbParaAuditar, request.headers.get('x-user-name') || 'Sistema');
+            }
+        } catch { /* nunca frena la creación */ }
 
         return NextResponse.json(order);
     } catch (error: any) {

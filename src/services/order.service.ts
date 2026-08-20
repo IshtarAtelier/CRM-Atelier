@@ -32,6 +32,50 @@ import { format } from 'date-fns';
 import { OptovisionAuditService } from '@/services/optovision-audit.service';
 import { mapOrderPostSale } from '@/types/orders';
 
+/**
+ * A3 (auditoría 20/8): el precio de ítems no-cristal llega del cliente
+ * (customPrice del cotizador) sin tope. No se bloquea — hay flujos legítimos
+ * (mayorista, promos) — pero todo precio por debajo de lista queda FIRMADO:
+ * AuditLog PRICE_OVERRIDE + notificación al admin. Fire-and-forget: no puede
+ * frenar la venta.
+ */
+export function auditarPreciosBajoLista(orderId: string, items: any[], dbProducts: any[], actorName: string) {
+    try {
+        const desvios = (items || []).map((it: any) => {
+            const prod = dbProducts.find((p: any) => p.id === it.productId);
+            if (!prod || it.price == null) return null;
+            const cat = prod.category || '';
+            if (cat === 'Cristal' || cat === 'Tratamiento' || cat === 'TRATAMIENTO') return null; // el server ya los recalcula
+            const lista = prod.price || 0;
+            const oferta = prod.salePrice && prod.salePrice > 0 ? prod.salePrice : null;
+            const mayorista = prod.wholesalePrice && prod.wholesalePrice > 0 ? prod.wholesalePrice : null;
+            const pisoConocido = Math.min(...[lista, oferta, mayorista].filter((v): v is number => v != null && v > 0));
+            if (lista > 0 && it.price < pisoConocido - 1) {
+                return { productId: it.productId, nombre: `${prod.brand || ''} ${prod.name || prod.model || ''}`.trim(), lista, cargado: it.price };
+            }
+            return null;
+        }).filter(Boolean);
+        if (desvios.length === 0) return;
+        logAudit({
+            action: 'PRICE_OVERRIDE',
+            entityType: 'ORDER',
+            entityId: orderId,
+            userName: actorName,
+            details: { desvios },
+        }).catch(() => {});
+        prisma.notification.create({
+            data: {
+                type: 'PRICE_OVERRIDE',
+                orderId,
+                requestedBy: actorName,
+                status: 'PENDING',
+                message: `Precio bajo lista cargado por ${actorName}: ${desvios.map((d: any) => `${d!.nombre} a $${Math.round(d!.cargado).toLocaleString('es-AR')} (lista $${Math.round(d!.lista).toLocaleString('es-AR')})`).join('; ')}`,
+            }
+        }).catch(() => {});
+    } catch { /* nunca frena la operación */ }
+}
+
+
 const OrderItemSchema = z.object({
     productId: z.string().nullable().optional(),
     quantity: z.number().min(1),
@@ -736,6 +780,9 @@ export class OrderService {
                     customPrice: it.price
                 }));
 
+                // Firma y aviso de precios bajo lista (no bloquea; ver helper)
+                auditarPreciosBajoLista(id, items, dbProducts, userName || 'Sistema');
+
                 // Fetch Atelier average price products if promo active
                 const hasPromo = cartItems.some((it: any) => it.product?.is2x1);
                 let allProducts: any[] = [];
@@ -782,6 +829,13 @@ export class OrderService {
         if (specialDiscount !== undefined && data.specialDiscount === undefined) {
             data.specialDiscount = Math.max(0, specialDiscount);
         }
+
+        // C1 (auditoría 20/8): el ajuste de stock de una SALE editada se DIFIERE
+        // hasta la transacción del update final. Ejecutarlo acá arriba dejaba una
+        // ventana: si un guard posterior tiraba (gate de fábrica, nº de operación
+        // duplicado), la orden quedaba con los ítems viejos pero el stock ya
+        // movido — stock fantasma sin rastro.
+        let deferredStockAdjust: { revert: Array<{ productId: string; quantity: number }>; apply: Array<{ productId: string; quantity: number }> } | null = null;
 
         if (items && Array.isArray(items)) {
             // Load prescription details if order has prescription (to sync with crystal items)
@@ -844,23 +898,14 @@ export class OrderService {
                     throw new Error(`Stock insuficiente:\n${insufficientStock.join('\n')}`);
                 }
 
-                // In the transaction (or before updating), adjust the stocks
-                await prisma.$transaction(async (tx) => {
-                    // Revert old items stock
-                    for (const oldItem of oldStockItems) {
-                        await tx.product.update({
-                            where: { id: oldItem.productId as string },
-                            data: { stock: { increment: oldItem.quantity } }
-                        });
-                    }
-                    // Apply new items stock
-                    for (const newItem of newStockItems) {
-                        await tx.product.update({
-                            where: { id: newItem.productId as string },
-                            data: { stock: { decrement: newItem.quantity } }
-                        });
-                    }
-                }, { maxWait: 25000, timeout: 25000 });
+                // El ajuste real se ejecuta junto con el update final (misma
+                // transacción). Acá solo se deja listo. El chequeo de stock de
+                // arriba es la validación temprana; la resta atómica de abajo
+                // (stock >= cantidad en el WHERE) es la garantía.
+                deferredStockAdjust = {
+                    revert: oldStockItems.map((o: any) => ({ productId: o.productId as string, quantity: o.quantity })),
+                    apply: newStockItems.map((n: any) => ({ productId: n.productId as string, quantity: n.quantity })),
+                };
             }
 
             const productIds = items.map((it: any) => it.productId).filter(Boolean);
@@ -1038,8 +1083,12 @@ export class OrderService {
                         }
                     }
 
-                    // 2. Payment validation: total paid must be >= 50% of order total
-                    const totalPaid = orderForValidation.paid || 0;
+                    // 2. Payment validation: total paid must be >= 50% of order total.
+                    // Pagos REALES (filas de Payment), no Order.paid: la regla del
+                    // 28/7 — paid no prueba cobro. Con paid inflado y cero pagos,
+                    // la orden pasaba a fábrica sin seña real (auditoría 20/8, A1).
+                    const pagosReales = await prisma.payment.aggregate({ where: { orderId: id }, _sum: { amount: true } });
+                    const totalPaid = pagosReales._sum.amount || 0;
                     const minRequired = (orderForValidation.total || 0) * 0.5;
                     if (totalPaid < minRequired && !orderForValidation.authorizedByAdmin) {
                         errors.push(`El pago ($${Math.round(totalPaid).toLocaleString()}) no cubre el 50% mínimo ($${Math.ceil(minRequired).toLocaleString()}) para enviar a fábrica.`);
@@ -1765,9 +1814,11 @@ export class OrderService {
                     throw new Error(`La ficha del contacto debe tener ${missingClientFields.join(', ')} para generar la venta.`);
                 }
 
-                // Check: 50% minimum payment
+                // Check: 50% minimum payment — pagos REALES (Payment), no Order.paid
+                // (regla 28/7: paid no prueba cobro; auditoría 20/8, A1).
                 const minRequired = (existingOrder.total || 0) * 0.5;
-                const totalPaid = existingOrder.paid || 0;
+                const pagosRealesConv = await prisma.payment.aggregate({ where: { orderId: id }, _sum: { amount: true } });
+                const totalPaid = pagosRealesConv._sum.amount || 0;
                 if (totalPaid < minRequired && !existingOrder.authorizedByAdmin) {
                     throw new Error(`Se requiere un pago mínimo del 50% ($${Math.ceil(minRequired).toLocaleString()}) para convertir en venta. Pagado: $${totalPaid.toLocaleString()}`);
                 }
@@ -2329,7 +2380,28 @@ export class OrderService {
             if (conflictos.length > 0) throw new Error(duplicateMessage(conflictos));
         }
 
-        const order = await prisma.order.update({
+        // Update final. Si hay ajuste de stock diferido (edición de ítems de una
+        // SALE), corre en la MISMA transacción: o se aplican ítems y stock juntos,
+        // o no se aplica nada. El decrement va con guard atómico (stock >= qty).
+        const order = await prisma.$transaction(async (tx) => {
+            if (deferredStockAdjust) {
+                for (const oldItem of deferredStockAdjust.revert) {
+                    await tx.product.update({
+                        where: { id: oldItem.productId },
+                        data: { stock: { increment: oldItem.quantity } }
+                    });
+                }
+                for (const newItem of deferredStockAdjust.apply) {
+                    const res = await tx.product.updateMany({
+                        where: { id: newItem.productId, stock: { gte: newItem.quantity } },
+                        data: { stock: { decrement: newItem.quantity } }
+                    });
+                    if (res.count === 0) {
+                        throw new Error('Stock insuficiente al confirmar la edición: otro movimiento tomó las unidades. Recargá la venta e intentá de nuevo.');
+                    }
+                }
+            }
+            return tx.order.update({
             where: { id },
             data,
             select: {
@@ -2391,7 +2463,8 @@ export class OrderService {
                     select: { id: true, name: true, phone: true, email: true }
                 }
             },
-        });
+            });
+        }, { maxWait: 25000, timeout: 25000 });
 
         // ── Historial: reapertura y re-confirmación de una VENTA ────────────
         // Antes reabrir no dejaba rastro en ningún lado (solo un logAudit

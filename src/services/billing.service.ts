@@ -100,7 +100,12 @@ export const BillingService = {
             .filter((i) => i.status === 'COMPLETED')
             .reduce((acc, curr) => acc + curr.totalAmount, 0);
             
-        const maximumInvoiceable = PricingService.calculateOrderFinancials(order as any).paidReal;
+        // Tope de facturación = pagos REALES (filas de Payment). PricingService
+        // usa un failsafe con Order.paid para display de órdenes viejas, pero acá
+        // es ARCA: no se emite factura por plata sin comprobante de cobro
+        // (regla 28/7 + auditoría 20/8, A2).
+        const pagosReales = await prisma.payment.aggregate({ where: { orderId: order.id }, _sum: { amount: true } });
+        const maximumInvoiceable = pagosReales._sum.amount || 0;
 
         // Ítems tal como se facturan. Si el frontend los mandó, MANDAN ELLOS: son
         // los que se guardan y los que salen impresos en el PDF. El detalle y el

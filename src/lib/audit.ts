@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'LOGIN' | 'EXPORT' | 'NOTIFY' | 'OTHER';
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'LOGIN' | 'EXPORT' | 'NOTIFY' | 'PRICE_OVERRIDE' | 'OTHER';
 export type AuditEntityType =
     | 'ORDER' | 'CONTACT' | 'PAYMENT' | 'USER' | 'PRODUCT'
     | 'TASK' | 'PRESCRIPTION' | 'INVOICE' | 'EXPENSE' | 'DOCTOR_PAYMENT'

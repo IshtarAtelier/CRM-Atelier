@@ -41,10 +41,10 @@ export async function DELETE(
             );
         }
 
-        const deletedPayment = await ContactService.deletePayment(paymentId);
-
         const userId = headersList.get('x-user-id');
         const userName = headersList.get('x-user-name') || 'Administrador';
+
+        const deletedPayment = await ContactService.deletePayment(paymentId, { id: userId || 'admin', name: userName, role: 'ADMIN' });
 
         // El AuditLog va PRIMERO y siempre: es el único rastro garantizado de
         // este borrado. Si la Interaction de la ficha (best-effort, con catch)
