@@ -117,7 +117,9 @@ export function CartSidebar() {
                           <span className="text-xs font-mono w-6 text-center">{item.quantity}</span>
                           <button 
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="px-2 py-0.5 text-stone-500 hover:text-black"
+                            disabled={typeof item.stock === 'number' && item.stock > 0 && item.quantity >= item.stock}
+                            className="px-2 py-0.5 text-stone-500 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed"
+                            title={typeof item.stock === 'number' && item.stock > 0 && item.quantity >= item.stock ? 'Sin más stock disponible' : undefined}
                           >
                             +
                           </button>

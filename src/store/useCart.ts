@@ -14,6 +14,8 @@ export interface CartItem {
   lensColor?: string | null;
   lensConfig?: any; // Para guardar configuraciones de cristales recetados en el futuro
   quantity: number;
+  /** Stock conocido al agregar. Tope del "+" del carrito; el backend revalida al pagar. */
+  stock?: number;
 }
 
 // Precio unitario según el canal ACTUAL (no el del momento de agregar): para un
@@ -90,9 +92,15 @@ export const useCart = create<CartState>()(
       })),
       
       updateQuantity: (id, quantity) => set((state) => ({
-        items: state.items.map((i) => 
-          i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i
-        ),
+        items: state.items.map((i) => {
+          if (i.id !== id) return i;
+          // Tope por stock conocido: sin esto se podían pedir 10 unidades de un
+          // producto con stock 1 y el freno llegaba recién al pagar ("Stock
+          // insuficiente" al final de un checkout ya completado). Ítems viejos
+          // persistidos sin stock quedan sin tope (el backend sigue frenando).
+          const cap = typeof i.stock === 'number' && i.stock > 0 ? i.stock : Infinity;
+          return { ...i, quantity: Math.min(cap, Math.max(1, quantity)) };
+        }),
       })),
       
       clearCart: () => set({ items: [] }),

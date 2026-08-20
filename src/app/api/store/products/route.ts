@@ -164,10 +164,18 @@ export async function GET(request: NextRequest) {
         // ids del sidebar (menor_precio/mayor_precio) y del resto del sitio
         // (menor-precio/mayor-precio), que antes nunca matcheaban.
         const sortKey = sort.replace(/_/g, '-');
+        // Precio EFECTIVO (oferta si la hay), no el de lista: si no, un producto
+        // rebajado que la grilla muestra a salePrice queda mal posicionado en el
+        // orden que el usuario pidió (auditoría 19/8, M4).
+        const precioEfectivo = (p: { price?: number | null; salePrice?: number | null }) => {
+            const lista = p.price || 0;
+            const oferta = p.salePrice;
+            return oferta != null && oferta > 0 && oferta < lista ? oferta : lista;
+        };
         if (sortKey === 'menor-precio') {
-            filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+            filtered.sort((a, b) => precioEfectivo(a) - precioEfectivo(b));
         } else if (sortKey === 'mayor-precio') {
-            filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+            filtered.sort((a, b) => precioEfectivo(b) - precioEfectivo(a));
         } else if (sortKey === 'forma') {
             filtered.sort((a, b) => (a.shape || '').localeCompare(b.shape || '', 'es'));
         }

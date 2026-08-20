@@ -9,7 +9,6 @@ import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
-import { CristalesShowcase } from "@/components/Storefront/CristalesShowcase";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
@@ -230,6 +229,8 @@ export function TiendaClient({
   const [totalPages, setTotalPages] = useState(Math.ceil((initialTotalCount || initialProducts.length) / 24) || 1);
   const [totalCount, setTotalCount] = useState(initialTotalCount || initialProducts.length);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadNonce, setReloadNonce] = useState(0);
   const isRecoveringProducts = isLoading;
 
   // Whenever filters change, reset page to 1
@@ -268,6 +269,7 @@ export function TiendaClient({
 
     const loadProducts = async () => {
       setIsLoading(true);
+      setLoadError(false);
       try {
         const queryParams = new URLSearchParams();
         queryParams.set('page', currentPage.toString());
@@ -301,6 +303,9 @@ export function TiendaClient({
         }
       } catch (err) {
         console.error("Error loading products:", err);
+        // Sin esto, al fallar el fetch quedaba la grilla del filtro ANTERIOR
+        // bajo el hero del filtro nuevo, sin ningún aviso (auditoría 19/8, M2).
+        if (active) setLoadError(true);
       } finally {
         if (active) setIsLoading(false);
       }
@@ -311,7 +316,7 @@ export function TiendaClient({
     return () => {
       active = false;
     };
-  }, [currentPage, activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, sortParam, isWholesale]);
+  }, [currentPage, activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, sortParam, isWholesale, reloadNonce]);
 
   const displayedProducts = products;
 
@@ -513,10 +518,17 @@ export function TiendaClient({
               transition={{ duration: 0.3 }}
               className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
             >
-              {activeCategory === "Cristales" ? (
-                /* Los cristales no son productos de vitrina: mostramos las mismas
-                   opciones del configurador de /arma-tus-lentes con precios en vivo */
-                <CristalesShowcase />
+              {loadError ? (
+                <div className="col-span-full py-16 flex flex-col items-center justify-center text-center">
+                  <p className="text-xl font-serif text-stone-900 mb-2">No pudimos cargar los productos</p>
+                  <p className="text-stone-500 mb-6 max-w-md mx-auto">Puede ser un problema momentáneo de conexión. Probá de nuevo.</p>
+                  <button
+                    onClick={() => { setLoadError(false); setCurrentPage(1); setReloadNonce((n) => n + 1); }}
+                    className="bg-black text-white px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
+                  >
+                    Reintentar
+                  </button>
+                </div>
               ) : displayedProducts.length === 0 ? (
                 isRecoveringProducts ? (
                   /* Show skeleton cards while recovering products — never show empty */

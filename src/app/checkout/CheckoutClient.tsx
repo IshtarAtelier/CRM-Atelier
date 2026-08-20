@@ -320,12 +320,14 @@ export function CheckoutClient({
 
   // Si el respaldo se apagó mientras alguien tenía el checkout a medio llenar,
   // su borrador guardado en el navegador sigue diciendo MERCADO_PAGO y al pagar
-  // se comería un error del servidor. Se vuelve a tarjeta en silencio.
+  // se comería un error del servidor. Se vuelve al método por defecto en
+  // silencio — NO a PAYWAY fijo: si Payway también está apagado, quedaba
+  // seleccionada una pasarela sin UI (sin caja de tarjeta y botón muerto).
   useEffect(() => {
     if (!mercadoPagoEnabled && formData.paymentMethod === 'MERCADO_PAGO') {
-      setFormData(prev => ({ ...prev, paymentMethod: 'PAYWAY' }));
+      setFormData(prev => ({ ...prev, paymentMethod: metodoPorDefecto === 'MERCADO_PAGO' ? 'TRANSFER' : metodoPorDefecto }));
     }
-  }, [mercadoPagoEnabled, formData.paymentMethod]);
+  }, [mercadoPagoEnabled, formData.paymentMethod, metodoPorDefecto]);
 
   useEffect(() => {
     if (mounted) {
@@ -676,10 +678,15 @@ export function CheckoutClient({
         }
       });
 
+      // El cobro sigue en el callback de createToken: el botón queda
+      // deshabilitado hasta que ese callback (su finally) lo libere. Resetearlo
+      // acá re-habilitaba "Pagar" con la tokenización + cobro aún en vuelo
+      // (auditoría 19/8, A2).
+      return;
+
     } catch (error: any) {
       console.error(error);
       toast.error("Error de sistema: " + (error.message || JSON.stringify(error)));
-    } finally {
       setIsProcessing(false);
     }
   };
