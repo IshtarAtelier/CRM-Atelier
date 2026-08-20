@@ -570,8 +570,7 @@ export function ProductClient({
                       color: null,
                       prescriptionFile: null
                     },
-                    quantity: 1,
-                    stock: typeof product.stock === 'number' ? product.stock : undefined
+                    quantity: 1
                   });
                   setIsAdded(true);
                   setTimeout(() => {
