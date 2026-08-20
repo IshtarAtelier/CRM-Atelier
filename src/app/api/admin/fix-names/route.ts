@@ -110,6 +110,11 @@ export async function GET() {
       }
     }
 
+    if (updatedProducts > 0 || updatedWebProducts > 0) {
+      const { invalidateWebCatalog } = await import('@/lib/catalog/tienda-map');
+      await invalidateWebCatalog();
+    }
+
     return NextResponse.json({ 
       success: true, 
       message: `¡Listo! Productos actualizados: ${updatedProducts}, WebProducts actualizados: ${updatedWebProducts}` 

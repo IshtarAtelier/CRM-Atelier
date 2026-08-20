@@ -5,6 +5,7 @@ import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { ProductService } from '@/services/product.service';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
+import { invalidateWebCatalog } from '@/lib/catalog/tienda-map';
 
 export async function DELETE(
     request: Request,
@@ -36,6 +37,7 @@ export async function DELETE(
             }),
             prisma.product.delete({ where: { id } }),
         ]);
+        await invalidateWebCatalog();
 
         // Trazabilidad: quién borró el producto y qué era
         const actor = getActor(request);

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
+import { invalidateWebCatalog } from '@/lib/catalog/tienda-map';
 
 // DELETE /api/products/delete-all — Borra TODOS los productos SIN tocar el historial de ventas.
 // El trigger de la base (freeze_orderitem_snapshot) congela la foto de cada producto en sus
@@ -17,6 +18,7 @@ export async function DELETE(request: Request) {
 
         const count = await prisma.product.count();
         const deletedProducts = await prisma.product.deleteMany({});
+        await invalidateWebCatalog();
 
         // Trazabilidad: quién vació el catálogo y cuántos productos había
         const actor = getActor(request);

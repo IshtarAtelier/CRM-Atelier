@@ -276,7 +276,12 @@ export const KazwiniSyncService = {
             }
 
             console.log(`[Kazwini Sync] Completed. Published/Updated: ${totalImported}, Deactivated (stock < 20): ${totalDeactivated}`);
-            
+
+            if (totalImported > 0 || totalDeactivated > 0) {
+                const { invalidateWebCatalog } = await import('@/lib/catalog/tienda-map');
+                await invalidateWebCatalog();
+            }
+
             return {
                 success: true,
                 publishedCount: totalImported,
