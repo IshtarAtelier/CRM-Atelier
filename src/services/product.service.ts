@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { autoCorrectBrand, autoCorrectLab, autoCorrectIndex } from '@/utils/product-controllers';
 import { requireValidCost } from '@/lib/product-cost-guard';
+import { invalidateWebCatalog } from '@/lib/catalog/tienda-map';
 
 export const ProductService = {
     async getAll() {
@@ -62,7 +63,8 @@ export const ProductService = {
         if (product.publishToWeb) {
             await syncToWebProduct(product);
         }
-        
+        await invalidateWebCatalog();
+
         return product;
     },
     async update(id: string, data: any) {
@@ -112,7 +114,8 @@ export const ProductService = {
             // Remove from WebProducts if un-published
             await prisma.webProduct.deleteMany({ where: { productId: product.id } });
         }
-        
+        await invalidateWebCatalog();
+
         return product;
     },
 
@@ -153,6 +156,7 @@ export const ProductService = {
                 await syncToWebProduct(product);
             }
         }
+        await invalidateWebCatalog();
         return { count: created.length };
     }
 };

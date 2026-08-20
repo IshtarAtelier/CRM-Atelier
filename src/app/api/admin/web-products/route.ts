@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { getActor } from '@/lib/actor';
+import { invalidateWebCatalog } from '@/lib/catalog/tienda-map';
 import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
@@ -126,9 +127,10 @@ export async function PATCH(request: Request) {
             }
         });
 
-        revalidatePath('/');
-        revalidatePath('/tienda');
-        revalidatePath('/lentes-de-sol');
+        // Borra el caché en memoria del catálogo (180s) ADEMÁS de revalidar el
+        // ISR: sin eso, la grilla y los filtros seguían sirviendo el dato viejo
+        // hasta 3 minutos después de guardar.
+        await invalidateWebCatalog();
         revalidatePath(`/producto/${updated.slug}`);
 
         // Trazabilidad: registrar solo los campos sensibles que cambiaron (oferta, visibilidad, destacado)

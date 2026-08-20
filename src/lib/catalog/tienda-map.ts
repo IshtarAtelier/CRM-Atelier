@@ -44,6 +44,27 @@ export interface MappedWebProduct {
 const CACHE_KEY = "store-products-mapped:web";
 const CACHE_TTL_SECONDS = 180;
 
+/**
+ * Invalida TODO lo que sirve catálogo a la tienda pública: el caché en memoria
+ * (web y mayorista) y las páginas ISR. Llamar después de cualquier mutación de
+ * Product/WebProduct que deba verse en la grilla — sin esto, el cambio recién
+ * aparece cuando vence el TTL de 180s aunque se haya hecho revalidatePath
+ * (la página re-renderizada vuelve a leer el caché viejo).
+ */
+export async function invalidateWebCatalog() {
+  serverCache.deletePattern("store-products-mapped");
+  try {
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath("/");
+    revalidatePath("/tienda");
+    revalidatePath("/lentes-de-sol");
+    revalidatePath("/producto/[slug]", "page");
+  } catch {
+    // Fuera de un request de Next (scripts sueltos) no hay store de
+    // revalidación; ahí alcanza con el TTL corto del ISR.
+  }
+}
+
 function mapRow(wp: CatalogRow): MappedWebProduct {
   const modelCode = wp.product.model || wp.name || "";
   const { shape, material } = getProductAttributes(modelCode, wp.product.seoTags);
