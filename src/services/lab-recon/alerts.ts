@@ -29,6 +29,29 @@ import { LAB_LABELS, UNMATCHED_GRACE_MS, adminInbox, appUrl as appUrlFn, fmtARS,
  *   4) Nada de lo anterior → DUDOSO, revisar con urgencia
  */
 async function clasificarHuerfanos(huerfanos: any[]) {
+    // Ventas recientes YA ENVIADAS al laboratorio cuyo nº de operación todavía
+    // no está cargado. Caso real del 20/8/2026 (Cecilia Damon): el envío por
+    // SmartLab deja `labOrderNumber = "SML-<borrador>"` y el nº real (8053…)
+    // recién lo carga un humano al confirmar el borrador en el portal. En esa
+    // ventana el barrido ve los pedidos, no matchean con ninguna venta, y el
+    // aviso urgente salía acusando "SIN VENTA — DUDOSO" con la venta cargada
+    // delante de las narices. Estos candidatos se comparan por nombre EN CÓDIGO
+    // (con la misma tolerancia a erratas de abajo), no con un `contains` en SQL.
+    const ventasEnviadas = await prisma.order.findMany({
+        where: {
+            isDeleted: false,
+            orderType: 'SALE',
+            labSentAt: { gte: new Date(Date.now() - 30 * 86400000) },
+        },
+        select: {
+            id: true, labOrderNumber: true, clientId: true,
+            client: { select: { name: true } },
+        },
+    }).catch(() => [] as any[]);
+    /** ¿El "nº" de la venta es un borrador de SmartLab o directamente no está? */
+    const sinNumeroReal = (s: string | null | undefined) =>
+        !s || /^(SML|Borrador)-/i.test(s) || !s.match(/\d{5,}/);
+
     const openCases = await prisma.postSaleCase.findMany({
         where: {
             createdAt: { gte: new Date(Date.now() - 60 * 86400000) },
@@ -97,6 +120,26 @@ async function clasificarHuerfanos(huerfanos: any[]) {
         if (/reproceso|reclamo|garant[ií]a|cambio\s+(de\s+)?(rx|cristal)/i.test(notes)) {
             return { id: o.id, tipo: 'POSTVENTA', clientId: null, detalle: 'Posible caso de postventa sin nº de operación asignado' };
         }
+        // ¿Coincide por nombre con una venta ya enviada al lab que sigue sin su
+        // nº real (borrador SML-… de SmartLab, o directamente vacío)? Entonces
+        // NO es un pedido sin venta: es la venta esperando que le carguen el nº.
+        // El re-cruce (cada 10 min) la engancha solo apenas alguien lo cargue.
+        if (nameTokens.size > 0) {
+            for (const v of ventasEnviadas) {
+                if (!sinNumeroReal(v.labOrderNumber)) continue;
+                const vt = tokensOf(v.client?.name || '');
+                const inter = coincidencias(nameTokens, vt);
+                if (inter >= 2 || (inter >= 1 && Math.min(nameTokens.size, vt.size) === 1)) {
+                    const esBorrador = /^(SML|Borrador)-/i.test(v.labOrderNumber || '');
+                    return {
+                        id: o.id, tipo: 'VENTA_SMARTLAB', clientId: v.clientId,
+                        detalle: `La venta de «${v.client?.name}» ya está enviada al laboratorio pero ${esBorrador
+                            ? `sigue con el borrador de SmartLab (${v.labOrderNumber})`
+                            : 'no tiene el nº de operación cargado'}: cargarle este nº a la venta — el cruce engancha solo al guardarlo`,
+                    };
+                }
+            }
+        }
         const words: string[] = nameRaw.split(/\s+/).filter((w: string) => w.length >= 3 && !/^\d+$/.test(w)).slice(0, 2);
         if (words.length > 0) {
             const select = {
@@ -134,7 +177,9 @@ async function clasificarHuerfanos(huerfanos: any[]) {
             }
 
             if (client) {
-                const sinNumero = client.orders.some(v => !v.labOrderNumber?.match(/\d{4,}/));
+                // Un borrador "SML-123456" tiene dígitos pero NO es un nº de
+                // operación del lab: cuenta como venta sin número.
+                const sinNumero = client.orders.some(v => sinNumeroReal(v.labOrderNumber));
                 return {
                     id: o.id, tipo: 'VENTA_SIN_NUMERO', clientId: client.id,
                     detalle: `Posible venta de «${client.name}»${sinNumero ? ' (tiene venta SIN nº de lab: asignarle este número)' : ''}`,
@@ -263,6 +308,27 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
         suprimidosDe.set(grupo[0].id, grupo.slice(1));
     }
 
+    // Triage de huérfanos ANTES de decidir qué sale en el email: un pedido que
+    // coincide por nombre con una venta ya enviada al lab que espera su nº real
+    // (borrador SML- de SmartLab) no es una alarma — es papeleo en curso. Se le
+    // da 24 h para que carguen el nº (el re-cruce lo engancha solo); si pasado
+    // ese plazo sigue suelto, sale en el aviso con la explicación, no como DUDOSO.
+    // No se marca alertado, así vuelve a evaluarse en cada corrida.
+    const EN_CAMINO_MS = 24 * 60 * 60 * 1000;
+    let triage = new Map<string, any>();
+    if (modo === 'urgente' && findings.length > 0) {
+        triage = new Map((await clasificarHuerfanos(findings).catch(() => [])).map((c: any) => [c.id, c]));
+        const enCamino = findings.filter(f => triage.get(f.id)?.tipo === 'VENTA_SMARTLAB'
+            && Date.now() - new Date(f.createdAt).getTime() < EN_CAMINO_MS);
+        if (enCamino.length > 0) {
+            console.log(`[LabCost] alertNewFindings: ${enCamino.length} pedido(s) sin alertar — su venta ya está enviada al lab y espera el nº real: ${enCamino.map(f => f.labOrderNumber).join(', ')}`);
+            const quedan = findings.filter(f => !enCamino.includes(f));
+            findings.length = 0;
+            findings.push(...quedan);
+        }
+        if (findings.length === 0) return { alerted: 0, enCamino: enCamino.length };
+    }
+
     // En local/desarrollo no se mandan emails (ruido al administrador con datos
     // de la base local); tampoco se marca alertado, así prod avisa igual.
     if (!emailsEnabled()) {
@@ -310,13 +376,12 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
     const total = findings.length;
     if (pendientes > 0) findings.length = MAX_FILAS;
 
-    // En el aviso de huérfanos, la última columna es el TRIAGE (de dónde puede
-    // haber salido ese pedido); en el resumen diario, el detalle de la entrada.
-    const triage = modo === 'urgente'
-        ? new Map((await clasificarHuerfanos(findings).catch(() => [])).map((c: any) => [c.id, c]))
-        : new Map();
+    // En el aviso de huérfanos, la última columna es el TRIAGE (ya calculado
+    // arriba, antes del filtro de "en camino"); en el resumen diario, el
+    // detalle de la entrada.
     const BADGE: Record<string, string> = {
         POSTVENTA: 'background:#dbeafe;color:#1d4ed8',
+        VENTA_SMARTLAB: 'background:#dbeafe;color:#1d4ed8',
         VENTA_SIN_NUMERO: 'background:#fef3c7;color:#92400e',
         DUDOSO: 'background:#fee2e2;color:#b91c1c;font-weight:bold',
     };
