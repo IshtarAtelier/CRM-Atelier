@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFileBuffer } from '@/lib/storage';
 import { isPathTraversalKey } from '@/lib/utils/storage';
+import { decrypt } from '@/lib/auth';
 import path from 'path';
+
+/**
+ * Seguridad (auditoría 20/8, A1): esta ruta está fuera del middleware a
+ * propósito (las imágenes del catálogo público viven acá y las pide cualquier
+ * visitante), pero el MISMO directorio guarda documentos sensibles: audios y
+ * fotos de chats de WhatsApp, recetas médicas y comprobantes. Servirlos sin
+ * sesión era una fuga de PII con solo conocer la key.
+ *
+ * Regla: si la key matchea un patrón sensible, exige cookie de sesión válida.
+ * El catálogo (avif/webp de productos) sigue público.
+ */
+const SENSITIVE_KEY = /_wa_|receta|receipt|comprobante|prescripcion|prescription|\.pdf$|\.ogg$/i;
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +35,14 @@ export async function GET(req: NextRequest) {
     if (isPathTraversalKey(cleanKey)) {
         return new NextResponse('Forbidden: Invalid key', { status: 403 });
     }
+    if (SENSITIVE_KEY.test(cleanKey)) {
+        const token = req.cookies.get('session')?.value;
+        const session = token ? await decrypt(token) : null;
+        if (!session?.id) {
+            return new NextResponse('No autorizado', { status: 401 });
+        }
+    }
+
     const storageDir = path.resolve(process.cwd(), 'storage', 'uploads');
     const resolvedPath = path.resolve(storageDir, cleanKey);
     // Con separador: sin él, "storage/uploads-otro" pasaría el startsWith.
@@ -54,7 +75,9 @@ export async function GET(req: NextRequest) {
         return new Response(buffer as any, {
             headers: {
                 'Content-Type': contentType,
-                'Cache-Control': 'public, max-age=31536000, immutable'
+                'Cache-Control': SENSITIVE_KEY.test(cleanKey)
+                    ? 'private, no-store'
+                    : 'public, max-age=31536000, immutable'
             }
         });
     } catch (error) {

@@ -171,6 +171,30 @@ export default function CierresCajaPage() {
         setSaving(false);
     };
 
+    // Rechazo de una rendición PENDING: los cobros vuelven al pendiente del
+    // vendedor para rendirse de nuevo (monto mal declarado / error de carga).
+    const rejectHandover = async (id: string) => {
+        const reason = window.prompt('Motivo del rechazo (queda registrado y se avisa por email):');
+        if (reason == null) return;
+        if (!reason.trim()) { notify('error', 'Indicá el motivo del rechazo.'); return; }
+        setSaving(true);
+        try {
+            const res = await fetch(`/api/cash/handovers/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'reject', reason: reason.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setConfirmingId(null);
+            notify('ok', 'Rendición rechazada — los cobros vuelven al pendiente del vendedor');
+            fetchAll();
+        } catch (e: any) {
+            notify('error', e.message || 'Error al rechazar');
+        }
+        setSaving(false);
+    };
+
     const submitArqueo = async () => {
         // Confirmación con resumen: el arqueo queda sellado, no puede ser un
         // click accidental. Muestra esperado, contado y diferencia antes de cerrar.
@@ -401,12 +425,22 @@ export default function CierresCajaPage() {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <button
-                                                onClick={() => { setConfirmingId(h.id); setCountedInput(''); }}
-                                                className="px-4 py-2.5 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shrink-0"
-                                            >
-                                                Contar y Confirmar
-                                            </button>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button
+                                                    onClick={() => { setConfirmingId(h.id); setCountedInput(''); }}
+                                                    className="px-4 py-2.5 bg-stone-900 dark:bg-white text-white dark:text-stone-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
+                                                >
+                                                    Contar y Confirmar
+                                                </button>
+                                                <button
+                                                    onClick={() => rejectHandover(h.id)}
+                                                    disabled={saving}
+                                                    title="Rechazar (los cobros vuelven al pendiente del vendedor)"
+                                                    className="px-3 py-2.5 border-2 border-red-200 text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-all disabled:opacity-50"
+                                                >
+                                                    Rechazar
+                                                </button>
+                                            </div>
                                         )
                                     )}
                                 </div>

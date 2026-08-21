@@ -19,7 +19,16 @@ export async function PATCH(
         }
 
         const { id } = await params;
-        const { countedAmount, notes } = await request.json();
+        const body = await request.json();
+
+        // Rechazo: PATCH con { action: 'reject', reason }. Los cobros vuelven
+        // al pendiente del vendedor (auditoría 20/8, M4).
+        if (body?.action === 'reject') {
+            const rejected = await CashService.rejectHandover(id, String(body.reason || ''), actor);
+            return NextResponse.json(rejected);
+        }
+
+        const { countedAmount, notes } = body;
         const parsed = Number(countedAmount);
         if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100_000_000) {
             return NextResponse.json({ error: 'Ingresá el monto contado (0 o más, sin ceros de más).' }, { status: 400 });

@@ -116,7 +116,7 @@ model CashHandover {
   id              String    @id @default(cuid())
   vendorId        String
   vendorName      String
-  status          String    @default("PENDING") // PENDING | CONFIRMED
+  status          String    @default("PENDING") // PENDING | CONFIRMED | REJECTED
   expectedAmount  Float // suma de cobros en efectivo del período según el sistema
   declaredAmount  Float // lo que el vendedor declara entregar
   countedAmount   Float? // lo que la encargada cuenta al recibir

@@ -1822,11 +1822,17 @@ export const ContactService = {
             const isCash = method === 'EFECTIVO' || method === 'CASH';
 
             // 1. Check for Duplicate notes/reference (manual entry / non-cash)
-            if (notes && notes.trim() && !isCash) {
+            // M5 (auditoría 20/8): solo referencias con pinta de identificador
+            // (≥5 caracteres y ≥3 dígitos) — una nota genérica ("seña", "pago 1")
+            // repetida entre clientes distintos acusaba duplicado en falso.
+            // Comparación case-insensitive para no dejar pasar el mismo número
+            // cargado con mayúsculas distintas.
+            const seemsReference = (v: string) => v.length >= 5 && (v.match(/\d/g) || []).length >= 3;
+            if (notes && notes.trim() && !isCash && seemsReference(notes.trim())) {
                 const cleanedNotes = notes.trim();
                 const duplicatePayment = await tx.payment.findFirst({
                     where: {
-                        notes: { equals: cleanedNotes }
+                        notes: { equals: cleanedNotes, mode: 'insensitive' }
                     },
                     include: {
                         order: { select: { client: { select: { name: true } } } }

@@ -1017,7 +1017,7 @@ export class OrderService {
                         select: { amount: true, method: true, receiptUrl: true }
                     },
                     client: {
-                        select: { email: true, birthDate: true }
+                        select: { email: true, birthDate: true, dni: true, address: true }
                     }
                 }
             });
@@ -1038,6 +1038,16 @@ export class OrderService {
                     // 0b. Birth date (dato obligatorio de la ficha para fabricar)
                     if (!orderForValidation.client?.birthDate) {
                         errors.push('El cliente debe tener la fecha de nacimiento cargada en su ficha para enviar a fábrica.');
+                    }
+
+                    // 0c. DNI y dirección: mismos obligatorios que el gate de
+                    // conversión a venta. Una orden que nació SALE (web) podía
+                    // llegar a fábrica sin datos de facturación (auditoría 20/8, M3).
+                    if (!orderForValidation.client?.dni?.trim()) {
+                        errors.push('El cliente debe tener el DNI cargado en su ficha para enviar a fábrica.');
+                    }
+                    if (!orderForValidation.client?.address?.trim()) {
+                        errors.push('El cliente debe tener la dirección cargada en su ficha para enviar a fábrica.');
                     }
 
                     // 1. Crystal validations

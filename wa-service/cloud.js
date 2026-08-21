@@ -63,16 +63,24 @@ if (!WA_API_KEY) {
     console.warn('⚠️ Ni BOT_API_KEY ni WA_API_KEY: la API queda ABIERTA. Avisando por email.');
     transport.notifyAdminDown('API del bot sin clave', 'El wa-service (API oficial) arrancó sin BOT_API_KEY ni WA_API_KEY. Setearla en Railway y redeployar.').catch(() => {});
 }
+
+// Comparación en tiempo constante (auditoría 20/8, B1)
+const __crypto = require('crypto');
+function keyOk(v) {
+    return typeof v === 'string' && WA_API_KEY
+        && Buffer.byteLength(v) === Buffer.byteLength(WA_API_KEY)
+        && __crypto.timingSafeEqual(Buffer.from(v), Buffer.from(WA_API_KEY));
+}
 app.use('/api', (req, res, next) => {
     if (!WA_API_KEY) return next();
-    if (req.headers['x-api-key'] === WA_API_KEY) return next();
+    if (keyOk(req.headers['x-api-key'])) return next();
     return res.status(401).json({ error: 'Unauthorized' });
 });
 
 // ── Auth socket.io (misma regla que index.js) ────────────────────────────────
 io.use((socket, next) => {
     if (!WA_API_KEY) return next();
-    if (socket.handshake.headers['x-api-key'] === WA_API_KEY) return next();
+    if (keyOk(socket.handshake.headers['x-api-key'])) return next();
     const quien = verificarSocketToken(socket.handshake.auth && socket.handshake.auth.token, WA_API_KEY);
     if (quien) { socket.data.user = quien; return next(); }
     console.warn(`[Socket Auth] Conexión rechazada desde ${socket.handshake.address || 'desconocida'}`);

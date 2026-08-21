@@ -1955,7 +1955,12 @@ if (!WA_API_KEY) {
 function apiAuth(req, res, next) {
     if (!WA_API_KEY) return next(); // Sin key configurada, permitir (modo legacy)
     const key = req.headers['x-api-key'];
-    if (key !== WA_API_KEY) {
+    // Comparación en tiempo constante (auditoría 20/8, B1)
+    const crypto = require('crypto');
+    const ok = typeof key === 'string'
+        && Buffer.byteLength(key) === Buffer.byteLength(WA_API_KEY)
+        && crypto.timingSafeEqual(Buffer.from(key), Buffer.from(WA_API_KEY));
+    if (!ok) {
         return res.status(401).json({ error: 'Unauthorized: Invalid API key' });
     }
     next();

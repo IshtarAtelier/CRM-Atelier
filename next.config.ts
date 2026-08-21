@@ -280,6 +280,12 @@ const nextConfig: NextConfig = {
       "connect-src 'self' https://* wss://*",
       "frame-src 'self' https://*",
       "media-src 'self' https://cdn.pixabay.com",
+      // Endurecimiento sin riesgo (auditoría 20/8, M1): ninguna integración usa
+      // <object>/<embed> ni reescribe <base>; la estricta ya los traía. Quitar
+      // unsafe-eval/inline de script-src queda para la promoción completa de la
+      // estricta, que exige validar el checkout Decidir con la Report-Only.
+      "object-src 'none'",
+      "base-uri 'self'",
     ].join('; ');
     return [
       {

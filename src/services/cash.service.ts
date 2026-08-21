@@ -243,7 +243,9 @@ export const CashService = {
         // fecha del pago (00:00 del día) sea menor que el timestamp de la última
         // rendición, que dejaba cobros de la tarde irrendibles para siempre.
         const priorHandovers = await prisma.cashHandover.findMany({
-            where: { vendorId },
+            // REJECTED no cuenta: sus cobros vuelven al pendiente para poder
+            // rendirse de nuevo con el monto correcto (auditoría 20/8, M4).
+            where: { vendorId, status: { in: ['PENDING', 'CONFIRMED'] } },
             select: { payments: true },
         });
         const renderedIds = new Set<string>();
@@ -519,6 +521,56 @@ export const CashService = {
         }
 
         return updated;
+    },
+
+
+    /**
+     * Rechaza una rendición PENDING (monto mal declarado, error de carga, o el
+     * vendedor nunca apareció con el efectivo). Sin esto, una PENDING eterna
+     * dejaba esos cobros fuera del pendiente para siempre (auditoría 20/8, M4).
+     * Los cobros vuelven al pool pendiente del vendedor (ver getVendorPendingCash).
+     */
+    async rejectHandover(id: string, reason: string, actor: Actor) {
+        const handover = await prisma.cashHandover.findUnique({ where: { id } });
+        if (!handover) throw new Error('Rendición no encontrada.');
+        if (handover.status !== 'PENDING') throw new Error('Solo se puede rechazar una rendición pendiente.');
+        if (handover.vendorId === actor.id) throw new Error('La rendición la tiene que rechazar otra persona (encargada de caja o admin), no quien entrega.');
+        const motivo = (reason || '').trim();
+        if (!motivo) throw new Error('Indicá el motivo del rechazo.');
+
+        const result = await prisma.cashHandover.updateMany({
+            where: { id, status: 'PENDING' },
+            data: {
+                status: 'REJECTED',
+                confirmedById: actor.id,
+                confirmedByName: actor.name,
+                confirmedAt: new Date(),
+                notes: [handover.notes, `Rechazada por ${actor.name}: ${motivo}`].filter(Boolean).join('\n'),
+            },
+        });
+        if (result.count === 0) throw new Error('Esta rendición ya fue procesada por otra persona.');
+
+        await logAudit({
+            userId: actor.id,
+            userName: actor.name,
+            action: 'STATUS_CHANGE',
+            entityType: 'CASH_HANDOVER',
+            entityId: id,
+            details: { rechazo: true, vendor: handover.vendorName, declaredAmount: handover.declaredAmount, motivo },
+        });
+
+        sendEmail({
+            to: ADMIN_EMAIL,
+            subject: `Rendición de ${handover.vendorName} RECHAZADA`,
+            text: `Se rechazó una rendición de efectivo:\n\n` +
+                `Vendedor: ${handover.vendorName}\n` +
+                `Declarado: $${Math.round(handover.declaredAmount).toLocaleString('es-AR')}\n` +
+                `Motivo: ${motivo}\n` +
+                `Rechazó: ${actor.name}\n\n` +
+                `Los cobros vuelven al pendiente del vendedor para rendirse de nuevo.`,
+        }).catch(e => console.error('Error enviando email de rechazo de rendición:', e));
+
+        return prisma.cashHandover.findUnique({ where: { id } });
     },
 
     async listHandovers(vendorId?: string) {
