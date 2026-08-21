@@ -14,6 +14,7 @@ import { getProductAttributes } from "@/utils/product-controllers";
 import { getTiendaCatalogo, type CatalogRow } from "@/lib/catalog/sources";
 import { parseFrameSpecs, pickDescriptiveAlt } from "@/lib/catalog/frame-specs";
 import type { CatalogOrigin } from "@/lib/catalog/resilience";
+import { armarNombreVisible } from "./display-name";
 
 export interface MappedWebProduct {
   id: string;
@@ -116,6 +117,11 @@ export async function getMappedWebCatalog(): Promise<{ products: MappedWebProduc
 
   const { data, origin } = await getTiendaCatalogo();
   const products = data.map(mapRow);
+
+  // Sufijo de color solo cuando hay más de un color del mismo estelar visible:
+  // "Gaia C1" única → "Gaia"; con dos Gaias, ambas conservan su C1/C2.
+  const visible = armarNombreVisible(products.map((p) => p.model));
+  for (const p of products) p.model = visible(p.model);
 
   // Solo cachear lecturas vivas: un fallback cacheado taparía la recuperación
   // de la DB durante 180s.

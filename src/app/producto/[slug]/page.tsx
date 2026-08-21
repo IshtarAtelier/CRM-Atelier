@@ -11,6 +11,7 @@ export const revalidate = 300;
 import { ProductClient } from './ProductClient';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { resolveStorageUrl } from "@/lib/utils/storage";
+import { armarNombreVisible, baseDelNombre } from '@/lib/catalog/display-name';
 
 // Slugs históricos de productos renombrados (julio 2026): la URL vieja redirige a la definitiva
 const LEGACY_SLUGS: Record<string, string> = {
@@ -54,10 +55,31 @@ const getProduct = cache(async (slug: string) => {
     });
 
     if (webProduct && webProduct.isActive) {
+      // Nombre visible: sin sufijo de color si este estelar tiene una sola
+      // variante activa (misma regla que la grilla — ver display-name.ts).
+      const nombreCrudo = webProduct.name || webProduct.product.model || '';
+      const base = baseDelNombre(nombreCrudo);
+      let nombreVisible = nombreCrudo;
+      if (base && base !== nombreCrudo) {
+        // startsWith es un pre-filtro barato; la igualdad real de estelar la
+        // decide baseDelNombre ("Gaia" no debe contar a "Gaiana C1").
+        const candidatos = await prisma.webProduct.findMany({
+          where: {
+            isActive: true,
+            name: { startsWith: base, mode: 'insensitive' },
+            product: { publishToWeb: true },
+          },
+          select: { name: true },
+        });
+        const nombres = candidatos
+          .map((c) => c.name || '')
+          .filter((n) => baseDelNombre(n).toLowerCase() === base.toLowerCase());
+        nombreVisible = armarNombreVisible(nombres.length > 0 ? nombres : [nombreCrudo])(nombreCrudo);
+      }
       return {
         id: webProduct.product.id,
         brand: webProduct.product.brand || 'ATELIER',
-        model: webProduct.name || webProduct.product.model || '',
+        model: nombreVisible,
         modelCode: webProduct.product.model,
         price: webProduct.product.price,
         salePrice: webProduct.product.salePrice,
