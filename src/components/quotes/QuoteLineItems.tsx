@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 import LineaColorEditor from './LineaColorEditor';
+import { pick2x1FrameDiscount } from '@/lib/promo-utils';
 
 interface QuoteLineItemsProps {
     items: any[];
@@ -34,29 +35,25 @@ export default function QuoteLineItems({
     const hasPromo = appliedPromoName && (appliedPromoName.includes('2x1') || appliedPromoName.includes('Bonificado'));
 
     // Cuál armazón va bonificado (solo para mostrarlo; la plata la calcula
-    // PricingService).
-    //
-    // Se cuenta por UNIDADES, no por líneas: dos armazones iguales entran como
-    // una sola línea con cantidad 2, y mirando líneas ese caso no encontraba
-    // "dos armazones" y no marcaba ninguno — o peor, marcaba la línea entera
-    // como sin cargo cuando uno de los dos sí se cobra.
+    // PricingService). Sale de pick2x1FrameDiscount — el MISMO módulo que pone
+    // la plata — así la insignia nunca puede señalar un armazón distinto del
+    // que el total descontó (la copia anterior seguía la regla vieja del
+    // "segundo más caro" y marcaba mal la mezcla tildado + sin tildar).
+    // Para productos borrados el ítem cae a sus snapshots, que no traen el
+    // tilde: sin tilde no hay insignia, igual que no hubo descuento.
     const bonifiedItemId = React.useMemo(() => {
         if (!hasPromo || !items || items.length === 0) return null;
-
-        const frames = items.filter(it => {
-            const cat = (it.product?.category || it.productCategorySnapshot || '').toLowerCase();
-            const type = (it.product?.type || it.productTypeSnapshot || '').toLowerCase();
-            return cat === 'frame' || cat === 'atelier' || cat === 'sunglass'
-                || cat.includes('armaz') || type.includes('armazon') || type.includes('marco');
-        });
-
-        // Una unidad por anteojo, igual que en el cotizador.
-        const unidades = frames.flatMap(f => Array.from({ length: f.quantity || 1 }, () => f));
-        if (unidades.length < 2) return null;
-
-        // El segundo más caro es el bonificado (mismo criterio que PricingService).
-        const ordenadas = [...unidades].sort((a, b) => b.price - a.price);
-        return ordenadas[1]?.id ?? null;
+        const promo = pick2x1FrameDiscount(items.map(it => ({
+            ...it,
+            product: it.product || {
+                category: it.productCategorySnapshot,
+                type: it.productTypeSnapshot,
+                name: it.productNameSnapshot,
+                brand: it.productBrandSnapshot,
+            },
+            __orig: it,
+        })));
+        return promo.item?.__orig?.id ?? null;
     }, [items, hasPromo]);
 
     return (

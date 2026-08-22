@@ -6,6 +6,7 @@ import { PRODUCT_CATEGORIES } from '@/lib/constants';
 
 import { autoCorrectLab, getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial } from '@/utils/product-controllers';
 import { computeFinalLensCost, findLabConfig } from '@/lib/lens-cost';
+import { puedeEntrarEn2x1 } from '@/lib/promo-utils';
 
 interface ProductFormProps {
     onClose: () => void;
@@ -89,13 +90,15 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
     const activeCategory = PRODUCT_CATEGORIES.find(c => c.id === selectedCategory);
     const hasSubtypes = !!(activeCategory?.subtypes?.length);
     const isCristal = selectedCategory === 'Cristal';
-    // El bonificado de un 2x1 es algo que el cliente se pone: armazón de receta
-    // o lente de sol. Arranca sin tildar en los dos casos.
-    const isArmazon = selectedCategory === 'Armazón de Receta' || selectedCategory === 'Lentes de Sol';
     const isRequestedToLab = (selectedCategory === 'Cristal' && formData.origin === 'LABORATORIO') || selectedCategory === 'Tratamiento';
     const finalType = hasSubtypes && selectedSubtype
         ? `${selectedCategory} ${selectedSubtype}`
         : selectedCategory;
+    // El bonificado de un 2x1 es algo que el cliente se pone: armazón de receta
+    // o lente de sol. MISMO criterio que la pantalla de edición de Stock
+    // (puedeEntrarEn2x1) — con dos reglas distintas, un producto con categoría
+    // legacy mostraba el tilde en una pantalla y lo perdía al guardarlo en la otra.
+    const isArmazon = puedeEntrarEn2x1({ type: finalType, category: selectedCategory });
     const canContinue = selectedCategory && (!hasSubtypes || selectedSubtype);
 
     const handleSingleSubmit = async (e: React.FormEvent) => {

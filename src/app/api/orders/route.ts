@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/db';
 import { auditarPreciosBajoLista } from '@/services/order.service';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
-import { isMultifocal2x1, recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
+import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { descuentoNegativo, excedeTopeVendedor } from '@/lib/constants/descuentos';
@@ -82,26 +82,14 @@ export async function POST(request: Request) {
         }));
 
 
-        // Fetch all products for Atelier average price calculation (only if needed by a 2x1 promo)
-        const hasPromo = cartItems.some((it: any) => isMultifocal2x1(it.product));
-        let allProducts: any[] = [];
-        if (hasPromo) {
-            allProducts = await prisma.product.findMany({
-                where: { 
-                    OR: [
-                        { brand: { contains: 'Atelier' } },
-                        { name: { contains: 'Atelier' } },
-                        { category: 'FRAME' }
-                    ]
-                }
-            });
-        }
-
+        // El armazón bonificado sale del tilde de cada producto (ya viene en los
+        // ítems): la promo no necesita el catálogo. Acá vivía un findMany de
+        // todos los "Atelier" para un promedio que la regla nueva ya no usa.
         const totals = calculateQuoteTotals(
             cartItems,
             markup || 0,
             discountCash || 0,
-            allProducts,
+            [],
             cleanSpecialDiscount
         );
 
@@ -158,7 +146,7 @@ export async function POST(request: Request) {
                             crystalColor: true, crystalColorType: true, crystalColorNote: true, framePosition: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                             laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
-                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true, origin: true } }
+                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true, origin: true, is2x1: true, eligible2x1: true } }
                         }
                     },
                 }
@@ -243,7 +231,7 @@ export async function POST(request: Request) {
                             crystalColor: true, crystalColorType: true, crystalColorNote: true, framePosition: true,
                             productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                             laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
-                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true, origin: true } }
+                            product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, lensIndex: true, origin: true, is2x1: true, eligible2x1: true } }
                         }
                     },
                 }
@@ -485,7 +473,7 @@ export async function GET(request: Request) {
                     crystalColor: true, crystalColorType: true, crystalColorNote: true, framePosition: true,
                     productNameSnapshot: true, productBrandSnapshot: true, productCategorySnapshot: true,
                     laboratorySnapshot: true, productCostSnapshot: true, productTypeSnapshot: true, productLensIndexSnapshot: true, productUnitTypeSnapshot: true, productOriginSnapshot: true,
-                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true, lensIndex: true, origin: true } }
+                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, unitType: true, laboratory: true, lensIndex: true, origin: true, is2x1: true, eligible2x1: true } }
                 }
             },
             payments: { select: { id: true, amount: true, method: true, date: true, notes: true, receiptUrl: true } },

@@ -36,18 +36,6 @@ export const isMultifocal2x1 = (p: any): boolean => {
 };
 
 /**
- * Detects if a frame is from the Atelier brand or should be treated as such.
- */
-export const isAtelierFrame = (p: any): boolean => {
-    if (!p) return false;
-    const brand = (p.brand || '').toLowerCase();
-    const name = (p.name || '').toLowerCase();
-    const category = (p.category || '').toLowerCase();
-    
-    return brand.includes('atelier') || name.includes('atelier') || category === 'atelier' || category === 'atelier de receta';
-};
-
-/**
  * ¿A este producto se le puede tildar "entra en el 2x1"?
  *
  * Son los que se le ponen en la cara al cliente: armazones de receta y lentes
@@ -57,7 +45,10 @@ export const isAtelierFrame = (p: any): boolean => {
 export const puedeEntrarEn2x1 = (p: any): boolean => {
     if (!p) return false;
     const t = normalizeText(`${p.type || ''} ${p.category || ''}`);
-    return t.includes('armazon') || t.includes('marco') || t.includes('frame') || t.includes('sol');
+    // 'sol' se compara por PALABRA: "Solución de limpieza" contiene 'sol' y no
+    // es algo que se le pueda regalar a nadie en un 2x1.
+    const palabras = t.split(/\s+/);
+    return t.includes('armazon') || t.includes('marco') || t.includes('frame') || palabras.includes('sol');
 };
 
 /**
@@ -170,6 +161,43 @@ export const safePrice = (price: any): number => {
 };
 
 /**
+ * Arma los renglones de carrito para un cristal recién agregado (siempre entra
+ * como par: OD + OI, cada ojo a la mitad del precio de lista del par).
+ *
+ * Si el cristal tiene el 2x1 (y no es Mi Primer Varilux), el SEGUNDO par se
+ * agrega solo, sin cargo — es lo que la promo promete, así que el cotizador lo
+ * pone de entrada. Cada renglón se puede editar o borrar: si el cliente no
+ * quiere el segundo par, se saca de la lista y al guardar el server recobra
+ * el par restante completo (recalculateCrystalPrices no regala pares sueltos).
+ *
+ * Usado por los DOS cotizadores (ficha y página) — un solo lugar arma esto.
+ */
+export const armarParesDeCristal = (product: any, prevItems: any[] = []): any[] => {
+    const sprice = safePrice(product?.price);
+    const porOjo = Math.round(sprice / 2);
+    const ts = Date.now();
+    const par = (precio: number, esPromo: boolean, off: number) => ([
+        { product, quantity: 1, customPrice: precio, eye: 'OD', isPromo: esPromo, uid: ts + off },
+        { product, quantity: 1, customPrice: precio, eye: 'OI', isPromo: esPromo, uid: ts + off + 1 },
+    ]);
+    const es2x1 = isMultifocal2x1(product) && !isMiPrimerVarilux(product);
+    if (!es2x1) return par(porOjo, false, 0);
+
+    // ¿El carrito ya tiene un par 2x1 sin compañero? Pasa cuando borraron el
+    // segundo par automático para cambiarlo por otra variante (un Transitions
+    // con un Orma blanco se combinan: la promo es por PAR, no por variante).
+    // En ese caso este agregado ES el segundo par — no se le suma otro gratis.
+    // Los precios finales los pone recalculateCrystalPrices (cobra el par más
+    // caro y regala el más barato), acá solo importa cuántos renglones entran.
+    const pares2x1Existentes = prevItems.filter(it =>
+        it?.eye === 'OD' && isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product)
+    ).length;
+    if (pares2x1Existentes % 2 !== 0) return par(0, true, 0);
+
+    return [...par(porOjo, false, 0), ...par(0, true, 2)];
+};
+
+/**
  * ── Regla canónica del 2x1 de multifocales ──────────────────────────────────
  * Los DOS lugares que mueven plata con esta promo (PricingService para totales
  * y recalculateCrystalPrices para los cristales) leen de acá. Si la regla
@@ -183,9 +211,21 @@ export const safePrice = (price: any): number => {
  */
 export const hasActive2x1Promo = (items: any[]): boolean => {
     if (!Array.isArray(items)) return false;
-    return items.some(
-        it => it && isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product)
-    );
+    // La promo pide el PAR completo: un solo ojo (reposición de un cristal
+    // roto, caso real) no es un 2x1 y no puede bonificar ningún armazón.
+    // Un ítem sin ojo asignado cuenta como par: los cristales se venden POR PAR
+    // y así llegan cuando el server recalcula (sus selects no traen `eye`).
+    const ojos: Record<string, { od: boolean; oi: boolean }> = {};
+    for (const it of items) {
+        if (!it || !isCrystal(it.product) || !isMultifocal2x1(it.product) || isMiPrimerVarilux(it.product)) continue;
+        if (it.eye !== 'OD' && it.eye !== 'OI') return true; // sin ojo = par entero
+        const pid = it.product?.id || 'unknown';
+        ojos[pid] = ojos[pid] || { od: false, oi: false };
+        if (it.eye === 'OD') ojos[pid].od = true;
+        else ojos[pid].oi = true;
+        if (ojos[pid].od && ojos[pid].oi) return true;
+    }
+    return false;
 };
 
 /**
@@ -219,7 +259,8 @@ export const pick2x1FrameDiscount = (
 
     const candidatos = (items || []).flatMap(it => {
         if (!it || (!isFrame(it.product) && !isFrameEligible2x1(it.product))) return [];
-        return Array.from({ length: it.quantity || 1 }).map(() => it);
+        // Tope defensivo: la cantidad viene del cliente y acá dimensiona un array.
+        return Array.from({ length: Math.min(it.quantity || 1, 100) }).map(() => it);
     });
 
     const tildados = candidatos.filter(it => isFrameEligible2x1(it.product));

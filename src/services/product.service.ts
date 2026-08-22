@@ -2,6 +2,14 @@ import { prisma } from '@/lib/db';
 import { autoCorrectBrand, autoCorrectLab, autoCorrectIndex } from '@/utils/product-controllers';
 import { requireValidCost } from '@/lib/product-cost-guard';
 import { invalidateWebCatalog } from '@/lib/catalog/tienda-map';
+import { puedeEntrarEn2x1 } from '@/lib/promo-utils';
+
+// El tilde "entra en el 2x1" mueve plata (decide si un armazón se regala o va
+// al 50%). Solo puede quedar prendido en lo que la promo puede bonificar:
+// armazones y lentes de sol. El gate del formulario es de cortesía — este es
+// el que vale, para que una llamada armada a mano no tilde un cristal.
+const eligible2x1Permitido = (valor: any, tipo: any, categoria: any): boolean =>
+    valor === true && puedeEntrarEn2x1({ type: tipo, category: categoria });
 
 export const ProductService = {
     async getAll() {
@@ -47,7 +55,7 @@ export const ProductService = {
                 additionMin: data.additionMin != null ? parseFloat(data.additionMin) : null,
                 additionMax: data.additionMax != null ? parseFloat(data.additionMax) : null,
                 is2x1: data.is2x1 === true,
-                eligible2x1: data.eligible2x1 === true,
+                eligible2x1: eligible2x1Permitido(data.eligible2x1, data.type, data.category),
                 publishToWeb: data.publishToWeb === true,
                 publishToWholesale: data.publishToWholesale === true,
                 seoTitle: data.seoTitle,
@@ -69,6 +77,16 @@ export const ProductService = {
         return product;
     },
     async update(id: string, data: any) {
+        // Validar el tilde del 2x1 contra el tipo/categoría FINAL del producto:
+        // los del payload si vienen, si no los que ya están guardados.
+        if (data.eligible2x1 === true && (data.type === undefined || data.category === undefined)) {
+            const actual = await prisma.product.findUnique({ where: { id }, select: { type: true, category: true } });
+            if (!eligible2x1Permitido(true, data.type ?? actual?.type, data.category ?? actual?.category)) {
+                data = { ...data, eligible2x1: false };
+            }
+        } else if (data.eligible2x1 === true && !eligible2x1Permitido(true, data.type, data.category)) {
+            data = { ...data, eligible2x1: false };
+        }
         const product = await prisma.product.update({
             where: { id },
             data: {
@@ -145,7 +163,7 @@ export const ProductService = {
                     additionMin: item.additionMin != null ? parseFloat(item.additionMin) : null,
                     additionMax: item.additionMax != null ? parseFloat(item.additionMax) : null,
                     is2x1: item.is2x1 === true,
-                    eligible2x1: item.eligible2x1 === true,
+                    eligible2x1: eligible2x1Permitido(item.eligible2x1, item.type, item.category),
                     publishToWeb: item.publishToWeb === true,
                     publishToWholesale: item.publishToWholesale === true,
                     origin: item.origin,

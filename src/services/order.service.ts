@@ -269,6 +269,11 @@ export class OrderService {
                                 lensIndex: true,
                                 laboratory: true,
                                 origin: true,
+                                // Sin estos dos, el cotizador que reabre esta
+                                // venta calcula la promo 2x1 como si nada
+                                // estuviera tildado y muestra otro total.
+                                is2x1: true,
+                                eligible2x1: true,
                             }
                         }
                     }
@@ -783,26 +788,14 @@ export class OrderService {
                 // Firma y aviso de precios bajo lista (no bloquea; ver helper)
                 auditarPreciosBajoLista(id, items, dbProducts, userName || 'Sistema');
 
-                // Fetch Atelier average price products if promo active
-                const hasPromo = cartItems.some((it: any) => it.product?.is2x1);
-                let allProducts: any[] = [];
-                if (hasPromo) {
-                    allProducts = await prisma.product.findMany({
-                        where: { 
-                            OR: [
-                                { brand: { contains: 'Atelier' } },
-                                { name: { contains: 'Atelier' } },
-                                { category: 'FRAME' }
-                            ]
-                        }
-                    });
-                }
-
+                // El armazón bonificado sale del tilde que ya viene en los ítems:
+                // la promo no necesita el catálogo (acá vivía el findMany del
+                // "promedio Atelier" que la regla nueva ya no usa).
                 const totals = calculateQuoteTotals(
                     cartItems, 
                     finalMarkup || 0, 
                     finalDiscountCash || 0, 
-                    allProducts,
+                    [],
                     specialDiscount !== undefined ? specialDiscount : (currentOrder.specialDiscount || 0)
                 );
 
@@ -2155,7 +2148,7 @@ export class OrderService {
                                     // esta rama para stock y precios.
                                     ...SELECT_ITEMS_REPASO,
                                     sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true, pdVal: true, heightVal: true, prismVal: true,
-                                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true, is2x1: true, imagenesCatalogo: true } },
+                                    product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true, is2x1: true, eligible2x1: true, imagenesCatalogo: true } },
                                 }
                             },
                             payments: true,
@@ -2431,7 +2424,7 @@ export class OrderService {
                     select: {
                         id: true, price: true, quantity: true, eye: true,
                         sphereVal: true, cylinderVal: true, axisVal: true, additionVal: true,
-                        product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true } }
+                        product: { select: { id: true, name: true, brand: true, model: true, category: true, type: true, price: true, stock: true, is2x1: true, eligible2x1: true } }
                     }
                 },
                 payments: true,

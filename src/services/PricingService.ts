@@ -230,7 +230,10 @@ export const calculateQuoteTotals = (
         productId: i.productId || null,
         product: i.product,
         quantity: i.quantity,
-        price: i.customPrice || i.price
+        // `??` y no `||`: un customPrice de $0 (línea bonificada o pisada a mano)
+        // es un precio válido, no una ausencia — con `||` caía al precio de lista
+        // y el total no coincidía con lo que mostraban los renglones.
+        price: i.customPrice ?? i.price
     }));
 
     const result = PricingService.calculateTotals(cartItems, markup, discountCash, availableProducts || [], specialDiscount);

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Search, Plus } from 'lucide-react';
-import { safePrice, isCrystal } from '@/lib/promo-utils';
+import { safePrice, isCrystal, puedeEntrarEn2x1, isFrameEligible2x1 } from '@/lib/promo-utils';
 import { formatLensRange } from '@/lib/lens-range';
 
 interface CartSearchProps {
@@ -10,13 +10,17 @@ interface CartSearchProps {
     setSearchQuery: (val: string) => void;
     results: any[];
     onSelect: (product: any) => void;
+    /** Si el carrito ya tiene un cristal con 2x1: los armazones del resultado
+     *  muestran si entran o no en la promo. Sin promo activa no se marca nada. */
+    promo2x1Activa?: boolean;
 }
 
 export default function CartSearch({
     searchQuery,
     setSearchQuery,
     results,
-    onSelect
+    onSelect,
+    promo2x1Activa = false
 }: CartSearchProps) {
     return (
         <div className="mb-6 relative group/search">
@@ -51,6 +55,17 @@ export default function CartSearch({
                                     </p>
                                 )}
                             </div>
+                            {promo2x1Activa && puedeEntrarEn2x1(p) && (
+                                isFrameEligible2x1(p) ? (
+                                    <span className="shrink-0 mr-3 text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 px-2 py-1 rounded-lg">
+                                        🎁 Entra en 2x1
+                                    </span>
+                                ) : (
+                                    <span className="shrink-0 mr-3 text-[9px] font-black uppercase tracking-wider text-stone-400 bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 px-2 py-1 rounded-lg">
+                                        No entra en 2x1
+                                    </span>
+                                )
+                            )}
                             <div className="flex items-center gap-3">
                                 <span className="text-xs font-bold text-primary">${safePrice(p.price).toLocaleString()}</span>
                                 <div className="w-6 h-6 bg-primary text-white rounded-lg flex items-center justify-center scale-0 group-hover/item:scale-100 transition-all">

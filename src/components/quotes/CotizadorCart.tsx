@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Save, Loader2, 
     Gift, CheckCircle2
 } from 'lucide-react';
 import { 
     isMultifocal2x1, isCrystal, isFrame, safePrice,
-    hasActive2x1Promo, pick2x1FrameDiscount
+    hasActive2x1Promo, pick2x1FrameDiscount, isFrameEligible2x1,
+    armarParesDeCristal, recalculateCrystalPrices
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -93,6 +94,16 @@ export default function CotizadorCart({
 
     const [fullSearch, setFullSearch] = useState('');
     const [frameSearch, setFrameSearch] = useState('');
+
+    // Re-precio de cristales en cada cambio del carrito, con la MISMA función
+    // que usa el server al guardar (recalculateCrystalPrices): así una mezcla
+    // de variantes 2x1 (Transitions + Orma blanco) o el borrado del par gratis
+    // siempre cobran el par más caro y regalan el más barato — acá y al guardar.
+    // La función devuelve false cuando no cambió nada, así que no cicla.
+    useEffect(() => {
+        const copia = items.map(it => ({ ...it }));
+        if (recalculateCrystalPrices(copia)) setItems(copia);
+    }, [items, setItems]);
 
     // Logic memoization
     const hasMultifocalPromo = useMemo(() => {
@@ -214,19 +225,9 @@ export default function CotizadorCart({
                 }
             }
 
-            setItems(prev => {
-                const is2x1 = isMultifocal2x1(product);
-                const existingPairsFiltered = prev.filter(it => it.product?.id === product.id && it.eye === 'OD');
-                const ts = Date.now();
-                const sprice = safePrice(product.price);
-                const isFree = is2x1 && existingPairsFiltered.length % 2 !== 0;
-                const currentPrice = isFree ? 0 : Math.round(sprice / 2);
-                return [
-                    ...prev,
-                    { product, quantity: 1, customPrice: currentPrice, eye: 'OD', isPromo: isFree, uid: ts },
-                    { product, quantity: 1, customPrice: currentPrice, eye: 'OI', isPromo: isFree, uid: ts + 1 }
-                ];
-            });
+            // El par (y el segundo par gratis si el cristal es 2x1) se arma en
+            // promo-utils — mismo helper que la página del cotizador.
+            setItems(prev => [...prev, ...armarParesDeCristal(product, prev)]);
         } else {
             setItems(prev => [...prev, { product, quantity: 1, customPrice: safePrice(product.price), uid: Date.now() }]);
             if (isFrame(product)) {
@@ -255,7 +256,7 @@ export default function CotizadorCart({
                 )}
             </header>
 
-            <CartSearch searchQuery={fullSearch} setSearchQuery={setFullSearch} results={fullSearchResults} onSelect={handleAddItem} />
+            <CartSearch searchQuery={fullSearch} setSearchQuery={setFullSearch} results={fullSearchResults} onSelect={handleAddItem} promo2x1Activa={hasMultifocalPromo} />
 
             <CartLineItems 
                 items={items} 
@@ -316,7 +317,7 @@ export default function CotizadorCart({
                         <div className="relative mb-1">
                             <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500" />
                             <input type="text" placeholder="Buscar armazón..." value={frameSearch} onChange={e => setFrameSearch(e.target.value)} className="w-full bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 pl-11 pr-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
-                            {frameResults.length > 0 && <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">{frameResults.map(fr => <button key={fr.id} onClick={() => { setItems(prev => [...prev, { product: fr, quantity: 1, customPrice: fr.price, uid: Date.now() }]); setFrameSearch(''); }} className="p-2.5 bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 rounded-lg text-left text-xs font-semibold hover:border-amber-400 dark:hover:border-amber-500 transition-colors">{fr.brand} · {fr.name}</button>)}</div>}
+                            {frameResults.length > 0 && <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">{frameResults.map(fr => <button key={fr.id} onClick={() => { setItems(prev => [...prev, { product: fr, quantity: 1, customPrice: fr.price, uid: Date.now() }]); setFrameSearch(''); }} className="p-2.5 bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 rounded-lg text-left text-xs font-semibold hover:border-amber-400 dark:hover:border-amber-500 transition-colors flex items-center justify-between gap-2"><span>{fr.brand} · {fr.name}</span>{hasMultifocalPromo && (isFrameEligible2x1(fr) ? <span className="shrink-0 text-[8px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md">🎁 2x1</span> : <span className="shrink-0 text-[8px] font-black uppercase tracking-wider text-stone-400 bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 rounded-md">No entra</span>)}</button>)}</div>}
                         </div>
                     )}
                     {frameSource === 'USUARIO' && (

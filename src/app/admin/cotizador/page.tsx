@@ -31,10 +31,10 @@ import QuoteSummary from '@/components/quotes/QuoteSummary';
 import {
     isCrystal,
     getCategoryKey,
-    isMultifocal2x1,
     safePrice,
     recalculateCrystalPrices,
-    applyTeñidoPromoDiscount
+    applyTeñidoPromoDiscount,
+    armarParesDeCristal
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals } from '@/services/PricingService';
 import {
@@ -438,22 +438,9 @@ function CotizadorPageContent() {
         }
         
         if (isCrystal(p)) {
-            // Split crystal into OD/OI automatically
-            setQuoteItems(prev => {
-                const is2x1 = isMultifocal2x1(p);
-                const existingPairs = prev.filter(i => i.product?.id === p.id && i.eye === 'OD').length;
-
-                // Lógica de precio: El primer par se cobra, el segundo es gratis ($0), el tercero se cobra, etc.
-                const isFree = is2x1 && existingPairs % 2 !== 0;
-                const currentPrice = isFree ? 0 : Math.round(sprice / 2);
-
-                const ts = Date.now();
-                return [
-                    ...prev,
-                    { product: p, quantity: 1, customPrice: currentPrice, eye: 'OD', isPromo: isFree, uid: ts },
-                    { product: p, quantity: 1, customPrice: currentPrice, eye: 'OI', isPromo: isFree, uid: ts + 1 }
-                ];
-            });
+            // El par OD/OI (y el segundo par gratis si es 2x1) se arma en
+            // promo-utils — mismo helper que el carrito de la ficha.
+            setQuoteItems(prev => [...prev, ...(armarParesDeCristal(p, prev) as any[])]);
         } else {
             setQuoteItems(prev => {
                 const existing = prev.find(i => i.product?.id === p.id);
@@ -465,6 +452,14 @@ function CotizadorPageContent() {
             });
         }
     };
+
+    // Re-precio de cristales en cada cambio del carrito, con la MISMA función
+    // que usa el server al guardar: mezclas de variantes 2x1 y borrados del par
+    // gratis siempre cobran el par más caro. Devuelve false si no cambió nada.
+    useEffect(() => {
+        const copia = quoteItems.map(it => ({ ...it }));
+        if (recalculateCrystalPrices(copia)) setQuoteItems(copia);
+    }, [quoteItems]);
 
     // Calculate totals including 2x1 promo frame discount
     const quoteTotals = calculateQuoteTotals(quoteItems, markup, discountCash, products, specialDiscount);

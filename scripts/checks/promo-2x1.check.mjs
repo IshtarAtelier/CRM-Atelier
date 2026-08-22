@@ -23,11 +23,11 @@
 
 import assert from 'node:assert/strict';
 import { PricingService } from '../../src/services/PricingService.ts';
-import { hasActive2x1Promo, pick2x1FrameDiscount } from '../../src/lib/promo-utils.ts';
+import { hasActive2x1Promo, pick2x1FrameDiscount, recalculateCrystalPrices, armarParesDeCristal } from '../../src/lib/promo-utils.ts';
 
-const cristal2x1 = (eye) => ({ product: { id: 'c' + eye, category: 'Cristal', type: 'Cristal Multifocal', name: 'Varilux Comfort', is2x1: true }, quantity: 1, price: 305167, eye });
-const cristalComun = (eye) => ({ product: { id: 'm' + eye, category: 'Cristal', type: 'Cristal Monofocal', name: 'Monofocal Orma', is2x1: false }, quantity: 1, price: 80000, eye });
-const miPrimerVarilux = (eye) => ({ product: { id: 'v' + eye, category: 'Cristal', type: 'Cristal Multifocal', name: 'Mi Primer Varilux', is2x1: true }, quantity: 1, price: 200000, eye });
+const cristal2x1 = (eye) => ({ product: { id: 'c2x1', category: 'Cristal', type: 'Cristal Multifocal', name: 'Varilux Comfort', is2x1: true }, quantity: 1, price: 305167, eye });
+const cristalComun = (eye) => ({ product: { id: 'comun', category: 'Cristal', type: 'Cristal Monofocal', name: 'Monofocal Orma', is2x1: false }, quantity: 1, price: 80000, eye });
+const miPrimerVarilux = (eye) => ({ product: { id: 'mpv', category: 'Cristal', type: 'Cristal Multifocal', name: 'Mi Primer Varilux', is2x1: true }, quantity: 1, price: 200000, eye });
 const armazon = (id, name, price, tildado, extra = {}) => ({ product: { id, category: 'Armazón de Receta', type: 'Armazón de Receta', brand: 'Atelier', name, eligible2x1: tildado, ...extra }, quantity: 1, price });
 const lenteSol = (id, name, price, tildado) => ({ product: { id, category: 'Lentes de Sol', type: 'Lentes de Sol', brand: 'Vulk', name, eligible2x1: tildado }, quantity: 1, price });
 
@@ -56,7 +56,7 @@ const casos = [
         () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, true), lenteSol('s1', 'Sol', 90000, true)]), 90000)],
     ['el nombre de la promo avisa el 50% en la mezcla',
         () => {
-            const r = pick2x1FrameDiscount([cristal2x1('OD'), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 120000, true)]);
+            const r = pick2x1FrameDiscount([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 120000, true)]);
             assert.ok(r.itemName?.includes('(50%)'), `itemName fue: ${r.itemName}`);
         }],
     ['armazón del cliente + UN armazón tildado comprado: 50%',
@@ -73,10 +73,39 @@ const casos = [
         () => {
             const r = pick2x1FrameDiscount([
                 { ...cristal2x1('OD'), customPrice: 305167 },
+                { ...cristal2x1('OI'), customPrice: 305167 },
                 { product: armazon('f1', 'A', 0, true).product, quantity: 1, customPrice: 160000 },
                 { product: armazon('f2', 'B', 0, true).product, quantity: 1, customPrice: 110000 },
             ]);
             assert.equal(r.discount, 110000);
+        }],
+    ['medio par (un solo ojo, reposición) NO enciende la promo',
+        () => {
+            assert.equal(hasActive2x1Promo([cristal2x1('OD')]), false);
+            assert.equal(descuento([cristal2x1('OD'), armazon('f1', 'A', 120000, true)]), 0);
+        }],
+    ['ítem 2x1 sin ojo asignado cuenta como par entero (recálculo del server)',
+        () => assert.equal(hasActive2x1Promo([{ product: cristal2x1('OD').product, quantity: 1, price: 610334 }]), true)],
+    ['mezcla de variantes 2x1: se cobra el par más caro, va gratis el barato',
+        () => {
+            const caro = (eye) => ({ product: { id: 'T', category: 'Cristal', type: 'Cristal Multifocal', name: 'Varilux Transitions 2x1', is2x1: true, price: 610334 }, quantity: 1, price: 0, eye });
+            const barato = (eye) => ({ product: { id: 'B', category: 'Cristal', type: 'Cristal Multifocal', name: 'Varilux Orma 2x1', is2x1: true, price: 400000 }, quantity: 1, price: 0, eye });
+            const items = [caro('OD'), caro('OI'), barato('OD'), barato('OI')];
+            recalculateCrystalPrices(items);
+            assert.equal(items[0].price + items[1].price, 610334); // el caro, pagado
+            assert.equal(items[2].price + items[3].price, 0);      // el barato, gratis
+        }],
+    ['agregar un cristal 2x1 arma solo el segundo par gratis (borrable)',
+        () => {
+            const renglones = armarParesDeCristal(cristal2x1('OD').product, []);
+            assert.equal(renglones.length, 4); // par pagado + par gratis
+            assert.equal(renglones.filter(r => r.isPromo && r.customPrice === 0).length, 2);
+        }],
+    ['si ya hay un par 2x1 sin compañero, el agregado ES el segundo par (no suma otro gratis)',
+        () => {
+            const prev = armarParesDeCristal(cristal2x1('OD').product, []).slice(0, 2); // borraron el par gratis
+            const renglones = armarParesDeCristal({ ...cristal2x1('OD').product, id: 'otro', name: 'Varilux Orma 2x1' }, prev);
+            assert.equal(renglones.length, 2); // un solo par, será el gratis al recalcular
         }],
     ['ítems rotos (product null, lista no-array) no revientan',
         () => {
