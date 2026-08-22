@@ -170,44 +170,59 @@ export const safePrice = (price: any): number => {
 };
 
 /**
- * Calculates the promo frame discount for 2x1 multifocal promotions.
- * When a multifocal 2x1 crystal is in the cart, the second (cheapest) frame
- * gets a discount: if it's Atelier, it's fully free; otherwise, discounted
- * up to the Atelier average price.
- * 
- * @param items - Array of cart items with { product, quantity, customPrice, uid }
- * @param availableProducts - Optional full product list to calculate Atelier average price
- * @returns The frame discount amount to subtract from the subtotal
+ * ── Regla canónica del 2x1 de multifocales ──────────────────────────────────
+ * Los DOS lugares que mueven plata con esta promo (PricingService para totales
+ * y recalculateCrystalPrices para los cristales) leen de acá. Si la regla
+ * cambia, se toca este archivo y nada más.
  */
-export const calculatePromoFrameDiscount = (
-    items: any[],
-    _availableProducts?: any[]
-): number => {
-    // Check if there's a multifocal 2x1 promo active (crystal that is 2x1 and NOT Mi Primer Varilux)
-    const hasMultifocalPromo = items.some(
-        it => isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product)
+
+/**
+ * ¿La venta tiene la promo 2x1 activa? La enciende un CRISTAL con el 2x1
+ * tildado (o detectado por nombre, legacy), excluyendo Mi Primer Varilux.
+ * Los armazones nunca la encienden: solo pueden ser el bonificado.
+ */
+export const hasActive2x1Promo = (items: any[]): boolean => {
+    if (!Array.isArray(items)) return false;
+    return items.some(
+        it => it && isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product)
     );
-    if (!hasMultifocalPromo) return 0;
+};
 
-    // Flatten frames by quantity to find the second cheapest frame
-    const flattenedFrames = items.flatMap(i => {
-        if (!isFrame(i.product) && !isFrameEligible2x1(i.product)) return [];
-        return Array.from({ length: i.quantity || 1 }).map((_, idx) => ({
-            ...i,
-            virtualIdx: idx
-        }));
+/**
+ * Elige el armazón bonificado de un 2x1 y devuelve cuánto descontar.
+ *
+ * Regla completa:
+ *  - Solo corre si `hasActive2x1Promo` (la valida acá adentro: ningún llamador
+ *    puede saltearla por olvido).
+ *  - Candidatos: armazones, y cualquier producto tildado a mano (`eligible2x1`)
+ *    aunque su categoría no diga "armazón" (lentes de sol).
+ *  - La cantidad expande: 2 unidades del mismo armazón son 2 candidatos.
+ *  - El más caro de la venta SE COBRA SIEMPRE. El bonificado es el más caro de
+ *    los siguientes que esté TILDADO en Stock, y va sin cargo ENTERO — sin
+ *    topes ni promedios escondidos. Sin tilde no se regala nada.
+ *
+ * Acepta ítems con `price` (ventas guardadas) o `customPrice` (cotizador).
+ */
+export const pick2x1FrameDiscount = (
+    items: any[]
+): { discount: number; itemName: string | null } => {
+    const nada = { discount: 0, itemName: null };
+    if (!hasActive2x1Promo(items)) return nada;
+
+    const precioDe = (it: any) => safePrice(it.customPrice !== undefined ? it.customPrice : it.price);
+
+    const candidatos = (items || []).flatMap(it => {
+        if (!it || (!isFrame(it.product) && !isFrameEligible2x1(it.product))) return [];
+        return Array.from({ length: it.quantity || 1 }).map(() => it);
     });
+    if (candidatos.length < 2) return nada;
 
-    if (flattenedFrames.length < 2) return 0;
+    const ordenados = [...candidatos].sort((a, b) => precioDe(b) - precioDe(a));
+    const bonificado = ordenados.slice(1).find(it => isFrameEligible2x1(it.product));
+    if (!bonificado) return nada;
 
-    // Sort by price descending — el más caro SIEMPRE se cobra; el bonificado es
-    // el más caro de los que estén tildados como elegibles (ver isFrameEligible2x1).
-    const sortedFrames = [...flattenedFrames].sort((a, b) => safePrice(b.customPrice) - safePrice(a.customPrice));
-    const secondFrame = sortedFrames.slice(1).find(f => isFrameEligible2x1(f.product));
-    if (!secondFrame) return 0;
-
-    // Tildado = va sin cargo, entero (ver isFrameEligible2x1).
-    return safePrice(secondFrame.customPrice);
+    const nombre = `${bonificado.product?.brand || ''} ${bonificado.product?.name || 'Armazón'}`.trim();
+    return { discount: precioDe(bonificado), itemName: nombre };
 };
 
 
@@ -380,9 +395,7 @@ export function applyTeñidoPromoDiscount(items: any[], tintStylePrices?: Record
     const teñidoItems = items.filter(i => isTeñidoAddon(i.product));
     if (teñidoItems.length === 0) return false;
 
-    const hasMultifocalPromo = items.some(
-        it => isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product)
-    );
+    const hasMultifocalPromo = hasActive2x1Promo(items);
     // "Solo ese tratamiento": ningún OTRO tratamiento además del teñido.
     //
     // Antes se comparaban cantidades (`treatmentItems.length === teñidoItems.length`),

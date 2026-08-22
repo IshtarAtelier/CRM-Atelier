@@ -6,7 +6,8 @@ import { Search, Save, Loader2,
 } from 'lucide-react';
 import { 
     isMultifocal2x1, isAtelierFrame, isCrystal, 
-    isMiPrimerVarilux, getCategoryKey, isFrame, safePrice
+    getCategoryKey, isFrame, safePrice,
+    hasActive2x1Promo
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -96,7 +97,7 @@ export default function CotizadorCart({
 
     // Logic memoization
     const hasMultifocalPromo = useMemo(() => {
-        return items.some(it => it.product && isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product));
+        return hasActive2x1Promo(items);
     }, [items]);
 
     const hasAnyMultifocal = useMemo(() => {

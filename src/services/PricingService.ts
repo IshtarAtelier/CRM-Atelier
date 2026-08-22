@@ -1,4 +1,4 @@
-import { isMultifocal2x1, isCrystal, isFrame, isFrameEligible2x1, safePrice, isMiPrimerVarilux } from '@/lib/promo-utils';
+import { hasActive2x1Promo, pick2x1FrameDiscount, safePrice } from '@/lib/promo-utils';
 
 export interface CartItem {
     productId: string | null;
@@ -75,16 +75,13 @@ export class PricingService {
         let promoFrameName: string | null = null;
         const appliedPromos: string[] = [];
 
-        // Lógica de 2x1 en multifocales (regla actual)
-        const hasMultifocalPromo = items.some(
-            it => isCrystal(it.product) && isMultifocal2x1(it.product) && !isMiPrimerVarilux(it.product)
-        );
-
-        if (hasMultifocalPromo) {
-            const promo = this.calculate2x1FrameDiscount(items);
+        // 2x1 en multifocales: la regla completa (quién la enciende, quién puede
+        // ser el bonificado y cuánto se descuenta) vive en promo-utils.ts.
+        if (hasActive2x1Promo(items)) {
+            const promo = pick2x1FrameDiscount(items);
             promoFrameDiscount = promo.discount;
             promoFrameName = promo.itemName;
-            
+
             if (promoFrameDiscount > 0) {
                 appliedPromos.push('2x1 Multifocal (Armazón Bonificado)');
             }
@@ -212,38 +209,6 @@ export class PricingService {
         };
     }
 
-    /**
-     * Calcula específicamente el descuento de armazón por la promo 2x1.
-     */
-    private static calculate2x1FrameDiscount(items: CartItem[]): { discount: number; itemName: string | null } {
-        // Obtenemos todos los armazones en una lista plana. Un producto tildado
-        // a mano entra aunque no sea "armazón de receta" (un lente de sol, por
-        // ejemplo): el tilde manda sobre la deducción por categoría.
-        const frameItems = items.flatMap(item => {
-            if (!isFrame(item.product) && !isFrameEligible2x1(item.product)) return [];
-            return Array.from({ length: item.quantity || 1 }).map(() => item);
-        });
-
-        if (frameItems.length < 2) return { discount: 0, itemName: null };
-
-        // Ordenamos por precio descendente. El más caro SIEMPRE se cobra: el
-        // bonificado es el más caro de los SIGUIENTES que esté tildado como
-        // elegible en Stock. Si ninguno lo está (caso típico: armazones de la
-        // tienda web), no hay bonificación y se cobran los dos completos.
-        const sortedFrames = [...frameItems].sort((a, b) => safePrice(b.price) - safePrice(a.price));
-        const targetFrame = sortedFrames.slice(1).find(f => isFrameEligible2x1(f.product));
-
-        if (!targetFrame) return { discount: 0, itemName: null };
-
-        const framePrice = safePrice(targetFrame.price);
-        const frameName = `${targetFrame.product?.brand || ''} ${targetFrame.product?.name || 'Armazón'}`.trim();
-
-        // Tildado = va SIN CARGO, entero. Antes había un tope invisible: lo que
-        // no fuera marca Atelier se bonificaba solo "hasta el promedio de los
-        // Atelier", y así un armazón de $160.000 aparecía a $35.143 sin que
-        // nadie lo hubiera decidido. Ahora el tilde es la decisión completa.
-        return { discount: framePrice, itemName: frameName };
-    }
 }
 
 export const calculateQuoteTotals = (
