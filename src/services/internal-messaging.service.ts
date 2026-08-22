@@ -179,7 +179,14 @@ export class InternalMessagingService {
     private static async filtroNoLeidos(userId: string) {
         const participaciones = await prisma.internalThreadParticipant.findMany({
             where: { userId, leftAt: null },
-            select: { threadId: true, lastReadAt: true },
+            // `createdAt` (la fecha de alta en el hilo) es imprescindible: sin
+            // ella, a quien se suma a una conversación con 40 mensajes viejos le
+            // cuentan los 40 como sin leer, pero al abrirla no ve ninguno —
+            // porque `leerConversacion` sí corta por el alta. El badge queda
+            // clavado en 40 para siempre, sin forma de bajarlo desde la pantalla.
+            // Y peor: el pop-up de urgentes le mostraría el TEXTO de un urgente
+            // anterior a su alta, que es justo lo que el corte oculta.
+            select: { threadId: true, lastReadAt: true, createdAt: true },
         });
         if (participaciones.length === 0) return null;
         return {
@@ -189,7 +196,13 @@ export class InternalMessagingService {
                 senderId: { not: userId },
                 OR: participaciones.map(p => ({
                     threadId: p.threadId,
-                    ...(p.lastReadAt ? { createdAt: { gt: p.lastReadAt } } : {}),
+                    // Con marca de lectura: lo posterior a ella (`gt`).
+                    // Sin marca: todo lo que haya desde el alta — `gte` y no
+                    // `gt`, porque el alta y el primer mensaje llevan la MISMA
+                    // marca de tiempo a propósito, y con `gt` se perdería.
+                    createdAt: p.lastReadAt
+                        ? { gt: p.lastReadAt }
+                        : { gte: p.createdAt },
                 })),
             },
         };
@@ -205,6 +218,9 @@ export class InternalMessagingService {
             select: {
                 role: true,
                 lastReadAt: true,
+                // Fecha de alta: hace falta para cortar la vista previa igual
+                // que se corta el hilo al abrirlo.
+                createdAt: true,
                 thread: {
                     select: {
                         id: true, kind: true, subject: true, lastMessageAt: true,
@@ -243,12 +259,24 @@ export class InternalMessagingService {
 
         const conNoLeidos = participaciones.map((p) => {
             const noLeidos = noLeidosPorHilo.get(p.thread.id) ?? 0;
-            const ultimo = p.thread.messages[0] || null;
+            // La vista previa CORTA IGUAL que el hilo al abrirlo. No se puede
+            // filtrar en la consulta —Prisma no deja que una relación anidada
+            // mire un campo de la fila padre— así que se descarta acá.
+            //
+            // Sin esto, a quien se suma a una conversación le aparecía en la
+            // lista el texto del último mensaje anterior a su alta (truncado,
+            // pero legible), y al abrirla el panel salía vacío. O sea: la lista
+            // filtraba justo el contenido que el hilo oculta.
+            const crudo = p.thread.messages[0] || null;
+            const ultimo = crudo && crudo.createdAt >= p.createdAt ? crudo : null;
             return {
                 id: p.thread.id,
                 kind: p.thread.kind,
                 subject: p.thread.subject,
-                lastMessageAt: p.thread.lastMessageAt,
+                // Si el último mensaje del hilo no es visible para esta
+                // persona, se muestra su fecha de alta: la del mensaje ajeno
+                // diría "hace 2 horas" sobre algo que no puede leer.
+                lastMessageAt: ultimo ? p.thread.lastMessageAt : p.createdAt,
                 miRol: p.role,
                 noLeidos,
                 participantes: p.thread.participants.map(x => ({
@@ -726,26 +754,44 @@ export class InternalMessagingService {
             where: { threadId_userId: { threadId, userId: nuevoUserId } },
             select: { id: true, leftAt: true },
         });
+        // OJO con esta bandera: el `updateMany` de abajo estaba FUERA del if, así
+        // que la rama "no se hace nada" sí hacía algo — convertía el uno-a-uno en
+        // grupo y le borraba la llave de par. Bastaba un doble clic, o marcar
+        // como copia a quien ya era destinatario, para que la conversación se
+        // partiera en dos: `escribirEnDirecto` dejaba de encontrarla y abría
+        // otra. Justo la invariante que el constraint venía a sostener.
+        let seSumoAlguien = false;
         if (previo && !previo.leftAt) {
-            // Ya participa y está activo: no se hace nada.
+            // Ya participa y está activo: no se toca nada, ni el hilo.
         } else if (previo) {
             await prisma.internalThreadParticipant.update({
                 where: { id: previo.id },
-                data: { leftAt: null, role: params.role || 'MEMBER', createdAt: new Date() },
+                // `lastReadAt: null` junto con el `createdAt` nuevo: si quedara
+                // la marca vieja (anterior al alta), el filtro de no leídos
+                // contaría la franja que ya no puede ver y el badge se clavaría.
+                data: {
+                    leftAt: null, role: params.role || 'MEMBER',
+                    createdAt: new Date(), lastReadAt: null,
+                },
             });
+            seSumoAlguien = true;
         } else {
             await prisma.internalThreadParticipant.create({
                 data: { threadId, userId: nuevoUserId, role: params.role || 'MEMBER' },
             });
+            seSumoAlguien = true;
         }
 
-        // Un grupo dejó de ser una conversación de a dos, y suelta su llave de
-        // par: si la conservara, un futuro uno-a-uno entre esas dos personas
-        // engancharía este grupo de tres y les mostraría la charla ajena.
-        await prisma.internalThread.updateMany({
-            where: { id: threadId, kind: 'DIRECT' },
-            data: { kind: 'GROUP', directKey: null },
-        });
+        // SOLO si de verdad entró alguien nuevo. Un grupo dejó de ser una
+        // conversación de a dos, y suelta su llave de par: si la conservara, un
+        // futuro uno-a-uno entre esas dos personas engancharía este grupo de
+        // tres y les mostraría la charla ajena.
+        if (seSumoAlguien) {
+            await prisma.internalThread.updateMany({
+                where: { id: threadId, kind: 'DIRECT' },
+                data: { kind: 'GROUP', directKey: null },
+            });
+        }
 
         logAudit({
             userId: actor?.id ?? porUserId,

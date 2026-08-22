@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { prefillAdTag, fallbackAdTag } from '@/lib/ads/ad-tag';
 import { vincularChatSiCorresponde } from '@/lib/whatsapp/vincular-chat';
+import { WHATSAPP_PHONE, WHOLESALE_WHATSAPP_PHONE } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,20 +33,34 @@ export async function POST(request: Request) {
             console.warn('[Bot Webhook] ⚠️ Mensaje aceptado SIN clave válida (modo permisivo). Emisor:', waId);
         }
 
-        // --- TEAM CHAT INTERCEPTION ---
-        const MATIAS_PHONE = '5493518685644';
-        const ISHTAR_PHONE = '5493541215971';
+        // --- PUENTE ENTRE LAS DOS LÍNEAS DEL NEGOCIO ---
+        //
+        // Un mensaje que entra desde la línea principal o desde la mayorista no
+        // es de un cliente: son las dos líneas de la óptica hablándose entre sí.
+        // Se reenvía a la otra y NO se mete en la bandeja de conversaciones con
+        // clientes, que es lo que hace el `return` del final.
+        //
+        // Los números salen de `src/lib/constants.ts`, que es su única fuente:
+        // estaban copiados a mano acá y en /api/equipo/mensajes, así que cambiar
+        // una línea del negocio obligaba a acordarse de tres lugares.
+        const MATIAS_PHONE = WHATSAPP_PHONE;
+        const ISHTAR_PHONE = WHOLESALE_WHATSAPP_PHONE;
         
         if (direction === 'INBOUND' && (waId === `${MATIAS_PHONE}@c.us` || waId === `${ISHTAR_PHONE}@c.us`)) {
             const senderName = waId === `${MATIAS_PHONE}@c.us` ? 'MATIAS' : 'ISHTAR';
             const targetPhone = senderName === 'MATIAS' ? ISHTAR_PHONE : MATIAS_PHONE;
             
-            // 1. Save internal TeamMessage
-            await prisma.teamMessage.create({
-                data: { content, sender: senderName }
-            });
-            
-            // 2. Forward to the other team member
+            // Ya NO se guarda en `TeamMessage`: esa tabla la leía /admin/equipo,
+            // que quedó reemplazada por la mensajería interna (/admin/mensajes)
+            // y ya no está enlazada en el menú. Seguir escribiéndola era generar
+            // filas que nadie iba a leer nunca.
+            //
+            // Tampoco se vuelca a la mensajería interna: esto es un puente entre
+            // dos líneas de WhatsApp, no un mensaje entre colaboradores con
+            // usuario en el sistema. Mezclarlos ensuciaría la bandeja del equipo
+            // con el tráfico de las líneas.
+
+            // Reenviar a la otra línea
             const prefix = senderName === 'MATIAS' ? '👨🏻 *[Matías]*:\n' : '👩🏻‍💻 *[Ishtar]*:\n';
             try {
                 const fetchWaRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/whatsapp/send`, {

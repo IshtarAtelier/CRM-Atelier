@@ -199,6 +199,41 @@ if (iaReal) {
     check('una cuenta que no es del sistema NO puede usurpar al Asistente', false, '(no se pudo probar)');
 }
 
+// ── Ronda 2 de la auditoría: regresiones de los arreglos de la ronda 1 ───────
+// El corte de historial se había aplicado en UNO de tres lugares. Estos tres
+// checks cubren los otros dos, más una regresión que rompía el constraint nuevo.
+
+const dani = await crearUser('Dani');
+const { id: hiloViejo } = await S.crearConversacion({
+    creadorId: beto.id, paraIds: [ana.id], subject: 'Charla previa',
+    primerMensaje: 'Algo confidencial de antes', urgent: true,
+});
+await S.responder({ threadId: hiloViejo, senderId: beto.id, body: 'Más de lo mismo' });
+
+// Dani entra DESPUÉS de esos dos mensajes.
+await S.agregarParticipante({ threadId: hiloViejo, porUserId: beto.id, nuevoUserId: dani.id });
+
+const sinLeerDani = (await S.bandeja(dani.id)).find(c => c.id === hiloViejo)?.noLeidos;
+check('el badge NO cuenta los mensajes anteriores al alta', sinLeerDani === 0, `(dio ${sinLeerDani})`);
+
+const previaDani = (await S.bandeja(dani.id)).find(c => c.id === hiloViejo)?.ultimoMensaje;
+check('la vista previa NO filtra el texto que el hilo oculta', previaDani === null,
+    `(mostró "${previaDani?.body ?? ''}")`);
+
+check('un urgente anterior al alta NO le tapa la pantalla',
+    (await S.urgentesPendientes(dani.id)).every(u => u.threadId !== hiloViejo));
+
+// Agregar a alguien que YA está activo no puede romper el hilo uno-a-uno.
+const { id: directo } = await S.crearConversacion({
+    creadorId: ana.id, paraIds: [carla.id], primerMensaje: 'uno a uno',
+});
+await S.agregarParticipante({ threadId: directo, porUserId: ana.id, nuevoUserId: carla.id, role: 'CC' });
+const traíDeNuevo = await S.crearConversacion({
+    creadorId: ana.id, paraIds: [carla.id], primerMensaje: 'segundo mensaje',
+});
+check('agregar a quien ya participa NO parte la conversación en dos',
+    traíDeNuevo.id === directo, `(${traíDeNuevo.id} vs ${directo})`);
+
 await limpiar();
 await prisma.$disconnect();
 

@@ -13,17 +13,41 @@
 ALTER TABLE "InternalThread" ADD COLUMN "directKey" TEXT;
 
 -- Rellena los DIRECT que ya existan, con los dos ids de usuario ordenados.
--- El ORDER BY dentro del string_agg es lo que hace la llave determinística:
--- sin él, A:B y B:A serían llaves distintas y el constraint no serviría.
-UPDATE "InternalThread" t SET "directKey" = sub.k
-FROM (
-  SELECT p."threadId" AS tid,
-         string_agg(p."userId", ':' ORDER BY p."userId") AS k
-  FROM "InternalThreadParticipant" p
-  WHERE p."leftAt" IS NULL
-  GROUP BY p."threadId"
-  HAVING COUNT(*) = 2
-) sub
-WHERE t.id = sub.tid AND t.kind = 'DIRECT';
+--
+-- EL PROBLEMA DEL HUEVO Y LA GALLINA: los hilos duplicados son exactamente el
+-- bug que esta migración viene a impedir, así que pueden EXISTIR ya en la base.
+-- Si dos hilos del mismo par recibieran la misma llave, el CREATE UNIQUE INDEX
+-- de abajo fallaría y la migración quedaría aplicada a medias, con la columna
+-- puesta y sin índice.
+--
+-- Por eso solo se rellena UN hilo por par: el de actividad más reciente, que es
+-- el que la gente está mirando. Los duplicados viejos quedan con la llave en
+-- NULL — siguen siendo legibles para quien participaba (nada se pierde), pero
+-- dejan de ser candidatos a reuso, así que el próximo mensaje entre esas dos
+-- personas va al hilo vivo.
+--
+-- El ORDER BY dentro del string_agg es lo que hace la llave determinística: sin
+-- él, A:B y B:A serían llaves distintas y el constraint no serviría de nada.
+WITH pares AS (
+    SELECT p."threadId" AS tid,
+           string_agg(p."userId", ':' ORDER BY p."userId") AS k
+    FROM "InternalThreadParticipant" p
+    WHERE p."leftAt" IS NULL
+    GROUP BY p."threadId"
+    HAVING COUNT(*) = 2
+),
+elegidos AS (
+    SELECT DISTINCT ON (pares.k) pares.tid, pares.k
+    FROM pares
+    JOIN "InternalThread" t ON t.id = pares.tid
+    WHERE t.kind = 'DIRECT'
+    ORDER BY pares.k, t."lastMessageAt" DESC, t.id
+)
+UPDATE "InternalThread" t
+SET "directKey" = e.k
+FROM elegidos e
+WHERE t.id = e.tid;
 
+-- NULL no cuenta para la unicidad en Postgres, así que los duplicados viejos y
+-- los grupos conviven sin chocar.
 CREATE UNIQUE INDEX "InternalThread_directKey_key" ON "InternalThread"("directKey");
