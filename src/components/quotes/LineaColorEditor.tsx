@@ -15,7 +15,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
-import { Palette, Glasses, Check } from 'lucide-react';
+import { Palette, Check } from 'lucide-react';
 import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
 import { TONOS_TENIDO, INTENSIDADES_TENIDO, estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
 import { colorLineaLabel, esItemDeTenido, productoDeItem } from '@/lib/crystal-color';

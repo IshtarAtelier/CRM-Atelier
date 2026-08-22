@@ -1,11 +1,10 @@
 'use client';
 
 import QRCode from 'qrcode';
-import Link from 'next/link';
 import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import {
-    Send, WifiOff, QrCode, RefreshCw, CheckCircle2, Bot, Settings, X, ChevronLeft, Phone,
-    Tag, Archive, ArchiveRestore, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Play, Paperclip, Smile, Trash2,
+    Send, WifiOff, QrCode, RefreshCw, CheckCircle2, Bot, X, ChevronLeft, Phone,
+    Tag, Archive, ArchiveRestore, Plus, Mic, PlaySquare, Image as ImageIcon, Calendar, Search, Paperclip, Smile, Trash2,
     UserPlus, Loader2, Sparkles, Pin, Heart, FileText, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';

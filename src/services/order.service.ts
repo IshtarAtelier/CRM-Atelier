@@ -4,7 +4,7 @@ import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
-import { recalculateCrystalPrices, applyTeñidoPromoDiscount, isTeñidoAddon } from '@/lib/promo-utils';
+import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
 import { TOPE_VENDEDOR } from '@/lib/constants/descuentos';
 import { z } from 'zod';
 import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
