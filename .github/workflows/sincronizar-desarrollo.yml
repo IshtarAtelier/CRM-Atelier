@@ -1,0 +1,79 @@
+# Mantiene `desarrollo` al día con `main` — automáticamente, en cada deploy.
+#
+# POR QUÉ EXISTE: el flujo documentado en CLAUDE.md dice "trabajar en
+# `desarrollo` → mergear a `main` → Railway deploya". Eso mueve el trabajo en UN
+# solo sentido. Nada traía los cambios de `main` DE VUELTA a `desarrollo`, y como
+# en la práctica casi todo se commitea directo a `main` (hotfixes, otras sesiones,
+# ramas `deploy/*`), `desarrollo` se fue quedando atrás sola: el 21/8/2026 estaba
+# 636 commits atrás de producción y su último commit era del 28/7. Una rama así no
+# se puede usar — cualquier cosa que se pruebe ahí se prueba contra un sistema que
+# ya no existe, y mergearla de vuelta resucita código que producción había borrado
+# a propósito (el `loading.tsx` del soft-404, por ejemplo).
+#
+# CÓMO NO PUEDE ROMPER NADA: el push es un FAST-FORWARD SIN `--force`. Si alguien
+# tiene trabajo propio sin mergear en `desarrollo`, git rechaza el push y el job
+# queda en rojo avisando — nunca lo pisa. O sea: la automatización solo adelanta
+# una rama que está estrictamente atrás; en cuanto tiene trabajo propio, frena y
+# avisa. Es imposible que borre algo.
+
+name: Sincronizar desarrollo con main
+
+on:
+  push:
+    branches: [main]
+  # Para poder correrlo a mano desde la pestaña Actions sin esperar un push.
+  workflow_dispatch:
+
+# Sin esto el token no puede escribir refs y el push falla con 403.
+permissions:
+  contents: write
+
+# Dos deploys seguidos no compiten por el mismo ref: el último gana y el
+# anterior se cancela (adelantar a un commit que ya quedó viejo no sirve).
+concurrency:
+  group: sincronizar-desarrollo
+  cancel-in-progress: true
+
+jobs:
+  sincronizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Traer el repo
+        uses: actions/checkout@v4
+        with:
+          # El historial completo: sin esto el push de un ref no fast-forwardea.
+          fetch-depth: 0
+
+      - name: Adelantar desarrollo hasta main
+        run: |
+          set -euo pipefail
+
+          # ¿Ya está al día? Entonces no hay nada que hacer (y no ensuciamos el
+          # historial de Actions con un push vacío).
+          if git rev-parse --verify --quiet origin/desarrollo >/dev/null; then
+            if [ "$(git rev-parse origin/desarrollo)" = "$(git rev-parse HEAD)" ]; then
+              echo "✅ desarrollo ya está en el mismo commit que main. Nada que hacer."
+              exit 0
+            fi
+            # ¿Tiene commits propios que main no tenga? Entonces NO se toca:
+            # hay trabajo sin mergear y pisarlo sería exactamente el accidente
+            # que este workflow existe para evitar.
+            PROPIOS=$(git rev-list --count HEAD..origin/desarrollo)
+            if [ "$PROPIOS" -gt 0 ]; then
+              echo "::error::desarrollo tiene $PROPIOS commit(s) propios que main no tiene."
+              echo ""
+              echo "NO se sincronizó a propósito: hay trabajo sin mergear y adelantarla lo borraría."
+              echo "Commits que solo están en desarrollo:"
+              git log --oneline HEAD..origin/desarrollo | head -20
+              echo ""
+              echo "Qué hacer: mergear ese trabajo a main (o descartarlo si no sirve)."
+              echo "Cuando desarrollo no tenga commits propios, este job la adelanta solo."
+              exit 1
+            fi
+          fi
+
+          # Fast-forward puro. SIN --force: si por lo que sea no fuera un
+          # fast-forward, git rechaza el push en vez de pisar la rama.
+          echo "Adelantando desarrollo hasta $(git rev-parse --short HEAD)..."
+          git push origin "HEAD:refs/heads/desarrollo"
+          echo "✅ desarrollo quedó al día con main."

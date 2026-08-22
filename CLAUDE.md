@@ -24,6 +24,14 @@ LOCAL (localhost:3000, base local) → rama `desarrollo` → testear → merge a
 ```
 - Rama de trabajo: **`desarrollo`**. Producción se despliega desde **`main`** (Railway auto-deploy).
 - Solo mergear a `main` cuando está testeado en local.
+- **`desarrollo` se mantiene al día sola** — el workflow `sincronizar-desarrollo.yml`
+  la adelanta hasta `main` en cada push a `main`. El push es fast-forward SIN
+  `--force`: si `desarrollo` tiene trabajo propio sin mergear, el job falla
+  avisando en vez de pisarlo. Por qué existe: el flujo de arriba mueve el trabajo
+  en un solo sentido y nada traía `main` de vuelta; el 21/8/26 `desarrollo` estaba
+  **636 commits atrás** y su último commit era del 28/7 — inusable, y mergearla
+  habría resucitado código que producción borró a propósito (el `loading.tsx` del
+  soft-404). Estado previo guardado en `backup/desarrollo-28jul2026`.
 - **La verdad es `origin/main`, nunca el `main` local.** El 28/7 el main local
   estaba 191 commits atrás de producción (cicatriz de sesiones cruzadas; el
   estado viejo quedó en `backup/main-local-28jul`). Antes de armar un deploy:
@@ -63,6 +71,7 @@ y `wip-otra-sesion` son la cicatriz.
 - `npx prisma migrate deploy` — aplica migraciones pendientes (a la base local)
 - `npx prisma generate` — regenera el cliente
 - `npm run lint` / `npm run build` — lint y build de producción
+- `npm run check:orden` — verifica que cada archivo esté en su carpeta (sin base ni red)
 
 ## Base de datos local (docker)
 - Contenedor: `atelier-postgres` — `postgresql://postgres:localpassword@localhost:5432/atelier`
@@ -145,6 +154,22 @@ Reglas para que el proyecto escale sin volverse un mazacote.
   por email, no autocorrigen.
 
 ## Higiene del repo (mantenerlo sin basura)
+- **`npm run check:orden` es el guardián: las reglas de acá abajo las verifica él.**
+  Corre sin base ni red, y también en CI. Falla si aparece algo que no sea
+  configuración en la raíz, un script suelto en `scripts/`, un generado trackeado
+  (`storage/`, `logs/`, `.next`, `*.tsbuildinfo`), un nombre temporal
+  (`tmp`/`probe`/`dump`/`.bak`/`NO-USAR`), datos sueltos en `maintenance/`, o algo
+  nuevo en `scripts/legacy/`. Los 339 archivos que ya estaban fuera de lugar el
+  21/8/26 están anotados en `scripts/checks/orden-del-repo.deuda.json`: el check
+  NO falla por ellos, pero sí por cualquiera nuevo. **Esa lista solo puede
+  achicarse** — al limpiar un archivo, se borra su línea. Nunca correr
+  `--registrar-deuda` para tapar una falla nueva.
+- **Los respaldos NO viven dentro del proyecto**: van a `~/respaldos-crm-atelier/`,
+  una carpeta por fecha, con el nombre del proyecto y la fecha adentro del nombre
+  de cada archivo (`crm-atelier_AAAA-MM-DD_<qué-es>.<ext>`). Hay un `LEEME.md` ahí
+  que es el índice. Antes de cualquier limpieza grande, respaldo nuevo y
+  **verificado** (`git bundle verify`, `gzip -t`) — un respaldo sin verificar es
+  una suposición. Hasta el 21/8/26 había 852 MB de respaldos en `atelier/backups/`.
 - **Ramas**: borrar la rama local después de que su trabajo llegue a `origin/main`
   (`git branch -d` avisa solo si falta algo). Objetivo: <10 ramas vivas. Las
   `backup/*` y `rescate/*` tienen fecha en el nombre o en el commit — pasados

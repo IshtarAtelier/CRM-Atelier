@@ -33,6 +33,12 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
+      # Va ANTES del lint y del build: no necesita dependencias ni base, corre en
+      # segundos, y si el repo se desordenó conviene saberlo enseguida y no
+      # después de esperar un build de varios minutos.
+      - name: Orden del repo (dónde va cada cosa)
+        run: npm run check:orden
+
       - name: Run ESLint
         run: npm run lint
 
