@@ -4,12 +4,13 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store, LineChart, Star } from "lucide-react";
+import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store, LineChart, Star, MessagesSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 import { WhatsAppBadge } from "@/components/ui/WhatsAppBadge";
 import { WebSalesBadge } from "@/components/ui/WebSalesBadge";
+import { MensajesBadge } from "@/components/ui/MensajesBadge";
 import { ContactsAttentionBadge } from "@/components/ui/ContactsAttentionBadge";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
@@ -78,6 +79,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       { href: "/admin/laboratorio/costos", label: "↳ Costos de Lab", icon: FlaskConical, adminOnly: true, isSubLink: true },
       { href: "/admin/facturacion", label: "Facturación", icon: Receipt, adminOnly: true },
       { href: "/admin/whatsapp", label: "WhatsApp", icon: WhatsAppIcon, adminOnly: false },
+      { href: "/admin/mensajes", label: "Mensajes del Equipo", icon: MessagesSquare, adminOnly: false },
       { href: "/admin/caja", label: "Caja Efectivo", icon: Banknote, adminOnly: false },
       { href: "/admin/caja/vendedores", label: "↳ Caja Vendedores", icon: Wallet, adminOnly: false, isSubLink: true },
       { href: "/admin/gastos", label: "Gastos", icon: TrendingDown, adminOnly: true },
@@ -143,6 +145,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
                 <Icon size={18} className={`transition-all duration-300 w-[18px] h-[18px] shrink-0 ${isActive ? 'text-[#c2a38a] drop-shadow-[0_0_8px_rgba(194,163,138,0.4)]' : 'text-stone-500 group-hover:text-[#c2a38a]'}`} />
                 {!isCollapsed && <span className={`text-[10px] font-semibold whitespace-nowrap tracking-wide uppercase transition-colors ${isActive ? 'text-white font-bold' : 'text-stone-400 group-hover:text-stone-200'}`}>{link.label}</span>}
                 {link.label === "WhatsApp" && !isCollapsed && <WhatsAppBadge />}
+                {link.label === "Mensajes del Equipo" && !isCollapsed && <MensajesBadge />}
                 {link.label === "↳ Ventas Web" && !isCollapsed && <WebSalesBadge />}
                 {link.label === "Contactos y Clientes" && !isCollapsed && <ContactsAttentionBadge />}
                 {link.label === "WhatsApp" && isCollapsed && (

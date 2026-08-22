@@ -20,6 +20,11 @@ model User {
   // Casilla propia para avisos dirigidos (notas, pedidos, saldos). Si es null
   // se usa la casilla compartida del local (ver src/lib/vendor-email.ts).
   notificationEmail String?
+  // Última señal de vida, para el puntito verde de "en línea". La escribe el
+  // latido de la barra lateral cada 20 s. Es una marca de tiempo y no un
+  // booleano `online`: un booleano queda en `true` para siempre si el navegador
+  // se cierra de golpe y nadie manda el "me fui".
+  lastSeenAt        DateTime?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   cashMovements     CashMovement[]
@@ -1323,6 +1328,10 @@ model InternalMessage {
   threadId  String
   senderId  String
   body      String
+  // URGENTE: le tapa la pantalla al destinatario hasta que lo lea. Vive en el
+  // MENSAJE y no en la conversación porque lo urgente es una cosa puntual —
+  // marcar el hilo entero haría que cada respuesta posterior volviera a gritar.
+  urgent    Boolean   @default(false)
   createdAt DateTime  @default(now())
   editedAt  DateTime?
 

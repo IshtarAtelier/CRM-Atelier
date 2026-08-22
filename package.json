@@ -33,7 +33,8 @@
     "social:producto": "node scripts/social/generar-producto.mjs --destacados --render",
     "social:render": "node scripts/social/render.mjs",
     "social:publicar": "node scripts/social/publicar.mjs",
-    "check:orden": "node scripts/checks/orden-del-repo.check.mjs"
+    "check:orden": "node scripts/checks/orden-del-repo.check.mjs",
+    "check:mensajeria": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/mensajeria-interna.check.mjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",
