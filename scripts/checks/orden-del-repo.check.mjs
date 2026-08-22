@@ -118,6 +118,34 @@ for (const cajon of cajones) {
     );
 }
 
+// ── 7. LOS ARCHIVOS QUE EL SITIO LEE DEL DISCO NO SE BORRAN ────────────────
+// Estos NO son basura, por más que parezcan un archivo suelto en `public/`:
+// hay código que los abre por ruta fija. Si alguno desaparece, no falla el
+// build ni el typecheck — falla EN PRODUCCIÓN, cuando un cliente pide su
+// factura o el catálogo, y el error aparece lejos del borrado que lo causó.
+//
+// Por eso están acá y no en un comentario: un aviso escrito se ignora, un
+// check falla. Al agregar un archivo que el código lea por ruta fija, sumalo.
+const NECESARIOS = [
+    { ruta: 'public/assets/logo-atelier-optica.png',
+      quien: 'el logo de TODOS los PDF: facturas, recibos, fichas de cliente y órdenes de pedido' },
+    { ruta: 'public/images/editorial/monalisa.webp',
+      quien: 'la tapa del catálogo PDF (api/catalog)' },
+    { ruta: 'public/images/editorial/filmmaker-frida.webp',
+      quien: 'la portada de la sección Acetato del catálogo PDF (api/catalog)' },
+    { ruta: 'public/images/editorial/filmmaker-dali.webp',
+      quien: 'la contratapa del catálogo PDF (api/catalog)' },
+];
+const trackedSet = new Set(tracked);
+const faltantes = NECESARIOS.filter(n => !trackedSet.has(n.ruta));
+if (faltantes.length > 0) {
+    console.log('\n🚨 ARCHIVOS QUE EL SITIO NECESITA Y NO ESTÁN\n');
+    for (const f of faltantes) console.log(`   ✖ ${f.ruta}\n     lo usa: ${f.quien}`);
+    console.log('\n   NO son basura: hay código que los abre por ruta fija.');
+    console.log('   Recuperalos con:  git checkout <commit-anterior> -- <ruta>\n');
+    process.exit(1);
+}
+
 // ── Deuda conocida vs. desorden nuevo ───────────────────────────────────────
 // El día que se escribió este check había 339 archivos fuera de lugar. Un check
 // que falla por los 339 se desactiva en la primera semana y no protege nada.
