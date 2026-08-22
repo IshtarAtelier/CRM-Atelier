@@ -63,6 +63,75 @@ function PuntoEnLinea({ activo }: { activo: boolean }) {
     );
 }
 
+/**
+ * QUIÉN ESTÁ CONECTADO. Una tira con todo el equipo: verde el que tiene el
+ * sistema abierto ahora, gris el que no.
+ *
+ * Va arriba de todo y no escondida dentro de una conversación, porque la
+ * pregunta «¿está Yani?» se hace ANTES de escribir, no después: sirve para
+ * decidir si mandar un mensaje o levantar el teléfono.
+ *
+ * Tocar a alguien abre el redactor con esa persona ya elegida.
+ */
+function EquipoEnLinea({ onElegir }: { onElegir: (id: string) => void }) {
+    const { enLinea, yoId } = usePulso();
+    const [equipo, setEquipo] = useState<Colaborador[]>([]);
+
+    useEffect(() => {
+        fetch('/api/mensajes/colaboradores')
+            .then(r => r.ok ? r.json() : null)
+            .then(d => setEquipo(d?.colaboradores || []))
+            .catch(() => {});
+    }, []);
+
+    if (equipo.length === 0) return null;
+
+    // Los conectados primero: si el equipo crece, quién está disponible no
+    // puede quedar al final de la fila detrás de cinco desconectados.
+    const ordenado = [...equipo].sort((a, b) =>
+        Number(enLinea.includes(b.id)) - Number(enLinea.includes(a.id)) || a.name.localeCompare(b.name));
+    const conectados = equipo.filter(c => enLinea.includes(c.id)).length;
+
+    return (
+        <div className="rounded-xl border border-stone-200 bg-white px-4 py-3">
+            <div className="mb-2 flex items-baseline gap-2">
+                <span className="text-xs font-bold uppercase tracking-wide text-stone-500">Equipo</span>
+                <span className="text-xs text-stone-500">
+                    {conectados === 0
+                        ? 'nadie más conectado ahora'
+                        : `${conectados} conectado${conectados === 1 ? '' : 's'}`}
+                    {yoId && ' · vos estás en línea'}
+                </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+                {ordenado.map(c => {
+                    const activo = enLinea.includes(c.id);
+                    return (
+                        <button
+                            key={c.id}
+                            onClick={() => onElegir(c.id)}
+                            title={`${c.name} — ${activo ? 'en línea ahora' : 'desconectado'}. Tocá para escribirle.`}
+                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                                activo
+                                    ? 'border-green-300 bg-green-50 text-green-900 hover:bg-green-100'
+                                    : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300'
+                            }`}
+                        >
+                            <PuntoEnLinea activo={activo} />
+                            {c.name}
+                            {/* El texto además del color: quien no distingue bien
+                                los colores no puede depender solo del puntito. */}
+                            <span className="text-[10px] font-normal opacity-70">
+                                {activo ? 'en línea' : 'desconectado'}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 export default function MensajesClient() {
     const { enLinea, refrescar } = usePulso();
     const searchParams = useSearchParams();
@@ -76,6 +145,7 @@ export default function MensajesClient() {
     const [enviando, setEnviando] = useState(false);
     const [cargando, setCargando] = useState(true);
     const [redactando, setRedactando] = useState(false);
+    const [preElegido, setPreElegido] = useState<string | null>(null);
     const [urgente, setUrgente] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const finRef = useRef<HTMLDivElement>(null);
@@ -181,7 +251,7 @@ export default function MensajesClient() {
                     </p>
                 </div>
                 <button
-                    onClick={() => setRedactando(true)}
+                    onClick={() => { setPreElegido(null); setRedactando(true); }}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-stone-800 text-white text-sm font-semibold hover:bg-stone-700 transition"
                 >
                     <Plus size={16} /> Mensaje nuevo
@@ -189,6 +259,8 @@ export default function MensajesClient() {
             </header>
 
             <BotonAvisos />
+
+            <EquipoEnLinea onElegir={(id) => { setPreElegido(id); setRedactando(true); }} />
 
             {error && (
                 <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
@@ -335,6 +407,7 @@ export default function MensajesClient() {
 
             {redactando && (
                 <RedactarModal
+                    preElegido={preElegido}
                     onCerrar={() => setRedactando(false)}
                     onEnviado={(id) => { setRedactando(false); cargarBandeja(); abrir(id); }}
                 />
@@ -344,10 +417,10 @@ export default function MensajesClient() {
 }
 
 /** Ventana de "mensaje nuevo": a quién, quién va en copia, asunto y texto. */
-function RedactarModal({ onCerrar, onEnviado }: { onCerrar: () => void; onEnviado: (id: string) => void }) {
+function RedactarModal({ onCerrar, onEnviado, preElegido }: { onCerrar: () => void; onEnviado: (id: string) => void; preElegido?: string | null }) {
     const { enLinea } = usePulso();
     const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
-    const [para, setPara] = useState<string[]>([]);
+    const [para, setPara] = useState<string[]>(preElegido ? [preElegido] : []);
     const [copia, setCopia] = useState<string[]>([]);
     const [subject, setSubject] = useState('');
     const [mensaje, setMensaje] = useState('');

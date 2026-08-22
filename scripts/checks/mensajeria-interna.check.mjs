@@ -120,6 +120,23 @@ check('sin latido no figura en línea', !(await S.enLinea()).includes(ana.id));
 await S.latido(ana.id);
 check('con latido figura en línea', (await S.enLinea()).includes(ana.id));
 
+// Que el verde SE APAGUE es lo que hay que vigilar: mostrar "en línea" a quien
+// cerró todo hace media hora es peor que no mostrar nada, porque lleva a
+// esperar una respuesta que no va a llegar. Se simula un latido viejo.
+await prisma.user.update({
+    where: { id: ana.id },
+    data: { lastSeenAt: new Date(Date.now() - 5 * 60 * 1000) },
+});
+check('un latido de hace 5 minutos ya NO cuenta como en línea', !(await S.enLinea()).includes(ana.id));
+
+// Y que tolere una falla puntual de red: a los 40 s (dos latidos perdidos)
+// tiene que seguir en verde, si no el puntito parpadea todo el tiempo.
+await prisma.user.update({
+    where: { id: ana.id },
+    data: { lastSeenAt: new Date(Date.now() - 40 * 1000) },
+});
+check('un latido de hace 40 s sigue contando (tolera fallas de red)', (await S.enLinea()).includes(ana.id));
+
 await limpiar();
 await prisma.$disconnect();
 
