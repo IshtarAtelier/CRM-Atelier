@@ -210,8 +210,8 @@ export const hasActive2x1Promo = (items: any[]): boolean => {
  */
 export const pick2x1FrameDiscount = (
     items: any[]
-): { discount: number; itemName: string | null } => {
-    const nada = { discount: 0, itemName: null };
+): { discount: number; itemName: string | null; item: any | null } => {
+    const nada = { discount: 0, itemName: null, item: null };
     if (!hasActive2x1Promo(items)) return nada;
 
     const precioDe = (it: any) => safePrice(it.customPrice !== undefined ? it.customPrice : it.price);
@@ -229,7 +229,7 @@ export const pick2x1FrameDiscount = (
     // armazón que no entra en la promo.
     if (tildados.length === 1) {
         const tildado = tildados[0];
-        return { discount: Math.round(precioDe(tildado) / 2), itemName: `${nombreDe(tildado)} (50%)` };
+        return { discount: Math.round(precioDe(tildado) / 2), itemName: `${nombreDe(tildado)} (50%)`, item: tildado };
     }
 
     // Dos o más tildados: el más caro de la venta se cobra, el mejor de los
@@ -238,7 +238,7 @@ export const pick2x1FrameDiscount = (
     const bonificado = ordenados.slice(1).find(it => isFrameEligible2x1(it.product));
     if (!bonificado) return nada;
 
-    return { discount: precioDe(bonificado), itemName: nombreDe(bonificado) };
+    return { discount: precioDe(bonificado), itemName: nombreDe(bonificado), item: bonificado };
 };
 
 

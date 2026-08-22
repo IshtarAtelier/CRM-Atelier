@@ -5,9 +5,8 @@ import { Search, Save, Loader2,
     Gift, CheckCircle2
 } from 'lucide-react';
 import { 
-    isMultifocal2x1, isAtelierFrame, isCrystal, 
-    getCategoryKey, isFrame, safePrice,
-    hasActive2x1Promo
+    isMultifocal2x1, isCrystal, isFrame, safePrice,
+    hasActive2x1Promo, pick2x1FrameDiscount
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -104,25 +103,15 @@ export default function CotizadorCart({
         return items.some(it => it.product && isMultifocal2x1(it.product));
     }, [items]);
 
-    const atelierAvgPrice = useMemo(() => {
-        const atelierFrames = availableProducts.filter(p => getCategoryKey(p.type, p.category) === 'Armazón' && isAtelierFrame(p) && safePrice(p.price) > 0);
-        return atelierFrames.length > 0 ? Math.round(atelierFrames.reduce((s, f) => s + safePrice(f.price), 0) / atelierFrames.length) : 0;
-    }, [availableProducts]);
-    
-    const flattenedFrames = items.flatMap(i => {
-        if (!i.product || !isFrame(i.product)) return [];
-        return Array.from({ length: i.quantity || 1 }).map((_, idx) => ({ ...i, virtualIdx: idx }));
-    });
-    const sortedFrames = [...flattenedFrames].sort((a, b) => safePrice(b.customPrice) - safePrice(a.customPrice));
-    const secondFrameVirtual = sortedFrames.length >= 2 ? sortedFrames[1] : null;
-    const secondFrameUid = secondFrameVirtual?.uid || null;
-    
-    const promoFrameDiscount = useMemo(() => {
-        if (!hasMultifocalPromo || !secondFrameVirtual) return 0;
-        const sPrice = safePrice(secondFrameVirtual.customPrice);
-        if (isAtelierFrame(secondFrameVirtual.product)) return sPrice;
-        return Math.min(sPrice, safePrice(atelierAvgPrice));
-    }, [hasMultifocalPromo, secondFrameVirtual, atelierAvgPrice]);
+    // El armazón bonificado y su descuento salen del módulo canónico de la
+    // promo (promo-utils). Acá vivía una copia con la regla vieja del
+    // "promedio Atelier": el total ya daba bien pero la línea seguía mostrando
+    // el tachado viejo — dos números distintos en la misma pantalla.
+    const { discount: promoFrameDiscount, item: promoFrameItem, itemName: promoFrameName } = useMemo(
+        () => pick2x1FrameDiscount(items),
+        [items]
+    );
+    const secondFrameUid = promoFrameItem?.uid || null;
 
     const { subtotal, subtotalWithMarkup: priceWithMarkup, totalCash } = useMemo(() => {
         return calculateQuoteTotals(items, markup, discountCash, availableProducts, specialDiscount);
@@ -290,7 +279,11 @@ export default function CotizadorCart({
                     </div>
                     <div className="flex-1">
                         <p className="text-xs font-bold uppercase tracking-wider">{hasMultifocalPromo ? '🎁 ¡Promoción Multifocal 2x1 Activa!' : '✨ Mi Primer Varilux'}</p>
-                        <p className="text-[10px] font-bold text-stone-550 dark:text-stone-400">{hasMultifocalPromo ? `Incluye armazón Atelier sin cargo` : 'Solo incluye el par de cristales'}</p>
+                        <p className="text-[10px] font-bold text-stone-550 dark:text-stone-400">{hasMultifocalPromo
+                            ? (promoFrameDiscount > 0
+                                ? `Bonifica: ${promoFrameName}`
+                                : 'Bonifica armazones tildados en la promo (2º sin cargo; uno solo: 50%)')
+                            : 'Solo incluye el par de cristales'}</p>
                     </div>
                 </div>
             )}
