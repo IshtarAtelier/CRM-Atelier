@@ -3,12 +3,19 @@
  * mensaje interno.
  *
  * Qué contesta, por pedido de la dueña: a cuántos clientes le armó presupuesto,
- * cuántas tareas cerró y cuántas creó. **Si fue cero, dice cero**: un reporte
- * que omite lo que está en cero se lee como si el dato no existiera, y no se
- * puede distinguir "no hizo nada" de "el sistema no lo midió".
+ * cuántos pedidos mandó a fábrica, cuántas tareas cerró y cuántos comentarios
+ * pidió. **Si fue cero, dice cero**: un reporte que omite lo que está en cero se
+ * lee como si el dato no existiera, y no se puede distinguir "no hizo nada" de
+ * "el sistema no lo midió".
  *
- * Corre una vez por día. Que corra dos veces no duplica nada: antes de escribir
- * verifica si ya mandó el resumen de ese día.
+ * QUÉ NO ESTÁ, Y POR QUÉ: "tareas que creaste". Se pidió, se midió contra
+ * producción y da CERO para todo el mundo — de 334 tareas creadas en una semana,
+ * las 334 las generaron los motores automáticos ('Sistema (Pasivo)', 'Bot',
+ * 'Sistema (Retención)'), ninguna una persona. Un renglón que siempre dice cero
+ * entrena a la gente a saltear el reporte entero, así que se calcula pero no se
+ * muestra: el día que se pueda crear una tarea a mano, se agrega el renglón.
+ *
+ * Corre una vez por día.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -60,23 +67,28 @@ export async function GET(request: NextRequest) {
         });
 
         const enviados: string[] = [];
-        const resumenEquipo: { nombre: string; presupuestos: number; cerradas: number; creadas: number }[] = [];
+        const resumenEquipo: { nombre: string; presupuestos: number; fabrica: number; cerradas: number; resenas: number }[] = [];
 
         for (const persona of equipo) {
             const a = await InternalMessagingService.actividadDe(persona.id, persona.name, desde, hasta);
             resumenEquipo.push({
-                nombre: persona.name,
-                presupuestos: a.presupuestos, cerradas: a.tareasCerradas, creadas: a.tareasCreadas,
+                nombre: persona.name.trim(),
+                presupuestos: a.presupuestos, fabrica: a.enviadosAFabrica,
+                cerradas: a.tareasCerradas, resenas: a.resenasPedidas,
             });
 
-            const hizoAlgo = a.presupuestos + a.tareasCerradas + a.tareasCreadas > 0;
+            const hizoAlgo = a.presupuestos + a.enviadosAFabrica + a.tareasCerradas > 0;
 
             const cuerpo = [
                 `📋 Tu resumen del ${etiqueta}`,
                 ``,
                 `• Clientes con presupuesto: ${contar(a.presupuestos, 'cliente', 'clientes', 'ninguno (0)')}`,
+                `• Pedidos que enviaste a fábrica: ${contar(a.enviadosAFabrica, 'pedido', 'pedidos', 'ninguno (0)')}`,
                 `• Tareas que terminaste: ${contar(a.tareasCerradas, 'tarea', 'tareas', 'ninguna (0)')}`,
-                `• Tareas que creaste: ${contar(a.tareasCreadas, 'tarea', 'tareas', 'ninguna (0)')}`,
+                // Se aclara que va DENTRO de las tareas: sin eso, "12 tareas" y
+                // "8 comentarios" se leen como 20 cosas distintas.
+                `• Comentarios que pediste: ${contar(a.resenasPedidas, 'comentario', 'comentarios', 'ninguno (0)')}`
+                    + (a.resenasPedidas > 0 ? ` (van incluidos en las tareas de arriba)` : ''),
                 ``,
                 hizoAlgo ? `¡Buen trabajo! 💪` : `Ayer no quedó registrada actividad tuya en el sistema.`,
             ].join('\n');
@@ -95,16 +107,16 @@ export async function GET(request: NextRequest) {
         const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
         if (admins.length > 0 && resumenEquipo.length > 0) {
             const totales = resumenEquipo.reduce(
-                (t, r) => ({ p: t.p + r.presupuestos, c: t.c + r.cerradas, n: t.n + r.creadas }),
-                { p: 0, c: 0, n: 0 },
+                (t, r) => ({ p: t.p + r.presupuestos, f: t.f + r.fabrica, c: t.c + r.cerradas, s: t.s + r.resenas }),
+                { p: 0, f: 0, c: 0, s: 0 },
             );
             const cuerpo = [
                 `📊 Resumen del equipo — ${etiqueta}`,
                 ``,
                 ...resumenEquipo.map(r =>
-                    `• ${r.nombre}: ${r.presupuestos} presupuesto(s) · ${r.cerradas} tarea(s) terminada(s) · ${r.creadas} creada(s)`),
+                    `• ${r.nombre}\n    ${r.presupuestos} presupuesto(s) · ${r.fabrica} a fábrica · ${r.cerradas} tarea(s) · ${r.resenas} comentario(s)`),
                 ``,
-                `Total del día: ${totales.p} presupuesto(s), ${totales.c} tarea(s) terminada(s), ${totales.n} creada(s).`,
+                `Total del día: ${totales.p} presupuesto(s), ${totales.f} enviado(s) a fábrica, ${totales.c} tarea(s) terminada(s), ${totales.s} comentario(s) pedido(s).`,
             ].join('\n');
 
             for (const admin of admins) {

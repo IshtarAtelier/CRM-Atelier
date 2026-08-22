@@ -516,7 +516,7 @@ export class InternalMessagingService {
      * viejas dejan de contarle. Es deuda del modelo, no de este cálculo.
      */
     static async actividadDe(userId: string, userName: string, desde: Date, hasta: Date) {
-        const [presupuestos, tareasCerradas, tareasCreadas] = await Promise.all([
+        const [presupuestos, enviadosAFabrica, tareasCerradas, resenasPedidas, tareasCreadas] = await Promise.all([
             // DISTINCT por cliente: dos presupuestos a la misma persona son un
             // cliente presupuestado, no dos. Es lo que se preguntó ("a cuántos
             // clientes le armaron presupuestos").
@@ -529,16 +529,49 @@ export class InternalMessagingService {
                 distinct: ['clientId'],
             }).then(r => r.length),
 
+            // Pedidos que mandó a fábrica. Por `labSentById` (clave real) y no
+            // por el nombre: es el criterio que CLAUDE.md fija para "vendedor de
+            // una venta". Verificado contra producción: por id y por nombre dan
+            // lo mismo, así que la clave alcanza y es la que no se rompe si a
+            // alguien le cambian el nombre.
+            prisma.order.count({
+                where: { labSentById: userId, labSentAt: { gte: desde, lt: hasta } },
+            }),
+
             prisma.clientTask.count({
                 where: { completedBy: userName, completedAt: { gte: desde, lt: hasta } },
             }),
 
+            // Comentarios/reseñas que pidió. Nacen como una ClientTask
+            // `REVIEW_REQUEST` cuando un pedido pasa a ENTREGADO, y se cierran
+            // cuando la persona efectivamente se lo pidió al cliente. Es un
+            // SUBCONJUNTO de las tareas cerradas de arriba — el mensaje lo dice,
+            // si no parece que los números no cierran.
+            prisma.clientTask.count({
+                where: {
+                    type: 'REVIEW_REQUEST',
+                    completedBy: userName,
+                    completedAt: { gte: desde, lt: hasta },
+                },
+            }),
+
+            // OJO: esto da CERO SIEMPRE, para todo el mundo.
+            //
+            // Se midió contra producción el 22/8/2026: de 334 tareas creadas en
+            // siete días, 205 las creó 'Sistema (Pasivo)', 86 el 'Bot', 20
+            // 'Sistema', 11 'Sistema (Retención)' y 12 quedaron en null. NINGUNA
+            // la creó una persona: en este CRM las tareas las generan los
+            // motores de seguimiento, no el equipo.
+            //
+            // Se deja calculado pero FUERA del mensaje: un renglón que siempre
+            // dice cero entrena a la gente a ignorar el reporte entero. Si algún
+            // día se agrega "crear tarea" a mano desde el panel, ya está listo.
             prisma.clientTask.count({
                 where: { createdBy: userName, createdAt: { gte: desde, lt: hasta } },
             }),
         ]);
 
-        return { presupuestos, tareasCerradas, tareasCreadas };
+        return { presupuestos, enviadosAFabrica, tareasCerradas, resenasPedidas, tareasCreadas };
     }
 
     /** Suma a alguien a una conversación en curso (como destinatario o en copia). */
