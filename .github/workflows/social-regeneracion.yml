@@ -25,6 +25,19 @@ on:
     - cron: '0 9 * * 5'   # viernes 06:00 ART — antes del sábado de producto
   workflow_dispatch:
 
+# SIN ESTO EL WORKFLOW NO SIRVE PARA NADA. Todo el trabajo termina en un
+# `git push`, y el GITHUB_TOKEN por defecto es de solo lectura: el push moría con
+# «Permission to IshtarAtelier/CRM-Atelier.git denied to github-actions[bot]»
+# (403) DESPUÉS de haber regenerado las 56 piezas — o sea, el trabajo se hacía
+# y se tiraba a la basura.
+#
+# Los viernes 14/8 y 21/8/2026 fallaron así. Como las piezas nunca se
+# refrescaron, la guarda de frescura (10 días) bloqueó el carril `producto`
+# entero: la óptica venía publicando 2 stories por día en vez de 4, todos los
+# días, desde el 20/8.
+permissions:
+  contents: write
+
 jobs:
   regenerar:
     runs-on: ubuntu-latest
