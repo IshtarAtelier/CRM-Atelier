@@ -10,8 +10,11 @@
 //      Sin tilde no se regala nada — ni por marca, ni por promedio, ni por
 //      ninguna otra deducción. Esa deducción existió y regaló armazones de la
 //      tienda web de $160.000 a $35.143.
-//   4. Tildado = va sin cargo ENTERO. El más caro de la venta se cobra siempre.
-//   5. Un lente de sol tildado también puede ser el bonificado.
+//   4. Con DOS o más tildados: el más caro de la venta se cobra siempre y el
+//      bonificado va sin cargo ENTERO.
+//   5. MEZCLA (un tildado + otro sin tildar): el tildado queda al 50%, sea el
+//      caro o el barato. Regla pedida por Ishtar el 22/8/26.
+//   6. Un lente de sol tildado también puede ser el bonificado.
 //
 // Corre sin base y sin red.
 // Correr:  npm run check:promo
@@ -40,14 +43,21 @@ const casos = [
         () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 160000, false)]), 0)],
     ['la marca NO decide: un "Atelier" sin tilde no se regala',
         () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'Orfeo C1', 160000, false), armazon('f2', 'Aquiles C1', 160000, false)]), 0)],
-    ['tildado = sin cargo ENTERO, sin topes escondidos',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 120000, true)]), 120000)],
-    ['el más caro se cobra siempre, aunque sea el único tildado',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'Caro', 160000, true), armazon('f2', 'Barato', 120000, false)]), 0)],
-    ['con los dos tildados se bonifica el segundo (más barato)',
+    ['MEZCLA: el tildado barato junto a uno sin tildar queda al 50%',
+        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 120000, true)]), 60000)],
+    ['MEZCLA: el tildado caro junto a uno sin tildar también queda al 50%',
+        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'Caro', 160000, true), armazon('f2', 'Barato', 120000, false)]), 80000)],
+    ['con los dos tildados se bonifica el segundo (más barato) ENTERO',
         () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'Caro', 160000, true), armazon('f2', 'Barato', 120000, true)]), 120000)],
-    ['un lente de sol tildado puede ser el bonificado',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, false), lenteSol('s1', 'Sol', 90000, true)]), 90000)],
+    ['MEZCLA con lente de sol tildado: 50% del sol',
+        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, false), lenteSol('s1', 'Sol', 90000, true)]), 45000)],
+    ['dos tildados: armazón + lente de sol → el más barato gratis entero',
+        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, true), lenteSol('s1', 'Sol', 90000, true)]), 90000)],
+    ['el nombre de la promo avisa el 50% en la mezcla',
+        () => {
+            const r = pick2x1FrameDiscount([cristal2x1('OD'), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 120000, true)]);
+            assert.ok(r.itemName?.includes('(50%)'), `itemName fue: ${r.itemName}`);
+        }],
     ['un solo armazón: nada que bonificar',
         () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 120000, true)]), 0)],
     ['cantidad 2 del mismo armazón tildado: se bonifica una unidad',
@@ -60,7 +70,7 @@ const casos = [
         () => {
             const r = pick2x1FrameDiscount([
                 { ...cristal2x1('OD'), customPrice: 305167 },
-                { product: armazon('f1', 'A', 0, false).product, quantity: 1, customPrice: 160000 },
+                { product: armazon('f1', 'A', 0, true).product, quantity: 1, customPrice: 160000 },
                 { product: armazon('f2', 'B', 0, true).product, quantity: 1, customPrice: 110000 },
             ]);
             assert.equal(r.discount, 110000);

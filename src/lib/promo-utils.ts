@@ -191,15 +191,18 @@ export const hasActive2x1Promo = (items: any[]): boolean => {
 /**
  * Elige el armazón bonificado de un 2x1 y devuelve cuánto descontar.
  *
- * Regla completa:
+ * Regla completa (confirmada por Ishtar el 22/8/26):
  *  - Solo corre si `hasActive2x1Promo` (la valida acá adentro: ningún llamador
  *    puede saltearla por olvido).
  *  - Candidatos: armazones, y cualquier producto tildado a mano (`eligible2x1`)
  *    aunque su categoría no diga "armazón" (lentes de sol).
  *  - La cantidad expande: 2 unidades del mismo armazón son 2 candidatos.
- *  - El más caro de la venta SE COBRA SIEMPRE. El bonificado es el más caro de
- *    los siguientes que esté TILDADO en Stock, y va sin cargo ENTERO — sin
- *    topes ni promedios escondidos. Sin tilde no se regala nada.
+ *  - DOS O MÁS tildados: el más caro de la venta se cobra siempre; el
+ *    bonificado es el más caro de los siguientes que esté tildado, y va sin
+ *    cargo ENTERO — sin topes ni promedios escondidos.
+ *  - MEZCLA (un solo tildado + al menos otro armazón sin tildar): el tildado
+ *    queda al 50%, sea el caro o el barato. Ni gratis ni entero: mitad.
+ *  - Sin tildados, o un armazón solo: no se regala ni descuenta nada.
  *
  * Acepta ítems con `price` (ventas guardadas) o `customPrice` (cotizador).
  */
@@ -210,6 +213,7 @@ export const pick2x1FrameDiscount = (
     if (!hasActive2x1Promo(items)) return nada;
 
     const precioDe = (it: any) => safePrice(it.customPrice !== undefined ? it.customPrice : it.price);
+    const nombreDe = (it: any) => `${it.product?.brand || ''} ${it.product?.name || 'Armazón'}`.trim();
 
     const candidatos = (items || []).flatMap(it => {
         if (!it || (!isFrame(it.product) && !isFrameEligible2x1(it.product))) return [];
@@ -217,12 +221,21 @@ export const pick2x1FrameDiscount = (
     });
     if (candidatos.length < 2) return nada;
 
+    const tildados = candidatos.filter(it => isFrameEligible2x1(it.product));
+
+    // MEZCLA: un solo tildado acompañado de armazones sin promo → 50% off.
+    if (tildados.length === 1) {
+        const tildado = tildados[0];
+        return { discount: Math.round(precioDe(tildado) / 2), itemName: `${nombreDe(tildado)} (50%)` };
+    }
+
+    // Dos o más tildados: el más caro de la venta se cobra, el mejor de los
+    // siguientes tildados va gratis entero.
     const ordenados = [...candidatos].sort((a, b) => precioDe(b) - precioDe(a));
     const bonificado = ordenados.slice(1).find(it => isFrameEligible2x1(it.product));
     if (!bonificado) return nada;
 
-    const nombre = `${bonificado.product?.brand || ''} ${bonificado.product?.name || 'Armazón'}`.trim();
-    return { discount: precioDe(bonificado), itemName: nombre };
+    return { discount: precioDe(bonificado), itemName: nombreDe(bonificado) };
 };
 
 
