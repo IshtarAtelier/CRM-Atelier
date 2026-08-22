@@ -200,9 +200,11 @@ export const hasActive2x1Promo = (items: any[]): boolean => {
  *  - DOS O MÁS tildados: el más caro de la venta se cobra siempre; el
  *    bonificado es el más caro de los siguientes que esté tildado, y va sin
  *    cargo ENTERO — sin topes ni promedios escondidos.
- *  - MEZCLA (un solo tildado + al menos otro armazón sin tildar): el tildado
- *    queda al 50%, sea el caro o el barato. Ni gratis ni entero: mitad.
- *  - Sin tildados, o un armazón solo: no se regala ni descuenta nada.
+ *  - UN SOLO tildado: queda al 50%, sea el caro o el barato. Vale igual si es
+ *    el ÚNICO armazón de la venta (el otro es del cliente) o si lo acompaña
+ *    un armazón sin promo. Ni gratis ni entero: mitad.
+ *  - Sin tildados: no se descuenta nada — un armazón fuera de la promo se
+ *    cobra completo aunque haya cristales 2x1.
  *
  * Acepta ítems con `price` (ventas guardadas) o `customPrice` (cotizador).
  */
@@ -219,11 +221,12 @@ export const pick2x1FrameDiscount = (
         if (!it || (!isFrame(it.product) && !isFrameEligible2x1(it.product))) return [];
         return Array.from({ length: it.quantity || 1 }).map(() => it);
     });
-    if (candidatos.length < 2) return nada;
 
     const tildados = candidatos.filter(it => isFrameEligible2x1(it.product));
 
-    // MEZCLA: un solo tildado acompañado de armazones sin promo → 50% off.
+    // UN SOLO tildado → 50% off. Cubre las dos ventas reales: "traigo mi
+    // armazón y compro uno" (un solo armazón en la venta) y la mezcla con un
+    // armazón que no entra en la promo.
     if (tildados.length === 1) {
         const tildado = tildados[0];
         return { discount: Math.round(precioDe(tildado) / 2), itemName: `${nombreDe(tildado)} (50%)` };

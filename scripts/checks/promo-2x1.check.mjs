@@ -12,8 +12,9 @@
 //      tienda web de $160.000 a $35.143.
 //   4. Con DOS o más tildados: el más caro de la venta se cobra siempre y el
 //      bonificado va sin cargo ENTERO.
-//   5. MEZCLA (un tildado + otro sin tildar): el tildado queda al 50%, sea el
-//      caro o el barato. Regla pedida por Ishtar el 22/8/26.
+//   5. UN SOLO tildado en la venta: queda al 50%, sea el caro o el barato, y
+//      valga solo (el otro armazón es del cliente) o junto a uno sin promo.
+//      Un armazón sin tilde se cobra entero siempre. Reglas de Ishtar, 22/8/26.
 //   6. Un lente de sol tildado también puede ser el bonificado.
 //
 // Corre sin base y sin red.
@@ -58,8 +59,10 @@ const casos = [
             const r = pick2x1FrameDiscount([cristal2x1('OD'), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 120000, true)]);
             assert.ok(r.itemName?.includes('(50%)'), `itemName fue: ${r.itemName}`);
         }],
-    ['un solo armazón: nada que bonificar',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 120000, true)]), 0)],
+    ['armazón del cliente + UN armazón tildado comprado: 50%',
+        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 120000, true)]), 60000)],
+    ['armazón del cliente + UN armazón sin tildar: se cobra entero',
+        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 120000, false)]), 0)],
     ['cantidad 2 del mismo armazón tildado: se bonifica una unidad',
         () => {
             const it = armazon('f1', 'A', 120000, true);
