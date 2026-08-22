@@ -25,6 +25,11 @@ model User {
   cashMovements     CashMovement[]
   vendorCashEntries VendorCashEntry[] @relation("VendorCashEntries")
   orders            Order[]
+
+  // Mensajería interna (ver el bloque al final del archivo).
+  threadsCreated       InternalThread[]            @relation("ThreadsCreated")
+  threadParticipations InternalThreadParticipant[]
+  messagesSent         InternalMessage[]           @relation("MessagesSent")
 }
 
 model Client {
@@ -1251,4 +1256,81 @@ model ProductReview {
 
   @@index([productId, approved])
   @@index([approved, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MENSAJERÍA INTERNA entre colaboradores.
+//
+// Reemplaza a `TeamMessage`, que era un muro global de DOS personas con los
+// teléfonos escritos en el código (`MATIAS_PHONE`, `ISHTAR_PHONE` en
+// api/equipo/mensajes) y un `sender` que era un string suelto, sin relación con
+// User. No tenía destinatario, ni lectura, ni privacidad: todo lo que se
+// escribía lo veía cualquiera que entrara.
+//
+// El modelo es conversación + participantes + mensajes, que es lo que permite
+// las tres cosas que se pidieron con UNA sola estructura:
+//   · mensaje para uno      → conversación con 2 participantes
+//   · mensaje para varios   → conversación con N participantes
+//   · alguien "en copia"    → participante con role = 'CC'
+// Sumar un participante a una conversación existente no necesita otra tabla ni
+// otro código: es una fila más.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model InternalThread {
+  id            String   @id @default(cuid())
+  // DIRECT = uno a uno · GROUP = varios · ANNOUNCEMENT = aviso a todo el equipo
+  kind          String   @default("DIRECT")
+  // Asunto. Opcional: un mensaje directo no necesita uno.
+  subject       String?
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  // Desnormalizado para poder ordenar la bandeja sin tocar la tabla de mensajes.
+  lastMessageAt DateTime @default(now())
+
+  createdBy    User                        @relation("ThreadsCreated", fields: [createdById], references: [id], onDelete: Restrict)
+  participants InternalThreadParticipant[]
+  messages     InternalMessage[]
+
+  @@index([lastMessageAt(sort: Desc)])
+}
+
+model InternalThreadParticipant {
+  id       String @id @default(cuid())
+  threadId String
+  userId   String
+  // MEMBER = participa y responde · CC = está en copia (ve todo, no es destinatario)
+  role     String @default("MEMBER")
+  // Hasta cuándo leyó. Los no leídos se DERIVAN de acá (mensajes posteriores a
+  // esta marca) en vez de llevar un contador que se desincroniza: un contador
+  // mal sumado miente para siempre, una marca de tiempo se autocorrige sola.
+  lastReadAt DateTime?
+  // Salió de la conversación. No se borra la fila: se pierde el historial de
+  // quién estuvo, que es justo lo que hay que poder auditar.
+  leftAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  thread InternalThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+  // La bandeja de una persona y su cuenta de no leídos salen de este índice.
+  @@index([userId, leftAt])
+}
+
+model InternalMessage {
+  id        String    @id @default(cuid())
+  threadId  String
+  senderId  String
+  body      String
+  createdAt DateTime  @default(now())
+  editedAt  DateTime?
+
+  // Restrict y NO Cascade, igual que WhatsAppMessage: lo que se dijeron entre
+  // colaboradores es prueba de una conversación de trabajo y no se borra en
+  // cascada por accidente desde un script o desde Prisma Studio.
+  thread InternalThread @relation(fields: [threadId], references: [id], onDelete: Restrict)
+  sender User           @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Restrict)
+
+  @@index([threadId, createdAt(sort: Desc)])
 }
