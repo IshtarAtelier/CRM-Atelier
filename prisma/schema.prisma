@@ -319,6 +319,11 @@ model Product {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
   is2x1                 Boolean      @default(false)
+  // Armazones de receta y lentes de sol: si este puede ser el que va SIN CARGO
+  // en un 2x1 de multifocales. Se tilda a mano en Stock y arranca en false —
+  // nadie entra en la promo hasta que alguien lo tilde. Antes se deducía de la
+  // marca y regalaba armazones que no correspondían.
+  eligible2x1           Boolean      @default(false)
   botRecommended        Boolean      @default(false)
   botLabel              String?
   ageGroup              String?

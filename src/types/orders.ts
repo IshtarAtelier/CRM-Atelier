@@ -208,6 +208,7 @@ export interface Product {
     laboratory?: string | null;
     origin?: string | null;
     is2x1?: boolean;
+    eligible2x1?: boolean;
     botLabel?: string | null;
     botRecommended?: boolean;
     sphereMin?: number | null;

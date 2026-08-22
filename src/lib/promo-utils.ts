@@ -48,6 +48,33 @@ export const isAtelierFrame = (p: any): boolean => {
 };
 
 /**
+ * ¿A este producto se le puede tildar "entra en el 2x1"?
+ *
+ * Son los que se le ponen en la cara al cliente: armazones de receta y lentes
+ * de sol. Solo define dónde aparece el tilde en Stock; que entre o no lo dice
+ * `eligible2x1`.
+ */
+export const puedeEntrarEn2x1 = (p: any): boolean => {
+    if (!p) return false;
+    const t = normalizeText(`${p.type || ''} ${p.category || ''}`);
+    return t.includes('armazon') || t.includes('marco') || t.includes('frame') || t.includes('sol');
+};
+
+/**
+ * ¿Este armazón puede ser el bonificado de un 2x1?
+ *
+ * Se decide a mano, tildando el armazón en Stock (`eligible2x1`), NUNCA por la
+ * marca. Antes se deducía: "Atelier" iba gratis y cualquier otro armazón se
+ * bonificaba hasta el promedio de los Atelier, así que un armazón de la tienda
+ * web de $160.000 se terminaba cobrando $35.143 sin que nadie lo decidiera.
+ * Sin tilde, el armazón se cobra completo.
+ */
+export const isFrameEligible2x1 = (p: any): boolean => {
+    if (!p) return false;
+    return p.eligible2x1 === true;
+};
+
+/**
  * Robust check if a product is a lens/crystal.
  */
 export const isCrystal = (p: any): boolean => {
@@ -154,7 +181,7 @@ export const safePrice = (price: any): number => {
  */
 export const calculatePromoFrameDiscount = (
     items: any[],
-    availableProducts?: any[]
+    _availableProducts?: any[]
 ): number => {
     // Check if there's a multifocal 2x1 promo active (crystal that is 2x1 and NOT Mi Primer Varilux)
     const hasMultifocalPromo = items.some(
@@ -164,7 +191,7 @@ export const calculatePromoFrameDiscount = (
 
     // Flatten frames by quantity to find the second cheapest frame
     const flattenedFrames = items.flatMap(i => {
-        if (!isFrame(i.product)) return [];
+        if (!isFrame(i.product) && !isFrameEligible2x1(i.product)) return [];
         return Array.from({ length: i.quantity || 1 }).map((_, idx) => ({
             ...i,
             virtualIdx: idx
@@ -173,32 +200,14 @@ export const calculatePromoFrameDiscount = (
 
     if (flattenedFrames.length < 2) return 0;
 
-    // Sort by price descending — the second one is the promo target
+    // Sort by price descending — el más caro SIEMPRE se cobra; el bonificado es
+    // el más caro de los que estén tildados como elegibles (ver isFrameEligible2x1).
     const sortedFrames = [...flattenedFrames].sort((a, b) => safePrice(b.customPrice) - safePrice(a.customPrice));
-    const secondFrame = sortedFrames[1];
+    const secondFrame = sortedFrames.slice(1).find(f => isFrameEligible2x1(f.product));
     if (!secondFrame) return 0;
 
-    const framePrice = safePrice(secondFrame.customPrice);
-
-    // If it's an Atelier frame, it's fully free
-    if (isAtelierFrame(secondFrame.product)) return framePrice;
-
-    // Otherwise, discount up to the Atelier average price
-    let atelierAvgPrice = 0;
-    if (availableProducts && availableProducts.length > 0) {
-        const atelierFrames = availableProducts.filter(
-            p => getCategoryKey(p.type, p.category) === 'Armazón' && isAtelierFrame(p) && safePrice(p.price) > 0
-        );
-        if (atelierFrames.length > 0) {
-            atelierAvgPrice = Math.round(
-                atelierFrames.reduce((s, f) => s + safePrice(f.price), 0) / atelierFrames.length
-            );
-        } else {
-            atelierAvgPrice = 0; // Guard against division by zero
-        }
-    }
-
-    return Math.min(framePrice, safePrice(atelierAvgPrice));
+    // Tildado = va sin cargo, entero (ver isFrameEligible2x1).
+    return safePrice(secondFrame.customPrice);
 };
 
 

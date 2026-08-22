@@ -54,7 +54,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
         lensIndex: '', laboratory: '', sphereMin: '', sphereMax: '', 
         cylinderMin: '', cylinderMax: '', additionMin: '', additionMax: '',
         diameterMin: '', diameterMax: '',
-        is2x1: false, publishToWeb: true, publishToWholesale: false, origin: 'LABORATORIO',
+        is2x1: false, eligible2x1: false, publishToWeb: true, publishToWholesale: false, origin: 'LABORATORIO',
         seoTitle: '', seoDescription: '', seoTags: '', customSlug: '',
         mpn: '', gender: '', ageGroup: ''
     });
@@ -89,6 +89,9 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
     const activeCategory = PRODUCT_CATEGORIES.find(c => c.id === selectedCategory);
     const hasSubtypes = !!(activeCategory?.subtypes?.length);
     const isCristal = selectedCategory === 'Cristal';
+    // El bonificado de un 2x1 es algo que el cliente se pone: armazón de receta
+    // o lente de sol. Arranca sin tildar en los dos casos.
+    const isArmazon = selectedCategory === 'Armazón de Receta' || selectedCategory === 'Lentes de Sol';
     const isRequestedToLab = (selectedCategory === 'Cristal' && formData.origin === 'LABORATORIO') || selectedCategory === 'Tratamiento';
     const finalType = hasSubtypes && selectedSubtype
         ? `${selectedCategory} ${selectedSubtype}`
@@ -133,6 +136,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 diameterMin: isCristal && formData.diameterMin !== '' ? parseFloat(formData.diameterMin as string) : null,
                 diameterMax: isCristal && formData.diameterMax !== '' ? parseFloat(formData.diameterMax as string) : null,
                 is2x1: formData.is2x1,
+                eligible2x1: isArmazon && formData.eligible2x1,
                 publishToWeb: formData.publishToWeb,
                 publishToWholesale: formData.publishToWholesale,
                 ...(formData.publishToWeb ? {
@@ -672,6 +676,27 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                             )}
 
                             {/* Promoción 2x1 (Otros) */}
+                            {isArmazon ? (
+                                /* En un ARMAZÓN la pregunta es la inversa: no si habilita la
+                                   promo, sino si este armazón puede ser el que va sin cargo.
+                                   Arranca apagado — los armazones de la tienda web se cobran. */
+                                <div className="col-span-2">
+                                    <label className="flex items-center gap-4 p-5 bg-emerald-50/50 dark:bg-emerald-900/10 border-2 border-emerald-100 dark:border-emerald-800/30 rounded-[2rem] cursor-pointer hover:border-emerald-300 transition-all select-none">
+                                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.eligible2x1 ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-emerald-200'}`}>
+                                            {formData.eligible2x1 && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                        </div>
+                                        <input type="checkbox" className="hidden" checked={formData.eligible2x1} onChange={e => setFormData({ ...formData, eligible2x1: e.target.checked })} />
+                                        <div className="flex-1">
+                                            <p className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">🎁 Entra en el 2x1</p>
+                                            <p className="text-[10px] font-bold text-emerald-600/70">
+                                                {formData.eligible2x1
+                                                    ? 'Puede ser el armazón bonificado de un 2x1 de multifocales.'
+                                                    : 'No se bonifica nunca: en un 2x1 este armazón se cobra completo.'}
+                                            </p>
+                                        </div>
+                                    </label>
+                                </div>
+                            ) : (
                             <div className="col-span-2">
                                 <label className="flex items-center gap-4 p-5 bg-emerald-50/50 dark:bg-emerald-900/10 border-2 border-emerald-100 dark:border-emerald-800/30 rounded-[2rem] cursor-pointer hover:border-emerald-300 transition-all select-none">
                                     <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.is2x1 ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-emerald-200'}`}>
@@ -684,6 +709,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                     </div>
                                 </label>
                             </div>
+                            )}
 
                             {/* Publicar en la Web (Otros) */}
                             <div className="col-span-2 pt-2 space-y-3">

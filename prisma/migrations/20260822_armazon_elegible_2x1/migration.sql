@@ -1,0 +1,11 @@
+-- Armazón elegible para la promo 2x1.
+--
+-- Hasta ahora el descuento del segundo armazón se deducía de la marca: si decía
+-- "Atelier" iba 100% bonificado y CUALQUIER otro armazón se bonificaba hasta el
+-- promedio de los Atelier. Por eso un armazón de la tienda web de $160.000 se
+-- cobraba $35.143 sin que nadie lo decidiera.
+--
+-- Ahora entra en la promo solo lo que esté tildado a mano en Stock. Arranca
+-- TODO sin tildar a propósito: mientras nadie tilde nada, ningún armazón se
+-- regala. No hay backfill — quién entra lo decide la óptica, no una heurística.
+ALTER TABLE "Product" ADD COLUMN "eligible2x1" BOOLEAN NOT NULL DEFAULT false;

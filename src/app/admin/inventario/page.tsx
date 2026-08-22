@@ -15,6 +15,7 @@ import { PRODUCT_CATEGORIES as SHARED_CATEGORIES } from '@/lib/constants';
 import { normalizeLensOrigin, LENS_ORIGIN } from '@/lib/lens-origin';
 import { breakdownLensCost, findLabConfig } from '@/lib/lens-cost';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
+import { puedeEntrarEn2x1 } from '@/lib/promo-utils';
 const PRODUCT_CATEGORIES = [
     { id: 'ALL', label: 'Todos' },
     ...SHARED_CATEGORIES
@@ -32,7 +33,7 @@ export default function InventarioPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isDeleting, setIsDeleting] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, baseCost: '' as string, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, publishToWeb: false, publishToWholesale: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
+    const [editForm, setEditForm] = useState({ name: '', brand: '', model: '', type: '', stock: 0, cost: 0, baseCost: '' as string, price: 0, wholesalePrice: 0, lensIndex: '', laboratory: '', sphereMin: '' as string, sphereMax: '' as string, cylinderMin: '' as string, cylinderMax: '' as string, additionMin: '' as string, additionMax: '' as string, is2x1: false, eligible2x1: false, publishToWeb: false, publishToWholesale: false, lensWidth: '' as string, bridgeWidth: '' as string, templeLength: '' as string, frameHeight: '' as string, seoTitle: '', seoDescription: '', seoTags: '', customSlug: '', mpn: '', gender: '', ageGroup: '', origin: '' });
     const [savingEdit, setSavingEdit] = useState(false);
     // Hay un cálculo pendiente: se escribió el pelado y todavía no se aplicó al final.
     // Se consume al salir del campo o al guardar — una sola vez, nunca en loop.
@@ -354,6 +355,7 @@ export default function InventarioPage() {
             additionMin: p.additionMin != null ? String(p.additionMin) : '',
             additionMax: p.additionMax != null ? String(p.additionMax) : '',
             is2x1: p.is2x1 === true,
+            eligible2x1: (p as any).eligible2x1 === true,
             publishToWeb: p.publishToWeb === true,
             publishToWholesale: (p as any).publishToWholesale === true,
             lensWidth: (p as any).lensWidth != null ? String((p as any).lensWidth) : '',
@@ -912,6 +914,7 @@ export default function InventarioPage() {
                                     <div className="flex justify-center">{p.lensIndex ? <span className="text-[9px] font-black bg-primary/10 text-primary px-2.5 py-1 rounded-lg">{p.lensIndex}</span> : <span className="text-stone-300">-</span>}</div>
                                     <div className="text-right pr-4 shrink-0 flex items-center justify-end gap-2">
                                         {p.is2x1 && <span className="text-[9px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md">2x1</span>}
+                                        {(p as any).eligible2x1 && <span title="Puede ser el armazón bonificado de un 2x1" className="text-[9px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md">🎁 2x1</span>}
                                         {isRequestedToLab(p) ? <span className="text-[9px] font-black text-violet-600 bg-violet-50 dark:bg-violet-950/30 px-2 py-1 rounded-lg inline-block">{p.laboratory || 'A Pedido'}</span> : <span className={`text-sm font-black ${p.stock <= 2 ? 'text-red-500' : 'text-stone-800 dark:text-stone-200'}`}>{p.stock}</span>}
                                     </div>
                                     {isAdmin && <div className="text-right pr-4"><span className="text-sm font-bold text-stone-400">${p.cost?.toLocaleString()}</span></div>}
@@ -993,6 +996,7 @@ export default function InventarioPage() {
                                             <LensOriginBadge origin={p.origin} />
                                             {p.lensIndex && <span className="text-[8px] font-black bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{p.lensIndex}</span>}
                                             {p.is2x1 && <span className="text-[8px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 px-1.5 py-0.5 rounded-full">2x1</span>}
+                                            {(p as any).eligible2x1 && <span title="Puede ser el armazón bonificado de un 2x1" className="text-[8px] font-black bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 px-1.5 py-0.5 rounded-full">🎁 2x1</span>}
                                             <span className="text-[8px] font-black bg-stone-100 dark:bg-stone-800 text-stone-500 px-1.5 py-0.5 rounded-full">STOCK: {isRequestedToLab(p) ? (p.laboratory || 'A Pedido') : p.stock}</span>
                                         </div>
                                         {isAdmin && (
@@ -1300,6 +1304,28 @@ export default function InventarioPage() {
                                     </div>
                                 )}
                                 
+                                {/* ¿Entra en el 2x1? (armazones de receta y lentes de sol) */}
+                                {puedeEntrarEn2x1(editingProduct) && (
+                                    <div className="col-span-2 pt-4 border-t border-stone-100 dark:border-stone-800">
+                                        <label className="flex items-center gap-3 cursor-pointer group w-max">
+                                            <div className={`relative w-10 h-6 rounded-full transition-colors ${editForm.eligible2x1 ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                                                <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${editForm.eligible2x1 ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            </div>
+                                            <input type="checkbox" className="hidden" checked={editForm.eligible2x1} onChange={e => setEditForm({ ...editForm, eligible2x1: e.target.checked })} />
+                                            <div>
+                                                <p className={`text-xs font-black uppercase tracking-widest ${editForm.eligible2x1 ? 'text-emerald-600 dark:text-emerald-500' : 'text-stone-500'}`}>
+                                                    🎁 Entra en el 2x1
+                                                </p>
+                                                <p className="text-[9px] font-bold text-stone-400">
+                                                    {editForm.eligible2x1
+                                                        ? 'Puede ser el armazón bonificado de un 2x1 de multifocales.'
+                                                        : 'No se bonifica nunca: en un 2x1 este armazón se cobra completo.'}
+                                                </p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                )}
+
                                 {/* AI Image Uploader para Armazones/Sol/Especiales */}
                                 {!checkCristal(editingProduct) && (
                                     <div className="col-span-2 space-y-4">

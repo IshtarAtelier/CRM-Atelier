@@ -20,6 +20,8 @@ export interface Product {
     laboratory: string | null;
     origin?: string | null;
     is2x1: boolean;
+    /** Solo armazones: si puede ser el bonificado de un 2x1. */
+    eligible2x1?: boolean;
     // Rangos de fabricación
     sphereMin: number | null;
     sphereMax: number | null;

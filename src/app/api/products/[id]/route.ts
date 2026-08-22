@@ -78,12 +78,14 @@ export async function PUT(
         // Foto previa de los campos sensibles para auditar solo lo que cambia
         const before = await prisma.product.findUnique({
             where: { id },
-            select: { price: true, cost: true, wholesalePrice: true, stock: true },
+            select: { price: true, cost: true, wholesalePrice: true, stock: true, eligible2x1: true },
         });
 
         const product = await ProductService.update(id, body);
 
-        const watched = ['price', 'cost', 'wholesalePrice', 'stock'] as const;
+        // `eligible2x1` mueve plata (decide si un armazón se regala en el 2x1),
+        // así que se audita igual que el precio.
+        const watched = ['price', 'cost', 'wholesalePrice', 'stock', 'eligible2x1'] as const;
         const beforeChanged: Record<string, unknown> = {};
         const afterChanged: Record<string, unknown> = {};
         if (before) {

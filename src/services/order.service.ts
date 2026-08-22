@@ -745,7 +745,7 @@ export class OrderService {
                 where: { id },
                 select: {
                     id: true, total: true, markup: true, discountCash: true, specialDiscount: true, orderType: true,
-                    items: { select: { productId: true, price: true, quantity: true, product: { select: { id: true, is2x1: true, category: true, type: true } } } }
+                    items: { select: { productId: true, price: true, quantity: true, product: { select: { id: true, is2x1: true, eligible2x1: true, category: true, type: true } } } }
                 }
             });
 

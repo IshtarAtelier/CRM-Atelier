@@ -1,4 +1,4 @@
-import { isMultifocal2x1, isCrystal, isFrame, isAtelierFrame, safePrice, getCategoryKey, isMiPrimerVarilux } from '@/lib/promo-utils';
+import { isMultifocal2x1, isCrystal, isFrame, isFrameEligible2x1, safePrice, isMiPrimerVarilux } from '@/lib/promo-utils';
 
 export interface CartItem {
     productId: string | null;
@@ -58,13 +58,15 @@ export class PricingService {
      * @param items - Items del carrito
      * @param markup - Porcentaje de recargo (0-100)
      * @param discountCash - Porcentaje de descuento por efectivo (0-100)
-     * @param availableProducts - Catálogo completo para cálculos de promedio (opcional)
+     * @param availableProducts - Sin uso desde que el 2x1 se tilda a mano por armazón.
+     *   Se mantiene en la firma porque lo pasan todos los llamadores (cotizador, ficha,
+     *   API de ventas); sacarlo es tocar seis archivos para nada.
      */
     static calculateTotals(
         items: CartItem[],
         markup: number = 0,
         discountCash: number = 0,
-        availableProducts: any[] = [],
+        _availableProducts: any[] = [],
         specialDiscount: number = 0
     ): PricingResult {
         const rawSubtotal = items.reduce((sum, item) => sum + (safePrice(item.price) * (item.quantity || 1)), 0);
@@ -79,7 +81,7 @@ export class PricingService {
         );
 
         if (hasMultifocalPromo) {
-            const promo = this.calculate2x1FrameDiscount(items, availableProducts);
+            const promo = this.calculate2x1FrameDiscount(items);
             promoFrameDiscount = promo.discount;
             promoFrameName = promo.itemName;
             
@@ -213,41 +215,34 @@ export class PricingService {
     /**
      * Calcula específicamente el descuento de armazón por la promo 2x1.
      */
-    private static calculate2x1FrameDiscount(items: CartItem[], availableProducts: any[]): { discount: number; itemName: string | null } {
-        // Obtenemos todos los armazones en una lista plana
+    private static calculate2x1FrameDiscount(items: CartItem[]): { discount: number; itemName: string | null } {
+        // Obtenemos todos los armazones en una lista plana. Un producto tildado
+        // a mano entra aunque no sea "armazón de receta" (un lente de sol, por
+        // ejemplo): el tilde manda sobre la deducción por categoría.
         const frameItems = items.flatMap(item => {
-            if (!isFrame(item.product)) return [];
+            if (!isFrame(item.product) && !isFrameEligible2x1(item.product)) return [];
             return Array.from({ length: item.quantity || 1 }).map(() => item);
         });
 
         if (frameItems.length < 2) return { discount: 0, itemName: null };
 
-        // Ordenamos por precio descendente para bonificar el segundo más caro
+        // Ordenamos por precio descendente. El más caro SIEMPRE se cobra: el
+        // bonificado es el más caro de los SIGUIENTES que esté tildado como
+        // elegible en Stock. Si ninguno lo está (caso típico: armazones de la
+        // tienda web), no hay bonificación y se cobran los dos completos.
         const sortedFrames = [...frameItems].sort((a, b) => safePrice(b.price) - safePrice(a.price));
-        const targetFrame = sortedFrames[1]; // El segundo armazón
+        const targetFrame = sortedFrames.slice(1).find(f => isFrameEligible2x1(f.product));
 
         if (!targetFrame) return { discount: 0, itemName: null };
 
         const framePrice = safePrice(targetFrame.price);
         const frameName = `${targetFrame.product?.brand || ''} ${targetFrame.product?.name || 'Armazón'}`.trim();
 
-        // Si es Atelier, 100% bonificado
-        if (isAtelierFrame(targetFrame.product)) {
-            return { discount: framePrice, itemName: frameName };
-        }
-
-        // Si no es Atelier, se bonifica hasta el precio promedio de los Atelier
-        const atelierFrames = availableProducts.filter(
-            p => getCategoryKey(p.type, p.category) === 'Armazón' && isAtelierFrame(p) && safePrice(p.price) > 0
-        );
-
-        if (atelierFrames.length > 0) {
-            const avgAtelier = atelierFrames.reduce((s, f) => s + safePrice(f.price), 0) / atelierFrames.length;
-            const discountAmount = Math.min(framePrice, Math.round(avgAtelier));
-            return { discount: discountAmount, itemName: frameName };
-        }
-
-        return { discount: 0, itemName: null };
+        // Tildado = va SIN CARGO, entero. Antes había un tope invisible: lo que
+        // no fuera marca Atelier se bonificaba solo "hasta el promedio de los
+        // Atelier", y así un armazón de $160.000 aparecía a $35.143 sin que
+        // nadie lo hubiera decidido. Ahora el tilde es la decisión completa.
+        return { discount: framePrice, itemName: frameName };
     }
 }
 
