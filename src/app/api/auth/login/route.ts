@@ -34,7 +34,25 @@ export async function POST(request: Request) {
             );
         }
 
-        const isBypass = process.env.NODE_ENV === 'development' && password === 'local-admin-ishtar';
+        // ── ESCOTILLA DE DESARROLLO ────────────────────────────────────────
+        // Había una contraseña maestra escrita en el código que entraba a
+        // CUALQUIER cuenta con solo que `NODE_ENV` no fuera 'production'. Eso
+        // no es "solo local": una preview, un staging, un contenedor sin la
+        // variable seteada o un `next start` mal invocado alcanzan — y la clave
+        // está en el repo y en todo el historial de git, así que la tiene
+        // cualquiera que haya clonado el proyecto alguna vez.
+        //
+        // Ahora hacen falta TRES condiciones a la vez, y la del medio no está
+        // en ningún .env commiteado: hay que ponerla a mano en la máquina donde
+        // se quiera usar. Además nunca puede tomar una cuenta de sistema (la
+        // del Asistente), que no es de nadie y no debería poder iniciar sesión.
+        const isBypass = process.env.NODE_ENV === 'development'
+            && process.env.PERMITIR_LOGIN_DEV === '1'
+            && user.role !== 'SISTEMA'
+            && password === (process.env.CLAVE_LOGIN_DEV || '');
+        if (isBypass) {
+            console.warn(`[Login] ⚠️ ESCOTILLA DE DESARROLLO usada para entrar como ${user.email}. Esto NO debería aparecer nunca en producción.`);
+        }
         const isPasswordValid = isBypass ? true : await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {

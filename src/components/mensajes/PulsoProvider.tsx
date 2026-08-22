@@ -13,7 +13,7 @@
  * una llamada aparte para eso, la misma que trae los datos avisa que sigue acá.
  */
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { UrgentePopup } from './UrgentePopup';
 import { avisar, estaMirando, marcarTitulo } from './avisos-escritorio';
 
@@ -38,6 +38,11 @@ const PulsoContext = createContext<Pulso>({
 export const usePulso = () => useContext(PulsoContext);
 
 const LATIDO_MS = 20000;
+
+/** ¿Las dos listas de urgentes son la misma? Compara por id y en orden. */
+function mismosIds(a: Urgente[], b: Urgente[]): boolean {
+    return a.length === b.length && a.every((x, i) => x.id === b[i].id);
+}
 
 export function PulsoProvider({ children }: { children: ReactNode }) {
     const [noLeidos, setNoLeidos] = useState(0);
@@ -124,8 +129,15 @@ export function PulsoProvider({ children }: { children: ReactNode }) {
 
                 previo.current = d.noLeidos;
                 setNoLeidos(d.noLeidos ?? 0);
-                setUrgentes(Array.isArray(d.urgentes) ? d.urgentes : []);
-                setEnLinea(Array.isArray(d.enLinea) ? d.enLinea : []);
+                // Reemplazar el array SOLO si cambió su contenido. Un array
+                // nuevo con los mismos ids re-renderiza todo el panel (el
+                // provider envuelve /admin entero) veinte veces por minuto sin
+                // que haya pasado nada.
+                setUrgentes(prev => mismosIds(prev, urgentesNuevos) ? prev : urgentesNuevos);
+                const enLineaNueva: string[] = Array.isArray(d.enLinea) ? d.enLinea : [];
+                setEnLinea(prev =>
+                    prev.length === enLineaNueva.length && prev.every((x, i) => x === enLineaNueva[i])
+                        ? prev : enLineaNueva);
                 setYoId(d.yoId ?? null);
             } catch {
                 // Un latido perdido no cambia nada en pantalla: se reintenta en
@@ -139,10 +151,21 @@ export function PulsoProvider({ children }: { children: ReactNode }) {
         return () => { cancelado = true; clearInterval(t); };
     }, []);
 
+    // Identidad ESTABLE. Antes se creaba una función nueva en cada render del
+    // provider — y el provider re-renderiza en cada latido, porque setUrgentes
+    // y setEnLinea reciben arrays nuevos aunque el contenido sea igual.
+    // Consecuencia: `abrir()` (que la tiene como dependencia) cambiaba de
+    // identidad, el efecto de `?abrir=` volvía a correr, llamaba a refrescar(),
+    // eso disparaba otro latido... y así sin fin, pidiendo la conversación en
+    // bucle y pisando `lastReadAt` todo el tiempo.
+    const refrescar = useCallback(() => disparar.current(), []);
+    const valor = useMemo(
+        () => ({ noLeidos, urgentes, enLinea, yoId, refrescar }),
+        [noLeidos, urgentes, enLinea, yoId, refrescar],
+    );
+
     return (
-        <PulsoContext.Provider
-            value={{ noLeidos, urgentes, enLinea, yoId, refrescar: () => disparar.current() }}
-        >
+        <PulsoContext.Provider value={valor}>
             {children}
             {/* Vive acá, fuera de cualquier pantalla: un urgente tiene que
                 aparecer estés donde estés dentro del panel, no solo en Mensajes. */}

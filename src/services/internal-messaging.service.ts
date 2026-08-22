@@ -66,6 +66,89 @@ export class InternalMessagingService {
     }
 
     /**
+     * La llave del par para una conversación uno-a-uno: los dos ids ordenados.
+     * Determinística — A,B y B,A dan lo mismo — que es lo que hace que el
+     * constraint único de la base sirva de algo.
+     */
+    private static llaveDirecta(a: string, b: string): string {
+        return [a, b].sort().join(':');
+    }
+
+    /**
+     * Abre (o reusa) la conversación uno-a-uno entre dos personas y deja un
+     * mensaje. Estaba escrito dos veces —para humanos y para la IA— con la
+     * diferencia de que la copia de la IA creaba el hilo FUERA de transacción:
+     * si fallaba el mensaje, quedaba un hilo vacío en la bandeja de alguien.
+     *
+     * La carrera se resuelve en la base: si dos peticiones simultáneas intentan
+     * crear el mismo par, la segunda choca contra el índice único y cae al
+     * `catch`, que reintenta como respuesta en el hilo que acaba de ganar.
+     */
+    private static async escribirEnDirecto(params: {
+        deId: string; paraId: string; cuerpo: string; asunto?: string | null; urgent?: boolean;
+    }) {
+        const key = this.llaveDirecta(params.deId, params.paraId);
+        const existente = await prisma.internalThread.findUnique({
+            where: { directKey: key }, select: { id: true },
+        });
+        if (existente) {
+            await this.responder({
+                threadId: existente.id, senderId: params.deId,
+                body: params.cuerpo, urgent: params.urgent,
+            });
+            return { id: existente.id, nuevo: false };
+        }
+
+        const ahora = new Date();
+        try {
+            return await prisma.$transaction(async (tx) => {
+                const t = await tx.internalThread.create({
+                    data: {
+                        kind: 'DIRECT', directKey: key,
+                        subject: params.asunto?.trim() || null,
+                        createdById: params.deId, lastMessageAt: ahora,
+                        participants: {
+                            // `createdAt: ahora` EXPLÍCITO, igual que el del
+                            // mensaje. Con el default de la base el participante
+                            // nace unos microsegundos después, y el corte de
+                            // historial (`gte: participante.createdAt`) dejaba
+                            // afuera justo el primer mensaje: el destinatario
+                            // abría la conversación vacía.
+                            create: [
+                                { userId: params.deId, role: 'MEMBER', lastReadAt: ahora, createdAt: ahora },
+                                { userId: params.paraId, role: 'MEMBER', createdAt: ahora },
+                            ],
+                        },
+                    },
+                    select: { id: true },
+                });
+                await tx.internalMessage.create({
+                    data: {
+                        threadId: t.id, senderId: params.deId, body: params.cuerpo,
+                        urgent: !!params.urgent, createdAt: ahora,
+                    },
+                });
+                return { id: t.id, nuevo: true };
+            });
+        } catch (e: any) {
+            // P2002 = violación de unicidad: otra petición creó el mismo par en
+            // el instante entre nuestro findUnique y el create. Se escribe en el
+            // hilo que ganó, en vez de tirarle un error a quien solo quería
+            // mandar un mensaje.
+            if (e?.code !== 'P2002') throw e;
+            const ganador = await prisma.internalThread.findUnique({
+                where: { directKey: key }, select: { id: true },
+            });
+            if (!ganador) throw e;
+            await this.responder({
+                threadId: ganador.id, senderId: params.deId,
+                body: params.cuerpo, urgent: params.urgent,
+            });
+            return { id: ganador.id, nuevo: false };
+        }
+    }
+
+    /**
      * Verifica que el usuario participe de la conversación y devuelve su fila de
      * participante. Lanza si no. Es la única puerta de entrada a una conversación:
      * toda lectura y toda escritura pasan por acá.
@@ -79,6 +162,37 @@ export class InternalMessagingService {
         // con eso se puede mapear con quién habla el resto probando ids.
         if (!p || p.leftAt) throw new Error('Conversación no encontrada');
         return p;
+    }
+
+    /**
+     * EL FILTRO DE "SIN LEER", en un solo lugar.
+     *
+     * Antes esta expresión estaba escrita tres veces —`bandeja`,
+     * `contarNoLeidos` y `urgentesPendientes`— y las tres tenían que decir lo
+     * mismo para que el número del badge, el de la bandeja y la aparición del
+     * pop-up no se contradijeran. El encabezado de urgentes afirma que
+     * "pendiente" y "sin leer" son el MISMO concepto: acá eso deja de ser una
+     * promesa del comentario y pasa a ser un hecho del código.
+     *
+     * Devuelve null si la persona no participa de ninguna conversación.
+     */
+    private static async filtroNoLeidos(userId: string) {
+        const participaciones = await prisma.internalThreadParticipant.findMany({
+            where: { userId, leftAt: null },
+            select: { threadId: true, lastReadAt: true },
+        });
+        if (participaciones.length === 0) return null;
+        return {
+            participaciones,
+            where: {
+                // Los propios nunca cuentan como sin leer.
+                senderId: { not: userId },
+                OR: participaciones.map(p => ({
+                    threadId: p.threadId,
+                    ...(p.lastReadAt ? { createdAt: { gt: p.lastReadAt } } : {}),
+                })),
+            },
+        };
     }
 
     /**
@@ -112,15 +226,23 @@ export class InternalMessagingService {
         // contador incrementado a mano: un contador que se desincroniza miente
         // para siempre y no hay forma de que se arregle solo. Esto se recalcula
         // en cada carga y por definición no puede quedar mal.
-        const conNoLeidos = await Promise.all(participaciones.map(async (p) => {
-            const noLeidos = await prisma.internalMessage.count({
-                where: {
-                    threadId: p.thread.id,
-                    // Los propios nunca cuentan como no leídos.
-                    senderId: { not: userId },
-                    ...(p.lastReadAt ? { createdAt: { gt: p.lastReadAt } } : {}),
-                },
-            });
+        //
+        // UNA sola consulta agrupada, no una por conversación. Antes era un
+        // `count` dentro de un `Promise.all`: con 50 conversaciones eran 51
+        // viajes a la base, y la base de producción está en Singapur — a 150 ms
+        // de ida y vuelta eso son casi 8 segundos para pintar una bandeja.
+        const f = await this.filtroNoLeidos(userId);
+        const grupos = f
+            ? await prisma.internalMessage.groupBy({
+                by: ['threadId'],
+                where: f.where,
+                _count: { _all: true },
+            })
+            : [];
+        const noLeidosPorHilo = new Map(grupos.map(g => [g.threadId, g._count._all]));
+
+        const conNoLeidos = participaciones.map((p) => {
+            const noLeidos = noLeidosPorHilo.get(p.thread.id) ?? 0;
             const ultimo = p.thread.messages[0] || null;
             return {
                 id: p.thread.id,
@@ -139,7 +261,7 @@ export class InternalMessagingService {
                     senderName: ultimo.sender.name,
                 },
             };
-        }));
+        });
 
         conNoLeidos.sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
         return conNoLeidos;
@@ -147,29 +269,14 @@ export class InternalMessagingService {
 
     /** Cuántos mensajes sin leer tiene la persona en total (para la campanita). */
     static async contarNoLeidos(userId: string): Promise<number> {
-        const participaciones = await prisma.internalThreadParticipant.findMany({
-            where: { userId, leftAt: null },
-            select: { threadId: true, lastReadAt: true },
-        });
-        if (participaciones.length === 0) return 0;
-
-        // Un OR por conversación en UNA sola consulta: con N conversaciones
-        // sería N consultas por cada refresco del badge, en cada pestaña abierta.
-        const total = await prisma.internalMessage.count({
-            where: {
-                senderId: { not: userId },
-                OR: participaciones.map(p => ({
-                    threadId: p.threadId,
-                    ...(p.lastReadAt ? { createdAt: { gt: p.lastReadAt } } : {}),
-                })),
-            },
-        });
-        return total;
+        const f = await this.filtroNoLeidos(userId);
+        if (!f) return 0;
+        return prisma.internalMessage.count({ where: f.where });
     }
 
     /** Los mensajes de una conversación. Marca como leído de paso. */
     static async leerConversacion(threadId: string, userId: string, opts: { antesDe?: Date } = {}) {
-        await this.assertParticipante(threadId, userId);
+        const participante = await this.assertParticipante(threadId, userId);
 
         const thread = await prisma.internalThread.findUnique({
             where: { id: threadId },
@@ -183,19 +290,51 @@ export class InternalMessagingService {
         });
         if (!thread) throw new Error('Conversación no encontrada');
 
+        // QUIEN ENTRA DESPUÉS NO VE LO DE ANTES.
+        //
+        // Sin este corte, sumar a alguien a una conversación le abría TODO el
+        // historial previo de golpe: dos personas hablando de sueldos, se suma
+        // a un tercero, y el tercero lee la charla entera desde el primer
+        // mensaje. Nadie del hilo se entera, porque el pulso solo avisa de
+        // mensajes urgentes, no de cambios de quiénes están.
+        //
+        // `participante.createdAt` es la fecha de alta en el hilo. Para quien
+        // estuvo desde el principio no cambia nada: su alta es anterior a todo.
         const mensajes = await prisma.internalMessage.findMany({
-            where: { threadId, ...(opts.antesDe ? { createdAt: { lt: opts.antesDe } } : {}) },
+            where: {
+                threadId,
+                createdAt: {
+                    gte: participante.createdAt,
+                    ...(opts.antesDe ? { lt: opts.antesDe } : {}),
+                },
+            },
             orderBy: { createdAt: 'desc' },
             take: PAGINA,
             select: {
                 id: true, body: true, createdAt: true, editedAt: true,
+                // `urgent` faltaba acá: el mensaje llegaba a la pantalla sin la
+                // marca y NINGUNO se veía nunca como urgente dentro del hilo.
+                urgent: true,
                 sender: { select: { id: true, name: true } },
             },
         });
 
-        // Marcar leído DESPUÉS de traerlos: si se marcara antes y la consulta de
-        // mensajes fallara, quedarían dados por leídos sin que nadie los viera.
-        await this.marcarLeido(threadId, userId);
+        // Se marca hasta la fecha del mensaje MÁS NUEVO QUE SE DEVOLVIÓ, no
+        // hasta `ahora`. Dos motivos, los dos reales:
+        //
+        //  1. Con `ahora`, un mensaje que entraba entre el findMany de arriba y
+        //     el update quedaba marcado como leído SIN haberse mostrado nunca:
+        //     desaparecía del contador y, si era urgente, tampoco abría el globo.
+        //     Pasa justo en el caso de más tráfico: dos personas escribiendo a la vez.
+        //  2. Pedir una página vieja (`antesDe`) marcaba leído el hilo ENTERO.
+        //
+        // Y solo se escribe si de verdad avanzó: sin esto era un UPDATE por cada
+        // lectura —cuatro por minuto por pestaña— sobre un valor que ya estaba
+        // bien. Cada uno genera una fila nueva por MVCC y ensucia dos índices.
+        const masNuevo = mensajes[0]?.createdAt; // vienen DESC: [0] es el último
+        if (masNuevo && (!participante.lastReadAt || masNuevo > participante.lastReadAt)) {
+            await this.marcarLeido(threadId, userId, masNuevo);
+        }
 
         return {
             id: thread.id,
@@ -206,18 +345,27 @@ export class InternalMessagingService {
             })),
             // Se devuelven en orden cronológico, que es como se leen.
             mensajes: mensajes.reverse().map(m => ({
-                id: m.id, body: m.body, createdAt: m.createdAt, editedAt: m.editedAt,
+                id: m.id, body: m.body, createdAt: m.createdAt, editedAt: m.editedAt, urgent: m.urgent,
                 senderId: m.sender.id, senderName: m.sender.name,
             })),
             hayMas: mensajes.length === PAGINA,
         };
     }
 
-    /** Mueve la marca de lectura al momento actual. */
-    static async marcarLeido(threadId: string, userId: string) {
+    /**
+     * Mueve la marca de lectura. `hasta` es la fecha del último mensaje que la
+     * persona EFECTIVAMENTE vio; sin él se usa el momento actual (caso de quien
+     * escribe, que por definición ya leyó todo lo suyo).
+     *
+     * `private`: es segura hoy porque sus dos llamadores validan antes, pero lo
+     * es por accidente y no por diseño — el `updateMany` no afecta filas si no
+     * sos participante, pero el próximo endpoint que la llame directo no tendría
+     * ninguna reja. Cerrarla es más barato que confiar en que nadie la use mal.
+     */
+    private static async marcarLeido(threadId: string, userId: string, hasta?: Date) {
         await prisma.internalThreadParticipant.updateMany({
             where: { threadId, userId },
-            data: { lastReadAt: new Date() },
+            data: { lastReadAt: hasta ?? new Date() },
         });
     }
 
@@ -260,24 +408,14 @@ export class InternalMessagingService {
         const kind: ThreadKind = params.kind
             ?? (paraOk.length + copiaOk.length === 1 ? 'DIRECT' : 'GROUP');
 
-        // Reusar el directo existente (ver el comentario del encabezado).
+        // Uno a uno: delega en el helper, que es el único que sabe abrir o
+        // reusar un directo y el único a prueba de carreras.
         if (kind === 'DIRECT' && paraOk.length === 1 && copiaOk.length === 0) {
-            const existente = await prisma.internalThread.findFirst({
-                where: {
-                    kind: 'DIRECT',
-                    AND: [
-                        { participants: { some: { userId: creadorId, leftAt: null } } },
-                        { participants: { some: { userId: paraOk[0], leftAt: null } } },
-                    ],
-                },
-                select: { id: true, participants: { where: { leftAt: null }, select: { id: true } } },
+            const r = await this.escribirEnDirecto({
+                deId: creadorId, paraId: paraOk[0], cuerpo,
+                asunto: params.subject, urgent: params.urgent,
             });
-            // `some` + `some` no garantiza que sean SOLO esos dos: un grupo que
-            // los incluya a ambos también matchea. Se exige que tenga exactamente 2.
-            if (existente && existente.participants.length === 2) {
-                await this.responder({ threadId: existente.id, senderId: creadorId, body: cuerpo, urgent: !!params.urgent });
-                return { id: existente.id, reusada: true };
-            }
+            return { id: r.id, reusada: !r.nuevo };
         }
 
         const ahora = new Date();
@@ -289,10 +427,12 @@ export class InternalMessagingService {
                     createdById: creadorId,
                     lastMessageAt: ahora,
                     participants: {
+                        // Misma marca que el primer mensaje (ver el comentario
+                        // de `escribirEnDirecto`).
                         create: [
-                            { userId: creadorId, role: 'MEMBER', lastReadAt: ahora },
-                            ...paraOk.map(id => ({ userId: id, role: 'MEMBER' })),
-                            ...copiaOk.map(id => ({ userId: id, role: 'CC' })),
+                            { userId: creadorId, role: 'MEMBER', lastReadAt: ahora, createdAt: ahora },
+                            ...paraOk.map(id => ({ userId: id, role: 'MEMBER', createdAt: ahora })),
+                            ...copiaOk.map(id => ({ userId: id, role: 'CC', createdAt: ahora })),
                         ],
                     },
                 },
@@ -358,21 +498,11 @@ export class InternalMessagingService {
 
     /** Los urgentes que esta persona todavía no leyó. Los muestra el pop-up. */
     static async urgentesPendientes(userId: string) {
-        const participaciones = await prisma.internalThreadParticipant.findMany({
-            where: { userId, leftAt: null },
-            select: { threadId: true, lastReadAt: true },
-        });
-        if (participaciones.length === 0) return [];
+        const f = await this.filtroNoLeidos(userId);
+        if (!f) return [];
 
         const mensajes = await prisma.internalMessage.findMany({
-            where: {
-                urgent: true,
-                senderId: { not: userId },
-                OR: participaciones.map(p => ({
-                    threadId: p.threadId,
-                    ...(p.lastReadAt ? { createdAt: { gt: p.lastReadAt } } : {}),
-                })),
-            },
+            where: { urgent: true, ...f.where },
             orderBy: { createdAt: 'desc' },
             // Si hay una avalancha, se muestran los últimos y no se cuelga la
             // pantalla con cincuenta globos.
@@ -434,18 +564,27 @@ export class InternalMessagingService {
     /** Devuelve el usuario-IA, creándolo la primera vez. */
     static async usuarioIA() {
         const existente = await prisma.user.findUnique({
-            where: { email: this.IA_EMAIL }, select: { id: true },
+            where: { email: this.IA_EMAIL }, select: { id: true, role: true },
         });
-        if (existente) return existente;
+        // Se verifica el ROL, no solo el email: si alguien crea una cuenta con
+        // esa dirección y su propia contraseña, sin este control el Asistente
+        // pasaría a escribir DESDE esa cuenta y le mandaría el consolidado del
+        // equipo entero a su bandeja.
+        if (existente && existente.role !== 'SISTEMA') {
+            throw new Error(`El email ${this.IA_EMAIL} está tomado por una cuenta que no es del sistema`);
+        }
+        if (existente) return { id: existente.id };
         return prisma.user.create({
             data: {
                 email: this.IA_EMAIL,
                 name: this.IA_NOMBRE,
                 role: 'SISTEMA',
-                // Sin contraseña utilizable: no es una cuenta para entrar. El
-                // login compara con bcrypt y este valor no es un hash válido,
-                // así que ninguna contraseña puede coincidir.
-                password: 'NO-LOGIN',
+                // Cadena vacía, no un centinela tipo 'NO-LOGIN': el login corta
+                // ANTES de comparar cuando no hay contraseña
+                // (`if (!user.password) return 401`). Con el centinela dependía
+                // de que bcrypt devolviera false ante un hash malformado — cierto
+                // hoy, pero es un detalle de la librería, no una regla.
+                password: '',
             },
             select: { id: true },
         });
@@ -458,47 +597,38 @@ export class InternalMessagingService {
      */
     static async mensajeDeIA(params: {
         paraUserId: string; cuerpo: string; asunto?: string; urgent?: boolean;
+        /**
+         * Marca de "esto ya lo mandé". Si en las últimas 20 h la IA le escribió
+         * a esta persona un mensaje que empieza igual, no repite.
+         *
+         * Hace falta porque este proyecto dispara sus crons DOS VECES a
+         * propósito, con 40 minutos de diferencia: GitHub a veces se come un
+         * schedule (pasó el 7/8 y las stories no salieron). Todos los endpoints
+         * del proyecto traen dedup para que el segundo disparo no duplique —
+         * este no lo tenía, así que habría mandado el resumen dos veces a todo
+         * el equipo, todos los días.
+         */
+        dedupePrefijo?: string;
     }) {
         const ia = await this.usuarioIA();
         if (ia.id === params.paraUserId) return null;
 
-        const existente = await prisma.internalThread.findFirst({
-            where: {
-                kind: 'DIRECT',
-                AND: [
-                    { participants: { some: { userId: ia.id, leftAt: null } } },
-                    { participants: { some: { userId: params.paraUserId, leftAt: null } } },
-                ],
-            },
-            select: { id: true, participants: { where: { leftAt: null }, select: { id: true } } },
-        });
-
-        if (existente && existente.participants.length === 2) {
-            return this.responder({
-                threadId: existente.id, senderId: ia.id,
-                body: params.cuerpo, urgent: params.urgent,
+        if (params.dedupePrefijo) {
+            const yaFue = await prisma.internalMessage.findFirst({
+                where: {
+                    senderId: ia.id,
+                    body: { startsWith: params.dedupePrefijo },
+                    createdAt: { gte: new Date(Date.now() - 20 * 60 * 60 * 1000) },
+                    thread: { participants: { some: { userId: params.paraUserId } } },
+                },
+                select: { id: true },
             });
+            if (yaFue) return null;
         }
 
-        const ahora = new Date();
-        const t = await prisma.internalThread.create({
-            data: {
-                kind: 'DIRECT',
-                subject: params.asunto || 'Resumen del día',
-                createdById: ia.id,
-                lastMessageAt: ahora,
-                participants: {
-                    create: [
-                        { userId: ia.id, role: 'MEMBER', lastReadAt: ahora },
-                        { userId: params.paraUserId, role: 'MEMBER' },
-                    ],
-                },
-            },
-            select: { id: true },
-        });
-        return prisma.internalMessage.create({
-            data: { threadId: t.id, senderId: ia.id, body: params.cuerpo, urgent: !!params.urgent },
-            select: { id: true },
+        return this.escribirEnDirecto({
+            deId: ia.id, paraId: params.paraUserId, cuerpo: params.cuerpo,
+            asunto: params.asunto || 'Resumen del día', urgent: params.urgent,
         });
     }
 
@@ -588,16 +718,33 @@ export class InternalMessagingService {
         if (!user) throw new Error('Ese usuario no puede participar de conversaciones internas');
 
         // Si estuvo antes y se fue, vuelve a entrar (no se duplica la fila).
-        await prisma.internalThreadParticipant.upsert({
+        // El `update` NO toca el rol de quien ya está adentro y activo: agregar
+        // "en copia" a alguien que ya era destinatario lo degradaba a CC en
+        // silencio. Y a quien vuelve después de irse se le reinicia la fecha de
+        // alta, para que no recupere de arriba lo que se dijo mientras no estaba.
+        const previo = await prisma.internalThreadParticipant.findUnique({
             where: { threadId_userId: { threadId, userId: nuevoUserId } },
-            create: { threadId, userId: nuevoUserId, role: params.role || 'MEMBER' },
-            update: { leftAt: null, role: params.role || 'MEMBER' },
+            select: { id: true, leftAt: true },
         });
+        if (previo && !previo.leftAt) {
+            // Ya participa y está activo: no se hace nada.
+        } else if (previo) {
+            await prisma.internalThreadParticipant.update({
+                where: { id: previo.id },
+                data: { leftAt: null, role: params.role || 'MEMBER', createdAt: new Date() },
+            });
+        } else {
+            await prisma.internalThreadParticipant.create({
+                data: { threadId, userId: nuevoUserId, role: params.role || 'MEMBER' },
+            });
+        }
 
-        // Un grupo dejó de ser una conversación de a dos.
+        // Un grupo dejó de ser una conversación de a dos, y suelta su llave de
+        // par: si la conservara, un futuro uno-a-uno entre esas dos personas
+        // engancharía este grupo de tres y les mostraría la charla ajena.
         await prisma.internalThread.updateMany({
             where: { id: threadId, kind: 'DIRECT' },
-            data: { kind: 'GROUP' },
+            data: { kind: 'GROUP', directKey: null },
         });
 
         logAudit({

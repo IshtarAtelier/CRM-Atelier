@@ -48,6 +48,11 @@ export async function POST(request: NextRequest) {
             copiaIds: Array.isArray(body.copiaIds) ? body.copiaIds : [],
             subject: body.subject ?? null,
             primerMensaje: body.mensaje ?? '',
+            // Sin esto, marcar URGENTE en "mensaje nuevo" no hacía nada: el
+            // service lo recibía `undefined`. Solo andaba el urgente al
+            // responder en un hilo ya abierto, que es el camino menos urgente
+            // de los dos.
+            urgent: !!body.urgent,
         }, actor);
         return NextResponse.json(res);
     } catch (e: any) {

@@ -31,6 +31,9 @@ model User {
   vendorCashEntries VendorCashEntry[] @relation("VendorCashEntries")
   orders            Order[]
 
+  // Presencia: se consulta por rol + última señal en cada latido del panel.
+  @@index([role, lastSeenAt])
+
   // Mensajería interna (ver el bloque al final del archivo).
   threadsCreated       InternalThread[]            @relation("ThreadsCreated")
   threadParticipations InternalThreadParticipant[]
@@ -1283,6 +1286,16 @@ model ProductReview {
 
 model InternalThread {
   id            String   @id @default(cuid())
+  // Llave del par, SOLO para conversaciones DIRECT: los dos ids de usuario
+  // ordenados y unidos ("abc:xyz"). Es única, así que la base hace IMPOSIBLE
+  // que existan dos conversaciones uno-a-uno entre las mismas dos personas.
+  //
+  // Antes eso dependía de que un `findFirst` viera el hilo que otra petición
+  // estaba creando en ese mismo instante: si A y B se escribían por primera vez
+  // a la vez, nacían dos hilos y la mitad de los mensajes quedaba en el que el
+  // otro no miraba. Una invariante así no se sostiene con timing, se sostiene
+  // con un constraint.
+  directKey     String?  @unique
   // DIRECT = uno a uno · GROUP = varios · ANNOUNCEMENT = aviso a todo el equipo
   kind          String   @default("DIRECT")
   // Asunto. Opcional: un mensaje directo no necesita uno.

@@ -15,12 +15,15 @@
  * entrena a la gente a saltear el reporte entero, así que se calcula pero no se
  * muestra: el día que se pueda crear una tarea a mano, se agrega el renglón.
  *
- * Corre una vez por día.
+ * Corre una vez por día, y el proyecto dispara sus crons DOS veces a propósito
+ * (GitHub se come schedules). El segundo disparo no duplica: `dedupePrefijo`
+ * lleva la fecha del resumen, así que si el de hoy ya salió, no se repite.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { InternalMessagingService } from '@/services/internal-messaging.service';
+import { safeCompare, tokenBearer } from '@/lib/safe-compare';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,10 +55,15 @@ function ayerArgentino(): { desde: Date; hasta: Date; etiqueta: string } {
 }
 
 export async function GET(request: NextRequest) {
-    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+    // Comparación en tiempo constante: un `!==` filtra por timing cuántos
+    // caracteres del principio acertó quien prueba, y detrás de este secreto
+    // hay una ruta que le escribe a TODO el equipo. El middleware bypasea
+    // /api/cron/* entero, así que esta es la única puerta.
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret) return NextResponse.json({ error: 'CRON_SECRET no está configurado.' }, { status: 500 });
-    if (token !== cronSecret) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!safeCompare(tokenBearer(request.headers.get('Authorization')), cronSecret)) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
 
     try {
         const { desde, hasta, etiqueta } = ayerArgentino();
@@ -97,6 +105,9 @@ export async function GET(request: NextRequest) {
                 paraUserId: persona.id,
                 cuerpo,
                 asunto: 'Resumen diario',
+                // Lleva la fecha adentro: el resumen de hoy no se repite, el de
+                // mañana tiene otro prefijo y sale igual.
+                dedupePrefijo: `📋 Tu resumen del ${etiqueta}`,
             }).catch(err => { console.error(`[ResumenDiario] ${persona.name}:`, err); return null; });
 
             if (r) enviados.push(persona.name);
@@ -122,13 +133,16 @@ export async function GET(request: NextRequest) {
             for (const admin of admins) {
                 await InternalMessagingService.mensajeDeIA({
                     paraUserId: admin.id, cuerpo, asunto: 'Resumen del equipo',
+                    dedupePrefijo: `📊 Resumen del equipo — ${etiqueta}`,
                 }).catch(err => console.error('[ResumenDiario] consolidado:', err));
             }
         }
 
         return NextResponse.json({ ok: true, dia: etiqueta, enviados });
     } catch (e: any) {
+        // El detalle va al log del servidor, no a la respuesta: `e.message` de
+        // Prisma incluye nombres de tabla y de columna.
         console.error('[ResumenDiario]', e);
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        return NextResponse.json({ error: 'No se pudo generar el resumen' }, { status: 500 });
     }
 }

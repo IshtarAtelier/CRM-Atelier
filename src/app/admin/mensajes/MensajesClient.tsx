@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { usePulso } from '@/components/mensajes/PulsoProvider';
 import { BotonAvisos } from '@/components/mensajes/BotonAvisos';
 import { Send, Users, Plus, X, Loader2, MessagesSquare, ArrowLeft, UserPlus, AlertTriangle } from 'lucide-react';
@@ -26,8 +26,6 @@ interface Mensaje {
     senderId: string; senderName: string; urgent?: boolean;
 }
 interface Colaborador { id: string; name: string; role: string }
-
-const REFRESCO_MS = 15000;
 
 /** dd/MM a las HH:mm, u "Hoy"/"Ayer" cuando es reciente. */
 function cuando(iso: string): string {
@@ -133,8 +131,9 @@ function EquipoEnLinea({ onElegir }: { onElegir: (id: string) => void }) {
 }
 
 export default function MensajesClient() {
-    const { enLinea, refrescar } = usePulso();
+    const { enLinea, refrescar, noLeidos } = usePulso();
     const searchParams = useSearchParams();
+    const router = useRouter();
     const [conversaciones, setConversaciones] = useState<Conversacion[]>([]);
     const [yo, setYo] = useState<{ id: string; name: string } | null>(null);
     const [activa, setActiva] = useState<string | null>(null);
@@ -186,25 +185,37 @@ export default function MensajesClient() {
     useEffect(() => { cargarBandeja(); }, [cargarBandeja]);
 
     // El globo de urgentes manda a ?abrir=<id>: se abre esa conversación sola.
+    // Y se LIMPIA el parámetro: si queda pegado en la URL, cualquier
+    // re-ejecución del efecto te arrastra de vuelta a esa conversación aunque
+    // hayas abierto otra a mano.
     useEffect(() => {
         const id = searchParams.get('abrir');
-        if (id) abrir(id);
-    }, [searchParams, abrir]);
+        if (!id) return;
+        abrir(id);
+        router.replace('/admin/mensajes', { scroll: false });
+    }, [searchParams, abrir, router]);
 
-    // Refresco periódico. Si hay una conversación abierta, también trae sus
-    // mensajes nuevos — si no, habría que salir y entrar para ver una respuesta.
+    // UN SOLO RELOJ para toda la mensajería: el del pulso.
+    //
+    // Antes esta pantalla tenía su propio setInterval de 15 s ADEMÁS del latido
+    // de 20 s del pulso. Dos reglas distintas sobre los mismos datos, que encima
+    // coincidían cada 60 s (mínimo común múltiplo) mandando ráfagas simultáneas
+    // contra el mismo pool de conexiones. Y `bandeja()` ya devuelve los no
+    // leídos que el pulso vuelve a calcular: el mismo número por dos caminos.
+    //
+    // Ahora se recarga cuando el pulso DETECTA un cambio real. En reposo —nadie
+    // escribió nada— no se pide nada: el costo de tener la pantalla abierta cae
+    // de ~58 consultas por minuto a las del latido.
     useEffect(() => {
-        const t = setInterval(() => {
-            cargarBandeja();
-            if (activa) {
-                fetch(`/api/mensajes/${activa}`)
-                    .then(r => r.ok ? r.json() : null)
-                    .then(d => { if (d?.mensajes) setMensajes(d.mensajes); })
-                    .catch(() => {});
-            }
-        }, REFRESCO_MS);
-        return () => clearInterval(t);
-    }, [activa, cargarBandeja]);
+        cargarBandeja();
+        if (activa) {
+            fetch(`/api/mensajes/${activa}`)
+                .then(r => r.ok ? r.json() : null)
+                .then(d => { if (d?.mensajes) setMensajes(d.mensajes); })
+                .catch(() => {});
+        }
+        // `noLeidos` es la señal: cambia cuando entra o se lee algo.
+    }, [noLeidos]);
 
     useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mensajes]);
 
