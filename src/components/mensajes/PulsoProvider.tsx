@@ -15,6 +15,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { UrgentePopup } from './UrgentePopup';
+import { avisar, estaMirando, marcarTitulo } from './avisos-escritorio';
 
 interface Urgente {
     id: string; threadId: string; body: string;
@@ -49,6 +50,10 @@ export function PulsoProvider({ children }: { children: ReactNode }) {
     // hace sonar de nuevo mensajes que ya se habían escuchado.
     const previo = useRef<number | null>(null);
     const disparar = useRef<() => void>(() => {});
+    // Urgentes por los que YA salió un cartel de escritorio. Sin esto, cada
+    // latido de 20 s volvería a avisar del mismo mensaje mientras siga sin leer:
+    // un aviso cada 20 segundos, para siempre.
+    const urgentesAvisados = useRef<Set<string>>(new Set());
 
     useEffect(() => {
         let cancelado = false;
@@ -70,9 +75,54 @@ export function PulsoProvider({ children }: { children: ReactNode }) {
                 const d = await res.json();
                 if (cancelado) return;
 
-                if (previo.current !== null && d.noLeidos > previo.current) sonar();
-                previo.current = d.noLeidos;
+                const urgentesNuevos: any[] = Array.isArray(d.urgentes) ? d.urgentes : [];
+                const hayMas = previo.current !== null && d.noLeidos > previo.current;
 
+                if (hayMas) sonar();
+
+                // ── Carteles del sistema operativo (como los del correo) ──
+                // Solo si NO está mirando el CRM: si lo tiene delante ya ve el
+                // número en rojo y el globo, y un cartel encima sería ruido.
+                if (!estaMirando()) {
+                    // Los urgentes van de a uno y con su texto: son los que
+                    // justifican interrumpir a alguien que está en otra cosa.
+                    for (const u of urgentesNuevos) {
+                        if (urgentesAvisados.current.has(u.id)) continue;
+                        urgentesAvisados.current.add(u.id);
+                        avisar({
+                            titulo: `🚨 Urgente de ${u.senderName}`,
+                            cuerpo: u.body,
+                            ir: `/admin/mensajes?abrir=${u.threadId}`,
+                            insistente: true,
+                            etiqueta: `urgente-${u.id}`,
+                        });
+                    }
+                    // Los normales, uno solo con el total: cinco carteles
+                    // apilados por cinco mensajes no los hace más legibles.
+                    const soloNormales = d.noLeidos - urgentesNuevos.length;
+                    if (hayMas && soloNormales > 0) {
+                        avisar({
+                            titulo: '💬 Mensajes del equipo',
+                            cuerpo: soloNormales === 1
+                                ? 'Tenés un mensaje nuevo sin leer'
+                                : `Tenés ${soloNormales} mensajes sin leer`,
+                            ir: '/admin/mensajes',
+                            etiqueta: 'mensajes-equipo',
+                        });
+                    }
+                }
+
+                // Los ya leídos se olvidan, así un urgente futuro del mismo
+                // hilo vuelve a avisar (y el Set no crece sin fin).
+                const vivos = new Set(urgentesNuevos.map((u: any) => u.id));
+                for (const id of urgentesAvisados.current) {
+                    if (!vivos.has(id)) urgentesAvisados.current.delete(id);
+                }
+
+                // El contador en el título de la pestaña, que no necesita permiso.
+                marcarTitulo(d.noLeidos ?? 0);
+
+                previo.current = d.noLeidos;
                 setNoLeidos(d.noLeidos ?? 0);
                 setUrgentes(Array.isArray(d.urgentes) ? d.urgentes : []);
                 setEnLinea(Array.isArray(d.enLinea) ? d.enLinea : []);

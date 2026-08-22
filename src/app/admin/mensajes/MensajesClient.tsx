@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { usePulso } from '@/components/mensajes/PulsoProvider';
+import { BotonAvisos } from '@/components/mensajes/BotonAvisos';
 import { Send, Users, Plus, X, Loader2, MessagesSquare, ArrowLeft, UserPlus, AlertTriangle } from 'lucide-react';
 
 interface Participante { id: string; name: string; role: string }
@@ -186,6 +187,8 @@ export default function MensajesClient() {
                     <Plus size={16} /> Mensaje nuevo
                 </button>
             </header>
+
+            <BotonAvisos />
 
             {error && (
                 <div className="flex items-center justify-between gap-3 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
