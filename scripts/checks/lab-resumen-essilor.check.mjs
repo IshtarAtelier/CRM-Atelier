@@ -65,6 +65,62 @@ const normalizar = s => {
     return m ? `${m[1]}-${m[2].padStart(8, '0')}` : String(s).trim();
 };
 
+const esClaveSinNumero = p => !p || /^S\/PEDIDO/.test(String(p)) || !/^\d{5,}$/.test(String(p).trim());
+
+/**
+ * Cada factura del resumen con de quién es y el id de su venta. El snapshot ya
+ * guarda el cliente pero no el id, y sin id no hay link: se vuelve a cruzar
+ * factura → LabCostEntry → Order con el mismo criterio de normalización que usa
+ * crossStatementRows (src/services/lab-recon/imap.ts).
+ */
+async function armarDetalle(rows) {
+    const entradas = await prisma.$queryRaw`
+        select e."labOrderNumber", e."sourceFile", e.notes, e."orderId",
+               e."systemCost", e."billedTotal", e."billedNet", e.difference, e.status,
+               o."labOrderNumber" as "ventaPedidos", c.name as cliente
+        from "LabCostEntry" e
+        left join "Order" o on o.id = e."orderId"
+        left join "Client" c on c.id = o."clientId"
+        where e.lab = 'OPTOVISION' and e."sourceFile" is not null`;
+    const porFactura = new Map();
+    for (const e of entradas) {
+        const m = (e.sourceFile || '').match(/(\d{4})-?0*(\d{3,8})/);
+        if (!m) continue;
+        const k = `${m[1]}-${m[2].padStart(8, '0')}`;
+        if (!porFactura.has(k)) porFactura.set(k, []);
+        porFactura.get(k).push(e);
+    }
+    return rows.map((r, i) => {
+        const es = porFactura.get(String(r.invoiceNumber)) || [];
+        const best = es.find(e => e.orderId) || es[0] || null;
+        const g = r.gemelo;
+        return {
+            n: i + 1,
+            factura: String(r.invoiceNumber),
+            fecha: fecha(r.fecha),
+            importe: r.importe ?? null,
+            // Lo que se debe es el SALDO, no el importe original: la 62896 se
+            // facturó por $1.056.830 y queda debiendo $249.302. Sumar importes
+            // daría una deuda inflada que no cierra con el resumen.
+            saldo: r.saldo ?? r.importe ?? null,
+            pedido: g?.ventaPedidos || best?.ventaPedidos
+                || (esClaveSinNumero(g?.pedido) ? null : g?.pedido),
+            cliente: g?.cliente || best?.cliente || null,
+            postventa: g?.tipo === 'POSTVENTA' || !!best?.notes?.includes('POSTVENTA (caso'),
+            enSistema: !!r.enSistema,
+            orderId: best?.orderId || null,
+            // Costo del CRM vs. facturado. La comparación la hace el sistema a
+            // NIVEL VENTA (una venta puede tener varios pedidos), así que en
+            // ventas multi-pedido el sobrecosto es de la venta entera, no de
+            // esta factura sola. `difference` positivo = sobrecosto.
+            systemCost: best?.systemCost ?? null,
+            facturado: best?.billedTotal ?? best?.billedNet ?? null,
+            diferencia: best?.difference ?? null,
+            estado: best?.status || null,
+        };
+    });
+}
+
 /**
  * El listado del resumen para cruzar a mano: una fila por factura, el nombre
  * del cliente, y el link que abre la venta en el CRM. Las de post-venta van
@@ -74,6 +130,15 @@ const normalizar = s => {
  */
 function htmlDetalle(st, detalle) {
     const esc = s => String(s ?? '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+    const diferencia = d => {
+        if (d.estado === 'PENDING') return '<span style="color:#57534e">falta factura</span>';
+        if (d.diferencia == null) return '—';
+        const v = Math.round(d.diferencia);
+        if (Math.abs(v) < 1000) return '<span style="color:#15803d">al día</span>';
+        return v > 0
+            ? `<strong style="color:#b91c1c">+${pesos(v)}</strong>`
+            : `<span style="color:#15803d">−${pesos(Math.abs(v))}</span>`;
+    };
     const total = detalle.reduce((a, d) => a + (d.saldo || 0), 0);
     const fila = d => {
         const fondo = !d.enSistema ? '#fef2f2' : d.postventa ? '#fffbeb' : '#ffffff';
@@ -93,6 +158,8 @@ function htmlDetalle(st, detalle) {
                 ? `<br><span style="font-size:14px;color:#57534e">de ${pesos(d.importe)}</span>` : ''}</td>
             <td style="padding:10px 8px;font-family:ui-monospace,monospace">${esc(d.pedido || '—')}</td>
             <td style="padding:10px 8px">${quien}</td>
+            <td style="padding:10px 8px;text-align:right;white-space:nowrap">${pesos(d.systemCost)}</td>
+            <td style="padding:10px 8px;text-align:right;white-space:nowrap">${diferencia(d)}</td>
             <td style="padding:10px 8px">${d.postventa ? '<strong style="color:#92400e">POST-VENTA</strong>' : ''}</td>
         </tr>`;
     };
@@ -110,17 +177,148 @@ function htmlDetalle(st, detalle) {
 <thead><tr>
   <th style="${th}">#</th><th style="${th}">Factura</th><th style="${th}">Fecha</th>
   <th style="${th};text-align:right">Saldo</th><th style="${th}">Pedido</th>
-  <th style="${th}">De quién es</th><th style="${th}"></th>
+  <th style="${th}">De quién es</th>
+  <th style="${th};text-align:right">Costo CRM</th>
+  <th style="${th};text-align:right">Sobre/sub costo</th><th style="${th}"></th>
 </tr></thead>
 <tbody>${detalle.map(fila).join('')}</tbody>
 <tfoot><tr><td colspan="3" style="padding:12px 8px;border-top:2px solid #1c1917;font-weight:700">Total</td>
 <td style="padding:12px 8px;border-top:2px solid #1c1917;text-align:right;font-weight:700">${pesos(total)}</td>
-<td colspan="3" style="border-top:2px solid #1c1917"></td></tr></tfoot>
+<td colspan="5" style="border-top:2px solid #1c1917"></td></tr></tfoot>
 </table>
 </body>`;
 }
 
+/**
+ * `--venta <nº de pedido>`: abre UNA venta y muestra de dónde sale su costo de
+ * sistema, ítem por ítem. Es para no dar por bueno un sobrecosto sin mirar:
+ * la mayoría de los "sobrecostos" históricos fueron costos mal cargados en el
+ * CRM, no plata de más del laboratorio. Aplica la regla del negocio: el costo
+ * de un cristal es POR PAR, así que un ítem con ojo (`eye`) vale la mitad.
+ */
+async function verVenta(pedido) {
+    const [o] = await prisma.$queryRaw`
+        select o.id, o."labOrderNumber", o."appliedPromoName", c.name as cliente
+        from "Order" o left join "Client" c on c.id = o."clientId"
+        where o."isDeleted" = false and o."labOrderNumber" like ${'%' + pedido + '%'}
+        limit 1`;
+    if (!o) { console.log(`No hay ninguna venta con el pedido ${pedido}.`); return; }
+
+    // Mismo criterio que systemCostForLab (lab-recon/cost-matching.ts): si el
+    // ítem no tiene el costo congelado, se usa el del producto vigente. Leer
+    // solo el snapshot daba costo $0 y un "sobrecosto" falso por toda la venta.
+    const items = await prisma.$queryRaw`
+        select i."productNameSnapshot", i."productCategorySnapshot", i."laboratorySnapshot",
+               i."productCostSnapshot", p.cost as "costoProducto", i.price, i.quantity, i.eye
+        from "OrderItem" i left join "Product" p on p.id = i."productId"
+        where i."orderId" = ${o.id} order by i."productCategorySnapshot"`;
+    const entradas = await prisma.$queryRaw`
+        select "labOrderNumber", "billedTotal", "billedNet", "systemCost", difference, status, "sourceFile"
+        from "LabCostEntry" where "orderId" = ${o.id}`;
+
+    console.log(`\nVENTA ${o.labOrderNumber} — ${o.cliente || 's/cliente'}${o.appliedPromoName ? ` · promo: ${o.appliedPromoName}` : ''}`);
+    console.log(`  ${CRM}/admin/ventas?id=${o.id}\n`);
+    const CALIBRADO = 15000 * 1.21; // mismo fallback que cost-matching.ts
+    const es2x1 = (o.appliedPromoName || '').toLowerCase().includes('2x1')
+        || items.some(i => /cristal/i.test(i.productCategorySnapshot || '') && i.price === 0);
+    console.log(`  ÍTEMS (costo por par: el ítem con ojo cuenta la mitad)${es2x1 ? ' · VENTA 2x1' : ''}`);
+    let suma = 0;
+    for (const it of items) {
+        const mitad = it.eye ? 0.5 : 1;
+        const costoLista = it.productCostSnapshot ?? it.costoProducto ?? null;
+        // Regla del 2x1 (la misma de systemCostForLab): el par regalado se
+        // cuenta solo como calibrado, no a costo de lista. Es EL supuesto que
+        // decide si una venta 2x1 da sobrecosto o no.
+        const esRegalado = es2x1 && /cristal/i.test(it.productCategorySnapshot || '') && it.price === 0;
+        const costo = esRegalado ? CALIBRADO : costoLista;
+        const deDonde = esRegalado ? 'par regalado → calibrado'
+            : it.productCostSnapshot != null ? 'congelado'
+                : it.costoProducto != null ? 'del producto hoy' : 'SIN COSTO CARGADO';
+        const aporta = (costo ?? 0) * mitad * (it.quantity || 1);
+        suma += aporta;
+        console.log(`    ${String(it.productNameSnapshot || '—').slice(0, 40).padEnd(42)}` +
+            `costo ${pesos(costo).padStart(11)}${it.eye ? ' /2' : '   '} ${deDonde.padEnd(18)}` +
+            ` precio ${pesos(it.price).padStart(11)}  → ${pesos(aporta)}`);
+    }
+    console.log(`\n  costo de sistema (suma de arriba): ${pesos(suma)}`);
+    console.log(`  FACTURAS DEL LABORATORIO:`);
+    let facturado = 0;
+    for (const e of entradas) {
+        const imp = e.billedTotal ?? e.billedNet ?? 0;
+        facturado += imp;
+        console.log(`    pedido ${String(e.labOrderNumber).padEnd(12)} ${pesos(imp).padStart(12)}  ${e.status}  ${e.sourceFile || ''}`);
+    }
+    console.log(`\n  total facturado: ${pesos(facturado)}`);
+    const dif = facturado - suma;
+    console.log(`  diferencia: ${dif > 0 ? `+${pesos(dif)} (el lab cobró de MÁS)` : `${pesos(dif)} (el lab cobró de MENOS que el costo cargado)`}`);
+}
+
+/**
+ * `--costos`: el cruce de costo tomando el VALOR DE LOS CRISTALES, los dos
+ * pares. El sistema hoy supone que en un 2x1 el par regalado le cuesta al lab
+ * solo el calibrado; el laboratorio no sabe nada de la promo y fabrica los dos
+ * pares igual. Esta vista compara las dos cuentas, una al lado de la otra.
+ */
+async function verCostos() {
+    const ventas = await prisma.$queryRaw`
+        select distinct o.id, o."labOrderNumber", o."appliedPromoName", c.name as cliente
+        from "LabCostEntry" e
+        join "Order" o on o.id = e."orderId"
+        left join "Client" c on c.id = o."clientId"
+        where e.lab = 'OPTOVISION' and e."sourceFile" is not null and o."isDeleted" = false`;
+
+    const CALIBRADO = 15000 * 1.21;
+    const filas = [];
+    for (const o of ventas) {
+        const items = await prisma.$queryRaw`
+            select i."productCategorySnapshot", i."productCostSnapshot", p.cost as "costoProducto",
+                   i.price, i.quantity, i.eye
+            from "OrderItem" i left join "Product" p on p.id = i."productId"
+            where i."orderId" = ${o.id}`;
+        const entradas = await prisma.$queryRaw`
+            select "billedTotal", "billedNet", notes from "LabCostEntry" where "orderId" = ${o.id}`;
+        // Los reprocesos de postventa no son parte del costo de la venta.
+        const propias = entradas.filter(e => !e.notes?.includes('POSTVENTA (caso'));
+        if (!propias.length) continue;
+        const facturado = propias.reduce((a, e) => a + (e.billedTotal ?? e.billedNet ?? 0), 0);
+
+        const cristales = items.filter(i => /cristal/i.test(i.productCategorySnapshot || ''));
+        if (!cristales.length) continue;
+        const es2x1 = (o.appliedPromoName || '').toLowerCase().includes('2x1')
+            || cristales.some(i => i.price === 0);
+        const costoDe = i => i.productCostSnapshot ?? i.costoProducto ?? 0;
+        const porPar = i => (i.eye ? 0.5 : 1) * (i.quantity || 1);
+        // Valor de los cristales: TODOS los pares a costo de lista.
+        const cristalesFull = cristales.reduce((a, i) => a + costoDe(i) * porPar(i), 0);
+        // Lo que calcula el sistema hoy: el par regalado solo calibrado.
+        const sistema = cristales.reduce((a, i) =>
+            a + (es2x1 && i.price === 0 ? CALIBRADO : costoDe(i)) * porPar(i), 0);
+        filas.push({ ...o, es2x1, cristalesFull, sistema, facturado });
+    }
+
+    filas.sort((a, b) => (b.facturado - b.cristalesFull) - (a.facturado - a.cristalesFull));
+    console.log(`\nCOSTO CONTRA LO FACTURADO — ${filas.length} ventas con factura de Optovisión\n`);
+    console.log(`  ${'Venta'.padEnd(28)}${'Cliente'.padEnd(26)}${'Cristales'.padStart(12)}${'Facturado'.padStart(13)}${'Diferencia'.padStart(13)}   ${'(regla vieja)'.padStart(13)}`);
+    for (const f of filas) {
+        const d = f.facturado - f.cristalesFull;
+        const dv = f.facturado - f.sistema;
+        console.log(`  ${String(f.labOrderNumber).slice(0, 26).padEnd(28)}${String(f.cliente || '—').slice(0, 24).padEnd(26)}` +
+            `${pesos(f.cristalesFull).padStart(12)}${pesos(f.facturado).padStart(13)}` +
+            `${(d > 0 ? '+' : '−') + pesos(Math.abs(d))}`.padStart(13) +
+            `   ${((dv > 0 ? '+' : '−') + pesos(Math.abs(dv))).padStart(13)}${f.es2x1 ? '  2x1' : ''}`);
+    }
+    const totalDif = filas.reduce((a, f) => a + (f.facturado - f.cristalesFull), 0);
+    console.log(`\n  Total tomando el valor de los cristales: ${totalDif > 0 ? '+' : '−'}${pesos(Math.abs(totalDif))}` +
+        ` ${totalDif > 0 ? '(el lab cobró de más)' : '(el lab cobró de menos que el costo cargado)'}`);
+}
+
 async function main() {
+    if (process.argv.includes('--costos')) { await verCostos(); return; }
+    const iVenta = process.argv.indexOf('--venta');
+    if (iVenta !== -1 && process.argv[iVenta + 1]) {
+        await verVenta(process.argv[iVenta + 1]);
+        return;
+    }
     const [st] = await prisma.$queryRaw`
         select "statementDate", "totalDebt", "invoiceCount", rows, "sourceFile", "createdAt"
         from "LabAccountStatement"
@@ -145,7 +343,6 @@ async function main() {
     // bolsa ("sin venta que las respalde") y eso hacía sonar grave lo que no
     // lo era, y perderse lo que sí. Acá se separan, y de las que no traen nº
     // se busca activamente la venta antes de darlas por huérfanas.
-    const esClaveSinNumero = p => !p || /^S\/PEDIDO/.test(String(p)) || !/^\d{5,}$/.test(String(p).trim());
     const sinVentaCrudo = rows.filter(r => r.enSistema && r.gemelo?.tipo === 'SIN_VENTA');
     const sinNumero = [];   // la factura no trae el nº: la venta puede existir
     const huerfanas = [];   // pedido con nº propio y sin ninguna venta: lo grave
@@ -179,52 +376,12 @@ async function main() {
     const importeDe = r => r.importe ?? r.saldo ?? null;
     const totalSinCargar = sinCargar.reduce((a, r) => a + (importeDe(r) || 0), 0);
 
-    // Con --detalle: las facturas del resumen una por una, en el mismo orden
-    // que vienen en el papel (por vencimiento), con de quién es cada una y el
-    // link a la venta. Es la vista para cruzar contra el resumen impreso.
-    // Con --html <archivo> además escribe el listado clickeable.
+    // Las facturas del resumen una por una, en el mismo orden que vienen en el
+    // papel, con de quién es cada una y el link a la venta. Es la vista para
+    // cruzar contra el resumen impreso: va siempre en el email, y a la consola
+    // con --detalle (y a un archivo clickeable con --html <archivo>).
+    const detalle = await armarDetalle(rows);
     if (DETALLE) {
-        // El snapshot guarda cliente pero no el id de la venta: el link sale
-        // de volver a cruzar factura → LabCostEntry → Order (mismo criterio de
-        // normalización que usa crossStatementRows en lab-recon/imap.ts).
-        const entradas = await prisma.$queryRaw`
-            select e."labOrderNumber", e."sourceFile", e.notes, e."orderId",
-                   o."labOrderNumber" as "ventaPedidos", c.name as cliente
-            from "LabCostEntry" e
-            left join "Order" o on o.id = e."orderId"
-            left join "Client" c on c.id = o."clientId"
-            where e.lab = 'OPTOVISION' and e."sourceFile" is not null`;
-        const porFactura = new Map();
-        for (const e of entradas) {
-            const m = (e.sourceFile || '').match(/(\d{4})-?0*(\d{3,8})/);
-            if (!m) continue;
-            const k = `${m[1]}-${m[2].padStart(8, '0')}`;
-            if (!porFactura.has(k)) porFactura.set(k, []);
-            porFactura.get(k).push(e);
-        }
-
-        const detalle = rows.map((r, i) => {
-            const es = porFactura.get(String(r.invoiceNumber)) || [];
-            const best = es.find(e => e.orderId) || es[0] || null;
-            const g = r.gemelo;
-            return {
-                n: i + 1,
-                factura: String(r.invoiceNumber),
-                fecha: fecha(r.fecha),
-                importe: r.importe ?? null,
-                // Lo que se debe es el SALDO, no el importe original: la 62896
-                // se facturó por $1.056.830 y queda debiendo $249.302. Sumar
-                // importes daría una deuda inflada que no cierra con el papel.
-                saldo: r.saldo ?? r.importe ?? null,
-                pedido: g?.ventaPedidos || best?.ventaPedidos
-                    || (esClaveSinNumero(g?.pedido) ? null : g?.pedido),
-                cliente: g?.cliente || best?.cliente || null,
-                postventa: g?.tipo === 'POSTVENTA' || !!best?.notes?.includes('POSTVENTA (caso'),
-                enSistema: !!r.enSistema,
-                orderId: best?.orderId || null,
-            };
-        });
-
         console.log(`\nLAS ${detalle.length} FACTURAS DEL RESUMEN, UNA POR UNA:\n`);
         for (const d of detalle) {
             const quien = !d.enSistema ? '⚠ NO ESTÁ EN EL SISTEMA'
@@ -237,7 +394,6 @@ async function main() {
                 `${pesos(d.saldo).padStart(13)}${parcial.padEnd(16)} ${String(d.pedido || '—').padEnd(18)} ${quien}`
             );
         }
-
         const iHtml = process.argv.indexOf('--html');
         if (iHtml !== -1 && process.argv[iHtml + 1]) {
             const { writeFileSync } = await import('node:fs');
@@ -363,10 +519,10 @@ async function main() {
         console.log(`\n\n(Informe no enviado. Para mandarlo por email: --enviar)`);
         return;
     }
-    await enviar({ st, rows, sinCargar, huerfanas, sinNumero, conVenta, conPostventa, asignables, conLetra, totalSinCargar });
+    await enviar({ st, rows, sinCargar, huerfanas, sinNumero, conVenta, conPostventa, asignables, conLetra, totalSinCargar, detalle });
 }
 
-async function enviar({ st, rows, sinCargar, huerfanas, sinNumero, conVenta, conPostventa, asignables, conLetra, totalSinCargar }) {
+async function enviar({ st, rows, sinCargar, huerfanas, sinNumero, conVenta, conPostventa, asignables, conLetra, totalSinCargar, detalle }) {
     const key = process.env.RESEND_API_KEY;
     const to = process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com';
     const from = process.env.EMAIL_FROM || 'Atelier Óptica <onboarding@resend.dev>';
@@ -436,11 +592,46 @@ async function enviar({ st, rows, sinCargar, huerfanas, sinNumero, conVenta, con
             ${conLetra.slice(0, 30).map(o => `<tr><td style="${td};font-family:monospace">${o.labOrderNumber}</td><td style="${td}">${o.cliente || '—'}</td><td style="${td}">${fecha(o.createdAt)}</td><td style="${td}">${o.entradas ? 'sí' : '<span style="color:#b91c1c">no</span>'}</td></tr>`).join('')}
         </table>` : '';
 
+    // El listado completo, factura por factura, con link a cada venta y el
+    // cruce de costo. Va PRIMERO: es lo que se lee al lado del resumen impreso.
+    const listado = htmlDetalle(st, detalle)
+        .replace(/^[\s\S]*?<body[^>]*>/, '').replace(/<\/body>$/, '');
+
+    // Sobrecostos y ahorros, una línea por VENTA (no por factura: la comparación
+    // del sistema es a nivel venta, así que dos facturas de la misma venta
+    // repiten la misma diferencia y sumarlas contaría doble).
+    const porVenta = new Map();
+    for (const d of detalle) {
+        if (d.diferencia == null || !d.orderId || d.postventa) continue;
+        porVenta.set(d.orderId, d);
+    }
+    const dif = [...porVenta.values()].sort((a, b) => (b.diferencia || 0) - (a.diferencia || 0));
+    const tablaCostos = dif.length ? `
+        <h3>Costo del CRM contra lo que facturó el laboratorio</h3>
+        <p style="color:#4b5563">Una línea por venta. <strong>Ojo:</strong> casi todas son ventas 2x1, y ahí
+        el sistema supone que el par regalado solo cuesta el calibrado (${pesos(15000 * 1.21)}). Si el
+        laboratorio cobró los dos pares completos, ese supuesto infla la diferencia. Antes de reclamar,
+        mirar la venta.</p>
+        <table style="border-collapse:collapse;width:100%">
+        <tr><th style="${th}">Venta</th><th style="${th}">Cliente</th>
+            <th style="${th}">Costo CRM</th><th style="${th}">Facturado</th><th style="${th}">Diferencia</th></tr>
+        ${dif.map(d => `<tr>
+            <td style="${td};font-family:monospace">${d.pedido || '—'}</td>
+            <td style="${td}"><a href="${CRM}/admin/ventas?id=${d.orderId}">${d.cliente || 'ver'}</a></td>
+            <td style="${td};text-align:right">${pesos(d.systemCost)}</td>
+            <td style="${td};text-align:right">${pesos(d.facturado)}</td>
+            <td style="${td};text-align:right;color:${(d.diferencia || 0) > 0 ? '#b91c1c' : '#15803d'};font-weight:bold">
+                ${(d.diferencia || 0) > 0 ? '+' : '−'}${pesos(Math.abs(d.diferencia || 0))}</td>
+        </tr>`).join('')}
+        </table>` : '';
+
     const html = `
         <div style="font-family:Arial,sans-serif;max-width:960px;margin:0 auto;color:#1f2937">
             <h2>Resumen de cuenta de Optovisión — qué falta cargar</h2>
             <p>Resumen al <strong>${fecha(st.statementDate)}</strong>: ${st.invoiceCount} facturas, deuda ${pesos(st.totalDebt)}.
             De esas, ${conVenta.length} tienen venta enganchada y ${conPostventa.length} son reprocesos de postventa.</p>
+            ${listado}
+            ${tablaCostos}
             ${tablaSinCargar}
             ${tablaHuerfanas}
             ${tablaSinNumero}
