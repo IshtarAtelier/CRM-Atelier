@@ -89,12 +89,29 @@ async function main() {
     const listas = [], dudosas = [];
     for (const p of plan) {
         const problemas = [];
-        if (!p.venta) problemas.push('ninguna venta tiene ese nº de pedido');
+        if (!p.venta) {
+            // Un pedido sin venta no siempre es una venta que falta cargar: puede
+            // ser un REPROCESO, que vive en PostSaleCase con su propio número.
+            // La 3008-00067549 es justo eso — garantía de Carlos Limario, con el
+            // 96,7% bonificado — y figuraba como "venta faltante", que asusta y
+            // es otra cosa.
+            const [caso] = await prisma.$queryRaw`
+                select p.id, p."newOrderNumber", c.name as cliente
+                from "PostSaleCase" p left join "Client" c on c.id = p."clientId"
+                where p."newOrderNumber" like ${"%" + p.pedido + "%"} limit 1`;
+            problemas.push(caso
+                ? `no es una venta: es el reproceso de ${caso.cliente} (caso ${caso.newOrderNumber})`
+                : 'ninguna venta ni caso de post-venta tiene ese nº de pedido');
+        }
         if (p.porPedido && p.porPedido.sourceFile && !p.porPedido.sourceFile.includes(p.nro)) {
             problemas.push(`ya hay una entrada con ese pedido, de otra factura (${p.porPedido.sourceFile})`);
         }
         // El importe del resumen contra el que ya está cargado en el sistema.
-        const cargada = p.existentes.find(e => e.billedTotal != null);
+        // Tiene que ser la entrada DE ESTE pedido: una factura con varios
+        // pedidos tiene varias entradas, y agarrar la primera hacía sonar un
+        // descalce falso en cada uno de los otros dos.
+        const cargada = p.existentes.find(e => e.labOrderNumber === p.pedido)
+            ?? (p.existentes.length === 1 ? p.existentes[0] : null);
         if (p.importe != null && cargada?.billedTotal != null
             && Math.abs(cargada.billedTotal - p.importe) > 1) {
             problemas.push(`el importe cargado (${pesos(cargada.billedTotal)}) no coincide con el del papel (${pesos(p.importe)})`);
