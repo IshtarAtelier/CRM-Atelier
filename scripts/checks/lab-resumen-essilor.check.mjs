@@ -61,6 +61,7 @@ const PEDIDOS_DE_FACTURA = {
     // Formato normal, con paréntesis: esta cruza sola. Figura "no está en el
     // sistema" solo porque el resumen se leyó ANTES de que llegara su PDF.
     '3008-00074616': ['609861'],
+    '3008-00069150': ['595000'],
 };
 
 const pesos = n => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;

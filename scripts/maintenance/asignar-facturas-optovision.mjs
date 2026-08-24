@@ -44,6 +44,8 @@ const ASIGNACIONES = [
     { factura: '3008-00070740', pedido: '3578632', importe: 220850.72, fuente: 'planilla física' },
     { factura: '3008-00063271', pedido: '588062', importe: 438071.93, fuente: 'planilla física' },
     { factura: '3008-00072463', pedido: '598454', importe: 28.25, fuente: 'planilla física' },
+    // El pedido 595000 con su otro identificador, el de la "T" (7102030).
+    { factura: '3008-00069150', pedido: '595000', importe: 575952.64, fuente: 'planilla física (alias 7102030)' },
     // Forma "TM-": el PDF dice "Ped: TM-3578630", sin paréntesis. El parser
     // exigía paréntesis y las daba por huérfanas; ya está arreglado, pero las
     // facturas viejas siguen mal cargadas y hay que reasignarlas.
