@@ -44,6 +44,11 @@ const ASIGNACIONES = [
     { factura: '3008-00070740', pedido: '3578632', importe: 220850.72, fuente: 'planilla física' },
     { factura: '3008-00063271', pedido: '588062', importe: 438071.93, fuente: 'planilla física' },
     { factura: '3008-00072463', pedido: '598454', importe: 28.25, fuente: 'planilla física' },
+    // Forma "TM-": el PDF dice "Ped: TM-3578630", sin paréntesis. El parser
+    // exigía paréntesis y las daba por huérfanas; ya está arreglado, pero las
+    // facturas viejas siguen mal cargadas y hay que reasignarlas.
+    { factura: '3025-00044882', pedido: '3578630', importe: 48246.33, fuente: 'PDF, Ped: TM-3578630' },
+    { factura: '3025-00045490', pedido: '3578631', importe: 48246.33, fuente: 'PDF, Ped: TM-3578631' },
     { factura: '3008-00062896', pedido: '587979', importe: 536396.50, fuente: 'PDF, Varilux Physio (1 de 3)' },
     { factura: '3008-00062896', pedido: '588049', importe: 438071.90, fuente: 'PDF, Varilux Comfort Max (2 de 3)' },
     { factura: '3008-00062896', pedido: '588966', importe: 82361.51, fuente: 'PDF, Sapphire HR stock (3 de 3)' },

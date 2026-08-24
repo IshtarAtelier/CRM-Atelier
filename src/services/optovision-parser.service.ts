@@ -72,9 +72,30 @@ export class OptovisionParserService {
                 // 1. Extract Lab Order Number(s) — solo de la línea "Ped:", con
                 // 5+ dígitos (excluye el código postal "(1408)" de la dirección).
                 const pedLine = text.match(/Ped:[^\n]*/);
-                const labOrderNumbers = pedLine
-                    ? [...pedLine[0].matchAll(/\((\d{5,})\)/g)].map(m => m[1])
+                // Optovisión escribe la línea "Ped:" de DOS formas:
+                //   a) "Ped: TI-7101568(587979)" — el pedido es el de paréntesis
+                //      y el de la letra es el alias de la planilla del vendedor.
+                //   b) "Ped: TM-3578630" — SIN paréntesis. Acá no hay alias: el
+                //      número de la letra ES el pedido, y así está cargado en la
+                //      venta (los de 7 dígitos). Exigir paréntesis dejaba estas
+                //      facturas con cero pedidos y por lo tanto huérfanas para
+                //      siempre, aunque la venta estuviera cargada: pasó con la
+                //      3025-00044882 (Federico Paulucci) y la 3025-00045490
+                //      (Paola de Diaz), verificadas contra el PDF el 24/8/2026.
+                const conParentesis = pedLine
+                    ? [...pedLine[0].matchAll(/([A-Za-z]{1,3})-?(\d{5,})\s*\((\d{5,})\)/g)]
                     : [];
+                const sueltos = pedLine
+                    // El `(?!\d)` es imprescindible: sin él, ante "TI-7101568(587979)"
+                    // el motor retrocede y matchea "710156" (dejando afuera el 8)
+                    // para que el siguiente carácter no sea un paréntesis, e
+                    // inventa un pedido que no existe.
+                    ? [...pedLine[0].matchAll(/\b([A-Za-z]{1,3})-(\d{5,})(?!\d)(?!\s*\()/g)].map(m => m[2])
+                    : [];
+                const labOrderNumbers = [
+                    ...(pedLine ? [...pedLine[0].matchAll(/\((\d{5,})\)/g)].map(m => m[1]) : []),
+                    ...sueltos,
+                ];
                 const labOrderNumber = labOrderNumbers[0] ?? null;
 
                 // 1b. EL OTRO IDENTIFICADOR. Cada pedido viene con DOS números:
@@ -85,10 +106,8 @@ export class OptovisionParserService {
                 // encontrar la venta cuando se cargó con el de la planilla — si
                 // no, la factura queda huérfana para siempre con la venta ahí.
                 const aliasPorPedido: Record<string, string> = {};
-                if (pedLine) {
-                    for (const m of pedLine[0].matchAll(/([A-Za-z]{1,3})-?(\d{5,})\s*\((\d{5,})\)/g)) {
-                        aliasPorPedido[m[3]] = m[2];
-                    }
+                for (const m of conParentesis) {
+                    aliasPorPedido[m[3]] = m[2];
                 }
                 
                 // 2. Extract Subtotal (tolera miles con '.' y decimal con ',')

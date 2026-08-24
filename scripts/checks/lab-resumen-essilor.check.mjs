@@ -54,6 +54,10 @@ const PENDIENTES_DE_ASIGNAR = [
  */
 const PEDIDOS_DE_FACTURA = {
     '3008-00062896': ['587979', '588049', '588966'],
+    // Forma "TM-", sin paréntesis: el nº de la letra ES el pedido y así está
+    // cargado en la venta. Leídas del PDF el 24/8/2026.
+    '3025-00044882': ['3578630'],
+    '3025-00045490': ['3578631'],
 };
 
 const pesos = n => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
