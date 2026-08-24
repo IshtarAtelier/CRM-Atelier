@@ -392,7 +392,37 @@ async function verCostos() {
         ` ${totalDif > 0 ? '(el lab cobró de más)' : '(el lab cobró de menos que el costo cargado)'}`);
 }
 
+/**
+ * `--sin-factura`: las ventas mandadas a Optovisión que NO tienen ninguna
+ * factura cruzada, con su costo y su fecha. Sirve para el problema inverso al
+ * del resumen: cuando sobra una factura sin dueño, el dueño está en esta lista.
+ */
+async function sinFactura() {
+    const ventas = await prisma.$queryRaw`
+        select o.id, o."labOrderNumber", o."labSentAt", c.name as cliente,
+               (select coalesce(sum(coalesce(i."productCostSnapshot", p.cost, 0)
+                                    * (case when i.eye is not null then 0.5 else 1 end)
+                                    * coalesce(i.quantity, 1)), 0)
+                from "OrderItem" i left join "Product" p on p.id = i."productId"
+                where i."orderId" = o.id and i."productCategorySnapshot" ilike '%cristal%') as "costoCristales"
+        from "Order" o
+        left join "Client" c on c.id = o."clientId"
+        where o."isDeleted" = false
+          and o."labSentAt" is not null
+          and not exists (select 1 from "LabCostEntry" e where e."orderId" = o.id)
+          and o."labOrderNumber" ~ '[0-9]{5,}'
+        order by o."labSentAt" desc
+        limit 40`;
+
+    console.log(`\nVENTAS MANDADAS AL LAB QUE NO TIENEN NINGUNA FACTURA CRUZADA (${ventas.length})\n`);
+    for (const v of ventas) {
+        console.log(`  ${fecha(v.labSentAt).padEnd(12)}${String(v.labOrderNumber).slice(0, 28).padEnd(30)}` +
+            `${pesos(v.costoCristales).padStart(13)}  ${v.cliente || 's/cliente'}`);
+    }
+}
+
 async function main() {
+    if (process.argv.includes('--sin-factura')) { await sinFactura(); return; }
     if (process.argv.includes('--costos')) { await verCostos(); return; }
     const iVenta = process.argv.indexOf('--venta');
     if (iVenta !== -1 && process.argv[iVenta + 1]) {
