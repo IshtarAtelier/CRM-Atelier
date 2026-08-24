@@ -421,7 +421,59 @@ async function sinFactura() {
     }
 }
 
+/**
+ * `--sin-numero`: ventas mandadas al laboratorio SIN nº de operación cargado,
+ * o con algo que no es un número (texto libre, "Planilla fisica 564823"). Son
+ * las que NUNCA van a cruzar con una factura, por más que el comprobante venga
+ * perfecto: no hay por dónde engancharlas.
+ */
+async function sinNumeroDeOperacion() {
+    const ventas = await prisma.$queryRaw`
+        select o.id, o."labOrderNumber", o."labSentAt", o."labStatus", c.name as cliente,
+               -- Si ningún ítem es de un laboratorio, no hay factura que esperar:
+               -- son anteojos de sol, lentes de contacto o trabajo de taller.
+               (select string_agg(distinct i."laboratorySnapshot", ', ')
+                from "OrderItem" i
+                where i."orderId" = o.id and i."laboratorySnapshot" is not null
+                  and btrim(i."laboratorySnapshot") <> '') as labs
+        from "Order" o left join "Client" c on c.id = o."clientId"
+        where o."isDeleted" = false and o."labSentAt" is not null
+          and (o."labOrderNumber" is null or btrim(o."labOrderNumber") = ''
+               or o."labOrderNumber" !~ '[0-9]{5,}')
+        order by o."labSentAt" desc`;
+
+    // Y las que tienen número pero con texto pegado: cruzan igual (el sistema
+    // lee los números sueltos), pero conviene verlas.
+    const conTexto = await prisma.$queryRaw`
+        select o."labOrderNumber", o."labSentAt", c.name as cliente
+        from "Order" o left join "Client" c on c.id = o."clientId"
+        where o."isDeleted" = false and o."labSentAt" is not null
+          and o."labOrderNumber" ~ '[0-9]{5,}' and o."labOrderNumber" ~ '[A-Za-z]{3,}'
+        order by o."labSentAt" desc`;
+
+    const conLab = ventas.filter(v => v.labs);
+    const sinLab = ventas.filter(v => !v.labs);
+
+    console.log(`\nSIN Nº DE OPERACIÓN Y CON CRISTALES DE LABORATORIO (${conLab.length})`);
+    console.log(`  Estas esperan factura y no van a poder cruzarla nunca.\n`);
+    for (const v of conLab) {
+        console.log(`  ${fecha(v.labSentAt).padEnd(12)}${String(v.labOrderNumber || '(vacío)').slice(0, 26).padEnd(28)}` +
+            `${String(v.labStatus || '').padEnd(14)}${String(v.labs).slice(0, 22).padEnd(24)}${v.cliente || 's/cliente'}`);
+    }
+    console.log(`\nSIN Nº PERO SIN LABORATORIO (${sinLab.length}) — anteojos de sol, lentes de contacto,`);
+    console.log(`  pases de cristales, trabajo de taller. No esperan factura: está bien que no tengan número.\n`);
+    for (const v of sinLab) {
+        console.log(`  ${fecha(v.labSentAt).padEnd(12)}${String(v.labOrderNumber || '(vacío)').slice(0, 26).padEnd(28)}` +
+            `${String(v.labStatus || '').padEnd(14)}${v.cliente || 's/cliente'}`);
+    }
+    console.log(`\nVENTAS CON EL Nº MEZCLADO CON TEXTO (${conTexto.length}) — cruzan, pero ensucian:`);
+    for (const v of conTexto) {
+        console.log(`  ${fecha(v.labSentAt).padEnd(12)}${String(v.labOrderNumber).slice(0, 34).padEnd(36)}${v.cliente || 's/cliente'}`);
+    }
+}
+
 async function main() {
+    if (process.argv.includes('--sin-numero')) { await sinNumeroDeOperacion(); return; }
     if (process.argv.includes('--sin-factura')) { await sinFactura(); return; }
     if (process.argv.includes('--costos')) { await verCostos(); return; }
     const iVenta = process.argv.indexOf('--venta');
