@@ -127,6 +127,9 @@ export interface LabFramePairSummary {
     measurements: string | null;
     /** "Altura OD 20 · OI 20" — la altura varía según el armazón elegido. */
     fitting: string | null;
+    /** Alturas por ojo sueltas, para renderizarlas en cuadros OD/OI. */
+    heightOD: number | null;
+    heightOI: number | null;
     details: string | null;
     /** Foto del armazón sacada por el vendedor. */
     imageUrl: string | null;
@@ -194,6 +197,8 @@ export function describeLabFrameDetails(order: LabFrameOrder): LabFrameSummary {
             shape: f.shape,
             measurements: medidas,
             fitting: fittingLabel(f.heightOD, f.heightOI),
+            heightOD: f.heightOD ?? null,
+            heightOI: f.heightOI ?? null,
             details: f.details,
             imageUrl: f.imageUrl,
             tint: null,

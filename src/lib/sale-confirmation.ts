@@ -266,7 +266,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
             : [
                 par.shape ? fila('Forma / aro', par.shape) : '',
                 par.measurements ? fila('Medidas', par.measurements) : '',
-                par.fitting ? fila('Altura y DNP', par.fitting) : '',
+                par.fitting ? fila('Altura', par.fitting) : '',
                 par.details ? fila('Detalles', par.details) : '',
             ].join('');
         return `

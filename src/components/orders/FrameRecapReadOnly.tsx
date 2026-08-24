@@ -78,7 +78,17 @@ export default function FrameRecapReadOnly({ order, defaultOpen = false }: Props
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                             {par.shape && <Dato label="Forma / Aro" value={par.shape} />}
                                             {par.measurements && <Dato label="Medidas" value={par.measurements} />}
-                                            {par.fitting && <Dato label="Altura y DNP" value={par.fitting} />}
+                                            {(par.heightOD != null || par.heightOI != null) && (
+                                                <div>
+                                                    <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest mb-1">Altura</p>
+                                                    <div className="inline-grid grid-cols-2 rounded-xl border border-stone-200 dark:border-stone-700 overflow-hidden text-center">
+                                                        <p className="px-4 py-1 bg-emerald-500/10 text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest border-r border-stone-200 dark:border-stone-700">OD</p>
+                                                        <p className="px-4 py-1 bg-blue-500/10 text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">OI</p>
+                                                        <p className="px-4 py-1.5 text-sm font-black text-stone-800 dark:text-stone-200 border-t border-r border-stone-200 dark:border-stone-700">{par.heightOD ?? '—'}</p>
+                                                        <p className="px-4 py-1.5 text-sm font-black text-stone-800 dark:text-stone-200 border-t border-stone-200 dark:border-stone-700">{par.heightOI ?? '—'}</p>
+                                                    </div>
+                                                </div>
+                                            )}
                                             {par.details && <Dato label="Detalles" value={par.details} />}
                                             {/* El cristal de ESTE anteojo. Sin esto, el repaso
                                                 de una venta enviada decía el teñido suelto al

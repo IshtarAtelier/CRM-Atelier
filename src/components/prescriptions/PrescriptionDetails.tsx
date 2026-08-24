@@ -164,7 +164,7 @@ export default function PrescriptionDetails({
                 
                 <div className="grid grid-cols-1 divide-y divide-stone-100 dark:divide-stone-800">
                     {/* OD Row */}
-                    <div className="grid grid-cols-4 sm:grid-cols-7 items-center bg-stone-50/30 dark:bg-stone-900/10">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 items-center bg-stone-50/30 dark:bg-stone-900/10">
                         <div className="px-6 py-4 bg-emerald-500/5 border-r border-stone-100 dark:border-stone-800">
                             <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-500 text-white text-[10px] font-black">OD</span>
                         </div>
@@ -173,11 +173,10 @@ export default function PrescriptionDetails({
                         {renderCell('Eje', prescription?.axisOD, 'axisOD', '°')}
                         {renderCell('Add', prescription?.additionOD ?? prescription?.addition, 'additionOD', '', '+')}
                         {renderCell('DNP', prescription?.distanceOD ?? prescription?.pd, 'distanceOD')}
-                        {renderCell('Altura', prescription?.heightOD, 'heightOD')}
                     </div>
 
                     {/* OI Row */}
-                    <div className="grid grid-cols-4 sm:grid-cols-7 items-center bg-white dark:bg-stone-900/5">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 items-center bg-white dark:bg-stone-900/5">
                         <div className="px-6 py-4 bg-blue-500/5 border-r border-stone-100 dark:border-stone-800">
                             <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-500 text-white text-[10px] font-black">OI</span>
                         </div>
@@ -186,7 +185,6 @@ export default function PrescriptionDetails({
                         {renderCell('Eje', prescription?.axisOI, 'axisOI', '°')}
                         {renderCell('Add', prescription?.additionOI ?? prescription?.addition, 'additionOI', '', '+')}
                         {renderCell('DNP', prescription?.distanceOI ?? prescription?.pd, 'distanceOI')}
-                        {renderCell('Altura', prescription?.heightOI, 'heightOI')}
                     </div>
                 </div>
             </div>
@@ -205,7 +203,7 @@ export default function PrescriptionDetails({
                             lejos para verla o cargarla. Es el mismo campo
                             additionOD/OI (la adición es una sola por ojo), editable
                             desde cualquiera de las dos tablas. */}
-                        <div className="grid grid-cols-4 sm:grid-cols-7 items-center bg-amber-50/30 dark:bg-amber-950/10">
+                        <div className="grid grid-cols-3 sm:grid-cols-6 items-center bg-amber-50/30 dark:bg-amber-950/10">
                             <div className="px-6 py-4 bg-emerald-500/5 border-r border-amber-100 dark:border-amber-900/30">
                                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-500 text-white text-[10px] font-black">OD</span>
                             </div>
@@ -214,10 +212,9 @@ export default function PrescriptionDetails({
                             {renderCell('Eje', prescription?.nearAxisOD, 'nearAxisOD', '°')}
                             {renderCell('Add', prescription?.additionOD ?? prescription?.addition, 'additionOD', '', '+')}
                             {renderCell('DNP', prescription?.nearDistanceOD, 'nearDistanceOD')}
-                            {renderCell('Altura', prescription?.heightOD, 'heightOD')}
                         </div>
                         {/* OI Cerca */}
-                        <div className="grid grid-cols-4 sm:grid-cols-7 items-center bg-white/50 dark:bg-stone-900/5">
+                        <div className="grid grid-cols-3 sm:grid-cols-6 items-center bg-white/50 dark:bg-stone-900/5">
                             <div className="px-6 py-4 bg-blue-500/5 border-r border-amber-100 dark:border-amber-900/30">
                                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-500 text-white text-[10px] font-black">OI</span>
                             </div>
@@ -226,7 +223,6 @@ export default function PrescriptionDetails({
                             {renderCell('Eje', prescription?.nearAxisOI, 'nearAxisOI', '°')}
                             {renderCell('Add', prescription?.additionOI ?? prescription?.addition, 'additionOI', '', '+')}
                             {renderCell('DNP', prescription?.nearDistanceOI, 'nearDistanceOI')}
-                            {renderCell('Altura', prescription?.heightOI, 'heightOI')}
                         </div>
                     </div>
                 </div>
