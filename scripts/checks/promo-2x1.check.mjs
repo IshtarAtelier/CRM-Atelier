@@ -15,6 +15,9 @@
 //   5. UN SOLO tildado en la venta: queda al 50%, sea el caro o el barato, y
 //      valga solo (el otro armazón es del cliente) o junto a uno sin promo.
 //      Un armazón sin tilde se cobra entero siempre. Reglas de Ishtar, 22/8/26.
+//   5b. Pero TODO eso pide que el cliente se lleve los DOS pares de cristales.
+//      Con un solo par no está usando el 2x1: el armazón va entero, ni gratis
+//      ni al 50%. (Ishtar, 24/8/26.)
 //   6. Un lente de sol tildado también puede ser el bonificado.
 //
 // Corre sin base y sin red.
@@ -25,7 +28,11 @@ import assert from 'node:assert/strict';
 import { PricingService } from '../../src/services/PricingService.ts';
 import { hasActive2x1Promo, pick2x1FrameDiscount, recalculateCrystalPrices, armarParesDeCristal } from '../../src/lib/promo-utils.ts';
 
-const cristal2x1 = (eye) => ({ product: { id: 'c2x1', category: 'Cristal', type: 'Cristal Multifocal', name: 'Varilux Comfort', is2x1: true }, quantity: 1, price: 305167, eye });
+const cristal2x1 = (eye, precio = 305167) => ({ product: { id: 'c2x1', category: 'Cristal', type: 'Cristal Multifocal', name: 'Varilux Comfort', is2x1: true }, quantity: 1, price: precio, eye });
+// La venta 2x1 REAL lleva DOS pares: uno cobrado y otro sin cargo (desde el
+// par automático, agregar el cristal ya los carga a los dos). El armazón solo
+// se bonifica si el cliente efectivamente se lleva los dos pares.
+const dosPares2x1 = () => [cristal2x1('OD'), cristal2x1('OI'), cristal2x1('OD', 0), cristal2x1('OI', 0)];
 const cristalComun = (eye) => ({ product: { id: 'comun', category: 'Cristal', type: 'Cristal Monofocal', name: 'Monofocal Orma', is2x1: false }, quantity: 1, price: 80000, eye });
 const miPrimerVarilux = (eye) => ({ product: { id: 'mpv', category: 'Cristal', type: 'Cristal Multifocal', name: 'Mi Primer Varilux', is2x1: true }, quantity: 1, price: 200000, eye });
 const armazon = (id, name, price, tildado, extra = {}) => ({ product: { id, category: 'Armazón de Receta', type: 'Armazón de Receta', brand: 'Atelier', name, eligible2x1: tildado, ...extra }, quantity: 1, price });
@@ -41,39 +48,38 @@ const casos = [
     ['sin cristal 2x1 no se bonifica nada, aunque haya tildados',
         () => assert.equal(descuento([cristalComun('OD'), cristalComun('OI'), armazon('f1', 'A', 160000, true), armazon('f2', 'B', 120000, true)]), 0)],
     ['con promo pero SIN armazones tildados: se cobran los dos enteros',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 160000, false)]), 0)],
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 160000, false)]), 0)],
     ['la marca NO decide: un "Atelier" sin tilde no se regala',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'Orfeo C1', 160000, false), armazon('f2', 'Aquiles C1', 160000, false)]), 0)],
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'Orfeo C1', 160000, false), armazon('f2', 'Aquiles C1', 160000, false)]), 0)],
     ['MEZCLA: el tildado barato junto a uno sin tildar queda al 50%',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 120000, true)]), 60000)],
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 120000, true)]), 60000)],
     ['MEZCLA: el tildado caro junto a uno sin tildar también queda al 50%',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'Caro', 160000, true), armazon('f2', 'Barato', 120000, false)]), 80000)],
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'Caro', 160000, true), armazon('f2', 'Barato', 120000, false)]), 80000)],
     ['con los dos tildados se bonifica el segundo (más barato) ENTERO',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'Caro', 160000, true), armazon('f2', 'Barato', 120000, true)]), 120000)],
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'Caro', 160000, true), armazon('f2', 'Barato', 120000, true)]), 120000)],
     ['MEZCLA con lente de sol tildado: 50% del sol',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, false), lenteSol('s1', 'Sol', 90000, true)]), 45000)],
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'A', 160000, false), lenteSol('s1', 'Sol', 90000, true)]), 45000)],
     ['dos tildados: armazón + lente de sol → el más barato gratis entero',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, true), lenteSol('s1', 'Sol', 90000, true)]), 90000)],
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'A', 160000, true), lenteSol('s1', 'Sol', 90000, true)]), 90000)],
     ['el nombre de la promo avisa el 50% en la mezcla',
         () => {
-            const r = pick2x1FrameDiscount([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 120000, true)]);
+            const r = pick2x1FrameDiscount([...dosPares2x1(), armazon('f1', 'A', 160000, false), armazon('f2', 'B', 120000, true)]);
             assert.ok(r.itemName?.includes('(50%)'), `itemName fue: ${r.itemName}`);
         }],
     ['armazón del cliente + UN armazón tildado comprado: 50%',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 120000, true)]), 60000)],
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'A', 120000, true)]), 60000)],
     ['armazón del cliente + UN armazón sin tildar: se cobra entero',
-        () => assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 120000, false)]), 0)],
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'A', 120000, false)]), 0)],
     ['cantidad 2 del mismo armazón tildado: se bonifica una unidad',
         () => {
             const it = armazon('f1', 'A', 120000, true);
             it.quantity = 2;
-            assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), it]), 120000);
+            assert.equal(descuento([...dosPares2x1(), it]), 120000);
         }],
     ['pick2x1FrameDiscount banca ítems del cotizador (customPrice)',
         () => {
             const r = pick2x1FrameDiscount([
-                { ...cristal2x1('OD'), customPrice: 305167 },
-                { ...cristal2x1('OI'), customPrice: 305167 },
+                ...dosPares2x1().map(c => ({ ...c, customPrice: c.price })),
                 { product: armazon('f1', 'A', 0, true).product, quantity: 1, customPrice: 160000 },
                 { product: armazon('f2', 'B', 0, true).product, quantity: 1, customPrice: 110000 },
             ]);
@@ -84,6 +90,13 @@ const casos = [
             assert.equal(hasActive2x1Promo([cristal2x1('OD')]), false);
             assert.equal(descuento([cristal2x1('OD'), armazon('f1', 'A', 120000, true)]), 0);
         }],
+    ['UN SOLO par de cristales: el armazón tildado se cobra ENTERO (ni 50% ni gratis)',
+        () => {
+            assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 120000, true)]), 0);
+            assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, true), armazon('f2', 'B', 120000, true)]), 0);
+        }],
+    ['DOS pares (el cliente sí se lleva el 2x1): ahí sí se bonifica',
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'A', 160000, true), armazon('f2', 'B', 120000, true)]), 120000)],
     ['ítem 2x1 sin ojo asignado cuenta como par entero (recálculo del server)',
         () => assert.equal(hasActive2x1Promo([{ product: cristal2x1('OD').product, quantity: 1, price: 610334 }]), true)],
     ['mezcla de variantes 2x1: se cobra el par más caro, va gratis el barato',

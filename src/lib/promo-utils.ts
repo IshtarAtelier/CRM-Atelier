@@ -223,6 +223,26 @@ export const modoBonificacionGuardada = (appliedPromoName?: string | null): 'GRA
  * tildado (o detectado por nombre, legacy), excluyendo Mi Primer Varilux.
  * Los armazones nunca la encienden: solo pueden ser el bonificado.
  */
+export const contarPares2x1 = (items: any[]): number => {
+    if (!Array.isArray(items)) return 0;
+    // Un par = OD + OI del mismo cristal 2x1. Un ítem sin ojo asignado ya ES
+    // un par (los cristales se venden POR PAR y así llegan cuando el server
+    // recalcula: sus selects no traen `eye`).
+    let pares = 0;
+    const ojos: Record<string, { od: number; oi: number }> = {};
+    for (const it of items) {
+        if (!it || !isCrystal(it.product) || !isMultifocal2x1(it.product) || isMiPrimerVarilux(it.product)) continue;
+        const cant = it.quantity || 1;
+        if (it.eye !== 'OD' && it.eye !== 'OI') { pares += cant; continue; }
+        const pid = it.product?.id || 'unknown';
+        ojos[pid] = ojos[pid] || { od: 0, oi: 0 };
+        if (it.eye === 'OD') ojos[pid].od += cant;
+        else ojos[pid].oi += cant;
+    }
+    for (const p of Object.values(ojos)) pares += Math.min(p.od, p.oi);
+    return pares;
+};
+
 export const hasActive2x1Promo = (items: any[]): boolean => {
     if (!Array.isArray(items)) return false;
     // La promo pide el PAR completo: un solo ojo (reposición de un cristal
@@ -259,6 +279,8 @@ export const hasActive2x1Promo = (items: any[]): boolean => {
  *    un armazón sin promo. Ni gratis ni entero: mitad.
  *  - Sin tildados: no se descuenta nada — un armazón fuera de la promo se
  *    cobra completo aunque haya cristales 2x1.
+ *  - Con UN SOLO par de cristales: tampoco. El cliente no se está llevando el
+ *    2x1, así que el armazón va entero.
  *
  * Acepta ítems con `price` (ventas guardadas) o `customPrice` (cotizador).
  */
@@ -267,6 +289,12 @@ export const pick2x1FrameDiscount = (
 ): { discount: number; itemName: string | null; item: any | null; mode: 'GRATIS' | 'MITAD' | null } => {
     const nada = { discount: 0, itemName: null, item: null, mode: null as null };
     if (!hasActive2x1Promo(items)) return nada;
+
+    // El armazón bonificado es la contraparte del 2x1: si el cliente se lleva
+    // UN SOLO par de cristales, no está usando la promo y el armazón se cobra
+    // entero — ni gratis ni al 50%. El 50% es para cuando SÍ se lleva los dos
+    // pares y el segundo armazón lo pone él. (Ishtar, 24/8/26.)
+    if (contarPares2x1(items) < 2) return nada;
 
     const precioDe = (it: any) => safePrice(it.customPrice !== undefined ? it.customPrice : it.price);
     const nombreDe = (it: any) => `${it.product?.brand || ''} ${it.product?.name || 'Armazón'}`.trim();
