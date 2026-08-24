@@ -62,6 +62,9 @@ const PEDIDOS_DE_FACTURA = {
     // sistema" solo porque el resumen se leyó ANTES de que llegara su PDF.
     '3008-00074616': ['609861'],
     '3008-00069150': ['595000'],
+    // No es una venta: es el reproceso de Carlos Limario (garantía, 96,7%
+    // bonificado). El PDF no trae línea "Ped:", solo el remito E4-65290.
+    '3008-00067549': ['596770'],
 };
 
 const pesos = n => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
@@ -119,7 +122,13 @@ async function armarDetalle(rows) {
             from "Order" o left join "Client" c on c.id = o."clientId"
             where o."isDeleted" = false and o."labOrderNumber" like ${'%' + num + '%'}
             limit 1`;
-        ventaDe.set(num, v || null);
+        if (v) { ventaDe.set(num, v); continue; }
+        // Puede no ser una venta sino un REPROCESO (vive en PostSaleCase).
+        const [k] = await prisma.$queryRaw`
+            select p.id, c.name as cliente
+            from "PostSaleCase" p left join "Client" c on c.id = p."clientId"
+            where p."newOrderNumber" like ${'%' + num + '%'} limit 1`;
+        ventaDe.set(num, k ? { id: k.id, cliente: `${k.cliente} — reproceso (garantía)`, labOrderNumber: num, postventa: true } : null);
     }
 
     return rows.map((r, i) => {
@@ -144,7 +153,11 @@ async function armarDetalle(rows) {
                 || (esClaveSinNumero(g?.pedido) ? null : g?.pedido),
             cliente: g?.cliente || best?.cliente || null,
             postventa: g?.tipo === 'POSTVENTA' || !!best?.notes?.includes('POSTVENTA (caso'),
-            enSistema: !!r.enSistema,
+            // El `enSistema` del snapshot quedó congelado cuando se leyó el
+            // resumen: si después se cargó o se asignó la factura, seguía
+            // diciendo "no está en el sistema" con los pedidos ya al lado. Se
+            // mira el estado de HOY y el snapshot queda solo como respaldo.
+            enSistema: es.length > 0 || !!r.enSistema,
             orderId: best?.orderId || null,
             pedidosFactura,
             deQuienes,
@@ -246,7 +259,27 @@ async function verVenta(pedido) {
         from "Order" o left join "Client" c on c.id = o."clientId"
         where o."isDeleted" = false and o."labOrderNumber" like ${'%' + pedido + '%'}
         limit 1`;
-    if (!o) { console.log(`No hay ninguna venta con el pedido ${pedido}.`); return; }
+    if (!o) {
+        console.log(`No hay ninguna venta con el pedido ${pedido}.`);
+        // Un nº de pedido sin venta no siempre es una venta que falta cargar:
+        // puede ser un REPROCESO, que vive en PostSaleCase con su propio número
+        // (`newOrderNumber`). Confundirlos hacía sonar como "venta faltante" lo
+        // que era una garantía ya registrada.
+        const casos = await prisma.$queryRaw`
+            select p.id, p."newOrderNumber", p."orderLabel", p.cost, p.status, c.name as cliente
+            from "PostSaleCase" p left join "Client" c on c.id = p."clientId"
+            where p."newOrderNumber" like ${'%' + pedido + '%'}`;
+        if (casos.length) {
+            console.log(`  PERO es un caso de POST-VENTA:`);
+            for (const k of casos) {
+                console.log(`    ${k.cliente || 's/cliente'} · nº ${k.newOrderNumber} · costo ${pesos(k.cost)} · ${k.status}`);
+                console.log(`    ${CRM}/admin/post-venta?id=${k.id}`);
+            }
+        } else {
+            console.log(`  Tampoco figura en ningún caso de post-venta.`);
+        }
+        return;
+    }
 
     // Mismo criterio que systemCostForLab (lab-recon/cost-matching.ts): si el
     // ítem no tiene el costo congelado, se usa el del producto vigente. Leer
@@ -477,6 +510,13 @@ async function main() {
     if (sinNumero.length) {
         console.log(`\nFACTURAS QUE NO TRAEN EL Nº DE PEDIDO (la venta puede estar cargada):`);
         for (const r of sinNumero) {
+            // Si ya se asignó a mano, el estado de hoy manda sobre el snapshot.
+            const yaAsignada = detalle.find(d => d.factura === String(r.invoiceNumber) && (d.cliente || d.deQuienes?.length));
+            if (yaAsignada) {
+                const quien = yaAsignada.cliente || yaAsignada.deQuienes.map(x => x.venta?.cliente).filter(Boolean).join(' + ');
+                console.log(`  ${String(r.invoiceNumber).padEnd(16)} ${pesos(importeDe(r)).padStart(12)} · YA ASIGNADA a ${quien}`);
+                continue;
+            }
             const donde = r.venta
                 ? `es de ${r.venta.cliente} (${r.venta.labOrderNumber})`
                 : r.pedidoConocido
