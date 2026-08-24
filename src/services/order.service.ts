@@ -770,16 +770,38 @@ export class OrderService {
                     where: { id: { in: productIds } }
                 });
 
-                // If items are provided in the update body, recalculate crystal prices to prevent pricing bypasses
+                // Recalcular contra el catálogo en vivo previene que alguien
+                // edite el precio a mano — PERO una VENTA ya existente (aunque esté
+                // reabierta para corregir algo sin relación, ej. un color) no puede
+                // quedar a merced de un aumento de precios que pasó después de
+                // cerrarla.
+                //
+                // La protección es por PRODUCTO, no ciega: si el conjunto de
+                // productos de la venta no cambió, se preservan los precios tal
+                // cual estaban. Si SÍ cambió (se agregó, sacó o cambió un cristal
+                // por otro), es una decisión explícita de quien edita — ese
+                // cambio recalcula normal, con el precio vigente. Un presupuesto
+                // (orderType != 'SALE') siempre recalcula: mientras no sea venta,
+                // refleja el catálogo. Regla pedida por Ishtar el 24/8/26.
                 if (items) {
                     items.forEach((it: any) => {
                         it.product = dbProducts.find(p => p.id === it.productId) || it.product;
                     });
-                    recalculateCrystalPrices(items);
-                    const tintStylePrices = Object.fromEntries(
-                        (await prisma.tintStylePrice.findMany()).map(t => [t.category, t.price])
-                    );
-                    applyTeñidoPromoDiscount(items, tintStylePrices);
+
+                    let protegerPreciosDeVenta = false;
+                    if (currentOrder.orderType === 'SALE') {
+                        const antes = currentOrder.items.map((it: any) => it.productId).filter(Boolean).sort();
+                        const despues = items.map((it: any) => it.productId).filter(Boolean).sort();
+                        protegerPreciosDeVenta = JSON.stringify(antes) === JSON.stringify(despues);
+                    }
+
+                    if (!protegerPreciosDeVenta) {
+                        recalculateCrystalPrices(items);
+                        const tintStylePrices = Object.fromEntries(
+                            (await prisma.tintStylePrice.findMany()).map(t => [t.category, t.price])
+                        );
+                        applyTeñidoPromoDiscount(items, tintStylePrices);
+                    }
                 }
 
                 // Map items for calculateQuoteTotals utility

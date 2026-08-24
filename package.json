@@ -35,7 +35,8 @@
     "social:publicar": "node scripts/social/publicar.mjs",
     "check:orden": "node scripts/checks/orden-del-repo.check.mjs",
     "check:mensajeria": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/mensajeria-interna.check.mjs",
-    "check:promo": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-2x1.check.mjs"
+    "check:promo": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-2x1.check.mjs",
+    "check:venta-no-repricea": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-no-repricea.check.mjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",

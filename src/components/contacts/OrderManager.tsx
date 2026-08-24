@@ -49,6 +49,11 @@ export default function OrderManager({
     const [quotePrescriptionId, setQuotePrescriptionId] = useState<string | null>(null);
     const [availableProducts, setAvailableProducts] = useState<any[]>([]);
     const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
+    // Si lo que se está editando ya es una venta (aunque esté reabierta): el
+    // cotizador no puede repricear cristales contra el catálogo en vivo — el
+    // server ya lo protege, esto evita mostrar/mandar un número inflado antes
+    // de guardar.
+    const [editingIsSale, setEditingIsSale] = useState(false);
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
     // ── Shared: ensure products are loaded ──
@@ -64,6 +69,7 @@ export default function OrderManager({
         setIsQuoting(true);
         setQuoteItems([]);
         setEditingQuoteId(null);
+        setEditingIsSale(false);
         await ensureProductsLoaded();
     };
 
@@ -176,6 +182,7 @@ export default function OrderManager({
         setQuoteUserFrame({ brand: order.userFrameBrand || '', model: order.userFrameModel || '', notes: order.userFrameNotes || '' });
         setQuotePrescriptionId(order.prescriptionId || null);
         setEditingQuoteId(order.id);
+        setEditingIsSale(order.orderType === 'SALE');
         setIsQuoting(true);
         await ensureProductsLoaded();
     };
@@ -215,6 +222,7 @@ export default function OrderManager({
                         contactName={contactName}
                         onClose={() => setIsQuoting(false)}
                         editingQuoteId={editingQuoteId}
+                        isSale={editingIsSale}
                         isCard={false}
                     />
                 )}

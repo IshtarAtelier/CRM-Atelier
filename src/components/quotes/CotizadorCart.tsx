@@ -50,6 +50,10 @@ interface CotizadorCartProps {
     onSearchContact?: (query: string) => void;
     extraActions?: React.ReactNode;
     editingQuoteId?: string | null;
+    /** Ya es una venta (aunque esté reabierta): no repricear cristales contra
+     *  el catálogo en vivo — el server la protege, esto evita mostrar/mandar
+     *  un número inflado antes de guardar. */
+    isSale?: boolean;
     onCancelEdit?: () => void;
     crystalColors?: any[];
     tintStylePrices?: Record<string, number>;
@@ -86,6 +90,7 @@ export default function CotizadorCart({
     onCopy,
     extraActions,
     editingQuoteId,
+    isSale = false,
     onCancelEdit,
     crystalColors = [],
     tintStylePrices = {},
@@ -101,9 +106,10 @@ export default function CotizadorCart({
     // siempre cobran el par más caro y regalan el más barato — acá y al guardar.
     // La función devuelve false cuando no cambió nada, así que no cicla.
     useEffect(() => {
+        if (isSale) return;
         const copia = items.map(it => ({ ...it }));
         if (recalculateCrystalPrices(copia)) setItems(copia);
-    }, [items, setItems]);
+    }, [items, setItems, isSale]);
 
     // Logic memoization
     const hasMultifocalPromo = useMemo(() => {

@@ -152,6 +152,10 @@ function CotizadorPageContent() {
 
     // Editing states
     const [editingQuoteId, setEditingQuoteId] = useState<string | null>(editId);
+    // Ya es una venta (aunque esté reabierta): no repricear cristales contra
+    // el catálogo en vivo — el server la protege, esto evita mostrar/mandar
+    // un número inflado antes de guardar.
+    const [editingIsSale, setEditingIsSale] = useState(false);
 
     // Crystal colors for teñido addon
     const [crystalColors, setCrystalColors] = useState<any[]>([]);
@@ -205,6 +209,7 @@ function CotizadorPageContent() {
                     if (quoteRes.ok) {
                         const quote = await quoteRes.json();
                         setEditingQuoteId(editId);
+                        setEditingIsSale(quote.orderType === 'SALE');
                         
                         // Map items — API returns `price`, CotizadorCart expects `customPrice`
                         const mappedItems = quote.items.map((it: any, idx: number) => ({
@@ -294,14 +299,17 @@ function CotizadorPageContent() {
         setSelectedLab('');
     }, [activeType]);
 
-    // Recalculate crystal prices dynamically when quoteItems change to prevent promo price evasion
+    // Recalculate crystal prices dynamically when quoteItems change to prevent promo price evasion.
+    // Una VENTA (aunque esté reabierta) no se toca: ver CLAUDE.md / commit del
+    // 24/8/26 — no puede quedar a merced de un aumento de precios posterior.
     useEffect(() => {
+        if (editingIsSale) return;
         const crystalsChanged = recalculateCrystalPrices(quoteItems);
         const teñidoChanged = applyTeñidoPromoDiscount(quoteItems, tintStylePrices);
         if (crystalsChanged || teñidoChanged) {
             setQuoteItems([...quoteItems]);
         }
-    }, [quoteItems, tintStylePrices]);
+    }, [quoteItems, tintStylePrices, editingIsSale]);
 
     // Filter logic
     const availableCategories = useMemo(() => {
@@ -458,10 +466,13 @@ function CotizadorPageContent() {
     // Re-precio de cristales en cada cambio del carrito, con la MISMA función
     // que usa el server al guardar: mezclas de variantes 2x1 y borrados del par
     // gratis siempre cobran el par más caro. Devuelve false si no cambió nada.
+    // Una VENTA (aunque esté reabierta) no se toca — mismo motivo que el efecto
+    // de arriba.
     useEffect(() => {
+        if (editingIsSale) return;
         const copia = quoteItems.map(it => ({ ...it }));
         if (recalculateCrystalPrices(copia)) setQuoteItems(copia);
-    }, [quoteItems]);
+    }, [quoteItems, editingIsSale]);
 
     // Calculate totals including 2x1 promo frame discount
     const quoteTotals = calculateQuoteTotals(quoteItems, markup, discountCash, products, specialDiscount);
@@ -717,11 +728,13 @@ function CotizadorPageContent() {
             notes: quote.userFrameNotes || ''
         });
         setEditingQuoteId(quote.id);
+        setEditingIsSale(quote.orderType === 'SALE');
         setShowHistory(false);
     };
 
     const handleCancelEdit = () => {
         setEditingQuoteId(null);
+        setEditingIsSale(false);
         setQuoteItems([]);
         setSpecialDiscount(0);
         setPendingContact(null);
@@ -745,7 +758,7 @@ function CotizadorPageContent() {
                 </h1>
                 {quoteItems.length > 0 && (
                     <button
-                        onClick={() => { setQuoteItems([]); setMarkup(0); setSpecialDiscount(0); setFrameSource(null); setEditingQuoteId(null); router.replace('/admin/cotizador'); }}
+                        onClick={() => { setQuoteItems([]); setMarkup(0); setSpecialDiscount(0); setFrameSource(null); setEditingQuoteId(null); setEditingIsSale(false); router.replace('/admin/cotizador'); }}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-stone-400 hover:text-red-500 bg-stone-50 dark:bg-stone-800 rounded-lg border border-stone-100 dark:border-stone-700 transition-all hover:border-red-200 uppercase tracking-wider"
                     >
                         <RotateCcw className="w-3 h-3" /> Limpiar
@@ -1170,6 +1183,7 @@ function CotizadorPageContent() {
                                     }}
                                     isSaving={savingQuote}
                                     editingQuoteId={editingQuoteId}
+                                    isSale={editingIsSale}
                                     onCancelEdit={handleCancelEdit}
                                     prescriptions={pendingContact?.prescriptions || []}
                                     prescriptionId={quotePrescriptionId}
@@ -1366,6 +1380,7 @@ function CotizadorPageContent() {
                                         }}
                                         isSaving={savingQuote}
                                         editingQuoteId={editingQuoteId}
+                                    isSale={editingIsSale}
                                         onCancelEdit={handleCancelEdit}
                                         prescriptions={pendingContact?.prescriptions || []}
                                         prescriptionId={quotePrescriptionId}
