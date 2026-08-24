@@ -222,6 +222,10 @@ export class OrderService {
                 markup: true,
                 discountCash: true,
                 discountTransfer: true,
+                // La promo aplicada: sin estos dos, el detalle de la venta no
+                // puede mostrar qué se bonificó ni por cuánto.
+                appliedPromoName: true,
+                appliedPromoDiscount: true,
                 discountCard: true,
                 specialDiscount: true,
                 subtotalWithMarkup: true,
@@ -1760,6 +1764,7 @@ export class OrderService {
                         frameImageUrl: true,
                         frameImageUrl2: true,
                         appliedPromoName: true,
+                        appliedPromoDiscount: true,
                         client: true,
                         items: {
                             select: {

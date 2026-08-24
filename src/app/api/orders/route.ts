@@ -137,6 +137,10 @@ export async function POST(request: Request) {
                     discountCard: true,
                     specialDiscount: true,
                     subtotalWithMarkup: true,
+                    // Sin estos dos, la cotización guardada no puede mostrar el
+                    // armazón bonificado ni el chip del descuento de la promo.
+                    appliedPromoName: true,
+                    appliedPromoDiscount: true,
                     frameSource: true,
                     prescriptionId: true,
                     items: {
@@ -222,6 +226,10 @@ export async function POST(request: Request) {
                     discountCard: true,
                     specialDiscount: true,
                     subtotalWithMarkup: true,
+                    // Sin estos dos, la cotización guardada no puede mostrar el
+                    // armazón bonificado ni el chip del descuento de la promo.
+                    appliedPromoName: true,
+                    appliedPromoDiscount: true,
                     frameSource: true,
                     prescriptionId: true,
                     items: {
@@ -405,6 +413,8 @@ export async function GET(request: Request) {
             discountCard: true,
             specialDiscount: true,
             subtotalWithMarkup: true,
+            appliedPromoName: true,
+            appliedPromoDiscount: true,
             frameSource: true,
             userFrameBrand: true,
             userFrameModel: true,
@@ -428,9 +438,6 @@ export async function GET(request: Request) {
             prescriptionSnapshot: true,
             isLocked: true,
             labSentBy: true,
-            // Sin esto, un 2x1 detectado por promo (y no por el nombre del item)
-            // no muestra el segundo par en el repaso.
-            appliedPromoName: true,
             postSaleCases: {
                 orderBy: { createdAt: 'desc' as const },
                 select: {
