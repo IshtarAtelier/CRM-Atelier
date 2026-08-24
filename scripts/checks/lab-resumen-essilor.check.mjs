@@ -45,6 +45,17 @@ const PENDIENTES_DE_ASIGNAR = [
     { comprobante: '3008-00072463', pedido: '598454' },
 ];
 
+/**
+ * Facturas cuyo PDF trae VARIOS pedidos en la línea "Ped:" y que el sistema no
+ * cargó (por eso figuran huérfanas aunque las ventas estén cargadas). El PDF
+ * los trae con los dos identificadores —"TI-7101568(587979)"— y acá va el de
+ * paréntesis, que es el que usan las ventas.
+ * 3008-00062896: leída del PDF el 24/8/2026 (es la más cara del resumen).
+ */
+const PEDIDOS_DE_FACTURA = {
+    '3008-00062896': ['587979', '588049', '588966'],
+};
+
 const pesos = n => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
 // El resumen a veces trae la fecha en un formato que no parsea (la fila de
 // 3008-00062896 daba "Invalid Date"): mejor un guión que basura en el email.
@@ -90,8 +101,26 @@ async function armarDetalle(rows) {
         if (!porFactura.has(k)) porFactura.set(k, []);
         porFactura.get(k).push(e);
     }
+    // Una factura puede traer VARIOS pedidos ("Ped: TI-7101568(587979) /
+    // TI-7101583(588049) / TI-7101638(588966)"). Para las que el sistema cargó,
+    // los pedidos son sus entradas; para las que no, salen de PEDIDOS_DE_FACTURA.
+    const ventaDe = new Map();
+    for (const num of Object.values(PEDIDOS_DE_FACTURA).flat()) {
+        const [v] = await prisma.$queryRaw`
+            select o.id, o."labOrderNumber", c.name as cliente
+            from "Order" o left join "Client" c on c.id = o."clientId"
+            where o."isDeleted" = false and o."labOrderNumber" like ${'%' + num + '%'}
+            limit 1`;
+        ventaDe.set(num, v || null);
+    }
+
     return rows.map((r, i) => {
         const es = porFactura.get(String(r.invoiceNumber)) || [];
+        const manuales = PEDIDOS_DE_FACTURA[String(r.invoiceNumber)] || [];
+        const pedidosFactura = es.length
+            ? es.map(e => e.labOrderNumber).filter(n => /^\d{5,}$/.test(String(n)))
+            : manuales;
+        const deQuienes = manuales.map(n => ({ pedido: n, venta: ventaDe.get(n) || null }));
         const best = es.find(e => e.orderId) || es[0] || null;
         const g = r.gemelo;
         return {
@@ -109,6 +138,8 @@ async function armarDetalle(rows) {
             postventa: g?.tipo === 'POSTVENTA' || !!best?.notes?.includes('POSTVENTA (caso'),
             enSistema: !!r.enSistema,
             orderId: best?.orderId || null,
+            pedidosFactura,
+            deQuienes,
             // Costo del CRM vs. facturado. La comparación la hace el sistema a
             // NIVEL VENTA (una venta puede tener varios pedidos), así que en
             // ventas multi-pedido el sobrecosto es de la venta entera, no de
@@ -142,8 +173,13 @@ function htmlDetalle(st, detalle) {
     const total = detalle.reduce((a, d) => a + (d.saldo || 0), 0);
     const fila = d => {
         const fondo = !d.enSistema ? '#fef2f2' : d.postventa ? '#fffbeb' : '#ffffff';
+        // Una factura con varios pedidos: se nombran todos, con su venta.
+        const varios = d.deQuienes?.length
+            ? `<div style="font-size:14px;color:#44403c;margin-top:4px">trae ${d.deQuienes.length} pedidos: ${d.deQuienes.map(x => x.venta
+                ? `<a href="${CRM}/admin/ventas?id=${x.venta.id}">${esc(x.pedido)} ${esc(x.venta.cliente || '')}</a>`
+                : `${esc(x.pedido)} (sin venta)`).join(' · ')}</div>` : '';
         const quien = !d.enSistema
-            ? '<strong style="color:#b91c1c">NO ESTÁ EN EL SISTEMA</strong>'
+            ? `<strong style="color:#b91c1c">NO ESTÁ EN EL SISTEMA</strong>${varios}`
             : d.orderId
                 ? `<a href="${CRM}/admin/ventas?id=${d.orderId}" style="color:#1d4ed8;font-weight:600">${esc(d.cliente || 'ver la venta')}</a>`
                 : d.cliente
@@ -209,7 +245,9 @@ async function verVenta(pedido) {
     // solo el snapshot daba costo $0 y un "sobrecosto" falso por toda la venta.
     const items = await prisma.$queryRaw`
         select i."productNameSnapshot", i."productCategorySnapshot", i."laboratorySnapshot",
-               i."productCostSnapshot", p.cost as "costoProducto", i.price, i.quantity, i.eye
+               i."productCostSnapshot", p.cost as "costoProducto", p.name as "productoHoy",
+               p.price as "precioLista", i."productUnitTypeSnapshot" as unidad,
+               i.price, i.quantity, i.eye
         from "OrderItem" i left join "Product" p on p.id = i."productId"
         where i."orderId" = ${o.id} order by i."productCategorySnapshot"`;
     const entradas = await prisma.$queryRaw`
@@ -240,7 +278,8 @@ async function verVenta(pedido) {
             `costo ${pesos(costo).padStart(11)}${it.eye ? ' /2' : '   '} ${deDonde.padEnd(18)}` +
             ` precio ${pesos(it.price).padStart(11)}  → ${pesos(aporta)}`);
     }
-    console.log(`\n  costo de sistema (suma de arriba): ${pesos(suma)}`);
+    console.log(`\n  unidad con la que está cargado el costo: ${[...new Set(items.map(i => i.unidad || 'sin unidad'))].join(', ')}`);
+    console.log(`  costo de sistema (suma de arriba): ${pesos(suma)}`);
     console.log(`  FACTURAS DEL LABORATORIO:`);
     let facturado = 0;
     for (const e of entradas) {
@@ -393,6 +432,9 @@ async function main() {
                 `${String(d.n).padStart(2)}. ${d.factura.padEnd(15)}${d.fecha.padEnd(12)}` +
                 `${pesos(d.saldo).padStart(13)}${parcial.padEnd(16)} ${String(d.pedido || '—').padEnd(18)} ${quien}`
             );
+            for (const x of d.deQuienes || []) {
+                console.log(`        pedido ${x.pedido} → ${x.venta ? `${x.venta.cliente} (${x.venta.labOrderNumber})` : 'sin venta cargada'}`);
+            }
         }
         const iHtml = process.argv.indexOf('--html');
         if (iHtml !== -1 && process.argv[iHtml + 1]) {
