@@ -162,30 +162,61 @@ export async function GET(request: Request) {
             prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfLast7ART } } }),
             prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfLast30ART } } }),
         ]);
-        // ── Clientes ATENDIDOS: los que ya tienen un presupuesto armado ──
-        // El contador de arriba mide cuánta gente ENTRÓ al CRM; este mide a
-        // cuántos se los atendió de verdad. Se cuenta el CLIENTE (distinct), no
-        // el presupuesto: alguien con tres cotizaciones es una persona atendida.
-        // Se mira la fecha del presupuesto, no la de alta del contacto — atender
-        // hoy a alguien que entró la semana pasada cuenta hoy.
-        const atendidosEn = async (desde: Date) => {
+        // ── De los contactos NUEVOS, cuántos ya tienen presupuesto ──
+        // Va al lado del contador de nuevos contactos y se compara contra él
+        // ("X% de los nuevos"), así que tiene que ser LA MISMA GENTE: los que
+        // entraron en el período Y ya tienen un presupuesto armado.
+        //
+        // La primera versión contaba clientes CUALESQUIERA con un presupuesto
+        // hecho en el período — incluidos los viejos. El 24/8 mostraba "13
+        // atendidos · 100% de los nuevos" cuando de los 13 nuevos solo 3 tenían
+        // presupuesto: los otros 10 eran clientes de marzo y julio. Los dos 13
+        // coincidían de casualidad. Ishtar lo cazó entrando a la pantalla y
+        // viendo que los nuevos decían "sin atender".
+        const atendidosEn = async (desde: Date) =>
+            prisma.client.count({
+                where: {
+                    isDeleted: false,
+                    createdAt: { gte: desde },
+                    orders: { some: { isDeleted: false } },
+                },
+            });
+
+        // Y los que YA ESTABAN y volvieron a cotizar en el período. Es la otra
+        // mitad del mostrador: atender a un cliente viejo también es trabajo, y
+        // sin este número parecía que solo se atendió a 3 personas.
+        // Se cuenta el CLIENTE distinto, no el presupuesto.
+        const viejosConPresupuestoEn = async (desde: Date) => {
             const filas = await prisma.order.findMany({
-                where: { isDeleted: false, createdAt: { gte: desde }, client: { isDeleted: false } },
+                where: {
+                    isDeleted: false,
+                    createdAt: { gte: desde },
+                    client: { isDeleted: false, createdAt: { lt: desde } },
+                },
                 select: { clientId: true },
                 distinct: ['clientId'],
             });
             return filas.length;
         };
-        const [atendidosToday, atendidosLast7, atendidosLast30] = await Promise.all([
+        const [
+            atendidosToday, atendidosLast7, atendidosLast30,
+            viejosToday, viejosLast7, viejosLast30,
+        ] = await Promise.all([
             atendidosEn(startOfDayART),
             atendidosEn(startOfLast7ART),
             atendidosEn(startOfLast30ART),
+            viejosConPresupuestoEn(startOfDayART),
+            viejosConPresupuestoEn(startOfLast7ART),
+            viejosConPresupuestoEn(startOfLast30ART),
         ]);
 
         const newContacts = {
             atendidosToday,
             atendidosLast7,
             atendidosLast30,
+            viejosToday,
+            viejosLast7,
+            viejosLast30,
             sinceCutoff: newContactsSinceCutoff,
             today: newContactsToday,
             week: newContactsWeek,

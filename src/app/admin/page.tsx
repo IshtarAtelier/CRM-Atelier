@@ -835,8 +835,10 @@ export default function Home() {
 type NewContactsData = {
   sinceCutoff: number; today: number; week: number; month: number;
   last7?: number; last30?: number; cutoffISO: string;
-  /** Clientes distintos con al menos un presupuesto armado en el período. */
+  /** De los contactos NUEVOS del período, cuántos ya tienen presupuesto. */
   atendidosToday?: number; atendidosLast7?: number; atendidosLast30?: number;
+  /** Clientes que YA ESTABAN y volvieron a cotizar en el período. */
+  viejosToday?: number; viejosLast7?: number; viejosLast30?: number;
 };
 
 const RANGOS_CONTACTOS = [
@@ -852,12 +854,15 @@ function NewContactsHero({ nc, loading }: { nc?: NewContactsData; loading?: bool
   const [rango, setRango] = useState<RangoContactos>('today');
 
   const valor = rango === 'today' ? data.today : rango === 'last7' ? (data.last7 ?? 0) : (data.last30 ?? 0);
-  // Cuántos de los que pasaron por el mostrador se atendieron de verdad: el
-  // contador de arriba mide quién ENTRÓ al CRM, este quién ya tiene un
-  // presupuesto armado. Son dos preguntas distintas y conviven en la misma ficha.
+  // El mostrador del período, en tres números: cuánta gente ENTRÓ, cuántos de
+  // esos ya se llevaron un presupuesto, y cuántos clientes que YA ESTABAN
+  // volvieron a cotizar. Los dos últimos suman el total de gente atendida.
   const atendidos = rango === 'today'
     ? (data.atendidosToday ?? 0)
     : rango === 'last7' ? (data.atendidosLast7 ?? 0) : (data.atendidosLast30 ?? 0);
+  const viejos = rango === 'today'
+    ? (data.viejosToday ?? 0)
+    : rango === 'last7' ? (data.viejosLast7 ?? 0) : (data.viejosLast30 ?? 0);
 
   const hoy = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
   const periodo = rango === 'today' ? hoy : rango === 'last7' ? 'últimos 7 días' : 'últimos 30 días';
@@ -915,21 +920,39 @@ function NewContactsHero({ nc, loading }: { nc?: NewContactsData; loading?: bool
           </div>
         </div>
 
-        {/* Clientes atendidos — con presupuesto armado en el mismo período */}
-        <div className="hidden shrink-0 border-l border-white/15 pl-6 sm:block md:pl-8">
+        {/* De los nuevos, cuántos ya tienen presupuesto */}
+        <div className="hidden shrink-0 border-l border-white/15 pl-6 sm:block md:pl-7">
           <p className="mb-1 text-[10px] font-black uppercase tracking-[0.25em] text-[#e7d3c1]/80">
-            Clientes atendidos
+            Con presupuesto
           </p>
           <div className="flex items-end gap-2">
             <span className="text-5xl font-black leading-none tracking-tight drop-shadow-sm md:text-6xl">
               {atendidos.toLocaleString()}
             </span>
             <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white/90">
-              <FileText className="h-3 w-3" /> con presupuesto
+              <FileText className="h-3 w-3" /> de los nuevos
             </span>
           </div>
           <p className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/60">
-            {valor > 0 ? `${Math.round((atendidos / valor) * 100)}% de los nuevos` : 'Presupuestados'} · {periodo}
+            {valor > 0 ? `${Math.round((atendidos / valor) * 100)}% de los ${valor}` : 'Sin nuevos'}
+          </p>
+        </div>
+
+        {/* Los que ya estaban y volvieron a cotizar */}
+        <div className="hidden shrink-0 border-l border-white/15 pl-6 lg:block lg:pl-7">
+          <p className="mb-1 text-[10px] font-black uppercase tracking-[0.25em] text-[#e7d3c1]/80">
+            Clientes de antes
+          </p>
+          <div className="flex items-end gap-2">
+            <span className="text-5xl font-black leading-none tracking-tight drop-shadow-sm md:text-6xl">
+              {viejos.toLocaleString()}
+            </span>
+            <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white/90">
+              <FileText className="h-3 w-3" /> cotizaron
+            </span>
+          </div>
+          <p className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/60">
+            {(atendidos + viejos).toLocaleString()} atendidos en total
           </p>
         </div>
 
