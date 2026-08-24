@@ -4,6 +4,7 @@ import React from 'react';
 import { Search, Plus } from 'lucide-react';
 import { safePrice, isCrystal, puedeEntrarEn2x1, isFrameEligible2x1, isMultifocal2x1, isMiPrimerVarilux } from '@/lib/promo-utils';
 import { formatLensRange } from '@/lib/lens-range';
+import { colorDeLente } from '@/lib/color-de-lente';
 
 interface CartSearchProps {
     searchQuery: string;
@@ -48,6 +49,7 @@ export default function CartSearch({
                                 </p>
                                 <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mt-0.5">
                                     {p.type || p.category} {p.lensIndex ? `· Índ: ${p.lensIndex}` : ''}
+                                    {colorDeLente(p) ? <span className="text-stone-500 dark:text-stone-300"> · {colorDeLente(p)}</span> : null}
                                 </p>
                                 {isCrystal(p) && formatLensRange(p) && (
                                     <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">

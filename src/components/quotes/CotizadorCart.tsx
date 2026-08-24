@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Save, Loader2, 
-    Gift, CheckCircle2, Glasses
+import { Save, Loader2, 
+    Gift, Glasses, Plus, Pencil, X
 } from 'lucide-react';
 import { 
     isMultifocal2x1, isCrystal, isFrame, safePrice,
-    hasActive2x1Promo, pick2x1FrameDiscount, isFrameEligible2x1,
+    hasActive2x1Promo, pick2x1FrameDiscount,
     armarParesDeCristal, recalculateCrystalPrices
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals } from '@/services/PricingService';
@@ -98,7 +98,8 @@ export default function CotizadorCart({
 }: CotizadorCartProps) {
 
     const [fullSearch, setFullSearch] = useState('');
-    const [frameSearch, setFrameSearch] = useState('');
+    // El formulario del armazón del usuario está abierto (agregando o editando).
+    const [editandoArmazonUsuario, setEditandoArmazonUsuario] = useState(false);
 
     // Re-precio de cristales en cada cambio del carrito, con la MISMA función
     // que usa el server al guardar (recalculateCrystalPrices): así una mezcla
@@ -167,35 +168,20 @@ export default function CotizadorCart({
             .slice(0, 30);
     }, [fullSearch, availableProducts]);
 
-    const frameResults = useMemo(() => {
-        if (!frameSearch) return [];
-        const normalizeText = (str: string) => {
-            let text = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            text = text.replace(/\barmazones\b/g, 'armazon');
-            text = text.replace(/\bcristales\b/g, 'cristal');
-            text = text.replace(/\blentes\b/g, 'lente');
-            text = text.replace(/\bmarcos\b/g, 'marco');
-            text = text.replace(/\blapiceros\b/g, 'lapicero');
-            text = text.replace(/\bestuches\b/g, 'estuche');
-            text = text.replace(/\bliquidos\b/g, 'liquido');
-            return text;
-        };
-        const words = normalizeText(frameSearch).split(/\s+/).filter(Boolean);
-        const relevance = (p: any) => {
-            const brand = normalizeText(p.brand || '');
-            return words.reduce((score, w) => score + (brand.includes(w) ? 1 : 0), 0);
-        };
-        return availableProducts
-            .filter(p => {
-                if (!isFrame(p)) return false;
-                const haystack = normalizeText(`${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''} ${p.category || ''}`);
-                return words.every(w => haystack.includes(w));
-            })
-            .sort((a, b) => (relevance(b) - relevance(a)) || (safePrice(a.price) - safePrice(b.price)))
-            .slice(0, 30);
-    }, [frameSearch, availableProducts]);
 
     const framesInQuote = items.filter(i => i.product && isFrame(i.product));
+    const hayArmazonUsuario = frameSource === 'USUARIO' && !!(userFrameData.brand?.trim() || userFrameData.model?.trim());
+
+    const quitarArmazonUsuario = () => {
+        setUserFrameData({ brand: '', model: '', notes: '' });
+        setFrameSource(framesInQuote.length > 0 ? 'OPTICA' : null);
+        setEditandoArmazonUsuario(false);
+    };
+    // Cancelar sin haber llegado a agregar: se limpia lo tipeado a medias.
+    const cancelarEdicionArmazonUsuario = () => {
+        if (!hayArmazonUsuario) setUserFrameData({ brand: '', model: '', notes: '' });
+        setEditandoArmazonUsuario(false);
+    };
 
     const handleAddItem = (product: any) => {
         if (isCrystal(product)) {
@@ -236,7 +222,9 @@ export default function CotizadorCart({
             setItems(prev => [...prev, ...armarParesDeCristal(product, prev)]);
         } else {
             setItems(prev => [...prev, { product, quantity: 1, customPrice: safePrice(product.price), uid: Date.now() }]);
-            if (isFrame(product)) {
+            if (isFrame(product) && frameSource !== 'USUARIO') {
+                // Si el cliente además trae el suyo, esa marca manda: pisarla acá
+                // borraba el armazón del usuario que ya se había cargado.
                 setFrameSource('OPTICA');
             }
         }
@@ -295,11 +283,11 @@ export default function CotizadorCart({
                 </div>
             )}
 
-            {/* El armazón que trae el cliente, como un renglón más: sin cargo, pero
-                a la vista. Antes solo existía como dos campitos sueltos abajo y en
-                una venta con dos anteojos no se veía que el segundo armazón estaba
-                contemplado. */}
-            {frameSource === 'USUARIO' && (userFrameData.brand?.trim() || userFrameData.model?.trim()) && (
+            {/* El armazón que trae el cliente, como un renglón más del pedido:
+                sin cargo, pero a la vista y editable. Antes eran dos campitos
+                sueltos abajo y en una venta con dos anteojos no se veía que el
+                segundo armazón estaba contemplado. */}
+            {hayArmazonUsuario && !editandoArmazonUsuario && (
                 <div className="flex items-center justify-between gap-3 p-3.5 mb-3 rounded-2xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/10">
                     <div className="flex items-center gap-3 min-w-0">
                         <Glasses className="w-5 h-5 text-amber-500 shrink-0" />
@@ -307,64 +295,69 @@ export default function CotizadorCart({
                             <p className="text-xs font-bold text-stone-800 dark:text-stone-150 truncate">
                                 {[userFrameData.brand, userFrameData.model].filter(Boolean).join(' · ') || 'Armazón del cliente'}
                             </p>
-                            <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-500 uppercase tracking-wider">
+                            <p className="text-[10px] font-black text-amber-700 dark:text-amber-500 uppercase tracking-widest">
                                 Armazón del cliente{userFrameData.notes?.trim() ? ` · ${userFrameData.notes}` : ''}
                             </p>
                         </div>
                     </div>
-                    <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-500">
-                        Sin cargo
-                    </span>
+                    <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-500 mr-1">Sin cargo</span>
+                        <button onClick={() => setEditandoArmazonUsuario(true)} title="Editar" className="p-1.5 text-stone-400 hover:text-amber-600 transition-colors">
+                            <Pencil className="w-4 h-4" />
+                        </button>
+                        <button onClick={quitarArmazonUsuario} title="Quitar" className="p-1.5 text-stone-300 hover:text-red-500 transition-colors">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             )}
 
+            {/* El armazón de la ÓPTICA se elige arriba, con el buscador de productos.
+                Este recuadro es solo para el armazón que trae el cliente. */}
             {items.some(i => isCrystal(i.product)) && (
-                <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200/50 mb-6">
-                    {framesInQuote.length === 0 ? (
-                        <div className="flex gap-3 mb-4">
-                            <button onClick={() => setFrameSource('OPTICA')} className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border ${frameSource === 'OPTICA' ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750'}`}>DE LA ÓPTICA</button>
-                            <button onClick={() => setFrameSource('USUARIO')} className={`flex-1 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border ${frameSource === 'USUARIO' ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-500/20' : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750'}`}>DEL USUARIO</button>
+                editandoArmazonUsuario ? (
+                    <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border-2 border-amber-300 dark:border-amber-800 mb-6 space-y-3">
+                        <p className="text-[10px] font-black text-amber-700 dark:text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                            <Glasses className="w-4 h-4" /> Armazón que trae el cliente
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <input autoFocus type="text" placeholder="Marca" value={userFrameData.brand} onChange={e => setUserFrameData(prev => ({ ...prev, brand: e.target.value }))} className="bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" />
+                            <input type="text" placeholder="Modelo" value={userFrameData.model} onChange={e => setUserFrameData(prev => ({ ...prev, model: e.target.value }))} className="bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" />
                         </div>
-                    ) : (
-                        <div className="mb-4">
-                            <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
-                                <CheckCircle2 className="w-4 h-4" /> Armazón de óptica seleccionado
-                            </p>
-                            {frameSource !== 'USUARIO' && (
-                                <button onClick={() => setFrameSource('USUARIO')} className="mt-2 text-[10px] font-bold text-stone-500 hover:text-amber-600 underline text-left block">
-                                    ¿Agregar también armazón del usuario?
-                                </button>
+                        <input type="text" placeholder="Detalle (color, estado, aclaraciones para el taller)" value={userFrameData.notes || ''} onChange={e => setUserFrameData(prev => ({ ...prev, notes: e.target.value }))} className="w-full bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all" />
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => { setFrameSource('USUARIO'); setEditandoArmazonUsuario(false); }}
+                                disabled={!userFrameData.brand?.trim() && !userFrameData.model?.trim()}
+                                className="px-5 py-2.5 bg-amber-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                            >
+                                {hayArmazonUsuario ? 'Guardar' : 'Agregar'}
+                            </button>
+                            <button onClick={cancelarEdicionArmazonUsuario} className="px-4 py-2.5 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 font-bold text-[10px] uppercase tracking-widest transition-colors">
+                                Cancelar
+                            </button>
+                            {!userFrameData.brand?.trim() && !userFrameData.model?.trim() && (
+                                <span className="text-[10px] font-semibold text-stone-400">Poné al menos la marca o el modelo</span>
                             )}
-                            {frameSource === 'USUARIO' && (
-                                <button onClick={() => setFrameSource('OPTICA')} className="mt-2 text-[10px] font-bold text-stone-500 hover:text-amber-600 underline text-left block">
-                                    Cancelar armazón del usuario adicional
-                                </button>
-                            )}
                         </div>
-                    )}
-                    {frameSource === 'OPTICA' && framesInQuote.length < 2 && (
-                        <div className="relative mb-1">
-                            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 dark:text-stone-500" />
-                            <input type="text" placeholder="Buscar armazón..." value={frameSearch} onChange={e => setFrameSearch(e.target.value)} className="w-full bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 pl-11 pr-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
-                            {frameResults.length > 0 && <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">{frameResults.map(fr => <button key={fr.id} onClick={() => { setItems(prev => [...prev, { product: fr, quantity: 1, customPrice: fr.price, uid: Date.now() }]); setFrameSearch(''); }} className="p-2.5 bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 rounded-lg text-left text-xs font-semibold hover:border-amber-400 dark:hover:border-amber-500 transition-colors flex items-center justify-between gap-2"><span>{fr.brand} · {fr.name}</span>{hasMultifocalPromo && (isFrameEligible2x1(fr) ? <span className="shrink-0 text-[8px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded-md">🎁 2x1</span> : <span className="shrink-0 text-[8px] font-black uppercase tracking-wider text-stone-400 bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 rounded-md">No entra</span>)}</button>)}</div>}
-                        </div>
-                    )}
-                    {frameSource === 'USUARIO' && (
-                        <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                                <input type="text" placeholder="Marca" value={userFrameData.brand} onChange={e => setUserFrameData(prev => ({ ...prev, brand: e.target.value }))} className="bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
-                                <input type="text" placeholder="Modelo" value={userFrameData.model} onChange={e => setUserFrameData(prev => ({ ...prev, model: e.target.value }))} className="bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
-                            </div>
-                            {/* La nota del armazón del cliente ya viajaba en la orden
-                                (userFrameNotes) y se muestra en la venta, pero no había
-                                dónde escribirla desde el carrito. */}
-                            <input type="text" placeholder="Detalle (color, estado, aclaraciones para el taller)" value={userFrameData.notes || ''} onChange={e => setUserFrameData(prev => ({ ...prev, notes: e.target.value }))} className="w-full bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
-                            <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-500">
-                                La foto y las medidas de este armazón se cargan al confirmar la venta, igual que uno de la óptica.
-                            </p>
-                        </div>
-                    )}
-                </div>
+                        <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-500">
+                            La foto y las medidas se cargan al confirmar la venta, igual que un armazón de la óptica.
+                        </p>
+                    </div>
+                ) : !hayArmazonUsuario ? (
+                    <button
+                        onClick={() => setEditandoArmazonUsuario(true)}
+                        className="w-full mb-6 p-4 rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/10 text-left flex items-center gap-3 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all group/uf"
+                    >
+                        <span className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 group-hover/uf:scale-105 transition-transform">
+                            <Plus className="w-5 h-5" />
+                        </span>
+                        <span>
+                            <span className="block text-[11px] font-black text-amber-700 dark:text-amber-500 uppercase tracking-widest">Agregar armazón del usuario</span>
+                            <span className="block text-[10px] font-semibold text-stone-500 dark:text-stone-400 mt-0.5">Si el cliente trae el suyo. Va sin cargo.</span>
+                        </span>
+                    </button>
+                ) : null
             )}
 
             <CartPricingControls 
