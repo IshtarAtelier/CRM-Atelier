@@ -145,9 +145,12 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     // Cada foto lleva el valor GUARDADO (para poder leer sus bytes y adjuntarla
     // por WhatsApp) y la URL absoluta (para mostrarla en el mail).
     //
-    // El pie de cada foto dice el teñido de ESE armazón. Es donde el dato sirve:
-    // el cliente está mirando el anteojo, no una lista más abajo — y con dos
-    // anteojos, leer "teñido sepia" lejos de la foto obliga a adivinar cuál era.
+    // El pie de cada foto dice el cristal de ESE armazón. Es donde el dato
+    // sirve: el cliente está mirando el anteojo, no una lista más abajo — y con
+    // dos anteojos, leer "teñido sepia" lejos de la foto obliga a adivinar cuál
+    // era. Pedido del 24/8: cuando el cristal es BLANCO también se dice, ahí
+    // mismo — el silencio junto a una foto y "teñido" junto a la otra hacía que
+    // el cliente pregunte igual.
     const fotosArmazon = resumen.pairs
         .filter(p => p.imageUrl)
         .map(p => {
@@ -158,6 +161,8 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
                     ? `Cristal fotocromático${p.photochromicColor ? ` ${p.photochromicColor}` : ''} (se oscurece solo con el sol)`
                     : null,
             ].filter(Boolean);
+            // Sin teñido ni fotocromático → decirlo igual, junto a la foto.
+            if (!extras.length) extras.push('Cristales blancos (sin teñido)');
             return {
                 valor: p.imageUrl as string,
                 url: urlAbsoluta(p.imageUrl) as string,
