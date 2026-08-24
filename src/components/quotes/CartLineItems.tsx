@@ -134,10 +134,19 @@ export default function CartLineItems({
                             <div className="flex-1 min-w-0">
                                 <p className="text-xs font-bold text-stone-800 dark:text-stone-150 truncate group-hover:text-primary transition-colors flex items-center gap-2">
                                     {item.product?.brand || item.productBrandSnapshot || '—'} · {item.product?.name || item.productNameSnapshot || 'Producto eliminado'}
-                                    {safePrice(item.customPrice) === 0 && isMultifocal2x1(item.product) && (
-                                        <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider animate-pulse">
-                                            BONIFICADO 2x1
-                                        </span>
+                                    {isMultifocal2x1(item.product) && (
+                                        safePrice(item.customPrice) === 0 ? (
+                                            <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider animate-pulse">
+                                                BONIFICADO 2x1
+                                            </span>
+                                        ) : (
+                                            // El par PAGADO también lleva la promo: sin esto,
+                                            // solo se veía marcado el par gratis y el 2x1
+                                            // parecía no estar en la venta.
+                                            <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                                2x1
+                                            </span>
+                                        )
                                     )}
                                 </p>
                                 <div className="flex items-center gap-2 mt-0.5">

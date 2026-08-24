@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Search, Plus } from 'lucide-react';
-import { safePrice, isCrystal, puedeEntrarEn2x1, isFrameEligible2x1 } from '@/lib/promo-utils';
+import { safePrice, isCrystal, puedeEntrarEn2x1, isFrameEligible2x1, isMultifocal2x1, isMiPrimerVarilux } from '@/lib/promo-utils';
 import { formatLensRange } from '@/lib/lens-range';
 
 interface CartSearchProps {
@@ -55,6 +55,14 @@ export default function CartSearch({
                                     </p>
                                 )}
                             </div>
+                            {/* El CRISTAL que enciende la promo: se destaca siempre,
+                                no solo cuando ya hay uno en el carrito — es lo que el
+                                vendedor necesita ver ANTES de elegir. */}
+                            {isCrystal(p) && isMultifocal2x1(p) && !isMiPrimerVarilux(p) && (
+                                <span className="shrink-0 mr-3 text-[9px] font-black uppercase tracking-wider text-white bg-emerald-500 px-2 py-1 rounded-lg shadow-sm">
+                                    🎁 2x1
+                                </span>
+                            )}
                             {promo2x1Activa && puedeEntrarEn2x1(p) && (
                                 isFrameEligible2x1(p) ? (
                                     <span className="shrink-0 mr-3 text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 px-2 py-1 rounded-lg">
