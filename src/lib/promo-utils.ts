@@ -36,6 +36,16 @@ export const isMultifocal2x1 = (p: any): boolean => {
 };
 
 /**
+ * ¿Es un clip-on? No es un anteojo completo: se engancha sobre otro armazón.
+ * Se reconoce por el nombre/marca porque en el catálogo están cargados como
+ * "Armazón de Receta", igual que el resto.
+ */
+export const esClipOn = (p: any): boolean => {
+    if (!p) return false;
+    return normalizeText(`${p.name || ''} ${p.brand || ''} ${p.model || ''}`).includes('clip');
+};
+
+/**
  * ¿A este producto se le puede tildar "entra en el 2x1"?
  *
  * Son los que se le ponen en la cara al cliente: armazones de receta y lentes
@@ -281,6 +291,9 @@ export const hasActive2x1Promo = (items: any[]): boolean => {
  *    cobra completo aunque haya cristales 2x1.
  *  - Con UN SOLO par de cristales: tampoco. El cliente no se está llevando el
  *    2x1, así que el armazón va entero.
+ *  - Un CLIP-ON solo (con el armazón del cliente) va entero: se engancha sobre
+ *    el armazón que ya tiene, no es un segundo anteojo. Sí puede ir bonificado
+ *    cuando acompaña a otro armazón tildado.
  *
  * Acepta ítems con `price` (ventas guardadas) o `customPrice` (cotizador).
  */
@@ -312,6 +325,11 @@ export const pick2x1FrameDiscount = (
     // armazón que no entra en la promo.
     if (tildados.length === 1) {
         const tildado = tildados[0];
+        // Un CLIP-ON solo no se lleva el 50%: se engancha sobre el armazón que
+        // ya tiene el cliente, así que no es el "segundo anteojo" de la promo.
+        // Se cobra entero. (Ishtar, 24/8/26.) Sí puede ir bonificado cuando
+        // acompaña a otro armazón tildado — ese caso cae en la rama de abajo.
+        if (esClipOn(tildado.product)) return nada;
         return { discount: Math.round(precioDe(tildado) / 2), itemName: `${nombreDe(tildado)} (50%)`, item: tildado, mode: 'MITAD' as const };
     }
 

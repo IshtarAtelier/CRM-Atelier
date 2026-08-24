@@ -36,6 +36,7 @@ const dosPares2x1 = () => [cristal2x1('OD'), cristal2x1('OI'), cristal2x1('OD', 
 const cristalComun = (eye) => ({ product: { id: 'comun', category: 'Cristal', type: 'Cristal Monofocal', name: 'Monofocal Orma', is2x1: false }, quantity: 1, price: 80000, eye });
 const miPrimerVarilux = (eye) => ({ product: { id: 'mpv', category: 'Cristal', type: 'Cristal Multifocal', name: 'Mi Primer Varilux', is2x1: true }, quantity: 1, price: 200000, eye });
 const armazon = (id, name, price, tildado, extra = {}) => ({ product: { id, category: 'Armazón de Receta', type: 'Armazón de Receta', brand: 'Atelier', name, eligible2x1: tildado, ...extra }, quantity: 1, price });
+const clipOn = (id, price, tildado) => ({ product: { id, category: 'Armazón de Receta', type: 'Armazón de Receta', brand: 'Clip On', name: 'Clip On', eligible2x1: tildado }, quantity: 1, price });
 const lenteSol = (id, name, price, tildado) => ({ product: { id, category: 'Lentes de Sol', type: 'Lentes de Sol', brand: 'Vulk', name, eligible2x1: tildado }, quantity: 1, price });
 
 const descuento = (items) => PricingService.calculateTotals(items, 0, 0, []).promoFrameDiscount;
@@ -107,6 +108,10 @@ const casos = [
             assert.equal(descuento([parSinOjo, armazon('f1', 'A', 120000, true)]), 0, 'un solo par sin ojo NO bonifica');
             assert.equal(descuento([parSinOjo, { ...parSinOjo }, armazon('f1', 'A', 120000, true)]), 60000, 'dos pares sin ojo sí bonifican');
         }],
+    ['CLIP-ON solo + armazón del cliente: se cobra ENTERO, no al 50%',
+        () => assert.equal(descuento([...dosPares2x1(), clipOn('cl1', 200000, true)]), 0)],
+    ['CLIP-ON acompañando a otro armazón tildado: ahí sí se bonifica',
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'Premium', 300000, true), clipOn('cl1', 200000, true)]), 200000)],
     ['DOS pares (el cliente sí se lleva el 2x1): ahí sí se bonifica',
         () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'A', 160000, true), armazon('f2', 'B', 120000, true)]), 120000)],
     ['ítem 2x1 sin ojo asignado cuenta como par entero (recálculo del server)',
