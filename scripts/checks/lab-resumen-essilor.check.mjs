@@ -33,6 +33,8 @@ if (!url) {
 
 const prisma = new PrismaClient({ datasources: { db: { url } } });
 const ENVIAR = process.argv.includes('--enviar');
+const DETALLE = process.argv.includes('--detalle');
+const CRM = (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, '');
 
 /** Facturas sin nº de operación, con el número que les corresponde (planilla física). */
 const PENDIENTES_DE_ASIGNAR = [
@@ -47,6 +49,11 @@ const pesos = n => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')
 // El resumen a veces trae la fecha en un formato que no parsea (la fila de
 // 3008-00062896 daba "Invalid Date"): mejor un guión que basura en el email.
 const fecha = d => {
+    // El resumen guarda la fecha como TEXTO "dd/mm/yyyy" (así viene del PDF).
+    // Pasarla por new Date() la daba por inválida ("—" en casi todas las filas)
+    // y las pocas que parseaban salían leídas al revés, en formato US:
+    // "02/07/2026" (2 de julio) se mostraba como 07/02. Se devuelve tal cual.
+    if (typeof d === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(d.trim())) return d.trim();
     const x = d ? new Date(d) : null;
     return x && !isNaN(x.getTime())
         ? x.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -57,6 +64,61 @@ const normalizar = s => {
     const m = String(s).match(/(\d{4})\D*0*(\d{3,8})/);
     return m ? `${m[1]}-${m[2].padStart(8, '0')}` : String(s).trim();
 };
+
+/**
+ * El listado del resumen para cruzar a mano: una fila por factura, el nombre
+ * del cliente, y el link que abre la venta en el CRM. Las de post-venta van
+ * marcadas aparte porque no son ventas nuevas — es plata que se facturó dos
+ * veces por el mismo par y hay que mirarla distinto.
+ * Texto grande y contraste alto: se lee en pantalla al lado del papel.
+ */
+function htmlDetalle(st, detalle) {
+    const esc = s => String(s ?? '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+    const total = detalle.reduce((a, d) => a + (d.saldo || 0), 0);
+    const fila = d => {
+        const fondo = !d.enSistema ? '#fef2f2' : d.postventa ? '#fffbeb' : '#ffffff';
+        const quien = !d.enSistema
+            ? '<strong style="color:#b91c1c">NO ESTÁ EN EL SISTEMA</strong>'
+            : d.orderId
+                ? `<a href="${CRM}/admin/ventas?id=${d.orderId}" style="color:#1d4ed8;font-weight:600">${esc(d.cliente || 'ver la venta')}</a>`
+                : d.cliente
+                    ? esc(d.cliente)
+                    : '<strong style="color:#b45309">falta identificar</strong>';
+        return `<tr style="background:${fondo}">
+            <td style="padding:10px 8px;color:#57534e">${d.n}</td>
+            <td style="padding:10px 8px;font-family:ui-monospace,monospace">${esc(d.factura)}</td>
+            <td style="padding:10px 8px;white-space:nowrap">${esc(d.fecha)}</td>
+            <td style="padding:10px 8px;text-align:right;white-space:nowrap">${pesos(d.saldo)}${
+            d.importe != null && d.saldo != null && Math.round(d.importe) !== Math.round(d.saldo)
+                ? `<br><span style="font-size:14px;color:#57534e">de ${pesos(d.importe)}</span>` : ''}</td>
+            <td style="padding:10px 8px;font-family:ui-monospace,monospace">${esc(d.pedido || '—')}</td>
+            <td style="padding:10px 8px">${quien}</td>
+            <td style="padding:10px 8px">${d.postventa ? '<strong style="color:#92400e">POST-VENTA</strong>' : ''}</td>
+        </tr>`;
+    };
+    const th = 'padding:10px 8px;text-align:left;border-bottom:2px solid #1c1917;font-weight:700';
+    return `<meta charset="utf-8"><title>Resumen Essilor</title>
+<body style="font-family:system-ui,sans-serif;font-size:17px;color:#1c1917;background:#fff;margin:0;padding:24px">
+<h1 style="font-size:26px;margin:0 0 4px">Resumen de cuenta de Optovisión (Essilor)</h1>
+<p style="margin:0 0 20px;color:#44403c">Al ${fecha(st.statementDate)} · ${detalle.length} facturas · deuda ${pesos(st.totalDebt)}</p>
+<p style="margin:0 0 20px;color:#44403c">
+  <span style="background:#fffbeb;padding:2px 8px;border:1px solid #d6d3d1">amarillo</span> = post-venta (reproceso) ·
+  <span style="background:#fef2f2;padding:2px 8px;border:1px solid #d6d3d1">rojo</span> = la factura no entró al sistema ·
+  el nombre en azul abre la venta.
+</p>
+<table style="border-collapse:collapse;width:100%;max-width:1100px">
+<thead><tr>
+  <th style="${th}">#</th><th style="${th}">Factura</th><th style="${th}">Fecha</th>
+  <th style="${th};text-align:right">Saldo</th><th style="${th}">Pedido</th>
+  <th style="${th}">De quién es</th><th style="${th}"></th>
+</tr></thead>
+<tbody>${detalle.map(fila).join('')}</tbody>
+<tfoot><tr><td colspan="3" style="padding:12px 8px;border-top:2px solid #1c1917;font-weight:700">Total</td>
+<td style="padding:12px 8px;border-top:2px solid #1c1917;text-align:right;font-weight:700">${pesos(total)}</td>
+<td colspan="3" style="border-top:2px solid #1c1917"></td></tr></tfoot>
+</table>
+</body>`;
+}
 
 async function main() {
     const [st] = await prisma.$queryRaw`
@@ -116,6 +178,73 @@ async function main() {
 
     const importeDe = r => r.importe ?? r.saldo ?? null;
     const totalSinCargar = sinCargar.reduce((a, r) => a + (importeDe(r) || 0), 0);
+
+    // Con --detalle: las facturas del resumen una por una, en el mismo orden
+    // que vienen en el papel (por vencimiento), con de quién es cada una y el
+    // link a la venta. Es la vista para cruzar contra el resumen impreso.
+    // Con --html <archivo> además escribe el listado clickeable.
+    if (DETALLE) {
+        // El snapshot guarda cliente pero no el id de la venta: el link sale
+        // de volver a cruzar factura → LabCostEntry → Order (mismo criterio de
+        // normalización que usa crossStatementRows en lab-recon/imap.ts).
+        const entradas = await prisma.$queryRaw`
+            select e."labOrderNumber", e."sourceFile", e.notes, e."orderId",
+                   o."labOrderNumber" as "ventaPedidos", c.name as cliente
+            from "LabCostEntry" e
+            left join "Order" o on o.id = e."orderId"
+            left join "Client" c on c.id = o."clientId"
+            where e.lab = 'OPTOVISION' and e."sourceFile" is not null`;
+        const porFactura = new Map();
+        for (const e of entradas) {
+            const m = (e.sourceFile || '').match(/(\d{4})-?0*(\d{3,8})/);
+            if (!m) continue;
+            const k = `${m[1]}-${m[2].padStart(8, '0')}`;
+            if (!porFactura.has(k)) porFactura.set(k, []);
+            porFactura.get(k).push(e);
+        }
+
+        const detalle = rows.map((r, i) => {
+            const es = porFactura.get(String(r.invoiceNumber)) || [];
+            const best = es.find(e => e.orderId) || es[0] || null;
+            const g = r.gemelo;
+            return {
+                n: i + 1,
+                factura: String(r.invoiceNumber),
+                fecha: fecha(r.fecha),
+                importe: r.importe ?? null,
+                // Lo que se debe es el SALDO, no el importe original: la 62896
+                // se facturó por $1.056.830 y queda debiendo $249.302. Sumar
+                // importes daría una deuda inflada que no cierra con el papel.
+                saldo: r.saldo ?? r.importe ?? null,
+                pedido: g?.ventaPedidos || best?.ventaPedidos
+                    || (esClaveSinNumero(g?.pedido) ? null : g?.pedido),
+                cliente: g?.cliente || best?.cliente || null,
+                postventa: g?.tipo === 'POSTVENTA' || !!best?.notes?.includes('POSTVENTA (caso'),
+                enSistema: !!r.enSistema,
+                orderId: best?.orderId || null,
+            };
+        });
+
+        console.log(`\nLAS ${detalle.length} FACTURAS DEL RESUMEN, UNA POR UNA:\n`);
+        for (const d of detalle) {
+            const quien = !d.enSistema ? '⚠ NO ESTÁ EN EL SISTEMA'
+                : d.cliente ? `${d.cliente}${d.postventa ? '  ★ POST-VENTA' : ''}`
+                    : '⚠ sin venta enganchada';
+            const parcial = d.importe != null && d.saldo != null && Math.round(d.importe) !== Math.round(d.saldo)
+                ? ` (de ${pesos(d.importe)})` : '';
+            console.log(
+                `${String(d.n).padStart(2)}. ${d.factura.padEnd(15)}${d.fecha.padEnd(12)}` +
+                `${pesos(d.saldo).padStart(13)}${parcial.padEnd(16)} ${String(d.pedido || '—').padEnd(18)} ${quien}`
+            );
+        }
+
+        const iHtml = process.argv.indexOf('--html');
+        if (iHtml !== -1 && process.argv[iHtml + 1]) {
+            const { writeFileSync } = await import('node:fs');
+            writeFileSync(process.argv[iHtml + 1], htmlDetalle(st, detalle));
+            console.log(`\n  listado clickeable escrito en ${process.argv[iHtml + 1]}`);
+        }
+    }
     if (sinCargar.length) {
         console.log(`\nFACTURAS DEL RESUMEN QUE NO ESTÁN EN EL SISTEMA (${pesos(totalSinCargar)}):`);
         for (const r of sinCargar) {
