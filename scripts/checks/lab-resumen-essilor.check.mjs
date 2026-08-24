@@ -58,6 +58,9 @@ const PEDIDOS_DE_FACTURA = {
     // cargado en la venta. Leídas del PDF el 24/8/2026.
     '3025-00044882': ['3578630'],
     '3025-00045490': ['3578631'],
+    // Formato normal, con paréntesis: esta cruza sola. Figura "no está en el
+    // sistema" solo porque el resumen se leyó ANTES de que llegara su PDF.
+    '3008-00074616': ['609861'],
 };
 
 const pesos = n => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
@@ -410,6 +413,17 @@ async function main() {
     console.log(`Resumen de cuenta de Optovisión (Essilor)`);
     console.log(`  al ${fecha(st.statementDate)} · ${st.invoiceCount} facturas · deuda ${pesos(st.totalDebt)}`);
     console.log(`  archivo: ${st.sourceFile || '—'} · leído el ${fecha(st.createdAt)}\n`);
+    // ¿Sigue entrando facturas el escaneo del correo? Una factura puede figurar
+    // "no está en el sistema" por dos motivos MUY distintos: porque su PDF
+    // todavía no llegó (normal, el resumen suele adelantarse), o porque el
+    // escaneo dejó de correr (grave, y en silencio). Esto los separa.
+    const [ult] = await prisma.$queryRaw`
+        select max("createdAt") as ultima, max("invoiceDate") as ultima_factura
+        from "LabCostEntry" where lab = 'OPTOVISION' and source = 'IMAP_PDF'`;
+    const dias = ult?.ultima ? Math.floor((Date.now() - new Date(ult.ultima).getTime()) / 86400000) : null;
+    console.log(`  última factura que entró por el correo: ${fecha(ult?.ultima)}` +
+        `${dias != null ? ` (hace ${dias} día${dias === 1 ? '' : 's'})` : ''}` +
+        `${dias != null && dias > 3 ? '   ← ¿el escaneo dejó de correr?' : ''}\n`);
     console.log(`  con venta enganchada .............. ${conVenta.length}`);
     console.log(`  con postventa (reproceso) ......... ${conPostventa.length}`);
     console.log(`  la factura no trae el nº de pedido  ${sinNumero.length}  (la venta puede estar cargada)`);
