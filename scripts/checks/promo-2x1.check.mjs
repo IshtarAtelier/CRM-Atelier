@@ -95,6 +95,18 @@ const casos = [
             assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 120000, true)]), 0);
             assert.equal(descuento([cristal2x1('OD'), cristal2x1('OI'), armazon('f1', 'A', 160000, true), armazon('f2', 'B', 120000, true)]), 0);
         }],
+    ['ítems SIN ojo (selects del server): un par no se puede hacer pasar por dos',
+        () => {
+            // Cada renglón sin `eye` cuenta como un par entero — es correcto
+            // para los cristales que se venden por par. Lo que NO puede pasar
+            // es que un par cargado como OD+OI pierda el ojo por el camino y
+            // cuente doble: por eso todo select que alimente la promo tiene que
+            // traer `eye` (order.service.ts lo perdía y activaba la promo con
+            // un solo par).
+            const parSinOjo = { product: cristal2x1('OD').product, quantity: 1, price: 610334 };
+            assert.equal(descuento([parSinOjo, armazon('f1', 'A', 120000, true)]), 0, 'un solo par sin ojo NO bonifica');
+            assert.equal(descuento([parSinOjo, { ...parSinOjo }, armazon('f1', 'A', 120000, true)]), 60000, 'dos pares sin ojo sí bonifican');
+        }],
     ['DOS pares (el cliente sí se lleva el 2x1): ahí sí se bonifica',
         () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'A', 160000, true), armazon('f2', 'B', 120000, true)]), 120000)],
     ['ítem 2x1 sin ojo asignado cuenta como par entero (recálculo del server)',

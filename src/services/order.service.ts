@@ -754,7 +754,10 @@ export class OrderService {
                 where: { id },
                 select: {
                     id: true, total: true, markup: true, discountCash: true, specialDiscount: true, orderType: true,
-                    items: { select: { productId: true, price: true, quantity: true, product: { select: { id: true, is2x1: true, eligible2x1: true, category: true, type: true } } } }
+                    // `eye` es obligatorio: sin él, contarPares2x1 toma cada renglón como
+                    // un par entero y un solo par de cristales pasa por dos, activando
+                    // una bonificación de armazón que no corresponde.
+                    items: { select: { productId: true, price: true, quantity: true, eye: true, product: { select: { id: true, is2x1: true, eligible2x1: true, category: true, type: true } } } }
                 }
             });
 
