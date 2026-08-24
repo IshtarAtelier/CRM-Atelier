@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
     Package, Clock, CheckCircle2, Search, Download,
     X, Eye, ArrowRight, Hash,
@@ -36,7 +37,9 @@ function getNextStatus(current: string): string | null {
 
 // ── Main Page ─────────────────────────────────────
 
-export default function PedidosPage() {
+function PedidosPageInner() {
+    const searchParams = useSearchParams();
+    const orderIdParam = searchParams.get('id');
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -775,6 +778,26 @@ export default function PedidosPage() {
 
     // ── Filters ────────────────────────────────
 
+    // Llegar con ?id= tiene que MOSTRAR ese pedido, siempre. La pantalla abre
+    // filtrada en "enviados al lab", que es lo útil para el día a día pero deja
+    // afuera casi todo: un link compartido caía en una lista donde el pedido no
+    // estaba. Al entrar por link se abren los filtros, se expande el pedido y
+    // se lleva la pantalla hasta él.
+    useEffect(() => {
+        if (!orderIdParam) return;
+        setFilterStatus('ALL');
+        setSearch('');
+        setExpandedId(orderIdParam);
+    }, [orderIdParam]);
+
+    useEffect(() => {
+        if (!orderIdParam || loading) return;
+        const t = setTimeout(() => {
+            document.getElementById(`order-${orderIdParam}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+        return () => clearTimeout(t);
+    }, [orderIdParam, loading, orders.length]);
+
     const filtered = orders.filter(o => {
         const matchSearch = search === '' ||
             o.client.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -1164,6 +1187,7 @@ export default function PedidosPage() {
                         return (
                             <div
                                 key={order.id}
+                                id={`order-${order.id}`}
                                 className={`bg-white dark:bg-stone-800 border-2 rounded-2xl transition-all overflow-hidden ${isExpanded
                                     ? `${step.ring} ring-2 border-transparent shadow-xl`
                                     : 'border-stone-100 dark:border-stone-700 hover:shadow-lg'
@@ -1979,5 +2003,14 @@ export default function PedidosPage() {
                 );
             })()}
         </main>
+    );
+}
+
+// useSearchParams exige Suspense en el App Router.
+export default function PedidosPage() {
+    return (
+        <Suspense fallback={null}>
+            <PedidosPageInner />
+        </Suspense>
     );
 }

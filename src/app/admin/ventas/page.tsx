@@ -422,6 +422,21 @@ export default function VentasPage() {
         fetchOrders(search);
     }, [filterLab, filterBalance, filterLaboratory, dateFrom, dateTo, viewMode, webOnly]);
 
+    // Llegar con ?id= tiene que MOSTRAR esa venta, siempre. La pantalla abre
+    // filtrada en "enviadas al lab" (filterLab 'SENT'), que es lo útil para el
+    // día a día pero deja afuera casi todo: de 52 ventas de un mes, 2. Un link
+    // compartido buscaba la venta, la traía… y el filtro la escondía, así que
+    // no pasaba nada. Al entrar por link se abren los filtros.
+    useEffect(() => {
+        if (!orderIdParam) return;
+        setFilterLab('ALL');
+        setFilterBalance(false);
+        setFilterLaboratory('ALL');
+        setSearch('');
+        setDateFrom('');
+        setDateTo('');
+    }, [orderIdParam]);
+
     useEffect(() => {
         if (orderIdParam) {
             const exists = orders.find(o => o.id === orderIdParam);
