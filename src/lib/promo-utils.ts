@@ -291,9 +291,10 @@ export const hasActive2x1Promo = (items: any[]): boolean => {
  *    cobra completo aunque haya cristales 2x1.
  *  - Con UN SOLO par de cristales: tampoco. El cliente no se está llevando el
  *    2x1, así que el armazón va entero.
- *  - Un CLIP-ON solo (con el armazón del cliente) va entero: se engancha sobre
- *    el armazón que ya tiene, no es un segundo anteojo. Sí puede ir bonificado
- *    cuando acompaña a otro armazón tildado.
+ *  - Un CLIP-ON que es el ÚNICO armazón de la venta va entero: el otro anteojo
+ *    lo arma el cliente con el suyo y el clip-on se engancha sobre ese mismo.
+ *    Con otro armazón de la óptica al lado (entre o no en la promo) sí se
+ *    bonifica.
  *
  * Acepta ítems con `price` (ventas guardadas) o `customPrice` (cotizador).
  */
@@ -325,11 +326,12 @@ export const pick2x1FrameDiscount = (
     // armazón que no entra en la promo.
     if (tildados.length === 1) {
         const tildado = tildados[0];
-        // Un CLIP-ON solo no se lleva el 50%: se engancha sobre el armazón que
-        // ya tiene el cliente, así que no es el "segundo anteojo" de la promo.
-        // Se cobra entero. (Ishtar, 24/8/26.) Sí puede ir bonificado cuando
-        // acompaña a otro armazón tildado — ese caso cae en la rama de abajo.
-        if (esClipOn(tildado.product)) return nada;
+        // Un CLIP-ON que es el ÚNICO armazón de la venta se cobra entero: el
+        // otro anteojo lo arma el cliente con su propio armazón, y el clip-on
+        // se engancha sobre ese mismo — no es un segundo anteojo.
+        // Si en cambio la venta lleva OTRO armazón de la óptica (aunque ese no
+        // entre en la promo), el clip-on sí va al 50%. (Ishtar, 24/8/26.)
+        if (esClipOn(tildado.product) && candidatos.length === 1) return nada;
         return { discount: Math.round(precioDe(tildado) / 2), itemName: `${nombreDe(tildado)} (50%)`, item: tildado, mode: 'MITAD' as const };
     }
 

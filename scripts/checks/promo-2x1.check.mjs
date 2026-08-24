@@ -110,6 +110,8 @@ const casos = [
         }],
     ['CLIP-ON solo + armazón del cliente: se cobra ENTERO, no al 50%',
         () => assert.equal(descuento([...dosPares2x1(), clipOn('cl1', 200000, true)]), 0)],
+    ['CLIP-ON + un armazón de la óptica que NO entra en la promo: el clip-on al 50%',
+        () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'Orfeo C1', 160000, false), clipOn('cl1', 200000, true)]), 100000)],
     ['CLIP-ON acompañando a otro armazón tildado: ahí sí se bonifica',
         () => assert.equal(descuento([...dosPares2x1(), armazon('f1', 'Premium', 300000, true), clipOn('cl1', 200000, true)]), 200000)],
     ['DOS pares (el cliente sí se lleva el 2x1): ahí sí se bonifica',
