@@ -4,6 +4,7 @@ import { ContactService } from '@/services/contact.service';
 import { ATTENTION_CUTOFF_ISO } from '@/lib/constants';
 import { resolveMonthlyTargets } from '@/lib/targets';
 import { normalizeContactSource } from '@/lib/contact-source';
+import { PricingService } from '@/services/PricingService';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,6 +87,10 @@ export async function GET(request: Request) {
                 total: true,
                 paid: true,
                 subtotalWithMarkup: true, // ADDED
+                // Sin discountCash el conversor a efectivo aplicaría 20% plano a
+                // TODAS las ventas (el ?? 20 de calculateOrderFinancials dispara
+                // con undefined) — incluidas las que tienen 15/25/30%.
+                discountCash: true,
                 createdAt: true,
                 items: {
                     select: {
@@ -229,8 +234,26 @@ export async function GET(request: Request) {
         let todaySold = 0;
         let weekSold = 0;
 
+        // El TOTAL VENDIDO se mide en EFECTIVO, no a precio de lista. Regla del
+        // negocio (Ishtar, 24/8/26): el precio real de una venta es el de
+        // efectivo/transferencia; el recargo de tarjeta/cuotas es costo
+        // financiero disfrazado, y los premios del equipo se pagan por estos
+        // objetivos — no se puede premiar costo financiero. Hasta el 29/6 este
+        // número YA era efectivo; un commit sobre PDFs de WhatsApp (7c26d80e)
+        // dio vuelta el `||` de total/subtotalWithMarkup sin que nadie lo
+        // decidiera. La conversión pasa UNA sola vez y acá: todo lo que deriva
+        // (ticket promedio, proyección, % de metas, tendencia) hereda el número
+        // ya convertido y no vuelve a descontar nada. La hace PricingService
+        // con el descuento PROPIO de cada venta (20/15/25/30%), nunca un 20%
+        // plano. Los SALDOS no pasan por acá (vienen de getOrdersWithBalance)
+        // y no se tocan.
         const totalSoldMonth = currentMonthOrders.reduce((acc: number, order: any) => {
-            const price = order.subtotalWithMarkup || order.total || 0;
+            const price = PricingService.calculateOrderFinancials({
+                subtotalWithMarkup: order.subtotalWithMarkup,
+                total: order.total,
+                discountCash: order.discountCash,
+                payments: [],
+            }).totalCash;
             const orderDate = new Date(order.labSentAt || order.createdAt);
             if (orderDate >= startOfDayART) todaySold += price;
             if (orderDate >= startOfWeekART) weekSold += price;
@@ -552,9 +575,16 @@ export async function GET(request: Request) {
                     orderType: 'SALE',
                     isDeleted: false,
                 },
-                select: { total: true, subtotalWithMarkup: true },
+                select: { total: true, subtotalWithMarkup: true, discountCash: true },
             });
-            prevTotal = prevOrders.reduce((acc, o) => acc + (o.subtotalWithMarkup || o.total || 0), 0);
+            // Misma moneda que totalSoldMonth (efectivo): comparar efectivo de
+            // este período contra lista del anterior haría mentir la flecha.
+            prevTotal = prevOrders.reduce((acc, o) => acc + PricingService.calculateOrderFinancials({
+                subtotalWithMarkup: o.subtotalWithMarkup,
+                total: o.total,
+                discountCash: o.discountCash,
+                payments: [],
+            }).totalCash, 0);
         }
 
         const trendPct = prevTotal > 0 ? (((totalSoldMonth - prevTotal) / prevTotal) * 100).toFixed(1) : null;
