@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Save, Loader2, 
-    Gift, CheckCircle2
+    Gift, CheckCircle2, Glasses
 } from 'lucide-react';
 import { 
     isMultifocal2x1, isCrystal, isFrame, safePrice,
@@ -295,6 +295,29 @@ export default function CotizadorCart({
                 </div>
             )}
 
+            {/* El armazón que trae el cliente, como un renglón más: sin cargo, pero
+                a la vista. Antes solo existía como dos campitos sueltos abajo y en
+                una venta con dos anteojos no se veía que el segundo armazón estaba
+                contemplado. */}
+            {frameSource === 'USUARIO' && (userFrameData.brand?.trim() || userFrameData.model?.trim()) && (
+                <div className="flex items-center justify-between gap-3 p-3.5 mb-3 rounded-2xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/10">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <Glasses className="w-5 h-5 text-amber-500 shrink-0" />
+                        <div className="min-w-0">
+                            <p className="text-xs font-bold text-stone-800 dark:text-stone-150 truncate">
+                                {[userFrameData.brand, userFrameData.model].filter(Boolean).join(' · ') || 'Armazón del cliente'}
+                            </p>
+                            <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-500 uppercase tracking-wider">
+                                Armazón del cliente{userFrameData.notes?.trim() ? ` · ${userFrameData.notes}` : ''}
+                            </p>
+                        </div>
+                    </div>
+                    <span className="shrink-0 text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-500">
+                        Sin cargo
+                    </span>
+                </div>
+            )}
+
             {items.some(i => isCrystal(i.product)) && (
                 <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200/50 mb-6">
                     {framesInQuote.length === 0 ? (
@@ -327,9 +350,18 @@ export default function CotizadorCart({
                         </div>
                     )}
                     {frameSource === 'USUARIO' && (
-                        <div className="grid grid-cols-2 gap-3">
-                            <input type="text" placeholder="Marca" value={userFrameData.brand} onChange={e => setUserFrameData(prev => ({ ...prev, brand: e.target.value }))} className="bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
-                            <input type="text" placeholder="Modelo" value={userFrameData.model} onChange={e => setUserFrameData(prev => ({ ...prev, model: e.target.value }))} className="bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <input type="text" placeholder="Marca" value={userFrameData.brand} onChange={e => setUserFrameData(prev => ({ ...prev, brand: e.target.value }))} className="bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
+                                <input type="text" placeholder="Modelo" value={userFrameData.model} onChange={e => setUserFrameData(prev => ({ ...prev, model: e.target.value }))} className="bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
+                            </div>
+                            {/* La nota del armazón del cliente ya viajaba en la orden
+                                (userFrameNotes) y se muestra en la venta, pero no había
+                                dónde escribirla desde el carrito. */}
+                            <input type="text" placeholder="Detalle (color, estado, aclaraciones para el taller)" value={userFrameData.notes || ''} onChange={e => setUserFrameData(prev => ({ ...prev, notes: e.target.value }))} className="w-full bg-white dark:bg-stone-800 border dark:border-stone-700 dark:text-stone-100 py-2.5 px-4 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all" />
+                            <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-500">
+                                La foto y las medidas de este armazón se cargan al confirmar la venta, igual que uno de la óptica.
+                            </p>
                         </div>
                     )}
                 </div>
