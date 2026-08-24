@@ -162,7 +162,30 @@ export async function GET(request: Request) {
             prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfLast7ART } } }),
             prisma.client.count({ where: { isDeleted: false, createdAt: { gte: startOfLast30ART } } }),
         ]);
+        // ── Clientes ATENDIDOS: los que ya tienen un presupuesto armado ──
+        // El contador de arriba mide cuánta gente ENTRÓ al CRM; este mide a
+        // cuántos se los atendió de verdad. Se cuenta el CLIENTE (distinct), no
+        // el presupuesto: alguien con tres cotizaciones es una persona atendida.
+        // Se mira la fecha del presupuesto, no la de alta del contacto — atender
+        // hoy a alguien que entró la semana pasada cuenta hoy.
+        const atendidosEn = async (desde: Date) => {
+            const filas = await prisma.order.findMany({
+                where: { isDeleted: false, createdAt: { gte: desde }, client: { isDeleted: false } },
+                select: { clientId: true },
+                distinct: ['clientId'],
+            });
+            return filas.length;
+        };
+        const [atendidosToday, atendidosLast7, atendidosLast30] = await Promise.all([
+            atendidosEn(startOfDayART),
+            atendidosEn(startOfLast7ART),
+            atendidosEn(startOfLast30ART),
+        ]);
+
         const newContacts = {
+            atendidosToday,
+            atendidosLast7,
+            atendidosLast30,
             sinceCutoff: newContactsSinceCutoff,
             today: newContactsToday,
             week: newContactsWeek,

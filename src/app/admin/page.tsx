@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, User, ArrowRight, CheckCircle2, UserPlus } from "lucide-react";
+import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, User, ArrowRight, CheckCircle2, UserPlus, FileText } from "lucide-react";
 import Link from "next/link";
 import DashboardActions from "@/components/dashboard/DashboardActions";
 import DashboardObjectives from "@/components/dashboard/DashboardObjectives";
@@ -835,6 +835,8 @@ export default function Home() {
 type NewContactsData = {
   sinceCutoff: number; today: number; week: number; month: number;
   last7?: number; last30?: number; cutoffISO: string;
+  /** Clientes distintos con al menos un presupuesto armado en el período. */
+  atendidosToday?: number; atendidosLast7?: number; atendidosLast30?: number;
 };
 
 const RANGOS_CONTACTOS = [
@@ -850,13 +852,16 @@ function NewContactsHero({ nc, loading }: { nc?: NewContactsData; loading?: bool
   const [rango, setRango] = useState<RangoContactos>('today');
 
   const valor = rango === 'today' ? data.today : rango === 'last7' ? (data.last7 ?? 0) : (data.last30 ?? 0);
+  // Cuántos de los que pasaron por el mostrador se atendieron de verdad: el
+  // contador de arriba mide quién ENTRÓ al CRM, este quién ya tiene un
+  // presupuesto armado. Son dos preguntas distintas y conviven en la misma ficha.
+  const atendidos = rango === 'today'
+    ? (data.atendidosToday ?? 0)
+    : rango === 'last7' ? (data.atendidosLast7 ?? 0) : (data.atendidosLast30 ?? 0);
 
   const hoy = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
-  const pie = rango === 'today'
-    ? `Subidos al sistema · ${hoy}`
-    : rango === 'last7'
-      ? 'Subidos al sistema · últimos 7 días'
-      : 'Subidos al sistema · últimos 30 días';
+  const periodo = rango === 'today' ? hoy : rango === 'last7' ? 'últimos 7 días' : 'últimos 30 días';
+  const pie = `Subidos al sistema · ${periodo}`;
 
   return (
     <Link
@@ -908,6 +913,24 @@ function NewContactsHero({ nc, loading }: { nc?: NewContactsData; loading?: bool
               {pie}
             </p>
           </div>
+        </div>
+
+        {/* Clientes atendidos — con presupuesto armado en el mismo período */}
+        <div className="hidden shrink-0 border-l border-white/15 pl-6 sm:block md:pl-8">
+          <p className="mb-1 text-[10px] font-black uppercase tracking-[0.25em] text-[#e7d3c1]/80">
+            Clientes atendidos
+          </p>
+          <div className="flex items-end gap-2">
+            <span className="text-5xl font-black leading-none tracking-tight drop-shadow-sm md:text-6xl">
+              {atendidos.toLocaleString()}
+            </span>
+            <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white/90">
+              <FileText className="h-3 w-3" /> con presupuesto
+            </span>
+          </div>
+          <p className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white/60">
+            {valor > 0 ? `${Math.round((atendidos / valor) * 100)}% de los nuevos` : 'Presupuestados'} · {periodo}
+          </p>
         </div>
 
         <div className="hidden items-center pr-1 text-white/50 transition-all duration-300 group-hover:translate-x-1 group-hover:text-white/90 md:flex">
