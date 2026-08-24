@@ -5,12 +5,15 @@ import { Plus } from 'lucide-react';
 import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 import LineaColorEditor from './LineaColorEditor';
-import { pick2x1FrameDiscount } from '@/lib/promo-utils';
+import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
 
 interface QuoteLineItemsProps {
     items: any[];
     markup: number;
     appliedPromoName?: string;
+    /** Descuento de promo GUARDADO en la venta (es el número que manda: la
+     *  vista lo muestra tal cual, nunca lo recalcula). */
+    appliedPromoDiscount?: number;
     specialDiscount?: number;
     /** Con el id del pedido, el color de cada línea se corrige acá mismo. */
     orderId?: string;
@@ -25,6 +28,7 @@ export default function QuoteLineItems({
     items,
     markup,
     appliedPromoName,
+    appliedPromoDiscount = 0,
     specialDiscount = 0,
     orderId,
     editable = false,
@@ -108,28 +112,29 @@ export default function QuoteLineItems({
                         </div>
                         <div className="text-right">
                             {isBonified ? (
-                                // Se bonifica UNA unidad. Si la línea trae dos
-                                // armazones iguales (cantidad 2), decir "SIN CARGO"
-                                // a secas hacía parecer que los dos eran gratis
-                                // cuando uno se cobra: se tacha el bruto de la
-                                // línea y abajo va lo que realmente se cobra.
-                                <div className="flex flex-col items-end">
-                                    <span className="text-[10px] line-through text-stone-400 font-bold">
-                                        ${priceWithMarkup.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                    </span>
-                                    {item.quantity > 1 ? (
-                                        <>
+                                // Se bonifica UNA unidad, con el descuento GUARDADO
+                                // en la venta (gratis entero o 50%): se tacha el
+                                // bruto de la línea y abajo va lo que se cobra de
+                                // verdad, con la etiqueta que dice por qué.
+                                (() => {
+                                    const modo = modoBonificacionGuardada(appliedPromoName);
+                                    const factor = 1 + markup / 100;
+                                    const descuento = (appliedPromoDiscount > 0 ? appliedPromoDiscount : (modo === 'MITAD' ? item.price / 2 : item.price)) * factor;
+                                    const neto = Math.max(0, priceWithMarkup - descuento);
+                                    return (
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[10px] line-through text-stone-400 font-bold">
+                                                ${priceWithMarkup.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                            </span>
                                             <span className="text-sm font-black text-emerald-500">
-                                                ${(item.price * (item.quantity - 1) * (1 + markup / 100)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                {neto === 0 ? 'SIN CARGO' : `$${neto.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                                             </span>
                                             <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider">
-                                                1 de {item.quantity} bonificado
+                                                {etiquetaBonificacion2x1(modo)}{item.quantity > 1 ? ` · 1 de ${item.quantity}` : ''}
                                             </span>
-                                        </>
-                                    ) : (
-                                        <span className="text-sm font-black text-emerald-500">SIN CARGO</span>
-                                    )}
-                                </div>
+                                        </div>
+                                    );
+                                })()
                             ) : (
                                 <span className="text-sm font-black tracking-tight text-stone-900 dark:text-stone-100">
                                     ${priceWithMarkup.toLocaleString(undefined, { maximumFractionDigits: 0 })}

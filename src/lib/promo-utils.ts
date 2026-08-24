@@ -198,6 +198,20 @@ export const armarParesDeCristal = (product: any, prevItems: any[] = []): any[] 
 };
 
 /**
+ * Etiqueta de la bonificación para TODAS las pantallas (carrito, venta, PDF).
+ * Un solo lugar decide cómo se lee: si mañana cambia el texto, cambia acá.
+ */
+export const etiquetaBonificacion2x1 = (mode: 'GRATIS' | 'MITAD' | null | undefined): string =>
+    mode === 'MITAD' ? '50% OFF · 2x1' : 'SIN CARGO · 2x1';
+
+/**
+ * Deduce el modo desde una venta GUARDADA, sin recalcular: el nombre de la
+ * promo persistido lleva "(50%)" cuando fue mitad. Para todo lo demás, gratis.
+ */
+export const modoBonificacionGuardada = (appliedPromoName?: string | null): 'GRATIS' | 'MITAD' =>
+    appliedPromoName?.includes('(50%)') ? 'MITAD' : 'GRATIS';
+
+/**
  * ── Regla canónica del 2x1 de multifocales ──────────────────────────────────
  * Los DOS lugares que mueven plata con esta promo (PricingService para totales
  * y recalculateCrystalPrices para los cristales) leen de acá. Si la regla
@@ -250,8 +264,8 @@ export const hasActive2x1Promo = (items: any[]): boolean => {
  */
 export const pick2x1FrameDiscount = (
     items: any[]
-): { discount: number; itemName: string | null; item: any | null } => {
-    const nada = { discount: 0, itemName: null, item: null };
+): { discount: number; itemName: string | null; item: any | null; mode: 'GRATIS' | 'MITAD' | null } => {
+    const nada = { discount: 0, itemName: null, item: null, mode: null as null };
     if (!hasActive2x1Promo(items)) return nada;
 
     const precioDe = (it: any) => safePrice(it.customPrice !== undefined ? it.customPrice : it.price);
@@ -270,7 +284,7 @@ export const pick2x1FrameDiscount = (
     // armazón que no entra en la promo.
     if (tildados.length === 1) {
         const tildado = tildados[0];
-        return { discount: Math.round(precioDe(tildado) / 2), itemName: `${nombreDe(tildado)} (50%)`, item: tildado };
+        return { discount: Math.round(precioDe(tildado) / 2), itemName: `${nombreDe(tildado)} (50%)`, item: tildado, mode: 'MITAD' as const };
     }
 
     // Dos o más tildados: el más caro de la venta se cobra, el mejor de los
@@ -279,7 +293,7 @@ export const pick2x1FrameDiscount = (
     const bonificado = ordenados.slice(1).find(it => isFrameEligible2x1(it.product));
     if (!bonificado) return nada;
 
-    return { discount: precioDe(bonificado), itemName: nombreDe(bonificado), item: bonificado };
+    return { discount: precioDe(bonificado), itemName: nombreDe(bonificado), item: bonificado, mode: 'GRATIS' as const };
 };
 
 

@@ -531,6 +531,13 @@ export default function QuoteSummary({
                     0 y la fila mostraba "PAGADO" a secas: parecía cobrado cuando en
                     realidad fue bonificado. El aviso va antes del estado, y solo si
                     hubo descuento. */}
+                {(order.appliedPromoDiscount || 0) > 0 && (
+                    <div className="hidden md:flex items-center px-4 border-l border-stone-100 dark:border-stone-700 ml-4">
+                        <span title={order.appliedPromoName || undefined} className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200 dark:border-emerald-800">
+                            🎁 Promo 2x1 −${Math.round(order.appliedPromoDiscount).toLocaleString()}
+                        </span>
+                    </div>
+                )}
                 {financials.specialDiscount > 0 && (
                     <div className="hidden md:flex items-center px-4 border-l border-stone-100 dark:border-stone-700 ml-4">
                         <span className="px-3 py-1 bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-200 dark:border-rose-800">
@@ -688,6 +695,7 @@ export default function QuoteSummary({
                     items={order.items || []}
                     markup={order.markup || 0}
                     appliedPromoName={order.appliedPromoName}
+                    appliedPromoDiscount={order.appliedPromoDiscount || 0}
                     specialDiscount={order.specialDiscount}
                     // El color del cristal se corrige acá mismo, sin abrir el
                     // presupuesto entero para editar: guarda esa sola línea.

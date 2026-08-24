@@ -4,6 +4,9 @@ import React from 'react';
 
 interface CartTotalsProps {
     subtotal: number;
+    /** Descuento del armazón por la promo 2x1 (ya restado en subtotal). */
+    promoFrameDiscount?: number;
+    promoFrameName?: string | null;
     markup: number;
     markupAmount: number;
     specialDiscount?: number;
@@ -15,6 +18,8 @@ interface CartTotalsProps {
 
 export default function CartTotals({
     subtotal,
+    promoFrameDiscount = 0,
+    promoFrameName = null,
     markup,
     markupAmount,
     specialDiscount = 0,
@@ -29,8 +34,13 @@ export default function CartTotals({
             : "flex flex-col md:flex-row items-end md:items-center justify-between gap-4 py-5 border-t border-stone-200 dark:border-stone-750 mt-2 bg-transparent"
         }>
             <div className="text-left w-full md:w-auto">
-                <div className="flex items-center gap-3.5 mb-1.5">
+                <div className="flex items-center gap-3.5 mb-1.5 flex-wrap">
                     <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Subtotal: ${subtotal.toLocaleString()}</span>
+                    {promoFrameDiscount > 0 && (
+                        <span title={promoFrameName || undefined} className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                            🎁 Promo 2x1: -${Math.round(promoFrameDiscount).toLocaleString()}
+                        </span>
+                    )}
                     {markup > 0 && <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Markup: +${Math.round(markupAmount).toLocaleString()}</span>}
                     {specialDiscount > 0 && <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Dto: -${Math.round(specialDiscount).toLocaleString()}</span>}
                 </div>

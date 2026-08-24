@@ -341,6 +341,7 @@ export default function CotizadorCart({
 
             <CartTotals 
                 subtotal={subtotal} markup={markup} markupAmount={subtotal * (safePrice(markup) / 100)}
+                promoFrameDiscount={promoFrameDiscount} promoFrameName={promoFrameName}
                 specialDiscount={specialDiscount}
                 priceWithMarkup={priceWithMarkup} totalCash={totalCash} totalTransfer={totalTransfer}
                 isCard={isCard}

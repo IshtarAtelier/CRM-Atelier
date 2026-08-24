@@ -6,6 +6,7 @@ import { PricingService } from '@/services/PricingService';
 import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { colorLineaLabel } from '@/lib/crystal-color';
+import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
 import fs from 'fs';
 import path from 'path';
 
@@ -174,7 +175,14 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             </tr>
         </thead>
         <tbody>
-            ${(order.items || []).map((it: any) => {
+            ${(() => {
+                // Qué renglón lleva el armazón bonificado del 2x1, para tacharlo
+                // y mostrar el neto. El NÚMERO sale del descuento GUARDADO en la
+                // venta; el localizador es el mismo módulo que calculó la plata.
+                const promoGuardada = (order.appliedPromoDiscount || 0) > 0 ? pick2x1FrameDiscount(order.items || []) : null;
+                const itemBonificado = promoGuardada?.item || null;
+                const modoBonif = modoBonificacionGuardada(order.appliedPromoName);
+                return (order.items || []).map((it: any) => {
                 const itemPrice = Math.round(it.price * markupFactor);
                 let eyeLabel = '';
                 if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'Ojo Derecho (OD)';
@@ -187,6 +195,17 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 if (itemPrice === 0) {
                     priceDisplay = '<span style="color:#10b981; font-weight:800; font-size:10px;">SIN CARGO</span>';
                     totalDisplay = '<span style="color:#10b981; font-weight:900;">$0</span>';
+                }
+
+                // El armazón bonificado: bruto tachado y el neto real al lado
+                // (gratis entero o 50%, según lo guardado en la venta).
+                let notaBonificacion = '';
+                if (itemBonificado && it === itemBonificado) {
+                    const descuentoInflado = Math.round((order.appliedPromoDiscount || 0) * markupFactor);
+                    const brutoLinea = itemPrice * (it.quantity || 1);
+                    const netoLinea = Math.max(0, brutoLinea - descuentoInflado);
+                    totalDisplay = `<span style="text-decoration: line-through; color:#a8a29e; font-size:10px;">$${brutoLinea.toLocaleString()}</span><br/><span style="color:#10b981; font-weight:900;">${netoLinea === 0 ? 'SIN CARGO' : '$' + netoLinea.toLocaleString()}</span>`;
+                    notaBonificacion = `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">🎁 ${etiquetaBonificacion2x1(modoBonif)} — descuento de $${descuentoInflado.toLocaleString()}</div>`;
                 }
 
                 const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
@@ -204,12 +223,14 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                         ${colorLinea ? `<div style="font-size:10px; color:#6d28d9; font-weight: 800; margin-top: 1px;">Color: ${colorLinea}</div>` : ''}
                         ${eyeLabel ? `<div style="font-size:10px; color:#78716c; font-weight: 600;">Lado: ${eyeLabel}</div>` : ''}
                         ${itemPrice === 0 ? `<div style="font-size:9px; color:#10b981; margin-top:2px; font-weight:bold; letter-spacing: 0.5px;">* Bonificado por Promoción</div>` : ''}
+                        ${notaBonificacion}
                     </td>
                     <td style='text-align:center; font-weight: 800;'>${it.quantity}</td>
                     <td style='text-align:right'>${priceDisplay}</td>
                     <td style='text-align:right; font-weight: 900;'>${totalDisplay}</td>
                 </tr>
-            `}).join('')}
+            `}).join('');
+            })()}
         </tbody>
     </table>
 

@@ -800,6 +800,18 @@ export function OrderDetailPanel({
                             </tbody>
                         </table>
                         
+                        {/* Bonificación 2x1 aplicada en esta venta */}
+                        {(order.appliedPromoDiscount || 0) > 0 && (
+                            <div className="px-5 py-3 bg-emerald-50 dark:bg-emerald-950/20 border-t border-emerald-100 dark:border-emerald-900/50 flex items-center justify-between gap-3">
+                                <p className="text-[9px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">
+                                    🎁 {order.appliedPromoName || 'Bonificación 2x1'}
+                                </p>
+                                <p className="text-xs font-black text-emerald-600">
+                                    −${Math.round(order.appliedPromoDiscount || 0).toLocaleString()}
+                                </p>
+                            </div>
+                        )}
+
                         {/* Frame Info */}
                         {order.frameSource && (
                             <div className="px-5 py-3 bg-amber-50 dark:bg-amber-950/20 border-t border-amber-100 dark:border-amber-900/50">

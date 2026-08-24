@@ -130,6 +130,7 @@ export interface Order {
     labFrameShape2?: string | null;
     labFrameDetails2?: string | null;
     appliedPromoName?: string | null;
+    appliedPromoDiscount?: number | null;
     createdAt: string;
     updatedAt: string;
     isDeleted?: boolean;

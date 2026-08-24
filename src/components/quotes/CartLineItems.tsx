@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ShoppingBag, X, Minus, Plus, Palette, ChevronDown, Glasses } from 'lucide-react';
-import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice } from '@/lib/promo-utils';
+import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice, etiquetaBonificacion2x1 } from '@/lib/promo-utils';
 import { formatLensRange } from '@/lib/lens-range';
 import { needsColorSelection } from '@/lib/crystal-color-utils';
 import { INTENSIDADES_TENIDO, estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
@@ -237,18 +237,24 @@ export default function CartLineItems({
                                                     ${bruto.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                                                 </span>
                                                 <span className="text-xs font-extrabold text-emerald-500">
-                                                    ${neto.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                    {neto === 0 ? 'SIN CARGO' : `$${neto.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
                                                 </span>
-                                                {cant > 1 && (
-                                                    <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider">
-                                                        1 de {cant} bonificado
-                                                    </span>
-                                                )}
+                                                <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider">
+                                                    {etiquetaBonificacion2x1(neto > 0 ? 'MITAD' : 'GRATIS')}{cant > 1 ? ` · 1 de ${cant}` : ''}
+                                                </span>
                                             </div>
                                         );
                                     })()
                                 ) : item.isPromo ? (
-                                    <span className="text-[10px] font-bold text-emerald-500">SIN CARGO</span>
+                                    <div className="flex flex-col items-end">
+                                        {safePrice(item.product?.price) > 0 && (
+                                            <span className="text-[10px] line-through text-stone-400 font-semibold">
+                                                ${Math.round((safePrice(item.product?.price) / 2) * (1 + markup / 100)).toLocaleString()}
+                                            </span>
+                                        )}
+                                        <span className="text-[10px] font-bold text-emerald-500">SIN CARGO</span>
+                                        <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider">2x1</span>
+                                    </div>
                                 ) : (
                                     <span className="text-xs font-bold text-stone-700 dark:text-stone-200">
                                         ${(item.customPrice * (1 + markup / 100)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
