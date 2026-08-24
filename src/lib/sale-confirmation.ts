@@ -27,6 +27,7 @@ import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
 import { logAudit } from '@/lib/audit';
 import { SELECT_REPASO_CON_CLIENTE } from '@/lib/order-recap-select';
+import { BUSINESS_INFO } from '@/lib/business-info';
 import { cristalesPorArmazon } from '@/lib/order-frames';
 import { isTeñidoAddon } from '@/lib/promo-utils';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
@@ -284,12 +285,26 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
            ${fotoReceta ? `<p style="margin:14px 0 0"><img src="${fotoReceta}" alt="Foto de tu receta" style="max-width:100%;border-radius:10px;border:1px solid #e5e1da" /></p>` : ''}`
         : `<p style="margin:0;font-size:14px;color:#666">No hay una receta cargada en este pedido.</p>`;
 
+    // El botón de WhatsApp aparece 3 veces (arriba, en el bloque del OK y al
+    // pie) y el mail dice EXPLÍCITO que no se responda por mail. Pedido del
+    // 24/8: la casilla de respuestas no se mira — un cliente que contesta el
+    // mail cree que avisó y nadie lo vio. El único canal de vuelta es WhatsApp.
+    const waLink = `https://wa.me/${BUSINESS_INFO.phoneE164.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola! Es por mi pedido #${nro}:`)}`;
+    const botonWhatsApp = (texto: string) => `
+        <div style="text-align:center;margin:14px 0 0">
+          <a href="${waLink}" style="display:inline-block;background:#25D366;color:#fff;font-size:17px;font-weight:800;line-height:1;padding:16px 28px;border-radius:14px;text-decoration:none">
+            ${escHtml(texto)} &nbsp;📲
+          </a>
+        </div>`;
+
     const emailHtml = `
       <div style="font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;max-width:620px;margin:0 auto;color:#111">
         <h1 style="font-size:22px;margin:0 0 6px">Confirmación de compra — Pedido #${escHtml(nro)}</h1>
         ${esActualizacion ? `<p style="margin:0 0 14px;padding:10px 14px;border-radius:10px;background:#fff4e5;color:#7a4a00;font-size:14px;font-weight:700">PEDIDO ACTUALIZADO — este repaso reemplaza al que te enviamos antes.</p>` : ''}
         <p style="font-size:15px;line-height:1.6;color:#333;margin:0 0 4px">Hola ${escHtml(nombre)}, tu pedido ya salió a fabricación.</p>
         <p style="font-size:15px;line-height:1.6;color:#333;margin:0">Abajo está el detalle <strong>exacto</strong> de cómo se va a fabricar. Te pedimos que lo revises con calma: es el momento para corregir cualquier cosa.</p>
+        ${botonWhatsApp('Responder por WhatsApp')}
+        <p style="margin:8px 0 0;font-size:14px;font-weight:800;line-height:1.6;color:#b3261e;text-align:center">Este mail no recibe respuestas — escribinos por WhatsApp.</p>
 
         ${bloque('Lo que encargaste', `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${itemsHtml}</table>`)}
 
@@ -326,8 +341,13 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
                 : 'Si querés que lleven teñido, decinos ahora — este pedido va sin teñido.'}</li>
             <li>Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos con gusto.</li>
           </ul>
-          <p style="margin:0;font-size:14px;line-height:1.7;color:#333">Respondé este mail o escribinos por WhatsApp con un <strong>OK</strong> si está todo bien, o contanos qué hay que corregir. Una vez fabricado ya no se puede cambiar.</p>
+          ${botonWhatsApp('Mandanos tu OK por WhatsApp')}
+          <p style="margin:12px 0 0;font-size:15px;font-weight:800;line-height:1.6;color:#b3261e;text-align:center">⚠️ NO respondas este mail: no lo vemos.<br>Escribinos SOLO por WhatsApp 👆</p>
+          <p style="margin:8px 0 0;font-size:13px;line-height:1.6;color:#666;text-align:center">Una vez fabricado ya no se puede cambiar.</p>
         </div>
+
+        ${botonWhatsApp('Tengo una duda — hablar por WhatsApp')}
+        <p style="margin:8px 0 24px;font-size:13px;line-height:1.6;color:#666;text-align:center">Cualquier consulta va por WhatsApp — las respuestas a este mail no se leen.</p>
       </div>`;
 
     return {
