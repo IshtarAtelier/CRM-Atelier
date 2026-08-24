@@ -83,6 +83,8 @@ interface QuoteItem {
     product: Product;
     quantity: number;
     customPrice: number;
+    /** Renglón bonificado por el 2x1 (el par gratis de cristales). */
+    isPromo?: boolean;
     eye?: 'OD' | 'OI';
     crystalColor?: string;
     crystalColorType?: string;
@@ -619,8 +621,15 @@ function CotizadorPageContent() {
         let msg = `Hola ${pendingContact.name}, te envío el presupuesto solicitado:\n\n`;
         quoteItems.forEach(it => {
             const origin = lensOriginSuffix(lensOriginFromItem(it));
-            msg += `- ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''}${origin} ${it.eye ? '['+it.eye+']' : ''}: $${it.customPrice.toLocaleString()}\n`;
+            // El par gratis del 2x1 se dice con todas las letras, no "$0".
+            const precioLinea = it.isPromo && it.customPrice === 0 ? 'SIN CARGO (2x1)' : `$${it.customPrice.toLocaleString()}`;
+            msg += `- ${it.product?.brand || it.productBrandSnapshot || ''} · ${it.product?.name || it.productNameSnapshot || ''}${origin} ${it.eye ? '['+it.eye+']' : ''}: ${precioLinea}\n`;
         });
+        // El descuento del armazón bonificado, explícito: sin este renglón los
+        // ítems no cierran contra el total y el cliente hace la resta a mano.
+        if (quoteTotals.promoFrameDiscount > 0) {
+            msg += `🎁 ${quoteTotals.appliedPromoName || 'Promo 2x1'}: -$${Math.round(quoteTotals.promoFrameDiscount).toLocaleString()}\n`;
+        }
         msg += `\n*Precio Lista: $${listPrice.toLocaleString()}*\n`;
         msg += `💰 Efectivo (-${discountCash}%): $${Math.round(totalCash).toLocaleString()}\n`;
         msg += `🏦 Transferencia (-${discountTransfer}%): $${Math.round(totalWithMarkup * (1 - discountTransfer / 100)).toLocaleString()}\n`;
