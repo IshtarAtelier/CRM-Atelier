@@ -31,7 +31,7 @@ const NOVEDADES = [
         // guiado sin destinatario y sin error a la vista.
         audiencia: (nombre: string) => {
             const n = normalizar(nombre);
-            return n.includes('milena') || n.includes('matias');
+            return n.includes('milena') || n.includes('matias') || n.includes('ishtar');
         },
     },
 ];
