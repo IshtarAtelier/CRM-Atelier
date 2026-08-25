@@ -64,6 +64,41 @@ const GUIADOS: Record<string, Paso[]> = {
             ),
         },
         {
+            titulo: 'Armazones: cuándo se bonifica un par',
+            cuerpo: (
+                <>
+                    <p>Hacen falta <strong>2 pares completos</strong> de cristales 2x1 para que un armazón entre en la promo. Con un solo par, el armazón se cobra entero.</p>
+                    <p className="mt-2">Solo entran los armazones <strong>tildados a mano en Stock</strong> (“Elegible 2x1”). Sin ese tilde, el armazón se cobra completo aunque el pedido tenga los 2 pares.</p>
+                    <div className="mt-3 space-y-2">
+                        <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20">
+                            <Gift className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                            <span className="text-emerald-700 dark:text-emerald-400"><strong>2 o más armazones tildados:</strong> se cobra el más caro de la venta; el <strong>siguiente</strong> tildado más caro va <strong>GRATIS entero</strong>. Sin topes ni promedios.</span>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20">
+                            <Gift className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                            <span className="text-amber-700 dark:text-amber-400"><strong>1 solo armazón tildado:</strong> va al <strong>50%</strong> — sea el único armazón de la venta (el otro lo trae el cliente) o venga acompañado de otro sin promo.</span>
+                        </div>
+                    </div>
+                </>
+            ),
+        },
+        {
+            titulo: 'Clip-on: el caso especial',
+            cuerpo: (
+                <>
+                    <p>Un <strong>clip-on</strong> se engancha sobre otro armazón: no es un anteojo completo por sí solo, y eso cambia cómo se bonifica.</p>
+                    <p className="flex items-start gap-2 mt-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400">
+                        <XIcon className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span><strong>Si es el ÚNICO armazón de la venta</strong>, se cobra ENTERO: el otro anteojo lo arma el cliente con el suyo, y el clip-on se engancha sobre ese mismo — no cuenta como segundo anteojo.</span>
+                    </p>
+                    <p className="flex items-start gap-2 mt-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400">
+                        <Check className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span><strong>Con otro armazón de la óptica en la misma venta</strong> (entre o no en la promo), el clip-on SÍ se bonifica como cualquier armazón tildado.</span>
+                    </p>
+                </>
+            ),
+        },
+        {
             titulo: 'Dos detalles más',
             cuerpo: (
                 <>
