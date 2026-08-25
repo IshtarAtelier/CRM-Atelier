@@ -99,6 +99,21 @@ const GUIADOS: Record<string, Paso[]> = {
             ),
         },
         {
+            titulo: 'Armazón que trae el cliente: siempre por el botón',
+            cuerpo: (
+                <>
+                    <p>Cuando el cliente trae SU PROPIO armazón, <strong>siempre</strong> hay que cargarlo con el botón <strong>“Agregar armazón del usuario”</strong> (abajo del carrito, en el presupuesto) — nunca dejarlo afuera ni contarlo solo de palabra.</p>
+                    <p className="flex items-center gap-2 mt-3 text-amber-600 dark:text-amber-500 font-bold">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        Sin ese botón, el sistema no sabe que hay un armazón ahí: no pide la foto ni las medidas al confirmar la venta, y ese anteojo queda sin rastro en la ficha del cliente.
+                    </p>
+                    <p className="mt-3 p-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
+                        Queda marcado “Sin cargo” solo — no hay que tocar el precio a mano.
+                    </p>
+                </>
+            ),
+        },
+        {
             titulo: 'Dos detalles más',
             cuerpo: (
                 <>
