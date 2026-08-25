@@ -5,6 +5,7 @@ import { sendChargedReworkAlert } from './alerts';
 import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
 import { LAB_ITEM_PATTERNS, TOLERANCE } from './types';
+import { costoParBonificado } from '../../lib/lens-cost';
 
 /**
  * EL NÚCLEO DEL CRUCE: registra el costo que facturó un laboratorio por un nº de
@@ -48,7 +49,10 @@ export function systemCostForLab(order: any, lab: string): number {
     // y enmascara un sobrecosto real. Mismo criterio que report.service.
     const is2x1 = (order.appliedPromoName || '').toLowerCase().includes('2x1')
         || items.some((i: any) => /cristal/i.test(categoryOf(i)) && i.price === 0);
-    const CALIBRADO_COST = 15000 * 1.21; // fallback calibrado + IVA (igual que report.service)
+    // Calibrado + IVA del par bonificado. Sale de la config del laboratorio si
+    // se pudo leer (`order.__labConfig`), y si no del respaldo único de
+    // lens-cost.ts. Antes era un 15000 escrito acá mismo, que quedó viejo.
+    const CALIBRADO_COST = costoParBonificado(order?.__labConfig);
 
     return relevant.reduce((total, item) => {
         const perEyeHalf = item.eye ? 0.5 : 1;
@@ -74,6 +78,26 @@ export function systemCostForLab(order: any, lab: string): number {
  * texto, el dedupe no servía y el email se reenviaba en cada corrida.
  */
 const REWORK_MARK = '⚠️ REPROCESO DE GARANTÍA FACTURADO CON CARGO';
+
+/**
+ * La config del laboratorio (calibrado e IVA) para valuar el par bonificado de
+ * un 2x1. El nombre no coincide entre las dos puntas: acá el lab se llama
+ * 'GRUPO_OPTICO' con guión bajo (LabCostEntry.lab) y en LaboratoryConfig es
+ * 'GRUPO OPTICO' con espacio; 'OPTOVISION' contra 'Optovision'. Se compara
+ * normalizado, si no nunca matchea y siempre cae al respaldo.
+ * Cacheado 5 minutos: se lee una vez por factura procesada y no cambia nunca.
+ */
+let cacheLabs: { hasta: number; filas: any[] } | null = null;
+async function labConfigDe(lab: string) {
+    if (!cacheLabs || cacheLabs.hasta < Date.now()) {
+        const filas = await prisma.laboratoryConfig
+            .findMany({ select: { name: true, calibrado: true, iva: true } })
+            .catch(() => [] as any[]);
+        cacheLabs = { hasta: Date.now() + 5 * 60_000, filas };
+    }
+    const normal = (s: string) => s.toUpperCase().replace(/[_\s]+/g, ' ').trim();
+    return cacheLabs.filas.find(l => normal(l.name) === normal(lab));
+}
 
 export async function upsertEntry(input: LabCostInput) {
     const cleanNumber = input.claveLiteral
@@ -186,6 +210,10 @@ export async function upsertEntry(input: LabCostInput) {
     const billedComparable = input.lab === 'OPTOVISION'
         ? (billedTotal ?? billedNet ?? null)
         : (billedNet ?? billedTotal ?? null);
+    // El calibrado real del lab viaja con la orden: systemCostForLab es sync y
+    // no puede ir a buscarlo, y sin esto valuaba el par bonificado con el
+    // respaldo en vez de con lo que está configurado.
+    if (order) (order as any).__labConfig = await labConfigDe(String(input.lab));
     const systemCost = order ? systemCostForLab(order, input.lab) : null;
 
     // Una venta puede tener varios pedidos de lab ("580841-580844", típico en

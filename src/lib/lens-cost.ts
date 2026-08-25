@@ -15,6 +15,27 @@ export interface LabCostConfig {
     iva?: number | null;
 }
 
+/**
+ * Respaldo para cuando NO se pudo leer LaboratoryConfig (la fuente de verdad:
+ * se edita en Configuración → Laboratorios).
+ *
+ * Estaba escrito a mano en cuatro lugares distintos y con un valor viejo:
+ * $15.000, cuando el calibrado de Optovisión es $23.000 desde hace rato. Ese
+ * respaldo lo usaba el cruce de costos para valuar el par bonificado de un 2x1,
+ * así que TODA venta 2x1 se comparaba contra un costo $9.500 más bajo del real
+ * y aparecían sobrecostos que no existían. Un número mágico repetido siempre
+ * termina así: se actualiza en un lugar y queda viejo en los otros tres.
+ */
+export const CALIBRADO_POR_DEFECTO = 23000;
+export const IVA_POR_DEFECTO = 21;
+
+/** Lo que cuesta el par bonificado de un 2x1: solo calibrado, con su IVA. */
+export function costoParBonificado(lab?: LabCostConfig): number {
+    const calibrado = lab?.calibrado ?? CALIBRADO_POR_DEFECTO;
+    const iva = lab?.iva ?? IVA_POR_DEFECTO;
+    return Math.round(calibrado * (1 + iva / 100));
+}
+
 export interface LensCostOptions {
     /** Par bonificado: el lab calibra dos pares, así que el calibrado va doble. */
     is2x1?: boolean;

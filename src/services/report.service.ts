@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { getCommissionRate, DOCTOR_COMMISSION_RATE } from '@/lib/constants';
 import { getDolarBlueVenta, resolveTargetsFromRow } from '@/lib/targets';
 import { PricingService } from '@/services/PricingService';
+import { CALIBRADO_POR_DEFECTO } from '@/lib/lens-cost';
 
 interface BillingStat {
     account: string;
@@ -282,7 +283,7 @@ export class ReportService {
                 // If it is a 2x1 order and the crystal is free (price === 0), only charge the calibration cost
                 if (isCrystalItem && is2x1Order && item.price === 0) {
                     const labConfig = labName ? labMap.get(labName.toUpperCase()) : null;
-                    const calibrado = labConfig ? labConfig.calibrado : 15000;
+                    const calibrado = labConfig ? labConfig.calibrado : CALIBRADO_POR_DEFECTO;
                     const iva = labConfig ? labConfig.iva : 21;
                     const calibradoCost = calibrado * (1 + iva / 100);
                     

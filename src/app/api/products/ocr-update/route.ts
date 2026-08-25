@@ -5,7 +5,7 @@ import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { retryWithBackoff } from '@/lib/retry-utils';
-import { breakdownLensCost } from '@/lib/lens-cost';
+import { breakdownLensCost, CALIBRADO_POR_DEFECTO, IVA_POR_DEFECTO } from '@/lib/lens-cost';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { imageBase64, laboratory, calibrado = 15000, iva = 21 } = body;
+        const { imageBase64, laboratory, calibrado = CALIBRADO_POR_DEFECTO, iva = IVA_POR_DEFECTO } = body;
 
         if (!imageBase64) {
             return NextResponse.json({ error: 'No se recibió imagen' }, { status: 400 });
