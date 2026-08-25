@@ -40,10 +40,16 @@ const tokens = (s: string): string[] =>
 export const esArmazonItem = (it: any): boolean =>
     /Armazón|Sol/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`);
 
-/** "Vulk Anteojo de sol", con la marca adelante si la hay. */
-export const nombreDeArmazon = (it: any): string =>
-    [it.product?.brand || it.productBrandSnapshot, it.product?.name || it.productNameSnapshot]
-        .filter(Boolean).join(' ').trim();
+/** "Vulk Anteojo de sol", con la marca adelante si la hay. La mitad del
+ *  catálogo repite la marca en el nombre ("Vulk · Vulk"): concatenar a ciegas
+ *  mostraba "VULK VULK" en el título del cuadro. */
+export const nombreDeArmazon = (it: any): string => {
+    const marca = String(it.product?.brand || it.productBrandSnapshot || '').trim();
+    const nombre = String(it.product?.name || it.productNameSnapshot || '').trim();
+    if (!marca) return nombre;
+    if (!nombre) return marca;
+    return nombre.toLowerCase().includes(marca.toLowerCase()) ? nombre : `${marca} ${nombre}`;
+};
 
 export interface ParConDetalle {
     pair: number;
