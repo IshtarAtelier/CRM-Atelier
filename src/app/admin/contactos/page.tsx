@@ -33,6 +33,10 @@ function ContactosPageContent() {
     // Solapa inicial de la ficha, pedida por URL (?section=postsale desde los mails de post-venta).
     // Se consume una sola vez: al elegir otro contacto vuelve a abrir en Historial.
     const [initialSection, setInitialSection] = useState<'history' | 'tasks' | 'prescription' | 'budget' | 'sales' | 'postsale' | undefined>(undefined);
+    // El LINK DEL PRESUPUESTO (Ishtar, 25/8): ?id=<cliente>&pedido=<orden>
+    // abre la ficha con ESE presupuesto desplegado. Es el link que viaja por
+    // WhatsApp o mensajería interna y te deja adentro, sin buscar a mano.
+    const [initialOrderId, setInitialOrderId] = useState<string | null>(null);
     const [autoStartQuote, setAutoStartQuote] = useState(false);
     const [showFavorites, setShowFavorites] = useState(false);
     const [showRxAlert, setShowRxAlert] = useState(true);
@@ -72,6 +76,7 @@ function ContactosPageContent() {
         } else if (idParam) {
             setSelectedContactId(idParam);
         }
+        setInitialOrderId(searchParams.get('pedido'));
     }, [searchParams]);
 
     useEffect(() => {
@@ -267,6 +272,7 @@ function ContactosPageContent() {
                     autoStartQuote={autoStartQuote}
                     currentUserRole={currentUserRole}
                     initialSection={initialSection}
+                    initialOrderId={initialOrderId}
                 />
             )}
 

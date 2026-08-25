@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     Calculator, Receipt, Plus, CheckCircle2
 } from 'lucide-react';
@@ -19,6 +19,8 @@ interface OrderManagerProps {
     onAddPayment: (orderId: string) => void;
     onDeleteOrder: (orderId: string, reason?: string, role?: string) => Promise<void> | void;
     onRequestPrescription?: () => void;
+    /** Pedido a desplegar al montar (viene del link ?pedido=). */
+    initialExpandedOrderId?: string | null;
 }
 
 export default function OrderManager({
@@ -31,7 +33,8 @@ export default function OrderManager({
     onConvertOrder,
     onAddPayment,
     onDeleteOrder,
-    onRequestPrescription
+    onRequestPrescription,
+    initialExpandedOrderId = null,
 }: OrderManagerProps) {
     const orders = contact.orders || [];
     const contactName = contact.name;
@@ -55,6 +58,16 @@ export default function OrderManager({
     // de guardar.
     const [editingIsSale, setEditingIsSale] = useState(false);
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+    // El link del presupuesto te deja ADENTRO: desplegado y a la vista.
+    useEffect(() => {
+        if (!initialExpandedOrderId) return;
+        setExpandedOrderId(initialExpandedOrderId);
+        // El scroll espera al render del despliegue.
+        const t = setTimeout(() => {
+            document.getElementById(`pedido-${initialExpandedOrderId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 350);
+        return () => clearTimeout(t);
+    }, [initialExpandedOrderId]);
 
     // ── Shared: ensure products are loaded ──
     const ensureProductsLoaded = async () => {
@@ -253,8 +266,8 @@ export default function OrderManager({
             ) : (
                 <div className="space-y-6">
                     {relevantOrders.map((order: any, idx: number) => (
+                        <div key={order.id || `order-${idx}`} id={`pedido-${order.id}`}>
                         <QuoteSummary
-                            key={order.id || `order-${idx}`}
                             order={order}
                             contact={contact}
                             currentUserRole={currentUserRole as any}
@@ -267,6 +280,7 @@ export default function OrderManager({
                             isExpanded={expandedOrderId === order.id}
                             onToggleExpand={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
                         />
+                        </div>
                     ))}
                 </div>
             )}

@@ -29,6 +29,8 @@ interface ContactDetailProps {
     currentUserRole?: string;
     /** Solapa a abrir al entrar (ej: los mails de post-venta linkean a 'postsale'). */
     initialSection?: 'history' | 'tasks' | 'prescription' | 'budget' | 'sales' | 'postsale';
+    /** Pedido a desplegar al abrir (viene del link ?pedido=). */
+    initialOrderId?: string | null;
 }
 
 export default function ContactDetail({
@@ -45,7 +47,8 @@ export default function ContactDetail({
     onDeleteContact,
     autoStartQuote,
     currentUserRole: propUserRole,
-    initialSection
+    initialSection,
+    initialOrderId = null,
 }: ContactDetailProps) {
     const [contact, setContact] = useState<Contact | null>(null);
     const [loading, setLoading] = useState(true);
@@ -54,6 +57,9 @@ export default function ContactDetail({
     const [pendingConvertOrderId, setPendingConvertOrderId] = useState<string | null>(null);
     const [convertSuccess, setConvertSuccess] = useState(false);
     const [convertError, setConvertError] = useState<string | null>(null);
+    // El pedido del link (?pedido=): cuando el contacto ya cargó, elige solo la
+    // solapa que corresponde (venta o presupuesto) y OrderManager lo despliega.
+    const [pedidoDelLink, setPedidoDelLink] = useState<string | null>(initialOrderId);
 
     const router = useRouter();
 
@@ -63,6 +69,13 @@ export default function ContactDetail({
             if (res.ok) {
                 const data = await res.json();
                 setContact(data);
+                if (initialOrderId) {
+                    const pedido = (data?.orders || []).find((o: any) => o.id === initialOrderId);
+                    if (pedido) {
+                        setActiveSection(pedido.orderType === 'SALE' || pedido.orderType === 'MAYORISTA' ? 'sales' : 'budget');
+                        setPedidoDelLink(initialOrderId);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error fetching contact:', error);
@@ -326,6 +339,7 @@ export default function ContactDetail({
                             onAddPayment={handleAddPayment}
                             onDeleteOrder={handleDeleteOrder}
                             onRequestPrescription={() => setActiveSection('prescription')}
+                            initialExpandedOrderId={pedidoDelLink}
                         />
                     )}
                 </main>

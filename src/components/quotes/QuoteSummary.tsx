@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
     Calculator, Receipt, Download,
     CheckCircle2, X, Clock, Glasses, 
     Banknote, ArrowRightLeft, CreditCard,
     Lock, Unlock, ChevronRight, ChevronUp, Pencil,
     History, Trash2, Eye, AlertCircle, Factory, Loader2,
-    FileText, ExternalLink
+    FileText, ExternalLink, Link2, Check
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -302,6 +302,23 @@ export default function QuoteSummary({
 
     // Resumen de lo cargado en el Repaso Final (origen del armazón, medidas de
     // cada par y teñido) — mismo dato que se muestra en "la venta" y en el PDF.
+    // "Copiar link" del pedido (Ishtar, 25/8: «necesito poder recibir los
+    // links del presupuesto... que me pueda llevar ahí dentro»). El link abre
+    // la ficha con ESTE pedido desplegado (?id=<cliente>&pedido=<orden>): se
+    // copia acá y se pega en WhatsApp o en la mensajería del equipo.
+    const [linkCopiado, setLinkCopiado] = useState(false);
+    const copiarLink = async () => {
+        const url = `${window.location.origin}/admin/contactos?id=${(contact as any)?.id || (order as any).clientId}&pedido=${order.id}`;
+        try {
+            await navigator.clipboard.writeText(url);
+        } catch {
+            // Safari viejo / http: caída elegante al prompt del navegador.
+            window.prompt('Copiá el link del pedido:', url);
+        }
+        setLinkCopiado(true);
+        setTimeout(() => setLinkCopiado(false), 2500);
+    };
+
     const labFrame = describeLabFrameDetails(order as any);
     // Los armazones del pedido: uno por PAR DE CRISTALES.
     const armazones = framesDeLaOrden(order as any);
@@ -697,6 +714,14 @@ export default function QuoteSummary({
                                 <span className="text-lg font-black text-emerald-500">${financials.remainingCash.toLocaleString()}</span>
                             </div>
                         )}
+                        <button
+                            onClick={copiarLink}
+                            title="Copiar el link de este pedido (abre la ficha con el pedido desplegado)"
+                            className={`p-2 rounded-xl transition-colors flex items-center gap-1 ${linkCopiado ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40' : 'text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-900 hover:text-stone-600'}`}
+                        >
+                            {linkCopiado ? <Check className="w-5 h-5" /> : <Link2 className="w-5 h-5" />}
+                            {linkCopiado && <span className="text-[9px] font-black uppercase tracking-widest">Copiado</span>}
+                        </button>
                         {onToggleExpand && (
                             <button onClick={onToggleExpand} className="p-2 hover:bg-stone-50 dark:hover:bg-stone-900 rounded-xl transition-colors" title="Cerrar">
                                 <ChevronUp className="w-5 h-5 text-stone-400" />
