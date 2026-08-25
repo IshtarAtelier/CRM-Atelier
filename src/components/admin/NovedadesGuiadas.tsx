@@ -51,6 +51,7 @@ const GUIADOS: Record<string, Paso[]> = {
             cuerpo: (
                 <>
                     <p>Con el 2x1 de multifocales se bonifica <strong>UN teñido</strong> (el del 1º anteojo). El del segundo anteojo <strong>se cobra</strong>.</p>
+                    <p className="mt-2"><strong>El teñido según muestra NO entra</strong> en esta bonificación bajo ningún caso: se cobra siempre, tenga o no tenga la promo activa.</p>
                     <div className="flex flex-wrap gap-2 mt-3">
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold"><Check className="w-3.5 h-3.5" /> Compacto — entra</span>
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold"><Check className="w-3.5 h-3.5" /> Degradé — entra</span>
