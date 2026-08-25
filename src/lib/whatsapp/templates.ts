@@ -176,6 +176,25 @@ export const WHATSAPP_TEMPLATES = {
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'tema', example: 'tus lentes multifocales' }],
         buttons: [{ type: 'QUICK_REPLY', text: 'Sí, sigamos' }, { type: 'QUICK_REPLY', text: 'Ahora no' }],
     },
+
+    // ── Avisos internos (van al celular de la administración, no a clientes) ──
+    // Pedido del 24/8: al retomar los avisos por WhatsApp con la API oficial,
+    // el primero es el de pagos — con el recibo adjunto y si fue seña o saldo.
+    aviso_pago_interno: {
+        name: 'aviso_pago_interno',
+        inventario: 'B2',
+        category: 'UTILITY',
+        header: 'DOCUMENT',
+        body: 'Aviso de Atelier Sistema — Pago registrado: {{1}} abonó {{2}} {{3}} del pedido {{4}}. Total del pedido: {{5}}. {{6}}. Recibo adjunto.',
+        params: [
+            { label: 'cliente', example: 'Julio Lescano' },
+            { label: 'importe', example: '$ 50.000' },
+            { label: 'forma de pago', example: 'en efectivo' },
+            { label: 'nº de pedido', example: '#A1B2' },
+            { label: 'total', example: '$ 250.000' },
+            { label: 'seña o saldo', example: 'SEÑA — queda saldo $ 200.000' },
+        ],
+    },
 } as const satisfies Record<string, TemplateDef>;
 
 export type TemplateName = keyof typeof WHATSAPP_TEMPLATES;

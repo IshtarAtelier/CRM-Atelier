@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { CashService } from './cash.service';
-import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE } from '@/lib/constants';
+import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
@@ -2272,6 +2272,38 @@ export const ContactService = {
                     } catch (pdfErr) {
                         console.error('[Payment Notification] Failed to generate Receipt PDF:', pdfErr);
                     }
+
+                    // ── Aviso interno a la administración (24/8/2026) ────────
+                    // Va al celular de la dueña con la plantilla aviso_pago_interno:
+                    // el recibo adjunto, el total del pedido y si fue seña o saldo.
+                    // Retoma por la API oficial los avisos que antes mandaba el bot;
+                    // fire-and-forget: su falla no toca el recibo del cliente.
+                    (async () => {
+                        const fullTotal = (await prisma.order.findUnique({ where: { id: orderId }, select: { total: true } }))?.total || 0;
+                        const señaOSaldo = result.remainingCard > 0
+                            ? `SEÑA — queda saldo $ ${result.remainingCard.toLocaleString('es-AR')}`
+                            : 'SALDO CANCELADO — pedido totalmente abonado';
+                        const r = await sendWhatsApp({
+                            chatId: ADMIN_WHATSAPP_PHONE,
+                            message: `Aviso de Atelier Sistema — Pago registrado: ${result.clientName} abonó $ ${amount.toLocaleString('es-AR')} ${methodLabel} del pedido #${String(orderId).slice(-4).toUpperCase()}. Total del pedido: $ ${fullTotal.toLocaleString('es-AR')}. ${señaOSaldo}. Recibo adjunto.`,
+                            senderName: 'Sistema Atelier',
+                            isProactive: true,
+                            // La plantilla lleva el recibo de ENCABEZADO: sin PDF no
+                            // puede salir como plantilla (Meta la rechaza incompleta),
+                            // así que en ese caso raro va como texto y listo.
+                            forceTemplate: Boolean(pdfMedia),
+                            template: !pdfMedia ? null : templateSpec('aviso_pago_interno', [
+                                result.clientName,
+                                `$ ${amount.toLocaleString('es-AR')}`,
+                                methodLabel,
+                                `#${String(orderId).slice(-4).toUpperCase()}`,
+                                `$ ${fullTotal.toLocaleString('es-AR')}`,
+                                señaOSaldo,
+                            ]),
+                            templateMedia: pdfMedia,
+                        });
+                        if (!r.ok) console.error('[Payment Notification] Aviso interno por WhatsApp no salió:', r.code, r.error);
+                    })().catch(e => console.error('[Payment Notification] Aviso interno:', e.message));
 
                     // Canal EMAIL: si la ficha tiene mail cargado, el recibo va también
                     // por ahí, con copia (BCC) a Atelier. Es un canal ADICIONAL e

@@ -11,6 +11,12 @@ export const WHATSAPP_PHONE_DISPLAY = '351 868 5644';
 // Atelier. Normalizado wa.me (549 + área + número).
 export const WHOLESALE_WHATSAPP_PHONE = process.env.NEXT_PUBLIC_WHOLESALE_WHATSAPP_PHONE || '5493541215971';
 
+// WhatsApp de la ADMINISTRACIÓN: acá llegan los avisos internos que salen por
+// la API oficial (hoy: aviso_pago_interno con el recibo). Es el celular de la
+// dueña; coincide con el mayorista de casualidad, por eso son DOS constantes —
+// si el área mayorista cambia de número, los avisos internos no se mueven.
+export const ADMIN_WHATSAPP_PHONE = process.env.ADMIN_WHATSAPP_PHONE || '5493541215971';
+
 // Origen público de la tienda: TODO link que vea un cliente (mails de checkout,
 // carrito abandonado, fichas de producto) tiene que salir con el dominio propio,
 // nunca con la URL interna de Railway. Los links de gestión (CRM) van aparte.
