@@ -279,7 +279,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         `*PAGO*`,
         ...(cadenaCierra && (promoInflado > 0 || especial > 0) ? [`Suma de los productos: ${money(sumaRenglones)}`] : []),
         ...(cadenaCierra && promoInflado > 0 ? [`Bonificación — ${order.appliedPromoName || 'promoción'}: −${money(promoInflado)}`] : []),
-        ...(cadenaCierra && especial > 0 ? [`Descuento especial: −${money(especial)}`] : []),
+        ...(cadenaCierra && especial > 0 ? [`⭐ Descuento excepcional para vos: −${money(especial)}`] : []),
         `Precio de lista: ${money(fin.listPrice)}`,
         ...(!fin.hasBalance && descuentoFormaDePago > 0
             ? [`Descuento por tu forma de pago: −${money(descuentoFormaDePago)}`,
@@ -515,8 +515,19 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
               </tr>` : ''}
               ${especial > 0 ? `
               <tr>
-                <td style="padding:6px 0;color:#1a7f4b">Descuento especial</td>
-                <td style="padding:6px 0;text-align:right;color:#1a7f4b;font-weight:bold">− ${money(especial)}</td>
+                <td colspan="2" style="padding:4px 0">
+                  <!-- DESTACADO a propósito: no es una promo de lista ni el
+                       descuento por forma de pago — es un gesto EXCEPCIONAL que
+                       se le hizo a este cliente, y tiene que notarse.
+                       (Ishtar, 25/8: "quiero que se destaque porque es
+                       realmente especial"). -->
+                  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background:#eaf7f0;border:1px solid #7cc79b;border-radius:10px">
+                    <tr>
+                      <td style="padding:8px 12px;color:#12653a;font-weight:800;font-size:14px">⭐ Descuento excepcional para vos</td>
+                      <td style="padding:8px 12px;text-align:right;color:#12653a;font-weight:800;font-size:15px;white-space:nowrap">− ${money(especial)}</td>
+                    </tr>
+                  </table>
+                </td>
               </tr>` : ''}
               <tr>
                 <td style="padding:8px 0 6px;border-top:1px solid #e5e1da;font-weight:bold;color:#111">Precio de lista</td>
