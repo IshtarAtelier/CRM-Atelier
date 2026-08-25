@@ -157,7 +157,9 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         .map(p => {
             const cual = resumen.pairs.length > 1 ? `tu ${p.pair}º armazón` : 'tu armazón';
             const extras = [
-                p.tint ? `Cristal teñido ${p.tint}` : null,
+                // Con teñido, el anteojo deja de ser blanco: es DE SOL, del
+                // color elegido — y así se le dice al cliente (Ishtar, 24/8/26).
+                p.tint ? `Cristal de sol — teñido ${p.tint}` : null,
                 p.photochromic
                     ? `Cristal fotocromático${p.photochromicColor ? ` ${p.photochromicColor}` : ''} (se oscurece solo con el sol)`
                     : null,

@@ -117,6 +117,59 @@ export const isTeñidoAddon = (p: any): boolean => {
 };
 
 /**
+ * ¿Esta LÍNEA de pedido/carrito es un teñido? Mira el producto vivo o los
+ * snapshots (pedidos guardados donde el producto ya no viene poblado).
+ */
+export const esLineaDeTenido = (item: any): boolean =>
+    !!item && isTeñidoAddon(item.product || {
+        name: item.productNameSnapshot,
+        category: item.productCategorySnapshot,
+        type: item.productTypeSnapshot,
+    });
+
+/**
+ * Agrupa las líneas de teñido en TEÑIDOS lógicos: uno por anteojo.
+ *
+ * El teñido nuevo es UNA sola línea (no se tiñe un ojo solo — decisión del
+ * 24/8/26), pero los pedidos guardados antes lo tienen partido en dos líneas
+ * OD/OI. Este helper entiende las dos formas: una línea OD se aparea con la
+ * siguiente línea OI del mismo producto (y armazón compatible), y una línea
+ * sin ojo es un teñido entero por sí sola.
+ *
+ * Devuelve grupos de ÍNDICES sobre `items`, en orden de aparición. Todo lo que
+ * razona sobre "un teñido" (bonificación, sincronización de color, validación)
+ * lee de acá — es la única definición de qué líneas son el mismo teñido.
+ */
+export function gruposDeTenido(items: any[]): number[][] {
+    const grupos: number[][] = [];
+    if (!Array.isArray(items)) return grupos;
+    const usados = new Set<number>();
+    const mismoProducto = (a: any, b: any) => {
+        const idA = a?.product?.id, idB = b?.product?.id;
+        if (idA && idB) return idA === idB;
+        const nombreDe = (it: any) => it?.product?.name || it?.productNameSnapshot || '';
+        return nombreDe(a) === nombreDe(b);
+    };
+    items.forEach((it, i) => {
+        if (usados.has(i) || !esLineaDeTenido(it)) return;
+        usados.add(i);
+        const grupo = [i];
+        if (it.eye === 'OD' || it.eye === 'OI') {
+            const otroOjo = it.eye === 'OD' ? 'OI' : 'OD';
+            const j = items.findIndex((cand, k) =>
+                k > i && !usados.has(k) && esLineaDeTenido(cand) && cand.eye === otroOjo
+                && mismoProducto(it, cand)
+                // Un armazón asignado distinto separa los teñidos; null es
+                // compatible con cualquiera (la asignación a medias del par).
+                && (cand.framePosition == null || it.framePosition == null || cand.framePosition === it.framePosition));
+            if (j !== -1) { usados.add(j); grupo.push(j); }
+        }
+        grupos.push(grupo);
+    });
+    return grupos;
+}
+
+/**
  * Robust check if a product is a treatment (categoría 'Tratamiento').
  */
 export const isTreatment = (p: any): boolean => {
@@ -183,6 +236,14 @@ export const safePrice = (price: any): number => {
  * Usado por los DOS cotizadores (ficha y página) — un solo lugar arma esto.
  */
 export const armarParesDeCristal = (product: any, prevItems: any[] = []): any[] => {
+    // El TEÑIDO es uno por anteojo, no uno por ojo: no existe teñir un solo
+    // cristal del par (decisión del 24/8/26). Entra como UNA línea, sin ojo,
+    // al precio del par entero — antes se partía en OD/OI como un cristal y
+    // cada mitad terminaba cobrando el precio del estilo COMPLETO: el teñido
+    // se facturaba dos veces.
+    if (isTeñidoAddon(product)) {
+        return [{ product, quantity: 1, customPrice: safePrice(product?.price), uid: Date.now() }];
+    }
     const sprice = safePrice(product?.price);
     const porOjo = Math.round(sprice / 2);
     const ts = Date.now();
@@ -355,8 +416,10 @@ export function recalculateCrystalPrices(items: any[]): boolean {
     if (!items || items.length === 0) return false;
     let modified = false;
 
-    // 1. Gather all crystal items
-    const crystalItems = items.filter(i => isCrystal(i.product));
+    // 1. Gather all crystal items. El teñido NO entra: aunque en el catálogo
+    // viva como categoría Cristal, su precio lo pone applyTeñidoPromoDiscount
+    // (por teñido entero, no por ojo) — pasarlo por acá lo partía a la mitad.
+    const crystalItems = items.filter(i => isCrystal(i.product) && !isTeñidoAddon(i.product));
 
     // For any crystal that is NOT a 2x1 multifocal, its price should be sprice / 2
     const regularCrystals = crystalItems.filter(i => !isMultifocal2x1(i.product) || isMiPrimerVarilux(i.product));
@@ -511,8 +574,11 @@ export function recalculateCrystalPrices(items: any[]): boolean {
 export function applyTeñidoPromoDiscount(items: any[], tintStylePrices?: Record<string, number>): boolean {
     if (!items || items.length === 0) return false;
 
-    const teñidoItems = items.filter(i => isTeñidoAddon(i.product));
-    if (teñidoItems.length === 0) return false;
+    // Los teñidos LÓGICOS (uno por anteojo), no las líneas sueltas: los pedidos
+    // viejos tienen el teñido partido en dos líneas OD/OI y las dos son EL MISMO
+    // teñido — cobrarlas por separado lo facturaba dos veces.
+    const grupos = gruposDeTenido(items);
+    if (grupos.length === 0) return false;
 
     const hasMultifocalPromo = hasActive2x1Promo(items);
     // "Solo ese tratamiento": ningún OTRO tratamiento además del teñido.
@@ -522,23 +588,45 @@ export function applyTeñidoPromoDiscount(items: any[], tintStylePrices?: Record
     // 0 tratamientos contra 2 teñidos no es igual, y la promo no se aplicaba.
     // Lo que importa es si hay otro tratamiento, no cuántos.
     const otrosTratamientos = items.filter(i => isTreatment(i.product) && !isTeñidoAddon(i.product));
-    const isEligible = hasMultifocalPromo && otrosTratamientos.length === 0;
+    const promoActiva = hasMultifocalPromo && otrosTratamientos.length === 0;
 
     let modified = false;
-    for (const item of teñidoItems) {
-        const stylePrice = item.crystalColorType ? tintStylePrices?.[item.crystalColorType] : undefined;
-        const expectedPrice = isEligible ? 0 : (stylePrice ?? safePrice(item.product?.price));
-        const currentPrice = item.customPrice !== undefined ? item.customPrice : item.price;
-        if (currentPrice !== expectedPrice) {
-            if (item.customPrice !== undefined) item.customPrice = expectedPrice;
-            else item.price = expectedPrice;
+    const setLinea = (item: any, precio: number, promo: boolean) => {
+        const actual = item.customPrice !== undefined ? item.customPrice : item.price;
+        if (actual !== precio) {
+            if (item.customPrice !== undefined) item.customPrice = precio;
+            else item.price = precio;
             modified = true;
         }
-        if (item.isPromo !== isEligible) {
-            item.isPromo = isEligible;
+        if (item.isPromo !== promo) {
+            item.isPromo = promo;
             modified = true;
         }
-    }
+    };
+
+    grupos.forEach((grupo, gi) => {
+        // Con la promo 2x1 se bonifica UN SOLO teñido (el primero cargado, que
+        // es el del 1º armazón): el del segundo anteojo se le cobra al cliente
+        // (Ishtar, 24/8/26). Antes se regalaban TODOS los teñidos del pedido.
+        const bonificado = promoActiva && gi === 0;
+        const primera = items[grupo[0]];
+        const stylePrice = primera.crystalColorType ? tintStylePrices?.[primera.crystalColorType] : undefined;
+        // El precio es POR TEÑIDO (el par de cristales de un anteojo): si el
+        // teñido está partido en dos líneas viejas, se reparte entre ellas.
+        // Sin precio de estilo ni producto poblado (producto borrado del
+        // catálogo), se conserva lo que la venta ya cobraba — nunca poner $0
+        // por no saber el precio.
+        const totalActual = grupo.reduce((s, idx) => {
+            const it = items[idx];
+            return s + safePrice(it.customPrice !== undefined ? it.customPrice : it.price) * (it.quantity || 1);
+        }, 0);
+        const totalGrupo = bonificado ? 0 : (stylePrice ?? (primera.product ? safePrice(primera.product.price) : totalActual));
+        const porLinea = Math.round(totalGrupo / grupo.length);
+        grupo.forEach((idx, k) => {
+            const precio = k === 0 ? totalGrupo - porLinea * (grupo.length - 1) : porLinea;
+            setLinea(items[idx], precio, bonificado);
+        });
+    });
 
     return modified;
 }

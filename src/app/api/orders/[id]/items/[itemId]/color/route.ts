@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
+import { indicesDelMismoTenido } from '@/lib/tenido-sync';
 
 const texto = (v: unknown) => (v === null || v === undefined || v === '' ? null : String(v));
 
@@ -59,6 +60,27 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
                 crystalColorNote: true, framePosition: true,
             },
         });
+
+        // El teñido es UNO por anteojo: si esta línea es un teñido viejo
+        // partido en OD/OI, el cambio se copia a su línea compañera — sin esto
+        // quedaba un ojo Sepia y el otro G15, y la fábrica no sabe cuál vale.
+        // Qué líneas son el mismo teñido lo decide gruposDeTenido (promo-utils).
+        const lineas = await prisma.orderItem.findMany({
+            where: { orderId: id },
+            orderBy: { id: 'asc' },
+            select: {
+                id: true, eye: true, framePosition: true,
+                productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true,
+                product: { select: { id: true, name: true, category: true, type: true } },
+            },
+        });
+        const idxEditada = lineas.findIndex(l => l.id === itemId);
+        const companeras = idxEditada === -1 ? [] : indicesDelMismoTenido(lineas, idxEditada)
+            .filter(i => i !== idxEditada)
+            .map(i => lineas[i].id);
+        if (companeras.length > 0) {
+            await prisma.orderItem.updateMany({ where: { id: { in: companeras } }, data: datos });
+        }
 
         const actor = getActor(request, 'CRM');
         logAudit({

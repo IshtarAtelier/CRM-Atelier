@@ -7,8 +7,9 @@ import { Save, Loader2,
 import { 
     isMultifocal2x1, isCrystal, isFrame, safePrice,
     hasActive2x1Promo, pick2x1FrameDiscount,
-    armarParesDeCristal, recalculateCrystalPrices
+    armarParesDeCristal, recalculateCrystalPrices, applyTeñidoPromoDiscount
 } from '@/lib/promo-utils';
+import { aplicarCambioDeLinea } from '@/lib/tenido-sync';
 import { calculateQuoteTotals } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 
@@ -109,8 +110,13 @@ export default function CotizadorCart({
     useEffect(() => {
         if (isSale) return;
         const copia = items.map(it => ({ ...it }));
-        if (recalculateCrystalPrices(copia)) setItems(copia);
-    }, [items, setItems, isSale]);
+        // El teñido también se reprecia acá (bonificación de UN solo teñido en
+        // el 2x1, precio por estilo en el resto): antes solo lo hacía la página
+        // del cotizador y en la ficha el precio quedaba viejo hasta guardar.
+        const cristales = recalculateCrystalPrices(copia);
+        const tenido = applyTeñidoPromoDiscount(copia, tintStylePrices);
+        if (cristales || tenido) setItems(copia);
+    }, [items, setItems, isSale, tintStylePrices]);
 
     // Logic memoization
     const hasMultifocalPromo = useMemo(() => {
@@ -256,10 +262,10 @@ export default function CotizadorCart({
                 items={items} 
                 onUpdateQuantity={(idx, delta) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))}
                 onRemoveItem={(idx) => setItems(prev => prev.filter((_, i) => i !== idx))}
-                onUpdateItemColor={(idx, color, colorType) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, crystalColor: color, crystalColorType: colorType } : item))}
-                onUpdateItemStyle={(idx, style) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, crystalColorType: style } : item))}
-                onUpdateItemNote={(idx, note) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, crystalColorNote: note } : item))}
-                onUpdateItemFrame={(idx, framePosition) => setItems(prev => prev.map((item, i) => i === idx ? { ...item, framePosition } : item))}
+                onUpdateItemColor={(idx, color, colorType) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColor: color, crystalColorType: colorType }))}
+                onUpdateItemStyle={(idx, style) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorType: style }))}
+                onUpdateItemNote={(idx, note) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorNote: note }))}
+                onUpdateItemFrame={(idx, framePosition) => setItems(prev => aplicarCambioDeLinea(prev, idx, { framePosition }))}
                 markup={markup}
                 secondFrameUid={secondFrameUid}
                 promoFrameDiscount={promoFrameDiscount}
