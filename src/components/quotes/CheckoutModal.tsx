@@ -182,6 +182,12 @@ export default function CheckoutModal({
         return isMT && promoRegex.test(str);
     });
 
+    // CUÁNTOS anteojos son de verdad: lo dicen los pares de cristales, no la
+    // promo. Un pedido de dos pares comprados (sin 2x1) también tiene DOS
+    // armazones que completar — hasta el 25/8 el checkout solo exigía el 2º
+    // cuando era promo, y un segundo par sin forma ni medidas pasaba a fábrica.
+    const armazonesTotales = cantidadDeArmazones(order as any);
+
     const isFrameDataComplete = !needsFrameData || (
         frameDetails.trim() !== '' &&
         frameMeasurePte.trim() !== '' &&
@@ -189,7 +195,7 @@ export default function CheckoutModal({
         frameMeasureB.trim() !== '' &&
         frameMeasureEd.trim() !== '' &&
         (frameSource !== 'USUARIO' || (userFrameBrand.trim() !== '' || userFrameModel.trim() !== '')) &&
-        (!is2x1 || (
+        (armazonesTotales < 2 || (
             frameDetails2.trim() !== '' &&
             frameMeasurePte2.trim() !== '' &&
             frameMeasureA2.trim() !== '' &&
@@ -265,7 +271,7 @@ export default function CheckoutModal({
         // La foto es obligatoria: es lo que el cliente mira para reconocer su
         // armazón en la confirmación, y lo único que prueba después qué se le
         // vendió si aparece un "yo elegí otro".
-        if (!frameImageUrl) faltantes.push(is2x1 ? 'Foto del 1º armazón' : 'Foto del armazón');
+        if (!frameImageUrl) faltantes.push(armazonesTotales > 1 ? 'Foto del 1º armazón' : 'Foto del armazón');
     }
     // Lo que le falta al COLOR de los cristales: la MISMA regla que aplica el
     // servidor al convertir (`faltantesDeColor`). Antes acá había una lista
@@ -278,8 +284,8 @@ export default function CheckoutModal({
         for (const m of faltanAsociarArmazones(order.items as any, cantidadDeArmazones(order as any))) {
             if (!faltantes.includes(m)) faltantes.push(m);
         }
-        if (is2x1) {
-            if (!frameDetails2.trim()) faltantes.push('Detalle del 2º armazón (promo 2x1)');
+        if (armazonesTotales > 1) {
+            if (!frameDetails2.trim()) faltantes.push('Detalle del 2º armazón');
             if (!frameMeasurePte2.trim()) faltantes.push('Medida puente (DBL) del 2º armazón');
             if (!frameMeasureA2.trim()) faltantes.push('Medida A del 2º armazón');
             if (!frameMeasureB2.trim()) faltantes.push('Medida B del 2º armazón');
@@ -855,7 +861,7 @@ export default function CheckoutModal({
                                             la que el cliente mira en su confirmación para reconocerlo. */}
                                         <div className="mb-4 p-4 rounded-2xl bg-white/50 dark:bg-stone-900/30 border border-blue-100 dark:border-blue-900/50">
                                             <FramePhotoUploader
-                                                label={is2x1 ? 'Foto del 1º armazón *' : 'Foto del armazón *'}
+                                                label={armazonesTotales > 1 ? 'Foto del 1º armazón *' : 'Foto del armazón *'}
                                                 value={frameImageUrl}
                                                 onChange={setFrameImageUrl}
                                                 hint="La ve el cliente en la confirmación de compra."
@@ -876,9 +882,9 @@ export default function CheckoutModal({
                                     />
                                 </div>
 
-                                {is2x1 && (
+                                {armazonesTotales > 1 && (
                                     <div className="bg-orange-50/20 dark:bg-orange-950/10 border-2 border-orange-100 dark:border-orange-900/30 rounded-3xl p-6 mb-4 mt-6">
-                                        <label className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest block mb-4">Segundo Armazón (Bonificado 2x1)</label>
+                                        <label className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest block mb-4">Segundo Armazón{is2x1 ? ' (Bonificado 2x1)' : ''}</label>
                                         
                                         <label className="text-[9px] font-black text-stone-400 uppercase tracking-widest block mb-2">Forma de Armazón (Opcional)</label>
                                         <div className="grid grid-cols-4 gap-x-3 gap-y-3 mb-6 max-w-md mx-auto">

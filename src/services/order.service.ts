@@ -2006,6 +2006,35 @@ export class OrderService {
                             : sinFoto.map(f => `la foto del ${f.position}º armazón`).join(' y ');
                         throw new Error(`No se puede convertir en venta: falta ${cuales}. La saca el vendedor y viaja en la confirmación que recibe el cliente.`);
                     }
+
+                    // Check: FORMA y MEDIDAS de CADA par — sea armazón de la
+                    // óptica o del cliente (Ishtar, 25/8: «para pasar a ventas
+                    // hay que asociarle todo»). Hasta hoy solo la foto se
+                    // exigía por par: un pedido de dos pares SIN promo pasaba a
+                    // fábrica con el 2º par sin forma ni medidas (el checkout
+                    // solo exigía el 2º cuando era 2x1).
+                    //
+                    // El checkout manda forma y medidas de los pares 1 y 2 EN
+                    // ESTE MISMO request: se valida lo que va a quedar (payload
+                    // si vino, si no lo guardado) — validar solo la base
+                    // rechazaba conversiones legítimas recién tipeadas.
+                    const lleno = (x: unknown) => x !== null && x !== undefined && String(x).trim() !== '';
+                    const oGuardado = (delPayload: unknown, guardado: unknown) =>
+                        delPayload !== undefined ? delPayload : guardado;
+                    const faltaCarga: string[] = [];
+                    for (const f of armazones) {
+                        const ef = f.position === 1
+                            ? { shape: oGuardado(labFrameShape, f.shape), a: oGuardado(frameA, f.a), b: oGuardado(frameB, f.b), dbl: oGuardado(frameDbl, f.dbl), edc: oGuardado(frameEdc, f.edc) }
+                            : f.position === 2
+                                ? { shape: oGuardado(labFrameShape2, f.shape), a: oGuardado(frameA2, f.a), b: oGuardado(frameB2, f.b), dbl: oGuardado(frameDbl2, f.dbl), edc: oGuardado(frameEdc2, f.edc) }
+                                : f;
+                        const del = armazones.length === 1 ? 'del armazón' : `del ${f.position}º armazón`;
+                        if (!lleno(ef.shape)) faltaCarga.push(`la forma ${del}`);
+                        if (![ef.a, ef.b, ef.dbl, ef.edc].every(lleno)) faltaCarga.push(`las medidas ${del}`);
+                    }
+                    if (faltaCarga.length > 0) {
+                        throw new Error(`No se puede convertir en venta: falta ${faltaCarga.join(', ')}. Se cargan en el cuadro de ese armazón, en el renglón del pedido, y quedan guardadas solas.`);
+                    }
                 }
 
                 // Check: stock availability for non-crystal products
