@@ -2279,10 +2279,19 @@ export const ContactService = {
                     // Retoma por la API oficial los avisos que antes mandaba el bot;
                     // fire-and-forget: su falla no toca el recibo del cliente.
                     (async () => {
-                        const fullTotal = (await prisma.order.findUnique({ where: { id: orderId }, select: { total: true } }))?.total || 0;
-                        const señaOSaldo = result.remainingCard > 0
+                        // El total y la etiqueta salen del MISMO cálculo que el
+                        // mail de administración (result, que viene de
+                        // PricingService) — antes esto leía Order.total crudo y
+                        // decidía "SEÑA" con remainingCard, así que un segundo
+                        // pago parcial llegaba al WhatsApp rotulado SEÑA
+                        // mientras el mail del mismo pago decía SALDO. Dos
+                        // avisos del mismo pago contradiciéndose.
+                        const fullTotal = result.totalOperacion || 0;
+                        const señaOSaldo = result.isSena
                             ? `SEÑA — queda saldo $ ${result.remainingCard.toLocaleString('es-AR')}`
-                            : 'SALDO CANCELADO — pedido totalmente abonado';
+                            : result.hasBalance
+                                ? `SALDO PARCIAL — queda $ ${result.remainingCard.toLocaleString('es-AR')}`
+                                : 'SALDO CANCELADO — pedido totalmente abonado';
                         const r = await sendWhatsApp({
                             chatId: ADMIN_WHATSAPP_PHONE,
                             message: `Aviso de Atelier Sistema — Pago registrado: ${result.clientName} abonó $ ${amount.toLocaleString('es-AR')} ${methodLabel} del pedido #${String(orderId).slice(-4).toUpperCase()}. Total del pedido: $ ${fullTotal.toLocaleString('es-AR')}. ${señaOSaldo}. Recibo adjunto.`,

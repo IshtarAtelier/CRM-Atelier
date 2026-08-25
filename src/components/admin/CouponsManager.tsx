@@ -61,7 +61,14 @@ export default function CouponsManager() {
       code: c.code,
       discountType: c.discountType,
       discountValue: String(c.discountValue),
-      expiresAt: c.expiresAt ? c.expiresAt.slice(0, 10) : '',
+      // En hora ARGENTINA, no cortando el ISO UTC. El vencimiento se guarda
+      // como 23:59:59 -03:00 = 02:59Z del día SIGUIENTE: el slice(0,10) leía
+      // ese día siguiente, el formulario lo mostraba, y al guardar se
+      // reescribía — CADA edición le sumaba un día de vida al cupón. El fix de
+      // fechas se estaba deshaciendo solo cada vez que alguien lo tocaba.
+      expiresAt: c.expiresAt
+        ? new Date(c.expiresAt).toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+        : '',
       maxUses: c.maxUses != null ? String(c.maxUses) : '',
       minOrderAmount: c.minOrderAmount ? String(c.minOrderAmount) : '',
       isActive: c.isActive,

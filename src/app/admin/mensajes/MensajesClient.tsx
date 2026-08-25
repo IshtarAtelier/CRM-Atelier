@@ -154,6 +154,13 @@ export default function MensajesClient() {
     const [urgente, setUrgente] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const finRef = useRef<HTMLDivElement>(null);
+    // La conversación que se PIDIÓ por última vez. Toda respuesta de red se
+    // descarta si al llegar ya no es la pedida: clickeando dos conversaciones
+    // seguidas, la respuesta LENTA de la primera llegaba después y pisaba a la
+    // segunda — el panel mostraba una conversación con la otra resaltada, y los
+    // refrescos posteriores FUSIONABAN mensajes de las dos en una lista mezclada
+    // que no se arreglaba sola.
+    const pedida = useRef<string | null>(null);
     // El contenedor scrolleable y una marca de "no bajes al fondo esta vez".
     // Sin esto, cargar mensajes anteriores cambiaba `mensajes` y el efecto de
     // auto-scroll devolvía la vista al último mensaje: la persona apretaba
@@ -178,10 +185,16 @@ export default function MensajesClient() {
 
     const abrir = useCallback(async (id: string) => {
         setActiva(id);
+        pedida.current = id;
+        // Al cambiar de hilo no puede quedar un ancla de scroll pendiente del
+        // anterior: consumiría el primer render del nuevo y aterrizaría en una
+        // posición arbitraria.
+        anclarScroll.current = null;
         try {
             const res = await fetch(`/api/mensajes/${id}`);
             if (!res.ok) throw new Error('No se pudo abrir la conversación');
             const data = await res.json();
+            if (pedida.current !== id) return; // llegó tarde: ya se pidió otra
             setMensajes(data.mensajes || []);
             setParticipantes(data.participantes || []);
             setAsunto(data.subject || null);
@@ -222,10 +235,12 @@ export default function MensajesClient() {
     useEffect(() => {
         cargarBandeja();
         if (activa) {
-            fetch(`/api/mensajes/${activa}`)
+            const cual = activa;
+            fetch(`/api/mensajes/${cual}`)
                 .then(r => r.ok ? r.json() : null)
                 .then(d => {
                     if (!d?.mensajes) return;
+                    if (pedida.current !== cual) return; // se cambió de hilo en el medio
                     // FUSIONAR, no reemplazar: si se apretó "ver anteriores", la
                     // lista tiene más de una página y este refresco solo trae la
                     // última. Reemplazar tiraba a la basura todo el historial que
@@ -301,8 +316,9 @@ export default function MensajesClient() {
             // FUSIONAR y no `abrir()`: abrir reemplaza la lista con la última
             // página y tiraba a la basura el historial que la persona hubiera
             // cargado con "ver anteriores". Mismo criterio que el refresco.
-            const d = await fetch(`/api/mensajes/${activa}`).then(r => r.ok ? r.json() : null).catch(() => null);
-            if (d?.mensajes) {
+            const cualEnvio = activa;
+            const d = await fetch(`/api/mensajes/${cualEnvio}`).then(r => r.ok ? r.json() : null).catch(() => null);
+            if (d?.mensajes && pedida.current === cualEnvio) {
                 setMensajes(prev => {
                     const nuevos: Mensaje[] = d.mensajes;
                     if (prev.length === 0) return nuevos;

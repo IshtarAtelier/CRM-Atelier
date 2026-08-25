@@ -220,9 +220,13 @@ check('y queda UNO solo en la bandeja de los dos', hilosEze.length === 1, `(dio 
 await S.mensajeDeIA({ paraUserId: ana.id, cuerpo: '📋 Tu resumen del lunes\nalgo', dedupePrefijo: '📋 Tu resumen del lunes' });
 const dup = await S.mensajeDeIA({ paraUserId: ana.id, cuerpo: '📋 Tu resumen del lunes\nalgo', dedupePrefijo: '📋 Tu resumen del lunes' });
 check('el resumen del día no se manda dos veces', dup === null);
-await S.mensajeDeIA({ paraUserId: ana.id, cuerpo: '📋 Tu resumen del martes\notro', dedupePrefijo: '📋 Tu resumen del martes' });
+// Se captura el RETORNO: antes solo se contaban los hilos, y como el hilo ya
+// existía de la línea anterior, un dedupe roto que bloqueara TODO (el equipo
+// deja de recibir el resumen y nadie se entera) seguía dando verde.
+const martes = await S.mensajeDeIA({ paraUserId: ana.id, cuerpo: '📋 Tu resumen del martes\notro', dedupePrefijo: '📋 Tu resumen del martes' });
 const hilosIA = (await S.bandeja(ana.id)).filter(c => c.participantes.some(p => p.name === S.IA_NOMBRE));
-check('el del día siguiente SÍ sale, y en el mismo hilo', hilosIA.length === 1);
+check('el del día siguiente SÍ sale, y en el mismo hilo', martes !== null && hilosIA.length === 1,
+    `(martes=${martes === null ? 'BLOQUEADO' : 'ok'}, hilos=${hilosIA.length})`);
 
 // La cuenta del Asistente no se puede secuestrar. Se simula degradándole el rol:
 // si `usuarioIA()` solo mirara el email, devolvería igual esa cuenta y el
