@@ -472,7 +472,54 @@ async function sinNumeroDeOperacion() {
     }
 }
 
+/**
+ * `--porque <nº de pedido>`: por qué una factura quedó "SIN VENTA". Muestra la
+ * entrada tal como está guardada y repite la MISMA búsqueda que hace el cruce
+ * (`contains` del número sobre labOrderNumber y sobre los casos de postventa),
+ * para ver si el problema es que no encuentra la venta o que la encuentra y no
+ * la engancha.
+ */
+async function porQueNoCruza(num) {
+    const entradas = await prisma.$queryRaw`
+        select id, lab, "labOrderNumber", "orderId", "billedTotal", status, "sourceFile",
+               "invoiceDate", "createdAt", "updatedAt", "alertedAt", "alertedStatus", notes
+        from "LabCostEntry" where "labOrderNumber" like ${'%' + num + '%'}`;
+    console.log(`\nENTRADAS DE LABORATORIO CON ${num}: ${entradas.length}`);
+    for (const e of entradas) {
+        console.log(`  ${e.lab} · ${e.labOrderNumber} · ${pesos(e.billedTotal)} · ${e.status}`);
+        console.log(`     orderId: ${e.orderId || 'NULL  ← no enganchó con ninguna venta'}`);
+        const hora = d => d ? new Date(d).toLocaleString('es-AR', { timeZone: 'America/Argentina/Cordoba' }) : '—';
+        console.log(`     ${e.sourceFile || '—'}`);
+        console.log(`     creada:    ${hora(e.createdAt)}`);
+        console.log(`     enganchada:${hora(e.updatedAt)}`);
+        console.log(`     avisada:   ${hora(e.alertedAt)}  (como ${e.alertedStatus || '—'})`);
+    }
+
+    // La misma búsqueda del cruce, tal cual.
+    const candidatos = await prisma.$queryRaw`
+        select o.id, o."labOrderNumber", o."isDeleted", o."createdAt", c.name as cliente
+        from "Order" o left join "Client" c on c.id = o."clientId"
+        where o."labOrderNumber" like ${'%' + num + '%'}
+        order by o."createdAt" desc`;
+    console.log(`\n  VENTAS QUE CONTIENEN ${num}: ${candidatos.length}`);
+    for (const o of candidatos) {
+        const nums = (o.labOrderNumber || '').match(/\d{4,}/g) || [];
+        const exacto = nums.includes(String(num));
+        console.log(`   ${o.isDeleted ? '[BORRADA] ' : ''}${o.cliente || 's/cliente'} · "${o.labOrderNumber}"`);
+        console.log(`     creada ${fecha(o.createdAt)} · números que lee el cruce: [${nums.join(', ')}]` +
+            `  → ${exacto ? 'coincide EXACTO (debería enganchar)' : 'NO coincide exacto'}`);
+    }
+    const casos = await prisma.$queryRaw`
+        select p."newOrderNumber", c.name as cliente
+        from "PostSaleCase" p left join "Client" c on c.id = p."clientId"
+        where p."newOrderNumber" like ${'%' + num + '%'}`;
+    console.log(`\n  CASOS DE POST-VENTA QUE LO CONTIENEN: ${casos.length}`);
+    for (const k of casos) console.log(`   ${k.cliente} · "${k.newOrderNumber}"`);
+}
+
 async function main() {
+    const iPor = process.argv.indexOf('--porque');
+    if (iPor !== -1 && process.argv[iPor + 1]) { await porQueNoCruza(process.argv[iPor + 1]); return; }
     if (process.argv.includes('--sin-numero')) { await sinNumeroDeOperacion(); return; }
     if (process.argv.includes('--sin-factura')) { await sinFactura(); return; }
     if (process.argv.includes('--costos')) { await verCostos(); return; }
