@@ -329,85 +329,6 @@ export default function CartLineItems({
                                         )}
                                     </div>
                                 )}
-                                {/* EL ARMAZÓN TAMBIÉN DICE DE QUÉ PAR ES. Mismo chip que el
-                                    teñido: sin esto, con dos pares era imposible saber qué
-                                    armazón comprado correspondía a cuál — la asociación se
-                                    adivinaba por nombre. Regla del negocio (Ishtar, 25/8): si
-                                    hay dos pares y UN armazón de la óptica, el otro par va en
-                                    el armazón DEL CLIENTE — por eso el aviso de abajo. */}
-                                {totalArmazones > 1 && !isTeñidoAddon(item.product) && esArmazonItem(item) && (
-                                    <div className="mb-3 flex items-center gap-2 flex-wrap">
-                                        <Glasses className="w-3 h-3 text-amber-500 shrink-0" />
-                                        <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider shrink-0">
-                                            ¿Este armazón es de cuál par? *
-                                        </span>
-                                        {Array.from({ length: totalArmazones }, (_, i) => i + 1).map(pos => {
-                                            const elegido = item.framePosition === pos;
-                                            return (
-                                                <button
-                                                    key={pos}
-                                                    type="button"
-                                                    onClick={() => onUpdateItemFrame?.(idx, pos)}
-                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all ${
-                                                        elegido
-                                                            ? 'bg-amber-500 text-white border-amber-600'
-                                                            : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-amber-300'
-                                                    }`}
-                                                >
-                                                    {pos}º par
-                                                </button>
-                                            );
-                                        })}
-                                        {!item.framePosition && (
-                                            <span className="text-[10px] text-stone-400">el par sin armazón de la óptica va en el del cliente</span>
-                                        )}
-                                    </div>
-                                )}
-                                {/* LA CARGA DE FÁBRICA VIVE EN EL ARMAZÓN (Ishtar, 25/8):
-                                    apenas el armazón queda asociado a su par, acá mismo se
-                                    despliega el cuadro de foto + forma + medidas + altura —
-                                    el MISMO componente y el MISMO endpoint que usa la ficha,
-                                    así lo que se carga acá es lo que ve todo el sistema. */}
-                                {esArmazonItem(item) && !isTeñidoAddon(item.product) && (() => {
-                                    const pos = totalArmazones === 1 ? 1 : (item.framePosition || null);
-                                    if (!pos) return null;
-                                    if (!orderId || !orderData) {
-                                        return (
-                                            <p className="mb-3 text-[10px] font-bold text-stone-400">
-                                                💾 Guardá el presupuesto y acá mismo se abre la carga de la foto y las medidas de este armazón.
-                                            </p>
-                                        );
-                                    }
-                                    const f = framesDeLaOrden(orderData).find(fr => fr.position === pos);
-                                    const parLab = describeLabFrameDetails(orderData).pairs.find(pl => pl.pair === pos);
-                                    const rx = orderData.prescription || null;
-                                    const alto = (delPedido: unknown, deReceta: unknown) =>
-                                        delPedido != null ? String(delPedido) : (deReceta != null ? String(deReceta) : '');
-                                    return (
-                                        <div className="mb-3">
-                                            <FramePairEditor
-                                                key={`inline-f${pos}-${orderId}`}
-                                                orderId={orderId}
-                                                pair={pos}
-                                                title={`${etiquetaArmazon(pos, totalArmazones)} — ${nombreDeArmazon(item) || 'este armazón'}`}
-                                                accent={pos % 2 === 0 ? 'orange' : 'stone'}
-                                                initial={{
-                                                    shape: f?.shape || '',
-                                                    a: f?.a || '', b: f?.b || '', dbl: f?.dbl || '', edc: f?.edc || '',
-                                                    details: f?.details || '',
-                                                    imageUrl: f?.imageUrl || null,
-                                                    heightOD: alto(f?.heightOD, rx?.heightOD),
-                                                    heightOI: alto(f?.heightOI, rx?.heightOI),
-                                                }}
-                                                defaultOpen={!(f?.shape && f?.imageUrl)}
-                                                tint={parLab?.tint || null}
-                                                photochromic={!!parLab?.photochromic}
-                                                photochromicColor={parLab?.photochromicColor || null}
-                                                onSaved={onRefreshOrderData}
-                                            />
-                                        </div>
-                                    );
-                                })()}
 
                                 {/* Grado: desplegable con los valores de SmartLab, igual que el
                                     del laboratorio. Se elige de la lista y listo — el campo
@@ -497,6 +418,87 @@ export default function CartLineItems({
                                 )}
                             </div>
                         )}
+
+                        {/* EL ARMAZÓN TAMBIÉN DICE DE QUÉ PAR ES. Mismo chip que el
+                            teñido: sin esto, con dos pares era imposible saber qué
+                            armazón comprado correspondía a cuál — la asociación se
+                            adivinaba por nombre. Regla del negocio (Ishtar, 25/8): si
+                            hay dos pares y UN armazón de la óptica, el otro par va en
+                            el armazón DEL CLIENTE — por eso el aviso de abajo. */}
+                        {totalArmazones > 1 && !isTeñidoAddon(item.product) && esArmazonItem(item) && (
+                            <div className="mb-3 flex items-center gap-2 flex-wrap">
+                                <Glasses className="w-3 h-3 text-amber-500 shrink-0" />
+                                <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider shrink-0">
+                                    ¿Este armazón es de cuál par? *
+                                </span>
+                                {Array.from({ length: totalArmazones }, (_, i) => i + 1).map(pos => {
+                                    const elegido = item.framePosition === pos;
+                                    return (
+                                        <button
+                                            key={pos}
+                                            type="button"
+                                            onClick={() => onUpdateItemFrame?.(idx, pos)}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all ${
+                                                elegido
+                                                    ? 'bg-amber-500 text-white border-amber-600'
+                                                    : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-amber-300'
+                                            }`}
+                                        >
+                                            {pos}º par
+                                        </button>
+                                    );
+                                })}
+                                {!item.framePosition && (
+                                    <span className="text-[10px] text-stone-400">el par sin armazón de la óptica va en el del cliente</span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* LA CARGA DE FÁBRICA VIVE EN EL ARMAZÓN (Ishtar, 25/8):
+                            apenas el armazón queda asociado a su par, acá mismo se
+                            despliega el cuadro de foto + forma + medidas + altura —
+                            el MISMO componente y el MISMO endpoint que usa la ficha,
+                            así lo que se carga acá es lo que ve todo el sistema. */}
+                        {esArmazonItem(item) && !isTeñidoAddon(item.product) && (() => {
+                            const pos = totalArmazones === 1 ? 1 : (item.framePosition || null);
+                            if (!pos) return null;
+                            if (!orderId || !orderData) {
+                                return (
+                                    <p className="mb-3 text-[10px] font-bold text-stone-400">
+                                        💾 Guardá el presupuesto y acá mismo se abre la carga de la foto y las medidas de este armazón.
+                                    </p>
+                                );
+                            }
+                            const f = framesDeLaOrden(orderData).find(fr => fr.position === pos);
+                            const parLab = describeLabFrameDetails(orderData).pairs.find(pl => pl.pair === pos);
+                            const rx = orderData.prescription || null;
+                            const alto = (delPedido: unknown, deReceta: unknown) =>
+                                delPedido != null ? String(delPedido) : (deReceta != null ? String(deReceta) : '');
+                            return (
+                                <div className="mb-3">
+                                    <FramePairEditor
+                                        key={`inline-f${pos}-${orderId}`}
+                                        orderId={orderId}
+                                        pair={pos}
+                                        title={`${etiquetaArmazon(pos, totalArmazones)} — ${nombreDeArmazon(item) || 'este armazón'}`}
+                                        accent={pos % 2 === 0 ? 'orange' : 'stone'}
+                                        initial={{
+                                            shape: f?.shape || '',
+                                            a: f?.a || '', b: f?.b || '', dbl: f?.dbl || '', edc: f?.edc || '',
+                                            details: f?.details || '',
+                                            imageUrl: f?.imageUrl || null,
+                                            heightOD: alto(f?.heightOD, rx?.heightOD),
+                                            heightOI: alto(f?.heightOI, rx?.heightOI),
+                                        }}
+                                        defaultOpen={!(f?.shape && f?.imageUrl)}
+                                        tint={parLab?.tint || null}
+                                        photochromic={!!parLab?.photochromic}
+                                        photochromicColor={parLab?.photochromicColor || null}
+                                        onSaved={onRefreshOrderData}
+                                    />
+                                </div>
+                            );
+                        })()}
                     </div>
                 );
             })}
