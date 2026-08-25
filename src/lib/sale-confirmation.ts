@@ -30,7 +30,7 @@ import { logAudit } from '@/lib/audit';
 import { SELECT_REPASO_CON_CLIENTE } from '@/lib/order-recap-select';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import { cristalesPorArmazon } from '@/lib/order-frames';
-import { isTeñidoAddon } from '@/lib/promo-utils';
+import { isTeñidoAddon, esLineaDeTenido } from '@/lib/promo-utils';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
 /** Marca de la nota que registra el envío: sirve de candado de idempotencia. */
@@ -106,48 +106,79 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     const rx = recetaDeLaVenta(order);
     const resumen = describeLabFrameDetails(order);
 
-    const total = order.total || 0;
-    const pagado = order.paid || 0;
-
     // La plata sale de PricingService y NO se recalcula acá: es la regla de
     // CLAUDE.md, y cada copia de este cálculo divergió alguna vez y costó plata.
     const fin = PricingService.calculateOrderFinancials(order);
-    // El markup ya está aplicado en `listPrice`; para los renglones hay que
-    // aplicarlo igual que el PDF, si no el detalle no suma el total.
     const markupFactor = 1 + ((order.markup || 0) / 100);
     const precioDe = (it: any) => Math.round((it.price || 0) * markupFactor) * (it.quantity || 1);
-    // Lo que se bonificó: la diferencia entre lo que suman los renglones a
-    // precio de lista y el total real. Sin este renglón el cliente ve precios
-    // que no suman lo que pagó y no tiene forma de reconstruirlo — es
-    // exactamente el reclamo que llegó.
-    const sumaRenglones = (order.items || [])
-        .filter((it: any) => !isTeñidoAddon(it.product))
-        .reduce((n: number, it: any) => n + precioDe(it), 0);
-    const bonificado = Math.max(0, sumaRenglones - fin.listPrice);
 
-    // EL SALTO QUE NADIE EXPLICABA. El precio de lista y lo que la persona
-    // termina pagando son distintos porque cada forma de pago tiene su
-    // descuento (efectivo −20%, transferencia −15%, tarjeta sin descuento), y
-    // se puede pagar MEZCLANDO. La venta de Adriana: lista $1.796.600, pagó
-    // $100.000 por transferencia y $1.343.162 en efectivo = $1.443.162.
-    // El mail mostraba un total suelto y el cliente no tenía forma de atar los
-    // números; de ahí «el monto que figura no se corresponde con lo abonado».
+    // TODOS los renglones, teñido incluido: si el teñido queda afuera de la
+    // suma pero adentro del precio de lista, aparecen pesos "de la nada" entre
+    // una fila y la otra y el desglose deja de cerrar — que es el reclamo que
+    // esto viene a resolver.
+    const sumaRenglones = (order.items || []).reduce((n: number, it: any) => n + precioDe(it), 0);
+
+    // Los descuentos se muestran con sus MONTOS GUARDADOS, cada uno en su fila:
+    // la promo (si la hubo) y el descuento especial del vendedor. Antes era una
+    // resta ciega (suma − lista) con una sola etiqueta, que rotulaba el
+    // descuento manual como si fuera la promo y absorbía errores de redondeo.
+    const promoInflado = Math.round((order.appliedPromoDiscount || 0) * markupFactor);
+    const especial = fin.specialDiscount || 0;
+
+    // Y ANTES DE IMPRIMIR, SE VERIFICA: si la cadena no cierra (± $100 por
+    // redondeos), el desglose no se muestra — solo el precio de lista. Un
+    // desglose que no suma es peor que ninguno: es el mail original.
+    const cadenaCierra = Math.abs(sumaRenglones - promoInflado - especial - fin.listPrice) <= 100;
+
+    // El salto entre la lista y lo pagado: el descuento por forma de pago
+    // (efectivo −20%, transferencia −15%, se puede mezclar).
     const descuentoFormaDePago = Math.max(0, fin.listPrice - fin.paidReal);
 
-    // EL SALDO NO SE RESTA. CLAUDE.md: «El saldo NUNCA es lista − cobrado; hay
-    // que convertir cada pago a su equivalente de lista — la resta directa
-    // inventó 76 saldos fantasma en producción». `total - pagado` era
-    // exactamente esa resta, y encima falla al revés: la venta de Adriana tiene
-    // pagado $1.443.162 contra un total de $1.437.280 (pagó de más), y la resta
-    // simple da 0 por casualidad, no por estar bien calculada.
+    // EL SALDO NO SE RESTA (CLAUDE.md): sale de PricingService, que convierte
+    // cada pago a su equivalente de lista.
     const saldo = fin.hasBalance ? fin.remainingList : 0;
+    // La tolerancia de $1.000 de hasBalance no puede volverse promesa: con $900
+    // reales de saldo, el cartel verde "no tenés que pagar nada más" mentiría.
+    const saldoChico = !fin.hasBalance && fin.remainingList > 0;
 
     const items: any[] = order.items || [];
     const cristalesDe = cristalesPorArmazon(order);
     const asignados = new Set<any>();
     cristalesDe.forEach(lista => lista.forEach((it: any) => asignados.add(it)));
-    // Lo que no es cristal de ningún anteojo (armazones sueltos, accesorios).
-    const otrosItems = items.filter(it => !asignados.has(it) && !isTeñidoAddon(it.product));
+    // Los ARMAZONES del pedido, asignados a su par: si hay tantos ítems de
+    // armazón como pares, el 1º va con el 1º par y así — mismo criterio de
+    // orden que usa el reparto de cristales. Si no coinciden las cantidades,
+    // quedan en "También llevás" (mejor una bolsa honesta que una asignación
+    // inventada).
+    const esArmazonItem = (it: any) =>
+        (it.product?.category || it.productCategorySnapshot) === 'Armazón';
+    const armazonesItems = items.filter(esArmazonItem);
+    const armazonDelPar = new Map<number, any>();
+    if (armazonesItems.length === resumen.pairs.length) {
+        resumen.pairs.forEach((p, i) => armazonDelPar.set(p.pair, armazonesItems[i]));
+    }
+
+    // Los TEÑIDOS con su par: por framePosition si lo tiene, o al único par.
+    // `esLineaDeTenido` y no `isTeñidoAddon(it.product)`: con el producto
+    // borrado del catálogo, la segunda devuelve false y el teñido de un pedido
+    // viejo se duplicaba en "También llevás".
+    const teñidosItems = items.filter(it => esLineaDeTenido(it));
+    const teñidoDelPar = new Map<number, any[]>();
+    for (const t of teñidosItems) {
+        const par = t.framePosition || (resumen.pairs.length === 1 ? resumen.pairs[0]?.pair : null);
+        if (par != null) {
+            if (!teñidoDelPar.has(par)) teñidoDelPar.set(par, []);
+            teñidoDelPar.get(par)!.push(t);
+        }
+    }
+    const teñidosAsignados = new Set([...teñidoDelPar.values()].flat());
+
+    // Lo que no pertenece a ningún anteojo (accesorios, armazones sin par claro,
+    // un teñido que no se pudo ubicar).
+    const otrosItems = items.filter(it =>
+        !asignados.has(it)
+        && !(armazonDelPar.size > 0 && esArmazonItem(it))
+        && !teñidosAsignados.has(it));
 
     // Una línea por producto, y si es un teñido, CON su color y su grado. Decir
     // "Teñido Degradé" a secas y más abajo listar el color por separado obliga
@@ -242,9 +273,19 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
             ? [`*TU RECETA* (tal cual está cargada)`, prescriptionRecapText(rx, true), ``]
             : []),
         `*PAGO*`,
-        `Total: ${money(total)}`,
-        `Abonado: ${money(pagado)}`,
-        saldo > 0 ? `Saldo pendiente: ${money(saldo)}` : `Saldo: totalmente abonado ✅`,
+        ...(cadenaCierra && (promoInflado > 0 || especial > 0) ? [`Suma de los productos: ${money(sumaRenglones)}`] : []),
+        ...(cadenaCierra && promoInflado > 0 ? [`Bonificación — ${order.appliedPromoName || 'promoción'}: −${money(promoInflado)}`] : []),
+        ...(cadenaCierra && especial > 0 ? [`Descuento especial: −${money(especial)}`] : []),
+        `Precio de lista: ${money(fin.listPrice)}`,
+        ...(!fin.hasBalance && descuentoFormaDePago > 0
+            ? [`Descuento por tu forma de pago: −${money(descuentoFormaDePago)}`,
+               `*Lo que pagaste: ${money(fin.paidReal)}*`]
+            : [`Abonado: ${money(fin.paidReal)}${fin.hasBalance && fin.listEquivalentPaid > fin.paidReal ? ` (equivalen a ${money(fin.listEquivalentPaid)} de lista)` : ''}`]),
+        ...(saldo > 0
+            ? [`Te queda al retirar: efectivo ${money(fin.remainingCash)} · transferencia ${money(fin.remainingTransfer)} · tarjeta ${money(fin.remainingCard)}`]
+            : saldoChico
+                ? [`Queda una diferencia mínima de ${money(fin.remainingList)} que se ajusta al retirar.`]
+                : [`Saldo: totalmente abonado ✅`]),
         ``,
         `*NECESITAMOS TU OK* 🙏`,
         `Revisá que esté todo bien: así es como se va a fabricar.`,
@@ -315,7 +356,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         return `
           <tr>
             <td style="padding:7px 0;border-bottom:1px solid #efeae1;vertical-align:top">
-              ${ojo ? `<p style="margin:0;font-size:11px;font-weight:bold;color:#8a7f6d">${escHtml(ojo)}</p>` : ''}
+              ${ojo ? `<p style="margin:0;font-size:12px;font-weight:bold;color:#6b6257">${escHtml(ojo)}</p>` : ''}
               <p style="margin:1px 0 0;font-size:14px;color:#111">${marca && !nombre.toLowerCase().includes(marca.toLowerCase()) ? escHtml(marca) + ' ' : ''}${escHtml(nombre)}</p>
               ${detalle ? `<p style="margin:1px 0 0;font-size:12px;color:#6b6257">${escHtml(detalle)}</p>` : ''}
             </td>
@@ -328,7 +369,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     };
 
     const tarjetaDeAnteojo = (par: any, indice: number) => {
-        const cristales = (cristalesDe.get(par.pair) || []).filter((it: any) => !isTeñidoAddon(it.product));
+        const cristales = (cristalesDe.get(par.pair) || []).filter((it: any) => !esLineaDeTenido(it));
         // Los cristales se cargan por ojo: se ordenan OD y después OI, siempre
         // igual, para que los dos anteojos se lean con la misma estructura.
         const orden = (it: any) => (it.eye === 'RIGHT' || it.eye === 'OD') ? 0 : (it.eye === 'LEFT' || it.eye === 'OI') ? 1 : 2;
@@ -336,13 +377,27 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
 
         const foto = fotosArmazon.find(f => f.pair === par.pair);
         const titulo = resumen.pairs.length > 1 ? `${indice + 1}º par` : 'Tu anteojo';
+        const armazonItem = armazonDelPar.get(par.pair) || null;
+        const teñidosDePar = teñidoDelPar.get(par.pair) || [];
+        // Sin cristales, sin medidas, sin teñido y sin foto no hay tarjeta: una
+        // venta de lentes de sol sin receta dibujaba una caja "TU ANTEOJO"
+        // completamente vacía y el producto real quedaba abajo en otra caja.
+        if (cristales.length === 0 && teñidosDePar.length === 0 && !armazonItem
+            && !par.shape && !par.measurements && !par.fitting && !par.details
+            && !par.tint && !fotosArmazon.find(f => f.pair === par.pair)) {
+            return '';
+        }
         const medidas = [
             par.shape ? ['Forma / aro', par.shape] : null,
             par.measurements ? ['Medidas', par.measurements] : null,
             par.fitting ? ['Altura', par.fitting] : null,
             par.details ? ['Detalles', par.details] : null,
         ].filter(Boolean) as [string, string][];
-        const tintDelPar = par.tint ? par.tint.text : null;
+        // `par.tint` es un STRING (lab-frame-summary lo declara así). El código
+        // anterior hacía `par.tint.text` → undefined → la fila del teñido de la
+        // tarjeta no se imprimía NUNCA, y el dato quedaba solo en el bloque
+        // global, mezclando los teñidos de los dos pares sin decir cuál es cuál.
+        const tintDelPar: string | null = par.tint || null;
 
         return `
         <div style="margin:0 0 16px;border:1px solid #e5e1da;border-radius:14px;overflow:hidden;background:#fff">
@@ -350,9 +405,9 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
             <p style="margin:0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#4b3f2f;font-weight:800">${escHtml(titulo)}</p>
           </div>
           <div style="padding:12px 16px">
-            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${cristales.map(cristalHtml).join('')}</table>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${[...cristales, ...teñidosDePar, ...(armazonItem ? [armazonItem] : [])].map(cristalHtml).join('')}</table>
             ${medidas.length || tintDelPar || foto ? `
-            <p style="margin:14px 0 4px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#8a7f6d;font-weight:bold">El armazón de este par</p>
+            <p style="margin:14px 0 4px;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:#6b6257;font-weight:bold">El armazón de este par</p>
             <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
               ${medidas.map(([k, v]) => fila(k, v)).join('')}
               ${tintDelPar ? fila('Teñido', tintDelPar) : ''}
@@ -424,19 +479,29 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
 
         ${bloque('Cómo se compone el precio', `
             <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;color:#333">
+              ${cadenaCierra && (promoInflado > 0 || especial > 0) ? `
               <tr>
                 <td style="padding:6px 0">Suma de los productos</td>
                 <td style="padding:6px 0;text-align:right">${money(sumaRenglones)}</td>
               </tr>
-              ${bonificado > 0 ? `
+              ${promoInflado > 0 ? `
               <tr>
-                <td style="padding:6px 0;color:#1a7f4b">${order.appliedPromoName ? `Bonificación — ${escHtml(order.appliedPromoName)}` : 'Descuento aplicado'}</td>
-                <td style="padding:6px 0;text-align:right;color:#1a7f4b;font-weight:bold">− ${money(bonificado)}</td>
+                <td style="padding:6px 0;color:#1a7f4b">Bonificación — ${escHtml(order.appliedPromoName || 'promoción')}</td>
+                <td style="padding:6px 0;text-align:right;color:#1a7f4b;font-weight:bold">− ${money(promoInflado)}</td>
+              </tr>` : ''}
+              ${especial > 0 ? `
+              <tr>
+                <td style="padding:6px 0;color:#1a7f4b">Descuento especial</td>
+                <td style="padding:6px 0;text-align:right;color:#1a7f4b;font-weight:bold">− ${money(especial)}</td>
               </tr>` : ''}
               <tr>
                 <td style="padding:8px 0 6px;border-top:1px solid #e5e1da;font-weight:bold;color:#111">Precio de lista</td>
                 <td style="padding:8px 0 6px;border-top:1px solid #e5e1da;text-align:right;font-weight:bold;color:#111">${money(fin.listPrice)}</td>
-              </tr>
+              </tr>` : `
+              <tr>
+                <td style="padding:6px 0;font-weight:bold;color:#111">Precio de lista</td>
+                <td style="padding:6px 0;text-align:right;font-weight:bold;color:#111">${money(fin.listPrice)}</td>
+              </tr>`}
               ${!fin.hasBalance && descuentoFormaDePago > 0 ? `
               <tr>
                 <td style="padding:6px 0;color:#1a7f4b">Descuento por tu forma de pago</td>
@@ -447,7 +512,8 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
                 <td style="padding:10px 0 6px;border-top:2px solid #d8cfc0;text-align:right;font-size:16px;font-weight:800;color:#111">${money(fin.paidReal)}</td>
               </tr>` : `
               <tr>
-                <td style="padding:6px 0">Ya abonaste</td>
+                <td style="padding:6px 0">Ya abonaste${fin.hasBalance && fin.listEquivalentPaid > fin.paidReal
+                    ? ` <span style="font-size:12px;color:#666">(equivalen a ${money(fin.listEquivalentPaid)} de lista por tu forma de pago)</span>` : ''}</td>
                 <td style="padding:6px 0;text-align:right">${money(fin.paidReal)}</td>
               </tr>`}
             </table>
@@ -465,13 +531,16 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
                 </table>
                 <p style="margin:10px 0 0;font-size:13px;line-height:1.6;color:#7a5a12">Te avisamos por WhatsApp cuando esté listo.</p>
               </div>`
-            : `
+            : saldoChico ? `
+              <div style="margin-top:14px;padding:14px;border-radius:12px;background:#fffdf4;border:1px solid #e5d9a8">
+                <p style="margin:0;font-size:14px;font-weight:bold;color:#6b5d1e">Queda una diferencia mínima de ${money(fin.remainingList)} que se ajusta al retirar.</p>
+              </div>` : `
               <div style="margin-top:14px;padding:16px;border-radius:12px;background:#eaf7f0;border:2px solid #7cc79b;text-align:center">
                 <p style="margin:0;font-size:18px;font-weight:800;color:#12653a">✅ NO TENÉS SALDO PENDIENTE</p>
                 <p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#12653a">Tu pedido está <strong>totalmente abonado</strong>. Cuando lo retires no tenés que pagar nada más.</p>
               </div>`}
             <p style="margin:14px 0 0;font-size:13px;line-height:1.7;color:#666">
-              📎 <strong>Adjunto a este mail</strong> te mandamos el detalle del pedido en PDF, con los comprobantes de cada pago que registramos. Guardalo: es tu respaldo.
+              📎 <strong>Adjunto a este mail</strong> va el detalle completo del pedido en PDF. Guardalo: es tu respaldo.
             </p>`)}
 
         <div style="margin:24px 0;padding:18px;border:2px solid #d8cfc0;border-radius:12px;background:#fffdf8">
@@ -479,9 +548,12 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           <p style="margin:0 0 10px;font-size:14px;line-height:1.7;color:#333">Revisá que esté todo bien: <strong>así es como se va a fabricar</strong>.</p>
           <ul style="margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.8;color:#333">
             <li>${fotosArmazon.length ? 'Mirá la foto del armazón acá arriba: ¿es el que elegiste?' : '¿El armazón es el que elegiste?'}</li>
-            <li>${resumen.tint
-                ? `El teñido va <strong>${escHtml(resumen.tint.text)}</strong>: confirmanos que es el que pediste.`
-                : 'Si querés que lleven teñido, decinos ahora — este pedido va sin teñido.'}</li>
+            ${resumen.pairs.filter(p => p.tint).length > 0
+                ? resumen.pairs.filter(p => p.tint).map(p =>
+                    `<li>El teñido ${resumen.pairs.length > 1 ? `del <strong>${p.pair}º par</strong> ` : ''}va <strong>${escHtml(p.tint!)}</strong>: confirmanos que es el que pediste.</li>`).join('')
+                : resumen.tint
+                    ? `<li>El teñido va <strong>${escHtml(resumen.tint.text)}</strong>: confirmanos que es el que pediste.</li>${resumen.tint.ambiguousPair ? '<li><strong>No quedó registrado en cuál de los dos armazones va el teñido: confirmanos cuál.</strong></li>' : ''}`
+                    : '<li>Si querés que lleven teñido, decinos ahora — este pedido va sin teñido.</li>'}
             <li>Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos con gusto.</li>
           </ul>
           ${botonWhatsApp('Mandanos tu OK por WhatsApp')}
@@ -598,7 +670,16 @@ export async function sendSaleConfirmation(
                     // Sin PDF la plantilla con documento no se puede armar: se
                     // deja sin plantilla y, si la ventana está cerrada, queda
                     // registrado como no enviado (el email igual salió).
-                    template: pdf ? templateSpec('venta_confirmada', [order.client.name.split(' ')[0], nro, `$ ${Number(order.total || 0).toLocaleString('es-AR')}`]) : null,
+                    // Lo pagado si está saldado; el precio de lista si no.
+                    // `order.total` era un CUARTO número (el teórico
+                    // todo-en-efectivo) que no figuraba en ningún otro lado del
+                    // mail nuevo. Mismo cálculo que el cuerpo (PricingService).
+                    template: pdf ? (() => {
+                        const finTpl = PricingService.calculateOrderFinancials(order);
+                        const monto = finTpl.hasBalance ? finTpl.listPrice : finTpl.paidReal;
+                        return templateSpec('venta_confirmada', [order.client.name.split(' ')[0], nro,
+                            `$ ${Number(monto).toLocaleString('es-AR')}`]);
+                    })() : null,
                 });
                 resultado.whatsapp = res.ok;
                 if (!res.ok) console.warn('[Confirmación de compra] WhatsApp no salió:', explainSendFailure(res));

@@ -36,10 +36,16 @@ export const SELECT_ITEMS_REPASO = {
     productCategorySnapshot: true,
     productTypeSnapshot: true,
     productBrandSnapshot: true,
+    productLensIndexSnapshot: true,
+    productOriginSnapshot: true,
     product: {
         select: {
             id: true, name: true, brand: true, category: true, type: true,
             is2x1: true, imagenesCatalogo: true,
+            // `eligible2x1`: sin él, el PDF no sabe qué armazón está bonificado
+            // (sale a precio pleno con un descuento sin dueño). `lensIndex`:
+            // el "Índice de Refracción" del renglón.
+            eligible2x1: true, lensIndex: true,
         },
     },
 } satisfies Prisma.OrderItemSelect;
@@ -76,6 +82,20 @@ export const SELECT_REPASO = {
     discountCash: true,
     discountTransfer: true,
     appliedPromoDiscount: true,
+    // EL CAMPO QUE DEFINE EL PRECIO DE LISTA. PricingService hace
+    // `subtotalWithMarkup || total`, y `total` es el precio EN EFECTIVO
+    // (lista × 0,80): sin esta línea, el mail mostraba como "precio de lista"
+    // el total en efectivo, la bonificación salía inflada, la fila del
+    // descuento por forma de pago desaparecía, y con saldo se le cobraba DE
+    // MENOS al cliente por mail. La auditoría lo encontró porque los PDF de
+    // prueba se generaban con `include` (que trae todo) y el envío real con
+    // este select: los dos documentos del mismo pedido no daban lo mismo.
+    subtotalWithMarkup: true,
+    specialDiscount: true,
+    createdAt: true,
+    // Observación del vendedor que el schema promete que "SALE EN EL PDF que
+    // recibe el cliente" — sin ella acá, nunca salía.
+    clientNote: true,
     payments: { select: { amount: true, method: true, date: true } },
     orderType: true,
     isLocked: true,
@@ -107,7 +127,11 @@ export const SELECT_REPASO = {
     labNotes: true,
 
     frames: SELECT_FRAMES_REPASO,
-    items: { select: SELECT_ITEMS_REPASO },
+    // `orderBy` explícito: sin él, Postgres devuelve el orden físico de las
+    // filas, que CAMBIA cuando la venta se edita — y la agrupación por par
+    // reparte por orden de llegada cuando falta framePosition. La misma venta
+    // podía agruparse distinto en la pantalla, el mail y el PDF.
+    items: { select: SELECT_ITEMS_REPASO, orderBy: { id: 'asc' as const } },
     prescription: true,
 } satisfies Prisma.OrderSelect;
 

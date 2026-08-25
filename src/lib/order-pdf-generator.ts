@@ -197,6 +197,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 const asignadosPdf = new Set<any>();
                 if (porPar.size > 1) {
                     for (const [par, lista] of [...porPar.entries()].sort((a, b) => a[0] - b[0])) {
+                        if (!lista.length) continue; // un encabezado sin filas confunde más que nada
                         conSeparador.push({ __separador: `${par}º PAR` });
                         const orden = (it: any) => (it.eye === 'RIGHT' || it.eye === 'OD') ? 0 : 1;
                         [...lista].sort((a, b) => orden(a) - orden(b)).forEach(it => { conSeparador.push(it); asignadosPdf.add(it); });
@@ -322,6 +323,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             // Caso real: lista $1.796.600, abonado $1.443.162 — el cliente veía
             // los dos números sueltos y escribía preguntando cuál era el suyo.
             const ahorro = Math.round(financials.listPrice - financials.paidReal);
+            const num = (n: number) => n.toLocaleString('es-AR');
             const filaTot = (label: string, valor: string, fuerte = false, color = '#065f46') => `
                 <tr>
                   <td style="padding:5px 0;font-size:14px;color:${color};${fuerte ? 'font-weight:900;' : ''}">${label}</td>
@@ -329,10 +331,10 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 </tr>`;
             return `
             <table style="width:100%;max-width:460px;margin:0 auto;border-collapse:collapse">
-              ${filaTot('Precio de lista', `$${financials.listPrice.toLocaleString()}`)}
-              ${ahorro > 0 ? filaTot('Descuento por tu forma de pago', `− $${ahorro.toLocaleString()}`) : ''}
+              ${filaTot('Precio de lista', `$${num(financials.listPrice)}`)}
+              ${ahorro > 0 ? filaTot('Descuento por tu forma de pago', `− $${num(ahorro)}`) : ''}
               <tr><td colspan="2" style="border-top:2px solid #10b981;padding:0"></td></tr>
-              ${filaTot('Total que abonaste', `$${financials.paidReal.toLocaleString()}`, true)}
+              ${filaTot('Total que abonaste', `$${num(financials.paidReal)}`, true)}
             </table>`;
         })()}
     </div>
