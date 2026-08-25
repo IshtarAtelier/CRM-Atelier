@@ -269,6 +269,12 @@ export const armarParesDeCristal = (product: any, prevItems: any[] = []): any[] 
 };
 
 /**
+ * El aviso del teñido de la promo, para el cartel del 2x1 en los cotizadores.
+ * Un solo texto para todas las pantallas: si la regla cambia, cambia acá.
+ */
+export const AVISO_TENIDO_2X1 = 'Incluye UN teñido sin cargo — agregalo al pedido (el teñido según muestra se cobra siempre)';
+
+/**
  * Etiqueta de la bonificación para TODAS las pantallas (carrito, venta, PDF).
  * Un solo lugar decide cómo se lee: si mañana cambia el texto, cambia acá.
  */
@@ -604,11 +610,18 @@ export function applyTeñidoPromoDiscount(items: any[], tintStylePrices?: Record
         }
     };
 
+    // El teñido SEGÚN MUESTRA se cobra SIEMPRE, también con el 2x1 activo:
+    // igualar un color a mano es trabajo de laboratorio que no entra en la
+    // promo (Ishtar, 24/8/26). La bonificación va al primer teñido que no sea
+    // según muestra.
+    const esSegunMuestra = (grupo: number[]) => items[grupo[0]]?.crystalColorType === 'MUESTRA';
+    const idxBonificable = grupos.findIndex(g => !esSegunMuestra(g));
+
     grupos.forEach((grupo, gi) => {
         // Con la promo 2x1 se bonifica UN SOLO teñido (el primero cargado, que
         // es el del 1º armazón): el del segundo anteojo se le cobra al cliente
         // (Ishtar, 24/8/26). Antes se regalaban TODOS los teñidos del pedido.
-        const bonificado = promoActiva && gi === 0;
+        const bonificado = promoActiva && gi === idxBonificable;
         const primera = items[grupo[0]];
         const stylePrice = primera.crystalColorType ? tintStylePrices?.[primera.crystalColorType] : undefined;
         // El precio es POR TEÑIDO (el par de cristales de un anteojo): si el

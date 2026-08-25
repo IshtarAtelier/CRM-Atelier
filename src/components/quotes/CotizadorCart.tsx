@@ -7,7 +7,8 @@ import { Save, Loader2,
 import { 
     isMultifocal2x1, isCrystal, isFrame, safePrice,
     hasActive2x1Promo, pick2x1FrameDiscount,
-    armarParesDeCristal, recalculateCrystalPrices, applyTeñidoPromoDiscount
+    armarParesDeCristal, recalculateCrystalPrices, applyTeñidoPromoDiscount,
+    AVISO_TENIDO_2X1
 } from '@/lib/promo-utils';
 import { aplicarCambioDeLinea } from '@/lib/tenido-sync';
 import { calculateQuoteTotals } from '@/services/PricingService';
@@ -285,6 +286,11 @@ export default function CotizadorCart({
                                 ? `Bonifica: ${promoFrameName}`
                                 : 'Bonifica armazones tildados en la promo (2º sin cargo; uno solo: 50%)')
                             : 'Solo incluye el par de cristales'}</p>
+                        {hasMultifocalPromo && (
+                            <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 mt-0.5">
+                                🎨 {AVISO_TENIDO_2X1}
+                            </p>
+                        )}
                     </div>
                 </div>
             )}
