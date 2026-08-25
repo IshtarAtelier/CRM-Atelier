@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store, LineChart, Star, MessagesSquare } from "lucide-react";
+import { Glasses, ClipboardList, LayoutDashboard, Cog, FileText, Contact, Calculator, ShoppingCart, Wallet, Search, Menu, X, Receipt, Banknote, TrendingDown, TrendingUp, ChevronLeft, ChevronRight, Wrench, Globe, FlaskConical, Store, LineChart, Star, MessagesSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { UserProfile } from "@/components/admin/UserProfile";
 import { NotificationBell } from "@/components/ui/NotificationBell";
@@ -69,6 +69,7 @@ export function Sidebar({ userName = "Usuario", userRole = "STAFF", userId = "" 
       // email en OPTICAS_LEADS_EMAILS — Milena entra por URL directa si no es ADMIN)
       { href: "/admin/opticas", label: "↳ Captación Ópticas", icon: Store, adminOnly: true, isSubLink: true },
       { href: "/admin/inventario", label: "Stock y Productos", icon: Glasses, adminOnly: true },
+      { href: "/admin/inventario/precios", label: "↳ Aumentar Precios", icon: TrendingUp, adminOnly: true, isSubLink: true },
       { href: "/admin/web", label: "Sitio Web", icon: ShoppingCart, adminOnly: true },
       { href: "/admin/analitica", label: "↳ Analítica Web", icon: LineChart, adminOnly: true, isSubLink: true },
       { href: "/admin/resenas", label: "↳ Reseñas", icon: Star, adminOnly: true, isSubLink: true },

@@ -38,7 +38,8 @@
     "check:promo": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-2x1.check.mjs",
     "check:color-lente": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/color-de-lente.check.mjs",
     "check:venta-no-repricea": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-no-repricea.check.mjs",
-    "check:venta-reabierta-24h": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-reabierta-24h.check.mjs"
+    "check:venta-reabierta-24h": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-reabierta-24h.check.mjs",
+    "check:aumento-precios": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/aumento-precios-integridad.check.mjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",
