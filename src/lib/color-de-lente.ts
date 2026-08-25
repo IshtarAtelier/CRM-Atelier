@@ -16,6 +16,9 @@
  * cristal ES de fábrica.
  */
 
+import { esLineaDeTenido, gruposDeTenido } from './promo-utils';
+import { cantidadDeArmazones, cristalesPorArmazon } from './order-frames';
+
 const normalizar = (t: string): string =>
     (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
@@ -45,4 +48,46 @@ export function colorDeLente(product: { name?: string | null; category?: string 
 
     // Todo lo demás es blanco: el filtro azul y el antirreflejo no lo tiñen.
     return 'Blanco';
+}
+
+/**
+ * El color de la lente MIRANDO EL PEDIDO ENTERO, no el producto suelto.
+ *
+ * Un cristal que sale blanco de fábrica deja de ser blanco cuando el pedido
+ * lo manda a teñir: es un cristal de sol del color elegido, y decirle
+ * "Blanco" al lado de la línea de teñido confundía al vendedor y al cliente
+ * (Ishtar, 24/8/26). Además, la línea del TEÑIDO en sí no es un cristal:
+ * no lleva etiqueta de color de lente.
+ *
+ * Con más de un armazón, solo cambia la etiqueta del anteojo al que el teñido
+ * está ASIGNADO (framePosition): un teñido sin asignar no pinta nada — mejor
+ * quedarse corto que decirle "de sol" al par que sigue blanco.
+ */
+export function colorDeLenteEnPedido(item: any, items: any[]): string | null {
+    if (esLineaDeTenido(item)) return null;
+    const producto = item?.product || {
+        name: item?.productNameSnapshot,
+        category: item?.productCategorySnapshot,
+        type: item?.productTypeSnapshot,
+    };
+    const base = colorDeLente(producto);
+    if (base !== 'Blanco') return base;
+
+    const grupos = gruposDeTenido(items || []);
+    if (grupos.length === 0) return base;
+
+    const total = cantidadDeArmazones({ items });
+    let posDelCristal: number | null = null;
+    if (total > 1) {
+        for (const [pos, lista] of cristalesPorArmazon({ items })) {
+            if (lista.includes(item)) { posDelCristal = pos; break; }
+        }
+    }
+
+    const tenido = grupos
+        .map(g => (items || [])[g[0]])
+        .find(t => total <= 1 || (t?.framePosition != null && t.framePosition === posDelCristal));
+    if (!tenido) return base;
+
+    return tenido.crystalColor ? `De sol — teñido ${tenido.crystalColor}` : 'De sol (teñido)';
 }

@@ -4,7 +4,7 @@ import React from 'react';
 import { ShoppingBag, X, Minus, Plus, Palette, ChevronDown, Glasses } from 'lucide-react';
 import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice, etiquetaBonificacion2x1 } from '@/lib/promo-utils';
 import { formatLensRange } from '@/lib/lens-range';
-import { colorDeLente } from '@/lib/color-de-lente';
+import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
 import { needsColorSelection } from '@/lib/crystal-color-utils';
 import { INTENSIDADES_TENIDO, estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
 import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
@@ -153,9 +153,9 @@ export default function CartLineItems({
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">
                                         {getCategoryKey(item.product?.type || item.productCategorySnapshot || null, item.product?.category || item.productCategorySnapshot || null)}
-                                        {/* Color de la lente: lo que el cristal ES de fábrica (blanco,
-                                            fotocromático, polarizado), al lado del tipo — igual que el índice. */}
-                                        {colorDeLente(item.product) ? <span className="text-stone-500 dark:text-stone-300 ml-1.5">· {colorDeLente(item.product)}</span> : null}
+                                        {/* Color de la lente EN EL PEDIDO: blanco de fábrica, pero si
+                                            este anteojo va teñido, acá dice "De sol — teñido …". */}
+                                        {colorDeLenteEnPedido(item, items) ? <span className="text-stone-500 dark:text-stone-300 ml-1.5">· {colorDeLenteEnPedido(item, items)}</span> : null}
                                         {item.isPromo && <span className="text-emerald-500 ml-2">† SIN CARGO 2x1</span>}
                                     </p>
                                     <LensOriginBadge origin={lensOriginFromItem(item)} />

@@ -6,7 +6,7 @@ import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 import LineaColorEditor from './LineaColorEditor';
 import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
-import { colorDeLente } from '@/lib/color-de-lente';
+import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
 
 interface QuoteLineItemsProps {
     items: any[];
@@ -74,9 +74,10 @@ export default function QuoteLineItems({
                 const brand = item.product?.brand || item.productBrandSnapshot || '';
                 const name = item.product?.name || item.productNameSnapshot || 'Producto eliminado';
                 const typeLabel = item.product?.type || item.product?.category || item.productTypeSnapshot || item.productCategorySnapshot || '';
-                // Color de la lente: si el producto fue borrado del catálogo se
-                // deriva igual, del nombre y el tipo congelados en la línea.
-                const colorLente = colorDeLente(item.product || { name, type: typeLabel, category: item.productCategorySnapshot });
+                // Color de la lente EN EL PEDIDO: blanco de fábrica, pero si el
+                // anteojo va teñido dice "De sol — teñido …". Si el producto fue
+                // borrado del catálogo se deriva igual, de los snapshots.
+                const colorLente = colorDeLenteEnPedido(item, items);
 
                 return (
                     <div key={item.id} className={`flex justify-between items-center bg-stone-50/50 dark:bg-stone-900/30 px-5 py-3 rounded-2xl border ${isBonified ? 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/30' : 'border-stone-100 dark:border-stone-800'} backdrop-blur-sm group/item hover:border-primary/30 transition-all`}>

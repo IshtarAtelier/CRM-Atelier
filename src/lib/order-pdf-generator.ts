@@ -6,7 +6,7 @@ import { PricingService } from '@/services/PricingService';
 import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { colorLineaLabel } from '@/lib/crystal-color';
-import { colorDeLente } from '@/lib/color-de-lente';
+import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
 import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
 import fs from 'fs';
 import path from 'path';
@@ -220,7 +220,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     <td>
                         <div style="font-weight: 900;">${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}</div>
                         ${refIndex ? `<div style="font-size:10px; color:#c2410c; font-weight: 700; margin-top: 1px;">Índice de Refracción: ${refIndex}</div>` : ''}
-                        ${colorDeLente(it.product) ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Color de la lente: ${colorDeLente(it.product)}</div>` : ''}
+                        ${colorDeLenteEnPedido(it, order.items || []) ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Color de la lente: ${colorDeLenteEnPedido(it, order.items || [])}</div>` : ''}
                         ${origin ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Origen: ${origin}</div>` : ''}
                         ${colorLinea ? `<div style="font-size:10px; color:#6d28d9; font-weight: 800; margin-top: 1px;">Color: ${colorLinea}</div>` : ''}
                         ${eyeLabel ? `<div style="font-size:10px; color:#78716c; font-weight: 600;">Lado: ${eyeLabel}</div>` : ''}
@@ -539,7 +539,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         let itemName = `${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}`.trim();
         const refIndex = it.product?.lensIndex || it.productLensIndexSnapshot || '';
         if (refIndex) itemName += `\n   Índice: ${refIndex}`;
-        const colorLente = colorDeLente(it.product);
+        const colorLente = colorDeLenteEnPedido(it, order.items || []);
         if (colorLente) itemName += `\n   Color de la lente: ${colorLente}`;
         const origin = lensOriginLabel(lensOriginFromItem(it));
         if (origin) itemName += `\n   Origen: ${origin}`;
