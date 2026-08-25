@@ -526,7 +526,51 @@ async function porQueNoCruza(num) {
     for (const k of casos) console.log(`   ${k.cliente} · "${k.newOrderNumber}"`);
 }
 
+/**
+ * `--descalces`: entradas cuya diferencia guardada NO es facturado − costo.
+ * Es la huella del cruce entre laboratorios (una venta con pedidos de dos labs
+ * sumaba las facturas del otro lab): mide cuántas quedaron con un veredicto
+ * inventado y hay que recalcular.
+ */
+async function descalces() {
+    const filas = await prisma.$queryRaw`
+        select e.lab, e."labOrderNumber", e."systemCost", e."billedTotal", e."billedNet",
+               e.difference, e.status, o."labOrderNumber" as venta, c.name as cliente
+        from "LabCostEntry" e
+        left join "Order" o on o.id = e."orderId"
+        left join "Client" c on c.id = o."clientId"
+        where e."systemCost" is not null and e.difference is not null
+        order by abs(e.difference) desc`;
+
+    // La diferencia se guarda a NIVEL VENTA y por laboratorio: las entradas
+    // hermanas comparten el mismo valor. Compararla entrada por entrada acusa
+    // en falso a toda venta con más de un pedido. Se agrupa por venta + lab.
+    const grupos = new Map();
+    for (const f of filas) {
+        if (!f.venta) continue;
+        const k = `${f.venta}|${f.lab}`;
+        if (!grupos.has(k)) grupos.set(k, { ...f, facturado: 0, entradas: 0 });
+        const g = grupos.get(k);
+        // Comparable del lab: Optovisión discrimina IVA (total), Grupo Óptico no.
+        g.facturado += (f.lab === 'OPTOVISION' ? (f.billedTotal ?? f.billedNet) : (f.billedNet ?? f.billedTotal)) ?? 0;
+        g.entradas++;
+    }
+    const malas = [...grupos.values()]
+        .filter(g => Math.abs((g.facturado - g.systemCost) - g.difference) > 1);
+
+    console.log(`\nVENTAS CON LA DIFERENCIA MAL CALCULADA: ${malas.length} de ${grupos.size}\n`);
+    let plata = 0;
+    for (const g of malas.sort((a, b) => Math.abs(b.difference - (b.facturado - b.systemCost)) - Math.abs(a.difference - (a.facturado - a.systemCost)))) {
+        const real = g.facturado - g.systemCost;
+        plata += Math.abs(g.difference - real);
+        console.log(`  ${g.lab.padEnd(14)}${String(g.cliente || '—').slice(0, 22).padEnd(24)}` +
+            `guardó ${pesos(g.difference).padStart(12)}  ·  real ${pesos(real).padStart(12)}   venta "${g.venta}"`);
+    }
+    if (malas.length) console.log(`\n  Plata mal informada en total: ${pesos(plata)}`);
+}
+
 async function main() {
+    if (process.argv.includes('--descalces')) { await descalces(); return; }
     const iPor = process.argv.indexOf('--porque');
     if (iPor !== -1 && process.argv[iPor + 1]) { await porQueNoCruza(process.argv[iPor + 1]); return; }
     if (process.argv.includes('--sin-numero')) { await sinNumeroDeOperacion(); return; }
