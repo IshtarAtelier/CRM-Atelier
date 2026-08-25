@@ -53,21 +53,13 @@ export function armazonesPorPar(
     // Puntaje = cuántos tokens del detalle del armazón aparecen dentro del
     // nombre del ítem (o al revés). "clipo on metal" → [clipo, metal];
     // "cliponclassic" contiene "clipo" → matchea aun con la errata.
-    // Un ANTEOJO TERMINADO (de sol, con sus lentes puestos) nunca se asigna a
-    // un par graduado por parecido de nombre. Caso real: la venta llevaba un
-    // "Vulk Anteojo de sol" APARTE y el detalle del 1º par decía "Vulk" (el
-    // armazón óptico de la misma marca) — el emparejador lo habría metido en el
-    // par equivocado con total confianza. Aclarado por la dueña: «el que era
-    // tercero y aparte es el de sol».
-    const esTerminado = (it: any) => {
-        const cat = `${it.product?.category || it.productCategorySnapshot || ''}`.toLowerCase();
-        if (cat.includes('sol')) return true; // categoría "Lentes de Sol"
-        return /anteojo\s+de\s+sol|de\s*sol\b/.test(
-            `${it.product?.name || it.productNameSnapshot || ''}`.toLowerCase());
-    };
-
+    // LA CATEGORÍA NO EXCLUYE: un anteojo de sol puede ser el armazón de un
+    // par graduado (la venta de Adriana llevaba los cristales del 1º par EN el
+    // Vulk de sol — lo aclaró la dueña: «el Vulk y el clip-on eran el 1 y el 2;
+    // el aparte era el Carolina Emanuel»). La única autoridad es el NOMBRE
+    // contra el detalle que cargó el laboratorio; lo que no matchea queda
+    // aparte, sin inventar: «si no lleva asociación, ok».
     const puntaje = (it: any, par: ParConDetalle): number => {
-        if (esTerminado(it)) return 0;
         const nombre = nombreDe(it);
         if (!nombre) return 0;
         const deta = tokens(`${par.details || ''} ${par.shape || ''}`);
@@ -90,11 +82,24 @@ export function armazonesPorPar(
 
     // Sin detalles no hay para qué adivinar — salvo el caso trivial: tantos
     // armazones como pares, se asignan en orden (1º con 1º).
-    const sinTerminados = armazonesItems.filter(it => !esTerminado(it));
-    if (resultado.size === 0 && sinTerminados.length === pares.length) {
-        pares.forEach((p, i) => resultado.set(p.pair, sinTerminados[i]));
+    if (resultado.size === 0 && armazonesItems.length === pares.length) {
+        pares.forEach((p, i) => resultado.set(p.pair, armazonesItems[i]));
     }
     return resultado;
+}
+
+/**
+ * Qué ES el producto, dicho en criollo: "Carolina Emanuel" a secas no le dice
+ * nada al cliente — falta "Anteojo de sol" o "Armazón de receta" al lado.
+ * Devuelve null cuando el nombre ya lo dice (no repetir "Anteojo de sol" bajo
+ * "Anteojo de sol - Vulk").
+ */
+export function tipoDeItem(it: any): string | null {
+    const cat = `${it.product?.category || it.productCategorySnapshot || ''}`.toLowerCase();
+    const nombre = `${it.product?.name || it.productNameSnapshot || ''}`.toLowerCase();
+    if (cat.includes('sol')) return nombre.includes('sol') ? null : 'Anteojo de sol';
+    if (cat.includes('armazón') || cat.includes('armazon')) return nombre.includes('armaz') ? null : 'Armazón de receta';
+    return null;
 }
 
 /** "1º par — Vulk" / "2º par — clipo on metal": el título que dice CUÁL es. */

@@ -31,7 +31,7 @@ import { SELECT_REPASO_CON_CLIENTE } from '@/lib/order-recap-select';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import { cristalesPorArmazon } from '@/lib/order-frames';
 import { isTeñidoAddon, esLineaDeTenido } from '@/lib/promo-utils';
-import { armazonesPorPar, tituloDePar } from '@/lib/armazon-por-par';
+import { armazonesPorPar, tituloDePar, tipoDeItem } from '@/lib/armazon-por-par';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
 /** Marca de la nota que registra el envío: sirve de candado de idempotencia. */
@@ -152,7 +152,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     // quedan en "También llevás" (mejor una bolsa honesta que una asignación
     // inventada).
     const esArmazonItem = (it: any) =>
-        `${it.product?.category || it.productCategorySnapshot || ''}`.includes('Armazón');
+        /Armazón|Sol/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`);
     // ↑ `includes` y no igualdad: la categoría real del catálogo es
     // "Armazón de Receta" — el filtro exacto no matcheaba ningún producto.
     const armazonesItems = items.filter(esArmazonItem);
@@ -354,8 +354,8 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         const nombre = it.product?.name || it.productNameSnapshot || 'Cristal';
         const marca = it.product?.brand || it.productBrandSnapshot || '';
         const ojo = ojoLabel(it.eye);
-        const detalle = [it.crystalColor, it.crystalColorNote ? `grado ${it.crystalColorNote}` : null]
-            .filter(Boolean).join(', ');
+        const detalle = [tipoDeItem(it), it.crystalColor, it.crystalColorNote ? `grado ${it.crystalColorNote}` : null]
+            .filter(Boolean).join(' · ');
         const precio = precioDe(it);
         return `
           <tr>
@@ -391,17 +391,41 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
             && !par.tint && !fotosArmazon.find(f => f.pair === par.pair)) {
             return '';
         }
-        const medidas = [
+        // Los datos del armazón, DESPUÉS de la foto y en CUADRANTES: fichitas
+        // de a dos por fila, cada una con su etiqueta y su valor. Pedido de la
+        // dueña: "las medidas ponelas después de la foto, bien ordenadas en una
+        // ficha con cuadrantes — es interno, no hace falta que lo vea el
+        // cliente, pero no queda mal que salga todo junto".
+        //
+        // Y el teñido/fotocromático VAN ACÁ, en la ficha de su anteojo — no en
+        // un bloque aparte al final: "todo eso va asociado al anteojo, tiene
+        // que ir juntito al armazón uno, no en otra ficha".
+        // `par.tint` es un STRING (lab-frame-summary lo declara así): nada de
+        // `.text`, que ya apagó esta fila una vez en silencio.
+        const tintDelPar: string | null = par.tint || null;
+
+        const cuadrantes = [
             par.shape ? ['Forma / aro', par.shape] : null,
             par.measurements ? ['Medidas', par.measurements] : null,
             par.fitting ? ['Altura', par.fitting] : null,
             par.details ? ['Detalles', par.details] : null,
+            ['Teñido', tintDelPar || 'No lleva'],
+            par.photochromic
+                ? ['Fotocromático', `Sí${par.photochromicColor ? ` — ${par.photochromicColor}` : ''} (se oscurece solo con el sol)`]
+                : null,
         ].filter(Boolean) as [string, string][];
-        // `par.tint` es un STRING (lab-frame-summary lo declara así). El código
-        // anterior hacía `par.tint.text` → undefined → la fila del teñido de la
-        // tarjeta no se imprimía NUNCA, y el dato quedaba solo en el bloque
-        // global, mezclando los teñidos de los dos pares sin decir cuál es cuál.
-        const tintDelPar: string | null = par.tint || null;
+
+        const cuadrante = ([k, v]: [string, string]) => `
+            <td width="50%" style="padding:4px">
+              <div style="border:1px solid #e5e1da;border-radius:10px;padding:8px 10px;background:#fbfaf7">
+                <p style="margin:0;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#6b6257;font-weight:bold">${escHtml(k)}</p>
+                <p style="margin:2px 0 0;font-size:13px;font-weight:bold;color:#111">${escHtml(v)}</p>
+              </div>
+            </td>`;
+        const filasCuadrantes: string[] = [];
+        for (let i = 0; i < cuadrantes.length; i += 2) {
+            filasCuadrantes.push(`<tr>${cuadrante(cuadrantes[i])}${cuadrantes[i + 1] ? cuadrante(cuadrantes[i + 1]) : '<td width="50%" style="padding:4px"></td>'}</tr>`);
+        }
 
         return `
         <div style="margin:0 0 16px;border:1px solid #e5e1da;border-radius:14px;overflow:hidden;background:#fff">
@@ -410,16 +434,12 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           </div>
           <div style="padding:12px 16px">
             <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${[...cristales, ...teñidosDePar, ...(armazonItem ? [armazonItem] : [])].map(cristalHtml).join('')}</table>
-            ${medidas.length || tintDelPar || foto ? `
-            <p style="margin:14px 0 4px;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:#6b6257;font-weight:bold">El armazón de este par</p>
-            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
-              ${medidas.map(([k, v]) => fila(k, v)).join('')}
-              ${tintDelPar ? fila('Teñido', tintDelPar) : ''}
-            </table>` : ''}
             ${foto ? `
             <div style="margin-top:12px">
-              <img src="${foto.url}" alt="Foto de tu armazón" style="max-width:240px;width:100%;border-radius:12px;border:1px solid #e5e1da" />
+              <img src="${foto.url}" alt="Foto de tu armazón" width="240" style="max-width:240px;width:100%;border-radius:12px;border:1px solid #e5e1da" />
             </div>` : ''}
+            ${filasCuadrantes.length ? `
+            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin-top:10px">${filasCuadrantes.join('')}</table>` : ''}
           </div>
         </div>`;
     };

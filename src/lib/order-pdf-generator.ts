@@ -9,7 +9,7 @@ import { colorLineaLabel } from '@/lib/crystal-color';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
 import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
 import { cristalesPorArmazon } from '@/lib/order-frames';
-import { armazonesPorPar } from '@/lib/armazon-por-par';
+import { armazonesPorPar, tipoDeItem } from '@/lib/armazon-por-par';
 import fs from 'fs';
 import path from 'path';
 
@@ -203,7 +203,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     // la bolsa del final y nadie sabía de qué par era.
                     const resumenPdf = describeLabFrameDetails(order);
                     const esArmazonPdf = (it: any) =>
-                        `${it.product?.category || it.productCategorySnapshot || ''}`.includes('Armazón');
+                        /Armazón|Sol/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`);
     // ↑ `includes` y no igualdad: la categoría real del catálogo es
     // "Armazón de Receta" — el filtro exacto no matcheaba ningún producto.
                     const armazonDelParPdf = armazonesPorPar(
@@ -286,6 +286,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                             return marca && !nombreP.toLowerCase().includes(marca.toLowerCase())
                                 ? `${marca} ${nombreP}` : nombreP || marca;
                         })()}</div>
+                        ${tipoDeItem(it) ? `<div style="font-size:10px; color:#78716c; font-weight:700; margin-top:1px;">${tipoDeItem(it)}</div>` : ''}
                         ${refIndex ? `<div style="font-size:10px; color:#c2410c; font-weight: 700; margin-top: 1px;">Índice de Refracción: ${refIndex}</div>` : ''}
                         ${colorDeLenteEnPedido(it, order.items || []) ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Color de la lente: ${colorDeLenteEnPedido(it, order.items || [])}</div>` : ''}
                         ${origin ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Origen: ${origin}</div>` : ''}
