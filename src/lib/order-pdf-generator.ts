@@ -9,6 +9,7 @@ import { colorLineaLabel } from '@/lib/crystal-color';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
 import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
 import { cristalesPorArmazon } from '@/lib/order-frames';
+import { armazonesPorPar } from '@/lib/armazon-por-par';
 import fs from 'fs';
 import path from 'path';
 
@@ -196,14 +197,29 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 const conSeparador: any[] = [];
                 const asignadosPdf = new Set<any>();
                 if (porPar.size > 1) {
+                    // El separador dice CUÁL armazón es cada par ("2º PAR —
+                    // CLIPO ON METAL"), y el ítem del armazón vendido se ubica
+                    // debajo de sus cristales — antes "Clip-on Classic" caía en
+                    // la bolsa del final y nadie sabía de qué par era.
+                    const resumenPdf = describeLabFrameDetails(order);
+                    const esArmazonPdf = (it: any) =>
+                        `${it.product?.category || it.productCategorySnapshot || ''}`.includes('Armazón');
+    // ↑ `includes` y no igualdad: la categoría real del catálogo es
+    // "Armazón de Receta" — el filtro exacto no matcheaba ningún producto.
+                    const armazonDelParPdf = armazonesPorPar(
+                        (order.items || []).filter(esArmazonPdf), resumenPdf.pairs);
                     for (const [par, lista] of [...porPar.entries()].sort((a, b) => a[0] - b[0])) {
                         if (!lista.length) continue; // un encabezado sin filas confunde más que nada
-                        conSeparador.push({ __separador: `${par}º PAR` });
+                        const info = resumenPdf.pairs.find(p => p.pair === par);
+                        const cual = (info?.details || info?.shape || '').trim();
+                        conSeparador.push({ __separador: `${par}º PAR${cual ? ` — ${cual.toUpperCase()}` : ''}` });
                         const orden = (it: any) => (it.eye === 'RIGHT' || it.eye === 'OD') ? 0 : 1;
                         [...lista].sort((a, b) => orden(a) - orden(b)).forEach(it => { conSeparador.push(it); asignadosPdf.add(it); });
+                        const arm = armazonDelParPdf.get(par);
+                        if (arm) { conSeparador.push(arm); asignadosPdf.add(arm); }
                     }
                     const sueltos = (order.items || []).filter((it: any) => !asignadosPdf.has(it));
-                    if (sueltos.length) conSeparador.push({ __separador: 'ADEMÁS LLEVÁS' }, ...sueltos);
+                    if (sueltos.length) conSeparador.push({ __separador: 'APARTE DE TUS ANTEOJOS' }, ...sueltos);
                 } else {
                     conSeparador.push(...(order.items || []));
                 }

@@ -31,6 +31,7 @@ import { SELECT_REPASO_CON_CLIENTE } from '@/lib/order-recap-select';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import { cristalesPorArmazon } from '@/lib/order-frames';
 import { isTeñidoAddon, esLineaDeTenido } from '@/lib/promo-utils';
+import { armazonesPorPar, tituloDePar } from '@/lib/armazon-por-par';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
 /** Marca de la nota que registra el envío: sirve de candado de idempotencia. */
@@ -151,12 +152,15 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     // quedan en "También llevás" (mejor una bolsa honesta que una asignación
     // inventada).
     const esArmazonItem = (it: any) =>
-        (it.product?.category || it.productCategorySnapshot) === 'Armazón';
+        `${it.product?.category || it.productCategorySnapshot || ''}`.includes('Armazón');
+    // ↑ `includes` y no igualdad: la categoría real del catálogo es
+    // "Armazón de Receta" — el filtro exacto no matcheaba ningún producto.
     const armazonesItems = items.filter(esArmazonItem);
-    const armazonDelPar = new Map<number, any>();
-    if (armazonesItems.length === resumen.pairs.length) {
-        resumen.pairs.forEach((p, i) => armazonDelPar.set(p.pair, armazonesItems[i]));
-    }
+    // Por PARECIDO DE NOMBRE contra el detalle del laboratorio ("clipo on
+    // metal" ↔ "Clip-on Classic"), no por cantidad: la venta de Adriana tenía
+    // 3 armazones y 2 pares y el conteo no asignaba ninguno. Los anteojos
+    // terminados (de sol) quedan afuera a propósito.
+    const armazonDelPar = armazonesPorPar(armazonesItems, resumen.pairs);
 
     // Los TEÑIDOS con su par: por framePosition si lo tiene, o al único par.
     // `esLineaDeTenido` y no `isTeñidoAddon(it.product)`: con el producto
@@ -376,7 +380,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         cristales.sort((a: any, b: any) => orden(a) - orden(b));
 
         const foto = fotosArmazon.find(f => f.pair === par.pair);
-        const titulo = resumen.pairs.length > 1 ? `${indice + 1}º par` : 'Tu anteojo';
+        const titulo = tituloDePar(par, resumen.pairs.length, indice);
         const armazonItem = armazonDelPar.get(par.pair) || null;
         const teñidosDePar = teñidoDelPar.get(par.pair) || [];
         // Sin cristales, sin medidas, sin teñido y sin foto no hay tarjeta: una
@@ -425,7 +429,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         + (otrosItems.length ? `
         <div style="margin:0 0 16px;border:1px solid #e5e1da;border-radius:14px;overflow:hidden;background:#fff">
           <div style="padding:10px 16px;background:#f7f4ee;border-bottom:1px solid #e5e1da">
-            <p style="margin:0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#4b3f2f;font-weight:800">También llevás</p>
+            <p style="margin:0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#4b3f2f;font-weight:800">Aparte de tus anteojos</p>
           </div>
           <div style="padding:12px 16px">
             <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${otrosItems.map(cristalHtml).join('')}</table>
