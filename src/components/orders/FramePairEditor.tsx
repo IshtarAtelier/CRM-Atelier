@@ -14,7 +14,7 @@
 // así guardar un par jamás pisa lo cargado en el otro.
 // ────────────────────────────────────────────────────────────────────────────
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Glasses, ChevronDown } from 'lucide-react';
 import FramePhotoUploader from './FramePhotoUploader';
 
@@ -67,35 +67,60 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
     const [v, setV] = useState<FramePairValues>(initial);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
 
     const set = (k: keyof FramePairValues) => (val: string | null) => {
         setSaved(false);
         setV(prev => ({ ...prev, [k]: val }));
     };
 
-    const guardar = async () => {
+    // ── AUTOGUARDADO (Ishtar, 25/8: «que las fichas siempre estén guardadas») ──
+    // Antes todo dependía del botón: medidas tipeadas sin apretarlo se perdían
+    // al cambiar de pantalla. Ahora, al segundo de dejar de escribir, se guarda
+    // solo. El botón queda como confirmación inmediata para quien la quiera.
+    //
+    // El guardado AUTOMÁTICO no dispara onSaved a propósito: onSaved refresca
+    // la ficha entera y eso REMONTA este cuadro — perder el foco del input en
+    // medio del tipeo por un refresh silencioso es peor que refrescar después.
+    // El botón sí refresca (es un momento elegido por la persona).
+    const vRef = useRef(v);
+    vRef.current = v;
+    const ultimoGuardado = useRef(JSON.stringify(initial));
+
+    const guardar = async (auto = false) => {
+        const datos = vRef.current;
+        const firma = JSON.stringify(datos);
         setSaving(true);
+        setErrorGuardado(null);
         try {
             // Un endpoint por POSICIÓN: guardar este armazón nunca toca a los
             // otros, por más que haya cuatro en pantalla.
             const res = await fetch(`/api/orders/${orderId}/frames/${pair}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(v),
+                body: JSON.stringify(datos),
             });
             if (res.ok) {
+                ultimoGuardado.current = firma;
                 setSaved(true);
-                await onSaved?.();
+                if (!auto) await onSaved?.();
             } else {
                 const err = await res.json().catch(() => ({}));
-                alert(`⚠️ No se guardó el ${title.toLowerCase()}: ${err.error || 'error desconocido'}`);
+                setErrorGuardado(err.error || 'No se pudo guardar — reintentá');
             }
         } catch (e: any) {
-            alert(`⚠️ Error de red guardando el ${title.toLowerCase()}: ${e.message}`);
+            setErrorGuardado(`Error de red: ${e.message} — se reintenta al seguir escribiendo`);
         } finally {
             setSaving(false);
         }
     };
+
+    useEffect(() => {
+        if (JSON.stringify(v) === ultimoGuardado.current) return;
+        const timer = setTimeout(() => { guardar(true); }, 1000);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [v]);
 
     const esNaranja = accent === 'orange';
     const borde = esNaranja ? 'border-orange-200 dark:border-orange-800/50' : 'border-stone-200 dark:border-stone-700';
@@ -155,11 +180,13 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
                 {abierto && <span className="flex-1" />}
 
                 {completo && !abierto && <span className="text-[10px] font-black text-emerald-600 shrink-0">✓</span>}
-                {saved && <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 shrink-0">Guardado</span>}
+                {saving && <span className="text-[10px] font-black uppercase tracking-widest text-stone-400 shrink-0">Guardando…</span>}
+                {!saving && saved && <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 shrink-0">✓ Guardado</span>}
+                {!saving && errorGuardado && <span className="text-[10px] font-bold text-rose-600 shrink-0" title={errorGuardado}>⚠️ sin guardar</span>}
 
                 {abierto && (
                     <button
-                        onClick={guardar}
+                        onClick={() => guardar(false)}
                         disabled={saving}
                         className="px-4 py-2 bg-stone-900 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50 shrink-0"
                     >
