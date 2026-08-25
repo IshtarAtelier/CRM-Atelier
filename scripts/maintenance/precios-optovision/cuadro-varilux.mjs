@@ -84,6 +84,110 @@ function tabla(d) {
 }
 
 /**
+ * Sygnus es una lista aparte dentro del mismo PDF, con otras columnas (índice,
+ * diámetro, rangos) y también SIN antirreflejo. Se muestra igual que los
+ * monofocales: pelado y con Crizal Forte UV.
+ */
+function sygnus() {
+    const s = datos.sygnus;
+    if (!s) return '';
+    const forte = datos.monofocales?.tratamientos_sueltos?.find(t => /FORTE/.test(t.nombre))?.precio ?? 0;
+    const th = 'padding:8px 10px;text-align:left;background:#1e293b;color:#fff;font-weight:700';
+    const total = s.familias.reduce((a, f) => a + f.filas.length, 0);
+    return `
+    <section style="margin:36px 0;padding-top:20px;border-top:2px solid #cbd5e1">
+        <h2 style="font-size:22px;margin:0">Sygnus — páginas ${s.paginas.join(' y ')}</h2>
+        <p style="margin:2px 0 14px;color:#475569">
+            ${s.familias.length} familias · ${total} lentes. También <strong>sin antirreflejo</strong>:
+            la columna de la derecha ya le suma Crizal Forte UV (${pesos(forte)}).
+        </p>
+        ${s.familias.map(f => `
+            <h3 style="font-size:18px;margin:20px 0 2px">${esc(f.familia)}</h3>
+            <p style="margin:0 0 8px;color:#475569">${esc(f.tipo)}${f.nota ? ` · ${esc(f.nota)}` : ''}</p>
+            <div style="overflow-x:auto;border:1px solid #cbd5e1;border-radius:10px">
+            <table style="border-collapse:collapse;width:100%;font-size:14.5px">
+                <thead><tr>
+                    <th style="${th}">Producto / material</th>
+                    <th style="${th};text-align:center">Índice</th>
+                    <th style="${th};text-align:center">ø</th>
+                    <th style="${th}">Rango</th>
+                    <th style="${th};text-align:right">Lista sin AR</th>
+                    <th style="${th};text-align:right">Precio pelado</th>
+                    <th style="${th};text-align:right">Precio con Forte UV</th>
+                </tr></thead>
+                <tbody>${f.filas.map((r, i) => `
+                    <tr style="background:${i % 2 ? '#f8fafc' : '#fff'}">
+                        <td style="padding:8px 10px;font-weight:600">${esc(r.material)}</td>
+                        <td style="padding:8px 10px;text-align:center;color:#475569">${esc(r.ne)}</td>
+                        <td style="padding:8px 10px;text-align:center;color:#475569">${r.diametro}</td>
+                        <td style="padding:8px 10px;color:#475569;font-size:13px">${esc(r.rango)}</td>
+                        <td style="padding:8px 10px;text-align:right;white-space:nowrap;color:#475569">${pesos(r.precio)}</td>
+                        <td style="padding:8px 10px;text-align:right;white-space:nowrap">
+                            <div style="font-weight:700">${pesos(precioVenta(r.precio))}</div>
+                            <div style="font-size:12px;color:#64748b">costo ${pesos(costoFinal(r.precio))}</div>
+                        </td>
+                        <td style="padding:8px 10px;text-align:right;white-space:nowrap">
+                            <div style="font-weight:700">${pesos(precioVenta(r.precio + forte))}</div>
+                            <div style="font-size:12px;color:#64748b">costo ${pesos(costoFinal(r.precio + forte))}</div>
+                        </td>
+                    </tr>`).join('')}</tbody>
+            </table></div>`).join('')}
+    </section>`;
+}
+
+/**
+ * Los monofocales de la página 20 vienen SIN antirreflejo: no se les puede
+ * aplicar la misma cuenta que a los progresivos sin antes sumarles el
+ * tratamiento. Por eso acá el precio de venta se muestra en DOS variantes —
+ * pelado y con Crizal Forte UV, que es el que llevan casi todos— en vez de
+ * uno solo que estaría mal en la mitad de los casos.
+ */
+function monofocales() {
+    const m = datos.monofocales;
+    if (!m) return '';
+    const forte = m.tratamientos_sueltos.find(t => /FORTE/.test(t.nombre))?.precio ?? 0;
+    const th = 'padding:8px 10px;text-align:left;background:#1e293b;color:#fff;font-weight:700';
+    const fila = (f, i) => `
+        <tr style="background:${i % 2 ? '#f8fafc' : '#fff'}">
+            <td style="padding:8px 10px;font-weight:600">${esc(f.material)}</td>
+            <td style="padding:8px 10px;text-align:right;white-space:nowrap;color:#475569">${pesos(f.precio)}</td>
+            <td style="padding:8px 10px;text-align:right;white-space:nowrap">
+                <div style="font-weight:700">${pesos(precioVenta(f.precio))}</div>
+                <div style="font-size:12.5px;color:#64748b">costo ${pesos(costoFinal(f.precio))}</div>
+            </td>
+            <td style="padding:8px 10px;text-align:right;white-space:nowrap">
+                <div style="font-weight:700">${pesos(precioVenta(f.precio + forte))}</div>
+                <div style="font-size:12.5px;color:#64748b">costo ${pesos(costoFinal(f.precio + forte))}</div>
+            </td>
+            <td style="padding:8px 10px;color:#475569;font-size:13.5px">${esc(f.rango || '')}</td>
+        </tr>`;
+    return `
+    <section style="margin:36px 0;padding-top:20px;border-top:2px solid #cbd5e1">
+        <h2 style="font-size:22px;margin:0">Monofocales y protección — página ${m.pagina}</h2>
+        <div style="margin:10px 0 16px;padding:12px 14px;background:#fffbeb;border:1px solid #f59e0b;border-radius:10px">
+            <strong>Estos vienen SIN antirreflejo.</strong> Los progresivos de arriba ya lo traen incluido;
+            estos no. Por eso se muestran las dos columnas: pelado, y con Crizal Forte UV (${pesos(forte)}),
+            que es el que llevan casi todos. Si va con otro tratamiento, se cambia ese número:
+            ${m.tratamientos_sueltos.map(t => `${esc(t.nombre)} ${pesos(t.precio)}`).join(' · ')}.
+        </div>
+        ${m.grupos.map(g => `
+            <h3 style="font-size:18px;margin:20px 0 2px">${esc(g.familia)}</h3>
+            <p style="margin:0 0 8px;color:#475569">${esc(g.grupo)}</p>
+            <div style="overflow-x:auto;border:1px solid #cbd5e1;border-radius:10px">
+            <table style="border-collapse:collapse;width:100%;font-size:15px">
+                <thead><tr>
+                    <th style="${th}">Material</th>
+                    <th style="${th};text-align:right">Lista sin AR</th>
+                    <th style="${th};text-align:right">Precio pelado</th>
+                    <th style="${th};text-align:right">Precio con Crizal Forte UV</th>
+                    <th style="${th}">Rango</th>
+                </tr></thead>
+                <tbody>${g.filas.map(fila).join('')}</tbody>
+            </table></div>`).join('')}
+    </section>`;
+}
+
+/**
  * Los Crizal son DOS cosas distintas y mezclarlas confunde: el tratamiento RX
  * suelto (lo que cuesta agregarle Crizal a una lente hecha a medida — así viene
  * en la factura, renglón aparte) y la lente de stock que ya viene con Crizal
@@ -142,6 +246,8 @@ const html = `<meta charset="utf-8"><title>Costos Varilux — Optovisión</title
   precio calculado queda alto. Conviene compararlo contra una factura antes de dar la lista por buena.
 </div>
 ${ordenados.map(tabla).join('')}
+${monofocales()}
+${sygnus()}
 ${crizal()}
 <p style="margin-top:28px;color:#64748b;font-size:14px">
   Fuente: ${esc(datos.fuente)}. Cada número verificado contra el texto del PDF y contra la imagen de la página.
@@ -149,5 +255,10 @@ ${crizal()}
 </body>`;
 
 writeFileSync(salida, html);
+const cuenta = datos.disenos.reduce((a, d) => a + d.materiales.length, 0)
+    + (datos.sygnus?.familias.reduce((a, f) => a + f.filas.length, 0) || 0)
+    + (datos.monofocales?.grupos.reduce((a, g) => a + g.filas.length, 0) || 0)
+    + (datos.crizal ? datos.crizal.tratamiento_rx.length + datos.crizal.lentes_de_stock.length : 0);
 console.log(`Cuadro escrito en ${salida}`);
-console.log(`${datos.disenos.length} diseños · ${datos.disenos.reduce((a, d) => a + d.materiales.length, 0)} combinaciones material×diseño`);
+console.log(`${datos.disenos.length} diseños progresivos · ${datos.sygnus?.familias.length || 0} familias Sygnus`);
+console.log(`${cuenta} filas de precio en total`);
