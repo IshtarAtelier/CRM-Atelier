@@ -274,31 +274,9 @@ export default function CotizadorCart({
                 tintStylePrices={tintStylePrices}
             />
 
-            {hasAnyMultifocal && (
-                <div className={`mb-6 p-4 rounded-2xl border flex items-center gap-4 ${hasMultifocalPromo ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200' : 'bg-blue-50 dark:bg-blue-950/10 border-blue-205'}`}>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md ${hasMultifocalPromo ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'}`}>
-                        <Gift className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1">
-                        <p className="text-xs font-bold uppercase tracking-wider">{hasMultifocalPromo ? '🎁 ¡Promoción Multifocal 2x1 Activa!' : '✨ Mi Primer Varilux'}</p>
-                        <p className="text-[10px] font-bold text-stone-550 dark:text-stone-400">{hasMultifocalPromo
-                            ? (promoFrameDiscount > 0
-                                ? `Bonifica: ${promoFrameName}`
-                                : 'Bonifica armazones tildados en la promo (2º sin cargo; uno solo: 50%)')
-                            : 'Solo incluye el par de cristales'}</p>
-                        {hasMultifocalPromo && (
-                            <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 mt-0.5">
-                                🎨 {AVISO_TENIDO_2X1}
-                            </p>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* El armazón que trae el cliente, como un renglón más del pedido:
-                sin cargo, pero a la vista y editable. Antes eran dos campitos
-                sueltos abajo y en una venta con dos anteojos no se veía que el
-                segundo armazón estaba contemplado. */}
+            {/* El armazón que trae el cliente, JUNTO a la lista de renglones —
+                no perdido más abajo, después del cartel de la promo. Antes
+                quedaba lejos del pedido y pasaba desapercibido. */}
             {hayArmazonUsuario && !editandoArmazonUsuario && (
                 <div className="flex items-center justify-between gap-3 p-3.5 mb-3 rounded-2xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/40 dark:bg-amber-950/10">
                     <div className="flex items-center gap-3 min-w-0">
@@ -372,7 +350,28 @@ export default function CotizadorCart({
                 ) : null
             )}
 
-            <CartPricingControls 
+            {hasAnyMultifocal && (
+                <div className={`mb-6 p-4 rounded-2xl border flex items-center gap-4 ${hasMultifocalPromo ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200' : 'bg-blue-50 dark:bg-blue-950/10 border-blue-205'}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md ${hasMultifocalPromo ? 'bg-emerald-500 text-white' : 'bg-blue-500 text-white'}`}>
+                        <Gift className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                        <p className="text-xs font-bold uppercase tracking-wider">{hasMultifocalPromo ? '🎁 ¡Promoción Multifocal 2x1 Activa!' : '✨ Mi Primer Varilux'}</p>
+                        <p className="text-[10px] font-bold text-stone-550 dark:text-stone-400">{hasMultifocalPromo
+                            ? (promoFrameDiscount > 0
+                                ? `Bonifica: ${promoFrameName}`
+                                : 'Bonifica armazones tildados en la promo (2º sin cargo; uno solo: 50%)')
+                            : 'Solo incluye el par de cristales'}</p>
+                        {hasMultifocalPromo && (
+                            <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 mt-0.5">
+                                🎨 {AVISO_TENIDO_2X1}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <CartPricingControls
                 markup={markup} setMarkup={setMarkup}
                 discountCash={discountCash} setDiscountCash={setDiscountCash}
                 discountTransfer={discountTransfer} setDiscountTransfer={setDiscountTransfer}
