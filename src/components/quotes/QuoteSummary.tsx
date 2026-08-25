@@ -24,6 +24,7 @@ import PrescriptionDetails from '../prescriptions/PrescriptionDetails';
 import FrameRecapReadOnly from '@/components/orders/FrameRecapReadOnly';
 import FramePairEditor from '@/components/orders/FramePairEditor';
 import { framesDeLaOrden, etiquetaArmazon } from '@/lib/order-frames';
+import { armazonesPorPar, esArmazonItem, nombreDeArmazon } from '@/lib/armazon-por-par';
 import { PostSaleServiceForm, postSaleValueFromOrder } from '@/components/orders/PostSaleServiceForm';
 import CheckoutModal from './CheckoutModal';
 import AddPaymentModal from './AddPaymentModal';
@@ -304,6 +305,21 @@ export default function QuoteSummary({
     const labFrame = describeLabFrameDetails(order as any);
     // Los armazones del pedido: uno por PAR DE CRISTALES.
     const armazones = framesDeLaOrden(order as any);
+
+    // QUÉ PRODUCTO es cada armazón: el ítem vendido asociado a cada par (por el
+    // chip "¿de cuál par?" del cotizador, o por nombre en pedidos viejos). Va
+    // en el título del cuadro — "1º Armazón — Vulk Anteojo de sol" — porque
+    // con dos pares era imposible saber en cuál cargar la foto y las medidas.
+    // Misma fuente que el mail y el PDF: un solo helper, nunca tres copias.
+    const armazonDelPar = armazonesPorPar(
+        ((order as any).items || []).filter(esArmazonItem),
+        labFrame.pairs as any,
+    );
+    const tituloDeArmazon = (position: number): string => {
+        const base = etiquetaArmazon(position, armazones.length);
+        const nombre = nombreDeArmazon(armazonDelPar.get(position) || {});
+        return nombre ? `${base} — ${nombre}` : base;
+    };
 
     // Altura pupilar y DNP: el valor guardado en el PEDIDO manda; si todavía no
     // hay, se precarga desde la receta como punto de partida. Varían según el
@@ -794,7 +810,7 @@ export default function QuoteSummary({
                         key={`f${f.position}-${order.id}`}
                         orderId={order.id}
                         pair={f.position}
-                        title={etiquetaArmazon(f.position, armazones.length)}
+                        title={tituloDeArmazon(f.position)}
                         accent={f.position % 2 === 0 ? 'orange' : 'stone'}
                         initial={{
                             shape: f.shape || '',

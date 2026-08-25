@@ -28,6 +28,7 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
+import FrameRecapReadOnly from '@/components/orders/FrameRecapReadOnly';
 import {
     isCrystal,
     getCategoryKey,
@@ -89,6 +90,8 @@ interface QuoteItem {
     crystalColor?: string;
     crystalColorType?: string;
     crystalColorNote?: string;
+    /** A qué armazón (1º/2º) corresponde este ítem — teñidos Y armazones. */
+    framePosition?: number | null;
     productBrandSnapshot?: string | null;
     productNameSnapshot?: string | null;
     productCategorySnapshot?: string | null;
@@ -152,6 +155,11 @@ function CotizadorPageContent() {
 
     // Editing states
     const [editingQuoteId, setEditingQuoteId] = useState<string | null>(editId);
+    // El pedido CRUDO que se está editando, con sus armazones (frames, fotos,
+    // medidas). Antes se descartaba tras mapear los items: editar un
+    // presupuesto no mostraba NADA de los armazones — "es imposible saber cuál
+    // es cuál" (Ishtar, 25/8).
+    const [editingOrderData, setEditingOrderData] = useState<any | null>(null);
     // Ya es una venta (aunque esté reabierta): no repricear cristales contra
     // el catálogo en vivo — el server la protege, esto evita mostrar/mandar
     // un número inflado antes de guardar.
@@ -221,6 +229,7 @@ function CotizadorPageContent() {
                             crystalColor: it.crystalColor,
                             crystalColorType: it.crystalColorType,
                             crystalColorNote: it.crystalColorNote,
+                            framePosition: it.framePosition ?? null,
                             uid: Date.now() + idx,
                             productNameSnapshot: it.productNameSnapshot,
                             productBrandSnapshot: it.productBrandSnapshot,
@@ -239,6 +248,7 @@ function CotizadorPageContent() {
                         setDiscountTransfer(quote.discountTransfer ?? 15);
                         setDiscountCard(quote.discountCard ?? 0);
                         setSpecialDiscount(quote.specialDiscount ?? 0);
+                        setEditingOrderData(quote);
 
                         // Set frame source — API returns individual fields, not an object
                         if (quote.frameSource) setFrameSource(quote.frameSource);
@@ -515,6 +525,7 @@ function CotizadorPageContent() {
                         crystalColor: it.crystalColor || null,
                         crystalColorType: it.crystalColorType || null,
                         crystalColorNote: it.crystalColorNote || null,
+                        framePosition: it.framePosition ?? null,
                         productBrandSnapshot: it.productBrandSnapshot || it.product?.brand || null,
                         productNameSnapshot: it.productNameSnapshot || it.product?.name || it.product?.model || null,
                         productCategorySnapshot: it.productCategorySnapshot || it.product?.category || null,
@@ -701,6 +712,7 @@ function CotizadorPageContent() {
             crystalColor: it.crystalColor,
             crystalColorType: it.crystalColorType,
             crystalColorNote: it.crystalColorNote,
+            framePosition: it.framePosition ?? null,
             uid: Date.now() + idx,
             productBrandSnapshot: it.productBrandSnapshot,
             productNameSnapshot: it.productNameSnapshot,
@@ -720,6 +732,7 @@ function CotizadorPageContent() {
         setDiscountTransfer(quote.discountTransfer ?? 15);
         setDiscountCard(quote.discountCard ?? 0);
         setSpecialDiscount(quote.specialDiscount ?? 0);
+        setEditingOrderData(quote);
 
         if (quote.frameSource) setFrameSource(quote.frameSource);
         setUserFrameData({
@@ -1231,6 +1244,13 @@ function CotizadorPageContent() {
 
                                             {pendingContact ? (
                                                 <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
+                                                    {/* Editando un pedido: SUS ARMAZONES a la vista (foto,
+                                                        medidas, forma). El dato siempre llegó (getOrder trae
+                                                        frames); la pantalla lo tiraba. Editar sin ver qué
+                                                        armazón es cuál era adivinar. */}
+                                                    {editingQuoteId && editingOrderData && (
+                                                        <FrameRecapReadOnly order={editingOrderData} defaultOpen contexto="cotizador" />
+                                                    )}
                                                     <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-4">
                                                         <div className="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center border border-primary/20"><User className="w-6 h-6 text-primary" /></div>
                                                         <div className="flex-1 min-w-0">
