@@ -105,3 +105,9 @@ social/contenido/reels/salida/.frames-*/
 # Vista previa generada por check:venta
 scripts/checks/.confirmacion-compra.preview.html
 scripts/maintenance/etiquetas-limpieza/respaldo-*.json
+
+# Catálogo de plantillas de WhatsApp: es la SALIDA de
+# scripts/checks/plantillas-catalogo-pdf.mjs, que lo regenera en un comando.
+# El script escribe en el directorio actual, así que aparece en la raíz — que es
+# solo configuración. El PDF no se versiona; el generador sí.
+/plantillas-whatsapp-atelier.pdf
