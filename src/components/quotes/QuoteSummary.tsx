@@ -718,6 +718,7 @@ export default function QuoteSummary({
                     orderId={order.id}
                     editable={!isLockedSale}
                     totalArmazones={armazones.length}
+                    order={order}
                     onSaved={onRefreshContact}
                 />
 
@@ -799,13 +800,14 @@ export default function QuoteSummary({
                     </div>
                 )}
 
-                {/* Un cuadro por armazón, y la cantidad la marcan los PARES DE
-                    CRISTALES: cuatro pares son cuatro anteojos, cada uno con sus
-                    medidas, su altura y su foto. Guardar uno nunca toca a los
-                    otros (cada cuadro tiene su endpoint por posición). Solo
-                    desaparecen cuando la venta ya salió a fábrica: ahí manda el
-                    bloque de solo lectura. */}
-                {!isLockedSale && armazones.map(f => (
+                {/* Cuadros SUELTOS solo para los pares SIN armazón vendido: el
+                    par que va en el armazón DEL CLIENTE, que no tiene renglón
+                    donde vivir. Los pares con su ítem asociado ya tienen el
+                    cuadro desplegado EN ese renglón (LineaArmazonEditor) — dos
+                    editores del mismo armazón en la misma pantalla era pedir
+                    que se pisen. Desaparecen todos cuando la venta salió a
+                    fábrica: ahí manda el bloque de solo lectura. */}
+                {!isLockedSale && armazones.filter(f => !armazonDelPar.has(f.position)).map(f => (
                     <FramePairEditor
                         key={`f${f.position}-${order.id}`}
                         orderId={order.id}

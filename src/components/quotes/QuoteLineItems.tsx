@@ -5,6 +5,8 @@ import { Plus } from 'lucide-react';
 import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
 import LineaColorEditor from './LineaColorEditor';
+import LineaArmazonEditor from './LineaArmazonEditor';
+import { esArmazonItem } from '@/lib/armazon-por-par';
 import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
 
@@ -22,6 +24,8 @@ interface QuoteLineItemsProps {
     editable?: boolean;
     /** Cuántos armazones lleva el pedido (para preguntar a cuál va el teñido). */
     totalArmazones?: number;
+    /** El pedido entero: habilita asociar y cargar el armazón EN su renglón. */
+    order?: any;
     onSaved?: () => void | Promise<void>;
 }
 
@@ -34,6 +38,7 @@ export default function QuoteLineItems({
     orderId,
     editable = false,
     totalArmazones = 1,
+    order,
     onSaved,
 }: QuoteLineItemsProps) {
     // Detect if this order has a 2x1 promo applied (either multifocal or generic)
@@ -80,7 +85,8 @@ export default function QuoteLineItems({
                 const colorLente = colorDeLenteEnPedido(item, items);
 
                 return (
-                    <div key={item.id} className={`flex justify-between items-center bg-stone-50/50 dark:bg-stone-900/30 px-5 py-3 rounded-2xl border ${isBonified ? 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/30' : 'border-stone-100 dark:border-stone-800'} backdrop-blur-sm group/item hover:border-primary/30 transition-all`}>
+                    <div key={item.id} className={`bg-stone-50/50 dark:bg-stone-900/30 px-5 py-3 rounded-2xl border ${isBonified ? 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/30' : 'border-stone-100 dark:border-stone-800'} backdrop-blur-sm group/item hover:border-primary/30 transition-all`}>
+                    <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
                             {item.eye && (
                                 <span className={`w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-black uppercase tracking-widest italic leading-none ${item.eye === 'OD' ? 'bg-stone-900 text-white dark:bg-stone-700' : 'bg-stone-200 text-stone-600 dark:bg-stone-800'}`}>
@@ -149,6 +155,21 @@ export default function QuoteLineItems({
                                 </span>
                             )}
                         </div>
+                    </div>
+                    {/* El armazón se asocia y se carga EN su renglón: acá mismo
+                        elegís de cuál par es y se despliega el cuadro de foto y
+                        medidas. A lo ancho del card, no apretado en la columna. */}
+                    {orderId && order && esArmazonItem(item) && !item.eye && (
+                        <LineaArmazonEditor
+                            orderId={orderId}
+                            item={item}
+                            items={items}
+                            order={order}
+                            totalArmazones={totalArmazones}
+                            editable={editable}
+                            onSaved={onSaved}
+                        />
+                    )}
                     </div>
                 );
             })}
