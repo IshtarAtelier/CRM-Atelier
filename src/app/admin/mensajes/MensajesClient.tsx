@@ -154,6 +154,12 @@ export default function MensajesClient() {
     const [urgente, setUrgente] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const finRef = useRef<HTMLDivElement>(null);
+    // El contenedor scrolleable y una marca de "no bajes al fondo esta vez".
+    // Sin esto, cargar mensajes anteriores cambiaba `mensajes` y el efecto de
+    // auto-scroll devolvía la vista al último mensaje: la persona apretaba
+    // "Ver anteriores", se cargaban, y no veía ni uno.
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const anclarScroll = useRef<number | null>(null);
 
     const cargarBandeja = useCallback(async () => {
         try {
@@ -238,11 +244,25 @@ export default function MensajesClient() {
         // `noLeidos` es la señal: cambia cuando entra o se lee algo.
     }, [noLeidos]);
 
-    useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mensajes]);
+    useEffect(() => {
+        // Volviendo de "ver anteriores": se restaura la posición de lectura en
+        // vez de saltar al fondo. Se compara el alto de antes contra el de ahora
+        // y se corre el scroll esa diferencia, así lo que se estaba leyendo
+        // queda exactamente donde estaba.
+        if (anclarScroll.current !== null && scrollRef.current) {
+            const crecio = scrollRef.current.scrollHeight - anclarScroll.current;
+            scrollRef.current.scrollTop = crecio;
+            anclarScroll.current = null;
+            return;
+        }
+        finRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [mensajes]);
 
     /** Trae la página anterior y la antepone, sin perder lo que ya se cargó. */
     const cargarAnteriores = async () => {
         if (!activa || cargandoMas || mensajes.length === 0) return;
+        // Alto actual: la referencia para restaurar la posición de lectura.
+        anclarScroll.current = scrollRef.current?.scrollHeight ?? null;
         setCargandoMas(true);
         try {
             const res = await fetch(`/api/mensajes/${activa}?antesDe=${encodeURIComponent(mensajes[0].createdAt)}`);
@@ -278,7 +298,19 @@ export default function MensajesClient() {
             if (!res.ok) throw new Error(data.error || 'No se pudo enviar');
             setTexto('');
             setUrgente(false);
-            await abrir(activa);
+            // FUSIONAR y no `abrir()`: abrir reemplaza la lista con la última
+            // página y tiraba a la basura el historial que la persona hubiera
+            // cargado con "ver anteriores". Mismo criterio que el refresco.
+            const d = await fetch(`/api/mensajes/${activa}`).then(r => r.ok ? r.json() : null).catch(() => null);
+            if (d?.mensajes) {
+                setMensajes(prev => {
+                    const nuevos: Mensaje[] = d.mensajes;
+                    if (prev.length === 0) return nuevos;
+                    const idsNuevos = new Set(nuevos.map((m: Mensaje) => m.id));
+                    return [...prev.filter(m => !idsNuevos.has(m.id)), ...nuevos];
+                });
+            }
+            cargarBandeja();
             refrescar();
         } catch (e: any) {
             // El texto NO se borra si falló: perder lo escrito por un problema de
@@ -398,7 +430,7 @@ export default function MensajesClient() {
                                 </div>
                             </div>
 
-                            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+                            <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
                                 {hayMas && (
                                     <div className="flex justify-center pb-2">
                                         <button

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
+import { parseVencimientoCupon, vencimientoPorDefecto } from '@/lib/coupons';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +64,10 @@ export async function POST(request: Request) {
                 discountType,
                 discountValue,
                 isActive: body.isActive !== undefined ? !!body.isActive : true,
-                expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+                // Sin fecha elegida: 2 meses por default, no "sin vencimiento"
+                // para siempre — un cupón vivo indefinidamente es fácil de
+                // olvidar activo.
+                expiresAt: parseVencimientoCupon(body.expiresAt) || vencimientoPorDefecto(),
                 maxUses: body.maxUses != null && body.maxUses !== '' ? Number(body.maxUses) : null,
                 minOrderAmount: body.minOrderAmount != null && body.minOrderAmount !== '' ? Number(body.minOrderAmount) : 0,
             },

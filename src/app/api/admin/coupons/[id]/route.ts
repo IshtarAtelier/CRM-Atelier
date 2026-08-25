@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
+import { parseVencimientoCupon } from '@/lib/coupons';
 
 const VALID_TYPES = ['FIXED', 'PERCENT'];
 
@@ -49,7 +50,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         }
 
         if (body.isActive !== undefined) data.isActive = !!body.isActive;
-        if (body.expiresAt !== undefined) data.expiresAt = body.expiresAt ? new Date(body.expiresAt) : null;
+        if (body.expiresAt !== undefined) data.expiresAt = parseVencimientoCupon(body.expiresAt);
         if (body.maxUses !== undefined) data.maxUses = body.maxUses != null && body.maxUses !== '' ? Number(body.maxUses) : null;
         if (body.minOrderAmount !== undefined) data.minOrderAmount = body.minOrderAmount != null && body.minOrderAmount !== '' ? Number(body.minOrderAmount) : 0;
 

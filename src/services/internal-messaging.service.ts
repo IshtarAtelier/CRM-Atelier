@@ -388,9 +388,23 @@ export class InternalMessagingService {
         }
 
         // Si no ve un solo mensaje del hilo, tampoco ve el asunto (mismo motivo
-        // que en la bandeja). `antesDe` se excluye: pedir una página vieja vacía
-        // no es lo mismo que no tener acceso a nada.
-        const veAlgo = mensajes.length > 0 || !!opts.antesDe;
+        // que en la bandeja: el asunto también es contenido).
+        //
+        // OJO CON LA CONDICIÓN. Antes era `mensajes.length > 0 || !!opts.antesDe`,
+        // razonando que pedir una página vieja vacía no es lo mismo que no tener
+        // acceso. La idea es correcta; el error era usar EL PARÁMETRO DEL PEDIDO
+        // como prueba. Quien no veía nada del hilo pedía
+        // `?antesDe=2999-01-01`, la respuesta traía cero mensajes y el asunto
+        // igual: la reja puenteada con una URL escrita a mano.
+        //
+        // Ahora, en el camino de paginado, la visibilidad se resuelve contra la
+        // BASE: ¿existe algún mensaje que esta persona pueda ver? Es una consulta
+        // extra y solo cuando se pide una página anterior.
+        const veAlgo = mensajes.length > 0
+            || (!!opts.antesDe && !!(await prisma.internalMessage.findFirst({
+                where: { threadId, createdAt: { gte: participante.createdAt } },
+                select: { id: true },
+            })));
         return {
             id: thread.id,
             kind: thread.kind,

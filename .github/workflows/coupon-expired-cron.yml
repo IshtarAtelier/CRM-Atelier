@@ -1,0 +1,30 @@
+# Aviso diario de cupones vencidos.
+#
+# Antes un cupón que vencía no le avisaba a nadie: quedaba muerto y solo se
+# notaba si alguien entraba a mirar el panel. Pedido de Ishtar 25/8/26: un
+# mail cuando un cupón activo cruza su fecha de vencimiento, para decidir si
+# sale uno nuevo. El endpoint deduplica por AuditLog — un cupón avisa una
+# sola vez, no todos los días.
+#
+# CRON_SECRET vive en los secrets del repo (Settings → Secrets → Actions),
+# el mismo que usan los demás crons de /api/cron/*.
+
+name: Cupón vencido
+
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 09:00 ART
+  workflow_dispatch: {}
+
+jobs:
+  avisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Llamar el endpoint
+        run: |
+          RESPUESTA=$(curl -sS --max-time 60 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://atelieroptica.com.ar/api/cron/coupon-expired")
+          echo "$RESPUESTA"
+          echo "$RESPUESTA" | grep -q '"success":true' || exit 1

@@ -268,13 +268,16 @@ export default function CouponsManager() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-1">Vence (opcional)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-1">Vence</label>
                   <input
                     type="date"
                     value={form.expiresAt}
                     onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
                     className="w-full px-3 py-2.5 border border-stone-200 dark:border-stone-700 rounded-xl text-sm bg-white dark:bg-stone-800 dark:text-white"
                   />
+                  {!form.id && (
+                    <p className="text-[10px] text-stone-400 mt-1">Si lo dejás vacío, vence en 2 meses.</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-1">Límite de usos</label>

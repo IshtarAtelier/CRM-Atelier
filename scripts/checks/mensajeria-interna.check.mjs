@@ -96,8 +96,12 @@ let bloqueada = false;
 try { await S.leerConversacion(threadId, carla.id); } catch { bloqueada = true; }
 check('un tercero NO puede leer la conversación', bloqueada);
 check('y no le aparece en su bandeja', (await S.bandeja(carla.id)).every(c => c.id !== threadId));
-check('ni le cuenta como no leída (teniendo ella otras conversaciones)',
-    (await S.bandeja(carla.id)).every(c => c.id !== threadId));
+// Carla tiene UNA conversación propia (con la Jefa, un mensaje sin leer). Si el
+// filtro contara mensajes de hilos ajenos, este número sería 3 y no 1.
+// Antes esta línea era un duplicado literal de la de arriba: decía "no le cuenta
+// como no leída" y nunca llamaba a contarNoLeidos.
+check('cuenta SOLO los de sus propias conversaciones',
+    (await S.contarNoLeidos(carla.id)) === 1, `(dio ${await S.contarNoLeidos(carla.id)})`);
 check('ni le llega el urgente', (await S.urgentesPendientes(carla.id)).every(u => u.threadId !== threadId));
 
 // La frase del encabezado del service — "ni un ADMIN lee los mensajes ajenos" —
@@ -264,6 +268,11 @@ check('la vista previa NO filtra el texto que el hilo oculta', previaDani === nu
 
 check('un urgente anterior al alta NO le tapa la pantalla',
     (await S.urgentesPendientes(dani.id)).every(u => u.threadId !== hiloViejo));
+// ...pero uno POSTERIOR sí. Sin esta segunda mitad, la de arriba pasaría igual
+// si `urgentesPendientes` estuviera rota y no devolviera nunca nada.
+await S.responder({ threadId: hiloViejo, senderId: beto.id, body: 'Dani, esto es urgente', urgent: true });
+check('y uno POSTERIOR al alta sí llega',
+    (await S.urgentesPendientes(dani.id)).some(u => u.threadId === hiloViejo));
 
 // Agregar a alguien que YA está activo no puede romper el hilo uno-a-uno.
 const { id: directo } = await S.crearConversacion({
@@ -292,6 +301,11 @@ check('el ASUNTO tampoco se ve si no ve ningún mensaje', filaGus?.subject === n
     `(mostró "${filaGus?.subject ?? ''}")`);
 check('y al abrirla, el asunto sigue oculto',
     (await S.leerConversacion(hiloConAsunto, gus.id)).subject === null);
+// EL BYPASS: pedir una página anterior con una fecha futura devolvía cero
+// mensajes y el asunto igual, porque la condición confiaba en que el parámetro
+// viniera puesto en vez de mirar la base. Se puenteaba con una URL a mano.
+check('y NO se destapa pidiendo una página anterior (bypass de ?antesDe)',
+    (await S.leerConversacion(hiloConAsunto, gus.id, { antesDe: new Date('2999-01-01') })).subject === null);
 // Pero en cuanto se escribe algo nuevo, ya es parte de su conversación.
 await S.responder({ threadId: hiloConAsunto, senderId: beto.id, body: 'Gus, mirá esto' });
 check('cuando SÍ ve un mensaje, el asunto aparece',
