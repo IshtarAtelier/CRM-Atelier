@@ -35,6 +35,21 @@ const GUIADOS: Record<string, Paso[]> = {
             ),
         },
         {
+            titulo: 'Armazón que trae el cliente: siempre por el botón',
+            cuerpo: (
+                <>
+                    <p>Cuando el cliente trae SU PROPIO armazón, <strong>siempre</strong> hay que cargarlo con el botón <strong>“Agregar armazón del usuario”</strong> (abajo del carrito, en el presupuesto) — nunca dejarlo afuera ni contarlo solo de palabra.</p>
+                    <p className="flex items-center gap-2 mt-3 text-amber-600 dark:text-amber-500 font-bold">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        Sin ese botón, el sistema no sabe que hay un armazón ahí: no pide la foto ni las medidas al confirmar la venta, y ese anteojo queda sin rastro en la ficha del cliente.
+                    </p>
+                    <p className="mt-3 p-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
+                        Queda marcado “Sin cargo” solo — no hay que tocar el precio a mano.
+                    </p>
+                </>
+            ),
+        },
+        {
             titulo: 'El teñido ahora es UNA sola línea',
             cuerpo: (
                 <>
@@ -94,21 +109,6 @@ const GUIADOS: Record<string, Paso[]> = {
                     <p className="flex items-start gap-2 mt-2 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400">
                         <Check className="w-4 h-4 shrink-0 mt-0.5" />
                         <span><strong>Con otro armazón de la óptica en la misma venta</strong> (entre o no en la promo), el clip-on SÍ se bonifica como cualquier armazón tildado.</span>
-                    </p>
-                </>
-            ),
-        },
-        {
-            titulo: 'Armazón que trae el cliente: siempre por el botón',
-            cuerpo: (
-                <>
-                    <p>Cuando el cliente trae SU PROPIO armazón, <strong>siempre</strong> hay que cargarlo con el botón <strong>“Agregar armazón del usuario”</strong> (abajo del carrito, en el presupuesto) — nunca dejarlo afuera ni contarlo solo de palabra.</p>
-                    <p className="flex items-center gap-2 mt-3 text-amber-600 dark:text-amber-500 font-bold">
-                        <AlertTriangle className="w-4 h-4 shrink-0" />
-                        Sin ese botón, el sistema no sabe que hay un armazón ahí: no pide la foto ni las medidas al confirmar la venta, y ese anteojo queda sin rastro en la ficha del cliente.
-                    </p>
-                    <p className="mt-3 p-3 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
-                        Queda marcado “Sin cargo” solo — no hay que tocar el precio a mano.
                     </p>
                 </>
             ),
