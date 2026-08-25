@@ -222,6 +222,8 @@ export default function OrderManager({
                         contactName={contactName}
                         onClose={() => setIsQuoting(false)}
                         editingQuoteId={editingQuoteId}
+                        editingOrderData={orders.find((o: any) => o.id === editingQuoteId) || null}
+                        onRefreshOrderData={async () => onRefresh()}
                         isSale={editingIsSale}
                         isCard={false}
                     />

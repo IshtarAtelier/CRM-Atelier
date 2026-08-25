@@ -160,6 +160,15 @@ function CotizadorPageContent() {
     // presupuesto no mostraba NADA de los armazones — "es imposible saber cuál
     // es cuál" (Ishtar, 25/8).
     const [editingOrderData, setEditingOrderData] = useState<any | null>(null);
+    // Vuelve a leer el pedido en edición (después de guardar foto/medidas
+    // inline en el carrito), para que el repaso muestre lo recién cargado.
+    const refrescarOrdenEnEdicion = async () => {
+        if (!editingQuoteId) return;
+        try {
+            const r = await fetch(`/api/orders/${editingQuoteId}`);
+            if (r.ok) setEditingOrderData(await r.json());
+        } catch { /* la copia en memoria sigue sirviendo */ }
+    };
     // Ya es una venta (aunque esté reabierta): no repricear cristales contra
     // el catálogo en vivo — el server la protege, esto evita mostrar/mandar
     // un número inflado antes de guardar.
@@ -1171,6 +1180,8 @@ function CotizadorPageContent() {
                                 <CotizadorCart 
                                     items={quoteItems}
                                     setItems={setQuoteItems}
+                                    editingOrderData={editingOrderData}
+                                    onRefreshOrderData={refrescarOrdenEnEdicion}
                                     markup={markup}
                                     setMarkup={setMarkup}
                                     discountCash={discountCash}
@@ -1375,6 +1386,8 @@ function CotizadorPageContent() {
                                     <CotizadorCart
                                         items={quoteItems}
                                         setItems={setQuoteItems}
+                                        editingOrderData={editingOrderData}
+                                        onRefreshOrderData={refrescarOrdenEnEdicion}
                                         markup={markup}
                                         setMarkup={setMarkup}
                                         discountCash={discountCash}

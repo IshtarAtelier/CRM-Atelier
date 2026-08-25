@@ -18,6 +18,7 @@ import { DETALLE_MARK } from '@/lib/order-detail-summary';
 import { ventaRecapCompleto } from '@/lib/sale-recap-text';
 import { framesDeLaOrden, cantidadDeArmazones } from '@/lib/order-frames';
 import { faltantesDeColor } from '@/lib/crystal-color';
+import { faltanAsociarArmazones } from '@/lib/armazon-por-par';
 import { SELECT_REPASO, SELECT_ITEMS_REPASO, SELECT_FRAMES_REPASO } from '@/lib/order-recap-select';
 import { sendSaleConfirmation } from '@/lib/sale-confirmation';
 import { logAudit } from '@/lib/audit';
@@ -1967,6 +1968,13 @@ export class OrderService {
                 const faltaColor = faltantesDeColor(existingOrder.items as any, armazonesDelPedido);
                 if (faltaColor.length > 0) {
                     throw new Error(`No se puede convertir en venta: ${faltaColor[0].mensaje}`);
+                }
+
+                // Check: cada ARMAZÓN vendido asociado a su par (la gemela del
+                // check de teñido de arriba; misma regla que lista el checkout).
+                const faltaAsociar = faltanAsociarArmazones(existingOrder.items as any, armazonesDelPedido);
+                if (faltaAsociar.length > 0) {
+                    throw new Error(`No se puede convertir en venta: ${faltaAsociar[0]}`);
                 }
 
                 // Check: la foto de CADA armazón es obligatoria.

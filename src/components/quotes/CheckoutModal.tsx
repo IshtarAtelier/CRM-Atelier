@@ -17,6 +17,7 @@ import { PricingService } from '@/services/PricingService';
 import { isMultifocal2x1 } from '@/lib/promo-utils';
 import { faltantesDeColor } from '@/lib/crystal-color';
 import { cantidadDeArmazones } from '@/lib/order-frames';
+import { faltanAsociarArmazones } from '@/lib/armazon-por-par';
 import { lensOriginFromItem, LENS_ORIGIN } from '@/lib/lens-origin';
 import { minimumDeposit, depositClearsFactoryGate } from '@/lib/factory-gate';
 
@@ -273,6 +274,9 @@ export default function CheckoutModal({
     {
         for (const f of faltantesDeColor(order.items as any, cantidadDeArmazones(order as any))) {
             if (!faltantes.includes(f.mensaje)) faltantes.push(f.mensaje);
+        }
+        for (const m of faltanAsociarArmazones(order.items as any, cantidadDeArmazones(order as any))) {
+            if (!faltantes.includes(m)) faltantes.push(m);
         }
         if (is2x1) {
             if (!frameDetails2.trim()) faltantes.push('Detalle del 2º armazón (promo 2x1)');
