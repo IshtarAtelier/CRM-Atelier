@@ -25,7 +25,45 @@ const prisma = new PrismaClient({ datasources: { db: { url } } });
 const pesos = n => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
 const dia = d => d ? new Date(d).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Cordoba' }) : '—';
 
+/**
+ * EL HISTORIAL DE AUMENTOS. Cada cambio de precio queda firmado en el AuditLog
+ * (PRICE_OVERRIDE sobre PRODUCT) con el precio viejo, el nuevo y el porcentaje.
+ * Esto lo lee de vuelta y lo muestra como lo que es: una lista de aumentos con
+ * su fecha, quién lo hizo y a cuántos productos les pegó.
+ */
+async function historial() {
+    const filas = await prisma.$queryRaw`
+        select "createdAt", "userName", details
+        from "AuditLog"
+        where action = 'PRICE_OVERRIDE' and "entityType" = 'PRODUCT'
+        order by "createdAt" desc
+        limit 2000`;
+
+    console.log('\n═══ HISTORIAL DE AUMENTOS DE PRECIO ═══');
+    if (!filas.length) {
+        console.log('\n  No hay ningún aumento registrado todavía.');
+        console.log('  (Los aumentos hechos antes del 25/8/2026 no dejaban rastro: no se pueden reconstruir.)');
+        return;
+    }
+    // Un aumento es una corrida: misma fecha+hora al minuto, mismo lab, mismo %.
+    const corridas = new Map();
+    for (const f of filas) {
+        const min = new Date(f.createdAt).toISOString().slice(0, 16);
+        const k = `${min}|${f.details?.lab || '—'}|${f.details?.pct ?? '—'}`;
+        if (!corridas.has(k)) corridas.set(k, { fecha: f.createdAt, quien: f.userName, lab: f.details?.lab, pct: f.details?.pct, n: 0, de: 0, a: 0 });
+        const c = corridas.get(k);
+        c.n++; c.de += f.details?.de || 0; c.a += f.details?.a || 0;
+    }
+    for (const c of corridas.values()) {
+        console.log(`\n  ${dia(c.fecha)}  ·  ${c.lab}  ·  +${c.pct}%`);
+        console.log(`     ${c.n} producto(s) · la lista pasó de ${pesos(c.de)} a ${pesos(c.a)} en total`);
+        console.log(`     lo hizo: ${c.quien}`);
+    }
+}
+
 async function main() {
+    await historial();
+
     const labs = await prisma.$queryRaw`
         select coalesce(laboratory, '(sin laboratorio)') as lab, count(*)::int as productos
         from "Product" where category = 'Cristal'
