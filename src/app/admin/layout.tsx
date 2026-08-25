@@ -4,6 +4,7 @@ import { FloatingDock } from "@/components/ui/FloatingDock";
 import CommandPalette from "@/components/ui/CommandPalette";
 import { LeadToastNotifications } from "@/components/ui/LeadToastNotifications";
 import { CopilotChat } from "@/components/admin/CopilotChat";
+import NovedadesGuiadas from "@/components/admin/NovedadesGuiadas";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { PulsoProvider } from "@/components/mensajes/PulsoProvider";
@@ -26,6 +27,7 @@ export default async function AdminLayout({
         <FloatingDock />
 
         <CommandPalette />
+        <NovedadesGuiadas />
         <LeadToastNotifications />
         <CopilotChat userName={userName} userRole={userRole} />
         
