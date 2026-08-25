@@ -327,7 +327,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 ` : ''}
                 ${specialDiscount > 0 ? `
                 <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #10b981;">
-                    <span style="font-weight: 600;">✨ Descuento Especial:</span>
+                    <span style="font-weight: 800;">⭐ Descuento excepcional para vos:</span>
                     <span style="font-weight: 800;">-$${specialDiscount.toLocaleString()}</span>
                 </div>
                 ` : ''}
@@ -713,7 +713,7 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
             };
             filaResumen('Suma de los productos', `$${sumaRenglones.toLocaleString()}`);
             filaResumen(
-                order.appliedPromoName ? `Bonificacion - ${order.appliedPromoName}` : 'Descuento aplicado',
+                order.appliedPromoName ? `Bonificacion - ${order.appliedPromoName}` : 'Descuento excepcional',
                 `- $${descuento.toLocaleString()}`, true, [26, 127, 75],
             );
             doc.setDrawColor(...brandBeige); doc.setLineWidth(0.3);
