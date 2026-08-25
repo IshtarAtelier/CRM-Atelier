@@ -64,6 +64,19 @@ export const SELECT_REPASO = {
     id: true,
     total: true,
     paid: true,
+    // Los campos que necesita `PricingService.calculateOrderFinancials`.
+    //
+    // `payments` NO es opcional: el saldo se calcula convirtiendo CADA pago a su
+    // equivalente de lista (efectivo −20%, transferencia −15%, tarjeta sin
+    // descuento), no restando. Sin las filas de pago, `listEquivalentPaid` da 0
+    // y el cálculo devuelve un saldo pendiente para alguien que ya pagó todo:
+    // son los "saldos fantasma" que CLAUDE.md documenta. Verificado con una
+    // venta real: con `payments` el saldo da $0, sin ellos inventa $282.750.
+    markup: true,
+    discountCash: true,
+    discountTransfer: true,
+    appliedPromoDiscount: true,
+    payments: { select: { amount: true, method: true, date: true } },
     orderType: true,
     isLocked: true,
     clientId: true,

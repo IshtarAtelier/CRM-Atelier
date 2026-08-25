@@ -23,6 +23,7 @@ import { normalizeArgentinePhone } from '@/services/contact.service';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { uploadFile, getFileBuffer } from '@/lib/storage';
 import { STORE_ORIGIN } from '@/lib/constants';
+import { PricingService } from '@/services/PricingService';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
 import { logAudit } from '@/lib/audit';
@@ -107,7 +108,39 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
 
     const total = order.total || 0;
     const pagado = order.paid || 0;
-    const saldo = Math.max(0, total - pagado);
+
+    // La plata sale de PricingService y NO se recalcula acá: es la regla de
+    // CLAUDE.md, y cada copia de este cálculo divergió alguna vez y costó plata.
+    const fin = PricingService.calculateOrderFinancials(order);
+    // El markup ya está aplicado en `listPrice`; para los renglones hay que
+    // aplicarlo igual que el PDF, si no el detalle no suma el total.
+    const markupFactor = 1 + ((order.markup || 0) / 100);
+    const precioDe = (it: any) => Math.round((it.price || 0) * markupFactor) * (it.quantity || 1);
+    // Lo que se bonificó: la diferencia entre lo que suman los renglones a
+    // precio de lista y el total real. Sin este renglón el cliente ve precios
+    // que no suman lo que pagó y no tiene forma de reconstruirlo — es
+    // exactamente el reclamo que llegó.
+    const sumaRenglones = (order.items || [])
+        .filter((it: any) => !isTeñidoAddon(it.product))
+        .reduce((n: number, it: any) => n + precioDe(it), 0);
+    const bonificado = Math.max(0, sumaRenglones - fin.listPrice);
+
+    // EL SALTO QUE NADIE EXPLICABA. El precio de lista y lo que la persona
+    // termina pagando son distintos porque cada forma de pago tiene su
+    // descuento (efectivo −20%, transferencia −15%, tarjeta sin descuento), y
+    // se puede pagar MEZCLANDO. La venta de Adriana: lista $1.796.600, pagó
+    // $100.000 por transferencia y $1.343.162 en efectivo = $1.443.162.
+    // El mail mostraba un total suelto y el cliente no tenía forma de atar los
+    // números; de ahí «el monto que figura no se corresponde con lo abonado».
+    const descuentoFormaDePago = Math.max(0, fin.listPrice - fin.paidReal);
+
+    // EL SALDO NO SE RESTA. CLAUDE.md: «El saldo NUNCA es lista − cobrado; hay
+    // que convertir cada pago a su equivalente de lista — la resta directa
+    // inventó 76 saldos fantasma en producción». `total - pagado` era
+    // exactamente esa resta, y encima falla al revés: la venta de Adriana tiene
+    // pagado $1.443.162 contra un total de $1.437.280 (pagó de más), y la resta
+    // simple da 0 por casualidad, no por estar bien calculada.
+    const saldo = fin.hasBalance ? fin.remainingList : 0;
 
     const items: any[] = order.items || [];
     const cristalesDe = cristalesPorArmazon(order);
@@ -156,6 +189,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         .filter(p => p.imageUrl)
         .map(p => {
             const cual = resumen.pairs.length > 1 ? `tu ${p.pair}º armazón` : 'tu armazón';
+            const pair = p.pair; // para poder ubicar la foto en la tarjeta de SU anteojo
             const extras = [
                 // Con teñido, el anteojo deja de ser blanco: es DE SOL, del
                 // color elegido — y así se le dice al cliente (Ishtar, 24/8/26).
@@ -167,6 +201,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
             // Sin teñido ni fotocromático → decirlo igual, junto a la foto.
             if (!extras.length) extras.push('Cristales blancos (sin teñido)');
             return {
+                pair,
                 valor: p.imageUrl as string,
                 url: urlAbsoluta(p.imageUrl) as string,
                 titulo: `Foto de ${cual} — ¿es el que elegiste?${extras.length ? `\n${extras.join('\n')}` : ''}`,
@@ -244,37 +279,103 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         </div>`;
 
     // Mismo criterio que el WhatsApp: el teñido va en su bloque, no repetido acá.
-    const itemsHtml = items.filter(it => !isTeñidoAddon(it.product)).map(it => {
-        const foto = urlAbsoluta((it.product?.imagenesCatalogo || [])[0]);
-        const nombreItem = it.product?.name || it.productNameSnapshot || 'Producto';
-        const marca = it.product?.brand || '';
-        return `
-        <tr>
-          <td width="72" style="padding:10px 14px 10px 0;border-bottom:1px solid #eee;vertical-align:middle">
-            ${foto
-                ? `<img src="${foto}" alt="" width="72" height="72" style="display:block;width:72px;height:72px;border-radius:10px;object-fit:cover;background:#f0ece5" />`
-                : `<div style="width:72px;height:72px;border-radius:10px;background:#f0ece5"></div>`}
-          </td>
-          <td style="padding:10px 0;border-bottom:1px solid #eee;vertical-align:middle">
-            ${marca ? `<p style="margin:0;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#8a7f6d">${escHtml(marca)}</p>` : ''}
-            <p style="margin:2px 0 0;font-size:15px;color:#111">${escHtml(nombreItem)}${it.quantity > 1 ? ` <span style="color:#666">x${it.quantity}</span>` : ''}</p>
-          </td>
-        </tr>`;
-    }).join('');
+    //
+    // AGRUPADO POR ANTEOJO Y SIN REPETIR, igual que el texto. Antes esto mapeaba
+    // `items` crudo: como los cristales se cargan POR OJO, un 2x1 de dos pares
+    // salía como CUATRO renglones idénticos —"Varilux Comfort Max" cuatro veces
+    // seguidas— sin decir cuál iba en qué armazón. Un cliente lo reportó tal
+    // cual: «la OC describe muy poco y confuso esto».
+    //
+    // El texto de WhatsApp ya lo resolvía (`lineasDeItems` deduplica y
+    // `cristalesDe` agrupa) y el mail se había quedado atrás. Es la regla de
+    // CLAUDE.md: un dato que se muestra en más de un lugar se arma UNA vez.
+    /**
+     * UNA TARJETA POR ANTEOJO: sus cristales (con el ojo), su armazón, sus
+     * medidas y su foto, todo junto.
+     *
+     * Antes esto estaba partido en dos bloques lejanos —"Lo que encargaste" con
+     * los cristales sueltos y "Armazón y teñido" con las medidas— y el cliente
+     * tenía que atar cabos entre secciones para saber qué cristal iba en qué
+     * anteojo. Con un 2x1 (dos pares × dos ojos) eso eran cuatro renglones
+     * iguales arriba y dos bloques de medidas abajo. Un cliente lo dijo tal
+     * cual: «la OC describe muy poco y confuso esto».
+     */
+    const ojoLabel = (eye: string | null | undefined): string =>
+        eye === 'RIGHT' || eye === 'OD' ? 'Ojo derecho (OD)'
+            : eye === 'LEFT' || eye === 'OI' ? 'Ojo izquierdo (OI)'
+                : '';
 
-    const paresHtml = resumen.pairs.map(par => {
-        const filas = par.isEmpty
-            ? fila('Medidas', 'sin cargar')
-            : [
-                par.shape ? fila('Forma / aro', par.shape) : '',
-                par.measurements ? fila('Medidas', par.measurements) : '',
-                par.fitting ? fila('Altura', par.fitting) : '',
-                par.details ? fila('Detalles', par.details) : '',
-            ].join('');
+    const cristalHtml = (it: any) => {
+        const nombre = it.product?.name || it.productNameSnapshot || 'Cristal';
+        const marca = it.product?.brand || it.productBrandSnapshot || '';
+        const ojo = ojoLabel(it.eye);
+        const detalle = [it.crystalColor, it.crystalColorNote ? `grado ${it.crystalColorNote}` : null]
+            .filter(Boolean).join(', ');
+        const precio = precioDe(it);
         return `
-          <p style="margin:14px 0 6px;font-size:12px;font-weight:800;color:#4b3f2f">${escHtml(par.label)}</p>
-          <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${filas}</table>`;
-    }).join('');
+          <tr>
+            <td style="padding:7px 0;border-bottom:1px solid #efeae1;vertical-align:top">
+              ${ojo ? `<p style="margin:0;font-size:11px;font-weight:bold;color:#8a7f6d">${escHtml(ojo)}</p>` : ''}
+              <p style="margin:1px 0 0;font-size:14px;color:#111">${marca && !nombre.toLowerCase().includes(marca.toLowerCase()) ? escHtml(marca) + ' ' : ''}${escHtml(nombre)}</p>
+              ${detalle ? `<p style="margin:1px 0 0;font-size:12px;color:#6b6257">${escHtml(detalle)}</p>` : ''}
+            </td>
+            <td style="padding:7px 0 7px 12px;border-bottom:1px solid #efeae1;text-align:right;white-space:nowrap;vertical-align:top">
+              ${precio > 0
+                ? `<span style="font-size:14px;color:#111">${money(precio)}</span>`
+                : `<span style="font-size:11px;font-weight:bold;color:#1a7f4b">SIN CARGO</span>`}
+            </td>
+          </tr>`;
+    };
+
+    const tarjetaDeAnteojo = (par: any, indice: number) => {
+        const cristales = (cristalesDe.get(par.pair) || []).filter((it: any) => !isTeñidoAddon(it.product));
+        // Los cristales se cargan por ojo: se ordenan OD y después OI, siempre
+        // igual, para que los dos anteojos se lean con la misma estructura.
+        const orden = (it: any) => (it.eye === 'RIGHT' || it.eye === 'OD') ? 0 : (it.eye === 'LEFT' || it.eye === 'OI') ? 1 : 2;
+        cristales.sort((a: any, b: any) => orden(a) - orden(b));
+
+        const foto = fotosArmazon.find(f => f.pair === par.pair);
+        const titulo = resumen.pairs.length > 1 ? `${indice + 1}º par` : 'Tu anteojo';
+        const medidas = [
+            par.shape ? ['Forma / aro', par.shape] : null,
+            par.measurements ? ['Medidas', par.measurements] : null,
+            par.fitting ? ['Altura', par.fitting] : null,
+            par.details ? ['Detalles', par.details] : null,
+        ].filter(Boolean) as [string, string][];
+        const tintDelPar = par.tint ? par.tint.text : null;
+
+        return `
+        <div style="margin:0 0 16px;border:1px solid #e5e1da;border-radius:14px;overflow:hidden;background:#fff">
+          <div style="padding:10px 16px;background:#f7f4ee;border-bottom:1px solid #e5e1da">
+            <p style="margin:0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#4b3f2f;font-weight:800">${escHtml(titulo)}</p>
+          </div>
+          <div style="padding:12px 16px">
+            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${cristales.map(cristalHtml).join('')}</table>
+            ${medidas.length || tintDelPar || foto ? `
+            <p style="margin:14px 0 4px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#8a7f6d;font-weight:bold">El armazón de este par</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
+              ${medidas.map(([k, v]) => fila(k, v)).join('')}
+              ${tintDelPar ? fila('Teñido', tintDelPar) : ''}
+            </table>` : ''}
+            ${foto ? `
+            <div style="margin-top:12px">
+              <img src="${foto.url}" alt="Foto de tu armazón" style="max-width:240px;width:100%;border-radius:12px;border:1px solid #e5e1da" />
+            </div>` : ''}
+          </div>
+        </div>`;
+    };
+
+    const anteojosHtml = resumen.pairs.map(tarjetaDeAnteojo).join('')
+        // Lo que no pertenece a ningún anteojo (accesorios, un armazón suelto).
+        + (otrosItems.length ? `
+        <div style="margin:0 0 16px;border:1px solid #e5e1da;border-radius:14px;overflow:hidden;background:#fff">
+          <div style="padding:10px 16px;background:#f7f4ee;border-bottom:1px solid #e5e1da">
+            <p style="margin:0;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#4b3f2f;font-weight:800">También llevás</p>
+          </div>
+          <div style="padding:12px 16px">
+            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${otrosItems.map(cristalHtml).join('')}</table>
+          </div>
+        </div>` : '');
 
     const recetaHtml = rx
         ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
@@ -308,30 +409,70 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         ${botonWhatsApp('Responder por WhatsApp')}
         <p style="margin:8px 0 0;font-size:14px;font-weight:800;line-height:1.6;color:#b3261e;text-align:center">Este mail no recibe respuestas — escribinos por WhatsApp.</p>
 
-        ${bloque('Lo que encargaste', `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${itemsHtml}</table>`)}
+        ${bloque('Lo que encargaste', anteojosHtml)}
 
-        ${bloque('Armazón y teñido', `
+        ${bloque('Datos del armazón', `
             ${resumen.origin ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${fila('Armazón', resumen.origin)}</table>` : ''}
-            ${paresHtml}
             <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin-top:10px">
               ${fila('Teñido', resumen.tint ? resumen.tint.text : 'NO lleva teñido')}
               ${tienePhotocromatico(order) ? fila('Fotocromático', 'Sí — los cristales se oscurecen solos con el sol y se aclaran en interiores.') : ''}
               ${resumen.notes ? fila('Notas de laboratorio', resumen.notes) : ''}
             </table>
-            ${fotosArmazon.length ? `
-              <p style="margin:16px 0 8px;font-size:13px;color:#666">Así es el armazón que te llevás:</p>
-              <div>${fotosArmazon.map(f => `<div style="display:inline-block;vertical-align:top;max-width:260px;margin:0 8px 12px 0">
-                <img src="${f.url}" alt="Foto de tu armazón" style="max-width:260px;width:100%;border-radius:12px;border:1px solid #e5e1da" />
-                <p style="margin:6px 0 0;font-size:12px;line-height:1.5;color:#666">${escHtml(f.titulo).replace(/\n/g, '<br>')}</p>
-              </div>`).join('')}</div>` : ''}`)}
+`)}
 
         ${bloque('Tu receta, tal cual está cargada', recetaHtml)}
 
-        ${bloque('Pago', `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
-              ${fila('Total', money(total))}
-              ${fila('Abonado', money(pagado))}
-              ${fila('Saldo pendiente', saldo > 0 ? money(saldo) : 'Totalmente abonado')}
-            </table>`)}
+        ${bloque('Cómo se compone el precio', `
+            <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;color:#333">
+              <tr>
+                <td style="padding:6px 0">Suma de los productos</td>
+                <td style="padding:6px 0;text-align:right">${money(sumaRenglones)}</td>
+              </tr>
+              ${bonificado > 0 ? `
+              <tr>
+                <td style="padding:6px 0;color:#1a7f4b">${order.appliedPromoName ? `Bonificación — ${escHtml(order.appliedPromoName)}` : 'Descuento aplicado'}</td>
+                <td style="padding:6px 0;text-align:right;color:#1a7f4b;font-weight:bold">− ${money(bonificado)}</td>
+              </tr>` : ''}
+              <tr>
+                <td style="padding:8px 0 6px;border-top:1px solid #e5e1da;font-weight:bold;color:#111">Precio de lista</td>
+                <td style="padding:8px 0 6px;border-top:1px solid #e5e1da;text-align:right;font-weight:bold;color:#111">${money(fin.listPrice)}</td>
+              </tr>
+              ${!fin.hasBalance && descuentoFormaDePago > 0 ? `
+              <tr>
+                <td style="padding:6px 0;color:#1a7f4b">Descuento por tu forma de pago</td>
+                <td style="padding:6px 0;text-align:right;color:#1a7f4b;font-weight:bold">− ${money(descuentoFormaDePago)}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0 6px;border-top:2px solid #d8cfc0;font-size:16px;font-weight:800;color:#111">Lo que pagaste</td>
+                <td style="padding:10px 0 6px;border-top:2px solid #d8cfc0;text-align:right;font-size:16px;font-weight:800;color:#111">${money(fin.paidReal)}</td>
+              </tr>` : `
+              <tr>
+                <td style="padding:6px 0">Ya abonaste</td>
+                <td style="padding:6px 0;text-align:right">${money(fin.paidReal)}</td>
+              </tr>`}
+            </table>
+            ${saldo > 0 ? `
+              <div style="margin-top:14px;padding:14px;border-radius:12px;background:#fff6e5;border:1px solid #f0d9a8">
+                <p style="margin:0 0 8px;font-size:15px;font-weight:800;color:#7a5a12">Te queda por abonar al retirar</p>
+                <p style="margin:0 0 10px;font-size:13px;line-height:1.6;color:#7a5a12">Cuánto depende de cómo lo pagues:</p>
+                <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;color:#7a5a12">
+                  <tr><td style="padding:3px 0">💵 En efectivo <span style="font-size:12px">(−${fin.discountCash}%)</span></td>
+                      <td style="padding:3px 0;text-align:right;font-weight:bold">${money(fin.remainingCash)}</td></tr>
+                  <tr><td style="padding:3px 0">🏦 Por transferencia <span style="font-size:12px">(−${fin.discountTransfer}%)</span></td>
+                      <td style="padding:3px 0;text-align:right;font-weight:bold">${money(fin.remainingTransfer)}</td></tr>
+                  <tr><td style="padding:3px 0">💳 Con tarjeta o en cuotas</td>
+                      <td style="padding:3px 0;text-align:right;font-weight:bold">${money(fin.remainingCard)}</td></tr>
+                </table>
+                <p style="margin:10px 0 0;font-size:13px;line-height:1.6;color:#7a5a12">Te avisamos por WhatsApp cuando esté listo.</p>
+              </div>`
+            : `
+              <div style="margin-top:14px;padding:16px;border-radius:12px;background:#eaf7f0;border:2px solid #7cc79b;text-align:center">
+                <p style="margin:0;font-size:18px;font-weight:800;color:#12653a">✅ NO TENÉS SALDO PENDIENTE</p>
+                <p style="margin:6px 0 0;font-size:14px;line-height:1.6;color:#12653a">Tu pedido está <strong>totalmente abonado</strong>. Cuando lo retires no tenés que pagar nada más.</p>
+              </div>`}
+            <p style="margin:14px 0 0;font-size:13px;line-height:1.7;color:#666">
+              📎 <strong>Adjunto a este mail</strong> te mandamos el detalle del pedido en PDF, con los comprobantes de cada pago que registramos. Guardalo: es tu respaldo.
+            </p>`)}
 
         <div style="margin:24px 0;padding:18px;border:2px solid #d8cfc0;border-radius:12px;background:#fffdf8">
           <p style="margin:0 0 10px;font-size:16px;font-weight:800;color:#111">Necesitamos tu OK 🙏</p>
@@ -345,6 +486,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
           </ul>
           ${botonWhatsApp('Mandanos tu OK por WhatsApp')}
           <p style="margin:12px 0 0;font-size:15px;font-weight:800;line-height:1.6;color:#b3261e;text-align:center">⚠️ NO respondas este mail: no lo vemos.<br>Escribinos SOLO por WhatsApp 👆</p>
+          <p style="margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#fdecea;font-size:14px;font-weight:bold;line-height:1.6;color:#b3261e;text-align:center">Si querés cambiar algo del pedido, pedilo <u>únicamente por WhatsApp</u>.<br><span style="font-weight:normal">Un cambio pedido por otra vía no queda registrado y no lo vamos a ver.</span></p>
           <p style="margin:8px 0 0;font-size:13px;line-height:1.6;color:#666;text-align:center">Una vez fabricado ya no se puede cambiar.</p>
         </div>
 

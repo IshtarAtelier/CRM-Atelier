@@ -8,6 +8,7 @@ import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { colorLineaLabel } from '@/lib/crystal-color';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
 import { pick2x1FrameDiscount, etiquetaBonificacion2x1, modoBonificacionGuardada } from '@/lib/promo-utils';
+import { cristalesPorArmazon } from '@/lib/order-frames';
 import fs from 'fs';
 import path from 'path';
 
@@ -183,7 +184,34 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 const promoGuardada = (order.appliedPromoDiscount || 0) > 0 ? pick2x1FrameDiscount(order.items || []) : null;
                 const itemBonificado = promoGuardada?.item || null;
                 const modoBonif = modoBonificacionGuardada(order.appliedPromoName);
-                return (order.items || []).map((it: any) => {
+
+                // AGRUPADO POR PAR, con separador. Antes esto mapeaba los items
+                // en el orden de carga: un 2x1 mostraba cuatro Varilux idénticos
+                // seguidos sin decir cuál iba en qué anteojo, y el armazón de
+                // cada uno quedaba suelto más abajo. `cristalesPorArmazon` es el
+                // MISMO helper que usan la ficha, la pantalla de venta y el
+                // mail: los cuatro muestran la misma agrupación porque la
+                // calcula un solo lugar.
+                const porPar = cristalesPorArmazon(order);
+                const conSeparador: any[] = [];
+                const asignadosPdf = new Set<any>();
+                if (porPar.size > 1) {
+                    for (const [par, lista] of [...porPar.entries()].sort((a, b) => a[0] - b[0])) {
+                        conSeparador.push({ __separador: `${par}º PAR` });
+                        const orden = (it: any) => (it.eye === 'RIGHT' || it.eye === 'OD') ? 0 : 1;
+                        [...lista].sort((a, b) => orden(a) - orden(b)).forEach(it => { conSeparador.push(it); asignadosPdf.add(it); });
+                    }
+                    const sueltos = (order.items || []).filter((it: any) => !asignadosPdf.has(it));
+                    if (sueltos.length) conSeparador.push({ __separador: 'ADEMÁS LLEVÁS' }, ...sueltos);
+                } else {
+                    conSeparador.push(...(order.items || []));
+                }
+
+                return conSeparador.map((it: any) => {
+                if (it.__separador) return `
+                    <tr><td colspan="4" style="padding:12px 0 4px;border-bottom:2px solid #d6cfc2">
+                      <span style="font-size:10px;letter-spacing:2px;font-weight:900;color:#8a7f6d">${it.__separador}</span>
+                    </td></tr>`;
                 const itemPrice = Math.round(it.price * markupFactor);
                 let eyeLabel = '';
                 if (it.eye === 'RIGHT' || it.eye === 'OD') eyeLabel = 'Ojo Derecho (OD)';
@@ -218,7 +246,17 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 return `
                 <tr>
                     <td>
-                        <div style="font-weight: 900;">${it.product?.brand || it.productBrandSnapshot || ''} ${it.product?.name || it.productNameSnapshot || ''}</div>
+                        <div style="font-weight: 900;">${(() => {
+                            // "Carolina emanuel Carolina Emanuel": la marca y el
+                            // nombre del producto suelen decir lo mismo, y
+                            // pegarlos sin mirar duplicaba el texto en la línea.
+                            const marca = (it.product?.brand || it.productBrandSnapshot || '').trim();
+                            const nombreP = (it.product?.name || it.productNameSnapshot || '').trim();
+                            // `includes` y no igualdad: "Vulk" ya vive dentro de
+                            // "Anteojo de sol - Vulk" y anteponerla repetía la marca.
+                            return marca && !nombreP.toLowerCase().includes(marca.toLowerCase())
+                                ? `${marca} ${nombreP}` : nombreP || marca;
+                        })()}</div>
                         ${refIndex ? `<div style="font-size:10px; color:#c2410c; font-weight: 700; margin-top: 1px;">Índice de Refracción: ${refIndex}</div>` : ''}
                         ${colorDeLenteEnPedido(it, order.items || []) ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Color de la lente: ${colorDeLenteEnPedido(it, order.items || [])}</div>` : ''}
                         ${origin ? `<div style="font-size:10px; color:#78716c; font-weight: 700; margin-top: 1px;">Origen: ${origin}</div>` : ''}
@@ -273,9 +311,30 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     })()}
 
     ${!financials.hasBalance ? `
-    <div style="margin-top: 30px; padding: 35px; border-radius: 20px; background: #f0fdf4; border: 2px solid #10b981; text-align: center; color: #065f46;">
-        <h2 style="font-size: 26px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">✅ Orden Pagada en su Totalidad</h2>
-        <p style="font-size: 15px; font-weight: 700;">El saldo ha sido cancelado. Total abonado: <span style="font-weight: 900; font-size: 22px;">$${financials.paidReal.toLocaleString()}</span></p>
+    <div style="margin-top: 30px; padding: 28px 35px; border-radius: 20px; background: #f0fdf4; border: 2px solid #10b981; color: #065f46;">
+        <h2 style="font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px; text-align: center;">✅ Orden pagada en su totalidad</h2>
+        <p style="font-size: 14px; font-weight: 700; margin: 0 0 18px; text-align: center;">No queda saldo pendiente. Al retirar el pedido no tenés que abonar nada más.</p>
+        ${(() => {
+            // EL SALTO QUE NADIE EXPLICABA. Arriba dice "precio de lista final"
+            // y acá "total abonado", con una diferencia de cientos de miles y
+            // ninguna línea en el medio: es el descuento por forma de pago
+            // (efectivo −20%, transferencia −15%), y se puede pagar MEZCLANDO.
+            // Caso real: lista $1.796.600, abonado $1.443.162 — el cliente veía
+            // los dos números sueltos y escribía preguntando cuál era el suyo.
+            const ahorro = Math.round(financials.listPrice - financials.paidReal);
+            const filaTot = (label: string, valor: string, fuerte = false, color = '#065f46') => `
+                <tr>
+                  <td style="padding:5px 0;font-size:14px;color:${color};${fuerte ? 'font-weight:900;' : ''}">${label}</td>
+                  <td style="padding:5px 0;font-size:${fuerte ? '18px' : '14px'};text-align:right;color:${color};font-weight:${fuerte ? '900' : '700'}">${valor}</td>
+                </tr>`;
+            return `
+            <table style="width:100%;max-width:460px;margin:0 auto;border-collapse:collapse">
+              ${filaTot('Precio de lista', `$${financials.listPrice.toLocaleString()}`)}
+              ${ahorro > 0 ? filaTot('Descuento por tu forma de pago', `− $${ahorro.toLocaleString()}`) : ''}
+              <tr><td colspan="2" style="border-top:2px solid #10b981;padding:0"></td></tr>
+              ${filaTot('Total que abonaste', `$${financials.paidReal.toLocaleString()}`, true)}
+            </table>`;
+        })()}
     </div>
     ` : `
     <div class='payment-methods'>
@@ -593,7 +652,41 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
     });
     
     y = (doc as any).lastAutoTable.finalY + 8;
-    
+
+    // --- CÓMO SE COMPONE EL PRECIO ---
+    //
+    // Sin esto, los renglones de arriba suman una cosa y el total dice otra, sin
+    // ninguna línea que lo explique. Caso real (Adriana, 24/8/26): los productos
+    // sumaban $1.906.600 y el pedido decía $1.437.280 — $469.320 de descuento
+    // invisibles. El cliente no tiene forma de reconstruirlo y escribe
+    // preguntando. Es la misma información que el mail ya muestra; acá faltaba.
+    {
+        const sumaRenglones = (order.items || [])
+            .filter((it: any) => (it.product?.category || it.productCategorySnapshot) !== 'Teñido')
+            .reduce((n: number, it: any) => n + Math.round((it.price || 0) * markupFactor) * (it.quantity || 1), 0);
+        const descuento = Math.round(sumaRenglones - financials.listPrice);
+        if (descuento > 0) {
+            const filaResumen = (label: string, valor: string, negrita = false, color: [number, number, number] = darkText) => {
+                doc.setFontSize(8);
+                doc.setFont('helvetica', negrita ? 'bold' : 'normal');
+                doc.setTextColor(...color);
+                doc.text(label, m + 4, y);
+                doc.text(valor, m + cw - 4, y, { align: 'right' });
+                y += 5;
+            };
+            filaResumen('Suma de los productos', `$${sumaRenglones.toLocaleString()}`);
+            filaResumen(
+                order.appliedPromoName ? `Bonificacion - ${order.appliedPromoName}` : 'Descuento aplicado',
+                `- $${descuento.toLocaleString()}`, true, [26, 127, 75],
+            );
+            doc.setDrawColor(...brandBeige); doc.setLineWidth(0.3);
+            doc.line(m + 4, y - 2, m + cw - 4, y - 2);
+            y += 2;
+            filaResumen('TOTAL DEL PEDIDO', `$${financials.listPrice.toLocaleString()}`, true);
+            y += 4;
+        }
+    }
+
     // --- PAYMENT CARDS ---
     if (financials.hasBalance) {
         const cardW = (cw - 8) / 3;
