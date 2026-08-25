@@ -52,6 +52,10 @@ interface CotizadorCartProps {
     onSearchContact?: (query: string) => void;
     extraActions?: React.ReactNode;
     editingQuoteId?: string | null;
+    /** El pedido guardado que se está editando + cómo refrescarlo: habilitan
+     *  la carga inline de foto/medidas del armazón dentro del carrito. */
+    editingOrderData?: any;
+    onRefreshOrderData?: () => void | Promise<void>;
     /** Ya es una venta (aunque esté reabierta): no repricear cristales contra
      *  el catálogo en vivo — el server la protege, esto evita mostrar/mandar
      *  un número inflado antes de guardar. */
@@ -92,6 +96,8 @@ export default function CotizadorCart({
     onCopy,
     extraActions,
     editingQuoteId,
+    editingOrderData = null,
+    onRefreshOrderData,
     isSale = false,
     onCancelEdit,
     crystalColors = [],
@@ -267,6 +273,9 @@ export default function CotizadorCart({
                 onUpdateItemStyle={(idx, style) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorType: style }))}
                 onUpdateItemNote={(idx, note) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorNote: note }))}
                 onUpdateItemFrame={(idx, framePosition) => setItems(prev => aplicarCambioDeLinea(prev, idx, { framePosition }))}
+                orderId={editingQuoteId || null}
+                orderData={editingOrderData}
+                onRefreshOrderData={onRefreshOrderData}
                 markup={markup}
                 secondFrameUid={secondFrameUid}
                 promoFrameDiscount={promoFrameDiscount}

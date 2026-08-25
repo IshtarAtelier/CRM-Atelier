@@ -55,9 +55,15 @@ interface Props {
     photochromic?: boolean;
     /** De qué color se pone el fotocromático al sol. */
     photochromicColor?: string | null;
+    /**
+     * Arrancar desplegado. En el carrito, recién asociado el armazón a su par,
+     * el cuadro se abre solo: la persona acaba de decir "es este" y lo natural
+     * es cargar la foto y las medidas ahí mismo, sin otro clic.
+     */
+    defaultOpen?: boolean;
 }
 
-export default function FramePairEditor({ orderId, pair, title, initial, onSaved, accent = 'stone', tint = null, photochromic = false, photochromicColor = null }: Props) {
+export default function FramePairEditor({ orderId, pair, title, initial, onSaved, accent = 'stone', tint = null, photochromic = false, photochromicColor = null, defaultOpen = false }: Props) {
     const [v, setV] = useState<FramePairValues>(initial);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -115,7 +121,7 @@ export default function FramePairEditor({ orderId, pair, title, initial, onSaved
     // medidas se cargan una sola vez mientras que el presupuesto se manda
     // muchas. Lo que falta cargar no se esconde: se dice en la tira plegada.
     const completo = !!(v.shape && v.a && v.b && v.dbl && v.edc && v.imageUrl);
-    const [abierto, setAbierto] = useState(false);
+    const [abierto, setAbierto] = useState(defaultOpen);
 
     const resumen = [v.shape, [v.a, v.b, v.edc, v.dbl].filter(Boolean).join('/'),
         v.heightOD || v.heightOI ? `Alt ${v.heightOD || '—'}/${v.heightOI || '—'}` : null]

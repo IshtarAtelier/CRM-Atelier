@@ -131,6 +131,41 @@ export function tipoDeItem(it: any): string | null {
     return null;
 }
 
+/**
+ * Qué armazones vendidos faltan asociar a su par ANTES de enviar a fábrica.
+ *
+ * Regla de Ishtar (25/8): «se agrega el teñido pero antes de enviar a fábrica
+ * sí o sí hay que asociarlo al armazón 1 o 2» — y lo mismo el armazón. El
+ * teñido ya tiene su traba (`faltantesDeColor`, code ARMAZON_TENIDO); esta es
+ * la gemela para los ítems de armazón.
+ *
+ * NO exige asociar TODOS los ítems de armazón: un anteojo de sol suelto
+ * (Carolina Emanuel) se vende aparte y no corresponde a ningún par. Lo que no
+ * puede pasar es que quede un PAR sin armazón elegido mientras hay armazones
+ * sueltos sin asociar — ahí la fábrica adivinaría. El par que legítimamente no
+ * lleva armazón de la óptica va en el del cliente (frameSource), y eso lo
+ * validan las reglas de armazón del usuario, no esta.
+ *
+ * Una sola función para el checkout (lista lo que falta ANTES de intentar) y
+ * el servidor (rechaza la conversión) — si divergen, la pantalla deja apretar
+ * y el server rebota con un error que nadie anticipó.
+ */
+export function faltanAsociarArmazones(items: any[] | null | undefined, totalArmazones: number): string[] {
+    if (totalArmazones <= 1) return [];
+    const armazones = (items || []).filter(esArmazonItem);
+    if (armazones.length === 0) return [];
+    const asignados = new Set(armazones.map(it => it.framePosition).filter(Boolean));
+    const sueltos = armazones.filter(it => !it.framePosition);
+    const paresSinArmazon: number[] = [];
+    for (let pos = 1; pos <= totalArmazones; pos++) if (!asignados.has(pos)) paresSinArmazon.push(pos);
+    if (sueltos.length === 0 || paresSinArmazon.length === 0) return [];
+    const nombres = sueltos.map(it => `«${nombreDeArmazon(it) || 'armazón sin nombre'}»`).join(', ');
+    const pares = paresSinArmazon.map(par => `${par}º`).join(' y ');
+    return [
+        `El ${pares} par quedó sin armazón elegido y hay ${sueltos.length === 1 ? 'un armazón sin asociar' : 'armazones sin asociar'} (${nombres}). Marcá en esa línea si es el 1º o el 2º; el que va aparte se deja sin marcar, y el par sin armazón de la óptica va en el del cliente.`,
+    ];
+}
+
 /** "1º par — Vulk" / "2º par — clipo on metal": el título que dice CUÁL es. */
 export function tituloDePar(par: ParConDetalle, totalPares: number, indice: number): string {
     const base = totalPares > 1 ? `${indice + 1}º par` : 'Tu anteojo';

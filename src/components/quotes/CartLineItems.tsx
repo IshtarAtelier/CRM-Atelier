@@ -2,14 +2,16 @@
 
 import React from 'react';
 import { ShoppingBag, X, Minus, Plus, Palette, ChevronDown, Glasses } from 'lucide-react';
-import { esArmazonItem } from '@/lib/armazon-por-par';
+import { esArmazonItem, nombreDeArmazon } from '@/lib/armazon-por-par';
 import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice, etiquetaBonificacion2x1 } from '@/lib/promo-utils';
 import { formatLensRange } from '@/lib/lens-range';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
 import { needsColorSelection } from '@/lib/crystal-color-utils';
 import { INTENSIDADES_TENIDO, estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
 import { paletaDeFotocromatico } from '@/lib/constants/paletas-color';
-import { cantidadDeArmazones } from '@/lib/order-frames';
+import { cantidadDeArmazones, framesDeLaOrden, etiquetaArmazon } from '@/lib/order-frames';
+import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
+import FramePairEditor from '@/components/orders/FramePairEditor';
 import { isTeñidoAddon } from '@/lib/promo-utils';
 import { lensOriginFromItem } from '@/lib/lens-origin';
 import LensOriginBadge from '@/components/ui/LensOriginBadge';
@@ -31,6 +33,11 @@ interface CartLineItemsProps {
     onUpdateItemNote?: (idx: number, note: string) => void;
     /** A qué armazón pertenece la línea (1..N), en pedidos de varios anteojos. */
     onUpdateItemFrame?: (idx: number, framePosition: number) => void;
+    /** El pedido YA GUARDADO que se está editando: habilita cargar foto y
+     *  medidas del armazón acá mismo (el editor guarda contra este id). */
+    orderId?: string | null;
+    orderData?: any;
+    onRefreshOrderData?: () => void | Promise<void>;
     markup: number;
     secondFrameUid: number | null;
     promoFrameDiscount: number;
@@ -46,6 +53,9 @@ export default function CartLineItems({
     onUpdateItemStyle: _onUpdateItemStyle,
     onUpdateItemNote,
     onUpdateItemFrame,
+    orderId = null,
+    orderData = null,
+    onRefreshOrderData,
     markup,
     secondFrameUid,
     promoFrameDiscount,
@@ -353,6 +363,51 @@ export default function CartLineItems({
                                         )}
                                     </div>
                                 )}
+                                {/* LA CARGA DE FÁBRICA VIVE EN EL ARMAZÓN (Ishtar, 25/8):
+                                    apenas el armazón queda asociado a su par, acá mismo se
+                                    despliega el cuadro de foto + forma + medidas + altura —
+                                    el MISMO componente y el MISMO endpoint que usa la ficha,
+                                    así lo que se carga acá es lo que ve todo el sistema. */}
+                                {esArmazonItem(item) && !isTeñidoAddon(item.product) && (() => {
+                                    const pos = totalArmazones === 1 ? 1 : (item.framePosition || null);
+                                    if (!pos) return null;
+                                    if (!orderId || !orderData) {
+                                        return (
+                                            <p className="mb-3 text-[10px] font-bold text-stone-400">
+                                                💾 Guardá el presupuesto y acá mismo se abre la carga de la foto y las medidas de este armazón.
+                                            </p>
+                                        );
+                                    }
+                                    const f = framesDeLaOrden(orderData).find(fr => fr.position === pos);
+                                    const parLab = describeLabFrameDetails(orderData).pairs.find(pl => pl.pair === pos);
+                                    const rx = orderData.prescription || null;
+                                    const alto = (delPedido: unknown, deReceta: unknown) =>
+                                        delPedido != null ? String(delPedido) : (deReceta != null ? String(deReceta) : '');
+                                    return (
+                                        <div className="mb-3">
+                                            <FramePairEditor
+                                                key={`inline-f${pos}-${orderId}`}
+                                                orderId={orderId}
+                                                pair={pos}
+                                                title={`${etiquetaArmazon(pos, totalArmazones)} — ${nombreDeArmazon(item) || 'este armazón'}`}
+                                                accent={pos % 2 === 0 ? 'orange' : 'stone'}
+                                                initial={{
+                                                    shape: f?.shape || '',
+                                                    a: f?.a || '', b: f?.b || '', dbl: f?.dbl || '', edc: f?.edc || '',
+                                                    details: f?.details || '',
+                                                    imageUrl: f?.imageUrl || null,
+                                                    heightOD: alto(f?.heightOD, rx?.heightOD),
+                                                    heightOI: alto(f?.heightOI, rx?.heightOI),
+                                                }}
+                                                defaultOpen={!(f?.shape && f?.imageUrl)}
+                                                tint={parLab?.tint || null}
+                                                photochromic={!!parLab?.photochromic}
+                                                photochromicColor={parLab?.photochromicColor || null}
+                                                onSaved={onRefreshOrderData}
+                                            />
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Grado: desplegable con los valores de SmartLab, igual que el
                                     del laboratorio. Se elige de la lista y listo — el campo
