@@ -820,12 +820,35 @@ export class OrderService {
                 // El armazón bonificado sale del tilde que ya viene en los ítems:
                 // la promo no necesita el catálogo (acá vivía el findMany del
                 // "promedio Atelier" que la regla nueva ya no usa).
+                // EL DESCUENTO EXCEPCIONAL DE UNA VENTA NO SE BORRA SOLO.
+                //
+                // Al reabrir una venta para corregir cualquier cosa, la pantalla
+                // que guarda manda specialDiscount con su valor por defecto (0)
+                // — y este recálculo lo tomaba como "quitá el descuento": el
+                // gesto que el admin le hizo al cliente desaparecía en silencio
+                // por editar un color. Pedido de Ishtar (25/8): «si reabro el
+                // pedido, que no se borre solo».
+                //
+                // Regla: en una VENTA, un 0 entrante con descuento guardado > 0
+                // se ignora y se conserva el guardado. Quitarlo de verdad exige
+                // mandar además `quitarDescuentoEspecial: true` (acción
+                // explícita, no un default). Un valor > 0 entrante siempre vale:
+                // eso sí es una decisión de quien edita. Los presupuestos
+                // (no-venta) siguen igual que siempre.
+                const guardado = currentOrder.specialDiscount || 0;
+                const entrante = specialDiscount !== undefined ? specialDiscount : guardado;
+                const esVenta = currentOrder.orderType === 'SALE';
+                const quitarExplicito = (body as any).quitarDescuentoEspecial === true;
+                const specialEfectivo = esVenta && entrante === 0 && guardado > 0 && !quitarExplicito
+                    ? guardado
+                    : entrante;
+
                 const totals = calculateQuoteTotals(
                     cartItems, 
                     finalMarkup || 0, 
                     finalDiscountCash || 0, 
                     [],
-                    specialDiscount !== undefined ? specialDiscount : (currentOrder.specialDiscount || 0)
+                    specialEfectivo
                 );
 
                 data.subtotalWithMarkup = totals.subtotalWithMarkup;
