@@ -10,6 +10,8 @@ import {
     armarParesDeCristal, recalculateCrystalPrices, applyTeñidoPromoDiscount,
     AVISO_TENIDO_2X1
 } from '@/lib/promo-utils';
+import { asignarParAlArmazon } from '@/lib/armazon-por-par';
+import { cantidadDeArmazones } from '@/lib/order-frames';
 import { aplicarCambioDeLinea } from '@/lib/tenido-sync';
 import { calculateQuoteTotals } from '@/services/PricingService';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -272,7 +274,17 @@ export default function CotizadorCart({
                 onUpdateItemColor={(idx, color, colorType) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColor: color, crystalColorType: colorType }))}
                 onUpdateItemStyle={(idx, style) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorType: style }))}
                 onUpdateItemNote={(idx, note) => setItems(prev => aplicarCambioDeLinea(prev, idx, { crystalColorNote: note }))}
-                onUpdateItemFrame={(idx, framePosition) => setItems(prev => aplicarCambioDeLinea(prev, idx, { framePosition }))}
+                onUpdateItemFrame={(idx, framePosition) => setItems(prev => {
+                    // La línea elegida pasa por aplicarCambioDeLinea (sincroniza
+                    // el teñido partido en OD/OI); el resto de los cambios —otro
+                    // armazón que suelta el par, el último que se autocompleta—
+                    // los decide asignarParAlArmazon.
+                    let next = aplicarCambioDeLinea(prev, idx, { framePosition });
+                    for (const c of asignarParAlArmazon(prev, idx, framePosition, cantidadDeArmazones({ items: prev }))) {
+                        if (c.idx !== idx) next = next.map((it, i) => i === c.idx ? { ...it, framePosition: c.framePosition } : it);
+                    }
+                    return next;
+                })}
                 orderId={editingQuoteId || null}
                 orderData={editingOrderData}
                 onRefreshOrderData={onRefreshOrderData}

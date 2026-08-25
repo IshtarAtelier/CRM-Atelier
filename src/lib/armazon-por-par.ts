@@ -32,13 +32,21 @@ const tokens = (s: string): string[] =>
     (s || '').split(/[^a-zA-Z0-9]+/).map(norm).filter(t => t.length >= 3);
 
 /**
- * ¿Este ítem del pedido es un armazón? `includes` y no igualdad: las categorías
- * reales del catálogo son "Armazón de Receta" y "Lentes de Sol" — un filtro
- * exacto `=== 'Armazón'` no matcheaba ningún producto (pasó en la confirmación).
- * Y "Sol" cuenta: un anteojo de sol puede ser el armazón de un par graduado.
+ * ¿Este ítem del pedido es un armazón? Mirando categoría Y tipo, porque el
+ * catálogo real no tiene una sola forma de decirlo (verificado contra la base):
+ *   · categoría "Armazón de Receta" → armazón
+ *   · categoría "Lentes de Sol" → armazón ("Sol" cuenta: un anteojo de sol
+ *     puede ser el armazón de un par graduado)
+ *   · categoría "Lentes de Receta" con type "Armazón" → TAMBIÉN es armazón
+ *     (así están cargados los LQxxxx; mirando solo la categoría, el chip no
+ *     les aparecía — pasó con el LQ6093 el 25/8)
+ * `includes` y no igualdad, y tolerando el acento ("Armazon"/"Armazón").
  */
-export const esArmazonItem = (it: any): boolean =>
-    /Armazón|Sol/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`);
+export const esArmazonItem = (it: any): boolean => {
+    const cat = `${it.product?.category || it.productCategorySnapshot || ''}`;
+    const tipo = `${it.product?.type || it.productTypeSnapshot || ''}`;
+    return /Armaz[oó]n|Sol/i.test(cat) || /Armaz[oó]n/i.test(tipo);
+};
 
 /** "Vulk Anteojo de sol", con la marca adelante si la hay. La mitad del
  *  catálogo repite la marca en el nombre ("Vulk · Vulk"): concatenar a ciegas
@@ -170,6 +178,52 @@ export function faltanAsociarArmazones(items: any[] | null | undefined, totalArm
     return [
         `El ${pares} par quedó sin armazón elegido y hay ${sueltos.length === 1 ? 'un armazón sin asociar' : 'armazones sin asociar'} (${nombres}). Marcá en esa línea si es el 1º o el 2º; el que va aparte se deja sin marcar, y el par sin armazón de la óptica va en el del cliente.`,
     ];
+}
+
+/**
+ * Qué cambios dispara asignarle un par a un armazón. Pura, para testearla.
+ *
+ * Pedido de Ishtar (25/8): «digamos, a uno le asigno si es el 1 o el 2» — y el
+ * resto se acomoda solo:
+ *   · EXCLUSIVIDAD: si otro armazón tenía ese mismo par, se suelta (dos
+ *     armazones no pueden ser el mismo anteojo).
+ *   · AUTOCOMPLETAR: con tantos armazones como pares, cuando queda UNO sin
+ *     asignar y UN par libre, se asigna solo — decir "este es el 1º" ya define
+ *     que el otro es el 2º. Con más armazones que pares (uno va aparte) NO se
+ *     adivina: ahí la elección es del vendedor.
+ *
+ * Para una línea que no es armazón (el chip del teñido) devuelve solo el
+ * cambio pedido, sin tocar a nadie más.
+ */
+export function asignarParAlArmazon(
+    items: any[],
+    idx: number,
+    pos: number,
+    totalArmazones: number,
+): { idx: number; framePosition: number | null }[] {
+    const cambios: { idx: number; framePosition: number | null }[] = [{ idx, framePosition: pos }];
+    if (!esArmazonItem(items[idx])) return cambios;
+
+    items.forEach((it, i) => {
+        if (i !== idx && esArmazonItem(it) && it.framePosition === pos) {
+            cambios.push({ idx: i, framePosition: null });
+        }
+    });
+
+    const armazones = items.map((it, i) => ({ it, i })).filter(x => esArmazonItem(x.it));
+    if (armazones.length === totalArmazones && totalArmazones > 1) {
+        const posDe = (x: { it: any; i: number }) => {
+            const c = cambios.find(cc => cc.idx === x.i);
+            return c ? c.framePosition : (x.it.framePosition || null);
+        };
+        const ocupadas = armazones.map(posDe);
+        const libres = Array.from({ length: totalArmazones }, (_, k) => k + 1).filter(par => !ocupadas.includes(par));
+        const sueltos = armazones.filter(x => posDe(x) == null);
+        if (libres.length === 1 && sueltos.length === 1) {
+            cambios.push({ idx: sueltos[0].i, framePosition: libres[0] });
+        }
+    }
+    return cambios;
 }
 
 /** "1º par — Vulk" / "2º par — clipo on metal": el título que dice CUÁL es. */
