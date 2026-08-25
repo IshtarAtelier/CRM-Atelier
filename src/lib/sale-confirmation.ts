@@ -31,7 +31,7 @@ import { SELECT_REPASO_CON_CLIENTE } from '@/lib/order-recap-select';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import { cristalesPorArmazon } from '@/lib/order-frames';
 import { isTeñidoAddon, esLineaDeTenido } from '@/lib/promo-utils';
-import { armazonesPorPar, tituloDePar, tipoDeItem } from '@/lib/armazon-por-par';
+import { armazonesPorPar, tituloDePar, tipoDeItem, esArmazonItem } from '@/lib/armazon-por-par';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
 /** Marca de la nota que registra el envío: sirve de candado de idempotencia. */
@@ -151,10 +151,6 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     // orden que usa el reparto de cristales. Si no coinciden las cantidades,
     // quedan en "También llevás" (mejor una bolsa honesta que una asignación
     // inventada).
-    const esArmazonItem = (it: any) =>
-        /Armazón|Sol/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`);
-    // ↑ `includes` y no igualdad: la categoría real del catálogo es
-    // "Armazón de Receta" — el filtro exacto no matcheaba ningún producto.
     const armazonesItems = items.filter(esArmazonItem);
     // Por PARECIDO DE NOMBRE contra el detalle del laboratorio ("clipo on
     // metal" ↔ "Clip-on Classic"), no por cantidad: la venta de Adriana tenía

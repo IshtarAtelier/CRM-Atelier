@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ShoppingBag, X, Minus, Plus, Palette, ChevronDown, Glasses } from 'lucide-react';
+import { esArmazonItem } from '@/lib/armazon-por-par';
 import { isMultifocal2x1, isCrystal, getCategoryKey, safePrice, etiquetaBonificacion2x1 } from '@/lib/promo-utils';
 import { formatLensRange } from '@/lib/lens-range';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
@@ -315,6 +316,40 @@ export default function CartLineItems({
                                         })}
                                         {!item.framePosition && (
                                             <span className="text-[10px] font-bold text-amber-600">← elegí uno</span>
+                                        )}
+                                    </div>
+                                )}
+                                {/* EL ARMAZÓN TAMBIÉN DICE DE QUÉ PAR ES. Mismo chip que el
+                                    teñido: sin esto, con dos pares era imposible saber qué
+                                    armazón comprado correspondía a cuál — la asociación se
+                                    adivinaba por nombre. Regla del negocio (Ishtar, 25/8): si
+                                    hay dos pares y UN armazón de la óptica, el otro par va en
+                                    el armazón DEL CLIENTE — por eso el aviso de abajo. */}
+                                {totalArmazones > 1 && !isTeñidoAddon(item.product) && esArmazonItem(item) && (
+                                    <div className="mb-3 flex items-center gap-2 flex-wrap">
+                                        <Glasses className="w-3 h-3 text-amber-500 shrink-0" />
+                                        <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider shrink-0">
+                                            ¿Este armazón es de cuál par? *
+                                        </span>
+                                        {Array.from({ length: totalArmazones }, (_, i) => i + 1).map(pos => {
+                                            const elegido = item.framePosition === pos;
+                                            return (
+                                                <button
+                                                    key={pos}
+                                                    type="button"
+                                                    onClick={() => onUpdateItemFrame?.(idx, pos)}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all ${
+                                                        elegido
+                                                            ? 'bg-amber-500 text-white border-amber-600'
+                                                            : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-stone-700 hover:border-amber-300'
+                                                    }`}
+                                                >
+                                                    {pos}º par
+                                                </button>
+                                            );
+                                        })}
+                                        {!item.framePosition && (
+                                            <span className="text-[10px] text-stone-400">el par sin armazón de la óptica va en el del cliente</span>
                                         )}
                                     </div>
                                 )}

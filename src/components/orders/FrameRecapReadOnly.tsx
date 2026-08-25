@@ -16,12 +16,20 @@
 import { useState } from 'react';
 import { Glasses, Lock, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 import { describeLabFrameDetails, type LabFrameOrder } from '@/lib/lab-frame-summary';
+import { armazonesPorPar, esArmazonItem, nombreDeArmazon } from '@/lib/armazon-por-par';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 
 interface Props {
     order: LabFrameOrder & { frameImageUrl?: string | null; frameImageUrl2?: string | null };
     /** Arranca desplegado. Por defecto colapsado: ocupa poco y se abre al tocarlo. */
     defaultOpen?: boolean;
+    /**
+     * Desde dónde se está mirando. En una venta enviada el candado dice
+     * "Bloqueado... ya se envió a fábrica". En el COTIZADOR eso sería mentira:
+     * es un presupuesto vivo — ahí solo se aclara que la foto y las medidas se
+     * cargan desde la ficha del cliente, no acá.
+     */
+    contexto?: 'venta' | 'cotizador';
 }
 
 function Dato({ label, value }: { label: string; value: string }) {
@@ -33,9 +41,16 @@ function Dato({ label, value }: { label: string; value: string }) {
     );
 }
 
-export default function FrameRecapReadOnly({ order, defaultOpen = false }: Props) {
+export default function FrameRecapReadOnly({ order, defaultOpen = false, contexto = 'venta' }: Props) {
     const [abierto, setAbierto] = useState(defaultOpen);
     const resumen = describeLabFrameDetails(order);
+    // QUÉ PRODUCTO es cada par: "1º Par — Vulk Anteojo de sol". Con dos pares,
+    // "1º PAR" a secas obligaba a adivinar cuál era cuál — el mismo problema
+    // que la confirmación de Adriana. Mismo helper que el mail y el PDF.
+    const armazonDelPar = armazonesPorPar(
+        ((order as any).items || []).filter(esArmazonItem),
+        resumen.pairs as any,
+    );
 
     return (
         <div className="bg-stone-50 dark:bg-stone-900/50 rounded-[2rem] border-2 border-stone-200 dark:border-stone-700 overflow-hidden">
@@ -50,7 +65,7 @@ export default function FrameRecapReadOnly({ order, defaultOpen = false }: Props
                     Armazón, medidas y teñido — tal cual se fabrica
                 </h4>
                 <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-stone-500 dark:text-stone-400 shrink-0">
-                    <Lock className="w-3 h-3" /> Bloqueado
+                    <Lock className="w-3 h-3" /> {contexto === 'cotizador' ? 'Solo lectura' : 'Bloqueado'}
                 </span>
                 {abierto
                     ? <ChevronDown className="w-4 h-4 text-stone-400 shrink-0" />
@@ -69,7 +84,14 @@ export default function FrameRecapReadOnly({ order, defaultOpen = false }: Props
 
                             {resumen.pairs.map(par => (
                                 <div key={par.pair} className="rounded-2xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 p-4">
-                                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-3">{par.label}</p>
+                                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-3">
+                                        {par.label}
+                                        {nombreDeArmazon(armazonDelPar.get(par.pair) || {}) && (
+                                            <span className="ml-1.5 text-stone-600 dark:text-stone-300 normal-case tracking-normal">
+                                                — {nombreDeArmazon(armazonDelPar.get(par.pair) || {})}
+                                            </span>
+                                        )}
+                                    </p>
                                     {par.isEmpty ? (
                                         <p className="text-xs font-bold text-amber-600 dark:text-amber-500 flex items-center gap-1.5">
                                             <AlertTriangle className="w-3.5 h-3.5" /> Sin medidas cargadas
@@ -133,8 +155,9 @@ export default function FrameRecapReadOnly({ order, defaultOpen = false }: Props
                     )}
 
                     <p className="text-[10px] font-bold text-stone-500 dark:text-stone-400 pt-1">
-                        Esta venta ya se envió a fábrica: nada de esto se puede modificar. Para corregirla, un administrador
-                        tiene que reabrirla — la reapertura y el cambio quedan registrados en la ficha del cliente.
+                        {contexto === 'cotizador'
+                            ? 'La foto, las medidas y el teñido de cada armazón se cargan desde la ficha del cliente, en el cuadro de ese armazón. Acá se muestran para que sepas cuál es cuál.'
+                            : 'Esta venta ya se envió a fábrica: nada de esto se puede modificar. Para corregirla, un administrador tiene que reabrirla — la reapertura y el cambio quedan registrados en la ficha del cliente.'}
                     </p>
                 </div>
             )}

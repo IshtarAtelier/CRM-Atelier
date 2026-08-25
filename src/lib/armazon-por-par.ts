@@ -11,12 +11,13 @@
  * La dueña lo dijo tal cual: «habría que ver cómo hacer que quede claro cuál
  * es cuál».
  *
- * La relación formal no existe en el modelo (los ítems de armazón no llevan
- * `framePosition`), así que se empareja por NOMBRE contra el detalle del
- * armazón del laboratorio ("Vulk" ↔ "Vulk Anteojo de sol", "clipo on metal" ↔
- * "Clip-on Classic"), tolerando las erratas de carga. Si un ítem no matchea
- * con ningún par, queda sin asignar — mejor una bolsa honesta ("También
- * llevás") que una asignación inventada.
+ * Desde el 25/8 la relación formal SÍ existe: el ítem de armazón lleva
+ * `framePosition` (el chip "¿de cuál par?" del cotizador) y eso manda. El
+ * emparejado por NOMBRE contra el detalle del laboratorio ("Vulk" ↔ "Vulk
+ * Anteojo de sol", "clipo on metal" ↔ "Clip-on Classic") queda como red para
+ * los pedidos viejos cargados antes del chip. Si un ítem no matchea con
+ * ningún par, queda sin asignar — mejor una bolsa honesta ("También llevás")
+ * que una asignación inventada.
  *
  * Vive acá y no copiado en el mail y el PDF: regla de CLAUDE.md — un dato que
  * se muestra en más de un lugar se arma en UN helper.
@@ -29,6 +30,20 @@ const norm = (s: string): string =>
 /** Tokens con sustancia del texto (3+ letras), normalizados. */
 const tokens = (s: string): string[] =>
     (s || '').split(/[^a-zA-Z0-9]+/).map(norm).filter(t => t.length >= 3);
+
+/**
+ * ¿Este ítem del pedido es un armazón? `includes` y no igualdad: las categorías
+ * reales del catálogo son "Armazón de Receta" y "Lentes de Sol" — un filtro
+ * exacto `=== 'Armazón'` no matcheaba ningún producto (pasó en la confirmación).
+ * Y "Sol" cuenta: un anteojo de sol puede ser el armazón de un par graduado.
+ */
+export const esArmazonItem = (it: any): boolean =>
+    /Armazón|Sol/i.test(`${it.product?.category || it.productCategorySnapshot || ''}`);
+
+/** "Vulk Anteojo de sol", con la marca adelante si la hay. */
+export const nombreDeArmazon = (it: any): string =>
+    [it.product?.brand || it.productBrandSnapshot, it.product?.name || it.productNameSnapshot]
+        .filter(Boolean).join(' ').trim();
 
 export interface ParConDetalle {
     pair: number;
@@ -69,9 +84,23 @@ export function armazonesPorPar(
     const resultado = new Map<number, any>();
     const usados = new Set<any>();
 
+    // LA ASOCIACIÓN EXPLÍCITA MANDA. Desde el 25/8 el ítem de armazón lleva su
+    // chip "¿de cuál par?" (item.framePosition): si el vendedor lo eligió, no
+    // hay nada que adivinar — el emparejado por nombre queda solo para los
+    // pedidos viejos sin el dato. Regla del negocio: el par que quede sin
+    // armazón de la óptica va en el armazón DEL CLIENTE (frameSource), y si
+    // tampoco lo hay, ese par no debería existir.
+    for (const it of armazonesItems) {
+        if (it.framePosition && pares.some(p => p.pair === it.framePosition) && !resultado.has(it.framePosition)) {
+            resultado.set(it.framePosition, it);
+            usados.add(it);
+        }
+    }
+
     // Los pares CON detalle eligen primero, por mejor puntaje.
     const candidatos = pares
-        .flatMap(par => armazonesItems.map(it => ({ par, it, p: puntaje(it, par) })))
+        .filter(par => !resultado.has(par.pair))
+        .flatMap(par => armazonesItems.filter(it => !usados.has(it)).map(it => ({ par, it, p: puntaje(it, par) })))
         .filter(x => x.p > 0)
         .sort((a, b) => b.p - a.p);
     for (const { par, it } of candidatos) {
