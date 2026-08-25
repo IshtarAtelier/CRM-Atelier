@@ -217,11 +217,31 @@ export async function upsertEntry(input: LabCostInput) {
     // alerta por venta), tanto si el 2º par va gratis como si se cobra igual.
     const myBilled = billedComparable ?? 0;
     let isPrimaryOfSale = true;
+
+    // UNA VENTA PUEDE TENER PEDIDOS DE DOS LABORATORIOS DISTINTOS. Caso real
+    // del 25/8/2026 (Gonzalez Victoria, " 609861 -80537220"): un par de XPERIO
+    // en Optovisión y otro Orgánico Super Blue en Grupo Óptico. Al comparar el
+    // pedido de Grupo Óptico se sumaba TAMBIÉN la factura de Optovisión —y con
+    // la regla de IVA del lab equivocado, o sea su NETO— contra un costo de
+    // sistema que solo incluye los cristales de Grupo Óptico:
+    //     $18.988 + $229.457 (Optovisión sin IVA) − $28.600 = +$219.845
+    // Un sobrecosto de $219.845 que no existía: lo real era $9.612 A FAVOR.
+    // Cada laboratorio se compara solo contra lo suyo.
+    const otrosLabs = order && !pvEntry
+        ? await prisma.labCostEntry.findMany({
+            where: { orderId: order.id, lab: { not: input.lab } },
+            select: { labOrderNumber: true },
+        })
+        : [];
+    const ajenos = new Set(otrosLabs.map(e => e.labOrderNumber));
+    const misNumeros = orderNumbers.filter(n => !ajenos.has(n));
+
     if (multiPedido && order && !pvEntry) {
         const siblings = await prisma.labCostEntry.findMany({
             where: {
                 orderId: order.id,
-                labOrderNumber: { in: orderNumbers.filter(n => n !== cleanNumber) },
+                lab: input.lab,
+                labOrderNumber: { in: misNumeros.filter(n => n !== cleanNumber) },
             },
             select: { labOrderNumber: true, billedNet: true, billedTotal: true },
         });
@@ -232,7 +252,10 @@ export async function upsertEntry(input: LabCostInput) {
             if (sb > myBilled || (sb === myBilled && s.labOrderNumber < cleanNumber)) isPrimaryOfSale = false;
         }
     }
-    const ventaCompleta = !multiPedido || facturadosEnVenta >= orderNumbers.length;
+    // "Completa" se mide contra los pedidos DE ESTE laboratorio: con los del
+    // otro lab en la cuenta, una venta mixta nunca llegaba al total y quedaba
+    // PENDING para siempre.
+    const ventaCompleta = !multiPedido || facturadosEnVenta >= misNumeros.length;
 
     // UNMATCHED = sin venta en el sistema (¡pedido huérfano si vino del portal!)
     // PENDING   = con venta pero sin todas las facturas de la venta todavía
@@ -256,7 +279,13 @@ export async function upsertEntry(input: LabCostInput) {
     // actualización no trae nota propia, y no duplicar la de multi-pedido.
     const baseNotes = input.notes ?? existing?.notes ?? null;
     const multiNote = multiPedido && !baseNotes?.includes('pedidos de lab')
-        ? `La venta tiene ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber}); el costo sistema es el total de la venta.`
+        ? `La venta tiene ${orderNumbers.length} pedidos de lab (${order!.labOrderNumber})`
+        + (ajenos.size
+            // Venta mixta: decir explícitamente que este veredicto es solo de
+            // este laboratorio. La nota vieja decía "el costo sistema es el
+            // total de la venta" también acá, y eso era falso y confundía.
+            ? `, de más de un laboratorio; este cruce compara SOLO lo de ${input.lab} (${misNumeros.join(', ')}).`
+            : `; el costo sistema es el total de la venta.`)
         : null;
     // Enganchó por el nº de la planilla: decirlo, porque el número que figura
     // en la venta no es el de la factura y si no parece un cruce equivocado.
@@ -341,7 +370,7 @@ export async function upsertEntry(input: LabCostInput) {
     if (quiet) {
         if (multiPedido && order) {
             await prisma.labCostEntry.updateMany({
-                where: { lab: input.lab, orderId: order.id, labOrderNumber: { in: orderNumbers } },
+                where: { lab: input.lab, orderId: order.id, labOrderNumber: { in: misNumeros } },
                 data: { alertedAt: new Date(), alertedStatus: status },
             }).catch(err => console.error('[LabCost] Error marcando hermanos de la venta:', err));
         }

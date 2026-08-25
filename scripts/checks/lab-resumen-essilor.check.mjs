@@ -481,12 +481,21 @@ async function sinNumeroDeOperacion() {
  */
 async function porQueNoCruza(num) {
     const entradas = await prisma.$queryRaw`
-        select id, lab, "labOrderNumber", "orderId", "billedTotal", status, "sourceFile",
+        select id, lab, "labOrderNumber", "orderId", "billedTotal", "billedNet",
+               "systemCost", difference, status, "sourceFile",
                "invoiceDate", "createdAt", "updatedAt", "alertedAt", "alertedStatus", notes
         from "LabCostEntry" where "labOrderNumber" like ${'%' + num + '%'}`;
     console.log(`\nENTRADAS DE LABORATORIO CON ${num}: ${entradas.length}`);
     for (const e of entradas) {
-        console.log(`  ${e.lab} · ${e.labOrderNumber} · ${pesos(e.billedTotal)} · ${e.status}`);
+        console.log(`  ${e.lab} · ${e.labOrderNumber} · ${e.status}`);
+        console.log(`     costo sistema: ${pesos(e.systemCost)} · facturado: ${pesos(e.billedTotal ?? e.billedNet)}` +
+            ` · diferencia guardada: ${pesos(e.difference)}`);
+        if (e.systemCost != null && (e.billedTotal ?? e.billedNet) != null) {
+            const esperada = (e.billedTotal ?? e.billedNet) - e.systemCost;
+            if (e.difference != null && Math.abs(esperada - e.difference) > 1) {
+                console.log(`     ⚠ NO CIERRA: facturado − costo daría ${pesos(esperada)}, pero guardó ${pesos(e.difference)}`);
+            }
+        }
         console.log(`     orderId: ${e.orderId || 'NULL  ← no enganchó con ninguna venta'}`);
         const hora = d => d ? new Date(d).toLocaleString('es-AR', { timeZone: 'America/Argentina/Cordoba' }) : '—';
         console.log(`     ${e.sourceFile || '—'}`);

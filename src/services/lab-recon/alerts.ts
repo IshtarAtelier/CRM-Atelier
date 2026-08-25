@@ -294,7 +294,7 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
     // una de las dos. Van sueltas, como los huérfanos.
     const esPostventa = (e: any) => (e.notes || '').includes('POSTVENTA (caso');
     const porVenta = new Map<string, any[]>();
-    const findings: any[] = [];
+    let findings: any[] = [];
     const suprimidosDe = new Map<string, any[]>();
     for (const e of relevantes) {
         if (!e.orderId || esPostventa(e)) { findings.push(e); continue; }
@@ -496,6 +496,30 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
             : ''}` : '';
 
     const esUrgente = modo === 'urgente';
+
+    // RELECTURA ANTES DE MANDAR. Todo lo de arriba se arma con una foto que se
+    // sacó al empezar la corrida; entre esa foto y el envío, el propio cruce
+    // puede haber enganchado la factura con su venta. Pasó el 25/8/2026: la
+    // factura de Gonzalez Victoria entró 08:31, enganchó 08:35, y el aviso
+    // salió igual gritando "SIN VENTA" de algo que estuvo huérfano cuatro
+    // minutos. Un aviso urgente que llega resuelto entrena a ignorarlos, que
+    // es peor que no mandarlo. Se relee el estado y se caen los resueltos.
+    if (esUrgente && findings.length > 0) {
+        const ids = findings.map((f: any) => f.id).filter(Boolean);
+        const vigentes = await prisma.labCostEntry.findMany({
+            where: { id: { in: ids }, status: 'UNMATCHED', orderId: null },
+            select: { id: true },
+        }).catch(() => null);
+        if (vigentes) {
+            const sigueSinVenta = new Set(vigentes.map(e => e.id));
+            const resueltos = findings.filter((f: any) => !sigueSinVenta.has(f.id));
+            if (resueltos.length) {
+                console.log(`[LabCost] ${resueltos.length} pedido(s) se engancharon mientras se armaba el aviso: no se avisan (${resueltos.map((f: any) => f.labOrderNumber).join(', ')})`);
+                findings = findings.filter((f: any) => sigueSinVenta.has(f.id));
+            }
+            if (findings.length === 0) return { alerted: 0, resueltosAntesDeAvisar: resueltos.length };
+        }
+    }
     const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
     // Día sin movimientos pero con un 2x1 cobrado dos veces: el asunto tiene
     // que hablar de ESO, no anunciar "0 movimientos".
