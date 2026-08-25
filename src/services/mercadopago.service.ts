@@ -203,6 +203,11 @@ export async function createPreference(input: CreatePreferenceInput): Promise<Mp
     },
     auto_return: 'approved',
     binary_mode: true,
+    // Tope de financiación: el checkout no ofrece más de 6 cuotas. Sin esto MP
+    // mostraba hasta 18 sin interés y el costo lo absorbía la óptica.
+    payment_methods: {
+      installments: 6,
+    },
     statement_descriptor: 'ATELIER OPTICA',
     notification_url: `${STORE_ORIGIN}/api/webhooks/mercadopago`,
     // Ventana de pago: pasada esa hora la preferencia deja de aceptar plata.
