@@ -40,6 +40,11 @@ const prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE
  *  Max" tiene que probarse antes que "Comfort", y "Physio 3.0" antes que
  *  "Physio", si no el más corto se come al más largo. */
 const DISEÑOS = [
+    // Kodak primero: "KODAK PRECISE" no debe caer en ninguna regla de Varilux.
+    [/kodak.*unique/i, 'Kodak Unique DRO'],
+    [/kodak.*precise/i, 'Kodak Precise Next'],
+    [/kodak.*softwear/i, 'Kodak Softwear'],
+    [/kodak.*(sv|monofocal)/i, 'Kodak SV Digital'],
     [/xr\s*design/i, 'Varilux XR design'],
     [/xr\s*pro/i, 'Varilux XR pro'],
     [/comfort\s*max/i, 'Varilux Comfort Max'],
@@ -52,6 +57,12 @@ const DISEÑOS = [
 
 /** Del nombre al material. También de más específico a más general. */
 const MATERIALES = [
+    // Los BLUE UV existen solo en Kodak; van primero para que "ORMA BLUE UV"
+    // no caiga en el "ORMA" pelado.
+    [/stylis.*blue\s*uv/i, 'STYLIS 1.67 BLUE UV'],
+    [/airwear.*blue\s*uv/i, 'AIRWEAR 1.59 BLUE UV'],
+    [/orma.*blue\s*uv/i, 'ORMA BLUE UV'],
+    [/orma.*acclimates/i, 'ORMA ACCLIMATES'],
     [/stylis.*transitions/i, 'STYLIS 1.67 TRANSITIONS GEN S'],
     [/airwear.*transitions/i, 'AIRWEAR 1.59 TRANSITIONS GEN S'],
     [/orma\s*transitions\s*xtractive/i, 'ORMA TRANSITIONS XTRACTIVE'],
@@ -71,7 +82,8 @@ async function main() {
         from "Product"
         where category = 'Cristal' and laboratory = 'OPTOVISION' and cost > 0
           and (name ilike '%varilux%' or name ilike '%physio%' or name ilike '%comfort%'
-               or name ilike '%liberty%' or name ilike '%digitime%' or name ilike '%xr %')
+               or name ilike '%liberty%' or name ilike '%digitime%' or name ilike '%xr %'
+               or name ilike '%kodak%')
         order by name`;
 
     const filas = [], sinCruzar = [];
@@ -160,9 +172,37 @@ ${sinCruzar.length ? `<h2 style="font-size:20px;margin-top:26px">No se pudieron 
 </body>`;
     writeFileSync(salida, html);
 
-    console.log(`${filas.length} productos cruzados · ${sinCruzar.length} sin cruzar`);
-    console.log(`Aumento promedio del laboratorio: ${prom.toFixed(2)}%`);
-    console.log(`Comparación escrita en ${salida}`);
+    console.log(`${filas.length} productos cruzados · ${sinCruzar.length} sin cruzar\n`);
+
+    // EL AUMENTO AL CLIENTE. Con el mismo markup, el precio sube exactamente lo
+    // mismo que el costo — pero se calcula sobre los precios de verdad, no se
+    // asume, porque el redondeo al peso mueve las últimas cifras.
+    console.log(`AUMENTO DEL PRECIO FINAL AL CLIENTE (mismo markup ×${MARKUP})\n`);
+    const porDiseño = new Map();
+    for (const f of filas) {
+        if (!porDiseño.has(f.diseño)) porDiseño.set(f.diseño, []);
+        porDiseño.get(f.diseño).push(f);
+    }
+    const pct = f => (f.precioNuevo - f.price) / f.price * 100;
+    console.log(`  ${'Diseño'.padEnd(24)}${'n'.padStart(3)}  ${'precio hoy (prom)'.padStart(18)}${'precio nuevo'.padStart(15)}${'sube'.padStart(9)}`);
+    for (const [d, fs] of [...porDiseño].sort((a, b) => a[0].localeCompare(b[0]))) {
+        const hoy = fs.reduce((a, f) => a + f.price, 0) / fs.length;
+        const nuevo = fs.reduce((a, f) => a + f.precioNuevo, 0) / fs.length;
+        console.log(`  ${d.padEnd(24)}${String(fs.length).padStart(3)}  ${pesos(hoy).padStart(18)}${pesos(nuevo).padStart(15)}` +
+            `${((nuevo - hoy) / hoy * 100).toFixed(1).padStart(8)}%`);
+    }
+    const todos = filas.map(pct).sort((a, b) => a - b);
+    const totalHoy = filas.reduce((a, f) => a + f.price, 0);
+    const totalNuevo = filas.reduce((a, f) => a + f.precioNuevo, 0);
+    console.log(`\n  En toda la familia Varilux: de ${pesos(totalHoy)} a ${pesos(totalNuevo)} sumando los ${filas.length} precios`);
+    console.log(`  El precio al cliente sube entre ${todos[0].toFixed(1)}% y ${todos[todos.length - 1].toFixed(1)}%` +
+        ` · mediana ${todos[Math.floor(todos.length / 2)].toFixed(1)}%`);
+    console.log(`\n  El que MÁS sube en pesos:`);
+    const porPlata = [...filas].sort((a, b) => (b.precioNuevo - b.price) - (a.precioNuevo - a.price));
+    for (const f of porPlata.slice(0, 3)) {
+        console.log(`    ${String(f.name).slice(0, 46).padEnd(48)}${pesos(f.price)} → ${pesos(f.precioNuevo)}  (+${pesos(f.precioNuevo - f.price)})`);
+    }
+    console.log(`\nComparación escrita en ${salida}`);
 }
 
 main()
