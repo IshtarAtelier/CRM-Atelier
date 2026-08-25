@@ -272,7 +272,7 @@ export const armarParesDeCristal = (product: any, prevItems: any[] = []): any[] 
  * El aviso del teñido de la promo, para el cartel del 2x1 en los cotizadores.
  * Un solo texto para todas las pantallas: si la regla cambia, cambia acá.
  */
-export const AVISO_TENIDO_2X1 = 'Incluye UN teñido sin cargo — agregalo al pedido (el teñido según muestra se cobra siempre)';
+export const AVISO_TENIDO_2X1 = 'Incluye UN teñido sin cargo, compacto o degradé — agregalo al pedido (el teñido según muestra NO entra: se cobra siempre)';
 
 /**
  * Etiqueta de la bonificación para TODAS las pantallas (carrito, venta, PDF).
