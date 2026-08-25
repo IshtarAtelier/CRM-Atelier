@@ -181,6 +181,41 @@ export function faltanAsociarArmazones(items: any[] | null | undefined, totalArm
 }
 
 /**
+ * Preasigna el par a los armazones SEGÚN EL ORDEN DE CARGA. Pura.
+ *
+ * Pedido de Ishtar (25/8): «podría asignarles en orden… subís uno y que sea el
+ * denominado 1, y que todo se adhiera a ese. Un paso menos». El primero que se
+ * carga toma el primer par libre, el segundo el siguiente — el chip queda
+ * MARCADO A LA VISTA y se corrige con un toque si no era ese (con el
+ * intercambio de asignarParAlArmazon). Es un default visible, no una
+ * asociación invisible: la diferencia con adivinar en silencio es que acá el
+ * vendedor VE qué quedó elegido en cada renglón.
+ *
+ * Cuando no quedan pares libres (más armazones que pares: uno va aparte), los
+ * sobrantes quedan sin asignar — ahí decide el vendedor, no el orden.
+ * Un framePosition ya elegido NUNCA se pisa.
+ */
+export function autoasignarArmazones(items: any[], totalArmazones: number): any[] {
+    if (!Array.isArray(items) || totalArmazones < 1) return items;
+    const ocupadas = new Set(
+        items.filter(it => esArmazonItem(it) && it.framePosition).map(it => it.framePosition),
+    );
+    let cambio = false;
+    const salida = items.map(it => {
+        if (!esArmazonItem(it) || it.framePosition) return it;
+        let libre: number | null = null;
+        for (let par = 1; par <= totalArmazones; par++) {
+            if (!ocupadas.has(par)) { libre = par; break; }
+        }
+        if (libre == null) return it;
+        ocupadas.add(libre);
+        cambio = true;
+        return { ...it, framePosition: libre };
+    });
+    return cambio ? salida : items;
+}
+
+/**
  * Qué cambios dispara asignarle un par a un armazón. Pura, para testearla.
  *
  * Pedido de Ishtar (25/8): «digamos, a uno le asigno si es el 1 o el 2» — y el
