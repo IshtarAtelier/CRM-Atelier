@@ -140,6 +140,12 @@ export default function MensajesClient() {
     const [mensajes, setMensajes] = useState<Mensaje[]>([]);
     const [participantes, setParticipantes] = useState<Participante[]>([]);
     const [asunto, setAsunto] = useState<string | null>(null);
+    // Paginado del historial: el service pagina de a 50 y devuelve `hayMas`, y
+    // la ruta acepta `?antesDe=`. Nadie lo usaba, así que en una conversación
+    // activa todo lo anterior a los últimos 50 mensajes era invisible — el dato
+    // estaba en la base y la API sabía servirlo, pero no había forma de pedirlo.
+    const [hayMas, setHayMas] = useState(false);
+    const [cargandoMas, setCargandoMas] = useState(false);
     const [texto, setTexto] = useState('');
     const [enviando, setEnviando] = useState(false);
     const [cargando, setCargando] = useState(true);
@@ -173,6 +179,7 @@ export default function MensajesClient() {
             setMensajes(data.mensajes || []);
             setParticipantes(data.participantes || []);
             setAsunto(data.subject || null);
+            setHayMas(!!data.hayMas);
             // Al abrirla queda leída: se refleja en la bandeja, en la campanita
             // y hace desaparecer el globo de urgentes sin esperar al próximo latido.
             cargarBandeja();
@@ -211,13 +218,50 @@ export default function MensajesClient() {
         if (activa) {
             fetch(`/api/mensajes/${activa}`)
                 .then(r => r.ok ? r.json() : null)
-                .then(d => { if (d?.mensajes) setMensajes(d.mensajes); })
+                .then(d => {
+                    if (!d?.mensajes) return;
+                    // FUSIONAR, no reemplazar: si se apretó "ver anteriores", la
+                    // lista tiene más de una página y este refresco solo trae la
+                    // última. Reemplazar tiraba a la basura todo el historial que
+                    // la persona acababa de cargar, cada vez que llegaba un
+                    // mensaje nuevo.
+                    setMensajes(prev => {
+                        const nuevos: Mensaje[] = d.mensajes;
+                        if (prev.length === 0) return nuevos;
+                        const idsNuevos = new Set(nuevos.map((m: Mensaje) => m.id));
+                        const anteriores = prev.filter(m => !idsNuevos.has(m.id));
+                        return [...anteriores, ...nuevos];
+                    });
+                })
                 .catch(() => {});
         }
         // `noLeidos` es la señal: cambia cuando entra o se lee algo.
     }, [noLeidos]);
 
     useEffect(() => { finRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [mensajes]);
+
+    /** Trae la página anterior y la antepone, sin perder lo que ya se cargó. */
+    const cargarAnteriores = async () => {
+        if (!activa || cargandoMas || mensajes.length === 0) return;
+        setCargandoMas(true);
+        try {
+            const res = await fetch(`/api/mensajes/${activa}?antesDe=${encodeURIComponent(mensajes[0].createdAt)}`);
+            if (!res.ok) throw new Error('No se pudieron traer los anteriores');
+            const data = await res.json();
+            const previos: Mensaje[] = data.mensajes || [];
+            // Anteponer y deduplicar por id: el refresco del pulso puede haber
+            // traído alguno de estos en el medio.
+            setMensajes(prev => {
+                const vistos = new Set(prev.map(m => m.id));
+                return [...previos.filter(m => !vistos.has(m.id)), ...prev];
+            });
+            setHayMas(!!data.hayMas);
+        } catch (e: any) {
+            setError(e.message);
+        } finally {
+            setCargandoMas(false);
+        }
+    };
 
     const enviar = async () => {
         const cuerpo = texto.trim();
@@ -355,6 +399,17 @@ export default function MensajesClient() {
                             </div>
 
                             <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+                                {hayMas && (
+                                    <div className="flex justify-center pb-2">
+                                        <button
+                                            onClick={cargarAnteriores}
+                                            disabled={cargandoMas}
+                                            className="rounded-full border border-stone-300 px-4 py-1.5 text-xs font-semibold text-stone-600 transition hover:bg-stone-50 disabled:opacity-50"
+                                        >
+                                            {cargandoMas ? 'Trayendo…' : 'Ver mensajes anteriores'}
+                                        </button>
+                                    </div>
+                                )}
                                 {mensajes.map(m => {
                                     const mio = m.senderId === yo?.id;
                                     return (

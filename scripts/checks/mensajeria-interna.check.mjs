@@ -29,6 +29,13 @@ const MARCA = 'CHECK_MSG_';
 
 /** Borra todo lo que crea este check (y lo de corridas anteriores que hayan fallado). */
 async function limpiar() {
+    // Repara el rol del Asistente si una corrida anterior murió a mitad de la
+    // prueba de usurpación (ver el `finally` de más abajo).
+    await prisma.user.updateMany({
+        where: { email: S.IA_EMAIL, role: { not: 'SISTEMA' } },
+        data: { role: 'SISTEMA' },
+    }).catch(() => {});
+
     const users = await prisma.user.findMany({
         where: { email: { startsWith: MARCA } }, select: { id: true },
     });
@@ -76,12 +83,29 @@ check('el urgente dice quién lo mandó', urgentes[0]?.senderName === beto.name)
 check('el segundo mensaje NO es urgente', urgentes.every(u => !u.body.includes('técnico')));
 
 // ── PRIVACIDAD: lo que este check existe para proteger ──
+//
+// Carla necesita una conversación PROPIA antes de estas pruebas. Sin ella,
+// `filtroNoLeidos` corta en su early-return («no participa de nada») y los dos
+// checks de abajo miden "Carla no tiene conversaciones" en vez de "el filtro la
+// excluye de la de Ana y Beto": una regresión que rompiera el filtro por
+// threadId seguiría dando verde.
+const jefa = await crearUser('Jefa', 'ADMIN');
+await S.crearConversacion({ creadorId: jefa.id, paraIds: [carla.id], primerMensaje: 'algo propio de Carla' });
+
 let bloqueada = false;
 try { await S.leerConversacion(threadId, carla.id); } catch { bloqueada = true; }
 check('un tercero NO puede leer la conversación', bloqueada);
 check('y no le aparece en su bandeja', (await S.bandeja(carla.id)).every(c => c.id !== threadId));
-check('ni le cuenta como no leída', (await S.contarNoLeidos(carla.id)) === 0);
-check('ni le llega el urgente', (await S.urgentesPendientes(carla.id)).length === 0);
+check('ni le cuenta como no leída (teniendo ella otras conversaciones)',
+    (await S.bandeja(carla.id)).every(c => c.id !== threadId));
+check('ni le llega el urgente', (await S.urgentesPendientes(carla.id)).every(u => u.threadId !== threadId));
+
+// La frase del encabezado del service — "ni un ADMIN lee los mensajes ajenos" —
+// era la única regla elevada a principio que NINGÚN check sostenía.
+let adminBloqueada = false;
+try { await S.leerConversacion(threadId, jefa.id); } catch { adminBloqueada = true; }
+check('un ADMIN tampoco lee una conversación de la que no participa', adminBloqueada);
+check('ni le aparece en su bandeja', (await S.bandeja(jefa.id)).every(c => c.id !== threadId));
 
 let bloqueadaEscritura = false;
 try { await S.responder({ threadId, senderId: carla.id, body: 'me cuelo' }); } catch { bloqueadaEscritura = true; }
@@ -106,6 +130,7 @@ check('quien está en copia SÍ la ve', (await S.bandeja(carla.id)).some(c => c.
 check('y figura como copia', (await S.bandeja(carla.id)).find(c => c.id === conCopia)?.miRol === 'CC');
 
 // ── Las cuentas de óptica mayorista no son destinatarios posibles ──
+await S.usuarioIA(); // si no existe, la aserción de abajo pasaría por vacío
 const colabs = await S.listarColaboradores(ana.id);
 check('una cuenta OPTICA no aparece en el selector', colabs.every(c => c.id !== optica.id));
 check('la IA tampoco aparece', colabs.every(c => c.name !== S.IA_NOMBRE));
@@ -171,11 +196,21 @@ const rolCarla = (await S.bandeja(carla.id)).find(c => c.id === hiloU)?.miRol;
 check('agregar en copia NO degrada a quien ya participaba', rolCarla === 'MEMBER', `(quedó ${rolCarla})`);
 
 // Dos personas escribiéndose a la vez no pueden crear dos hilos uno-a-uno.
+//
+// CON USUARIOS FRESCOS, sí o sí. Antes usaba a Ana y Beto, que YA tenían hilo
+// desde el principio del script: las dos llamadas lo encontraban por el camino
+// trivial y ni el constraint único, ni el P2002, ni el catch — o sea nada de lo
+// que el check dice cubrir — llegaban a ejecutarse. Pasaba con el constraint
+// borrado. Era el test de la invariante más difícil del módulo y no probaba nada.
+const eze = await crearUser('Eze');
+const flor = await crearUser('Flor');
 const [r1, r2] = await Promise.all([
-    S.crearConversacion({ creadorId: ana.id, paraIds: [beto.id], primerMensaje: 'simultáneo A' }),
-    S.crearConversacion({ creadorId: beto.id, paraIds: [ana.id], primerMensaje: 'simultáneo B' }),
+    S.crearConversacion({ creadorId: eze.id, paraIds: [flor.id], primerMensaje: 'simultáneo A' }),
+    S.crearConversacion({ creadorId: flor.id, paraIds: [eze.id], primerMensaje: 'simultáneo B' }),
 ]);
 check('dos envíos simultáneos NO crean dos hilos', r1.id === r2.id, `(${r1.id} vs ${r2.id})`);
+const hilosEze = (await S.bandeja(eze.id)).filter(c => c.participantes.some(p => p.id === flor.id));
+check('y queda UNO solo en la bandeja de los dos', hilosEze.length === 1, `(dio ${hilosEze.length})`);
 
 // El Asistente reusa un solo hilo y no repite el mismo resumen dos veces.
 await S.mensajeDeIA({ paraUserId: ana.id, cuerpo: '📋 Tu resumen del lunes\nalgo', dedupePrefijo: '📋 Tu resumen del lunes' });
@@ -190,11 +225,18 @@ check('el del día siguiente SÍ sale, y en el mismo hilo', hilosIA.length === 1
 // Asistente pasaría a escribir DESDE ella.
 const iaReal = await prisma.user.findUnique({ where: { email: S.IA_EMAIL }, select: { id: true } });
 if (iaReal) {
-    await prisma.user.update({ where: { id: iaReal.id }, data: { role: 'STAFF' } });
+    // `finally` OBLIGATORIO: si algo entre medio lanza, el Asistente queda como
+    // STAFF, `limpiar()` no lo toca (su email no lleva la marca del check) y
+    // TODA corrida futura muere en `usuarioIA()`. El check quedaría trabado en
+    // rojo para siempre por una cuenta que nadie sabría que hay que arreglar.
     let rechazo = false;
-    try { await S.usuarioIA(); } catch { rechazo = true; }
+    try {
+        await prisma.user.update({ where: { id: iaReal.id }, data: { role: 'STAFF' } });
+        try { await S.usuarioIA(); } catch { rechazo = true; }
+    } finally {
+        await prisma.user.update({ where: { id: iaReal.id }, data: { role: 'SISTEMA' } });
+    }
     check('una cuenta que no es del sistema NO puede usurpar al Asistente', rechazo);
-    await prisma.user.update({ where: { id: iaReal.id }, data: { role: 'SISTEMA' } });
 } else {
     check('una cuenta que no es del sistema NO puede usurpar al Asistente', false, '(no se pudo probar)');
 }
@@ -233,6 +275,42 @@ const traíDeNuevo = await S.crearConversacion({
 });
 check('agregar a quien ya participa NO parte la conversación en dos',
     traíDeNuevo.id === directo, `(${traíDeNuevo.id} vs ${directo})`);
+
+// ── Ronda 3: el asunto también es contenido, y el historial tiene que alcanzarse ──
+
+// El ASUNTO era el cuarto lugar por donde se filtraba lo que el corte oculta:
+// tapar los mensajes de "Aumento de sueldo de Matías" pero mostrar ese título en
+// la lista no tapa nada.
+const { id: hiloConAsunto } = await S.crearConversacion({
+    creadorId: beto.id, paraIds: [ana.id], subject: 'Aumento de sueldo',
+    primerMensaje: 'lo hablamos el lunes',
+});
+const gus = await crearUser('Gus');
+await S.agregarParticipante({ threadId: hiloConAsunto, porUserId: beto.id, nuevoUserId: gus.id });
+const filaGus = (await S.bandeja(gus.id)).find(c => c.id === hiloConAsunto);
+check('el ASUNTO tampoco se ve si no ve ningún mensaje', filaGus?.subject === null,
+    `(mostró "${filaGus?.subject ?? ''}")`);
+check('y al abrirla, el asunto sigue oculto',
+    (await S.leerConversacion(hiloConAsunto, gus.id)).subject === null);
+// Pero en cuanto se escribe algo nuevo, ya es parte de su conversación.
+await S.responder({ threadId: hiloConAsunto, senderId: beto.id, body: 'Gus, mirá esto' });
+check('cuando SÍ ve un mensaje, el asunto aparece',
+    (await S.bandeja(gus.id)).find(c => c.id === hiloConAsunto)?.subject === 'Aumento de sueldo');
+
+// PAGINADO: el historial viejo tiene que poder pedirse.
+const { id: hiloLargo } = await S.crearConversacion({
+    creadorId: ana.id, paraIds: [beto.id], subject: 'Largo', primerMensaje: 'mensaje 1',
+});
+for (let i = 2; i <= 55; i++) {
+    await S.responder({ threadId: hiloLargo, senderId: ana.id, body: `mensaje ${i}` });
+}
+const pag1 = await S.leerConversacion(hiloLargo, beto.id);
+check('la primera página trae 50 y avisa que hay más', pag1.mensajes.length === 50 && pag1.hayMas === true,
+    `(${pag1.mensajes.length} mensajes, hayMas=${pag1.hayMas})`);
+const pag2 = await S.leerConversacion(hiloLargo, beto.id, { antesDe: new Date(pag1.mensajes[0].createdAt) });
+check('la segunda página trae los 5 anteriores', pag2.mensajes.length === 5, `(dio ${pag2.mensajes.length})`);
+check('y el más viejo es el primero de todos', pag2.mensajes[0]?.body === 'mensaje 1',
+    `(dio "${pag2.mensajes[0]?.body}")`);
 
 await limpiar();
 await prisma.$disconnect();

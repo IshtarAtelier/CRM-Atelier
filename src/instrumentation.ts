@@ -100,11 +100,75 @@ export async function register() {
             }
         };
 
+        // ---- RESUMEN DIARIO DEL EQUIPO, auto-disparado ----
+        // Mismo patrón que el diario de arriba, y por el mismo motivo: acá adentro
+        // no depende de ningún despertador externo que pueda pausarse en silencio.
+        //
+        // A las 9:00 ARG, después de la conciliación: así el resumen ya refleja lo
+        // que el robot grande haya cerrado esa mañana.
+        const RESUMEN_KEY = 'resumen_equipo_last_run';
+        const RESUMEN_HORA = 9;
+        let resumenRanForDate: string | null = null;
+        let resumenRunning = false;
+
+        const maybeRunResumen = async () => {
+            const { hour, dateKey } = argNow();
+            if (hour < RESUMEN_HORA) return;
+            if (resumenRanForDate === dateKey || resumenRunning) return;
+
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+
+            // Guarda persistente: un reinicio no vuelve a mandarle el resumen a
+            // todo el equipo. (La ruta además tiene su propio dedupe por fecha,
+            // así que son dos redes: esta evita el trabajo, aquella el duplicado.)
+            try {
+                const { prisma } = await import('@/lib/db');
+                const row = await prisma.systemSetting.findUnique({ where: { key: RESUMEN_KEY } });
+                if (row?.value === dateKey) { resumenRanForDate = dateKey; return; }
+            } catch (err) {
+                console.error('[CRON resumen-equipo] No se pudo leer el guard diario (se intenta igual):', err);
+            }
+
+            resumenRunning = true;
+            try {
+                // El secreto va en la CABECERA y no en la URL: los query params
+                // terminan en los logs de acceso y en el historial del navegador.
+                const res = await fetch(`${baseUrl}/api/cron/resumen-diario-equipo`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(5 * 60 * 1000),
+                });
+                if (!res.ok) {
+                    console.error(`[CRON resumen-equipo] HTTP ${res.status} — se reintenta en el próximo tick.`);
+                    return; // NO marcar el día: reintenta
+                }
+                const data = await res.json();
+                console.log(`[CRON resumen-equipo] Enviado a: ${(data.enviados || []).join(', ') || 'nadie'}`);
+                try {
+                    const { prisma } = await import('@/lib/db');
+                    await prisma.systemSetting.upsert({
+                        where: { key: RESUMEN_KEY },
+                        update: { value: dateKey },
+                        create: { key: RESUMEN_KEY, value: dateKey },
+                    });
+                } catch (err) {
+                    console.error('[CRON resumen-equipo] No se pudo persistir el guard:', err);
+                }
+                resumenRanForDate = dateKey;
+            } catch (err) {
+                console.error('[CRON resumen-equipo] Error disparando el resumen (se reintenta):', err);
+            } finally {
+                resumenRunning = false;
+            }
+        };
+
         // ---- Pase RÁPIDO SmartLab (robot chico), cada 10 min ----
         const runSync = async () => {
             // El diario se evalúa en cada tick, independiente del horario del pase
             // rápido (aunque 08:30 cae dentro de 8-20, esto lo deja robusto).
             maybeRunDaily().catch(err => console.error('[CRON lab-invoices] maybeRunDaily:', err));
+            maybeRunResumen().catch(err => console.error('[CRON resumen-equipo] maybeRunResumen:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');
@@ -146,6 +210,6 @@ export async function register() {
             setInterval(runSync, INTERVAL_MS);
         }, 30000);
 
-        console.log('[CRON SmartLab] Programado: cada 10 minutos, 8am-20pm ARG (+ conciliación diaria interna ~8:30 ARG)');
+        console.log('[CRON SmartLab] Programado: cada 10 minutos, 8am-20pm ARG (+ conciliación diaria ~8:30 ARG + resumen del equipo ~9:00 ARG)');
     }
 }

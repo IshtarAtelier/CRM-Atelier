@@ -196,13 +196,27 @@ export class InternalMessagingService {
                 senderId: { not: userId },
                 OR: participaciones.map(p => ({
                     threadId: p.threadId,
-                    // Con marca de lectura: lo posterior a ella (`gt`).
-                    // Sin marca: todo lo que haya desde el alta — `gte` y no
-                    // `gt`, porque el alta y el primer mensaje llevan la MISMA
-                    // marca de tiempo a propósito, y con `gt` se perdería.
-                    createdAt: p.lastReadAt
-                        ? { gt: p.lastReadAt }
-                        : { gte: p.createdAt },
+                    // El piso del ALTA va SIEMPRE, no como rama alternativa.
+                    // Antes era `lastReadAt ? gt : gte createdAt`, así que una
+                    // fila con `lastReadAt` anterior al alta dejaba pasar la
+                    // franja previa — y `urgentesPendientes` devuelve el TEXTO,
+                    // no solo el conteo. Hoy ese estado no es alcanzable, pero
+                    // la base no lo impide y el filtro no debería depender de
+                    // que nadie lo produzca nunca.
+                    //
+                    // `gte` en el piso y no `gt`: el alta y el primer mensaje de
+                    // una conversación llevan la MISMA marca a propósito.
+                    createdAt: {
+                        gte: p.createdAt,
+                        // `>=` y no `>`: al leer el primer mensaje de una
+                        // conversación, la marca de lectura queda IGUAL a la del
+                        // alta (las dos son la fecha de ese mensaje). Con `>` esa
+                        // igualdad descartaba la marca y el mensaje ya leído
+                        // volvía a contarse como pendiente.
+                        ...(p.lastReadAt && p.lastReadAt >= p.createdAt
+                            ? { gt: p.lastReadAt }
+                            : {}),
+                    },
                 })),
             },
         };
@@ -269,10 +283,17 @@ export class InternalMessagingService {
             // filtraba justo el contenido que el hilo oculta.
             const crudo = p.thread.messages[0] || null;
             const ultimo = crudo && crudo.createdAt >= p.createdAt ? crudo : null;
+            // EL ASUNTO TAMBIÉN ES CONTENIDO. Lo escribió otra persona antes de
+            // que esta entrara, y suele ser donde está lo que importa: ocultar
+            // los mensajes de "Aumento de sueldo de Matías" pero mostrar ese
+            // título en la lista no oculta nada. Es el cuarto lugar por donde se
+            // filtraba lo mismo, después de los no leídos, la vista previa y el
+            // pop-up de urgentes.
+            const visible = ultimo !== null;
             return {
                 id: p.thread.id,
                 kind: p.thread.kind,
-                subject: p.thread.subject,
+                subject: visible ? p.thread.subject : null,
                 // Si el último mensaje del hilo no es visible para esta
                 // persona, se muestra su fecha de alta: la del mensaje ajeno
                 // diría "hace 2 horas" sobre algo que no puede leer.
@@ -312,7 +333,9 @@ export class InternalMessagingService {
                 id: true, kind: true, subject: true, createdAt: true,
                 participants: {
                     where: { leftAt: null },
-                    select: { role: true, lastReadAt: true, user: { select: { id: true, name: true } } },
+                    // `lastReadAt` de los demás NO se selecciona: saber cuándo leyó
+                    // cada uno es un dato de esa persona y no se usa en ningún lado.
+                    select: { role: true, user: { select: { id: true, name: true } } },
                 },
             },
         });
@@ -364,10 +387,14 @@ export class InternalMessagingService {
             await this.marcarLeido(threadId, userId, masNuevo);
         }
 
+        // Si no ve un solo mensaje del hilo, tampoco ve el asunto (mismo motivo
+        // que en la bandeja). `antesDe` se excluye: pedir una página vieja vacía
+        // no es lo mismo que no tener acceso a nada.
+        const veAlgo = mensajes.length > 0 || !!opts.antesDe;
         return {
             id: thread.id,
             kind: thread.kind,
-            subject: thread.subject,
+            subject: veAlgo ? thread.subject : null,
             participantes: thread.participants.map(p => ({
                 id: p.user.id, name: p.user.name, role: p.role,
             })),
