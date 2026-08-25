@@ -10,7 +10,7 @@ import {
     armarParesDeCristal, recalculateCrystalPrices, applyTeñidoPromoDiscount,
     AVISO_TENIDO_2X1
 } from '@/lib/promo-utils';
-import { asignarParAlArmazon } from '@/lib/armazon-por-par';
+import { asignarParAlArmazon, autoasignarArmazones } from '@/lib/armazon-por-par';
 import { cantidadDeArmazones } from '@/lib/order-frames';
 import { aplicarCambioDeLinea } from '@/lib/tenido-sync';
 import { calculateQuoteTotals } from '@/services/PricingService';
@@ -197,6 +197,15 @@ export default function CotizadorCart({
         if (!hayArmazonUsuario) setUserFrameData({ brand: '', model: '', notes: '' });
         setEditandoArmazonUsuario(false);
     };
+
+    // PREASIGNACIÓN POR ORDEN DE CARGA (Ishtar, 25/8): «subís uno y que sea el
+    // denominado 1... un paso menos». Vive en un efecto y no en handleAddItem
+    // porque los ítems entran por VARIOS caminos (el panel izquierdo del
+    // cotizador agrega directo a items). autoasignarArmazones devuelve la MISMA
+    // referencia cuando no hay nada que asignar, así el efecto no cicla.
+    React.useEffect(() => {
+        setItems(prev => autoasignarArmazones(prev, cantidadDeArmazones({ items: prev })));
+    }, [items, setItems]);
 
     const handleAddItem = (product: any) => {
         if (isCrystal(product)) {
