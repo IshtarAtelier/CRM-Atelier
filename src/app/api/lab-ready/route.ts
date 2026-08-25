@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { PricingService } from '@/services/PricingService';
 import { prisma } from '@/lib/db';
 import { serverCache } from '@/lib/cache';
 
@@ -31,6 +32,19 @@ export async function GET() {
                 smartLabDetails: true,
                 labSentAt: true,
                 createdAt: true,
+                // Para el saldo pendiente de la tarjeta (pedido de Ishtar 25/8:
+                // "que se sepa que el pedido tiene saldo" al ir a entregarlo).
+                // TODOS los campos que PricingService necesita, payments
+                // incluido — sin las filas de pago, el cálculo inventa saldos
+                // fantasma (lección de la confirmación de compra).
+                total: true,
+                paid: true,
+                subtotalWithMarkup: true,
+                specialDiscount: true,
+                markup: true,
+                discountCash: true,
+                discountTransfer: true,
+                payments: { select: { amount: true, method: true } },
                 client: { select: { id: true, name: true, phone: true } },
                 user: { select: { name: true } },
                 items: {
@@ -58,9 +72,25 @@ export async function GET() {
             return false;
         });
 
-        serverCache.set(cacheKey, readyOrders, 30); // Cache for 30 seconds
+        // El SALDO calculado en el servidor (nunca total − pagado: cada pago se
+        // convierte a su equivalente de lista — PricingService). Se manda solo
+        // el número de lista: alcanza para saber que el pedido tiene saldo al
+        // entregarlo, sin cargar el panel de detalles que no pidió nadie.
+        const conSaldo = readyOrders.map((o: any) => {
+            const fin = PricingService.calculateOrderFinancials(o);
+            // Los campos financieros crudos NO viajan al navegador: se piden
+            // solo para calcular, y afuera va únicamente el resultado.
+            const { payments: _p, total: _t, paid: _pa, subtotalWithMarkup: _s, specialDiscount: _e,
+                    markup: _m, discountCash: _dc, discountTransfer: _dt, ...resto } = o;
+            return {
+                ...resto,
+                saldoPendiente: fin.hasBalance ? fin.remainingList : 0,
+            };
+        });
 
-        return NextResponse.json(readyOrders);
+        serverCache.set(cacheKey, conSaldo, 30); // Cache for 30 seconds
+
+        return NextResponse.json(conSaldo);
     } catch (error: any) {
         console.error('Error fetching lab-ready orders:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

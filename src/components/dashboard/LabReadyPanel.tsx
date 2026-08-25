@@ -113,6 +113,16 @@ export default function LabReadyPanel({ orders, onClose, onRefresh }: LabReadyPa
                                                 <span>🛍️ Cliente Notificado</span>
                                             </div>
                                         )}
+                                        {/* Saldo pendiente A PRECIO DE LISTA, calculado por
+                                            PricingService en el servidor (nunca total − pagado).
+                                            Pedido de Ishtar: que al entregar se sepa de una que
+                                            el pedido tiene saldo — el monto exacto según la forma
+                                            de pago se ve en la venta. */}
+                                        {(order.saldoPendiente ?? 0) > 0 && (
+                                            <div className="mb-2 mt-1 ml-1 inline-flex items-center gap-1.5 px-2 py-1 bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-red-200/50 dark:border-red-800/50">
+                                                <span>💰 Saldo pendiente: ${Math.round(order.saldoPendiente).toLocaleString('es-AR')} (lista)</span>
+                                            </div>
+                                        )}
 
                                         <div className="flex items-center gap-3 text-[10px] font-bold text-stone-400">
                                             {order.smartLabSector && (
