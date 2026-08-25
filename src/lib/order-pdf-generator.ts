@@ -212,7 +212,18 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                         if (!lista.length) continue; // un encabezado sin filas confunde más que nada
                         const info = resumenPdf.pairs.find(p => p.pair === par);
                         const cual = (info?.details || info?.shape || '').trim();
-                        conSeparador.push({ __separador: `${par}º PAR${cual ? ` — ${cual.toUpperCase()}` : ''}` });
+                        // Debajo del título van las medidas de ESE armazón:
+                        // antes vivían en un cuadro aparte al final y el lector
+                        // tenía que atar cabos entre secciones.
+                        const medidasDe = [
+                            info?.shape ? `Forma: ${info.shape}` : '',
+                            info?.measurements || '',
+                            info?.fitting || '',
+                        ].filter(Boolean).join('  ·  ');
+                        conSeparador.push({
+                            __separador: `${par}º PAR${cual ? ` — ${cual.toUpperCase()}` : ''}`,
+                            __sub: medidasDe,
+                        });
                         const orden = (it: any) => (it.eye === 'RIGHT' || it.eye === 'OD') ? 0 : 1;
                         [...lista].sort((a, b) => orden(a) - orden(b)).forEach(it => { conSeparador.push(it); asignadosPdf.add(it); });
                         const arm = armazonDelParPdf.get(par);
@@ -228,6 +239,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 if (it.__separador) return `
                     <tr><td colspan="4" style="padding:12px 0 4px;border-bottom:2px solid #d6cfc2">
                       <span style="font-size:10px;letter-spacing:2px;font-weight:900;color:#8a7f6d">${it.__separador}</span>
+                      ${it.__sub ? `<div style="font-size:10px;color:#57534e;margin-top:2px;font-weight:700">${escapeHtml(it.__sub)}</div>` : ''}
                     </td></tr>`;
                 const itemPrice = Math.round(it.price * markupFactor);
                 let eyeLabel = '';
@@ -431,12 +443,18 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         if (lab.isEmpty) return '';
         const filas: string[] = [];
         if (lab.origin) filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">ARMAZÓN</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.origin)}</div></div>`);
-        lab.pairs.forEach((pair, i) => {
-            if (pair.isEmpty) return;
-            const partes = [pair.shape ? `Forma: ${pair.shape}` : '', pair.measurements || '', pair.details || ''].filter(Boolean);
-            if (partes.length === 0) return;
-            filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">${i === 1 ? 'PAR 2 (BONIFICADO)' : 'MEDIDAS DEL ARMAZÓN'}</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(partes.join('  ·  '))}</div></div>`);
-        });
+        // Con VARIOS pares, las medidas de cada uno ya viven arriba, junto a
+        // sus cristales ("2º PAR — CLIPO ON METAL · Forma: rectangular · …"):
+        // repetirlas acá era volver a partir la información en dos lugares.
+        // Con UN par se mantienen acá, que es donde siempre estuvieron.
+        if (lab.pairs.length <= 1) {
+            lab.pairs.forEach((pair) => {
+                if (pair.isEmpty) return;
+                const partes = [pair.shape ? `Forma: ${pair.shape}` : '', pair.measurements || '', pair.details || ''].filter(Boolean);
+                if (partes.length === 0) return;
+                filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">MEDIDAS DEL ARMAZÓN</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(partes.join('  ·  '))}</div></div>`);
+            });
+        }
         if (lab.tint) {
             filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">TRATAMIENTO</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.tint.text)}</div></div>`);
         }
