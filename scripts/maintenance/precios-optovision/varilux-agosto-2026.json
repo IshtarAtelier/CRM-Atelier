@@ -4,49 +4,220 @@
   "vigencia": "Agosto 2026",
   "moneda": "ARS",
   "iva_incluido": false,
-  "tratamientos": ["CRIZAL PREVENCIA", "CRIZAL SAPPHIRE", "CRIZAL FORTE UV", "TRIO EASY CLEAN", "SIN AR"],
+  "tratamientos": [
+    "CRIZAL PREVENCIA",
+    "CRIZAL SAPPHIRE",
+    "CRIZAL FORTE UV",
+    "TRIO EASY CLEAN",
+    "SIN AR"
+  ],
   "sygnus": {
     "_lee_esto": "Páginas 23 y 24: 'Lentes Digitales Sygnus', que en el PDF es una lista APARTE, con otro diseño y otras columnas (índice Ne, diámetro ø, rangos). Los precios son SIN ANTIRREFLEJO, igual que los monofocales de la página 20: hay que sumarle el tratamiento antes del calibrado y el IVA. Los rangos y diámetros los da el propio laboratorio como estimativos según disponibilidad técnica.",
-    "paginas": [23, 24],
+    "paginas": [
+      23,
+      24
+    ],
     "familias": [
       {
         "familia": "Sygnus NEW EDITION",
         "tipo": "Progresivas digitales",
         "nota": "Progresivos personalizados, altura variable a partir de 14 mm. Adiciones de 0.75 a 3.50 D.",
         "filas": [
-          { "material": "Orma", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 173016 },
-          { "material": "Orma BLUE UV", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 190980 },
-          { "material": "Orma Transitions GEN S", "ne": "1.50", "diametro": 76, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 360046 },
-          { "material": "Orma Xperio Gris / Café / Gris-Verde", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 360046 },
-          { "material": "Orma Acclimates", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 260161 },
-          { "material": "Airwear 1.59", "ne": "1.59", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 214932 },
-          { "material": "Airwear BLUE UV", "ne": "1.59", "diametro": 76, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 227545 },
-          { "material": "Airwear 1.59 Transitions GEN S", "ne": "1.59", "diametro": 79, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 413684 },
-          { "material": "Airwear 1.59 Xperio Café / Gris", "ne": "1.59", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 413684 },
-          { "material": "Stylis 1.67", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 298000 },
-          { "material": "Stylis BLUE UV", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 316474 },
-          { "material": "Stylis 1.67 Transitions GEN S", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 485158 },
-          { "material": "Orgánico Espejado Azul/Plata", "ne": "1.50", "diametro": 70, "rango": "-3.00 a +3.00 cil. 6.00", "precio": 219391 },
-          { "material": "Policarbonato Polarizado Espejado Azul/Plata", "ne": "1.59", "diametro": 75, "rango": "+6.00 a -3.00 cil. 6.00", "precio": 268187 },
-          { "material": "Orgánico Fotosensible BLC", "ne": "1.56", "diametro": 70, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 243726 },
-          { "material": "Alto Índice 1.74", "ne": "1.74", "diametro": 75, "rango": "+11.00 a -18.00 cil. 6.00", "precio": 340936 }
+          {
+            "material": "Orma",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 173016
+          },
+          {
+            "material": "Orma BLUE UV",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 190980
+          },
+          {
+            "material": "Orma Transitions GEN S",
+            "ne": "1.50",
+            "diametro": 76,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 360046
+          },
+          {
+            "material": "Orma Xperio Gris / Café / Gris-Verde",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 360046
+          },
+          {
+            "material": "Orma Acclimates",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 260161
+          },
+          {
+            "material": "Airwear 1.59",
+            "ne": "1.59",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 214932
+          },
+          {
+            "material": "Airwear BLUE UV",
+            "ne": "1.59",
+            "diametro": 76,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 227545
+          },
+          {
+            "material": "Airwear 1.59 Transitions GEN S",
+            "ne": "1.59",
+            "diametro": 79,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 413684
+          },
+          {
+            "material": "Airwear 1.59 Xperio Café / Gris",
+            "ne": "1.59",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 413684
+          },
+          {
+            "material": "Stylis 1.67",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 298000
+          },
+          {
+            "material": "Stylis BLUE UV",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 316474
+          },
+          {
+            "material": "Stylis 1.67 Transitions GEN S",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 485158
+          },
+          {
+            "material": "Orgánico Espejado Azul/Plata",
+            "ne": "1.50",
+            "diametro": 70,
+            "rango": "-3.00 a +3.00 cil. 6.00",
+            "precio": 219391
+          },
+          {
+            "material": "Policarbonato Polarizado Espejado Azul/Plata",
+            "ne": "1.59",
+            "diametro": 75,
+            "rango": "+6.00 a -3.00 cil. 6.00",
+            "precio": 268187
+          },
+          {
+            "material": "Orgánico Fotosensible BLC",
+            "ne": "1.56",
+            "diametro": 70,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 243726
+          },
+          {
+            "material": "Alto Índice 1.74",
+            "ne": "1.74",
+            "diametro": 75,
+            "rango": "+11.00 a -18.00 cil. 6.00",
+            "precio": 340936
+          }
         ]
       },
       {
         "familia": "Sygnus Monofocal Digital ONE",
         "tipo": "Monofocal digital",
         "filas": [
-          { "material": "Orma", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 67397 },
-          { "material": "Orma BLUE UV", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 80647 },
-          { "material": "Orma Transitions GEN S", "ne": "1.50", "diametro": 76, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 234807 },
-          { "material": "Orma Transitions XTRActive Gris", "ne": "1.50", "diametro": 76, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 234807 },
-          { "material": "Orma Acclimates / Fotosensible", "ne": "1.59", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 166391 },
-          { "material": "Airwear 1.59", "ne": "1.59", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 68799 },
-          { "material": "Airwear BLUE UV", "ne": "1.59", "diametro": 76, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 82558 },
-          { "material": "Airwear 1.59 Transitions GEN S", "ne": "1.59", "diametro": 79, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 274175 },
-          { "material": "Stylis 1.67", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 160403 },
-          { "material": "Stylis BLUE UV", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 177985 },
-          { "material": "Stylis 1.67 Transitions GEN S", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 395465 }
+          {
+            "material": "Orma",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 67397
+          },
+          {
+            "material": "Orma BLUE UV",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 80647
+          },
+          {
+            "material": "Orma Transitions GEN S",
+            "ne": "1.50",
+            "diametro": 76,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 234807
+          },
+          {
+            "material": "Orma Transitions XTRActive Gris",
+            "ne": "1.50",
+            "diametro": 76,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 234807
+          },
+          {
+            "material": "Orma Acclimates / Fotosensible",
+            "ne": "1.59",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 166391
+          },
+          {
+            "material": "Airwear 1.59",
+            "ne": "1.59",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 68799
+          },
+          {
+            "material": "Airwear BLUE UV",
+            "ne": "1.59",
+            "diametro": 76,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 82558
+          },
+          {
+            "material": "Airwear 1.59 Transitions GEN S",
+            "ne": "1.59",
+            "diametro": 79,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 274175
+          },
+          {
+            "material": "Stylis 1.67",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 160403
+          },
+          {
+            "material": "Stylis BLUE UV",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 177985
+          },
+          {
+            "material": "Stylis 1.67 Transitions GEN S",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 395465
+          }
         ]
       },
       {
@@ -54,30 +225,138 @@
         "tipo": "Bifocal",
         "nota": "Adiciones de 0.75 a 4.00 D. En el rango del Stylis BLUE UV el PDF imprime '-1400' donde debería decir '-14.00'.",
         "filas": [
-          { "material": "Orma", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 76316 },
-          { "material": "Orma BLUE UV", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 89056 },
-          { "material": "Orma Transitions GEN S", "ne": "1.50", "diametro": 76, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 252134 },
-          { "material": "Orma Acclimates", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 174417 },
-          { "material": "Airwear 1.59", "ne": "1.59", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 82176 },
-          { "material": "Airwear BLUE UV", "ne": "1.59", "diametro": 76, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 95044 },
-          { "material": "Airwear 1.59 Transitions GEN S", "ne": "1.59", "diametro": 79, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 298637 },
-          { "material": "Stylis 1.67", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 186266 },
-          { "material": "Stylis BLUE UV", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 205504 },
-          { "material": "Stylis 1.67 Transitions GEN S", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 426297 }
+          {
+            "material": "Orma",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 76316
+          },
+          {
+            "material": "Orma BLUE UV",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 89056
+          },
+          {
+            "material": "Orma Transitions GEN S",
+            "ne": "1.50",
+            "diametro": 76,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 252134
+          },
+          {
+            "material": "Orma Acclimates",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 174417
+          },
+          {
+            "material": "Airwear 1.59",
+            "ne": "1.59",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 82176
+          },
+          {
+            "material": "Airwear BLUE UV",
+            "ne": "1.59",
+            "diametro": 76,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 95044
+          },
+          {
+            "material": "Airwear 1.59 Transitions GEN S",
+            "ne": "1.59",
+            "diametro": 79,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 298637
+          },
+          {
+            "material": "Stylis 1.67",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 186266
+          },
+          {
+            "material": "Stylis BLUE UV",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 205504
+          },
+          {
+            "material": "Stylis 1.67 Transitions GEN S",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 426297
+          }
         ]
       },
       {
         "familia": "Sygnus Driver",
         "tipo": "Driver",
         "filas": [
-          { "material": "Orma", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 164480 },
-          { "material": "Orma BLUE UV", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 177475 },
-          { "material": "Orma Xperio Gris", "ne": "1.50", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 234680 },
-          { "material": "Airwear 1.59", "ne": "1.59", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 167792 },
-          { "material": "Airwear BLUE UV", "ne": "1.59", "diametro": 76, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 182444 },
-          { "material": "Airwear 1.59 Xperio Gris", "ne": "1.59", "diametro": 80, "rango": "+6.00 a -10.00 cil. 6.00", "precio": 242324 },
-          { "material": "Stylis 1.67", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 234680 },
-          { "material": "Stylis BLUE UV", "ne": "1.67", "diametro": 80, "rango": "+9.00 a -14.00 cil. 6.00", "precio": 247803 }
+          {
+            "material": "Orma",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 164480
+          },
+          {
+            "material": "Orma BLUE UV",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 177475
+          },
+          {
+            "material": "Orma Xperio Gris",
+            "ne": "1.50",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 234680
+          },
+          {
+            "material": "Airwear 1.59",
+            "ne": "1.59",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 167792
+          },
+          {
+            "material": "Airwear BLUE UV",
+            "ne": "1.59",
+            "diametro": 76,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 182444
+          },
+          {
+            "material": "Airwear 1.59 Xperio Gris",
+            "ne": "1.59",
+            "diametro": 80,
+            "rango": "+6.00 a -10.00 cil. 6.00",
+            "precio": 242324
+          },
+          {
+            "material": "Stylis 1.67",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 234680
+          },
+          {
+            "material": "Stylis BLUE UV",
+            "ne": "1.67",
+            "diametro": 80,
+            "rango": "+9.00 a -14.00 cil. 6.00",
+            "precio": 247803
+          }
         ]
       }
     ]
@@ -86,61 +365,144 @@
     "_lee_esto": "Página 20 ('Proteger los ojos'): monofocales de laboratorio y de stock. OJO — estos precios son SIN ANTIRREFLEJO. Para llegar al costo hay que sumarle aparte el tratamiento que lleve (Trío o Crizal, de la lista de acá abajo), y recién después el calibrado y el IVA. Los de las páginas 5 a 17 ya vienen con el tratamiento incluido; estos no.",
     "pagina": 20,
     "tratamientos_sueltos": [
-      { "nombre": "TRIO EASY CLEAN UV", "precio": 61950 },
-      { "nombre": "CRIZAL FORTE UV", "precio": 90630 },
-      { "nombre": "CRIZAL SAPPHIRE", "precio": 93375 },
-      { "nombre": "CRIZAL PREVENCIA", "precio": 95680 }
+      {
+        "nombre": "TRIO EASY CLEAN UV",
+        "precio": 61950
+      },
+      {
+        "nombre": "CRIZAL FORTE UV",
+        "precio": 90630
+      },
+      {
+        "nombre": "CRIZAL SAPPHIRE",
+        "precio": 93375
+      },
+      {
+        "nombre": "CRIZAL PREVENCIA",
+        "precio": 95680
+      }
     ],
     "grupos": [
       {
-        "grupo": "Luz azul", "familia": "BlueUV Filter System",
+        "grupo": "Luz azul",
+        "familia": "BlueUV Filter System",
         "filas": [
-          { "material": "ORMA", "precio": 75195, "rango": "+12.00 A -12.00 CIL 4.00" },
-          { "material": "AIRWEAR 1.59", "precio": 75195, "rango": "+8.00 A -12.00 CIL 4.00" },
-          { "material": "STYLIS 1.67", "precio": 152365, "rango": "+8.00 A -12.00 CIL 4.00" }
+          {
+            "material": "ORMA",
+            "precio": 75195,
+            "rango": "+12.00 A -12.00 CIL 4.00"
+          },
+          {
+            "material": "AIRWEAR 1.59",
+            "precio": 75195,
+            "rango": "+8.00 A -12.00 CIL 4.00"
+          },
+          {
+            "material": "STYLIS 1.67",
+            "precio": 152365,
+            "rango": "+8.00 A -12.00 CIL 4.00"
+          }
         ]
       },
       {
-        "grupo": "Fotosensibles", "familia": "Transitions Gen S",
+        "grupo": "Fotosensibles",
+        "familia": "Transitions Gen S",
         "filas": [
-          { "material": "ORMA", "precio": 96670, "rango": "+4.00 A -4.00 CIL 2.00 (stock)" },
-          { "material": "ORMA", "precio": 237020, "rango": "+7.00 A -13.00 CIL 6.00" },
-          { "material": "ORMA (colores)", "precio": 298130, "rango": "+7.00 A -13.00 CIL 6.00" },
-          { "material": "AIRWEAR 1.59", "precio": 271660, "rango": "+8.00 A -12.00 CIL 4.00" },
-          { "material": "STYLIS 1.67", "precio": 422980, "rango": "+8.00 A -14.00 CIL 4.00" }
+          {
+            "material": "ORMA",
+            "precio": 96670,
+            "rango": "+4.00 A -4.00 CIL 2.00 (stock)"
+          },
+          {
+            "material": "ORMA",
+            "precio": 237020,
+            "rango": "+7.00 A -13.00 CIL 6.00"
+          },
+          {
+            "material": "ORMA (colores)",
+            "precio": 298130,
+            "rango": "+7.00 A -13.00 CIL 6.00"
+          },
+          {
+            "material": "AIRWEAR 1.59",
+            "precio": 271660,
+            "rango": "+8.00 A -12.00 CIL 4.00"
+          },
+          {
+            "material": "STYLIS 1.67",
+            "precio": 422980,
+            "rango": "+8.00 A -14.00 CIL 4.00"
+          }
         ]
       },
       {
-        "grupo": "Fotosensibles", "familia": "Transitions XTRActive",
+        "grupo": "Fotosensibles",
+        "familia": "Transitions XTRActive",
         "filas": [
-          { "material": "ORMA", "precio": 298130, "rango": "+7.00 A -13.00 CIL 6.00" }
+          {
+            "material": "ORMA",
+            "precio": 298130,
+            "rango": "+7.00 A -13.00 CIL 6.00"
+          }
         ]
       },
       {
-        "grupo": "Fotosensibles", "familia": "Acclimates",
+        "grupo": "Fotosensibles",
+        "familia": "Acclimates",
         "filas": [
-          { "material": "ORMA", "precio": 183865, "rango": "+7.00 a -13.00 cil 6.00" }
+          {
+            "material": "ORMA",
+            "precio": 183865,
+            "rango": "+7.00 a -13.00 cil 6.00"
+          }
         ]
       },
       {
-        "grupo": "Polarizados", "familia": "Xperio",
+        "grupo": "Polarizados",
+        "familia": "Xperio",
         "filas": [
-          { "material": "ORMA", "precio": 178790, "rango": "+7.00 A -5.00 CIL 4.00" },
-          { "material": "AIRWEAR 1.59", "precio": 221350, "rango": "+8.00 A -12.00 CIL 4.00" }
+          {
+            "material": "ORMA",
+            "precio": 178790,
+            "rango": "+7.00 A -5.00 CIL 4.00"
+          },
+          {
+            "material": "AIRWEAR 1.59",
+            "precio": 221350,
+            "rango": "+8.00 A -12.00 CIL 4.00"
+          }
         ]
       },
       {
-        "grupo": "Monofocales", "familia": "Otros monofocales de laboratorio",
+        "grupo": "Monofocales",
+        "familia": "Otros monofocales de laboratorio",
         "filas": [
-          { "material": "ORMA", "precio": 53835, "rango": "+12.00 A -12.00 CIL 4.00" },
-          { "material": "AIRWEAR 1.59", "precio": 53835, "rango": "+8.00 A -12.00 CIL 4.00" },
-          { "material": "STYLIS 1.67", "precio": 130885, "rango": "+8.00 A -12.00 CIL 4.00" }
+          {
+            "material": "ORMA",
+            "precio": 53835,
+            "rango": "+12.00 A -12.00 CIL 4.00"
+          },
+          {
+            "material": "AIRWEAR 1.59",
+            "precio": 53835,
+            "rango": "+8.00 A -12.00 CIL 4.00"
+          },
+          {
+            "material": "STYLIS 1.67",
+            "precio": 130885,
+            "rango": "+8.00 A -12.00 CIL 4.00"
+          }
         ]
       },
       {
-        "grupo": "Monofocales", "familia": "Monofocal de stock",
+        "grupo": "Monofocales",
+        "familia": "Monofocal de stock",
         "filas": [
-          { "material": "ORMA", "precio": 22010, "rango": "+6.00 A -6.00 CIL 2.00" }
+          {
+            "material": "ORMA",
+            "precio": 22010,
+            "rango": "+6.00 A -6.00 CIL 2.00"
+          }
         ]
       }
     ]
@@ -148,14 +510,35 @@
   "crizal": {
     "_lee_esto": "Página 22 del PDF. Son DOS cosas distintas y conviene no mezclarlas: el tratamiento RX suelto (lo que cuesta agregarle Crizal a una lente que se fabrica a medida — así aparece en la factura, renglón TRA_TRA_FUV_UNI) y la lente de stock que ya viene con Crizal puesto (lente entera, no tratamiento).",
     "tratamiento_rx": [
-      { "nombre": "CRIZAL FORTE UV", "precio": 90630 },
-      { "nombre": "CRIZAL SAPPHIRE", "precio": 93375 },
-      { "nombre": "CRIZAL PREVENCIA", "precio": 95680 }
+      {
+        "nombre": "CRIZAL FORTE UV",
+        "precio": 90630
+      },
+      {
+        "nombre": "CRIZAL SAPPHIRE",
+        "precio": 93375
+      },
+      {
+        "nombre": "CRIZAL PREVENCIA",
+        "precio": 95680
+      }
     ],
     "lentes_de_stock": [
-      { "nombre": "ORMA BLUE UV CRIZAL ROCK", "precio": 75185, "rango": "+4.00 A -4.00 CILINDRO +2.00" },
-      { "nombre": "ORMA BLUE UV CRIZAL SAPPHIRE HR", "precio": 83400, "rango": "+4.00 A -4.00 CILINDRO +2.00" },
-      { "nombre": "ORMA CRIZAL PREVENCIA", "precio": 83400, "rango": "+4.00 A -4.00 CILINDRO +2.00" }
+      {
+        "nombre": "ORMA BLUE UV CRIZAL ROCK",
+        "precio": 75185,
+        "rango": "+4.00 A -4.00 CILINDRO +2.00"
+      },
+      {
+        "nombre": "ORMA BLUE UV CRIZAL SAPPHIRE HR",
+        "precio": 83400,
+        "rango": "+4.00 A -4.00 CILINDRO +2.00"
+      },
+      {
+        "nombre": "ORMA CRIZAL PREVENCIA",
+        "precio": 83400,
+        "rango": "+4.00 A -4.00 CILINDRO +2.00"
+      }
     ]
   },
   "disenos": [
@@ -163,16 +546,72 @@
       "nombre": "Varilux XR pro",
       "gama": "XR series",
       "pagina": 5,
-      "nota": "El tope de gama. Sólo en tiendas Varilux pro.",
+      "nota": "El tope de gama, sólo en tiendas Varilux pro. DECISIÓN DE ISHTAR (26/8/2026): NO se vende y NO se va a vender — no cargar productos de esta familia ni contarla como faltante.",
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 720380, "CRIZAL SAPPHIRE": 718075, "CRIZAL FORTE UV": 715330 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 776390, "CRIZAL SAPPHIRE": 774085, "CRIZAL FORTE UV": 771340 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 812485, "CRIZAL SAPPHIRE": 810180, "CRIZAL FORTE UV": 807435 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 998190, "CRIZAL SAPPHIRE": 995885, "CRIZAL FORTE UV": 993140 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 1057965, "CRIZAL SAPPHIRE": 1055660, "CRIZAL FORTE UV": 1052915 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 1086735, "CRIZAL SAPPHIRE": 1084430, "CRIZAL FORTE UV": 1081685 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 998190, "CRIZAL SAPPHIRE": 995885, "CRIZAL FORTE UV": 993140 } },
-        { "material": "AIRWEAR 1.59 XPERIO", "precios": { "CRIZAL PREVENCIA": 1057965, "CRIZAL SAPPHIRE": 1055660, "CRIZAL FORTE UV": 1052915 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 720380,
+            "CRIZAL SAPPHIRE": 718075,
+            "CRIZAL FORTE UV": 715330
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 776390,
+            "CRIZAL SAPPHIRE": 774085,
+            "CRIZAL FORTE UV": 771340
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 812485,
+            "CRIZAL SAPPHIRE": 810180,
+            "CRIZAL FORTE UV": 807435
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 998190,
+            "CRIZAL SAPPHIRE": 995885,
+            "CRIZAL FORTE UV": 993140
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 1057965,
+            "CRIZAL SAPPHIRE": 1055660,
+            "CRIZAL FORTE UV": 1052915
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 1086735,
+            "CRIZAL SAPPHIRE": 1084430,
+            "CRIZAL FORTE UV": 1081685
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 998190,
+            "CRIZAL SAPPHIRE": 995885,
+            "CRIZAL FORTE UV": 993140
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 1057965,
+            "CRIZAL SAPPHIRE": 1055660,
+            "CRIZAL FORTE UV": 1052915
+          }
+        }
       ]
     },
     {
@@ -181,14 +620,70 @@
       "pagina": 5,
       "nota": "No requiere mediciones adicionales.",
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 595440, "CRIZAL SAPPHIRE": 593135, "CRIZAL FORTE UV": 590390 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 640250, "CRIZAL SAPPHIRE": 637945, "CRIZAL FORTE UV": 635200 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 669120, "CRIZAL SAPPHIRE": 666815, "CRIZAL FORTE UV": 664070 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 817690, "CRIZAL SAPPHIRE": 815385, "CRIZAL FORTE UV": 812640 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 865510, "CRIZAL SAPPHIRE": 863205, "CRIZAL FORTE UV": 860460 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 888525, "CRIZAL SAPPHIRE": 886220, "CRIZAL FORTE UV": 883475 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 817690, "CRIZAL SAPPHIRE": 815385, "CRIZAL FORTE UV": 812640 } },
-        { "material": "AIRWEAR 1.59 XPERIO", "precios": { "CRIZAL PREVENCIA": 865510, "CRIZAL SAPPHIRE": 863205, "CRIZAL FORTE UV": 860460 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 595440,
+            "CRIZAL SAPPHIRE": 593135,
+            "CRIZAL FORTE UV": 590390
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 640250,
+            "CRIZAL SAPPHIRE": 637945,
+            "CRIZAL FORTE UV": 635200
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 669120,
+            "CRIZAL SAPPHIRE": 666815,
+            "CRIZAL FORTE UV": 664070
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 817690,
+            "CRIZAL SAPPHIRE": 815385,
+            "CRIZAL FORTE UV": 812640
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 865510,
+            "CRIZAL SAPPHIRE": 863205,
+            "CRIZAL FORTE UV": 860460
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 888525,
+            "CRIZAL SAPPHIRE": 886220,
+            "CRIZAL FORTE UV": 883475
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 817690,
+            "CRIZAL SAPPHIRE": 815385,
+            "CRIZAL FORTE UV": 812640
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 865510,
+            "CRIZAL SAPPHIRE": 863205,
+            "CRIZAL FORTE UV": 860460
+          }
+        }
       ]
     },
     {
@@ -196,15 +691,78 @@
       "gama": "Línea 3.0",
       "pagina": 6,
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 554290, "CRIZAL SAPPHIRE": 551985, "CRIZAL FORTE UV": 549240 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 597710, "CRIZAL SAPPHIRE": 595405, "CRIZAL FORTE UV": 592660 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 622960, "CRIZAL SAPPHIRE": 620655, "CRIZAL FORTE UV": 617910 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 767365, "CRIZAL SAPPHIRE": 765060, "CRIZAL FORTE UV": 762315 } },
-        { "material": "ORMA TRANSITIONS XTRACTIVE", "precios": { "CRIZAL PREVENCIA": 767365, "CRIZAL SAPPHIRE": 765060, "CRIZAL FORTE UV": 762315 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 810705, "CRIZAL SAPPHIRE": 808400, "CRIZAL FORTE UV": 805655 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 840195, "CRIZAL SAPPHIRE": 837890, "CRIZAL FORTE UV": 835145 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 767365, "CRIZAL SAPPHIRE": 765060, "CRIZAL FORTE UV": 762315 } },
-        { "material": "AIRWEAR 1.59 XPERIO", "precios": { "CRIZAL PREVENCIA": 810705, "CRIZAL SAPPHIRE": 808400, "CRIZAL FORTE UV": 805655 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 554290,
+            "CRIZAL SAPPHIRE": 551985,
+            "CRIZAL FORTE UV": 549240
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 597710,
+            "CRIZAL SAPPHIRE": 595405,
+            "CRIZAL FORTE UV": 592660
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 622960,
+            "CRIZAL SAPPHIRE": 620655,
+            "CRIZAL FORTE UV": 617910
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 767365,
+            "CRIZAL SAPPHIRE": 765060,
+            "CRIZAL FORTE UV": 762315
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS XTRACTIVE",
+          "precios": {
+            "CRIZAL PREVENCIA": 767365,
+            "CRIZAL SAPPHIRE": 765060,
+            "CRIZAL FORTE UV": 762315
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 810705,
+            "CRIZAL SAPPHIRE": 808400,
+            "CRIZAL FORTE UV": 805655
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 840195,
+            "CRIZAL SAPPHIRE": 837890,
+            "CRIZAL FORTE UV": 835145
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 767365,
+            "CRIZAL SAPPHIRE": 765060,
+            "CRIZAL FORTE UV": 762315
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 810705,
+            "CRIZAL SAPPHIRE": 808400,
+            "CRIZAL FORTE UV": 805655
+          }
+        }
       ]
     },
     {
@@ -212,15 +770,78 @@
       "gama": "Línea 3.0",
       "pagina": 6,
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 452000, "CRIZAL SAPPHIRE": 449695, "CRIZAL FORTE UV": 446950 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 497530, "CRIZAL SAPPHIRE": 495225, "CRIZAL FORTE UV": 492480 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 523450, "CRIZAL SAPPHIRE": 521145, "CRIZAL FORTE UV": 518400 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 665695, "CRIZAL SAPPHIRE": 663390, "CRIZAL FORTE UV": 660645 } },
-        { "material": "ORMA TRANSITIONS XTRACTIVE", "precios": { "CRIZAL PREVENCIA": 665695, "CRIZAL SAPPHIRE": 663390, "CRIZAL FORTE UV": 660645 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 711305, "CRIZAL SAPPHIRE": 709000, "CRIZAL FORTE UV": 706255 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 737920, "CRIZAL SAPPHIRE": 735615, "CRIZAL FORTE UV": 732870 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 665695, "CRIZAL SAPPHIRE": 663390, "CRIZAL FORTE UV": 660645 } },
-        { "material": "AIRWEAR 1.59 XPERIO", "precios": { "CRIZAL PREVENCIA": 711305, "CRIZAL SAPPHIRE": 709000, "CRIZAL FORTE UV": 706255 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 452000,
+            "CRIZAL SAPPHIRE": 449695,
+            "CRIZAL FORTE UV": 446950
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 497530,
+            "CRIZAL SAPPHIRE": 495225,
+            "CRIZAL FORTE UV": 492480
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 523450,
+            "CRIZAL SAPPHIRE": 521145,
+            "CRIZAL FORTE UV": 518400
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 665695,
+            "CRIZAL SAPPHIRE": 663390,
+            "CRIZAL FORTE UV": 660645
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS XTRACTIVE",
+          "precios": {
+            "CRIZAL PREVENCIA": 665695,
+            "CRIZAL SAPPHIRE": 663390,
+            "CRIZAL FORTE UV": 660645
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 711305,
+            "CRIZAL SAPPHIRE": 709000,
+            "CRIZAL FORTE UV": 706255
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 737920,
+            "CRIZAL SAPPHIRE": 735615,
+            "CRIZAL FORTE UV": 732870
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 665695,
+            "CRIZAL SAPPHIRE": 663390,
+            "CRIZAL FORTE UV": 660645
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 711305,
+            "CRIZAL SAPPHIRE": 709000,
+            "CRIZAL FORTE UV": 706255
+          }
+        }
       ]
     },
     {
@@ -229,10 +850,38 @@
       "pagina": 7,
       "nota": "Solo en ORMA.",
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 409205, "CRIZAL SAPPHIRE": 406900, "CRIZAL FORTE UV": 404155 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 620920, "CRIZAL SAPPHIRE": 618615, "CRIZAL FORTE UV": 615870 } },
-        { "material": "ORMA TRANSITIONS XTRACTIVE", "precios": { "CRIZAL PREVENCIA": 620920, "CRIZAL SAPPHIRE": 618615, "CRIZAL FORTE UV": 615870 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 620920, "CRIZAL SAPPHIRE": 618615, "CRIZAL FORTE UV": 615870 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 409205,
+            "CRIZAL SAPPHIRE": 406900,
+            "CRIZAL FORTE UV": 404155
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 620920,
+            "CRIZAL SAPPHIRE": 618615,
+            "CRIZAL FORTE UV": 615870
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS XTRACTIVE",
+          "precios": {
+            "CRIZAL PREVENCIA": 620920,
+            "CRIZAL SAPPHIRE": 618615,
+            "CRIZAL FORTE UV": 615870
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 620920,
+            "CRIZAL SAPPHIRE": 618615,
+            "CRIZAL FORTE UV": 615870
+          }
+        }
       ]
     },
     {
@@ -241,12 +890,66 @@
       "pagina": 7,
       "nota": "Lente ocupacional. Es la única gama que además se ofrece con Trío Easy Clean y sin antirreflejo.",
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 259965, "CRIZAL SAPPHIRE": 257660, "CRIZAL FORTE UV": 254915, "TRIO EASY CLEAN": 226235, "SIN AR": 164285 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 276790, "CRIZAL SAPPHIRE": 274485, "CRIZAL FORTE UV": 271740, "TRIO EASY CLEAN": 243060, "SIN AR": 181110 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 287250, "CRIZAL SAPPHIRE": 284945, "CRIZAL FORTE UV": 282200, "TRIO EASY CLEAN": 253520, "SIN AR": 191570 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 363670, "CRIZAL SAPPHIRE": 361365, "CRIZAL FORTE UV": 358620, "TRIO EASY CLEAN": 329940, "SIN AR": 267990 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 414860, "CRIZAL SAPPHIRE": 412555, "CRIZAL FORTE UV": 409810, "TRIO EASY CLEAN": 381130, "SIN AR": 319180 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 497530, "CRIZAL SAPPHIRE": 495225, "CRIZAL FORTE UV": 492480, "TRIO EASY CLEAN": 463800, "SIN AR": 401850 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 259965,
+            "CRIZAL SAPPHIRE": 257660,
+            "CRIZAL FORTE UV": 254915,
+            "TRIO EASY CLEAN": 226235,
+            "SIN AR": 164285
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 276790,
+            "CRIZAL SAPPHIRE": 274485,
+            "CRIZAL FORTE UV": 271740,
+            "TRIO EASY CLEAN": 243060,
+            "SIN AR": 181110
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 287250,
+            "CRIZAL SAPPHIRE": 284945,
+            "CRIZAL FORTE UV": 282200,
+            "TRIO EASY CLEAN": 253520,
+            "SIN AR": 191570
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 363670,
+            "CRIZAL SAPPHIRE": 361365,
+            "CRIZAL FORTE UV": 358620,
+            "TRIO EASY CLEAN": 329940,
+            "SIN AR": 267990
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 414860,
+            "CRIZAL SAPPHIRE": 412555,
+            "CRIZAL FORTE UV": 409810,
+            "TRIO EASY CLEAN": 381130,
+            "SIN AR": 319180
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 497530,
+            "CRIZAL SAPPHIRE": 495225,
+            "CRIZAL FORTE UV": 492480,
+            "TRIO EASY CLEAN": 463800,
+            "SIN AR": 401850
+          }
+        }
       ]
     },
     {
@@ -254,15 +957,96 @@
       "gama": "Varilux",
       "pagina": 8,
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 530440, "CRIZAL SAPPHIRE": 528135, "CRIZAL FORTE UV": 525390, "TRIO EASY CLEAN": 496710, "SIN AR": 434760 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 573890, "CRIZAL SAPPHIRE": 571585, "CRIZAL FORTE UV": 568840, "TRIO EASY CLEAN": 540160, "SIN AR": 478210 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 603360, "CRIZAL SAPPHIRE": 601055, "CRIZAL FORTE UV": 598310, "TRIO EASY CLEAN": 569630, "SIN AR": 507680 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 702800, "CRIZAL SAPPHIRE": 700495, "CRIZAL FORTE UV": 697750, "TRIO EASY CLEAN": 669070, "SIN AR": 607120 } },
-        { "material": "ORMA TRANSITIONS XTRACTIVE", "precios": { "CRIZAL PREVENCIA": 702800, "CRIZAL SAPPHIRE": 700495, "CRIZAL FORTE UV": 697750, "TRIO EASY CLEAN": 669070, "SIN AR": 607120 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 751305, "CRIZAL SAPPHIRE": 749000, "CRIZAL FORTE UV": 746255, "TRIO EASY CLEAN": 717575, "SIN AR": 655625 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 776400, "CRIZAL SAPPHIRE": 774095, "CRIZAL FORTE UV": 771350, "TRIO EASY CLEAN": 742670, "SIN AR": 680720 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 702800, "CRIZAL SAPPHIRE": 700495, "CRIZAL FORTE UV": 697750, "TRIO EASY CLEAN": 669070, "SIN AR": 607120 } },
-        { "material": "AIRWEAR 1.59 XPERIO", "precios": { "CRIZAL PREVENCIA": 751305, "CRIZAL SAPPHIRE": 749000, "CRIZAL FORTE UV": 746255, "TRIO EASY CLEAN": 717575, "SIN AR": 655625 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 530440,
+            "CRIZAL SAPPHIRE": 528135,
+            "CRIZAL FORTE UV": 525390,
+            "TRIO EASY CLEAN": 496710,
+            "SIN AR": 434760
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 573890,
+            "CRIZAL SAPPHIRE": 571585,
+            "CRIZAL FORTE UV": 568840,
+            "TRIO EASY CLEAN": 540160,
+            "SIN AR": 478210
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 603360,
+            "CRIZAL SAPPHIRE": 601055,
+            "CRIZAL FORTE UV": 598310,
+            "TRIO EASY CLEAN": 569630,
+            "SIN AR": 507680
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 702800,
+            "CRIZAL SAPPHIRE": 700495,
+            "CRIZAL FORTE UV": 697750,
+            "TRIO EASY CLEAN": 669070,
+            "SIN AR": 607120
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS XTRACTIVE",
+          "precios": {
+            "CRIZAL PREVENCIA": 702800,
+            "CRIZAL SAPPHIRE": 700495,
+            "CRIZAL FORTE UV": 697750,
+            "TRIO EASY CLEAN": 669070,
+            "SIN AR": 607120
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 751305,
+            "CRIZAL SAPPHIRE": 749000,
+            "CRIZAL FORTE UV": 746255,
+            "TRIO EASY CLEAN": 717575,
+            "SIN AR": 655625
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 776400,
+            "CRIZAL SAPPHIRE": 774095,
+            "CRIZAL FORTE UV": 771350,
+            "TRIO EASY CLEAN": 742670,
+            "SIN AR": 680720
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 702800,
+            "CRIZAL SAPPHIRE": 700495,
+            "CRIZAL FORTE UV": 697750,
+            "TRIO EASY CLEAN": 669070,
+            "SIN AR": 607120
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 751305,
+            "CRIZAL SAPPHIRE": 749000,
+            "CRIZAL FORTE UV": 746255,
+            "TRIO EASY CLEAN": 717575,
+            "SIN AR": 655625
+          }
+        }
       ]
     },
     {
@@ -271,18 +1055,126 @@
       "pagina": 14,
       "nota": "Progresiva digital. Entra en la promo 2x1 de Kodak (segundo par de regalo).",
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 283115, "CRIZAL SAPPHIRE": 280810, "CRIZAL FORTE UV": 278065, "TRIO EASY CLEAN": 249385, "SIN AR": 187435 } },
-        { "material": "ORMA BLUE UV", "precios": { "CRIZAL PREVENCIA": 294990, "CRIZAL SAPPHIRE": 292685, "CRIZAL FORTE UV": 289940, "TRIO EASY CLEAN": 261260, "SIN AR": 199310 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 283115, "CRIZAL SAPPHIRE": 280810, "CRIZAL FORTE UV": 278065, "TRIO EASY CLEAN": 249385, "SIN AR": 187435 } },
-        { "material": "AIRWEAR 1.59 BLUE UV", "precios": { "CRIZAL PREVENCIA": 294990, "CRIZAL SAPPHIRE": 292685, "CRIZAL FORTE UV": 289940, "TRIO EASY CLEAN": 261260, "SIN AR": 199310 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 349680, "CRIZAL SAPPHIRE": 347375, "CRIZAL FORTE UV": 344630, "TRIO EASY CLEAN": 315950, "SIN AR": 254000 } },
-        { "material": "STYLIS 1.67 BLUE UV", "precios": { "CRIZAL PREVENCIA": 360120, "CRIZAL SAPPHIRE": 357815, "CRIZAL FORTE UV": 355070, "TRIO EASY CLEAN": 326390, "SIN AR": 264440 } },
-        { "material": "ORMA ACCLIMATES", "precios": { "CRIZAL PREVENCIA": 379795, "CRIZAL SAPPHIRE": 377490, "CRIZAL FORTE UV": 374745, "TRIO EASY CLEAN": 346065, "SIN AR": 284115 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 486290, "CRIZAL SAPPHIRE": 483985, "CRIZAL FORTE UV": 481240, "TRIO EASY CLEAN": 452560, "SIN AR": 390610 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 526250, "CRIZAL SAPPHIRE": 523945, "CRIZAL FORTE UV": 521200, "TRIO EASY CLEAN": 492520, "SIN AR": 430570 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 548020, "CRIZAL SAPPHIRE": 545715, "CRIZAL FORTE UV": 542970, "TRIO EASY CLEAN": 514290, "SIN AR": 452340 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 486290, "CRIZAL SAPPHIRE": 483985, "CRIZAL FORTE UV": 481240, "TRIO EASY CLEAN": 452560, "SIN AR": 390610 } },
-        { "material": "AIRWEAR 1.59 XPERIO", "precios": { "CRIZAL PREVENCIA": 526250, "CRIZAL SAPPHIRE": 523945, "CRIZAL FORTE UV": 521200, "TRIO EASY CLEAN": 492520, "SIN AR": 430570 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 283115,
+            "CRIZAL SAPPHIRE": 280810,
+            "CRIZAL FORTE UV": 278065,
+            "TRIO EASY CLEAN": 249385,
+            "SIN AR": 187435
+          }
+        },
+        {
+          "material": "ORMA BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 294990,
+            "CRIZAL SAPPHIRE": 292685,
+            "CRIZAL FORTE UV": 289940,
+            "TRIO EASY CLEAN": 261260,
+            "SIN AR": 199310
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 283115,
+            "CRIZAL SAPPHIRE": 280810,
+            "CRIZAL FORTE UV": 278065,
+            "TRIO EASY CLEAN": 249385,
+            "SIN AR": 187435
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 294990,
+            "CRIZAL SAPPHIRE": 292685,
+            "CRIZAL FORTE UV": 289940,
+            "TRIO EASY CLEAN": 261260,
+            "SIN AR": 199310
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 349680,
+            "CRIZAL SAPPHIRE": 347375,
+            "CRIZAL FORTE UV": 344630,
+            "TRIO EASY CLEAN": 315950,
+            "SIN AR": 254000
+          }
+        },
+        {
+          "material": "STYLIS 1.67 BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 360120,
+            "CRIZAL SAPPHIRE": 357815,
+            "CRIZAL FORTE UV": 355070,
+            "TRIO EASY CLEAN": 326390,
+            "SIN AR": 264440
+          }
+        },
+        {
+          "material": "ORMA ACCLIMATES",
+          "precios": {
+            "CRIZAL PREVENCIA": 379795,
+            "CRIZAL SAPPHIRE": 377490,
+            "CRIZAL FORTE UV": 374745,
+            "TRIO EASY CLEAN": 346065,
+            "SIN AR": 284115
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 486290,
+            "CRIZAL SAPPHIRE": 483985,
+            "CRIZAL FORTE UV": 481240,
+            "TRIO EASY CLEAN": 452560,
+            "SIN AR": 390610
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 526250,
+            "CRIZAL SAPPHIRE": 523945,
+            "CRIZAL FORTE UV": 521200,
+            "TRIO EASY CLEAN": 492520,
+            "SIN AR": 430570
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 548020,
+            "CRIZAL SAPPHIRE": 545715,
+            "CRIZAL FORTE UV": 542970,
+            "TRIO EASY CLEAN": 514290,
+            "SIN AR": 452340
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 486290,
+            "CRIZAL SAPPHIRE": 483985,
+            "CRIZAL FORTE UV": 481240,
+            "TRIO EASY CLEAN": 452560,
+            "SIN AR": 390610
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 526250,
+            "CRIZAL SAPPHIRE": 523945,
+            "CRIZAL FORTE UV": 521200,
+            "TRIO EASY CLEAN": 492520,
+            "SIN AR": 430570
+          }
+        }
       ]
     },
     {
@@ -291,17 +1183,116 @@
       "pagina": 15,
       "nota": "Entra en la promo 2x1 de Kodak (segundo par de regalo). No tiene versión Acclimates.",
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 257740, "CRIZAL SAPPHIRE": 255435, "CRIZAL FORTE UV": 252690, "TRIO EASY CLEAN": 224010, "SIN AR": 162060 } },
-        { "material": "ORMA BLUE UV", "precios": { "CRIZAL PREVENCIA": 268420, "CRIZAL SAPPHIRE": 266115, "CRIZAL FORTE UV": 263370, "TRIO EASY CLEAN": 234690, "SIN AR": 172740 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 257740, "CRIZAL SAPPHIRE": 255435, "CRIZAL FORTE UV": 252690, "TRIO EASY CLEAN": 224010, "SIN AR": 162060 } },
-        { "material": "AIRWEAR 1.59 BLUE UV", "precios": { "CRIZAL PREVENCIA": 268420, "CRIZAL SAPPHIRE": 266115, "CRIZAL FORTE UV": 263370, "TRIO EASY CLEAN": 234690, "SIN AR": 172740 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 322315, "CRIZAL SAPPHIRE": 320010, "CRIZAL FORTE UV": 317265, "TRIO EASY CLEAN": 288585, "SIN AR": 226635 } },
-        { "material": "STYLIS 1.67 BLUE UV", "precios": { "CRIZAL PREVENCIA": 334815, "CRIZAL SAPPHIRE": 332510, "CRIZAL FORTE UV": 329765, "TRIO EASY CLEAN": 301085, "SIN AR": 239135 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 458270, "CRIZAL SAPPHIRE": 455965, "CRIZAL FORTE UV": 453220, "TRIO EASY CLEAN": 424540, "SIN AR": 362590 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 497530, "CRIZAL SAPPHIRE": 495225, "CRIZAL FORTE UV": 492480, "TRIO EASY CLEAN": 463800, "SIN AR": 401850 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 521335, "CRIZAL SAPPHIRE": 519030, "CRIZAL FORTE UV": 516285, "TRIO EASY CLEAN": 487605, "SIN AR": 425655 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 458270, "CRIZAL SAPPHIRE": 455965, "CRIZAL FORTE UV": 453220, "TRIO EASY CLEAN": 424540, "SIN AR": 362590 } },
-        { "material": "AIRWEAR 1.59 XPERIO", "precios": { "CRIZAL PREVENCIA": 497530, "CRIZAL SAPPHIRE": 495225, "CRIZAL FORTE UV": 492480, "TRIO EASY CLEAN": 463800, "SIN AR": 401850 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 257740,
+            "CRIZAL SAPPHIRE": 255435,
+            "CRIZAL FORTE UV": 252690,
+            "TRIO EASY CLEAN": 224010,
+            "SIN AR": 162060
+          }
+        },
+        {
+          "material": "ORMA BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 268420,
+            "CRIZAL SAPPHIRE": 266115,
+            "CRIZAL FORTE UV": 263370,
+            "TRIO EASY CLEAN": 234690,
+            "SIN AR": 172740
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 257740,
+            "CRIZAL SAPPHIRE": 255435,
+            "CRIZAL FORTE UV": 252690,
+            "TRIO EASY CLEAN": 224010,
+            "SIN AR": 162060
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 268420,
+            "CRIZAL SAPPHIRE": 266115,
+            "CRIZAL FORTE UV": 263370,
+            "TRIO EASY CLEAN": 234690,
+            "SIN AR": 172740
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 322315,
+            "CRIZAL SAPPHIRE": 320010,
+            "CRIZAL FORTE UV": 317265,
+            "TRIO EASY CLEAN": 288585,
+            "SIN AR": 226635
+          }
+        },
+        {
+          "material": "STYLIS 1.67 BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 334815,
+            "CRIZAL SAPPHIRE": 332510,
+            "CRIZAL FORTE UV": 329765,
+            "TRIO EASY CLEAN": 301085,
+            "SIN AR": 239135
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 458270,
+            "CRIZAL SAPPHIRE": 455965,
+            "CRIZAL FORTE UV": 453220,
+            "TRIO EASY CLEAN": 424540,
+            "SIN AR": 362590
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 497530,
+            "CRIZAL SAPPHIRE": 495225,
+            "CRIZAL FORTE UV": 492480,
+            "TRIO EASY CLEAN": 463800,
+            "SIN AR": 401850
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 521335,
+            "CRIZAL SAPPHIRE": 519030,
+            "CRIZAL FORTE UV": 516285,
+            "TRIO EASY CLEAN": 487605,
+            "SIN AR": 425655
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 458270,
+            "CRIZAL SAPPHIRE": 455965,
+            "CRIZAL FORTE UV": 453220,
+            "TRIO EASY CLEAN": 424540,
+            "SIN AR": 362590
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 497530,
+            "CRIZAL SAPPHIRE": 495225,
+            "CRIZAL FORTE UV": 492480,
+            "TRIO EASY CLEAN": 463800,
+            "SIN AR": 401850
+          }
+        }
       ]
     },
     {
@@ -310,19 +1301,136 @@
       "pagina": 16,
       "nota": "El PDF imprime DOS filas llamadas 'ORMA TRANSITIONS GEN S' con precios distintos; se transcriben tal cual, sin adivinar cuál es cuál.",
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 160350, "CRIZAL SAPPHIRE": 158045, "CRIZAL FORTE UV": 155300, "TRIO EASY CLEAN": 126620, "SIN AR": 64670 } },
-        { "material": "ORMA BLUE UV", "precios": { "CRIZAL PREVENCIA": 179920, "CRIZAL SAPPHIRE": 177615, "CRIZAL FORTE UV": 174870, "TRIO EASY CLEAN": 146190, "SIN AR": 84240 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 160350, "CRIZAL SAPPHIRE": 158045, "CRIZAL FORTE UV": 155300, "TRIO EASY CLEAN": 126620, "SIN AR": 64670 } },
-        { "material": "AIRWEAR 1.59 BLUE UV", "precios": { "CRIZAL PREVENCIA": 179920, "CRIZAL SAPPHIRE": 177615, "CRIZAL FORTE UV": 174870, "TRIO EASY CLEAN": 146190, "SIN AR": 84240 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 231220, "CRIZAL SAPPHIRE": 228915, "CRIZAL FORTE UV": 226170, "TRIO EASY CLEAN": 197490, "SIN AR": 135540 } },
-        { "material": "STYLIS 1.67 BLUE UV", "precios": { "CRIZAL PREVENCIA": 251495, "CRIZAL SAPPHIRE": 249190, "CRIZAL FORTE UV": 246445, "TRIO EASY CLEAN": 217765, "SIN AR": 155815 } },
-        { "material": "ORMA ACCLIMATES", "precios": { "CRIZAL PREVENCIA": 280240, "CRIZAL SAPPHIRE": 277935, "CRIZAL FORTE UV": 275190, "TRIO EASY CLEAN": 246510, "SIN AR": 184560 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 328630, "CRIZAL SAPPHIRE": 326325, "CRIZAL FORTE UV": 323580, "TRIO EASY CLEAN": 294900, "SIN AR": 232950 } },
-        { "material": "ORMA TRANSITIONS GEN S (2ª fila del PDF)", "precios": { "CRIZAL PREVENCIA": 385405, "CRIZAL SAPPHIRE": 383100, "CRIZAL FORTE UV": 380355, "TRIO EASY CLEAN": 351675, "SIN AR": 289725 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 362220, "CRIZAL SAPPHIRE": 359915, "CRIZAL FORTE UV": 357170, "TRIO EASY CLEAN": 328490, "SIN AR": 266540 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 502475, "CRIZAL SAPPHIRE": 500170, "CRIZAL FORTE UV": 497425, "TRIO EASY CLEAN": 468745, "SIN AR": 406795 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 275370, "CRIZAL SAPPHIRE": 273065, "CRIZAL FORTE UV": 270320, "TRIO EASY CLEAN": 241640, "SIN AR": 179690 } },
-        { "material": "AIRWEAR 1.59 XPERIO", "precios": { "CRIZAL PREVENCIA": 314645, "CRIZAL SAPPHIRE": 312340, "CRIZAL FORTE UV": 309595, "TRIO EASY CLEAN": 280915, "SIN AR": 218965 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 160350,
+            "CRIZAL SAPPHIRE": 158045,
+            "CRIZAL FORTE UV": 155300,
+            "TRIO EASY CLEAN": 126620,
+            "SIN AR": 64670
+          }
+        },
+        {
+          "material": "ORMA BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 179920,
+            "CRIZAL SAPPHIRE": 177615,
+            "CRIZAL FORTE UV": 174870,
+            "TRIO EASY CLEAN": 146190,
+            "SIN AR": 84240
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 160350,
+            "CRIZAL SAPPHIRE": 158045,
+            "CRIZAL FORTE UV": 155300,
+            "TRIO EASY CLEAN": 126620,
+            "SIN AR": 64670
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 179920,
+            "CRIZAL SAPPHIRE": 177615,
+            "CRIZAL FORTE UV": 174870,
+            "TRIO EASY CLEAN": 146190,
+            "SIN AR": 84240
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 231220,
+            "CRIZAL SAPPHIRE": 228915,
+            "CRIZAL FORTE UV": 226170,
+            "TRIO EASY CLEAN": 197490,
+            "SIN AR": 135540
+          }
+        },
+        {
+          "material": "STYLIS 1.67 BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 251495,
+            "CRIZAL SAPPHIRE": 249190,
+            "CRIZAL FORTE UV": 246445,
+            "TRIO EASY CLEAN": 217765,
+            "SIN AR": 155815
+          }
+        },
+        {
+          "material": "ORMA ACCLIMATES",
+          "precios": {
+            "CRIZAL PREVENCIA": 280240,
+            "CRIZAL SAPPHIRE": 277935,
+            "CRIZAL FORTE UV": 275190,
+            "TRIO EASY CLEAN": 246510,
+            "SIN AR": 184560
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 328630,
+            "CRIZAL SAPPHIRE": 326325,
+            "CRIZAL FORTE UV": 323580,
+            "TRIO EASY CLEAN": 294900,
+            "SIN AR": 232950
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S (2ª fila del PDF)",
+          "precios": {
+            "CRIZAL PREVENCIA": 385405,
+            "CRIZAL SAPPHIRE": 383100,
+            "CRIZAL FORTE UV": 380355,
+            "TRIO EASY CLEAN": 351675,
+            "SIN AR": 289725
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 362220,
+            "CRIZAL SAPPHIRE": 359915,
+            "CRIZAL FORTE UV": 357170,
+            "TRIO EASY CLEAN": 328490,
+            "SIN AR": 266540
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 502475,
+            "CRIZAL SAPPHIRE": 500170,
+            "CRIZAL FORTE UV": 497425,
+            "TRIO EASY CLEAN": 468745,
+            "SIN AR": 406795
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 275370,
+            "CRIZAL SAPPHIRE": 273065,
+            "CRIZAL FORTE UV": 270320,
+            "TRIO EASY CLEAN": 241640,
+            "SIN AR": 179690
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 314645,
+            "CRIZAL SAPPHIRE": 312340,
+            "CRIZAL FORTE UV": 309595,
+            "TRIO EASY CLEAN": 280915,
+            "SIN AR": 218965
+          }
+        }
       ]
     },
     {
@@ -331,19 +1439,136 @@
       "pagina": 17,
       "nota": "Monofocal digital. El PDF también imprime acá DOS filas 'ORMA TRANSITIONS GEN S' con precios distintos.",
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 154805, "CRIZAL SAPPHIRE": 152500, "CRIZAL FORTE UV": 149755, "TRIO EASY CLEAN": 121075, "SIN AR": 59125 } },
-        { "material": "ORMA BLUE UV", "precios": { "CRIZAL PREVENCIA": 173680, "CRIZAL SAPPHIRE": 171375, "CRIZAL FORTE UV": 168630, "TRIO EASY CLEAN": 139950, "SIN AR": 78000 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 154805, "CRIZAL SAPPHIRE": 152500, "CRIZAL FORTE UV": 149755, "TRIO EASY CLEAN": 121075, "SIN AR": 59125 } },
-        { "material": "AIRWEAR 1.59 BLUE UV", "precios": { "CRIZAL PREVENCIA": 173680, "CRIZAL SAPPHIRE": 171375, "CRIZAL FORTE UV": 168630, "TRIO EASY CLEAN": 139950, "SIN AR": 78000 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 225595, "CRIZAL SAPPHIRE": 223290, "CRIZAL FORTE UV": 220545, "TRIO EASY CLEAN": 191865, "SIN AR": 129915 } },
-        { "material": "STYLIS 1.67 BLUE UV", "precios": { "CRIZAL PREVENCIA": 245910, "CRIZAL SAPPHIRE": 243605, "CRIZAL FORTE UV": 240860, "TRIO EASY CLEAN": 212180, "SIN AR": 150230 } },
-        { "material": "ORMA ACCLIMATES", "precios": { "CRIZAL PREVENCIA": 275370, "CRIZAL SAPPHIRE": 273065, "CRIZAL FORTE UV": 270320, "TRIO EASY CLEAN": 241640, "SIN AR": 179690 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 325070, "CRIZAL SAPPHIRE": 322765, "CRIZAL FORTE UV": 320020, "TRIO EASY CLEAN": 291340, "SIN AR": 229390 } },
-        { "material": "ORMA TRANSITIONS GEN S (2ª fila del PDF)", "precios": { "CRIZAL PREVENCIA": 381195, "CRIZAL SAPPHIRE": 378890, "CRIZAL FORTE UV": 376145, "TRIO EASY CLEAN": 347465, "SIN AR": 285515 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 356630, "CRIZAL SAPPHIRE": 354325, "CRIZAL FORTE UV": 351580, "TRIO EASY CLEAN": 322900, "SIN AR": 260950 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 497530, "CRIZAL SAPPHIRE": 495225, "CRIZAL FORTE UV": 492480, "TRIO EASY CLEAN": 463800, "SIN AR": 401850 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 269790, "CRIZAL SAPPHIRE": 267485, "CRIZAL FORTE UV": 264740, "TRIO EASY CLEAN": 236060, "SIN AR": 174110 } },
-        { "material": "AIRWEAR 1.59 XPERIO", "precios": { "CRIZAL PREVENCIA": 311115, "CRIZAL SAPPHIRE": 308810, "CRIZAL FORTE UV": 306065, "TRIO EASY CLEAN": 277385, "SIN AR": 215435 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 154805,
+            "CRIZAL SAPPHIRE": 152500,
+            "CRIZAL FORTE UV": 149755,
+            "TRIO EASY CLEAN": 121075,
+            "SIN AR": 59125
+          }
+        },
+        {
+          "material": "ORMA BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 173680,
+            "CRIZAL SAPPHIRE": 171375,
+            "CRIZAL FORTE UV": 168630,
+            "TRIO EASY CLEAN": 139950,
+            "SIN AR": 78000
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 154805,
+            "CRIZAL SAPPHIRE": 152500,
+            "CRIZAL FORTE UV": 149755,
+            "TRIO EASY CLEAN": 121075,
+            "SIN AR": 59125
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 173680,
+            "CRIZAL SAPPHIRE": 171375,
+            "CRIZAL FORTE UV": 168630,
+            "TRIO EASY CLEAN": 139950,
+            "SIN AR": 78000
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 225595,
+            "CRIZAL SAPPHIRE": 223290,
+            "CRIZAL FORTE UV": 220545,
+            "TRIO EASY CLEAN": 191865,
+            "SIN AR": 129915
+          }
+        },
+        {
+          "material": "STYLIS 1.67 BLUE UV",
+          "precios": {
+            "CRIZAL PREVENCIA": 245910,
+            "CRIZAL SAPPHIRE": 243605,
+            "CRIZAL FORTE UV": 240860,
+            "TRIO EASY CLEAN": 212180,
+            "SIN AR": 150230
+          }
+        },
+        {
+          "material": "ORMA ACCLIMATES",
+          "precios": {
+            "CRIZAL PREVENCIA": 275370,
+            "CRIZAL SAPPHIRE": 273065,
+            "CRIZAL FORTE UV": 270320,
+            "TRIO EASY CLEAN": 241640,
+            "SIN AR": 179690
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 325070,
+            "CRIZAL SAPPHIRE": 322765,
+            "CRIZAL FORTE UV": 320020,
+            "TRIO EASY CLEAN": 291340,
+            "SIN AR": 229390
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S (2ª fila del PDF)",
+          "precios": {
+            "CRIZAL PREVENCIA": 381195,
+            "CRIZAL SAPPHIRE": 378890,
+            "CRIZAL FORTE UV": 376145,
+            "TRIO EASY CLEAN": 347465,
+            "SIN AR": 285515
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 356630,
+            "CRIZAL SAPPHIRE": 354325,
+            "CRIZAL FORTE UV": 351580,
+            "TRIO EASY CLEAN": 322900,
+            "SIN AR": 260950
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 497530,
+            "CRIZAL SAPPHIRE": 495225,
+            "CRIZAL FORTE UV": 492480,
+            "TRIO EASY CLEAN": 463800,
+            "SIN AR": 401850
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 269790,
+            "CRIZAL SAPPHIRE": 267485,
+            "CRIZAL FORTE UV": 264740,
+            "TRIO EASY CLEAN": 236060,
+            "SIN AR": 174110
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 311115,
+            "CRIZAL SAPPHIRE": 308810,
+            "CRIZAL FORTE UV": 306065,
+            "TRIO EASY CLEAN": 277385,
+            "SIN AR": 215435
+          }
+        }
       ]
     },
     {
@@ -351,15 +1576,96 @@
       "gama": "Varilux",
       "pagina": 8,
       "materiales": [
-        { "material": "ORMA", "precios": { "CRIZAL PREVENCIA": 439340, "CRIZAL SAPPHIRE": 437035, "CRIZAL FORTE UV": 434290, "TRIO EASY CLEAN": 405610, "SIN AR": 343660 } },
-        { "material": "AIRWEAR 1.59", "precios": { "CRIZAL PREVENCIA": 482070, "CRIZAL SAPPHIRE": 479765, "CRIZAL FORTE UV": 477020, "TRIO EASY CLEAN": 448340, "SIN AR": 386390 } },
-        { "material": "STYLIS 1.67", "precios": { "CRIZAL PREVENCIA": 509405, "CRIZAL SAPPHIRE": 507100, "CRIZAL FORTE UV": 504355, "TRIO EASY CLEAN": 475675, "SIN AR": 413725 } },
-        { "material": "ORMA TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 613170, "CRIZAL SAPPHIRE": 610865, "CRIZAL FORTE UV": 608120, "TRIO EASY CLEAN": 579440, "SIN AR": 517490 } },
-        { "material": "ORMA TRANSITIONS XTRACTIVE", "precios": { "CRIZAL PREVENCIA": 613170, "CRIZAL SAPPHIRE": 610865, "CRIZAL FORTE UV": 608120, "TRIO EASY CLEAN": 579440, "SIN AR": 517490 } },
-        { "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 655250, "CRIZAL SAPPHIRE": 652945, "CRIZAL FORTE UV": 650200, "TRIO EASY CLEAN": 621520, "SIN AR": 559570 } },
-        { "material": "STYLIS 1.67 TRANSITIONS GEN S", "precios": { "CRIZAL PREVENCIA": 685365, "CRIZAL SAPPHIRE": 683060, "CRIZAL FORTE UV": 680315, "TRIO EASY CLEAN": 651635, "SIN AR": 589685 } },
-        { "material": "ORMA XPERIO", "precios": { "CRIZAL PREVENCIA": 613170, "CRIZAL SAPPHIRE": 610865, "CRIZAL FORTE UV": 608120, "TRIO EASY CLEAN": 579440, "SIN AR": 517490 } },
-        { "material": "AIRWEAR 1.59 XPERIO", "precios": { "CRIZAL PREVENCIA": 655250, "CRIZAL SAPPHIRE": 652945, "CRIZAL FORTE UV": 650200, "TRIO EASY CLEAN": 621520, "SIN AR": 559570 } }
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 439340,
+            "CRIZAL SAPPHIRE": 437035,
+            "CRIZAL FORTE UV": 434290,
+            "TRIO EASY CLEAN": 405610,
+            "SIN AR": 343660
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 482070,
+            "CRIZAL SAPPHIRE": 479765,
+            "CRIZAL FORTE UV": 477020,
+            "TRIO EASY CLEAN": 448340,
+            "SIN AR": 386390
+          }
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 509405,
+            "CRIZAL SAPPHIRE": 507100,
+            "CRIZAL FORTE UV": 504355,
+            "TRIO EASY CLEAN": 475675,
+            "SIN AR": 413725
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 613170,
+            "CRIZAL SAPPHIRE": 610865,
+            "CRIZAL FORTE UV": 608120,
+            "TRIO EASY CLEAN": 579440,
+            "SIN AR": 517490
+          }
+        },
+        {
+          "material": "ORMA TRANSITIONS XTRACTIVE",
+          "precios": {
+            "CRIZAL PREVENCIA": 613170,
+            "CRIZAL SAPPHIRE": 610865,
+            "CRIZAL FORTE UV": 608120,
+            "TRIO EASY CLEAN": 579440,
+            "SIN AR": 517490
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 655250,
+            "CRIZAL SAPPHIRE": 652945,
+            "CRIZAL FORTE UV": 650200,
+            "TRIO EASY CLEAN": 621520,
+            "SIN AR": 559570
+          }
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 685365,
+            "CRIZAL SAPPHIRE": 683060,
+            "CRIZAL FORTE UV": 680315,
+            "TRIO EASY CLEAN": 651635,
+            "SIN AR": 589685
+          }
+        },
+        {
+          "material": "ORMA XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 613170,
+            "CRIZAL SAPPHIRE": 610865,
+            "CRIZAL FORTE UV": 608120,
+            "TRIO EASY CLEAN": 579440,
+            "SIN AR": 517490
+          }
+        },
+        {
+          "material": "AIRWEAR 1.59 XPERIO",
+          "precios": {
+            "CRIZAL PREVENCIA": 655250,
+            "CRIZAL SAPPHIRE": 652945,
+            "CRIZAL FORTE UV": 650200,
+            "TRIO EASY CLEAN": 621520,
+            "SIN AR": 559570
+          }
+        }
       ]
     }
   ]
