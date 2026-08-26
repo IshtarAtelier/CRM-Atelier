@@ -64,39 +64,30 @@ const MATERIALES = [
 
 const primero = (tabla, texto) => tabla.find(([re]) => re.test(texto));
 
-/** Cuánto puede apartarse el costo cargado de una columna para seguir
- *  creyendo que es ESA columna. Los aciertos reales dan menos de $1.500; los
- *  que no encajan en ninguna se van arriba de $6.000. */
-// RELATIVA, no en pesos: un desvío de $3.000 es ruido en un cristal de
-// $500.000 y es enorme en uno de $60.000. Con tope fijo, 54 de 82 quedaban
-// marcados como dudosos solo por ser caros.
-const TOLERANCIA_PCT = 1.5;
-
-function tratamientoDe(nombre, precios, costoActual) {
-    const porNombre = /prevencia/i.test(nombre) ? 'CRIZAL PREVENCIA'
-        : /sapphire|saphire/i.test(nombre) ? 'CRIZAL SAPPHIRE'
-            : /tr[íi]o|easy\s*clean/i.test(nombre) ? 'TRIO EASY CLEAN'
-                : /sin\s*ar|no\s*reflex/i.test(nombre) ? 'SIN AR'
-                    : null;
-    if (porNombre && precios[porNombre] != null) return { trat: porNombre, seguro: true, de: 'nombre' };
-    if (porNombre) return { trat: porNombre, seguro: false, noOfrecido: true };
-
-    // El nombre solo dice "CRIZAL" (o no dice nada). NO se asume Forte UV: el
-    // COSTO YA CARGADO delata cuál se usó. Asumir Forte UV les bajaba el costo
-    // a los Kodak lisos, que en realidad llevan Prevencia — y bajar un costo
-    // sin querer es de lo peor que puede pasar acá, porque infla el margen en
-    // los reportes y nadie lo nota.
-    if (costoActual > 0) {
-        const lista = listaDe(costoActual);
-        const cerca = Object.entries(precios)
-            .map(([t, v]) => ({ t, v, dif: Math.abs(v - lista) }))
-            .sort((a, b) => a.dif - b.dif)[0];
-        if (cerca && cerca.dif / cerca.v * 100 <= TOLERANCIA_PCT) return { trat: cerca.t, seguro: true, de: 'costo cargado' };
-        // Ninguna columna encaja: el costo viene de una lista vieja y no se
-        // puede saber el tratamiento. Se marca para revisar a mano.
-        return { trat: cerca?.t ?? 'CRIZAL FORTE UV', seguro: false, de: 'ninguna columna encaja', dif: cerca?.dif };
+/**
+ * POLÍTICA DEL CRIZAL MÁS CARO (Ishtar, 26/8/2026): todo cristal con Crizal se
+ * costea —y se cobra— con la columna MÁS CARA de su renglón (hoy Prevencia).
+ * El Crizal real que lleva el par es un dato de la VENTA (elección obligatoria
+ * del vendedor, plan-crizal-obligatorio.md): si sale con uno más barato, el
+ * margen solo mejora — nunca queda corto. Y el nombre del producto deja de
+ * decidir plata: antes 44 de 82 quedaban imposibles de costear porque decían
+ * "+ CRIZAL" sin aclarar cuál.
+ * Se respetan por nombre las variantes que NO llevan Crizal: "SIN AR" /
+ * "Sin Crizal" (pelado) y "Trío Easy Clean".
+ */
+function tratamientoDe(nombre, precios) {
+    if (/sin\s*ar|no\s*reflex|sin\s*crizal/i.test(nombre)) {
+        if (precios['SIN AR'] != null) return { trat: 'SIN AR', seguro: true, de: 'nombre' };
+        return { trat: 'SIN AR', seguro: false, noOfrecido: true };
     }
-    return { trat: 'CRIZAL FORTE UV', seguro: false, de: 'sin costo cargado' };
+    if (/tr[íi]o|easy\s*clean/i.test(nombre)) {
+        if (precios['TRIO EASY CLEAN'] != null) return { trat: 'TRIO EASY CLEAN', seguro: true, de: 'nombre' };
+        return { trat: 'TRIO EASY CLEAN', seguro: false, noOfrecido: true };
+    }
+    const crizales = Object.entries(precios).filter(([k]) => k.startsWith('CRIZAL'));
+    if (!crizales.length) return { trat: Object.keys(precios)[0], seguro: false, de: 'renglón sin columnas Crizal' };
+    const caro = crizales.sort((a, b) => b[1] - a[1])[0];
+    return { trat: caro[0], seguro: true, de: 'crizal más caro (política 26/8/2026)' };
 }
 
 /**
@@ -114,6 +105,28 @@ const FAMILIAS_MONO = [
     [/filter\s*system|blue\s*uv/i, 'BlueUV Filter System'],
     [/stock/i, 'Monofocal de stock'],
 ];
+
+/**
+ * Lentes de STOCK de la página 22: el Crizal ya viene puesto — es una lente
+ * entera, no se le suma tratamiento. Se reconocen por nombre casi textual.
+ * (La auditoría atrapó al "Orma Blue UV Crizal Saphire HR" costeado como
+ * monofocal + tratamiento: el doble de su renglón real.)
+ */
+function emparejarLenteStock(nombre) {
+    const stock = datos.crizal?.lentes_de_stock || [];
+    const cual = /rock/i.test(nombre) ? /ROCK/
+        : /(sapphire|saphire)\s*hr/i.test(nombre) ? /SAPPHIRE HR/
+            : /orma\s*crizal\s*prevencia/i.test(nombre) ? /^ORMA CRIZAL PREVENCIA$/
+                : null;
+    if (!cual) return null;
+    const fila = stock.find(f => cual.test(f.nombre));
+    if (!fila) return null;
+    return {
+        familia: 'Lente de stock (pág. 22)', material: fila.nombre,
+        tratamiento: 'incluido (lente de stock)', lista: fila.precio,
+        seguro: true, renglonStock: true,
+    };
+}
 
 function emparejarMonofocal(nombre) {
     const m = datos.monofocales;
@@ -144,17 +157,25 @@ function emparejarMonofocal(nombre) {
     const fila = candidatas[0];
     if (!fila) return null;
 
-    const trat = /prevencia/i.test(nombre) ? 'CRIZAL PREVENCIA'
-        : /sapphire|saphire/i.test(nombre) ? 'CRIZAL SAPPHIRE'
-            : /tr[íi]o|easy\s*clean/i.test(nombre) ? 'TRIO EASY CLEAN'
-                : /sin\s*crizal|sin\s*ar/i.test(nombre) ? null
-                    : /crizal/i.test(nombre) ? 'CRIZAL FORTE UV' : null;
-    const extra = trat ? (m.tratamientos_sueltos.find(t => t.nombre.replace(' UV', '') === trat.replace(' UV', '')
-        || t.nombre === trat)?.precio ?? 0) : 0;
+    // Misma política del más caro: un monofocal "Con Crizal" suma el
+    // tratamiento suelto MÁS CARO (el real elegido es dato de la venta).
+    // "Sin Crizal"/"SIN AR" van pelados; "Trío" se respeta.
+    const sueltos = m.tratamientos_sueltos || [];
+    let trat = null, extra = 0;
+    if (/sin\s*crizal|sin\s*ar/i.test(nombre)) {
+        trat = null;
+    } else if (/tr[íi]o|easy\s*clean/i.test(nombre)) {
+        trat = 'TRIO EASY CLEAN';
+        extra = sueltos.find(t => /TRIO/.test(t.nombre))?.precio ?? 0;
+    } else if (/crizal/i.test(nombre)) {
+        const caro = sueltos.filter(t => /^CRIZAL/.test(t.nombre)).sort((a, b) => b.precio - a.precio)[0];
+        trat = caro ? `${caro.nombre} (política más caro)` : null;
+        extra = caro?.precio ?? 0;
+    }
 
     return {
         familia, material: fila.material,
-        tratamiento: trat ? `${trat} (sumado aparte)` : 'sin antirreflejo',
+        tratamiento: trat ? `${trat}, sumado aparte` : 'sin antirreflejo',
         lista: fila.precio + extra,
         seguro: true,
     };
@@ -169,7 +190,7 @@ export function emparejar(productos) {
         const fam = primero(FAMILIAS, nombre);
         if (!fam) {
             const faltaConocida = primero(FALTAN_EN_LISTA, nombre);
-            const mono = faltaConocida ? null : emparejarMonofocal(nombre);
+            const mono = faltaConocida ? null : (emparejarLenteStock(nombre) ?? emparejarMonofocal(nombre));
             if (mono) {
                 const nuevo = costoDe(mono.lista);
                 ok.push({ ...p, ...mono, esPromo: false, costoNuevo: nuevo,
@@ -190,7 +211,7 @@ export function emparejar(productos) {
                 motivo: mat ? `La familia no ofrece "${mat[1]}"` : 'No se reconoce el material' });
             continue;
         }
-        const t = tratamientoDe(nombre, m.precios, p.cost);
+        const t = tratamientoDe(nombre, m.precios);
         if (t.noOfrecido) {
             porNombre.push({ ...p, familia: fam[1], material: mat[1], motivo: `La familia no ofrece "${t.trat}"` });
             continue;
