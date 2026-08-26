@@ -41,7 +41,8 @@
     "check:venta-reabierta-24h": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-reabierta-24h.check.mjs",
     "check:aumento-precios": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/aumento-precios-integridad.check.mjs",
     "check:costo-pelado": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/costo-desde-pelado.check.mjs",
-    "check:auditoria-costos": "node scripts/checks/auditoria-costos-optovision.check.mjs"
+    "check:auditoria-costos": "node scripts/checks/auditoria-costos-optovision.check.mjs",
+    "check:crizal": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/crizal-obligatorio.check.mjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { CRIZALES, ventaExigeCrizal } from '@/lib/constants/crizal';
 import {
     FlaskConical,
     Eye,
@@ -88,6 +89,42 @@ export function OrderDetailPanel({
         const str = `${it.product?.name || ''} ${it.productNameSnapshot || ''}`.toLowerCase();
         return str.includes('2x1');
     });
+
+    // ── El Crizal del par: dato OBLIGATORIO de la venta (política 26/8/2026) ──
+    // El costo se calcula siempre con el más caro; acá se registra cuál va de
+    // verdad. Sin esto, el server no deja enviar a fábrica. En un 2x1 las
+    // opciones sin Crizal ni se muestran: la promo es siempre con Crizal.
+    const exigeCrizal = ventaExigeCrizal((order.items || []).map((it: any) => ({
+        categoria: it.productCategorySnapshot ?? it.product?.category,
+        laboratorio: it.laboratorySnapshot ?? it.product?.laboratory,
+        nombre: it.productNameSnapshot ?? it.product?.name,
+    })));
+    const opcionesCrizal = is2x1 ? CRIZALES.filter(c => !c.sinCrizal) : CRIZALES;
+    const [crizalSel, setCrizalSel] = useState<string>(order.labCrizal || '');
+    const [guardandoCrizal, setGuardandoCrizal] = useState(false);
+    useEffect(() => { setCrizalSel(order.labCrizal || ''); }, [order.id, order.labCrizal]);
+    const elegirCrizal = async (code: string) => {
+        const previo = crizalSel;
+        setCrizalSel(code);
+        setGuardandoCrizal(true);
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ labCrizal: code }),
+            });
+            if (!res.ok) {
+                setCrizalSel(previo);
+                const data = await res.json().catch(() => ({}));
+                alert(`⚠️ ${data.error || 'No se pudo guardar el Crizal'}`);
+            } else if (onRefresh) onRefresh();
+        } catch {
+            setCrizalSel(previo);
+            alert('⚠️ Error de red al guardar el Crizal.');
+        } finally {
+            setGuardandoCrizal(false);
+        }
+    };
     // Hay un segundo par si es 2x1 o si el pedido tiene datos de armazón/lab del Par 2
     const oAny = order as any;
     const hasSecondPair = is2x1 || !!(oAny.frameA2 || oAny.frameB2 || oAny.frameDbl2 || oAny.frameEdc2 || order.labFrameShape2 || order.labFrameDetails2);
@@ -901,6 +938,40 @@ export function OrderDetailPanel({
                             </div>
                         )}
                     </div>
+
+                    {/* El Crizal del par — obligatorio para enviar a fábrica */}
+                    {exigeCrizal && (
+                        <div className={`bg-white dark:bg-stone-800 rounded-2xl border overflow-hidden shadow-sm ${crizalSel ? 'border-stone-100 dark:border-stone-700' : 'border-red-300 dark:border-red-900/60'}`}>
+                            <div className="px-5 py-3 border-b border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 flex items-center justify-between">
+                                <h4 className="text-[10px] font-black text-stone-500 uppercase tracking-widest flex items-center gap-2">
+                                    <FlaskConical className="w-3.5 h-3.5" /> Crizal del par
+                                    {!crizalSel && <span className="text-red-500 normal-case font-bold">* obligatorio para enviar a fábrica</span>}
+                                </h4>
+                                {guardandoCrizal && <Loader2 className="w-3.5 h-3.5 animate-spin text-stone-400" />}
+                            </div>
+                            <div className="p-3 space-y-1.5">
+                                {opcionesCrizal.map(c => (
+                                    <button
+                                        key={c.code}
+                                        type="button"
+                                        onClick={() => elegirCrizal(c.code)}
+                                        disabled={guardandoCrizal}
+                                        className={`w-full text-left px-3 py-2 rounded-xl border transition-colors ${crizalSel === c.code
+                                            ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/30'
+                                            : 'border-stone-150 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800/60'}`}
+                                    >
+                                        <span className="block text-[11px] font-black text-stone-800 dark:text-stone-200">
+                                            {crizalSel === c.code ? '● ' : ''}{c.nombre}
+                                        </span>
+                                        <span className="block text-[10px] text-stone-500 dark:text-stone-400 mt-0.5">{c.detalle}</span>
+                                    </button>
+                                ))}
+                                {is2x1 && (
+                                    <p className="text-[9px] text-stone-400 pt-1">Venta 2x1: siempre con Crizal — por eso no aparece "sin antirreflejo".</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Lab Measurements and Details */}
                     {!labFrame.isEmpty && (

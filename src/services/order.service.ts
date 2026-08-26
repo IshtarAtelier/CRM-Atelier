@@ -549,7 +549,7 @@ export class OrderService {
         // ── Guard: prevent editing items/pricing on SALE orders based on lock state ──
         const existingForGuard = await prisma.order.findUnique({
             where: { id },
-            select: { orderType: true, isLocked: true }
+            select: { orderType: true, isLocked: true, labStatus: true }
         });
 
         if (existingForGuard?.orderType === 'SALE') {
@@ -602,6 +602,13 @@ export class OrderService {
                     'discountCash', 'discountTransfer', 'discountCard', 'specialDiscount',
                     'orderType', 'clientId', 'userId',
                 ];
+                // El Crizal del par se elige DESPUÉS de blindar la venta y
+                // ANTES de mandarla a fábrica (es requisito del envío): mientras
+                // el pedido no viajó, se puede elegir y corregir. Una vez en
+                // fábrica queda congelado como todo lo demás.
+                if ((existingForGuard.labStatus ?? 'NONE') === 'NONE') {
+                    PERMITIDOS_VENTA_ENVIADA.add('labCrizal');
+                }
                 const tocados = Object.keys(body).filter(k =>
                     !PERMITIDOS_VENTA_ENVIADA.has(k) && !k.startsWith('postSale')
                 );

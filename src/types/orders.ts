@@ -160,6 +160,8 @@ export interface Order {
     /** Id del caso de post venta activo, para las acciones de cierre económico. */
     postSaleCaseId?: string | null;
     labColor?: string | null;
+    /** Qué Crizal lleva el par (code de src/lib/constants/crizal.ts). Obligatorio para enviar a fábrica. */
+    labCrizal?: string | null;
     labTreatment?: string | null;
     labDiameter?: string | null;
     labMaterial?: string | null;
