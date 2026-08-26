@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { autoCorrectBrand, autoCorrectLab, autoCorrectIndex } from '@/utils/product-controllers';
 import { requireValidCost } from '@/lib/product-cost-guard';
+import { computeFinalLensCost, findLabConfig, type LabCostConfig } from '@/lib/lens-cost';
 import { invalidateWebCatalog } from '@/lib/catalog/tienda-map';
 import { puedeEntrarEn2x1 } from '@/lib/promo-utils';
 
@@ -10,6 +11,52 @@ import { puedeEntrarEn2x1 } from '@/lib/promo-utils';
 // el que vale, para que una llamada armada a mano no tilde un cristal.
 const eligible2x1Permitido = (valor: any, tipo: any, categoria: any): boolean =>
     valor === true && puedeEntrarEn2x1({ type: tipo, category: categoria });
+
+/**
+ * COSTO CALCULADO UNA SOLA VEZ, AL GUARDAR (pedido de la administradora,
+ * 26/8/2026): si la carga trae el costo PELADO (`baseCost`) y NO trae un
+ * `cost` explícito, el costo final sale de acá —
+ *     (pelado + calibrado del laboratorio) × (1 + IVA)
+ * — y queda escrito en `cost`. Nunca se recalcula al leer ni en ediciones que
+ * no traen `baseCost`: la fórmula corre una vez y el resultado persiste.
+ * (Recalcular sobre un `cost` que ya la tenía aplicada fue el bug de
+ * duplicación del botón "Calcular Final".)
+ *
+ * Reglas:
+ *  - Solo cristales y tratamientos: las demás categorías no tienen pelado.
+ *  - Los tratamientos no llevan calibrado.
+ *  - SIN doble calibrado para 2x1: el `cost` del producto es UN par. El
+ *    segundo par se valúa en la venta (solo calibrado + IVA, cost-matching).
+ *    Así están cargados los 127 de Optovisión — verificado el 26/8/2026
+ *    despejando la fórmula contra la lista del laboratorio.
+ *  - Si la carga trae `cost` explícito, se respeta (es el flujo del formulario,
+ *    que muestra el cálculo antes de guardar).
+ *  - Sin config del laboratorio no se inventa nada: `cost` queda como venga.
+ */
+function costoDesdeElPelado(
+    data: any,
+    labs: LabCostConfig[],
+    actual?: { laboratory?: string | null; category?: string | null } | null,
+): number | null {
+    if (data.cost !== undefined && data.cost !== null && data.cost !== '') return null;
+    const raw = data.baseCost;
+    const base = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''));
+    if (!Number.isFinite(base) || base <= 0) return null;
+    const categoria = data.category ?? actual?.category ?? '';
+    if (categoria !== 'Cristal' && categoria !== 'Tratamiento') return null;
+    const labName = data.laboratory !== undefined ? autoCorrectLab(data.laboratory) : actual?.laboratory;
+    if (!labName) return null;
+    const lab = findLabConfig(labs, labName);
+    if (!lab || (!lab.calibrado && !lab.iva)) return null;
+    return computeFinalLensCost(base, lab, { skipCalibrado: categoria === 'Tratamiento' });
+}
+
+/** La config de labs para la fórmula; si la lectura falla, nadie calcula nada. */
+async function labsParaCosto(): Promise<LabCostConfig[]> {
+    return prisma.laboratoryConfig
+        .findMany({ select: { name: true, calibrado: true, iva: true } })
+        .catch(() => [] as LabCostConfig[]);
+}
 
 export const ProductService = {
     async getAll() {
@@ -33,6 +80,8 @@ export const ProductService = {
     },
 
     async create(data: any) {
+        // Vino el pelado sin cost: el sistema calcula el final una sola vez, acá.
+        const costCalculado = costoDesdeElPelado(data, await labsParaCosto());
         const product = await prisma.product.create({
             data: {
                 name: data.name,
@@ -42,7 +91,7 @@ export const ProductService = {
                 category: data.category,
                 price: parseFloat(data.price) || 0,
                 wholesalePrice: data.wholesalePrice != null ? parseFloat(data.wholesalePrice) : 0,
-                cost: requireValidCost(data.cost, data.name || data.model),
+                cost: costCalculado ?? requireValidCost(data.cost, data.name || data.model),
                 baseCost: data.baseCost != null && data.baseCost !== '' ? (parseFloat(data.baseCost) || null) : null,
                 stock: parseInt(data.stock) || 0,
                 lensIndex: autoCorrectIndex(data.lensIndex),
@@ -87,6 +136,14 @@ export const ProductService = {
         } else if (data.eligible2x1 === true && !eligible2x1Permitido(true, data.type, data.category)) {
             data = { ...data, eligible2x1: false };
         }
+        // Vino un pelado nuevo sin cost explícito: se recalcula el final UNA vez.
+        let costCalculado: number | null = null;
+        if (data.baseCost !== undefined) {
+            const contexto = await prisma.product.findUnique({
+                where: { id }, select: { laboratory: true, category: true },
+            });
+            costCalculado = costoDesdeElPelado(data, await labsParaCosto(), contexto);
+        }
         const product = await prisma.product.update({
             where: { id },
             data: {
@@ -97,7 +154,9 @@ export const ProductService = {
                 category: data.category,
                 price: data.price !== undefined ? (parseFloat(data.price) || 0) : undefined,
                 wholesalePrice: data.wholesalePrice !== undefined ? (parseFloat(data.wholesalePrice) || 0) : undefined,
-                cost: data.cost !== undefined ? requireValidCost(data.cost, data.name || data.model) : undefined,
+                cost: costCalculado != null
+                    ? costCalculado
+                    : (data.cost !== undefined ? requireValidCost(data.cost, data.name || data.model) : undefined),
                 baseCost: data.baseCost !== undefined ? (data.baseCost !== '' && data.baseCost != null ? (parseFloat(data.baseCost) || null) : null) : undefined,
                 stock: data.stock !== undefined ? (parseInt(data.stock) || 0) : undefined,
                 lensIndex: data.lensIndex !== undefined ? autoCorrectIndex(data.lensIndex) : undefined,
@@ -140,6 +199,8 @@ export const ProductService = {
     },
 
     async bulkCreate(items: any[]) {
+        // La carga masiva es LA subida de listas: acá el pelado-sin-cost es normal.
+        const labs = await labsParaCosto();
         const created = await prisma.$transaction(
             items.map(item => prisma.product.create({
                 data: {
@@ -150,7 +211,7 @@ export const ProductService = {
                     category: item.category,
                     price: parseFloat(item.price) || 0,
                     wholesalePrice: item.wholesalePrice != null ? parseFloat(item.wholesalePrice) : 0,
-                    cost: requireValidCost(item.cost, item.name || item.model),
+                    cost: costoDesdeElPelado(item, labs) ?? requireValidCost(item.cost, item.name || item.model),
                     baseCost: item.baseCost != null && item.baseCost !== '' ? (parseFloat(item.baseCost) || null) : null,
                     stock: parseInt(item.stock) || 0,
                     lensIndex: autoCorrectIndex(item.lensIndex),

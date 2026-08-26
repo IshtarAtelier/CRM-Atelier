@@ -34,3 +34,13 @@ export function resolve(especificador, contexto, siguiente) {
     }
     return siguiente(especificador, contexto);
 }
+
+// Un .ts importa JSON sin atributo (TypeScript no lo exige; Node sí). Los
+// snapshots del catálogo se importan así, y sin este hook cualquier check que
+// toque un service que los arrastre muere con ERR_IMPORT_ATTRIBUTE_MISSING.
+export async function load(url, contexto, siguiente) {
+    if (url.endsWith('.json') && contexto.importAttributes?.type !== 'json') {
+        return siguiente(url, { ...contexto, importAttributes: { ...contexto.importAttributes, type: 'json' } });
+    }
+    return siguiente(url, contexto);
+}
