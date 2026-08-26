@@ -64,16 +64,39 @@ const MATERIALES = [
 
 const primero = (tabla, texto) => tabla.find(([re]) => re.test(texto));
 
-function tratamientoDe(nombre, precios) {
-    const cual = /prevencia/i.test(nombre) ? 'CRIZAL PREVENCIA'
+/** Cuánto puede apartarse el costo cargado de una columna para seguir
+ *  creyendo que es ESA columna. Los aciertos reales dan menos de $1.500; los
+ *  que no encajan en ninguna se van arriba de $6.000. */
+// RELATIVA, no en pesos: un desvío de $3.000 es ruido en un cristal de
+// $500.000 y es enorme en uno de $60.000. Con tope fijo, 54 de 82 quedaban
+// marcados como dudosos solo por ser caros.
+const TOLERANCIA_PCT = 1.5;
+
+function tratamientoDe(nombre, precios, costoActual) {
+    const porNombre = /prevencia/i.test(nombre) ? 'CRIZAL PREVENCIA'
         : /sapphire|saphire/i.test(nombre) ? 'CRIZAL SAPPHIRE'
             : /tr[íi]o|easy\s*clean/i.test(nombre) ? 'TRIO EASY CLEAN'
                 : /sin\s*ar|no\s*reflex/i.test(nombre) ? 'SIN AR'
-                    : /crizal|rock/i.test(nombre) ? 'CRIZAL FORTE UV'
-                        : null;
-    if (cual && precios[cual] != null) return { trat: cual, seguro: true };
-    if (cual) return { trat: cual, seguro: false, noOfrecido: true };
-    return { trat: 'CRIZAL FORTE UV', seguro: false };
+                    : null;
+    if (porNombre && precios[porNombre] != null) return { trat: porNombre, seguro: true, de: 'nombre' };
+    if (porNombre) return { trat: porNombre, seguro: false, noOfrecido: true };
+
+    // El nombre solo dice "CRIZAL" (o no dice nada). NO se asume Forte UV: el
+    // COSTO YA CARGADO delata cuál se usó. Asumir Forte UV les bajaba el costo
+    // a los Kodak lisos, que en realidad llevan Prevencia — y bajar un costo
+    // sin querer es de lo peor que puede pasar acá, porque infla el margen en
+    // los reportes y nadie lo nota.
+    if (costoActual > 0) {
+        const lista = listaDe(costoActual);
+        const cerca = Object.entries(precios)
+            .map(([t, v]) => ({ t, v, dif: Math.abs(v - lista) }))
+            .sort((a, b) => a.dif - b.dif)[0];
+        if (cerca && cerca.dif / cerca.v * 100 <= TOLERANCIA_PCT) return { trat: cerca.t, seguro: true, de: 'costo cargado' };
+        // Ninguna columna encaja: el costo viene de una lista vieja y no se
+        // puede saber el tratamiento. Se marca para revisar a mano.
+        return { trat: cerca?.t ?? 'CRIZAL FORTE UV', seguro: false, de: 'ninguna columna encaja', dif: cerca?.dif };
+    }
+    return { trat: 'CRIZAL FORTE UV', seguro: false, de: 'sin costo cargado' };
 }
 
 /**
@@ -167,7 +190,7 @@ export function emparejar(productos) {
                 motivo: mat ? `La familia no ofrece "${mat[1]}"` : 'No se reconoce el material' });
             continue;
         }
-        const t = tratamientoDe(nombre, m.precios);
+        const t = tratamientoDe(nombre, m.precios, p.cost);
         if (t.noOfrecido) {
             porNombre.push({ ...p, familia: fam[1], material: mat[1], motivo: `La familia no ofrece "${t.trat}"` });
             continue;
