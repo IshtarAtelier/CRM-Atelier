@@ -64,12 +64,11 @@ escribe en localhost). Todo lo que sigue se calcula sobre estos valores.
 ```bash
 node scripts/maintenance/precios-optovision/listado-costos.mjs salida.html
 ```
-Muestra costo de hoy vs. costo según lista, producto por producto, y **de dónde
-salió el tratamiento** de cada uno:
-- ✓ del nombre (el producto dice qué Crizal lleva)
-- ✓ del costo cargado (calza con una columna de la lista, tolerancia 1,5%)
-- **? sin confirmar** → preguntarle a Ishtar antes de seguir. No asumir:
-  asumir Forte UV les bajó el costo a los Kodak (llevan Prevencia).
+Muestra costo de hoy vs. costo según lista, producto por producto. Desde el
+26/8/2026 rige la **política del Crizal más caro**: todo renglón con columnas
+Crizal se costea con la más cara (el Crizal real es dato de la venta, de
+elección obligatoria — ver plan-crizal-obligatorio.md). Solo quedan en ámbar
+los renglones sin columnas Crizal o sin precio: esos sí, preguntarle a Ishtar.
 
 ### 4. Ensayo en desarrollo
 ```bash

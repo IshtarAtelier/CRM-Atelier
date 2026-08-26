@@ -10,6 +10,7 @@
  *   node scripts/maintenance/precios-optovision/cuadro-varilux.mjs salida.html
  */
 import { readFileSync, writeFileSync } from 'node:fs';
+import { CALIBRADO as CALIBRADO_BASE, IVA as IVA_BASE, MARKUP as MARKUP_BASE } from './emparejador.mjs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -37,9 +38,9 @@ const num = (bandera, x) => {
     const i = process.argv.indexOf(bandera);
     return i !== -1 && process.argv[i + 1] ? Number(process.argv[i + 1]) : x;
 };
-const CALIBRADO = num('--calibrado', 23000);
-const IVA = num('--iva', 21);
-const MARKUP = num('--markup', 2.4);
+const CALIBRADO = num('--calibrado', CALIBRADO_BASE);
+const IVA = num('--iva', IVA_BASE);
+const MARKUP = num('--markup', MARKUP_BASE);
 
 const costoFinal = lista => Math.round((lista + CALIBRADO) * (1 + IVA / 100));
 const precioVenta = lista => Math.round(costoFinal(lista) * MARKUP);

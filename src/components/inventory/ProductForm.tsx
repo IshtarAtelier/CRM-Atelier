@@ -124,7 +124,10 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                 category: selectedCategory,
                 price: formData.price,
                 wholesalePrice: formData.wholesalePrice,
-                cost: isCristal ? getFinalCost(formData.cost, formData.laboratory, formData.is2x1) : formData.cost,
+                // El cost del producto es UN par con calibrado SIMPLE, también en
+                // 2x1 (el par bonificado se valúa aparte, en la venta). Mandar el
+                // doble acá contradecía la base y generaba diferencias fantasma.
+                cost: isCristal ? getFinalCost(formData.cost, formData.laboratory) : formData.cost,
                 baseCost: isCristal ? formData.cost : null,
                 stock: isRequestedToLab ? 0 : formData.stock,
                 lensIndex: isCristal ? formData.lensIndex : null,
@@ -512,7 +515,7 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
                                 </div>
                                 {isCristal && formData.cost > 0 && formData.laboratory && labConfigs.some(l => l.name.toUpperCase() === formData.laboratory.toUpperCase()) && (
                                     <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-4 animate-in fade-in">
-                                        Costo Final: ${getFinalCost(formData.cost, formData.laboratory, formData.is2x1).toLocaleString()} (incluye calibrado{formData.is2x1 && ' ×2 por el 2x1'} e IVA)
+                                        Costo Final: ${getFinalCost(formData.cost, formData.laboratory).toLocaleString()} (incluye calibrado e IVA; en 2x1 el segundo par se valúa en la venta)
                                     </p>
                                 )}
                             </div>

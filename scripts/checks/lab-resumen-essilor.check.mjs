@@ -297,7 +297,7 @@ async function verVenta(pedido) {
 
     console.log(`\nVENTA ${o.labOrderNumber} — ${o.cliente || 's/cliente'}${o.appliedPromoName ? ` · promo: ${o.appliedPromoName}` : ''}`);
     console.log(`  ${CRM}/admin/ventas?id=${o.id}\n`);
-    const CALIBRADO = 15000 * 1.21; // mismo fallback que cost-matching.ts
+    const CALIBRADO = 23000 * 1.21; // mismo respaldo que costoParBonificado (lens-cost.ts)
     const es2x1 = (o.appliedPromoName || '').toLowerCase().includes('2x1')
         || items.some(i => /cristal/i.test(i.productCategorySnapshot || '') && i.price === 0);
     console.log(`  ÍTEMS (costo por par: el ítem con ojo cuenta la mitad)${es2x1 ? ' · VENTA 2x1' : ''}`);
@@ -347,7 +347,7 @@ async function verCostos() {
         left join "Client" c on c.id = o."clientId"
         where e.lab = 'OPTOVISION' and e."sourceFile" is not null and o."isDeleted" = false`;
 
-    const CALIBRADO = 15000 * 1.21;
+    const CALIBRADO = 23000 * 1.21; // mismo respaldo que costoParBonificado (lens-cost.ts)
     const filas = [];
     for (const o of ventas) {
         const items = await prisma.$queryRaw`
@@ -892,7 +892,7 @@ async function enviar({ st, rows, sinCargar, huerfanas, sinNumero, conVenta, con
     const tablaCostos = dif.length ? `
         <h3>Costo del CRM contra lo que facturó el laboratorio</h3>
         <p style="color:#4b5563">Una línea por venta. <strong>Ojo:</strong> casi todas son ventas 2x1, y ahí
-        el sistema supone que el par regalado solo cuesta el calibrado (${pesos(15000 * 1.21)}). Si el
+        el sistema supone que el par regalado solo cuesta el calibrado (${pesos(23000 * 1.21)}). Si el
         laboratorio cobró los dos pares completos, ese supuesto infla la diferencia. Antes de reclamar,
         mirar la venta.</p>
         <table style="border-collapse:collapse;width:100%">

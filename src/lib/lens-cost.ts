@@ -31,8 +31,15 @@ export const IVA_POR_DEFECTO = 21;
 
 /** Lo que cuesta el par bonificado de un 2x1: solo calibrado, con su IVA. */
 export function costoParBonificado(lab?: LabCostConfig): number {
-    const calibrado = lab?.calibrado ?? CALIBRADO_POR_DEFECTO;
-    const iva = lab?.iva ?? IVA_POR_DEFECTO;
+    // Una fila de LaboratoryConfig creada y nunca configurada queda con los
+    // defaults del schema (calibrado 0.0, iva 0.0). Eso NO significa "calibrado
+    // gratis": significa que la config falta, y valen los respaldos — si no, el
+    // par bonificado de todo 2x1 de ese lab se valuaba en $0 y llovían alertas
+    // falsas de sobrecosto. Un 0 PARCIAL sí es legítimo (Grupo Óptico tiene
+    // calibrado 7.000 con IVA 0): solo el 0/0 total cae al respaldo.
+    const configurado = !!lab && !!(lab.calibrado || lab.iva);
+    const calibrado = configurado ? (lab!.calibrado || 0) : CALIBRADO_POR_DEFECTO;
+    const iva = configurado ? (lab!.iva || 0) : IVA_POR_DEFECTO;
     return Math.round(calibrado * (1 + iva / 100));
 }
 

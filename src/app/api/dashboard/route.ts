@@ -5,7 +5,7 @@ import { ATTENTION_CUTOFF_ISO } from '@/lib/constants';
 import { resolveMonthlyTargets } from '@/lib/targets';
 import { normalizeContactSource } from '@/lib/contact-source';
 import { PricingService } from '@/services/PricingService';
-import { CALIBRADO_POR_DEFECTO } from '@/lib/lens-cost';
+import { CALIBRADO_POR_DEFECTO, costoParBonificado } from '@/lib/lens-cost';
 
 export const dynamic = 'force-dynamic';
 
@@ -542,9 +542,9 @@ export async function GET(request: Request) {
                 // If it is a 2x1 order and the crystal is free (price === 0), only charge the calibration cost
                 if (isCrystalItem && is2x1Order && item.price === 0) {
                     const labConfig = labName ? labMap.get(labName.toUpperCase()) : null;
-                    const calibrado = labConfig ? labConfig.calibrado : CALIBRADO_POR_DEFECTO;
-                    const iva = labConfig ? labConfig.iva : 21;
-                    const calibradoCost = calibrado * (1 + iva / 100);
+                    // El helper trata el 0/0 de una fila sin configurar como
+                    // "config ausente" (respaldos), no como calibrado gratis.
+                    const calibradoCost = costoParBonificado(labConfig ?? undefined);
                     
                     if (item.eye === 'OD' || item.eye === 'OI') {
                         itemCost = (calibradoCost / 2) * item.quantity;

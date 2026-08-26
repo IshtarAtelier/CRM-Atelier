@@ -2,11 +2,12 @@
  * SOLO LOS COSTOS: qué costo tiene hoy cada cristal de Optovisión y cuál le
  * corresponde según la lista del laboratorio. Sin precios ni markups.
  *
- * Marca cada fila con de dónde salió el tratamiento, porque de eso depende que
- * el costo sea correcto:
- *   ✓ del nombre        — el producto dice qué Crizal lleva
- *   ✓ del costo cargado — el costo de hoy calza con una columna de la lista
- *   ? sin confirmar     — ninguna columna calza: hay que decirlo a mano
+ * Marca cada fila con de dónde salió el tratamiento:
+ *   ✓ del nombre   — el producto dice SIN AR o Trío y se respeta
+ *   ✓ por política — renglón con Crizal → columna MÁS CARA (decisión 26/8/2026:
+ *                    se cobra siempre el más caro; el Crizal real es dato de la
+ *                    venta, de elección obligatoria)
+ *   ? revisar      — el renglón no tiene columnas Crizal o le falta el precio
  *
  * Solo lee. Escribe un HTML.
  *   node scripts/maintenance/precios-optovision/listado-costos.mjs salida.html
@@ -52,9 +53,9 @@ async function main() {
 <h1 style="font-size:28px;margin:0 0 6px">Costos de Optovisión</h1>
 <p style="margin:0 0 4px;color:#334155">${ok.length} cristales · costo con calibrado e IVA incluidos · sin precios ni markup</p>
 ${dudosos.length ? `<div style="margin:14px 0;padding:14px 16px;background:#fffbeb;border:1px solid #f59e0b;border-radius:10px">
-  <strong>${dudosos.length} en ámbar necesitan que digas qué Crizal llevan.</strong> El nombre solo dice "CRIZAL" y el
-  costo de hoy no calza con ninguna columna de la lista nueva, así que el tratamiento no se puede deducir.
-  Entre Forte UV, Sapphire y Prevencia hay unos $2.300 de diferencia por par.
+  <strong>${dudosos.length} en ámbar necesitan una mirada:</strong> su renglón de la lista no tiene columnas
+  Crizal (o le falta el precio), así que la política del más caro no les aplica y el tratamiento
+  quedó elegido por descarte.
 </div>` : ''}
 <div style="overflow-x:auto;border:1px solid #cbd5e1;border-radius:10px">
 <table style="border-collapse:collapse;width:100%;font-size:14.5px">

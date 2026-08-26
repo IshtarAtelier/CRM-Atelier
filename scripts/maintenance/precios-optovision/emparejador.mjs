@@ -3,7 +3,9 @@
  * Optovisión. Vive en UN solo lugar a propósito: lo usan el informe
  * (emparejar-costos.mjs) y el que escribe los costos (sincronizar-costos.mjs),
  * y si cada uno tuviera su copia de las reglas, un día divergen y el informe
- * dice una cosa mientras la base guarda otra.
+ * dice una cosa mientras la base guarda otra. Lo usan listado-costos.mjs,
+ * sincronizar-costos.mjs y la auditoría (check:auditoria-costos) — NADA más
+ * debe reimplementar estas reglas.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -198,9 +200,10 @@ export function emparejar(productos) {
                     pct: p.cost > 0 ? (nuevo - p.cost) / p.cost * 100 : null });
                 continue;
             }
-            const falta = faltaConocida;
-            sinLista.push({ ...p, familia: falta ? falta[1] : null, pagina: falta ? falta[2] : null,
-                motivo: falta ? 'La familia todavía no está cargada de la lista' : 'No se reconoce la familia' });
+            sinLista.push({ ...p,
+                familia: faltaConocida ? faltaConocida[1] : null,
+                pagina: faltaConocida ? faltaConocida[2] : null,
+                motivo: faltaConocida ? 'La familia todavía no está cargada de la lista' : 'No se reconoce la familia' });
             continue;
         }
         const d = datos.disenos.find(x => x.nombre === fam[1]);
@@ -217,7 +220,16 @@ export function emparejar(productos) {
             continue;
         }
         const esPromo = /mi\s*primer/i.test(nombre);
-        const lista = (m.precios[t.trat] ?? 0) / (esPromo ? 2 : 1);
+        // Una celda null/0 en la lista NO es un precio: emparejar igual haría
+        // que --aplicar escriba cost=$27.830 (solo calibrado) en un cristal de
+        // $500.000, en silencio. Mejor que caiga a "revisar a mano".
+        const celda = m.precios[t.trat];
+        if (!celda || celda <= 0) {
+            porNombre.push({ ...p, familia: fam[1], material: mat[1],
+                motivo: `El renglón no tiene precio en ${t.trat}` });
+            continue;
+        }
+        const lista = celda / (esPromo ? 2 : 1);
         const nuevo = costoDe(lista);
         ok.push({ ...p, familia: fam[1], material: mat[1], tratamiento: t.trat, seguro: t.seguro, esPromo,
             lista, costoNuevo: nuevo, listaVieja: p.cost > 0 ? listaDe(p.cost) : null,

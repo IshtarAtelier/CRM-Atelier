@@ -398,6 +398,11 @@ model Order {
   userFrameNotes       String?
   labColor             String?
   labTreatment         String?
+  // Qué Crizal lleva el par. Elección OBLIGATORIA antes de enviar a fábrica
+  // cuando la venta tiene cristales Optovisión con antirreflejo (el costo se
+  // calcula siempre con el más caro; esto registra el que realmente va).
+  // Valores: los `code` de src/lib/constants/crizal.ts.
+  labCrizal            String?
   labDiameter          String?
   labPdOd              Float?
   labPdOi              Float?

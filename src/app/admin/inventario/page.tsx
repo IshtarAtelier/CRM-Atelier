@@ -241,7 +241,10 @@ export default function InventarioPage() {
         const hasBase = Number.isFinite(base) && base > 0;
         const lab = findLabConfig(labsConfig, editForm.laboratory);
         const is2x1 = editForm.is2x1 || editForm.name.toLowerCase().includes('2x1');
-        const { calibrado, iva, final } = breakdownLensCost(hasBase ? base : 0, lab, { is2x1, skipCalibrado: isTreatment });
+        // Calibrado SIMPLE también en 2x1: el cost del producto es UN par (el
+        // bonificado se valúa en la venta). El doble acá pisaba la base con
+        // +$27.830 en cada edición de un 2x1.
+        const { calibrado, iva, final } = breakdownLensCost(hasBase ? base : 0, lab, { skipCalibrado: isTreatment });
         // Solo hay sugerencia si REALMENTE se puede aplicar la fórmula: con costo
         // pelado cargado y con la config del lab a mano. Si los labs todavía no
         // cargaron (fetch en vuelo o caído) o el lab no tiene calibrado/IVA, el costo
@@ -1136,7 +1139,7 @@ export default function InventarioPage() {
                                                 </p>
                                             ) : editCost.matchesFormula ? (
                                                 <p className="text-[9px] font-bold text-amber-600 ml-3">
-                                                    + calibrado ${editCost.calibrado.toLocaleString('es-AR')}{editCost.is2x1 && ' (2x1, doble)'} + IVA {editCost.iva}%
+                                                    + calibrado ${editCost.calibrado.toLocaleString('es-AR')} + IVA {editCost.iva}%
                                                     <span className="text-stone-400"> · podés modificarlo</span>
                                                 </p>
                                             ) : (

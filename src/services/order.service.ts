@@ -2,6 +2,7 @@ import { sendEmail } from '@/lib/email';
 import { ContactService } from '@/services/contact.service';
 import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
+import { codigosCrizal, esCrizalValido, ventaExigeCrizal } from '@/lib/constants/crizal';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
@@ -128,6 +129,7 @@ const OrderUpdateSchema = z.object({
     clientNote: z.string().nullable().optional(),
     labOrderNumber: z.string().nullable().optional(),
     labColor: z.string().nullable().optional(),
+    labCrizal: z.string().nullable().optional(),
     labTreatment: z.string().nullable().optional(),
     labDiameter: z.string().nullable().optional(),
     labPdOd: z.string().nullable().optional(),
@@ -588,7 +590,7 @@ export class OrderService {
                 ]);
                 // Campos del PEDIDO que quedan congelados con la venta.
                 const CONGELADOS: string[] = [
-                    'labNotes', 'labColor', 'labTreatment', 'labDiameter',
+                    'labNotes', 'labColor', 'labCrizal', 'labTreatment', 'labDiameter',
                     'labPdOd', 'labPdOi',
                     'labHeightOD', 'labHeightOI', 'labHeightOD2', 'labHeightOI2',
                     'labPrismOD', 'labPrismOI', 'labBaseCurve',
@@ -691,7 +693,7 @@ export class OrderService {
         const { 
             labStatus, labNotes, clientNote, orderType, labOrderNumber, 
             frameSource, userFrameBrand, userFrameModel, userFrameNotes, 
-            labColor, labTreatment, labDiameter, labPdOd, labPdOi, 
+            labColor, labCrizal, labTreatment, labDiameter, labPdOd, labPdOi, 
             frameA, frameB, frameDbl, frameEdc, smartLabScreenshot,
             labPrismOD, labPrismOI, labBaseCurve, labFrameType, labBevelPosition,
             labFrameShape, labFrameDetails,
@@ -1043,9 +1045,10 @@ export class OrderService {
                     labStatus: true,
                     authorizedByAdmin: true,
                     prescriptionId: true,
+                    labCrizal: true,
                     items: {
                         select: {
-                            product: { select: { category: true, type: true, name: true } },
+                            product: { select: { category: true, type: true, name: true, laboratory: true } },
                             eye: true
                         }
                     },
@@ -1137,6 +1140,20 @@ export class OrderService {
                                 errors.push('Falta cargar la Distancia Pupilar (DP) en la receta.');
                             }
                         }
+                    }
+
+                    // 1b. El Crizal del par es dato OBLIGATORIO de la venta
+                    // (política 26/8/2026): el precio se calcula siempre con el
+                    // más caro, y acá queda registrado cuál va de verdad. Sin
+                    // esto no se puede cruzar el margen real contra la factura.
+                    const exigeCrizal = ventaExigeCrizal(orderForValidation.items.map((item: any) => ({
+                        categoria: item.product?.category,
+                        laboratorio: item.product?.laboratory,
+                        nombre: item.product?.name,
+                    })));
+                    const crizalFinal = labCrizal !== undefined ? labCrizal : orderForValidation.labCrizal;
+                    if (exigeCrizal && !esCrizalValido(crizalFinal)) {
+                        errors.push('Falta elegir qué Crizal llevan los cristales (Prevencia, Sapphire, Forte UV, Trío o sin antirreflejo).');
                     }
 
                     // 2. Payment validation: total paid must be >= 50% of order total.
@@ -1696,6 +1713,14 @@ export class OrderService {
 
         // SmartLab lab fields
         if (labColor !== undefined) data.labColor = labColor;
+        if (labCrizal !== undefined) {
+            // Un valor que no está en el catálogo es un bug del cliente o un
+            // payload armado a mano: mejor frenarlo acá que guardar basura.
+            if (labCrizal !== null && labCrizal !== '' && !esCrizalValido(labCrizal)) {
+                throw new Error(`Crizal desconocido: "${labCrizal}". Los válidos: ${codigosCrizal.join(', ')}.`);
+            }
+            data.labCrizal = labCrizal || null;
+        }
         if (labTreatment !== undefined) data.labTreatment = labTreatment;
         if (labDiameter !== undefined) data.labDiameter = labDiameter;
         if (labPdOd !== undefined) {

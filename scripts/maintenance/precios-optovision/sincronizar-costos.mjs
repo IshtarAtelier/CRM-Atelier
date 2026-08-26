@@ -56,7 +56,11 @@ async function main() {
 
     // Solo los que de verdad cambian: reescribir lo idéntico ensucia el
     // updatedAt de medio catálogo y hace imposible saber qué se tocó.
-    const cambian = ok.filter(p => Math.round(p.cost || 0) !== p.costoNuevo);
+    // También los que tienen el PELADO viejo o incoherente aunque el cost ya
+    // coincida (caso real: Saphire HR con baseCost de otra época): dejarlo
+    // pasar deja una bomba para el próximo recálculo desde el pelado.
+    const cambian = ok.filter(p => Math.round(p.cost || 0) !== p.costoNuevo
+        || Math.round(p.baseCost || 0) !== Math.round(p.lista));
     const iguales = ok.length - cambian.length;
 
     console.log(`${productos.length} cristales · ${ok.length} emparejados` +
@@ -77,8 +81,8 @@ async function main() {
 
     const asumidos = cambian.filter(p => p.seguro === false);
     if (asumidos.length) {
-        console.log(`\n  ⚠️  ${asumidos.length} de estos tienen el TRATAMIENTO ASUMIDO (el nombre no lo dice).`);
-        console.log(`     Si alguno no lleva Crizal Forte UV, su costo va a quedar corto.`);
+        console.log(`\n  ⚠️  ${asumidos.length} de estos no entran en la política del más caro`);
+        console.log(`     (renglón sin columnas Crizal): revisar el renglón elegido antes de aplicar.`);
     }
 
     if (!APLICAR) {

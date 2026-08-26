@@ -33,15 +33,27 @@ const eligible2x1Permitido = (valor: any, tipo: any, categoria: any): boolean =>
  *    que muestra el cálculo antes de guardar).
  *  - Sin config del laboratorio no se inventa nada: `cost` queda como venga.
  */
+/**
+ * Parse ESTRICTO del pelado. "83.400" es ambiguo (¿$83,40 o $83.400 con punto
+ * de miles es-AR?) y parseFloat elegiría $83,40 en silencio — un costo
+ * catastróficamente bajo que encima esquivaría requireValidCost porque el
+ * cálculo cortocircuita al guard. Ante cualquier formato dudoso: null, y que
+ * el guard exija el cost explícito con un error visible.
+ */
+function peladoEntrante(raw: unknown): number | null {
+    const base = typeof raw === 'number' ? raw
+        : (typeof raw === 'string' && /^\s*\d+(\.\d{1,2})?\s*$/.test(raw) ? parseFloat(raw) : NaN);
+    return Number.isFinite(base) && base > 0 ? base : null;
+}
+
 function costoDesdeElPelado(
     data: any,
     labs: LabCostConfig[],
     actual?: { laboratory?: string | null; category?: string | null } | null,
 ): number | null {
     if (data.cost !== undefined && data.cost !== null && data.cost !== '') return null;
-    const raw = data.baseCost;
-    const base = typeof raw === 'number' ? raw : parseFloat(String(raw ?? ''));
-    if (!Number.isFinite(base) || base <= 0) return null;
+    const base = peladoEntrante(data.baseCost);
+    if (base == null) return null;
     const categoria = data.category ?? actual?.category ?? '';
     if (categoria !== 'Cristal' && categoria !== 'Tratamiento') return null;
     const labName = data.laboratory !== undefined ? autoCorrectLab(data.laboratory) : actual?.laboratory;
@@ -81,7 +93,11 @@ export const ProductService = {
 
     async create(data: any) {
         // Vino el pelado sin cost: el sistema calcula el final una sola vez, acá.
-        const costCalculado = costoDesdeElPelado(data, await labsParaCosto());
+        // (La config de labs se busca solo si hace falta: el caso dominante es
+        // el formulario, que ya manda el cost calculado.)
+        const quiereCalculo = (data.cost === undefined || data.cost === null || data.cost === '')
+            && peladoEntrante(data.baseCost) != null;
+        const costCalculado = quiereCalculo ? costoDesdeElPelado(data, await labsParaCosto()) : null;
         const product = await prisma.product.create({
             data: {
                 name: data.name,
@@ -137,12 +153,21 @@ export const ProductService = {
             data = { ...data, eligible2x1: false };
         }
         // Vino un pelado nuevo sin cost explícito: se recalcula el final UNA vez.
+        // SOLO si el pelado CAMBIÓ respecto del guardado: reenviar el mismo no
+        // es una carga nueva, y recalcular igual pisaría en silencio un cost
+        // cargado a mano desde una factura real (que viene con los descuentos
+        // del laboratorio, deliberadamente abajo de la lista).
         let costCalculado: number | null = null;
-        if (data.baseCost !== undefined) {
+        const peladoNuevo = (data.cost === undefined || data.cost === null || data.cost === '')
+            ? peladoEntrante(data.baseCost)
+            : null;
+        if (peladoNuevo != null) {
             const contexto = await prisma.product.findUnique({
-                where: { id }, select: { laboratory: true, category: true },
+                where: { id }, select: { laboratory: true, category: true, baseCost: true },
             });
-            costCalculado = costoDesdeElPelado(data, await labsParaCosto(), contexto);
+            if (contexto && Math.round(peladoNuevo) !== Math.round(contexto.baseCost ?? -1)) {
+                costCalculado = costoDesdeElPelado(data, await labsParaCosto(), contexto);
+            }
         }
         const product = await prisma.product.update({
             where: { id },
@@ -200,7 +225,9 @@ export const ProductService = {
 
     async bulkCreate(items: any[]) {
         // La carga masiva es LA subida de listas: acá el pelado-sin-cost es normal.
-        const labs = await labsParaCosto();
+        const alguienCalcula = items.some(i =>
+            (i.cost === undefined || i.cost === null || i.cost === '') && peladoEntrante(i.baseCost) != null);
+        const labs = alguienCalcula ? await labsParaCosto() : [];
         const created = await prisma.$transaction(
             items.map(item => prisma.product.create({
                 data: {

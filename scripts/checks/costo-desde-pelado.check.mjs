@@ -66,6 +66,23 @@ try {
     ok(`subir un pelado nuevo ($120.000) recalcula el cost → ${final(120000).toLocaleString('es-AR')}`,
         a3.cost === final(120000) && a3.baseCost === 120000);
 
+    // ── 4b. Reenviar el MISMO pelado no pisa un cost cargado a mano ─────
+    // Un cost puesto desde una factura real viene con los descuentos del lab,
+    // deliberadamente abajo de la lista. Si reenviar el baseCost guardado (lo
+    // que hace cualquier edición) recalculara, ese cost se perdería en silencio.
+    await prisma.product.update({ where: { id: a.id }, data: { cost: 111_111 } });
+    await ProductService.update(a.id, { baseCost: 120000 });
+    const a4 = await prisma.product.findUnique({ where: { id: a.id }, select: { cost: true } });
+    ok('reenviar el MISMO pelado no pisa un cost cargado de factura', a4.cost === 111_111);
+
+    // ── 4c. Un baseCost con formato es-AR ("83.400") no calcula nada ────
+    let tiroFormato = false;
+    await ProductService.create({
+        name: 'TEST pelado formateado', category: 'Cristal', laboratory: LAB,
+        price: 100000, baseCost: '83.400',
+    }).then(p => { creados.push(p.id); }).catch(() => { tiroFormato = true; });
+    ok('un pelado "83.400" (formato ambiguo) NO calcula: exige el cost explícito', tiroFormato);
+
     // ── 5. Tratamiento → sin calibrado ──────────────────────────────────
     const c = await ProductService.create({
         name: 'TEST tratamiento', category: 'Tratamiento', laboratory: LAB,

@@ -187,10 +187,12 @@ try {
     // ═══ G. EL QUE ESCRIBE ══════════════════════════════════════════════════
     console.log('\nG. EL QUE ESCRIBE — sincronizar-costos.mjs, auditado como texto');
     const sync = readFileSync('scripts/maintenance/precios-optovision/sincronizar-costos.mjs', 'utf8');
-    const updates = [...sync.matchAll(/update "Product"[\s\S]*?where/gi)];
+    // UNA sola pasada responde las dos preguntas — y con guard de longitud en
+    // ambas: un `.every` sobre cero matches da verde vacío, o sea un chequeo
+    // que dejó de chequear sin avisar.
+    const updates = [...sync.matchAll(/update "Product"[\s\S]*?(where[^\n]*)/gi)];
     ok('ningún UPDATE del script toca `price`', updates.length > 0 && updates.every(u => !/\bprice\s*=/.test(u[0])));
-    ok('todo UPDATE lleva WHERE por id', [...sync.matchAll(/update "Product"[\s\S]*?(where[^\n]*)/gi)]
-        .every(u => /where id = /.test(u[1])));
+    ok('todo UPDATE lleva WHERE por id', updates.length > 0 && updates.every(u => /where id = /.test(u[1])));
     ok('sin --produccion se planta si DATABASE_URL no es localhost', /localhost\|127/.test(sync));
     ok('cada cambio queda firmado en el AuditLog', sync.includes('"AuditLog"'));
     // ═══ H. POLÍTICA DEL MÁS CARO ══════════════════════════════════════════
