@@ -43,12 +43,8 @@ export const CRIZALES: OpcionCrizal[] = [
         nombre: 'Crizal Forte UV',
         detalle: 'El estándar: antirreflejo resistente al rayado con protección UV. El de fábrica en Varilux.',
     },
-    {
-        code: 'TRIO_EASY_CLEAN',
-        nombre: 'Trío Easy Clean',
-        detalle: 'Antirreflejo básico, fácil de limpiar. La opción económica.',
-        sinCrizal: true,
-    },
+    // El Trío Easy Clean NO se ofrece: no es Crizal y Atelier no lo usa
+    // (Ishtar, 26/8/2026). Si algún día se usa, es re-agregar la entrada acá.
     {
         code: 'SIN_AR',
         nombre: 'Sin antirreflejo',
@@ -70,6 +66,16 @@ export interface ItemParaCrizal {
     categoria?: string | null;
     laboratorio?: string | null;
     nombre?: string | null;
+}
+
+/**
+ * En un 2x1 el Crizal es parte de la promo ("siempre con Crizal", dice hasta
+ * el catálogo del laboratorio): las opciones sin Crizal no valen. Ishtar,
+ * 26/8/2026: "no aplica a 2x1".
+ */
+export function crizalPermitidoEn2x1(code: unknown): boolean {
+    const opcion = CRIZALES.find(c => c.code === code);
+    return !!opcion && !opcion.sinCrizal;
 }
 
 /**

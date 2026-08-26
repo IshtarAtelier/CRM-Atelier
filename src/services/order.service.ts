@@ -2,7 +2,7 @@ import { sendEmail } from '@/lib/email';
 import { ContactService } from '@/services/contact.service';
 import { BotService } from '@/services/bot.service';
 import { prisma } from '@/lib/db';
-import { codigosCrizal, esCrizalValido, ventaExigeCrizal } from '@/lib/constants/crizal';
+import { codigosCrizal, crizalPermitidoEn2x1, esCrizalValido, ventaExigeCrizal } from '@/lib/constants/crizal';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
@@ -1049,7 +1049,8 @@ export class OrderService {
                     items: {
                         select: {
                             product: { select: { category: true, type: true, name: true, laboratory: true } },
-                            eye: true
+                            eye: true,
+                            price: true
                         }
                     },
                     prescription: {
@@ -1153,7 +1154,13 @@ export class OrderService {
                     })));
                     const crizalFinal = labCrizal !== undefined ? labCrizal : orderForValidation.labCrizal;
                     if (exigeCrizal && !esCrizalValido(crizalFinal)) {
-                        errors.push('Falta elegir qué Crizal llevan los cristales (Prevencia, Sapphire, Forte UV, Trío o sin antirreflejo).');
+                        errors.push('Falta elegir qué Crizal llevan los cristales (Prevencia, Sapphire, Forte UV o sin antirreflejo).');
+                    }
+                    // En un 2x1 el Crizal es parte de la promo: "sin AR" no vale.
+                    const es2x1 = orderForValidation.items.some((item: any) =>
+                        item.product?.category === 'Cristal' && item.price === 0);
+                    if (exigeCrizal && es2x1 && esCrizalValido(crizalFinal) && !crizalPermitidoEn2x1(crizalFinal)) {
+                        errors.push('Un 2x1 siempre lleva Crizal: elegí Prevencia, Sapphire o Forte UV.');
                     }
 
                     // 2. Payment validation: total paid must be >= 50% of order total.

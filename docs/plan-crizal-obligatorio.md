@@ -39,12 +39,12 @@ export const CRIZALES = [
     detalle: 'El antirreflejo más transparente (multiángulo).' },
   { code: 'CRIZAL_FORTE_UV', nombre: 'Crizal Forte UV',
     detalle: 'El estándar: antirreflejo resistente + protección UV.' },
-  { code: 'TRIO_EASY_CLEAN', nombre: 'Trío Easy Clean',
-    detalle: 'Antirreflejo básico, fácil de limpiar.' },
   { code: 'SIN_AR', nombre: 'Sin antirreflejo', detalle: 'Lente sin tratamiento.' },
 ];
 ```
-Un solo módulo alimenta selector, validación, costeo y descripciones. Lista
+Un solo módulo alimenta selector, validación, costeo y descripciones.
+El Trío Easy Clean NO se ofrece (no es Crizal, no se usa). Y en un 2x1 las
+opciones sin Crizal no valen: la promo es siempre con Crizal. Lista
 nueva del lab = editar el JSON; Crizal nuevo = una línea acá.
 
 **1b. El dato** — campo `labCrizal String?` en `Order` (mismo patrón que
