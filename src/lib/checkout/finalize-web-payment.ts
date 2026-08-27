@@ -4,6 +4,7 @@ import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getClientItemsHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
+import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { logAudit } from '@/lib/audit';
 import { AdsService } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
@@ -145,24 +146,31 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
   // pasarela dice otra cifra, se registra la de la venta y se deja la
   // diferencia anotada para que un humano la mire.
   const orderTotal = order.total;
-  const montoDifiere = Math.abs(amount - orderTotal) > 1;
+  // 12 cuotas por Mercado Pago: el comprador pagó lista × 1,10 (10% de costo
+  // financiero elegido en el checkout). El cobro esperado y el método del
+  // Payment cambian; la conversión de saldo del CRM divide por 1,10 y todo
+  // cierra contra el precio de lista de la venta.
+  const esMp12 = (ctx as any)?.mpCuotas12 === true;
+  const cobradoEsperado = esMp12 ? Math.round(orderTotal * FACTOR_MP_CUOTAS_LARGAS) : orderTotal;
+  const montoDifiere = Math.abs(amount - cobradoEsperado) > 1;
 
   await prisma.$transaction(async (tx) => {
     await tx.order.update({
       where: { id: order.id },
-      data: { status: 'WEB_PAID', paid: orderTotal },
+      data: { status: 'WEB_PAID', paid: cobradoEsperado },
     });
 
     await tx.payment.create({
       data: {
         orderId: order.id,
-        amount: orderTotal,
-        method: 'TARJETA',
+        amount: cobradoEsperado,
+        method: esMp12 ? 'MERCADO_PAGO_12_ISH' : 'TARJETA',
         cardMode: 'LINK',
         notes:
           `${paymentNote}. ID de pago: ${gatewayPaymentId}.` +
+          (esMp12 ? ' Plan 12 cuotas con 10% de costo financiero.' : '') +
           (montoDifiere
-            ? ` ⚠️ La pasarela informó $${amount.toLocaleString('es-AR')} y la venta es de $${orderTotal.toLocaleString('es-AR')}: verificar.`
+            ? ` ⚠️ La pasarela informó $${amount.toLocaleString('es-AR')} y lo esperado era $${cobradoEsperado.toLocaleString('es-AR')}: verificar.`
             : ''),
         createdById: null,
         createdByName: actorName,

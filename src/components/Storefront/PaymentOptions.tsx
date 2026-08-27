@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from "react";
 import { DollarSign } from "lucide-react";
+import { FACTOR_MP_CUOTAS_LARGAS } from "@/lib/constants/descuentos";
 
 interface PaymentOptionsProps {
   variant?: "inline" | "strip";
@@ -47,6 +48,10 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
   const installmentValue = showCalculated ? Math.round(price / numInstallments) : 0;
   const cashPriceValue = showCalculated ? Math.round(price * (1 - discountPercent / 100)) : 0;
 
+  // 12 cuotas por Mercado Pago: lista × 1,10 (10% de costo financiero, SIEMPRE
+  // aclarado — regla de negocio). El factor vive en constants/descuentos.ts.
+  const cuota12Value = showCalculated ? Math.round((price * FACTOR_MP_CUOTAS_LARGAS) / 12) : 0;
+
   const options = [
     {
       icon: (
@@ -54,10 +59,22 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
         </svg>
       ),
-      label: showCalculated 
+      label: showCalculated
         ? `${instText} de $${installmentValue.toLocaleString('es-AR')}`
         : instText,
       sub: "con tarjetas de crédito",
+      highlight: false,
+    },
+    {
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+        </svg>
+      ),
+      label: showCalculated
+        ? `12 cuotas de $${cuota12Value.toLocaleString('es-AR')}`
+        : '12 cuotas con Mercado Pago',
+      sub: "por Mercado Pago (+10% costo financiero)",
       highlight: false,
     },
     {

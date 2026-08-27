@@ -1,5 +1,6 @@
 import React from "react";
 import { ShieldCheck } from "lucide-react";
+import { FACTOR_MP_CUOTAS_LARGAS } from "@/lib/constants/descuentos";
 
 export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale, payableTotal, mercadoPagoEnabled, paywayEnabled = true }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean, payableTotal?: number, mercadoPagoEnabled?: boolean, paywayEnabled?: boolean }) {
   // El monto en el botón mata la última duda ("¿cuánto termino pagando?") justo
@@ -93,17 +94,45 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                 </p>
 
                 {formData.paymentMethod === 'MERCADO_PAGO' && (
-                  <div className="mt-3 p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3 select-none">
-                    <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-[11px] font-black uppercase tracking-wider text-stone-900 block">
-                        Tus datos no pasan por nuestro sitio
-                      </span>
-                      <span className="text-[10px] text-stone-500 block leading-relaxed">
-                        La tarjeta se carga directamente en <strong>Mercado Pago</strong>. Nosotros nunca vemos ni guardamos esos datos. Podés pagar con tarjeta, saldo de Mercado Pago o efectivo por Pago Fácil y Rapipago.
-                      </span>
+                  <>
+                    {/* Plan de cuotas: "12" recarga el total un 10% (costo
+                        financiero) — el precio final lo fija el SERVIDOR, este
+                        select solo elige el plan. */}
+                    <div className="mt-3">
+                      <select
+                        name="mpCuotas"
+                        value={formData.mpCuotas || 'hasta_6'}
+                        onChange={handleChange}
+                        className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors bg-white"
+                      >
+                        <option value="hasta_6">Hasta 6 cuotas sin interés{porCuota(6)}</option>
+                        <option value="12">
+                          12 cuotas (+10% costo financiero)
+                          {payableTotal && payableTotal > 0
+                            ? ` · 12 x $${Math.round((payableTotal * FACTOR_MP_CUOTAS_LARGAS) / 12).toLocaleString('es-AR')}`
+                            : ''}
+                        </option>
+                      </select>
+                      {formData.mpCuotas === '12' && payableTotal && payableTotal > 0 && (
+                        <p className="text-[10px] text-stone-500 mt-1.5 leading-relaxed">
+                          Con el plan de 12 cuotas el total pasa a{' '}
+                          <strong>${Math.round(payableTotal * FACTOR_MP_CUOTAS_LARGAS).toLocaleString('es-AR')}</strong>{' '}
+                          (incluye el 10% de costo financiero).
+                        </p>
+                      )}
                     </div>
-                  </div>
+                    <div className="mt-3 p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3 select-none">
+                      <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-[11px] font-black uppercase tracking-wider text-stone-900 block">
+                          Tus datos no pasan por nuestro sitio
+                        </span>
+                        <span className="text-[10px] text-stone-500 block leading-relaxed">
+                          La tarjeta se carga directamente en <strong>Mercado Pago</strong>. Nosotros nunca vemos ni guardamos esos datos. Podés pagar con tarjeta, saldo de Mercado Pago o efectivo por Pago Fácil y Rapipago.
+                        </span>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </label>

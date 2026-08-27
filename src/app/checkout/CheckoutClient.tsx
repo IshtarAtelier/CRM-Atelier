@@ -124,7 +124,10 @@ export function CheckoutClient({
     cardExp: "",
     cardCvc: "",
     cardName: "",
-    installments: "1"
+    installments: "1",
+    // Plan de cuotas de Mercado Pago: "hasta_6" (sin interés) o "12" (+10% de
+    // costo financiero; el recargo lo aplica el servidor, nunca este valor).
+    mpCuotas: "hasta_6"
   });
 
   const [webSettings, setWebSettings] = useState<any>({
