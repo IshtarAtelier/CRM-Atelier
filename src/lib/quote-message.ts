@@ -63,7 +63,12 @@ export function buildQuoteMessage(order: any, clientName: string): string {
     lineas.push(`💳 *Tarjeta (Lista): ${money(f.totalCard)}*`);
     lineas.push(`   ↳ 3 cuotas sin interés: ${money(f.installment3)} c/u`);
     lineas.push(`   ↳ 6 cuotas sin interés: ${money(f.installment6)} c/u`);
-    lineas.push(`   ↳ 12 cuotas (con 10% costo financiero): ${money(f.installment12)} c/u`);
+    // Las 12 cuotas (con 10%) se ofrecen SOLO al cotizar: un pedido que ya tiene
+    // pagos está en etapa de saldo y no se le ofrece financiación larga (regla
+    // de Ishtar, 27/8/26).
+    if (f.paidReal <= 0) {
+        lineas.push(`   ↳ 12 cuotas (con 10% costo financiero): ${money(f.installment12)} c/u`);
+    }
 
     // Si ya hay pagos hechos, el saldo va en el mismo mensaje: sin esto el
     // cliente ve el total y cree que debe todo.

@@ -401,13 +401,14 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     <span style="font-size:10px; font-weight:700;">6 Cuotas sin interés de</span>
                     <span class='inst-quota'>$${financials.installment6.toLocaleString()}</span>
                 </div>
+                ${financials.paidReal <= 0 ? `
                 <div class='inst-row' style="margin-top: 8px;">
                     <span style="font-size:10px; font-weight:700;">12 Cuotas de</span>
                     <span class='inst-quota'>$${financials.installment12.toLocaleString()}</span>
                 </div>
                 <div class='inst-row' style="margin-top: 2px;">
                     <span style="font-size:8px; color:#78716c;">12 cuotas con 10% de costo financiero (total $${financials.totalCardFinanced.toLocaleString()})</span>
-                </div>
+                </div>` : ''}
             </div>
         </div>
     </div>
@@ -754,7 +755,8 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         drawCard(m + (cardW + 4) * 2, orange, 'TARJETAS (LISTA)', financials.totalCard, financials.remainingCard, [
             `3 cuotas s/int: $${financials.installment3.toLocaleString()}`,
             `6 cuotas s/int: $${financials.installment6.toLocaleString()}`,
-            `12 cuotas: $${financials.installment12.toLocaleString()} (+10%)`
+            // 12 cuotas solo al cotizar: con pagos, el pedido está en etapa de saldo
+            ...(financials.paidReal <= 0 ? [`12 cuotas: $${financials.installment12.toLocaleString()} (+10%)`] : [])
         ]);
         
         y = cy + ch + 8;
