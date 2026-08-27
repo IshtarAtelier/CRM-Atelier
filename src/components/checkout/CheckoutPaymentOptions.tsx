@@ -107,7 +107,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                       >
                         <option value="hasta_6">Hasta 6 cuotas sin interés{porCuota(6)}</option>
                         <option value="12">
-                          12 cuotas (+10% costo financiero)
+                          Hasta 12 pagos
                           {payableTotal && payableTotal > 0
                             ? ` · 12 x $${Math.round((payableTotal * FACTOR_MP_CUOTAS_LARGAS) / 12).toLocaleString('es-AR')}`
                             : ''}
@@ -115,9 +115,8 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                       </select>
                       {formData.mpCuotas === '12' && payableTotal && payableTotal > 0 && (
                         <p className="text-[10px] text-stone-500 mt-1.5 leading-relaxed">
-                          Con el plan de 12 cuotas el total pasa a{' '}
-                          <strong>${Math.round(payableTotal * FACTOR_MP_CUOTAS_LARGAS).toLocaleString('es-AR')}</strong>{' '}
-                          (incluye el 10% de costo financiero).
+                          En el plan de 12 pagos el total es{' '}
+                          <strong>${Math.round(payableTotal * FACTOR_MP_CUOTAS_LARGAS).toLocaleString('es-AR')}</strong>.
                         </p>
                       )}
                     </div>

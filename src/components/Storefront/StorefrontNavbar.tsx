@@ -169,7 +169,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
   const showAnnouncement = isWholesaleSession || (webSettings ? webSettings.web_announcement_active : true);
   const announcementText = isWholesaleSession
     ? "Canal Mayorista Ópticas • Precios Netos • Envío y Pago a Convenir"
-    : (webSettings ? webSettings.web_announcement_text : "6 Cuotas Sin Interés • 15% OFF en Efectivo o Transferencia • Envío Gratis");
+    : (webSettings ? webSettings.web_announcement_text : "6 Cuotas Sin Interés • Hasta 12 Pagos • 15% OFF en Efectivo o Transferencia • Envío Gratis");
   const announcementLink = isWholesaleSession ? "/tienda" : (webSettings ? webSettings.web_announcement_link : "/tienda");
 
   return (
