@@ -29,12 +29,10 @@ export interface OrderFinancials {
     installment3: number;
     /** Cuota sin interés a 6 meses = totalCard / 6 */
     installment6: number;
-    /** Total financiado MP 12/18 cuotas = totalCard × 1,10 (10% de costo financiero, SIEMPRE aclararlo) */
+    /** Total financiado MP 12 cuotas = totalCard × 1,10 (10% de costo financiero, SIEMPRE aclararlo) */
     totalCardFinanced: number;
     /** Cuota MP a 12 meses = totalCardFinanced / 12 */
     installment12: number;
-    /** Cuota MP a 18 meses = totalCardFinanced / 18 */
-    installment18: number;
     paidReal: number;
     listEquivalentPaid: number;
     remainingList: number;
@@ -180,7 +178,6 @@ export class PricingService {
         return {
             totalFinanced,
             installment12: Math.round(totalFinanced / 12),
-            installment18: Math.round(totalFinanced / 18),
         };
     }
 
@@ -233,7 +230,6 @@ export class PricingService {
             installment6: Math.round(totalCard / 6),
             totalCardFinanced: cuotasMp.totalFinanced,
             installment12: cuotasMp.installment12,
-            installment18: cuotasMp.installment18,
             paidReal,
             listEquivalentPaid: Math.round(listEquivalentPaid * 100) / 100,
             remainingList: Math.round(remainingList),

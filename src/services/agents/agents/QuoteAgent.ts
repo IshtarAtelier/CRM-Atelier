@@ -18,9 +18,8 @@ interface QuoteOption {
   transferPrice: number;
   installments3: number;
   installments6: number;
-  /** Cuota MP 12/18: llevan 10% de costo financiero — quien lo muestre debe aclararlo */
+  /** Cuota MP 12: lleva 10% de costo financiero — quien lo muestre debe aclararlo */
   installments12: number;
-  installments18: number;
 }
 
 export interface QuoteResponse {
@@ -134,8 +133,7 @@ export class QuoteAgent {
           transferPrice: financials.totalTransfer,
           installments3: financials.installment3,
           installments6: financials.installment6,
-          installments12: financials.installment12,
-          installments18: financials.installment18
+          installments12: financials.installment12
         });
       }
 

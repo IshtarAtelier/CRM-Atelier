@@ -85,12 +85,11 @@ export const PLATFORM_COMMISSIONS: Record<string, number> = {
     'GO_CUOTAS': 0.20,
     'GO_CUOTAS_ISH': 0.20,
 
-    // ── Mercado Pago Ishtar (espejo de PayWay hasta confirmar la comisión real;
-    //     12/18 le cobran al cliente +10% de costo financiero aparte) ──
+    // ── Mercado Pago Ishtar (confirmado por Ishtar 27/8/26: 3 y 6 como PayWay,
+    //     12 al 25%; además el 12 le cobra al cliente +10% de costo financiero) ──
     'MERCADO_PAGO_3_ISH': 0.10,
     'MERCADO_PAGO_6_ISH': 0.20,
-    'MERCADO_PAGO_12_ISH': 0.20,
-    'MERCADO_PAGO_18_ISH': 0.20,
+    'MERCADO_PAGO_12_ISH': 0.25,
 
     // ── Sin comisión ──
     'EFECTIVO': 0,
@@ -164,22 +163,24 @@ export const METHOD_LABELS: Record<string, string> = {
     MERCADO_PAGO_3_ISH: 'MP 3c Ish',
     MERCADO_PAGO_6_ISH: 'MP 6c Ish',
     MERCADO_PAGO_12_ISH: 'MP 12c Ish (+10%)',
+    // Retirado del selector el 27/8/26 (decisión de Ishtar); el label queda por
+    // si existiera algún cobro histórico con ese método.
     MERCADO_PAGO_18_ISH: 'MP 18c Ish (+10%)',
 };
 
 /**
- * Métodos Mercado Pago Ishtar. Los de cuotas largas (12/18) llevan un costo
- * financiero fijo del 10% que paga el cliente: el precio es lista × 1,10 y la
- * conversión de saldo divide por 1,10 (ver FACTOR_MP_CUOTAS_LARGAS en
- * constants/descuentos.ts y PricingService.calculateOrderFinancials).
+ * Métodos Mercado Pago Ishtar OFRECIDOS hoy. El 12 lleva un costo financiero
+ * fijo del 10% que paga el cliente: el precio es lista × 1,10 y la conversión
+ * de saldo divide por 1,10 (esMpCuotasLargas() en payment-card.ts +
+ * FACTOR_MP_CUOTAS_LARGAS en constants/descuentos.ts). El 18 se retiró el
+ * 27/8/26 — el reconocimiento pasivo (saldos, labels) se mantiene por si
+ * vuelve o quedara un cobro cargado.
  */
 export const MERCADO_PAGO_ISH_METHODS = [
     'MERCADO_PAGO_3_ISH',
     'MERCADO_PAGO_6_ISH',
     'MERCADO_PAGO_12_ISH',
-    'MERCADO_PAGO_18_ISH',
 ];
-export const MERCADO_PAGO_CUOTAS_LARGAS = ['MERCADO_PAGO_12_ISH', 'MERCADO_PAGO_18_ISH'];
 
 // Shared Product Categories
 export const PRODUCT_CATEGORIES = [
