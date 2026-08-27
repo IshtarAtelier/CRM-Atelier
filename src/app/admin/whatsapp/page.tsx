@@ -779,10 +779,7 @@ function WhatsAppPageContent() {
 
                 socket.on('new_message_received', ({ chatId, name, phone, content }: { chatId: string, name: string, phone: string, content: string }) => {
                     if (selectedChatRef.current?.id !== chatId) {
-                        try {
-                            const audio = new Audio('/sounds/notification.ogg');
-                            audio.play().catch(() => {});
-                        } catch (e) {}
+                        // Sin sonido (pedido de Ishtar 27/8): el aviso visual alcanza.
 
                         const title = `📩 Mensaje de ${name}`;
                         const icon = "https://cdn-icons-png.flaticon.com/512/124/124034.png";

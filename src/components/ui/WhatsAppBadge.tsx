@@ -61,13 +61,9 @@ export function WhatsAppBadge() {
             socket.on('new_message_received', ({ name, content }: any) => {
                 fetchCount(); // Update badge instantly
 
-                // Play sound if not on whatsapp page (since page.tsx already plays it if on page)
+                // Sin sonido (pedido de Ishtar 27/8): queda el badge y la
+                // notificación del navegador, que no suenan.
                 if (!window.location.pathname.includes('/admin/whatsapp')) {
-                    try {
-                        const audio = new Audio('/sounds/notification.ogg');
-                        audio.play().catch(() => {});
-                    } catch (e) {}
-                    
                     if ("Notification" in window && Notification.permission === "granted") {
                         new Notification(`📩 Mensaje de ${name}`, { 
                             body: content, 
