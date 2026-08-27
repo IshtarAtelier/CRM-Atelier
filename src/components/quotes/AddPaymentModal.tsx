@@ -357,7 +357,13 @@ export default function AddPaymentModal({
                                             <button
                                                 key={m.id}
                                                 type="button"
-                                                onClick={() => setMethod(m.id)}
+                                                onClick={() => {
+                                                    setMethod(m.id);
+                                                    // MP se cobra SOLO por QR o link de pago (el Point todavía
+                                                    // no tiene las promos cargadas): el comprobante es digital,
+                                                    // con nº de operación — nunca ticket de posnet.
+                                                    if (m.id.includes('MERCADO_PAGO')) setCardMode('LINK');
+                                                }}
                                                 className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all gap-2 ${
                                                     isSelected ? style.active : style.inactive
                                                 }`}
