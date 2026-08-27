@@ -13,6 +13,7 @@ import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { notifyPaymentFailed } from '@/lib/payment-failed-alert';
 import { enforceRateLimit } from '@/lib/api-guard';
+import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { ADMIN_ALERT_EMAILS, WHOLESALE_MIN_PIECES } from '@/lib/constants';
 import { AdsService } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
@@ -864,7 +865,14 @@ export async function POST(req: Request) {
         );
       }
 
-      const mpTotal = finalItemsTotal;
+      // Cuotas elegidas en NUESTRO checkout: "12" = 12 cuotas con el 10% de
+      // costo financiero (acuerdo MP de Ishtar, ago 2026). El recargo se aplica
+      // ACÁ, en el servidor — lo que mande el navegador solo elige el plan,
+      // nunca el precio. Cualquier otro valor = hasta 6 sin interés (default).
+      const mpCuotas12 = customer.mpCuotas === '12';
+      const mpTotal = mpCuotas12
+        ? Math.round(finalItemsTotal * FACTOR_MP_CUOTAS_LARGAS)
+        : finalItemsTotal;
 
       // Contexto para el webhook: llega desde un servidor de Mercado Pago, sin
       // el carrito y sin el navegador del comprador. Lo que no se guarde acá,
@@ -881,6 +889,10 @@ export async function POST(req: Request) {
           zip: customer.zip,
           paymentMethod: 'MERCADO_PAGO',
         },
+        // El webhook necesita saber si el total lleva el 10% de las 12 cuotas:
+        // define el método del Payment (MERCADO_PAGO_12_ISH vs TARJETA) y el
+        // monto esperado al conciliar.
+        mpCuotas12,
         items: sanitizedItems,
         shippingMethodLabel,
         emailTotal: mpTotal,
@@ -908,6 +920,7 @@ export async function POST(req: Request) {
         const preference = await createPreference({
           orderId: order.id,
           amount: mpTotal,
+          installments: mpCuotas12 ? { max: 12, default: 12 } : { max: 6 },
           description: `Atelier Óptica · Pedido #${order.id.slice(-6).toUpperCase()}`,
           payer: {
             firstName: customer.firstName,

@@ -140,6 +140,8 @@ export interface CreatePreferenceInput {
    * coincidencia y valdría mucho menos para las campañas.
    */
   tracking?: Record<string, string | null | undefined>;
+  /** Cuotas a ofrecer en la pantalla de MP (tope y preseleccionada). */
+  installments?: { max: number; default?: number } | null;
 }
 
 export interface MpPreference {
@@ -191,6 +193,17 @@ export async function createPreference(input: CreatePreferenceInput): Promise<Mp
         ? { phone: { area_code: '', number: input.payer.phone.replace(/\D/g, '') } }
         : {}),
     },
+    // Cuotas: tope (y default) que ve el comprador en la pantalla de MP. Para
+    // la opción "12 cuotas (+10%)" el monto YA viene recargado y acá se fija
+    // 12/12 para que la pantalla de MP ofrezca exactamente ese plan.
+    ...(input.installments
+      ? {
+          payment_methods: {
+            installments: input.installments.max,
+            ...(input.installments.default ? { default_installments: input.installments.default } : {}),
+          },
+        }
+      : {}),
     external_reference: input.orderId,
     metadata: {
       order_id: input.orderId,
