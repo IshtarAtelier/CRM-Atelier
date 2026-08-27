@@ -95,30 +95,33 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
 
                 {formData.paymentMethod === 'MERCADO_PAGO' && (
                   <>
-                    {/* Plan de cuotas: "12" recarga el total un 10% (costo
-                        financiero) — el precio final lo fija el SERVIDOR, este
-                        select solo elige el plan. */}
-                    <div className="mt-3">
-                      <select
-                        name="mpCuotas"
-                        value={formData.mpCuotas || 'hasta_6'}
-                        onChange={handleChange}
-                        className="w-full border border-stone-200 rounded-lg p-3 text-sm focus:border-black focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors bg-white"
-                      >
-                        <option value="hasta_6">Hasta 6 cuotas sin interés{porCuota(6)}</option>
-                        <option value="12">
-                          Hasta 12 pagos
-                          {payableTotal && payableTotal > 0
-                            ? ` · 12 x $${Math.round((payableTotal * FACTOR_MP_CUOTAS_LARGAS) / 12).toLocaleString('es-AR')}`
-                            : ''}
-                        </option>
-                      </select>
-                      {formData.mpCuotas === '12' && payableTotal && payableTotal > 0 && (
-                        <p className="text-[10px] text-stone-500 mt-1.5 leading-relaxed">
-                          En el plan de 12 pagos el total es{' '}
-                          <strong>${Math.round(payableTotal * FACTOR_MP_CUOTAS_LARGAS).toLocaleString('es-AR')}</strong>.
-                        </p>
-                      )}
+                    {/* Plan de cuotas SIEMPRE a la vista (pedido de Ishtar: el
+                        desplegable escondía las opciones y "el valor solo no
+                        vende"). Dos tarjetas con el monto de CADA cuota; el
+                        precio final lo fija el SERVIDOR, esto solo elige plan. */}
+                    <div className="mt-3 flex flex-col gap-2">
+                      <label className={`flex items-center justify-between gap-3 border-2 p-3 rounded-lg cursor-pointer transition-colors ${(formData.mpCuotas || 'hasta_6') === 'hasta_6' ? 'border-black bg-white' : 'border-stone-200 bg-white hover:border-stone-300'}`}>
+                        <span className="flex items-center gap-2.5">
+                          <input type="radio" name="mpCuotas" value="hasta_6" checked={(formData.mpCuotas || 'hasta_6') === 'hasta_6'} onChange={handleChange} className="accent-black" />
+                          <span>
+                            <span className="text-[13px] font-bold block">Hasta 6 cuotas sin interés</span>
+                            {payableTotal && payableTotal > 0 && (
+                              <span className="text-[11px] text-stone-500 block">6 x ${Math.round(payableTotal / 6).toLocaleString('es-AR')} · total ${Math.round(payableTotal).toLocaleString('es-AR')}</span>
+                            )}
+                          </span>
+                        </span>
+                      </label>
+                      <label className={`flex items-center justify-between gap-3 border-2 p-3 rounded-lg cursor-pointer transition-colors ${formData.mpCuotas === '12' ? 'border-black bg-white' : 'border-stone-200 bg-white hover:border-stone-300'}`}>
+                        <span className="flex items-center gap-2.5">
+                          <input type="radio" name="mpCuotas" value="12" checked={formData.mpCuotas === '12'} onChange={handleChange} className="accent-black" />
+                          <span>
+                            <span className="text-[13px] font-bold block">Hasta 12 pagos</span>
+                            {payableTotal && payableTotal > 0 && (
+                              <span className="text-[11px] text-stone-500 block">12 x ${Math.round((payableTotal * FACTOR_MP_CUOTAS_LARGAS) / 12).toLocaleString('es-AR')} · total ${Math.round(payableTotal * FACTOR_MP_CUOTAS_LARGAS).toLocaleString('es-AR')}</span>
+                            )}
+                          </span>
+                        </span>
+                      </label>
                     </div>
                     <div className="mt-3 p-3.5 bg-stone-50 border border-stone-200 rounded-xl flex items-start gap-3 select-none">
                       <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
@@ -254,8 +257,12 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
         ) : formData.paymentMethod === 'MERCADO_PAGO' ? (
           // Dice que se sale del sitio, porque se sale del sitio. El botón que
           // promete "pagar" y en cambio redirige es el que hace abandonar.
+          // Con el plan de 12 el botón muestra el TOTAL DEL PLAN (con recargo):
+          // el número del botón tiene que ser el que se va a pagar, siempre.
           <>
-            {montoFmt ? `Continuar a Mercado Pago · ${montoFmt}` : "Continuar a Mercado Pago"} <ShieldCheck className="w-4 h-4" />
+            {payableTotal && payableTotal > 0
+              ? `Continuar a Mercado Pago · $${Math.round(formData.mpCuotas === '12' ? payableTotal * FACTOR_MP_CUOTAS_LARGAS : payableTotal).toLocaleString('es-AR')}`
+              : "Continuar a Mercado Pago"} <ShieldCheck className="w-4 h-4" />
           </>
         ) : (
           <>
