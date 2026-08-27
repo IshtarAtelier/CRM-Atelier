@@ -9,7 +9,14 @@
 
 import { useState, useEffect } from "react";
 import { DollarSign } from "lucide-react";
-import { FACTOR_MP_CUOTAS_LARGAS } from "@/lib/constants/descuentos";
+import { PricingService } from "@/services/PricingService";
+
+/** Icono de tarjeta compartido por las dos filas de cuotas (una sola copia). */
+const IconoTarjeta = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+  </svg>
+);
 
 interface PaymentOptionsProps {
   variant?: "inline" | "strip";
@@ -48,17 +55,13 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
   const installmentValue = showCalculated ? Math.round(price / numInstallments) : 0;
   const cashPriceValue = showCalculated ? Math.round(price * (1 - discountPercent / 100)) : 0;
 
-  // 12 cuotas por Mercado Pago: lista × 1,10 (10% de costo financiero, SIEMPRE
-  // aclarado — regla de negocio). El factor vive en constants/descuentos.ts.
-  const cuota12Value = showCalculated ? Math.round((price * FACTOR_MP_CUOTAS_LARGAS) / 12) : 0;
+  // 12 cuotas por Mercado Pago: el cálculo vive en PricingService (regla del
+  // proyecto: cálculo de plata SOLO ahí; la cuota mostrada ya incluye el recargo).
+  const cuota12Value = showCalculated ? PricingService.cuotasMpLargas(price).installment12 : 0;
 
   const options = [
     {
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
-        </svg>
-      ),
+      icon: <IconoTarjeta />,
       label: showCalculated
         ? `${instText} de $${installmentValue.toLocaleString('es-AR')}`
         : instText,
@@ -77,11 +80,7 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
       highlight: true,
     },
     {
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
-        </svg>
-      ),
+      icon: <IconoTarjeta />,
       label: showCalculated
         ? `Hasta 12 pagos de $${cuota12Value.toLocaleString('es-AR')}`
         : 'Hasta 12 pagos con Mercado Pago',

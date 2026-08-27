@@ -56,6 +56,8 @@ export interface CheckoutContext {
   shippingMethodLabel: string;
   /** Total que se le cobró. Es el que va en el mail y en la medición. */
   emailTotal: number;
+  /** El total cobrado lleva el 10% de costo financiero del plan de 12 cuotas MP. */
+  mpCuotas12?: boolean;
   /** Atribución capturada en el navegador al iniciar el pago. */
   tracking?: {
     analyticsSessionId?: string | null;
@@ -89,6 +91,12 @@ interface FinalizeInput {
   actorName: string;
   /** Texto para la nota del Payment, p. ej. 'Mercado Pago · visa · 3 cuotas'. */
   paymentNote: string;
+  /**
+   * Cuotas reales del pago según la pasarela (solo Mercado Pago las informa).
+   * Definen el método del Payment (MERCADO_PAGO_3/6_ISH) para que reportes y
+   * comisiones apliquen el costo de plataforma correcto del acuerdo MP.
+   */
+  gatewayInstallments?: number | null;
 }
 
 /**
@@ -150,9 +158,23 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
   // financiero elegido en el checkout). El cobro esperado y el método del
   // Payment cambian; la conversión de saldo del CRM divide por 1,10 y todo
   // cierra contra el precio de lista de la venta.
-  const esMp12 = (ctx as any)?.mpCuotas12 === true;
+  // La señal PRIMARIA es el monto del intent (lo que se mandó a cobrar a MP,
+  // guardado al crear la preferencia): sobrevive aunque el checkoutContext no
+  // parsee. El flag del ctx queda como respaldo.
+  const esMp12 = ctx?.mpCuotas12 === true
+    || Math.abs((intent.amount || 0) - Math.round(orderTotal * FACTOR_MP_CUOTAS_LARGAS)) <= 1;
   const cobradoEsperado = esMp12 ? Math.round(orderTotal * FACTOR_MP_CUOTAS_LARGAS) : orderTotal;
   const montoDifiere = Math.abs(amount - cobradoEsperado) > 1;
+  // Método según el plan real: 12 con recargo → MP_12; 3/6 informadas por la
+  // pasarela → MP_3/MP_6 (sus comisiones del acuerdo difieren de TARJETA);
+  // 1 pago u otra pasarela (Payway no informa cuotas acá) → TARJETA, como siempre.
+  const metodoPago = esMp12
+    ? 'MERCADO_PAGO_12_ISH'
+    : input.gatewayInstallments === 6
+      ? 'MERCADO_PAGO_6_ISH'
+      : input.gatewayInstallments === 3
+        ? 'MERCADO_PAGO_3_ISH'
+        : 'TARJETA';
 
   await prisma.$transaction(async (tx) => {
     await tx.order.update({
@@ -164,7 +186,7 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
       data: {
         orderId: order.id,
         amount: cobradoEsperado,
-        method: esMp12 ? 'MERCADO_PAGO_12_ISH' : 'TARJETA',
+        method: metodoPago,
         cardMode: 'LINK',
         notes:
           `${paymentNote}. ID de pago: ${gatewayPaymentId}.` +
@@ -180,7 +202,7 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
     await tx.notification.create({
       data: {
         type: 'INVOICE_REQUEST',
-        message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${orderTotal.toLocaleString('es-AR')}`,
+        message: `Factura solicitada automáticamente para la Venta #${order.id.slice(-4).toUpperCase()} por un total de $${cobradoEsperado.toLocaleString('es-AR')}${esMp12 ? ' (12 cuotas MP, incluye 10% de costo financiero)' : ''}`,
         orderId: order.id,
         requestedBy: actorName,
         status: 'PENDING',
@@ -190,7 +212,7 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
     await tx.notification.create({
       data: {
         type: 'WEB_SALE',
-        message: `Nueva Venta Web #${order.id.slice(-4).toUpperCase()} de ${client?.name || 'Cliente'} por $${orderTotal.toLocaleString('es-AR')} (Tarjeta - PAGADA vía Mercado Pago). Revisar y confirmar en Ventas.`,
+        message: `Nueva Venta Web #${order.id.slice(-4).toUpperCase()} de ${client?.name || 'Cliente'} por $${cobradoEsperado.toLocaleString('es-AR')} (PAGADA vía Mercado Pago). Revisar y confirmar en Ventas.`,
         orderId: order.id,
         requestedBy: 'Sistema (Web)',
         status: 'PENDING',
@@ -220,7 +242,7 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
       data: {
         clientId: order.clientId,
         type: 'SISTEMA',
-        content: `💳 Pago acreditado por ${actorName} — Orden #${order.id.slice(-4).toUpperCase()} por $${orderTotal.toLocaleString('es-AR')} (${paymentNote}).`,
+        content: `💳 Pago acreditado por ${actorName} — Orden #${order.id.slice(-4).toUpperCase()} por $${cobradoEsperado.toLocaleString('es-AR')} (${paymentNote}).`,
         userId: null,
         userName: actorName,
       },
@@ -260,7 +282,7 @@ export async function finalizeWebPayment(input: FinalizeInput): Promise<Finalize
     sendEmail({
       to: ADMIN_ALERT_EMAILS,
       subject: `⚠️ Venta web #${order.id.slice(-4).toUpperCase()} acreditada sin email al cliente`,
-      html: `<p>Se acreditó el pago de Mercado Pago <b>${gatewayPaymentId}</b> por <b>$${orderTotal.toLocaleString('es-AR')}</b> en la orden <b>${order.id}</b>, pero faltaba el contexto del checkout y no se le pudo enviar el correo de confirmación al cliente.</p>
+      html: `<p>Se acreditó el pago de Mercado Pago <b>${gatewayPaymentId}</b> por <b>$${cobradoEsperado.toLocaleString('es-AR')}</b> en la orden <b>${order.id}</b>, pero faltaba el contexto del checkout y no se le pudo enviar el correo de confirmación al cliente.</p>
              <p>La venta está registrada y cobrada. Hay que avisarle al cliente a mano.</p>`,
     }).catch((err) => console.error('Error avisando la falta de contexto:', err));
   }

@@ -733,7 +733,7 @@ export default function VentasPage() {
         const ok = window.confirm(
             esTarjeta
                 ? `¿Confirmar la Venta Web #${order.id.slice(-4).toUpperCase()} de ${order.client?.name || 'Cliente'}?\n\n` +
-                  `El pago con tarjeta de $${(order.total || 0).toLocaleString('es-AR')} ya fue acreditado${webPaymentGatewayLabel(order.payments) ? ` vía ${webPaymentGatewayLabel(order.payments)}` : ''}.\n\n` +
+                  `El pago con tarjeta de $${(order.paid || order.total || 0).toLocaleString('es-AR')} ya fue acreditado${webPaymentGatewayLabel(order.payments) ? ` vía ${webPaymentGatewayLabel(order.payments)}` : ''}.\n\n` +
                   `Al confirmar, la venta pasa al flujo normal de preparación.`
                 : `¿Confirmar la Venta Web #${order.id.slice(-4).toUpperCase()} de ${order.client?.name || 'Cliente'}?\n\n` +
                   `Se registrará el pago por transferencia de $${pendiente.toLocaleString('es-AR')} y la venta pasará al flujo normal.\n\n` +
@@ -1497,7 +1497,7 @@ export default function VentasPage() {
                                                 {order.status === 'WEB_PAID' ? (
                                                     <>
                                                         <p className="text-[9px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">🌐 Venta web con tarjeta — pago acreditado{webPaymentGatewayLabel(order.payments) ? ` vía ${webPaymentGatewayLabel(order.payments)}` : ''} ✓</p>
-                                                        <p className="text-[10px] font-bold text-stone-500 mt-0.5">El pago de ${(order.total || 0).toLocaleString('es-AR')} ya está registrado. Revisá el pedido y confirmá para pasarlo al flujo de preparación.</p>
+                                                        <p className="text-[10px] font-bold text-stone-500 mt-0.5">El pago de ${(order.paid || order.total || 0).toLocaleString('es-AR')} ya está registrado. Revisá el pedido y confirmá para pasarlo al flujo de preparación.</p>
                                                     </>
                                                 ) : (
                                                     <>
