@@ -10,6 +10,7 @@ import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
+import { PricingService } from "@/services/PricingService";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
 // devolvía una grilla vacía. Tienen su propia página, así que ahora llevan ahí.
@@ -694,17 +695,23 @@ export function TiendaClient({
 
                         return (
                           <div className="pt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+                            {/* Orden de venta (pedido de Ishtar, 27/8): primero 12,
+                                después 6, después transferencia — renglones limpios,
+                                sin abreviaturas. Los valores salen de PricingService. */}
                             <div className="flex flex-col gap-0.5">
                               <p className="flex flex-col">
                                 <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">
-                                  {installmentsCount} cuotas de
+                                  12 pagos con Mercado Pago
                                 </span>
                                 <span className="text-[15px] font-black text-stone-900 tracking-tight whitespace-nowrap">
-                                  ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
+                                  ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")}
                                 </span>
                               </p>
                               <p className="text-[10px] text-stone-500 font-medium">
-                                ${Math.round((oferta ? p.salePrice : base) * (1 - discountRate)).toLocaleString("es-AR")} eft/transf
+                                {installmentsCount} cuotas sin interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
+                              </p>
+                              <p className="text-[10px] text-stone-500 font-medium">
+                                ${Math.round((oferta ? p.salePrice : base) * (1 - discountRate)).toLocaleString("es-AR")} efectivo o transferencia
                                 {" "}
                                 <span className="text-stone-400">
                                   (−{webSettings.web_promo_cash_discount}%)

@@ -24,16 +24,17 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
       {!isWholesale && (
         <div className="flex flex-col gap-2 mb-6">
           {/* Números RESUELTOS (regla de Ishtar: el cliente no calcula nada):
-              cada chip dice cuánto por cuota, sobre el subtotal con cupón. */}
-          <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg px-4 py-3">
-            <CreditCard className="w-4 h-4 text-stone-700 shrink-0" />
-            <p className="text-xs font-semibold flex-1 capitalize">{webSettings?.web_promo_installments || "6 cuotas sin interés"}</p>
-            <span className="text-[9px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1 rounded">6 x ${Math.round(subtotalAfterCoupon / 6).toLocaleString("es-AR")}</span>
-          </div>
+              cada chip dice cuánto por cuota, sobre el subtotal con cupón.
+              Orden de venta (27/8): primero 12, después 6, después contado. */}
           <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg px-4 py-3">
             <CreditCard className="w-4 h-4 text-stone-700 shrink-0" />
             <p className="text-xs font-semibold flex-1">Hasta 12 pagos por Mercado Pago</p>
             <span className="text-[9px] font-black uppercase tracking-widest bg-sky-600 text-white px-2 py-1 rounded">12 x ${PricingService.cuotasMpLargas(subtotalAfterCoupon).installment12.toLocaleString("es-AR")}</span>
+          </div>
+          <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg px-4 py-3">
+            <CreditCard className="w-4 h-4 text-stone-700 shrink-0" />
+            <p className="text-xs font-semibold flex-1 capitalize">{webSettings?.web_promo_installments || "6 cuotas sin interés"}</p>
+            <span className="text-[9px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1 rounded">6 x ${Math.round(subtotalAfterCoupon / 6).toLocaleString("es-AR")}</span>
           </div>
           <div className="flex items-center gap-3 bg-emerald-50/60 border border-emerald-200 rounded-lg px-4 py-3">
             <BadgePercent className="w-4 h-4 text-emerald-600 shrink-0" />

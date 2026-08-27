@@ -59,7 +59,18 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
   // proyecto: cálculo de plata SOLO ahí; la cuota mostrada ya incluye el recargo).
   const cuota12Value = showCalculated ? PricingService.cuotasMpLargas(price).installment12 : 0;
 
+  // Orden de venta (pedido de Ishtar, 27/8): primero las 12 (la cuota más
+  // chica engancha), después las 6 sin interés, y el contado con su ahorro
+  // cierra como destacado.
   const options = [
+    {
+      icon: <IconoTarjeta />,
+      label: showCalculated
+        ? `Hasta 12 pagos de $${cuota12Value.toLocaleString('es-AR')}`
+        : 'Hasta 12 pagos con Mercado Pago',
+      sub: "por Mercado Pago",
+      highlight: false,
+    },
     {
       icon: <IconoTarjeta />,
       label: showCalculated
@@ -68,9 +79,6 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
       sub: "con tarjetas de crédito",
       highlight: false,
     },
-    // Orden de venta (pedido de Ishtar): lo que vende va primero — 6 sin
-    // interés, después el contado con su ahorro, y las 12 al final como
-    // estirador del presupuesto. El valor de 12 solo, no vende.
     {
       icon: <DollarSign className="w-4 h-4" strokeWidth={1.5} />,
       label: showCalculated
@@ -78,14 +86,6 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
         : `${discountPercent}% de descuento`,
       sub: showCalculated ? `ahorrás ${discountPercent}% pagando al contado` : "transferencia bancaria o efectivo",
       highlight: true,
-    },
-    {
-      icon: <IconoTarjeta />,
-      label: showCalculated
-        ? `Hasta 12 pagos de $${cuota12Value.toLocaleString('es-AR')}`
-        : 'Hasta 12 pagos con Mercado Pago',
-      sub: "por Mercado Pago",
-      highlight: false,
     },
   ];
 

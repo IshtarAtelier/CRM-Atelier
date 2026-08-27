@@ -217,7 +217,28 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                 
                 <div className="mt-1 pr-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-col gap-0.5">
-                    {item.price.includes("$") ? (
+                    {/* Orden de venta (pedido de Ishtar, 27/8): primero 12,
+                        después 6, después transferencia — cada una en su
+                        renglón, nada abreviado ni apretado. */}
+                    {item.rawPrice ? (
+                      (() => {
+                        const v = PricingService.preciosVidriera(item.rawPrice, 15);
+                        return (
+                          <p className="flex flex-col gap-0.5">
+                            <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">12 pagos con Mercado Pago</span>
+                            <span className="text-[13px] font-black text-stone-900 tracking-tight whitespace-nowrap">
+                              ${v.cuota12.toLocaleString("es-AR")}
+                            </span>
+                            <span className="text-[10px] text-stone-500 font-medium">
+                              6 cuotas sin interés de ${v.cuota6.toLocaleString("es-AR")}
+                            </span>
+                            <span className="text-[10px] text-stone-500 font-medium">
+                              ${v.contado.toLocaleString("es-AR")} efectivo o transferencia
+                            </span>
+                          </p>
+                        );
+                      })()
+                    ) : item.price.includes("$") ? (
                       <p className="flex flex-col">
                         <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">
                           {item.price.slice(0, item.price.indexOf("$")).trim()}
@@ -229,11 +250,6 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     ) : (
                       <p className="text-[13px] font-black text-stone-900 tracking-tight">
                         {item.price}
-                      </p>
-                    )}
-                    {item.rawPrice && (
-                      <p className="text-[10px] text-stone-500 font-medium">
-                        ${PricingService.preciosVidriera(item.rawPrice, 15).contado.toLocaleString("es-AR")} eft/transf · 12 de ${PricingService.preciosVidriera(item.rawPrice, 15).cuota12.toLocaleString("es-AR")}
                       </p>
                     )}
                   </div>
