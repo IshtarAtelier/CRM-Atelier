@@ -23,6 +23,16 @@ export const OPCIONES_DESCUENTO_TRANSFERENCIA = [0, 5, 10, 15, 20];
 export const OPCIONES_RECARGO_CUOTAS = [0, 5, 10];
 
 /**
+ * Costo financiero de las cuotas largas de Mercado Pago (12 y 18): el cliente
+ * paga lista + este % — y todo lugar que lo muestre tiene que ACLARARLO.
+ * No es negociable por venta (a diferencia de `discountCard`): es fijo, y la
+ * conversión de saldos divide por (1 + este %) para los pagos MP 12/18.
+ */
+export const RECARGO_MP_CUOTAS_LARGAS = 10;
+/** Factor listo para multiplicar/dividir: 1.10 */
+export const FACTOR_MP_CUOTAS_LARGAS = 1 + RECARGO_MP_CUOTAS_LARGAS / 100;
+
+/**
  * Lo máximo que un vendedor puede abaratar la venta por su cuenta.
  *
  * `discountCard` es un RECARGO, no un descuento: sube el precio. Por eso su

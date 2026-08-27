@@ -432,6 +432,8 @@ export default function QuoteSummary({
             'TRANSFERENCIA_ALTERNATIVA': 'Transf. Alt.',
             'TRANSFER': 'Transferencia', 'DEBIT': 'Débito', 'CASH': 'Efectivo',
             'CREDIT_3': 'Tarjeta 3 cuotas', 'CREDIT_6': 'Tarjeta 6 cuotas', 'PLAN_Z': 'Plan Z',
+            'MERCADO_PAGO_3_ISH': 'MP 3 Ish', 'MERCADO_PAGO_6_ISH': 'MP 6 Ish',
+            'MERCADO_PAGO_12_ISH': 'MP 12 Ish (+10%)', 'MERCADO_PAGO_18_ISH': 'MP 18 Ish (+10%)',
         };
         return labels[method] || method;
     };
@@ -982,6 +984,12 @@ export default function QuoteSummary({
                                         </p>
                                         <p className="text-[9px] font-black text-orange-500">
                                             6 cuotas sin interés: ${financials.installment6.toLocaleString()}
+                                        </p>
+                                        <p className="text-[9px] font-black text-sky-600">
+                                            12 cuotas: ${financials.installment12.toLocaleString()} (+10%)
+                                        </p>
+                                        <p className="text-[9px] font-black text-sky-600">
+                                            18 cuotas: ${financials.installment18.toLocaleString()} (+10%)
                                         </p>
                                     </div>
                                 )}

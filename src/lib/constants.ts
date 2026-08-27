@@ -85,6 +85,13 @@ export const PLATFORM_COMMISSIONS: Record<string, number> = {
     'GO_CUOTAS': 0.20,
     'GO_CUOTAS_ISH': 0.20,
 
+    // ── Mercado Pago Ishtar (espejo de PayWay hasta confirmar la comisión real;
+    //     12/18 le cobran al cliente +10% de costo financiero aparte) ──
+    'MERCADO_PAGO_3_ISH': 0.10,
+    'MERCADO_PAGO_6_ISH': 0.20,
+    'MERCADO_PAGO_12_ISH': 0.20,
+    'MERCADO_PAGO_18_ISH': 0.20,
+
     // ── Sin comisión ──
     'EFECTIVO': 0,
     'CASH': 0,
@@ -150,7 +157,25 @@ export const METHOD_LABELS: Record<string, string> = {
     NARANJA_Z_YANI: 'Naranja Z Yani',
     GO_CUOTAS: 'Go Cuotas',
     GO_CUOTAS_ISH: 'Go Cuotas Ish',
+    MERCADO_PAGO_3_ISH: 'MP 3c Ish',
+    MERCADO_PAGO_6_ISH: 'MP 6c Ish',
+    MERCADO_PAGO_12_ISH: 'MP 12c Ish (+10%)',
+    MERCADO_PAGO_18_ISH: 'MP 18c Ish (+10%)',
 };
+
+/**
+ * Métodos Mercado Pago Ishtar. Los de cuotas largas (12/18) llevan un costo
+ * financiero fijo del 10% que paga el cliente: el precio es lista × 1,10 y la
+ * conversión de saldo divide por 1,10 (ver FACTOR_MP_CUOTAS_LARGAS en
+ * constants/descuentos.ts y PricingService.calculateOrderFinancials).
+ */
+export const MERCADO_PAGO_ISH_METHODS = [
+    'MERCADO_PAGO_3_ISH',
+    'MERCADO_PAGO_6_ISH',
+    'MERCADO_PAGO_12_ISH',
+    'MERCADO_PAGO_18_ISH',
+];
+export const MERCADO_PAGO_CUOTAS_LARGAS = ['MERCADO_PAGO_12_ISH', 'MERCADO_PAGO_18_ISH'];
 
 // Shared Product Categories
 export const PRODUCT_CATEGORIES = [

@@ -401,6 +401,17 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                     <span style="font-size:10px; font-weight:700;">6 Cuotas sin interés de</span>
                     <span class='inst-quota'>$${financials.installment6.toLocaleString()}</span>
                 </div>
+                <div class='inst-row' style="margin-top: 8px;">
+                    <span style="font-size:10px; font-weight:700;">12 Cuotas de</span>
+                    <span class='inst-quota'>$${financials.installment12.toLocaleString()}</span>
+                </div>
+                <div class='inst-row' style="margin-top: 2px;">
+                    <span style="font-size:10px; font-weight:700;">18 Cuotas de</span>
+                    <span class='inst-quota'>$${financials.installment18.toLocaleString()}</span>
+                </div>
+                <div class='inst-row' style="margin-top: 2px;">
+                    <span style="font-size:8px; color:#78716c;">12 y 18 cuotas con 10% de costo financiero (total $${financials.totalCardFinanced.toLocaleString()})</span>
+                </div>
             </div>
         </div>
     </div>

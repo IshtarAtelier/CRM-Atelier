@@ -16,6 +16,8 @@ const CARD_TERMINAL_METHODS = [
     'PAY_WAY_6_ISH', 'PAY_WAY_6_YANI', 'PAY_WAY_3_ISH', 'PAY_WAY_3_YANI',
     'NARANJA_Z_ISH', 'NARANJA_Z_YANI', 'GO_CUOTAS', 'GO_CUOTAS_ISH',
     'CREDIT', 'CREDIT_3', 'CREDIT_6', 'DEBIT', 'PLAN_Z',
+    // El comprobante de Mercado Pago trae el CUIT de MP, no el de facturación
+    'MERCADO_PAGO_3_ISH', 'MERCADO_PAGO_6_ISH', 'MERCADO_PAGO_12_ISH', 'MERCADO_PAGO_18_ISH',
 ];
 
 /**

@@ -1,4 +1,5 @@
 import { hasActive2x1Promo, pick2x1FrameDiscount, safePrice } from '@/lib/promo-utils';
+import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 
 export interface CartItem {
     productId: string | null;
@@ -27,6 +28,12 @@ export interface OrderFinancials {
     installment3: number;
     /** Cuota sin interés a 6 meses = totalCard / 6 */
     installment6: number;
+    /** Total financiado MP 12/18 cuotas = totalCard × 1,10 (10% de costo financiero, SIEMPRE aclararlo) */
+    totalCardFinanced: number;
+    /** Cuota MP a 12 meses = totalCardFinanced / 12 */
+    installment12: number;
+    /** Cuota MP a 18 meses = totalCardFinanced / 18 */
+    installment18: number;
     paidReal: number;
     listEquivalentPaid: number;
     remainingList: number;
@@ -164,12 +171,19 @@ export class PricingService {
             // Coincidencias robustas para métodos de pago
             const isCash = ['CASH', 'EFECTIVO', 'EFVO'].includes(method);
             const isTrans = ['TRANSFER', 'TRANSFERENCIA', 'TRANSF', 'DEPOSITO'].some(m => method.includes(m));
+            // MP 12/18 cuotas: el cliente paga lista × 1,10 (costo financiero fijo),
+            // así que cada peso cobrado vale 1/1,10 de lista. Sin esta rama, un
+            // cobro completo en 12/18 dejaría la venta con sobrepago fantasma.
+            const isMpLargas = method.includes('MERCADO_PAGO') &&
+                (method.includes('_12_') || method.includes('_18_') || method.endsWith('_12') || method.endsWith('_18'));
 
             if (isCash && factorCash > 0)
                 return acc + (amount / factorCash);
             if (isTrans && factorTrans > 0)
                 return acc + (amount / factorTrans);
-            
+            if (isMpLargas)
+                return acc + (amount / FACTOR_MP_CUOTAS_LARGAS);
+
             // Si es tarjeta o desconocido, se toma valor nominal (Lista)
             return acc + amount;
         }, 0);
@@ -194,6 +208,9 @@ export class PricingService {
             totalCard,
             installment3: Math.round(totalCard / 3),
             installment6: Math.round(totalCard / 6),
+            totalCardFinanced: Math.round(totalCard * FACTOR_MP_CUOTAS_LARGAS),
+            installment12: Math.round((totalCard * FACTOR_MP_CUOTAS_LARGAS) / 12),
+            installment18: Math.round((totalCard * FACTOR_MP_CUOTAS_LARGAS) / 18),
             paidReal,
             listEquivalentPaid: Math.round(listEquivalentPaid * 100) / 100,
             remainingList: Math.round(remainingList),

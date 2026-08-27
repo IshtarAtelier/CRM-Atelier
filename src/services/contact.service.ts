@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { CashService } from './cash.service';
 import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE } from '@/lib/constants';
+import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
@@ -232,7 +233,17 @@ async function alertOverpayment(
     }
 ) {
     const { orderId, clientId, clientName, listPrice, newPaid, actor, actorName, context } = params;
-    const excess = newPaid - listPrice;
+    // MP 12/18 cuotas lleva un 10% de costo financiero LEGÍTIMO: cobrar
+    // lista × 1,10 no es un error de comprobante. Se descuenta ese recargo de lo
+    // cobrado antes de comparar contra la lista, si no cada venta pagada en
+    // 12/18 dispararía "COBRADO DE MÁS" en falso.
+    const pagos = await tx.payment.findMany({ where: { orderId }, select: { method: true, amount: true } });
+    const recargoMpLargas = pagos.reduce((acc: number, p: any) => {
+        const m = (p.method || '').toUpperCase();
+        const esMpLarga = m.includes('MERCADO_PAGO') && (m.includes('_12_') || m.includes('_18_'));
+        return esMpLarga ? acc + (p.amount || 0) * (1 - 1 / FACTOR_MP_CUOTAS_LARGAS) : acc;
+    }, 0);
+    const excess = newPaid - recargoMpLargas - listPrice;
     if (listPrice <= 0 || excess <= OVERPAYMENT_TOLERANCE) return;
 
     // Un excedente sin resolver no se re-avisa con cada cobro nuevo: mientras el
@@ -2027,8 +2038,9 @@ export const ContactService = {
                 }
             });
 
-            // AUTOMATED BILLING REQUEST ONLY for Pay Way
-            const isEligibleForAutoBilling = method.toUpperCase().includes('PAY_WAY');
+            // AUTOMATED BILLING REQUEST for Pay Way and Mercado Pago (cuenta Ishtar)
+            const isEligibleForAutoBilling = method.toUpperCase().includes('PAY_WAY')
+                || method.toUpperCase().includes('MERCADO_PAGO');
             
             if (isEligibleForAutoBilling) {
                 // DUPLICATE PROTECTION: Check if this exact payment already has a request
@@ -2244,6 +2256,10 @@ export const ContactService = {
                     else if (method.includes('PAY_WAY_3') || method === 'CREDIT_3') methodLabel = 'mediante Tarjeta de Crédito (3 Cuotas)';
                     else if (method.includes('PAY_WAY_6') || method === 'CREDIT_6') methodLabel = 'mediante Tarjeta de Crédito (6 Cuotas)';
                     else if (method.includes('PAY_WAY')) methodLabel = 'mediante Tarjeta de Crédito';
+                    else if (method.includes('MERCADO_PAGO_3')) methodLabel = 'mediante Mercado Pago (3 Cuotas sin interés)';
+                    else if (method.includes('MERCADO_PAGO_6')) methodLabel = 'mediante Mercado Pago (6 Cuotas sin interés)';
+                    else if (method.includes('MERCADO_PAGO_12')) methodLabel = 'mediante Mercado Pago (12 Cuotas, con 10% de costo financiero)';
+                    else if (method.includes('MERCADO_PAGO_18')) methodLabel = 'mediante Mercado Pago (18 Cuotas, con 10% de costo financiero)';
                     else if (method.includes('GO_CUOTAS')) methodLabel = 'mediante Go Cuotas';
                     else methodLabel = `mediante ${method.replace(/_/g, ' ')}`;
 
@@ -2621,7 +2637,7 @@ export const ContactService = {
         couponNumber?: string | null;
         authNumber?: string | null;
     }, actor?: Actor) {
-        const isAutoBillingMethod = (m: string) => m.toUpperCase().includes('PAY_WAY');
+        const isAutoBillingMethod = (m: string) => m.toUpperCase().includes('PAY_WAY') || m.toUpperCase().includes('MERCADO_PAGO');
         const actorName = actor?.name || 'Administrador';
 
         return await prisma.$transaction(async (tx) => {

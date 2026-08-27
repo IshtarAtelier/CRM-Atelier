@@ -38,6 +38,7 @@ import {
     armarParesDeCristal
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals } from '@/services/PricingService';
+import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import {
     Glasses,
     Sun,
@@ -647,6 +648,9 @@ function CotizadorPageContent() {
         const listPrice = Math.round(totalWithMarkup);
         const inst3 = Math.round(listPrice / 3);
         const inst6 = Math.round(listPrice / 6);
+        // MP 12/18: costo financiero fijo del 10% sobre lista, siempre aclarado
+        const inst12 = Math.round((listPrice * FACTOR_MP_CUOTAS_LARGAS) / 12);
+        const inst18 = Math.round((listPrice * FACTOR_MP_CUOTAS_LARGAS) / 18);
         
         // Build the message
         let msg = `Hola ${pendingContact.name}, te envío el presupuesto solicitado:\n\n`;
@@ -667,6 +671,8 @@ function CotizadorPageContent() {
         msg += `💳 Tarjeta (Lista): $${listPrice.toLocaleString()}\n`;
         msg += `   ↳ 3 cuotas sin interés: $${inst3.toLocaleString()} c/u\n`;
         msg += `   ↳ 6 cuotas sin interés: $${inst6.toLocaleString()} c/u\n`;
+        msg += `   ↳ 12 cuotas (con 10% costo financiero): $${inst12.toLocaleString()} c/u\n`;
+        msg += `   ↳ 18 cuotas (con 10% costo financiero): $${inst18.toLocaleString()} c/u\n`;
         msg += `\nAtelier Óptica`;
         
         const phone = formatPhoneForWhatsApp(pendingContact.phone);
