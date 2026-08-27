@@ -2506,15 +2506,10 @@ export const ContactService = {
                                 }
                             }
 
-                            // Copia a Ishtar SOLO si el cliente lo recibió: la copia
-                            // decía "enviada al cliente" aunque el envío hubiera
-                            // fallado un segundo antes. Por EMAIL (antes WhatsApp;
-                            // 18/8/2026 — menos tráfico automático del bot).
-                            await sendEmail({
-                                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                                subject: `✅ Recibo enviado al cliente — ${result.clientName}`,
-                                text: `Copia del mensaje que recibió el cliente por WhatsApp:\n\n${clientMsgText.replace(/\*/g, '')}${comoLlegoElPdf ? `\n\n(El recibo le llegó como ${comoLlegoElPdf}.)` : ''}\n\nFicha: ${clientLink}`,
-                            }).catch(err => console.error('[Payment Notification] Error email copia recibo:', err));
+                            // APAGADO el 27/8/26 (pedido de Ishtar): de los recibos
+                            // solo avisan los que NO se pudieron enviar ("🚨 Recibo
+                            // sin enviar/entregar"). La copia del recibo exitoso
+                            // queda registrada en la ficha del cliente, no por email.
                         }
                     }
 

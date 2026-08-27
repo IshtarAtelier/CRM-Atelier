@@ -510,15 +510,50 @@ export async function alertNewFindings(opts: { modo?: 'urgente' | 'diario' } = {
             where: { id: { in: ids }, status: 'UNMATCHED', orderId: null },
             select: { id: true },
         }).catch(() => null);
-        if (vigentes) {
-            const sigueSinVenta = new Set(vigentes.map(e => e.id));
-            const resueltos = findings.filter((f: any) => !sigueSinVenta.has(f.id));
-            if (resueltos.length) {
-                console.log(`[LabCost] ${resueltos.length} pedido(s) se engancharon mientras se armaba el aviso: no se avisan (${resueltos.map((f: any) => f.labOrderNumber).join(', ')})`);
-                findings = findings.filter((f: any) => sigueSinVenta.has(f.id));
-            }
-            if (findings.length === 0) return { alerted: 0, resueltosAntesDeAvisar: resueltos.length };
+        // FAIL-CLOSED: si la relectura no se pudo hacer, el aviso urgente NO
+        // sale esta corrida (la próxima, en 10 min, lo manda si sigue vigente).
+        // Con el catch permisivo de antes, un error transitorio de base dejaba
+        // pasar la foto vieja y el mail acusaba "SIN VENTA" a ventas cargadas
+        // — pasó el 27/8/2026 con dos pedidos matcheados hacía días.
+        if (!vigentes) {
+            console.error('[LabCost] No se pudo releer el estado antes del aviso urgente: se omite el email de esta corrida.');
+            return { alerted: 0, omitidoPorRelecturaFallida: true };
         }
+        const sigueSinVenta = new Set(vigentes.map(e => e.id));
+        const resueltos = findings.filter((f: any) => !sigueSinVenta.has(f.id));
+        if (resueltos.length) {
+            console.log(`[LabCost] ${resueltos.length} pedido(s) se engancharon mientras se armaba el aviso: no se avisan (${resueltos.map((f: any) => f.labOrderNumber).join(', ')})`);
+            findings = findings.filter((f: any) => sigueSinVenta.has(f.id));
+        }
+
+        // ÚLTIMA BARRERA, contra TODA la clase de error: antes de acusar "SIN
+        // VENTA", buscar cada número directamente en las VENTAS. Si una venta
+        // no borrada ya tiene ese nº de operación, el pedido NO es huérfano —
+        // sea cual sea el estado (viejo o corrupto) de la entrada de costo. El
+        // matcheo real lo hace la próxima pasada; acá solo se evita el falso
+        // grito. (Origen: 27/8/2026, mail urgente acusando a 3581791 y 3578632
+        // con ambas ventas cargadas — la 3581791 desde el 28/7.)
+        if (findings.length > 0) {
+            const numeros = findings.map((f: any) => String(f.labOrderNumber || '').trim()).filter(n => n.length >= 4);
+            const ventasConNumero = numeros.length > 0
+                ? await prisma.order.findMany({
+                    where: { isDeleted: false, OR: numeros.map(n => ({ labOrderNumber: { contains: n } })) },
+                    select: { labOrderNumber: true },
+                }).catch(() => null)
+                : [];
+            if (ventasConNumero === null) {
+                console.error('[LabCost] No se pudo verificar los números contra Ventas: se omite el email urgente de esta corrida.');
+                return { alerted: 0, omitidoPorRelecturaFallida: true };
+            }
+            const numsEnVentas = new Set((ventasConNumero as any[]).flatMap(o => String(o.labOrderNumber || '').match(/\d{4,}/g) || []));
+            const conVenta = findings.filter((f: any) => numsEnVentas.has(String(f.labOrderNumber || '').trim()));
+            if (conVenta.length) {
+                console.warn(`[LabCost] ${conVenta.length} pedido(s) tienen su venta cargada aunque la entrada figure huérfana — NO se avisan y quedan para el rematch: ${conVenta.map((f: any) => f.labOrderNumber).join(', ')}`);
+                findings = findings.filter((f: any) => !numsEnVentas.has(String(f.labOrderNumber || '').trim()));
+            }
+        }
+
+        if (findings.length === 0) return { alerted: 0, resueltosAntesDeAvisar: resueltos.length };
     }
     const hoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
     // Día sin movimientos pero con un 2x1 cobrado dos veces: el asunto tiene
