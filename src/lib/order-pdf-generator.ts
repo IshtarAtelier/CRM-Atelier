@@ -757,7 +757,9 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         drawCard(m + cardW + 4, violet, `TRANSFERENCIA (-${financials.discountTransfer}%)`, financials.totalTransfer, financials.remainingTransfer);
         drawCard(m + (cardW + 4) * 2, orange, 'TARJETAS (LISTA)', financials.totalCard, financials.remainingCard, [
             `3 cuotas s/int: $${financials.installment3.toLocaleString()}`,
-            `6 cuotas s/int: $${financials.installment6.toLocaleString()}`
+            `6 cuotas s/int: $${financials.installment6.toLocaleString()}`,
+            `12 cuotas: $${financials.installment12.toLocaleString()} (+10%)`,
+            `18 cuotas: $${financials.installment18.toLocaleString()} (+10%)`
         ]);
         
         y = cy + ch + 8;

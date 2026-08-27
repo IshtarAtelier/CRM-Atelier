@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { PLATFORM_COMMISSIONS, DOCTOR_COMMISSION_RATE } from '@/lib/constants';
+import { esMpCuotasLargas } from '@/lib/payment-card';
+import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 
 export async function GET(request: Request) {
     try {
@@ -59,8 +61,12 @@ export async function GET(request: Request) {
             for (const payment of order.payments) {
                 const method = (payment.method || 'CASH').trim().toUpperCase();
                 const rate = PLATFORM_COMMISSIONS[method] || 0;
-                orderPlatformFee += payment.amount * rate;
-                orderPaidTotal += payment.amount;
+                // MP 12/18: el nominal trae un 10% de costo financiero que es de la
+                // financiación, no ingreso de la óptica — la base comisionable del
+                // médico es el equivalente de lista, no el nominal inflado.
+                const base = esMpCuotasLargas(method) ? payment.amount / FACTOR_MP_CUOTAS_LARGAS : payment.amount;
+                orderPlatformFee += base * rate;
+                orderPaidTotal += base;
             }
 
             // Net amount = what actually entered minus platform takes AND minus any special discounts (like free shipping)

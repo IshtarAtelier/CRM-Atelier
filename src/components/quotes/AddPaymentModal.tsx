@@ -8,7 +8,6 @@ import {
 import { PricingService } from '@/services/PricingService';
 import FileDropZone from '@/components/ui/FileDropZone';
 import { isCardMethod, type CardMode } from '@/lib/payment-card';
-import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 
 interface AddPaymentModalProps {
     orderId: string;
@@ -159,6 +158,9 @@ export default function AddPaymentModal({
     }, []);
 
     const isCashMethod = method === 'CASH' || method === 'EFECTIVO';
+    // Saldo a cobrar por MP 12/18: saldo de lista + 10% de costo financiero,
+    // calculado por PricingService (un solo lugar para la plata).
+    const saldoMpLargas = financials ? PricingService.cuotasMpLargas(financials.remainingCard).totalFinanced : 0;
     const requiresReceipt = !isCashMethod;
     const isCard = isCardMethod(method);
     const isPresencial = isCard && cardMode === 'PRESENCIAL';
@@ -325,13 +327,15 @@ export default function AddPaymentModal({
                                 >
                                     <CreditCard className="w-3 h-3" /> Saldo Tarjeta (${financials.remainingCard.toLocaleString()})
                                 </button>
-                                {/* MP 12/18: el saldo de lista se cobra con +10% de costo financiero */}
+                                {/* MP 12/18: el saldo de lista se cobra con +10% de costo financiero.
+                                    Un solo valor calculado (por PricingService) para el botón y su
+                                    etiqueta: no pueden divergir. */}
                                 <button
                                     type="button"
-                                    onClick={() => setAmount(Math.round(financials.remainingCard * FACTOR_MP_CUOTAS_LARGAS).toString())}
+                                    onClick={() => setAmount(saldoMpLargas.toString())}
                                     className="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-sky-100 dark:border-sky-900/30 hover:bg-sky-100 transition-colors"
                                 >
-                                    <CreditCard className="w-3 h-3" /> Saldo MP 12/18 +10% (${Math.round(financials.remainingCard * FACTOR_MP_CUOTAS_LARGAS).toLocaleString()})
+                                    <CreditCard className="w-3 h-3" /> Saldo MP 12/18 +10% (${saldoMpLargas.toLocaleString()})
                                 </button>
                             </div>
                         )}

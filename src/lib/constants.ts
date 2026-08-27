@@ -135,6 +135,10 @@ export const OVERPAYMENT_TOLERANCE = 1000;
 
 // ISH POSNET Threshold Monitoring
 export const ISH_POSNET_THRESHOLD = 8500000;
+// OJO: NO incluye los métodos MERCADO_PAGO_*_ISH a propósito hasta que Ishtar
+// confirme si el tope mensual es del POSNET físico o del CUIT completo — si es
+// del CUIT, hay que sumar MERCADO_PAGO_ISH_METHODS acá (la facturación de MP ya
+// sale por la cuenta Ishtar según afip.ts).
 export const ISH_POSNET_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH'];
 
 // Human-readable labels for payment methods (single source of truth)

@@ -37,8 +37,7 @@ import {
     applyTeñidoPromoDiscount,
     armarParesDeCristal
 } from '@/lib/promo-utils';
-import { calculateQuoteTotals } from '@/services/PricingService';
-import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
+import { calculateQuoteTotals, PricingService } from '@/services/PricingService';
 import {
     Glasses,
     Sun,
@@ -648,9 +647,9 @@ function CotizadorPageContent() {
         const listPrice = Math.round(totalWithMarkup);
         const inst3 = Math.round(listPrice / 3);
         const inst6 = Math.round(listPrice / 6);
-        // MP 12/18: costo financiero fijo del 10% sobre lista, siempre aclarado
-        const inst12 = Math.round((listPrice * FACTOR_MP_CUOTAS_LARGAS) / 12);
-        const inst18 = Math.round((listPrice * FACTOR_MP_CUOTAS_LARGAS) / 18);
+        // MP 12/18: costo financiero fijo del 10% sobre lista, siempre aclarado.
+        // El cálculo vive en PricingService (regla: cálculo de plata SOLO ahí).
+        const { installment12: inst12, installment18: inst18 } = PricingService.cuotasMpLargas(listPrice);
         
         // Build the message
         let msg = `Hola ${pendingContact.name}, te envío el presupuesto solicitado:\n\n`;

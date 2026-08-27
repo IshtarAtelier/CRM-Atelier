@@ -8,6 +8,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import InvoiceModal from '@/components/billing/InvoiceModal';
+import { MERCADO_PAGO_ISH_METHODS } from '@/lib/constants';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { generateInvoicePDF } from '@/lib/invoice-generator';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
@@ -149,7 +150,7 @@ export default function BillingPage() {
 
     const isAdmin = userRole === 'ADMIN';
 
-    const ISH_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH', 'MERCADO_PAGO_3_ISH', 'MERCADO_PAGO_6_ISH', 'MERCADO_PAGO_12_ISH', 'MERCADO_PAGO_18_ISH'];
+    const ISH_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH', ...MERCADO_PAGO_ISH_METHODS];
     const YANI_METHODS = ['PAY_WAY_6_YANI', 'PAY_WAY_3_YANI', 'NARANJA_Z_YANI'];
 
     const detectBillingAccount = (payments: any[] = []) => {
