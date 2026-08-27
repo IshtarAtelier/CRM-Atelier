@@ -9,7 +9,7 @@ import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { recalculateCrystalPrices, applyTeñidoPromoDiscount } from '@/lib/promo-utils';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
-import { descuentoNegativo, excedeTopeVendedor } from '@/lib/constants/descuentos';
+import { descuentoNegativo, excedeTopeVendedor, FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { mapOrderPostSale } from '@/types/orders';
 
 // POST /api/orders — Create order from inline cotizador
@@ -540,11 +540,13 @@ export async function GET(request: Request) {
                             WHEN (UPPER(TRIM(p.method)) LIKE '%TRANSF%' OR UPPER(TRIM(p.method)) LIKE '%DEPOSITO%')
                                  AND (1 - COALESCE(o."discountTransfer", 15) / 100.0) > 0
                                 THEN p.amount / (1 - COALESCE(o."discountTransfer", 15) / 100.0)
-                            -- MP 12/18 cuotas: el cliente paga lista x 1.10 (costo financiero),
-                            -- cada peso cobrado vale 1/1.10 de lista (espejo de PricingService)
-                            WHEN UPPER(TRIM(p.method)) LIKE '%MERCADO_PAGO%'
-                                 AND (UPPER(TRIM(p.method)) LIKE '%12%' OR UPPER(TRIM(p.method)) LIKE '%18%')
-                                THEN p.amount / 1.10
+                            -- MP 12/18 cuotas: el cliente paga lista x factor (costo financiero);
+                            -- cada peso cobrado vale 1/factor de lista. Espejo EXACTO de
+                            -- esMpCuotasLargas() (src/lib/payment-card.ts): substring literal
+                            -- MERCADO_PAGO (POSITION, sin comodines de LIKE) + regex _(12|18)(_|fin).
+                            WHEN POSITION('MERCADO_PAGO' IN UPPER(TRIM(p.method))) > 0
+                                 AND UPPER(TRIM(p.method)) ~ '_(12|18)(_|$)'
+                                THEN p.amount / ${FACTOR_MP_CUOTAS_LARGAS}
                             ELSE p.amount
                         END
                     ), 0) AS eq

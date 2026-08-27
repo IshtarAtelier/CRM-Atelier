@@ -1,7 +1,6 @@
 import { prisma } from '@/lib/db';
 import { CashService } from './cash.service';
 import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE } from '@/lib/constants';
-import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
@@ -233,18 +232,23 @@ async function alertOverpayment(
     }
 ) {
     const { orderId, clientId, clientName, listPrice, newPaid, actor, actorName, context } = params;
-    // MP 12/18 cuotas lleva un 10% de costo financiero LEGÍTIMO: cobrar
-    // lista × 1,10 no es un error de comprobante. Se descuenta ese recargo de lo
-    // cobrado antes de comparar contra la lista, si no cada venta pagada en
-    // 12/18 dispararía "COBRADO DE MÁS" en falso.
-    const pagos = await tx.payment.findMany({ where: { orderId }, select: { method: true, amount: true } });
-    const recargoMpLargas = pagos.reduce((acc: number, p: any) => {
-        const m = (p.method || '').toUpperCase();
-        const esMpLarga = m.includes('MERCADO_PAGO') && (m.includes('_12_') || m.includes('_18_'));
-        return esMpLarga ? acc + (p.amount || 0) * (1 - 1 / FACTOR_MP_CUOTAS_LARGAS) : acc;
-    }, 0);
-    const excess = newPaid - recargoMpLargas - listPrice;
-    if (listPrice <= 0 || excess <= OVERPAYMENT_TOLERANCE) return;
+    if (listPrice <= 0) return;
+    // La comparación correcta es en EQUIVALENTE DE LISTA (regla de CLAUDE.md: el
+    // saldo nunca es lista − cobrado): un cobro en efectivo con descuento cancela
+    // MÁS lista que su nominal, y uno en MP 12/18 (10% de costo financiero
+    // legítimo) cancela MENOS. Comparar el nominal contra la lista alertaba en
+    // falso con MP y enmascaraba sobrepagos reales mezclados con MP.
+    const [pagos, orderDiscounts] = await Promise.all([
+        tx.payment.findMany({ where: { orderId }, select: { method: true, amount: true } }),
+        tx.order.findUnique({ where: { id: orderId }, select: { discountCash: true, discountTransfer: true } }),
+    ]);
+    const equivalenteLista = Math.round(PricingService.listEquivalentOfPayments(
+        pagos,
+        orderDiscounts?.discountCash ?? 20,
+        orderDiscounts?.discountTransfer ?? 15,
+    ));
+    const excess = Math.round(equivalenteLista - listPrice);
+    if (excess <= OVERPAYMENT_TOLERANCE) return;
 
     // Un excedente sin resolver no se re-avisa con cada cobro nuevo: mientras el
     // aviso anterior siga pendiente, alcanza con ese.
@@ -256,7 +260,7 @@ async function alertOverpayment(
 
     const orderRef = `#${orderId.slice(-4).toUpperCase()}`;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
-    const msg = `${OVERPAYMENT_ALERT_PREFIX} la venta ${orderRef} de ${clientName} vale $${listPrice.toLocaleString('es-AR')} y ya tiene cobrados $${newPaid.toLocaleString('es-AR')} ($${excess.toLocaleString('es-AR')} de más) tras el ${context}.\n\nEl valor de la venta NO se modificó. Si fue un comprobante cargado por error, borrá ese cobro; si es un recargo real por financiación, editá el pedido para que el precio lo refleje.`;
+    const msg = `${OVERPAYMENT_ALERT_PREFIX} la venta ${orderRef} de ${clientName} vale $${listPrice.toLocaleString('es-AR')} de lista y los cobros cargados ($${newPaid.toLocaleString('es-AR')} nominales) equivalen a $${equivalenteLista.toLocaleString('es-AR')} de lista según su forma de pago — $${excess.toLocaleString('es-AR')} de más — tras el ${context}.\n\nEl valor de la venta NO se modificó. Si fue un comprobante cargado por error, borrá ese cobro; si es un recargo real por financiación, editá el pedido para que el precio lo refleje.`;
 
     await tx.notification.create({
         data: {
@@ -273,7 +277,7 @@ async function alertOverpayment(
         data: {
             clientId,
             type: 'SISTEMA',
-            content: `⚠️ Lo cobrado en la venta ${orderRef} supera su valor en $${excess.toLocaleString('es-AR')} (valor $${listPrice.toLocaleString('es-AR')}, cobrado $${newPaid.toLocaleString('es-AR')}). Revisar si sobra un comprobante.`,
+            content: `⚠️ Lo cobrado en la venta ${orderRef} supera su valor en $${excess.toLocaleString('es-AR')} de lista (valor $${listPrice.toLocaleString('es-AR')}, cobrado $${newPaid.toLocaleString('es-AR')} nominales que equivalen a $${equivalenteLista.toLocaleString('es-AR')} de lista). Revisar si sobra un comprobante.`,
             userId: actor?.id || null,
             userName: actorName
         }
@@ -2826,13 +2830,16 @@ export const ContactService = {
                 data: updateData
             });
 
-            // 4. Recalcular Order.paid con SUM atómico (nunca increment/decrement para evitar drift)
-            if (updateData.amount !== undefined) {
+            // 4. Recalcular Order.paid con SUM atómico (nunca increment/decrement para evitar drift).
+            // También cuando cambia SOLO el método: el nominal no se mueve, pero el
+            // equivalente de lista sí (efectivo/transferencia/MP 12-18 convierten
+            // distinto), así que el control de excedente se re-evalúa igual.
+            if (updateData.amount !== undefined || updateData.method !== undefined) {
                 const totalPaidAgg = await tx.payment.aggregate({
                     _sum: { amount: true },
                     where: { orderId }
                 });
-                
+
                 const recalculatedPaid = totalPaidAgg._sum.amount || 0;
 
                 // Igual que en el alta: editar un cobro nunca redefine el precio de la
@@ -2851,7 +2858,9 @@ export const ContactService = {
                     newPaid: recalculatedPaid,
                     actor,
                     actorName,
-                    context: `edición de un cobro a $${updateData.amount.toLocaleString('es-AR')}`,
+                    context: updateData.amount !== undefined
+                        ? `edición de un cobro a $${updateData.amount.toLocaleString('es-AR')}`
+                        : `cambio del método de un cobro a ${updateData.method}`,
                 });
             }
 

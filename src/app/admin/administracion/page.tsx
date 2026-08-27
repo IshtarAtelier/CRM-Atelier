@@ -12,6 +12,7 @@ import { resolveStorageUrl, fileToBase64 } from '@/lib/utils/storage';
 import FileDropZone from '@/components/ui/FileDropZone';
 import type { CashMovement } from '@/types/orders';
 import PaymentVoucherInfo from '@/components/admin/PaymentVoucherInfo';
+import { MERCADO_PAGO_ISH_METHODS } from '@/lib/constants';
 import { isCardMethod, type CardMode } from '@/lib/payment-card';
 
 // ── Types ─────────────────────────────────────
@@ -88,7 +89,7 @@ const FILTER_GROUPS = [
         lightBg: 'bg-blue-50 dark:bg-blue-950',
         textColor: 'text-blue-500',
         borderColor: 'border-blue-200 dark:border-blue-800',
-        methods: ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH', 'MERCADO_PAGO_3_ISH', 'MERCADO_PAGO_6_ISH', 'MERCADO_PAGO_12_ISH', 'MERCADO_PAGO_18_ISH'],
+        methods: ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH', ...MERCADO_PAGO_ISH_METHODS],
     },
     {
         id: 'YANI',

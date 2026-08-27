@@ -1,5 +1,6 @@
 import { hasActive2x1Promo, pick2x1FrameDiscount, safePrice } from '@/lib/promo-utils';
 import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
+import { esMpCuotasLargas } from '@/lib/payment-card';
 
 export interface CartItem {
     productId: string | null;
@@ -139,6 +140,51 @@ export class PricingService {
     }
 
     /**
+     * Convierte una lista de pagos a su "equivalente de lista": cuánto precio de
+     * lista cancela cada peso cobrado según su forma de pago. ÚNICO lugar de esa
+     * conversión (regla de CLAUDE.md: el saldo nunca es lista − cobrado).
+     * El espejo SQL vive en el filtro "con saldo" de src/app/api/orders/route.ts.
+     */
+    static listEquivalentOfPayments(
+        payments: Array<{ method?: string | null; amount?: number | null }>,
+        discountCash: number,
+        discountTransfer: number
+    ): number {
+        const factorCash = 1 - (discountCash / 100);
+        const factorTrans = 1 - (discountTransfer / 100);
+        return (payments || []).reduce((acc: number, p) => {
+            const amount = p.amount || 0;
+            const method = (p.method || '').toUpperCase().trim();
+
+            const isCash = ['CASH', 'EFECTIVO', 'EFVO'].includes(method);
+            const isTrans = ['TRANSFER', 'TRANSFERENCIA', 'TRANSF', 'DEPOSITO'].some(m => method.includes(m));
+
+            if (isCash && factorCash > 0) return acc + (amount / factorCash);
+            if (isTrans && factorTrans > 0) return acc + (amount / factorTrans);
+            // MP 12/18: el cliente paga lista × factor (costo financiero fijo);
+            // cada peso cobrado vale 1/factor de lista. Sin esta rama, un cobro
+            // completo en 12/18 dejaría la venta con sobrepago fantasma.
+            if (esMpCuotasLargas(method)) return acc + (amount / FACTOR_MP_CUOTAS_LARGAS);
+
+            // Tarjeta o desconocido: valor nominal (lista)
+            return acc + amount;
+        }, 0);
+    }
+
+    /**
+     * Cuotas largas de Mercado Pago sobre un precio de lista. Único lugar del
+     * cálculo: cotizador, PDFs y mensajes leen de acá (o de calculateOrderFinancials).
+     */
+    static cuotasMpLargas(listPrice: number) {
+        const totalFinanced = Math.round(listPrice * FACTOR_MP_CUOTAS_LARGAS);
+        return {
+            totalFinanced,
+            installment12: Math.round(totalFinanced / 12),
+            installment18: Math.round(totalFinanced / 18),
+        };
+    }
+
+    /**
      * Calcula el desglose financiero completo (Totales y Saldos) para una orden existente.
      */
     static calculateOrderFinancials(order: any): OrderFinancials {
@@ -158,35 +204,12 @@ export class PricingService {
         const totalCash = Math.round(listPrice * (1 - discCash / 100));
         const totalTransfer = Math.round(listPrice * (1 - discTrans / 100));
         const totalCard = listPrice;
+        const cuotasMp = PricingService.cuotasMpLargas(totalCard);
 
         // Cálculo de "Equivalente de Lista" pagado
-        const listEquivalentPaid = (order.payments || []).reduce((acc: number, p: any) => {
-            const amount = p.amount || 0;
-            const method = (p.method || '').toUpperCase().trim();
-            
-            // Evitar división por cero
-            const factorCash = 1 - (discCash / 100);
-            const factorTrans = 1 - (discTrans / 100);
-
-            // Coincidencias robustas para métodos de pago
-            const isCash = ['CASH', 'EFECTIVO', 'EFVO'].includes(method);
-            const isTrans = ['TRANSFER', 'TRANSFERENCIA', 'TRANSF', 'DEPOSITO'].some(m => method.includes(m));
-            // MP 12/18 cuotas: el cliente paga lista × 1,10 (costo financiero fijo),
-            // así que cada peso cobrado vale 1/1,10 de lista. Sin esta rama, un
-            // cobro completo en 12/18 dejaría la venta con sobrepago fantasma.
-            const isMpLargas = method.includes('MERCADO_PAGO') &&
-                (method.includes('_12_') || method.includes('_18_') || method.endsWith('_12') || method.endsWith('_18'));
-
-            if (isCash && factorCash > 0)
-                return acc + (amount / factorCash);
-            if (isTrans && factorTrans > 0)
-                return acc + (amount / factorTrans);
-            if (isMpLargas)
-                return acc + (amount / FACTOR_MP_CUOTAS_LARGAS);
-
-            // Si es tarjeta o desconocido, se toma valor nominal (Lista)
-            return acc + amount;
-        }, 0);
+        const listEquivalentPaid = PricingService.listEquivalentOfPayments(
+            order.payments || [], discCash, discTrans
+        );
 
         const paidRealFromPayments = (order.payments || []).reduce((acc: number, p: any) => acc + (p.amount || 0), 0);
         
@@ -208,9 +231,9 @@ export class PricingService {
             totalCard,
             installment3: Math.round(totalCard / 3),
             installment6: Math.round(totalCard / 6),
-            totalCardFinanced: Math.round(totalCard * FACTOR_MP_CUOTAS_LARGAS),
-            installment12: Math.round((totalCard * FACTOR_MP_CUOTAS_LARGAS) / 12),
-            installment18: Math.round((totalCard * FACTOR_MP_CUOTAS_LARGAS) / 18),
+            totalCardFinanced: cuotasMp.totalFinanced,
+            installment12: cuotasMp.installment12,
+            installment18: cuotasMp.installment18,
             paidReal,
             listEquivalentPaid: Math.round(listEquivalentPaid * 100) / 100,
             remainingList: Math.round(remainingList),

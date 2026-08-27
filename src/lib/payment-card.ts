@@ -29,7 +29,23 @@ export interface CardVoucherDetails extends VoucherNumbers {
 /** Métodos que se cobran con tarjeta y por lo tanto tienen voucher. */
 export function isCardMethod(method: string) {
     const m = (method || '').toUpperCase();
-    return m.includes('PAY_WAY') || m.includes('PAYWAY') || m.includes('NARANJA') || m.includes('GO_CUOTAS');
+    return m.includes('PAY_WAY') || m.includes('PAYWAY') || m.includes('NARANJA')
+        || m.includes('GO_CUOTAS') || m.includes('MERCADO_PAGO');
+}
+
+/**
+ * ¿Es un cobro de Mercado Pago en cuotas largas (12/18)?
+ *
+ * ÚNICA definición del concepto: el cliente pagó lista × FACTOR_MP_CUOTAS_LARGAS
+ * (10% de costo financiero) y por eso cada peso cobrado vale 1/factor de lista.
+ * La usan PricingService (saldos), alertOverpayment (sobrepago) y las comisiones
+ * de médicos; el espejo SQL del filtro "con saldo" replica exactamente este
+ * criterio (POSITION('MERCADO_PAGO') + regex '_(12|18)(_|$)') — si tocás uno,
+ * tocá el otro (src/app/api/orders/route.ts).
+ */
+export function esMpCuotasLargas(method: string | null | undefined): boolean {
+    const m = (method || '').toUpperCase().trim();
+    return m.includes('MERCADO_PAGO') && /_(12|18)(_|$)/.test(m);
 }
 
 /**
