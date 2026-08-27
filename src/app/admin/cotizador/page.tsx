@@ -647,9 +647,9 @@ function CotizadorPageContent() {
         const listPrice = Math.round(totalWithMarkup);
         const inst3 = Math.round(listPrice / 3);
         const inst6 = Math.round(listPrice / 6);
-        // MP 12/18: costo financiero fijo del 10% sobre lista, siempre aclarado.
+        // MP 12: costo financiero fijo del 10% sobre lista, siempre aclarado.
         // El cálculo vive en PricingService (regla: cálculo de plata SOLO ahí).
-        const { installment12: inst12, installment18: inst18 } = PricingService.cuotasMpLargas(listPrice);
+        const { installment12: inst12 } = PricingService.cuotasMpLargas(listPrice);
         
         // Build the message
         let msg = `Hola ${pendingContact.name}, te envío el presupuesto solicitado:\n\n`;
@@ -671,7 +671,6 @@ function CotizadorPageContent() {
         msg += `   ↳ 3 cuotas sin interés: $${inst3.toLocaleString()} c/u\n`;
         msg += `   ↳ 6 cuotas sin interés: $${inst6.toLocaleString()} c/u\n`;
         msg += `   ↳ 12 cuotas (con 10% costo financiero): $${inst12.toLocaleString()} c/u\n`;
-        msg += `   ↳ 18 cuotas (con 10% costo financiero): $${inst18.toLocaleString()} c/u\n`;
         msg += `\nAtelier Óptica`;
         
         const phone = formatPhoneForWhatsApp(pendingContact.phone);

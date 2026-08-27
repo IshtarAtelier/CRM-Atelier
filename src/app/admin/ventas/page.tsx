@@ -662,7 +662,6 @@ export default function VentasPage() {
         installment6: 0,
         totalCardFinanced: 0,
         installment12: 0,
-        installment18: 0,
         paidReal: 0,
         listEquivalentPaid: 0,
         remainingList: 0,

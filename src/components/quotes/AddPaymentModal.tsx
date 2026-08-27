@@ -75,15 +75,15 @@ const PAYMENT_GROUPS = [
         ]
     },
     {
-        // Mercado Pago Ishtar: 3/6 sin interés (lista); 12/18 con costo
-        // financiero fijo del 10% — el cliente paga lista × 1,10 y el saldo
-        // divide por 1,10 (PricingService). La etiqueta lo aclara SIEMPRE.
+        // Mercado Pago Ishtar: 3/6 sin interés (lista); 12 con costo financiero
+        // fijo del 10% — el cliente paga lista × 1,10 y el saldo divide por 1,10
+        // (PricingService). La etiqueta lo aclara SIEMPRE. El 18 se retiró el
+        // 27/8/26 por decisión de Ishtar (reevaluar más adelante).
         id: 'mercadopago',
         items: [
             { id: 'MERCADO_PAGO_3_ISH', label: 'MP 3 Ish', icon: CreditCard, color: 'sky' },
             { id: 'MERCADO_PAGO_6_ISH', label: 'MP 6 Ish', icon: CreditCard, color: 'sky' },
             { id: 'MERCADO_PAGO_12_ISH', label: 'MP 12 Ish (+10%)', icon: CreditCard, color: 'sky' },
-            { id: 'MERCADO_PAGO_18_ISH', label: 'MP 18 Ish (+10%)', icon: CreditCard, color: 'sky' },
         ]
     },
     {
@@ -327,7 +327,7 @@ export default function AddPaymentModal({
                                 >
                                     <CreditCard className="w-3 h-3" /> Saldo Tarjeta (${financials.remainingCard.toLocaleString()})
                                 </button>
-                                {/* MP 12/18: el saldo de lista se cobra con +10% de costo financiero.
+                                {/* MP 12: el saldo de lista se cobra con +10% de costo financiero.
                                     Un solo valor calculado (por PricingService) para el botón y su
                                     etiqueta: no pueden divergir. */}
                                 <button
@@ -335,7 +335,7 @@ export default function AddPaymentModal({
                                     onClick={() => setAmount(saldoMpLargas.toString())}
                                     className="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-sky-100 dark:border-sky-900/30 hover:bg-sky-100 transition-colors"
                                 >
-                                    <CreditCard className="w-3 h-3" /> Saldo MP 12/18 +10% (${saldoMpLargas.toLocaleString()})
+                                    <CreditCard className="w-3 h-3" /> Saldo MP 12 +10% (${saldoMpLargas.toLocaleString()})
                                 </button>
                             </div>
                         )}

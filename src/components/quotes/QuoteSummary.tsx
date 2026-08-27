@@ -988,9 +988,6 @@ export default function QuoteSummary({
                                         <p className="text-[9px] font-black text-sky-600">
                                             12 cuotas: ${financials.installment12.toLocaleString()} (+10%)
                                         </p>
-                                        <p className="text-[9px] font-black text-sky-600">
-                                            18 cuotas: ${financials.installment18.toLocaleString()} (+10%)
-                                        </p>
                                     </div>
                                 )}
                             </div>

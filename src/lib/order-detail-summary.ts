@@ -84,7 +84,6 @@ export function buildOrderDetailSummary(order: any): string {
     totales.push(`   ↳ 3 cuotas sin interés de ${money(f.installment3)}`);
     totales.push(`   ↳ 6 cuotas sin interés de ${money(f.installment6)}`);
     totales.push(`   ↳ 12 cuotas de ${money(f.installment12)} (con 10% costo financiero)`);
-    totales.push(`   ↳ 18 cuotas de ${money(f.installment18)} (con 10% costo financiero)`);
 
     if (f.hasBalance) {
         totales.push(`Saldo en efectivo: ${money(f.remainingCash)}`);

@@ -76,7 +76,7 @@ const ALL_METHODS: Record<string, { label: string; icon: any; color: string; lig
     'MERCADO_PAGO_3_ISH': { label: 'MP 3 Ish', icon: CreditCard, color: 'bg-sky-500', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-500' },
     'MERCADO_PAGO_6_ISH': { label: 'MP 6 Ish', icon: CreditCard, color: 'bg-sky-500', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-500' },
     'MERCADO_PAGO_12_ISH': { label: 'MP 12 Ish (+10%)', icon: CreditCard, color: 'bg-sky-600', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-600' },
-    'MERCADO_PAGO_18_ISH': { label: 'MP 18 Ish (+10%)', icon: CreditCard, color: 'bg-sky-600', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-600' },
+    // MERCADO_PAGO_18_ISH retirado el 27/8/26 — si hubiera un cobro histórico, getMethodInfo lo muestra con el fallback genérico.
 };
 
 // Grouped filters
