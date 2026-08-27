@@ -72,9 +72,9 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
         </svg>
       ),
       label: showCalculated
-        ? `12 cuotas de $${cuota12Value.toLocaleString('es-AR')}`
-        : '12 cuotas con Mercado Pago',
-      sub: "por Mercado Pago (+10% costo financiero)",
+        ? `Hasta 12 pagos de $${cuota12Value.toLocaleString('es-AR')}`
+        : 'Hasta 12 pagos con Mercado Pago',
+      sub: "por Mercado Pago",
       highlight: false,
     },
     {

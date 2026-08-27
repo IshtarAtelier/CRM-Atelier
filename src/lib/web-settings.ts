@@ -19,7 +19,7 @@ export interface WebSettings {
 }
 
 export const defaultWebSettings: WebSettings = {
-  web_announcement_text: "6 Cuotas Sin Interés • 15% OFF en Efectivo o Transferencia • Envío Gratis",
+  web_announcement_text: "6 Cuotas Sin Interés • Hasta 12 Pagos • 15% OFF en Efectivo o Transferencia • Envío Gratis",
   web_announcement_active: true,
   web_announcement_link: "/tienda",
   web_store_address: "José Luis de Tejeda 4380",
