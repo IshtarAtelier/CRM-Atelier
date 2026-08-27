@@ -159,6 +159,16 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te quería invitar a seguirnos en Instagram, ahí subimos los modelos que van entrando: https://www.instagram.com/atelieroptica_. Y contame, ¿al final resolviste lo de tus anteojitos? Si todavía no, tengo un descuento especial para hacerte.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
+    // Campaña puntual agosto 2026 (acuerdo MP de Ishtar): 12 cuotas por
+    // Mercado Pago. El 10% de costo financiero va SIEMPRE aclarado — "sin
+    // interés" son solo 3 y 6 (regla de negocio, ver CLAUDE.md).
+    promo_12_cuotas: {
+        name: 'promo_12_cuotas',
+        inventario: 'Campaña MP 12 cuotas (ago 2026)',
+        category: 'MARKETING',
+        body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Esta semana podés comprar tus anteojos hasta en 12 cuotas a través de Mercado Pago (con un 10% de costo financiero). Y como siempre: 3 y 6 cuotas sin interés, 20% de descuento en efectivo y 15% por transferencia. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. ¿Te interesa?',
+        params: [{ label: 'nombre', example: 'Julio' }],
+    },
     // Reseñas: SIEMPRE manual — la plantilla no cambia eso, la dispara una
     // persona desde el panel. Texto idéntico al de ReviewRequestsPanel.
     pedido_resena: {
