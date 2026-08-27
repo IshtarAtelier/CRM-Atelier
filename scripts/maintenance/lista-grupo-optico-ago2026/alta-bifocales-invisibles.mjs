@@ -53,10 +53,16 @@ for (const f of familia) {
   if (!aplicar) continue
 
   await prisma.$executeRawUnsafe(
+    // FICHA COMPLETA (corrección 27/8: sin campos a medias): marca, rangos de
+    // graduación según la lista (orgánico: +5,50/-4,00 cil ±4; policarbonato:
+    // +6,50/-5,00 cil ±6), baseCost = pelado y cost = pelado + calibrado GO.
     `INSERT INTO "Product"
-       (id, name, category, type, laboratory, "lensIndex", "unitType", cost, price,
+       (id, name, brand, category, type, laboratory, "lensIndex", "unitType",
+        "baseCost", cost, price, "sphereMin", "sphereMax", "cylinderMin", "cylinderMax",
         "additionMin", "additionMax", "publishToWeb", "publishToWholesale", "wholesalePrice", "updatedAt")
-     VALUES ($1, $2, 'Cristal', 'Cristal Bifocal', 'GRUPO OPTICO', $3, 'PAR', $4, $5,
+     VALUES ($1, $2, 'Kriptock Invisible', 'Cristal', 'Cristal Bifocal', 'GRUPO OPTICO', $3, 'PAR',
+        $4, $4 + 7000, $5,
+        ${f.nombre.includes('Policarbonato') ? '-5, 6.5, -6, 6' : '-4, 5.5, -4, 4'},
         0.75, 3.5, false, false, 0, NOW())`,
     'cm' + rand(23), nombreCompleto, f.indice, f.costo, precio)
   creados++

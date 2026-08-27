@@ -17,3 +17,14 @@ Para cargar otra familia de la lista: copiar `alta-...` como plantilla,
 cambiar el array `familia` (nombres + pelados del xlsx), definir el precio de
 referencia con Ishtar y usar el patrón de `corregir-...` (calibrado incluido
 desde el arranque).
+
+## Correcciones del 27/8 (misma tarde)
+
+La carga inicial quedó a medias y se completó en producción con: marca
+"Kriptock Invisible", rangos de graduación (orgánico Esf +5,50/−4,00 Cil ±4;
+policarbonato Esf +6,50/−5,00 Cil ±6; ADD 0,75–3,50) y el par
+baseCost/cost con calibrado. El `alta-...` ya refleja la ficha completa.
+**Checklist para futuras familias**: nombre con familia y material · marca ·
+categoría/tipo · laboratorio · índice · unitType PAR · baseCost (pelado) ·
+cost (pelado+calibrado×IVA) · precio (markup acordado con Ishtar) · rangos
+Esf/Cil/ADD de la lista. Nada de campos vacíos.
