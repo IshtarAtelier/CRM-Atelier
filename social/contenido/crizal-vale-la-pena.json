@@ -1,0 +1,36 @@
+{
+  "id": "crizal-vale-la-pena",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "¿Conviene pagar más por un Crizal? Si querés que el antirreflejo dure y que el cristal se limpie con un paño, sí.\n\nEs el antirreflejo premium de Essilor, y tenemos muestras en el local para que veas la diferencia antes de decidir.\n\nEscribinos por WhatsApp o pasá sin turno.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas.",
+  "temas": [
+    "cristales"
+  ],
+  "images_waived": "Carrusel corto de 3 slides: portada y cierre llevan foto por R1, así que el porcentaje da 67% sí o sí. Con una sola slide de texto en el medio, la foto sigue jerarquizando.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/crizal_sapphire_hero.png",
+      "title": "Crizal: ¿vale la pena *pagar más*?",
+      "subtitle": "El antirreflejo premium de Essilor, explicado sin vueltas."
+    },
+    {
+      "type": "list",
+      "title": "Lo que pagás de más, *lo usás todos los días*",
+      "items": [
+        "Más resistente a las rayas: el cristal aguanta el uso diario",
+        "Se limpia con un paño: repele grasa, polvo y gotas de agua",
+        "Más transparente: menos reflejos en fotos y manejando de noche"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/crizal_tecnologia.png",
+      "title": "Vení a compararlos en vivo",
+      "body": "Tenemos muestras para que veas la diferencia antes de decidir. Cerro de las Rosas, sin turno previo, o escribinos por WhatsApp."
+    }
+  ]
+}

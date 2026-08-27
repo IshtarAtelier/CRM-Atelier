@@ -1,0 +1,55 @@
+{
+  "id": "tratamientos-tus-cristales",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Elegiste el armazón con calma. ¿Y el cristal? Los tratamientos son lo que se nota todos los días: antirreflejo, fotocromático, filtro azul.\n\nTe contamos qué hace cada uno, y cuál te conviene según tus días — sin venderte el más caro.\n\nVení al local o escribinos por WhatsApp.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/muestrario-smart-lens.jpg",
+      "title": "El cristal es *la mitad del anteojo*",
+      "subtitle": "Los tratamientos hacen la diferencia que usás todos los días. Estos son los tres que más piden."
+    },
+    {
+      "type": "list",
+      "title": "Antirreflejo: *el que necesita todo el mundo*",
+      "items": [
+        "Saca los reflejos que te tapan los ojos en las fotos",
+        "De noche manejando, las luces de frente molestan menos",
+        "El cristal se ve más transparente, vos ves más limpio"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Fotocromático: *un solo par para todo*",
+      "items": [
+        "Claros adentro, se oscurecen solos con el sol",
+        "Entrás y salís todo el día sin cambiar de anteojo",
+        "Se combinan con tu graduación y con el antirreflejo"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/blog2_homeoffice.png",
+      "title": "Filtro azul: *si vivís de pantallas*",
+      "items": [
+        "Filtra parte de la luz de pantallas y luces LED",
+        "Ayuda en jornadas largas frente a la computadora",
+        "Viene junto con el antirreflejo, no lo reemplaza"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Contanos cómo son tus días",
+      "body": "Con eso te decimos qué tratamiento te conviene y cuál no hace falta. Vení al local o escribinos por WhatsApp."
+    }
+  ]
+}

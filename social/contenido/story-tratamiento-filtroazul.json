@@ -1,0 +1,19 @@
+{
+  "id": "story-tratamiento-filtroazul",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Si tus días son 8 horas de pantalla, al final de la jornada los ojos lo sienten. El filtro azul filtra parte de la luz de pantallas y LED, y ayuda a que llegues a la noche más descansado.\n\nContanos por WhatsApp cuántas horas de pantalla hacés y te decimos si es para vos.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog2_homeoffice.png",
+      "title": "¿Pantallas *todo el día*?",
+      "subtitle": "El filtro azul ayuda a que la jornada frente a la compu pese menos en los ojos. Preguntanos por WhatsApp si es para vos."
+    }
+  ]
+}

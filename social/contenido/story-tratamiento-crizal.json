@@ -1,0 +1,19 @@
+{
+  "id": "story-tratamiento-crizal",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Crizal es el antirreflejo premium de Essilor: más resistente a las rayas, más fácil de limpiar y con el cristal bien transparente. Se nota todos los días, no solo el primero.\n\nPreguntanos por WhatsApp y te mostramos la diferencia en el local.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/crizal_sapphire_hero.png",
+      "title": "Crizal: el antirreflejo *premium* de Essilor",
+      "subtitle": "Más resistente a las rayas y más fácil de limpiar. Un cristal que sigue impecable con el uso de todos los días. Preguntanos por WhatsApp."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "story-tratamiento-fotocromatico",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Salís al sol y se oscurecen solos. Entrás y se aclaran. Un solo anteojo para todo el día, con tu graduación.\n\nEscribinos por WhatsApp y te contamos cómo pedirlos con tu receta.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "title": "Un solo anteojo, *adentro y al sol*",
+      "subtitle": "Fotocromáticos: claros adentro, se oscurecen solos afuera. Dejá de cambiar entre dos pares. Escribinos por WhatsApp."
+    }
+  ]
+}

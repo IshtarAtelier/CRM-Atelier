@@ -1,0 +1,19 @@
+{
+  "id": "story-tratamiento-antirreflejo",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "En las fotos se te ven los cristales, no los ojos. Y de noche manejando, cada luz de frente se convierte en un reflejo más. El antirreflejo resuelve las dos cosas.\n\nConsultanos por WhatsApp y te decimos cómo sumarlo a tus cristales.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/lentes_con_reflejo.png",
+      "title": "¿En las fotos se te ven *los cristales y no los ojos*?",
+      "subtitle": "El antirreflejo saca esos reflejos: fotos limpias y manejo de noche sin luces que encandilan. Consultanos por WhatsApp."
+    }
+  ]
+}
