@@ -9,16 +9,16 @@
     "armazones",
     "local"
   ],
-  "caption": "Hasta 6 cuotas sin interés con tarjeta, en anteojos recetados, multifocales y lentes de sol.\n\nTambién 20% de descuento pagando en efectivo o 15% por transferencia.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
+  "caption": "Hasta 6 cuotas sin interés con tarjeta, en anteojos recetados, multifocales y lentes de sol. Y ahora también hasta 12 pagos con Mercado Pago.\n\nTambién 15% de descuento pagando en efectivo o 15% por transferencia.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
   "slides": [
     {
       "type": "number",
       "role": "portada",
-      "image": "blog/mostrador-marmol.jpg",
+      "image": "blog/anteojos-rosa-pastel.jpg",
       "encuadre": "cover",
       "title": "Sin interés, con tarjeta",
       "dato": "6 cuotas",
-      "body": "En anteojos recetados, multifocales y lentes de sol. Con tarjeta, en el local."
+      "body": "En anteojos recetados, multifocales y lentes de sol. Con tarjeta, en el local. Y ahora también hasta 12 pagos con Mercado Pago."
     }
   ]
 }

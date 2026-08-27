@@ -4,7 +4,7 @@
   "theme": "dark",
   "pilar": "producto",
   "fuente": "base",
-  "generadoEl": "2026-08-22",
+  "generadoEl": "2026-08-27",
   "generadoDesde": "produccion",
   "temas": [
     "armazones"
@@ -15,7 +15,7 @@
     "marca": "Cápsula Escarlata",
     "categoria": "Sol"
   },
-  "caption": "Cánopo · Cápsula Escarlata\n\n6 cuotas sin interés de $37.500\n$191.250 en efectivo o transferencia (ahorrás 15%)\n\nEn la tienda: https://atelieroptica.com.ar/producto/canopo-c2\nO vení a probártelo, Cerro de las Rosas.",
+  "caption": "Cánopo · Cápsula Escarlata\n\n6 cuotas sin interés de $37.500\nHasta 12 pagos de $20.625 con Mercado Pago\n$191.250 en efectivo o transferencia (ahorrás 15%)\n\nEn la tienda: https://atelieroptica.com.ar/producto/canopo-c2\nO vení a probártelo, Cerro de las Rosas.",
   "slides": [
     {
       "type": "number",
@@ -23,7 +23,7 @@
       "image": "assets/products/acetato/canopo-c2.webp",
       "title": "Cánopo · Cápsula Escarlata",
       "dato": "$37.500",
-      "body": "6 cuotas sin interés\n$191.250 en efectivo o transferencia",
+      "body": "6 cuotas sin interés\nHasta 12 pagos de $20.625 con Mercado Pago\n$191.250 en efectivo o transferencia",
       "cta": "Pedí tu presupuesto 👉 WhatsApp"
     }
   ]

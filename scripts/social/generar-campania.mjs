@@ -56,13 +56,32 @@ function promos(info) {
         '6cuotas': {
             id: 'campania-6-cuotas',
             temas: ['armazones', 'local'],
-            imagen: 'blog/mostrador-marmol.jpg',
+            // Armazones reales del estante del local — se tiene que entender
+            // de un vistazo que hablamos de anteojos.
+            imagen: 'blog/anteojos-rosa-pastel.jpg',
             titulo: 'Hasta *6 cuotas sin interés*',
-            bajada: 'En anteojos recetados, multifocales y lentes de sol. Con tarjeta, en el local.',
+            bajada: 'En anteojos recetados, multifocales y lentes de sol. Con tarjeta, en el local. Y ahora también hasta 12 pagos con Mercado Pago.',
             corto: 'En anteojos recetados y multifocales.',
             dato: '6 cuotas',
             rotulo: 'Sin interés, con tarjeta',
-            caption: `Hasta 6 cuotas sin interés con tarjeta, en anteojos recetados, multifocales y lentes de sol.\n\nTambién ${info.descuentoEfectivo}% de descuento pagando en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo.`,
+            caption: `Hasta 6 cuotas sin interés con tarjeta, en anteojos recetados, multifocales y lentes de sol. Y ahora también hasta 12 pagos con Mercado Pago.\n\nTambién ${info.descuentoEfectivo}% de descuento pagando en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo.`,
+        },
+        // 27/8/2026: acuerdo con Mercado Pago. Regla de comunicación de Ishtar:
+        // "hasta 12 pagos" — NUNCA "sin interés" (eso son solo 3 y 6) ni el
+        // costo financiero en el cartel.
+        '12pagos': {
+            id: 'campania-12-pagos',
+            temas: ['armazones', 'local'],
+            // Clienta probándose armazones EN el local: el momento exacto en el
+            // que importa cómo pagarlo. (El mostrador de mármol mostraba el
+            // frasco de caramelos — "eso no es un anteojo", Ishtar 27/8.)
+            imagen: 'blog/blog3_eligiendo.png',
+            titulo: 'Ahora *hasta 12 pagos*',
+            bajada: 'Tus anteojos en 12 pagos con Mercado Pago. Recetados, multifocales y lentes de sol. Y las 6 cuotas sin interés de siempre.',
+            corto: 'Con Mercado Pago, en todo el local.',
+            dato: '12 pagos',
+            rotulo: 'Con Mercado Pago',
+            caption: `Ahora podés llevarte tus anteojos en hasta 12 pagos con Mercado Pago 💳\n\nY siguen las de siempre: 6 cuotas sin interés con tarjeta, ${info.descuentoEfectivo}% de descuento en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo.`,
         },
         '2x1': {
             id: 'campania-2x1-multifocales',

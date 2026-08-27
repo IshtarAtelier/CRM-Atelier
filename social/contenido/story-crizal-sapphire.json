@@ -1,0 +1,17 @@
+{
+  "id": "story-crizal-sapphire",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Crizal Sapphire: el antirreflejo más transparente de Essilor. Reflejos casi cero — manejo nocturno, fotos y videollamadas sin dos vidrios brillando. Escribinos y te contamos si va con tu receta.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "temas": ["cristales"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/crizal_sapphire_hero.png",
+      "title": "Crizal Sapphire: *reflejos casi cero*",
+      "subtitle": "El más transparente de los Crizal. Para manejar de noche, para las fotos, para que se te vean los ojos y no los vidrios."
+    }
+  ]
+}

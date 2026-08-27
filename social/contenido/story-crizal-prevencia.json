@@ -1,0 +1,17 @@
+{
+  "id": "story-crizal-prevencia",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "¿Todo el día de compu y celular? Crizal Prevencia filtra parte de la luz azul de las pantallas, con el antirreflejo Crizal incluido. Contanos tus jornadas y te decimos si es para vos.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "temas": ["cristales"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/crizal_prevencia_blue.png",
+      "title": "Crizal Prevencia: *para los de pantallas*",
+      "subtitle": "Filtro de luz azul + el antirreflejo Crizal de siempre. Si tu día es compu y celular, este es el tuyo."
+    }
+  ]
+}

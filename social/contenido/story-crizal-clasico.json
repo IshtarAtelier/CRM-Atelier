@@ -1,0 +1,17 @@
+{
+  "id": "story-crizal-clasico",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Crizal, el antirreflejo de Essilor: se limpia con un paño, repele el agua y el polvo, y aguanta el uso de todos los días. El punto de partida de un buen cristal. Escribinos por WhatsApp.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "temas": ["cristales"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/crizal_tecnologia.png",
+      "title": "Crizal clásico: *el todoterreno*",
+      "subtitle": "Antirreflejo Essilor que se limpia fácil y aguanta el trajín. El punto de partida de un cristal bien hecho."
+    }
+  ]
+}

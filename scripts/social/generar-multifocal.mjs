@@ -322,6 +322,8 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
         // mostrador.
         const cuota = Math.round(ancla.precio / cond.cuotas);
         const alContado = Math.round(ancla.precio * (1 - cond.descuento / 100));
+        // 12 pagos MP (27/8/26): misma fórmula que la tienda (lista × 1,10 ÷ 12).
+        const cuota12 = Math.round((ancla.precio * 1.10) / 12);
         const hoy = new Date().toISOString().slice(0, 10);
 
         // El mismo texto que muestra la landing (`LandingClient.tsx`): dice
@@ -462,8 +464,8 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
                     title: `${TITULAR} desde`,
                     dato: plata(ancla.precio),
                     body: tam.formato === '1.91:1'
-                        ? `${cond.textoCuotas} de ${plata(cuota)}.`
-                        : `${cond.textoCuotas} de ${plata(cuota)}.\nEl armazón lo elegís vos.${notaAncla}`,
+                        ? `${cond.textoCuotas} de ${plata(cuota)}.\nHasta 12 pagos de ${plata(cuota12)} con Mercado Pago.`
+                        : `${cond.textoCuotas} de ${plata(cuota)}.\nHasta 12 pagos de ${plata(cuota12)} con Mercado Pago.\nEl armazón lo elegís vos.${notaAncla}`,
                 },
             ],
         }));

@@ -36,6 +36,12 @@ const resaltar = (texto) =>
  */
 const comoUrl = (dataUri) => dataUri;
 
+// Dirección y horarios en TODAS las placas (pedido de Ishtar 27/8/26: "sí o
+// sí"). Si cambian, actualizar TAMBIÉN src/lib/business-info.ts — es el mismo
+// dato; acá va la versión corta que entra en un renglón del pie.
+const DIRECCION_PIE = 'Tejeda 4380 · Cerro de las Rosas';
+const HORARIO_PIE = 'Lun a Vie 8–20 · Sáb 9–17';
+
 function pie(id) {
     // El logo va alineado VERTICALMENTE AL CENTRO con el handle, no al fondo de
     // la caja: alineado abajo se ve mal y no se entiende por qué hasta que se
@@ -44,6 +50,7 @@ function pie(id) {
     <footer class="pie">
       <img class="logo" src="${comoUrl(id.logo)}" alt="">
       <span class="handle">${esc(id.handle)}</span>
+      <span class="direccion">${esc(DIRECCION_PIE)}<br>${esc(HORARIO_PIE)}</span>
     </footer>`;
 }
 
@@ -353,6 +360,9 @@ export function htmlDeSlide(slide, id, pieza) {
   }
   .logo { height:52px; width:auto; ${oscuro ? 'filter:brightness(0) invert(1);' : ''} opacity:.95; }
   .handle { font-size:26px; font-weight:500; letter-spacing:.06em; opacity:.7; }
+  /* Dirección + horarios SIEMPRE presentes (Ishtar 27/8): a la derecha del
+     pie, chico y discreto — informa sin pelearle protagonismo al mensaje. */
+  .direccion { margin-left:auto; text-align:right; font-size:20px; line-height:1.45; font-weight:500; letter-spacing:.03em; opacity:.62; }
 
   /* ── Ajustes por formato ──────────────────────────────────────────────────
      VAN AL FINAL A PROPÓSITO. Estaban arriba y no se aplicaban: las reglas

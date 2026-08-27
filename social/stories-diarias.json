@@ -6,7 +6,24 @@
     "",
     "La elección es determinística: índice = díasDesde(1/1/2026) % cantidad del",
     "carril. No es al azar, así se sabe de antemano qué sale mañana y un",
-    "problema se puede reproducir.",
+    "problema se puede reproducir. El cron publica DOS por carril por día y el",
+    "índice avanza de a 2: con 20 de contenido el ciclo es de 10 días, con 24",
+    "de producto es de 12.",
+    "",
+    "IDS REPETIDOS A PROPÓSITO: horarios y donde-estamos aparecen 3 veces cada",
+    "uno (regla de la dueña: dirección y horarios tienen que salir cada pocos",
+    "días, hoy cada 3-4). Un id repetido es válido MIENTRAS las dos copias no",
+    "queden en posiciones adyacentes: el cron toma pares consecutivos (i, i+1)",
+    "y el dedup del día saltearía la segunda copia si cayeran juntas.",
+    "",
+    "El orden del carril de producto intercala Sol / Clip-On / Receta a",
+    "propósito, para que no salgan 5 clip-on seguidos. Al agregar productos",
+    "nuevos, mantener la alternancia y separar variantes del mismo modelo.",
+    "",
+    "FUERA DEL AIRE por falta de stock (27/8/26): capri-c5-g5929 y",
+    "verona-g5959-c1 — sus productos dejaron la tienda y la regeneración ya no",
+    "los refresca, así que la guarda de frescura los bloquearía para siempre.",
+    "Si vuelven a tener stock, el viernes los regenera y se los puede sumar acá.",
     "",
     "Para sacar algo del aire se lo borra de su lista. Para agregar: renderizar",
     "en 9:16, commitear el JPEG y sumarlo acá.",
@@ -37,20 +54,24 @@
         "tipo": "propuesta"
       },
       {
-        "id": "story-presbicia",
-        "tipo": "educacion"
-      },
-      {
         "id": "donde-estamos",
         "tipo": "info"
       },
       {
-        "id": "story-limpieza",
+        "id": "story-tratamiento-antirreflejo",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-ninos",
         "tipo": "educacion"
       },
       {
         "id": "story-laboratorio",
         "tipo": "propuesta"
+      },
+      {
+        "id": "horarios",
+        "tipo": "info"
       },
       {
         "id": "story-fotocromaticos",
@@ -61,11 +82,39 @@
         "tipo": "educacion"
       },
       {
+        "id": "donde-estamos",
+        "tipo": "info"
+      },
+      {
+        "id": "story-tratamiento-filtroazul",
+        "tipo": "educacion"
+      },
+      {
         "id": "story-medicion",
         "tipo": "propuesta"
       },
       {
-        "id": "story-ninos",
+        "id": "story-limpieza",
+        "tipo": "educacion"
+      },
+      {
+        "id": "horarios",
+        "tipo": "info"
+      },
+      {
+        "id": "story-tratamiento-fotocromatico",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-presbicia",
+        "tipo": "educacion"
+      },
+      {
+        "id": "donde-estamos",
+        "tipo": "info"
+      },
+      {
+        "id": "story-tratamiento-crizal",
         "tipo": "educacion"
       },
       {
@@ -79,11 +128,7 @@
         "tipo": "producto"
       },
       {
-        "id": "story-producto-antares-c1",
-        "tipo": "producto"
-      },
-      {
-        "id": "story-producto-canopo-c2",
+        "id": "story-producto-clip-on-palermo-c3",
         "tipo": "producto"
       },
       {
@@ -91,11 +136,7 @@
         "tipo": "producto"
       },
       {
-        "id": "story-producto-deneb-c2",
-        "tipo": "producto"
-      },
-      {
-        "id": "story-producto-fenix-c1",
+        "id": "story-producto-helena-c4",
         "tipo": "producto"
       },
       {
@@ -103,15 +144,15 @@
         "tipo": "producto"
       },
       {
-        "id": "story-producto-nashira-c3",
+        "id": "story-producto-lentes-sol-clip-on-florence-tr12173",
         "tipo": "producto"
       },
       {
-        "id": "story-producto-rigel-c1",
+        "id": "story-producto-sirio-c1",
         "tipo": "producto"
       },
       {
-        "id": "story-producto-rigel-c3",
+        "id": "story-producto-clipon-sol-ateliers-venice-7018",
         "tipo": "producto"
       },
       {
@@ -119,7 +160,63 @@
         "tipo": "producto"
       },
       {
+        "id": "story-producto-rigel-c1",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-antares-c1",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-clip-on-torino-8125s-c3-lentes-de-sol",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-fenix-c1",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-deneb-c2",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-orion-c1",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-canopo-c2",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-lentes-de-sol-clip-on-riviera-g5970-c1-armazon",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-sirio-c2",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-lentes-sol-clipon-milano-mlt25026-c1",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-lentes-de-sol-clip-on-monaco-a12183-c2",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-rigel-c3",
+        "tipo": "producto"
+      },
+      {
         "id": "story-producto-vega-c2",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-nashira-c3",
+        "tipo": "producto"
+      },
+      {
+        "id": "story-producto-lentes-sol-clip-on-torino-8125s-c4",
         "tipo": "producto"
       }
     ]

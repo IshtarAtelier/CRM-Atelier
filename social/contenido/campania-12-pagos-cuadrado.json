@@ -1,0 +1,24 @@
+{
+  "id": "campania-12-pagos-cuadrado",
+  "format": "1:1",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "ubicacion": "Varias ubicaciones (la que menos se recorta)",
+  "temas": [
+    "armazones",
+    "local"
+  ],
+  "caption": "Ahora podés llevarte tus anteojos en hasta 12 pagos con Mercado Pago 💳\n\nY siguen las de siempre: 6 cuotas sin interés con tarjeta, 15% de descuento en efectivo o 15% por transferencia.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "blog/blog3_eligiendo.png",
+      "encuadre": "cover",
+      "title": "Con Mercado Pago",
+      "dato": "12 pagos",
+      "body": "Tus anteojos en 12 pagos con Mercado Pago. Recetados, multifocales y lentes de sol. Y las 6 cuotas sin interés de siempre."
+    }
+  ]
+}

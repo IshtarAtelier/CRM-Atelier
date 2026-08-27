@@ -4,7 +4,14 @@
     "si la fecha de hoy (ART) está acá y no se publicó ya, publica y registra.",
     "Entradas {fecha, pieza} = carrusel a FB+IG. {fecha, reel} = reel a IG.",
     "",
-    "Cadencia: carruseles mar/jue/sáb, reels domingo por medio.",
+    "UNA entrada por fecha: el cron toma la PRIMERA que coincide con hoy, así",
+    "que programar pieza y reel el mismo día deja una de las dos muerta.",
+    "",
+    "Cadencia: carruseles mar/jue/sáb + DOMINGO (campañas de pago y",
+    "tratamientos — el domingo vende), reels los miércoles.",
+    "",
+    "Regla anti-repetición: una misma pieza no vuelve al feed antes de los",
+    "21 días. La promo vigente (campania-12-pagos-feed) sale cada ~3 semanas.",
     "",
     "Los carruseles de PRODUCTO (fuente: base) tienen guarda de frescura: si al",
     "llegar su fecha fueron generados hace más de 10 días, el cron NO los publica",
@@ -69,11 +76,15 @@
     },
     {
       "fecha": "2026-08-30",
-      "reel": "que-es-la-hipermetropia"
+      "pieza": "campania-12-pagos-feed"
     },
     {
       "fecha": "2026-09-01",
       "pieza": "cristales-transitions"
+    },
+    {
+      "fecha": "2026-09-02",
+      "reel": "que-es-la-hipermetropia"
     },
     {
       "fecha": "2026-09-03",
@@ -85,11 +96,15 @@
     },
     {
       "fecha": "2026-09-06",
-      "reel": "garantia-30-dias"
+      "pieza": "tratamientos-tus-cristales"
     },
     {
       "fecha": "2026-09-08",
       "pieza": "elegir-armazon-rostro"
+    },
+    {
+      "fecha": "2026-09-09",
+      "reel": "garantia-30-dias"
     },
     {
       "fecha": "2026-09-10",
@@ -101,11 +116,15 @@
     },
     {
       "fecha": "2026-09-13",
-      "reel": "que-es-la-presbicia"
+      "pieza": "crizal-vale-la-pena"
     },
     {
       "fecha": "2026-09-15",
       "pieza": "anteojos-rotos-gotita"
+    },
+    {
+      "fecha": "2026-09-16",
+      "reel": "que-es-la-presbicia"
     },
     {
       "fecha": "2026-09-17",
@@ -117,11 +136,15 @@
     },
     {
       "fecha": "2026-09-20",
-      "reel": "medicion-armazon"
+      "pieza": "campania-12-pagos-feed"
     },
     {
       "fecha": "2026-09-22",
       "pieza": "progresivos-que-medimos"
+    },
+    {
+      "fecha": "2026-09-23",
+      "reel": "medicion-armazon"
     },
     {
       "fecha": "2026-09-24",
@@ -133,11 +156,15 @@
     },
     {
       "fecha": "2026-09-27",
-      "reel": "stellest-frena-miopia"
+      "pieza": "campania-6-cuotas-feed"
     },
     {
       "fecha": "2026-09-29",
       "pieza": "renova-tu-receta"
+    },
+    {
+      "fecha": "2026-09-30",
+      "reel": "stellest-frena-miopia"
     },
     {
       "fecha": "2026-10-01",
@@ -149,11 +176,15 @@
     },
     {
       "fecha": "2026-10-04",
-      "reel": "fotocromaticos-dia"
+      "pieza": "tratamientos-tus-cristales"
     },
     {
       "fecha": "2026-10-06",
       "pieza": "filtro-azul-o-antirreflejo"
+    },
+    {
+      "fecha": "2026-10-07",
+      "reel": "fotocromaticos-dia"
     },
     {
       "fecha": "2026-10-08",
@@ -165,11 +196,15 @@
     },
     {
       "fecha": "2026-10-11",
-      "reel": "lente-progresiva"
+      "pieza": "campania-12-pagos-feed"
     },
     {
       "fecha": "2026-10-13",
       "pieza": "garantia-adaptacion"
+    },
+    {
+      "fecha": "2026-10-14",
+      "reel": "lente-progresiva"
     },
     {
       "fecha": "2026-10-15",
@@ -181,11 +216,15 @@
     },
     {
       "fecha": "2026-10-18",
-      "reel": "2x1-multifocales"
+      "pieza": "crizal-vale-la-pena"
     },
     {
       "fecha": "2026-10-20",
       "pieza": "polarizados-manejo"
+    },
+    {
+      "fecha": "2026-10-21",
+      "reel": "2x1-multifocales"
     },
     {
       "fecha": "2026-10-22",
@@ -197,11 +236,15 @@
     },
     {
       "fecha": "2026-10-25",
-      "reel": "lente-bifocal"
+      "pieza": "campania-6-cuotas-feed"
     },
     {
       "fecha": "2026-10-27",
       "pieza": "lentes-de-contacto"
+    },
+    {
+      "fecha": "2026-10-28",
+      "reel": "lente-bifocal"
     },
     {
       "fecha": "2026-10-29",

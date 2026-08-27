@@ -52,7 +52,9 @@ export const BUSINESS_INFO = {
   appointmentSlots: "de 8:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 (Sábados)",
   discountCashPercent: 15,
   discountTransferPercent: 15,
-  installmentsPromo: "3 o 6 cuotas sin interés con tarjeta",
+  // 27/8/2026 (acuerdo de Ishtar con Mercado Pago): se suman los 12 pagos.
+  // Regla de comunicación: "hasta 12 pagos", NUNCA "12 sin interés" ni el %.
+  installmentsPromo: "3 o 6 cuotas sin interés con tarjeta, o hasta 12 pagos con Mercado Pago",
 } as const;
 
 /** Texto de promociones listo para inyectar en prompts. */

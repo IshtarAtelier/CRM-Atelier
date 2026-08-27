@@ -1,0 +1,55 @@
+{
+  "id": "crizal-cual-es-para-vos",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Crizal no es uno solo: hay tres, y cada uno resuelve una vida distinta.\n\nCrizal clásico: el antirreflejo de Essilor que se limpia fácil y aguanta el uso de todos los días.\nCrizal Sapphire: el más transparente de todos — reflejos casi cero, ideal si manejás de noche o te sacás muchas fotos.\nCrizal Prevencia: suma el filtro de luz azul para los que viven de pantallas.\n\nContanos cómo son tus días y te decimos cuál va con vos.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/crizal_tecnologia.png",
+      "title": "Crizal *no es uno solo*",
+      "subtitle": "Son tres, y cada uno resuelve una vida distinta. Te los presentamos."
+    },
+    {
+      "type": "list",
+      "title": "Crizal clásico: *el todoterreno*",
+      "items": [
+        "Antirreflejo Essilor: el cristal se ve limpio y tus ojos se ven",
+        "Repele el agua, la grasitud y el polvo — se limpia con un paño",
+        "Aguanta el trajín del uso diario sin rayarse a la primera"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/crizal_sapphire_hero.png",
+      "title": "Crizal Sapphire: *el más transparente*",
+      "items": [
+        "Reflejos casi invisibles, de frente y de costado",
+        "Manejando de noche las luces molestan mucho menos",
+        "En fotos y videollamadas no se te ven dos vidrios brillando"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Crizal Prevencia: *el de las pantallas*",
+      "items": [
+        "Filtra parte de la luz azul de pantallas y luces LED",
+        "Pensado para jornadas largas de compu y celular",
+        "Con el mismo antirreflejo Crizal de siempre incluido"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/local-varilux.jpg",
+      "title": "¿Cuál va con vos?",
+      "body": "Contanos cómo son tus días — pantallas, manejo, fotos, calle — y te decimos cuál de los tres Crizal te conviene. Vení al local o escribinos por WhatsApp."
+    }
+  ]
+}
