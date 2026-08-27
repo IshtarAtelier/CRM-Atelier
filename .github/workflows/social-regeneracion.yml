@@ -63,7 +63,10 @@ jobs:
           PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
         run: |
           set -e
-          node scripts/social/generar-story-producto.mjs --produccion --marca "Cápsula Escarlata" --cantidad 12
+          # 40 cubre TODO el catálogo publicado de la marca: el carril diario usa 24
+          # stories (con clip-on incluidos) y con 12 los que quedaban afuera vencían
+          # a los 10 días y la guarda de frescura los bloqueaba.
+          node scripts/social/generar-story-producto.mjs --produccion --marca "Cápsula Escarlata" --cantidad 40
           node scripts/social/generar-producto.mjs --categoria "Sol" --id sol-seleccion --limite 3
           node scripts/social/generar-producto.mjs --categoria "Receta" --id receta-seleccion --titulo "Armazones *de receta* con firma propia" --limite 3 --saltear 3
           node scripts/social/generar-producto.mjs
