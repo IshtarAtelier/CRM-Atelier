@@ -4,7 +4,7 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getFileBuffer } from '@/lib/storage';
 import { detectBillingAccount, getBillingAccountConfig } from '@/lib/afip';
 import { retryWithBackoff } from '@/lib/retry-utils';
-import { notifyReceiptUploaded, notifyVendorsReceiptError, type DuplicatePaymentRef } from '@/lib/receipt-notify';
+import { notifyReceiptUploaded, type DuplicatePaymentRef } from '@/lib/receipt-notify';
 import { formatDate } from '@/lib/format-date';
 
 /**
@@ -499,19 +499,12 @@ export class ReceiptAgentService {
                  console.log(`[ReceiptAgent] Payment ${paymentId} check passed successfully.`);
             }
 
-            // Mail a los vendedores como si lo mandara Ishtar pidiendo corregir la carga
-            if (confirmed.length > 0) {
-                await notifyVendorsReceiptError({
-                    clientName,
-                    clientId: orderInfo?.client?.id,
-                    orderId,
-                    amount: expectedAmount,
-                    receiptUrl,
-                    issues: confirmed.map(f => f.vendor),
-                    // El duplicado se nombra solo si esa observación sobrevivió a la verificación.
-                    duplicateRefs: confirmed.some(f => f.vendor.includes('ya estaba cargado en otro pago')) ? duplicateRefs : []
-                });
-            }
+            // APAGADO el 27/8/26 por pedido de Ishtar: los vendedores recibían
+            // tantos correos de diferencias que no leían ninguno. La observación
+            // queda en la notificación del CRM y en el mail de auditoría que le
+            // llega a Ishtar (notifyReceiptUploaded); si hay que pedir una
+            // corrección, la pide ella a mano. Para reactivar:
+            // notifyVendorsReceiptError({...}) con los mismos datos de arriba.
 
             // Email único al admin: comprobante adjunto + veredicto de la auditoría
             adminEmailSent = true;

@@ -205,8 +205,9 @@ export function getAbandonedCartHtml(
         <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${SOFT_PANEL}" style="background-color: ${SOFT_PANEL}; border-radius: 14px;">
           <tr>
             <td style="padding: 24px 28px; font-family: ${SANS}; font-size: 13px; line-height: 2.2; color: #5a5348;">
-              <span style="color: ${GOLD};">&#10022;</span>&nbsp; 6 cuotas sin inter&eacute;s con tarjeta<br/>
-              <span style="color: ${GOLD};">&#10022;</span>&nbsp; 15% OFF pagando por transferencia<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; 6 cuotas sin inter&eacute;s de <strong>$${Math.round(total / 6).toLocaleString('es-AR')}</strong> con tarjeta<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; <strong>$${Math.round(total * 0.85).toLocaleString('es-AR')}</strong> pagando por transferencia (ahorr&aacute;s $${Math.round(total * 0.15).toLocaleString('es-AR')})<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; Hasta 12 pagos de <strong>$${Math.round((total * 1.10) / 12).toLocaleString('es-AR')}</strong> por Mercado Pago<br/>
               <span style="color: ${GOLD};">&#10022;</span>&nbsp; Env&iacute;o gratis a todo el pa&iacute;s<br/>
               <span style="color: ${GOLD};">&#10022;</span>&nbsp; Garant&iacute;a oficial en todos los armazones
             </td>

@@ -16,6 +16,7 @@ import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { trackViewContent } from "@/lib/tracking";
 import { GARANTIA_ADAPTACION } from "@/lib/garantia";
+import { PricingService } from "@/services/PricingService";
 import ProductReviews from "@/components/Storefront/ProductReviews";
 
 // Carga diferida: el configurador (662 líneas) recién se monta cuando el cliente
@@ -844,7 +845,7 @@ export function ProductClient({
                 href={buildWhatsAppUrl(
                   isWholesale
                     ? `¡Hola! Soy de la óptica ${currentUser?.name || ''} y quiero consultar por el anteojo mayorista ${product.brand || ''} ${product.model || ''} por $${(productWholesalePrice || product.price || 0).toLocaleString("es-AR")}.`
-                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round(effectivePrice * (1 - cashDiscount / 100)).toLocaleString("es-AR")} por transferencia o $${effectivePrice.toLocaleString("es-AR")} en cuotas. ¿Me pasarían los datos de pago?`,
+                    : `¡Hola! Quiero comprar el anteojo ${product.brand || ''} ${product.model || ''} — $${Math.round(effectivePrice * (1 - cashDiscount / 100)).toLocaleString("es-AR")} por transferencia, 6 cuotas sin interés de $${Math.round(effectivePrice / 6).toLocaleString("es-AR")} o 12 pagos de $${PricingService.cuotasMpLargas(effectivePrice).installment12.toLocaleString("es-AR")}. ¿Me pasarían los datos de pago?`,
                   { pageUrl: currentPageUrl(`/producto/${product.slug}`), phone: whatsappPhoneId }
                 )}
                 target="_blank"

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { PricingService } from "@/services/PricingService";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 import { WHATSAPP_PHONE } from "@/lib/constants";
@@ -232,7 +233,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     )}
                     {item.rawPrice && (
                       <p className="text-[10px] text-stone-500 font-medium">
-                        ${Math.round(item.rawPrice * 0.85).toLocaleString("es-AR")} eft/transf
+                        ${PricingService.preciosVidriera(item.rawPrice, 15).contado.toLocaleString("es-AR")} eft/transf · 12 de ${PricingService.preciosVidriera(item.rawPrice, 15).cuota12.toLocaleString("es-AR")}
                       </p>
                     )}
                   </div>

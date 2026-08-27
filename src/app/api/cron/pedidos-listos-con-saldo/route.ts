@@ -315,40 +315,47 @@ export async function GET(request: Request) {
         }
 
         const summaries: any[] = [];
-        for (const { greeting, user, entries: list } of groups.values()) {
-            const { subject, html } = buildVendorEmail(greeting, list);
-            const vendorInbox = notificationEmailFor(user);
-            // Al vendedor y a Ishtar, ambos como destinatarios visibles.
-            const to = vendorInbox === ISHTAR_INBOX ? ISHTAR_INBOX : `${vendorInbox}, ${ISHTAR_INBOX}`;
+        // ── UN solo email diario para todo el equipo (pedido de Ishtar 27/8):
+        // antes salía un correo por vendedor y nadie leía nada. Se arma un
+        // digest con la sección de cada vendedor y va a la casilla compartida
+        // del local + Ishtar. El candado anti-repetición por pedido sigue igual.
+        if (groups.size > 0) {
+            const todas: Entry[] = [];
+            const secciones: string[] = [];
+            for (const { greeting, entries: list } of groups.values()) {
+                todas.push(...list);
+                const { html } = buildVendorEmail(greeting, list);
+                secciones.push(`<h3 style="margin:20px 0 6px;font-size:14px;border-bottom:1px solid #eee;padding-bottom:4px;">Para ${greeting}</h3>${html}`);
+            }
+
+            const totalSaldo = todas.reduce((a, e) => a + e.saldoLista, 0);
+            const subject = `Saldos del día: ${todas.length} pedido${todas.length === 1 ? '' : 's'} por ${money(totalSaldo)}`;
+            const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;">
+                <p>Resumen diario de pedidos con saldo (un solo correo por día, cada uno con su sección):</p>
+                ${secciones.join('')}
+            </div>`;
+            const to = `${notificationEmailFor(null)}, ${ISHTAR_INBOX}`;
 
             if (dryRun) {
-                summaries.push({
-                    greeting, to, subject,
-                    pedidos: list.map(e => ({ venta: e.shortId, cliente: e.clientName, tipo: e.kind, saldo: e.saldoLista })),
-                    html,
-                });
-                continue;
+                summaries.push({ to, subject, pedidos: todas.map(e => ({ venta: e.shortId, cliente: e.clientName, vendedor: e.vendorName, tipo: e.kind, saldo: e.saldoLista })), html });
+            } else {
+                const res = await sendEmail({ to, from: PERSONAL_FROM, replyTo: ISHTAR_INBOX, subject, html });
+
+                if (res.success) {
+                    await prisma.notification.createMany({
+                        data: todas.map(e => ({
+                            type: NOTIF_TYPE,
+                            status: 'RESOLVED',
+                            message: `Aviso (digest diario): venta #${e.shortId} (${e.clientName}) ${e.kind === 'listo' ? 'lista' : 'vencida de plazo'} con saldo ${money(e.saldoLista)}.`,
+                            orderId: e.orderId,
+                            requestedBy: 'Sistema',
+                            resolvedBy: 'Sistema',
+                        })),
+                    });
+                }
+
+                summaries.push({ sent: res.success, subject, pedidos: todas.map(e => ({ venta: e.shortId, cliente: e.clientName, vendedor: e.vendorName, tipo: e.kind, saldo: e.saldoLista })) });
             }
-
-            const res = await sendEmail({ to, from: PERSONAL_FROM, replyTo: ISHTAR_INBOX, subject, html });
-
-            if (res.success) {
-                await prisma.notification.createMany({
-                    data: list.map(e => ({
-                        type: NOTIF_TYPE,
-                        status: 'RESOLVED',
-                        message: `Aviso a ${greeting}: venta #${e.shortId} (${e.clientName}) ${e.kind === 'listo' ? 'lista' : 'vencida de plazo'} con saldo ${money(e.saldoLista)}.`,
-                        orderId: e.orderId,
-                        requestedBy: 'Sistema',
-                        resolvedBy: 'Sistema',
-                    })),
-                });
-            }
-
-            summaries.push({
-                greeting, sent: res.success, subject,
-                pedidos: list.map(e => ({ venta: e.shortId, cliente: e.clientName, tipo: e.kind, saldo: e.saldoLista })),
-            });
         }
 
         return NextResponse.json({

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { PricingService } from "@/services/PricingService";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 import Image from "next/image";
@@ -148,6 +149,9 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
 
                   <p className="text-[11px] text-stone-600 dark:text-stone-400 font-medium">
                     ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transferencia <span className="text-emerald-800 dark:text-emerald-500 font-bold text-xs uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
+                  </p>
+                  <p className="text-[11px] text-stone-600 dark:text-stone-400 font-medium">
+                    Hasta 12 pagos de <span className="font-bold">${PricingService.cuotasMpLargas(p.price || 0).installment12.toLocaleString("es-AR")}</span> por Mercado Pago
                   </p>
                   {/* La promesa más fuerte de la tienda solo vivía en la cinta superior:
                       acá acompaña al precio, que es donde se compara. */}

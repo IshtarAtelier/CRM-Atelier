@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { LensConfigurator } from "@/components/Storefront/LensConfigurator";
 import Image from "next/image";
 import { recetaPendiente } from '@/lib/checkout/receta';
+import { PricingService } from "@/services/PricingService";
 
 export function CartSidebar() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal } = useCart();
@@ -154,10 +155,24 @@ export function CartSidebar() {
                     <span>Precio Neto</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-3">
                   <span className="text-xs font-black uppercase tracking-widest text-stone-500">Subtotal</span>
                   <span className="text-xl font-light">${getCartTotal(isWholesale).toLocaleString("es-AR")}</span>
                 </div>
+
+                {/* Números resueltos en el paso de mayor abandono: cuánto por
+                    cuota, cuánto al contado y cuánto en 12 — el cliente no
+                    calcula nada (los valores salen de PricingService). */}
+                {!isWholesale && getCartTotal(false) > 0 && (() => {
+                  const v = PricingService.preciosVidriera(getCartTotal(false), 15);
+                  return (
+                    <div className="mb-5 grid grid-cols-1 gap-1.5 text-[11px] font-semibold text-stone-600">
+                      <div className="flex justify-between"><span>6 cuotas sin interés</span><span className="font-black text-stone-900">6 x ${v.cuota6.toLocaleString("es-AR")}</span></div>
+                      <div className="flex justify-between text-emerald-700"><span>Efectivo / transferencia (ahorrás ${v.ahorroContado.toLocaleString("es-AR")})</span><span className="font-black">${v.contado.toLocaleString("es-AR")}</span></div>
+                      <div className="flex justify-between"><span>Hasta 12 pagos por Mercado Pago</span><span className="font-black text-stone-900">12 x ${v.cuota12.toLocaleString("es-AR")}</span></div>
+                    </div>
+                  );
+                })()}
 
                 {(() => {
                   const totalPiezas = items.reduce((acc, i) => acc + i.quantity, 0);
