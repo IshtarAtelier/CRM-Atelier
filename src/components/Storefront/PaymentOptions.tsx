@@ -65,6 +65,17 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
       sub: "con tarjetas de crédito",
       highlight: false,
     },
+    // Orden de venta (pedido de Ishtar): lo que vende va primero — 6 sin
+    // interés, después el contado con su ahorro, y las 12 al final como
+    // estirador del presupuesto. El valor de 12 solo, no vende.
+    {
+      icon: <DollarSign className="w-4 h-4" strokeWidth={1.5} />,
+      label: showCalculated
+        ? `$${cashPriceValue.toLocaleString('es-AR')} en efectivo / transferencia`
+        : `${discountPercent}% de descuento`,
+      sub: showCalculated ? `ahorrás ${discountPercent}% pagando al contado` : "transferencia bancaria o efectivo",
+      highlight: true,
+    },
     {
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -76,14 +87,6 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
         : 'Hasta 12 pagos con Mercado Pago',
       sub: "por Mercado Pago",
       highlight: false,
-    },
-    {
-      icon: <DollarSign className="w-4 h-4" strokeWidth={1.5} />,
-      label: showCalculated
-        ? `$${cashPriceValue.toLocaleString('es-AR')} en efectivo / transferencia`
-        : `${discountPercent}% de descuento`,
-      sub: showCalculated ? `ahorrás ${discountPercent}% pagando al contado` : "transferencia bancaria o efectivo",
-      highlight: true,
     },
   ];
 
