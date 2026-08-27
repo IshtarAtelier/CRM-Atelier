@@ -126,6 +126,12 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   operación Y código de identificación). Comparar contra uno solo acusa en falso.
 - **Importe repetido al centavo no es doble facturación** — suele ser el mismo
   cristal a precio de lista.
+- **Mercado Pago Ishtar 12/18 cuotas lleva 10% de costo financiero FIJO**
+  (lista × 1,10) y siempre se aclara; 3/6 son sin interés (lista). La única
+  definición de "MP cuotas largas" es `esMpCuotasLargas()` en
+  `src/lib/payment-card.ts`, y su espejo SQL vive en el filtro "con saldo" de
+  `src/app/api/orders/route.ts` — se tocan juntos. Un pago MP 12/18 vale
+  `monto ÷ 1,10` de lista para el saldo.
 
 ## Arquitectura: cómo se agrega código sin pudrir el sistema
 Reglas para que el proyecto escale sin volverse un mazacote.
