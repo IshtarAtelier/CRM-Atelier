@@ -180,6 +180,7 @@ async function procesarPago(pago: MpPayment): Promise<{ detalle: string; orderId
         amount: pago.amount,
         actorName: 'Sistema (Mercado Pago)',
         paymentNote: `Pago aprobado por Mercado Pago${medio}${cuotas}`,
+        gatewayInstallments: pago.installments,
       });
       return {
         detalle: r.ok ? (r.alreadyProcessed ? 'Ya acreditado' : 'Acreditado') : `No acreditado: ${r.reason}`,

@@ -63,15 +63,19 @@ export async function GET(request: NextRequest) {
         create: { name: TAG_CAMPANIA, color: '#0ea5e9' },
     });
 
-    // Contactos de agosto sin NINGUNA venta, con teléfono, sin el tag de la campaña
+    // Contactos de agosto sin NINGUNA venta, con teléfono, sin el tag de la
+    // campaña. Un solo `where` para candidatos y para `restantes`: si divergen,
+    // "restantes" miente y la tanda no termina nunca.
+    const whereCandidatos = {
+        createdAt: { gte: new Date('2026-08-01T00:00:00-03:00'), lt: new Date('2026-09-01T00:00:00-03:00') },
+        isDeleted: false,
+        phone: { not: null },
+        orders: { none: { isDeleted: false } },
+        tags: { none: { id: tag.id } },
+    } as const;
+
     const candidatos = await prisma.client.findMany({
-        where: {
-            createdAt: { gte: new Date('2026-08-01T00:00:00-03:00'), lt: new Date('2026-09-01T00:00:00-03:00') },
-            isDeleted: false,
-            phone: { not: null },
-            orders: { none: { isDeleted: false } },
-            tags: { none: { id: tag.id } },
-        },
+        where: whereCandidatos,
         select: { id: true, name: true, phone: true },
         orderBy: { createdAt: 'asc' },
         take: dryRun ? 500 : batch,
@@ -85,16 +89,37 @@ export async function GET(request: NextRequest) {
         });
     }
 
+    // Reclamo ATÓMICO del contacto: se inserta el tag en la tabla puente ANTES
+    // de enviar, con ON CONFLICT DO NOTHING. Si otra invocación solapada (o un
+    // reintento del disparador) ya lo reclamó, el INSERT devuelve 0 filas y se
+    // saltea — imposible mandarle dos veces el mismo mensaje. Ante fallo de
+    // envío se libera el reclamo (best effort): preferimos el riesgo de saltear
+    // un contacto al de duplicarle la campaña con la cuenta bajo la lupa.
+    const reclamar = (clientId: string) => prisma.$executeRawUnsafe(
+        'INSERT INTO "_ClientToTag" ("A", "B") VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        clientId, tag.id,
+    );
+    const liberar = (clientId: string) => prisma.$executeRawUnsafe(
+        'DELETE FROM "_ClientToTag" WHERE "A" = $1 AND "B" = $2',
+        clientId, tag.id,
+    ).catch(() => 0);
+
     let enviados = 0;
     const errores: string[] = [];
-    for (const c of candidatos) {
+    for (let i = 0; i < candidatos.length; i++) {
+        const c = candidatos[i];
+        // formatPhoneForWhatsApp SIEMPRE antepone 549: un número real tiene al
+        // menos 13 caracteres (549 + área + abonado). Menos que eso es un fijo
+        // mal cargado que iría a un chat inexistente.
         const telefono = formatPhoneForWhatsApp(c.phone || '');
-        if (!telefono || telefono.length < 10) {
-            // Teléfono inservible: se etiqueta igual para no reintentarlo por siempre
-            await prisma.client.update({ where: { id: c.id }, data: { tags: { connect: { id: tag.id } } } });
+        if (!telefono || telefono.length < 13) {
+            await reclamar(c.id); // no reintentarlo por siempre
             errores.push(`${c.name}: teléfono inválido`);
             continue;
         }
+
+        const claimed = await reclamar(c.id);
+        if (claimed === 0) continue; // otra invocación ya lo tomó
 
         const pila = (c.name || '').trim().split(/\s+/)[0] || 'Hola';
         const texto = textoPlantilla(pila);
@@ -112,43 +137,30 @@ export async function GET(request: NextRequest) {
         });
 
         if (!res.ok) {
-            // NO se etiqueta: el próximo llamado lo reintenta
+            await liberar(c.id); // que el próximo llamado lo reintente
             errores.push(`${c.name}: ${res.error || 'fallo de envío'}`);
             continue;
         }
 
         enviados++;
-        // Trazabilidad en la ficha + tag anti-duplicado (el tag es el candado:
-        // si esto fallara tras el envío, el reintento re-enviaría — por eso va
-        // inmediatamente después del send y ante error se corta la tanda).
-        try {
-            await prisma.client.update({ where: { id: c.id }, data: { tags: { connect: { id: tag.id } } } });
-            await prisma.interaction.create({
-                data: {
-                    clientId: c.id,
-                    type: 'NOTE',
-                    userName: 'Sistema',
-                    content: `📣 [CAMPAÑA MP 12 CUOTAS] Se envió el aviso de las 12 cuotas por WhatsApp:\n"${texto}"`,
-                },
-            });
-        } catch (e: any) {
-            errores.push(`${c.name}: enviado pero falló el registro (${e?.message}) — CORTANDO tanda`);
-            break;
-        }
+        // Trazabilidad en la ficha (el candado ya está puesto desde antes del envío)
+        await prisma.interaction.create({
+            data: {
+                clientId: c.id,
+                type: 'NOTE',
+                userName: 'Sistema',
+                content: `📣 [CAMPAÑA MP 12 CUOTAS] Se envió el aviso de las 12 cuotas por WhatsApp:\n"${texto}"`,
+            },
+        }).catch((e: any) => errores.push(`${c.name}: enviado y reclamado, pero sin nota en ficha (${e?.message})`));
 
-        // Pausa corta dentro de la tanda (20-40 s); el espaciado grande lo pone quien invoca
-        await dormir(20000 + Math.floor(Math.random() * 20000));
+        // Pausa corta entre envíos (20-40 s) — no después del último: el
+        // espaciado grande entre tandas lo pone quien invoca.
+        if (i < candidatos.length - 1) {
+            await dormir(20000 + Math.floor(Math.random() * 20000));
+        }
     }
 
-    const restantes = await prisma.client.count({
-        where: {
-            createdAt: { gte: new Date('2026-08-01T00:00:00-03:00'), lt: new Date('2026-09-01T00:00:00-03:00') },
-            isDeleted: false,
-            phone: { not: null },
-            orders: { none: { isDeleted: false } },
-            tags: { none: { id: tag.id } },
-        },
-    });
+    const restantes = await prisma.client.count({ where: whereCandidatos });
 
     return NextResponse.json({ ok: true, enviados, restantes, errores: errores.slice(0, 10) });
 }

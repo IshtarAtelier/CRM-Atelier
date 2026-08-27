@@ -1,6 +1,6 @@
 import React from "react";
 import { ShieldCheck } from "lucide-react";
-import { FACTOR_MP_CUOTAS_LARGAS } from "@/lib/constants/descuentos";
+import { PricingService } from "@/services/PricingService";
 
 export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale, payableTotal, mercadoPagoEnabled, paywayEnabled = true }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean, payableTotal?: number, mercadoPagoEnabled?: boolean, paywayEnabled?: boolean }) {
   // El monto en el botón mata la última duda ("¿cuánto termino pagando?") justo
@@ -14,6 +14,10 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
   // el botón que cierra la compra: el peor lugar para un número que no es.
   const cuotasElegidas = Math.max(1, Number(formData.installments) || 1);
 
+  // Plan 12 pagos MP: números resueltos por PricingService (regla del proyecto:
+  // cálculo de plata SOLO ahí) — una sola vez, para radios y botón.
+  const planMp12 = payableTotal && payableTotal > 0 ? PricingService.cuotasMpLargas(payableTotal) : null;
+
   /** " · 6 x $107.708" para la opción de N cuotas; vacío si no hay total aún. */
   const porCuota = (n: number) =>
     payableTotal && payableTotal > 0
@@ -26,8 +30,8 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
   const etiquetaPago = (() => {
     if (!montoFmt || !payableTotal) return null;
     if (cuotasElegidas <= 1) return `Pagar ${montoFmt}`;
-    const porCuota = `$${Math.round(payableTotal / cuotasElegidas).toLocaleString("es-AR")}`;
-    return `Pagar ${cuotasElegidas} x ${porCuota}`;
+    const valorCuotaElegida = `$${Math.round(payableTotal / cuotasElegidas).toLocaleString("es-AR")}`;
+    return `Pagar ${cuotasElegidas} x ${valorCuotaElegida}`;
   })();
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');
@@ -116,8 +120,8 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                           <input type="radio" name="mpCuotas" value="12" checked={formData.mpCuotas === '12'} onChange={handleChange} className="accent-black" />
                           <span>
                             <span className="text-[13px] font-bold block">Hasta 12 pagos</span>
-                            {payableTotal && payableTotal > 0 && (
-                              <span className="text-[11px] text-stone-500 block">12 x ${Math.round((payableTotal * FACTOR_MP_CUOTAS_LARGAS) / 12).toLocaleString('es-AR')} · total ${Math.round(payableTotal * FACTOR_MP_CUOTAS_LARGAS).toLocaleString('es-AR')}</span>
+                            {planMp12 && (
+                              <span className="text-[11px] text-stone-500 block">12 x ${planMp12.installment12.toLocaleString('es-AR')} · total ${planMp12.totalFinanced.toLocaleString('es-AR')}</span>
                             )}
                           </span>
                         </span>
@@ -261,7 +265,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
           // el número del botón tiene que ser el que se va a pagar, siempre.
           <>
             {payableTotal && payableTotal > 0
-              ? `Continuar a Mercado Pago · $${Math.round(formData.mpCuotas === '12' ? payableTotal * FACTOR_MP_CUOTAS_LARGAS : payableTotal).toLocaleString('es-AR')}`
+              ? `Continuar a Mercado Pago · $${(formData.mpCuotas === '12' && planMp12 ? planMp12.totalFinanced : Math.round(payableTotal)).toLocaleString('es-AR')}`
               : "Continuar a Mercado Pago"} <ShieldCheck className="w-4 h-4" />
           </>
         ) : (
