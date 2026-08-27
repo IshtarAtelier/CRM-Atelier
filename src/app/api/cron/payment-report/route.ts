@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic';
 import { METHOD_LABELS } from '@/lib/constants';
 
 function getAccountName(method: string): string {
-    if (['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH', 'TRANSFERENCIA_ISHTAR'].includes(method)) {
+    if (['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH', 'TRANSFERENCIA_ISHTAR',
+         'MERCADO_PAGO_3_ISH', 'MERCADO_PAGO_6_ISH', 'MERCADO_PAGO_12_ISH', 'MERCADO_PAGO_18_ISH'].includes(method)) {
         return 'Cuenta Ishtar';
     }
     if (['PAY_WAY_6_YANI', 'PAY_WAY_3_YANI', 'NARANJA_Z_YANI'].includes(method)) {

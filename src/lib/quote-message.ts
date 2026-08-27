@@ -63,6 +63,8 @@ export function buildQuoteMessage(order: any, clientName: string): string {
     lineas.push(`💳 *Tarjeta (Lista): ${money(f.totalCard)}*`);
     lineas.push(`   ↳ 3 cuotas sin interés: ${money(f.installment3)} c/u`);
     lineas.push(`   ↳ 6 cuotas sin interés: ${money(f.installment6)} c/u`);
+    lineas.push(`   ↳ 12 cuotas (con 10% costo financiero): ${money(f.installment12)} c/u`);
+    lineas.push(`   ↳ 18 cuotas (con 10% costo financiero): ${money(f.installment18)} c/u`);
 
     // Si ya hay pagos hechos, el saldo va en el mismo mensaje: sin esto el
     // cliente ve el total y cree que debe todo.

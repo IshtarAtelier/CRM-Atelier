@@ -33,6 +33,10 @@ function getReceiptHtml(payment: any, order: any, client: any): string {
     
     let methodLabel = payment?.method || 'Desconocido';
     if (methodLabel === 'EFECTIVO' || methodLabel === 'CASH') methodLabel = 'Efectivo';
+    else if (methodLabel.includes('MERCADO_PAGO_3')) methodLabel = 'Mercado Pago (3 Cuotas)';
+    else if (methodLabel.includes('MERCADO_PAGO_6')) methodLabel = 'Mercado Pago (6 Cuotas)';
+    else if (methodLabel.includes('MERCADO_PAGO_12')) methodLabel = 'Mercado Pago (12 Cuotas, 10% costo financiero)';
+    else if (methodLabel.includes('MERCADO_PAGO_18')) methodLabel = 'Mercado Pago (18 Cuotas, 10% costo financiero)';
     else if (methodLabel.includes('TRANSFERENCIA')) methodLabel = 'Transferencia Bancaria';
     else if (methodLabel.includes('NARANJA_Z') || methodLabel === 'PLAN_Z') methodLabel = 'Tarjeta Naranja (Plan Z)';
     else if (methodLabel.includes('PAY_WAY_3') || methodLabel === 'CREDIT_3') methodLabel = 'Tarjeta de Crédito (3 Cuotas)';
@@ -256,6 +260,10 @@ async function generateReceiptPDFWithJsPDF(payment: any, order: any, contact: an
 
     let methodLabel2 = payment?.method || 'Desconocido';
     if (methodLabel2 === 'EFECTIVO' || methodLabel2 === 'CASH') methodLabel2 = 'Efectivo';
+    else if (methodLabel2.includes('MERCADO_PAGO_3')) methodLabel2 = 'Mercado Pago (3 Cuotas)';
+    else if (methodLabel2.includes('MERCADO_PAGO_6')) methodLabel2 = 'Mercado Pago (6 Cuotas)';
+    else if (methodLabel2.includes('MERCADO_PAGO_12')) methodLabel2 = 'Mercado Pago (12 Cuotas, 10% costo financiero)';
+    else if (methodLabel2.includes('MERCADO_PAGO_18')) methodLabel2 = 'Mercado Pago (18 Cuotas, 10% costo financiero)';
     else if (methodLabel2.includes('TRANSFERENCIA')) methodLabel2 = 'Transferencia Bancaria';
     else if (methodLabel2.includes('NARANJA_Z') || methodLabel2 === 'PLAN_Z') methodLabel2 = 'Tarjeta Naranja (Plan Z)';
     else if (methodLabel2.includes('PAY_WAY_3') || methodLabel2 === 'CREDIT_3') methodLabel2 = 'Tarjeta de Crédito (3 Cuotas)';

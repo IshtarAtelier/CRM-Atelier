@@ -8,6 +8,7 @@ import {
 import { PricingService } from '@/services/PricingService';
 import FileDropZone from '@/components/ui/FileDropZone';
 import { isCardMethod, type CardMode } from '@/lib/payment-card';
+import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 
 interface AddPaymentModalProps {
     orderId: string;
@@ -42,6 +43,12 @@ const COLOR_STYLES: Record<string, { active: string; inactive: string; iconActiv
         iconActive: 'text-white',
         iconInactive: 'text-rose-600 dark:text-rose-400'
     },
+    sky: {
+        active: 'bg-sky-500 border-sky-500 text-white shadow-lg scale-105',
+        inactive: 'bg-sky-50 dark:bg-sky-900/10 border-sky-200 dark:border-sky-900/30 text-sky-700 dark:text-sky-400 hover:bg-sky-100 hover:border-sky-300',
+        iconActive: 'text-white',
+        iconInactive: 'text-sky-600 dark:text-sky-400'
+    },
     orange: {
         active: 'bg-orange-400 border-orange-400 text-white shadow-lg scale-105',
         inactive: 'bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-400 hover:bg-orange-100 hover:border-orange-300',
@@ -66,6 +73,18 @@ const PAYMENT_GROUPS = [
             { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6 Ish', icon: CreditCard, color: 'rose' },
             { id: 'GO_CUOTAS_ISH', label: 'Go Cuotas Ish', icon: CreditCard, color: 'rose' },
             { id: 'NARANJA_Z_ISH', label: 'Naranja Z Ish', icon: CreditCard, color: 'rose' },
+        ]
+    },
+    {
+        // Mercado Pago Ishtar: 3/6 sin interés (lista); 12/18 con costo
+        // financiero fijo del 10% — el cliente paga lista × 1,10 y el saldo
+        // divide por 1,10 (PricingService). La etiqueta lo aclara SIEMPRE.
+        id: 'mercadopago',
+        items: [
+            { id: 'MERCADO_PAGO_3_ISH', label: 'MP 3 Ish', icon: CreditCard, color: 'sky' },
+            { id: 'MERCADO_PAGO_6_ISH', label: 'MP 6 Ish', icon: CreditCard, color: 'sky' },
+            { id: 'MERCADO_PAGO_12_ISH', label: 'MP 12 Ish (+10%)', icon: CreditCard, color: 'sky' },
+            { id: 'MERCADO_PAGO_18_ISH', label: 'MP 18 Ish (+10%)', icon: CreditCard, color: 'sky' },
         ]
     },
     {
@@ -284,7 +303,7 @@ export default function AddPaymentModal({
 
                         {/* Sugerencia de Botones de Saldo */}
                         {financials && financials.hasBalance && (
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                                 <button
                                     type="button"
                                     onClick={() => setAmount(financials.remainingCash.toString())}
@@ -305,6 +324,14 @@ export default function AddPaymentModal({
                                     className="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-orange-100 dark:border-orange-900/30 hover:bg-orange-100 transition-colors"
                                 >
                                     <CreditCard className="w-3 h-3" /> Saldo Tarjeta (${financials.remainingCard.toLocaleString()})
+                                </button>
+                                {/* MP 12/18: el saldo de lista se cobra con +10% de costo financiero */}
+                                <button
+                                    type="button"
+                                    onClick={() => setAmount(Math.round(financials.remainingCard * FACTOR_MP_CUOTAS_LARGAS).toString())}
+                                    className="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 rounded-lg text-[9px] font-black uppercase tracking-tighter border border-sky-100 dark:border-sky-900/30 hover:bg-sky-100 transition-colors"
+                                >
+                                    <CreditCard className="w-3 h-3" /> Saldo MP 12/18 +10% (${Math.round(financials.remainingCard * FACTOR_MP_CUOTAS_LARGAS).toLocaleString()})
                                 </button>
                             </div>
                         )}

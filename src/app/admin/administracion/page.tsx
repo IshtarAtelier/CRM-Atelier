@@ -72,6 +72,10 @@ const ALL_METHODS: Record<string, { label: string; icon: any; color: string; lig
     'TRANSFERENCIA_ISHTAR': { label: 'Transf. Ishtar', icon: ArrowRightLeft, color: 'bg-violet-500', lightBg: 'bg-violet-50 dark:bg-violet-950', textColor: 'text-violet-500' },
     'TRANSFERENCIA_LUCIA': { label: 'Transf. Lucía', icon: ArrowRightLeft, color: 'bg-violet-400', lightBg: 'bg-violet-50 dark:bg-violet-950', textColor: 'text-violet-400' },
     'EFECTIVO': { label: 'Efectivo', icon: Banknote, color: 'bg-emerald-500', lightBg: 'bg-emerald-50 dark:bg-emerald-950', textColor: 'text-emerald-500' },
+    'MERCADO_PAGO_3_ISH': { label: 'MP 3 Ish', icon: CreditCard, color: 'bg-sky-500', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-500' },
+    'MERCADO_PAGO_6_ISH': { label: 'MP 6 Ish', icon: CreditCard, color: 'bg-sky-500', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-500' },
+    'MERCADO_PAGO_12_ISH': { label: 'MP 12 Ish (+10%)', icon: CreditCard, color: 'bg-sky-600', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-600' },
+    'MERCADO_PAGO_18_ISH': { label: 'MP 18 Ish (+10%)', icon: CreditCard, color: 'bg-sky-600', lightBg: 'bg-sky-50 dark:bg-sky-950', textColor: 'text-sky-600' },
 };
 
 // Grouped filters
@@ -84,7 +88,7 @@ const FILTER_GROUPS = [
         lightBg: 'bg-blue-50 dark:bg-blue-950',
         textColor: 'text-blue-500',
         borderColor: 'border-blue-200 dark:border-blue-800',
-        methods: ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH'],
+        methods: ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_ISH', 'GO_CUOTAS_ISH', 'MERCADO_PAGO_3_ISH', 'MERCADO_PAGO_6_ISH', 'MERCADO_PAGO_12_ISH', 'MERCADO_PAGO_18_ISH'],
     },
     {
         id: 'YANI',

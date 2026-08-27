@@ -59,6 +59,10 @@ const METHOD_LABELS: Record<string, string> = {
     'CREDIT_CARD': 'T.Crédito',
     'DEBIT_CARD': 'T.Débito',
     'GOCUOTAS': 'GoCuotas',
+    'MERCADO_PAGO_3_ISH': 'MP 3c',
+    'MERCADO_PAGO_6_ISH': 'MP 6c',
+    'MERCADO_PAGO_12_ISH': 'MP 12c (+10%)',
+    'MERCADO_PAGO_18_ISH': 'MP 18c (+10%)',
 };
 
 export function SalesDetailSection({ salesDetail }: { salesDetail: SaleDetail[] }) {

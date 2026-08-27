@@ -540,6 +540,11 @@ export async function GET(request: Request) {
                             WHEN (UPPER(TRIM(p.method)) LIKE '%TRANSF%' OR UPPER(TRIM(p.method)) LIKE '%DEPOSITO%')
                                  AND (1 - COALESCE(o."discountTransfer", 15) / 100.0) > 0
                                 THEN p.amount / (1 - COALESCE(o."discountTransfer", 15) / 100.0)
+                            -- MP 12/18 cuotas: el cliente paga lista x 1.10 (costo financiero),
+                            -- cada peso cobrado vale 1/1.10 de lista (espejo de PricingService)
+                            WHEN UPPER(TRIM(p.method)) LIKE '%MERCADO_PAGO%'
+                                 AND (UPPER(TRIM(p.method)) LIKE '%12%' OR UPPER(TRIM(p.method)) LIKE '%18%')
+                                THEN p.amount / 1.10
                             ELSE p.amount
                         END
                     ), 0) AS eq
