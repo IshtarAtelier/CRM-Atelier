@@ -182,6 +182,25 @@ export class PricingService {
     }
 
     /**
+     * Números que ve el COMPRADOR en la tienda para un precio dado, todos
+     * resueltos (regla de Ishtar: "el cliente no calcula nada"). Único lugar:
+     * grillas, carrito, resumen del checkout, emails y CTAs leen de acá.
+     * `cashDiscountPct` es el % de la promo web (setting web_promo_cash_discount).
+     */
+    static preciosVidriera(price: number, cashDiscountPct: number = 15) {
+        const lista = Math.round(price || 0);
+        const cuotasMp = PricingService.cuotasMpLargas(lista);
+        return {
+            lista,
+            cuota6: Math.round(lista / 6),
+            contado: Math.round(lista * (1 - cashDiscountPct / 100)),
+            ahorroContado: Math.round(lista * (cashDiscountPct / 100)),
+            cuota12: cuotasMp.installment12,
+            total12: cuotasMp.totalFinanced,
+        };
+    }
+
+    /**
      * Calcula el desglose financiero completo (Totales y Saldos) para una orden existente.
      */
     static calculateOrderFinancials(order: any): OrderFinancials {
