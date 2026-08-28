@@ -58,7 +58,7 @@ export default function ObrasSocialesPage() {
           <div className="space-y-4">
             <AccordionItem title="¿Qué documentación me entregan para presentar en OSDE, Swiss Medical o Galeno?" defaultOpen={true}>
               <p>
-                Te entregaremos la <strong>Factura B o A</strong> detallando los conceptos exactos solicitados por la Superintendencia de Servicios de Salud (por ejemplo: &quot;Armazón recetado&quot; y &quot;Cristales Orgánicos Blancos/Antirreflex&quot;). Con esta factura y la receta de tu médico oftalmólogo, podés cargar el trámite directamente en la App de tu prepaga.
+                Te entregaremos la <strong>Factura B o C</strong> detallando los conceptos exactos solicitados por la Superintendencia de Servicios de Salud (por ejemplo: &quot;Armazón recetado&quot; y &quot;Cristales Orgánicos Blancos/Antirreflex&quot;). Con esta factura y la receta de tu médico oftalmólogo, podés cargar el trámite directamente en la App de tu prepaga.
               </p>
             </AccordionItem>
 
