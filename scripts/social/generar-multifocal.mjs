@@ -343,7 +343,7 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
         const caption = [
             `Cuánto sale un multifocal en Atelier, sin "consultar precio".`,
             ``,
-            `${TITULAR} desde ${plata(ancla.precio)} — ${cond.textoCuotas} de ${plata(cuota)}, o ${plata(alContado)} en efectivo o transferencia (ahorrás ${cond.descuento}%).`,
+            `${TITULAR} desde ${plata(ancla.precio)} — 12 cuotas fijas de ${plata(cuota12)}, ${cond.textoCuotas} de ${plata(cuota)}, o transferencia ${cond.descuento}% OFF: ${plata(alContado)}.`,
             `Es el cristal: el armazón lo elegís vos${armazon ? `, y arrancan en ${plata(armazon.precio)}` : ''}.${notaAncla}`,
             ...(hayEscalera ? [
                 ``,
@@ -408,7 +408,7 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
                     } : {}),
                     title: cond.textoCuotas,
                     dato: plata(cuota),
-                    body: `${plata(alContado)} en efectivo o transferencia (ahorrás ${cond.descuento}%)`,
+                    body: `Transferencia ${cond.descuento}% OFF: ${plata(alContado)}`,
                 },
                 ...(hayEscalera ? [{
                     type: 'list',
@@ -464,8 +464,8 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
                     title: `${TITULAR} desde`,
                     dato: plata(ancla.precio),
                     body: tam.formato === '1.91:1'
-                        ? `${cond.textoCuotas} de ${plata(cuota)}.\nHasta 12 cuotas de ${plata(cuota12)} con Mercado Pago.`
-                        : `${cond.textoCuotas} de ${plata(cuota)}.\nHasta 12 cuotas de ${plata(cuota12)} con Mercado Pago.\nEl armazón lo elegís vos.${notaAncla}`,
+                        ? `12 cuotas fijas de ${plata(cuota12)}.\n${cond.textoCuotas} de ${plata(cuota)}.`
+                        : `12 cuotas fijas de ${plata(cuota12)}.\n${cond.textoCuotas} de ${plata(cuota)}.\nEl armazón lo elegís vos.${notaAncla}`,
                 },
             ],
         }));

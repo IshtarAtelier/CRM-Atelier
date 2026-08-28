@@ -144,7 +144,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                 <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40 flex flex-col gap-1">
                   <div className="flex items-baseline justify-between">
                     <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
-                      12 cuotas de <span className="font-extrabold text-[#7d6249] dark:text-[#c8a55c]">${PricingService.cuotasMpLargas(p.price || 0).installment12.toLocaleString("es-AR")}</span> <span className="text-[11px] text-stone-600 dark:text-stone-400">con Mercado Pago</span>
+                      12 cuotas fijas de <span className="font-extrabold text-[#7d6249] dark:text-[#c8a55c]">${PricingService.cuotasMpLargas(p.price || 0).installment12.toLocaleString("es-AR")}</span>
                     </p>
                     <span className="text-xs text-stone-900 dark:text-white uppercase tracking-wider font-bold group-hover:text-[#8a6d3b] dark:group-hover:text-[#c8a55c] transition-colors shrink-0">Ver anteojos ›</span>
                   </div>
@@ -153,7 +153,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                     {webSettings.web_promo_installments} de <span className="font-bold">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
                   </p>
                   <p className="text-[11px] text-stone-600 dark:text-stone-400 font-medium">
-                    ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")} en efectivo/transferencia <span className="text-emerald-800 dark:text-emerald-500 font-bold text-xs uppercase tracking-wider">({webSettings.web_promo_cash_discount}% OFF)</span>
+                    Transferencia <span className="text-emerald-800 dark:text-emerald-500 font-bold">{webSettings.web_promo_cash_discount}% OFF</span>: ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
                   </p>
                   {/* La promesa más fuerte de la tienda solo vivía en la cinta superior:
                       acá acompaña al precio, que es donde se compara. */}

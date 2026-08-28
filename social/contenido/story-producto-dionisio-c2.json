@@ -1,0 +1,30 @@
+{
+  "id": "story-producto-dionisio-c2",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-08-28",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Dionisio",
+    "slug": "dionisio-c2",
+    "marca": "Cápsula escarlata",
+    "categoria": "Receta"
+  },
+  "caption": "Dionisio · Cápsula escarlata\n\n12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/dionisio-c2\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "assets/products/acetato/FG1643-c2.avif",
+      "title": "Dionisio · Cápsula escarlata",
+      "dato": "$30.000",
+      "body": "12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}

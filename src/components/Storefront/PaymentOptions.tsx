@@ -66,8 +66,8 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
     {
       icon: <IconoTarjeta />,
       label: showCalculated
-        ? `Hasta 12 cuotas de $${cuota12Value.toLocaleString('es-AR')}`
-        : 'Hasta 12 cuotas con Mercado Pago',
+        ? `12 cuotas fijas de $${cuota12Value.toLocaleString('es-AR')}`
+        : '12 cuotas fijas con Mercado Pago',
       sub: "por Mercado Pago",
       highlight: false,
     },
@@ -82,9 +82,9 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
     {
       icon: <DollarSign className="w-4 h-4" strokeWidth={1.5} />,
       label: showCalculated
-        ? `$${cashPriceValue.toLocaleString('es-AR')} en efectivo / transferencia`
-        : `${discountPercent}% de descuento`,
-      sub: showCalculated ? `ahorrás ${discountPercent}% pagando al contado` : "transferencia bancaria o efectivo",
+        ? `Transferencia ${discountPercent}% OFF: $${cashPriceValue.toLocaleString('es-AR')}`
+        : `Transferencia ${discountPercent}% OFF`,
+      sub: "también en efectivo, en el local",
       highlight: true,
     },
   ];

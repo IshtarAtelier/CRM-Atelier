@@ -28,7 +28,7 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
               Orden de venta (27/8): primero 12, después 6, después contado. */}
           <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg px-4 py-3">
             <CreditCard className="w-4 h-4 text-stone-700 shrink-0" />
-            <p className="text-xs font-semibold flex-1">Hasta 12 cuotas por Mercado Pago</p>
+            <p className="text-xs font-semibold flex-1">12 cuotas fijas por Mercado Pago</p>
             <span className="text-[9px] font-black uppercase tracking-widest bg-sky-600 text-white px-2 py-1 rounded">12 x ${PricingService.cuotasMpLargas(subtotalAfterCoupon).installment12.toLocaleString("es-AR")}</span>
           </div>
           <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg px-4 py-3">
@@ -38,7 +38,7 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
           </div>
           <div className="flex items-center gap-3 bg-emerald-50/60 border border-emerald-200 rounded-lg px-4 py-3">
             <BadgePercent className="w-4 h-4 text-emerald-600 shrink-0" />
-            <p className="text-xs font-semibold flex-1 text-emerald-900">{Math.round(discountRate * 100)}% OFF en efectivo o transferencia</p>
+            <p className="text-xs font-semibold flex-1 text-emerald-900">Transferencia {Math.round(discountRate * 100)}% OFF</p>
             <span className="text-[9px] font-black uppercase tracking-widest bg-emerald-600 text-white px-2 py-1 rounded">Ahorrás ${(cartTotal * discountRate).toLocaleString("es-AR", { maximumFractionDigits: 0 })}</span>
           </div>
           <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg px-4 py-3">

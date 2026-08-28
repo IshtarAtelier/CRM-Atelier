@@ -1,0 +1,30 @@
+{
+  "id": "story-producto-lentes-sol-clip-on-siena-g5921-c2",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-08-28",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Siena",
+    "slug": "lentes-sol-clip-on-siena-g5921-c2",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Clip-On"
+  },
+  "caption": "Siena · Cápsula Escarlata\n\n12 cuotas fijas de $16.042\n6 cuotas sin interés de $29.167\nTransferencia 15% OFF: $148.750\n\nEn la tienda: https://atelieroptica.com.ar/producto/lentes-sol-clip-on-siena-g5921-c2\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/clipon-g5921-c2.webp",
+      "title": "Siena · Cápsula Escarlata",
+      "dato": "$29.167",
+      "body": "12 cuotas fijas de $16.042\n6 cuotas sin interés de $29.167\nTransferencia 15% OFF: $148.750",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}

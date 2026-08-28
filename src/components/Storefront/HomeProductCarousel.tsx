@@ -225,7 +225,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                         const v = PricingService.preciosVidriera(item.rawPrice, 15);
                         return (
                           <p className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">12 cuotas con Mercado Pago</span>
+                            <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">12 cuotas fijas de</span>
                             <span className="text-[13px] font-black text-stone-900 tracking-tight whitespace-nowrap">
                               ${v.cuota12.toLocaleString("es-AR")}
                             </span>
@@ -233,7 +233,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                               6 cuotas sin interés de ${v.cuota6.toLocaleString("es-AR")}
                             </span>
                             <span className="text-[10px] text-stone-500 font-medium">
-                              ${v.contado.toLocaleString("es-AR")} efectivo o transferencia
+                              Transferencia 15% OFF: ${v.contado.toLocaleString("es-AR")}
                             </span>
                           </p>
                         );

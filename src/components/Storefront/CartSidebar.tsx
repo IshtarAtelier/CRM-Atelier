@@ -169,9 +169,9 @@ export function CartSidebar() {
                     // Orden de venta (pedido de Ishtar, 27/8): primero 12,
                     // después 6, después transferencia.
                     <div className="mb-5 grid grid-cols-1 gap-1.5 text-[11px] font-semibold text-stone-600">
-                      <div className="flex justify-between"><span>Hasta 12 cuotas por Mercado Pago</span><span className="font-black text-stone-900">12 x ${v.cuota12.toLocaleString("es-AR")}</span></div>
+                      <div className="flex justify-between"><span>12 cuotas fijas</span><span className="font-black text-stone-900">12 x ${v.cuota12.toLocaleString("es-AR")}</span></div>
                       <div className="flex justify-between"><span>6 cuotas sin interés</span><span className="font-black text-stone-900">6 x ${v.cuota6.toLocaleString("es-AR")}</span></div>
-                      <div className="flex justify-between text-emerald-700"><span>Efectivo / transferencia (ahorrás ${v.ahorroContado.toLocaleString("es-AR")})</span><span className="font-black">${v.contado.toLocaleString("es-AR")}</span></div>
+                      <div className="flex justify-between text-emerald-700"><span>Transferencia 15% OFF</span><span className="font-black">${v.contado.toLocaleString("es-AR")}</span></div>
                     </div>
                   );
                 })()}

@@ -156,7 +156,7 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             image: path.relative(path.join(RAIZ, 'public', 'images'), fotoPortada),
             title: titulo || (categoria === 'Sol' ? 'Los de *sol* que están volando'
                 : marca ? `Armazones *${marca}*` : 'Los que más nos piden *esta temporada*'),
-            subtitle: 'Diseño de autor, en 6 cuotas sin interés o hasta 12 cuotas, y con envío sin cargo.',
+            subtitle: 'Diseño de autor en 12 cuotas fijas o 6 sin interés, y con envío sin cargo.',
         });
 
         // Las condiciones de pago se leen de DONDE LAS LEE LA TIENDA
@@ -208,7 +208,7 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
                         ? ` · ${p.product.brand}` : ''
                 ),
                 dato: plata(cuota),
-                body: `${cond.textoCuotas}\nHasta 12 cuotas de ${plata(cuota12)} con Mercado Pago\n${plata(alContado)} en efectivo o transferencia`,
+                body: `12 cuotas fijas de ${plata(cuota12)}\n${cond.textoCuotas}\nTransferencia ${cond.descuento}% OFF: ${plata(alContado)}`,
             });
         }
 

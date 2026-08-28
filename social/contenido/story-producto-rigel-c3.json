@@ -4,7 +4,7 @@
   "theme": "dark",
   "pilar": "producto",
   "fuente": "base",
-  "generadoEl": "2026-08-27",
+  "generadoEl": "2026-08-28",
   "generadoDesde": "produccion",
   "temas": [
     "armazones"
@@ -15,7 +15,7 @@
     "marca": "Cápsula Escarlata",
     "categoria": "Receta"
   },
-  "caption": "Rigel · Cápsula Escarlata\n\n6 cuotas sin interés de $35.833\nHasta 12 cuotas de $19.708 con Mercado Pago\n$182.750 en efectivo o transferencia (ahorrás 15%)\n\nEn la tienda: https://atelieroptica.com.ar/producto/rigel-c3\nO vení a probártelo, Cerro de las Rosas.",
+  "caption": "Rigel · Cápsula Escarlata\n\n12 cuotas fijas de $19.708\n6 cuotas sin interés de $35.833\nTransferencia 15% OFF: $182.750\n\nEn la tienda: https://atelieroptica.com.ar/producto/rigel-c3\nO vení a probártelo, Cerro de las Rosas.",
   "slides": [
     {
       "type": "number",
@@ -23,7 +23,7 @@
       "image": "images/products/rigel-c3.webp",
       "title": "Rigel · Cápsula Escarlata",
       "dato": "$35.833",
-      "body": "6 cuotas sin interés\nHasta 12 cuotas de $19.708 con Mercado Pago\n$182.750 en efectivo o transferencia",
+      "body": "12 cuotas fijas de $19.708\n6 cuotas sin interés de $35.833\nTransferencia 15% OFF: $182.750",
       "cta": "Pedí tu presupuesto 👉 WhatsApp"
     }
   ]

@@ -701,7 +701,7 @@ export function TiendaClient({
                             <div className="flex flex-col gap-0.5">
                               <p className="flex flex-col">
                                 <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">
-                                  12 cuotas con Mercado Pago
+                                  12 cuotas fijas de
                                 </span>
                                 <span className="text-[15px] font-black text-stone-900 tracking-tight whitespace-nowrap">
                                   ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")}
@@ -711,11 +711,7 @@ export function TiendaClient({
                                 {installmentsCount} cuotas sin interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
                               </p>
                               <p className="text-[10px] text-stone-500 font-medium">
-                                ${Math.round((oferta ? p.salePrice : base) * (1 - discountRate)).toLocaleString("es-AR")} efectivo o transferencia
-                                {" "}
-                                <span className="text-stone-400">
-                                  (−{webSettings.web_promo_cash_discount}%)
-                                </span>
+                                Transferencia {webSettings.web_promo_cash_discount}% OFF: ${Math.round((oferta ? p.salePrice : base) * (1 - discountRate)).toLocaleString("es-AR")}
                               </p>
                             </div>
                             <div className="flex flex-row flex-wrap gap-1 sm:flex-col sm:items-end">
