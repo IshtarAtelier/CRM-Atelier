@@ -73,7 +73,27 @@ const QUICK_REPLIES = [
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
     { label: 'Pedir reseña', text: 'Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶' },
     { label: 'Instagram', text: '¡Te invito a seguirnos en Instagram para ver todas nuestras novedades, promos y modelitos nuevos! 📸✨\n\n👉 https://www.instagram.com/atelieroptica_/\n\n¡Nos encontrás como @atelieroptica_!' },
+    // Plantillas oficiales de WhatsApp (src/lib/whatsapp/templates.ts) para
+    // que el equipo las use a mano en una charla, sin depender de que un cron
+    // las dispare. {{1}}/{{2}} (nombre/saludo) se resuelven al click, mismo
+    // patrón que ya usaba "Pedir reseña" — ver el reemplazo de `Hola {{1}}!`
+    // más abajo. No se incluyen las transaccionales (pedido_listo, factura,
+    // comprobante) porque llevan datos de un pedido puntual que no tiene
+    // sentido tipear a mano en el chat.
+    { label: '12 cuotas', text: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Esta semana podés comprar tus anteojos hasta en 12 cuotas a través de Mercado Pago (con un 10% de costo financiero). Y como siempre: 3 y 6 cuotas sin interés, 15% de descuento en efectivo o por transferencia. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. ¿Te interesa?' },
+    { label: 'Seguimiento presupuesto', text: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.' },
+    { label: 'Seguimiento lentes', text: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te escribo por los lentes que estuvimos viendo, ¿seguís con la idea? Si querés te mando fotitos de los modelos que tenemos ahora.' },
+    { label: 'Seguimiento carrito', text: 'Hola {{1}}, {{2}}! ¿Cómo estás? Vi que te quedaron unos productos en el carrito de la tienda, ¿te surgió alguna duda? Si querés te doy una mano para terminarlo.' },
+    { label: 'Invitación al local', text: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te mandé? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 8:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo?' },
 ];
+
+/** "buen día" / "buenas tardes" / "buenas noches" — mismo criterio que el bot (src/lib/whatsapp-followup.ts). */
+function saludoSegunHora(): string {
+    const hour = new Date().getHours();
+    if (hour < 13) return 'buen día';
+    if (hour < 20) return 'buenas tardes';
+    return 'buenas noches';
+}
 
 // ── Types ─────────────────────────────────────────
 
@@ -2323,6 +2343,16 @@ function WhatsAppPageContent() {
                                                                     console.error('Error fetching latest order', e);
                                                                 }
                                                             }
+                                                        }
+                                                        // Plantillas con {{1}}/{{2}}: nombre del cliente y saludo por hora,
+                                                        // mismo criterio que usa el bot para los seguimientos automáticos.
+                                                        // Sin nombre cargado, "Hola , buen día!" queda con una coma de más:
+                                                        // se cae el "Hola {{1}}," entero y arranca directo por el saludo.
+                                                        if (finalMessage.includes('{{1}}') || finalMessage.includes('{{2}}')) {
+                                                            const nombre = selectedChat?.client?.name?.split(' ')[0] || selectedChat?.profileName?.split(' ')[0] || '';
+                                                            finalMessage = nombre
+                                                                ? finalMessage.replace('{{1}}', nombre).replace('{{2}}', saludoSegunHora())
+                                                                : finalMessage.replace(/Hola \{\{1\}\}[,!]?\s*/, '¡Hola! ').replace('{{2}}', saludoSegunHora());
                                                         }
                                                         setNewMessage(finalMessage);
                                                         setShowQuickReplies(false);
