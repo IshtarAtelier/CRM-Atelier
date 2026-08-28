@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { BOT_ACTOR } from '@/lib/actor';
+import { logAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,12 @@ export async function POST(request: Request) {
                 clientId,
                 description,
                 dueDate: dueDate ? new Date(dueDate) : null,
-                status: 'PENDING'
+                status: 'PENDING',
+                type: 'TASK',
+                // Sin esto quedaba null: el índice [createdBy, status, createdAt]
+                // que usa el cupo diario del generador de tareas no distinguía
+                // las que crea el bot de las que quedaron sin dueño.
+                createdBy: BOT_ACTOR.name,
             }
         });
 
@@ -38,7 +44,16 @@ export async function POST(request: Request) {
                 userId: BOT_ACTOR.id,
                 userName: BOT_ACTOR.name,
             }
-        });
+        }).catch(console.error);
+
+        logAudit({
+            userId: BOT_ACTOR.id,
+            userName: BOT_ACTOR.name,
+            action: 'CREATE',
+            entityType: 'TASK',
+            entityId: task.id,
+            details: { clientId, description, dueDate: task.dueDate },
+        }).catch(console.error);
 
         return NextResponse.json(task);
     } catch (error: any) {

@@ -1377,6 +1377,15 @@ export const ContactService = {
             }
         }).catch(console.error);
 
+        logAudit({
+            userId: actor?.id || null,
+            userName: actor?.name || null,
+            action: 'CREATE',
+            entityType: 'TASK',
+            entityId: task.id,
+            details: { clientId, description, dueDate: task.dueDate }
+        }).catch(console.error);
+
         return task;
     },
 
@@ -1452,14 +1461,17 @@ export const ContactService = {
                 }
             }).catch(console.error);
 
-            logAudit({
+            // Borrado destructivo: se espera a que la fila de auditoría quede
+            // commiteada antes de responder (regla del proyecto para DELETE),
+            // a diferencia de la Interaction de arriba, que es fire-and-forget.
+            await logAudit({
                 userId: actor?.id || null,
                 userName: actor?.name || null,
                 action: 'DELETE',
                 entityType: 'TASK',
                 entityId: taskId,
                 details: { clientId: task.clientId, description: task.description, status: task.status, dueDate: task.dueDate }
-            }).catch(console.error);
+            });
         }
 
         return deleted;
