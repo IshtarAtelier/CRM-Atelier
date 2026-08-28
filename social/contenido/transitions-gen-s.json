@@ -1,0 +1,55 @@
+{
+  "id": "transitions-gen-s",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Transitions GEN S: la generación más rápida de los cristales que se oscurecen solos, según Essilor. Claros adentro, oscuros al sol, y con protección UV siempre.\n\nUn solo anteojo para todo el día: entrás, salís, manejás, volvés — y el cristal se adapta solo.\n\nLos trabajamos en Atelier con tu graduación y el tratamiento que necesites. Vení a verlos al local o escribinos por WhatsApp.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog3_eligiendo.png",
+      "title": "Transitions GEN S: *el fotocromático más rápido*",
+      "subtitle": "La nueva generación de los cristales que se oscurecen solos, según Essilor."
+    },
+    {
+      "type": "list",
+      "title": "Qué hace *distinto* a GEN S",
+      "items": [
+        "Se oscurece en segundos al salir al sol, dice Essilor",
+        "Vuelve a claro más rápido que las generaciones anteriores",
+        "Protección UV siempre, esté claro u oscuro"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/muestrario-smart-lens.jpg",
+      "title": "Un solo anteojo *para todo el día*",
+      "items": [
+        "Adentro: un cristal claro común, con tu graduación",
+        "Afuera: se oscurece como un lente de sol",
+        "Manejando, en la oficina, en la calle: se adapta solo"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Se combina con *todo lo tuyo*",
+      "items": [
+        "Con tu graduación, también en multifocales",
+        "Con el antirreflejo Crizal que ya conocés",
+        "En el armazón que elijas del local"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Vení a probarlos en vivo",
+      "body": "Tenemos muestrario para que veas cómo se oscurecen. Cerro de las Rosas, sin turno previo — o escribinos por WhatsApp."
+    }
+  ]
+}

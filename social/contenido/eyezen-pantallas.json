@@ -11,7 +11,7 @@
     {
       "type": "cover",
       "role": "portada",
-      "image": "blog/blog2_homeoffice.png",
+      "image": "eyezen/eyezen-pantalla-acostado.jpg",
       "title": "Ojos cansados *al final del día*",
       "subtitle": "8 horas de pantalla son 8 horas enfocando de cerca. Hay lentes para eso."
     },
@@ -36,7 +36,7 @@
     {
       "type": "list",
       "role": "bisagra",
-      "image": "blog/mujer-oficina-multifocal.png",
+      "image": "eyezen/eyezen-dualoptim.jpg",
       "title": "Cómo saber *si lo necesitás*",
       "items": [
         "Dolor de cabeza al final de la jornada",

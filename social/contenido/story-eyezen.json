@@ -1,0 +1,19 @@
+{
+  "id": "story-eyezen",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "¿Horas de pantalla y los ojos agotados? Eyezen de Essilor es el cristal pensado para eso: relaja el enfoque de cerca y filtra parte de la luz azul. Con o sin graduación. Preguntanos por WhatsApp.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "eyezen/eyezen-pantalla-acostado.jpg",
+      "title": "¿Pantallas todo el día? *Hay un cristal para eso*",
+      "subtitle": "Eyezen de Essilor: relaja el enfoque de cerca. Con o sin graduación."
+    }
+  ]
+}

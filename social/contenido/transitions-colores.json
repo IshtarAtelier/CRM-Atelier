@@ -1,0 +1,55 @@
+{
+  "id": "transitions-colores",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Los Transitions no son solo grises: la línea GEN S viene en ocho colores — de los clásicos gris y marrón a zafiro, amatista, esmeralda, rubí, ámbar y verde grafito.\n\nEl color no es solo estética: cambia cómo se ve tu armazón cuando el cristal se oscurece al sol.\n\nVení a ver el muestrario en vivo y elegí el tuyo. José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/muestrario-smart-lens.jpg",
+      "title": "Transitions *no es solo gris*",
+      "subtitle": "La línea GEN S viene en ocho colores. Elegir el tuyo es parte del diseño."
+    },
+    {
+      "type": "list",
+      "title": "Los *clásicos* de siempre",
+      "items": [
+        "Gris: el más neutro, no cambia los colores de lo que mirás",
+        "Marrón: más contraste, muy usado para manejar",
+        "Verde grafito: el punto medio, con un dejo vintage"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/anteojos-rosa-pastel.jpg",
+      "title": "Los que *tienen onda*",
+      "items": [
+        "Zafiro y amatista: fríos, para armazones metálicos y claros",
+        "Esmeralda y rubí: intensos, se lucen en acetatos",
+        "Ámbar: cálido, queda hermoso en armazones tierra"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Cómo elegir *el tuyo*",
+      "items": [
+        "Pensá el armazón: el cristal oscuro cambia todo el look",
+        "Pensá el uso: manejar, calle, costa — no es lo mismo",
+        "En el local lo ves en vivo con el muestrario, no adivinás"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Vení a elegir tu color",
+      "body": "Muestrario en vivo en el local. Cerro de las Rosas, sin turno previo — o escribinos por WhatsApp."
+    }
+  ]
+}

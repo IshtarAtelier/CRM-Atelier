@@ -1,0 +1,19 @@
+{
+  "id": "story-transitions-gens",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Transitions GEN S: se oscurecen en segundos al sol y vuelven a claro más rápido que nunca, según Essilor. En ocho colores. Vení a ver el muestrario en vivo.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/muestrario-smart-lens.jpg",
+      "title": "Un anteojo que *se oscurece solo*",
+      "subtitle": "Transitions GEN S: la generación más rápida, en ocho colores. Vení a verlos en vivo."
+    }
+  ]
+}
