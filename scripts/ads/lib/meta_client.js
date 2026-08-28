@@ -141,7 +141,17 @@ function checkUsageHeaders(res, endpoint) {
 function classifyError(err, endpoint) {
   const code = Number(err.code);
   const subcode = err.error_subcode ? Number(err.error_subcode) : undefined;
-  const msg = redact(err.message || 'Error de Meta API');
+  // error_user_msg y blame_field son lo único que distingue un "Invalid
+  // parameter" genérico de saber QUÉ campo rechazó Graph — sin esto, cada
+  // error 100 de escritura es adivinanza.
+  const detalle = [
+    err.message,
+    err.error_user_title,
+    err.error_user_msg,
+    err.error_data?.blame_field ? `campo: ${err.error_data.blame_field}` : null,
+    err.error_data?.blame_field_specs ? `campos: ${JSON.stringify(err.error_data.blame_field_specs)}` : null,
+  ].filter(Boolean).join(' — ');
+  const msg = redact(detalle || 'Error de Meta API');
 
   if (code === 368) {
     return new MetaApiError(`Meta bloqueó la operación por políticas (368): ${msg}`, {
