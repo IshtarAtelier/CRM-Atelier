@@ -21,6 +21,7 @@
       "type": "number",
       "role": "portada",
       "image": "assets/products/metal/tg2810-c1-titanium.avif",
+      "compacto": true,
       "title": "Aquiles · Cápsula Escarlata",
       "dato": "$26.667",
       "body": "12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000",

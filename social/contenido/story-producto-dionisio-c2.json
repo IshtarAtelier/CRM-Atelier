@@ -21,6 +21,7 @@
       "type": "number",
       "role": "portada",
       "image": "assets/products/acetato/FG1643-c2.avif",
+      "compacto": true,
       "title": "Dionisio · Cápsula escarlata",
       "dato": "$30.000",
       "body": "12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000",

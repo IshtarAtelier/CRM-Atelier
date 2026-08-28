@@ -21,6 +21,7 @@
       "type": "number",
       "role": "portada",
       "image": "images/products/orion-c1.webp",
+      "compacto": true,
       "title": "Orión · Cápsula Escarlata",
       "dato": "$35.833",
       "body": "12 cuotas fijas de $19.708\n6 cuotas sin interés de $35.833\nTransferencia 15% OFF: $182.750",

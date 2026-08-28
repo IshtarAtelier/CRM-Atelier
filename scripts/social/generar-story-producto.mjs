@@ -6,6 +6,16 @@
  * Opciones de la llamada a la acción: `--cta "otro texto"` la cambia,
  * `--sin-cta` la saca. Sin nada, sale la de CTA_POR_DEFECTO.
  *
+ * `--solo-nombre`: modo catálogo/vidriera (Ishtar, 28/8 — "esas placas las
+ * haría solo con nombre, no con precio"). La placa sale sin `dato` ni `body`:
+ * casi toda foto, con el nombre del modelo como único texto. El id lleva el
+ * prefijo `story-modelo-` en vez de `story-producto-`, así conviven las dos
+ * versiones del mismo modelo sin pisarse.
+ *
+ * TODAS las stories de producto (con o menos precio) salen con
+ * `compacto: true` — franja de foto más grande, menos negro abajo
+ * (scripts/social/plantillas.mjs, regla del mismo pedido).
+ *
  * POR QUÉ SE GENERAN Y NO SE ESCRIBEN (regla R6):
  * una pieza con un precio escrito a mano no renderiza. El precio y la foto
  * salen de la base, así que publicar un valor viejo deja de ser posible en vez
@@ -118,7 +128,7 @@ async function condicionesDeVenta(prisma) {
     return { cuotas, textoCuotas: texto, descuento };
 }
 
-export async function generarStoriesDeProducto({ marca, cantidad, produccion, tienda, categoria, nombre, cta = CTA_POR_DEFECTO }) {
+export async function generarStoriesDeProducto({ marca, cantidad, produccion, tienda, categoria, nombre, cta = CTA_POR_DEFECTO, soloNombre = false }) {
     const url = produccion ? process.env.PROD_DATABASE_URL : process.env.DATABASE_URL;
     if (!url) throw new Error(`Falta ${produccion ? 'PROD_DATABASE_URL' : 'DATABASE_URL'} en el .env`);
 
@@ -177,7 +187,11 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
             // El id sale del SLUG, que es único, y no del nombre limpio: al
             // sacar el sufijo de color, "Dionisio C1" y "Dionisio C2" pasan a
             // llamarse igual y la segunda pieza pisaba a la primera en silencio.
-            const id = `story-producto-${aSlug(w.slug)}`;
+            // Sufijo distinto para el modo "solo nombre" (Ishtar, 28/8: "esas
+            // placas las haría solo con nombre, no con precio"): así conviven
+            // con la versión de precio sin pisarse — la story de venta y la de
+            // catálogo/vidriera del mismo modelo son piezas separadas.
+            const id = soloNombre ? `story-modelo-${aSlug(w.slug)}` : `story-producto-${aSlug(w.slug)}`;
 
             // Se calcula igual que PaymentOptions.tsx, con Math.round, para que
             // el número de la story sea EXACTAMENTE el de la ficha. Un peso de
@@ -194,7 +208,10 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
                 theme: 'dark',
                 pilar: 'producto',
                 // Marca de origen: el validador exige que toda pieza con precio
-                // venga de la base (R6). Escrita a mano, no renderiza.
+                // venga de la base (R6). Escrita a mano, no renderiza. La
+                // versión "solo nombre" no lleva precio, pero se mantiene la
+                // marca igual: sigue siendo un dato de catálogo (foto real,
+                // producto real, hoy publicado) y no texto tipeado a mano.
                 fuente: 'base',
                 // Cuándo se leyeron esos precios. Sin esta fecha no hay forma de
                 // probar que el número sigue vigente, y el cron de stories no la
@@ -209,18 +226,26 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
                 generadoDesde: produccion ? 'produccion' : 'local',
                 temas: ['armazones'],
                 producto: { nombre, slug: w.slug, marca: p.brand, categoria: w.category },
-                caption: `${nombre} · ${p.brand}\n\n12 cuotas fijas de ${precioAr(cuota12)}\n${cond.textoCuotas} de ${precioAr(cuota)}\nTransferencia ${cond.descuento}% OFF: ${precioAr(alContado)}\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`,
+                caption: soloNombre
+                    ? `${nombre} · ${p.brand}\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`
+                    : `${nombre} · ${p.brand}\n\n12 cuotas fijas de ${precioAr(cuota12)}\n${cond.textoCuotas} de ${precioAr(cuota)}\nTransferencia ${cond.descuento}% OFF: ${precioAr(alContado)}\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`,
                 slides: [
                     {
                         type: 'number',
                         role: 'portada',
                         image: foto,
-                        // Primer impacto: el valor de la CUOTA. El precio de
-                        // lista solo no dice nada y no vende; lo que decide una
-                        // compra es cuánto sale por mes.
+                        // Foto grande, mínimo bloque de texto (Ishtar, 28/8):
+                        // menos franja negra en TODAS las stories de producto,
+                        // con o sin precio.
+                        compacto: true,
                         title: `${nombre} · ${p.brand}`,
-                        dato: precioAr(cuota),
-                        body: `12 cuotas fijas de ${precioAr(cuota12)}\n${cond.textoCuotas} de ${precioAr(cuota)}\nTransferencia ${cond.descuento}% OFF: ${precioAr(alContado)}`,
+                        // Modo catálogo: sin `dato` ni `body`, la placa es
+                        // prácticamente toda foto — el nombre es lo único que
+                        // se lee. Modo venta: el precio manda, como siempre.
+                        ...(soloNombre ? {} : {
+                            dato: precioAr(cuota),
+                            body: `12 cuotas fijas de ${precioAr(cuota12)}\n${cond.textoCuotas} de ${precioAr(cuota)}\nTransferencia ${cond.descuento}% OFF: ${precioAr(alContado)}`,
+                        }),
                         // El renglón que dice QUÉ HACER. Va como campo aparte y
                         // no pegado al `body` para que la plantilla pueda darle
                         // su propio peso y color: mezclado en el cuerpo se lee
@@ -258,6 +283,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             // alguien se acuerde de pedirla.
             cta: process.argv.includes('--sin-cta') ? null : arg('cta', CTA_POR_DEFECTO),
             produccion: process.argv.includes('--produccion'),
+            soloNombre: process.argv.includes('--solo-nombre'),
             tienda: process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar',
         });
         console.log(`\nRenderizar todas:\n  for f in social/contenido/story-producto-*.json; do node scripts/social/render.mjs "$f"; done`);

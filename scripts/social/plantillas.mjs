@@ -136,15 +136,18 @@ const PLANTILLAS = {
      * La foto va ARRIBA y sin velo pesado: en un armazón la foto ES el producto,
      * no un fondo decorativo.
      */
-    number: (slide, id) => `
-    ${slide.imagenResuelta ? `<div class="producto ${slide.encuadre === 'cover' ? 'llena' : ''}" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>` : ''}
-    <div class="contenido number">
+    number: (slide, id) => {
+        const claseCompacta = slide.compacto ? `compacto ${!slide.dato && !slide.body ? 'sin-datos' : ''}` : '';
+        return `
+    ${slide.imagenResuelta ? `<div class="producto ${slide.encuadre === 'cover' ? 'llena' : ''} ${claseCompacta}" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>` : ''}
+    <div class="contenido number ${claseCompacta}">
       <p class="rotulo">${resaltar(slide.title)}</p>
-      <p class="dato">${esc(slide.dato)}</p>
+      ${slide.dato ? `<p class="dato">${esc(slide.dato)}</p>` : ''}
       ${slide.body ? `<p class="cuerpo">${resaltar(slide.body)}</p>` : ''}
       ${slide.cta ? `<p class="llamado">${esc(slide.cta)}</p>` : ''}
     </div>
-    ${pie(id)}`,
+    ${pie(id)}`;
+    },
 
     /**
      * Testimonio: la palabra de un cliente, textual.
@@ -408,6 +411,33 @@ export function htmlDeSlide(slide, id, pieza) {
      el armazón centrado en su franja queda un hueco muerto entre la foto y el
      texto. */
   .producto { height:58%; background-position:center 42%; }
+
+  /*
+   * COMPACTA: menos franja negra (Ishtar, 28/8 — "prefiero que haya menos
+   * parte negra"). El padding-bottom del .contenido NO se toca: son los
+   * 580px que reservan la zona segura del pie (bottom:460px + su propia
+   * altura), calibrados contra la vista previa real de Meta — achicarlo fue
+   * el bug de la primera vuelta (el precio quedó tachado atrás del logo).
+   * Lo que sube es SOLO la altura de la foto, y el degradado crece con ella
+   * para seguir cubriendo la franja donde cae el texto.
+   *
+   * Dos niveles, según cuánto texto hay que meter arriba del pie:
+   *  - CON precio (dato+body+llamado, ~430px de bloque): foto 66% — 8 puntos
+   *    menos de negro que el 58% original, con margen probado para que el
+   *    bloque cuadruple de texto siga cayendo sobre el degradado.
+   *  - SOLO NOMBRE (nada de dato/body, una línea): foto 82% — el bloque de
+   *    texto es mínimo, así que la placa es casi toda foto.
+   */
+  .producto.compacto { height:66%; background-position:center 44%; }
+  .producto.compacto::after { height:34%; }
+  .contenido.number.compacto .rotulo { font-size:34px; }
+  .contenido.number.compacto .dato { font-size:92px; margin-top:10px; }
+  .contenido.number.compacto .cuerpo { font-size:34px; margin-top:28px; line-height:1.28; }
+  .contenido.number.compacto .llamado { font-size:32px; margin-top:24px; }
+
+  .producto.compacto.sin-datos { height:82%; background-position:center 46%; }
+  .producto.compacto.sin-datos::after { height:26%; }
+  .contenido.number.compacto.sin-datos .rotulo { font-size:40px; }
   ` : ''}
 
   ${esCuadrado ? `

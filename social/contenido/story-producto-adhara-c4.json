@@ -21,6 +21,7 @@
       "type": "number",
       "role": "portada",
       "image": "assets/products/acetato/adhara-c4.webp",
+      "compacto": true,
       "title": "Adhara · Cápsula Escarlata",
       "dato": "$37.500",
       "body": "12 cuotas fijas de $20.625\n6 cuotas sin interés de $37.500\nTransferencia 15% OFF: $191.250",

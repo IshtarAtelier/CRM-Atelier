@@ -21,6 +21,7 @@
       "type": "number",
       "role": "portada",
       "image": "images/products/clipon-8125s-c4.webp",
+      "compacto": true,
       "title": "Torino · Cápsula Escarlata",
       "dato": "$29.167",
       "body": "12 cuotas fijas de $16.042\n6 cuotas sin interés de $29.167\nTransferencia 15% OFF: $148.750",

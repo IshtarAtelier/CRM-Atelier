@@ -1,0 +1,28 @@
+{
+  "id": "story-modelo-lentes-sol-clip-on-florence-tr12173",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-08-28",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Florence",
+    "slug": "lentes-sol-clip-on-florence-tr12173",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Clip-On"
+  },
+  "caption": "Florence · Cápsula Escarlata\n\nEn la tienda: https://atelieroptica.com.ar/producto/lentes-sol-clip-on-florence-tr12173\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/clipon-tr12173.avif",
+      "compacto": true,
+      "title": "Florence · Cápsula Escarlata"
+    }
+  ]
+}

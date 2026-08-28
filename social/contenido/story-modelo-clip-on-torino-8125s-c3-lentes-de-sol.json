@@ -1,0 +1,28 @@
+{
+  "id": "story-modelo-clip-on-torino-8125s-c3-lentes-de-sol",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-08-28",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Torino",
+    "slug": "clip-on-torino-8125s-c3-lentes-de-sol",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Clip-On"
+  },
+  "caption": "Torino · Cápsula Escarlata\n\nEn la tienda: https://atelieroptica.com.ar/producto/clip-on-torino-8125s-c3-lentes-de-sol\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/clipon-8125s-c3.webp",
+      "compacto": true,
+      "title": "Torino · Cápsula Escarlata"
+    }
+  ]
+}

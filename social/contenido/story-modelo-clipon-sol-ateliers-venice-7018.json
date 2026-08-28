@@ -1,0 +1,28 @@
+{
+  "id": "story-modelo-clipon-sol-ateliers-venice-7018",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-08-28",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Venice",
+    "slug": "clipon-sol-ateliers-venice-7018-",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Clip-On"
+  },
+  "caption": "Venice · Cápsula Escarlata\n\nEn la tienda: https://atelieroptica.com.ar/producto/clipon-sol-ateliers-venice-7018-\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/clipon-7018-c5.avif",
+      "compacto": true,
+      "title": "Venice · Cápsula Escarlata"
+    }
+  ]
+}

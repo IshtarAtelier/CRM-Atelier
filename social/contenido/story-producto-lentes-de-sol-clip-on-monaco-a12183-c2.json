@@ -21,6 +21,7 @@
       "type": "number",
       "role": "portada",
       "image": "images/products/clipon-a12183-c2.avif",
+      "compacto": true,
       "title": "Monaco A12183 · Cápsula Escarlata",
       "dato": "$27.500",
       "body": "12 cuotas fijas de $15.125\n6 cuotas sin interés de $27.500\nTransferencia 15% OFF: $140.250",

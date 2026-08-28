@@ -1,0 +1,28 @@
+{
+  "id": "story-modelo-nashira-c3",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-08-28",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Nashira",
+    "slug": "nashira-c3",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Sol"
+  },
+  "caption": "Nashira · Cápsula Escarlata\n\nEn la tienda: https://atelieroptica.com.ar/producto/nashira-c3\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "assets/products/acetato/nashira-c3.webp",
+      "compacto": true,
+      "title": "Nashira · Cápsula Escarlata"
+    }
+  ]
+}
