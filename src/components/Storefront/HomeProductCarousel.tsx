@@ -225,7 +225,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                         const v = PricingService.preciosVidriera(item.rawPrice, 15);
                         return (
                           <p className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">12 pagos con Mercado Pago</span>
+                            <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">12 cuotas con Mercado Pago</span>
                             <span className="text-[13px] font-black text-stone-900 tracking-tight whitespace-nowrap">
                               ${v.cuota12.toLocaleString("es-AR")}
                             </span>

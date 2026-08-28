@@ -9,7 +9,7 @@
     "armazones",
     "local"
   ],
-  "caption": "Ahora podés llevarte tus anteojos en hasta 12 pagos con Mercado Pago 💳\n\nY siguen las de siempre: 6 cuotas sin interés con tarjeta, 15% de descuento en efectivo o 15% por transferencia.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
+  "caption": "Ahora podés llevarte tus anteojos en hasta 12 cuotas con Mercado Pago 💳\n\nY siguen las de siempre: 6 cuotas sin interés con tarjeta, 15% de descuento en efectivo o 15% por transferencia.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
   "slides": [
     {
       "type": "number",
@@ -17,7 +17,7 @@
       "image": "blog/blog3_eligiendo.png",
       "encuadre": "cover",
       "title": "Con Mercado Pago",
-      "dato": "12 pagos",
+      "dato": "12 cuotas",
       "body": "Con Mercado Pago, en todo el local."
     }
   ]

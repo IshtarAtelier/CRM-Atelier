@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6);
-    doc.text("6 CUOTAS SIN INTERÉS  ·  HASTA 12 PAGOS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
+    doc.text("6 CUOTAS SIN INTERÉS  ·  HASTA 12 CUOTAS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
 
     // Home-like Metadata text
     doc.setTextColor(150, 150, 150);
@@ -357,7 +357,7 @@ export async function GET(req: NextRequest) {
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(6);
-      doc.text("6 CUOTAS SIN INTERÉS  ·  HASTA 12 PAGOS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
+      doc.text("6 CUOTAS SIN INTERÉS  ·  HASTA 12 CUOTAS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
 
       // Frida Metadata
       doc.setTextColor(150, 150, 150);
@@ -431,7 +431,7 @@ export async function GET(req: NextRequest) {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6);
-    doc.text("6 CUOTAS SIN INTERÉS  ·  HASTA 12 PAGOS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
+    doc.text("6 CUOTAS SIN INTERÉS  ·  HASTA 12 CUOTAS  ·  15% OFF EN EFECTIVO O TRANSFERENCIA  ·  ENVÍO GRATIS", pageWidth / 2, 4.8, { align: 'center', charSpace: 1.2 });
 
     // Back Cover texts matching slide design
     doc.setTextColor(150, 150, 150);

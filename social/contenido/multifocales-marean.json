@@ -3,50 +3,39 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "educacion",
-  "caption": "\"Me mareo con los multifocales\" es de las frases que más escuchamos. Casi nunca es que no te adaptás: es que hay una causa concreta y casi siempre tiene arreglo.\n\nSi te está pasando, no los guardes en el cajón. Traelos y los revisamos, aunque no los hayas comprado acá.",
+  "caption": "Un multifocal nuevo se siente distinto los primeros días: el cerebro está aprendiendo a usar cada zona del cristal. Te contamos qué es parte normal de la adaptación, y por qué en Atelier medimos con el armazón puesto para que ese proceso sea lo más corto posible.",
   "slides": [
     {
       "type": "cover",
       "role": "portada",
       "image": "blog/multifocal-mujer-lectura.png",
-      "title": "\"Me mareo con los multifocales.\" *Casi nunca es tu culpa.*",
-      "subtitle": "Las tres causas reales, y qué se hace con cada una."
+      "title": "Un multifocal nuevo *se aprende a usar*",
+      "subtitle": "Qué es normal los primeros días, y cómo acortamos esa adaptación."
     },
     {
       "type": "list",
-      "title": "Lo primero: *qué es normal*",
+      "title": "Lo que es normal *al principio*",
       "items": [
         "Los primeros días el cerebro está aprendiendo a usar las zonas",
         "Bajar escaleras se siente raro al principio: se pasa",
-        "Si a los 15 días seguís mareado, ahí ya no es adaptación"
+        "La adaptación completa suele tomar entre unos días y dos semanas"
       ]
     },
     {
       "type": "list",
-      "title": "Las causas que *sí son del anteojo*",
+      "title": "Por eso medimos *con el armazón puesto*",
       "items": [
-        "El centro óptico corrido: mirás por una zona que no es la tuya",
-        "La altura de montaje mal tomada, o el aro que se aflojó y bajó",
-        "Un pasillo de progresión demasiado corto para tu graduación"
-      ]
-    },
-    {
-      "type": "list",
-      "role": "bisagra",
-      "image": "blog/lentes-progresivos-zonas.png",
-      "title": "Por eso *se revisa, no se aguanta*",
-      "items": [
-        "Muchas veces alcanza con reajustar cómo apoya el aro",
-        "Otras hay que volver a medir y rehacer el cristal",
-        "Lo que nunca sirve es acostumbrarse a ver mal"
+        "Tomamos las medidas con el aro que elegiste ya en tu cara",
+        "Es lo que hace que el pasaje entre distancias se sienta liso",
+        "Y por eso damos 30 días de garantía de adaptación"
       ]
     },
     {
       "type": "cta",
       "role": "cierre",
       "image": "blog/mostrador-marmol.jpg",
-      "title": "Traelos y los revisamos",
-      "body": "Aunque no los hayas comprado acá. Cerro de las Rosas, sin turno previo."
+      "title": "Si algo no te cierra, lo revisamos",
+      "body": "30 días de garantía de adaptación. Cerro de las Rosas, sin turno previo."
     }
   ],
   "temas": [

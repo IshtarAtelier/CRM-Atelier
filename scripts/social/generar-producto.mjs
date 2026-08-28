@@ -156,7 +156,7 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             image: path.relative(path.join(RAIZ, 'public', 'images'), fotoPortada),
             title: titulo || (categoria === 'Sol' ? 'Los de *sol* que están volando'
                 : marca ? `Armazones *${marca}*` : 'Los que más nos piden *esta temporada*'),
-            subtitle: 'Diseño de autor, en 6 cuotas sin interés o hasta 12 pagos, y con envío sin cargo.',
+            subtitle: 'Diseño de autor, en 6 cuotas sin interés o hasta 12 cuotas, y con envío sin cargo.',
         });
 
         // Las condiciones de pago se leen de DONDE LAS LEE LA TIENDA
@@ -190,7 +190,7 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             console.log(`  ✅ foto: ${limpiar(p.name)}`);
             const cuota = Math.round(p.product.price / cond.cuotas);
             const alContado = Math.round(p.product.price * (1 - cond.descuento / 100));
-            // 12 pagos MP (27/8/26): misma fórmula que la tienda
+            // 12 cuotas MP (27/8/26): misma fórmula que la tienda
             // (PricingService.cuotasMpLargas: lista × 1,10 ÷ 12). "hasta 12
             // pagos", nunca "sin interés" ni el % — regla de Ishtar.
             const cuota12 = Math.round((p.product.price * 1.10) / 12);
@@ -208,7 +208,7 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
                         ? ` · ${p.product.brand}` : ''
                 ),
                 dato: plata(cuota),
-                body: `${cond.textoCuotas}\nHasta 12 pagos de ${plata(cuota12)} con Mercado Pago\n${plata(alContado)} en efectivo o transferencia`,
+                body: `${cond.textoCuotas}\nHasta 12 cuotas de ${plata(cuota12)} con Mercado Pago\n${plata(alContado)} en efectivo o transferencia`,
             });
         }
 

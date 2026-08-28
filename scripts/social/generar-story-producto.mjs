@@ -185,7 +185,7 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
             // tienda es una discusión en el mostrador.
             const cuota = Math.round(precio / cond.cuotas);
             const alContado = Math.round(precio * (1 - cond.descuento / 100));
-            // 12 pagos MP (27/8/26): misma fórmula que la tienda (lista × 1,10 ÷ 12).
+            // 12 cuotas MP (27/8/26): misma fórmula que la tienda (lista × 1,10 ÷ 12).
             const cuota12 = Math.round((precio * 1.10) / 12);
 
             const pieza = {
@@ -209,7 +209,7 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
                 generadoDesde: produccion ? 'produccion' : 'local',
                 temas: ['armazones'],
                 producto: { nombre, slug: w.slug, marca: p.brand, categoria: w.category },
-                caption: `${nombre} · ${p.brand}\n\n${cond.textoCuotas} de ${precioAr(cuota)}\nHasta 12 pagos de ${precioAr(cuota12)} con Mercado Pago\n${precioAr(alContado)} en efectivo o transferencia (ahorrás ${cond.descuento}%)\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`,
+                caption: `${nombre} · ${p.brand}\n\n${cond.textoCuotas} de ${precioAr(cuota)}\nHasta 12 cuotas de ${precioAr(cuota12)} con Mercado Pago\n${precioAr(alContado)} en efectivo o transferencia (ahorrás ${cond.descuento}%)\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`,
                 slides: [
                     {
                         type: 'number',
@@ -220,7 +220,7 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
                         // compra es cuánto sale por mes.
                         title: `${nombre} · ${p.brand}`,
                         dato: precioAr(cuota),
-                        body: `${cond.textoCuotas}\nHasta 12 pagos de ${precioAr(cuota12)} con Mercado Pago\n${precioAr(alContado)} en efectivo o transferencia`,
+                        body: `${cond.textoCuotas}\nHasta 12 cuotas de ${precioAr(cuota12)} con Mercado Pago\n${precioAr(alContado)} en efectivo o transferencia`,
                         // El renglón que dice QUÉ HACER. Va como campo aparte y
                         // no pegado al `body` para que la plantilla pueda darle
                         // su propio peso y color: mezclado en el cuerpo se lee

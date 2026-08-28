@@ -1,0 +1,41 @@
+{
+  "id": "resenas-clientes",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "prueba",
+  "caption": "5.0 en Google, con 693 reseñas. Estas son algunas, tal como las escribieron.",
+  "temas": ["local"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "5.0 en Google *(693 reseñas)*",
+      "subtitle": "Algunas de las últimas, tal como las escribieron."
+    },
+    {
+      "type": "testimonio",
+      "cita": "La compra se salió de \"hablar de precios\" a revisar qué era mejor, probar opciones. El local impecable, todo a la vista. Nada de andar corriendo o despachando gente.",
+      "resena": { "autor": "Julieta Foppoli", "fuente": "google", "estrellas": 5, "fecha": "agosto 2026" }
+    },
+    {
+      "type": "testimonio",
+      "role": "bisagra",
+      "image": "blog/mostrador-marmol.jpg",
+      "cita": "Busqué en tres ópticas precios y fue el mejor, ya sea efectivo o tarjeta. Excelente atención en mostrador. Productos de excelencia.",
+      "resena": { "autor": "Silvia Mariana Castellanos", "fuente": "google", "estrellas": 5, "fecha": "junio 2026" }
+    },
+    {
+      "type": "testimonio",
+      "cita": "Excelente atención de principio a fin. Les expliqué lo que necesitaba y me asesoraron a la perfección. Los lentes estuvieron antes de lo que pensé. Altamente recomendable!!!",
+      "resena": { "autor": "Alfredo Luis Ullio", "fuente": "google", "estrellas": 5, "fecha": "mayo 2026" }
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Sumate a las opiniones",
+      "body": "693 reseñas en Google, calificación 5.0. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

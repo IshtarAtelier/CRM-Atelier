@@ -14,7 +14,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
   // el botón que cierra la compra: el peor lugar para un número que no es.
   const cuotasElegidas = Math.max(1, Number(formData.installments) || 1);
 
-  // Plan 12 pagos MP: números resueltos por PricingService (regla del proyecto:
+  // Plan 12 cuotas MP: números resueltos por PricingService (regla del proyecto:
   // cálculo de plata SOLO ahí) — una sola vez, para radios y botón.
   const planMp12 = payableTotal && payableTotal > 0 ? PricingService.cuotasMpLargas(payableTotal) : null;
 
@@ -119,7 +119,7 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                         <span className="flex items-center gap-2.5">
                           <input type="radio" name="mpCuotas" value="12" checked={formData.mpCuotas === '12'} onChange={handleChange} className="accent-black" />
                           <span>
-                            <span className="text-[13px] font-bold block">Hasta 12 pagos</span>
+                            <span className="text-[13px] font-bold block">Hasta 12 cuotas</span>
                             {planMp12 && (
                               <span className="text-[11px] text-stone-500 block">12 x ${planMp12.installment12.toLocaleString('es-AR')} · total ${planMp12.totalFinanced.toLocaleString('es-AR')}</span>
                             )}

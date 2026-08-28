@@ -3,7 +3,7 @@
   "format": "9:16",
   "theme": "dark",
   "pilar": "educacion",
-  "caption": "Medimos con el armazón que elegiste ya puesto: distancia pupilar, altura de montaje y distancia al vértice. Es lo que hace que el mismo cristal se sienta perfecto o mareado.",
+  "caption": "Medimos con el armazón que elegiste ya puesto: distancia pupilar, altura de montaje y distancia al vértice. Así el cristal se adapta bien desde el primer día.",
   "temas": [
     "multifocales",
     "taller"
@@ -14,7 +14,7 @@
       "role": "portada",
       "image": "blog/medicion-pupilar-optica.png",
       "title": "Medimos *con tu armazón puesto*",
-      "subtitle": "Porque el mismo cristal, mal medido, se siente mareado. Bien medido, no se nota."
+      "subtitle": "Tres medidas que hacen que el mismo cristal se sienta perfecto desde el primer día."
     }
   ]
 }

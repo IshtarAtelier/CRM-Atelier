@@ -13,13 +13,13 @@
       "titulo": "Dos progresivos iguales *no existen*"
     },
     {
-      "titulo": "El mismo cristal puede sentirse *perfecto o mareado*",
+      "titulo": "El mismo cristal se siente *distinto según cómo se midió*",
       "pie": "La diferencia no está en la marca."
     },
     {
       "rotulo": "Está en la medición",
-      "dato": "1 mm",
-      "pie": "Un milímetro de error corre el pasillo de progresión."
+      "dato": "3 medidas",
+      "pie": "Distancia pupilar, altura de montaje y distancia al vértice."
     },
     {
       "rotulo": "Por eso medimos",
@@ -27,6 +27,6 @@
       "pie": "Cerro de las Rosas, sin turno previo."
     }
   ],
-  "copy": "El mismo cristal progresivo puede sentirse perfecto o mareado: la diferencia está en la medición, no en la marca.\nPor eso acá medimos con el armazón que elegiste ya puesto en tu cara.\nEscribinos por WhatsApp y coordinamos tu medición.",
+  "copy": "El mismo cristal progresivo se siente distinto según cómo se midió: la diferencia está en la medición, no en la marca.\nPor eso acá medimos con el armazón que elegiste ya puesto en tu cara.\nEscribinos por WhatsApp y coordinamos tu medición.",
   "guion": "Dos progresivos iguales no existen... por eso medimos con tu armazón ya puesto."
 }

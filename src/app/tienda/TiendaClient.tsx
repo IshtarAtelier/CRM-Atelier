@@ -701,7 +701,7 @@ export function TiendaClient({
                             <div className="flex flex-col gap-0.5">
                               <p className="flex flex-col">
                                 <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">
-                                  12 pagos con Mercado Pago
+                                  12 cuotas con Mercado Pago
                                 </span>
                                 <span className="text-[15px] font-black text-stone-900 tracking-tight whitespace-nowrap">
                                   ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")}

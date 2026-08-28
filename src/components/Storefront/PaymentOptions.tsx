@@ -66,8 +66,8 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
     {
       icon: <IconoTarjeta />,
       label: showCalculated
-        ? `Hasta 12 pagos de $${cuota12Value.toLocaleString('es-AR')}`
-        : 'Hasta 12 pagos con Mercado Pago',
+        ? `Hasta 12 cuotas de $${cuota12Value.toLocaleString('es-AR')}`
+        : 'Hasta 12 cuotas con Mercado Pago',
       sub: "por Mercado Pago",
       highlight: false,
     },

@@ -28,7 +28,7 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
               Orden de venta (27/8): primero 12, después 6, después contado. */}
           <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg px-4 py-3">
             <CreditCard className="w-4 h-4 text-stone-700 shrink-0" />
-            <p className="text-xs font-semibold flex-1">Hasta 12 pagos por Mercado Pago</p>
+            <p className="text-xs font-semibold flex-1">Hasta 12 cuotas por Mercado Pago</p>
             <span className="text-[9px] font-black uppercase tracking-widest bg-sky-600 text-white px-2 py-1 rounded">12 x ${PricingService.cuotasMpLargas(subtotalAfterCoupon).installment12.toLocaleString("es-AR")}</span>
           </div>
           <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg px-4 py-3">

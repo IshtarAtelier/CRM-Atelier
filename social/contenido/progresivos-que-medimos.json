@@ -3,7 +3,7 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "educacion",
-  "caption": "Si alejás el celular para leer, no es que \"ya estás grande\": es que el ojo dejó de enfocar de cerca y hay lentes para eso.\n\nLo que casi nadie cuenta es que dos progresivos con el mismo cristal pueden sentirse completamente distinto. La diferencia no está en la marca: está en las tres medidas que se toman ANTES de encargarlos, con el armazón que elegiste ya puesto en tu cara.\n\nMal medido, se siente mareado. Bien medido, no se nota el pasaje entre distancias.\n\nVení a que te los midamos. Cerro de las Rosas, sin turno previo.",
+  "caption": "Si alejás el celular para leer, no es que \"ya estás grande\": es que el ojo dejó de enfocar de cerca y hay lentes para eso.\n\nLo que casi nadie cuenta es que dos progresivos con el mismo cristal pueden sentirse completamente distinto. La diferencia no está en la marca: está en las tres medidas que se toman ANTES de encargarlos, con el armazón que elegiste ya puesto en tu cara.\n\nBien medido, no se nota el pasaje entre distancias.\n\nVení a que te los midamos. Cerro de las Rosas, sin turno previo.",
   "slides": [
     {
       "type": "cover",
@@ -36,9 +36,9 @@
       "image": "blog/medicion-pupilar-optica.png",
       "title": "Por eso dos progresivos *no son iguales*",
       "items": [
-        "El mismo cristal, mal medido, se siente mareado",
         "Bien medido, el pasaje entre distancias no se nota",
-        "La diferencia no está en el aro: está en la medición"
+        "La diferencia está en la medición, no en la marca del cristal",
+        "Por eso medimos con el armazón elegido, ya puesto en tu cara"
       ]
     },
     {
