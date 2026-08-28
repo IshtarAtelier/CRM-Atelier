@@ -1,0 +1,19 @@
+{
+  "id": "story-somos-atelier",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "prueba",
+  "caption": "Detrás de Atelier somos nosotras: Ishtar y Yani. Una óptica de familia en el Cerro de las Rosas. Vení a conocernos, sin turno previo.",
+  "temas": [
+    "local"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/ishtar/hermanas-espejo.jpg",
+      "title": "Detrás de Atelier *somos nosotras*",
+      "subtitle": "Ishtar y Yani. Una óptica de familia en el Cerro de las Rosas — vení a conocernos."
+    }
+  ]
+}

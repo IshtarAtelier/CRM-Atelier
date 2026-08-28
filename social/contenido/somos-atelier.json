@@ -1,0 +1,55 @@
+{
+  "id": "somos-atelier",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "prueba",
+  "caption": "Atelier es de familia: Ishtar al frente de la óptica, y Yani — flamante Licenciada en Nutrición de la UNC — del mismo equipo de siempre.\n\nPor eso acá nadie es un número: el que te atiende hoy es el mismo que te ajusta el armazón dentro de un año.\n\nVení a conocernos. José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Sin turno previo.",
+  "temas": [
+    "local"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/ishtar/hermanas-espejo.jpg",
+      "title": "Detrás de Atelier *somos nosotras*",
+      "subtitle": "Ishtar y Yani. Una óptica de familia en el Cerro de las Rosas."
+    },
+    {
+      "type": "list",
+      "title": "Por qué *de familia* importa",
+      "items": [
+        "El que te atiende hoy es el mismo que te ajusta el aro en un año",
+        "Nadie te apura ni te despacha: la elección lleva lo que lleva",
+        "El nombre está en juego en cada anteojo que sale del taller"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/ishtar/hermanas-anteojos.jpg",
+      "title": "Lo que vas a *encontrar*",
+      "items": [
+        "Atención personal, con el tiempo que necesites",
+        "Taller propio: tus cristales no viajan a ningún lado",
+        "30 días de garantía de adaptación en multifocales"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Y el equipo *sigue creciendo*",
+      "items": [
+        "Ishtar, al frente de la óptica desde el primer día",
+        "Yani, flamante Licenciada en Nutrición (UNC)",
+        "La salud se cuida entera: la vista es parte de ese todo"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Vení a conocernos",
+      "body": "Cerro de las Rosas, sin turno previo. También estamos en WhatsApp para lo que necesites."
+    }
+  ]
+}

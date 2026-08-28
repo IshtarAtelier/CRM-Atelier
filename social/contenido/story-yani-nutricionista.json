@@ -1,0 +1,19 @@
+{
+  "id": "story-yani-nutricionista",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "prueba",
+  "caption": "Orgullo de familia: Yani se recibió de Licenciada en Nutrición en la UNC 🎓 La salud se cuida entera — y en esta familia nos lo tomamos en serio.",
+  "temas": [
+    "local"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/ishtar/yani-diploma-nutricion.jpg",
+      "title": "Orgullo de familia 🎓",
+      "subtitle": "Yani, Licenciada en Nutrición (UNC). En esta familia la salud se cuida entera."
+    }
+  ]
+}
