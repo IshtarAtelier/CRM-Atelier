@@ -137,7 +137,17 @@ export async function GET(request: NextRequest) {
         });
 
         if (!res.ok) {
-            await liberar(c.id); // que el próximo llamado lo reintente
+            // "Destino inválido" (wa-service/transport/cloud-transport.js) es
+            // permanente: el teléfono guardado en la ficha es en realidad un
+            // @lid, nunca va a poder mandarse por la API oficial. Liberarlo
+            // hacía que CADA lote lo volviera a tomar y volviera a fallar —
+            // 2 de los 10 cupos de cada tanda se iban en los mismos 2
+            // contactos, indefinidamente. El resto de errores (rate limit,
+            // timeout de red) sí son transitorios: esos se liberan para que
+            // el próximo lote reintente.
+            const permanente = /Destino inválido/i.test(res.error || '');
+            if (permanente) await reclamar(c.id);
+            else await liberar(c.id);
             errores.push(`${c.name}: ${res.error || 'fallo de envío'}`);
             continue;
         }
