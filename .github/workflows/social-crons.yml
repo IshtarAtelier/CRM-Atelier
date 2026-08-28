@@ -1,4 +1,4 @@
-# Los tres crons de publicación en redes.
+# Los cuatro crons de publicación en redes.
 #
 # Viven en GitHub Actions y no en cron-job.org por una razón práctica: el repo
 # ya está acá, el alta la puede hacer cualquiera con acceso al repo (no depende
@@ -7,9 +7,20 @@
 #
 # Los horarios están en UTC (ART = UTC-3) y SEPARADOS a propósito: una cuenta
 # que dispara stories, feed y reportes en el mismo minuto se ve automatizada.
-#   13:00 UTC = 10:00 ART → stories (4 por día)
+#   11:00 UTC =  8:00 ART → stories, tanda de la MAÑANA (4)
 #   14:00 UTC = 11:00 ART → carrusel del feed, si hay programado
-#   21:00 UTC = 18:00 ART → mail de cadencia (después de todo lo del día)
+#   21:05 UTC = 18:05 ART → stories, tanda de la TARDE (2)
+#   21:00 UTC = 18:00 ART → mail de cadencia
+#
+# SEIS STORIES POR DÍA EN DOS TANDAS (28/8/26, horarios fijados por Ishtar:
+# mañana 8:00, tarde 18:00 ART). La tanda de la tarde NO es una copia del mismo
+# endpoint: va con `?tanda=tarde`, y esa diferencia es lo único que evita que
+# republique las mismas 4 de la mañana (la elección es determinística por día,
+# ver el comentario del endpoint).
+#
+# POR QUÉ 21:05 Y NO 21:00 para la tarde: a las 21:00 ya está la cadencia, y
+# dos schedules con el MISMO string son indistinguibles en el `case` de abajo —
+# no habría forma de saber cuál disparó.
 #
 # GitHub demora los schedules bastante más que "algunos minutos": lo medido en
 # agosto de 2026 son 40 a 80 minutos todos los días. Para publicar en redes el
@@ -29,19 +40,24 @@ on:
   # Cada endpoint tiene dedup, asi que el segundo disparo no duplica nada:
   # si el primero anduvo, el segundo responde "ya salio hoy" y listo.
   schedule:
-    - cron: '0 13 * * *'    # stories — 10:00 ART
-    - cron: '40 13 * * *'   # stories, red de seguridad
+    # Horarios pedidos por Ishtar (28/8): mañana 8:00 ART, tarde 18:00 ART.
+    # La tarde va 21:05 y no 21:00 porque la cadencia ya usa '0 21 * * *' y dos
+    # schedules con el MISMO string son indistinguibles en github.event.schedule.
+    - cron: '0 11 * * *'    # stories mañana — 8:00 ART
+    - cron: '40 11 * * *'   # stories mañana, red de seguridad
     - cron: '0 14 * * *'    # feed — 11:00 ART
     - cron: '40 14 * * *'   # feed, red de seguridad
+    - cron: '5 21 * * *'    # stories tarde — 18:05 ART
+    - cron: '45 21 * * *'   # stories tarde, red de seguridad
     - cron: '0 21 * * *'    # cadencia — 18:00 ART
   workflow_dispatch:
     inputs:
       cual:
-        description: 'Qué cron disparar (stories | feed | cadencia)'
+        description: 'Qué cron disparar (stories-manana | stories-tarde | feed | cadencia)'
         required: true
-        default: 'stories'
+        default: 'stories-manana'
         type: choice
-        options: [stories, feed, cadencia]
+        options: [stories-manana, stories-tarde, feed, cadencia]
 
 jobs:
   disparar:
@@ -65,8 +81,9 @@ jobs:
             # case, y el default las mandaba. Un cron atrasado tiene que hacer
             # tarde LO SUYO, nunca lo del vecino.
             case "${{ github.event.schedule }}" in
-              '0 13 * * *'|'40 13 * * *') CUAL="stories" ;;
+              '0 11 * * *'|'40 11 * * *') CUAL="stories-manana" ;;
               '0 14 * * *'|'40 14 * * *') CUAL="feed" ;;
+              '5 21 * * *'|'45 21 * * *') CUAL="stories-tarde" ;;
               '0 21 * * *')               CUAL="cadencia" ;;
               *)
                 echo "::error::Schedule sin mapear: '${{ github.event.schedule }}'. Agregarlo al case."
@@ -74,20 +91,29 @@ jobs:
                 ;;
             esac
           fi
+          # La tanda va en la QUERY, no en la ruta: las dos tandas son el mismo
+          # endpoint y lo único que cambia es desde qué posición del carril lee.
+          QUERY=""
           case "$CUAL" in
-            stories)  RUTA="social-story-diaria" ;;
-            feed)     RUTA="social-feed" ;;
-            cadencia) RUTA="social-cadencia" ;;
+            stories-manana) RUTA="social-story-diaria"; QUERY="?tanda=manana" ;;
+            stories-tarde)  RUTA="social-story-diaria"; QUERY="?tanda=tarde" ;;
+            feed)           RUTA="social-feed" ;;
+            cadencia)       RUTA="social-cadencia" ;;
+            *)
+              echo "::error::Destino sin mapear: '$CUAL'."
+              exit 1
+              ;;
           esac
           echo "cual=$CUAL" >> "$GITHUB_OUTPUT"
           echo "ruta=$RUTA" >> "$GITHUB_OUTPUT"
+          echo "query=$QUERY" >> "$GITHUB_OUTPUT"
 
       - name: Llamar el endpoint
         run: |
           echo "Disparando: ${{ steps.cual.outputs.cual }}"
           RESPUESTA=$(curl -sS --max-time 480 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://atelieroptica.com.ar/api/cron/${{ steps.cual.outputs.ruta }}")
+            "https://atelieroptica.com.ar/api/cron/${{ steps.cual.outputs.ruta }}${{ steps.cual.outputs.query }}")
           echo "$RESPUESTA"
           # El job falla si el endpoint reporta ok:false, para que el run quede
           # rojo en la pestaña Actions y se vea sin abrir los logs.
