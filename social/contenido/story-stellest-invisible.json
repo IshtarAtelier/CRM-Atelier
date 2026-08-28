@@ -1,0 +1,20 @@
+{
+  "id": "story-stellest-invisible",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "\"¿Se le va a notar?\" es la primera pregunta de todos los papás. No: las micro-lentes de Stellest tienen acabado estético, invisibles a simple vista, y la zona central es de visión nítida como un cristal común. En Atelier trabajamos Stellest, de Essilor. José Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog6_consulta.png",
+      "title": "Nadie le va a notar que son *lentes de control*",
+      "subtitle": "Las micro-lentes de Stellest tienen acabado estético: invisibles a simple vista, según Essilor. Y el centro es visión nítida, como un cristal común. En Atelier lo trabajamos."
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "id": "indices-de-refraccion",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "\"¿Y este cristal no me lo podés hacer más finito?\" Sí. Se llama subir de índice, y es de las cosas que menos se explican en una óptica.\n\nEl índice de refracción es cuánto desvía la luz el material del cristal. Cuanto más la desvía, menos material hace falta para corregir la misma graduación. Traducido: el mismo aumento entra en un cristal más fino y más liviano.\n\nOjo con lo que NO cambia: no vas a ver mejor. Ves igual. Lo que cambia es el espesor del borde, el peso sobre la nariz y cómo se ve tu cara detrás del cristal.\n\nEn Atelier el recorrido va del 1.50 (el estándar) al 1.56, al policarbonato 1.59 —que además es el que no se astilla, por eso es el de los chicos y el de deporte— y al 1.67 para graduaciones altas. Para casos muy altos hay opciones puntuales que vemos una por una.\n\nTraé tu receta y te decimos cuál te conviene de verdad. Cerro de las Rosas, sin turno previo.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/anteojos-rosa-pastel.jpg",
+      "title": "\"¿No me lo podés hacer *más finito*?\"",
+      "subtitle": "Sí. Se llama subir de índice, y casi nadie te lo explica."
+    },
+    {
+      "type": "list",
+      "title": "Qué es el *índice de refracción*",
+      "items": [
+        "Es cuánto desvía la luz el material con el que está hecho el cristal",
+        "Cuanto más la desvía, menos material hace falta para la misma graduación",
+        "Por eso un 1.67 sale más fino que un 1.50 con exactamente la misma receta"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/blog1_marcos.png",
+      "title": "Lo que *no* cambia (y conviene saberlo)",
+      "items": [
+        "No vas a ver mejor: con la misma receta, ves igual",
+        "Lo que cambia es el espesor del borde y el peso sobre la nariz",
+        "Y cómo se ve tu cara detrás del cristal, sin el borde grueso que agranda o achica los ojos"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Desde qué graduación *conviene subir*",
+      "items": [
+        "Hasta cerca de 2 dioptrías, el 1.50 alcanza y es el más económico",
+        "De 2 a 4, el 1.56 o el policarbonato 1.59, que además resiste impactos: es el de chicos y deporte",
+        "De 4 o 5 en adelante, el 1.67: ahí la diferencia de espesor se ve a simple vista"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "En un aro al aire, esto *cambia todo*",
+      "body": "Sin marco que tape el borde, el espesor queda a la vista y el cristal se agarra con perforaciones: ahí el material importa el doble. Traé tu receta y lo vemos con el armazón que te guste puesto. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

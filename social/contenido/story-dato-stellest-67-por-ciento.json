@@ -1,0 +1,19 @@
+{
+  "id": "story-dato-stellest-67-por-ciento",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Un lente común corrige la visión borrosa, pero al año siguiente la graduación vuelve a subir. Stellest ralentiza la progresión de la miopía un 67% de media frente a un monofocal estándar, según el ensayo clínico de 2 años de Essilor. Consultanos si tu hijo cambia de graduación todos los años.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "stellest/stellest-1-cristal.jpeg",
+      "title": "Ralentizan el avance un *67%*",
+      "subtitle": "Promedio del ensayo clínico de 2 años de Essilor, el fabricante de Stellest. Es control de la progresión, no una cura."
+    }
+  ]
+}

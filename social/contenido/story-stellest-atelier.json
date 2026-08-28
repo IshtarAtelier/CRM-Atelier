@@ -1,0 +1,20 @@
+{
+  "id": "story-stellest-atelier",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "Consultanos por Stellest. Es la lente de Essilor para el control de la progresión de la miopía en chicos: según su ensayo clínico de 2 años, la ralentiza un 67% de media. Es control de la progresión, no una cura. Traé la receta del oftalmólogo y te contamos cómo la pedimos. José Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "cta",
+      "role": "portada",
+      "image": "blog/local-varilux.jpg",
+      "title": "Consultanos por *Stellest* en *Atelier*",
+      "body": "La lente de Essilor para el control de la progresión de la miopía en chicos.\nJosé Luis de Tejeda 4380, Cerro de las Rosas.\nLun a Vie 8–20 · Sáb 9–17. Sin turno previo."
+    }
+  ]
+}

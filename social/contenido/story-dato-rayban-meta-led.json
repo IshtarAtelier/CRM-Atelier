@@ -1,0 +1,20 @@
+{
+  "id": "story-dato-rayban-meta-led",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Los Ray-Ban Meta tienen una cámara escondida en el armazón, pero avisan: cuando grabás se enciende un LED frontal bien visible. Si alguien intenta taparlo, el anteojo detecta la obstrucción y no deja usar la cámara. Pasá a verlos.",
+  "temas": [
+    "armazones",
+    "sol"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "landing/ray_ban_meta.png",
+      "title": "Si graban, *se prende una luz*",
+      "subtitle": "Y si tapás el LED, los Ray-Ban Meta bloquean la cámara solos."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "story-indice-fino",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Un cristal más fino no se ve mejor: se ve igual. Lo que cambia es el espesor del borde y el peso. Y en un aro al aire, donde no hay marco que tape el borde, cambia todo. Consultanos.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/anteojos-rosa-pastel.jpg",
+      "title": "Más fino *no es ver mejor*",
+      "subtitle": "Con la misma receta ves igual. Cambia el espesor del borde y el peso. Y en un aro al aire, donde nada lo tapa, cambia todo."
+    }
+  ]
+}

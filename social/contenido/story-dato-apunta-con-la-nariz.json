@@ -1,0 +1,19 @@
+{
+  "id": "story-dato-apunta-con-la-nariz",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Los primeros días, en vez de mover solo los ojos hacia los costados, girá suavemente la cabeza apuntando con la nariz a lo que querés mirar. En un par de días te sale solo, sin pensarlo. Y si algo no cierra, volvé: tenés 30 días de garantía de adaptación.",
+  "temas": [
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/multifocal-mujer-lectura.png",
+      "title": "Apuntá con *la nariz*",
+      "subtitle": "El truco número uno para adaptarte a tus primeros multifocales."
+    }
+  ]
+}

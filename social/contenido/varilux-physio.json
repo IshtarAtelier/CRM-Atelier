@@ -1,0 +1,55 @@
+{
+  "id": "varilux-physio",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Varilux Physio 3.0 es la gama media-alta de la familia, y su diferencial no es \"más zona\": es cómo se ve dentro de esa zona.\n\nLa familia Physio se define por la tecnología W.A.V.E. (Wavefront Advanced Vision Enhancement), que Essilor tomó del análisis de frente de onda usado en cirugía refractiva: se corrigen aberraciones de la superficie del lente para ganar nitidez y contraste, sobre todo cuando hay poca luz.\n\nY la generación 3 suma SynchronEyes: los dos cristales no se calculan por separado, se calculan como un par, tomando la receta de ambos ojos. Vos no ves con un lente, ves con dos a la vez.\n\nEn Atelier está en ORMA 1.50, Airwear 1.59 (policarbonato) y Stylis 1.67 para graduaciones altas, siempre con antirreflejo Crizal.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "temas": ["multifocales"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog4_leyendo.png",
+      "title": "Varilux *Physio 3.0*: la apuesta a la nitidez",
+      "subtitle": "La gama media-alta de la familia. Su diferencial no es el tamaño de la zona, es la calidad de la imagen."
+    },
+    {
+      "type": "list",
+      "title": "Qué es la tecnología *W.A.V.E.*",
+      "items": [
+        "Wavefront Advanced Vision Enhancement, de Essilor",
+        "Viene del análisis de frente de onda de la cirugía refractiva",
+        "Corrige aberraciones de la superficie del lente",
+        "Apunta a nitidez y contraste, sobre todo con poca luz"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/lentes-progresivos-zonas.png",
+      "title": "*SynchronEyes*: los dos cristales se calculan como un par",
+      "items": [
+        "Toma la receta de los dos ojos, no la de cada uno por separado",
+        "Porque vos no mirás con un lente: mirás con los dos a la vez",
+        "Es lo que suma la generación 3 sobre la Physio anterior"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Cómo está disponible en Atelier",
+      "items": [
+        "ORMA 1.50, para graduaciones bajas",
+        "Airwear 1.59 (policarbonato), liviano y resistente al impacto",
+        "Stylis 1.67, alto índice, para graduaciones altas",
+        "Las tres versiones, con antirreflejo Crizal"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "¿Te interesa Physio?",
+      "body": "Traé tu receta y vemos si es la gama que te conviene. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

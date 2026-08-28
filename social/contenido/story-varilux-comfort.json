@@ -1,0 +1,17 @@
+{
+  "id": "story-varilux-comfort",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Varilux Comfort Max: la gama de entrada de la familia Varilux, la que Essilor posiciona para el primer multifocal. Su diseño Flex Optim acompaña tu postura natural al mirar; Essilor declara hasta 46% más de zona útil de visión. Escribinos y te contamos si va con tu receta.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "temas": ["multifocales"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/multifocal-mujer-lectura.png",
+      "title": "Varilux *Comfort Max*",
+      "subtitle": "La gama pensada para tu primer multifocal. Diseño Flex Optim: acompaña tu postura natural al mirar, en vez de pedirte una nueva."
+    }
+  ]
+}

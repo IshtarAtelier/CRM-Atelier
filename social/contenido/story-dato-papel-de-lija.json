@@ -1,0 +1,19 @@
+{
+  "id": "story-dato-papel-de-lija",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Servilleta, papel higiénico y la punta de la remera: los tres enemigos de tus cristales. El papel es pulpa de madera y la remera junta polvo de la calle. Cada pasada se lleva un poquito del antirreflejo. Agua fría, una gota de detergente neutro y paño de microfibra.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog4_header.png",
+      "title": "El papel higiénico es *una lija*",
+      "subtitle": "Está hecho de pulpa de madera: a nivel microscópico raya el antirreflejo."
+    }
+  ]
+}

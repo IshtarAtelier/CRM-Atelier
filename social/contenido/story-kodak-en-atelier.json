@@ -1,0 +1,20 @@
+{
+  "id": "story-kodak-en-atelier",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "caption": "Trabajamos las dos líneas de progresivos Kodak: Unique DRO y Precise. En 1.50, policarbonato 1.59 y alto índice 1.67, con Blue UV o Transitions GEN S; el polarizado Xperio, en 1.50 y policarbonato 1.59.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas.",
+  "temas": [
+    "cristales",
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/local-varilux.jpg",
+      "title": "Kodak *en Atelier*",
+      "subtitle": "Las dos líneas de progresivos: Unique DRO y Precise. En 1.50, policarbonato 1.59 y alto índice 1.67."
+    }
+  ]
+}

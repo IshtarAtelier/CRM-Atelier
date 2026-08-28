@@ -1,0 +1,20 @@
+{
+  "id": "story-dato-add-es-presbicia",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Si pasaste los 40 y en la receta aparece un valor bajo «Add», eso es la adición: la potencia extra que necesitás sobre tu graduación de lejos para ver bien de cerca. Es el número clave para encargar multifocales. Traé la receta y te la leemos entera, sin apuro.",
+  "temas": [
+    "receta",
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/mujer-oficina-multifocal.png",
+      "title": "El *Add* de tu receta es la presbicia",
+      "subtitle": "Es la potencia extra que se suma a tu graduación de lejos para poder leer."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "story-lente-progresiva",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Lejos, intermedio y cerca en un solo cristal, sin líneas ni saltos. La clave está en la medición: la hacemos con tu armazón ya puesto. Escribinos por WhatsApp y coordinamos la tuya.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/lentes-progresivos-zonas.png",
+      "title": "Lejos, intermedio y cerca *en un solo cristal*",
+      "subtitle": "Sin líneas y sin saltos. Bien medido, el pasaje entre distancias no se nota."
+    }
+  ]
+}

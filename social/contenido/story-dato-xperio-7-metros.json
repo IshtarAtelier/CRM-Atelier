@@ -1,0 +1,20 @@
+{
+  "id": "story-dato-xperio-7-metros",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "El resplandor del asfalto no se arregla oscureciendo el lente: hay que bloquear la luz que rebota horizontal. El filtro polarizado Xperio hace eso y, según los estudios clínicos de Essilor, mejora el tiempo de reacción al volante lo suficiente para frenar 7 metros antes a 80 km/h.",
+  "temas": [
+    "sol",
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "banners/sol.png",
+      "title": "Frenás *7 metros antes*",
+      "subtitle": "A 80 km/h, con polarizados Xperio, según los estudios clínicos de Essilor."
+    }
+  ]
+}

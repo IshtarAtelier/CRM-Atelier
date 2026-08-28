@@ -1,0 +1,19 @@
+{
+  "id": "story-dato-primer-control-3-anios",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "accion",
+  "caption": "Señales para estar atentos: entrecierra los ojos para ver la tele, se acerca mucho al cuaderno, se frota los ojos seguido, se queja de dolor de cabeza al volver del colegio o se saltea renglones al leer. Traelo con la receta del oftalmólogo y lo armamos juntos.",
+  "temas": [
+    "receta"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog6_consulta.png",
+      "title": "Nosotros sugerimos el primer control *a los 3 años*",
+      "subtitle": "Y otro a los 5 o 6, antes de arrancar la primaria. El diagnóstico siempre lo hace el oftalmólogo."
+    }
+  ]
+}

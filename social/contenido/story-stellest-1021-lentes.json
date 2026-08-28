@@ -1,0 +1,23 @@
+{
+  "id": "story-stellest-1021-lentes",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "La tecnología H.A.L.T. de Stellest son 1.021 micro-lentes distribuidas en anillos concéntricos, con acabado estético. En Atelier trabajamos Stellest, de Essilor. José Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "stellest/stellest-3-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "La tecnología *H.A.L.T.* de Stellest son",
+      "dato": "1.021",
+      "body": "micro-lentes en anillos concéntricos, adentro del cristal. Invisibles a simple vista, según *Essilor*.",
+      "cta": "Stellest, en Atelier Óptica."
+    }
+  ]
+}

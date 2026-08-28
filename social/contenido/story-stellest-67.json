@@ -1,0 +1,23 @@
+{
+  "id": "story-stellest-67",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "Según el ensayo clínico de 2 años de Essilor, Stellest ralentiza la progresión de la miopía un 67% de media. Es control de la progresión, no una cura. En Atelier lo trabajamos. José Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "stellest/stellest-2-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "Miopía en chicos: según el ensayo clínico de 2 años de Essilor, Stellest ralentiza la progresión",
+      "dato": "67%",
+      "body": "de media. Es *control de la progresión*, no una cura.",
+      "cta": "Stellest, en Atelier Óptica."
+    }
+  ]
+}

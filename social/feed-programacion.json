@@ -8,18 +8,29 @@
     "que programar pieza y reel el mismo día deja una de las dos muerta.",
     "",
     "Cadencia: carruseles mar/jue/sáb + DOMINGO (campañas de pago y",
-    "tratamientos — el domingo vende), reels los miércoles.",
+    "tratamientos — el domingo vende), reels los miércoles. Lunes y viernes",
+    "no se publica al feed a propósito: la constancia se sostiene con las",
+    "stories, que salen los 7 días.",
     "",
     "Regla anti-repetición: una misma pieza no vuelve al feed antes de los",
-    "21 días. La promo vigente (campania-12-pagos-feed) sale cada ~3 semanas.",
+    "21 días. Verificado sobre toda la lista, no solo sobre lo nuevo.",
+    "Las promos van cada 21 días EXACTOS y encadenadas: 12 cuotas 30/8, 20/9,",
+    "11/10, 1/11, 22/11, 13/12; 6 cuotas 27/9, 25/10, 15/11, 6/12, 27/12.",
     "",
     "Los carruseles de PRODUCTO (fuente: base) tienen guarda de frescura: si al",
     "llegar su fecha fueron generados hace más de 10 días, el cron NO los publica",
-    "y avisa por mail cómo regenerarlos. Así se puede programar octubre hoy sin",
+    "y avisa por mail cómo regenerarlos. Así se puede programar diciembre hoy sin",
     "riesgo de publicar precios de agosto.",
     "",
     "Sept/oct repiten piezas de agosto con 6+ semanas de distancia: en redes eso",
-    "no es repetir, es que lo vea la gente que no lo vio."
+    "no es repetir, es que lo vea la gente que no lo vio.",
+    "",
+    "STELLEST ENTRA EN OCTUBRE (28/8/26). El calendario estaba lleno hasta el",
+    "31/10 y las piezas del lanzamiento habrían esperado a noviembre. Para",
+    "adelantarlas se cambiaron las DOS únicas CUARTAS repeticiones del año:",
+    "armazones-destacados del 24/10 y sol-seleccion del 31/10, que ya salen tres",
+    "veces cada una antes de esa fecha. Ninguna pieza perdió una emisión que no",
+    "hubiera tenido ya tres veces. Revertirlo es cambiar esos dos ids de vuelta."
   ],
   "programacion": [
     {
@@ -232,7 +243,7 @@
     },
     {
       "fecha": "2026-10-24",
-      "pieza": "armazones-destacados"
+      "pieza": "stellest-que-es"
     },
     {
       "fecha": "2026-10-25",
@@ -252,7 +263,179 @@
     },
     {
       "fecha": "2026-10-31",
-      "pieza": "sol-seleccion"
+      "pieza": "stellest-senales-en-tu-hijo"
+    },
+    {
+      "fecha": "2026-11-01",
+      "pieza": "campania-12-pagos-feed"
+    },
+    {
+      "fecha": "2026-11-03",
+      "pieza": "varilux-la-familia"
+    },
+    {
+      "fecha": "2026-11-04",
+      "reel": "lente-monofocal"
+    },
+    {
+      "fecha": "2026-11-05",
+      "pieza": "varilux-comfort"
+    },
+    {
+      "fecha": "2026-11-07",
+      "pieza": "varilux-physio"
+    },
+    {
+      "fecha": "2026-11-08",
+      "pieza": "varilux-xr-design"
+    },
+    {
+      "fecha": "2026-11-10",
+      "pieza": "stellest-preguntas-de-padres"
+    },
+    {
+      "fecha": "2026-11-11",
+      "reel": "lente-stellest"
+    },
+    {
+      "fecha": "2026-11-12",
+      "pieza": "kodak-cristales"
+    },
+    {
+      "fecha": "2026-11-14",
+      "pieza": "indices-de-refraccion"
+    },
+    {
+      "fecha": "2026-11-15",
+      "pieza": "campania-6-cuotas-feed"
+    },
+    {
+      "fecha": "2026-11-17",
+      "pieza": "resenas-clientes"
+    },
+    {
+      "fecha": "2026-11-19",
+      "pieza": "crizal-cual-es-para-vos"
+    },
+    {
+      "fecha": "2026-11-21",
+      "pieza": "como-comprar-online"
+    },
+    {
+      "fecha": "2026-11-22",
+      "pieza": "campania-12-pagos-feed"
+    },
+    {
+      "fecha": "2026-11-24",
+      "pieza": "campania-2x1-multifocales-feed"
+    },
+    {
+      "fecha": "2026-11-25",
+      "reel": "que-es-la-miopia"
+    },
+    {
+      "fecha": "2026-11-26",
+      "pieza": "obras-sociales"
+    },
+    {
+      "fecha": "2026-11-28",
+      "pieza": "laboratorio-propio"
+    },
+    {
+      "fecha": "2026-11-29",
+      "pieza": "multifocales-marean"
+    },
+    {
+      "fecha": "2026-12-01",
+      "pieza": "sol-con-receta"
+    },
+    {
+      "fecha": "2026-12-02",
+      "reel": "fotocromaticos-dia"
+    },
+    {
+      "fecha": "2026-12-03",
+      "pieza": "garantia-adaptacion"
+    },
+    {
+      "fecha": "2026-12-05",
+      "pieza": "cristales-transitions"
+    },
+    {
+      "fecha": "2026-12-06",
+      "pieza": "campania-6-cuotas-feed"
+    },
+    {
+      "fecha": "2026-12-08",
+      "pieza": "polarizados-manejo"
+    },
+    {
+      "fecha": "2026-12-09",
+      "reel": "medicion-armazon"
+    },
+    {
+      "fecha": "2026-12-10",
+      "pieza": "tratamientos-tus-cristales"
+    },
+    {
+      "fecha": "2026-12-12",
+      "pieza": "elegir-armazon-rostro"
+    },
+    {
+      "fecha": "2026-12-13",
+      "pieza": "campania-12-pagos-feed"
+    },
+    {
+      "fecha": "2026-12-15",
+      "pieza": "agenda-tu-medicion"
+    },
+    {
+      "fecha": "2026-12-16",
+      "reel": "que-es-la-presbicia"
+    },
+    {
+      "fecha": "2026-12-17",
+      "pieza": "crizal-vale-la-pena"
+    },
+    {
+      "fecha": "2026-12-19",
+      "pieza": "anteojos-rotos-gotita"
+    },
+    {
+      "fecha": "2026-12-20",
+      "pieza": "eyezen-pantallas"
+    },
+    {
+      "fecha": "2026-12-22",
+      "pieza": "progresivos-que-medimos"
+    },
+    {
+      "fecha": "2026-12-23",
+      "reel": "lente-progresiva"
+    },
+    {
+      "fecha": "2026-12-24",
+      "pieza": "leer-tu-receta"
+    },
+    {
+      "fecha": "2026-12-26",
+      "pieza": "renova-tu-receta"
+    },
+    {
+      "fecha": "2026-12-27",
+      "pieza": "campania-6-cuotas-feed"
+    },
+    {
+      "fecha": "2026-12-29",
+      "pieza": "filtro-azul-o-antirreflejo"
+    },
+    {
+      "fecha": "2026-12-30",
+      "reel": "que-es-la-hipermetropia"
+    },
+    {
+      "fecha": "2026-12-31",
+      "pieza": "lentes-de-contacto"
     }
   ]
 }

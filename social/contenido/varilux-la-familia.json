@@ -1,0 +1,54 @@
+{
+  "id": "varilux-la-familia",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "\"Quiero unos Varilux\" es como decir \"quiero un auto\": falta la mitad de la charla.\n\nVarilux es la línea de lentes progresivas de Essilor, y adentro conviven varios diseños distintos. Todos corrigen lejos, intermedia y cerca en un mismo cristal. Lo que cambia entre uno y otro es cuánta superficie del lente queda cómoda para mirar, y cuánto acompaña el diseño la forma en que vos usás la vista.\n\nEn Atelier trabajamos tres: Comfort Max, Physio 3.0 y XR Design. Ninguna es \"la mejor\" en abstracto — la mejor es la que va con tu receta, tu armazón y tus horas de pantalla, lectura o volante.\n\nEso lo definimos juntos en el mostrador, con el armazón que elegiste ya puesto en tu cara.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "temas": ["multifocales"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/local-varilux.jpg",
+      "title": "Varilux no es *un* cristal. Es una *familia*.",
+      "subtitle": "Y elegir mal dentro de la familia se siente distinto que elegir bien."
+    },
+    {
+      "type": "list",
+      "title": "Qué es Varilux, en criollo",
+      "items": [
+        "Es la línea de lentes progresivas de Essilor",
+        "Un solo cristal para lejos, intermedia y cerca, sin la línea del bifocal",
+        "Adentro hay varios diseños, y no son intercambiables"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/lentes-progresivos-zonas.png",
+      "title": "Las tres gamas que trabajamos",
+      "items": [
+        "*Comfort Max*: la puerta de entrada, pensada para el primer multifocal",
+        "*Physio 3.0*: gama media-alta, apuesta a la nitidez y el contraste",
+        "*XR Design*: la generación más nueva, el tope de la línea"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Qué mira quien te atiende para *recomendarte una*",
+      "items": [
+        "Si es tu primer progresivo o ya venís usando",
+        "Cuántas horas pasás en pantalla, leyendo o manejando",
+        "El armazón que elegiste: la altura del aro condiciona el diseño",
+        "Tu receta completa, ojo por ojo"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Vení y te explicamos *cuál te conviene*",
+      "body": "Te mostramos las tres, con la receta y el armazón sobre el mostrador. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "story-dato-stellest-1021-microlentes",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "A simple vista son cristales comunes, y esa es la gracia. Adentro tienen la tecnología H.A.L.T. de Essilor: una constelación de 1.021 micro-lentes repartidos en anillos concéntricos alrededor del centro, con una zona central amplia que se ve nítida como un cristal común. Datos del fabricante, Essilor.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "stellest/stellest-2-cristal.jpeg",
+      "title": "*1.021 microlentes* invisibles",
+      "subtitle": "Los Stellest esconden 1.021 micro-lentes en anillos concéntricos, en un cristal que parece común. Datos de Essilor."
+    }
+  ]
+}

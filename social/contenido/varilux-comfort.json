@@ -1,0 +1,53 @@
+{
+  "id": "varilux-comfort",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Varilux Comfort Max es la gama que Essilor posiciona para quien estrena multifocales.\n\nSu diseño se llama Flex Optim y la idea es simple de contar: en vez de pedirte que aprendas una postura nueva para encontrar cada zona del lente, el diseño se calcula para acompañar la postura natural con la que ya mirás.\n\nLo que declara Essilor sobre esa tecnología: amplía la zona útil de visión hasta un 46%, y en un estudio in-life de terceros hecho en Reino Unido y Estados Unidos (2019) 9 de cada 10 usuarios quisieron seguir usándolos. Son datos del fabricante, no promesas nuestras.\n\nY del lado de acá sumamos lo que sí depende de nosotros: la medición con el armazón puesto, el taller propio y 30 días de garantía de adaptación.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "temas": ["multifocales"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/multifocal-mujer-lectura.png",
+      "title": "Varilux *Comfort Max*: para tu primer multifocal",
+      "subtitle": "La gama de entrada de la familia Varilux, y la más elegida en Atelier."
+    },
+    {
+      "type": "list",
+      "title": "Para quién es",
+      "items": [
+        "Para quien nunca usó un progresivo y arranca ahora",
+        "Para quien empezó a alejar el celular para leer",
+        "Para el uso de todos los días: casa, trabajo, calle"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/mujer-oficina-multifocal.png",
+      "title": "Qué hace distinto el diseño *Flex Optim*",
+      "items": [
+        "Se calcula para acompañar tu postura natural al mirar",
+        "Essilor declara hasta *46%* más de zona útil de visión",
+        "9 de cada 10 usuarios quisieron seguir usándolos (estudio in-life, 2019)"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que ponemos nosotros",
+      "items": [
+        "Medimos con el armazón que elegiste, ya puesto en tu cara",
+        "Taller propio: el montaje lo hacemos acá",
+        "30 días de garantía de adaptación"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "¿Arrancás con multifocales?",
+      "body": "Vení y lo charlamos con tu receta en la mano. Cerro de las Rosas, sin turno previo. También por WhatsApp."
+    }
+  ]
+}

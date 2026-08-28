@@ -1,0 +1,25 @@
+{
+  "id": "ad-stellest-story",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "essilor",
+  "ubicacion": "Stories y Reels",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "La miopía de los chicos avanza, y hoy hay una lente diseñada para frenar ese avance.\n\nStellest, de Essilor: según su ensayo clínico de 2 años, ralentiza la progresión de la miopía un 67% de media. Es control de la progresión, no una cura.\n\nEn Atelier trabajamos Stellest. Traé la receta del oftalmólogo.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "stellest/stellest-2-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "Miopía en chicos: según el ensayo clínico de 2 años de Essilor, Stellest ralentiza la progresión",
+      "dato": "67%",
+      "body": "de media. La lente *Stellest*, de Essilor, y la trabajamos en *Atelier*. Es control de la progresión, no una cura.",
+      "cta": "Traé la receta del oftalmólogo. Tejeda 4380, Cerro de las Rosas."
+    }
+  ]
+}

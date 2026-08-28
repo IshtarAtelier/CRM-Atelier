@@ -8,24 +8,24 @@
   "coverEscena": 1,
   "escenas": [
     {
-      "rotulo": "El miedo de siempre",
-      "titulo": "\"¿Y si no me *adapto*?\""
+      "rotulo": "Garantía de adaptación",
+      "titulo": "Te acompañamos *hasta que se sienta bien*"
     },
     {
-      "rotulo": "Acá no es tu problema",
+      "rotulo": "Así funciona",
       "dato": "30 días",
       "pie": "Para probarlos en tu vida real, no en el mostrador."
     },
     {
-      "titulo": "Si no te adaptás, *hacemos el cristal de nuevo*",
-      "pie": "Con la graduación que haga falta."
+      "titulo": "Si algo no encaja, *hacemos el cristal de nuevo*",
+      "pie": "Con la graduación que haga falta. Taller propio."
     },
     {
       "rotulo": "Cerro de las Rosas",
-      "titulo": "Probalos sin miedo",
+      "titulo": "Probalos con tranquilidad",
       "pie": "Sin turno previo. O escribinos por WhatsApp."
     }
   ],
-  "copy": "El miedo de siempre con los multifocales: ¿y si no me adapto?\nAcá tenés 30 días para probarlos en tu vida real, y si no funcionan hacemos el cristal de nuevo con la graduación que haga falta.\nEscribinos por WhatsApp y te contamos cómo funciona.",
-  "guion": "Treinta días para probarlos... y si no te adaptás, hacemos el cristal de nuevo."
+  "copy": "Adaptarse a un multifocal lleva unos días, y para eso está nuestra garantía de adaptación: 30 días para probarlos en tu vida real.\nSi algo no encaja, hacemos el cristal de nuevo con la graduación que haga falta — taller propio.\nEscribinos por WhatsApp y te contamos cómo funciona.",
+  "guion": "Treinta días para probarlos en tu vida real... y si algo no encaja, hacemos el cristal de nuevo."
 }

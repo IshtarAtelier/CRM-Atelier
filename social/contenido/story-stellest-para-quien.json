@@ -1,0 +1,20 @@
+{
+  "id": "story-stellest-para-quien",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "¿Para quién es Stellest? Para chicos con miopía diagnosticada por el oftalmólogo, sobre todo cuando la graduación sube control tras control. Traé la receta a Atelier y hacemos la lente. José Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/medicion-pupilar-optica.png",
+      "title": "¿Para quién es *Stellest*?",
+      "subtitle": "Para chicos con miopía diagnosticada, cuando la graduación sube control tras control. Traé la receta del oftalmólogo a Atelier y hacemos la lente."
+    }
+  ]
+}

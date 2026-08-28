@@ -1,0 +1,17 @@
+{
+  "id": "story-varilux-physio",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Varilux Physio 3.0: la gama media-alta de la familia. Tecnología W.A.V.E. de Essilor, tomada del frente de onda de la cirugía refractiva, para nitidez y contraste — sobre todo con poca luz. Y SynchronEyes, que calcula los dos cristales como un par. Escribinos y vemos si es la que te conviene.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "temas": ["multifocales"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog4_leyendo.png",
+      "title": "Varilux *Physio 3.0*",
+      "subtitle": "Tecnología W.A.V.E. para nitidez y contraste, y SynchronEyes: los dos cristales calculados como un par, no de a uno."
+    }
+  ]
+}

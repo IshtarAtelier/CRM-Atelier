@@ -1,0 +1,55 @@
+{
+  "id": "stellest-senales-en-tu-hijo",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "Los chicos no avisan que ven mal: se acomodan. Se acercan a la pantalla, entrecierran los ojos, piden sentarse adelante en clase. Y como siempre vieron así, no tienen con qué comparar.\n\nEstas señales no son un diagnóstico —eso lo hace el oftalmólogo— pero son motivo suficiente para pedir un control.\n\nY si aparece miopía, hoy hay algo más que corregirla: Stellest, de Essilor, es una lente que además está diseñada para controlar su progresión. Según el ensayo clínico de 2 años de Essilor, la ralentiza un 67% de media. Es control de la progresión, no una cura.\n\nEn Atelier trabajamos Stellest. Traé la receta y hacemos la lente.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog6_consulta.png",
+      "title": "Señales de que tu hijo *puede estar viendo mal de lejos*",
+      "subtitle": "No es un diagnóstico: es lo que conviene mirar en casa antes de pedir el control."
+    },
+    {
+      "type": "list",
+      "title": "Lo que se nota en casa",
+      "items": [
+        "Se pega a la pantalla del celular o de la tele",
+        "Entrecierra los ojos para mirar algo de lejos",
+        "Se queja de dolor de cabeza al volver de la escuela"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que suele avisar la escuela",
+      "items": [
+        "Pide sentarse adelante para ver el pizarrón",
+        "Copia mal del pizarrón o se saltea renglones",
+        "Se frota mucho los ojos o le lagrimean al final del día"
+      ]
+    },
+    {
+      "type": "number",
+      "role": "bisagra",
+      "image": "stellest/stellest-2-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "Si es miopía, hoy se puede frenar el avance",
+      "dato": "67%",
+      "body": "menos progresión de media, según el ensayo clínico de 2 años de *Essilor*. Es la lente *Stellest*, y la hacemos en *Atelier*.",
+      "cta": "Primero, el control con el oftalmólogo: el diagnóstico es suyo."
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Traenos la receta de tu hijo",
+      "body": "Te explicamos qué es *Stellest* y cómo hacemos la lente, sin apuro.\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo, o por WhatsApp."
+    }
+  ]
+}

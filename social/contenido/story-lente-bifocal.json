@@ -1,0 +1,19 @@
+{
+  "id": "story-lente-bifocal",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "La bifocal cumplió su época: dos graduaciones separadas por una línea, y un salto de imagen cada vez que la mirada la cruza. El progresivo hace el mismo trabajo sin líneas y sin saltos. Escribinos y te contamos.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "title": "La bifocal *cumplió su época*",
+      "subtitle": "Dos graduaciones y una línea en el medio. El progresivo hace lo mismo, sin líneas y sin saltos."
+    }
+  ]
+}

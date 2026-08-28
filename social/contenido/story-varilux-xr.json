@@ -1,0 +1,17 @@
+{
+  "id": "story-varilux-xr",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Varilux XR Design: la generación más nueva de la familia. Es el primer progresivo eye-responsive de Essilor — además de la receta y del ojo, el diseño considera el comportamiento visual, predicho por una IA entrenada con datos de más de 1 millón de usuarios. Su tecnología XR-motion está pensada para la vista en movimiento. Escribinos y te contamos.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "temas": ["multifocales"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "title": "Varilux *XR Design*",
+      "subtitle": "La generación más nueva. Diseñada mirando también cómo usás la vista, con tecnología XR-motion pensada para el movimiento."
+    }
+  ]
+}

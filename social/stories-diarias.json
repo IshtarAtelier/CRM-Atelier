@@ -1,24 +1,55 @@
 {
   "_comentario": [
-    "Dos carriles: cada día sale una story de CONTENIDO y una de PRODUCTO.",
-    "Son listas separadas a propósito — así el contenido no se hace repetitivo",
-    "aunque los productos roten más rápido, y se puede tocar una sin la otra.",
+    "Dos carriles. El cron publica SEIS stories por día en dos tandas:",
+    "  mañana (10:00 ART) → 2 de contenido + 2 de producto = 4",
+    "  tarde  (17:00 ART) → 2 de contenido            = 2",
+    "La tarde es solo de contenido a propósito: las de producto llevan precio",
+    "adentro y su catálogo es chico (24), así que subirlas a 3 por día las",
+    "quemaría en 8 días. El pedido de la dueña era \"mucho contenido\", no más",
+    "repetición de producto.",
     "",
-    "La elección es determinística: índice = díasDesde(1/1/2026) % cantidad del",
-    "carril. No es al azar, así se sabe de antemano qué sale mañana y un",
-    "problema se puede reproducir. El cron publica DOS por carril por día y el",
-    "índice avanza de a 2: con 20 de contenido el ciclo es de 10 días, con 24",
-    "de producto es de 12.",
+    "La elección es determinística: índice = díasDesde(1/1/2026) × loQueSaleporDía",
+    "% cantidad del carril. NO es al azar: se sabe de antemano qué sale mañana y",
+    "un problema se puede reproducir. OJO CON EL MULTIPLICADOR: contenido consume",
+    "4 por día y producto 2, así que el índice de contenido avanza de a 4 y el de",
+    "producto de a 2. La tanda de la tarde no recalcula nada — toma las 2",
+    "SIGUIENTES a las que ya salieron a la mañana (desplazamiento dentro del mismo",
+    "día). Si avanzara de a 2 como antes, la tarde repetiría exactamente lo de la",
+    "mañana. El PLAN del cron es la única fuente de esos números.",
     "",
-    "IDS REPETIDOS A PROPÓSITO: horarios y donde-estamos aparecen 3 veces cada",
-    "uno (regla de la dueña: dirección y horarios tienen que salir cada pocos",
-    "días, hoy cada 3-4). Un id repetido es válido MIENTRAS las dos copias no",
-    "queden en posiciones adyacentes: el cron toma pares consecutivos (i, i+1)",
-    "y el dedup del día saltearía la segunda copia si cayeran juntas.",
+    "Ciclos: contenido 57 piezas ÷ 4 = 14,25 días. Producto 24 ÷ 2 = 12 días.",
+    "Ninguno es múltiplo exacto de lo que consume el día, así que los grupos",
+    "diarios rotan entre vueltas — es deseado, no un bug: la misma pieza no cae",
+    "siempre en la misma compañía.",
+    "",
+    "IDS REPETIDOS A PROPÓSITO: horarios y donde-estamos aparecen 4 veces cada",
+    "uno (regla de la dueña: dirección y horarios cada 3-4 días, nunca más de 6).",
+    "Verificado sobre 2 ciclos: horarios sale cada 3-4 días y donde-estamos",
+    "también, alternados entre sí. Un id repetido es válido MIENTRAS sus copias",
+    "queden a 8 o más posiciones: el día toma 4 consecutivas del carril, así que",
+    "con menos de 8 dos copias podrían caer el mismo día o en días seguidos, y el",
+    "dedup del día saltearía la segunda.",
+    "",
+    "El orden de contenido NO es temático por bloques: se arma alternando cuatro",
+    "familias (cristales/tratamientos, multifocales, miopía infantil, servicio)",
+    "para que nunca salgan dos del mismo tema pegadas. Al agregar una pieza,",
+    "insertarla entre dos de OTRA familia, no al final.",
+    "",
+    "Las dos versiones del mismo dato de Stellest (el 67% y los 1.021",
+    "micro-lentes tienen cada una su placa larga y su placa de dato suelto) están",
+    "separadas ~27 posiciones a propósito.",
     "",
     "El orden del carril de producto intercala Sol / Clip-On / Receta a",
     "propósito, para que no salgan 5 clip-on seguidos. Al agregar productos",
     "nuevos, mantener la alternancia y separar variantes del mismo modelo.",
+    "",
+    "FUERA DEL AIRE por falta de ficha del fabricante (28/8/26):",
+    "story-lente-myofix. La pieza afirma control de la progresión de la miopía",
+    "infantil sin citar a ningún fabricante — los MyoFix de la base son",
+    "'Blue Light Smart', que hablan de filtro de luz azul, no de control de",
+    "miopía. Vuelve al carril cuando aparezca la ficha oficial de MyoFix y su",
+    "dato esté citado en la placa. Mismo motivo para el reel lente-myofix, que",
+    "se bajó del feed (estaba programado el 18/11).",
     "",
     "FUERA DEL AIRE por falta de stock (27/8/26): capri-c5-g5929 y",
     "verona-g5959-c1 — sus productos dejaron la tienda y la regeneración ya no",
@@ -46,7 +77,15 @@
         "tipo": "info"
       },
       {
-        "id": "story-receta",
+        "id": "story-tratamiento-antirreflejo",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-varilux-comfort",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-stellest-67",
         "tipo": "educacion"
       },
       {
@@ -54,15 +93,35 @@
         "tipo": "propuesta"
       },
       {
+        "id": "story-indice-que-es",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-marean",
+        "tipo": "educacion"
+      },
+      {
         "id": "donde-estamos",
         "tipo": "info"
       },
       {
-        "id": "story-tratamiento-antirreflejo",
+        "id": "story-ninos",
         "tipo": "educacion"
       },
       {
-        "id": "story-ninos",
+        "id": "story-receta",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-crizal-clasico",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-dato-add-es-presbicia",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-stellest-1021-lentes",
         "tipo": "educacion"
       },
       {
@@ -78,7 +137,23 @@
         "tipo": "educacion"
       },
       {
-        "id": "story-marean",
+        "id": "story-lente-progresiva",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-dato-ojo-que-se-alarga",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-miopia",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-kodak-quien-es",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-varilux-physio",
         "tipo": "educacion"
       },
       {
@@ -86,15 +161,31 @@
         "tipo": "info"
       },
       {
+        "id": "story-stellest-para-quien",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-limpieza",
+        "tipo": "educacion"
+      },
+      {
         "id": "story-tratamiento-filtroazul",
         "tipo": "educacion"
       },
       {
-        "id": "story-medicion",
-        "tipo": "propuesta"
+        "id": "story-dato-baja-la-escalera",
+        "tipo": "educacion"
       },
       {
-        "id": "story-limpieza",
+        "id": "story-dato-primer-control-3-anios",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-dato-rayban-meta-led",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-indice-cuando-conviene",
         "tipo": "educacion"
       },
       {
@@ -102,11 +193,23 @@
         "tipo": "info"
       },
       {
-        "id": "story-tratamiento-fotocromatico",
+        "id": "story-medicion",
+        "tipo": "propuesta"
+      },
+      {
+        "id": "story-dato-stellest-67-por-ciento",
         "tipo": "educacion"
       },
       {
-        "id": "story-presbicia",
+        "id": "story-anteojos-calle",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-crizal-prevencia",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-lente-bifocal",
         "tipo": "educacion"
       },
       {
@@ -114,11 +217,87 @@
         "tipo": "info"
       },
       {
-        "id": "story-tratamiento-crizal",
+        "id": "story-hipermetropia",
         "tipo": "educacion"
       },
       {
-        "id": "story-anteojos-calle",
+        "id": "story-dato-xperio-7-metros",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-varilux-xr",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-dato-stellest-1021-microlentes",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-dato-papel-de-lija",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-tratamiento-fotocromatico",
+        "tipo": "educacion"
+      },
+      {
+        "id": "horarios",
+        "tipo": "info"
+      },
+      {
+        "id": "story-dato-apunta-con-la-nariz",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-stellest-invisible",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-lente-monofocal",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-kodak-en-atelier",
+        "tipo": "propuesta"
+      },
+      {
+        "id": "story-presbicia",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-stellest-atelier",
+        "tipo": "propuesta"
+      },
+      {
+        "id": "story-dato-wicue-decima-de-segundo",
+        "tipo": "educacion"
+      },
+      {
+        "id": "donde-estamos",
+        "tipo": "info"
+      },
+      {
+        "id": "story-crizal-sapphire",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-dato-bifocal-sin-medio",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-indice-fino",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-dato-armazon-chico-30-mm",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-dato-fotocromatico-en-el-auto",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-tratamiento-crizal",
         "tipo": "educacion"
       }
     ],

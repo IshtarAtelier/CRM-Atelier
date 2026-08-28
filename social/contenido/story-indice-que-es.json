@@ -1,0 +1,19 @@
+{
+  "id": "story-indice-que-es",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "El índice de refracción es cuánto desvía la luz el material del cristal. Cuanto más la desvía, menos material hace falta para la misma graduación: el mismo aumento, en un cristal más fino. Preguntanos cuál te toca.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog1_marcos.png",
+      "title": "Qué es el *índice* de un cristal",
+      "subtitle": "Cuánto desvía la luz el material. Cuanto más la desvía, menos material hace falta para la misma graduación."
+    }
+  ]
+}

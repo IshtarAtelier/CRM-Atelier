@@ -1,0 +1,19 @@
+{
+  "id": "story-dato-wicue-decima-de-segundo",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "No dependen del sol ni de una reacción química: el cristal es un panel LCD finísimo. Deslizás el dedo por la patilla, un micro-voltaje reordena las moléculas y el lente cambia en una décima de segundo. Entrás a un túnel y ya están claros. Los tenemos para probar en el local.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "landing/wicue_glasses.png",
+      "title": "De claro a oscuro en *0,1 segundos*",
+      "subtitle": "Los Wicue son cristal líquido: se oscurecen pasando el dedo por la patilla."
+    }
+  ]
+}

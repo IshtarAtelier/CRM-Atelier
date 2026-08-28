@@ -1,0 +1,19 @@
+{
+  "id": "story-dato-fotocromatico-en-el-auto",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Dato que sorprende a todo el mundo: los cristales que se oscurecen con el sol necesitan rayos UV para activarse, y el parabrisas del auto filtra justamente esos rayos. Adentro del auto se quedan claros. Si manejás mucho, lo que buscás es un polarizado.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/lentes_con_reflejo.png",
+      "title": "En el auto *no se oscurecen*",
+      "subtitle": "Los fotocromáticos se activan con rayos UV, y el parabrisas los bloquea."
+    }
+  ]
+}

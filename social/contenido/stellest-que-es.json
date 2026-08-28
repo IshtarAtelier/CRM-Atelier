@@ -1,0 +1,58 @@
+{
+  "id": "stellest-que-es",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "La miopía de los chicos no se queda quieta: cada control suele traer un poco más de graduación. Hoy existe una lente pensada para eso.\n\nStellest, de Essilor, es un anteojo de todos los días: corrige la miopía como cualquier cristal y además está diseñado para controlar su progresión. Lo hace con la tecnología H.A.L.T.: 1.021 micro-lentes distribuidas en anillos concéntricos, con acabado estético (invisibles a simple vista), alrededor de una zona central de visión nítida.\n\nSegún el ensayo clínico de 2 años de Essilor, ralentiza la progresión de la miopía un 67% de media. Es control de la progresión, no una cura: la miopía no se revierte.\n\nEn Atelier trabajamos Stellest. El diagnóstico es del oftalmólogo; la lente la hacemos nosotros. Traé la receta.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "stellest/stellest-2-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "Miopía en chicos",
+      "dato": "Stellest",
+      "body": "La lente de *Essilor* diseñada para frenar el avance de la miopía. La trabajamos en *Atelier*.",
+      "cta": "Deslizá: qué es, cómo funciona y para quién."
+    },
+    {
+      "type": "list",
+      "title": "¿Para quién es?",
+      "items": [
+        "Chicos y chicas con miopía diagnosticada por el oftalmólogo",
+        "Sobre todo cuando la graduación sube control tras control",
+        "Se usa como anteojo de todos los días: corrige y además controla"
+      ]
+    },
+    {
+      "type": "number",
+      "role": "bisagra",
+      "image": "stellest/stellest-3-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "Adentro del cristal, la tecnología *H.A.L.T.*",
+      "dato": "1.021",
+      "body": "micro-lentes en anillos concéntricos, con acabado estético: *invisibles a simple vista*. Y en el centro, una zona amplia para que vea nítido como con un cristal común.",
+      "cta": "Nadie le va a notar que son lentes de control."
+    },
+    {
+      "type": "list",
+      "title": "Lo que dice el fabricante, sin agregarle nada",
+      "items": [
+        "Ralentiza la progresión de la miopía un 67% de media, según el ensayo clínico de 2 años de Essilor",
+        "Es control de la progresión, no una cura: la miopía no se revierte",
+        "El diagnóstico lo hace el oftalmólogo; la lente la hacemos nosotros"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/local-varilux.jpg",
+      "title": "Consultá por *Stellest* en *Atelier*",
+      "body": "Traé la receta del oftalmólogo y te explicamos todo, sin apuro.\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo, o escribinos por WhatsApp."
+    }
+  ]
+}

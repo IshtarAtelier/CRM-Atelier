@@ -1,0 +1,19 @@
+{
+  "id": "story-dato-bifocal-sin-medio",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "El bifocal —el de la «rayita»— solo tiene dos distancias, y la imagen salta de una a la otra. El multifocal tiene un corredor invisible que cambia la graduación de a poco, y suma la distancia intermedia: pantalla, tablero del auto, cocinar.",
+  "temas": [
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/lentes-progresivos-zonas.png",
+      "title": "El bifocal *se saltea el medio*",
+      "subtitle": "Tiene lejos y cerca. La compu, el tablero del auto y la góndola quedan borrosos."
+    }
+  ]
+}

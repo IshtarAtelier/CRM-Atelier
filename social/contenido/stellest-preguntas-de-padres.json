@@ -1,0 +1,58 @@
+{
+  "id": "stellest-preguntas-de-padres",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "temas": [
+    "miopia",
+    "receta"
+  ],
+  "caption": "Las cinco preguntas que nos hacen los papás cuando les nombramos Stellest, respondidas con lo que dice Essilor y nada más.\n\n¿Se le nota? No: las micro-lentes tienen acabado estético, invisibles a simple vista.\n¿Se adapta? La zona central es de visión única y amplia, así que ve nítido como con un cristal común.\n¿Los tiene que usar todo el día? Sí: es su anteojo de todos los días, no un tratamiento aparte.\n¿Hasta qué edad? Es una lente pensada para chicos, mientras la miopía está progresando; el oftalmólogo va marcando el camino.\n¿Reemplaza al oftalmólogo? No. Lo acompaña.\n\nY el número que todos preguntan: ralentiza la progresión de la miopía un 67% de media, según el ensayo clínico de 2 años de Essilor. Es un promedio de estudio, no una promesa individual, y no revierte la miopía.\n\nEn Atelier trabajamos Stellest. Vení con la receta.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "stellest/stellest-3-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "Las preguntas que nos hacen los papás sobre",
+      "dato": "Stellest",
+      "body": "La lente de *Essilor* para el control de la miopía en chicos. La trabajamos en *Atelier*.",
+      "cta": "Cinco dudas, respondidas con lo que dice el fabricante."
+    },
+    {
+      "type": "list",
+      "title": "¿Se le nota? ¿Se va a adaptar?",
+      "items": [
+        "No se nota: las micro-lentes tienen acabado estético, invisibles a simple vista",
+        "La zona central es de visión única y amplia: ve nítido como con un cristal común",
+        "Es su anteojo de todos los días, no un tratamiento aparte"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "¿Los tiene que usar siempre?",
+      "items": [
+        "Essilor los indica para el uso diario: el control funciona mientras los lleva puestos",
+        "Se combina con el control periódico del oftalmólogo, que ajusta la receta",
+        "No reemplaza la consulta médica: la acompaña"
+      ]
+    },
+    {
+      "type": "number",
+      "role": "bisagra",
+      "image": "stellest/stellest-2-cristal.jpeg",
+      "encuadre": "cover",
+      "title": "¿Y cuánto frena? Según el ensayo clínico de 2 años de Essilor:",
+      "dato": "67%",
+      "body": "de ralentización *de media*. Es un promedio del estudio, no una promesa individual, y no revierte la miopía: es control de la progresión.",
+      "cta": "Es una lente para chicos, mientras la miopía está progresando."
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/local-varilux.jpg",
+      "title": "¿Te quedó una duda? Preguntanos",
+      "body": "En *Atelier* trabajamos *Stellest*. Vení con la receta del oftalmólogo o escribinos por WhatsApp.\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo."
+    }
+  ]
+}

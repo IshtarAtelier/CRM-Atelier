@@ -1,0 +1,53 @@
+{
+  "id": "varilux-xr-design",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Varilux XR Design es la generación más nueva de la familia y el tope de lo que trabajamos.\n\nEs el primer progresivo que Essilor llama \"eye-responsive\": además de la receta y de la fisiología del ojo, el diseño toma en cuenta el comportamiento visual — cómo se mueven los ojos y la cabeza al mirar —, predicho por una inteligencia artificial entrenada con datos de más de un millón de usuarios de anteojos.\n\nSu tecnología XR-motion reduce la disparidad óptica entre los dos cristales y posiciona con precisión las zonas de foco. Traducido: menos sensación de \"nado\" cuando movés la cabeza.\n\nLo que declara Essilor: +49% de volumen de visión de banda ancha respecto de la generación anterior de Varilux (simulaciones internas, 2022), y 9 de cada 10 usuarios percibieron nitidez instantánea a todas las distancias, incluso en movimiento (estudio in-life Eurosyn, Francia 2022, 73 usuarios de progresivos). Son datos del fabricante.\n\nEn Atelier lo trabajamos en ORMA 1.50, Airwear 1.59 y Stylis 1.67, con Crizal, y también en Transitions GEN S. El Xperio polarizado, en 1.50 y en Airwear 1.59.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "temas": ["multifocales"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "title": "Varilux *XR Design*: la generación más nueva",
+      "subtitle": "El tope de la familia. El primer progresivo que Essilor diseña mirando también cómo usás la vista."
+    },
+    {
+      "type": "list",
+      "title": "Qué significa *eye-responsive*",
+      "items": [
+        "No parte solo de la receta y de la fisiología del ojo",
+        "Suma el comportamiento visual: cómo movés ojos y cabeza al mirar",
+        "Ese comportamiento lo predice una IA de Essilor entrenada con datos de más de 1 millón de usuarios"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/muestrario-smart-lens.jpg",
+      "title": "*XR-motion*: pensado para la vista en movimiento",
+      "items": [
+        "Reduce la disparidad óptica entre el cristal de un ojo y el del otro",
+        "Posiciona con precisión las zonas de foco",
+        "En criollo: menos efecto *\"nado\"* al girar la cabeza"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que declara Essilor",
+      "items": [
+        "*+49%* de volumen de visión de banda ancha vs. la generación anterior de Varilux (simulaciones internas, 2022)",
+        "9 de cada 10 percibieron nitidez instantánea a todas las distancias, incluso en movimiento (estudio in-life Eurosyn, Francia 2022, n=73)",
+        "Disponible acá en 1.50, 1.59 y 1.67, con Crizal o Transitions GEN S; el Xperio polarizado, en 1.50 y 1.59"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/vidriera-atelier.jpg",
+      "title": "¿Querés ver si XR va con tu receta?",
+      "body": "Vení con tu receta y elegimos juntos gama, material y tratamiento. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

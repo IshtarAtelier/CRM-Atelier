@@ -1,0 +1,19 @@
+{
+  "id": "story-hipermetropia",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "¿Hipermetropía? La imagen tiende a formarse detrás de la retina y el ojo compensa forzando el cristalino todo el día: por eso el cansancio y los dolores de cabeza. Una lente convergente adelanta el foco y el esfuerzo desaparece. La graduación justa se mide: escribinos por WhatsApp o pasá por el local.",
+  "temas": [
+    "receta"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/mujer-oficina-multifocal.png",
+      "title": "¿Cansancio y dolor de cabeza *al final del día*?",
+      "subtitle": "Puede ser hipermetropía: el ojo enfoca haciendo fuerza todo el día. La lente justa saca ese esfuerzo."
+    }
+  ]
+}

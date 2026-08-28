@@ -1,0 +1,19 @@
+{
+  "id": "story-dato-baja-la-escalera",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Los primeros días los escalones pueden parecer más cerca. Pasa porque mirás el suelo por la parte de abajo del cristal, que es la de leer. Bajá el mentón y mirá los escalones por la parte de arriba del lente: listo. Es cuestión de días.",
+  "temas": [
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "title": "Bajá la escalera con *el mentón*",
+      "subtitle": "Si mirás el piso con la vista baja, estás usando la zona de lectura."
+    }
+  ]
+}

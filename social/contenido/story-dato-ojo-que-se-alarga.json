@@ -1,0 +1,19 @@
+{
+  "id": "story-dato-ojo-que-se-alarga",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Según Essilor, los lentes tradicionales enfocan perfecto en el centro, pero en la periferia la luz cae detrás de la retina y el ojo se alarga para alcanzarla: ese alargamiento es el aumento. Los cristales de control de miopía mandan esa luz por delante de la retina y sacan la señal de crecer. Es el principio del desenfoque periférico, y es control de la progresión, no una cura.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "stellest/stellest-3-cristal.jpeg",
+      "title": "La miopía avanza porque *el ojo crece*",
+      "subtitle": "Es el principio del desenfoque periférico en que se basan las lentes de control de miopía, según Essilor."
+    }
+  ]
+}

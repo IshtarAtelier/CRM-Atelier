@@ -1,0 +1,19 @@
+{
+  "id": "story-miopia",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "¿Miopía? La imagen se forma antes de llegar a la retina, y por eso lo lejano se ve borroso. Una lente divergente corre el foco exactamente donde tiene que caer, pero la graduación justa se mide, no se adivina. Escribinos por WhatsApp o pasá por el local.",
+  "temas": [
+    "receta"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog3_eligiendo.png",
+      "title": "¿Lo lejano *se ve borroso*?",
+      "subtitle": "Es miopía: la imagen se forma antes de la retina. La graduación justa se mide, no se adivina."
+    }
+  ]
+}

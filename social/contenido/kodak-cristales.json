@@ -1,0 +1,56 @@
+{
+  "id": "kodak-cristales",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "producto",
+  "caption": "Kodak no es solo la marca de las fotos: hace más de treinta años que también hay cristales oftálmicos con su nombre, fabricados por Signet Armorlite bajo licencia.\n\nEn Atelier trabajamos las dos líneas de progresivos Kodak: Unique DRO y Precise. Las dos son digitales (freeform), las dos vienen en 1.50, en policarbonato 1.59 y en alto índice 1.67, y se pueden pedir con filtro Blue UV o fotocromático Transitions GEN S; el polarizado Xperio, en 1.50 y en policarbonato 1.59.\n\n¿Cuál te conviene? Depende de cómo usás los ojos todo el día, no de cuál es \"la mejor\". Eso lo charlamos en el mostrador.\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas. Sin turno previo.",
+  "temas": [
+    "cristales",
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/local-varilux.jpg",
+      "title": "Kodak también hace *cristales*",
+      "subtitle": "Sí, la misma marca de las fotos. Y hace años que está en nuestro cartel."
+    },
+    {
+      "type": "list",
+      "title": "Qué es *Kodak Lens*",
+      "items": [
+        "Cristales oftálmicos fabricados por Signet Armorlite bajo licencia de la marca Kodak",
+        "Sus progresivos son digitales (freeform): la superficie se calcula punto por punto para tu receta",
+        "No es un cristal genérico con un logo: es un diseño propio, con su propia tecnología"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "blog/lentes-progresivos-zonas.png",
+      "title": "Las *dos líneas* que trabajamos",
+      "items": [
+        "Kodak Unique DRO: optimiza por separado lejos, intermedia y cerca",
+        "Kodak Precise: diseñado con Vision First Design, pensado para adaptarse rápido",
+        "Las dos, en 1.50, policarbonato 1.59 y alto índice 1.67"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Para quién es *cada una*",
+      "items": [
+        "Unique DRO, si pasás horas leyendo o con el celular: Signet Armorlite declara un área efectiva de lectura 17% mayor que el Kodak Unique",
+        "Precise, si es tu primer progresivo o querés la adaptación más suave",
+        "Cualquiera de las dos con Blue UV o Transitions GEN S; el polarizado Xperio, en 1.50 y policarbonato 1.59"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/fachada-ladrillo.jpg",
+      "title": "Traé tu receta y lo vemos juntos",
+      "body": "Te mostramos las dos líneas y elegimos según cómo usás los ojos todo el día. Cerro de las Rosas, sin turno previo."
+    }
+  ]
+}

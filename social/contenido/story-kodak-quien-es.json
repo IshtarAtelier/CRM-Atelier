@@ -1,0 +1,19 @@
+{
+  "id": "story-kodak-quien-es",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Kodak Lens: cristales oftálmicos fabricados por Signet Armorlite bajo licencia de la marca. Sus progresivos son digitales, calculados punto por punto para cada receta. Preguntanos.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/lentes-progresivos-zonas.png",
+      "title": "Kodak *también hace cristales*",
+      "subtitle": "Fabricados por Signet Armorlite bajo licencia. Progresivos digitales, calculados punto por punto para tu receta."
+    }
+  ]
+}

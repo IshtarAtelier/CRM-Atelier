@@ -1,0 +1,19 @@
+{
+  "id": "story-lente-monofocal",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Una sola graduación en toda la superficie: la distancia que elijas, perfecta. Es la lente ideal cuando tu receta es de una sola distancia. ¿No sabés cuál es la tuya? Traé tu receta y te asesoramos, Cerro de las Rosas.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog1_marcos.png",
+      "title": "Una sola graduación, *toda la lente*",
+      "subtitle": "La monofocal resuelve tu receta de una sola distancia. Traela y te asesoramos."
+    }
+  ]
+}

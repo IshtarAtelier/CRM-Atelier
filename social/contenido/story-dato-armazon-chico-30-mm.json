@@ -1,0 +1,20 @@
+{
+  "id": "story-dato-armazon-chico-30-mm",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "En un armazón muy estrecho no hay lugar vertical para las tres zonas y la visión intermedia queda recortada. Por eso, antes de encargar nada, medimos con el armazón que elegiste puesto en tu cara: así sabemos qué entra y qué no.",
+  "temas": [
+    "multifocales",
+    "armazones"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/blog1_marcos.png",
+      "title": "Un multifocal necesita *30 mm*",
+      "subtitle": "Es el alto mínimo de cristal para que entren lejos, intermedia y cerca."
+    }
+  ]
+}
