@@ -566,7 +566,7 @@ export function TiendaClient({
                     className="group block"
                   >
                     {/* Imagen */}
-                    <div className="bg-[#f5f5f5] aspect-square overflow-hidden mb-4 relative">
+                    <div className="bg-white aspect-square overflow-hidden mb-4 relative">
                       {/* Contenedor de imágenes con efecto zoom */}
                       <div className="absolute inset-0 transition-transform duration-700 ease-out md:group-hover:scale-110">
                         {imgUrl ? (
@@ -635,7 +635,7 @@ export function TiendaClient({
                           </span>
                         )}
                       </div>
-                      <h2 className="text-xl font-serif tracking-tight text-black leading-tight mb-3 group-hover:text-stone-600 transition-colors">
+                      <h2 className="text-2xl font-serif tracking-tight text-black leading-tight mb-3 group-hover:text-stone-600 transition-colors">
                         {p.name || p.model}
                       </h2>
                       
@@ -694,41 +694,27 @@ export function TiendaClient({
                         const ahorro = oferta ? Math.round((1 - p.salePrice / base) * 100) : 0;
 
                         return (
-                          <div className="pt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
-                            {/* Orden de venta (pedido de Ishtar, 27/8): primero 12,
-                                después 6, después transferencia — renglones limpios,
-                                sin abreviaturas. Los valores salen de PricingService. */}
-                            <div className="flex flex-col gap-0.5">
-                              <p className="flex flex-col">
-                                <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">
-                                  12 cuotas fijas de
-                                </span>
-                                <span className="text-[15px] font-black text-stone-900 tracking-tight whitespace-nowrap">
-                                  ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")}
-                                </span>
-                              </p>
-                              <p className="text-[10px] text-stone-500 font-medium">
-                                {installmentsCount} cuotas sin interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
-                              </p>
-                              <p className="text-[10px] text-stone-500 font-medium">
-                                Transferencia {webSettings.web_promo_cash_discount}% OFF: ${Math.round((oferta ? p.salePrice : base) * (1 - discountRate)).toLocaleString("es-AR")}
-                              </p>
-                            </div>
-                            <div className="flex flex-row flex-wrap gap-1 sm:flex-col sm:items-end">
-                              {oferta && (
-                                <span className="text-[10px] font-black uppercase tracking-widest text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
-                                  {ahorro}% OFF 🔥
-                                </span>
-                              )}
-                              <span className="text-[10px] font-black uppercase tracking-widest text-stone-700 bg-stone-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
-                                Envío Gratis
+                          <div className="pt-1 flex items-center justify-between gap-2">
+                            {/* Orden de venta (pedido de Ishtar, 27/8): 12 cuotas
+                                como ancla, el resto en una sola línea discreta.
+                                Los valores salen de PricingService. */}
+                            <p className="text-sm text-stone-600 font-medium">
+                              12 cuotas de{" "}
+                              <span className="font-semibold text-stone-900">
+                                ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")}
                               </span>
-                            </div>
+                              <span className="text-stone-400"> · {installmentsCount} s/interés o {webSettings.web_promo_cash_discount}% OFF transf.</span>
+                            </p>
+                            {oferta && (
+                              <span className="text-[10px] font-black uppercase tracking-widest text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-sm whitespace-nowrap shrink-0">
+                                {ahorro}% OFF 🔥
+                              </span>
+                            )}
                           </div>
                         );
                       })()}
 
-                      <div className="mt-4 w-full border-2 border-stone-900 text-stone-900 group-hover:bg-stone-900 group-hover:text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 text-center rounded-xl transition-all duration-300">
+                      <div className="mt-4 w-full border border-stone-300 text-stone-900 group-hover:border-stone-900 group-hover:bg-stone-900 group-hover:text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 text-center rounded-xl transition-all duration-300">
                         Ver Modelo
                       </div>
                     </div>

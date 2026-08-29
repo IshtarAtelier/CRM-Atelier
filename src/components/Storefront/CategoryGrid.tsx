@@ -95,7 +95,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
             className="group cursor-pointer flex flex-col tienda-grid-fade"
           >
             <Link href={`/producto/${p.slug}`} className="flex-1 flex flex-col">
-              <div className="relative aspect-square mb-4 bg-[#fdfdfd] border border-[#f0f0f0] overflow-hidden rounded-xl isolate">
+              <div className="relative aspect-square mb-4 bg-white border border-stone-100 overflow-hidden rounded-xl isolate">
                 <Image unoptimized={String(imageUrl).startsWith('data:')}
                   src={imageUrl} 
                   alt={`${p.brand} ${p.model}`}
@@ -137,35 +137,19 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
               <div className="flex flex-col flex-1 px-1">
                 {/* Marca como <p>: iba como <h3> antes del <h2> del modelo. */}
                 <p className="text-[10px] text-stone-600 dark:text-stone-400 font-bold uppercase tracking-[0.20em] mb-1">{p.brand}</p>
-                <h2 className="text-base font-serif tracking-tight text-stone-900 dark:text-white mb-2 leading-tight flex-1">{p.model}</h2>
-                
-                {/* Orden de venta (pedido de Ishtar, 27/8): primero 12,
-                    después 6, después transferencia. */}
-                <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40 flex flex-col gap-1">
+                <h2 className="text-lg font-serif tracking-tight text-stone-900 dark:text-white mb-2 leading-tight flex-1">{p.model}</h2>
+
+                {/* Orden de venta (pedido de Ishtar, 27/8): 12 cuotas como
+                    ancla, el resto en una sola línea discreta. */}
+                <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40 flex flex-col gap-0.5">
                   <div className="flex items-baseline justify-between">
                     <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
-                      12 cuotas fijas de <span className="font-extrabold text-[#7d6249] dark:text-[#c8a55c]">${PricingService.cuotasMpLargas(p.price || 0).installment12.toLocaleString("es-AR")}</span>
+                      12 cuotas de <span className="font-semibold text-[#7d6249] dark:text-[#c8a55c]">${PricingService.cuotasMpLargas(p.price || 0).installment12.toLocaleString("es-AR")}</span>
                     </p>
                     <span className="text-xs text-stone-900 dark:text-white uppercase tracking-wider font-bold group-hover:text-[#8a6d3b] dark:group-hover:text-[#c8a55c] transition-colors shrink-0">Ver anteojos ›</span>
                   </div>
-
-                  <p className="text-[11px] text-stone-600 dark:text-stone-400 font-medium">
-                    {webSettings.web_promo_installments} de <span className="font-bold">${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")}</span>
-                  </p>
-                  <p className="text-[11px] text-stone-600 dark:text-stone-400 font-medium">
-                    Transferencia <span className="text-emerald-800 dark:text-emerald-500 font-bold">{webSettings.web_promo_cash_discount}% OFF</span>: ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
-                  </p>
-                  <p className="text-[11px] text-stone-600 dark:text-stone-400 font-medium">
-                    Hasta 12 pagos de <span className="font-bold">${PricingService.cuotasMpLargas(p.price || 0).installment12.toLocaleString("es-AR")}</span> por Mercado Pago
-                  </p>
-                  {/* La promesa más fuerte de la tienda solo vivía en la cinta superior:
-                      acá acompaña al precio, que es donde se compara. */}
-                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800 dark:text-emerald-500">
-                    Envío gratis a todo el país
-                  </p>
-                  
-                  <p className="text-xs text-stone-600 dark:text-stone-400">
-                    Precio de lista: ${(p.price || 0).toLocaleString("es-AR")}
+                  <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
+                    {installmentsCount} s/interés de ${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")} · Transf. {webSettings.web_promo_cash_discount}% OFF: ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
                   </p>
                 </div>
               </div>
