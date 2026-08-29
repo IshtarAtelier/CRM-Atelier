@@ -155,6 +155,9 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                   <p className="text-[11px] text-stone-600 dark:text-stone-400 font-medium">
                     Transferencia <span className="text-emerald-800 dark:text-emerald-500 font-bold">{webSettings.web_promo_cash_discount}% OFF</span>: ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
                   </p>
+                  <p className="text-[11px] text-stone-600 dark:text-stone-400 font-medium">
+                    Hasta 12 pagos de <span className="font-bold">${PricingService.cuotasMpLargas(p.price || 0).installment12.toLocaleString("es-AR")}</span> por Mercado Pago
+                  </p>
                   {/* La promesa más fuerte de la tienda solo vivía en la cinta superior:
                       acá acompaña al precio, que es donde se compara. */}
                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-800 dark:text-emerald-500">
