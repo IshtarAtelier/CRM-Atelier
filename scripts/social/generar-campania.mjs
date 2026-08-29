@@ -83,6 +83,19 @@ function promos(info) {
             rotulo: 'Con Mercado Pago',
             caption: `Ahora podés llevarte tus anteojos en hasta 12 cuotas con Mercado Pago 💳\n\nY siguen las de siempre: 6 cuotas sin interés con tarjeta, ${info.descuentoEfectivo}% de descuento en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo.`,
         },
+        // 29/8/2026: pieza combinada pedida por Ishtar — multifocales
+        // específicamente en 12 cuotas, no el genérico de armazones de '12pagos'.
+        '12pagos-multifocales': {
+            id: 'campania-12-pagos-multifocales',
+            temas: ['multifocales'],
+            imagen: 'blog/pareja-multifocales-exterior.png',
+            titulo: 'Tus *multifocales* en 12 cuotas',
+            bajada: 'Tus multifocales en hasta 12 cuotas con Mercado Pago. Medidos acá, con garantía de adaptación. Y las 6 cuotas sin interés de siempre.',
+            corto: 'Con Mercado Pago, medidos acá.',
+            dato: '12 cuotas',
+            rotulo: 'En lentes multifocales',
+            caption: `Tus multifocales en hasta 12 cuotas con Mercado Pago 💳\n\nMedidos acá, con garantía de adaptación de 30 días. Y siguen las de siempre: 6 cuotas sin interés con tarjeta, ${info.descuentoEfectivo}% de descuento en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo, o escribinos por WhatsApp.`,
+        },
         '2x1': {
             id: 'campania-2x1-multifocales',
             temas: ['multifocales'],

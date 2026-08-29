@@ -55,6 +55,24 @@ export const BUSINESS_INFO = {
   // 27/8/2026 (acuerdo de Ishtar con Mercado Pago): se suman los 12 cuotas.
   // Regla de comunicación: "hasta 12 cuotas", NUNCA "12 sin interés" ni el %.
   installmentsPromo: "3 o 6 cuotas sin interés con tarjeta, o hasta 12 cuotas con Mercado Pago",
+  /**
+   * 29/8/2026 (Ishtar): único tipo de factura que se comunica. Reemplaza a
+   * "Factura B o C" (fix del 28/8, `346d9e5b`) — esa corrección quedó
+   * desactualizada, la vigente es esta.
+   */
+  invoiceType: "Factura A",
+  /**
+   * 29/8/2026 (Ishtar): en piezas sobre cristales, mencionar SIEMPRE que
+   * trabajamos con Essilor por ser el laboratorio líder a nivel mundial —
+   * hacer hincapié, no de paso.
+   */
+  labPartner: "Essilor, el laboratorio líder a nivel mundial",
+  /**
+   * 29/8/2026 (Ishtar): el cambio de cristal en multifocales es UNA SOLA VEZ
+   * (garantía de adaptación), nunca "las veces que sean necesarias" — esa
+   * frase quedó mal y ya se corrigió en el sitio; no repetirla en piezas nuevas.
+   */
+  multifocalChangePolicy: "un solo cambio de cristal incluido (garantía de adaptación)",
 } as const;
 
 /** Texto de promociones listo para inyectar en prompts. */
