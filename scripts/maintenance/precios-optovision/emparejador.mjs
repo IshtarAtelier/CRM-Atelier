@@ -45,7 +45,6 @@ const FALTAN_EN_LISTA = [
     [/stellest/i, 'Stellest (control de miopía)', 13],
     [/espace\s*plus/i, 'Espace Plus Digital', 18],
     [/interview/i, 'Essilor Interview', 18],
-    [/new\s*editions?/i, 'Essilor New Editions (packs 2x1)', null],
 ];
 
 const MATERIALES = [
@@ -114,6 +113,46 @@ const FAMILIAS_MONO = [
  * (La auditoría atrapó al "Orma Blue UV Crizal Saphire HR" costeado como
  * monofocal + tratamiento: el doble de su renglón real.)
  */
+/**
+ * Los "ESSILOR NEW EDITIONS + AR Numax 2x1" SON la línea Sygnus NEW EDITION
+ * (págs. 23-24): los materiales coinciden uno a uno, incluidos los que solo
+ * existen ahí (Orgánico Espejado, Policarbonato Polarizado, Fotosensible BLC,
+ * Alto Índice 1.74). El Numax es su antirreflejo y va APARTE del precio Sin AR
+ * de la lista — y el 2x1 lo incluye siempre (Ishtar, 29/8/2026).
+ */
+function emparejarNewEditions(nombre) {
+    if (!/new\s*editions?/i.test(nombre)) return null;
+    const ne = datos.sygnus?.familias.find(f => /NEW EDITION/i.test(f.familia));
+    const numax = datos.sygnus?.numax ?? 0;
+    if (!ne || !numax) return null;
+    const REGLAS = [
+        [/alto\s*[íi]ndice|1\.74/i, /Alto Índice/i],
+        [/policarbonato\s*polarizado/i, /Policarbonato Polarizado/i],
+        [/org[áa]nico\s*espejado/i, /^Orgánico Espejado/i],
+        [/fotosensible\s*blc/i, /Fotosensible BLC/i],
+        [/stylis.*transitions/i, /Stylis 1\.67 Transitions/i],
+        [/stylis.*blue/i, /Stylis BLUE UV/i],
+        [/stylis/i, /^Stylis 1\.67$/i],
+        [/airwear.*transitions/i, /Airwear 1\.59 Transitions/i],
+        [/airwear.*xperio/i, /Airwear 1\.59 Xperio/i],
+        [/airwear.*blue/i, /Airwear BLUE UV/i],
+        [/airwear/i, /^Airwear 1\.59$/i],
+        [/orma.*transitions/i, /^Orma Transitions GEN S$/i],
+        [/orma.*xperio/i, /Orma Xperio/i],
+        [/orma.*acclimates/i, /Orma Acclimates/i],
+        [/orma.*blue|blue\s*uv.*orma/i, /^Orma BLUE UV$/i],
+        [/orma/i, /^Orma$/i],
+    ];
+    const regla = REGLAS.find(([enNombre]) => enNombre.test(nombre));
+    const fila = regla ? ne.filas.find(f => regla[1].test(f.material)) : null;
+    if (!fila) return null;
+    return {
+        familia: 'Sygnus NEW EDITION', material: `${fila.material} + AR Numax`,
+        tratamiento: 'AR Numax (incluido en el 2x1)',
+        lista: fila.precio + numax, seguro: true,
+    };
+}
+
 function emparejarLenteStock(nombre) {
     const stock = datos.crizal?.lentes_de_stock || [];
     const cual = /rock/i.test(nombre) ? /ROCK/
@@ -192,7 +231,7 @@ export function emparejar(productos) {
         const fam = primero(FAMILIAS, nombre);
         if (!fam) {
             const faltaConocida = primero(FALTAN_EN_LISTA, nombre);
-            const mono = faltaConocida ? null : (emparejarLenteStock(nombre) ?? emparejarMonofocal(nombre));
+            const mono = faltaConocida ? null : (emparejarNewEditions(nombre) ?? emparejarLenteStock(nombre) ?? emparejarMonofocal(nombre));
             if (mono) {
                 const nuevo = costoDe(mono.lista);
                 ok.push({ ...p, ...mono, esPromo: false, costoNuevo: nuevo,

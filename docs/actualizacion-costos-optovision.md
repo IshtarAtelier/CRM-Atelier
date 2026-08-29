@@ -112,3 +112,13 @@ AuditLog con el renglón de la lista del que salió.
 - ~~Mejora futura~~ **HECHO (26/8/2026)**: al guardar un cristal con el pelado
   y sin `cost`, el sistema calcula el final solo — una vez, al guardar
   (`costoDesdeElPelado` en `product.service.ts`, test `check:costo-pelado`).
+
+## Sumado al plan el 29/8/2026 — facturación con precio de EFECTIVO
+El dashboard muestra dos facturaciones que no cierran entre sí (el resumen de
+origen suma ~$24M y la facturación histórica del mismo período ~$30,9M). La
+regla que definió Ishtar: **toda facturación se informa al precio de EFECTIVO**
+— el recargo de cuotas/tarjeta es COSTO FINANCIERO, no venta, y hoy se cuenta
+como si fuera facturación. Pendiente: unificar TODOS los reportes (dashboard,
+facturación histórica, reportes mensuales) para que usen la misma base de
+efectivo y el costo financiero se vea aparte. Tocará report.service y
+dashboard/route — hacer con test, es plata contada.
