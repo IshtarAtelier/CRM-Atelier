@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { sendWhatsApp } from '@/lib/whatsapp/send';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates';
+import { BUSINESS_INFO } from '@/lib/business-info';
 
 /**
  * Campaña puntual (agosto 2026, pedida por Ishtar): avisar a los contactos del
@@ -66,10 +67,20 @@ export async function GET(request: NextRequest) {
     // Contactos de agosto sin NINGUNA venta, con teléfono, sin el tag de la
     // campaña. Un solo `where` para candidatos y para `restantes`: si divergen,
     // "restantes" miente y la tanda no termina nunca.
+    //
+    // Se descarta el núcleo del teléfono DE LA PROPIA ÓPTICA: encontrado en vivo
+    // (30/8) — un contacto "Lara" quedó cargado con el número de la línea del
+    // negocio (probable error de carga/lead de prueba), y mandarle un WhatsApp
+    // a la propia cuenta de la óptica tira 400 de Graph en TODOS los intentos.
+    // Sin este filtro, ese cupo se pierde en cada lote para siempre — mismo
+    // patrón que el bug de los @lid, pero a nivel de dato sucio en vez de
+    // canal roto.
+    const NUCLEO_TEL_OPTICA = BUSINESS_INFO.phoneE164.replace(/\D/g, '').slice(-10);
     const whereCandidatos = {
         createdAt: { gte: new Date('2026-08-01T00:00:00-03:00'), lt: new Date('2026-09-01T00:00:00-03:00') },
         isDeleted: false,
         phone: { not: null },
+        NOT: { phone: { contains: NUCLEO_TEL_OPTICA } },
         orders: { none: { isDeleted: false } },
         tags: { none: { id: tag.id } },
     } as const;
