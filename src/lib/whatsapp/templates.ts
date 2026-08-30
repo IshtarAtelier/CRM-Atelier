@@ -206,6 +206,23 @@ export const WHATSAPP_TEMPLATES = {
             { type: 'URL', text: 'Seguinos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
         ],
     },
+    // Seguimiento a quien YA recibió la campaña de 12 cuotas y no es cliente
+    // todavía (30/8/26, pedido de Ishtar): sumar lo que le faltaba al mensaje
+    // original — tienda online, cupón QUIEROMISLENTES (10% OFF, mín $100.000,
+    // pensado para armazones aunque el cupón no distingue categoría — el
+    // sistema de cupones no soporta restringir por rubro, ver Coupon en
+    // schema.prisma) e invitación a Instagram. OJO category=MARKETING.
+    seguimiento_12_cuotas_armazones: {
+        name: 'seguimiento_12_cuotas_armazones',
+        inventario: 'Seguimiento campaña 12 cuotas — cupón QUIEROMISLENTES (ago-sep 2026)',
+        category: 'MARKETING',
+        body: 'Hola {{1}}! Un dato más de Atelier Óptica 👋 Ya podés ver nuestros armazones nuevos en la tienda online 🕶️ Con el código QUIEROMISLENTES tenés 10% OFF (válido en compras desde $100.000). Y seguinos en Instagram para ver las novedades primero 👓',
+        params: [{ label: 'nombre', example: 'Julio' }],
+        buttons: [
+            { type: 'URL', text: 'Ver armazones', url: 'https://atelieroptica.com.ar/tienda' },
+            { type: 'URL', text: 'Seguinos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
+        ],
+    },
     // Reseñas: SIEMPRE manual — la plantilla no cambia eso, la dispara una
     // persona desde el panel. Texto idéntico al de ReviewRequestsPanel.
     pedido_resena: {
