@@ -13,6 +13,32 @@
  *  - text: { sales, executive } — variante por agente ('*' si es compartida).
  */
 
+/**
+ * Formas de pago vigentes. FUENTE DE VERDAD: `src/lib/business-info.ts`
+ * (`BUSINESS_INFO.installmentsPromo`, `discountCashPercent`,
+ * `discountTransferPercent`) y las reglas de negocio de CLAUDE.md. El
+ * wa-service es CommonJS y no puede importar el TS del CRM, así que el texto
+ * se replica acá.
+ *
+ * TODO: unificar — exponer estos valores por `/api/bot/...` (o generar un JSON
+ * en build) para que el bot los lea de un solo lugar y esta copia desaparezca.
+ * Mientras tanto: si cambia `business-info.ts`, HAY QUE cambiar este bloque.
+ *
+ * Por qué se reescribió (30/8/2026): el bloque decía "3 o 6 cuotas sin interés,
+ * Naranja Plan Z, transferencia, efectivo, GoCuotas" y a un "se puede en 12
+ * cuotas?" el bot contestaba "en 12 cuotas no trabajamos" — falso desde el
+ * 27/8, cuando entraron a producción las 12 cuotas de Mercado Pago Ishtar.
+ * Tampoco mencionaba el 15% de descuento por contado/transferencia.
+ */
+const FORMAS_DE_PAGO = `<formas_de_pago>
+  1. EFECTIVO o TRANSFERENCIA: 15% de descuento sobre el precio de lista. Es la opción que se ofrece PRIMERO.
+  2. TARJETAS BANCARIAS: 3 o 6 cuotas SIN INTERÉS (al precio de lista).
+  3. MERCADO PAGO (Ishtar): hasta 12 cuotas. Las de 12 llevan un 10% de costo financiero sobre el precio de lista y SIEMPRE tenés que aclararlo. PROHIBIDO decir "12 cuotas sin interés" o que no tienen recargo.
+  4. NARANJA Plan Z: 3 cuotas sin interés.
+  5. GOCUOTAS: hasta 4 cuotas con débito.
+  ⚠️ PROHIBIDO decirle al cliente que "no trabajamos en 12 cuotas": sí trabajamos, con Mercado Pago y el 10% aclarado.
+</formas_de_pago>`;
+
 // ── Normalización del texto de conversación ──
 function normalizeText(s) {
     return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -122,13 +148,7 @@ const MODULES = [
   - Cristales teñidos monofocales: Policarbonato no se tiñe, solo Orgánico Blanco.
 </upselling_y_restricciones>
 
-<formas_de_pago>
-  1. 3 o 6 cuotas sin interés (tarjetas bancarias)
-  2. Naranja Plan Z 3 cuotas sin interés
-  3. Transferencia
-  4. Efectivo
-  5. GoCuotas hasta 4 cuotas con débito
-</formas_de_pago>`,
+${FORMAS_DE_PAGO}`,
             executive: `<precios_y_presupuestos>
   - Precios exactos solo de 'get_price_list'. Nunca inventes.
   - Formato de opciones (con línea en blanco entre ellas, máximo 3 opciones):
@@ -151,13 +171,7 @@ const MODULES = [
   - Cristales teñidos monofocales: Policarbonato no se tiñe, solo Orgánico Blanco.
 </upselling_y_restricciones>
 
-<formas_de_pago>
-  1. 3 o 6 cuotas sin interés (tarjetas bancarias)
-  2. Naranja Plan Z 3 cuotas sin interés
-  3. Transferencia
-  4. Efectivo
-  5. GoCuotas hasta 4 cuotas con débito
-</formas_de_pago>`,
+${FORMAS_DE_PAGO}`,
         },
     },
     {

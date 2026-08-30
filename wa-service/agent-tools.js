@@ -259,7 +259,7 @@ const convertIntoLeadTool = new DynamicStructuredTool({
 const updateClientDataTool = new DynamicStructuredTool({
     schema: z.object({ id: z.string(), email: z.string().optional(), address: z.string().optional(), insurance: z.string().optional(), name: z.string().optional(), status: z.string().optional(), interest: z.string().optional() }).catchall(z.any()),
     name: "update_client_data",
-    description: "Actualiza datos del cliente existente. Usa JSON con 'id' (MANDATORIO, el ID del cliente en el sistema), y los campos a actualizar: 'email', 'address', 'insurance' (obra social), 'name', 'status', 'interest' (SOLO USAR UNO DE ESTOS VALORES: Monofocal, Multifocal, Bifocal, Ocupacional, Solar, Accesorios, Lentes de Contacto, Otros).",
+    description: "Actualiza datos de una ficha ya creada. OBLIGATORIA cada vez que el cliente te da un dato nuevo (sobre todo el EMAIL al confirmar la compra): JAMÁS le digas que lo anotaste sin haber llamado antes a esta herramienta. Usa JSON con 'id' (MANDATORIO, el ID del cliente en el sistema; si todavía no existe la ficha, creala primero con 'convert_into_lead'), y los campos a actualizar: 'email', 'address', 'insurance' (obra social), 'name', 'status', 'interest' (SOLO USAR UNO DE ESTOS VALORES: Monofocal, Multifocal, Bifocal, Ocupacional, Solar, Accesorios, Lentes de Contacto, Otros).",
     func: safeToolRun(async (input) => await updateClientData(safeParse(input, "update_client_data"))),
 });
 
@@ -378,6 +378,11 @@ const updateChatSummaryTool = new DynamicStructuredTool({
 const salesToolsList = [
     checkExistingClientTool,
     getPriceListTool,
+    // 30/8/2026: estaba SOLO en executiveToolsList. El prompt de ventas le
+    // ordena pedir el email al cerrar la compra, el prospecto lo daba y el bot
+    // contestaba "listo, ya lo agendé" sin llamar ninguna herramienta: la ficha
+    // quedaba con email: null. O sea, le mentía al cliente y perdíamos el dato.
+    updateClientDataTool,
     savePrescriptionDataTool,
     convertIntoLeadTool,
     cancelBotTool,

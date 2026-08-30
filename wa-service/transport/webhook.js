@@ -19,7 +19,7 @@
 
 const express = require('express');
 const { createHmac, timingSafeEqual } = require('crypto');
-const { persistInbound, persistStatus } = require('./inbound');
+const { persistInbound, persistStatus, persistEcho } = require('./inbound');
 
 function verifySignature(rawBody, header, appSecret) {
     if (!appSecret) return false;
@@ -32,14 +32,37 @@ function verifySignature(rawBody, header, appSecret) {
 
 /**
  * Convierte el payload de Meta en una lista plana de eventos normalizados.
- * @returns {{ messages: object[], statuses: object[] }}
+ * @returns {{ messages: object[], statuses: object[], echoes: object[] }}
  */
 function normalize(payload) {
     const messages = [];
     const statuses = [];
-    if (payload?.object !== 'whatsapp_business_account') return { messages, statuses };
+    const echoes = [];
+    if (payload?.object !== 'whatsapp_business_account') return { messages, statuses, echoes };
     for (const entry of payload.entry || []) {
         for (const change of entry.changes || []) {
+            // ── Ecos: lo que se manda desde el CELULAR o WhatsApp Web ───────
+            // En modo coexistencia, los mensajes que el equipo escribe desde la
+            // app de WhatsApp Business del teléfono NO llegan por `messages`:
+            // Meta los manda como `smb_message_echoes`. Sin esta rama, esas
+            // respuestas nunca aparecían en el CRM y una charla contestada a
+            // mano se veía como "el cliente escribió y nadie respondió".
+            if (change.field === 'smb_message_echoes' || change.field === 'message_echoes') {
+                const v = change.value || {};
+                for (const m of v.message_echoes || []) {
+                    const media = m.image || m.audio || m.video || m.document || m.sticker || null;
+                    echoes.push({
+                        to: m.to,
+                        wamid: m.id,
+                        timestamp: m.timestamp,
+                        type: m.type,
+                        text: m.text?.body || media?.caption || null,
+                        media: media ? { id: media.id, mime_type: media.mime_type, filename: media.filename, sha256: media.sha256 } : null,
+                        phoneNumberId: v.metadata?.phone_number_id || null,
+                    });
+                }
+                continue;
+            }
             if (change.field !== 'messages') continue;
             const v = change.value || {};
             const names = new Map((v.contacts || []).map(c => [c.wa_id, c.profile?.name]));
@@ -68,7 +91,7 @@ function normalize(payload) {
             }
         }
     }
-    return { messages, statuses };
+    return { messages, statuses, echoes };
 }
 
 /**
@@ -103,8 +126,15 @@ function createWebhookRouter(deps = {}) {
         // 200 ya: Meta no debe esperar a la base ni a la bajada de medios.
         res.sendStatus(200);
 
-        const { messages, statuses } = normalize(payload);
+        const { messages, statuses, echoes } = normalize(payload);
         (async () => {
+            for (const e of echoes) {
+                try {
+                    await persistEcho(e, { io: deps.io });
+                } catch (err) {
+                    console.error('[Webhook] Error procesando eco del teléfono:', err.message);
+                }
+            }
             for (const m of messages) {
                 try {
                     const r = await persistInbound(m, { io: deps.io });

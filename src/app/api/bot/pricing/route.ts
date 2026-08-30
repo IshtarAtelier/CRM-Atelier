@@ -29,24 +29,24 @@ export async function GET(req: NextRequest) {
         productWhere.botRecommended = true;
     }
 
-    if (search) {
-        let sanitizedSearch = search;
-        const clean = search.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (clean.includes('clipon') || clean.includes('clip')) {
-            sanitizedSearch = 'clip';
-        }
-        productWhere.OR = [
-            { name: { contains: sanitizedSearch, mode: 'insensitive' } },
-            { brand: { contains: sanitizedSearch, mode: 'insensitive' } },
-            { model: { contains: sanitizedSearch, mode: 'insensitive' } }
-        ];
-    } else if (category) {
+    // ── Categoría y búsqueda se combinan con AND, nunca uno u otro ──────────
+    // Acá había un `if (search) … else if (category)`: cuando el bot mandaba los
+    // dos (el caso normal, ej. {search:"Antirreflejo", category:"MULTIFOCAL"}),
+    // la CATEGORÍA se ignoraba y el search barría todo el catálogo. En una
+    // prueba real terminó cotizando cristales MONOFOCALES de $42.075 como si
+    // fueran multifocales (los multifocales arrancan en $745.226). El filtro de
+    // categoría es el que acota el universo; el search refina DENTRO de él.
+    const filtros: any[] = [];
+
+    if (category) {
         if (category === 'CLIPON') {
-            productWhere.OR = [
-                { name: { contains: 'clip', mode: 'insensitive' } },
-                { brand: { contains: 'clip', mode: 'insensitive' } },
-                { model: { contains: 'clip', mode: 'insensitive' } }
-            ];
+            filtros.push({
+                OR: [
+                    { name: { contains: 'clip', mode: 'insensitive' } },
+                    { brand: { contains: 'clip', mode: 'insensitive' } },
+                    { model: { contains: 'clip', mode: 'insensitive' } }
+                ]
+            });
         } else {
             // Los `type` del catálogo llevan tilde ("Armazón", "Armazón de
             // Receta") y la categoría llega sin ella: un ILIKE '%ARMAZON%' no
@@ -56,8 +56,27 @@ export async function GET(req: NextRequest) {
                 SOL: 'sol',
             };
             const fragmento = FRAGMENTO_POR_CATEGORIA[category] || category;
-            productWhere.type = { contains: fragmento, mode: 'insensitive' };
+            filtros.push({ type: { contains: fragmento, mode: 'insensitive' } });
         }
+    }
+
+    if (search) {
+        let sanitizedSearch = search;
+        const clean = search.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (clean.includes('clipon') || clean.includes('clip')) {
+            sanitizedSearch = 'clip';
+        }
+        filtros.push({
+            OR: [
+                { name: { contains: sanitizedSearch, mode: 'insensitive' } },
+                { brand: { contains: sanitizedSearch, mode: 'insensitive' } },
+                { model: { contains: sanitizedSearch, mode: 'insensitive' } }
+            ]
+        });
+    }
+
+    if (filtros.length > 0) {
+        productWhere.AND = filtros;
     }
 
     let products = await prisma.product.findMany({
@@ -90,6 +109,36 @@ export async function GET(req: NextRequest) {
         const { botRecommended: _descartado, ...sinFiltroDeRecomendados } = productWhere;
         products = await prisma.product.findMany({
             where: sinFiltroDeRecomendados,
+            select: {
+                id: true,
+                name: true,
+                brand: true,
+                model: true,
+                type: true,
+                category: true,
+                price: true,
+                lensIndex: true,
+                is2x1: true,
+                botRecommended: true,
+                botLabel: true,
+                laboratory: true,
+                rawImageUrls: true,
+                webProducts: { select: { slug: true, imageUrl: true } },
+            },
+            orderBy: { name: 'asc' },
+            take: 20,
+        });
+    }
+
+    // Si el search no matcheó nada DENTRO de la categoría, se cae a la
+    // categoría sola. Devolver los multifocales que sí existen es mucho mejor
+    // que devolver vacío (el bot entra en bucle preguntando lo mismo) y sigue
+    // siendo imposible que salga un precio de otra categoría.
+    if (products.length === 0 && category && search) {
+        products = await prisma.product.findMany({
+            // Sin `botRecommended`: el tool ya ordena poniendo primero los
+            // recomendados, así que no hace falta filtrarlos acá.
+            where: { AND: [filtros[0]] },
             select: {
                 id: true,
                 name: true,

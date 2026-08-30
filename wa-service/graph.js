@@ -48,11 +48,57 @@ function pruneToolErrorTracker() {
     }
 }
 
+// Texto que se le manda al cliente cuando el turno se corta por un bucle o
+// porque el grafo se quedó sin iteraciones. Es la misma frase de delegación que
+// ordena la regla 11 del prompt: lo único inaceptable es el silencio.
+const FALLBACK_HUMANO = 'Te consulto con el equipo y te respondo a la brevedad.';
+
+/**
+ * Firma de las tool calls que está por ejecutar este paso (nombre + argumentos).
+ * Sirve para detectar que el modelo llama LA MISMA herramienta con LOS MISMOS
+ * argumentos una y otra vez.
+ */
+function firmaDeToolCalls(state) {
+    const last = (state.messages || [])[(state.messages || []).length - 1];
+    const calls = (last && last.tool_calls) || [];
+    if (calls.length === 0) return null;
+    return calls
+        .map(c => `${c.name}:${JSON.stringify(c.args || {})}`)
+        .sort()
+        .join('|')
+        .substring(0, 800);
+}
+
 function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
     return async (state) => {
         pruneToolErrorTracker();
         const chatId = state.chatId || 'unknown';
+        const firma = firmaDeToolCalls(state);
         const result = await originalToolNode.invoke(state);
+
+        // ── Bucle de la MISMA tool con los MISMOS argumentos ────────────────
+        // El detector de abajo solo corta cuando el resultado "parece" un error
+        // (contiene "Error", "ECONNREFUSED", …). Pero las respuestas de negocio
+        // del tipo "[INSTRUCCIÓN INTERNA] … no existe / no se encontraron" son
+        // resultados EXITOSOS: el modelo reintentaba idéntico hasta agotar el
+        // recursionLimit y el turno terminaba MUDO. Pasó dos veces en la prueba
+        // e2e (un "uso multifocales hace años" y un cliente ENOJADO que quedó
+        // sin ninguna respuesta). Acá se corta por repetición, sin mirar el
+        // contenido, y se cierra el turno con una respuesta útil al cliente.
+        // El registro va en el state (`toolCallLog`), así que se reinicia solo
+        // en cada turno: repetir una consulta en otro turno es legítimo.
+        if (firma) {
+            const repeticionesPrevias = (state.toolCallLog || []).filter(f => f === firma).length;
+            const MAX_REPETICIONES = 2; // a la 3ª llamada idéntica se corta
+            if (repeticionesPrevias >= MAX_REPETICIONES) {
+                console.error(`  🛑 [${agentType}] Bucle detectado en chat ${chatId}: misma tool call repetida ${repeticionesPrevias + 1} veces (${firma.substring(0, 120)}). Se corta el turno con respuesta al cliente.`);
+                return {
+                    messages: [...(result.messages || []), new AIMessage(FALLBACK_HUMANO)],
+                    toolCallLog: [firma],
+                    loopBroken: true,
+                };
+            }
+        }
 
         // Analizar los mensajes de resultado para detectar errores repetidos
         const resultMessages = result.messages || [];
@@ -95,7 +141,7 @@ function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
             }
         }
 
-        return result;
+        return firma ? { ...result, toolCallLog: [firma] } : result;
     };
 }
 

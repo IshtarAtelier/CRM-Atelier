@@ -780,23 +780,23 @@ async function reportComplaint({ clientId, details }) {
     if (!details) return { success: false, message: '[INSTRUCCIÓN INTERNA] Falta el detalle del reclamo.' };
     
     try {
-        const complaintsUrl = CRM_API_URL.replace('/api/bot', '/api');
+        // 30/8/2026: se pegaba a `${CRM_API_URL.replace('/api/bot','/api')}/complaints`.
+        // Esa ruta queda FUERA de /api/bot/, así que el middleware del CRM le
+        // exigía sesión JWT y devolvía 401 SIEMPRE: ningún reclamo del bot llegó
+        // nunca a la administración. Ahora entra por /api/bot/complaints, que se
+        // autentica con BOT_API_KEY como el resto de las tools.
         await requestWithRetry(() =>
-            apiClient.post(`${complaintsUrl}/complaints`, {
+            apiClient.post(`${CRM_API_URL}/complaints`, {
                 clientId,
                 details
             })
         );
 
-        // Add the NOTE to the client's profile automatically
-        await addInteraction({
-            clientId,
-            type: 'NOTE',
-            content: `[RECLAMO POST-VENTA] ${details}`
-        });
+        // La nota en la ficha (firmada como 'Bot') la crea la propia ruta del
+        // CRM dentro de la misma operación — acá se creaba aparte y sin firma.
 
         // 18/8/2026: la administración se entera del reclamo por el email que
-        // ya manda /api/complaints del CRM. Se apagó el WhatsApp del bot al
+        // ya manda la ruta de reclamos del CRM. Se apagó el WhatsApp del bot al
         // admin ("NUEVO RECLAMO POST-VENTA"): tráfico automático innecesario
         // con la cuenta de Meta bajo observación.
 

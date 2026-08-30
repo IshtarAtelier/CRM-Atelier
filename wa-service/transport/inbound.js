@@ -209,6 +209,112 @@ async function persistInboundUnlocked(m, { io } = {}) {
 }
 
 /**
+ * Guarda un mensaje que el equipo mandó desde el CELULAR o WhatsApp Web
+ * (webhook `smb_message_echoes` del modo coexistencia).
+ *
+ * Diferencias deliberadas con `persistInbound`:
+ *  - `direction: 'OUTBOUND'` y `senderName: 'Teléfono'` — lo escribió una
+ *    persona desde afuera del CRM, no el cliente ni el bot.
+ *  - NO incrementa `unreadCount`: nadie tiene que "leer" lo que uno mismo
+ *    escribió.
+ *  - NO toca `lastInboundAt`: un eco no abre la ventana de 24 h de Meta.
+ *    Si la tocara, el buzón diría "podés escribir texto libre" cuando en
+ *    realidad la ventana sigue cerrada y el envío fallaría.
+ *  - Si el chat no existe todavía, se crea: puede ser una conversación que
+ *    arrancó el negocio desde el teléfono.
+ */
+function persistEcho(e, deps = {}) {
+    return withLock(String(e.to || 'x'), () => persistEchoUnlocked(e, deps));
+}
+
+async function persistEchoUnlocked(e, { io } = {}) {
+    const waId = cloud.toE164(e.to);
+    if (!waId) {
+        console.warn('[Eco] Destinatario sin teléfono válido, se ignora:', e.to);
+        return { chat: null, created: false };
+    }
+
+    // Idempotencia por wamid: Meta puede reintentar el webhook.
+    if (e.wamid) {
+        const dup = await prisma.whatsAppMessage.findUnique({ where: { waMessageId: e.wamid }, select: { id: true } });
+        if (dup) return { chat: null, created: false };
+    }
+
+    const now = e.timestamp ? new Date(Number(e.timestamp) * 1000) : new Date();
+    const messageType = TYPE_MAP[e.type] || 'TEXT';
+    const rawText = e.type === 'text' ? (e.text || '') : (e.text || describeNonText(e));
+    const content = rawText || `[Mensaje ${messageType}]`;
+
+    // Mismo criterio de chat que el entrante, incluida la migración del waId
+    // legacy "<num>@c.us" para no duplicar la conversación.
+    let chat = await prisma.whatsAppChat.findUnique({ where: { waId } });
+    if (!chat) {
+        const legacy = await prisma.whatsAppChat.findFirst({
+            where: { OR: [{ waId: `${waId}@c.us` }, { realPhone: waId }] },
+            orderBy: { lastMessageAt: 'desc' },
+        });
+        if (legacy) chat = await prisma.whatsAppChat.update({ where: { id: legacy.id }, data: { waId, realPhone: waId } });
+    }
+
+    let created = false;
+    if (!chat) {
+        try {
+            chat = await prisma.whatsAppChat.create({
+                data: {
+                    waId, realPhone: waId, status: 'OPEN', botEnabled: false,
+                    lastMessageAt: now, unreadCount: 0,
+                },
+            });
+            created = true;
+        } catch (err) {
+            if (err.code !== 'P2002') throw err;
+            chat = await prisma.whatsAppChat.update({ where: { waId }, data: { lastMessageAt: now } });
+        }
+    } else {
+        chat = await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { lastMessageAt: now } });
+    }
+
+    if (!chat.clientId) {
+        const clientId = await findClientIdByPhone(waId).catch(() => null);
+        if (clientId) chat = await prisma.whatsAppChat.update({ where: { id: chat.id }, data: { clientId } });
+    }
+
+    let mediaUrl = null;
+    if (e.media?.id) {
+        try {
+            const { buffer, mimetype } = await cloud.downloadMedia(e.media.id);
+            const ext = (e.media.filename && e.media.filename.includes('.')) ? e.media.filename.split('.').pop() : null;
+            const filename = e.media.filename || `eco_${Date.now()}${ext ? '.' + ext : ''}`;
+            mediaUrl = await uploadMediaToCrm(buffer, mimetype || e.media.mime_type, filename, 'outbound');
+        } catch (err) {
+            console.error('[Eco] No se pudo bajar/subir el medio:', err.message);
+        }
+    }
+
+    const waMessageId = e.wamid || `cloud_echo_${waId}_${Math.floor(now.getTime() / 1000)}`;
+    try {
+        await prisma.whatsAppMessage.upsert({
+            where: { waMessageId },
+            update: mediaUrl ? { mediaUrl } : {},
+            create: {
+                chatId: chat.id, direction: 'OUTBOUND', type: messageType,
+                content, mediaUrl, waMessageId, status: 'SENT',
+                senderName: 'Teléfono', createdAt: now,
+            },
+        });
+    } catch (err) {
+        if (err.code !== 'P2002') throw err;
+    }
+
+    // Solo `chat_updated`: el buzón refresca el hilo, pero NO se avisa como
+    // "mensaje nuevo" — lo escribió el propio equipo.
+    if (io) io.emit('chat_updated', { chatId: chat.id });
+
+    console.log(`  📲 [Eco] Mensaje del teléfono guardado en el chat ${waId}`);
+    return { chat, created };
+}
+
+/**
  * Actualiza el estado de un saliente: sent → delivered → read, o failed.
  * Meta manda uno por transición; se guarda el más avanzado.
  */
@@ -230,4 +336,4 @@ async function persistStatus(s, { io } = {}) {
     if (io) io.emit('chat_updated', { chatId: row.chatId });
 }
 
-module.exports = { persistInbound, persistStatus, findClientIdByPhone };
+module.exports = { persistInbound, persistStatus, persistEcho, findClientIdByPhone };
