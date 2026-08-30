@@ -8,12 +8,12 @@
   "coverEscena": 1,
   "escenas": [
     {
-      "rotulo": "¿Por qué tu cristal quedó tan grueso?",
-      "titulo": "No es tu graduación. *Es el índice.*"
+      "rotulo": "La regla que hay que saber",
+      "titulo": "A más índice, *más fina* la lente"
     },
     {
-      "titulo": "El índice de refracción es *cuánto desvía la luz* el material",
-      "pie": "A más índice, menos material hace falta para la misma graduación."
+      "titulo": "Y con los tratamientos más elevados, además *más traslúcida*",
+      "pie": "Mejor tecnología, mejor claridad óptica: se nota a simple vista."
     },
     {
       "rotulo": "Hasta 2 dioptrías",
@@ -22,13 +22,13 @@
     },
     {
       "rotulo": "De 2 a 4 dioptrías",
-      "dato": "1.56 / 1.59",
-      "pie": "El 1.59 es policarbonato: resiste impactos. El de chicos y deporte."
+      "dato": "1.56 / 1.60",
+      "pie": "Más finos, más livianos que el 1.50."
     },
     {
       "rotulo": "De 4 o 5 en adelante",
-      "dato": "1.67",
-      "pie": "Ahí la diferencia de espesor se ve a simple vista."
+      "dato": "1.74",
+      "pie": "El más alto que trabajamos: máxima finura y traslucidez."
     },
     {
       "rotulo": "Por eso medimos y recomendamos",
@@ -36,6 +36,6 @@
       "pie": "Cerro de las Rosas, sin turno previo."
     }
   ],
-  "copy": "¿Por qué tu cristal quedó tan grueso? No es tu graduación: es el índice de refracción, cuánto desvía la luz el material.\nA más índice, menos espesor con la misma receta. Hasta 2 dioptrías el 1.50 alcanza; de 2 a 4, el 1.56 o el 1.59 (policarbonato, resiste impactos); de 4 en adelante, el 1.67.\nEscribinos por WhatsApp y te decimos qué índice te conviene según tu receta y tu armazón.",
-  "guion": "¿Por qué tu cristal quedó tan grueso? No es tu graduación... es el índice. A más índice, menos espesor. Te contamos cuál te conviene."
+  "copy": "A más índice de refracción, más fina la lente. Y con los tratamientos más elevados, además más traslúcida: mejor tecnología, mejor claridad óptica.\nHasta 2 dioptrías el 1.50 alcanza; de 2 a 4, el 1.56 o el 1.60, más finos y livianos; de 4 en adelante, el 1.74, el más alto que trabajamos.\nEscribinos por WhatsApp y te decimos qué índice te conviene según tu receta y tu armazón.",
+  "guion": "Más índice, más fina y traslúcida la lente. Del 1.50 al 1.74."
 }

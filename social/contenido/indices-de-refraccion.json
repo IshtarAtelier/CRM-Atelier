@@ -3,7 +3,7 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "educacion",
-  "caption": "\"¿Y este cristal no me lo podés hacer más finito?\" Sí. Se llama subir de índice, y es de las cosas que menos se explican en una óptica.\n\nEl índice de refracción es cuánto desvía la luz el material del cristal. Cuanto más la desvía, menos material hace falta para corregir la misma graduación. Traducido: el mismo aumento entra en un cristal más fino y más liviano.\n\nOjo con lo que NO cambia: no vas a ver mejor. Ves igual. Lo que cambia es el espesor del borde, el peso sobre la nariz y cómo se ve tu cara detrás del cristal.\n\nEn Atelier el recorrido va del 1.50 (el estándar) al 1.56, al policarbonato 1.59 —que además es el que no se astilla, por eso es el de los chicos y el de deporte— y al 1.67 para graduaciones altas. Para casos muy altos hay opciones puntuales que vemos una por una.\n\nTraé tu receta y te decimos cuál te conviene de verdad. Cerro de las Rosas, sin turno previo.",
+  "caption": "\"¿Y este cristal no me lo podés hacer más finito?\" Sí. Se llama subir de índice, y es de las cosas que menos se explican en una óptica.\n\nEl índice de refracción es cuánto desvía la luz el material del cristal. Cuanto más la desvía, menos material hace falta para corregir la misma graduación. Traducido: el mismo aumento entra en un cristal más fino y más liviano — y con los tratamientos de los índices más altos, además más traslúcido: mejor tecnología, mejor claridad óptica.\n\nOjo con lo que NO cambia: no te agranda la graduación ni te la mejora. Ves con la misma nitidez que con cualquier índice, siempre que la receta sea la misma. Lo que cambia es el espesor del borde, el peso sobre la nariz y cómo se ve tu cara detrás del cristal.\n\nEn Atelier el recorrido va del 1.50 (el estándar) al 1.56, al policarbonato 1.59 —que además es el que no se astilla, por eso es el de los chicos y el de deporte— y al 1.74 para graduaciones altas, el más fino y traslúcido que trabajamos.\n\nTraé tu receta y te decimos cuál te conviene de verdad. Cerro de las Rosas, sin turno previo.",
   "temas": [
     "cristales"
   ],
@@ -21,7 +21,8 @@
       "items": [
         "Es cuánto desvía la luz el material con el que está hecho el cristal",
         "Cuanto más la desvía, menos material hace falta para la misma graduación",
-        "Por eso un 1.67 sale más fino que un 1.50 con exactamente la misma receta"
+        "Por eso un 1.74 sale más fino que un 1.50 con exactamente la misma receta",
+        "Y con mejor tecnología: más traslúcido, mejor claridad óptica"
       ]
     },
     {
@@ -30,7 +31,7 @@
       "image": "blog/blog1_marcos.png",
       "title": "Lo que *no* cambia (y conviene saberlo)",
       "items": [
-        "No vas a ver mejor: con la misma receta, ves igual",
+        "La graduación es la misma: con la misma receta, ves con la misma nitidez",
         "Lo que cambia es el espesor del borde y el peso sobre la nariz",
         "Y cómo se ve tu cara detrás del cristal, sin el borde grueso que agranda o achica los ojos"
       ]
@@ -41,7 +42,7 @@
       "items": [
         "Hasta cerca de 2 dioptrías, el 1.50 alcanza y es el más económico",
         "De 2 a 4, el 1.56 o el policarbonato 1.59, que además resiste impactos: es el de chicos y deporte",
-        "De 4 o 5 en adelante, el 1.67: ahí la diferencia de espesor se ve a simple vista"
+        "De 4 o 5 en adelante, el 1.74: ahí la diferencia de espesor y traslucidez se ve a simple vista"
       ]
     },
     {

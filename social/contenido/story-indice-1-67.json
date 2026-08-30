@@ -3,7 +3,7 @@
   "format": "9:16",
   "theme": "dark",
   "pilar": "educacion",
-  "caption": "De 4 o 5 dioptrías en adelante, el índice 1.67 se nota a simple vista: mismo cristal, mucho más fino. Te lo mostramos en vivo con tu receta.",
+  "caption": "De 4 o 5 dioptrías en adelante, el índice 1.74 (el más alto que trabajamos) se nota a simple vista: mismo cristal, mucho más fino y traslúcido. Te lo mostramos en vivo con tu receta.",
   "temas": [
     "cristales"
   ],
@@ -12,8 +12,8 @@
       "type": "cover",
       "role": "portada",
       "image": "blog/lentes-progresivos-zonas.png",
-      "title": "1.67: el índice que *se nota*",
-      "subtitle": "De 4 o 5 dioptrías en adelante, la diferencia de espesor se ve a simple vista."
+      "title": "1.74: el índice que *se nota*",
+      "subtitle": "De 4 o 5 dioptrías en adelante, la diferencia de espesor y traslucidez se ve a simple vista."
     }
   ]
 }
