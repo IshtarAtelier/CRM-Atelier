@@ -7,17 +7,34 @@ import { publicarStory, origenPublico } from '@/services/social-publisher.servic
 import { evaluarFrescura, leerPieza } from '@/lib/social/frescura';
 
 /**
- * Una story de Instagram por día, sin que nadie la dispare.
+ * Las stories de Instagram del día, sin que nadie las dispare.
  *
- * Alta en cron-job.org: GET diario a /api/cron/social-story-diaria?secret=CRON_SECRET
- * Buen horario: 10:00 ART. Las stories duran 24 h y se miran sobre todo a la
- * mañana y al mediodía.
+ * DOS TANDAS: `?tanda=manana` (default) y `?tanda=tarde`. Horarios fijados
+ * por Ishtar (28/8), ver .github/workflows/social-crons.yml:
+ *   mañana —  8:00 ART — 2 de contenido + 2 de producto = 4 stories
+ *   tarde  — 18:05 ART — 2 de contenido                 = 2 stories
+ * Las stories duran 24 h pero se consumen en el momento: una sola tanda a la
+ * mañana deja toda la tarde sin nada nuevo arriba, que es cuando la gente
+ * vuelve a mirar. La tarde es SOLO contenido a propósito: las de producto
+ * llevan precio adentro y el carril tiene 24 piezas — subirlas a 3 por día las
+ * quemaría en 8 días, y lo que se pidió fue más contenido, no más producto.
  *
  * QUÉ SALE CADA DÍA
  * La elección es determinística, no al azar: se recorre `social/stories-diarias.json`
- * en orden, avanzando una por día. Se puede saber de antemano qué sale mañana,
- * y si algo salió mal se puede reproducir exactamente. Con azar, un problema del
- * martes no se vuelve a ver hasta que vuelve a tocar por casualidad.
+ * en orden, avanzando lo que consume el día. Se puede saber de antemano qué
+ * sale mañana, y si algo salió mal se puede reproducir exactamente. Con azar,
+ * un problema del martes no se vuelve a ver hasta que vuelve a tocar por
+ * casualidad.
+ *
+ * LA TRAMPA DEL ÍNDICE (leer antes de tocar el PLAN)
+ * El índice del día se calcula UNA vez por carril y avanza de a lo que ese
+ * carril consume en TODO el día, no de a lo que saca una tanda. La tanda de la
+ * tarde no recalcula nada: toma las que siguen a las de la mañana, desplazadas
+ * dentro del mismo día. Si la tarde volviera a llamar al mismo cálculo sin
+ * desplazamiento, publicaría exactamente las mismas de la mañana; y si el
+ * avance diario contara solo lo de la mañana, al día siguiente se repetirían
+ * las de la tarde. Las dos cosas salen del mismo PLAN, por eso es una sola
+ * fuente y no dos números sueltos.
  *
  * POR QUÉ NO GENERA LA IMAGEN
  * Las placas ya están renderizadas y commiteadas. Un cron que abre un Chromium
@@ -49,6 +66,39 @@ function diasDesdeElOrigen(): number {
 function indiceDelDia(cantidad: number, porDia = 1): number {
     const n = diasDesdeElOrigen() * porDia;
     return ((n % cantidad) + cantidad) % cantidad;
+}
+
+/**
+ * Qué saca cada tanda de cada carril. ES LA ÚNICA FUENTE de los números: de
+ * acá salen tanto cuántas publica una tanda como cuánto avanza el índice del
+ * día (la suma de la columna). Un carril que no figure acá no publica nada y
+ * se reporta en `sinPlan` — agregar un carril al JSON es también agregarle una
+ * línea acá.
+ *
+ * El ORDEN de las claves importa: define el desplazamiento de cada tanda.
+ */
+const PLAN = {
+    manana: { contenido: 2, producto: 2 },
+    tarde: { contenido: 2 },
+} as const satisfies Record<string, Record<string, number>>;
+
+type Tanda = keyof typeof PLAN;
+const TANDAS = Object.keys(PLAN) as Tanda[];
+const esTanda = (v: string | null): v is Tanda => TANDAS.includes(v as Tanda);
+
+/** Cuántas piezas consume el carril en el día entero, sumando todas las tandas. */
+function porDiaDelCarril(carril: string): number {
+    return TANDAS.reduce((suma, t) => suma + ((PLAN[t] as Record<string, number>)[carril] ?? 0), 0);
+}
+
+/** Cuántas ya sacaron las tandas ANTERIORES a esta: el desplazamiento del día. */
+function yaSacaronAntes(tanda: Tanda, carril: string): number {
+    let acumulado = 0;
+    for (const t of TANDAS) {
+        if (t === tanda) break;
+        acumulado += (PLAN[t] as Record<string, number>)[carril] ?? 0;
+    }
+    return acumulado;
 }
 
 async function leerBitacora(): Promise<any[]> {
@@ -92,25 +142,45 @@ export async function GET(request: Request) {
         const catalogo = JSON.parse(crudo);
         const carriles: Record<string, Array<{ id: string; tipo?: string }>> = catalogo.carriles || {};
 
-        // DOS de cada carril: cuatro stories por día, dos de contenido y dos de
-        // producto. Se toman consecutivas dentro del carril (i, i+1) para que
-        // no se repita ninguna el mismo día y para que al día siguiente la
-        // secuencia siga donde quedó, sin saltear piezas.
-        const POR_CARRIL = 2;
+        // QUÉ TANDA ES. Sin parámetro se asume la mañana, que es la que existía
+        // antes de que hubiera dos: así un disparo viejo o hecho a mano sigue
+        // haciendo lo de siempre en vez de fallar.
+        const pedida = searchParams.get('tanda');
+        if (pedida && !esTanda(pedida)) {
+            return NextResponse.json(
+                { error: `Tanda desconocida: "${pedida}". Las válidas son ${TANDAS.join(' | ')}.` },
+                { status: 400 },
+            );
+        }
+        const tanda: Tanda = esTanda(pedida) ? pedida : 'manana';
+
+        // Se toman consecutivas dentro del carril (i, i+1) para que no se
+        // repita ninguna el mismo día y para que al día siguiente la secuencia
+        // siga donde quedó, sin saltear piezas. El índice arranca del día
+        // completo y se desplaza por lo que ya sacó la tanda anterior.
+        const sinPlan: string[] = [];
         const elegidas = Object.entries(carriles).flatMap(([carril, lista]) => {
             if (!lista?.length) return [];
-            const base = indiceDelDia(lista.length, POR_CARRIL);
+            if (porDiaDelCarril(carril) === 0) { sinPlan.push(carril); return []; }
+            const pide = (PLAN[tanda] as Record<string, number>)[carril] ?? 0;
+            if (!pide) return [];
+            const base = indiceDelDia(lista.length, porDiaDelCarril(carril));
+            const desplazamiento = yaSacaronAntes(tanda, carril);
             // Si el carril tiene menos piezas que las que se piden por día, se
             // publica lo que hay en vez de repetir la misma dos veces.
-            const cuantas = Math.min(POR_CARRIL, lista.length);
+            const cuantas = Math.min(pide, lista.length);
             return Array.from({ length: cuantas }, (_, k) => ({
                 carril,
-                ...lista[(base + k) % lista.length],
+                ...lista[(base + desplazamiento + k) % lista.length],
             }));
         });
 
+        if (sinPlan.length) {
+            console.warn(`[cron social-story-diaria] Carriles sin línea en PLAN, no publican: ${sinPlan.join(', ')}`);
+        }
+
         if (!elegidas.length) {
-            return NextResponse.json({ ok: false, motivo: 'El catálogo de stories está vacío.' });
+            return NextResponse.json({ ok: false, tanda, sinPlan, motivo: 'No hay nada para publicar en esta tanda.' });
         }
 
         const conUrl = elegidas.map(e => ({ ...e, url: `${origenPublico()}/social/${e.id}/01.jpg` }));
@@ -118,14 +188,19 @@ export async function GET(request: Request) {
         // `dryRun` sirve para probar la elección sin publicar: útil al dar de
         // alta el cron y para ver qué saldría mañana.
         if (searchParams.get('dryRun') === '1') {
-            return NextResponse.json({ ok: true, dryRun: true, elegidas: conUrl });
+            return NextResponse.json({ ok: true, dryRun: true, tanda, sinPlan, elegidas: conUrl });
         }
 
         // DEDUP DEL MISMO DÍA: si una pieza ya salió hoy (el cron corrió dos
         // veces, o alguien disparó a mano y después llegó el schedule), se
-        // salta. Existe porque el workflow ahora tiene DOS horarios de disparo
-        // — GitHub a veces se come un schedule y el segundo lo cubre — y sin
-        // esto el segundo duplicaría las 4 stories.
+        // salta. Existe porque cada tanda tiene DOS horarios de disparo —
+        // GitHub a veces se come un schedule y el segundo lo cubre — y sin
+        // esto el segundo duplicaría las stories.
+        //
+        // Es por PIEZA y por día, no por tanda, y así tiene que quedar: cubre
+        // también el caso de que la tarde se solape con la mañana porque el
+        // carril se quedó corto (un carril con menos piezas que las 4 que
+        // consume el día daría la vuelta y repetiría).
         const bitacoraHoy = await leerBitacora();
         const inicioDiaART = (() => {
             const d = new Date(Date.now() - 3 * 60 * 60 * 1000);
@@ -166,6 +241,7 @@ export async function GET(request: Request) {
             if (r.ok) {
                 await registrarEnBitacora({
                     pieza: e.id,
+                    tanda,
                     plataformas: ['Instagram (story)'],
                     slides: 1,
                     urls: { instagram: r.storyId },
@@ -179,7 +255,7 @@ export async function GET(request: Request) {
         if (fallaron.length) {
             await sendEmail({
                 to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
-                subject: `⚠️ ${fallaron.length} de ${resultados.length} stories no salieron hoy`,
+                subject: `⚠️ ${fallaron.length} de ${resultados.length} stories no salieron (tanda de la ${tanda})`,
                 html: `
                     <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
                         <h2 style="color:#b45309">No salieron todas las stories de hoy</h2>
@@ -206,6 +282,7 @@ for f in social/contenido/story-producto-*.json; do node scripts/social/render.m
 
         return NextResponse.json({
             ok: fallaron.length === 0,
+            tanda,
             publicadas: resultados.filter(r => r.ok).map(r => ({ pieza: r.id, carril: r.carril, storyId: r.storyId })),
             fallaron: fallaron.map(r => ({ pieza: r.id, error: r.error })),
         });
