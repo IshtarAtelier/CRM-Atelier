@@ -38,6 +38,9 @@ const prisma = new PrismaClient({ datasources: { db: { url } } });
 function clasificar(p, emparejado) {
     const n = String(p.name || '');
     if (/\(stock\)|de\s*stock/i.test(n)) return 'STOCK';
+    // El HD Poli es de stock: está en la sección de monofocales orgánicas de
+    // la pág. 27, junto a los Cr39 STOCK. Confirmado por Ishtar el 30/8/2026.
+    if (/hd\s*(mr7|super\s*hmc)|mr7\s*asf/i.test(n)) return 'STOCK';
     if (emparejado?.renglonStock) return 'STOCK';                    // lentes pág. 22
     if (emparejado?.familia === 'Monofocal de stock') return 'STOCK';
     // Progresivos y digitales a medida → laboratorio (regla de Ishtar).
