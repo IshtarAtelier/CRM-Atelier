@@ -1,279 +1,161 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { io as SocketIOClient } from 'socket.io-client';
-import { UserPlus, FileText, X, ExternalLink, AlertTriangle, Link2, MessageCircle } from 'lucide-react';
+/**
+ * Los carteles de la esquina superior derecha del panel: lead nuevo, mensaje
+ * entrante, tarea agendada por la IA y bot caído.
+ *
+ * Ya no abre su propio socket ni emite notificaciones del sistema: los eventos
+ * llegan del `WhatsAppProvider`, que es el único que habla con el bot y el único
+ * que muestra carteles del sistema operativo. Antes había tres sockets por
+ * pestaña y el mismo mensaje avisaba dos veces.
+ *
+ * Lo único que sigue decidiendo acá es QUIÉN ve qué: los errores del bot son
+ * ruido para quien no puede hacer nada con ellos, así que solo los ve ADMIN.
+ */
+
+import { useEffect, useState } from 'react';
+import { AlertTriangle, Calendar, ExternalLink, FileText, Link2, MessageCircle, UserPlus, X } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/ui/icons';
-
-interface LeadNotification {
-    id: string;
-    name: string;
-    phone: string;
-    interest: string;
-    source: string;
-    hasPrescription: boolean;
-    prescriptionType?: string;
-    timestamp: string;
-    isLinked?: boolean;
-}
-
-interface BotErrorNotification {
-    chatId: string;
-    name: string;
-    phone: string;
-    error: string;
-}
-
-interface Toast {
-    id: string;
-    type: 'LEAD' | 'BOT_ERROR' | 'MESSAGE';
-    data: any;
-    exiting: boolean;
-}
+import { useWhatsAppAcciones, useWhatsAppDatos } from '@/components/whatsapp/WhatsAppProvider';
 
 export function LeadToastNotifications() {
-    const [toasts, setToasts] = useState<Toast[]>([]);
+    const { eventos } = useWhatsAppDatos();
+    const { descartarEvento } = useWhatsAppAcciones();
     const [userRole, setUserRole] = useState<string | null>(null);
+    const [saliendo, setSaliendo] = useState<string[]>([]);
 
-    const removeToast = useCallback((toastId: string) => {
-        setToasts(prev => prev.map(t => t.id === toastId ? { ...t, exiting: true } : t));
-        setTimeout(() => {
-            setToasts(prev => prev.filter(t => t.id !== toastId));
-        }, 300);
-    }, []);
-
-    // Fetch user role on mount
     useEffect(() => {
         fetch('/api/auth/me')
-            .then(res => res.ok ? res.json() : null)
+            .then(res => (res.ok ? res.json() : null))
             .then(data => { if (data?.role) setUserRole(data.role); })
             .catch(() => {});
     }, []);
 
-    useEffect(() => {
-        let socket: any = null;
+    const cerrar = (id: string) => {
+        setSaliendo(prev => [...prev, id]);
+        setTimeout(() => {
+            descartarEvento(id);
+            setSaliendo(prev => prev.filter(x => x !== id));
+        }, 300);
+    };
 
-        fetch('/api/whatsapp/status')
-            .then(res => res.json())
-            .then(statusData => {
-                const socketUrl = process.env.NEXT_PUBLIC_WA_URL || statusData.socketUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
-                socket = SocketIOClient(socketUrl, {
-                    // El socket del bot exige token firmado; fresco por intento
-                    // de conexión para sobrevivir expiración (24h) y reinicios.
-                    auth: (cb: (data: object) => void) => {
-                        fetch('/api/whatsapp/status')
-                            .then(r => r.json())
-                            .then(d => cb({ token: d.socketToken }))
-                            .catch(() => cb({ token: statusData.socketToken }));
-                    }
-                });
-
-                socket.on('lead_created', (data: LeadNotification) => {
-            const toastId = `${data.id}-${Date.now()}`;
-            setToasts(prev => [...prev, { id: toastId, type: 'LEAD', data, exiting: false }]);
-
-            // Auto-dismiss after 8 seconds
-            setTimeout(() => removeToast(toastId), 8000);
-
-            // Browser notification
-            if ("Notification" in window && Notification.permission === "granted") {
-                const title = data.isLinked ? `🔗 Ficha Vinculada: ${data.name}` : `🌟 Nuevo Lead: ${data.name}`;
-                const body = data.isLinked 
-                    ? `Se vinculó la conversación a la ficha existente.` 
-                    : `Interés: ${data.interest}${data.hasPrescription ? ' · Envió receta ✅' : ''}`;
-                new Notification(title, {
-                    body,
-                    icon: data.isLinked 
-                        ? "https://cdn-icons-png.flaticon.com/512/3256/3256114.png" 
-                        : "https://cdn-icons-png.flaticon.com/512/4712/4712139.png",
-                });
-            }
-        });
-
-        socket.on('bot_error', (data: BotErrorNotification) => {
-            // Solo mostrar alertas de error del bot al usuario ADMIN (ishtar)
-            if (userRole !== 'ADMIN') return;
-
-            const toastId = `bot-err-${data.chatId}-${Date.now()}`;
-            setToasts(prev => [...prev, { id: toastId, type: 'BOT_ERROR', data, exiting: false }]);
-
-            // Auto-dismiss after 15 seconds
-            setTimeout(() => removeToast(toastId), 15000);
-
-            // Browser notification
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(`⚠️ Bot Desactivado: ${data.name}`, {
-                    body: `Límite de cuota / crédito agotado en Gemini.`,
-                    icon: "https://cdn-icons-png.flaticon.com/512/564/564619.png",
-                });
-            }
-        });
-
-        socket.on('new_message_received', (data: { chatId: string, name: string, phone: string, content: string, botEnabled: boolean }) => {
-            // Don't show global notification if user is already on the WhatsApp page (page.tsx handles its own notifications)
-            const isOnWhatsAppPage = window.location.pathname.includes('/whatsapp');
-
-            if (!isOnWhatsAppPage) {
-                // In-app toast notification
-                const toastId = `msg-${data.chatId}-${Date.now()}`;
-                setToasts(prev => [...prev, { id: toastId, type: 'MESSAGE', data, exiting: false }]);
-                setTimeout(() => removeToast(toastId), 8000);
-                
-                // Browser notification — la ÚNICA por mensaje (WhatsAppBadge ya
-                // no crea otra). `tag` deduplica por chat y `silent` porque la
-                // dueña pidió sin sonido.
-                if ("Notification" in window && Notification.permission === "granted") {
-                    const notification = new Notification(`Mensaje de ${data.name}`, {
-                        body: data.content,
-                        icon: "https://cdn-icons-png.flaticon.com/512/124/124034.png",
-                        tag: `wa-${data.chatId}`,
-                        silent: true
-                    });
-
-                    notification.onclick = () => {
-                        window.focus();
-                        // El buzón abre el chat por ?phone= (searchParams.get('phone')
-                        // en page.tsx); ?id= no lo maneja.
-                        window.location.href = `/admin/whatsapp?phone=${data.phone}`;
-                    };
-                }
-            }
-        });
-        
-            })
-            .catch(console.error);
-
-        return () => { if (socket) socket.disconnect(); };
-    }, [removeToast, userRole]);
-
-    if (toasts.length === 0) return null;
+    const visibles = eventos.filter(e => e.tipo !== 'BOT_ERROR' || userRole === 'ADMIN');
+    if (visibles.length === 0) return null;
 
     return (
-        <div className="fixed top-6 right-6 z-[200] flex flex-col gap-3 pointer-events-none">
-            {toasts.map((toast) => {
-                const isBotError = toast.type === 'BOT_ERROR';
+        <div
+            role="region"
+            aria-live="polite"
+            aria-label="Avisos de WhatsApp"
+            className="fixed top-6 right-6 z-[200] flex flex-col gap-3 pointer-events-none"
+        >
+            {visibles.map(evento => {
+                const d = evento.data as Record<string, string | boolean | undefined>;
+                const esError = evento.tipo === 'BOT_ERROR';
+                const esMensaje = evento.tipo === 'MESSAGE';
+                const esTarea = evento.tipo === 'TAREA';
+                const esVinculado = !!d.isLinked;
+
+                const titulo = esMensaje ? `💬 ${d.name}`
+                    : esError ? '⚠️ Bot desactivado'
+                    : esTarea ? '📅 Tarea programada'
+                    : esVinculado ? `🔗 ${d.name}`
+                    : `🌟 ${d.name}`;
+
+                const barra = esMensaje ? 'bg-emerald-600'
+                    : esError ? 'bg-red-600'
+                    : esTarea ? 'bg-violet-600'
+                    : esVinculado ? 'bg-indigo-600'
+                    : 'bg-emerald-600';
+
+                const icono = esMensaje ? <WhatsAppIcon className="w-5 h-5 text-white" />
+                    : esError ? <AlertTriangle className="w-5 h-5 text-white" />
+                    : esTarea ? <Calendar className="w-5 h-5 text-white" />
+                    : esVinculado ? <Link2 className="w-5 h-5 text-white" />
+                    : d.hasPrescription ? <FileText className="w-5 h-5 text-white" />
+                    : <UserPlus className="w-5 h-5 text-white" />;
+
+                const enlace = esMensaje || esError
+                    ? (d.phone ? `/admin/whatsapp?phone=${d.phone}` : '/admin/whatsapp')
+                    : esTarea ? null
+                    : `/admin/contactos?id=${d.id}`;
+
                 return (
                     <div
-                        key={toast.id}
-                        className={`pointer-events-auto w-[380px] bg-white/95 dark:bg-stone-900/95 backdrop-blur-2xl rounded-2xl border border-stone-200/50 dark:border-white/10 shadow-2xl shadow-black/10 overflow-hidden transition-all duration-300 ${
-                            toast.exiting 
-                                ? 'opacity-0 translate-x-[120%]' 
-                                : 'opacity-100 translate-x-0 animate-in slide-in-from-right-full'
+                        key={evento.id}
+                        className={`pointer-events-auto w-[380px] bg-white dark:bg-stone-900 rounded-2xl border border-stone-300 dark:border-white/10 shadow-2xl overflow-hidden transition-all duration-300 ${
+                            saliendo.includes(evento.id) ? 'opacity-0 translate-x-[120%]' : 'opacity-100 translate-x-0'
                         }`}
                     >
-                        {/* Barra de progreso superior */}
-                        <div className={`h-1 ${toast.type === 'MESSAGE' ? 'animate-shrink-width' : 'animate-shrink-width'} ${
-                            toast.type === 'MESSAGE'
-                                ? 'bg-gradient-to-r from-emerald-500 to-green-400'
-                                : isBotError 
-                                    ? 'bg-gradient-to-r from-red-500 to-orange-500' 
-                                    : toast.data.isLinked
-                                        ? 'bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400'
-                                        : 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400'
-                        }`} />
-
+                        <div className={`h-1 animate-shrink-width ${barra}`} />
                         <div className="p-4">
                             <div className="flex items-start gap-3">
-                                {/* Icono */}
-                                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${
-                                    toast.type === 'MESSAGE'
-                                        ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/30'
-                                        : isBotError
-                                            ? 'bg-gradient-to-br from-red-500 to-orange-600 shadow-red-500/30'
-                                            : toast.data.isLinked
-                                                ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/30'
-                                                : toast.data.hasPrescription
-                                                    ? 'bg-gradient-to-br from-violet-500 to-indigo-600 shadow-violet-500/30'
-                                                    : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30'
-                                }`}>
-                                    {toast.type === 'MESSAGE'
-                                        ? <WhatsAppIcon className="w-5 h-5 text-white" />
-                                        : isBotError
-                                            ? <AlertTriangle className="w-5 h-5 text-white" />
-                                            : toast.data.isLinked
-                                                ? <Link2 className="w-5 h-5 text-white" />
-                                                : toast.data.hasPrescription 
-                                                    ? <FileText className="w-5 h-5 text-white" />
-                                                    : <UserPlus className="w-5 h-5 text-white" />
-                                    }
+                                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${barra}`}>
+                                    {icono}
                                 </div>
 
-                                {/* Content */}
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-sm font-black text-stone-800 dark:text-white truncate">
-                                            {toast.type === 'MESSAGE'
-                                                ? `💬 ${toast.data.name}`
-                                                : isBotError 
-                                                    ? '⚠️ Bot Desactivado' 
-                                                    : toast.data.isLinked
-                                                        ? `🔗 ${toast.data.name}`
-                                                        : toast.data.name
-                                            }
-                                        </h4>
-                                        <button 
-                                            onClick={() => removeToast(toast.id)}
-                                            className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors shrink-0 ml-2"
+                                    <div className="flex items-center justify-between gap-2">
+                                        <h4 className="text-sm font-black text-stone-900 dark:text-white truncate">{titulo}</h4>
+                                        <button
+                                            type="button"
+                                            onClick={() => cerrar(evento.id)}
+                                            aria-label="Descartar el aviso"
+                                            className="min-w-10 min-h-10 -m-2 inline-flex items-center justify-center hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
                                         >
-                                            <X className="w-3.5 h-3.5 text-stone-400" />
+                                            <X className="w-4 h-4 text-stone-600 dark:text-stone-400" />
                                         </button>
                                     </div>
-                                    
-                                    {toast.type === 'MESSAGE' ? (
+
+                                    {esMensaje && (
+                                        <p className="text-xs text-stone-700 dark:text-stone-300 font-medium mt-1 line-clamp-2 leading-relaxed">
+                                            {d.content}
+                                        </p>
+                                    )}
+                                    {esError && (
                                         <>
-                                            <p className="text-xs text-stone-600 dark:text-stone-300 font-medium mt-1 line-clamp-2 leading-relaxed">
-                                                {toast.data.content}
+                                            <p className="text-xs text-stone-700 dark:text-stone-300 font-bold mt-1">
+                                                Cliente: <span className="text-stone-900 dark:text-stone-100">{d.name}</span>
                                             </p>
-                                            <a 
-                                                href={`/admin/whatsapp?phone=${toast.data.phone}`}
-                                                className="mt-3 flex items-center justify-center gap-2 w-full py-2 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-300 transition-all border border-emerald-200/50 dark:border-emerald-700/50"
-                                            >
-                                                <MessageCircle className="w-3.5 h-3.5" /> Ir al chat
-                                            </a>
+                                            <p className="text-xs text-red-700 dark:text-red-400 font-semibold mt-0.5">Motivo: {d.error}</p>
                                         </>
-                                    ) : (
+                                    )}
+                                    {esTarea && (
+                                        <p className="text-xs text-stone-700 dark:text-stone-300 font-medium mt-1">
+                                            La ficha inteligente agendó: {d.description}
+                                        </p>
+                                    )}
+                                    {!esMensaje && !esError && !esTarea && (
                                         <>
-                                            {isBotError ? (
-                                                <>
-                                                    <p className="text-xs text-stone-500 dark:text-stone-400 font-bold mt-1">
-                                                        Cliente: <span className="text-stone-700 dark:text-stone-200">{toast.data.name}</span>
-                                                    </p>
-                                                    <p className="text-[11px] text-red-500 font-semibold mt-0.5 animate-pulse">
-                                                        Motivo: {toast.data.error}
-                                                    </p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    {toast.data.isLinked ? (
-                                                        <p className="text-xs text-stone-500 dark:text-stone-400 font-bold mt-0.5">
-                                                            Conversación vinculada a ficha existente.
-                                                        </p>
-                                                    ) : (
-                                                        <p className="text-xs text-stone-500 dark:text-stone-400 font-medium mt-0.5">
-                                                            Interés: <span className="font-bold text-stone-700 dark:text-stone-200">{toast.data.interest}</span>
-                                                        </p>
-                                                    )}
-
-                                                    <div className="flex items-center gap-2 mt-2">
-                                                        {toast.data.hasPrescription && (
-                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300 text-[10px] font-bold">
-                                                                <FileText className="w-3 h-3" /> Envió receta
-                                                            </span>
-                                                        )}
-                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 text-[10px] font-bold">
-                                                            vía {toast.data.source}
-                                                        </span>
-                                                    </div>
-                                                </>
-                                            )}
-
-                                            <a 
-                                                href={isBotError ? `/admin/whatsapp?phone=${toast.data.phone}` : `/admin/contactos?id=${toast.data.id}`}
-                                                className="mt-3 flex items-center justify-center gap-2 w-full py-2 bg-stone-50 dark:bg-stone-800 hover:bg-stone-100 dark:hover:bg-stone-700 rounded-xl text-xs font-bold text-stone-700 dark:text-stone-300 transition-all border border-stone-200/50 dark:border-stone-700"
-                                            >
-                                                <ExternalLink className="w-3.5 h-3.5" /> {isBotError ? 'Atender conversación' : 'Ver ficha del contacto'}
-                                            </a>
+                                            <p className="text-xs text-stone-700 dark:text-stone-300 font-medium mt-0.5">
+                                                {esVinculado
+                                                    ? 'Conversación vinculada a ficha existente.'
+                                                    : <>Interés: <span className="font-bold text-stone-900 dark:text-stone-100">{d.interest || 'sin definir'}</span></>}
+                                            </p>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                {d.hasPrescription && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-800 dark:text-violet-300 text-[11px] font-bold">
+                                                        <FileText className="w-3 h-3" aria-hidden /> Envió receta
+                                                    </span>
+                                                )}
+                                                {d.source && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-800 text-stone-800 dark:text-stone-300 text-[11px] font-bold">
+                                                        vía {d.source}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </>
+                                    )}
+
+                                    {enlace && (
+                                        <a
+                                            href={enlace}
+                                            className="mt-3 flex items-center justify-center gap-2 w-full min-h-10 rounded-xl text-xs font-bold transition-all border bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 border-stone-300 dark:border-stone-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                                        >
+                                            {esMensaje
+                                                ? <><MessageCircle className="w-4 h-4" aria-hidden /> Ir al chat</>
+                                                : <><ExternalLink className="w-4 h-4" aria-hidden /> {esError ? 'Atender conversación' : 'Ver ficha del contacto'}</>}
+                                        </a>
                                     )}
                                 </div>
                             </div>

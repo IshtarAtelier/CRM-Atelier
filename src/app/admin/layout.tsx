@@ -8,6 +8,7 @@ import NovedadesGuiadas from "@/components/admin/NovedadesGuiadas";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { PulsoProvider } from "@/components/mensajes/PulsoProvider";
+import { WhatsAppProvider } from "@/components/whatsapp/WhatsAppProvider";
 
 export default async function AdminLayout({
   children,
@@ -21,6 +22,9 @@ export default async function AdminLayout({
 
   return (
     <PulsoProvider>
+    {/* Un solo WhatsApp para todo el panel: un socket, un contador y un único
+        emisor de notificaciones. Antes cada pestaña abría TRES conexiones. */}
+    <WhatsAppProvider>
     <div className="flex min-h-screen bg-background text-foreground">
       <Sidebar userName={userName} userRole={userRole} userId={userId} />
       <main className="flex-1 min-w-0 ml-0 lg:ml-[var(--sidebar-width,16rem)] min-h-screen relative flex flex-col pt-16 lg:pt-0 transition-[margin] duration-300 ease-in-out">
@@ -37,6 +41,7 @@ export default async function AdminLayout({
         </div>
       </main>
     </div>
+    </WhatsAppProvider>
     </PulsoProvider>
   );
 }
