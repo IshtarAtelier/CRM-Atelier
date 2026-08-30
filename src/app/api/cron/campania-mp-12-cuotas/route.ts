@@ -2,8 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendWhatsApp } from '@/lib/whatsapp/send';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
-import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates';
+import { WHATSAPP_TEMPLATES, type TemplateName } from '@/lib/whatsapp/templates';
 import { BUSINESS_INFO } from '@/lib/business-info';
+
+/**
+ * Qué plantillas puede usar esta campaña. Lista cerrada a propósito: no
+ * cualquier plantilla del catálogo sirve acá (necesita category MARKETING y
+ * un solo parámetro {{1}}=nombre) — agregar una nueva es una línea acá,
+ * después de confirmar que Meta ya la aprobó (PENDING rechaza el envío).
+ */
+const PLANTILLAS_VALIDAS = ['promo_12_cuotas', 'promo_12_cuotas_v2'] as const satisfies readonly TemplateName[];
+type PlantillaCampania = typeof PLANTILLAS_VALIDAS[number];
 
 /**
  * Campaña puntual (agosto 2026, pedida por Ishtar): avisar a los contactos del
@@ -18,14 +27,19 @@ import { BUSINESS_INFO } from '@/lib/business-info';
  *
  * Respeta el botón de pánico global (followups_enabled) y el horario comercial
  * de Argentina (10-19). `?dryRun=1` lista sin enviar.
+ *
+ * `?desde=YYYY-MM-DD&hasta=YYYY-MM-DD` amplía el rango de contactos (default
+ * agosto 2026). `?plantilla=promo_12_cuotas|promo_12_cuotas_v2` elige la
+ * plantilla aprobada a usar (default la vieja — la v2 recién cuando Meta la
+ * apruebe, ver templates.ts).
  */
 
 const TAG_CAMPANIA = 'Campaña MP 12 Cuotas';
 
 // El texto que viaja es el de la PLANTILLA aprobada (templates.ts); acá solo
 // se interpola el nombre para el registro en la ficha.
-const textoPlantilla = (pila: string) =>
-    WHATSAPP_TEMPLATES.promo_12_cuotas.body.replace('{{1}}', pila);
+const textoPlantilla = (plantilla: PlantillaCampania, pila: string) =>
+    WHATSAPP_TEMPLATES[plantilla].body.replace('{{1}}', pila);
 
 const dormir = (ms: number) => new Promise(r => setTimeout(r, ms));
 
@@ -46,6 +60,29 @@ export async function GET(request: NextRequest) {
 
     const dryRun = searchParams.get('dryRun') === '1';
     const batch = Math.min(Math.max(parseInt(searchParams.get('batch') || '5', 10) || 5, 1), 10);
+
+    // Plantilla a usar: default a la vieja (ya aprobada) — la v2 (texto sin
+    // "a través de Mercado Pago", 15% parejo, botón al catálogo) quedó PENDING
+    // en Meta el 30/8 y una plantilla no aprobada rechaza el envío. Pasar
+    // ?plantilla=promo_12_cuotas_v2 recién cuando Meta la apruebe.
+    const plantillaParam = searchParams.get('plantilla') || 'promo_12_cuotas';
+    if (!PLANTILLAS_VALIDAS.includes(plantillaParam as PlantillaCampania)) {
+        return NextResponse.json({ error: `plantilla inválida: ${plantillaParam}` }, { status: 400 });
+    }
+    const plantilla = plantillaParam as PlantillaCampania;
+
+    // Rango de contactos a barrer: default agosto (la campaña original).
+    // ?desde=YYYY-MM-DD&hasta=YYYY-MM-DD (hasta exclusivo) permite ampliarlo —
+    // pedido explícito de Ishtar el 30/8 para sumar a los de julio que tampoco
+    // compraron. El tag sigue siendo el mismo: evita reenviarle a quien ya
+    // recibió el aviso, sea de julio o agosto.
+    const desdeParam = searchParams.get('desde');
+    const hastaParam = searchParams.get('hasta');
+    const desde = desdeParam ? new Date(`${desdeParam}T00:00:00-03:00`) : new Date('2026-08-01T00:00:00-03:00');
+    const hasta = hastaParam ? new Date(`${hastaParam}T00:00:00-03:00`) : new Date('2026-09-01T00:00:00-03:00');
+    if (isNaN(desde.getTime()) || isNaN(hasta.getTime())) {
+        return NextResponse.json({ error: 'desde/hasta inválidos (formato YYYY-MM-DD)' }, { status: 400 });
+    }
 
     // Botón de pánico compartido con todos los seguimientos
     const setting = await prisma.systemSetting.findUnique({ where: { key: 'followups_enabled' } });
@@ -77,7 +114,7 @@ export async function GET(request: NextRequest) {
     // canal roto.
     const NUCLEO_TEL_OPTICA = BUSINESS_INFO.phoneE164.replace(/\D/g, '').slice(-10);
     const whereCandidatos = {
-        createdAt: { gte: new Date('2026-08-01T00:00:00-03:00'), lt: new Date('2026-09-01T00:00:00-03:00') },
+        createdAt: { gte: desde, lt: hasta },
         isDeleted: false,
         phone: { not: null },
         NOT: { phone: { contains: NUCLEO_TEL_OPTICA } },
@@ -133,7 +170,7 @@ export async function GET(request: NextRequest) {
         if (claimed === 0) continue; // otra invocación ya lo tomó
 
         const pila = (c.name || '').trim().split(/\s+/)[0] || 'Hola';
-        const texto = textoPlantilla(pila);
+        const texto = textoPlantilla(plantilla, pila);
         // API OFICIAL: estos contactos no escribieron en 24 h, así que va
         // directo como plantilla aprobada por Meta (la vía sancionada para
         // mensajes salientes — sin riesgo de ban). El texto libre de arriba
@@ -144,7 +181,7 @@ export async function GET(request: NextRequest) {
             senderName: 'Campaña MP 12 Cuotas',
             isProactive: true,
             forceTemplate: true,
-            template: { name: 'promo_12_cuotas', bodyParams: [pila] },
+            template: { name: plantilla, bodyParams: [pila] },
         });
 
         if (!res.ok) {
@@ -183,5 +220,5 @@ export async function GET(request: NextRequest) {
 
     const restantes = await prisma.client.count({ where: whereCandidatos });
 
-    return NextResponse.json({ ok: true, enviados, restantes, errores: errores.slice(0, 10) });
+    return NextResponse.json({ ok: true, plantilla, desde: desde.toISOString(), hasta: hasta.toISOString(), enviados, restantes, errores: errores.slice(0, 10) });
 }

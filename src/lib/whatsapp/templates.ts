@@ -162,12 +162,27 @@ export const WHATSAPP_TEMPLATES = {
     // Campaña puntual agosto 2026 (acuerdo MP de Ishtar): 12 cuotas por
     // Mercado Pago. El 10% de costo financiero va SIEMPRE aclarado — "sin
     // interés" son solo 3 y 6 (regla de negocio, ver CLAUDE.md).
+    // OJO: category=MARKETING → cada envío tiene costo (Meta cobra por
+    // conversación abierta, no por mensaje). Ver el costo real medido en
+    // docs/ o preguntar antes de mandar en volumen.
     promo_12_cuotas: {
         name: 'promo_12_cuotas',
-        inventario: 'Campaña MP 12 cuotas (ago 2026)',
+        inventario: 'Campaña MP 12 cuotas (ago 2026) — DEPRECADA, ver promo_12_cuotas_v2',
         category: 'MARKETING',
         body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Esta semana podés comprar tus anteojos hasta en 12 cuotas a través de Mercado Pago (con un 10% de costo financiero). Y como siempre: 3 y 6 cuotas sin interés, 20% de descuento en efectivo y 15% por transferencia. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. ¿Te interesa?',
         params: [{ label: 'nombre', example: 'Julio' }],
+    },
+    // v2 (30/8/26, texto de Ishtar): saca "a través de Mercado Pago" (no
+    // importa el medio), corrige el 20%→15% en efectivo (mismo % que
+    // transferencia, como en toda la tienda — el 20% de la v1 quedó
+    // desactualizado), y suma el link a la tienda + horario del local.
+    promo_12_cuotas_v2: {
+        name: 'promo_12_cuotas_v2',
+        inventario: 'Campaña MP 12 cuotas v2 (ago-sep 2026)',
+        category: 'MARKETING',
+        body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Solo esta semana podés comprar tus anteojos hasta en 12 cuotas. Y como siempre: 3 y 6 cuotas sin interés, 15% de descuento en efectivo o transferencia. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. Te esperamos en el local para tomar tu receta: Lunes a Viernes de 8 a 20, Sábados de 9 a 17.',
+        params: [{ label: 'nombre', example: 'Julio' }],
+        buttons: [{ type: 'URL', text: 'Ver catálogo', url: 'https://atelieroptica.com.ar/tienda' }],
     },
     // Reseñas: SIEMPRE manual — la plantilla no cambia eso, la dispara una
     // persona desde el panel. Texto idéntico al de ReviewRequestsPanel.
