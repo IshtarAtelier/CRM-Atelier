@@ -17,6 +17,7 @@ import { ChatLabelPicker } from '@/components/whatsapp/ChatLabelPicker';
 import { TemplatePromptModal } from '@/components/whatsapp/TemplatePromptModal';
 import InboxHeader from '@/components/whatsapp/InboxHeader';
 import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
+import { WHATSAPP_TEMPLATES, renderTemplate, type TemplateName } from '@/lib/whatsapp/templates';
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 const CHAT_LABEL_OPTIONS = [
@@ -62,8 +63,16 @@ const resolveMediaUrl = (url?: string) => {
     return `/api/storage/view?key=${encodeURIComponent(url)}`;
 };
 
-// Respuestas rápidas predefinidas
-const QUICK_REPLIES = [
+// Respuestas rápidas predefinidas.
+// Las que llevan `templateName` son plantillas oficiales aprobadas en Meta:
+// su texto sale SIEMPRE del catálogo (src/lib/whatsapp/templates.ts) para que
+// no diverja — antes estaban copiadas a mano y la de 12 cuotas quedó vieja —
+// y al click se envían directo como plantilla (forceTemplate), nunca como
+// texto libre: pegarlas al textarea hacía que, con la ventana de 24 h cerrada,
+// el 409 truncara el texto a 60 caracteres como "tema" de retomar_conversacion
+// y saliera un mensaje roto (pasó en vivo el 30/8).
+interface QuickReply { label: string; text: string; templateName?: TemplateName }
+const QUICK_REPLIES: QuickReply[] = [
     { label: 'Saludo', text: '¡Hola! 👋 Bienvenido a Atelier Óptica. ¿En qué te puedo ayudar?' },
     { label: 'Receta', text: '¿Me podés compartir tu receta óptica para ayudarte mejor?' },
     { label: 'Turno', text: '¿Querés coordinar un turno para una consulta en el local? 📍' },
@@ -71,20 +80,17 @@ const QUICK_REPLIES = [
     { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 8 a 20hs. Sábados de 9 a 17hs.\n\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n👉 https://g.co/kgs/5Jp7D4e\n\nCuándo te queda cómodo que te esperemos?' },
     { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar!' },
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
-    { label: 'Pedir reseña', text: 'Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.), ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶' },
     { label: 'Instagram', text: '¡Te invito a seguirnos en Instagram para ver todas nuestras novedades, promos y modelitos nuevos! 📸✨\n\n👉 https://www.instagram.com/atelieroptica_/\n\n¡Nos encontrás como @atelieroptica_!' },
-    // Plantillas oficiales de WhatsApp (src/lib/whatsapp/templates.ts) para
-    // que el equipo las use a mano en una charla, sin depender de que un cron
-    // las dispare. {{1}}/{{2}} (nombre/saludo) se resuelven al click, mismo
-    // patrón que ya usaba "Pedir reseña" — ver el reemplazo de `Hola {{1}}!`
-    // más abajo. No se incluyen las transaccionales (pedido_listo, factura,
-    // comprobante) porque llevan datos de un pedido puntual que no tiene
-    // sentido tipear a mano en el chat.
-    { label: '12 cuotas', text: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Esta semana podés comprar tus anteojos hasta en 12 cuotas a través de Mercado Pago (con un 10% de costo financiero). Y como siempre: 3 y 6 cuotas sin interés, 15% de descuento en efectivo o por transferencia. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. ¿Te interesa?' },
-    { label: 'Seguimiento presupuesto', text: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.' },
-    { label: 'Seguimiento lentes', text: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te escribo por los lentes que estuvimos viendo, ¿seguís con la idea? Si querés te mando fotitos de los modelos que tenemos ahora.' },
-    { label: 'Seguimiento carrito', text: 'Hola {{1}}, {{2}}! ¿Cómo estás? Vi que te quedaron unos productos en el carrito de la tienda, ¿te surgió alguna duda? Si querés te doy una mano para terminarlo.' },
-    { label: 'Invitación al local', text: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te mandé? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 8:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo?' },
+    // Plantillas oficiales: el texto del chip es el body del catálogo (con sus
+    // {{n}}); las variables se resuelven al click y se confirma antes de mandar.
+    // No se incluyen las transaccionales (pedido_listo, factura, comprobante)
+    // porque llevan datos de un pedido puntual que no tiene sentido tipear a mano.
+    { label: '12 cuotas', templateName: 'promo_12_cuotas_v2', text: WHATSAPP_TEMPLATES.promo_12_cuotas_v2.body },
+    { label: 'Seguimiento presupuesto', templateName: 'seguimiento_presupuesto', text: WHATSAPP_TEMPLATES.seguimiento_presupuesto.body },
+    { label: 'Seguimiento lentes', templateName: 'seguimiento_lentes', text: WHATSAPP_TEMPLATES.seguimiento_lentes.body },
+    { label: 'Seguimiento carrito', templateName: 'seguimiento_carrito', text: WHATSAPP_TEMPLATES.seguimiento_carrito.body },
+    { label: 'Invitación al local', templateName: 'invitacion_local', text: WHATSAPP_TEMPLATES.invitacion_local.body },
+    { label: 'Pedir reseña', templateName: 'pedido_resena', text: WHATSAPP_TEMPLATES.pedido_resena.body },
 ];
 
 /** "buen día" / "buenas tardes" / "buenas noches" — mismo criterio que el bot (src/lib/whatsapp-followup.ts). */
@@ -161,7 +167,9 @@ function WhatsAppPageContent() {
     // API oficial (Cloud API): sin QR, sin bot, con ventana de 24 h y plantillas.
     const esApiOficial = status.transport === 'cloud';
     // Pedido de plantilla pendiente: el envío chocó con la ventana cerrada.
-    const [templatePrompt, setTemplatePrompt] = useState<{ chatId: string; texto: string } | null>(null);
+    // `nombre` se congela al momento del 409: el modal envía al chat de ese
+    // momento, no al que esté seleccionado cuando por fin se aprieta enviar.
+    const [templatePrompt, setTemplatePrompt] = useState<{ chatId: string; texto: string; nombre: string } | null>(null);
     const [dbTags, setDbTags] = useState<Tag[]>([]);
     const [showTagManager, setShowTagManager] = useState(false);
     const [editingTag, setEditingTag] = useState<Partial<Tag> | null>(null);
@@ -308,6 +316,20 @@ function WhatsAppPageContent() {
         }
     };
 
+    // Al desmontar la página en medio de una grabación quedaban vivos el
+    // interval del contador y el micrófono (MediaRecorder + tracks del stream).
+    useEffect(() => {
+        return () => {
+            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+            const mr = mediaRecorderRef.current;
+            if (mr && mr.state !== 'inactive') {
+                mr.onstop = null; // que no intente enviar el audio a mitad de desmontaje
+                mr.stream.getTracks().forEach(track => track.stop());
+                mr.stop();
+            }
+        };
+    }, []);
+
     const sendAudio = async (base64: string, mimetype: string) => {
         if (!selectedChat || sending) return;
         
@@ -357,7 +379,10 @@ function WhatsAppPageContent() {
             setChats(prev => prev.map(c => c.id === currentChatId ? { ...c, botEnabled: false } : c));
             await fetchMessages(currentChatId);
         } catch (e) {
+            // El fetch lanzó (red caída): el audio NO salió, se retira el optimista.
             console.error('Error enviando audio:', e);
+            setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+            alert('❌ No se pudo enviar el audio: sin conexión con el servidor. Probá de nuevo.');
         }
         setSending(false);
     };
@@ -767,7 +792,10 @@ function WhatsAppPageContent() {
                 setStatus(data);
                 setLoadingStatus(false);
 
-                const socketUrl = process.env.NEXT_PUBLIC_WA_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
+                // Mismo patrón que WhatsAppBadge y LeadToastNotifications: el
+                // socketUrl que reporta el status va antes que el origin — sin
+                // ese fallback el buzón se conectaba a un socket muerto.
+                const socketUrl = process.env.NEXT_PUBLIC_WA_URL || data.socketUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3100');
                 const { io } = await import('socket.io-client');
                 socket = io(socketUrl, {
                     // Token fresco por intento de conexión: el socketToken expira
@@ -977,6 +1005,7 @@ function WhatsAppPageContent() {
         const messageText = newMessage;
         const messageImage = selectedImage;
         const currentChatId = selectedChat.id;
+        const currentNombre = (selectedChat.client?.name || selectedChat.profileName || '').split(' ')[0];
 
         // Optimistic UI updates
         setNewMessage('');
@@ -1019,7 +1048,7 @@ function WhatsAppPageContent() {
                 if (sendRes.status === 409 && err?.needsTemplate) {
                     // API oficial: el cliente no escribió en 24 h. Se ofrece la
                     // plantilla "retomar conversación" con el texto como tema.
-                    setTemplatePrompt({ chatId: currentChatId, texto: messageText });
+                    setTemplatePrompt({ chatId: currentChatId, texto: messageText, nombre: currentNombre });
                 } else {
                     alert(`❌ No se pudo enviar: ${err?.error || `HTTP ${sendRes.status}`}`);
                 }
@@ -1034,7 +1063,75 @@ function WhatsAppPageContent() {
             setChats(prev => prev.map(c => c.id === currentChatId ? { ...c, botEnabled: false } : c));
             await fetchMessages(currentChatId);
         } catch (e) {
+            // El fetch lanzó (red caída): nada salió, se retira el optimista.
             console.error('Error enviando:', e);
+            setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+            alert('❌ No se pudo enviar: sin conexión con el servidor. Probá de nuevo.');
+        }
+        setSending(false);
+    };
+
+    // ── Enviar una respuesta rápida que es plantilla oficial ──────────────
+    // Va directo como plantilla (forceTemplate): funciona con la ventana de
+    // 24 h abierta o cerrada, y el texto es EXACTAMENTE el aprobado en Meta.
+    const sendQuickTemplate = async (templateName: TemplateName) => {
+        if (!selectedChat || sending) return;
+        const chat = selectedChat;
+        const def = WHATSAPP_TEMPLATES[templateName];
+        const nombre = (chat.client?.name || chat.profileName || '').split(' ')[0] || 'cliente';
+
+        const bodyParams: string[] = [];
+        for (const p of def.params as readonly { label: string }[]) {
+            if (p.label.includes('saludo')) {
+                bodyParams.push(saludoSegunHora());
+            } else if (p.label.includes('producto')) {
+                // pedido_resena: los productos de la última venta, como en el panel de reseñas.
+                let productos = 'anteojos nuevos';
+                if (chat.client?.id) {
+                    try {
+                        const res = await fetch(`/api/contacts/${chat.client.id}`);
+                        if (res.ok) {
+                            const clientData = await res.json();
+                            const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
+                            const names = lastSale?.items?.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
+                            if (names) productos = names;
+                        }
+                    } catch (e) {
+                        console.error('Error buscando la última venta para la reseña', e);
+                    }
+                }
+                bodyParams.push(productos);
+            } else {
+                bodyParams.push(nombre);
+            }
+        }
+
+        const preview = renderTemplate(templateName, bodyParams);
+        if (!window.confirm(`Se envía a ${chat.client?.name || chat.profileName} como plantilla aprobada de WhatsApp:\n\n${preview}\n\n¿Enviar?`)) return;
+
+        setSending(true);
+        try {
+            const res = await fetch('/api/whatsapp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chatId: chat.id,
+                    message: '',
+                    forceTemplate: true,
+                    template: { name: def.name, bodyParams },
+                }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                alert(`❌ No se pudo enviar la plantilla: ${err?.error || `HTTP ${res.status}`}`);
+            } else {
+                setSelectedChat(prev => prev ? { ...prev, botEnabled: false } : prev);
+                setChats(prev => prev.map(c => c.id === chat.id ? { ...c, botEnabled: false } : c));
+                await fetchMessages(chat.id);
+            }
+        } catch (e) {
+            console.error('Error enviando plantilla:', e);
+            alert('❌ No se pudo enviar la plantilla: sin conexión con el servidor. Probá de nuevo.');
         }
         setSending(false);
     };
@@ -2321,41 +2418,16 @@ function WhatsAppPageContent() {
                                             <div className="flex flex-wrap gap-2">
                                                 {QUICK_REPLIES.map(qr => (
                                                     <button key={qr.label} onClick={async () => {
-                                                        let finalMessage = qr.text;
-                                                        if (qr.label === 'Pedir reseña' && selectedChat) {
-                                                            const nombreCliente = selectedChat?.client?.name ? selectedChat.client.name.split(' ')[0] : (selectedChat?.profileName ? selectedChat.profileName.split(' ')[0] : '');
-                                                            const saludoPersonalizado = nombreCliente ? `Hola ${nombreCliente}, Te escribo para pedirte` : 'Te escribo para pedirte';
-                                                            finalMessage = finalMessage.replace('Te escribo para pedirte', saludoPersonalizado);
-
-                                                            if (selectedChat?.client?.id) {
-                                                                setNewMessage('Generando mensaje personalizado con última compra...');
-                                                                try {
-                                                                    const res = await fetch(`/api/contacts/${selectedChat.client.id}`);
-                                                                    if (res.ok) {
-                                                                        const clientData = await res.json();
-                                                                        const lastSale = clientData.orders?.find((o: any) => o.orderType === 'SALE' && !o.isDeleted);
-                                                                        if (lastSale && lastSale.items && lastSale.items.length > 0) {
-                                                                            const productNames = lastSale.items.map((it: any) => it.product?.name || it.productNameSnapshot).filter(Boolean).join(', ');
-                                                                            finalMessage = finalMessage.replace('qué anteojos o cristales te hiciste (por ejemplo: multifocales, lentes de sol, cristales Crizal, etc.)', `qué te parecieron tus ${productNames}`);
-                                                                        }
-                                                                    }
-                                                                } catch (e) {
-                                                                    console.error('Error fetching latest order', e);
-                                                                }
-                                                            }
-                                                        }
-                                                        // Plantillas con {{1}}/{{2}}: nombre del cliente y saludo por hora,
-                                                        // mismo criterio que usa el bot para los seguimientos automáticos.
-                                                        // Sin nombre cargado, "Hola , buen día!" queda con una coma de más:
-                                                        // se cae el "Hola {{1}}," entero y arranca directo por el saludo.
-                                                        if (finalMessage.includes('{{1}}') || finalMessage.includes('{{2}}')) {
-                                                            const nombre = selectedChat?.client?.name?.split(' ')[0] || selectedChat?.profileName?.split(' ')[0] || '';
-                                                            finalMessage = nombre
-                                                                ? finalMessage.replace('{{1}}', nombre).replace('{{2}}', saludoSegunHora())
-                                                                : finalMessage.replace(/Hola \{\{1\}\}[,!]?\s*/, '¡Hola! ').replace('{{2}}', saludoSegunHora());
-                                                        }
-                                                        setNewMessage(finalMessage);
                                                         setShowQuickReplies(false);
+                                                        // Plantilla oficial: se envía directo como plantilla (con
+                                                        // confirmación), nunca se pega al textarea — pegada, con la
+                                                        // ventana de 24 h cerrada, el 409 la truncaba a 60 caracteres
+                                                        // como "tema" de retomar_conversacion y salía rota.
+                                                        if (qr.templateName) {
+                                                            await sendQuickTemplate(qr.templateName);
+                                                            return;
+                                                        }
+                                                        setNewMessage(qr.text);
                                                     }} className="px-4 py-2 bg-white dark:bg-stone-700 rounded-xl shadow-sm hover:shadow-md border border-stone-200 dark:border-stone-600 transition-all text-left group">
                                                         <span className="block text-[11px] font-black text-stone-800 dark:text-white uppercase tracking-wider">{qr.label}</span>
                                                         <span className="block text-xs text-stone-500 truncate max-w-[200px] mt-0.5 group-hover:text-stone-700">{qr.text}</span>
@@ -2478,7 +2550,7 @@ function WhatsAppPageContent() {
                 <TemplatePromptModal
                     open
                     chatId={templatePrompt.chatId}
-                    nombre={(selectedChat?.client?.name || selectedChat?.profileName || '').split(' ')[0]}
+                    nombre={templatePrompt.nombre}
                     textoOriginal={templatePrompt.texto}
                     onClose={() => setTemplatePrompt(null)}
                     onSent={() => { if (selectedChat) fetchMessages(selectedChat.id); fetchChats(); }}

@@ -21,6 +21,7 @@ export async function GET() {
                 waId: true,
                 profileName: true,
                 lastMessageAt: true,
+                lastInboundAt: true,
                 status: true,
                 unreadCount: true,
                 botEnabled: true,

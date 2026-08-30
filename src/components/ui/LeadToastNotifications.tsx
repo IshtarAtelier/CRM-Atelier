@@ -119,16 +119,21 @@ export function LeadToastNotifications() {
                 setToasts(prev => [...prev, { id: toastId, type: 'MESSAGE', data, exiting: false }]);
                 setTimeout(() => removeToast(toastId), 8000);
                 
-                // Browser notification
+                // Browser notification — la ÚNICA por mensaje (WhatsAppBadge ya
+                // no crea otra). `tag` deduplica por chat y `silent` porque la
+                // dueña pidió sin sonido.
                 if ("Notification" in window && Notification.permission === "granted") {
                     const notification = new Notification(`Mensaje de ${data.name}`, {
                         body: data.content,
                         icon: "https://cdn-icons-png.flaticon.com/512/124/124034.png",
-                        tag: `chat-${data.chatId}`
+                        tag: `wa-${data.chatId}`,
+                        silent: true
                     });
-                    
+
                     notification.onclick = () => {
                         window.focus();
+                        // El buzón abre el chat por ?phone= (searchParams.get('phone')
+                        // en page.tsx); ?id= no lo maneja.
                         window.location.href = `/admin/whatsapp?phone=${data.phone}`;
                     };
                 }

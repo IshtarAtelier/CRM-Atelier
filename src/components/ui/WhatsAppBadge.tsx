@@ -58,20 +58,10 @@ export function WhatsAppBadge() {
                 }
             });
 
-            socket.on('new_message_received', ({ name, content }: any) => {
-                fetchCount(); // Update badge instantly
-
-                // Sin sonido (pedido de Ishtar 27/8): queda el badge y la
-                // notificación del navegador, que no suenan.
-                if (!window.location.pathname.includes('/admin/whatsapp')) {
-                    if ("Notification" in window && Notification.permission === "granted") {
-                        new Notification(`📩 Mensaje de ${name}`, { 
-                            body: content, 
-                            icon: "https://cdn-icons-png.flaticon.com/512/124/124034.png" 
-                        });
-                    }
-                }
-            });
+            // Solo el contador: la notificación del navegador la muestra
+            // LeadToastNotifications — acá también había una y el mismo
+            // mensaje avisaba dos veces ("bip bip").
+            socket.on('new_message_received', fetchCount);
 
             socket.on('chat_read_status', fetchCount);
 

@@ -23,7 +23,16 @@ interface Props {
 }
 
 export function TemplatePromptModal({ open, chatId, nombre, textoOriginal, onClose, onSent }: Props) {
-    const [tema, setTema] = useState(() => (textoOriginal || '').replace(/\s+/g, ' ').trim().slice(0, 60) || 'tu consulta');
+    // El texto original solo sirve de tema si ya ES un tema corto: un mensaje
+    // largo o con saltos de línea truncado a 60 caracteres salía como un
+    // "tema" roto (pasó en vivo el 30/8). En ese caso el campo queda vacío y
+    // la vendedora escribe un tema breve a mano (el botón queda deshabilitado
+    // hasta que lo haga).
+    const [tema, setTema] = useState(() => {
+        const original = textoOriginal || '';
+        if (original.length > 60 || original.includes('\n')) return '';
+        return original.replace(/\s+/g, ' ').trim();
+    });
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +51,7 @@ export function TemplatePromptModal({ open, chatId, nombre, textoOriginal, onClo
                     chatId,
                     message: '',
                     forceTemplate: true,
-                    template: { name: def.name, bodyParams: [nombre || 'cliente', tema || 'tu consulta'] },
+                    template: { name: def.name, bodyParams: [nombre || 'cliente', tema.trim()] },
                 }),
             });
             const data = await res.json().catch(() => ({}));
