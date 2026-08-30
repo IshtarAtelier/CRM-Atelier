@@ -47,7 +47,13 @@ async function main() {
         where category = 'Cristal' and cost > 0 and price > 0
         order by price / cost asc`;
 
+    // EXCEPCIÓN (Ishtar, 30/8/2026): la línea Sygnus / New Editions se precia
+    // "unos puntitos abajo del Kodak" para que sea atractiva como entrada, y
+    // eso puede dejarla bajo el piso — es una decisión comercial, no un error.
+    // Su precio lo fija scripts/maintenance/precios-optovision/precios-sygnus.mjs.
+    const esSygnus = p => /new\s*editions?|sygnus/i.test(p.name || '');
     const bajos = cristales
+        .filter(p => !esSygnus(p))
         .map(p => ({ ...p, mk: p.price / p.cost, nuevo: Math.ceil(p.cost * PISO) }))
         .filter(p => p.mk < PISO);
 
