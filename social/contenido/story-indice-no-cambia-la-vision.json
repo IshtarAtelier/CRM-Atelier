@@ -1,0 +1,19 @@
+{
+  "id": "story-indice-no-cambia-la-vision",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "El índice de refracción NO te hace ver mejor: con la misma receta, ves igual. Lo que cambia es el espesor del borde y el peso sobre la nariz.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/muestrario-smart-lens.jpg",
+      "title": "El índice *no te hace ver mejor*",
+      "subtitle": "Con la misma receta, ves igual. Lo que cambia es el espesor y el peso sobre la nariz."
+    }
+  ]
+}

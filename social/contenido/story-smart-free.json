@@ -1,0 +1,19 @@
+{
+  "id": "story-smart-free",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Smart Free: la puerta de entrada a los multifocales en Atelier. Filtro de luz azul + antirreflejo incluido, siempre en 2x1. Escribinos por WhatsApp.",
+  "temas": [
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "title": "Smart Free: *2x1 siempre*",
+      "subtitle": "Multifocal completo, con filtro de luz azul y antirreflejo. Los dos pares al precio de uno."
+    }
+  ]
+}

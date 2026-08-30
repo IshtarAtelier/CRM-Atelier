@@ -1,0 +1,19 @@
+{
+  "id": "story-essilor-lider",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Varilux, Crizal, Transitions, Stellest, Eyezen — todas son Essilor, el laboratorio óptico más grande del mundo. Por eso las trabajamos en Atelier.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/crizal_tecnologia.png",
+      "title": "Essilor: *el laboratorio líder* a nivel mundial",
+      "subtitle": "Varilux, Crizal, Transitions, Stellest, Eyezen. Todas nacen del mismo grupo."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "story-indice-1-67",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "De 4 o 5 dioptrías en adelante, el índice 1.67 se nota a simple vista: mismo cristal, mucho más fino. Te lo mostramos en vivo con tu receta.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/lentes-progresivos-zonas.png",
+      "title": "1.67: el índice que *se nota*",
+      "subtitle": "De 4 o 5 dioptrías en adelante, la diferencia de espesor se ve a simple vista."
+    }
+  ]
+}

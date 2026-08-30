@@ -1,0 +1,44 @@
+{
+  "id": "smart-free-2x1",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Smart Free es la puerta de entrada a los multifocales en Atelier: un cristal orgánico con filtro de luz azul y antirreflejo incluido, y SIEMPRE en 2x1 — llevás los dos pares al precio de uno.\n\nMedidos con tu armazón puesto y con 30 días de garantía de adaptación.\n\nEscribinos por WhatsApp y te contamos si es el tuyo. Cerro de las Rosas, sin turno previo.",
+  "temas": [
+    "multifocales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/pareja-multifocales-exterior.png",
+      "title": "Smart Free: *la puerta de entrada* a los multifocales",
+      "subtitle": "Un cristal completo, siempre en 2x1: los dos pares al precio de uno."
+    },
+    {
+      "type": "list",
+      "title": "Qué trae *de fábrica*",
+      "items": [
+        "Orgánico con filtro de luz azul",
+        "Antirreflejo incluido, no es un extra",
+        "El 2x1 va siempre — no es una promo de vez en cuando"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Igual de *bien medido*",
+      "items": [
+        "Con el armazón elegido, puesto en tu cara",
+        "30 días de garantía de adaptación, como en toda la línea",
+        "El armazón lo elegís vos, del local o de la tienda online"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Vení a probarlo",
+      "body": "2x1 en multifocales Smart Free. Cerro de las Rosas, sin turno previo — o escribinos por WhatsApp."
+    }
+  ]
+}

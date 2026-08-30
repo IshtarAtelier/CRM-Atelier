@@ -1,0 +1,41 @@
+{
+  "tema": "indices-de-refraccion",
+  "theme": "dark",
+  "imagen": "blog/lentes-progresivos-zonas.png",
+  "temas": [
+    "cristales"
+  ],
+  "coverEscena": 1,
+  "escenas": [
+    {
+      "rotulo": "¿Por qué tu cristal quedó tan grueso?",
+      "titulo": "No es tu graduación. *Es el índice.*"
+    },
+    {
+      "titulo": "El índice de refracción es *cuánto desvía la luz* el material",
+      "pie": "A más índice, menos material hace falta para la misma graduación."
+    },
+    {
+      "rotulo": "Hasta 2 dioptrías",
+      "dato": "1.50",
+      "pie": "El más económico. Alcanza y sobra."
+    },
+    {
+      "rotulo": "De 2 a 4 dioptrías",
+      "dato": "1.56 / 1.59",
+      "pie": "El 1.59 es policarbonato: resiste impactos. El de chicos y deporte."
+    },
+    {
+      "rotulo": "De 4 o 5 en adelante",
+      "dato": "1.67",
+      "pie": "Ahí la diferencia de espesor se ve a simple vista."
+    },
+    {
+      "rotulo": "Por eso medimos y recomendamos",
+      "titulo": "Con tu armazón *ya puesto*",
+      "pie": "Cerro de las Rosas, sin turno previo."
+    }
+  ],
+  "copy": "¿Por qué tu cristal quedó tan grueso? No es tu graduación: es el índice de refracción, cuánto desvía la luz el material.\nA más índice, menos espesor con la misma receta. Hasta 2 dioptrías el 1.50 alcanza; de 2 a 4, el 1.56 o el 1.59 (policarbonato, resiste impactos); de 4 en adelante, el 1.67.\nEscribinos por WhatsApp y te decimos qué índice te conviene según tu receta y tu armazón.",
+  "guion": "¿Por qué tu cristal quedó tan grueso? No es tu graduación... es el índice. A más índice, menos espesor. Te contamos cuál te conviene."
+}

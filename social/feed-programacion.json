@@ -90,6 +90,10 @@
       "pieza": "campania-12-pagos-feed"
     },
     {
+      "fecha": "2026-08-31",
+      "pieza": "essilor-laboratorio-lider"
+    },
+    {
       "fecha": "2026-09-01",
       "pieza": "cristales-transitions"
     },
@@ -102,12 +106,20 @@
       "pieza": "polarizados-manejo"
     },
     {
+      "fecha": "2026-09-04",
+      "pieza": "smart-free-2x1"
+    },
+    {
       "fecha": "2026-09-05",
       "pieza": "armazones-destacados"
     },
     {
       "fecha": "2026-09-06",
       "pieza": "tratamientos-tus-cristales"
+    },
+    {
+      "fecha": "2026-09-07",
+      "reel": "indices-de-refraccion"
     },
     {
       "fecha": "2026-09-08",

@@ -1,0 +1,44 @@
+{
+  "id": "essilor-laboratorio-lider",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "Cuando elegís un cristal en Atelier, hay una marca detrás en la mayoría de los casos: Essilor, el laboratorio óptico más grande del mundo.\n\nVarilux, Crizal, Transitions, Stellest, Eyezen — todas nacen del mismo grupo. No es casualidad que se repita tanto: es la referencia de la industria.\n\nVení a conocer qué línea Essilor conviene para tu receta. Cerro de las Rosas, sin turno previo.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/crizal_tecnologia.png",
+      "title": "Detrás de tu cristal, casi siempre hay *un mismo nombre*",
+      "subtitle": "Essilor: el laboratorio óptico más grande del mundo."
+    },
+    {
+      "type": "list",
+      "title": "Las marcas que ya conocés *son de Essilor*",
+      "items": [
+        "Varilux: los progresivos que más se recetan en el mundo",
+        "Crizal: el antirreflejo de referencia",
+        "Transitions: los fotocromáticos que se oscurecen solos"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Y también *las que cuidan a los chicos*",
+      "items": [
+        "Stellest: control de la progresión de la miopía infantil",
+        "Eyezen: descanso visual para las horas de pantalla",
+        "Todas con el mismo control de calidad, en un solo lugar"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Te ayudamos a elegir la línea justa",
+      "body": "Según tu receta, tu uso y tu presupuesto. Cerro de las Rosas, sin turno previo — o escribinos por WhatsApp."
+    }
+  ]
+}

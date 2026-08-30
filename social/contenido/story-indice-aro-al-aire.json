@@ -1,0 +1,19 @@
+{
+  "id": "story-indice-aro-al-aire",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "educacion",
+  "caption": "¿Armazón al aire, sin marco? Ahí el índice importa el doble: el borde queda a la vista y el cristal se agarra con perforaciones. Te asesoramos con tu armazón puesto.",
+  "temas": [
+    "cristales"
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "¿Armazón *al aire*?",
+      "subtitle": "Sin marco que tape el borde, el índice del cristal importa el doble. Te asesoramos con el armazón puesto."
+    }
+  ]
+}
