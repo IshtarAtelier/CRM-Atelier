@@ -61,11 +61,12 @@ export async function GET(request: NextRequest) {
     const dryRun = searchParams.get('dryRun') === '1';
     const batch = Math.min(Math.max(parseInt(searchParams.get('batch') || '5', 10) || 5, 1), 10);
 
-    // Plantilla a usar: default a la vieja (ya aprobada) — la v2 (texto sin
-    // "a través de Mercado Pago", 15% parejo, botón al catálogo) quedó PENDING
-    // en Meta el 30/8 y una plantilla no aprobada rechaza el envío. Pasar
-    // ?plantilla=promo_12_cuotas_v2 recién cuando Meta la apruebe.
-    const plantillaParam = searchParams.get('plantilla') || 'promo_12_cuotas';
+    // Plantilla a usar: la v2 es el DEFAULT desde el 30/8 (Meta la aprobó ese
+    // día). Trae las correcciones de Ishtar: sin "a través de Mercado Pago",
+    // 15% parejo en efectivo y transferencia (la v1 decía 20%, desactualizado)
+    // y botón al catálogo. La v1 quedó solo por si hace falta reproducir un
+    // envío viejo — NO usarla para mandar.
+    const plantillaParam = searchParams.get('plantilla') || 'promo_12_cuotas_v2';
     if (!PLANTILLAS_VALIDAS.includes(plantillaParam as PlantillaCampania)) {
         return NextResponse.json({ error: `plantilla inválida: ${plantillaParam}` }, { status: 400 });
     }
