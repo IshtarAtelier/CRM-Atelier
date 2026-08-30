@@ -32,6 +32,12 @@ export interface PipelineLead {
   latestRx: PipelineRx | null;
   latestQuote: PipelineQuote | null;
   waChatId: string | null;
+  /**
+   * true  → la etapa vino por una etiqueta de seguimiento (mensaje enviado).
+   * false → la etapa vino solo por antigüedad del presupuesto: sin contactar.
+   * Solo es significativo en las columnas de seguimiento.
+   */
+  contactado: boolean;
 }
 
 export type PipelineStageKey =

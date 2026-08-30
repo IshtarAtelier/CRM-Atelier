@@ -42,7 +42,17 @@ export default function LeadsPipelinePage() {
   };
 
   const handleMoveLead = async (leadId: string, targetStage: string) => {
-    try { await moveLead(leadId, targetStage); } catch (err: any) { alert(`Error al mover: ${err.message}`); }
+    try {
+      const advertencia = await moveLead(leadId, targetStage);
+      // El servidor avisa cuando el movimiento cambia el tablero pero NO
+      // manda ningún mensaje al cliente (avance manual a seguimiento).
+      if (advertencia) alert(`⚠️ ${advertencia}`);
+    } catch (err: any) {
+      // Movimiento rechazado (ej: lead sin presupuesto) — avisar y refrescar
+      // para que la tarjeta vuelva a su columna real en vez de "volver sola".
+      alert(`No se pudo mover: ${err.message}`);
+      fetchPipeline();
+    }
   };
 
   // Column keys in display order

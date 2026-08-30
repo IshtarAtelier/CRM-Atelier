@@ -8,6 +8,8 @@ import {
   X,
   Loader2,
   Calendar,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import type { PipelineLead } from '@/types/leads';
 import { displayContactSource } from '@/lib/contact-source';
@@ -45,8 +47,13 @@ function fmtSphere(v: number | null): string {
   return v > 0 ? `+${v}` : String(v);
 }
 
+const FOLLOWUP_STAGE_KEYS: PipelineStageKey[] = ['seguimiento1', 'seguimiento2', 'seguimiento10dias'];
+
 export default function LeadCard({ lead, stageKey, actionLoading, onMarkWon, onMarkLost }: LeadCardProps) {
   const isActing = actionLoading === lead.id;
+  // Solo en columnas de seguimiento tiene sentido distinguir si el lead
+  // llegó ahí por un mensaje enviado (contactado) o solo por el tiempo.
+  const showContactBadge = FOLLOWUP_STAGE_KEYS.includes(stageKey);
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', lead.id);
@@ -86,6 +93,23 @@ export default function LeadCard({ lead, stageKey, actionLoading, onMarkWon, onM
           ))}
         </div>
       </div>
+
+      {/* ── Estado de contacto (solo columnas de seguimiento) ──
+           Ícono + texto (no solo color) y contraste ≥4.5:1 en ambos temas,
+           pensado para la integrante del staff con baja visión. */}
+      {showContactBadge && (
+        lead.contactado ? (
+          <span className="flex items-center gap-1.5 w-fit px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-600/25 text-[9px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+            <CheckCircle2 className="w-3 h-3 shrink-0" aria-hidden="true" />
+            Seguimiento enviado
+          </span>
+        ) : (
+          <span className="flex items-center gap-1.5 w-fit px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-600/25 text-[9px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="w-3 h-3 shrink-0" aria-hidden="true" />
+            Sin contactar
+          </span>
+        )
+      )}
 
       {/* ── Tags (prepaga / interés / DNI / fuente) ─────── */}
       <div className="flex flex-wrap gap-1.5">

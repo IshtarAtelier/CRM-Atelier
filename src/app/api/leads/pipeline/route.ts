@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { PIPELINE_COLUMNS, type PipelineStageKey } from '@/types/leads';
+import { classifyLead } from '@/lib/leads-pipeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,12 +18,23 @@ export async function GET() {
     const now = Date.now();
 
     const leads = await prisma.client.findMany({
-      where: { status: 'CONTACT', isDeleted: false },
-      include: {
-        prescriptions: { orderBy: { date: 'desc' } },
+      where: {
+        status: 'CONTACT',
+        isDeleted: false,
+        // Excluir si ya compró (tiene una orden de tipo SALE u ORDER) —
+        // filtrado en la base para no traer todas las órdenes de cada lead.
         orders: {
-          where: { isDeleted: false },
+          none: { isDeleted: false, orderType: { in: ['SALE', 'ORDER'] } },
+        },
+      },
+      include: {
+        // Solo la receta más reciente: es la única que se muestra.
+        prescriptions: { orderBy: { date: 'desc' }, take: 1 },
+        // Solo el presupuesto más reciente: es el único que se usa.
+        orders: {
+          where: { isDeleted: false, orderType: 'QUOTE' },
           orderBy: { createdAt: 'desc' },
+          take: 1,
         },
         tags: true,
         whatsappChats: {
@@ -33,16 +45,12 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Filter: must NOT have exclusion tags, must NOT have purchased
-    const qualifiedLeads = leads.filter(lead => {
-      // Excluir si tiene tags de exclusión (no interesado, cerrado, etc.)
-      if (lead.tags.some(tag =>
+    // Filter: must NOT have exclusion tags (no interesado, cerrado, etc.)
+    const qualifiedLeads = leads.filter(lead =>
+      !lead.tags.some(tag =>
         EXCLUSION_TAGS.some(ex => tag.name.toLowerCase().includes(ex))
-      )) return false;
-      // Excluir si ya compró (tiene una orden de tipo SALE u ORDER)
-      if (lead.orders.some(o => o.orderType === 'SALE' || o.orderType === 'ORDER')) return false;
-      return true;
-    });
+      )
+    );
 
     // Build columns from config
     const columns: Record<PipelineStageKey, {
@@ -61,33 +69,20 @@ export async function GET() {
       };
     }
 
-    // Classify each lead
+    // Classify each lead — la lógica vive en src/lib/leads-pipeline.ts:
+    // max(etapa por etiquetas enviadas, etapa por antigüedad del presupuesto).
     for (const lead of qualifiedLeads) {
-      const latestQuote = lead.orders.find(o => o.orderType === 'QUOTE') ?? null;
+      const latestQuote = lead.orders[0] ?? null;
       const latestRx = lead.prescriptions[0];
       const chatLabels = lead.whatsappChats[0]?.chatLabels || [];
-      const tags = lead.tags.map(t => t.name.toLowerCase());
 
-      let stage: PipelineStageKey = 'nuevaReceta';
-
-      if (latestQuote) {
-        const searchPool = [
-          ...chatLabels.map(l => l.toLowerCase()),
-          ...tags
-        ];
-
-        if (searchPool.some(x => x.includes('seguimiento_dia_15') || x.includes('seguimiento 15') || x.includes('frío') || x.includes('frio') || x.includes('fríoo'))) {
-          stage = 'seguimiento10dias';
-        } else if (searchPool.some(x => x.includes('seguimiento_dia_4') || x.includes('seguimiento 4') || x.includes('seguimiento 2'))) {
-          stage = 'seguimiento2';
-        } else if (searchPool.some(x => x.includes('seguimiento_dia_1') || x.includes('seguimiento 1'))) {
-          stage = 'seguimiento1';
-        } else {
-          stage = 'cotizacionEnviada';
-        }
-      } else if (!latestRx) {
-        stage = 'primerContacto';
-      }
+      const { stage, contactado } = classifyLead({
+        quoteCreatedAt: latestQuote?.createdAt ?? null,
+        hasPrescription: !!latestRx,
+        chatLabels,
+        tagNames: lead.tags.map(t => t.name),
+        now,
+      });
 
       const formattedLead = {
         id: lead.id,
@@ -115,6 +110,9 @@ export async function GET() {
           createdAt: latestQuote.createdAt,
         } : null,
         waChatId: lead.whatsappChats[0]?.id || null,
+        // true = la etapa vino por un mensaje de seguimiento enviado;
+        // false = llegó a la columna solo por el paso del tiempo (sin contactar).
+        contactado,
       };
 
       const col = columns[stage];

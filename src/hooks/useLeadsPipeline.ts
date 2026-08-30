@@ -99,8 +99,15 @@ export function useLeadsPipeline() {
     }
   }, [fetchPipeline]);
 
-  /** Move lead to a different pipeline stage (drag & drop) */
-  const moveLead = useCallback(async (leadId: string, targetStage: string) => {
+  /**
+   * Move lead to a different pipeline stage (drag & drop).
+   * Devuelve la advertencia del servidor (si la hay) para que la vista la
+   * muestre — p.ej. "se movió pero NO se envió ningún mensaje al cliente".
+   * Si el servidor rechaza el movimiento (lead sin presupuesto, etc.) lanza
+   * y el refetch NO ocurre acá: el consumidor muestra el error y el próximo
+   * fetch deja la tarjeta donde corresponde.
+   */
+  const moveLead = useCallback(async (leadId: string, targetStage: string): Promise<string | null> => {
     setActionLoading(leadId);
     try {
       const res = await fetch('/api/leads/pipeline/move', {
@@ -108,13 +115,12 @@ export function useLeadsPipeline() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadId, targetStage }),
       });
-      if (!res.ok) {
-        const d = await res.json();
+      const d = await res.json();
+      if (!res.ok || !d.success) {
         throw new Error(d.error || 'Error al mover el lead');
       }
       await fetchPipeline();
-    } catch (err: any) {
-      throw err;
+      return d.advertencia ?? null;
     } finally {
       setActionLoading(null);
     }
