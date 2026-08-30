@@ -198,19 +198,18 @@ function emparejarMonofocal(nombre) {
     const fila = candidatas[0];
     if (!fila) return null;
 
-    // Misma política del más caro: un monofocal "Con Crizal" suma el
-    // tratamiento suelto MÁS CARO (el real elegido es dato de la venta).
-    // "Sin Crizal"/"SIN AR" van pelados; "Trío" se respeta.
+    // REGLA DE ISHTAR (30/8/2026): TODO monofocal DE LABORATORIO se costea con
+    // el mejor Crizal sumado (Prevencia) — salvo los de stock. El "SIN AR" que
+    // traen algunos nombres describe el precio de LISTA (la pág. 20 lista sin
+    // AR), no el producto: el Crizal que realmente lleva es dato de la venta,
+    // y el costo siempre asume el mejor. Solo el monofocal de stock queda
+    // pelado (y las lentes de stock de la pág. 22, que van por otro camino).
     const sueltos = m.tratamientos_sueltos || [];
+    const esStock = familia === 'Monofocal de stock' || /\(stock\)|de\s*stock/i.test(nombre);
     let trat = null, extra = 0;
-    if (/sin\s*crizal|sin\s*ar/i.test(nombre)) {
-        trat = null;
-    } else if (/tr[íi]o|easy\s*clean/i.test(nombre)) {
-        trat = 'TRIO EASY CLEAN';
-        extra = sueltos.find(t => /TRIO/.test(t.nombre))?.precio ?? 0;
-    } else if (/crizal/i.test(nombre)) {
+    if (!esStock) {
         const caro = sueltos.filter(t => /^CRIZAL/.test(t.nombre)).sort((a, b) => b.precio - a.precio)[0];
-        trat = caro ? `${caro.nombre} (política más caro)` : null;
+        trat = caro ? `${caro.nombre} (mejor crizal, política 30/8)` : null;
         extra = caro?.precio ?? 0;
     }
 
