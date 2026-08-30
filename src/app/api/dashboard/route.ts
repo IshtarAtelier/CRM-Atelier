@@ -5,7 +5,7 @@ import { ATTENTION_CUTOFF_ISO } from '@/lib/constants';
 import { resolveMonthlyTargets } from '@/lib/targets';
 import { normalizeContactSource } from '@/lib/contact-source';
 import { PricingService } from '@/services/PricingService';
-import { CALIBRADO_POR_DEFECTO, costoParBonificado } from '@/lib/lens-cost';
+import { costoParBonificado } from '@/lib/lens-cost';
 
 export const dynamic = 'force-dynamic';
 

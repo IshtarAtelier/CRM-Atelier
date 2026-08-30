@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
     Calculator, Receipt, Download,
     CheckCircle2, X, Clock, Glasses, 
@@ -84,6 +84,7 @@ export default function QuoteSummary({
     const [isUpdatingLock, setIsUpdatingLock] = React.useState(false);
     const [showReopenConfirm, setShowReopenConfirm] = React.useState(false);
     const [reopenReason, setReopenReason] = React.useState('');
+    const [linkCopiado, setLinkCopiado] = React.useState(false);
 
     const [labFrameShape, setLabFrameShape] = React.useState(order.labFrameShape || '');
     const [frameA, setFrameA] = React.useState(order.frameA || '');
@@ -306,7 +307,6 @@ export default function QuoteSummary({
     // links del presupuesto... que me pueda llevar ahí dentro»). El link abre
     // la ficha con ESTE pedido desplegado (?id=<cliente>&pedido=<orden>): se
     // copia acá y se pega en WhatsApp o en la mensajería del equipo.
-    const [linkCopiado, setLinkCopiado] = useState(false);
     const copiarLink = async () => {
         const url = `${window.location.origin}/admin/contactos?id=${(contact as any)?.id || (order as any).clientId}&pedido=${order.id}`;
         try {

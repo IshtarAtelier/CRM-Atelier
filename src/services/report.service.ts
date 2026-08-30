@@ -2,7 +2,7 @@ import { prisma } from '@/lib/db';
 import { getCommissionRate, DOCTOR_COMMISSION_RATE } from '@/lib/constants';
 import { getDolarBlueVenta, resolveTargetsFromRow } from '@/lib/targets';
 import { PricingService } from '@/services/PricingService';
-import { CALIBRADO_POR_DEFECTO, costoParBonificado } from '@/lib/lens-cost';
+import { costoParBonificado } from '@/lib/lens-cost';
 
 interface BillingStat {
     account: string;
