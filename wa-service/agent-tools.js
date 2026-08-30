@@ -5,7 +5,7 @@ const { SystemMessage, HumanMessage } = require("@langchain/core/messages");
 const {
     checkExistingClient, convertIntoLead, updateClientData,
     getPriceList, getOrderStatus, createTask,
-    addInteraction, savePrescription, createQuote, cancelBot, addTagToClient, disableBotForChat,
+    addInteraction, savePrescription, createQuote, sendQuotePdf, cancelBot, addTagToClient, disableBotForChat,
     isPhrase, reportInvoiceRequest
 } = require("./tools");
 
@@ -273,13 +273,29 @@ const getOrderStatusTool = new DynamicStructuredTool({
 const createQuoteTool = new DynamicStructuredTool({
     schema: z.object({ clientId: z.string().optional(), items: z.array(z.any()).optional(), total: z.number().optional(), discountCash: z.number().optional() }).catchall(z.any()),
     name: "create_quote",
-    description: "Registra un presupuesto/cotización en el CRM. Usa JSON con 'clientId' (el ID de la ficha si existe en tu contexto; si el contacto no tiene ficha todavía, llamala igual sin clientId), 'items' (array con los productos cotizados), 'total' (monto total), 'discountCash' (descuento en efectivo, opcional).",
+    description: "Registra un presupuesto/cotización en el CRM. Usa JSON con 'clientId' (el ID de la ficha si existe en tu contexto; si el contacto no tiene ficha todavía, llamala igual sin clientId), 'items' (array con los productos cotizados), 'total' (monto total), 'discountCash' (descuento en efectivo, opcional). El resultado trae 'id': guardalo, lo necesitás para 'send_quote_pdf'.",
     func: safeToolRun(async (input) => {
         const parsed = safeParse(input, "create_quote");
         if (!parsed.clientId || parsed.clientId === 'null' || parsed.clientId === 'none') {
             return "[INSTRUCCIÓN INTERNA] El presupuesto no se registró todavía porque el contacto no tiene ficha. NO frenes el cierre por esto: confirmá la compra con total normalidad y seguí la conversación; el presupuesto se registra después internamente. NUNCA le menciones al cliente registros ni fichas.";
         }
         return await createQuote(parsed);
+    }),
+});
+
+const sendQuotePdfTool = new DynamicStructuredTool({
+    schema: z.object({ orderId: z.string(), chatId: z.string().optional(), text: z.string() }).catchall(z.any()),
+    name: "send_quote_pdf",
+    description: "Genera el PDF del presupuesto/venta y se lo manda al cliente por WhatsApp (con copia por email si tiene). Usala SOLO DESPUÉS de haber creado el presupuesto con 'create_quote' y cuando el cliente confirmó que lo quiere recibir en PDF (o ya cerró la compra). Usa JSON con 'orderId' (MANDATORIO, el 'id' que devolvió 'create_quote'), 'chatId' (MANDATORIO, ya lo tenés en tu contexto — JAMÁS le pidas el teléfono al cliente), 'text' (MANDATORIO, un mensaje corto en criollo que acompaña el PDF, ej: 'Te paso el presupuesto en PDF 👇'). El PDF y sus montos los arma el sistema — vos NUNCA redactás ni calculás los números del documento, solo el mensaje que lo acompaña.",
+    func: safeToolRun(async (input) => {
+        const parsed = safeParse(input, "send_quote_pdf");
+        if (!parsed.orderId) {
+            return "[INSTRUCCIÓN INTERNA] Falta 'orderId': llamá primero a 'create_quote' y usá el 'id' que te devolvió. NO le menciones esto al cliente.";
+        }
+        if (!parsed.chatId) {
+            return "[INSTRUCCIÓN INTERNA] Falta 'chatId' en la llamada — es el que ya tenés en tu contexto de esta charla. Reintentá pasándolo.";
+        }
+        return await sendQuotePdf(parsed);
     }),
 });
 
@@ -369,6 +385,7 @@ const salesToolsList = [
     addInteractionTool,
     createTaskTool,
     createQuoteTool,
+    sendQuotePdfTool,
     disableBotForChatTool,
     reportComplaintTool,
     updateChatSummaryTool,
@@ -381,6 +398,7 @@ const executiveToolsList = [
     updateClientDataTool,
     getOrderStatusTool,
     createQuoteTool,
+    sendQuotePdfTool,
     createTaskTool,
     addInteractionTool,
     savePrescriptionDataTool,

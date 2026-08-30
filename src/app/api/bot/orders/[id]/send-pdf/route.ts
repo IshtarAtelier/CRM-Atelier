@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server';
-import { getActor } from '@/lib/actor';
+import { BOT_ACTOR } from '@/lib/actor';
 import { sendOrderPdf } from '@/lib/checkout/send-order-pdf';
 
-/** Un vendedor logueado dispara el envío desde el panel. Ver send-order-pdf.ts
- * para la lógica compartida con la puerta del bot (api/bot/orders/[id]/send-pdf). */
+export const dynamic = 'force-dynamic';
+
+/**
+ * El bot arma el PDF de un presupuesto/venta y lo manda por WhatsApp. Puerta
+ * paralela a src/app/api/orders/[id]/send-pdf/route.ts (la que usa un
+ * vendedor logueado desde el panel) — misma lógica compartida en
+ * src/lib/checkout/send-order-pdf.ts, acá solo cambia el actor (BOT_ACTOR,
+ * no un humano) y la autenticación (BOT_API_KEY vía middleware, no sesión).
+ *
+ * `text` lo arma el bot en criollo para acompañar el PDF (lo que el cliente
+ * lee en el chat); el detalle del PDF en sí sale siempre de generateOrderPDF
+ * — el LLM nunca calcula ni redacta los montos del documento.
+ */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id: orderId } = await params;
@@ -13,11 +24,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             return NextResponse.json({ error: 'Faltan parámetros (formattedPhone o text)' }, { status: 400 });
         }
 
-        // El PDF lo manda un vendedor logueado: que el buzón lo firme con su
-        // nombre (antes quedaba como "CRM" genérico, sin autor).
-        const actor = getActor(request, 'CRM');
-
-        const result = await sendOrderPdf(orderId, { formattedPhone, text, actor });
+        const result = await sendOrderPdf(orderId, { formattedPhone, text, actor: BOT_ACTOR });
         if (!result.ok) {
             return NextResponse.json({ error: result.error, code: result.code }, { status: result.status });
         }
@@ -27,7 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                 : { success: true, method: 'link' },
         );
     } catch (error: any) {
-        console.error('[send-pdf] Error:', error.message, error.stack);
+        console.error('[bot send-pdf] Error:', error.message, error.stack);
         return NextResponse.json({ error: `Error interno: ${error.message}` }, { status: 500 });
     }
 }

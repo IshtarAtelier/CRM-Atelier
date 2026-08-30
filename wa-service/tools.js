@@ -545,6 +545,21 @@ async function createQuote({ clientId, items, total, discountCash }) {
 }
 
 /**
+ * Tool: send the PDF of an already-created quote/order over WhatsApp.
+ * `formattedPhone` se deriva del chatId (mismo patrón que savePrescriptionData:
+ * `chatId.split('@')[0]`) — nunca se le pide el teléfono al cliente.
+ */
+async function sendQuotePdf({ orderId, chatId, text }) {
+    const formattedPhone = (chatId || '').split('@')[0];
+    const response = await requestWithRetry(() =>
+        apiClient.post(`${CRM_API_URL}/orders/${orderId}/send-pdf`, {
+            formattedPhone, text
+        })
+    );
+    return response.data;
+}
+
+/**
  * Tool: Cancel the bot and tag the conversation
  */
 async function cancelBot({ clientId, waId }) {
@@ -999,7 +1014,7 @@ async function reportInvoiceRequest({ clientId }) {
 module.exports = {
     checkExistingClient, convertIntoLead, updateClientData,
     getPriceList, getOrderStatus, createTask,
-    addInteraction, savePrescription, logBotMessage, createQuote,
+    addInteraction, savePrescription, logBotMessage, createQuote, sendQuotePdf,
     cancelBot, addTagToClient, disableBotForChat, reportComplaint,
     isPhrase, generateAndSaveHandoffSummary, updateChatSummary, reportInvoiceRequest
 };
