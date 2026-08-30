@@ -89,3 +89,23 @@ export function ventaExigeCrizal(items: ItemParaCrizal[]): boolean {
         && /optovision/i.test(i.laboratorio || '')
         && !/sin\s*ar\b|sin\s*crizal/i.test(i.nombre || ''));
 }
+
+/**
+ * LAS FAMILIAS QUE ENTRAN AL 2x1 — y el 2x1 SIEMPRE es con Crizal (o Numax en
+ * Sygnus). Lista dictada por Ishtar el 30/8/2026, tal cual:
+ * "todos esos requieren crizal para aplicar a promo 2x1".
+ * Por eso: su costo se calcula con el MEJOR Crizal sumado, y el candado de la
+ * venta no deja pasar un 2x1 sin Crizal de verdad. Una familia que no está acá
+ * no tiene promo 2x1 (Liberty, Digitime, Myopilux, Stellest, monofocales).
+ */
+export const FAMILIAS_2X1_CON_CRIZAL = [
+    'Essilor Eyezen',
+    'Kodak Unique DRO',
+    'Kodak Precise',
+    'Sygnus New Editions',
+    'Varilux Physio',
+    'Varilux Physio 3.0',
+    'Varilux Comfort',
+    'Varilux Comfort Max',
+    'Varilux XR Design',
+] as const;
