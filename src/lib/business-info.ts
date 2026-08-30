@@ -56,11 +56,14 @@ export const BUSINESS_INFO = {
   // Regla de comunicación: "hasta 12 cuotas", NUNCA "12 sin interés" ni el %.
   installmentsPromo: "3 o 6 cuotas sin interés con tarjeta, o hasta 12 cuotas con Mercado Pago",
   /**
-   * 29/8/2026 (Ishtar): único tipo de factura que se comunica. Reemplaza a
-   * "Factura B o C" (fix del 28/8, `346d9e5b`) — esa corrección quedó
-   * desactualizada, la vigente es esta.
+   * Único tipo de factura que se comunica. Un commit del 29/8 (`f35d1757`)
+   * puso "Factura A" acá diciendo que el fix del 28/8 (`346d9e5b`, "Factura B
+   * o C") había quedado desactualizado — Ishtar confirmó DIRECTAMENTE en el
+   * chat el 30/8 que "Factura B o C" es la correcta y NO se emite Factura A.
+   * No volver a cambiar esto sin que ella lo confirme explícitamente: ya se
+   * revirtió una vez sin preguntarle primero.
    */
-  invoiceType: "Factura A",
+  invoiceType: "Factura B o C",
   /**
    * 29/8/2026 (Ishtar): en piezas sobre cristales, mencionar SIEMPRE que
    * trabajamos con Essilor por ser el laboratorio líder a nivel mundial —
