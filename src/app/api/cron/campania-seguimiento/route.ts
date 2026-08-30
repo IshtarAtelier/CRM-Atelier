@@ -26,9 +26,12 @@ import type { Prisma } from '@prisma/client';
 
 type Campana = 'soycliente' | 'armazones';
 
-const CONFIG: Record<Campana, { tag: string; plantilla: 'tienda_online_soycliente' | 'seguimiento_12_cuotas_armazones' }> = {
-    soycliente: { tag: 'Campaña Tienda SoyCliente', plantilla: 'tienda_online_soycliente' },
-    armazones: { tag: 'Campaña Seguimiento Armazones', plantilla: 'seguimiento_12_cuotas_armazones' },
+// v2 (30/8/26): ambas plantillas suman "contanos qué modelito te gustó" y
+// llevan tienda + Instagram sí o sí (texto y botones). El TAG no cambia:
+// quien ya recibió la v1 esta tarde no vuelve a recibir la v2.
+const CONFIG: Record<Campana, { tag: string; plantilla: 'tienda_online_soycliente_v2' | 'tienda_online_quieromislentes' }> = {
+    soycliente: { tag: 'Campaña Tienda SoyCliente', plantilla: 'tienda_online_soycliente_v2' },
+    armazones: { tag: 'Campaña Seguimiento Armazones', plantilla: 'tienda_online_quieromislentes' },
 };
 
 const dormir = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -94,17 +97,23 @@ export async function GET(request: NextRequest) {
             ],
         };
     } else {
-        // Ya recibió la campaña de 12 cuotas (tiene ese tag) y sigue sin comprar.
-        const tagCampania12 = await prisma.tag.findUnique({ where: { name: 'Campaña MP 12 Cuotas' } });
+        // Prospectos jun-ago 2026 sin NINGUNA compra. Cubre tanto a quien ya
+        // recibió la campaña de 12 cuotas (le llega como seguimiento) como a
+        // quien todavía no recibió nada (le llega como primer contacto — el
+        // texto "¿Ya conocés nuestra tienda?" funciona para ambos). Se excluye
+        // a los 'Importado': esos son clientes del sistema anterior y les
+        // corresponde la campaña soycliente — sin esta exclusión un importado
+        // de julio sin ventas recibiría LOS DOS mensajes con DOS cupones.
         whereCandidatos = {
+            createdAt: { gte: CORTE_RECIENTE, lt: new Date('2026-09-01T00:00:00-03:00') },
             isDeleted: false,
             phone: { not: null },
-            NOT: { phone: { contains: NUCLEO_TEL_OPTICA } },
+            NOT: [
+                { phone: { contains: NUCLEO_TEL_OPTICA } },
+                { contactSource: 'Importado' },
+            ],
             orders: { none: { isDeleted: false } },
-            tags: {
-                none: { id: tag.id },
-                ...(tagCampania12 ? { some: { id: tagCampania12.id } } : {}),
-            },
+            tags: { none: { id: tag.id } },
         };
     }
 

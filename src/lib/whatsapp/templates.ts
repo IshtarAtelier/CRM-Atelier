@@ -223,6 +223,38 @@ export const WHATSAPP_TEMPLATES = {
             { type: 'URL', text: 'Seguinos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
         ],
     },
+    // v2 de las dos campañas de reactivación (30/8/26, correcciones de Ishtar
+    // sobre la primera versión): las dos suman "contanos qué modelito te
+    // gustó" (invita a responder, abre conversación) y mantienen SÍ O SÍ
+    // tienda + Instagram en texto y botones. Regla de códigos confirmada por
+    // ella: ya es cliente → SOYCLIENTE (15%), no es cliente → QUIEROMISLENTES
+    // (10%, mín $100.000). OJO category=MARKETING → cobra por conversación.
+    tienda_online_soycliente_v2: {
+        name: 'tienda_online_soycliente_v2',
+        inventario: 'Campaña tienda online clientes — cupón SOYCLIENTE v2 (ago-sep 2026)',
+        category: 'MARKETING',
+        header: 'IMAGE',
+        imagenMuestra: 'public/social/campania-cupon-soycliente/01.jpg',
+        body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Ya está online nuestra tienda 🛍️ Por ser cliente nuestro tenés un 15% OFF con el cupón SOYCLIENTE hasta fin de septiembre. Date una vuelta y contanos qué modelito te gustó 🕶️ Y seguinos en Instagram para enterarte primero de las novedades 👓',
+        params: [{ label: 'nombre', example: 'Julio' }],
+        buttons: [
+            { type: 'URL', text: 'Ver tienda', url: 'https://atelieroptica.com.ar/tienda' },
+            { type: 'URL', text: 'Seguinos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
+        ],
+    },
+    tienda_online_quieromislentes: {
+        name: 'tienda_online_quieromislentes',
+        inventario: 'Campaña tienda online prospectos — cupón QUIEROMISLENTES (ago-sep 2026)',
+        category: 'MARKETING',
+        header: 'IMAGE',
+        imagenMuestra: 'public/social/campania-cupon-quieromislentes/01.jpg',
+        body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 ¿Ya conocés nuestra tienda online? Date una vuelta y contanos qué modelito te gustó 🕶️ Con el código QUIEROMISLENTES tenés un 10% OFF en compras desde $100.000. Y seguinos en Instagram para ver las novedades primero 👓',
+        params: [{ label: 'nombre', example: 'Julio' }],
+        buttons: [
+            { type: 'URL', text: 'Ver tienda', url: 'https://atelieroptica.com.ar/tienda' },
+            { type: 'URL', text: 'Seguinos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
+        ],
+    },
     // Reseñas: SIEMPRE manual — la plantilla no cambia eso, la dispara una
     // persona desde el panel. Texto idéntico al de ReviewRequestsPanel.
     pedido_resena: {
