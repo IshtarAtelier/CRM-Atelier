@@ -1,0 +1,25 @@
+{
+  "id": "campania-cupon-soycliente",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "campania",
+  "fuente": "business-info",
+  "ubicacion": "Feed de Instagram y Facebook — remarketing a quien ya vio la tienda",
+  "temas": [
+    "tienda",
+    "descuento",
+    "remarketing"
+  ],
+  "caption": "¿Ya nos conocés? Entonces esto es para vos: 15% OFF en toda la tienda online con el código SOYCLIENTE.\n\nLo escribís en el checkout de atelieroptica.com.ar y el descuento se aplica solo. Sin compra mínima. Válido hasta fin de septiembre.\n\nY seguinos acá en Instagram para enterarte primero de cada novedad 👓\n\nEnvíos a todo el país. José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "encuadre": "cover",
+      "title": "Por ser cliente nuestro, con el código *SOYCLIENTE*",
+      "dato": "15% OFF",
+      "body": "Lo escribís en el checkout de atelieroptica.com.ar y listo. Sin mínimo de compra — válido hasta fin de septiembre. Seguinos acá para más novedades."
+    }
+  ]
+}

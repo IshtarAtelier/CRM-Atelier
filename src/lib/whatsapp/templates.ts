@@ -29,6 +29,9 @@ export interface TemplateDef {
     category: TemplateCategory;
     /** Encabezado con documento (PDF) o imagen, si lo lleva. */
     header?: 'DOCUMENT' | 'IMAGE';
+    /** header:'IMAGE' — ruta (relativa a la raíz del repo) del JPEG que se sube
+     * a Meta como muestra al crear la plantilla. Obligatorio si header='IMAGE'. */
+    imagenMuestra?: string;
     /** Texto del cuerpo tal cual se envía a aprobar. */
     body: string;
     /** Qué es cada {{n}}, en orden — y un ejemplo (Meta pide ejemplos al crear). */
@@ -183,6 +186,25 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Solo esta semana podés comprar tus anteojos hasta en 12 cuotas. Y como siempre: 3 y 6 cuotas sin interés, 15% de descuento en efectivo o transferencia. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. Te esperamos en el local para tomar tu receta: Lunes a Viernes de 8 a 20, Sábados de 9 a 17.',
         params: [{ label: 'nombre', example: 'Julio' }],
         buttons: [{ type: 'URL', text: 'Ver catálogo', url: 'https://atelieroptica.com.ar/tienda' }],
+    },
+    // Campaña "ya sos cliente" (30/8/26, pedido de Ishtar): avisar a clientes
+    // viejos (venta real anterior a junio 2026, o del sistema anterior via
+    // contactSource='Importado') que ya está la tienda online, con el cupón
+    // SOYCLIENTE (15% OFF, sin mínimo — ver panel Cupones). Excluye a quien
+    // tenga actividad reciente (jun-ago 2026, ya cubiertos por la campaña de
+    // 12 cuotas). OJO category=MARKETING → cobra por conversación.
+    tienda_online_soycliente: {
+        name: 'tienda_online_soycliente',
+        inventario: 'Campaña tienda online + cupón SOYCLIENTE (ago-sep 2026)',
+        category: 'MARKETING',
+        header: 'IMAGE',
+        imagenMuestra: 'public/social/campania-cupon-soycliente/01.jpg',
+        body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Ya está online nuestra tienda 🛍️ Por ser cliente nuestro, tenés un 15% OFF con el cupón SOYCLIENTE, válido hasta fin de septiembre. Dale una vuelta a atelieroptica.com.ar/tienda y aprovechá para ver los modelos nuevos o retomar algo que te haya gustado. Y seguinos en Instagram para enterarte primero de las novedades 👓',
+        params: [{ label: 'nombre', example: 'Julio' }],
+        buttons: [
+            { type: 'URL', text: 'Ver tienda', url: 'https://atelieroptica.com.ar/tienda' },
+            { type: 'URL', text: 'Seguinos en Instagram', url: 'https://www.instagram.com/atelieroptica_' },
+        ],
     },
     // Reseñas: SIEMPRE manual — la plantilla no cambia eso, la dispara una
     // persona desde el panel. Texto idéntico al de ReviewRequestsPanel.

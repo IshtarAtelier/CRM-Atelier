@@ -128,8 +128,15 @@ async function main() {
     for (const [i, def] of pendientes.entries()) {
         try {
             let handle = null;
-            if (def.header) {
+            if (def.header === 'DOCUMENT') {
                 handle = await subirMuestra(pdfDeMuestra(`Atelier Optica - ${def.name}`), `${def.name}.pdf`, 'application/pdf');
+            } else if (def.header === 'IMAGE') {
+                // Meta rechaza un PDF como muestra de un header IMAGE (mismatch
+                // de mime): hace falta un JPEG real. `imagenMuestra` en la
+                // definición apunta a la placa ya renderizada para esa campaña.
+                if (!def.imagenMuestra) throw new Error(`header IMAGE sin "imagenMuestra" en el catálogo`);
+                const buffer = readFileSync(new URL(`../../../${def.imagenMuestra}`, import.meta.url));
+                handle = await subirMuestra(buffer, `${def.name}.jpg`, 'image/jpeg');
             }
             const r = await graph(`${WABA}/message_templates`, {
                 method: 'POST',
