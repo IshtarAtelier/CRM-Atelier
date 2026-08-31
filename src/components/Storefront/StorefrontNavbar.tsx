@@ -10,6 +10,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { track } from "@/lib/client-analytics";
+import { CARTEL_PROMO_POR_DEFECTO } from "@/lib/promo-cuotas";
 
 interface StorefrontNavbarProps {
   theme?: "light" | "dark"; // dark = dark background (needs white text), light = light background (needs black text)
@@ -169,7 +170,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
   const showAnnouncement = isWholesaleSession || (webSettings ? webSettings.web_announcement_active : true);
   const announcementText = isWholesaleSession
     ? "Canal Mayorista Ópticas • Precios Netos • Envío y Pago a Convenir"
-    : (webSettings ? webSettings.web_announcement_text : "6 Cuotas Sin Interés • Hasta 12 Cuotas • 15% OFF en Efectivo o Transferencia • Envío Gratis");
+    : (webSettings ? webSettings.web_announcement_text : CARTEL_PROMO_POR_DEFECTO);
   const announcementLink = isWholesaleSession ? "/tienda" : (webSettings ? webSettings.web_announcement_link : "/tienda");
 
   return (

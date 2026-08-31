@@ -10,6 +10,7 @@
 import { useState, useEffect } from "react";
 import { DollarSign } from "lucide-react";
 import { PricingService } from "@/services/PricingService";
+import { TEXTO_MP_CUOTAS_LARGAS, leerPromoCuotas, textoCuotas12 } from "@/lib/promo-cuotas";
 
 /** Icono de tarjeta compartido por las dos filas de cuotas (una sola copia). */
 const IconoTarjeta = () => (
@@ -45,14 +46,17 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
         ? Number(settings.web_promo_cash_discount) 
         : 15);
 
-  const instText = installmentsText !== undefined
-    ? installmentsText
-    : (settings && settings.web_promo_installments ? settings.web_promo_installments : "6 cuotas sin interés");
+  // `web_promo_installments` es texto libre: `leerPromoCuotas` es el único que
+  // lo interpreta, y no acepta un número que no sea de los que se venden sin
+  // interés. Sin esa guarda, escribir "12 cuotas" ahí hacía que esta fila
+  // dijera "12 cuotas sin interés de $lista/12" — la frase prohibida y, encima,
+  // el precio equivocado (las 12 van por PricingService, con recargo).
+  const promo = leerPromoCuotas(
+    installmentsText !== undefined ? installmentsText : settings?.web_promo_installments,
+  );
+  const instText = promo.texto;
 
-  const matchInstallments = instText ? instText.match(/\d+/) : null;
-  const numInstallments = matchInstallments ? parseInt(matchInstallments[0], 10) : 6;
-
-  const installmentValue = showCalculated ? Math.round(price / numInstallments) : 0;
+  const installmentValue = showCalculated ? Math.round(price / promo.cantidad) : 0;
   const cashPriceValue = showCalculated ? Math.round(price * (1 - discountPercent / 100)) : 0;
 
   // 12 cuotas por Mercado Pago: el cálculo vive en PricingService (regla del
@@ -65,9 +69,10 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
   const options = [
     {
       icon: <IconoTarjeta />,
-      label: showCalculated
-        ? `12 cuotas fijas de $${cuota12Value.toLocaleString('es-AR')}`
-        : '12 cuotas fijas con Mercado Pago',
+      // Decisión de Ishtar del 31/8/2026: la cuota de 12 SIEMPRE con su costo
+      // financiero al lado. La redacción sale de `promo-cuotas.ts`, que es el
+      // único lugar donde se escribe.
+      label: showCalculated ? textoCuotas12(cuota12Value) : TEXTO_MP_CUOTAS_LARGAS,
       sub: "por Mercado Pago",
       highlight: false,
     },

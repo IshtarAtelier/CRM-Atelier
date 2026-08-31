@@ -7,7 +7,7 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 export const metadata: Metadata = {
   alternates: { canonical: 'https://atelieroptica.com.ar/blog/sintomas-presbicia-soluciones' },
   title: "¿Te alejás el celular para leer? Presbicia y soluciones en Córdoba",
-  description: "Descubrí los síntomas de la presbicia y por qué alejás el celular. Conocé las mejores soluciones en lentes multifocales en Atelier Óptica (Córdoba). Envíos a todo el país y cuotas sin interés.",
+  description: "Descubrí los síntomas de la presbicia y por qué alejás el celular. Conocé las mejores soluciones en lentes multifocales en Atelier Óptica (Córdoba). Envíos a todo el país y 6 cuotas sin interés.",
   keywords: ["presbicia síntomas", "lentes multifocales Córdoba", "óptica Cerro de las Rosas", "óptica Nueva Córdoba", "anteojos de receta", "soluciones presbicia", "Atelier Óptica"],
 };
 

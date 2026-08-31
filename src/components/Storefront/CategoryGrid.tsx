@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { PricingService } from "@/services/PricingService";
+import { ACLARACION_MP_CUOTAS_LARGAS, leerPromoCuotas } from "@/lib/promo-cuotas";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 import Image from "next/image";
@@ -34,12 +35,13 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
       .catch(err => console.error("Error loading web settings for category grid:", err));
   }, []);
 
-  const getInstallmentsCount = (text: string) => {
-    const match = text.match(/\d+/);
-    return match ? parseInt(match[0], 10) : 6;
-  };
-
-  const installmentsCount = getInstallmentsCount(webSettings.web_promo_installments);
+  // El parseo de `web_promo_installments` vive en `promo-cuotas.ts` y en ningún
+  // otro lado: estaba copiado a mano acá, en TiendaClient y en LensConfigurator,
+  // y como sacaba el número con `match(/\d+/)` sobre texto libre, escribir
+  // "12 cuotas" en /admin/web hacía que esta grilla renderizara sola
+  // "12 s/interés de $lista/12" — la frase prohibida, con el precio mal.
+  const promo = leerPromoCuotas(webSettings.web_promo_installments);
+  const installmentsCount = promo.cantidad;
   const discountRate = webSettings.web_promo_cash_discount / 100;
 
   if (products.length === 0) {
@@ -148,8 +150,10 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                     </p>
                     <span className="text-xs text-stone-900 dark:text-white uppercase tracking-wider font-bold group-hover:text-[#8a6d3b] dark:group-hover:text-[#c8a55c] transition-colors shrink-0">Ver anteojos ›</span>
                   </div>
+                  {/* La cuota de 12 de arriba nunca va sin su costo financiero
+                      (decisión de Ishtar del 31/8/26): abre esta línea. */}
                   <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
-                    {installmentsCount} s/interés de ${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")} · Transf. {webSettings.web_promo_cash_discount}% OFF: ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
+                    {ACLARACION_MP_CUOTAS_LARGAS} · {installmentsCount} s/interés de ${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")} · Transf. {webSettings.web_promo_cash_discount}% OFF: ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
                   </p>
                 </div>
               </div>

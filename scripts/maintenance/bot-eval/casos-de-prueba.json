@@ -1,9 +1,9 @@
 {
-  "_descripcion": "Casos de prueba destilados de conversaciones reales de producción. Cada caso: un mensaje de cliente (real o parafraseado de uno real) + los criterios que una respuesta PERFECTA debe cumplir según las reglas vigentes de src/lib/business-info.ts (30/8/2026). Si una regla de negocio cambia (horarios, promos, cuotas), actualizar los criterios ANTES de usar esto para evaluar.",
+  "_descripcion": "Casos de prueba destilados de conversaciones reales de producción. Cada caso: un mensaje de cliente (real o parafraseado de uno real) + los criterios que una respuesta PERFECTA debe cumplir según las reglas vigentes de src/lib/business-info.ts (31/8/2026). Si una regla de negocio cambia (horarios, promos, cuotas), actualizar los criterios ANTES de usar esto para evaluar.",
   "_reglas_vigentes": {
     "horarios": "Lunes a Viernes de 8:00 a 20:00. Sábados de 9:00 a 17:00",
     "descuentos": "15% en efectivo y 15% por transferencia",
-    "cuotas": "3 o 6 sin interés con tarjeta; hasta 12 con Mercado Pago (NUNCA decir '12 sin interés' ni mencionar el % de costo financiero)",
+    "cuotas": "3 o 6 sin interés con tarjeta; hasta 12 con Mercado Pago, que llevan 10% de costo financiero. Decisión de Ishtar del 31/8/2026: el 10% se ACLARA SIEMPRE (antes acá decía lo contrario). NUNCA decir '12 sin interés'",
     "direccion": "José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba",
     "laboratorio": "Essilor — mencionarlo con hincapié en consultas de cristales",
     "multifocales": "Promo 2x1 solo en multifocales; garantía de adaptación = UN SOLO cambio de cristal",
@@ -12,7 +12,7 @@
   "casos": [
     { "id": "cp-01", "categoria": "consulta_precio", "mensaje_cliente": "Hola, cuánto sale un lente multifocal?", "respuesta_esperada_criterios": ["Pide la receta antes de dar un número (el precio depende de la graduación)", "Menciona que trabajan con Essilor", "Menciona la promo 2x1 en multifocales", "No inventa un precio cerrado sin datos", "Pregunta por obra social/prepaga para personalizar"] },
     { "id": "cp-02", "categoria": "consulta_precio", "mensaje_cliente": "Precio de lentes de sol Vulk?", "respuesta_esperada_criterios": ["Da un rango o pide el modelo puntual", "Menciona 15% de descuento en efectivo o transferencia", "Menciona 3 o 6 cuotas sin interés", "Invita a ver modelos en el local o la tienda online"] },
-    { "id": "cp-03", "categoria": "consulta_precio", "mensaje_cliente": "Me dijeron que tienen 12 cuotas sin interés, es así?", "respuesta_esperada_criterios": ["Corrige con tacto: 3 o 6 cuotas sin interés con tarjeta", "Ofrece 'hasta 12 cuotas con Mercado Pago' SIN decir 'sin interés' y SIN mencionar el porcentaje de costo financiero", "No confirma el dato falso"] },
+    { "id": "cp-03", "categoria": "consulta_precio", "mensaje_cliente": "Me dijeron que tienen 12 cuotas sin interés, es así?", "respuesta_esperada_criterios": ["Corrige con tacto: 3 o 6 cuotas sin interés con tarjeta", "Ofrece 'hasta 12 cuotas con Mercado Pago' SIN decir 'sin interés'", "MENCIONA el 10% de costo financiero de las 12 (decisión de Ishtar del 31/8/2026: se aclara siempre)", "No confirma el dato falso"] },
     { "id": "cp-04", "categoria": "consulta_precio", "mensaje_cliente": "Si pago en efectivo hay descuento?", "respuesta_esperada_criterios": ["15% en efectivo", "Aclara que transferencia también tiene 15%", "No dice 20% (promo vieja)"] },
     { "id": "cp-05", "categoria": "consulta_precio", "mensaje_cliente": "Hacen factura A? Necesito para la empresa", "respuesta_esperada_criterios": ["Informa que se emite Factura B o C", "No promete Factura A", "Deriva a un humano si el cliente insiste con un caso especial"] },
     { "id": "cp-06", "categoria": "receta_graduacion", "mensaje_cliente": "Tengo la receta del oculista, se las puedo mandar por acá?", "respuesta_esperada_criterios": ["Acepta la foto de la receta por WhatsApp", "Explica qué va a hacer con ella (presupuesto personalizado)", "Pregunta qué tipo de lente busca (lejos/cerca/multifocal/sol)"] },

@@ -1,6 +1,7 @@
 import React from "react";
 import { ShieldCheck } from "lucide-react";
 import { PricingService } from "@/services/PricingService";
+import { ACLARACION_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
 
 export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, webSettings, paywayLoaded, isWholesale, payableTotal, mercadoPagoEnabled, paywayEnabled = true }: { formData: any, handleChange: any, isProcessing: boolean, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, paywayLoaded?: boolean, isWholesale?: boolean, payableTotal?: number, mercadoPagoEnabled?: boolean, paywayEnabled?: boolean }) {
   // El monto en el botón mata la última duda ("¿cuánto termino pagando?") justo
@@ -119,7 +120,11 @@ export function CheckoutPaymentOptions({ formData, handleChange, isProcessing, w
                         <span className="flex items-center gap-2.5">
                           <input type="radio" name="mpCuotas" value="12" checked={formData.mpCuotas === '12'} onChange={handleChange} className="accent-black" />
                           <span>
-                            <span className="text-[13px] font-bold block">Hasta 12 cuotas</span>
+                            {/* El plan de 12 se ofrece SIEMPRE con su costo
+                                financiero a la vista (decisión de Ishtar del
+                                31/8/26): es el radio donde el comprador elige
+                                pagar más, y tiene que saberlo antes de tildarlo. */}
+                            <span className="text-[13px] font-bold block">Hasta 12 cuotas ({ACLARACION_MP_CUOTAS_LARGAS})</span>
                             {planMp12 && (
                               <span className="text-[11px] text-stone-500 block">12 x ${planMp12.installment12.toLocaleString('es-AR')} · total ${planMp12.totalFinanced.toLocaleString('es-AR')}</span>
                             )}

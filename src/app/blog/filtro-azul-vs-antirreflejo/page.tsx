@@ -6,7 +6,7 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 export const metadata: Metadata = {
   alternates: { canonical: 'https://atelieroptica.com.ar/blog/filtro-azul-vs-antirreflejo' },
   title: { absolute: "Filtro Azul vs Antirreflejo: ¿Cuál elegir? | Óptica en Córdoba" },
-  description: "Descubrí la diferencia entre cristales con filtro azul (blue cut) y el tratamiento antirreflejo. Asesoramiento óptico especializado en Córdoba (Cerro de las Rosas, Nueva Córdoba). Envíos a todo el país y cuotas sin interés.",
+  description: "Descubrí la diferencia entre cristales con filtro azul (blue cut) y el tratamiento antirreflejo. Asesoramiento óptico especializado en Córdoba (Cerro de las Rosas, Nueva Córdoba). Envíos a todo el país y 6 cuotas sin interés.",
   keywords: ["filtro azul vs antirreflejo", "lentes blue cut", "tratamiento antireflex", "óptica en Córdoba", "Cerro de las Rosas", "Nueva Córdoba", "anteojos de receta", "salud visual", "fatiga visual"],
 };
 

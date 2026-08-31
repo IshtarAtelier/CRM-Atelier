@@ -30,6 +30,7 @@ import VeredictoTienda from '@/components/admin/web/VeredictoTienda';
 import { LineChart } from 'lucide-react';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { WHATSAPP_PHONE } from '@/lib/constants';
+import { CARTEL_PROMO_POR_DEFECTO } from '@/lib/promo-cuotas';
 import { getSelectedShapeFromTags, getSelectedMaterialFromTags, updateTagsWithShapeAndMaterial, getProductAttributes } from '@/utils/product-controllers';
 
 interface WebProduct {
@@ -508,7 +509,10 @@ export default function WebManagementPage() {
       if (res.ok) {
         const data = await res.json();
         setConfigForm({
-          web_announcement_text: data.web_announcement_text || "6 Cuotas Sin Interés • 15% OFF en Efectivo o Transferencia • Envío Gratis",
+          // Mismo default que la tienda (`promo-cuotas.ts`). Acá decía otra cosa
+          // —sin las 12 cuotas— así que el formulario proponía un cartel que no
+          // era el que la tienda mostraba.
+          web_announcement_text: data.web_announcement_text || CARTEL_PROMO_POR_DEFECTO,
           web_announcement_active: data.web_announcement_active !== undefined ? data.web_announcement_active : true,
           web_announcement_link: data.web_announcement_link || "/tienda",
           web_store_address: data.web_store_address || "José Luis de Tejeda 4380",

@@ -5,6 +5,7 @@ import { CouponField, type AppliedCoupon } from "@/components/checkout/CouponFie
 import { getItemUnitPrice } from "@/store/useCart";
 import { PricingService } from "@/services/PricingService";
 import { recetaPendiente } from '@/lib/checkout/receta';
+import { ETIQUETA_MP_CUOTAS_LARGAS } from '@/lib/promo-cuotas';
 
 export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings, isWholesale, appliedCoupon, couponDiscount = 0, onCouponApplied }: { items: any[], getCartTotal: any, formData: any, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, isWholesale?: boolean, appliedCoupon?: AppliedCoupon | null, couponDiscount?: number, onCouponApplied?: (coupon: AppliedCoupon | null) => void }) {
   const discountRate = (webSettings?.web_promo_cash_discount || 15) / 100;
@@ -28,7 +29,9 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
               Orden de venta (27/8): primero 12, después 6, después contado. */}
           <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg px-4 py-3">
             <CreditCard className="w-4 h-4 text-stone-700 shrink-0" />
-            <p className="text-xs font-semibold flex-1">12 cuotas fijas por Mercado Pago</p>
+            {/* La cuota de 12 nunca va sin su costo financiero (decisión de
+                Ishtar del 31/8/26). La frase sale de promo-cuotas.ts. */}
+            <p className="text-xs font-semibold flex-1">{ETIQUETA_MP_CUOTAS_LARGAS} por Mercado Pago</p>
             <span className="text-[9px] font-black uppercase tracking-widest bg-sky-600 text-white px-2 py-1 rounded">12 x ${PricingService.cuotasMpLargas(subtotalAfterCoupon).installment12.toLocaleString("es-AR")}</span>
           </div>
           <div className="flex items-center gap-3 bg-white border border-stone-200 rounded-lg px-4 py-3">

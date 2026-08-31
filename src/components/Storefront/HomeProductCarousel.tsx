@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { PricingService } from "@/services/PricingService";
+import { ACLARACION_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 import { WHATSAPP_PHONE } from "@/lib/constants";
@@ -225,9 +226,15 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                         const v = PricingService.preciosVidriera(item.rawPrice, 15);
                         return (
                           <p className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">12 cuotas fijas de</span>
+                            <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">12 cuotas de</span>
                             <span className="text-[13px] font-black text-stone-900 tracking-tight whitespace-nowrap">
                               ${v.cuota12.toLocaleString("es-AR")}
+                            </span>
+                            {/* La cuota de 12 nunca va sola: decisión de Ishtar
+                                del 31/8/26, el costo financiero se aclara
+                                siempre. La frase sale de promo-cuotas.ts. */}
+                            <span className="text-[10px] text-stone-500 font-medium">
+                              {ACLARACION_MP_CUOTAS_LARGAS}
                             </span>
                             <span className="text-[10px] text-stone-500 font-medium">
                               6 cuotas sin interés de ${v.cuota6.toLocaleString("es-AR")}

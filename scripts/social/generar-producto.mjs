@@ -22,6 +22,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { RAIZ } from './identidad.mjs';
+import { cuotasLargas, leerPromoCuotas } from './condiciones-pago.mjs';
 
 const CACHE_FOTOS = path.join(RAIZ, 'public', 'images', 'catalogo-social');
 const DESTINO = path.join(RAIZ, 'social', 'contenido');
@@ -145,6 +146,33 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
 
         const slides = [];
 
+        // Las condiciones de pago se leen de DONDE LAS LEE LA TIENDA
+        // (SystemSetting), con el mismo redondeo que PaymentOptions.tsx. Si la
+        // fuente fuera otra, el carrusel diría un número y la ficha otro.
+        // El texto libre se interpreta con `leerPromoCuotas`, que no acepta un
+        // número que no sea de los que se venden sin interés.
+        const cond = await (async () => {
+            const filas = await prisma.systemSetting.findMany({
+                where: { key: { in: ['web_promo_installments', 'web_promo_cash_discount'] } },
+                select: { key: true, value: true },
+            });
+            const get = (k) => filas.find(f => f.key === k)?.value;
+            const promo = leerPromoCuotas(get('web_promo_installments'));
+            const crudo = Number(get('web_promo_cash_discount'));
+            return {
+                cuotas: promo.cantidad,
+                textoCuotas: promo.texto,
+                descuento: Number.isFinite(crudo) && crudo > 0 ? crudo : 15,
+            };
+        })();
+        console.log(`  · condiciones (de la tienda): ${cond.textoCuotas} · ${cond.descuento}% al contado`);
+
+        // El costo financiero de las 12 sale de RECARGO_MP_CUOTAS_LARGAS
+        // (src/lib/constants/descuentos.ts) — la misma constante que aplica
+        // PricingService. Acá NO se escribe el 1,10 a mano.
+        const aclaracion12 = (await cuotasLargas(0)).aclaracion;
+        console.log(`  · 12 cuotas: ${aclaracion12}`);
+
         // Portada: la foto del primero, sin precio (el gancho no es el precio).
         const primero = elegidos[0];
         const fotoPortada = await fotoLocal(primero.imageUrl, `${primero.slug}`);
@@ -156,27 +184,10 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             image: path.relative(path.join(RAIZ, 'public', 'images'), fotoPortada),
             title: titulo || (categoria === 'Sol' ? 'Los de *sol* que están volando'
                 : marca ? `Armazones *${marca}*` : 'Los que más nos piden *esta temporada*'),
-            subtitle: 'Diseño de autor en 12 cuotas fijas o 6 sin interés, y con envío sin cargo.',
+            // "12 cuotas fijas o 6 sin interés" leía como si las dos fueran sin
+            // interés. Se nombran separadas y las 12 con su costo financiero.
+            subtitle: `Diseño de autor en 6 cuotas sin interés, o 12 cuotas con ${aclaracion12}. Envío sin cargo.`,
         });
-
-        // Las condiciones de pago se leen de DONDE LAS LEE LA TIENDA
-        // (SystemSetting), con el mismo redondeo que PaymentOptions.tsx. Si la
-        // fuente fuera otra, el carrusel diría un número y la ficha otro.
-        const cond = await (async () => {
-            const filas = await prisma.systemSetting.findMany({
-                where: { key: { in: ['web_promo_installments', 'web_promo_cash_discount'] } },
-                select: { key: true, value: true },
-            });
-            const get = (k) => filas.find(f => f.key === k)?.value;
-            const texto = get('web_promo_installments') || '6 cuotas sin interés';
-            const crudo = Number(get('web_promo_cash_discount'));
-            return {
-                cuotas: Number(texto.match(/\d+/)?.[0] || 6),
-                textoCuotas: texto,
-                descuento: Number.isFinite(crudo) && crudo > 0 ? crudo : 15,
-            };
-        })();
-        console.log(`  · condiciones (de la tienda): ${cond.textoCuotas} · ${cond.descuento}% al contado`);
 
         // "Nashira C3" → "Nashira": el sufijo de color distingue variantes en
         // el catálogo; en una placa ensucia y el color se ve en la foto.
@@ -191,9 +202,16 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             const cuota = Math.round(p.product.price / cond.cuotas);
             const alContado = Math.round(p.product.price * (1 - cond.descuento / 100));
             // 12 cuotas MP (27/8/26): misma fórmula que la tienda
-            // (PricingService.cuotasMpLargas: lista × 1,10 ÷ 12). "hasta 12
-            // pagos", nunca "sin interés" ni el % — regla de Ishtar.
-            const cuota12 = Math.round((p.product.price * 1.10) / 12);
+            // (PricingService.cuotasMpLargas: lista × factor ÷ 12), con el
+            // factor leído de RECARGO_MP_CUOTAS_LARGAS.
+            //
+            // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita):
+            // el costo financiero se ACLARA SIEMPRE al lado de la cuota, en
+            // toda superficie, y las 12 nunca se dicen "sin interés" (eso son
+            // solo 3 y 6). Hasta el 31/8 acá decía lo contrario ("nunca el %"),
+            // y por eso los carruseles de catálogo publicaban la cuota
+            // financiada sin decir que lo estaba.
+            const cuota12 = (await cuotasLargas(p.product.price)).texto;
             slides.push({
                 type: 'number',
                 // El primer producto es la bisagra: donde el carrusel gira de
@@ -208,7 +226,7 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
                         ? ` · ${p.product.brand}` : ''
                 ),
                 dato: plata(cuota),
-                body: `12 cuotas fijas de ${plata(cuota12)}\n${cond.textoCuotas}\nTransferencia ${cond.descuento}% OFF: ${plata(alContado)}`,
+                body: `${cuota12}\n${cond.textoCuotas}\nTransferencia ${cond.descuento}% OFF: ${plata(alContado)}`,
             });
         }
 

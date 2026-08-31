@@ -8,7 +8,7 @@
     "armazones",
     "local"
   ],
-  "caption": "Ya los viste. Ahora los números: 6 cuotas sin interés con tarjeta, 20% de descuento en efectivo o 15% por transferencia. Lunes a sábado, sin turno previo. Escribinos por WhatsApp.",
+  "caption": "Ya los viste. Ahora los números: 6 cuotas sin interés con tarjeta, hasta 12 cuotas con Mercado Pago (10% de costo financiero), o 15% de descuento en efectivo o transferencia. Lunes a sábado, sin turno previo. Escribinos por WhatsApp.",
   "slides": [
     {
       "type": "list",
@@ -17,8 +17,8 @@
       "title": "Elegí *cómo pagarlos*",
       "items": [
         "*6 cuotas* sin interés con tarjeta",
-        "*20%* de descuento en efectivo",
-        "*15%* pagando por transferencia"
+        "*12 cuotas* con Mercado Pago (10% de costo financiero)",
+        "*15%* en efectivo o transferencia"
       ],
       "encuadre": "cover"
     }

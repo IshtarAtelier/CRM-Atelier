@@ -7,6 +7,7 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 import { buildWhatsAppUrl } from "@/lib/whatsapp-link";
 import { track } from "@/lib/client-analytics";
 import { RECETA_POR_WHATSAPP } from '@/lib/checkout/receta';
+import { leerPromoCuotas } from '@/lib/promo-cuotas';
 
 type LensType = "MONOFOCAL" | "BIFOCAL" | "MULTIFOCAL" | "NONE" | null;
 type Treatment = "ORGANICO_BLANCO" | "ORGANICO_AR" | "ORGANICO_BLUE" | "POLI_BLUE" | "ORGANICO_FOTOCROMATICO" | "ORGANICO_BLANCO_TENIDO" | "SMART_FREE" | "VARILUX" | "FOTOCROMATICO" | "UNICO" | null;
@@ -62,12 +63,13 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
       .catch(err => console.error("Error loading web settings for configurator:", err));
   }, []);
 
-  const getInstallmentsCount = (text: string) => {
-    const match = text.match(/\d+/);
-    return match ? parseInt(match[0], 10) : 6;
-  };
-
-  const installmentsCount = getInstallmentsCount(webSettings.web_promo_installments);
+  // El parseo de `web_promo_installments` vive en `promo-cuotas.ts` y en ningún
+  // otro lado: estaba copiado a mano acá, en TiendaClient y en CategoryGrid, y
+  // como sacaba el número con `match(/\d+/)` sobre texto libre, escribir
+  // "12 cuotas" en /admin/web hacía que este bloque dijera "12 cuotas sin
+  // interés de $total/12" — la frase prohibida, con el precio mal.
+  const promo = leerPromoCuotas(webSettings.web_promo_installments);
+  const installmentsCount = promo.cantidad;
   const discountRate = webSettings.web_promo_cash_discount / 100;
 
   const [step, setStep] = useState<number>(1);
@@ -616,7 +618,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
           </motion.p>
           <div className="flex flex-col items-center gap-1 mt-3.5 text-center">
             <p className="text-[11px] font-bold text-stone-700">
-              💳 {webSettings.web_promo_installments} de <span className="underline">${Math.round(calculateTotal() / installmentsCount).toLocaleString('es-AR')}</span>
+              💳 {promo.texto} de <span className="underline">${Math.round(calculateTotal() / installmentsCount).toLocaleString('es-AR')}</span>
             </p>
             <p className="text-[11px] font-bold text-[#8a6d3b] bg-[#faf8f5] px-3.5 py-1 rounded-full border border-[#e8e2db] mt-0.5 shadow-sm">
               💵 ${Math.round(calculateTotal() * (1 - discountRate)).toLocaleString('es-AR')} en efectivo / transferencia <span className="text-[10px] font-black uppercase text-[#8a6d3b] ml-1">({webSettings.web_promo_cash_discount}% OFF)</span>

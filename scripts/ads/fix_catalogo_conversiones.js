@@ -33,6 +33,12 @@
  *    de esa app y Graph rechaza el appsecret_proof.)
  */
 const c = require('./lib/meta_client.js');
+// El costo financiero de las 12 cuotas NO se escribe a mano acá. Se lee del
+// espejo CommonJS de los datos comerciales, que `npm run check:businessinfo`
+// compara valor por valor contra `src/lib/constants/descuentos.ts`
+// (RECARGO_MP_CUOTAS_LARGAS) en CI. Un `require` de la constante TypeScript no
+// es posible desde este script CJS; el espejo sí, y está garantizado en sync.
+const { RECARGO_MP_CUOTAS_LARGAS } = require('../../wa-service/shared/business-info.js');
 
 const CAMPANIA = '120250804098450023';
 const ADSET_VIEJO = '120250804098460023';
@@ -120,8 +126,12 @@ const creativeMensaje = {
     instagram_user_id: IG_USER,
     template_data: {
       link: LINK,
-      // Regla de Ishtar: "12 cuotas" (nunca "12 pagos", nunca "sin interés" en las 12).
-      message: '👓 Tus próximos lentes están en Atelier Óptica\n💳 6 cuotas sin interés · hasta 12 cuotas con Mercado Pago\n🎁 Envío gratis a todo el país 🇦🇷',
+      // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita): "12
+      // cuotas" (nunca "12 pagos"), nunca "sin interés" en las 12 —eso son solo
+      // 3 y 6— y SIEMPRE con su costo financiero aclarado, también en un
+      // anuncio. Hasta el 31/8 esta línea decía "nunca ... el %", y el aviso
+      // salía ofreciendo una cuota financiada sin decir que lo estaba.
+      message: `👓 Tus próximos lentes están en Atelier Óptica\n💳 6 cuotas sin interés · hasta 12 cuotas con Mercado Pago (${RECARGO_MP_CUOTAS_LARGAS}% de costo financiero)\n🎁 Envío gratis a todo el país 🇦🇷`,
       call_to_action: { type: 'SHOP_NOW' },
       child_attachments: [
         { link: LINK, image_hash: IMAGE_HASH_PORTADA, call_to_action: { type: 'SHOP_NOW' }, static_card: true },

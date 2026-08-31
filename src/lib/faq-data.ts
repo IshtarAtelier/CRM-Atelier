@@ -114,7 +114,10 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     items: [
       {
         q: "¿Qué medios de pago aceptan? ¿Hay cuotas y descuentos?",
-        a: "Aceptamos tarjetas de crédito y débito, efectivo y transferencia. Ofrecemos cuotas sin interés con tarjeta y descuentos por pago en efectivo o transferencia. Las promociones vigentes —cantidad de cuotas y porcentaje de descuento— las ves siempre actualizadas en la barra superior de la web y en la tienda, porque cambian según el período.",
+        // El plan de 12 se nombra con su costo financiero (decisión de Ishtar
+        // del 31/8/2026): acá antes decía "cuotas sin interés" a secas, que
+        // dejaba entender que TODAS las cuotas eran sin interés.
+        a: "Aceptamos tarjetas de crédito y débito, efectivo y transferencia. Con tarjeta hay 3 y 6 cuotas sin interés, y por Mercado Pago podés llegar hasta 12 cuotas, que llevan un 10% de costo financiero (esas no son sin interés). También hacemos descuento por pago en efectivo o transferencia. Las promociones vigentes —cantidad de cuotas y porcentaje de descuento— las ves siempre actualizadas en la barra superior de la web y en la tienda, porque cambian según el período.",
       },
       {
         q: "¿Puedo cambiar o devolver un producto?",

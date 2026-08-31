@@ -36,6 +36,7 @@ import 'dotenv/config';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { RAIZ } from './identidad.mjs';
+import { cuotasLargas, leerPromoCuotas } from './condiciones-pago.mjs';
 
 const SALIDA = path.join(RAIZ, 'social', 'contenido');
 
@@ -118,14 +119,18 @@ async function condicionesDeVenta(prisma) {
     });
     const get = (k) => filas.find(f => f.key === k)?.value;
 
-    const texto = get('web_promo_installments') || '6 cuotas sin interés';
-    const cuotas = Number(texto.match(/\d+/)?.[0] || 6);
+    // `web_promo_installments` es texto libre cargado desde /admin/web:
+    // `leerPromoCuotas` solo acepta un número que de verdad se venda sin
+    // interés (3 o 6). Con "12 cuotas" ahí, esto habría dividido el precio de
+    // lista por 12 y lo habría rotulado "sin interés" — la frase prohibida y,
+    // encima, el precio equivocado (las 12 llevan el costo financiero).
+    const promo = leerPromoCuotas(get('web_promo_installments'));
 
     const crudo = Number(get('web_promo_cash_discount'));
     // El mismo default que PaymentOptions.tsx cuando el setting no está.
     const descuento = Number.isFinite(crudo) && crudo > 0 ? crudo : 15;
 
-    return { cuotas, textoCuotas: texto, descuento };
+    return { cuotas: promo.cantidad, textoCuotas: promo.texto, descuento };
 }
 
 export async function generarStoriesDeProducto({ marca, cantidad, produccion, tienda, categoria, nombre, cta = CTA_POR_DEFECTO, soloNombre = false }) {
@@ -199,8 +204,14 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
             // tienda es una discusión en el mostrador.
             const cuota = Math.round(precio / cond.cuotas);
             const alContado = Math.round(precio * (1 - cond.descuento / 100));
-            // 12 cuotas MP (27/8/26): misma fórmula que la tienda (lista × 1,10 ÷ 12).
-            const cuota12 = Math.round((precio * 1.10) / 12);
+            // 12 cuotas MP (27/8/26): misma fórmula que la tienda
+            // (lista × factor ÷ 12), con el factor leído de
+            // RECARGO_MP_CUOTAS_LARGAS en vez de un 1,10 tipeado acá.
+            //
+            // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita):
+            // la cuota de 12 va SIEMPRE con su costo financiero al lado, y
+            // nunca se dice "sin interés" de las 12 (eso son solo 3 y 6).
+            const texto12 = (await cuotasLargas(precio)).texto;
 
             const pieza = {
                 id,
@@ -228,7 +239,7 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
                 producto: { nombre, slug: w.slug, marca: p.brand, categoria: w.category },
                 caption: soloNombre
                     ? `${nombre} · ${p.brand}\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`
-                    : `${nombre} · ${p.brand}\n\n12 cuotas fijas de ${precioAr(cuota12)}\n${cond.textoCuotas} de ${precioAr(cuota)}\nTransferencia ${cond.descuento}% OFF: ${precioAr(alContado)}\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`,
+                    : `${nombre} · ${p.brand}\n\n${texto12}\n${cond.textoCuotas} de ${precioAr(cuota)}\nTransferencia ${cond.descuento}% OFF: ${precioAr(alContado)}\n\nEn la tienda: ${tienda}/producto/${w.slug}\nO vení a probártelo, Cerro de las Rosas.`,
                 slides: [
                     {
                         type: 'number',
@@ -244,7 +255,7 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
                         // se lee. Modo venta: el precio manda, como siempre.
                         ...(soloNombre ? {} : {
                             dato: precioAr(cuota),
-                            body: `12 cuotas fijas de ${precioAr(cuota12)}\n${cond.textoCuotas} de ${precioAr(cuota)}\nTransferencia ${cond.descuento}% OFF: ${precioAr(alContado)}`,
+                            body: `${texto12}\n${cond.textoCuotas} de ${precioAr(cuota)}\nTransferencia ${cond.descuento}% OFF: ${precioAr(alContado)}`,
                         }),
                         // El renglón que dice QUÉ HACER. Va como campo aparte y
                         // no pegado al `body` para que la plantilla pueda darle

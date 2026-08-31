@@ -1,11 +1,17 @@
 /**
  * Qué descuento puede dar cada rol. Un solo lugar.
  *
- * Las condiciones estándar de la óptica son -20% por efectivo y -15% por
- * transferencia, sin recargo en cuotas. Un VENDEDOR puede vender por esas
- * condiciones o por menos descuento; para dar MÁS tiene que pedírselo al
- * administrador, que además es el único que puede aplicar el descuento
- * especial en pesos (`Order.specialDiscount`, guardado aparte).
+ * La promo VIGENTE de la óptica es -15% por efectivo y -15% por transferencia
+ * (`BUSINESS_INFO.discountCashPercent` / `discountTransferPercent`, y el setting
+ * `web_promo_cash_discount` que usan la tienda y el checkout). Acá decía "-20%
+ * por efectivo", que era la promo vieja: el 20 que sí sigue vivo es el TOPE de
+ * abajo, no lo que se anuncia. Confundir el tope con la promo es cómo
+ * `/optica-cordoba` terminó publicando un 20% que el checkout no cobraba.
+ *
+ * Un VENDEDOR puede vender por la promo vigente, por menos descuento, o hasta
+ * el tope de `TOPE_VENDEDOR`; para dar MÁS tiene que pedírselo al administrador,
+ * que además es el único que puede aplicar el descuento especial en pesos
+ * (`Order.specialDiscount`, guardado aparte).
  *
  * Por qué existe este archivo: los topes estaban tipeados a mano en el JSX del
  * cotizador y en ningún lado más. La UI escondía las opciones altas, pero la
@@ -24,7 +30,14 @@ export const OPCIONES_RECARGO_CUOTAS = [0, 5, 10];
 
 /**
  * Costo financiero de las cuotas largas de Mercado Pago (12 y 18): el cliente
- * paga lista + este % — y todo lugar que lo muestre tiene que ACLARARLO.
+ * paga lista + este %.
+ *
+ * REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita): este
+ * porcentaje se ACLARA SIEMPRE, en TODA superficie —tienda, checkout, PDFs,
+ * mails, plantillas de WhatsApp, prompts del bot, piezas de redes, anuncios y
+ * blog— y las 12 cuotas nunca se anuncian "sin interés" (sin interés son solo
+ * 3 y 6). La redacción única para pantallas vive en `src/lib/promo-cuotas.ts`.
+ *
  * No es negociable por venta (a diferencia de `discountCard`): es fijo, y la
  * conversión de saldos divide por (1 + este %) para los pagos MP 12/18.
  */

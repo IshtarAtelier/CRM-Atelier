@@ -6,7 +6,7 @@ import { WHATSAPP_PHONE } from '@/lib/constants';
 export const metadata: Metadata = {
   alternates: { canonical: 'https://atelieroptica.com.ar/blog/guia-precios-multifocales-argentina' },
   title: { absolute: "Precio de Lentes Multifocales en Argentina (Guía 2026) | Atelier Óptica" },
-  description: "Descubrí cuánto cuestan los lentes multifocales en Argentina este 2026. Analizamos marcas como Varilux y Kodak. Asesoramiento estético y técnico en Córdoba Capital. Envíos a todo el país y cuotas sin interés.",
+  description: "Descubrí cuánto cuestan los lentes multifocales en Argentina este 2026. Analizamos marcas como Varilux y Kodak. Asesoramiento estético y técnico en Córdoba Capital. Envíos a todo el país y 6 cuotas sin interés.",
   keywords: ["precio lentes multifocales argentina", "cuánto cuesta un lente multifocal", "óptica en Córdoba", "óptica Cerro de las Rosas", "óptica Nueva Córdoba", "cristales Varilux precio", "lentes progresivos Kodak", "anteojos de receta", "Atelier Óptica"],
 };
 

@@ -46,6 +46,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { RAIZ } from './identidad.mjs';
+import { cuotasLargas, leerPromoCuotas } from './condiciones-pago.mjs';
 
 const SALIDA = path.join(RAIZ, 'social', 'contenido');
 const BANCO = path.join(RAIZ, 'public', 'images');
@@ -200,11 +201,16 @@ async function condicionesDeVenta(prisma) {
     });
     const get = (k) => filas.find(f => f.key === k)?.value;
 
-    const texto = get('web_promo_installments') || '6 cuotas sin interés';
+    // `web_promo_installments` es texto libre cargado desde /admin/web:
+    // `leerPromoCuotas` solo acepta un número que de verdad se venda sin interés
+    // (3 o 6). Con "12 cuotas" ahí, esto habría dividido el precio de lista por
+    // 12 y lo habría rotulado "sin interés" — la frase prohibida y, encima, el
+    // precio equivocado (las 12 llevan el costo financiero).
+    const promo = leerPromoCuotas(get('web_promo_installments'));
     const crudo = Number(get('web_promo_cash_discount'));
     return {
-        cuotas: Number(texto.match(/\d+/)?.[0] || 6),
-        textoCuotas: texto,
+        cuotas: promo.cantidad,
+        textoCuotas: promo.texto,
         // El mismo default que PaymentOptions.tsx cuando el setting no está.
         descuento: Number.isFinite(crudo) && crudo > 0 ? crudo : 15,
     };
@@ -322,8 +328,14 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
         // mostrador.
         const cuota = Math.round(ancla.precio / cond.cuotas);
         const alContado = Math.round(ancla.precio * (1 - cond.descuento / 100));
-        // 12 cuotas MP (27/8/26): misma fórmula que la tienda (lista × 1,10 ÷ 12).
-        const cuota12 = Math.round((ancla.precio * 1.10) / 12);
+        // 12 cuotas MP (27/8/26): misma fórmula que la tienda
+        // (lista × factor ÷ 12), con el factor leído de
+        // RECARGO_MP_CUOTAS_LARGAS en vez de un 1,10 tipeado acá.
+        //
+        // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita): la
+        // cuota de 12 se muestra SIEMPRE con su costo financiero al lado, y las
+        // 12 nunca se dicen "sin interés" (eso son solo 3 y 6).
+        const texto12 = (await cuotasLargas(ancla.precio)).texto;
         const hoy = new Date().toISOString().slice(0, 10);
 
         // El mismo texto que muestra la landing (`LandingClient.tsx`): dice
@@ -343,7 +355,7 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
         const caption = [
             `Cuánto sale un multifocal en Atelier, sin "consultar precio".`,
             ``,
-            `${TITULAR} desde ${plata(ancla.precio)} — 12 cuotas fijas de ${plata(cuota12)}, ${cond.textoCuotas} de ${plata(cuota)}, o transferencia ${cond.descuento}% OFF: ${plata(alContado)}.`,
+            `${TITULAR} desde ${plata(ancla.precio)} — ${texto12}, ${cond.textoCuotas} de ${plata(cuota)}, o transferencia ${cond.descuento}% OFF: ${plata(alContado)}.`,
             `Es el cristal: el armazón lo elegís vos${armazon ? `, y arrancan en ${plata(armazon.precio)}` : ''}.${notaAncla}`,
             ...(hayEscalera ? [
                 ``,
@@ -464,8 +476,8 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
                     title: `${TITULAR} desde`,
                     dato: plata(ancla.precio),
                     body: tam.formato === '1.91:1'
-                        ? `12 cuotas fijas de ${plata(cuota12)}.\n${cond.textoCuotas} de ${plata(cuota)}.`
-                        : `12 cuotas fijas de ${plata(cuota12)}.\n${cond.textoCuotas} de ${plata(cuota)}.\nEl armazón lo elegís vos.${notaAncla}`,
+                        ? `${texto12}.\n${cond.textoCuotas} de ${plata(cuota)}.`
+                        : `${texto12}.\n${cond.textoCuotas} de ${plata(cuota)}.\nEl armazón lo elegís vos.${notaAncla}`,
                 },
             ],
         }));

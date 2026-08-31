@@ -11,6 +11,7 @@ import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { PricingService } from "@/services/PricingService";
+import { ACLARACION_MP_CUOTAS_LARGAS, leerPromoCuotas } from "@/lib/promo-cuotas";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
 // devolvía una grilla vacía. Tienen su propia página, así que ahora llevan ahí.
@@ -216,12 +217,13 @@ export function TiendaClient({
       .catch(err => console.error("Error loading web settings for tienda client:", err));
   }, []);
 
-  const getInstallmentsCount = (text: string) => {
-    const match = text.match(/\d+/);
-    return match ? parseInt(match[0], 10) : 6;
-  };
-
-  const installmentsCount = getInstallmentsCount(webSettings.web_promo_installments);
+  // El parseo de `web_promo_installments` vive en `promo-cuotas.ts` y en ningún
+  // otro lado: estaba copiado a mano acá, en CategoryGrid y en LensConfigurator,
+  // y como sacaba el número con `match(/\d+/)` sobre texto libre, escribir
+  // "12 cuotas" en /admin/web hacía que esta grilla renderizara sola
+  // "12 s/interés de $lista/12" — la frase prohibida, con el precio mal.
+  const promo = leerPromoCuotas(webSettings.web_promo_installments);
+  const installmentsCount = promo.cantidad;
   const discountRate = webSettings.web_promo_cash_discount / 100;
 
   // ── STATE FOR PRODUCTS & PAGINATION ──
@@ -703,7 +705,9 @@ export function TiendaClient({
                               <span className="font-semibold text-stone-900">
                                 ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")}
                               </span>
-                              <span className="text-stone-400"> · {installmentsCount} s/interés o {webSettings.web_promo_cash_discount}% OFF transf.</span>
+                              {/* La cuota de 12 nunca va sin su costo financiero
+                                  (decisión de Ishtar del 31/8/26). */}
+                              <span className="text-stone-400"> · {ACLARACION_MP_CUOTAS_LARGAS} · {installmentsCount} s/interés o {webSettings.web_promo_cash_discount}% OFF transf.</span>
                             </p>
                             {oferta && (
                               <span className="text-[10px] font-black uppercase tracking-widest text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-sm whitespace-nowrap shrink-0">

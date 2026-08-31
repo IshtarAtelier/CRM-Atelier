@@ -1,4 +1,6 @@
 import { WHATSAPP_PHONE, STORE_ORIGIN, CRM_ORIGIN } from '@/lib/constants';
+import { PricingService } from '@/services/PricingService';
+import { ACLARACION_MP_CUOTAS_LARGAS } from '@/lib/promo-cuotas';
 
 const APP_ORIGIN = STORE_ORIGIN;
 
@@ -141,6 +143,14 @@ export function getAbandonedCartHtml(
   ctaUrl: string,
   coupon?: { code: string; label: string }
 ) {
+  // Los tres números del bloque de pagos salen de PricingService, no de
+  // aritmética escrita acá: este mail tenía `total / 6`, `total * 0.85` y
+  // `(total * 1.10) / 12` a mano, o sea tres reglas de negocio duplicadas en un
+  // template de HTML. La regla del proyecto es que el cálculo de plata vive
+  // SOLO en PricingService, y la del 31/8/2026 (Ishtar) es que la cuota de 12
+  // se muestra siempre con su costo financiero.
+  const v = PricingService.preciosVidriera(total);
+
   const couponBlock = coupon ? `
     <tr>
       <td style="padding: 36px 40px 0;">
@@ -205,9 +215,9 @@ export function getAbandonedCartHtml(
         <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${SOFT_PANEL}" style="background-color: ${SOFT_PANEL}; border-radius: 14px;">
           <tr>
             <td style="padding: 24px 28px; font-family: ${SANS}; font-size: 13px; line-height: 2.2; color: #5a5348;">
-              <span style="color: ${GOLD};">&#10022;</span>&nbsp; 6 cuotas sin inter&eacute;s de <strong>$${Math.round(total / 6).toLocaleString('es-AR')}</strong> con tarjeta<br/>
-              <span style="color: ${GOLD};">&#10022;</span>&nbsp; <strong>$${Math.round(total * 0.85).toLocaleString('es-AR')}</strong> pagando por transferencia (ahorr&aacute;s $${Math.round(total * 0.15).toLocaleString('es-AR')})<br/>
-              <span style="color: ${GOLD};">&#10022;</span>&nbsp; Hasta 12 cuotas de <strong>$${Math.round((total * 1.10) / 12).toLocaleString('es-AR')}</strong> por Mercado Pago<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; 6 cuotas sin inter&eacute;s de <strong>$${v.cuota6.toLocaleString('es-AR')}</strong> con tarjeta<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; <strong>$${v.contado.toLocaleString('es-AR')}</strong> pagando por transferencia (ahorr&aacute;s $${v.ahorroContado.toLocaleString('es-AR')})<br/>
+              <span style="color: ${GOLD};">&#10022;</span>&nbsp; Hasta 12 cuotas de <strong>$${v.cuota12.toLocaleString('es-AR')}</strong> por Mercado Pago (${ACLARACION_MP_CUOTAS_LARGAS})<br/>
               <span style="color: ${GOLD};">&#10022;</span>&nbsp; Env&iacute;o gratis a todo el pa&iacute;s<br/>
               <span style="color: ${GOLD};">&#10022;</span>&nbsp; Garant&iacute;a oficial en todos los armazones
             </td>

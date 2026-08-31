@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://atelieroptica.com.ar/blog/mitos-lentes-contacto' },
   title: "Mitos, verdades y primera adaptación a lentes de contacto en Córdoba",
   description: "Descubrí la verdad sobre los lentes de contacto. Guía para tu primera adaptación en Córdoba (Cerro de las Rosas, Nueva Córdoba). Oxigenación, descartables e higiene. Consultá con tu oftalmólogo y visitá Atelier Óptica.",
-  keywords: ["lentes de contacto Córdoba", "adaptación lentes de contacto", "mitos lentes de contacto", "óptica Cerro de las Rosas", "óptica Nueva Córdoba", "lentes descartables", "Atelier Óptica", "salud visual", "cuotas sin interés"],
+  keywords: ["lentes de contacto Córdoba", "adaptación lentes de contacto", "mitos lentes de contacto", "óptica Cerro de las Rosas", "óptica Nueva Córdoba", "lentes descartables", "Atelier Óptica", "salud visual", "6 cuotas sin interés"],
 };
 
 export default function LentesDeContactoBlog() {
@@ -81,7 +81,7 @@ export default function LentesDeContactoBlog() {
               Entendemos perfectamente que enfrentarte al espejo intentando colocarte un lente por primera vez puede generar algo de ansiedad. ¡Tranquilidad total! Te invitamos a visitarnos en <strong>Córdoba</strong> con tu receta oftalmológica en mano. Nos sentaremos con vos, con infinita paciencia, para practicar la técnica correcta de colocación, repasar la rutina de limpieza y erradicar cualquier inquietud que tengas.
             </p>
             <p>
-              Recordá que en <strong>Atelier Óptica</strong> nuestra prioridad es tu bienestar visual. Brindamos envíos a toda Argentina y cuotas sin interés, asegurando que tu única preocupación sea disfrutar de una visión impecable, apoyada siempre en las directrices de tu médico.
+              Recordá que en <strong>Atelier Óptica</strong> nuestra prioridad es tu bienestar visual. Brindamos envíos a toda Argentina y 6 cuotas sin interés con tarjeta, asegurando que tu única preocupación sea disfrutar de una visión impecable, apoyada siempre en las directrices de tu médico.
             </p>
 
             <div className="mt-12 bg-stone-100 p-8 rounded-2xl text-center shadow-sm">
