@@ -22,7 +22,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { config } from 'dotenv';
-import { emparejar, MARKUP, congeladoSinAr } from './emparejador.mjs';
+import { emparejar, MARKUP } from './emparejador.mjs';
 
 config();
 
@@ -59,13 +59,12 @@ async function main() {
     // También los que tienen el PELADO viejo o incoherente aunque el cost ya
     // coincida (caso real: Saphire HR con baseCost de otra época): dejarlo
     // pasar deja una bomba para el próximo recálculo desde el pelado.
-    const cambian = ok.filter(p => !congeladoSinAr(p.name)
-        && (Math.round(p.cost || 0) !== p.costoNuevo
-            || Math.round(p.baseCost || 0) !== Math.round(p.lista)));
+    // Ya no hay congelados: desde el 31/8 el emparejador respeta el "sin AR" del
+    // nombre, así que esos costos salen solos y no hace falta protegerlos.
+    const cambian = ok.filter(p => Math.round(p.cost || 0) !== p.costoNuevo
+        || Math.round(p.baseCost || 0) !== Math.round(p.lista));
     const iguales = ok.length - cambian.length;
-    // Se listan: un congelado invisible es indistinguible de un producto que
-    // el emparejador no encontró.
-    const congelados = ok.filter(p => congeladoSinAr(p.name));
+    const congelados = [];
 
     console.log(`${productos.length} cristales · ${ok.length} emparejados` +
         ` (${sinLista.length} sin lista, ${porNombre.length} por el nombre)`);

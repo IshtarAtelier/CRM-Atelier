@@ -19,7 +19,6 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { config } from 'dotenv';
-import { congeladoSinAr } from './precios-optovision/emparejador.mjs';
 
 config();
 
@@ -53,16 +52,14 @@ async function main() {
     // 1) Sygnus / New Editions (Ishtar, 30/8/2026): se precia "unos puntitos
     //    abajo del Kodak" para que sea atractiva como entrada, y eso puede
     //    dejarla bajo el piso. Su precio lo fija precios-optovision/precios-sygnus.mjs.
-    // 2) Los "sin AR / sin Crizal" (Ishtar, 30/8/2026): el costo les sube por la
-    //    política del mejor Crizal y el piso les duplicaba el precio (Blue UV
-    //    ORMA: $289.832 → $586.473). Son lentes que el cliente compra peladas.
-    //    Congelados hasta que ella los revise. Misma regla que sincronizar-costos.
-    //
-    // "Mi Primer Varilux / Kodak" ESTUVO exceptuado el 30/8 y dejó de estarlo el
-    // 31/8: Ishtar los quiere en el mismo piso que los demás. La promo es el 50%
-    // sobre la lente —que ya está en el costo—, no un margen más finito encima.
+    // Los "sin AR" ESTUVIERON congelados el 30/8 y dejaron de estarlo el 31/8.
+    // El congelamiento existía porque la regla del mejor Crizal les inflaba el
+    // costo y el piso les duplicaba el precio; arreglado eso en el emparejador
+    // (el nombre manda), su costo no se mueve y el piso les sube 2-4% como a
+    // cualquiera. "Mi Primer" salió por el mismo motivo: Ishtar los quiere en el
+    // mismo piso que el resto. Hoy la única excepción es Sygnus.
     const esSygnus = p => /new\s*editions?|sygnus/i.test(p.name || '');
-    const exceptuado = p => esSygnus(p) || congeladoSinAr(p.name);
+    const exceptuado = p => esSygnus(p);
     const bajos = cristales
         .filter(p => !exceptuado(p))
         .map(p => ({ ...p, mk: p.price / p.cost, nuevo: Math.ceil(p.cost * PISO) }))
@@ -82,7 +79,7 @@ async function main() {
     if (exentosBajoPiso.length) {
         console.log(`\n  ${exentosBajoPiso.length} exceptuado(s) que quedan bajo el piso A PROPÓSITO (no se tocan):`);
         for (const p of exentosBajoPiso) {
-            const motivo = esSygnus(p) ? 'Sygnus (precio de entrada)' : 'sin AR — congelado, a revisar';
+            const motivo = 'Sygnus (precio de entrada)';
             console.log(`    ×${(p.price / p.cost).toFixed(2)}  ${String(p.name).slice(0, 52).padEnd(54)}${pesos(p.price).padStart(12)}   ${motivo}`);
         }
     }
