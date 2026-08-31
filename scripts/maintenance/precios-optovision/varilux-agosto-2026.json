@@ -2033,5 +2033,98 @@
         }
       ]
     }
+  ],
+  "calibrados": {
+    "_lee_esto": [
+      "De la planilla de Ishtar (hoja «Tratamientos · Coloraciones · Calibrados · Recargos»),",
+      "que sale de la misma lista de agosto 2026.",
+      "",
+      "EL SISTEMA USA $23.000 FIJO PARA TODOS. La lista dice que depende del TIPO de lente",
+      "(multifocal / bifocal / ocupacional / monofocal), del MATERIAL (orgánico / policarbonato),",
+      "de si es de STOCK o de LABORATORIO, y del MONTAJE (común / ranurado / perforado).",
+      "Van de $7.644 a $29.813. PREGUNTAR A ISHTAR de dónde salió el 23.000 antes de cambiarlo."
+    ],
+    "por_tipo": {
+      "multifocal_organico": {
+        "comun": 18983,
+        "ranurado": 21277,
+        "perforado": 23060
+      },
+      "multifocal_policarbonato": {
+        "comun": 23825,
+        "ranurado": 26245,
+        "perforado": 29813
+      },
+      "bifocal_organico": {
+        "comun": 13760,
+        "ranurado": 15798,
+        "perforado": 17837
+      },
+      "bifocal_policarbonato": {
+        "comun": 16945,
+        "ranurado": 18219,
+        "perforado": 21277
+      },
+      "ocupacional_organico": {
+        "comun": 14142,
+        "ranurado": 15798,
+        "perforado": 17582
+      },
+      "ocupacional_policarbonato": {
+        "comun": 16945,
+        "ranurado": 18856,
+        "perforado": 21277
+      },
+      "monofocal_laboratorio_organico": {
+        "comun": 10192,
+        "ranurado": 11849,
+        "perforado": 13760
+      },
+      "monofocal_laboratorio_policarb": {
+        "comun": 14142,
+        "ranurado": 16945,
+        "perforado": 18091
+      },
+      "monofocal_stock_organico": {
+        "comun": 7644,
+        "ranurado": 8791,
+        "perforado": 10829
+      },
+      "monofocal_stock_policarbonato": {
+        "comun": 11339,
+        "ranurado": 13632,
+        "perforado": 14142
+      }
+    },
+    "otros": {
+      "cambio_de_forma": {
+        "ranurado": 5733,
+        "perforado": 6752
+      },
+      "cambio_de_tanza": {
+        "ranurado": 11084
+      },
+      "pulido_de_bordes": {
+        "perforado": 9046
+      }
+    },
+    "reglas": [
+      "Los calibrados hechos con lentes NO provistas por Optovisión llevan 50% de recargo.",
+      "Si hay dos tipos de calibrado en un mismo anteojo, se cobra el 50% del valor de cada tipo."
+    ]
+  },
+  "tratamientos_ar_optovision": [
+    {
+      "nombre": "Numax",
+      "detalle": "8 capas por cara, súper hidrofóbico",
+      "par": 72240,
+      "medio_par": 36120
+    },
+    {
+      "nombre": "Multicot",
+      "detalle": "Cr39 / Poly / Trivex, 6 capas por cara, hidrofóbico",
+      "par": 57588,
+      "medio_par": 28794
+    }
   ]
 }
