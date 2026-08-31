@@ -25,6 +25,22 @@ const ADDRESS = 'José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba';
 /** BUSINESS_INFO.hoursWhatsAppBlock */
 const HOURS_WHATSAPP_BLOCK = '*Horarios:*\n   • Lunes a viernes de 8:00 a 20:00\n   • Sábados de 9:00 a 17:00 hs';
 
+/**
+ * BUSINESS_INFO.appointmentSlots — visita general al local (probarse armazones,
+ * retirar, consultar). Coincide con el horario de atención.
+ */
+const APPOINTMENT_SLOTS = 'de 8:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 (Sábados)';
+
+/**
+ * BUSINESS_INFO.examSlots — TOMA DE GRADUACIÓN (agudeza visual): SOLO la siesta.
+ *
+ * NO es lo mismo que `APPOINTMENT_SLOTS`: el local atiende de 8 a 20, pero el
+ * examen visual se hace únicamente en esta franja. El bot lo necesita porque
+ * venía ofreciendo control visual "cuando quieras" (conv-047 del dataset de
+ * bot-eval), o sea prometiendo un turno que después no se puede cumplir.
+ */
+const EXAM_SLOTS = 'de 12:00 a 16:00 (la siesta)';
+
 /** BUSINESS_INFO.discountCashPercent */
 const DISCOUNT_CASH_PERCENT = 15;
 
@@ -41,6 +57,8 @@ const RECARGO_MP_CUOTAS_LARGAS = 10;
 module.exports = {
     ADDRESS,
     HOURS_WHATSAPP_BLOCK,
+    APPOINTMENT_SLOTS,
+    EXAM_SLOTS,
     DISCOUNT_CASH_PERCENT,
     DISCOUNT_TRANSFER_PERCENT,
     RECARGO_MP_CUOTAS_LARGAS,

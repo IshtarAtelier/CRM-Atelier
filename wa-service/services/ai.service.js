@@ -21,22 +21,35 @@ function runOutputGuardrail(text) {
     const jsonRegex = /\{[\s\S]*?\}/;
     const hasJson = jsonRegex.test(text) && (text.includes('"') || text.includes(':'));
 
-    // 3. Detectar si revela que es un bot o menciona desactivar el bot por temas personales/humanos
-    const botRevealKeywords = [
+    // 3. Detectar si el bot narra su propia desactivación o el motivo interno por
+    //    el que deja de responder.
+    //
+    //    ⚠️ 31/8/2026 — CAMBIO DE CRITERIO, decidido por Ishtar.
+    //    Hasta hoy esta lista bloqueaba también cualquier frase en la que el bot
+    //    admitiera ser un bot ('soy un bot', 'soy una ia', 'no soy una persona',
+    //    'respuesta automática', 'como modelo de lenguaje', 'algoritmo de'...).
+    //    Bloquear acá no censuraba la frase: descartaba el mensaje ENTERO, apagaba
+    //    el bot en ese chat y le dejaba al cliente silencio absoluto
+    //    (`bot-cloud.js` → esSospechaDeBot). O sea que a un "sos un bot?" el
+    //    cliente no recibía nada nunca más.
+    //
+    //    La decisión nueva es la contraria: el bot se identifica como asistente
+    //    automático en su primer mensaje y responde con honestidad si le
+    //    preguntan (ver `prompts/salesPrompt.js` → <quien_sos>). Por eso las
+    //    palabras de identidad salieron de la lista: si siguieran acá, la
+    //    respuesta honesta que el prompt ordena sería silenciada por el código.
+    //
+    //    Lo que SÍ se sigue bloqueando es que el bot le cuente al cliente su
+    //    plomería interna: que se está desactivando, que la charla se marcó como
+    //    personal, o que se despide "por ahora" sin derivar a nadie.
+    const shutdownNarrationKeywords = [
         'carácter personal', 'caracter personal', 'desactivo el bot', 'desactivar el bot',
-        'conversación personal', 'conversacion personal', 'soy un bot', 'soy un asistente virtual',
-        'asistente de inteligencia artificial', 'ia de la optica', 'bot de whatsapp', 'desactivo para que',
+        'conversación personal', 'conversacion personal', 'desactivo para que',
         'desactivo el agente', 'desactivar el agente', 'desactivo respuestas', 'desactivo la ia',
-        'me despido por ahora',
-        // Ampliación de guardrail (Auditoría 2026-05-26)
-        'soy una inteligencia artificial', 'soy un asistente de ia', 'soy un programa',
-        'fui programada', 'fui diseñada para', 'como modelo de lenguaje', 'soy una ia',
-        'soy un chatbot', 'no soy humana', 'no soy una persona real', 'asistente automatizado',
-        'respuesta automática', 'respuesta automatica', 'sistema automatizado', 'no soy humano',
-        'no soy una persona', 'inteligencia artificial de', 'algoritmo de', 'modelo de ia'
+        'desactivar la ia', 'apago el bot', 'apagar el bot'
     ];
     const lowerText = text.toLowerCase();
-    const revealsBot = botRevealKeywords.some(keyword => lowerText.includes(keyword));
+    const revealsBot = shutdownNarrationKeywords.some(keyword => lowerText.includes(keyword));
 
     // 4. Detectar narración de errores/procesos internos: el cliente NUNCA debe recibir
     // información de fallas técnicas. Si el modelo intenta contarlas, se bloquea el envío
@@ -105,6 +118,12 @@ function runOutputGuardrail(text) {
                 : (hasJson
                     ? 'Estructura JSON Detectada'
                     : (revealsBot
+                        // El nombre de la razón se conserva TAL CUAL porque
+                        // `bot-cloud.js` e `index.js` lo matchean por substring
+                        // ('Revelación de Identidad') para apagar el chat y abrir
+                        // la tarea. Cambiarlo acá sin tocar esos dos archivos
+                        // rompería el apagado. Hoy solo lo dispara la narración
+                        // de la propia desactivación, no admitir que sos un bot.
                         ? 'Revelación de Identidad de Bot o Desactivación Manual'
                         : (narratesInternalError
                             ? 'Narración de Error Interno'

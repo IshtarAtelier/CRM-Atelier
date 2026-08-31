@@ -41,6 +41,10 @@ const fallar = (msg) => { fallas++; console.error(`❌ ${msg}`); };
 const ESPEJO = [
     ['ADDRESS', cjs.ADDRESS, BUSINESS_INFO.address, 'src/lib/business-info.ts → BUSINESS_INFO.address'],
     ['HOURS_WHATSAPP_BLOCK', cjs.HOURS_WHATSAPP_BLOCK, BUSINESS_INFO.hoursWhatsAppBlock, 'src/lib/business-info.ts → BUSINESS_INFO.hoursWhatsAppBlock'],
+    ['APPOINTMENT_SLOTS', cjs.APPOINTMENT_SLOTS, BUSINESS_INFO.appointmentSlots, 'src/lib/business-info.ts → BUSINESS_INFO.appointmentSlots'],
+    // La franja de graduación (12-16) sale hacia el cliente por el prompt del
+    // bot: si diverge, el bot agenda un examen visual que no se puede cumplir.
+    ['EXAM_SLOTS', cjs.EXAM_SLOTS, BUSINESS_INFO.examSlots, 'src/lib/business-info.ts → BUSINESS_INFO.examSlots'],
     ['DISCOUNT_CASH_PERCENT', cjs.DISCOUNT_CASH_PERCENT, BUSINESS_INFO.discountCashPercent, 'src/lib/business-info.ts → BUSINESS_INFO.discountCashPercent'],
     ['DISCOUNT_TRANSFER_PERCENT', cjs.DISCOUNT_TRANSFER_PERCENT, BUSINESS_INFO.discountTransferPercent, 'src/lib/business-info.ts → BUSINESS_INFO.discountTransferPercent'],
     ['RECARGO_MP_CUOTAS_LARGAS', cjs.RECARGO_MP_CUOTAS_LARGAS, RECARGO_MP_CUOTAS_LARGAS, 'src/lib/constants/descuentos.ts → RECARGO_MP_CUOTAS_LARGAS'],
