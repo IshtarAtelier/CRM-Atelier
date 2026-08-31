@@ -22,6 +22,16 @@ export const listaDe = costo => costo / (1 + IVA / 100) - CALIBRADO;
 
 /** Familias que SÍ están transcritas, en orden de más específica a más general. */
 const FAMILIAS = [
+    // Transcritas el 30/8/2026 de las imágenes de las págs. 11, 12, 13 y 18.
+    // Van primero por ser las más específicas: "EYEZEN KIDS" tiene que ganarle
+    // a "EYEZEN" a secas, y "MYOPILUX KIDS PLUS" a "MYOPILUX KIDS LITE".
+    [/eyezen\s*kids/i, 'Eyezen Kids'],
+    [/eyezen\s*boost/i, 'Eyezen Boost'],
+    [/eyezen\s*start/i, 'Eyezen Start'],
+    [/myopilux\s*kids\s*plus/i, 'Myopilux Kids Plus'],
+    [/myopilux\s*kids\s*lite/i, 'Myopilux Kids Lite'],
+    [/espace\s*plus/i, 'Espace Plus Digital'],
+    [/interview/i, 'Essilor Interview'],
     [/kodak.*unique/i, 'Kodak Unique DRO'],
     [/kodak.*precise/i, 'Kodak Precise Next'],
     [/kodak.*softwear/i, 'Kodak Softwear'],
@@ -39,12 +49,11 @@ const FAMILIAS = [
 /** Familias que el CRM tiene y la lista todavía NO: se nombran para poder
  *  decir "falta cargar la página X" en vez de un "no encontrado" mudo. */
 const FALTAN_EN_LISTA = [
-    [/eyezen\s*kids/i, 'Eyezen Kids', 12],
-    [/eyezen/i, 'Eyezen', 11],
-    [/myopilux/i, 'Myopilux', 13],
-    [/stellest/i, 'Stellest (control de miopía)', 13],
-    [/espace\s*plus/i, 'Espace Plus Digital', 18],
-    [/interview/i, 'Essilor Interview', 18],
+    // Stellest NO figura en la lista de agosto 2026: no está en el índice de la
+    // pág. 3 ni aparece la palabra en ninguna de las 38 páginas (verificado el
+    // 30/8/2026). El producto existe en el sistema pero su precio se cotiza por
+    // fuera — preguntarle a Optovisión antes de asumir un costo.
+    [/stellest/i, 'Stellest (no está en la lista)', null],
 ];
 
 const MATERIALES = [
@@ -55,6 +64,10 @@ const MATERIALES = [
     [/stylis.*transitions/i, 'STYLIS 1.67 TRANSITIONS GEN S'],
     [/airwear.*transitions/i, 'AIRWEAR 1.59 TRANSITIONS GEN S'],
     [/orma\s*transitions\s*xtractive/i, 'ORMA TRANSITIONS XTRACTIVE'],
+    // En Eyezen la lista trae DOS filas de Orma Transitions que se distinguen
+    // solo por el círculo de color: una gris y otra de 8 colores, con $60.315
+    // de diferencia. El nombre del producto ya dice cuál es.
+    [/orma.*transitions.*colores/i, 'ORMA TRANSITIONS GEN S (colores)'],
     [/orma.*transitions/i, 'ORMA TRANSITIONS GEN S'],
     [/airwear.*xperio/i, 'AIRWEAR 1.59 XPERIO'],
     [/orma.*xperio/i, 'ORMA XPERIO'],
@@ -227,6 +240,13 @@ export function emparejar(productos) {
     const ok = [], porNombre = [], sinLista = [];
     for (const p of productos) {
         const nombre = String(p.name || '');
+        // Los ARCHIVADOS no se costean: ya no se venden, y su nombre viejo hace
+        // ruido en el emparejado ("[ARCHIVADO] Lentes EyeZen Crizal Rock" caía
+        // en el renglón de stock "ORMA BLUE UV CRIZAL ROCK", que es otra lente).
+        if (/^\s*\[archivado\]/i.test(nombre)) {
+            sinLista.push({ ...p, familia: null, pagina: null, motivo: 'Producto archivado: no se costea' });
+            continue;
+        }
         const fam = primero(FAMILIAS, nombre);
         if (!fam) {
             const faltaConocida = primero(FALTAN_EN_LISTA, nombre);

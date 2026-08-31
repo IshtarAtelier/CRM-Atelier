@@ -1669,6 +1669,369 @@
           }
         }
       ]
+    },
+    {
+      "nombre": "Eyezen Boost",
+      "pagina": 11,
+      "materiales": [
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 180715,
+            "CRIZAL SAPPHIRE": 178410,
+            "CRIZAL FORTE UV": 175665,
+            "TRIO EASY CLEAN": 146985,
+            "SIN AR": 85035
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 180715,
+            "CRIZAL SAPPHIRE": 178410,
+            "CRIZAL FORTE UV": 175665,
+            "TRIO EASY CLEAN": 146985,
+            "SIN AR": 85035
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 257740,
+            "CRIZAL SAPPHIRE": 255435,
+            "CRIZAL FORTE UV": 252690,
+            "TRIO EASY CLEAN": 224010,
+            "SIN AR": 162060
+          },
+          "rango": "+9.00 A -14.00 CIL 6.00"
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 342640,
+            "CRIZAL SAPPHIRE": 340335,
+            "CRIZAL FORTE UV": 337590,
+            "TRIO EASY CLEAN": 308910,
+            "SIN AR": 246960
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S (colores)",
+          "precios": {
+            "CRIZAL PREVENCIA": 402955,
+            "CRIZAL SAPPHIRE": 400650,
+            "CRIZAL FORTE UV": 397905,
+            "TRIO EASY CLEAN": 369225,
+            "SIN AR": 307275
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 376925,
+            "CRIZAL SAPPHIRE": 374620,
+            "CRIZAL FORTE UV": 371875,
+            "TRIO EASY CLEAN": 343195,
+            "SIN AR": 281245
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 528300,
+            "CRIZAL SAPPHIRE": 525995,
+            "CRIZAL FORTE UV": 523250,
+            "TRIO EASY CLEAN": 494570,
+            "SIN AR": 432620
+          },
+          "rango": "+9.00 A -14.00 CIL 6.00"
+        }
+      ]
+    },
+    {
+      "nombre": "Eyezen Start",
+      "pagina": 11,
+      "materiales": [
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 180715,
+            "CRIZAL SAPPHIRE": 178410,
+            "CRIZAL FORTE UV": 175665,
+            "TRIO EASY CLEAN": 146985,
+            "SIN AR": 85035
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 180715,
+            "CRIZAL SAPPHIRE": 178410,
+            "CRIZAL FORTE UV": 175665,
+            "TRIO EASY CLEAN": 146985,
+            "SIN AR": 85035
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 257740,
+            "CRIZAL SAPPHIRE": 255435,
+            "CRIZAL FORTE UV": 252690,
+            "TRIO EASY CLEAN": 224010,
+            "SIN AR": 162060
+          },
+          "rango": "+9.00 A -14.00 CIL 6.00"
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 342640,
+            "CRIZAL SAPPHIRE": 340335,
+            "CRIZAL FORTE UV": 337590,
+            "TRIO EASY CLEAN": 308910,
+            "SIN AR": 246960
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S (colores)",
+          "precios": {
+            "CRIZAL PREVENCIA": 402955,
+            "CRIZAL SAPPHIRE": 400650,
+            "CRIZAL FORTE UV": 397905,
+            "TRIO EASY CLEAN": 369225,
+            "SIN AR": 307275
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 376925,
+            "CRIZAL SAPPHIRE": 374620,
+            "CRIZAL FORTE UV": 371875,
+            "TRIO EASY CLEAN": 343195,
+            "SIN AR": 281245
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 528300,
+            "CRIZAL SAPPHIRE": 525995,
+            "CRIZAL FORTE UV": 523250,
+            "TRIO EASY CLEAN": 494570,
+            "SIN AR": 432620
+          },
+          "rango": "+9.00 A -14.00 CIL 6.00"
+        }
+      ]
+    },
+    {
+      "nombre": "Eyezen Kids",
+      "pagina": 12,
+      "materiales": [
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 165980,
+            "CRIZAL SAPPHIRE": 163675,
+            "CRIZAL FORTE UV": 160930,
+            "TRIO EASY CLEAN": 132250,
+            "SIN AR": 70300
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 328630,
+            "CRIZAL SAPPHIRE": 326325,
+            "CRIZAL FORTE UV": 323580,
+            "TRIO EASY CLEAN": 294900,
+            "SIN AR": 232950
+          },
+          "rango": "+6.00 A -10.00 CIL 6.00"
+        }
+      ]
+    },
+    {
+      "nombre": "Myopilux Kids Lite",
+      "pagina": 13,
+      "materiales": [
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 268420,
+            "CRIZAL SAPPHIRE": 266115,
+            "CRIZAL FORTE UV": 263370,
+            "TRIO EASY CLEAN": 234690,
+            "SIN AR": 172740
+          },
+          "rango": "0 A -8.00 CIL 4.00"
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 372770,
+            "CRIZAL SAPPHIRE": 370465,
+            "CRIZAL FORTE UV": 367720,
+            "TRIO EASY CLEAN": 339040,
+            "SIN AR": 277090
+          },
+          "rango": "0 A -8.00 CIL 4.00"
+        }
+      ],
+      "adicion": "1.50 a 2.00"
+    },
+    {
+      "nombre": "Myopilux Kids Plus",
+      "pagina": 13,
+      "adicion": "1.50 a 2.00",
+      "materiales": [
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 268420,
+            "CRIZAL SAPPHIRE": 266115,
+            "CRIZAL FORTE UV": 263370,
+            "TRIO EASY CLEAN": 234690,
+            "SIN AR": 172740
+          },
+          "rango": "0 A -8.00 CIL 4.00"
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 372770,
+            "CRIZAL SAPPHIRE": 370465,
+            "CRIZAL FORTE UV": 367720,
+            "TRIO EASY CLEAN": 339040,
+            "SIN AR": 277090
+          },
+          "rango": "0 A -8.00 CIL 4.00"
+        },
+        {
+          "material": "STYLIS 1.67",
+          "precios": {
+            "CRIZAL PREVENCIA": 321570,
+            "CRIZAL SAPPHIRE": 319265,
+            "CRIZAL FORTE UV": 316520,
+            "TRIO EASY CLEAN": 287840,
+            "SIN AR": 225890
+          },
+          "rango": "0 A -8.00 CIL 4.00"
+        },
+        {
+          "material": "STYLIS 1.67 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 517135,
+            "CRIZAL SAPPHIRE": 514830,
+            "CRIZAL FORTE UV": 512085,
+            "TRIO EASY CLEAN": 483405,
+            "SIN AR": 421455
+          },
+          "rango": "0 A -8.00 CIL 4.00"
+        }
+      ]
+    },
+    {
+      "nombre": "Essilor Interview",
+      "pagina": 18,
+      "materiales": [
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 173220,
+            "CRIZAL SAPPHIRE": 170915,
+            "CRIZAL FORTE UV": 168170,
+            "TRIO EASY CLEAN": 139490,
+            "SIN AR": 77540
+          },
+          "rango": "+4.50 A -2.00"
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 248045,
+            "CRIZAL SAPPHIRE": 245740,
+            "CRIZAL FORTE UV": 242995,
+            "TRIO EASY CLEAN": 214315,
+            "SIN AR": 152365
+          },
+          "rango": "+4.50 A -2.00"
+        }
+      ]
+    },
+    {
+      "nombre": "Espace Plus Digital",
+      "pagina": 18,
+      "materiales": [
+        {
+          "material": "ORMA",
+          "precios": {
+            "CRIZAL PREVENCIA": 229865,
+            "CRIZAL SAPPHIRE": 227560,
+            "CRIZAL FORTE UV": 224815,
+            "TRIO EASY CLEAN": 196135,
+            "SIN AR": 134185
+          },
+          "rango": "+6.00 A -10.00"
+        },
+        {
+          "material": "AIRWEAR 1.59",
+          "precios": {
+            "CRIZAL PREVENCIA": 274630,
+            "CRIZAL SAPPHIRE": 272325,
+            "CRIZAL FORTE UV": 269580,
+            "TRIO EASY CLEAN": 240900,
+            "SIN AR": 178950
+          },
+          "rango": "+6.00 A -10.00"
+        },
+        {
+          "material": "ORMA ACCLIMATES",
+          "precios": {
+            "CRIZAL PREVENCIA": 332850,
+            "CRIZAL SAPPHIRE": 330545,
+            "CRIZAL FORTE UV": 327800,
+            "TRIO EASY CLEAN": 299120,
+            "SIN AR": 237170
+          },
+          "rango": "+6.00 A -10.00"
+        },
+        {
+          "material": "ORMA TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 439340,
+            "CRIZAL SAPPHIRE": 437035,
+            "CRIZAL FORTE UV": 434290,
+            "TRIO EASY CLEAN": 405610,
+            "SIN AR": 343660
+          },
+          "rango": "+6.00 A -10.00"
+        },
+        {
+          "material": "AIRWEAR 1.59 TRANSITIONS GEN S",
+          "precios": {
+            "CRIZAL PREVENCIA": 480780,
+            "CRIZAL SAPPHIRE": 478475,
+            "CRIZAL FORTE UV": 475730,
+            "TRIO EASY CLEAN": 447050,
+            "SIN AR": 385100
+          },
+          "rango": "+6.00 A -10.00"
+        }
+      ]
     }
   ]
 }

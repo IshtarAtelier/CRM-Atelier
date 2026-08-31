@@ -163,9 +163,14 @@ try {
         if (esperado !== p.costoNuevo) mal++;
     }
     ok(`los ${emp.length} costos nuevos == (lista + ${CALIBRADO}) × ${(1 + IVA / 100)}`, mal === 0);
+    // La media lista va SOLO a los "Mi Primer". Se verifica la equivalencia en
+    // los dos sentidos en vez de contra un número fijo: el 30/8/2026 la promo
+    // se extendió de 4 productos a 28 (Comfort, Physio, Physio 3.0, XR Design
+    // y las dos líneas Kodak) y un conteo escrito a mano falla por crecer, que
+    // es exactamente cuando NO tiene que fallar.
     const promos = emp.filter(p => p.esPromo);
-    ok(`la media-lista (promo 50%) aplica SOLO a los ${promos.length} "Mi Primer Varilux"`,
-        promos.length === 4 && promos.every(p => /mi\s*primer/i.test(p.name))
+    ok(`la media-lista (promo 50%) aplica a los ${promos.length} "Mi Primer" y a nadie más`,
+        promos.length > 0 && promos.every(p => /mi\s*primer/i.test(p.name))
         && emp.filter(p => !p.esPromo).every(p => !/mi\s*primer/i.test(p.name)));
     // La lente de stock re-emparejada a su renglón real (pág. 22) baja ~9% y
     // ES CORRECTO: su costo viejo venía de un renglón equivocado más caro.
