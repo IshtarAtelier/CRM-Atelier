@@ -50,6 +50,13 @@ jobs:
           npm run check:gate
           npm run check:catalog
 
+      # Los datos que el auto-respondedor de WhatsApp le manda a un cliente
+      # (horarios, dirección, formas de pago) están duplicados en wa-service/
+      # porque su Dockerfile no puede ver src/. Acá se verifica que las dos
+      # copias digan lo mismo y que el texto respete las reglas de negocio.
+      - name: Paridad de datos comerciales (wa-service ↔ src)
+        run: npm run check:businessinfo
+
       - name: Build Next.js app
         run: npm run build
         env:

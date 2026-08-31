@@ -29,6 +29,7 @@ const { createCloudRoutes } = require('./transport/cloud-routes');
 const { createApiRouter } = require('./routes/api');
 const { verificarSocketToken } = require('./shared/socket-token');
 const { BotReplyingSet } = require('./shared/bot-replying');
+const { createAutoResponder } = require('./auto-responder');
 
 const PORT = process.env.PORT || 3100;
 const ALLOWED_ORIGINS = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['*'];
@@ -42,8 +43,16 @@ global.crmSendingTo = new Map();
 
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 
+// ── Auto-respondedor fuera de horario ────────────────────────────────────────
+// Única automatización conversacional aprobada para este número: un mensaje
+// fijo, identificado como automático, cuando el local está cerrado. No es un
+// bot — ver el encabezado de auto-responder.js. Se engancha al webhook como
+// hook `onInbound`: corre DESPUÉS de que el entrante quedó guardado y de que
+// Meta ya recibió su 200, y nunca lanza.
+const autoResponder = createAutoResponder({ prisma, io, sendMessage: transport.sendMessage });
+
 // ── Webhook de Meta: ANTES del express.json global (necesita el body crudo) ──
-app.use('/webhook/whatsapp', createWebhookRouter({ io }));
+app.use('/webhook/whatsapp', createWebhookRouter({ io, onInbound: autoResponder.onInbound }));
 
 app.use(express.json({ limit: '10mb' }));
 
