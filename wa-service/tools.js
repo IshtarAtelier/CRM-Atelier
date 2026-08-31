@@ -19,6 +19,9 @@ const apiClient = axios.create({
 });
 
 const { sendMessage } = require('./whatsapp/client');
+const {
+    resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage,
+} = require('./shared/message-id');
 
 // Helper: Request retry mechanism for transient network or database errors.
 // If all retries fail, it throws the error to halt LLM agent execution and prevent sending messages to the client.
@@ -559,6 +562,198 @@ async function sendQuotePdf({ orderId, chatId, text }) {
     return response.data;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Fotos de armazones al chat.
+//
+// Pedido de la dueña (30/8/2026): la campaña que sale ahora dice "date una
+// vuelta por la tienda y contanos qué modelito te gustó". Cuando el cliente
+// contesta con un modelo o pide ver opciones, el bot tiene que poder MANDAR LA
+// FOTO, no solo el nombre.
+//
+// Por qué una herramienta propia y no dejarlo en manos del `[IMAGE: url]` que
+// ya emite 'get_price_list': ese camino depende de que el LLM copie la etiqueta
+// textualmente en su respuesta, y el prompt de armazones venía diciéndole desde
+// hace meses que NO tenía fotos (era cierto: ver la nota de fotoParaWhatsApp en
+// src/app/api/bot/pricing/route.ts). Acá el envío lo hace el sistema: el modelo
+// pide "mandá fotos de X" y las fotos salen sí o sí, con tope duro de 3.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Tope duro por llamada: ni spam al cliente ni ráfaga contra el rate limit de Meta. */
+const MAX_FOTOS_POR_TURNO = 3;
+
+/**
+ * El 'chatId' que el agente tiene en su contexto es el id de la fila
+ * (`state.chatId = chat.id`), pero los prompts y otras herramientas lo tratan a
+ * veces como waId o como teléfono pelado. Se aceptan las tres formas, igual que
+ * el POST /api/send de routes/api.js.
+ */
+async function resolverChatDestino(chatId) {
+    if (!chatId || typeof chatId !== 'string') return null;
+
+    const esWaIdLegacy = chatId.includes('@c.us') || chatId.includes('@lid');
+    const esTelefono = /^\+?\d{10,15}$/.test(chatId);
+
+    if (!esWaIdLegacy && !esTelefono) {
+        const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
+        return chat ? { waId: chat.waId, dbChatId: chat.id } : null;
+    }
+
+    const cleanPhone = chatId.replace('@c.us', '').replace('@lid', '').replace(/\D/g, '');
+    const chat = await prisma.whatsAppChat.findFirst({
+        where: {
+            OR: [
+                { waId: chatId },
+                { waId: cleanPhone },
+                { waId: `${cleanPhone}@c.us` },
+                { realPhone: cleanPhone },
+            ],
+        },
+        orderBy: { lastMessageAt: 'desc' },
+    });
+    if (chat) return { waId: chat.waId, dbChatId: chat.id };
+
+    // Sin fila: se puede enviar igual (el saliente no queda archivado, pero el
+    // cliente ve la foto). Nunca se inventa un destino a partir de un cuid.
+    return { waId: esWaIdLegacy ? chatId : cleanPhone, dbChatId: null };
+}
+
+/** Pie de foto: el nombre del modelo y el precio de contado. Nada más. */
+function pieDeFoto(p) {
+    const nombre = p.name || 'Armazón';
+    const contado = Math.round(p.priceCash || 0).toLocaleString('es-AR');
+    return `*${nombre}*\n• Precio contado: *$${contado}*`;
+}
+
+/**
+ * Tool: mandarle al cliente hasta 3 fotos de armazones/clip-ons/lentes de sol.
+ * Reusa /api/bot/pricing (misma fuente y mismo filtro por categoría que las
+ * cotizaciones: no hay una segunda copia de esa lógica que pueda divergir).
+ */
+async function sendProductPhotos({ chatId, category, search, products }) {
+    const destino = await resolverChatDestino(chatId);
+    if (!destino) {
+        return "[INSTRUCCIÓN INTERNA] No se pudo identificar el chat para mandar las fotos. NO le menciones esto al cliente: seguí la charla con normalidad, describí los modelos en texto e invitalo a verlos en el local.";
+    }
+
+    const params = {};
+    params.category = category || 'ARMAZON';
+    if (search) params.search = search;
+    // Mismo criterio que 'get_price_list': con búsqueda se barre todo el
+    // catálogo de la categoría; sin búsqueda se priorizan los recomendados por
+    // la óptica (y la ruta ya cae sola a la categoría entera si no hay ninguno).
+    if (!search) params.botRecommended = 'true';
+
+    const response = await requestWithRetry(() =>
+        apiClient.get(`${CRM_API_URL}/pricing`, { params })
+    );
+    const rawData = Array.isArray(response.data) ? response.data : [];
+
+    const candidatos = rawData
+        .filter(p => p.source !== 'SERVICE')
+        // Foto solo en lo que se elige mirándolo. Los cristales no llevan.
+        .filter(p => esArmazonOClipon(p))
+        // Clip-ons infantiles: mismo criterio que 'get_price_list'.
+        .filter(p => !(p.name && /kid|niño|nino|infantil|chico/i.test(p.name) && /clip/i.test(p.name)));
+
+    // Si el modelo nombró productos concretos (típico de la campaña: "me gustó
+    // el Andrómeda"), se respeta esa elección y se ignora el resto.
+    const pedidos = Array.isArray(products)
+        ? products.map(x => String(x || '').trim().toLowerCase()).filter(Boolean)
+        : [];
+    const filtrados = pedidos.length > 0
+        ? candidatos.filter(p => {
+            const nombre = (p.name || '').toLowerCase();
+            return pedidos.some(q => nombre.includes(q) || q.includes(nombre));
+        })
+        : candidatos;
+    const universo = filtrados.length > 0 ? filtrados : candidatos;
+
+    const conFoto = universo.filter(p => p.imageUrl && /^https?:\/\//i.test(p.imageUrl));
+    const sinFoto = universo.filter(p => !(p.imageUrl && /^https?:\/\//i.test(p.imageUrl)));
+
+    if (conFoto.length === 0) {
+        const nombres = sinFoto.map(p => p.name).filter(Boolean).slice(0, 3).join(', ');
+        return `[INSTRUCCIÓN INTERNA] No hay fotos disponibles para esa búsqueda. NUNCA le digas al cliente que no encontraste fotos ni le prometas mandarlas después: seguí en texto${nombres ? ` (podés nombrar estos modelos: ${nombres})` : ''} e invitalo a probárselos en el local.`;
+    }
+
+    // Primero lo que la óptica destacó, después lo publicado en la tienda (el
+    // resto tiene precios de carga, no de venta).
+    const puntaje = p => (p.botRecommended === true ? 2 : 0) + (p.publishToWeb === true ? 1 : 0);
+    const seleccion = [...conFoto].sort((a, b) => puntaje(b) - puntaje(a)).slice(0, MAX_FOTOS_POR_TURNO);
+
+    const enviadas = [];
+    for (const p of seleccion) {
+        const caption = pieDeFoto(p);
+        let sent = null;
+        try {
+            sent = await sendMessage(destino.waId, caption, { url: p.imageUrl }, {
+                isProactive: false,
+                isAutomated: true,
+            });
+        } catch (err) {
+            // Una foto caída (404, timeout, mimetype raro) no puede voltear el
+            // turno entero: se saltea y se sigue con la siguiente.
+            console.error(`[sendProductPhotos] No se pudo enviar la foto de ${p.name}: ${err.message}`);
+            continue;
+        }
+        if (!sent || sent.skipped) continue;
+
+        enviadas.push(p.name || 'Armazón');
+
+        if (destino.dbChatId) {
+            try {
+                rememberBotMessage(sent, caption);
+                const waMessageId = resolveWaMessageId(sent, {
+                    waId: destino.waId, direction: 'OUTBOUND', content: caption,
+                });
+                // Con id propio, el eco de message_create puede grabar la misma
+                // burbuja de nuevo: se busca el gemelo antes de crear.
+                const twin = isLocalWaMessageId(waMessageId)
+                    ? await findRecentTwin(prisma, {
+                        chatId: destino.dbChatId, direction: 'OUTBOUND', content: caption,
+                    })
+                    : null;
+                if (!twin) {
+                    await prisma.whatsAppMessage.upsert({
+                        where: { waMessageId },
+                        update: { senderName: 'Bot' },
+                        create: {
+                            chatId: destino.dbChatId,
+                            direction: 'OUTBOUND',
+                            type: 'IMAGE',
+                            content: caption,
+                            waMessageId,
+                            senderName: 'Bot',
+                            status: 'SENT',
+                        },
+                    });
+                }
+                await prisma.whatsAppChat.update({
+                    where: { id: destino.dbChatId },
+                    data: { lastMessageAt: new Date() },
+                }).catch(() => {});
+            } catch (dbErr) {
+                console.error('[sendProductPhotos] No se pudo archivar la foto en el buzón:', dbErr.message);
+            }
+        }
+
+        // Respiro entre fotos: tres adjuntos disparados al hilo es el patrón
+        // más detectable que existe.
+        await new Promise(r => setTimeout(r, 800));
+    }
+
+    if (enviadas.length === 0) {
+        return "[INSTRUCCIÓN INTERNA] Las fotos no se pudieron enviar. NO le menciones ningún problema al cliente ni le prometas mandarlas después: seguí la charla en texto e invitalo a verlos en el local.";
+    }
+
+    const omitidos = conFoto.slice(MAX_FOTOS_POR_TURNO).map(p => p.name).filter(Boolean);
+    let nota = `[INSTRUCCIÓN INTERNA] Ya se enviaron ${enviadas.length} foto(s) al cliente, cada una con su nombre y su precio de contado al pie: ${enviadas.join(', ')}. NO las describas de nuevo, NO repitas esos precios y NO anuncies que "ahí van": ya llegaron. Escribí UNA sola burbuja corta preguntándole cuál le gustó más. PROHIBIDO volver a llamar esta herramienta en este mismo turno.`;
+    if (omitidos.length > 0) {
+        nota += ` Quedaron sin enviar (tope de ${MAX_FOTOS_POR_TURNO} fotos por vez): ${omitidos.slice(0, 8).join(', ')}. Si el cliente pide ver más, recién ahí volvé a llamarla con 'search' del modelo que nombre.`;
+    }
+    return nota;
+}
+
 /**
  * Tool: Cancel the bot and tag the conversation
  */
@@ -1014,7 +1209,7 @@ async function reportInvoiceRequest({ clientId }) {
 module.exports = {
     checkExistingClient, convertIntoLead, updateClientData,
     getPriceList, getOrderStatus, createTask,
-    addInteraction, savePrescription, logBotMessage, createQuote, sendQuotePdf,
+    addInteraction, savePrescription, logBotMessage, createQuote, sendQuotePdf, sendProductPhotos,
     cancelBot, addTagToClient, disableBotForChat, reportComplaint,
     isPhrase, generateAndSaveHandoffSummary, updateChatSummary, reportInvoiceRequest
 };

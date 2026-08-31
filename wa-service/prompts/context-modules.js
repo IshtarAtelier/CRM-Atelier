@@ -65,8 +65,79 @@ function getConversationSignals(messages, take = 12) {
     return { conversationText: normalizeText(parts.join('\n')), hasImage };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ¿Ya hay mensajes NUESTROS en este hilo?
+//
+// El minado de 264 conversaciones reales (scripts/maintenance/bot-eval) dejó
+// "repite el saludo / se re-presenta" como la falla #1: 89 conversaciones. El
+// caso que más duele es conv-017: una compañera había escrito "Hola buen dia
+// Clau mi nombre es Mile" y el bot contestó después "Hola Claudia, buen día 😊
+// Soy Matías de Atelier Óptica, contame qué estás necesitando" — o sea, se
+// presentó en una charla que ya estaba abierta y con otro nombre firmando. Son
+// 27 conversaciones en las que la presentación NO cae en el primer saliente.
+//
+// La regla ya estaba escrita en el prompt (regla 5 de estilo) y no alcanzó: es
+// una línea más entre sesenta. Acá se refuerza de forma PROGRAMÁTICA — el
+// módulo solo se inyecta cuando el historial efectivamente tiene un mensaje
+// nuestro, y le muestra al modelo el texto exacto con el que ya arrancamos la
+// conversación, que es mucho más difícil de ignorar que una prohibición
+// genérica.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Un mensaje del historial que salió de nuestro lado (bot, vendedora o seguimiento). */
+function esMensajeNuestro(m) {
+    if (!m) return false;
+    try {
+        if (typeof m._getType === 'function') return m._getType() === 'ai';
+    } catch {
+        // Un mensaje raro no puede voltear el armado del prompt.
+    }
+    const tipo = m.role || m.type || (m.constructor && m.constructor.name) || '';
+    return /^ai/i.test(String(tipo)) || String(tipo) === 'AIMessage';
+}
+
+/** Texto plano de un mensaje del historial (puede venir multimodal). */
+function textoDeMensaje(m) {
+    const content = m && m.content;
+    if (typeof content === 'string') return content;
+    if (Array.isArray(content)) {
+        return content.filter(p => p && p.type === 'text' && p.text).map(p => p.text).join(' ');
+    }
+    return '';
+}
+
+/**
+ * Señales de "esta charla ya está empezada": si hubo mensajes nuestros y cuál
+ * fue el primero (el que ya cumplió la función de saludo y presentación).
+ */
+function getHistorySignals(messages) {
+    const nuestros = (messages || []).filter(esMensajeNuestro);
+    if (nuestros.length === 0) return { yaHablamos: false, primerMensajeNuestro: '' };
+    const primero = textoDeMensaje(nuestros[0])
+        // Los mensajes del historial llegan con el sello de fecha adelante
+        // ("[mar, 4 ago, 21:26] "): sacarlo deja la frase que se leyó el cliente.
+        .replace(/^\[[^\]]{5,40}\]\s*/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return { yaHablamos: true, primerMensajeNuestro: primero.slice(0, 160) };
+}
+
 // ── Definición de módulos ──
 const MODULES = [
+    {
+        key: 'conversacion_en_curso',
+        trigger: ({ yaHablamos }) => yaHablamos === true,
+        text: {
+            '*': ({ primerMensajeNuestro }) => `<conversacion_ya_empezada>
+  ⛔ ESTA CONVERSACIÓN YA ESTÁ EMPEZADA: en el historial YA hay mensajes enviados por nosotros${primerMensajeNuestro ? `. El primero fue: "${primerMensajeNuestro}"` : '.'}
+  Por lo tanto, en este turno:
+  - PROHIBIDO saludar. Nada de "Hola", "Hola [nombre]", "Buenas", "Buen día", "Cómo andás?" ni ninguna apertura de primer contacto. Tu respuesta arranca directo por el tema.
+  - PROHIBIDO presentarte. Nada de "Soy Matías", "Matías de Atelier Óptica", "te habla Matías". El cliente ya sabe con quién habla.
+  - Da igual cuánto tiempo pasó, que el cliente haya tardado días en responder, que el tema haya cambiado o que el mensaje nuestro anterior lo haya escrito una compañera firmando con otro nombre: la charla es la misma y volver a presentarse delata que sos un sistema.
+  - PROHIBIDO repetir textual una frase que ya dijimos en este hilo (sobre todo los sondeos tipo "pudiste ver las opciones?" / "querés que te mande fotitos?"). Si ya la usaste, decilo con otras palabras o avanzá a otra cosa.
+</conversacion_ya_empezada>`,
+        },
+    },
     {
         key: 'receta',
         trigger: ({ text, hasImage, clientData }) =>
@@ -218,13 +289,13 @@ ${FORMAS_DE_PAGO}`,
         trigger: ({ text }) => /armazon|marco|clip|wicue|gafa|de sol|anteojos de sol|modelo|estilo/.test(text),
         text: {
             sales: `<armazones_y_productos>
-  - ARMAZONES: Desde $100.000. NO tenés fotos de armazones para enviar: NUNCA prometas mandar fotos ni digas que no las encontraste. Contale que hay muchísima variedad de estilos, preguntale qué estilo busca e invitalo a probárselos en el local.
+  - ARMAZONES: Desde $100.000. SÍ tenés fotos para mandarle: usá 'send_product_photos' (manda hasta 3, con el nombre y el precio de contado al pie). Mandalas cuando las pida, cuando te diga que sí a tu ofrecimiento, o cuando te cuente qué modelito le gustó de la tienda (pasá ese nombre en 'search'). Si querés ofrecerlas, ofrecelas UNA vez y esperá el sí. Después de mandarlas, una sola línea corta: cuál te gustó más? E invitalo igual a probárselos en el local.
   - CLIP-ONS: Ofrecer únicamente el Clip-on normal. Prohibido ofrecer o mencionar clip-ons de niño/Kids. NO le aclares al cliente que es "para adultos" (es un dato innecesario), simplemente pasale el valor.
   - GAFAS WICUE: Se oscurecen con botón, sin graduación. Link: https://atelieroptica.com.ar/producto/wicue-cargador-regulable
 </armazones_y_productos>`,
             executive: `<armazones_y_productos>
-  - ARMAZONES: Desde $100.000. NO tenés fotos de armazones para enviar: NUNCA prometas mandar fotos ni digas que no las encontraste. Contale que hay muchísima variedad de estilos, preguntale qué estilo busca e invitalo a probárselos en el local.
-  - CLIP-ONS: Ofrecer únicamente Clip-on de Adulto. Prohibido ofrecer, mencionar o consultar por de niño/Kids. No envíes ningún link de producto para Clip-ons. NO tenés fotos de clip-ons: NUNCA prometas mandarlas ni digas que no las encontraste; pasale el valor y describilo en texto.
+  - ARMAZONES: Desde $100.000. SÍ tenés fotos para mandarle: usá 'send_product_photos' (manda hasta 3, con el nombre y el precio de contado al pie), solo cuando el cliente pida ver modelos o acepte que se las mandes. Después, una sola línea corta preguntando cuál le gustó, e invitalo a probárselos en el local.
+  - CLIP-ONS: Ofrecer únicamente Clip-on de Adulto. Prohibido ofrecer, mencionar o consultar por de niño/Kids. No envíes ningún link de producto para Clip-ons.
   - GAFAS WICUE: Se oscurecen con botón, sin graduación. Link: https://atelieroptica.com.ar/producto/wicue-cargador-regulable
 </armazones_y_productos>`,
         },
@@ -279,7 +350,14 @@ function buildContextModules({ agentType, messages, clientData, chatSummary }) {
     // clave hayan salido de la ventana de mensajes recientes. Sin pérdida de contexto
     // en conversaciones largas o retomadas días después.
     const summaryText = normalizeText(chatSummary || '');
-    const signals = { text: conversationText + '\n' + summaryText, hasImage, clientData: clientData || null };
+    const { yaHablamos, primerMensajeNuestro } = getHistorySignals(messages);
+    const signals = {
+        text: conversationText + '\n' + summaryText,
+        hasImage,
+        clientData: clientData || null,
+        yaHablamos,
+        primerMensajeNuestro,
+    };
 
     const active = [];
     for (const mod of MODULES) {
@@ -293,10 +371,21 @@ function buildContextModules({ agentType, messages, clientData, chatSummary }) {
         }
         if (!triggered) continue;
         const text = mod.text[agentType] || mod.text['*'];
-        if (text) active.push(text);
+        // Un módulo puede armar su texto con las señales del turno (ej. citar el
+        // primer mensaje que ya le mandamos al cliente).
+        let resuelto = text;
+        if (typeof text === 'function') {
+            try {
+                resuelto = text(signals);
+            } catch {
+                // Un módulo que no puede armar su texto no puede voltear el turno.
+                resuelto = '';
+            }
+        }
+        if (resuelto) active.push(resuelto);
     }
 
     return active.join('\n\n');
 }
 
-module.exports = { buildContextModules, getConversationSignals, MODULES };
+module.exports = { buildContextModules, getConversationSignals, getHistorySignals, MODULES };

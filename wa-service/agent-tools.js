@@ -5,7 +5,8 @@ const { SystemMessage, HumanMessage } = require("@langchain/core/messages");
 const {
     checkExistingClient, convertIntoLead, updateClientData,
     getPriceList, getOrderStatus, createTask,
-    addInteraction, savePrescription, createQuote, sendQuotePdf, cancelBot, addTagToClient, disableBotForChat,
+    addInteraction, savePrescription, createQuote, sendQuotePdf, sendProductPhotos,
+    cancelBot, addTagToClient, disableBotForChat,
     isPhrase, reportInvoiceRequest
 } = require("./tools");
 
@@ -299,6 +300,26 @@ const sendQuotePdfTool = new DynamicStructuredTool({
     }),
 });
 
+// Fotos de armazones. El envío lo hace el sistema (no depende de que el modelo
+// copie un `[IMAGE: url]` en su respuesta) y tiene tope duro de 3 por llamada.
+const sendProductPhotosTool = new DynamicStructuredTool({
+    schema: z.object({
+        chatId: z.string().optional(),
+        category: z.string().optional(),
+        search: z.string().optional(),
+        products: z.array(z.string()).optional(),
+    }).catchall(z.any()),
+    name: "send_product_photos",
+    description: "Le manda al cliente por WhatsApp las FOTOS de armazones, lentes de sol o clip-ons, cada una con el nombre del modelo y su precio de contado al pie. Usala cuando el cliente pide ver modelos ('mandame fotos', 'qué modelos tenés', 'querés que te muestre?' y te dice que sí) o cuando responde a la campaña contando qué modelito le gustó. Usa JSON con 'chatId' (MANDATORIO, el que ya tenés en tu contexto — JAMÁS le pidas el teléfono al cliente), 'category' ('ARMAZON' por defecto, o 'SOL' / 'CLIPON'), 'search' (opcional, para buscar por nombre/marca/modelo: usalo cuando el cliente nombra algo concreto) y 'products' (opcional, array con los nombres exactos de los modelos que querés mostrar). Manda como MÁXIMO 3 fotos por llamada y las elige el sistema. NO la llames más de una vez por turno y NO la uses si el cliente no pidió ver modelos. Después de usarla, escribí una sola línea corta preguntando cuál le gustó: las fotos ya llegaron con su precio, no los repitas.",
+    func: safeToolRun(async (input) => {
+        const parsed = safeParse(input, "send_product_photos");
+        if (!parsed.chatId) {
+            return "[INSTRUCCIÓN INTERNA] Falta 'chatId' — es el que ya tenés en tu contexto de esta charla. Reintentá pasándolo. NO le menciones esto al cliente.";
+        }
+        return await sendProductPhotos(parsed);
+    }),
+});
+
 const createTaskTool = new DynamicStructuredTool({
     schema: z.object({ clientId: z.string().optional(), description: z.string(), dueDate: z.string().optional() }).catchall(z.any()),
     name: "create_task",
@@ -391,6 +412,7 @@ const salesToolsList = [
     createTaskTool,
     createQuoteTool,
     sendQuotePdfTool,
+    sendProductPhotosTool,
     disableBotForChatTool,
     reportComplaintTool,
     updateChatSummaryTool,
@@ -404,6 +426,7 @@ const executiveToolsList = [
     getOrderStatusTool,
     createQuoteTool,
     sendQuotePdfTool,
+    sendProductPhotosTool,
     createTaskTool,
     addInteractionTool,
     savePrescriptionDataTool,

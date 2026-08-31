@@ -1,17 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { STORE_ORIGIN } from '@/lib/constants';
+import { resolveStorageUrl } from '@/lib/utils/storage';
 import { getWebSettings } from '@/lib/web-settings';
 
 /**
  * La foto se entrega vía /api/store/product-image, que la convierte a JPEG: el
  * catálogo publica casi todo en AVIF y WhatsApp no lo soporta (le llegaría al
  * cliente como un archivo roto).
+ *
+ * 30/8/2026 — por qué se agregó el paso de "hacer absoluta la ruta": las fotos
+ * de los armazones PUBLICADOS no viven en el host del proveedor, son rutas del
+ * propio sitio (`/assets/products/acetato/BC3059-c1.avif`). El guarda
+ * `if (!/^https:\/\//)` las devolvía tal cual, o sea relativas, y el bot las
+ * emitía como `[IMAGE: /assets/...]`: el extractor de index.js solo matchea
+ * `https?://`, así que la foto se descartaba en silencio. Medido contra la
+ * base: de los 111 armazones con `publishToWeb`, los 106 que tienen foto la
+ * tienen RELATIVA — es decir, el bot nunca pudo mandar la foto de un armazón
+ * publicado, que es justo lo que la campaña le pide ("contanos qué modelito te
+ * gustó"). Se resuelve igual que `urlAbsoluta()` de sale-confirmation.ts.
+ *
+ * Las `data:` quedan afuera a propósito: no son una URL que WhatsApp pueda
+ * descargar (hay fichas con la imagen embebida en base64 en `imageUrl`).
  */
 function fotoParaWhatsApp(url: string | null | undefined): string | null {
     if (!url) return null;
-    if (!/^https:\/\//i.test(url)) return url;
-    return `${STORE_ORIGIN}/api/store/product-image?url=${encodeURIComponent(url)}`;
+    const resuelta = resolveStorageUrl(url);
+    if (!resuelta || resuelta.startsWith('data:')) return null;
+    const absoluta = /^https?:\/\//i.test(resuelta)
+        ? resuelta
+        : `${STORE_ORIGIN}${resuelta.startsWith('/') ? '' : '/'}${resuelta}`;
+    if (!/^https:\/\//i.test(absoluta)) return null;
+    return `${STORE_ORIGIN}/api/store/product-image?url=${encodeURIComponent(absoluta)}`;
 }
 
 // ── GET /api/bot/pricing ──────────────────────────────────────────────────────
@@ -94,6 +114,7 @@ export async function GET(req: NextRequest) {
             botRecommended: true,
             botLabel: true,
             laboratory: true,
+            publishToWeb: true,
             rawImageUrls: true,
             webProducts: {
                 select: { slug: true, imageUrl: true }
@@ -122,6 +143,7 @@ export async function GET(req: NextRequest) {
                 botRecommended: true,
                 botLabel: true,
                 laboratory: true,
+                publishToWeb: true,
                 rawImageUrls: true,
                 webProducts: { select: { slug: true, imageUrl: true } },
             },
@@ -152,6 +174,7 @@ export async function GET(req: NextRequest) {
                 botRecommended: true,
                 botLabel: true,
                 laboratory: true,
+                publishToWeb: true,
                 rawImageUrls: true,
                 webProducts: { select: { slug: true, imageUrl: true } },
             },
@@ -196,6 +219,11 @@ export async function GET(req: NextRequest) {
             lensIndex: p.lensIndex,
             laboratory: p.laboratory,
             botRecommended: p.botRecommended,
+            // Publicado en la tienda = precio real y foto que resuelve en el
+            // sitio. Los 336 armazones sin publicar tienen precios de carga
+            // ($6,36 / $34,14) que no son de venta: el que manda fotos ordena
+            // por este campo para no ponerle un precio absurdo al pie de una foto.
+            publishToWeb: p.publishToWeb,
             imageUrl: fotoParaWhatsApp(finalImageUrl),
             link: webProd?.slug ? `https://atelieroptica.com.ar/producto/${webProd.slug}` : null,
         };
