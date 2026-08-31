@@ -12,6 +12,7 @@ import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { PricingService } from "@/services/PricingService";
 import { ACLARACION_MP_CUOTAS_LARGAS, leerPromoCuotas } from "@/lib/promo-cuotas";
+import { UMBRAL_ULTIMAS_UNIDADES } from "@/lib/constants/social-proof";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
 // devolvía una grilla vacía. Tienen su propia página, así que ahora llevan ahí.
@@ -612,6 +613,16 @@ export function TiendaClient({
                       {p.category && (
                         <span className="absolute top-3 left-3 text-[10px] font-black uppercase tracking-widest bg-white/80 backdrop-blur-sm px-2 py-1 z-10">
                           {p.shape === "XL" ? `${p.category} · XL` : p.category}
+                        </span>
+                      )}
+
+                      {/* Escasez REAL: el mismo stock (y el mismo umbral) que la
+                          ficha ya anuncia como "¡Últimas N u.!", ahora visible
+                          desde la grilla. Solo stock verdadero de la base —
+                          nunca un contador inventado. */}
+                      {!isWholesale && typeof p.stock === 'number' && p.stock > 0 && p.stock <= UMBRAL_ULTIMAS_UNIDADES && (
+                        <span className="absolute top-3 right-3 text-[10px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1 z-10 rounded-sm shadow-sm">
+                          ¡Últimas {p.stock} u.!
                         </span>
                       )}
 

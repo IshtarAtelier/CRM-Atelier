@@ -10,7 +10,7 @@ import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, Share2, ChevronDown, Truck, Package, ShieldCheck, CreditCard, Percent } from "lucide-react";
+import { Camera, Share2, ChevronDown, Truck, Package, ShieldCheck, CreditCard, Percent, Users } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { useCart } from "@/store/useCart";
 import { resolveStorageUrl } from "@/lib/utils/storage";
@@ -18,6 +18,8 @@ import { trackViewContent } from "@/lib/tracking";
 import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 import { PricingService } from "@/services/PricingService";
 import { textoCuotas12, ACLARACION_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
+import { UMBRAL_ULTIMAS_UNIDADES, claveMarca } from "@/lib/constants/social-proof";
+import { TrustStrip } from "@/components/Storefront/TrustStrip";
 import ProductReviews from "@/components/Storefront/ProductReviews";
 
 // Carga diferida: el configurador (662 líneas) recién se monta cuando el cliente
@@ -122,6 +124,19 @@ export function ProductClient({
       .then(data => setSettings(data))
       .catch(err => console.error("Error loading settings in product client:", err));
   }, []);
+
+  // Prueba social REAL: clientes distintos que compraron este producto (o su
+  // marca). El endpoint ya viene filtrado por umbral desde la base — si acá no
+  // llega el número, el cartel no existe. Nunca se inventa (Ley 24.240).
+  const [socialProof, setSocialProof] = useState<{ productos: Record<string, number>; marcas: Record<string, number> } | null>(null);
+  useEffect(() => {
+    fetch('/api/store/social-proof')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => { if (data) setSocialProof(data); })
+      .catch(() => {});
+  }, []);
+  const clientesDelProducto = socialProof?.productos?.[product.id] || 0;
+  const clientesDeLaMarca = socialProof?.marcas?.[claveMarca(product.brand)] || 0;
 
   // Precios netos: la ficha es ISR y el HTML lo comparten todos, así que el
   // server ya no los manda (llegan siempre en 0). Los pedimos acá solo cuando
@@ -371,7 +386,7 @@ export function ProductClient({
               {product.stock !== undefined && product.stock !== null ? (
                 product.stock <= 0 ? (
                   <span className="text-red-500 font-bold uppercase tracking-widest">Agotado</span>
-                ) : product.stock <= 3 ? (
+                ) : product.stock <= UMBRAL_ULTIMAS_UNIDADES ? (
                   <span className="text-stone-800 font-bold uppercase tracking-widest">¡Últimas {product.stock} u.!</span>
                 ) : (
                   <span className="text-stone-500 uppercase tracking-widest">En Stock</span>
@@ -380,6 +395,21 @@ export function ProductClient({
                 <span className="text-stone-500 uppercase tracking-widest">En Stock</span>
               )}
             </motion.div>
+
+            {/* "Elegido por N clientes": clientes REALES contados en la base
+                (ventas respaldadas por pago o laboratorio). El umbral lo
+                aplica el server: si el modelo no llega, cae al conteo de la
+                marca; si tampoco, no se muestra nada — jamás se inventa. */}
+            {!isWholesale && (clientesDelProducto > 0 || clientesDeLaMarca > 0) && (
+              <div className="mb-6">
+                <span className="inline-flex items-center gap-1.5 border border-stone-200 bg-stone-50 rounded-full px-3.5 py-1.5 text-[11px] font-bold text-stone-800">
+                  <Users aria-hidden="true" className="w-3.5 h-3.5 text-stone-600" />
+                  {clientesDelProducto > 0
+                    ? `Elegido por ${clientesDelProducto} clientes`
+                    : `Los ${product.brand} ya están en la cara de ${clientesDeLaMarca} clientes`}
+                </span>
+              </div>
+            )}
 
             {/* Especificaciones del armazón. Los mismos datos que publica el
                 feed de Shopping: el aviso que trajo al visitante no puede decir
@@ -613,6 +643,20 @@ export function ProductClient({
               </button>
             </div>
 
+            {/* Franja de confianza en el punto de decisión: nota y cantidad de
+                reseñas REALES de Google + la garantía canónica. El botón de
+                garantía abre el acordeón con la letra chica, acá mismo. */}
+            <TrustStrip
+              onGarantiaClick={() => {
+                setActiveAccordion("returns");
+                // El acordeón queda más abajo: llevar la vista hasta él para
+                // que el clic tenga una respuesta visible.
+                setTimeout(() => {
+                  document.getElementById("acordeon-cambios")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 100);
+              }}
+            />
+
             {/* Envío gratis badge/banner con tiempo estimado */}
             <div className="flex items-center gap-3.5 px-4 py-3 bg-[#eefaf4] border border-[#d2f4e1] rounded-xl mb-6 shadow-sm animate-fade-in">
               <div className="p-2 bg-white rounded-full text-[#1b4332] shadow-sm">
@@ -625,6 +669,16 @@ export function ProductClient({
                 <span className="text-[11px] text-[#2c6e49] leading-tight">
                   En Córdoba: <strong>Retiro por local</strong><br/>
                   Fuera de CBA: <strong>Envío sin cargo</strong> a todo el país.
+                </span>
+                {/* El empujón de "ya es tuyo": el plazo de despacho que este
+                    mismo acordeón de envíos ya publica, dicho junto al CTA.
+                    Solo plazos ya prometidos por la ficha — nada nuevo. */}
+                <span className="text-[11px] text-[#2c6e49] leading-tight">
+                  {product.category === "Receta"
+                    ? <>Comprando hoy: solo armazón se despacha en <strong>2 días hábiles</strong>; con cristales, en <strong>5</strong>.</>
+                    : product.category === "Cristal"
+                      ? <>Comprando hoy: calibrado y laboratorio en <strong>5 días hábiles</strong>.</>
+                      : <>Comprando hoy, se despacha en <strong>2 días hábiles</strong>.</>}
                 </span>
               </div>
             </div>
@@ -764,7 +818,7 @@ export function ProductClient({
               </div>
 
               {/* Accordion: Garantía */}
-              <div className="border-b border-[#e5e5e5]">
+              <div id="acordeon-cambios" className="border-b border-[#e5e5e5]">
                 <button 
                   onClick={() => setActiveAccordion(activeAccordion === "returns" ? null : "returns")}
                   className="w-full flex items-center justify-between py-5 text-[11px] font-bold uppercase tracking-widest text-black hover:opacity-70 transition-opacity"
