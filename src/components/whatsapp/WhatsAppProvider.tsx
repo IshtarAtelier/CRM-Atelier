@@ -53,6 +53,13 @@ interface DatosWhatsApp {
     esApiOficial: boolean;
     chats: Chat[];
     chatsCargados: boolean;
+    /**
+     * La última carga del buzón falló (la API devolvió 503, o no hubo red).
+     * Existe para que la pantalla pueda decir "no se pudo cargar" en vez de
+     * "no hay conversaciones": eran indistinguibles y alguien terminaba
+     * reenviando algo que ya había mandado.
+     */
+    errorCarga: boolean;
     unreadTotal: number;
     selectedChatId: string | null;
     chatSeleccionado: Chat | null;
@@ -96,6 +103,7 @@ const DATOS_VACIOS: DatosWhatsApp = {
     esApiOficial: false,
     chats: [],
     chatsCargados: false,
+    errorCarga: false,
     unreadTotal: 0,
     selectedChatId: null,
     chatSeleccionado: null,
@@ -147,6 +155,7 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
     const [cargandoStatus, setCargandoStatus] = useState(true);
     const [chats, setChats] = useState<Chat[]>([]);
     const [chatsCargados, setChatsCargados] = useState(false);
+    const [errorCarga, setErrorCarga] = useState(false);
     const [contadorRemoto, setContadorRemoto] = useState(0);
     const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
     const [messagesByChat, setMessagesByChat] = useState<Record<string, Message[]>>({});
@@ -233,13 +242,21 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
         } catch { /* un latido perdido no cambia nada: se reintenta */ }
     }, []);
 
+    // Trae los últimos mensajes del hilo (la API topea en 60 y pagina con
+    // `?before`). Si la API falla devuelve 503: el hilo queda con lo último bueno
+    // que se vio, NUNCA vacío — un hilo vacío se lee como "nunca escribió".
     const refrescarMensajes = useCallback(async (chatId: string) => {
         try {
             const res = await fetch(`/api/whatsapp/chats/${chatId}/messages`);
             const data = await res.json();
-            setMessagesByChat(prev => ({ ...prev, [chatId]: Array.isArray(data) ? data : [] }));
+            if (!res.ok || !Array.isArray(data)) {
+                setErrorCarga(true);
+                return;
+            }
+            setErrorCarga(false);
+            setMessagesByChat(prev => ({ ...prev, [chatId]: data }));
         } catch {
-            setMessagesByChat(prev => ({ ...prev, [chatId]: prev[chatId] || [] }));
+            setErrorCarga(true);
         }
     }, []);
 
@@ -255,7 +272,13 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
         try {
             const res = await fetch('/api/whatsapp/chats');
             const data = await res.json();
-            if (!Array.isArray(data)) return;
+            // 503 = la base no contestó. Se marca el error en vez de dejar la
+            // pantalla diciendo "no hay conversaciones".
+            if (!res.ok || !Array.isArray(data)) {
+                setErrorCarga(true);
+                return;
+            }
+            setErrorCarga(false);
 
             // Leads nuevos: el primer fetch solo fija la referencia, así un
             // refresco de página no vuelve a avisar de fichas ya conocidas.
@@ -278,7 +301,11 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
             setChats(ordenados);
             setChatsCargados(true);
             try { localStorage.setItem(INBOX_CACHE_KEY, JSON.stringify(ordenados)); } catch { /* storage lleno */ }
-        } catch { /* la lista queda con lo último bueno que se vio */ }
+        } catch {
+            // La lista queda con lo último bueno que se vio, pero marcada como
+            // desactualizada para que la pantalla lo pueda decir.
+            setErrorCarga(true);
+        }
     }, [agregarEvento]);
 
     // Cache local: pinta la última lista conocida al instante. Solo alimenta el
@@ -447,10 +474,19 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const marcarLeido = useCallback((chatId: string) => {
+        // Se descuenta lo que ese chat tenía sin leer, no 1: un chat con 7 sin
+        // leer dejaba 6 fantasma en el badge. El número definitivo lo devuelve
+        // `mark-read` ya recalculado (y con el cache del contador invalidado),
+        // así que se SETEA con eso en vez de seguir restando.
+        const sinLeer = chatsRef.current.find(c => c.id === chatId)?.unreadCount ?? 0;
+        if (sinLeer > 0) setContadorRemoto(actual => Math.max(0, actual - sinLeer));
         setChats(prev => prev.map(c => (c.id === chatId ? { ...c, unreadCount: 0 } : c)));
-        setContadorRemoto(prev => Math.max(0, prev - 1));
         fetch(`/api/whatsapp/chats/${chatId}/mark-read`, { method: 'POST' })
-            .then(() => refrescarContador())
+            .then(res => res.json())
+            .then(data => {
+                if (typeof data?.unreadTotal === 'number') setContadorRemoto(data.unreadTotal);
+                else refrescarContador();
+            })
             .catch(() => {});
     }, [refrescarContador]);
 
@@ -672,6 +708,7 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
         esApiOficial: status.transport === 'cloud',
         chats,
         chatsCargados,
+        errorCarga,
         unreadTotal,
         selectedChatId,
         chatSeleccionado,
@@ -683,7 +720,7 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
         vista,
         eventos,
         enviando,
-    }), [status, cargandoStatus, chats, chatsCargados, unreadTotal, selectedChatId, chatSeleccionado,
+    }), [status, cargandoStatus, chats, chatsCargados, errorCarga, unreadTotal, selectedChatId, chatSeleccionado,
         messagesByChat, tags, agentEnabled, followupsEnabled, promptDelServicio, vista, eventos, enviando]);
 
     // Identidad ESTABLE: si este objeto cambiara, todo el panel se re-renderizaría

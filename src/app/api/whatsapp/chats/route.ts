@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { prisma } from '@/lib/db';
+import { buscarClientePorTelefono } from '@/lib/whatsapp/vincular-chat';
 
 // GET /api/whatsapp/chats — listar chats
 // Lee DIRECTO de la base (compartida con wa-service): antes esto proxied a
@@ -49,7 +50,11 @@ export async function GET() {
         return NextResponse.json(chats);
     } catch (err) {
         console.error('[Next.js Chats GET] Error al obtener chats de la DB:', err);
-        return NextResponse.json([]);
+        // 503 y no `[]`: una lista vacía se lee como "no hay conversaciones", y
+        // ahí alguien reenvía algo que ya mandó o concluye que un cliente nunca
+        // escribió. Que la falla se vea es la menos cara de las dos mentiras
+        // (mismo criterio que api/whatsapp/agent).
+        return NextResponse.json({ error: 'No se pudieron cargar las conversaciones' }, { status: 503 });
     }
 }
 
@@ -88,14 +93,15 @@ export async function POST(request: Request) {
             }
             const waId = `${normalizedPhone}@c.us`;
 
-            // Buscar un cliente con el mismo sufijo de teléfono (últimos 8 dígitos)
-            const client = await prisma.client.findFirst({
-                where: {
-                    phone: {
-                        contains: phoneSuffix
-                    }
-                }
-            });
+            // Match de ficha por teléfono: se usa el helper compartido, que ante
+            // DOS fichas con el mismo final devuelve null en vez de elegir una.
+            // Acá había un `findFirst` que agarraba cualquiera de las candidatas
+            // (familias que comparten la línea), y eso mete la conversación de
+            // una persona dentro de la ficha de otra.
+            const clientId = await buscarClientePorTelefono(normalizedPhone);
+            const client = clientId
+                ? await prisma.client.findUnique({ where: { id: clientId }, select: { id: true, name: true } })
+                : null;
 
             // Crear el chat
             chat = await prisma.whatsAppChat.create({

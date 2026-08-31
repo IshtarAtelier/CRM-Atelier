@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService } from '@/services/PricingService';
+import { applyTeñidoPromoDiscount, isCrystal, isTeñidoAddon, recalculateCrystalPrices } from '@/lib/promo-utils';
 import { BOT_ACTOR } from '@/lib/actor';
 
 export const dynamic = 'force-dynamic';
@@ -88,6 +89,90 @@ export async function POST(request: Request) {
             where: { id: { in: productIds } }
         });
 
+        // ─────────────────────────────────────────────────────────────────
+        // Los precios NO se toman del body.
+        //
+        // El único llamador de esta ruta es la tool `create_quote` del bot, cuyo
+        // schema declara `total` y los `items` como campos libres: los rellena el
+        // LLM. Hasta acá se guardaba `total: Math.round(total || 0)` y
+        // `price: it.price` tal cual venían, así que un número alucinado se
+        // convertía en Order real, en el PDF que recibe el cliente, en el embudo
+        // y en las estadísticas — sin promo 2x1, sin markup y sin ninguno de los
+        // topes del cotizador. Regla dura de CLAUDE.md: el cálculo de plata vive
+        // SOLO en PricingService.
+        //
+        // Desde acá cada línea se reconstruye con el precio VIVO del catálogo y
+        // el total lo calcula PricingService, igual que el camino humano
+        // (`src/app/api/orders/route.ts`): `subtotalWithMarkup` = lista y
+        // `total` = contado.
+        const lineasInvalidas = items.filter((it: any) => !dbProducts.some(p => p.id === it.productId));
+        if (lineasInvalidas.length > 0) {
+            return NextResponse.json({
+                error: 'Hay ítems sin producto del catálogo: no se puede presupuestar sin un precio verificable.',
+                items: lineasInvalidas.map((it: any) => it.productId ?? null),
+            }, { status: 400 });
+        }
+
+        const cartItems = items.map((it: any) => {
+            const dbProd = dbProducts.find(p => p.id === it.productId)!;
+            // Los cristales se cotizan POR OJO: `recalculateCrystalPrices` deja
+            // cada línea a la mitad del precio de catálogo, porque el cotizador
+            // siempre carga dos (OD y OI). El bot manda UNA línea por cristal,
+            // así que esa línea vale el PAR: cantidad × 2 para que las dos
+            // mitades sumen el precio real. Con `eye` explícito se respeta lo
+            // que mandó (ahí sí es un solo ojo).
+            const cantidad = it.quantity || 1;
+            const esCristalPorPar = isCrystal(dbProd) && !isTeñidoAddon(dbProd) && !it.eye;
+            return {
+                productId: dbProd.id,
+                product: dbProd,
+                eye: it.eye || null,
+                quantity: esCristalPorPar ? cantidad * 2 : cantidad,
+                price: dbProd.price ?? 0,
+            };
+        });
+
+        // Mismos ajustes de precio que el camino humano, y por los mismos
+        // helpers: precio de cristal por ojo y teñido cobrado una sola vez.
+        recalculateCrystalPrices(cartItems);
+        const tintStylePrices = Object.fromEntries(
+            (await prisma.tintStylePrice.findMany()).map(t => [t.category, t.price])
+        );
+        applyTeñidoPromoDiscount(cartItems, tintStylePrices);
+
+        // `?? 20` y no `|| 20`: el default del cotizador es 20, y guardar 0
+        // rompe el espejo SQL del filtro "con saldo" (`COALESCE(o."discountCash", 20)`
+        // en src/app/api/orders/route.ts), que solo dispara con NULL. Con 0
+        // guardado, `totalCash = lista` y todo pago en efectivo contra el
+        // presupuesto se convertía mal: es el mecanismo de los saldos fantasma.
+        const descuentoEfectivo = discountCash ?? 20;
+        const totals = PricingService.calculateTotals(cartItems, 0, descuentoEfectivo, []);
+        const totalLista = totals.subtotalWithMarkup;
+        const totalContado = totals.totalCash;
+
+        // Divergencia visible: si el número que mandó el modelo no se explica por
+        // ninguno de los dos totales oficiales, se corta con 400 en vez de
+        // guardarlo en silencio. Se acepta cualquier valor DENTRO de la banda
+        // [contado, lista] porque el bot cotiza el contado con el descuento de la
+        // tienda (`web_promo_cash_discount`, hoy 15%) mientras que la orden se
+        // guarda con el 20% del cotizador: son dos puntos legítimos de la banda.
+        // Fuera de la banda no hay lectura posible: es un número inventado.
+        if (typeof total === 'number' && Number.isFinite(total)) {
+            const fueraDeBanda = total < totalContado - 1 || total > totalLista + 1;
+            if (fueraDeBanda) {
+                console.error(
+                    `[Bot Bridge Orders POST] Total del modelo fuera de rango: mandó ${total}, ` +
+                    `el cálculo oficial da lista ${totalLista} / contado ${totalContado}.`
+                );
+                return NextResponse.json({
+                    error: 'El total no coincide con el cálculo del sistema: el presupuesto no se registró.',
+                    totalRecibido: total,
+                    totalLista,
+                    totalContado,
+                }, { status: 400 });
+            }
+        }
+
         // Get an existing admin user to act as the SYSTEM creator
         let systemUser = await prisma.user.findFirst({
             where: { role: 'ADMIN' },
@@ -105,7 +190,7 @@ export async function POST(request: Request) {
         const duplicateOrder = await prisma.order.findFirst({
             where: {
                 clientId,
-                total: Math.round(total || 0),
+                total: Math.round(totalContado),
                 createdAt: { gte: tenSecondsAgo },
                 isDeleted: false
             },
@@ -127,18 +212,22 @@ export async function POST(request: Request) {
                 userId: fallbackUserId, // Marked as bot-created (using a real user ID)
                 status: 'PENDING',
                 orderType: 'QUOTE',
-                total: Math.round(total || 0),
+                // Mismo criterio que el camino humano: `total` es el contado y
+                // `subtotalWithMarkup` la lista (que es lo que lee
+                // `calculateOrderFinancials` para los saldos).
+                total: Math.round(totalContado),
+                subtotalWithMarkup: Math.round(totalLista),
                 paid: 0,
-                discountCash: discountCash || 0,
+                discountCash: descuentoEfectivo,
                 items: {
-                    create: items.map((it: any) => {
-                        const dbProd = dbProducts.find(p => p.id === it.productId);
+                    create: items.map((it: any, i: number) => {
+                        const linea = cartItems[i];
                         return {
-                            productId: it.productId,
-                            quantity: it.quantity || 1,
-                            price: it.price,
+                            productId: linea.productId,
+                            quantity: linea.quantity,
+                            price: linea.price,
                             eye: it.eye || null,
-                            ...snapshotFromProduct(dbProd),
+                            ...snapshotFromProduct(linea.product),
                         };
                     })
                 }
@@ -156,7 +245,7 @@ export async function POST(request: Request) {
             data: {
                 clientId,
                 type: 'BUDGET_SENT',
-                content: `🤖 Presupuesto generado automáticamente vía WhatsApp por $${order.total.toLocaleString('es-AR')}\n\nProductos:\n• ${itemSummaries}`,
+                content: `🤖 Presupuesto generado automáticamente vía WhatsApp por $${totalLista.toLocaleString('es-AR')} de lista (contado $${totalContado.toLocaleString('es-AR')})\n\nProductos:\n• ${itemSummaries}`,
                 userId: BOT_ACTOR.id,
                 userName: BOT_ACTOR.name,
             }
