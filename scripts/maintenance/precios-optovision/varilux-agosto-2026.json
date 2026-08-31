@@ -2036,13 +2036,18 @@
   ],
   "calibrados": {
     "_lee_esto": [
-      "De la planilla de Ishtar (hoja «Tratamientos · Coloraciones · Calibrados · Recargos»),",
-      "que sale de la misma lista de agosto 2026.",
+      "De la planilla de Ishtar (hoja «Tratamientos · Coloraciones · Calibrados · Recargos»).",
       "",
-      "EL SISTEMA USA $23.000 FIJO PARA TODOS. La lista dice que depende del TIPO de lente",
-      "(multifocal / bifocal / ocupacional / monofocal), del MATERIAL (orgánico / policarbonato),",
-      "de si es de STOCK o de LABORATORIO, y del MONTAJE (común / ranurado / perforado).",
-      "Van de $7.644 a $29.813. PREGUNTAR A ISHTAR de dónde salió el 23.000 antes de cambiarlo."
+      "REGLA DE ISHTAR (31/8/2026), preguntada y respondida: se usa UN SOLO número para",
+      "todo el laboratorio, y se elige EL DE MAYOR VALOR. Nunca se costea por tipo de lente.",
+      "",
+      "POR QUÉ: el tipo de calibrado (común / ranurado / perforado) se sabe recién cuando se",
+      "arma el anteojo, no cuando se carga el producto. Tomar el más caro hace que el costo",
+      "nunca quede corto: si el trabajo sale más barato, el margen solo mejora.",
+      "",
+      "El $23.000 de LaboratoryConfig es el techo del multifocal orgánico ($23.060, perforado),",
+      "que es el caso más común del catálogo. ESTÁ BIEN: no cambiarlo por los valores de abajo.",
+      "La tabla queda documentada para entender la factura del laboratorio, no para costear."
     ],
     "por_tipo": {
       "multifocal_organico": {

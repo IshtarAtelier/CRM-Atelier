@@ -49,7 +49,8 @@ const MATERIALES = [
     [/foto\w*/, 'Fotocromático Gris'],
     [/anti\s*age/, 'Anti Age Blue Light'],
     [/super\s*blue/, 'Super Blue Light'],
-    [/blue\s*light|blue\b/, 'Blue Light'],
+    // "Filtro de luz azul" es como el CRM llama al Blue Light en los multifocales.
+    [/blue\s*light|blue\b|luz\s*azul/, 'Blue Light'],
     [/gris\s*3\s*espejado|espejado/, 'Gris 3 Espejado'],
     [/polarizado/, 'Polarizado'],
     [/policarbonato|poli\b/, 'Policarbonato'],
@@ -77,7 +78,9 @@ function mismaFamilia(material, textoFila) {
         case 'Policarbonato': return /policarbonato/.test(t);
         case 'Stylis': return /stylis/.test(t);
         case 'Mineral': return /mineral/.test(t);
-        case 'Blanco': return /blanco/.test(t) && !/blue|foto|polarizado|espejado/.test(t);
+        // "Alto Índice 1,67" y "Stylis" son lentes blancas: la lista no repite la
+        // palabra "blanco" en esos renglones, pero es el mismo cristal sin filtro.
+        case 'Blanco': return /blanco|alto\s*indice|stylis/.test(t) && !/blue|foto|polarizado|espejado/.test(t);
         default: return false;
     }
 }
