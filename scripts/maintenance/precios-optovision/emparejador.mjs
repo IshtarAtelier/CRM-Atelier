@@ -238,10 +238,25 @@ function emparejarMonofocal(nombre) {
     const sueltos = m.tratamientos_sueltos || [];
     const esStock = familia === 'Monofocal de stock' || /\(stock\)|de\s*stock/i.test(nombre);
     let trat = null, extra = 0;
-    if (!esStock) {
+
+    if (esStock) {
+        // Lente terminada: el precio de su renglón ya es todo.
+    } else if (/sin\s*ar\b|sin\s*crizal|no\s*reflex/i.test(nombre)) {
+        // EL NOMBRE MANDA (Ishtar, 31/8/2026). La lista trae DOS precios por
+        // material —"sin AR" y "con Crizal"— y el catálogo tiene los dos
+        // productos cargados por separado. Si el nombre dice SIN AR, el costo es
+        // el pelado: al cliente se le vende la lente sola.
+        trat = null; extra = 0;
+    } else {
+        // El nombre nombra un Crizal concreto: se usa ese, no el más caro.
+        const nombrado = sueltos.find(t => {
+            const corto = t.nombre.replace(/^CRIZAL\s*/i, '');
+            return new RegExp(corto.replace(/\s+/g, '\\s*'), 'i').test(nombre);
+        });
         const caro = sueltos.filter(t => /^CRIZAL/.test(t.nombre)).sort((a, b) => b.precio - a.precio)[0];
-        trat = caro ? `${caro.nombre} (mejor crizal, política 30/8)` : null;
-        extra = caro?.precio ?? 0;
+        const elegido = nombrado ?? caro;
+        trat = elegido ? `${elegido.nombre}${nombrado ? ' (dicho en el nombre)' : ' (el más caro)'}` : null;
+        extra = elegido?.precio ?? 0;
     }
 
     return {
