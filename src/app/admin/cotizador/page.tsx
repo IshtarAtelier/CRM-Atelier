@@ -84,7 +84,7 @@ const getTypeConfigByKey = (key: string) => {
 };
 
 // Chips de la barra de filtros. Estaban con la clase copiada cuatro veces, y con
-// `border-stone-750` — un tono que NO existe: sin color declarado el borde cae a
+// `border-stone-200` — un tono que NO existe: sin color declarado el borde cae a
 // `currentColor` y cada chip terminaba con el borde del color de su texto. El
 // alto es 40px (min-h-10) por la convención de accesibilidad de la casa (misma
 // que `whatsapp/ChatList/ChatFilters.tsx`) y el foco se ve, que antes no.
@@ -93,7 +93,7 @@ const chipBase =
 const chipActivo = 'bg-primary text-primary-foreground border-primary';
 // El hover ACLARA el borde (stone-500 sobre stone-700). Antes iba a stone-600,
 // más oscuro que el borde en reposo: pasar el mouse apagaba el chip.
-const chipInactivo = 'bg-stone-900/40 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200';
+const chipInactivo = 'bg-white text-stone-500 border-stone-300 hover:border-stone-500 hover:text-stone-800';
 
 // "Cristal Multifocal" → "Cristal · Multifocal": el tipo y el subtipo en una
 // sola línea, sin que se corte en dos renglones dentro de la columna angosta.
@@ -142,6 +142,7 @@ function CotizadorPageContent() {
     const [selectedOrigin, setSelectedOrigin] = useState('');
     const [selectedBrand, setSelectedBrand] = useState('');
     const [selectedLab, setSelectedLab] = useState('');
+    const [selectedIndex, setSelectedIndex] = useState('');
     const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
     const [markup, setMarkup] = useState(0);
     const [discountCash, setDiscountCash] = useState(20);
@@ -402,6 +403,15 @@ function CotizadorPageContent() {
         return labs.sort((a, b) => a.localeCompare(b));
     }, [baseFilteredForBrandsAndLabs]);
 
+    // Los índices que hay a la vista, ordenados como número y no como texto
+    // ("1.5" tiene que ir antes que "1.67", y alfabéticamente iría al revés).
+    const uniqueIndexes = useMemo(() => {
+        const idx = Array.from(new Set(
+            baseFilteredForBrandsAndLabs.map(p => String(p.lensIndex || '').trim()).filter(Boolean)
+        ));
+        return idx.sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0));
+    }, [baseFilteredForBrandsAndLabs]);
+
     // Cierra el popover de "más filtros" al clickear afuera.
     useEffect(() => {
         if (!showMoreFilters) return;
@@ -422,9 +432,10 @@ function CotizadorPageContent() {
         if (selectedSubtype) tags.push({ key: 'subtype', label: selectedSubtype, clear: () => setSelectedSubtype('') });
         if (selectedOrigin) tags.push({ key: 'origin', label: selectedOrigin === 'STOCK' ? 'Stock' : 'Laboratorio', clear: () => setSelectedOrigin('') });
         if (selectedBrand) tags.push({ key: 'brand', label: selectedBrand, clear: () => setSelectedBrand('') });
+        if (selectedIndex) tags.push({ key: 'index', label: `Índice ${selectedIndex}`, clear: () => setSelectedIndex('') });
         if (selectedLab) tags.push({ key: 'lab', label: selectedLab, clear: () => setSelectedLab('') });
         return tags;
-    }, [selectedSubtype, selectedOrigin, selectedBrand, selectedLab]);
+    }, [selectedSubtype, selectedOrigin, selectedBrand, selectedLab, selectedIndex]);
 
     const clearAllFilters = () => {
         setSearch('');
@@ -434,6 +445,7 @@ function CotizadorPageContent() {
         setSelectedOrigin('');
         setSelectedBrand('');
         setSelectedLab('');
+        setSelectedIndex('');
     };
 
     const filtered = useMemo(() => {
@@ -477,13 +489,16 @@ function CotizadorPageContent() {
                 if (p.brand?.toLowerCase() !== selectedBrand.toLowerCase()) return false;
             }
 
+            if (selectedIndex) {
+                if (String(p.lensIndex || '') !== selectedIndex) return false;
+            }
             if (selectedLab) {
                 if (p.laboratory?.toLowerCase() !== selectedLab.toLowerCase()) return false;
             }
             
             return matchesSearch && matchesWeb;
         }).sort((a, b) => (a.price || 0) - (b.price || 0));
-    }, [products, search, activeType, onlyWeb, selectedSubtype, selectedOrigin, selectedBrand, selectedLab]);
+    }, [products, search, activeType, onlyWeb, selectedSubtype, selectedOrigin, selectedBrand, selectedLab, selectedIndex]);
 
     const groupedProducts = useMemo(() => {
         const groups: { [key: string]: Product[] } = {};
@@ -830,7 +845,7 @@ function CotizadorPageContent() {
     const clientName = pendingContact?.name;
 
     return (
-        <div className="dark absolute inset-0 flex flex-col bg-background text-foreground overflow-hidden">
+        <div className="absolute inset-0 flex flex-col bg-stone-50 text-stone-900 overflow-hidden">
             {/* Header: título + subtítulo con el estado actual (cantidad, laboratorio) + acciones */}
             <header className="px-4 lg:px-8 py-3.5 border-b border-sidebar-border bg-sidebar flex items-center gap-4 flex-shrink-0">
                 <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -841,7 +856,7 @@ function CotizadorPageContent() {
                         Cotizador
                         {clientName && <span className="text-primary text-sm font-black">— {clientName}</span>}
                     </h1>
-                    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mt-0.5 truncate">
+                    <p className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mt-0.5 truncate">
                         {loading ? 'Cargando catálogo…' : `${filtered.length.toLocaleString('es-AR')} producto${filtered.length === 1 ? '' : 's'}`}
                         {selectedLab && ` · Laboratorio ${selectedLab}`}
                         {!selectedLab && activeType && ` · ${getTypeConfigByKey(activeType).label}`}
@@ -850,7 +865,7 @@ function CotizadorPageContent() {
                 {quoteItems.length > 0 && (
                     <button
                         onClick={() => { setQuoteItems([]); setMarkup(0); setSpecialDiscount(0); setFrameSource(null); setEditingQuoteId(null); setEditingIsSale(false); router.replace('/admin/cotizador'); }}
-                        className="flex items-center gap-1.5 px-3 min-h-10 py-1.5 text-[10px] font-bold text-stone-400 hover:text-red-400 bg-stone-800/60 rounded-lg border border-stone-700 transition-all hover:border-red-400/30 uppercase tracking-wider flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className="flex items-center gap-1.5 px-3 min-h-10 py-1.5 text-[10px] font-bold text-stone-500 hover:text-red-400 bg-stone-100 rounded-lg border border-stone-300 transition-all hover:border-red-400/30 uppercase tracking-wider flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                         <RotateCcw className="w-3 h-3" /> Limpiar
                     </button>
@@ -863,21 +878,21 @@ function CotizadorPageContent() {
             <div className="px-4 lg:px-8 py-3 border-b border-sidebar-border bg-sidebar/65 flex flex-col gap-2 flex-shrink-0">
                 <div className="flex flex-col md:flex-row md:items-center gap-2.5">
                     <div className="relative w-full md:w-60 flex-shrink-0">
-                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
                         <input
                             ref={searchRef}
                             type="text"
                             placeholder="Buscar producto..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full bg-stone-900/60 border border-stone-700 py-3 pl-9 pr-11 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/40 transition-all placeholder:text-stone-400 text-stone-100"
+                            className="w-full bg-white/80 border border-stone-300 py-3 pl-9 pr-11 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/40 transition-all placeholder:text-stone-500 text-stone-900"
                         />
                         {search && (
                             <button
                                 type="button"
                                 onClick={() => setSearch('')}
                                 aria-label="Borrar búsqueda"
-                                className="absolute right-0.5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-stone-400 hover:text-stone-100 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                className="absolute right-0.5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-stone-500 hover:text-stone-900 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             >✕</button>
                         )}
                     </div>
@@ -926,7 +941,7 @@ function CotizadorPageContent() {
                                     onClick={() => setShowMoreFilters(v => !v)}
                                     aria-expanded={showMoreFilters}
                                     className={`${chipBase} px-2.5 ${showMoreFilters || activeFilterTags.length > 0
-                                        ? 'bg-stone-800 text-stone-100 border-stone-600'
+                                        ? 'bg-stone-100 text-stone-900 border-stone-400'
                                         : chipInactivo}`}
                                 >
                                     <SlidersHorizontal className="w-3 h-3" /> Filtros
@@ -936,10 +951,10 @@ function CotizadorPageContent() {
                                 </button>
 
                                 {showMoreFilters && (
-                                    <div className="absolute z-20 top-[calc(100%+6px)] left-0 w-[min(90vw,340px)] bg-stone-900 border border-stone-700 rounded-xl shadow-2xl shadow-black/40 p-3.5 flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-150">
+                                    <div className="absolute z-20 top-[calc(100%+6px)] left-0 w-[min(90vw,340px)] bg-white border border-stone-300 rounded-xl shadow-2xl shadow-black/40 p-3.5 flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-150">
                                         {activeType === 'Cristal' && (
                                             <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Subtipo</span>
+                                                <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest">Subtipo</span>
                                                 <div className="flex flex-wrap gap-1">
                                                     {['', 'Monofocal', 'Multifocal', 'Bifocal', 'Ocupacional', 'Coquil'].map((sub) => (
                                                         <button
@@ -948,7 +963,7 @@ function CotizadorPageContent() {
                                                             aria-pressed={selectedSubtype === sub}
                                                             className={`px-2.5 min-h-10 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selectedSubtype === sub
                                                                 ? 'bg-primary text-primary-foreground'
-                                                                : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                                                                : 'bg-stone-100 text-stone-500 hover:text-stone-800'
                                                                 }`}
                                                         >
                                                             {sub || 'Todos'}
@@ -960,7 +975,7 @@ function CotizadorPageContent() {
 
                                         {activeType === 'Cristal' && (
                                             <div className="space-y-1.5">
-                                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Tipo de confección</span>
+                                                <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest">Tipo de confección</span>
                                                 <div className="flex flex-wrap gap-1">
                                                     {[
                                                         { val: '', label: 'Todos' },
@@ -973,7 +988,7 @@ function CotizadorPageContent() {
                                                             aria-pressed={selectedOrigin === orig.val}
                                                             className={`px-2.5 min-h-10 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${selectedOrigin === orig.val
                                                                 ? 'bg-primary text-primary-foreground'
-                                                                : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                                                                : 'bg-stone-100 text-stone-500 hover:text-stone-800'
                                                                 }`}
                                                         >
                                                             {orig.label}
@@ -985,11 +1000,11 @@ function CotizadorPageContent() {
 
                                         {uniqueBrands.length > 1 && (
                                             <label className="space-y-1.5 block">
-                                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Marca</span>
+                                                <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest">Marca</span>
                                                 <select
                                                     value={selectedBrand}
                                                     onChange={(e) => setSelectedBrand(e.target.value)}
-                                                    className="w-full bg-stone-800 border border-stone-700 text-[11px] font-bold px-2.5 py-1.5 rounded-md outline-none focus:border-primary cursor-pointer text-stone-200"
+                                                    className="w-full bg-stone-100 border border-stone-300 text-[11px] font-bold px-2.5 py-1.5 rounded-md outline-none focus:border-primary cursor-pointer text-stone-800"
                                                 >
                                                     <option value="">Todas</option>
                                                     {uniqueBrands.map((brand) => <option key={brand} value={brand}>{brand}</option>)}
@@ -997,13 +1012,33 @@ function CotizadorPageContent() {
                                             </label>
                                         )}
 
+                                        {uniqueIndexes.length > 1 && (
+                                            <div className="space-y-1.5">
+                                                <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest">Índice</span>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {['', ...uniqueIndexes].map((idx) => (
+                                                        <button
+                                                            key={idx || 'todos'}
+                                                            onClick={() => setSelectedIndex(idx)}
+                                                            className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${selectedIndex === idx
+                                                                ? 'bg-primary text-primary-foreground'
+                                                                : 'bg-stone-100 text-stone-500 hover:text-stone-800'
+                                                                }`}
+                                                        >
+                                                            {idx || 'Todos'}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {uniqueLabs.length > 1 && (
                                             <label className="space-y-1.5 block">
-                                                <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">Laboratorio</span>
+                                                <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest">Laboratorio</span>
                                                 <select
                                                     value={selectedLab}
                                                     onChange={(e) => setSelectedLab(e.target.value)}
-                                                    className="w-full bg-stone-800 border border-stone-700 text-[11px] font-bold px-2.5 py-1.5 rounded-md outline-none focus:border-primary cursor-pointer text-stone-200"
+                                                    className="w-full bg-stone-100 border border-stone-300 text-[11px] font-bold px-2.5 py-1.5 rounded-md outline-none focus:border-primary cursor-pointer text-stone-800"
                                                 >
                                                     <option value="">Todos</option>
                                                     {uniqueLabs.map((lab) => <option key={lab} value={lab}>{lab}</option>)}
@@ -1043,27 +1078,27 @@ function CotizadorPageContent() {
                     style={{ scrollbarWidth: 'thin' }}
                 >
                     {loading ? (
-                        <div className="max-w-[1500px] mx-auto rounded-xl border border-stone-800 overflow-hidden">
+                        <div className="max-w-[1500px] mx-auto rounded-xl border border-stone-200 overflow-hidden">
                             {Array.from({ length: 8 }).map((_, i) => (
-                                <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-stone-800/60 last:border-b-0 animate-pulse">
-                                    <div className="h-2.5 w-16 bg-stone-800 rounded" />
-                                    <div className="h-2.5 w-20 bg-stone-800 rounded" />
-                                    <div className="h-2.5 flex-1 bg-stone-800 rounded max-w-xs" />
-                                    <div className="h-2.5 w-20 bg-stone-800 rounded ml-auto" />
-                                    <div className="h-2.5 w-16 bg-stone-800 rounded" />
+                                <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-stone-200/70 last:border-b-0 animate-pulse">
+                                    <div className="h-2.5 w-16 bg-stone-100 rounded" />
+                                    <div className="h-2.5 w-20 bg-stone-100 rounded" />
+                                    <div className="h-2.5 flex-1 bg-stone-100 rounded max-w-xs" />
+                                    <div className="h-2.5 w-20 bg-stone-100 rounded ml-auto" />
+                                    <div className="h-2.5 w-16 bg-stone-100 rounded" />
                                 </div>
                             ))}
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-[60vh] text-stone-400 gap-4">
+                        <div className="flex flex-col items-center justify-center h-[60vh] text-stone-500 gap-4">
                             <PackageSearch className="w-12 h-12 text-stone-500" />
                             <div className="text-center">
-                                <p className="text-sm font-bold uppercase tracking-widest text-stone-400">Sin resultados</p>
-                                <p className="text-xs text-stone-400 mt-1">Probá con otra búsqueda o quitá algún filtro</p>
+                                <p className="text-sm font-bold uppercase tracking-widest text-stone-500">Sin resultados</p>
+                                <p className="text-xs text-stone-500 mt-1">Probá con otra búsqueda o quitá algún filtro</p>
                             </div>
                             <button
                                 onClick={clearAllFilters}
-                                className="flex items-center gap-1.5 px-4 min-h-10 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-stone-800 text-stone-200 hover:bg-stone-700 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                className="flex items-center gap-1.5 px-4 min-h-10 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-stone-100 text-stone-800 hover:bg-stone-200 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                             >
                                 <RotateCcw className="w-3.5 h-3.5" /> Limpiar filtros
                             </button>
@@ -1071,11 +1106,11 @@ function CotizadorPageContent() {
                     ) : activeType?.startsWith('Cristal') ? (
                         <div className="max-w-[1500px] mx-auto">
                             {/* Desktop / tablet: tabla densa y jerarquizada */}
-                            <div className="hidden md:block rounded-xl border border-stone-800 overflow-hidden bg-stone-900/40">
+                            <div className="hidden md:block rounded-xl border border-stone-200 overflow-hidden bg-white">
                                 <div className="overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
                                     <table className="w-full text-left border-collapse" style={{ minWidth: 980 }}>
                                         <thead>
-                                            <tr className="bg-stone-900 text-stone-400 border-b border-stone-800">
+                                            <tr className="bg-white text-stone-500 border-b border-stone-200">
                                                 <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider w-[130px]">Tipo · Marca</th>
                                                 <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[56px]">Índice</th>
                                                 <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[92px]">Confección</th>
@@ -1106,39 +1141,47 @@ function CotizadorPageContent() {
                                                     <tr
                                                         key={product.id}
                                                         onClick={() => addToQuote(product)}
-                                                        className="group cursor-pointer transition-colors border-b border-stone-800/60 last:border-b-0 hover:bg-primary/[0.06]"
+                                                        className="group cursor-pointer transition-colors border-b border-stone-200/70 last:border-b-0 hover:bg-primary/[0.06]"
                                                     >
                                                         <td className="px-4 py-2 align-top">
-                                                            <p className="text-[10px] font-bold uppercase text-stone-400 whitespace-nowrap">{tipoConSeparador(product.type)}</p>
-                                                            <p className="text-[10px] font-semibold uppercase text-stone-400 mt-0.5 truncate max-w-[120px]">{product.brand || '—'}</p>
+                                                            <p className="text-[10px] font-bold uppercase text-stone-500 whitespace-nowrap">{tipoConSeparador(product.type)}</p>
+                                                            <p className="text-[10px] font-semibold uppercase text-stone-500 mt-0.5 truncate max-w-[120px]">{product.brand || '—'}</p>
                                                         </td>
                                                         <td className="px-3 py-2 text-center align-top">
-                                                            <span className="text-[10px] font-bold text-stone-400">{product.lensIndex || '—'}</span>
+                                                            <span className="text-[10px] font-bold text-stone-500">{product.lensIndex || '—'}</span>
                                                         </td>
                                                         <td className="px-3 py-2 text-center align-top">
                                                             {origin ? (
                                                                 <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${origin === 'STOCK' ? 'border-emerald-800 text-emerald-500' : 'border-sky-800 text-sky-500'}`}>
                                                                     {origin === 'STOCK' ? 'Stock' : 'Laboratorio'}
                                                                 </span>
-                                                            ) : <span className="text-[10px] text-stone-400">—</span>}
+                                                            ) : <span className="text-[10px] text-stone-500">—</span>}
                                                         </td>
                                                         <td className="px-4 py-2 align-top">
-                                                            <p className="text-[13px] font-semibold text-stone-100 leading-snug">{product.name || '—'}</p>
+                                                            <div className="flex items-start gap-2">
+                                                                {/* El 2x1 es la promo que más se vende: tiene que verse de lejos. */}
+                                                                {product.is2x1 && (
+                                                                    <span className="shrink-0 mt-px px-1.5 py-0.5 rounded text-[9px] font-black tracking-wide bg-primary text-primary-foreground shadow-sm">
+                                                                        2x1
+                                                                    </span>
+                                                                )}
+                                                                <p className="text-[13px] font-semibold leading-snug">{product.name || '—'}</p>
+                                                            </div>
                                                         </td>
                                                         <td className="px-3 py-2 text-center align-top">
-                                                            <span className="text-[10px] font-medium text-stone-400 whitespace-nowrap">{formatLensRange(product) || '—'}</span>
+                                                            <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">{formatLensRange(product) || '—'}</span>
                                                         </td>
                                                         <td className="px-3 py-2 text-right align-top">
-                                                            <span className="text-xs font-semibold text-stone-400 tabular-nums">${Math.round(pTotal).toLocaleString('es-AR')}</span>
+                                                            <span className="text-xs font-semibold text-stone-500 tabular-nums">${Math.round(pTotal).toLocaleString('es-AR')}</span>
                                                         </td>
                                                         <td className="px-4 py-2 text-right align-top">
                                                             <span className="text-sm font-black text-primary tabular-nums">${Math.round(pCash).toLocaleString('es-AR')}</span>
                                                         </td>
                                                         <td className="px-3 py-2 text-right align-top">
-                                                            <span className="text-xs font-semibold text-stone-400 tabular-nums">${Math.round(pTrans).toLocaleString('es-AR')}</span>
+                                                            <span className="text-xs font-semibold text-stone-500 tabular-nums">${Math.round(pTrans).toLocaleString('es-AR')}</span>
                                                         </td>
                                                         <td className="px-3 py-2 text-right align-top">
-                                                            <span className="text-xs font-semibold text-stone-400 tabular-nums">${pCuota12.toLocaleString('es-AR')}</span>
+                                                            <span className="text-xs font-semibold text-stone-500 tabular-nums">${pCuota12.toLocaleString('es-AR')}</span>
                                                         </td>
                                                         <td className="px-2 py-2 text-center align-top">
                                                             {inQuote ? (
@@ -1146,8 +1189,8 @@ function CotizadorPageContent() {
                                                                     <Check className="w-3.5 h-3.5 text-emerald-400" />
                                                                 </div>
                                                             ) : (
-                                                                <div className="w-6 h-6 rounded-full border border-stone-700 flex items-center justify-center mx-auto opacity-60 group-hover:opacity-100 group-hover:border-primary group-hover:bg-primary/10 transition-all">
-                                                                    <Plus className="w-3.5 h-3.5 text-stone-400 group-hover:text-primary transition-colors" />
+                                                                <div className="w-6 h-6 rounded-full border border-stone-300 flex items-center justify-center mx-auto opacity-60 group-hover:opacity-100 group-hover:border-primary group-hover:bg-primary/10 transition-all">
+                                                                    <Plus className="w-3.5 h-3.5 text-stone-500 group-hover:text-primary transition-colors" />
                                                                 </div>
                                                             )}
                                                         </td>
@@ -1157,7 +1200,7 @@ function CotizadorPageContent() {
                                         </tbody>
                                     </table>
                                 </div>
-                                <p className="px-4 py-2 text-[9px] font-bold uppercase tracking-wider text-stone-400 border-t border-stone-800">
+                                <p className="px-4 py-2 text-[9px] font-bold uppercase tracking-wider text-stone-500 border-t border-stone-200">
                                     {ETIQUETA_MP_CUOTAS_LARGAS} · Mercado Pago
                                 </p>
                             </div>
@@ -1175,26 +1218,26 @@ function CotizadorPageContent() {
                                         <button
                                             key={product.id}
                                             onClick={() => addToQuote(product)}
-                                            className={`w-full text-left p-3 rounded-xl border transition-all ${inQuote ? 'bg-primary/[0.06] border-primary/30' : 'bg-stone-900/50 border-stone-800'}`}
+                                            className={`w-full text-left p-3 rounded-xl border transition-all ${inQuote ? 'bg-primary/[0.06] border-primary/30' : 'bg-white border-stone-200'}`}
                                         >
                                             <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                                                <span className="text-[9px] font-bold uppercase text-stone-400">{tipoConSeparador(product.type)}</span>
-                                                {product.brand && <span className="text-[9px] font-bold uppercase text-stone-400">· {product.brand}</span>}
-                                                {product.lensIndex && <span className="text-[9px] font-bold text-stone-400">· idx {product.lensIndex}</span>}
+                                                <span className="text-[9px] font-bold uppercase text-stone-500">{tipoConSeparador(product.type)}</span>
+                                                {product.brand && <span className="text-[9px] font-bold uppercase text-stone-500">· {product.brand}</span>}
+                                                {product.lensIndex && <span className="text-[9px] font-bold text-stone-500">· idx {product.lensIndex}</span>}
                                                 {origin && (
                                                     <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${origin === 'STOCK' ? 'border-emerald-800 text-emerald-500' : 'border-sky-800 text-sky-500'}`}>
                                                         {origin === 'STOCK' ? 'Stock' : 'Laboratorio'}
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-sm font-semibold text-stone-100 leading-snug">{product.name || '—'}</p>
+                                            <p className="text-sm font-semibold text-stone-900 leading-snug">{product.name || '—'}</p>
                                             {formatLensRange(product) && (
-                                                <p className="text-[10px] font-medium text-stone-400 mt-1">{formatLensRange(product)}</p>
+                                                <p className="text-[10px] font-medium text-stone-500 mt-1">{formatLensRange(product)}</p>
                                             )}
                                             <div className="flex items-center justify-between mt-2">
                                                 <div className="flex flex-col">
                                                     <span className="text-base font-black text-primary tabular-nums">${Math.round(pCash).toLocaleString('es-AR')}</span>
-                                                    <span className="text-[10px] font-semibold text-stone-400 tabular-nums">{textoCuotas12(pCuota12)}</span>
+                                                    <span className="text-[10px] font-semibold text-stone-500 tabular-nums">{textoCuotas12(pCuota12)}</span>
                                                 </div>
                                                 {inQuote ? (
                                                     <div className="w-7 h-7 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center">
@@ -1213,11 +1256,11 @@ function CotizadorPageContent() {
                         </div>
                     ) : activeType === 'Tratamiento' ? (
                         <div className="max-w-[1500px] mx-auto">
-                            <div className="rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden shadow-md bg-white dark:bg-stone-900">
+                            <div className="rounded-2xl border border-stone-200 overflow-hidden shadow-md bg-white">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse" style={{ minWidth: 700 }}>
                                         <thead>
-                                            <tr className="bg-stone-50 dark:bg-stone-800/80 text-stone-500 dark:text-stone-400 border-b border-stone-200/60 dark:border-stone-800">
+                                            <tr className="bg-stone-50 text-stone-500 border-b border-stone-200/60">
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Producto</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[120px]">Tipo</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[80px]">Índice</th>
@@ -1229,7 +1272,7 @@ function CotizadorPageContent() {
                                                     12 Cuotas +{RECARGO_MP_CUOTAS_LARGAS}%
                                                 </th>
                                                 {userRole === 'ADMIN' && (
-                                                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[120px] text-blue-600 dark:text-blue-400">P. Mayorista</th>
+                                                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[120px] text-blue-600">P. Mayorista</th>
                                                 )}
                                                 <th className="px-3 py-3 w-12 text-center"></th>
                                             </tr>
@@ -1242,27 +1285,27 @@ function CotizadorPageContent() {
                                                     <tr
                                                         key={product.id}
                                                         onClick={() => addToQuote(product)}
-                                                        className={`cursor-pointer transition-colors border-b border-stone-100 dark:border-stone-800 ${idx % 2 === 0 ? 'bg-white dark:bg-stone-900' : 'bg-stone-50/30 dark:bg-stone-800/20'} hover:bg-primary/5`}
+                                                        className={`cursor-pointer transition-colors border-b border-stone-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-stone-50'} hover:bg-primary/5`}
                                                     >
                                                         <td className="px-4 py-2.5">
                                                             <p className="text-xs font-semibold whitespace-normal break-words">{product.name || '—'}</p>
                                                         </td>
                                                         <td className="px-4 py-2.5 text-center">
-                                                            <span className="text-[10px] font-bold uppercase text-stone-400">{product.type || '—'}</span>
+                                                            <span className="text-[10px] font-bold uppercase text-stone-500">{product.type || '—'}</span>
                                                         </td>
                                                         <td className="px-4 py-2.5 text-center">
                                                             <span className="text-[10px] font-bold">{product.lensIndex || '—'}</span>
                                                         </td>
                                                         <td className="px-4 py-2.5 text-center">
-                                                            <span className="text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">{product.laboratory || 'A Pedido'}</span>
+                                                            <span className="text-[10px] font-bold uppercase text-amber-600">{product.laboratory || 'A Pedido'}</span>
                                                         </td>
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs">${safePrice(product.price).toLocaleString()}</td>
-                                                        <td className="px-4 py-2.5 text-right font-semibold text-xs text-stone-500 dark:text-stone-400">${tCuota12.toLocaleString()}</td>
+                                                        <td className="px-4 py-2.5 text-right font-semibold text-xs text-stone-500">${tCuota12.toLocaleString()}</td>
                                                         {userRole === 'ADMIN' && (
-                                                            <td className="px-4 py-2.5 text-right font-bold text-xs text-blue-600 dark:text-blue-400">${safePrice(product.wholesalePrice).toLocaleString()}</td>
+                                                            <td className="px-4 py-2.5 text-right font-bold text-xs text-blue-600">${safePrice(product.wholesalePrice).toLocaleString()}</td>
                                                         )}
                                                         <td className="px-3 py-2.5 text-center">
-                                                            {inQuote ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> : <Plus className="w-4 h-4 text-stone-300 group-hover:text-primary mx-auto transition-colors" />}
+                                                            {inQuote ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> : <Plus className="w-4 h-4 text-stone-400 group-hover:text-primary mx-auto transition-colors" />}
                                                         </td>
                                                     </tr>
                                                 );
@@ -1270,7 +1313,7 @@ function CotizadorPageContent() {
                                         </tbody>
                                     </table>
                                 </div>
-                                <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 border-t border-stone-200/60 dark:border-stone-800">
+                                <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-500 border-t border-stone-200/60">
                                     {ETIQUETA_MP_CUOTAS_LARGAS} · Mercado Pago
                                 </p>
                             </div>
@@ -1282,11 +1325,11 @@ function CotizadorPageContent() {
                                 return (
                                     <div key={brandName} className="space-y-2">
                                         <div className="flex items-center gap-3 py-1">
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500">
                                                 {brandName}
                                             </h3>
-                                            <div className="h-px flex-1 bg-stone-200 dark:bg-stone-800/50" />
-                                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-stone-400">
+                                            <div className="h-px flex-1 bg-stone-200/50" />
+                                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-stone-500">
                                                 {brandProducts.length} {brandProducts.length === 1 ? 'item' : 'items'}
                                             </span>
                                         </div>
@@ -1295,14 +1338,18 @@ function CotizadorPageContent() {
                                                 const inQuote = quoteItems.find(i => i.product?.id === product.id);
                                                 const config = getTypeConfig(product.type, product.category);
                                                 const TypeIcon = config.icon;
-                                                const { installment12: bCuota12 } = PricingService.cuotasMpLargas(safePrice(product.price));
+                                                // Las CUATRO formas de pago, resueltas: el vendedor no calcula nada.
+                                                const bLista = safePrice(product.price) * (1 + markup / 100);
+                                                const bEfectivo = bLista * (1 - discountCash / 100);
+                                                const bTransf = bLista * (1 - discountTransfer / 100);
+                                                const { installment12: bCuota12 } = PricingService.cuotasMpLargas(bLista);
                                                 return (
                                                     <button
                                                         key={product.id}
                                                         onClick={() => addToQuote(product)}
                                                         className={`w-full p-3 rounded-xl border transition-all text-left flex items-center justify-between hover:shadow-sm duration-200 group ${inQuote 
                                                             ? 'bg-primary/[0.03] border-primary/30 shadow-sm' 
-                                                            : 'bg-white dark:bg-stone-900 border-stone-200/70 dark:border-stone-800'}`}
+                                                            : 'bg-white border-stone-200/70'}`}
                                                     >
                                                         <div className="flex items-center gap-3 min-w-0 flex-1">
                                                             {(() => {
@@ -1314,44 +1361,50 @@ function CotizadorPageContent() {
                                                                              height={32}
                                                                              src={imgUrl}
                                                                              alt={product.name || ''} 
-                                                                             className="w-8 h-8 object-contain rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 shadow-sm shrink-0"
+                                                                             className="w-8 h-8 object-contain rounded-lg border border-stone-200 bg-stone-50 shadow-sm shrink-0"
                                                                          />
                                                                      );
                                                                  }
                                                                  return (
-                                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${inQuote ? 'bg-primary/10 text-primary' : 'bg-stone-50 dark:bg-stone-800 text-stone-400 group-hover:bg-primary/5 group-hover:text-primary transition-colors'}`}>
+                                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${inQuote ? 'bg-primary/10 text-primary' : 'bg-stone-50 text-stone-500 group-hover:bg-primary/5 group-hover:text-primary transition-colors'}`}>
                                                                          <TypeIcon className="w-4 h-4" />
                                                                      </div>
                                                                  );
                                                              })()}
                                                             <div className="min-w-0 flex-1">
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400">
+                                                                    <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-stone-100 text-stone-500">
                                                                         {product.type || 'Otros'}
                                                                     </span>
                                                                     {product.stock !== undefined && product.stock <= 2 && (
-                                                                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400">
+                                                                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">
                                                                             Stock: {product.stock}
                                                                         </span>
                                                                     )}
                                                                     {product.publishToWeb && (
-                                                                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-950/20 text-violet-700 dark:text-violet-400">
+                                                                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">
                                                                             🌐 Web
                                                                         </span>
                                                                     )}
                                                                 </div>
-                                                                <p className="text-xs font-semibold mt-1 text-stone-800 dark:text-stone-200 group-hover:text-stone-900 dark:group-hover:text-white transition-colors truncate">
+                                                                <p className="text-xs font-semibold mt-1 text-stone-800 group-hover:text-stone-900 transition-colors truncate">
                                                                     {product.name}
                                                                 </p>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-4 flex-shrink-0 ml-4">
-                                                            <div className="text-right">
-                                                                <p className="text-xs font-bold text-primary">
-                                                                    ${safePrice(product.price).toLocaleString()}
+                                                            <div className="text-right tabular-nums leading-tight">
+                                                                <p className="text-sm font-black text-primary">
+                                                                    ${Math.round(bEfectivo).toLocaleString('es-AR')}
+                                                                    <span className="text-[8px] font-bold text-stone-500 uppercase ml-1">efectivo</span>
                                                                 </p>
-                                                                <p className="text-[9px] font-semibold text-stone-400 tabular-nums" title={textoCuotas12(bCuota12)}>
-                                                                    12× ${bCuota12.toLocaleString()} +{RECARGO_MP_CUOTAS_LARGAS}%
+                                                                <p className="text-[9px] font-semibold text-stone-500">
+                                                                    Lista ${Math.round(bLista).toLocaleString('es-AR')}
+                                                                    <span className="text-stone-400"> · </span>
+                                                                    Transf. ${Math.round(bTransf).toLocaleString('es-AR')}
+                                                                </p>
+                                                                <p className="text-[9px] font-semibold text-stone-500" title={textoCuotas12(bCuota12)}>
+                                                                    12 cuotas de <span className="text-stone-400">${bCuota12.toLocaleString('es-AR')}</span>
                                                                 </p>
                                                             </div>
                                                             {inQuote ? (
@@ -1359,8 +1412,8 @@ function CotizadorPageContent() {
                                                                     {inQuote.quantity}
                                                                 </div>
                                                             ) : (
-                                                                <div className="w-6 h-6 rounded-full border border-stone-200 dark:border-stone-700 flex items-center justify-center group-hover:border-primary/45 group-hover:bg-primary/5 transition-all">
-                                                                    <Plus className="w-3.5 h-3.5 text-stone-400 group-hover:text-primary transition-colors" />
+                                                                <div className="w-6 h-6 rounded-full border border-stone-200 flex items-center justify-center group-hover:border-primary/45 group-hover:bg-primary/5 transition-all">
+                                                                    <Plus className="w-3.5 h-3.5 text-stone-500 group-hover:text-primary transition-colors" />
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1377,7 +1430,7 @@ function CotizadorPageContent() {
 
                 {/* Right Column: Desktop Cart (Sticky Sidebar) */}
                 {quoteItems.length > 0 && (
-                    <div className="hidden lg:flex w-[400px] xl:w-[460px] border-l border-sidebar-border bg-white dark:bg-stone-900 relative z-50 shadow-xl flex-col h-full overflow-y-auto flex-shrink-0 animate-in slide-in-from-right duration-300" style={{ scrollbarWidth: 'thin' }}>
+                    <div className="hidden lg:flex w-[400px] xl:w-[460px] border-l border-sidebar-border bg-white relative z-50 shadow-xl flex-col h-full overflow-y-auto flex-shrink-0 animate-in slide-in-from-right duration-300" style={{ scrollbarWidth: 'thin' }}>
                         <div className="flex-1 p-6 pb-28">
                             {!showRegister ? (
                                 <CotizadorCart 
@@ -1421,8 +1474,8 @@ function CotizadorPageContent() {
                                             <button
                                                 onClick={() => setShowHistory(!showHistory)}
                                                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${showHistory 
-                                                    ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900 shadow-md' 
-                                                    : 'bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'}`}
+                                                    ? 'bg-white text-white shadow-md' 
+                                                    : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
                                             >
                                                 <History className="w-3.5 h-3.5" /> {showHistory ? 'Cerrar' : `Historial (${previousQuotes.length})`}
                                             </button>
@@ -1432,8 +1485,8 @@ function CotizadorPageContent() {
                                     tintStylePrices={tintStylePrices}
                                 />
                             ) : (
-                                <div className="bg-white dark:bg-stone-800 border border-primary/20 rounded-2xl p-6 shadow-xl relative animate-in zoom-in-95 duration-300">
-                                    <button onClick={() => setShowRegister(false)} className="absolute top-4 right-4 text-stone-400 hover:text-stone-800 dark:hover:text-white"><X className="w-4 h-4" /></button>
+                                <div className="bg-white border border-primary/20 rounded-2xl p-6 shadow-xl relative animate-in zoom-in-95 duration-300">
+                                    <button onClick={() => setShowRegister(false)} className="absolute top-4 right-4 text-stone-500 hover:text-stone-800"><X className="w-4 h-4" /></button>
                                     
                                     {savedContact ? (
                                         <div className="py-6 text-center space-y-6">
@@ -1442,18 +1495,18 @@ function CotizadorPageContent() {
                                             </div>
                                             <div>
                                                 <h4 className="text-lg font-bold tracking-tight">¡Guardado con éxito!</h4>
-                                                <p className="text-stone-500 dark:text-stone-400 font-semibold text-xs mt-1">Registrado en la ficha de {savedContact.name}</p>
+                                                <p className="text-stone-500 font-semibold text-xs mt-1">Registrado en la ficha de {savedContact.name}</p>
                                             </div>
                                             <div className="flex gap-3 justify-center pt-2">
                                                 <button onClick={() => router.push(`/admin/contactos?clientId=${savedContact.id}`)} className="px-4 py-2 bg-emerald-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:scale-105 transition-all shadow-md">Ver Ficha</button>
-                                                <button onClick={resetRegister} className="px-4 py-2 bg-stone-100 dark:bg-stone-700 dark:text-stone-200 text-stone-600 rounded-xl font-bold text-xs uppercase tracking-wider hover:scale-105 transition-all">Nuevo</button>
+                                                <button onClick={resetRegister} className="px-4 py-2 bg-stone-100 text-stone-400 rounded-xl font-bold text-xs uppercase tracking-wider hover:scale-105 transition-all">Nuevo</button>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="space-y-6">
                                             <div>
                                                 <h3 className="text-lg font-bold tracking-tight">Vincular Contacto</h3>
-                                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mt-0.5">Busca un cliente o crea uno nuevo</p>
+                                                <p className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mt-0.5">Busca un cliente o crea uno nuevo</p>
                                             </div>
 
                                             {pendingContact ? (
@@ -1466,22 +1519,22 @@ function CotizadorPageContent() {
                                                         <FrameRecapReadOnly order={editingOrderData} defaultOpen contexto="cotizador" />
                                                     )}
                                                     <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-4">
-                                                        <div className="w-12 h-12 rounded-lg bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center border border-primary/20"><User className="w-6 h-6 text-primary" /></div>
+                                                        <div className="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center border border-primary/20"><User className="w-6 h-6 text-primary" /></div>
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-[9px] font-bold text-primary uppercase tracking-wider">Cliente Seleccionado</p>
                                                             <h4 className="text-base font-bold truncate mt-0.5">{pendingContact.name}</h4>
-                                                            {pendingContact.phone && <p className="text-xs text-stone-400 mt-0.5">{pendingContact.phone}</p>}
+                                                            {pendingContact.phone && <p className="text-xs text-stone-500 mt-0.5">{pendingContact.phone}</p>}
                                                         </div>
-                                                        {!editingQuoteId && <button onClick={() => setPendingContact(null)} className="p-2 text-stone-300 hover:text-red-500"><X className="w-5 h-5" /></button>}
+                                                        {!editingQuoteId && <button onClick={() => setPendingContact(null)} className="p-2 text-stone-400 hover:text-red-500"><X className="w-5 h-5" /></button>}
                                                     </div>
 
                                                     {hasCrystals && pendingContact.prescriptions && pendingContact.prescriptions.length > 0 && (
-                                                        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-200/50 dark:border-emerald-800/50 space-y-3">
-                                                            <div className="flex items-center gap-1.5"><FileText className="w-4 h-4 text-emerald-600" /><span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Vincular Receta Médica</span></div>
+                                                        <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200/50 space-y-3">
+                                                            <div className="flex items-center gap-1.5"><FileText className="w-4 h-4 text-emerald-600" /><span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Vincular Receta Médica</span></div>
                                                             <select 
                                                                 value={quotePrescriptionId || ''} 
                                                                 onChange={e => setQuotePrescriptionId(e.target.value || null)}
-                                                                className="w-full bg-white dark:bg-stone-800 border border-emerald-200 dark:border-emerald-800 py-2 px-3 rounded-xl text-xs font-bold outline-none cursor-pointer text-stone-800 dark:text-stone-100"
+                                                                className="w-full bg-white border border-emerald-200 py-2 px-3 rounded-xl text-xs font-bold outline-none cursor-pointer text-stone-800"
                                                             >
                                                                 <option value="">Sin receta vinculada...</option>
                                                                 {pendingContact.prescriptions.map((p: any) => (
@@ -1499,21 +1552,21 @@ function CotizadorPageContent() {
                                                         >
                                                             {savingQuote ? <Loader2 className="w-4 h-4 animate-spin" /> : editingQuoteId ? 'Actualizar' : 'Guardar'}
                                                         </button>
-                                                        {!editingQuoteId && <button onClick={() => { setPendingContact(null); setPreviousQuotes([]); }} className="px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:text-stone-900 dark:hover:text-stone-100 transition-all">Cambiar</button>}
+                                                        {!editingQuoteId && <button onClick={() => { setPendingContact(null); setPreviousQuotes([]); }} className="px-4 py-3 bg-white border border-stone-200 text-stone-400 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:text-stone-900 transition-all">Cambiar</button>}
                                                     </div>
                                                 </div>
                                             ) : (
                                                 <div className="space-y-6">
                                                     <div className="flex gap-3">
                                                         <div className="relative flex-1">
-                                                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-300" />
+                                                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
                                                             <input 
                                                                 ref={contactSearchRef} 
                                                                 type="text" 
                                                                 placeholder="Buscar cliente..." 
                                                                 value={contactSearch} 
                                                                 onChange={e => setContactSearch(e.target.value)}
-                                                                className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-2.5 pl-9 pr-4 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all text-stone-800 dark:text-stone-100 placeholder:text-stone-500 dark:placeholder:text-stone-400"
+                                                                className="w-full bg-stone-50 border border-stone-200 py-2.5 pl-9 pr-4 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all text-stone-800 placeholder:text-stone-500"
                                                             />
                                                         </div>
                                                         <button onClick={() => { setShowNewContact(true); setNewContactName(contactSearch); }} className="px-4 bg-primary/10 text-primary border border-primary/20 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-1.5"><Plus className="w-4 h-4" /> Nuevo</button>
@@ -1521,13 +1574,13 @@ function CotizadorPageContent() {
                                                     {contactResults.length > 0 && (
                                                         <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
                                                             {contactResults.map((c: any) => (
-                                                                <button key={c.id} onClick={() => selectContactForQuote(c)} className="flex items-center gap-3 p-3 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl hover:border-primary/40 transition-all group text-left">
-                                                                    <div className="w-10 h-10 rounded-lg bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-stone-700"><User className="w-5 h-5 text-primary" /></div>
+                                                                <button key={c.id} onClick={() => selectContactForQuote(c)} className="flex items-center gap-3 p-3 bg-stone-50 border border-stone-200 rounded-xl hover:border-primary/40 transition-all group text-left">
+                                                                    <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center border border-stone-100"><User className="w-5 h-5 text-primary" /></div>
                                                                     <div className="flex-1 text-left min-w-0">
                                                                         <p className="text-xs font-bold truncate">{c.name}</p>
-                                                                        {c.phone && <p className="text-[10px] text-stone-400">{c.phone}</p>}
+                                                                        {c.phone && <p className="text-[10px] text-stone-500">{c.phone}</p>}
                                                                     </div>
-                                                                    <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-primary transition-colors" />
+                                                                    <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-primary transition-colors" />
                                                                 </button>
                                                             ))}
                                                         </div>
@@ -1541,8 +1594,8 @@ function CotizadorPageContent() {
                         </div>
 
                         {showHistory && (
-                            <div className="border-t border-sidebar-border bg-stone-50/50 dark:bg-stone-950/20 p-5 overflow-y-auto max-h-[250px] animate-in slide-in-from-bottom duration-300" style={{ scrollbarWidth: 'thin' }}>
-                                <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-4">Historial de Consultas</h3>
+                            <div className="border-t border-sidebar-border bg-stone-50 p-5 overflow-y-auto max-h-[250px] animate-in slide-in-from-bottom duration-300" style={{ scrollbarWidth: 'thin' }}>
+                                <h3 className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-4">Historial de Consultas</h3>
                                 <div className="space-y-4">
                                     {previousQuotes.map(quote => (
                                         <QuoteSummary 
@@ -1562,11 +1615,11 @@ function CotizadorPageContent() {
 
             {/* Bottom Sticky Cart for Mobile/Tablet */}
             {quoteItems.length > 0 && (
-                <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-[50] bg-white dark:bg-stone-900 border-t border-sidebar-border shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-500 ${cartExpanded ? 'h-[85vh] rounded-t-[2rem]' : 'h-16'}`}>
+                <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-[50] bg-white border-t border-sidebar-border shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-500 ${cartExpanded ? 'h-[85vh] rounded-t-[2rem]' : 'h-16'}`}>
                     {/* Collapsed Bar */}
                     <button 
                         onClick={() => setCartExpanded(!cartExpanded)}
-                        className="h-16 w-full flex items-center justify-between px-6 hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
+                        className="h-16 w-full flex items-center justify-between px-6 hover:bg-stone-50 transition-colors"
                     >
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
@@ -1575,7 +1628,7 @@ function CotizadorPageContent() {
                                 <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">{itemCount}</span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="text-lg font-extrabold">${Math.round(totalCash).toLocaleString()} <span className="text-[9px] text-stone-400 font-semibold uppercase ml-0.5">efectivo</span></span>
+                                <span className="text-lg font-extrabold">${Math.round(totalCash).toLocaleString()} <span className="text-[9px] text-stone-500 font-semibold uppercase ml-0.5">efectivo</span></span>
                             </div>
                         </div>
                         {cartExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
@@ -1627,8 +1680,8 @@ function CotizadorPageContent() {
                                                 <button
                                                     onClick={() => setShowHistory(!showHistory)}
                                                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all ${showHistory 
-                                                        ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900 shadow-md' 
-                                                        : 'bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'}`}
+                                                        ? 'bg-white text-white shadow-md' 
+                                                        : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
                                                 >
                                                     <History className="w-3.5 h-3.5" /> {showHistory ? 'Cerrar' : `Historial (${previousQuotes.length})`}
                                                 </button>
@@ -1638,8 +1691,8 @@ function CotizadorPageContent() {
                                         tintStylePrices={tintStylePrices}
                                     />
                                 ) : (
-                                    <div className="bg-white dark:bg-stone-800 border border-primary/20 rounded-2xl p-6 shadow-xl relative animate-in zoom-in-95 duration-300">
-                                        <button onClick={() => setShowRegister(false)} className="absolute top-4 right-4 text-stone-400 hover:text-stone-800 dark:hover:text-white"><X className="w-4 h-4" /></button>
+                                    <div className="bg-white border border-primary/20 rounded-2xl p-6 shadow-xl relative animate-in zoom-in-95 duration-300">
+                                        <button onClick={() => setShowRegister(false)} className="absolute top-4 right-4 text-stone-500 hover:text-stone-800"><X className="w-4 h-4" /></button>
                                         
                                         {savedContact ? (
                                             <div className="py-6 text-center space-y-6">
@@ -1648,39 +1701,39 @@ function CotizadorPageContent() {
                                                 </div>
                                                 <div>
                                                     <h4 className="text-lg font-bold tracking-tight">¡Guardado con éxito!</h4>
-                                                    <p className="text-stone-500 dark:text-stone-400 font-semibold text-xs mt-1">Registrado en la ficha de {savedContact.name}</p>
+                                                    <p className="text-stone-500 font-semibold text-xs mt-1">Registrado en la ficha de {savedContact.name}</p>
                                                 </div>
                                                 <div className="flex gap-3 justify-center pt-2">
                                                     <button onClick={() => router.push(`/admin/contactos?clientId=${savedContact.id}`)} className="px-4 py-2 bg-emerald-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:scale-105 transition-all shadow-md">Ver Ficha</button>
-                                                    <button onClick={resetRegister} className="px-4 py-2 bg-stone-100 dark:bg-stone-700 dark:text-stone-200 text-stone-600 rounded-xl font-bold text-xs uppercase tracking-wider hover:scale-105 transition-all">Nuevo</button>
+                                                    <button onClick={resetRegister} className="px-4 py-2 bg-stone-100 text-stone-400 rounded-xl font-bold text-xs uppercase tracking-wider hover:scale-105 transition-all">Nuevo</button>
                                                 </div>
                                             </div>
                                         ) : (
                                             <div className="space-y-6">
                                                 <div>
                                                     <h3 className="text-lg font-bold tracking-tight">Vincular Contacto</h3>
-                                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mt-0.5">Busca un cliente o crea uno nuevo</p>
+                                                    <p className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mt-0.5">Busca un cliente o crea uno nuevo</p>
                                                 </div>
 
                                                 {pendingContact ? (
                                                     <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-300">
                                                         <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-4">
-                                                            <div className="w-12 h-12 rounded-lg bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center border border-primary/20"><User className="w-6 h-6 text-primary" /></div>
+                                                            <div className="w-12 h-12 rounded-lg bg-white shadow-sm flex items-center justify-center border border-primary/20"><User className="w-6 h-6 text-primary" /></div>
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-[9px] font-bold text-primary uppercase tracking-wider">Cliente Seleccionado</p>
                                                                 <h4 className="text-base font-bold truncate mt-0.5">{pendingContact.name}</h4>
-                                                                {pendingContact.phone && <p className="text-xs text-stone-400 mt-0.5">{pendingContact.phone}</p>}
+                                                                {pendingContact.phone && <p className="text-xs text-stone-500 mt-0.5">{pendingContact.phone}</p>}
                                                             </div>
-                                                            {!editingQuoteId && <button onClick={() => setPendingContact(null)} className="p-2 text-stone-300 hover:text-red-500"><X className="w-5 h-5" /></button>}
+                                                            {!editingQuoteId && <button onClick={() => setPendingContact(null)} className="p-2 text-stone-400 hover:text-red-500"><X className="w-5 h-5" /></button>}
                                                         </div>
 
                                                         {hasCrystals && pendingContact.prescriptions && pendingContact.prescriptions.length > 0 && (
-                                                            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-200/50 dark:border-emerald-800/50 space-y-3">
-                                                                <div className="flex items-center gap-1.5"><FileText className="w-4 h-4 text-emerald-600" /><span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Vincular Receta Médica</span></div>
+                                                            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200/50 space-y-3">
+                                                                <div className="flex items-center gap-1.5"><FileText className="w-4 h-4 text-emerald-600" /><span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Vincular Receta Médica</span></div>
                                                                 <select 
                                                                     value={quotePrescriptionId || ''} 
                                                                     onChange={e => setQuotePrescriptionId(e.target.value || null)}
-                                                                    className="w-full bg-white dark:bg-stone-800 border border-emerald-200 dark:border-emerald-800 py-2 px-3 rounded-xl text-xs font-bold outline-none cursor-pointer text-stone-800 dark:text-stone-100"
+                                                                    className="w-full bg-white border border-emerald-200 py-2 px-3 rounded-xl text-xs font-bold outline-none cursor-pointer text-stone-800"
                                                                 >
                                                                     <option value="">Sin receta vinculada...</option>
                                                                     {pendingContact.prescriptions.map((p: any) => (
@@ -1698,21 +1751,21 @@ function CotizadorPageContent() {
                                                             >
                                                                 {savingQuote ? <Loader2 className="w-4 h-4 animate-spin" /> : editingQuoteId ? 'Actualizar' : 'Guardar'}
                                                             </button>
-                                                            {!editingQuoteId && <button onClick={() => { setPendingContact(null); setPreviousQuotes([]); }} className="px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:text-stone-900 dark:hover:text-stone-100 transition-all">Cambiar</button>}
+                                                            {!editingQuoteId && <button onClick={() => { setPendingContact(null); setPreviousQuotes([]); }} className="px-4 py-3 bg-white border border-stone-200 text-stone-400 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:text-stone-900 transition-all">Cambiar</button>}
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-6">
                                                         <div className="flex gap-3">
                                                             <div className="relative flex-1">
-                                                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-300" />
+                                                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
                                                                 <input 
                                                                     ref={contactSearchRef} 
                                                                     type="text" 
                                                                     placeholder="Buscar cliente..." 
                                                                     value={contactSearch} 
                                                                     onChange={e => setContactSearch(e.target.value)}
-                                                                    className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 py-2.5 pl-9 pr-4 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all text-stone-800 dark:text-stone-100 placeholder:text-stone-500 dark:placeholder:text-stone-400"
+                                                                    className="w-full bg-stone-50 border border-stone-200 py-2.5 pl-9 pr-4 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all text-stone-800 placeholder:text-stone-500"
                                                                 />
                                                             </div>
                                                             <button onClick={() => { setShowNewContact(true); setNewContactName(contactSearch); }} className="px-4 bg-primary/10 text-primary border border-primary/20 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-primary hover:text-primary-foreground transition-all flex items-center gap-1.5"><Plus className="w-4 h-4" /> Nuevo</button>
@@ -1720,13 +1773,13 @@ function CotizadorPageContent() {
                                                         {contactResults.length > 0 && (
                                                             <div className="grid grid-cols-1 gap-2 max-h-[220px] overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
                                                                 {contactResults.map((c: any) => (
-                                                                    <button key={c.id} onClick={() => selectContactForQuote(c)} className="flex items-center gap-3 p-3 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl hover:border-primary/40 transition-all group text-left">
-                                                                        <div className="w-10 h-10 rounded-lg bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center border border-stone-100 dark:border-stone-700"><User className="w-5 h-5 text-primary" /></div>
+                                                                    <button key={c.id} onClick={() => selectContactForQuote(c)} className="flex items-center gap-3 p-3 bg-stone-50 border border-stone-200 rounded-xl hover:border-primary/40 transition-all group text-left">
+                                                                        <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center border border-stone-100"><User className="w-5 h-5 text-primary" /></div>
                                                                         <div className="flex-1 text-left min-w-0">
                                                                             <p className="text-xs font-bold truncate">{c.name}</p>
-                                                                            {c.phone && <p className="text-[10px] text-stone-400">{c.phone}</p>}
+                                                                            {c.phone && <p className="text-[10px] text-stone-500">{c.phone}</p>}
                                                                         </div>
-                                                                        <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-primary transition-colors" />
+                                                                        <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-primary transition-colors" />
                                                                     </button>
                                                                 ))}
                                                             </div>
@@ -1740,8 +1793,8 @@ function CotizadorPageContent() {
                             </div>
                             
                             {showHistory && (
-                                <div className="border-t border-sidebar-border bg-stone-50/50 dark:bg-stone-950/20 p-5 overflow-y-auto max-h-[220px]" style={{ scrollbarWidth: 'thin' }}>
-                                    <h3 className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-4">Historial de Consultas</h3>
+                                <div className="border-t border-sidebar-border bg-stone-50 p-5 overflow-y-auto max-h-[220px]" style={{ scrollbarWidth: 'thin' }}>
+                                    <h3 className="text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-4">Historial de Consultas</h3>
                                     <div className="space-y-4">
                                         {previousQuotes.map(quote => (
                                             <QuoteSummary 
@@ -1761,10 +1814,10 @@ function CotizadorPageContent() {
             )}
 
             {showNewContact && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in duration-300">
-                    <div className="bg-white dark:bg-stone-900 rounded-[3rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 sm:p-10 animate-in zoom-in-95 duration-300 relative" style={{ scrollbarWidth: 'thin' }}>
-                        <button onClick={() => setShowNewContact(false)} aria-label="Cerrar" className="absolute top-8 right-8 p-3 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                            <X className="w-5 h-5 text-stone-400" />
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white backdrop-blur-sm p-4 sm:p-8 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 sm:p-10 animate-in zoom-in-95 duration-300 relative" style={{ scrollbarWidth: 'thin' }}>
+                        <button onClick={() => setShowNewContact(false)} aria-label="Cerrar" className="absolute top-8 right-8 p-3 hover:bg-stone-100 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                            <X className="w-5 h-5 text-stone-500" />
                         </button>
                         <h4 className="text-2xl font-black tracking-tighter mb-8">Nuevo Contacto</h4>
 
@@ -1781,17 +1834,17 @@ function CotizadorPageContent() {
                             {/* Nombre + Teléfono */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Nombre / Apellido <span className="text-primary">*</span></label>
+                                    <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-2 flex items-center gap-1">Nombre / Apellido <span className="text-primary">*</span></label>
                                     <div className="relative group">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 dark:text-stone-500 group-focus-within:text-primary transition-colors" />
-                                        <input type="text" placeholder="Nombre completo" value={newContactName} onChange={e => { setNewContactName(e.target.value); setDuplicateError(null); }} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-100 dark:placeholder:text-stone-400 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-primary transition-colors" />
+                                        <input type="text" placeholder="Nombre completo" value={newContactName} onChange={e => { setNewContactName(e.target.value); setDuplicateError(null); }} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Teléfono <span className="text-primary">*</span></label>
+                                    <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-2 flex items-center gap-1">Teléfono <span className="text-primary">*</span></label>
                                     <div className="relative group">
-                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 dark:text-stone-500 group-focus-within:text-primary transition-colors" />
-                                        <input type="tel" placeholder="351XXXXXXX" value={newContactPhone} onChange={e => { setNewContactPhone(e.target.value); setDuplicateError(null); }} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-100 dark:placeholder:text-stone-400 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-primary transition-colors" />
+                                        <input type="tel" placeholder="351XXXXXXX" value={newContactPhone} onChange={e => { setNewContactPhone(e.target.value); setDuplicateError(null); }} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
                                     </div>
                                 </div>
                             </div>
@@ -1799,17 +1852,17 @@ function CotizadorPageContent() {
                             {/* DNI + Obra Social */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">DNI</label>
+                                    <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-2">DNI</label>
                                     <div className="relative group">
-                                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 dark:text-stone-500 group-focus-within:text-primary transition-colors" />
-                                        <input type="text" placeholder="Número de documento" value={newContactDni} onChange={e => setNewContactDni(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-100 dark:placeholder:text-stone-400 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-primary transition-colors" />
+                                        <input type="text" placeholder="Número de documento" value={newContactDni} onChange={e => setNewContactDni(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Obra Social</label>
+                                    <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-2">Obra Social</label>
                                     <div className="relative group">
-                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 dark:text-stone-500 group-focus-within:text-primary transition-colors" />
-                                        <input type="text" placeholder="Apross, OSDE, etc." value={newContactInsurance} onChange={e => setNewContactInsurance(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-100 dark:placeholder:text-stone-400 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-primary transition-colors" />
+                                        <input type="text" placeholder="Apross, OSDE, etc." value={newContactInsurance} onChange={e => setNewContactInsurance(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
                                     </div>
                                 </div>
                             </div>
@@ -1817,21 +1870,21 @@ function CotizadorPageContent() {
                             {/* Médico + Etiqueta */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Médico</label>
+                                    <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-2">Médico</label>
                                     <div className="relative group">
-                                        <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 dark:text-stone-500 group-focus-within:text-primary transition-colors z-10" />
-                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-400 pointer-events-none" />
-                                        <select value={newContactDoctor} onChange={e => setNewContactDoctor(e.target.value)} className="w-full pl-11 pr-9 py-4 bg-white border-2 border-stone-100 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
+                                        <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-primary transition-colors z-10" />
+                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-500 pointer-events-none" />
+                                        <select value={newContactDoctor} onChange={e => setNewContactDoctor(e.target.value)} className="w-full pl-11 pr-9 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
                                             <option value="">— Sin médico —</option>
                                             {doctors.map(doc => <option key={doc.id} value={doc.name}>{doc.name}</option>)}
                                         </select>
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Origen / Canal <span className="text-primary">*</span></label>
+                                    <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-2 flex items-center gap-1">Origen / Canal <span className="text-primary">*</span></label>
                                     <div className="relative group">
-                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-400 pointer-events-none" />
-                                        <select value={newContactSource} onChange={e => setNewContactSource(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-stone-100 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
+                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 text-stone-500 pointer-events-none" />
+                                        <select value={newContactSource} onChange={e => setNewContactSource(e.target.value)} className="w-full px-5 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold appearance-none cursor-pointer outline-none focus:border-primary transition-all">
                                             <option value="">Seleccionar origen...</option>
                                             {CONTACT_SOURCES_SELECCIONABLES.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
@@ -1842,27 +1895,27 @@ function CotizadorPageContent() {
                             {/* Email */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2">Email</label>
+                                    <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-2">Email</label>
                                     <div className="relative group">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 dark:text-stone-500 group-focus-within:text-primary transition-colors" />
-                                        <input type="email" placeholder="correo@ejemplo.com" value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-100 dark:placeholder:text-stone-400 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 group-focus-within:text-primary transition-colors" />
+                                        <input type="email" placeholder="correo@ejemplo.com" value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} className="w-full pl-11 pr-4 py-4 bg-white border-2 border-stone-100 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all" />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Tipo de Producto */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-2 flex items-center gap-1">Tipo de Producto <span className="text-primary">*</span></label>
+                                <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest ml-2 flex items-center gap-1">Tipo de Producto <span className="text-primary">*</span></label>
                                 <div className="grid grid-cols-4 gap-2">
                                     {PRODUCT_TYPES.map(type => (
-                                        <button key={type} type="button" onClick={() => setNewContactInterest(type)} aria-pressed={newContactInterest === type} className={`px-2 min-h-10 py-2.5 rounded-xl border-2 text-[9px] font-black uppercase transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${newContactInterest === type ? 'bg-primary border-primary text-primary-foreground shadow-lg' : 'bg-white text-stone-500 border-stone-100 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700 hover:border-primary/30'}`}>{type}</button>
+                                        <button key={type} type="button" onClick={() => setNewContactInterest(type)} aria-pressed={newContactInterest === type} className={`px-2 min-h-10 py-2.5 rounded-xl border-2 text-[9px] font-black uppercase transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${newContactInterest === type ? 'bg-primary border-primary text-primary-foreground shadow-lg' : 'bg-white text-stone-500 border-stone-100 hover:border-primary/30'}`}>{type}</button>
                                     ))}
                                 </div>
                             </div>
 
                             <div className="flex gap-4 pt-6">
                                 <button onClick={handleCreateAndSave} disabled={!newContactName || !newContactPhone || !newContactSource || !newContactInterest || savingQuote} className="flex-1 py-5 bg-primary text-primary-foreground rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95">{savingQuote ? <><Loader2 className="w-5 h-5 animate-spin" /> Creando...</> : 'Crear y Guardar'}</button>
-                                <button onClick={() => { setShowNewContact(false); setDuplicateError(null); }} className="px-8 py-5 bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300 rounded-[2rem] font-black text-[11px] uppercase tracking-widest hover:bg-stone-200 dark:hover:bg-stone-700 transition-all">Cancelar</button>
+                                <button onClick={() => { setShowNewContact(false); setDuplicateError(null); }} className="px-8 py-5 bg-stone-100 text-stone-400 rounded-[2rem] font-black text-[11px] uppercase tracking-widest hover:bg-stone-200 transition-all">Cancelar</button>
                             </div>
                         </div>
                     </div>
