@@ -53,6 +53,85 @@ function pruneToolErrorTracker() {
 // ordena la regla 11 del prompt: lo único inaceptable es el silencio.
 const FALLBACK_HUMANO = 'Te consulto con el equipo y te respondo a la brevedad.';
 
+// ── Qué es una falla REAL de herramienta y qué no ────────────────────────────
+//
+// Esta es la definición canónica. Se exporta para que NADIE vuelva a escribir
+// su propia versión olfateando el texto del resultado (`npm run check:bot-errores`
+// verifica la clasificación y lista quién sigue con la copia vieja).
+//
+// La señal correcta YA EXISTÍA y no se estaba usando. `safeToolRun`
+// (agent-tools.js) separa las dos cosas EN EL ORIGEN:
+//   • falla de red/infra → la RELANZA con el prefijo "Network Error: …", y
+//     `ToolNode({ handleToolErrors: true })` la marca con `status === 'error'`;
+//   • error de negocio  → la DEVUELVE como texto marcado "[INSTRUCCIÓN INTERNA]",
+//     que es un resultado EXITOSO destinado al LLM.
+// Alcanza con leer esas dos marcas. Olfatear el texto es lo que rompía:
+//
+//   • `content.includes('Error')` daba por caída de red el mensaje
+//     "[INSTRUCCIÓN INTERNA] Error al ejecutar la herramienta: …", que es un
+//     resultado de negocio normal. Dos seguidos abortaban el turno EN SILENCIO:
+//     el cliente no recibía nada.
+//   • buscar "404"/"500" sueltos es peor: los precios de la óptica los
+//     contienen. "• Precio contado: *$88.500*" matchea `\b500\b`. Medido contra
+//     la base real: el 5,3% de los productos dispara la falsa alarma solo, y un
+//     presupuesto de 3 opciones al azar la dispara el 15% de las veces. A la
+//     tercera vez seguida el bot se apaga en ese chat con el motivo falso
+//     "Errores técnicos persistentes".
+//
+// Ante la duda se devuelve `false` (= "no es falla"): que el bot conteste de
+// más es recuperable; el silencio no.
+
+/** Marca de resultado de negocio que pone `safeToolRun` / las tools. */
+const MARCA_RESULTADO_DE_NEGOCIO = '[INSTRUCCIÓN INTERNA]';
+/** Prefijo con el que `safeToolRun` relanza una falla de red. */
+const MARCA_FALLA_DE_RED = 'Network Error';
+
+/** Tokens que solo aparecen en una falla de red/infraestructura real. */
+const TOKENS_DE_RED = [
+    'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN',
+    'EPIPE', 'EHOSTUNREACH', 'ENETUNREACH', 'ERR_SOCKET',
+    'getaddrinfo', 'socket hang up', 'fetch failed', 'network error',
+    'RESOURCE_EXHAUSTED', 'Internal Server Error', 'Bad Gateway',
+    'Service Unavailable', 'Too Many Requests',
+];
+
+// Un código HTTP cuenta SOLO si viene anunciado como código ("status code 500",
+// "HTTP 502"), nunca suelto en el texto: "$88.500" no es un error del servidor.
+const CODIGO_HTTP_ANUNCIADO = /\b(?:HTTPS?|status(?:\s*code)?|statusCode)\b\s*[:=/]?\s*\[?\s*[45]\d{2}\b/i;
+
+// "timeout" / "timed out" / "time out" como palabra entera.
+const TIEMPO_AGOTADO = /\b(?:timeout|timed[-\s]?out|time[-\s]out)\b/i;
+
+/**
+ * ¿El resultado de esta herramienta es una falla transitoria de
+ * red/infraestructura (hay que abortar el turno) o un resultado de negocio que
+ * el modelo tiene que leer y contestar?
+ *
+ * @param {{ content?: unknown, status?: string }} msg ToolMessage del grafo.
+ * @returns {boolean} true SOLO si es una falla real de infraestructura.
+ */
+function esFallaTransitoriaDeHerramienta(msg) {
+    if (!msg) return false;
+    const content = (msg.content === undefined || msg.content === null) ? '' : msg.content.toString();
+
+    // 1. Resultado de negocio explícito: gana sobre todo lo demás. Es exitoso
+    //    aunque el texto traiga la palabra "Error" o un precio terminado en 500.
+    if (content.includes(MARCA_RESULTADO_DE_NEGOCIO)) return false;
+
+    // 2. Señal autoritativa: la herramienta TIRÓ y ToolNode lo marcó.
+    if (msg.status === 'error') return true;
+
+    // 3. Marca que pone safeToolRun al relanzar una falla de red.
+    if (content.includes(MARCA_FALLA_DE_RED)) return true;
+
+    // 4. Texto crudo de una falla de red (errores que no pasaron por safeToolRun).
+    if (TOKENS_DE_RED.some(token => content.includes(token))) return true;
+    if (CODIGO_HTTP_ANUNCIADO.test(content)) return true;
+    if (TIEMPO_AGOTADO.test(content)) return true;
+
+    return false;
+}
+
 /**
  * Firma de las tool calls que está por ejecutar este paso (nombre + argumentos).
  * Sirve para detectar que el modelo llama LA MISMA herramienta con LOS MISMOS
@@ -77,8 +156,9 @@ function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
         const result = await originalToolNode.invoke(state);
 
         // ── Bucle de la MISMA tool con los MISMOS argumentos ────────────────
-        // El detector de abajo solo corta cuando el resultado "parece" un error
-        // (contiene "Error", "ECONNREFUSED", …). Pero las respuestas de negocio
+        // El detector de abajo solo corta cuando el resultado es una falla real
+        // de infraestructura (ver `esFallaTransitoriaDeHerramienta`). Las
+        // respuestas de negocio
         // del tipo "[INSTRUCCIÓN INTERNA] … no existe / no se encontraron" son
         // resultados EXITOSOS: el modelo reintentaba idéntico hasta agotar el
         // recursionLimit y el turno terminaba MUDO. Pasó dos veces en la prueba
@@ -106,8 +186,10 @@ function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
             const isToolMsg = msg.tool_call_id !== undefined || (typeof msg.getType === 'function' && msg.getType() === 'tool');
             if (!isToolMsg) continue;
 
-            const content = (msg.content || '').toString();
-            const isError = msg.status === 'error' || content.includes('Error') || content.includes('ECONNREFUSED') || content.includes('getaddrinfo') || content.includes('timeout');
+            // Ojo: NO olfatear el texto acá. La clasificación vive en un solo
+            // lugar (ver `esFallaTransitoriaDeHerramienta` arriba) porque cada
+            // copia que miró el contenido a mano terminó dejando mudo al bot.
+            const isError = esFallaTransitoriaDeHerramienta(msg);
             const toolName = msg.name || msg.tool_call_id || 'unknown_tool';
 
             const tracker = toolErrorTracker.get(chatId);
@@ -517,5 +599,10 @@ module.exports = {
   // (toolCallLog / loopBroken) realmente persisten entre nodos.
   GraphAnnotation,
   DEFAULT_SALES_PROMPT,
-  DEFAULT_EXECUTIVE_PROMPT
+  DEFAULT_EXECUTIVE_PROMPT,
+  // Definición ÚNICA de "el resultado de esta tool es una falla real".
+  // Todo consumidor de `result.messages` (index.js, routes/api.js, bot-cloud.js)
+  // tiene que llamar a ESTA función en vez de escribir su propio olfateo de
+  // texto: los precios de la óptica contienen 404 y 500.
+  esFallaTransitoriaDeHerramienta,
 };
