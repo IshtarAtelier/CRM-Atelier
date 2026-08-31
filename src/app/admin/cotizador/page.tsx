@@ -19,7 +19,9 @@ import {
     Phone,
     Building2,
     Stethoscope,
-    Mail
+    Mail,
+    SlidersHorizontal,
+    PackageSearch
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 // import { toast } from 'sonner';
@@ -51,7 +53,6 @@ import {
 } from 'lucide-react';
 import type { Product } from '@/types/orders';
 import { normalizeLensOrigin, lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
-import LensOriginBadge from '@/components/ui/LensOriginBadge';
 import { formatLensRange } from '@/lib/lens-range';
 import Image from "next/image";
 
@@ -60,20 +61,27 @@ import Image from "next/image";
 // si fuera un `type` crudo; funcionaba de casualidad para claves que también
 // matchean por substring de tipo (Cristal, Armazón, Sol...) pero rompía para
 // 'Tratamiento', que solo se detecta por `category`, no por texto de `type`.
+// Un solo tratamiento visual para todos los chips de categoría (antes cada
+// una tenía su propio color pastel, sin sistema). El color ahora lo da SOLO
+// el estado (activo/inactivo), acá solo queda el ícono + etiqueta.
 const getTypeConfigByKey = (key: string) => {
     switch (key) {
-        case 'Armazón': return { icon: Glasses, label: 'Armazones', color: 'bg-amber-50 text-amber-600 border-amber-200' };
-        case 'Cristal': return { icon: Eye, label: 'Cristales', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
-        case 'Lente de sol': return { icon: Sun, label: 'Sol', color: 'bg-orange-50 text-orange-600 border-orange-200' };
-        case 'Lente de contacto': return { icon: Activity, label: 'Contactología', color: 'bg-cyan-50 text-cyan-600 border-cyan-200' };
-        case 'Accesorio': return { icon: Box, label: 'Accesorios', color: 'bg-stone-50 text-stone-600 border-stone-200' };
-        case 'Reloj': return { icon: Watch, label: 'Relojería', color: 'bg-blue-50 text-blue-600 border-blue-200' };
-        case 'Líquido / Solución': return { icon: Droplets, label: 'Líquidos', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' };
-        case 'Joyería': return { icon: Gem, label: 'Joyería', color: 'bg-rose-50 text-rose-600 border-rose-200' };
-        case 'Tratamiento': return { icon: FlaskConical, label: 'Tratamientos', color: 'bg-violet-50 text-violet-600 border-violet-200' };
-        default: return { icon: Box, label: 'Otros', color: 'bg-stone-50 text-stone-400 border-stone-200' };
+        case 'Armazón': return { icon: Glasses, label: 'Armazones' };
+        case 'Cristal': return { icon: Eye, label: 'Cristales' };
+        case 'Lente de sol': return { icon: Sun, label: 'Sol' };
+        case 'Lente de contacto': return { icon: Activity, label: 'Contactología' };
+        case 'Accesorio': return { icon: Box, label: 'Accesorios' };
+        case 'Reloj': return { icon: Watch, label: 'Relojería' };
+        case 'Líquido / Solución': return { icon: Droplets, label: 'Líquidos' };
+        case 'Joyería': return { icon: Gem, label: 'Joyería' };
+        case 'Tratamiento': return { icon: FlaskConical, label: 'Tratamientos' };
+        default: return { icon: Box, label: 'Otros' };
     }
 };
+
+// "Cristal Multifocal" → "Cristal · Multifocal": el tipo y el subtipo en una
+// sola línea, sin que se corte en dos renglones dentro de la columna angosta.
+const tipoConSeparador = (type?: string | null) => (type || '').replace(' ', ' · ') || '—';
 
 const getTypeConfig = (type: string | null, category?: string | null) => getTypeConfigByKey(getCategoryKey(type, category));
 
@@ -127,6 +135,12 @@ function CotizadorPageContent() {
     // El descuento especial solo lo puede dar el admin; el resto ni ve el campo.
     const [userRole, setUserRole] = useState('STAFF');
     const [cartExpanded, setCartExpanded] = useState(false);
+    // Filtros secundarios (subtipo/origen/marca/laboratorio): colapsados por
+    // defecto en un popover, para no ocupar media pantalla antes de ver un
+    // producto. Se abren solos si el usuario ya tenía uno activo (ej. viene de
+    // un link con laboratorio preseleccionado).
+    const [showMoreFilters, setShowMoreFilters] = useState(false);
+    const moreFiltersRef = useRef<HTMLDivElement>(null);
     const [frameSource, setFrameSource] = useState<'OPTICA' | 'USUARIO' | null>(null);
     const [userFrameData, setUserFrameData] = useState({ brand: '', model: '', notes: '' });
     
@@ -375,6 +389,41 @@ function CotizadorPageContent() {
         ).values()) as string[];
         return labs.sort((a, b) => a.localeCompare(b));
     }, [baseFilteredForBrandsAndLabs]);
+
+    // Cierra el popover de "más filtros" al clickear afuera.
+    useEffect(() => {
+        if (!showMoreFilters) return;
+        const onClickOutside = (e: MouseEvent) => {
+            if (moreFiltersRef.current && !moreFiltersRef.current.contains(e.target as Node)) {
+                setShowMoreFilters(false);
+            }
+        };
+        document.addEventListener('mousedown', onClickOutside);
+        return () => document.removeEventListener('mousedown', onClickOutside);
+    }, [showMoreFilters]);
+
+    const hasSecondaryFilters = activeType === 'Cristal' || uniqueBrands.length > 1 || uniqueLabs.length > 1;
+
+    // Filtros secundarios activos, como tags removibles junto a los chips.
+    const activeFilterTags = useMemo(() => {
+        const tags: { key: string; label: string; clear: () => void }[] = [];
+        if (selectedSubtype) tags.push({ key: 'subtype', label: selectedSubtype, clear: () => setSelectedSubtype('') });
+        if (selectedOrigin) tags.push({ key: 'origin', label: selectedOrigin === 'STOCK' ? 'Stock' : 'Laboratorio', clear: () => setSelectedOrigin('') });
+        if (selectedBrand) tags.push({ key: 'brand', label: selectedBrand, clear: () => setSelectedBrand('') });
+        if (selectedLab) tags.push({ key: 'lab', label: selectedLab, clear: () => setSelectedLab('') });
+        return tags;
+    }, [selectedSubtype, selectedOrigin, selectedBrand, selectedLab]);
+
+    const clearAllFilters = () => {
+        setSearch('');
+        setActiveType(null);
+        setOnlyWeb(false);
+        setSelectedSubtype('');
+        setSelectedOrigin('');
+        setSelectedBrand('');
+        setSelectedLab('');
+    };
+
     const filtered = useMemo(() => {
         const normalizeText = (str: string) => {
             let text = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -770,178 +819,205 @@ function CotizadorPageContent() {
     const clientName = pendingContact?.name;
 
     return (
-        <div className="absolute inset-0 flex flex-col bg-background overflow-hidden">
-            {/* Header */}
-            <header className="px-4 lg:px-8 py-3 border-b border-sidebar-border bg-sidebar flex items-center gap-4 flex-shrink-0">
-                <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center">
+        <div className="dark absolute inset-0 flex flex-col bg-background text-foreground overflow-hidden">
+            {/* Header: título + subtítulo con el estado actual (cantidad, laboratorio) + acciones */}
+            <header className="px-4 lg:px-8 py-3.5 border-b border-sidebar-border bg-sidebar flex items-center gap-4 flex-shrink-0">
+                <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
                     <Calculator className="w-4 h-4 text-primary" />
                 </div>
-                <h1 className="text-lg font-black text-stone-800 dark:text-white uppercase tracking-tighter italic leading-tight flex-1">
-                    Cotizador
-                    {clientName && (
-                        <span className="text-primary not-italic ml-2 text-sm font-black">— {clientName}</span>
-                    )}
-                </h1>
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-base font-black uppercase tracking-tight leading-tight flex items-center gap-2 flex-wrap">
+                        Cotizador
+                        {clientName && <span className="text-primary text-sm font-black">— {clientName}</span>}
+                    </h1>
+                    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mt-0.5 truncate">
+                        {loading ? 'Cargando catálogo…' : `${filtered.length.toLocaleString('es-AR')} producto${filtered.length === 1 ? '' : 's'}`}
+                        {selectedLab && ` · Laboratorio ${selectedLab}`}
+                        {!selectedLab && activeType && ` · ${getTypeConfigByKey(activeType).label}`}
+                    </p>
+                </div>
                 {quoteItems.length > 0 && (
                     <button
                         onClick={() => { setQuoteItems([]); setMarkup(0); setSpecialDiscount(0); setFrameSource(null); setEditingQuoteId(null); setEditingIsSale(false); router.replace('/admin/cotizador'); }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-stone-400 hover:text-red-500 bg-stone-50 dark:bg-stone-800 rounded-lg border border-stone-100 dark:border-stone-700 transition-all hover:border-red-200 uppercase tracking-wider"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold text-stone-400 hover:text-red-400 bg-stone-800/60 rounded-lg border border-stone-700 transition-all hover:border-red-400/30 uppercase tracking-wider flex-shrink-0"
                     >
                         <RotateCcw className="w-3 h-3" /> Limpiar
                     </button>
                 )}
             </header>
 
-            {/* Search + Categories */}
-            <div className="px-4 lg:px-8 py-3.5 border-b border-sidebar-border bg-sidebar/65 flex flex-col gap-3 flex-shrink-0">
-                <div className="flex flex-col md:flex-row md:items-center gap-3">
-                    <div className="relative w-full md:w-64 flex-shrink-0">
-                        <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+            {/* Barra de filtros: una sola fila. Los secundarios (subtipo, origen,
+                marca, laboratorio) viven en un popover aparte, con lo elegido
+                mostrado como tags removibles al lado. */}
+            <div className="px-4 lg:px-8 py-3 border-b border-sidebar-border bg-sidebar/65 flex flex-col gap-2 flex-shrink-0">
+                <div className="flex flex-col md:flex-row md:items-center gap-2.5">
+                    <div className="relative w-full md:w-60 flex-shrink-0">
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
                         <input
                             ref={searchRef}
                             type="text"
                             placeholder="Buscar producto..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full bg-white dark:bg-stone-850 border border-stone-200 dark:border-stone-750 py-2 px-9 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all placeholder:text-stone-400 dark:text-stone-100"
+                            className="w-full bg-stone-900/60 border border-stone-750 py-2 px-8 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/40 transition-all placeholder:text-stone-500 text-stone-100"
                         />
                         {search && (
-                            <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs">✕</button>
+                            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-200 text-xs">✕</button>
                         )}
                     </div>
-                    <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+
+                    <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                        {/* Chips de categoría: un solo tratamiento visual — neutro en
+                            reposo, dorado/oscuro el activo, contador en badge aparte. */}
                         <button
                             onClick={() => setActiveType(null)}
-                            className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center justify-center ${activeType === null
-                                ? 'bg-primary text-primary-foreground border-primary shadow-sm hover:bg-primary/95'
-                                : 'bg-white dark:bg-stone-850 text-stone-500 border-stone-200 dark:border-stone-750 hover:border-primary/30 hover:text-stone-700 dark:hover:text-white'
+                            className={`h-8 pl-3 pr-2 rounded-lg text-[11px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border flex items-center gap-1.5 ${activeType === null
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-stone-900/40 text-stone-400 border-stone-750 hover:border-stone-600 hover:text-stone-200'
                                 }`}
                         >
-                            Todos ({products.length})
+                            Todos
+                            <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${activeType === null ? 'bg-black/15' : 'bg-white/[0.06]'}`}>{products.length}</span>
                         </button>
                         <button
                             onClick={() => setOnlyWeb(!onlyWeb)}
-                            className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${onlyWeb
-                                ? 'bg-violet-600 text-white border-violet-600 shadow-sm hover:bg-violet-700'
-                                : 'bg-white dark:bg-stone-850 text-violet-650 border-violet-200 hover:border-violet-350 hover:bg-violet-50/50 dark:border-violet-900/50 dark:text-violet-400'
+                            className={`h-8 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border flex items-center gap-1.5 ${onlyWeb
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-stone-900/40 text-stone-400 border-stone-750 hover:border-stone-600 hover:text-stone-200'
                                 }`}
                         >
-                            🌐 Web
+                            Web
                         </button>
                         {availableCategories.map(cat => {
                             const config = getTypeConfigByKey(cat);
                             const count = products.filter(p => getCategoryKey(p.type, p.category) === cat).length;
                             const Icon = config.icon;
+                            const active = activeType === cat;
                             return (
                                 <button
                                     key={cat}
                                     onClick={() => setActiveType(cat)}
-                                    className={`h-8 px-3 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-1.5 ${activeType === cat
-                                        ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                                        : `${config.color} hover:shadow-sm`
+                                    className={`h-8 pl-2.5 pr-2 rounded-lg text-[11px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border flex items-center gap-1.5 ${active
+                                        ? 'bg-primary text-primary-foreground border-primary'
+                                        : 'bg-stone-900/40 text-stone-400 border-stone-750 hover:border-stone-600 hover:text-stone-200'
                                         }`}
                                 >
                                     <Icon className="w-3 h-3" />
-                                    {config.label} ({count})
+                                    {config.label}
+                                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${active ? 'bg-black/15' : 'bg-white/[0.06]'}`}>{count}</span>
                                 </button>
                             );
                         })}
+
+                        {/* Filtros secundarios: colapsados en un popover propio. */}
+                        {hasSecondaryFilters && (
+                            <div className="relative ml-1" ref={moreFiltersRef}>
+                                <button
+                                    onClick={() => setShowMoreFilters(v => !v)}
+                                    className={`h-8 px-2.5 rounded-lg text-[11px] font-bold uppercase tracking-wide whitespace-nowrap transition-all border flex items-center gap-1.5 ${showMoreFilters || activeFilterTags.length > 0
+                                        ? 'bg-stone-800 text-stone-100 border-stone-600'
+                                        : 'bg-stone-900/40 text-stone-400 border-stone-750 hover:border-stone-600 hover:text-stone-200'
+                                        }`}
+                                >
+                                    <SlidersHorizontal className="w-3 h-3" /> Filtros
+                                    {activeFilterTags.length > 0 && (
+                                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">{activeFilterTags.length}</span>
+                                    )}
+                                </button>
+
+                                {showMoreFilters && (
+                                    <div className="absolute z-20 top-[calc(100%+6px)] left-0 w-[min(90vw,340px)] bg-stone-900 border border-stone-700 rounded-xl shadow-2xl shadow-black/40 p-3.5 flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-150">
+                                        {activeType === 'Cristal' && (
+                                            <div className="space-y-1.5">
+                                                <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest">Subtipo</span>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {['', 'Monofocal', 'Multifocal', 'Bifocal', 'Ocupacional', 'Coquil'].map((sub) => (
+                                                        <button
+                                                            key={sub || 'todos'}
+                                                            onClick={() => setSelectedSubtype(sub)}
+                                                            className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${selectedSubtype === sub
+                                                                ? 'bg-primary text-primary-foreground'
+                                                                : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                                                                }`}
+                                                        >
+                                                            {sub || 'Todos'}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeType === 'Cristal' && (
+                                            <div className="space-y-1.5">
+                                                <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest">Tipo de confección</span>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {[
+                                                        { val: '', label: 'Todos' },
+                                                        { val: 'LABORATORIO', label: 'Laboratorio' },
+                                                        { val: 'STOCK', label: 'Stock y rango extendido' }
+                                                    ].map((orig) => (
+                                                        <button
+                                                            key={orig.val || 'todos'}
+                                                            onClick={() => setSelectedOrigin(orig.val)}
+                                                            className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all ${selectedOrigin === orig.val
+                                                                ? 'bg-primary text-primary-foreground'
+                                                                : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                                                                }`}
+                                                        >
+                                                            {orig.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {uniqueBrands.length > 1 && (
+                                            <label className="space-y-1.5 block">
+                                                <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest">Marca</span>
+                                                <select
+                                                    value={selectedBrand}
+                                                    onChange={(e) => setSelectedBrand(e.target.value)}
+                                                    className="w-full bg-stone-800 border border-stone-700 text-[11px] font-bold px-2.5 py-1.5 rounded-md outline-none focus:border-primary cursor-pointer text-stone-200"
+                                                >
+                                                    <option value="">Todas</option>
+                                                    {uniqueBrands.map((brand) => <option key={brand} value={brand}>{brand}</option>)}
+                                                </select>
+                                            </label>
+                                        )}
+
+                                        {uniqueLabs.length > 1 && (
+                                            <label className="space-y-1.5 block">
+                                                <span className="text-[9px] font-black text-stone-500 uppercase tracking-widest">Laboratorio</span>
+                                                <select
+                                                    value={selectedLab}
+                                                    onChange={(e) => setSelectedLab(e.target.value)}
+                                                    className="w-full bg-stone-800 border border-stone-700 text-[11px] font-bold px-2.5 py-1.5 rounded-md outline-none focus:border-primary cursor-pointer text-stone-200"
+                                                >
+                                                    <option value="">Todos</option>
+                                                    {uniqueLabs.map((lab) => <option key={lab} value={lab}>{lab}</option>)}
+                                                </select>
+                                            </label>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Secondary Filters Area */}
-                {(activeType === 'Cristal' || uniqueBrands.length > 1 || uniqueLabs.length > 1) && (
-                    <div className="flex flex-wrap items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                        {/* Subtype filters — only when Cristal is active */}
-                        {activeType === 'Cristal' && (
-                            <div className="inline-flex flex-wrap items-center gap-1 bg-stone-100/50 dark:bg-stone-800/40 backdrop-blur-md p-1 rounded-xl border border-stone-200/50 dark:border-stone-750/50">
-                                <button
-                                    onClick={() => setSelectedSubtype('')}
-                                    className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                                        !selectedSubtype
-                                            ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm font-black'
-                                            : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
-                                    }`}
-                                >
-                                    Todos
-                                </button>
-                                {['Monofocal', 'Multifocal', 'Bifocal', 'Ocupacional', 'Coquil'].map((sub) => (
-                                    <button
-                                        key={sub}
-                                        onClick={() => setSelectedSubtype(sub)}
-                                        className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                                            selectedSubtype === sub
-                                                ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm font-black'
-                                                : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
-                                        }`}
-                                    >
-                                        {sub}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Origin filter — only when Cristal is active */}
-                        {activeType === 'Cristal' && (
-                            <div className="inline-flex flex-wrap items-center gap-1 bg-stone-100/50 dark:bg-stone-800/40 backdrop-blur-md p-1 rounded-xl border border-stone-200/50 dark:border-stone-750/50">
-                                <span className="text-[9px] font-black text-stone-400 dark:text-stone-550 uppercase tracking-widest px-2">Origen:</span>
-                                {[
-                                    { val: '', label: 'Todos' },
-                                    { val: 'LABORATORIO', label: 'Laboratorio' },
-                                    { val: 'STOCK', label: 'Stock y Rango Extendido' }
-                                ].map((orig) => (
-                                    <button
-                                        key={orig.val}
-                                        onClick={() => setSelectedOrigin(orig.val)}
-                                        className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                                            selectedOrigin === orig.val
-                                                ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm font-black'
-                                                : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-300'
-                                        }`}
-                                    >
-                                        {orig.label}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Brand dropdown */}
-                        {uniqueBrands.length > 1 && (
-                            <div className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800/40 p-1 rounded-xl border border-stone-200/50 dark:border-stone-750/50">
-                                <span className="text-[9px] font-black text-stone-400 dark:text-stone-550 uppercase tracking-widest pl-2">Marca:</span>
-                                <select
-                                    value={selectedBrand}
-                                    onChange={(e) => setSelectedBrand(e.target.value)}
-                                    className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-750 text-[10px] font-bold px-2 py-1.5 rounded-lg outline-none focus:border-primary cursor-pointer text-stone-700 dark:text-stone-300"
-                                >
-                                    <option value="">Todas</option>
-                                    {uniqueBrands.map((brand) => (
-                                        <option key={brand} value={brand}>
-                                            {brand}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-
-                        {/* Lab dropdown */}
-                        {uniqueLabs.length > 1 && (
-                            <div className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800/40 p-1 rounded-xl border border-stone-200/50 dark:border-stone-750/50">
-                                <span className="text-[9px] font-black text-stone-400 dark:text-stone-550 uppercase tracking-widest pl-2">Laboratorio:</span>
-                                <select
-                                    value={selectedLab}
-                                    onChange={(e) => setSelectedLab(e.target.value)}
-                                    className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-750 text-[10px] font-bold px-2 py-1.5 rounded-lg outline-none focus:border-primary cursor-pointer text-stone-700 dark:text-stone-300"
-                                >
-                                    <option value="">Todos</option>
-                                    {uniqueLabs.map((lab) => (
-                                        <option key={lab} value={lab}>
-                                            {lab}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
+                {/* Tags de filtros activos: removibles con un click, sin abrir el popover */}
+                {activeFilterTags.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 animate-in fade-in duration-150">
+                        {activeFilterTags.map(tag => (
+                            <button
+                                key={tag.key}
+                                onClick={tag.clear}
+                                className="flex items-center gap-1 pl-2 pr-1.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide bg-primary/15 text-primary border border-primary/25 hover:bg-primary/25 transition-all"
+                            >
+                                {tag.label}
+                                <X className="w-2.5 h-2.5" />
+                            </button>
+                        ))}
                     </div>
                 )}
             </div>
@@ -954,71 +1030,108 @@ function CotizadorPageContent() {
                     style={{ scrollbarWidth: 'thin' }}
                 >
                     {loading ? (
-                        <div className="flex items-center justify-center h-40">
-                            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                        <div className="max-w-[1500px] mx-auto rounded-xl border border-stone-800 overflow-hidden">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-stone-800/60 last:border-b-0 animate-pulse">
+                                    <div className="h-2.5 w-16 bg-stone-800 rounded" />
+                                    <div className="h-2.5 w-20 bg-stone-800 rounded" />
+                                    <div className="h-2.5 flex-1 bg-stone-800 rounded max-w-xs" />
+                                    <div className="h-2.5 w-20 bg-stone-800 rounded ml-auto" />
+                                    <div className="h-2.5 w-16 bg-stone-800 rounded" />
+                                </div>
+                            ))}
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-[60vh] text-stone-300">
-                            <Search className="w-16 h-16 text-stone-200 mb-4" />
-                            <p className="text-sm font-bold uppercase tracking-widest text-stone-400">Sin resultados</p>
+                        <div className="flex flex-col items-center justify-center h-[60vh] text-stone-500 gap-4">
+                            <PackageSearch className="w-12 h-12 text-stone-700" />
+                            <div className="text-center">
+                                <p className="text-sm font-bold uppercase tracking-widest text-stone-400">Sin resultados</p>
+                                <p className="text-xs text-stone-500 mt-1">Probá con otra búsqueda o quitá algún filtro</p>
+                            </div>
+                            <button
+                                onClick={clearAllFilters}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-stone-800 text-stone-200 hover:bg-stone-700 transition-all"
+                            >
+                                <RotateCcw className="w-3.5 h-3.5" /> Limpiar filtros
+                            </button>
                         </div>
                     ) : activeType?.startsWith('Cristal') ? (
                         <div className="max-w-[1500px] mx-auto">
-                            <div className="rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden shadow-md bg-white dark:bg-stone-900">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse" style={{ minWidth: 1000 }}>
+                            {/* Desktop / tablet: tabla densa y jerarquizada */}
+                            <div className="hidden md:block rounded-xl border border-stone-800 overflow-hidden bg-stone-900/40">
+                                <div className="overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
+                                    <table className="w-full text-left border-collapse" style={{ minWidth: 980 }}>
                                         <thead>
-                                            <tr className="bg-stone-50 dark:bg-stone-800/80 text-stone-500 dark:text-stone-400 border-b border-stone-200/60 dark:border-stone-800">
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider w-[100px]">Tipo</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider w-[100px]">Marca</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[70px]">Índice</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[100px]">Origen</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Descripción</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[140px]">Rango</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px]">Lista</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px] text-emerald-600 dark:text-emerald-400">Efectivo</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px] text-violet-600 dark:text-violet-400">Transf.</th>
-                                                <th className="px-3 py-3 w-12 text-center"></th>
+                                            <tr className="bg-stone-900 text-stone-500 border-b border-stone-800">
+                                                <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider w-[130px]">Tipo · Marca</th>
+                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[56px]">Índice</th>
+                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[92px]">Confección</th>
+                                                <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider">Descripción</th>
+                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[140px]">Rango</th>
+                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[90px]">Lista</th>
+                                                <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[110px] text-primary">Efectivo</th>
+                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[90px]">Transf.</th>
+                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[100px]">12 Cuotas</th>
+                                                <th className="px-2 py-2.5 w-10 text-center"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filtered.map((product, idx) => {
+                                            {filtered.map((product) => {
                                                 const inQuote = quoteItems.find(i => i.product?.id === product.id);
                                                 const sprice = safePrice(product.price);
                                                 const pTotal = sprice * (1 + markup / 100);
                                                 const pCash = pTotal * (1 - discountCash / 100);
                                                 const pTrans = pTotal * (1 - discountTransfer / 100);
+                                                const { installment12: pCuota12 } = PricingService.cuotasMpLargas(pTotal);
+                                                const origin = normalizeLensOrigin(product.origin);
                                                 return (
                                                     <tr
                                                         key={product.id}
                                                         onClick={() => addToQuote(product)}
-                                                        className={`cursor-pointer transition-colors border-b border-stone-100 dark:border-stone-800 ${idx % 2 === 0 ? 'bg-white dark:bg-stone-900' : 'bg-stone-50/30 dark:bg-stone-850/20'} hover:bg-primary/5`}
+                                                        className="group cursor-pointer transition-colors border-b border-stone-800/60 last:border-b-0 hover:bg-primary/[0.06]"
                                                     >
-                                                        <td className="px-4 py-2.5">
-                                                            <span className="text-[10px] font-bold uppercase text-stone-400">{product.type || 'Cristal'}</span>
+                                                        <td className="px-4 py-2 align-top">
+                                                            <p className="text-[10px] font-bold uppercase text-stone-500 whitespace-nowrap">{tipoConSeparador(product.type)}</p>
+                                                            <p className="text-[10px] font-semibold uppercase text-stone-400 mt-0.5 truncate max-w-[120px]">{product.brand || '—'}</p>
                                                         </td>
-                                                        <td className="px-4 py-2.5">
-                                                            <span className="text-[10px] font-bold uppercase">{product.brand || '—'}</span>
+                                                        <td className="px-3 py-2 text-center align-top">
+                                                            <span className="text-[10px] font-bold text-stone-400">{product.lensIndex || '—'}</span>
                                                         </td>
-                                                        <td className="px-4 py-2.5 text-center">
-                                                            <span className="text-[10px] font-bold">{product.lensIndex || '—'}</span>
+                                                        <td className="px-3 py-2 text-center align-top">
+                                                            {origin ? (
+                                                                <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${origin === 'STOCK' ? 'border-emerald-800 text-emerald-500' : 'border-sky-800 text-sky-500'}`}>
+                                                                    {origin === 'STOCK' ? 'Stock' : 'Laboratorio'}
+                                                                </span>
+                                                            ) : <span className="text-[10px] text-stone-700">—</span>}
                                                         </td>
-                                                        <td className="px-4 py-2.5 text-center">
-                                                            {normalizeLensOrigin(product.origin)
-                                                                ? <LensOriginBadge origin={product.origin} />
-                                                                : <span className="text-[10px] font-bold text-stone-300 dark:text-stone-600">—</span>}
+                                                        <td className="px-4 py-2 align-top">
+                                                            <p className="text-[13px] font-semibold text-stone-100 leading-snug">{product.name || '—'}</p>
                                                         </td>
-                                                        <td className="px-4 py-2.5">
-                                                            <p className="text-xs font-semibold whitespace-normal break-words">{product.name || '—'}</p>
+                                                        <td className="px-3 py-2 text-center align-top">
+                                                            <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">{formatLensRange(product) || '—'}</span>
                                                         </td>
-                                                        <td className="px-4 py-2.5 text-center">
-                                                            <span className="text-[10px] font-semibold text-stone-500 dark:text-stone-400 whitespace-nowrap">{formatLensRange(product) || '—'}</span>
+                                                        <td className="px-3 py-2 text-right align-top">
+                                                            <span className="text-xs font-semibold text-stone-500 tabular-nums">${Math.round(pTotal).toLocaleString('es-AR')}</span>
                                                         </td>
-                                                        <td className="px-4 py-2.5 text-right font-bold text-xs">${Math.round(pTotal).toLocaleString()}</td>
-                                                        <td className="px-4 py-2.5 text-right font-bold text-xs text-emerald-650">${Math.round(pCash).toLocaleString()}</td>
-                                                        <td className="px-4 py-2.5 text-right font-bold text-xs text-violet-650">${Math.round(pTrans).toLocaleString()}</td>
-                                                        <td className="px-3 py-2.5 text-center">
-                                                            {inQuote ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> : <Plus className="w-4 h-4 text-stone-300 group-hover:text-primary mx-auto transition-colors" />}
+                                                        <td className="px-4 py-2 text-right align-top">
+                                                            <span className="text-sm font-black text-primary tabular-nums">${Math.round(pCash).toLocaleString('es-AR')}</span>
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right align-top">
+                                                            <span className="text-xs font-semibold text-stone-500 tabular-nums">${Math.round(pTrans).toLocaleString('es-AR')}</span>
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right align-top">
+                                                            <span className="text-xs font-semibold text-stone-500 tabular-nums">${pCuota12.toLocaleString('es-AR')}</span>
+                                                        </td>
+                                                        <td className="px-2 py-2 text-center align-top">
+                                                            {inQuote ? (
+                                                                <div className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center mx-auto">
+                                                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="w-6 h-6 rounded-full border border-stone-700 flex items-center justify-center mx-auto opacity-60 group-hover:opacity-100 group-hover:border-primary group-hover:bg-primary/10 transition-all">
+                                                                    <Plus className="w-3.5 h-3.5 text-stone-400 group-hover:text-primary transition-colors" />
+                                                                </div>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 );
@@ -1026,6 +1139,55 @@ function CotizadorPageContent() {
                                         </tbody>
                                     </table>
                                 </div>
+                            </div>
+
+                            {/* Mobile: cards con la misma jerarquía */}
+                            <div className="md:hidden flex flex-col gap-2">
+                                {filtered.map(product => {
+                                    const inQuote = quoteItems.find(i => i.product?.id === product.id);
+                                    const sprice = safePrice(product.price);
+                                    const pTotal = sprice * (1 + markup / 100);
+                                    const pCash = pTotal * (1 - discountCash / 100);
+                                    const { installment12: pCuota12 } = PricingService.cuotasMpLargas(pTotal);
+                                    const origin = normalizeLensOrigin(product.origin);
+                                    return (
+                                        <button
+                                            key={product.id}
+                                            onClick={() => addToQuote(product)}
+                                            className={`w-full text-left p-3 rounded-xl border transition-all ${inQuote ? 'bg-primary/[0.06] border-primary/30' : 'bg-stone-900/50 border-stone-800'}`}
+                                        >
+                                            <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                                <span className="text-[9px] font-bold uppercase text-stone-500">{tipoConSeparador(product.type)}</span>
+                                                {product.brand && <span className="text-[9px] font-bold uppercase text-stone-500">· {product.brand}</span>}
+                                                {product.lensIndex && <span className="text-[9px] font-bold text-stone-500">· idx {product.lensIndex}</span>}
+                                                {origin && (
+                                                    <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${origin === 'STOCK' ? 'border-emerald-800 text-emerald-500' : 'border-sky-800 text-sky-500'}`}>
+                                                        {origin === 'STOCK' ? 'Stock' : 'Laboratorio'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-sm font-semibold text-stone-100 leading-snug">{product.name || '—'}</p>
+                                            {formatLensRange(product) && (
+                                                <p className="text-[10px] font-medium text-stone-500 mt-1">{formatLensRange(product)}</p>
+                                            )}
+                                            <div className="flex items-center justify-between mt-2">
+                                                <div className="flex flex-col">
+                                                    <span className="text-base font-black text-primary tabular-nums">${Math.round(pCash).toLocaleString('es-AR')}</span>
+                                                    <span className="text-[10px] font-semibold text-stone-500 tabular-nums">12 cuotas de ${pCuota12.toLocaleString('es-AR')}</span>
+                                                </div>
+                                                {inQuote ? (
+                                                    <div className="w-7 h-7 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center">
+                                                        <Check className="w-4 h-4 text-emerald-400" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-7 h-7 rounded-full border border-primary/40 bg-primary/10 flex items-center justify-center">
+                                                        <Plus className="w-4 h-4 text-primary" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     ) : activeType === 'Tratamiento' ? (
@@ -1040,6 +1202,7 @@ function CotizadorPageContent() {
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[80px]">Índice</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[120px]">Stock</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[120px]">P. Minorista</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px]">12 Cuotas</th>
                                                 {userRole === 'ADMIN' && (
                                                     <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[120px] text-blue-600 dark:text-blue-400">P. Mayorista</th>
                                                 )}
@@ -1049,6 +1212,7 @@ function CotizadorPageContent() {
                                         <tbody>
                                             {filtered.map((product, idx) => {
                                                 const inQuote = quoteItems.find(i => i.product?.id === product.id);
+                                                const { installment12: tCuota12 } = PricingService.cuotasMpLargas(safePrice(product.price));
                                                 return (
                                                     <tr
                                                         key={product.id}
@@ -1068,6 +1232,7 @@ function CotizadorPageContent() {
                                                             <span className="text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">{product.laboratory || 'A Pedido'}</span>
                                                         </td>
                                                         <td className="px-4 py-2.5 text-right font-bold text-xs">${safePrice(product.price).toLocaleString()}</td>
+                                                        <td className="px-4 py-2.5 text-right font-semibold text-xs text-stone-500">${tCuota12.toLocaleString()}</td>
                                                         {userRole === 'ADMIN' && (
                                                             <td className="px-4 py-2.5 text-right font-bold text-xs text-blue-600 dark:text-blue-400">${safePrice(product.wholesalePrice).toLocaleString()}</td>
                                                         )}
@@ -1102,6 +1267,7 @@ function CotizadorPageContent() {
                                                 const inQuote = quoteItems.find(i => i.product?.id === product.id);
                                                 const config = getTypeConfig(product.type, product.category);
                                                 const TypeIcon = config.icon;
+                                                const { installment12: bCuota12 } = PricingService.cuotasMpLargas(safePrice(product.price));
                                                 return (
                                                     <button
                                                         key={product.id}
@@ -1152,9 +1318,14 @@ function CotizadorPageContent() {
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-4 flex-shrink-0 ml-4">
-                                                            <p className="text-xs font-bold text-primary">
-                                                                ${safePrice(product.price).toLocaleString()}
-                                                            </p>
+                                                            <div className="text-right">
+                                                                <p className="text-xs font-bold text-primary">
+                                                                    ${safePrice(product.price).toLocaleString()}
+                                                                </p>
+                                                                <p className="text-[9px] font-semibold text-stone-400 dark:text-stone-500 tabular-nums">
+                                                                    12× ${bCuota12.toLocaleString()}
+                                                                </p>
+                                                            </div>
                                                             {inQuote ? (
                                                                 <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full text-[10px] font-bold shadow-md shadow-primary/20">
                                                                     {inQuote.quantity}
