@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { PipelineLead } from '@/types/leads';
 import { displayContactSource } from '@/lib/contact-source';
+import { linkAlChat } from '@/lib/whatsapp/links';
 import type { PipelineStageKey } from '@/types/leads';
 
 // ─────────────────────────────────────────────────────────────
@@ -33,12 +34,6 @@ function getDaysElapsed(dateStr: string): string {
   if (days === 0) return 'Hoy';
   if (days === 1) return 'Ayer';
   return `Hace ${days} días`;
-}
-
-/** Normalize phone to WhatsApp chat link format */
-function normalizePhoneForLink(phone: string): string {
-  const clean = phone.replace(/\D/g, '');
-  return clean.length >= 10 ? `549${clean.slice(-10)}@c.us` : `${clean}@c.us`;
 }
 
 /** Format sphere value with sign */
@@ -193,7 +188,10 @@ export default function LeadCard({ lead, stageKey, actionLoading, onMarkWon, onM
             </Link>
           ) : lead.phone ? (
             <Link
-              href={`/admin/whatsapp?chatId=${normalizePhoneForLink(lead.phone)}`}
+              // El buzón abre la conversación por ?phone= y NADA MÁS: el
+              // ?chatId=…@c.us que había acá no lo lee nadie, así que el botón
+              // llevaba al buzón vacío. El link se arma en un solo lugar.
+              href={linkAlChat(lead.phone)}
               title="Ir al Chat"
               className="p-2 bg-green-500/10 border border-green-500/20 text-green-500 rounded-xl transition-all hover:scale-105 active:scale-95"
             >

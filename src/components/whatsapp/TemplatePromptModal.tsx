@@ -9,7 +9,8 @@
  */
 
 import { useState } from 'react';
-import { WHATSAPP_TEMPLATES, renderTemplate } from '@/lib/whatsapp/templates';
+import { renderTemplate, WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates';
+import { useWhatsAppAcciones } from './WhatsAppProvider';
 
 interface Props {
     open: boolean;
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function TemplatePromptModal({ open, chatId, nombre, textoOriginal, onClose, onSent }: Props) {
+    const acciones = useWhatsAppAcciones();
     // El texto original solo sirve de tema si ya ES un tema corto: un mensaje
     // largo o con saltos de línea truncado a 60 caracteres salía como un
     // "tema" roto (pasó en vivo el 30/8). En ese caso el campo queda vacío y
@@ -40,29 +42,31 @@ export function TemplatePromptModal({ open, chatId, nombre, textoOriginal, onClo
     const def = WHATSAPP_TEMPLATES.retomar_conversacion;
     const preview = renderTemplate('retomar_conversacion', [nombre || 'cliente', tema || 'tu consulta']);
 
+    /**
+     * Se manda por `enviarPlantilla` del provider, que es la ÚNICA
+     * implementación del envío. Acá había un `fetch('/api/whatsapp/send')`
+     * propio: un segundo camino que salteaba el provider y, entre otras cosas,
+     * NO apagaba el bot del chat (`botEnabled: false`). O sea que la misma
+     * plantilla apagaba el bot si salía del redactor y no si salía de este
+     * modal — inconsistencia que iba a morder cuando el bot vuelva a estar
+     * activo. `confirmar: false` porque este modal YA es la confirmación (tiene
+     * su preview y su botón), y las variables van explícitas porque el tema lo
+     * escribe la vendedora acá.
+     */
     const enviar = async () => {
         setSending(true);
         setError(null);
-        try {
-            const res = await fetch('/api/whatsapp/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chatId,
-                    message: '',
-                    forceTemplate: true,
-                    template: { name: def.name, bodyParams: [nombre || 'cliente', tema.trim()] },
-                }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-            onSent();
-            onClose();
-        } catch (e: any) {
-            setError(e.message);
-        } finally {
-            setSending(false);
+        const r = await acciones.enviarPlantilla(chatId, 'retomar_conversacion', false, [
+            nombre || 'cliente',
+            tema.trim(),
+        ]);
+        setSending(false);
+        if (r.estado !== 'ok') {
+            setError(r.estado === 'error' ? r.mensaje : 'No se pudo enviar la plantilla.');
+            return;
         }
+        onSent();
+        onClose();
     };
 
     return (

@@ -44,11 +44,23 @@ export interface Chat {
     messages?: Message[];
 }
 
+/**
+ * Tipo de mensaje, EN MAYÚSCULA — tal cual lo guarda `WhatsAppMessage.type`
+ * (default `"TEXT"`) y tal cual lo comparan `MessageMedia` y `ChatListItem`.
+ *
+ * Es un union y no un `string` porque la burbuja optimista del provider los
+ * escribía en minúscula (`'audio' | 'image' | 'text'`): un audio recién mandado
+ * se veía como texto plano hasta que llegaba el refetch. Con el union eso ya no
+ * compila. Medido contra la base local: los 5.929 mensajes usan exactamente
+ * estos cinco valores.
+ */
+export type MessageType = 'TEXT' | 'IMAGE' | 'AUDIO' | 'VIDEO' | 'DOCUMENT';
+
 export interface Message {
     id: string;
     chatId: string;
     direction: string; // INBOUND | OUTBOUND
-    type: string;
+    type: MessageType;
     content: string;
     mediaUrl?: string;
     status: string;

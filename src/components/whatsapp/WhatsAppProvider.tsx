@@ -28,6 +28,7 @@ import {
 import { usePathname } from 'next/navigation';
 import type { Chat, Message, Tag, VistaWhatsApp, WhatsAppStatus } from './types';
 import { WHATSAPP_TEMPLATES, renderTemplate, type TemplateName } from '@/lib/whatsapp/templates';
+import { linkAlChat } from '@/lib/whatsapp/links';
 import { saludoSegunHora } from './format';
 
 const INBOX_CACHE_KEY = 'wa-inbox-cache-v1';
@@ -82,7 +83,13 @@ interface AccionesWhatsApp {
     setVista: (v: VistaWhatsApp) => void;
     marcarLeido: (chatId: string) => void;
     enviar: (chatId: string, texto: string, media?: { base64: string; mimetype: string; filename: string }) => Promise<ResultadoEnvio>;
-    enviarPlantilla: (chatId: string, templateName: TemplateName, confirmar?: boolean) => Promise<ResultadoEnvio>;
+    /**
+     * @param confirmar          pedir confirmación con el preview antes de mandar.
+     * @param bodyParamsOverride variables ya resueltas por quien llama (el modal
+     *   de "conversación cerrada" tiene su propio campo de tema y su propio
+     *   preview). Sin esto, `retomar_conversacion` recibía el nombre dos veces.
+     */
+    enviarPlantilla: (chatId: string, templateName: TemplateName, confirmar?: boolean, bodyParamsOverride?: string[]) => Promise<ResultadoEnvio>;
     actualizarChat: (chatId: string, patch: Partial<Pick<Chat, 'chatLabels' | 'archived' | 'botEnabled' | 'chatSummary'>>) => Promise<void>;
     aplicarChatLocal: (chatId: string, patch: Partial<Chat>) => void;
     toggleBot: (chatId: string, activo: boolean) => Promise<void>;
@@ -387,8 +394,9 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
                         cuerpo: d.content,
                         icono: 'https://cdn-icons-png.flaticon.com/512/124/124034.png',
                         chatId: d.chatId,
-                        // El buzón abre el chat por ?phone=; ?id= no lo maneja.
-                        ir: `/admin/whatsapp?phone=${d.phone}`,
+                        // El buzón abre el chat por ?phone= y nada más; el link
+                        // (y la normalización del número) se arma en un solo lugar.
+                        ir: linkAlChat(d.phone),
                     });
                 });
 
@@ -418,7 +426,7 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
                         titulo: `⚠️ Bot desactivado: ${d.name}`,
                         cuerpo: 'Límite de cuota / crédito agotado en Gemini.',
                         icono: 'https://cdn-icons-png.flaticon.com/512/564/564619.png',
-                        ir: `/admin/whatsapp?phone=${d.phone}`,
+                        ir: linkAlChat(d.phone as string),
                     });
                 });
 
@@ -520,12 +528,27 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
     ): Promise<ResultadoEnvio> => {
         const userName = nombreDeUsuario();
         const esAudio = !!media && media.mimetype.startsWith('audio');
+        // MAYÚSCULA: es el valor que guarda la base (`WhatsAppMessage.type`) y el
+        // que comparan MessageMedia y ChatListItem. Iba en minúscula
+        // ('audio'|'image'|'text'), así que la burbuja de un audio o una foto
+        // recién enviada se dibujaba como texto plano hasta que llegaba el
+        // refetch. El redactor además acepta video y PDF (accept del Composer),
+        // que como 'image' terminaban en un <img> roto.
+        const tipoOptimista: Message['type'] = !media
+            ? 'TEXT'
+            : media.mimetype.startsWith('audio') ? 'AUDIO'
+            : media.mimetype.startsWith('video') ? 'VIDEO'
+            : media.mimetype.startsWith('image') ? 'IMAGE'
+            : 'DOCUMENT';
+        const etiqueta: Record<Message['type'], string> = {
+            TEXT: '', AUDIO: '🎵 Audio', IMAGE: '📷 Imagen', VIDEO: '🎬 Video', DOCUMENT: '📎 Documento',
+        };
         const optimista: Message = {
             id: 'temp_' + Date.now(),
             chatId,
             direction: 'OUTBOUND',
-            type: esAudio ? 'audio' : media ? 'image' : 'text',
-            content: texto || (esAudio ? '🎵 Audio' : media ? '📷 Imagen' : ''),
+            type: tipoOptimista,
+            content: texto || etiqueta[tipoOptimista],
             mediaUrl: media?.base64,
             status: 'PENDING',
             senderName: userName,
@@ -584,13 +607,17 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
         chatId: string,
         templateName: TemplateName,
         confirmar = true,
+        bodyParamsOverride?: string[],
     ): Promise<ResultadoEnvio> => {
         const chat = chatsRef.current.find(c => c.id === chatId);
         const def = WHATSAPP_TEMPLATES[templateName];
         const nombre = (chat?.client?.name || chat?.profileName || '').split(' ')[0] || 'cliente';
 
-        const bodyParams: string[] = [];
-        for (const p of def.params as readonly { label: string }[]) {
+        // Con override las variables ya vienen resueltas por quien llama; sin él
+        // se deducen del `label` de cada parámetro del catálogo.
+        const bodyParams: string[] = bodyParamsOverride ? [...bodyParamsOverride] : [];
+        const aResolver: readonly { label: string }[] = bodyParamsOverride ? [] : def.params;
+        for (const p of aResolver) {
             if (p.label.includes('saludo')) {
                 bodyParams.push(saludoSegunHora());
             } else if (p.label.includes('producto')) {

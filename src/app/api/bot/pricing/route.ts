@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { STORE_ORIGIN } from '@/lib/constants';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { getWebSettings } from '@/lib/web-settings';
+import { PricingService } from '@/services/PricingService';
 
 /**
  * La foto se entrega vía /api/store/product-image, que la convierte a JPEG: el
@@ -187,34 +188,48 @@ export async function GET(req: NextRequest) {
     // (`web_promo_cash_discount`), no de un número escrito acá. Si el dueño lo
     // cambia en el panel, el bot y la web cambian juntos.
     const settings = await getWebSettings().catch(() => null);
-    const descuentoContado = (settings?.web_promo_cash_discount ?? 15) / 100;
+    const descuentoContadoPct = settings?.web_promo_cash_discount ?? 15;
 
     // Normalizar formato para el bot
     const productsMapped = products.map(p => {
         const webProd = p.webProducts && p.webProducts.length > 0 ? p.webProducts[0] : null;
         const finalImageUrl = webProd?.imageUrl || (p.rawImageUrls && p.rawImageUrls.length > 0 ? p.rawImageUrls[0] : null);
-        
+
+        // 🔴 TODOS los precios salen de PricingService.preciosVidriera(): es el
+        // ÚNICO lugar donde se calcula plata (regla de CLAUDE.md). El bot NO
+        // debe multiplicar, dividir ni redondear NADA — recibe cada número ya
+        // resuelto y solo lo escribe.
+        //
+        // Antes acá vivía un `Math.round(price * (1 - descuentoContado))` a mano
+        // y `creditMonths: 6` fijo, y del pago en 12 cuotas no salía ni un campo.
+        // Como el prompt del bot (wa-service/prompts/context-modules.js) le
+        // ordena cotizar 12 cuotas con el 10% de costo financiero, ante un "¿y en
+        // 12?" el modelo terminaba haciendo `lista × 1,10 ÷ 12` en texto libre:
+        // el precio en cuotas lo inventaba el LLM. Mismo incidente que el de los
+        // cristales Varilux, que ya costó plata real.
+        //
+        // El factor de las cuotas largas (10% fijo de MP Ishtar) vive en
+        // FACTOR_MP_CUOTAS_LARGAS y lo aplica PricingService — no se replica acá.
+        const precios = PricingService.preciosVidriera(p.price ?? 0, descuentoContadoPct);
+
         return {
             id: p.id,
             source: 'PRODUCT' as const,
             name: p.botLabel || `${p.brand ?? ''} ${p.name ?? ''}`.trim(),
             category: p.type || p.category,
-            // Los DOS precios se calculan acá, con el mismo criterio que la
-            // tienda: el precio de lista ES el precio en cuotas, y el contado
-            // tiene el descuento aplicado.
-            //
-            // Antes se mandaba `priceCash: p.price` (o sea, la LISTA rotulada
-            // como contado) y `priceCredit: null` con un comentario que decía
-            // "se calcula en el bot". El bot entonces hacía `contado × 1,15` y
-            // lo anunciaba como "6 cuotas SIN INTERÉS" — un recargo del 15%
-            // llamado "sin interés". Resultado: el bot cotizaba el contado un
-            // 15% por encima de lo que cobra la web, y las cuotas un 15% por
-            // encima del total real. Dos superficies, dos precios distintos
-            // para el mismo producto, que es el mismo problema que ya costó
-            // plata con los cristales Varilux.
-            priceCash: Math.round((p.price ?? 0) * (1 - descuentoContado)),
-            priceCredit: p.price,
+            // El precio de LISTA es el precio en cuotas; el contado lleva el
+            // descuento de la tienda aplicado. Mismos números que ve el comprador
+            // en la web para ese producto.
+            priceCash: precios.contado,
+            priceCredit: precios.lista,
             creditMonths: 6,
+            // ── Cuotas YA calculadas (el bot las escribe tal cual) ──────────
+            /** Cuota de 3 y 6 SIN interés: lista ÷ 6. */
+            cuota6: precios.cuota6,
+            /** Cuota de 12 por Mercado Pago: (lista × 1,10) ÷ 12. NUNCA "sin interés". */
+            cuota12: precios.cuota12,
+            /** Total financiado a 12 cuotas: lista × 1,10. El 10% se aclara SIEMPRE. */
+            total12: precios.total12,
             is2x1: p.is2x1,
             lensIndex: p.lensIndex,
             laboratory: p.laboratory,
@@ -238,7 +253,10 @@ export async function GET(req: NextRequest) {
         priceCash: 0,
         priceCredit: 0,
         creditMonths: 6,
-        notes: '⚠️ INSTRUCCIÓN CRÍTICA PARA EL BOT: Al enviar opciones al cliente, SIEMPRE ordenalas destacando primero el pago en EFECTIVO/TRANSFERENCIA. Para la opción de tarjeta, calculá y mostrá EXPLÍCITAMENTE el valor de cada una de las 6 cuotas fijas (Ej: "💳 6 cuotas fijas de $X"), no des el precio total de tarjeta a secas.'
+        cuota6: 0,
+        cuota12: 0,
+        total12: 0,
+        notes: '⚠️ INSTRUCCIÓN CRÍTICA PARA EL BOT: Al enviar opciones al cliente, SIEMPRE ordenalas destacando primero el pago en EFECTIVO/TRANSFERENCIA. 🔴 PROHIBIDO CALCULAR: todos los importes vienen resueltos en este mismo payload y se escriben TAL CUAL, sin multiplicar, dividir ni redondear nada. Usá "priceCash" para el contado, "cuota6" para las 6 cuotas sin interés (total "priceCredit"), y "cuota12"/"total12" para las 12 cuotas de Mercado Pago — estas ÚLTIMAS llevan 10% de costo financiero y hay que aclararlo SIEMPRE; jamás digas "12 cuotas sin interés".'
     };
 
     return NextResponse.json([formattingInstruction, ...productsMapped]);
