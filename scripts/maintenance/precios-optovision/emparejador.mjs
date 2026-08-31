@@ -96,7 +96,7 @@ const primero = (tabla, texto) => tabla.find(([re]) => re.test(texto));
  * propio renglón de la pág. 20, sin sumarle Crizal, así que nunca subió.
  */
 export const congeladoSinAr = nombre =>
-    /sin\s*ar\b|sin\s*crizal/i.test(String(nombre || ''))
+    /sin\s*ar\b|sin\s*antirreflejo|sin\s*crizal/i.test(String(nombre || ''))
     && !/\(stock\)|de\s*stock/i.test(String(nombre || ''));
 
 /**
@@ -111,7 +111,7 @@ export const congeladoSinAr = nombre =>
  * "Sin Crizal" (pelado) y "Trío Easy Clean".
  */
 function tratamientoDe(nombre, precios) {
-    if (/sin\s*ar|no\s*reflex|sin\s*crizal/i.test(nombre)) {
+    if (/sin\s*ar\b|sin\s*antirreflejo|no\s*reflex|sin\s*crizal/i.test(nombre)) {
         if (precios['SIN AR'] != null) return { trat: 'SIN AR', seguro: true, de: 'nombre' };
         return { trat: 'SIN AR', seguro: false, noOfrecido: true };
     }
@@ -278,7 +278,7 @@ function emparejarMonofocal(nombre) {
 
     if (esStock) {
         // Lente terminada: el precio de su renglón ya es todo.
-    } else if (/sin\s*ar\b|sin\s*crizal|no\s*reflex/i.test(nombre)) {
+    } else if (/sin\s*ar\b|sin\s*antirreflejo|sin\s*crizal|no\s*reflex/i.test(nombre)) {
         // EL NOMBRE MANDA (Ishtar, 31/8/2026). La lista trae DOS precios por
         // material —"sin AR" y "con Crizal"— y el catálogo tiene los dos
         // productos cargados por separado. Si el nombre dice SIN AR, el costo es
