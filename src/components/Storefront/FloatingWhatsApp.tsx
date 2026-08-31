@@ -128,7 +128,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed right-6 z-50 flex flex-col items-end gap-3 transition-[bottom] duration-300 ${corridoArriba ? 'bottom-28 md:bottom-32' : 'bottom-6'}`}>
+    <div className={`fixed right-6 z-50 flex flex-col items-end gap-3 transition-[bottom] duration-300 ${corridoArriba ? 'bottom-[45%] md:bottom-32' : 'bottom-6'}`}>
       
       {/* Tooltip de Invitación tipo Chat Bubble.
           La animación va por CSS (`.wa-tooltip-in`, ya definida en globals.css con
@@ -136,7 +136,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
           motion.div, y este componente vive en el layout raíz: por una sola
           animación de entrada, framer-motion entraba al bundle inicial de TODAS
           las páginas del sitio. */}
-      <div className="relative bg-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-100 hidden sm:block pointer-events-auto mr-2 wa-tooltip-in">
+      <div className={`relative bg-white px-5 py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-stone-100 pointer-events-auto mr-2 wa-tooltip-in ${corridoArriba ? 'hidden' : 'hidden sm:block'}`}>
         <p className="text-[13px] font-bold text-stone-800 tracking-tight mb-0.5">
           ¿Necesitás ayuda? 👋
         </p>
