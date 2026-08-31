@@ -69,9 +69,22 @@ function writeToken() {
   return t;
 }
 
-/** appsecret_proof oficial: HMAC-SHA256 del token, keyed por el app secret. */
+/**
+ * appsecret_proof oficial: HMAC-SHA256 del token, keyed por el app secret.
+ *
+ * OJO: acá conviven DOS apps de Meta distintas — "Atelier Ads API" (anuncios)
+ * y "Atelier Optica Contenido" (Instagram/WhatsApp). `META_APP_SECRET` es el
+ * de la segunda, porque lo usa el webhook de WhatsApp. Firmar un token de la
+ * app de anuncios con el secreto de la otra da un proof inválido y Meta
+ * rechaza TODA llamada con error 100 — que fue exactamente lo que pasó el
+ * 31/8, dejando los scripts de ads sin poder leer ni escribir.
+ *
+ * Por eso el secreto de anuncios es su propia variable. Si no está, se manda
+ * la llamada SIN proof (Meta solo lo exige si la app lo pide) en vez de
+ * mandar uno equivocado: sin proof funciona, con proof ajeno no.
+ */
 function appsecretProof(token) {
-  const secret = process.env.META_APP_SECRET;
+  const secret = process.env.META_ADS_APP_SECRET;
   if (!secret) return null;
   return crypto.createHmac('sha256', secret).update(token).digest('hex');
 }
@@ -86,6 +99,7 @@ function redact(text) {
     process.env.META_ADS_WRITE_TOKEN,
     process.env.META_ADS_TOKEN_WRITE,
     process.env.META_APP_SECRET,
+    process.env.META_ADS_APP_SECRET,
   ]) {
     if (t) out = out.split(t).join('***');
   }
