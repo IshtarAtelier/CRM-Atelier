@@ -4,8 +4,8 @@
  * matchea gana, así que estas pisan a las del bot cuando WA_TRANSPORT=cloud.
  *
  *  GET  /api/status            estado del número (sin QR, sin agente)
- *  GET  /api/agent             { enabled:false, configured:false } — no hay bot
- *  POST /api/agent             410 — no hay bot que configurar
+ *  GET  /api/agent             solo SIN bot cableado: { enabled:false } (con bot,
+ *  POST /api/agent             lo atiende routes/api.js, que persiste bot_enabled)
  *  POST /api/followups/trigger 410 — no hay seguimientos automáticos
  *  POST /api/sync              204 — no hay sesión que sincronizar (el webhook es la verdad)
  *  POST /api/resolve-phones    204 — ya no existen @lid
@@ -43,18 +43,29 @@ async function syncTemplates() {
     return prisma.whatsAppTemplate.findMany({ orderBy: [{ status: 'asc' }, { name: 'asc' }] });
 }
 
-function createCloudRoutes({ transport }) {
+/**
+ * @param {{ transport: object, bot?: { agentState: object }|null }} deps
+ *   `bot` presente = el agente de ventas está cableado (cloud.js). En ese caso
+ *   /agent y /test/chat NO se pisan: los atiende el router legacy, que es el que
+ *   guarda `bot_enabled` en SystemSetting — o sea, el interruptor de la dueña.
+ */
+function createCloudRoutes({ transport, bot = null }) {
     const router = express.Router();
 
     router.get('/status', (req, res) => {
         const s = transport.getStatus();
-        res.json({ ...s, connected: s.isReady, phone: s.connectedPhone, qr: null, agentEnabled: false, followupsEnabled: false, prompt: '' });
+        const st = (bot && bot.agentState) || {};
+        res.json({ ...s, connected: s.isReady, phone: s.connectedPhone, qr: null, agentEnabled: Boolean(st.agentEnabled), followupsEnabled: false, prompt: st.agentPrompt || '' });
     });
 
-    router.get('/agent', (req, res) => res.json({ enabled: false, configured: false, prompt: '', dailyContext: '', followupsEnabled: false, transport: 'cloud' }));
-    router.post('/agent', GONE('El asistente IA'));
+    if (!bot) {
+        router.get('/agent', (req, res) => res.json({ enabled: false, configured: false, prompt: '', dailyContext: '', followupsEnabled: false, transport: 'cloud' }));
+        router.post('/agent', GONE('El asistente IA'));
+        router.post('/test/chat', GONE('El simulador del bot'));
+    }
+    // Los seguimientos proactivos por IA no vuelven con la API oficial: fuera de
+    // la ventana de 24 h solo entran plantillas, y las manda una persona.
     router.post('/followups/trigger', GONE('El disparo de seguimientos automáticos'));
-    router.post('/test/chat', GONE('El simulador del bot'));
     router.post('/sync', (req, res) => res.status(204).end());
     router.post('/resolve-phones', (req, res) => res.status(204).end());
 

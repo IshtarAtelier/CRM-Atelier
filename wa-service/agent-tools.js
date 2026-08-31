@@ -41,11 +41,17 @@ function safeToolRun(fn) {
         } catch (e) {
             const msg = e.message || '';
             // Errores de red/infraestructura → propagar para activar guardrail de apagado silencioso
-            const isNetworkError = msg.includes('ECONNREFUSED') || msg.includes('getaddrinfo') || 
+            // Los códigos van anclados a su contexto (`status 500`, `HTTP 503`)
+            // y NO sueltos: un `includes('500')` daba por caída de red la
+            // excepción de negocio cuyo texto mencionara un monto — y los
+            // precios de la óptica terminan en 500 todo el tiempo. Ese falso
+            // positivo escalaba al guardrail y dejaba al cliente sin respuesta.
+            const codigoDeError = /\b(?:status|código|code|HTTP)\s*:?\s*(?:429|500|502|503|504)\b/i.test(msg);
+            const isNetworkError = msg.includes('ECONNREFUSED') || msg.includes('getaddrinfo') ||
                                    msg.includes('ETIMEDOUT') || msg.includes('ENOTFOUND') ||
                                    msg.includes('socket hang up') || msg.includes('network') ||
-                                   msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') ||
-                                   msg.includes('500') || msg.includes('503');
+                                   msg.includes('fetch failed') ||
+                                   msg.includes('RESOURCE_EXHAUSTED') || codigoDeError;
             if (isNetworkError) {
                 console.error(`[agent-tools.js] Network error propagating to guardrail:`, msg);
                 throw new Error(`Network Error: ${msg}`);

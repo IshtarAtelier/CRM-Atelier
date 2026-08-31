@@ -18,7 +18,10 @@ const apiClient = axios.create({
     timeout: 15000 // 15 second timeout
 });
 
-const { sendMessage } = require('./whatsapp/client');
+// Salida inyectable (shared/sender.js): con la API oficial la manda `cloud.js`
+// por el transporte cloud, que valida la ventana de 24 h. El require directo a
+// whatsapp/client se saltaba ese chequeo (auditoría H9/L13).
+const { sendMessage } = require('./shared/sender');
 const {
     resolveWaMessageId, isLocalWaMessageId, findRecentTwin, rememberBotMessage,
 } = require('./shared/message-id');

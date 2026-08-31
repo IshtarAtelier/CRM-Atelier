@@ -129,7 +129,12 @@ async function persistInboundUnlocked(m, { io } = {}) {
             chat = await prisma.whatsAppChat.create({
                 data: {
                     waId, realPhone: waId, profileName: m.profileName || null,
-                    status: 'OPEN', botEnabled: false, // API oficial: no hay bot
+                    // botEnabled queda en el default del schema (true): el bot
+                    // volvió con la API oficial (bot-cloud.js) y un chat nuevo
+                    // nacía apagado, así que nunca atendía a un prospecto nuevo.
+                    // El interruptor maestro es SystemSetting.bot_enabled; este
+                    // campo es el "apagalo solo en este chat" del buzón.
+                    status: 'OPEN',
                     lastMessageAt: now, lastInboundAt: now, unreadCount: 1,
                 },
             });
@@ -201,7 +206,7 @@ async function persistInboundUnlocked(m, { io } = {}) {
             name: m.profileName || chat.profileName || 'Cliente',
             phone: waId,
             content: messageType === 'TEXT' ? content : `[Mensaje ${messageType}]`,
-            botEnabled: false,
+            botEnabled: chat.botEnabled,
         });
     }
 
