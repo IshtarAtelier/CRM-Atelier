@@ -53,8 +53,21 @@ export const BUSINESS_INFO = {
   discountCashPercent: 15,
   discountTransferPercent: 15,
   // 27/8/2026 (acuerdo de Ishtar con Mercado Pago): se suman los 12 cuotas.
-  // Regla de comunicación: "hasta 12 cuotas", NUNCA "12 sin interés" ni el %.
-  installmentsPromo: "3 o 6 cuotas sin interés con tarjeta, o hasta 12 cuotas con Mercado Pago",
+  //
+  // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita):
+  // el 10% de costo financiero de las 12 cuotas se ACLARA SIEMPRE, en TODA
+  // superficie: tienda, checkout, PDFs, mails, plantillas de WhatsApp, prompts
+  // del bot, piezas de redes, anuncios y blog. Y nunca se dice "sin interés"
+  // de las 12 (eso son solo 3 y 6).
+  //
+  // Hasta el 31/8 acá decía lo contrario ("NUNCA el %"), y esa regla se había
+  // propagado a los generadores de redes y a los scripts de ads, dejando toda
+  // la capa de marketing sin la aclaración mientras CLAUDE.md, PricingService
+  // y los PDFs pedían lo opuesto. Dos reglas peleándose es la razón por la que
+  // la plantilla de campaña perdió el paréntesis del 10% sin que nadie lo
+  // notara. Si aparece otra vez un comentario que diga "nunca el %", está
+  // desactualizado: la vara es esta.
+  installmentsPromo: "3 o 6 cuotas sin interés con tarjeta, o hasta 12 cuotas con Mercado Pago (10% de costo financiero)",
   /**
    * Único tipo de factura que se comunica. Un commit del 29/8 (`f35d1757`)
    * puso "Factura A" acá diciendo que el fix del 28/8 (`346d9e5b`, "Factura B

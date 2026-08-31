@@ -187,6 +187,19 @@ export const WHATSAPP_TEMPLATES = {
         params: [{ label: 'nombre', example: 'Julio' }],
         buttons: [{ type: 'URL', text: 'Ver catálogo', url: 'https://atelieroptica.com.ar/tienda' }],
     },
+    // v3 (31/8/26): la v2 PERDIÓ el "(con un 10% de costo financiero)" que la
+    // v1 sí tenía — se cayó al reescribirla para corregir el 20%→15%. Peor que
+    // omitirlo: la frase encadenaba "hasta en 12 cuotas. Y como siempre: 3 y 6
+    // cuotas sin interés", que se lee como un solo paquete sin interés.
+    // Ishtar decidió el 31/8 que el 10% se aclara SIEMPRE, en toda superficie.
+    promo_12_cuotas_v3: {
+        name: 'promo_12_cuotas_v3',
+        inventario: 'Campaña MP 12 cuotas v3 (sep 2026) — la vigente',
+        category: 'MARKETING',
+        body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Podés comprar tus anteojos hasta en 12 cuotas con Mercado Pago (llevan un 10% de costo financiero). Y con tarjeta, 3 y 6 cuotas sin interés. Pagando en efectivo o por transferencia, 15% de descuento. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. Te esperamos en el local para tomar tu receta: Lunes a Viernes de 8 a 20, Sábados de 9 a 17.',
+        params: [{ label: 'nombre', example: 'Julio' }],
+        buttons: [{ type: 'URL', text: 'Ver catálogo', url: 'https://atelieroptica.com.ar/tienda' }],
+    },
     // Campaña "ya sos cliente" (30/8/26, pedido de Ishtar): avisar a clientes
     // viejos (venta real anterior a junio 2026, o del sistema anterior via
     // contactSource='Importado') que ya está la tienda online, con el cupón
