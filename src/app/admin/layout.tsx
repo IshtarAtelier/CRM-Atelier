@@ -5,6 +5,7 @@ import CommandPalette from "@/components/ui/CommandPalette";
 import { LeadToastNotifications } from "@/components/ui/LeadToastNotifications";
 import { CopilotChat } from "@/components/admin/CopilotChat";
 import NovedadesGuiadas from "@/components/admin/NovedadesGuiadas";
+import BriefingDiario from "@/components/admin/BriefingDiario";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { PulsoProvider } from "@/components/mensajes/PulsoProvider";
@@ -33,6 +34,10 @@ export default async function AdminLayout({
 
         <CommandPalette />
         <NovedadesGuiadas />
+        {/* Va abajo de las novedades a propósito (z-195 contra z-200): si el
+            mismo día caen las dos cosas, primero se lee la novedad —que es
+            puntual— y atrás queda el briefing, que vuelve todos los días. */}
+        <BriefingDiario />
         <LeadToastNotifications />
         <CopilotChat userName={userName} userRole={userRole} />
         {/* WhatsApp sin salir de la pantalla en la que estás. Se esconde solo

@@ -24,6 +24,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { InternalMessagingService } from '@/services/internal-messaging.service';
 import { safeCompare, tokenBearer } from '@/lib/safe-compare';
+// El día de AYER en hora argentina. El cálculo vive en lib porque el briefing
+// del panel necesita el mismo corte: dos copias del offset divergen.
+import { diaArgentino } from '@/lib/dia-argentino';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,27 +34,6 @@ export const dynamic = 'force-dynamic';
 function contar(n: number, singular: string, plural: string, cero: string): string {
     if (n === 0) return cero;
     return `${n} ${n === 1 ? singular : plural}`;
-}
-
-/**
- * El día de AYER en hora argentina.
- *
- * El servidor corre en UTC: usar su medianoche haría que el resumen del lunes
- * incluyera las tres últimas horas del domingo argentino, y que lo hecho después
- * de las 21 no le contara a nadie el día correcto.
- */
-function ayerArgentino(): { desde: Date; hasta: Date; etiqueta: string } {
-    const ahoraAr = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
-    const finAr = new Date(ahoraAr); finAr.setHours(0, 0, 0, 0);
-    const inicioAr = new Date(finAr); inicioAr.setDate(inicioAr.getDate() - 1);
-
-    // De hora argentina a UTC real (Argentina es UTC-3, todo el año).
-    const OFFSET_MS = 3 * 60 * 60 * 1000;
-    return {
-        desde: new Date(inicioAr.getTime() + OFFSET_MS),
-        hasta: new Date(finAr.getTime() + OFFSET_MS),
-        etiqueta: inicioAr.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: '2-digit' }),
-    };
 }
 
 export async function GET(request: NextRequest) {
@@ -66,7 +48,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const { desde, hasta, etiqueta } = ayerArgentino();
+        const { desde, hasta, etiqueta } = diaArgentino(1);
 
         const equipo = await prisma.user.findMany({
             where: { role: { in: ['ADMIN', 'STAFF'] } },
