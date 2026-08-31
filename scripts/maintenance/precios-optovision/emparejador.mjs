@@ -195,6 +195,7 @@ function emparejarLenteStock(nombre) {
     return {
         familia: 'Lente de stock (pág. 22)', material: fila.nombre,
         tratamiento: 'incluido (lente de stock)', lista: fila.precio,
+        rango: fila.rango ?? null,
         seguro: true, renglonStock: true,
     };
 }
@@ -247,6 +248,7 @@ function emparejarMonofocal(nombre) {
         familia, material: fila.material,
         tratamiento: trat ? `${trat}, sumado aparte` : 'sin antirreflejo',
         lista: fila.precio + extra,
+        rango: fila.rango ?? null,
         seguro: true,
     };
 }
@@ -307,6 +309,7 @@ export function emparejar(productos) {
         const lista = celda / (esPromo ? 2 : 1);
         const nuevo = costoDe(lista);
         ok.push({ ...p, familia: fam[1], material: mat[1], tratamiento: t.trat, seguro: t.seguro, esPromo,
+            rango: m.rango ?? null,
             lista, costoNuevo: nuevo, listaVieja: p.cost > 0 ? listaDe(p.cost) : null,
             pct: p.cost > 0 ? (nuevo - p.cost) / p.cost * 100 : null });
     }

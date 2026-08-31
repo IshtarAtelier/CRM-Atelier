@@ -53,17 +53,16 @@ async function main() {
     // 1) Sygnus / New Editions (Ishtar, 30/8/2026): se precia "unos puntitos
     //    abajo del Kodak" para que sea atractiva como entrada, y eso puede
     //    dejarla bajo el piso. Su precio lo fija precios-optovision/precios-sygnus.mjs.
-    // 2) Mi Primer Varilux / Mi Primer Kodak (Ishtar, 30/8/2026): es la promo
-    //    del 50% para el que compra su PRIMER multifocal. Quedan a ×2,39 a
-    //    propósito: el precio de entrada bajo es lo que hace a la promo, y
-    //    subirlos al piso le sacaría la razón de existir.
-    // 3) Los "sin AR / sin Crizal" (Ishtar, 30/8/2026): el costo les sube por la
+    // 2) Los "sin AR / sin Crizal" (Ishtar, 30/8/2026): el costo les sube por la
     //    política del mejor Crizal y el piso les duplicaba el precio (Blue UV
     //    ORMA: $289.832 → $586.473). Son lentes que el cliente compra peladas.
     //    Congelados hasta que ella los revise. Misma regla que sincronizar-costos.
+    //
+    // "Mi Primer Varilux / Kodak" ESTUVO exceptuado el 30/8 y dejó de estarlo el
+    // 31/8: Ishtar los quiere en el mismo piso que los demás. La promo es el 50%
+    // sobre la lente —que ya está en el costo—, no un margen más finito encima.
     const esSygnus = p => /new\s*editions?|sygnus/i.test(p.name || '');
-    const esMiPrimer = p => /mi\s*primer/i.test(p.name || '');
-    const exceptuado = p => esSygnus(p) || esMiPrimer(p) || congeladoSinAr(p.name);
+    const exceptuado = p => esSygnus(p) || congeladoSinAr(p.name);
     const bajos = cristales
         .filter(p => !exceptuado(p))
         .map(p => ({ ...p, mk: p.price / p.cost, nuevo: Math.ceil(p.cost * PISO) }))
@@ -83,9 +82,7 @@ async function main() {
     if (exentosBajoPiso.length) {
         console.log(`\n  ${exentosBajoPiso.length} exceptuado(s) que quedan bajo el piso A PROPÓSITO (no se tocan):`);
         for (const p of exentosBajoPiso) {
-            const motivo = esSygnus(p) ? 'Sygnus (precio de entrada)'
-                : esMiPrimer(p) ? 'promo Mi Primer (50%)'
-                    : 'sin AR — congelado, a revisar';
+            const motivo = esSygnus(p) ? 'Sygnus (precio de entrada)' : 'sin AR — congelado, a revisar';
             console.log(`    ×${(p.price / p.cost).toFixed(2)}  ${String(p.name).slice(0, 52).padEnd(54)}${pesos(p.price).padStart(12)}   ${motivo}`);
         }
     }
