@@ -17,7 +17,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import { trackViewContent } from "@/lib/tracking";
 import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 import { PricingService } from "@/services/PricingService";
-import { textoCuotas12 } from "@/lib/promo-cuotas";
+import { textoCuotas12, ACLARACION_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
 import ProductReviews from "@/components/Storefront/ProductReviews";
 
 // Carga diferida: el configurador (662 líneas) recién se monta cuando el cliente
@@ -515,9 +515,23 @@ export function ProductClient({
                       </span>
                     </div>
                   ) : (
-                    <p className="text-2xl font-light tracking-tight text-black">
-                      ${(product.price || 0).toLocaleString("es-AR")}
-                    </p>
+                    /* El precio protagonista es el de TRANSFERENCIA (pedido de
+                       Ishtar, 31/8): es el que más conviene a las dos partes y
+                       el que decide la compra. El de lista queda al lado, más
+                       chico, como referencia — así el descuento se ve, y la
+                       fila de transferencia del recuadro de pagos se oculta
+                       para no decir lo mismo dos veces. */
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <span className="text-3xl font-black tracking-tight text-black">
+                        ${Math.round(effectivePrice * (1 - cashDiscount / 100)).toLocaleString("es-AR")}
+                      </span>
+                      <span className="text-xs font-black uppercase tracking-wide text-emerald-700">
+                        {cashDiscount}% OFF por transferencia
+                      </span>
+                      <span className="text-sm font-medium text-stone-500 line-through">
+                        ${effectivePrice.toLocaleString("es-AR")}
+                      </span>
+                    </div>
                   )}
                 </motion.div>
 
@@ -526,6 +540,7 @@ export function ProductClient({
                   price={effectivePrice}
                   cashDiscount={cashDiscount}
                   installmentsText={installmentsText}
+                  hideTransferRow={!hasSale}
                 />
               </>
             )}
@@ -887,7 +902,17 @@ export function ProductClient({
                       const pSale = p.salePrice != null && p.salePrice > 0 && p.salePrice < p.price;
                       if (isWholesale) return <>${(wholesalePriceOf(p.id) || p.price || 0).toLocaleString("es-AR")} <span className="text-[10px] font-black text-blue-600">(Mayorista)</span></>;
                       if (pSale) return <><span className="text-red-600 font-bold">${p.salePrice.toLocaleString("es-AR")}</span> <span className="text-[10px] text-stone-400 line-through">${(p.price || 0).toLocaleString("es-AR")}</span></>;
-                      return <>${(p.price || 0).toLocaleString("es-AR")}</>;
+                      /* Mismo criterio que toda la vidriera (Ishtar, 31/8): el
+                         precio que se muestra es el de TRANSFERENCIA, con la
+                         cuota de 12 como segunda línea, nunca sin su 10%. */
+                      const vPrecios = PricingService.preciosVidriera(p.price || 0, cashDiscount);
+                      return (
+                        <>
+                          <span className="font-bold text-stone-900">${vPrecios.contado.toLocaleString("es-AR")}</span>
+                          <span className="text-[10px] text-emerald-700 font-bold"> {cashDiscount}% OFF transf.</span>
+                          <span className="block text-[10px] text-stone-500">12 cuotas de ${vPrecios.cuota12.toLocaleString("es-AR")} ({ACLARACION_MP_CUOTAS_LARGAS})</span>
+                        </>
+                      );
                     })()}
                   </p>
                 </Link>

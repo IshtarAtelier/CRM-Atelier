@@ -218,29 +218,24 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                 
                 <div className="mt-1 pr-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-col gap-0.5">
-                    {/* Orden de venta (pedido de Ishtar, 27/8): primero 12,
-                        después 6, después transferencia — cada una en su
-                        renglón, nada abreviado ni apretado. */}
+                    {/* El valor GRANDE es el de transferencia (pedido de
+                        Ishtar, 31/8): es el precio que decide la compra. Las
+                        cuotas quedan abajo como formas de pago — la de 12
+                        nunca sin su costo financiero (promo-cuotas.ts). */}
                     {item.rawPrice ? (
                       (() => {
                         const v = PricingService.preciosVidriera(item.rawPrice, 15);
                         return (
                           <p className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-medium text-stone-500 whitespace-nowrap">12 cuotas de</span>
-                            <span className="text-[13px] font-black text-stone-900 tracking-tight whitespace-nowrap">
-                              ${v.cuota12.toLocaleString("es-AR")}
+                            <span className="text-[10px] font-medium text-emerald-700 whitespace-nowrap">Transferencia 15% OFF</span>
+                            <span className="text-[15px] font-black text-stone-900 tracking-tight whitespace-nowrap">
+                              ${v.contado.toLocaleString("es-AR")}
                             </span>
-                            {/* La cuota de 12 nunca va sola: decisión de Ishtar
-                                del 31/8/26, el costo financiero se aclara
-                                siempre. La frase sale de promo-cuotas.ts. */}
                             <span className="text-[10px] text-stone-500 font-medium">
-                              {ACLARACION_MP_CUOTAS_LARGAS}
+                              12 cuotas de ${v.cuota12.toLocaleString("es-AR")} {ACLARACION_MP_CUOTAS_LARGAS}
                             </span>
                             <span className="text-[10px] text-stone-500 font-medium">
                               6 cuotas sin interés de ${v.cuota6.toLocaleString("es-AR")}
-                            </span>
-                            <span className="text-[10px] text-stone-500 font-medium">
-                              Transferencia 15% OFF: ${v.contado.toLocaleString("es-AR")}
                             </span>
                           </p>
                         );

@@ -697,17 +697,19 @@ export function TiendaClient({
 
                         return (
                           <div className="pt-1 flex items-center justify-between gap-2">
-                            {/* Orden de venta (pedido de Ishtar, 27/8): 12 cuotas
-                                como ancla, el resto en una sola línea discreta.
-                                Los valores salen de PricingService. */}
+                            {/* El valor GRANDE es el de transferencia (pedido
+                                de Ishtar, 31/8): es el precio que decide la
+                                compra. Las cuotas quedan como segunda línea —
+                                la de 12 nunca sin su costo financiero. Los
+                                valores salen de PricingService. */}
                             <p className="text-sm text-stone-600 font-medium">
-                              12 cuotas de{" "}
-                              <span className="font-semibold text-stone-900">
-                                ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")}
+                              <span className="font-black text-base text-stone-900">
+                                ${Math.round((oferta ? p.salePrice : base) * (1 - (webSettings.web_promo_cash_discount || 15) / 100)).toLocaleString("es-AR")}
                               </span>
-                              {/* La cuota de 12 nunca va sin su costo financiero
-                                  (decisión de Ishtar del 31/8/26). */}
-                              <span className="text-stone-400"> · {ACLARACION_MP_CUOTAS_LARGAS} · {installmentsCount} s/interés o {webSettings.web_promo_cash_discount}% OFF transf.</span>
+                              <span className="text-emerald-700 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
+                              <span className="block text-xs text-stone-500">
+                                12 cuotas de ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")} · {ACLARACION_MP_CUOTAS_LARGAS} · {installmentsCount} s/interés
+                              </span>
                             </p>
                             {oferta && (
                               <span className="text-[10px] font-black uppercase tracking-widest text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-sm whitespace-nowrap shrink-0">

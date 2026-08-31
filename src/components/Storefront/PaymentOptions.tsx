@@ -24,9 +24,17 @@ interface PaymentOptionsProps {
   price?: number;
   cashDiscount?: number;
   installmentsText?: string;
+  /**
+   * La ficha de producto muestra el precio por transferencia como precio
+   * PROTAGONISTA (pedido de Ishtar, 31/8): ahí la fila de transferencia de
+   * este recuadro diría lo mismo dos veces, así que se oculta y quedan solo
+   * las cuotas. En tienda/home (strip) la fila sigue, porque ahí no hay
+   * precio grande arriba.
+   */
+  hideTransferRow?: boolean;
 }
 
-export function PaymentOptions({ variant = "inline", price, cashDiscount, installmentsText }: PaymentOptionsProps) {
+export function PaymentOptions({ variant = "inline", price, cashDiscount, installmentsText, hideTransferRow = false }: PaymentOptionsProps) {
   const [settings, setSettings] = useState<any>(null);
 
   useEffect(() => {
@@ -84,14 +92,14 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
       sub: "con tarjetas de crédito",
       highlight: false,
     },
-    {
+    ...(hideTransferRow ? [] : [{
       icon: <DollarSign className="w-4 h-4" strokeWidth={1.5} />,
       label: showCalculated
         ? `Transferencia ${discountPercent}% OFF: $${cashPriceValue.toLocaleString('es-AR')}`
         : `Transferencia ${discountPercent}% OFF`,
       sub: "también en efectivo, en el local",
       highlight: true,
-    },
+    }]),
   ];
 
   if (variant === "strip") {
