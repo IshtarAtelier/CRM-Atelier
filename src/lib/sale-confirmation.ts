@@ -304,6 +304,12 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         `• Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos.`,
         ``,
         `Respondenos *OK* si está todo bien, o contanos qué corregir. Es el momento: una vez fabricado no se puede cambiar.`,
+        ``,
+        // Las condiciones del cambio viajan CON el pedido a confirmar, no
+        // después: es el último momento en que el cliente puede decidir sabiendo
+        // que el cambio es solo por receta nueva, sobre el mismo cristal y el
+        // mismo armazón, y que la seña no se devuelve (Ishtar, 31/8/2026).
+        `📄 Condiciones de cambio y garantía: ${STORE_ORIGIN}/politicas-de-cambio#terminos-del-cambio`,
     ).join('\n');
 
     // ── Email ────────────────────────────────────────────────────────────────

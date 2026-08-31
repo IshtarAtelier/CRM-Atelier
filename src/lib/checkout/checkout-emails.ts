@@ -284,6 +284,18 @@ export function getConfirmationHtml(customer: any, orderId: string, emailTotal: 
         </table>
       </td>
     </tr>
+    <!-- Las condiciones del cambio, con link a la política publicada. Van en la
+         confirmación porque es donde el cliente todavía puede preguntar antes de
+         que el pedido se fabrique a medida (Ishtar, 31/8/2026). -->
+    <tr>
+      <td style="padding: 24px 40px 0;">
+        <p style="margin: 0; font-family: ${SANS}; font-size: 12px; line-height: 1.9; color: ${MUTED};">
+          El cambio de cristales se hace <strong style="color: ${IVORY};">&uacute;nicamente por cambio de receta</strong>,
+          sobre el mismo cristal y el mismo armaz&oacute;n, y las se&ntilde;as no tienen devoluci&oacute;n.
+          <a href="${APP_ORIGIN}/politicas-de-cambio#terminos-del-cambio" style="color: ${GOLD}; text-decoration: underline;">Ver&nbsp;las&nbsp;condiciones&nbsp;completas</a>.
+        </p>
+      </td>
+    </tr>
     <tr>
       <td align="center" style="padding: 44px 40px 44px;">
         <h2 style="margin: 0; font-family: ${SERIF}; font-size: 26px; font-weight: normal; color: ${IVORY};">&iquest;Ten&eacute;s dudas?</h2>

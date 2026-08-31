@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { AlertTriangle, Glasses, RefreshCcw } from 'lucide-react';
-import { GARANTIA_ADAPTACION } from '@/lib/garantia';
+import { GARANTIA_ADAPTACION, TERMINOS_CAMBIO } from '@/lib/garantia';
 
 export const metadata: Metadata = {
   title: "Políticas de Cambio",
@@ -61,6 +61,27 @@ export default function PoliticasDeCambioPage() {
             {/* Las condiciones son las mismas que las de Super Blue más abajo: el
                 párrafo estaba escrito dos veces y podía divergir. */}
             <p>{GARANTIA_ADAPTACION.CONDICIONES}</p>
+          </section>
+
+          {/* Los términos del cambio, en su propia sección y antes del resto:
+              son los que hoy se explican de palabra y terminan discutiéndose
+              cuando el cliente vuelve. El presupuesto y la confirmación de
+              compra linkean acá. */}
+          <section id="terminos-del-cambio" className="bg-white dark:bg-stone-900 rounded-3xl p-8 lg:p-10 border border-stone-200 dark:border-stone-800 shadow-sm scroll-mt-24">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary flex-shrink-0">
+                <Glasses className="w-6 h-6" />
+              </div>
+              <h2 className="text-2xl font-bold text-stone-900 dark:text-white">Condiciones del cambio de cristales</h2>
+            </div>
+            <ul className="space-y-5">
+              {TERMINOS_CAMBIO.map((t) => (
+                <li key={t.titulo}>
+                  <p className="font-semibold text-stone-900 dark:text-white">{t.titulo}</p>
+                  <p className="mt-1">{t.texto}</p>
+                </li>
+              ))}
+            </ul>
           </section>
 
           <section className="bg-white dark:bg-stone-900 rounded-3xl p-8 lg:p-10 border border-stone-200 dark:border-stone-800 shadow-sm">

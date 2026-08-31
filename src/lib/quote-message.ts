@@ -11,6 +11,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { PricingService } from '@/services/PricingService';
+import { STORE_ORIGIN } from '@/lib/constants';
 import { lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 
 const money = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
@@ -82,6 +83,15 @@ export function buildQuoteMessage(order: any, clientName: string): string {
         lineas.push(``);
         lineas.push(`Estado: totalmente abonado ✅`);
     }
+
+    // Los términos del cambio, SIEMPRE y en el presupuesto —no después de
+    // pagar—. Son las condiciones que hoy se explican de palabra y terminan
+    // discutiéndose cuando el cliente vuelve: que el cambio es solo por receta
+    // nueva, sobre el mismo cristal y el mismo armazón, y que la seña no se
+    // devuelve. Que las tenga ANTES de decidir es el punto (Ishtar, 31/8/2026).
+    lineas.push(``);
+    lineas.push(`📄 Condiciones de cambio y garantía:`);
+    lineas.push(`${STORE_ORIGIN}/politicas-de-cambio#terminos-del-cambio`);
 
     return lineas.join('\n');
 }

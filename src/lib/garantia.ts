@@ -84,6 +84,62 @@ export const GARANTIA_TEXTO_LARGO =
  */
 export const GARANTIA_TEXTO_CORTO = GARANTIA_ADAPTACION.RESUMEN;
 
+/**
+ * LOS TÉRMINOS DEL CAMBIO, dictados por Ishtar el 31/8/2026.
+ *
+ * Son las condiciones que hoy se explican de palabra en el mostrador y que, por
+ * no estar escritas, terminan discutiéndose cuando el cliente vuelve. Cada una
+ * define un límite concreto de la garantía: qué habilita el cambio, sobre qué
+ * producto se hace, qué pasa con la seña y qué queda a criterio de la óptica.
+ *
+ * Van al pie del presupuesto y de la confirmación de compra, con link a
+ * /politicas-de-cambio. Que el cliente los tenga ANTES de pagar es el punto.
+ */
+export const TERMINOS_CAMBIO = [
+    {
+        titulo: 'El cambio es únicamente por cambio de receta',
+        texto:
+            `La garantía se hace efectiva solo cuando el oftalmólogo emite una receta nueva. ` +
+            `Entre una receta y la otra no pueden pasar más de ${GARANTIA_DIAS_ENTRE_RECETAS} días.`,
+    },
+    {
+        titulo: 'Se repite el mismo cristal, en el mismo armazón',
+        texto:
+            'El cambio se hace sobre el mismo producto y con el mismo armazón. Si se compró un ' +
+            'Orma blanco con Crizal Rock, se vuelve a hacer exactamente ese cristal. Cambiar a otro ' +
+            'cristal, otro material u otro tratamiento no entra en la garantía: se consulta, y tanto ' +
+            'la posibilidad de hacerlo como el costo quedan a criterio de la óptica.',
+    },
+    {
+        titulo: 'Mi Primer Varilux y Mi Primer Kodak: hasta 1,50 de adición',
+        texto:
+            'Estas promociones son para quien usa su primer multifocal, y por eso admiten hasta ' +
+            '1,50 de adición. Si la receta nueva supera esa adición, el cristal deja de encuadrar ' +
+            'en la promoción: se pierde el 50% de descuento y hay que abonar la diferencia que ' +
+            'corresponda al cristal que sí cubre esa graduación.',
+    },
+    {
+        titulo: 'Las señas no se devuelven',
+        texto:
+            'La seña de un producto no tiene devolución. Se puede cambiar por otro producto ' +
+            'únicamente si el original no fue confeccionado a medida para la persona. En todos los ' +
+            'casos queda a criterio de la empresa.',
+    },
+    {
+        titulo: 'Antes de dudar de la receta, te revisamos acá',
+        texto:
+            'Si sentís que la graduación no te resulta cómoda, traé los anteojos: los revisamos en ' +
+            'el local sin cargo para verificar que estén hechos según la receta. Si el problema no ' +
+            'está en el armado, corresponde volver al oftalmólogo para que ajuste la graduación en ' +
+            'un turno nuevo.',
+    },
+] as const;
+
+/** Los mismos términos en texto plano, para WhatsApp y PDFs. */
+export const TERMINOS_CAMBIO_TEXTO = TERMINOS_CAMBIO
+    .map(t => `• ${t.titulo}: ${t.texto}`)
+    .join('\n');
+
 /** Pregunta y respuesta del FAQ (visible y JSON-LD). */
 export const GARANTIA_FAQ = {
   q: "¿Tienen garantía los cristales multifocales?",
