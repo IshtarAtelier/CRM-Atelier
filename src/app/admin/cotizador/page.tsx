@@ -901,6 +901,38 @@ function CotizadorPageContent() {
                         )}
                     </div>
 
+                    {/* MARCA e ÍNDICE, pegados al buscador y FUERA de la fila que
+                        scrollea. Son los dos filtros que más se piden en el
+                        mostrador ("mostrame todos los 1.67", "los Varilux");
+                        puestos entre los chips quedaban corridos fuera de
+                        pantalla, que es lo mismo que no tenerlos. */}
+                    {(uniqueBrands.length > 1 || uniqueIndexes.length > 1) && (
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {uniqueBrands.length > 1 && (
+                                <select
+                                    value={selectedBrand}
+                                    onChange={(e) => setSelectedBrand(e.target.value)}
+                                    aria-label="Filtrar por marca"
+                                    className={`${chipBase} px-2 max-w-[130px] ${selectedBrand ? chipActivo : chipInactivo} cursor-pointer`}
+                                >
+                                    <option value="">Marca</option>
+                                    {uniqueBrands.map((b) => <option key={b} value={b}>{b}</option>)}
+                                </select>
+                            )}
+                            {uniqueIndexes.length > 1 && (
+                                <select
+                                    value={selectedIndex}
+                                    onChange={(e) => setSelectedIndex(e.target.value)}
+                                    aria-label="Filtrar por índice"
+                                    className={`${chipBase} px-2 ${selectedIndex ? chipActivo : chipInactivo} cursor-pointer`}
+                                >
+                                    <option value="">Índice</option>
+                                    {uniqueIndexes.map((i) => <option key={i} value={i}>{i}</option>)}
+                                </select>
+                            )}
+                        </div>
+                    )}
+
                     <div className="flex-1 flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {/* Chips de categoría: un solo tratamiento visual — neutro en
                             reposo, dorado/oscuro el activo, contador en badge aparte. */}
@@ -1112,14 +1144,14 @@ function CotizadorPageContent() {
                             {/* Desktop / tablet: tabla densa y jerarquizada */}
                             <div className="hidden md:block rounded-xl border border-sidebar-border overflow-hidden bg-sidebar">
                                 <div className="overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
-                                    <table className="w-full text-left border-collapse" style={{ minWidth: 980 }}>
+                                    <table className="w-full text-left border-collapse table-fixed" style={{ minWidth: 980 }}>
                                         <thead>
                                             <tr className="bg-sidebar text-foreground/55 border-b border-sidebar-border">
-                                                <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider w-[130px]">Tipo · Marca</th>
-                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[56px]">Índice</th>
-                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[92px]">Confección</th>
+                                                <th className="pl-4 pr-1 py-2.5 text-[9px] font-bold uppercase tracking-wider w-[104px]">Tipo · Marca</th>
+                                                <th className="px-1 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[44px]">Índice</th>
+                                                <th className="px-1.5 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[86px]">Confección</th>
                                                 <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider">Descripción</th>
-                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[140px]">Rango</th>
+                                                <th className="px-2 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[150px]">Rango</th>
                                                 <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[90px]">Lista</th>
                                                 <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[110px] text-primary">Efectivo</th>
                                                 <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[90px]">Transf.</th>
@@ -1154,7 +1186,7 @@ function CotizadorPageContent() {
                                                         <td className="px-3 py-2 text-center align-top">
                                                             <span className="text-[10px] font-bold text-foreground/55">{product.lensIndex || '—'}</span>
                                                         </td>
-                                                        <td className="px-3 py-2 text-center align-top">
+                                                        <td className="px-1.5 py-2 text-center align-top">
                                                             {origin ? (
                                                                 <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${origin === 'STOCK' ? 'border-emerald-800 text-emerald-500' : 'border-sky-800 text-sky-500'}`}>
                                                                     {origin === 'STOCK' ? 'Stock' : 'Laboratorio'}
@@ -1173,7 +1205,7 @@ function CotizadorPageContent() {
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-2 text-center align-top">
-                                                            <span className="text-[10px] font-medium text-foreground/55 whitespace-nowrap">{formatLensRange(product) || '—'}</span>
+                                                            <span className="text-[10px] font-medium text-foreground/55 leading-tight block">{formatLensRange(product) || '—'}</span>
                                                         </td>
                                                         <td className="px-3 py-2 text-right align-top">
                                                             <span className="text-xs font-semibold text-foreground/55 tabular-nums">${Math.round(pTotal).toLocaleString('es-AR')}</span>
