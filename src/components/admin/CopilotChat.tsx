@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Sparkles, Send, Loader2, Bot, User, Minimize2 } from 'lucide-react';
+import { avisarPanelAbierto, usePanelExclusivo } from '@/lib/paneles-flotantes';
 
 interface CopilotChatProps {
   userName?: string;
@@ -60,6 +61,8 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
   const pathname = usePathname();
   const isWhatsApp = pathname === '/admin/whatsapp';
   const [isOpen, setIsOpen] = useState(false);
+  // Comparte rectángulo con la ventanita de WhatsApp: solo uno abierto a la vez.
+  usePanelExclusivo('copilot', isOpen, useCallback(() => setIsOpen(false), []));
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -86,7 +89,10 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'j') {
         e.preventDefault();
-        setIsOpen(prev => !prev);
+        setIsOpen(prev => {
+          if (!prev) avisarPanelAbierto('copilot');
+          return !prev;
+        });
       }
     };
     window.addEventListener('keydown', handler);
@@ -141,7 +147,7 @@ export function CopilotChat({ userName = 'Usuario', userRole = 'STAFF' }: Copilo
     <>
       {/* FAB Button */}
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => { avisarPanelAbierto('copilot'); setIsOpen(true); }}
         className={`fixed ${isWhatsApp ? 'top-[100px] right-4' : 'bottom-6 md:bottom-8 right-4 md:right-8'} z-[90] w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-xl shadow-violet-500/25 flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
         title="Copilot (Ctrl+J)"
         id="copilot-fab"

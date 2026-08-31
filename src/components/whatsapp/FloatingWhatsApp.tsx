@@ -17,7 +17,8 @@
  * En `/admin/whatsapp` no aparece: ahí ya estás en el buzón.
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { avisarPanelAbierto, usePanelExclusivo } from '@/lib/paneles-flotantes';
 import { usePathname, useRouter } from 'next/navigation';
 import { Minimize2 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -41,6 +42,9 @@ export function FloatingWhatsApp() {
     const acciones = useWhatsAppAcciones();
 
     const [abierto, setAbierto] = useState(false);
+    // El Copilot y esta ventanita se dibujan en el MISMO rectángulo: solo uno
+    // puede estar abierto a la vez, si no se tapan entre ellos.
+    usePanelExclusivo('whatsapp', abierto, useCallback(() => setAbierto(false), []));
     const [soloNoLeidos, setSoloNoLeidos] = useState(true);
     const [texto, setTexto] = useState('');
     const [adjunto, setAdjunto] = useState<AdjuntoMedia | null>(null);
@@ -67,7 +71,10 @@ export function FloatingWhatsApp() {
         const handler = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'w') {
                 e.preventDefault();
-                setAbierto(prev => !prev);
+                setAbierto(prev => {
+                    if (!prev) avisarPanelAbierto('whatsapp');
+                    return !prev;
+                });
             }
             if (e.key === 'Escape' && abierto) setAbierto(false);
         };
@@ -130,7 +137,7 @@ export function FloatingWhatsApp() {
             {/* Botón redondo. Va por encima del Copilot, que ocupa la esquina. */}
             <button
                 type="button"
-                onClick={() => setAbierto(true)}
+                onClick={() => { avisarPanelAbierto('whatsapp'); setAbierto(true); }}
                 aria-label={unreadTotal > 0 ? `Abrir WhatsApp, ${unreadTotal} sin leer` : 'Abrir WhatsApp'}
                 title="WhatsApp (⌘⇧W)"
                 className={`fixed bottom-24 md:bottom-28 right-4 md:right-8 z-[90] w-14 h-14 rounded-full bg-emerald-700 text-white shadow-xl shadow-emerald-700/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-700 ${
