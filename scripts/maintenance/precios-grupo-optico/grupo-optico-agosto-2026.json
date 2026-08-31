@@ -1,0 +1,316 @@
+{
+  "_lee_esto": [
+    "Lista de precios de GRUPO ÓPTICO, vigente 10 de agosto de 2026.",
+    "Transcrita de la planilla de Ishtar (Google Sheets 1optK6krIPrmREu8tyxcruEBNvLGVlpkWbc4rUdlmrlY),",
+    "que a su vez sale del PDF 'Lista Precio Grupo Optico Agosto 2026'.",
+    "",
+    "DOS COSAS QUE NO SE PARECEN EN NADA A OPTOVISIÓN, y por eso este archivo existe aparte:",
+    "",
+    "1) EL CALIBRADO NO ES UNO SOLO. Depende del material Y de si es de stock o de",
+    "   laboratorio Y del tipo de montaje (aro completo / ranurado / perforado).",
+    "   Optovisión tiene un único calibrado de $23.000; acá son 15 valores distintos.",
+    "",
+    "2) LOS PRECIOS SON SIN IVA — la lista lo dice textual: 'Todos los precios están",
+    "   expresados POR PAR y SIN IVA (agregar 21%)'. PERO el LaboratoryConfig de",
+    "   producción tiene GRUPO OPTICO con iva = 0. Uno de los dos está mal y son 65",
+    "   cristales de diferencia. PREGUNTAR A ISHTAR ANTES DE CALCULAR NINGÚN COSTO.",
+    "",
+    "Todos los precios de este archivo son POR PAR y SIN IVA, tal cual la lista."
+  ],
+  "fuente": "Lista Precio Grupo Optico Agosto 2026 (planilla de Ishtar)",
+  "vigencia": "2026-08-10",
+  "moneda": "ARS",
+  "iva_incluido": false,
+  "iva_a_agregar": 21,
+  "precios_por": "PAR",
+
+  "calibrados": {
+    "_lee_esto": "Por material y procedencia. La columna se elige por el tipo de montaje del armazón.",
+    "ORGANICO": { "STOCK": { "aro_completo": 2971, "ranurado": 4652, "perforado": 9992 }, "LABORATORIO": { "aro_completo": 4980, "ranurado": 6476, "perforado": 15532 } },
+    "MINERAL": { "STOCK": { "aro_completo": 4453, "ranurado": null, "perforado": null }, "LABORATORIO": { "aro_completo": 7272, "ranurado": null, "perforado": null } },
+    "POLICARBONATO": { "STOCK": { "aro_completo": 3613, "ranurado": 4988, "perforado": 9524 }, "LABORATORIO": { "aro_completo": 5730, "ranurado": 7221, "perforado": 13596 } },
+    "pase_de_cristales": 7137
+  },
+
+  "tratamientos_ar": [
+    { "nombre": "Ultra Layer", "detalle": "Antirreflejo premium", "precio": 58690 },
+    { "nombre": "Element", "detalle": "Antirreflejo", "precio": 42440 }
+  ],
+
+  "tratamientos_varios": [
+    { "nombre": "Laca antirraya (Sping)", "precio": 12967 },
+    { "nombre": "Tratamiento UV 400", "precio": 12167 },
+    { "nombre": "Filtros especiales", "precio": 23539 },
+    { "nombre": "Teñido compacto", "precio": 9343, "nota": "El tono 4 no es recomendable para conducir" },
+    { "nombre": "Teñido degradé", "precio": 10577, "nota": "El tono 4 no es recomendable para conducir" },
+    { "nombre": "Teñido según muestra", "precio": 13666 },
+    { "nombre": "Sacar color", "precio": 9078 }
+  ],
+
+  "recargos_laboratorio": [
+    { "nombre": "Multifacetado / Lenticular en lentes DIGITALES", "precio": 31577 },
+    { "nombre": "Prismas por grado (Orgánico / Poli / Alto Índice)", "precio": 4178 },
+    { "nombre": "Biconvexo", "precio": 16207 },
+    { "nombre": "Bases especiales orgánicos", "precio": null, "nota": "Consultar" }
+  ],
+
+  "stock_y_rango_extendido": {
+    "_lee_esto": "Lentes terminadas. El AR viene incluido cuando el nombre dice c/AR.",
+    "filas": [
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.49", "producto": "Orgánico Blanco", "disponibilidad": "STOCK", "rango": "Esf +/- 6,00 // Esf/Cil +6,00 / -2,00 // -6,00 / +2,00", "esf": [-6, 6], "cil": [-2, 2], "precio": 3337 },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.49", "producto": "Orgánico Blanco", "disponibilidad": "RANGO EXTENDIDO", "rango": "Esf/Cil +4,00 / -4,00 // -4,00 / -4,00", "esf": [-4, 4], "cil": [-4, 4], "precio": 9944 },
+      { "grupo": "ORGÁNICO BLANCO C/AR", "indice": "1.56", "producto": "Orgánico Blanco c/AR", "disponibilidad": "STOCK", "rango": "Esf +/- 6,00 // Esf/Cil +6,00 / -2,00 // -6,00 / +2,00", "esf": [-6, 6], "cil": [-2, 2], "precio": 5013 },
+      { "grupo": "ORGÁNICO BLANCO C/AR", "indice": "1.56", "producto": "Orgánico Blanco c/AR", "disponibilidad": "RANGO EXTENDIDO", "rango": "Esf/Cil +4,00 / -4,00 // -4,00 / -4,00", "esf": [-4, 4], "cil": [-4, 4], "precio": 11367 },
+      { "grupo": "ORGÁNICO BLUE LIGHT C/AR", "indice": "1.56", "producto": "Orgánico Blue c/AR", "disponibilidad": "STOCK", "rango": "Esf +/- 6,00 // Esf/Cil +6,00 / -2,00 // -6,00 / +2,00", "esf": [-6, 6], "cil": [-2, 2], "precio": 6830 },
+      { "grupo": "ORGÁNICO BLUE LIGHT C/AR", "indice": "1.56", "producto": "Orgánico Blue c/AR", "disponibilidad": "RANGO EXTENDIDO", "rango": "Esf/Cil +4,00 / -4,00 // -4,00 / -4,00", "esf": [-4, 4], "cil": [-4, 4], "precio": 13551 },
+      { "grupo": "ORGÁNICO SUPER BLUE ASFÉRICO C/AR", "indice": "1.60", "producto": "Orgánico Super Blue Asf. c/AR", "disponibilidad": "STOCK", "rango": "Esf +/- 6,00 // Esf/Cil +4,00 / +2,00 // -6,00 / +2,00", "esf": [-6, 6], "cil": [-2, 2], "precio": 20765 },
+      { "grupo": "ORGÁNICO SUPER BLUE ASFÉRICO C/AR", "indice": "1.60", "producto": "Orgánico Super Blue Asf. c/AR", "disponibilidad": "RANGO EXTENDIDO", "rango": "Esf/Cil -10,00 / -2,00 // +6,00 / -4,00 // -7,00 / -4,00", "esf": [-10, 6], "cil": [-4, 4], "precio": 23164 },
+      { "grupo": "ORGÁNICO SUPER BLUE ASFÉRICO C/AR", "indice": "1.74", "producto": "Orgánico Super Blue Asf. c/AR", "disponibilidad": "RANGO EXTENDIDO", "rango": "Esf/Cil -10,25 / -2,00 // -12,00 / -2,00 // -12,25 / -15,00", "esf": [-12.25, -10.25], "cil": [-15, -2], "precio": 114857 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO C/AR", "indice": "1.56", "producto": "Orgánico Fotocromático c/AR Gris", "disponibilidad": "STOCK", "rango": "Esf +/- 4,00 // Esf/Cil +4,00 / -2,00 // -4,00 / +2,00", "esf": [-4, 4], "cil": [-2, 2], "precio": 18554 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO C/AR", "indice": "1.56", "producto": "Orgánico Foto Espejado Neutro", "disponibilidad": "STOCK", "rango": "Silver / Golden / Green / Blue / Red / Purple", "esf": null, "cil": null, "precio": 65653 },
+      { "grupo": "POLICARBONATO BLANCO", "indice": "1.59", "producto": "Policarbonato c/AR", "disponibilidad": "STOCK", "rango": "Esf +/- 6,00 // Esf/Cil +4,00 / -2,00 // -4,00 / +2,00", "esf": [-6, 6], "cil": [-2, 2], "precio": 15145 },
+      { "grupo": "POLICARBONATO BLANCO", "indice": "1.59", "producto": "Policarbonato Blanco", "disponibilidad": "STOCK", "rango": "Esf +/- 4,00 // Esf/Cil +4,00 / -2,00 // -4,00 / +2,00", "esf": [-4, 4], "cil": [-2, 2], "precio": 12982 },
+      { "grupo": "MINERAL BLANCO", "indice": "1.523", "producto": "Mineral Blanco", "disponibilidad": "STOCK", "rango": "Esf 0,00 al +/- 2,00", "esf": [-2, 2], "cil": null, "precio": 11926 },
+      { "grupo": "MINERAL BLANCO", "indice": "1.523", "producto": "Mineral Blanco", "disponibilidad": "STOCK", "rango": "Esf +/- 2,25 al +/- 4,00", "esf": [-4, 4], "cil": null, "precio": 13133 },
+      { "grupo": "MINERAL BLANCO", "indice": "1.523", "producto": "Mineral Blanco", "disponibilidad": "STOCK", "rango": "Esf/Cil +2,00 / -2,00 // -2,00 / -2,00", "esf": [-2, 2], "cil": [-2, 2], "precio": 20904 },
+      { "grupo": "MINERAL BLANCO", "indice": "1.523", "producto": "Mineral Blanco", "disponibilidad": "STOCK", "rango": "Esf/Cil +4,00 / -2,00", "esf": [-4, 4], "cil": [-2, 2], "precio": 20904 }
+    ]
+  },
+
+  "sol_neutros": {
+    "_lee_esto": "Sin graduación. Se describen por base y diámetro.",
+    "filas": [
+      { "indice": "1.49", "producto": "Orgánico Compacto — Gris / Sepia / Verde", "base": "4 / 6 / 8", "diametro": 71, "precio": 8062 },
+      { "indice": "1.49", "producto": "Orgánico Degradé — Gris / Sepia / Verde", "base": "4 / 6 / 8", "diametro": 71, "precio": 8493 },
+      { "indice": "1.49", "producto": "Orgánico Espejado — Red / Blue / Silver / Gold / Pink", "base": "2 / 4 / 6", "diametro": 71, "precio": 12191 },
+      { "indice": "1.49", "producto": "Orgánico Polarizado — Gris / Sepia / Verde", "base": "4 / 6", "diametro": 71, "precio": 22550 },
+      { "indice": "1.49", "producto": "Orgánico Polarizado Driver — Amarillo", "base": "6", "diametro": 71, "precio": 28627 },
+      { "indice": "1.523", "producto": "Mineral Compacto — Gris / Sepia / Verde", "base": "6", "diametro": 71, "precio": null, "nota": "Consultar" }
+    ]
+  },
+
+  "monofocal_laboratorio": {
+    "_lee_esto": "CNC = lente tallada convencional. ULTRA = lente digital (free-form). ESSENTIAL = el precio YA incluye el antirreflejo Essential.",
+    "filas": [
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.49", "producto": "Orgánico Blanco hasta Diám. 70", "ar": null, "esf": [-12, 8], "cil": [-6, 6], "cnc": 22340, "ultra": 47993 },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.49", "producto": "Orgánico Blanco hasta Diám. 70", "ar": "ESSENTIAL", "esf": [-12, 8], "cil": [-6, 6], "cnc": 43192, "ultra": 85241 },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.49", "producto": "Orgánico Blanco hasta Diám. 75", "ar": null, "esf": [-10, 8], "cil": [-6, 6], "cnc": 37399, "ultra": null },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.49", "producto": "Orgánico Blanco hasta Diám. 65 — Lenticular ext. / Plano int.", "ar": null, "esf": [8, 22], "cil": [-2, 2], "cnc": 109396, "ultra": null },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.60", "producto": "Orgánico Blanco Alto Índice 1,60", "ar": null, "esf": [-12, 8], "cil": [-6, 6], "cnc": 38545, "ultra": 57629 },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.60", "producto": "Orgánico Blanco Alto Índice 1,60", "ar": "ESSENTIAL", "esf": [-12, 8], "cil": [-6, 6], "cnc": 59191, "ultra": 88496 },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.67", "producto": "Orgánico Alto Índice 1,67", "ar": null, "esf": [-14.5, 8], "cil": [-6, 6], "cnc": 89930, "ultra": 134455 },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.74", "producto": "Orgánico Alto Índice 1,74", "ar": null, "esf": [-15, 8], "cil": [-6, 6], "cnc": 191521, "ultra": 286343 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.56", "producto": "Orgánico Blue Light 1,56", "ar": null, "esf": [-12, 8], "cil": [-6, 6], "cnc": 43048, "ultra": 67425 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.56", "producto": "Orgánico Blue Light 1,56", "ar": "ESSENTIAL", "esf": [-12, 8], "cil": [-6, 6], "cnc": 67702, "ultra": 101221 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.60", "producto": "Orgánico Super Blue Light 1,60", "ar": null, "esf": [-12, 8], "cil": [-6, 6], "cnc": 68995, "ultra": 103155 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.60", "producto": "Orgánico Super Blue Light 1,60", "ar": "ESSENTIAL", "esf": [-12, 8], "cil": [-6, 6], "cnc": 90692, "ultra": 135594 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.60", "producto": "Orgánico Anti Age Blue Light 1,60", "ar": "ESSENTIAL", "esf": [-12, 8], "cil": [-6, 6], "cnc": 103078, "ultra": 154112 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.67", "producto": "Orgánico Blue Light 1,67", "ar": null, "esf": [-14.5, 8], "cil": [-6, 6], "cnc": 118144, "ultra": 176637 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático Gris", "ar": null, "esf": [-12, 8], "cil": [-6, 6], "cnc": 63549, "ultra": 95012 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático Gris", "ar": "ESSENTIAL", "esf": [-12, 8], "cil": [-6, 6], "cnc": 78890, "ultra": 123564 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático Espejado (Silver/Golden/Green/Blue/Red/Purple)", "ar": null, "esf": [-12, 8], "cil": [-6, 6], "cnc": 91573, "ultra": 143430 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático Smart Color (Brown/Green/Blue/Pink/Purple)", "ar": null, "esf": [-8, 5], "cil": [-5, 5], "cnc": 106171, "ultra": 165626 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático BLUE 1,56", "ar": null, "esf": [-12, 8], "cil": [-6, 6], "cnc": 88818, "ultra": 139115 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático BLUE 1,56", "ar": "ESSENTIAL", "esf": [-12, 8], "cil": [-6, 6], "cnc": 108347, "ultra": 169704 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.60", "producto": "Orgánico Fotocromático Gris", "ar": null, "esf": [-12, 8], "cil": [-6, 6], "cnc": 76679, "ultra": 121071 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.60", "producto": "Orgánico Fotocromático Gris", "ar": "ESSENTIAL", "esf": [-12, 8], "cil": [-6, 6], "cnc": 90690, "ultra": 142047 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.67", "producto": "Orgánico Fotocromático 1,67 Gris", "ar": null, "esf": [-14.5, 8], "cil": [-6, 6], "cnc": 123930, "ultra": 194111 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.49", "producto": "Orgánico Polarizado Gris / Sepia / Verde", "ar": null, "esf": [-5, 7], "cil": [-4, 4], "cnc": 76568, "ultra": 119928 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.49", "producto": "Orgánico Gris 3 Espejado Azul / Plata", "ar": null, "esf": [-5, 7], "cil": [-4, 4], "cnc": 62487, "ultra": 97873 },
+      { "grupo": "POLICARBONATO / TRIVEX", "indice": "1.59", "producto": "Policarbonato Blanco", "ar": null, "esf": [-14, 8], "cil": [-6, 6], "cnc": 42390, "ultra": 66394 },
+      { "grupo": "POLICARBONATO / TRIVEX", "indice": "1.59", "producto": "Policarbonato Blue Light", "ar": null, "esf": [-14, 8], "cil": [-6, 6], "cnc": 73024, "ultra": 114377 },
+      { "grupo": "POLICARBONATO / TRIVEX", "indice": "1.59", "producto": "Policarbonato Fotocromático", "ar": null, "esf": [-13, 8], "cil": [-6, 6], "cnc": 90690, "ultra": 142047 }
+    ]
+  },
+
+  "control_miopia": {
+    "_lee_esto": "MyoFix: digital c/ Defocus Technology. MyoLens: individualizado con IA. Majestic: sistema DOMS (precio CNC).",
+    "filas": [
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.49", "producto": "Orgánico Blanco hasta Diám. 70", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 132484, "myolens": 65026 },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.49", "producto": "Orgánico Blanco hasta Diám. 70", "ar": "ESSENTIAL", "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 145302, "myolens": 80215 },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.60", "producto": "Orgánico Blanco Alto Índice 1,60", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 135813, "myolens": 74402 },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.60", "producto": "Orgánico Blanco Alto Índice 1,60", "ar": "ESSENTIAL", "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 148632, "myolens": 91112 },
+      { "grupo": "ORGÁNICO BLANCO", "indice": "1.67", "producto": "Orgánico Alto Índice 1,67", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 180831, "myolens": 124538 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.56", "producto": "Orgánico Blue Light 1,56", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 144372, "myolens": 74346 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.56", "producto": "Orgánico Blue Light 1,56", "ar": "ESSENTIAL", "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 157191, "myolens": 89537 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.60", "producto": "Orgánico Super Blue Light 1,60", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 156024, "myolens": 91828 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.60", "producto": "Orgánico Super Blue Light 1,60", "ar": "ESSENTIAL", "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 168842, "myolens": 108538 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.60", "producto": "Orgánico Anti Age Blue Light 1,60", "ar": "ESSENTIAL", "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 177007, "myolens": 126276 },
+      { "grupo": "ORGÁNICO BLUE LIGHT", "indice": "1.67", "producto": "Orgánico Blue Light 1,67", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 199137, "myolens": 129004 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático Gris", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 148890, "myolens": 85677 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático Gris", "ar": "ESSENTIAL", "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 161709, "myolens": 102386 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático Espejado", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": null, "myolens": null },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático BLUE 1,56", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 148890, "myolens": 85677 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.56", "producto": "Orgánico Fotocromático BLUE 1,56", "ar": "ESSENTIAL", "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 161709, "myolens": 10259, "_ojo": "La lista dice $10.259 en MyoLens. Posible error de imprenta (los vecinos rondan $100.000). VERIFICAR con el laboratorio antes de usarlo." },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.60", "producto": "Orgánico Fotocromático Gris", "ar": "ESSENTIAL", "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 151612, "myolens": 89224 },
+      { "grupo": "ORGÁNICO FOTOCROMÁTICO / SOL", "indice": "1.67", "producto": "Orgánico Fotocromático 1,67 Gris", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 296303, "myolens": 212793 },
+      { "grupo": "POLICARBONATO / TRIVEX", "indice": "1.59", "producto": "Policarbonato Blanco", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 141962, "myolens": 85222 },
+      { "grupo": "POLICARBONATO / TRIVEX", "indice": "1.59", "producto": "Policarbonato Blue Light", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 144221, "myolens": 87329 },
+      { "grupo": "POLICARBONATO / TRIVEX", "indice": "1.59", "producto": "Policarbonato Fotocromático", "ar": null, "esf": [-12, -0.25], "cil": [-6, 6], "myofix": 179498, "myolens": 120180 }
+    ],
+    "majestic": [
+      { "indice": "1.49", "producto": "Orgánico Blanco Control Miopía — Majestic", "esf": [-10, -0.25], "cil": [-6, 6], "cnc": 76754 },
+      { "indice": "1.49", "producto": "Orgánico Blanco Control Miopía DIGITAL — Majestic", "esf": [-16, -0.25], "cil": [-6, 6], "cnc": 99780 },
+      { "indice": "1.60", "producto": "Orgánico Blanco Control Miopía — Majestic", "esf": [-10, -0.25], "cil": [-6, 6], "cnc": 118202 },
+      { "indice": "1.60", "producto": "Orgánico Blanco Control Miopía DIGITAL — Majestic", "esf": [-20, -0.25], "cil": [-6, 6], "cnc": 153662 }
+    ]
+  },
+
+  "bifocales": {
+    "_lee_esto": "El bifocal digital invisible (Kriptock Invisible) NO está acá: va en ocupacional_y_digitales.",
+    "filas": [
+      { "tipo": "Flat Top", "grupo": "FLAT TOP — ORGÁNICO", "producto": "Orgánico Blanco", "esf": [-4, 5.5], "cil": [-4, 4], "add": [1, 3.5], "cnc": 22340 },
+      { "tipo": "Flat Top", "grupo": "FLAT TOP — ORGÁNICO", "producto": "Orgánico Blue Light Cut", "esf": [-4, 5.5], "cil": [-4, 4], "add": [1, 3.5], "cnc": 45555 },
+      { "tipo": "Flat Top", "grupo": "FLAT TOP — ORGÁNICO", "producto": "Orgánico Fotocromático", "esf": [-4, 5.5], "cil": [-4, 4], "add": [1, 3.5], "cnc": 67994 },
+      { "tipo": "Flat Top", "grupo": "FLAT TOP — POLICARBONATO", "producto": "Policarbonato Blanco", "esf": [-5, 6.5], "cil": [-6, 6], "add": [1, 3], "cnc": 53799 },
+      { "tipo": "Kriptock", "grupo": "KRIPTOCK — ORGÁNICO", "producto": "Orgánico Blanco", "esf": [-4, 5.5], "cil": [-4, 4], "add": [1, 3.5], "cnc": 22339 }
+    ]
+  },
+
+  "multifocales": {
+    "_lee_esto": [
+      "Progresivos digitales Smart Lens. Los números bajo cada diseño (16-18, 14-16-17...)",
+      "son las alturas de montaje disponibles. ESSENTIAL = el precio ya incluye el AR.",
+      "Garantía por cambio de receta y/o adaptación: 90 días entre receta y receta",
+      "(Smart Lens Digital / Super Blue)."
+    ],
+    "disenos": ["one", "new", "free", "pro", "exclusive", "ai_lens"],
+    "filas": [
+      { "producto": "Orgánico Blanco", "ar": null, "indice": "1.49", "one": 66634, "new": 98191, "free": 137464, "pro": 151581, "exclusive": 194570, "ai_lens": 294155 },
+      { "producto": "Orgánico Blanco", "ar": "ESSENTIAL", "indice": "1.49", "one": 88904, "new": 120461, "free": 159734, "pro": 173851, "exclusive": 216840, "ai_lens": 316425 },
+      { "producto": "Orgánico Blue Light", "ar": null, "indice": "1.56", "one": 80609, "new": 124731, "free": 174623, "pro": 192551, "exclusive": 235125, "ai_lens": 317758 },
+      { "producto": "Orgánico Blue Light", "ar": "ESSENTIAL", "indice": "1.56", "one": 102890, "new": 147012, "free": 196904, "pro": 214832, "exclusive": 257407, "ai_lens": 340040 },
+      { "producto": "Orgánico Gris 3 Espejado Gris / Plata", "ar": null, "indice": "1.49", "one": 136506, "new": 181040, "free": 253452, "pro": 288434, "exclusive": 312721, "ai_lens": 362920 },
+      { "producto": "Orgánico Polarizado Gris / Brown", "ar": null, "indice": "1.49", "one": 136506, "new": 181040, "free": 253452, "pro": 288434, "exclusive": 312721, "ai_lens": 362920 },
+      { "producto": "Orgánico Fotocromático Grey", "ar": null, "indice": "1.56", "one": 95457, "new": 147700, "free": 206781, "pro": 228010, "exclusive": 278925, "ai_lens": 343250 },
+      { "producto": "Orgánico Fotocromático Grey", "ar": "ESSENTIAL", "indice": "1.56", "one": 117738, "new": 169982, "free": 229062, "pro": 250291, "exclusive": 301206, "ai_lens": 365531 },
+      { "producto": "Orgánico Fotocromático Smart Color", "ar": null, "indice": "1.56", "one": 168791, "new": 261166, "free": 313399, "pro": 376078, "exclusive": 451294, "ai_lens": 567341 },
+      { "producto": "Orgánico Fotocromático Espejado", "ar": null, "indice": "1.56", "one": 160753, "new": 248729, "free": 298475, "pro": 358170, "exclusive": 429804, "ai_lens": 540325 },
+      { "producto": "Orgánico Fotocromático Blue Light Grey", "ar": null, "indice": "1.56", "one": 116607, "new": 180418, "free": 234536, "pro": 258632, "exclusive": 310358, "ai_lens": 372430 },
+      { "producto": "Orgánico Fotocromático Blue Light", "ar": "ESSENTIAL", "indice": "1.56", "one": 138889, "new": 202699, "free": 256817, "pro": 280913, "exclusive": 332640, "ai_lens": 394711 },
+      { "producto": "Policarbonato Blanco", "ar": null, "indice": "1.59", "one": 86835, "new": 134354, "free": 188098, "pro": 207412, "exclusive": 224852, "ai_lens": 311779 },
+      { "producto": "Policarbonato Blue Light", "ar": null, "indice": "1.59", "one": 106227, "new": 164363, "free": 230109, "pro": 253736, "exclusive": 279109, "ai_lens": 327515 },
+      { "producto": "Policarbonato Fotocromático Grey", "ar": null, "indice": "1.59", "one": 178617, "new": 276369, "free": 386916, "pro": 426641, "exclusive": 444660, "ai_lens": 542667 },
+      { "producto": "Orgánico Blanco Alto Índice", "ar": null, "indice": "1.60", "one": 78366, "new": 121256, "free": 169761, "pro": 187189, "exclusive": 261351, "ai_lens": 333022 },
+      { "producto": "Orgánico Blanco Alto Índice", "ar": "ESSENTIAL", "indice": "1.60", "one": 100647, "new": 143538, "free": 192042, "pro": 209470, "exclusive": 283632, "ai_lens": 355303 },
+      { "producto": "Orgánico Super Blue Light", "ar": null, "indice": "1.60", "one": 100071, "new": 126827, "free": 177556, "pro": 195790, "exclusive": 278036, "ai_lens": 333122 },
+      { "producto": "Orgánico Super Blue Light", "ar": "ESSENTIAL", "indice": "1.60", "one": 121341, "new": 148097, "free": 198826, "pro": 217060, "exclusive": 299306, "ai_lens": 354393 },
+      { "producto": "Orgánico Fotocromático Grey Alto Índice", "ar": null, "indice": "1.60", "one": 127118, "new": 214788, "free": 264534, "pro": 324229, "exclusive": 395863, "ai_lens": 504768 },
+      { "producto": "Orgánico Fotocromático Grey Alto Índice", "ar": "ESSENTIAL", "indice": "1.60", "one": 149399, "new": 237070, "free": 286815, "pro": 346510, "exclusive": 418144, "ai_lens": 527049 },
+      { "producto": "Stylis Blanco", "ar": null, "indice": "1.67", "one": null, "new": null, "free": 209881, "pro": 231432, "exclusive": 300863, "ai_lens": 406193 },
+      { "producto": "Stylis Blue Light", "ar": null, "indice": "1.67", "one": null, "new": null, "free": 236163, "pro": 260409, "exclusive": 338535, "ai_lens": 433573 },
+      { "producto": "Orgánico Fotocromático Grey", "ar": null, "indice": "1.67", "one": null, "new": null, "free": 290371, "pro": 320184, "exclusive": 416237, "ai_lens": 604867 },
+      { "producto": "Stylis Blanco", "ar": null, "indice": "1.74", "one": null, "new": null, "free": 334023, "pro": 368318, "exclusive": 478814, "ai_lens": 749845 }
+    ],
+    "drive": [
+      { "producto": "Orgánico Blanco", "ar": null, "indice": "1.49", "precio": 88925 },
+      { "producto": "Orgánico Blanco", "ar": "ESSENTIAL", "indice": "1.49", "precio": 109444 },
+      { "producto": "Orgánico Blue Light", "ar": null, "indice": "1.56", "precio": 95821 },
+      { "producto": "Orgánico Blue Light", "ar": "ESSENTIAL", "indice": "1.56", "precio": 116340 },
+      { "producto": "Orgánico Gris 3 Espejado Gris / Plata", "ar": null, "indice": "1.49", "precio": 96783 },
+      { "producto": "Orgánico Polarizado Gris / Brown", "ar": null, "indice": "1.49", "precio": 131052 },
+      { "producto": "Orgánico Fotocromático Grey", "ar": null, "indice": "1.56", "precio": 109225 },
+      { "producto": "Orgánico Fotocromático Grey", "ar": "ESSENTIAL", "indice": "1.56", "precio": 129744 },
+      { "producto": "Policarbonato Blanco", "ar": null, "indice": "1.59", "precio": 103824 },
+      { "producto": "Policarbonato Blue Light", "ar": null, "indice": "1.59", "precio": 126390 },
+      { "producto": "Policarbonato Fotocromático Gris", "ar": null, "indice": "1.59", "precio": 157001 },
+      { "producto": "Orgánico Blanco Alto Índice", "ar": null, "indice": "1.60", "precio": 98630 },
+      { "producto": "Orgánico Super Blue Light", "ar": null, "indice": "1.60", "precio": 90322 },
+      { "producto": "Orgánico Super Blue Light", "ar": "ESSENTIAL", "indice": "1.60", "precio": 110841 },
+      { "producto": "Stylis Blanco", "ar": null, "indice": "1.67", "precio": 130648 },
+      { "producto": "Stylis Blue Light", "ar": null, "indice": "1.67", "precio": 178466 },
+      { "producto": "Orgánico Fotocromático Grey", "ar": null, "indice": "1.67", "precio": 192899 },
+      { "producto": "Stylis Blanco", "ar": null, "indice": "1.74", "precio": 229490 }
+    ],
+    "recargo_multifacetado": 31577
+  },
+
+  "ocupacional_y_digitales": {
+    "office": {
+      "_lee_esto": "Ocupacional digital. Degresiones de 0,75 a 2,25 en pasos de 0,25. Tomar distancia nasopupilar, altura pupilar y todas las medidas del armazón.",
+      "filas": [
+        { "indice": "1.49", "producto": "Orgánico Blanco", "ar": null, "precio": 54922 },
+        { "indice": "1.49", "producto": "Orgánico Blanco", "ar": "ESSENTIAL", "precio": 77202 },
+        { "indice": "1.56", "producto": "Orgánico Blue Light Cut", "ar": null, "precio": 67537 },
+        { "indice": "1.56", "producto": "Orgánico Blue Light 1,56", "ar": "ESSENTIAL", "precio": 89818 },
+        { "indice": "1.59", "producto": "Policarbonato Blanco", "ar": null, "precio": 97210 },
+        { "indice": "1.59", "producto": "Policarbonato Blue Light", "ar": null, "precio": 107241 },
+        { "indice": "1.60", "producto": "Orgánico Blanco Alto Índice 1,60", "ar": null, "precio": 78844 },
+        { "indice": "1.60", "producto": "Orgánico Super Blue Light 1,60", "ar": null, "precio": 96365 },
+        { "indice": "1.60", "producto": "Orgánico Super Blue Light 1,60", "ar": "ESSENTIAL", "precio": 118646 },
+        { "indice": "1.67", "producto": "Stylis Blanco", "ar": null, "precio": 120221 },
+        { "indice": "1.67", "producto": "Stylis Blue Light", "ar": null, "precio": 150464 }
+      ]
+    },
+    "kriptock_invisible": {
+      "_lee_esto": "Bifocal digital invisible. ADD de 0,75 a 3,50 en pasos de 0,25.",
+      "add": [0.75, 3.5],
+      "filas": [
+        { "indice": "1.49", "producto": "Orgánico Blanco", "ar": null, "precio": 62687 },
+        { "indice": "1.49", "producto": "Orgánico Blanco", "ar": "ESSENTIAL", "precio": 84968 },
+        { "indice": "1.60", "producto": "Orgánico Blanco Alto Índice 1,60", "ar": null, "precio": 80069 },
+        { "indice": "1.60", "producto": "Orgánico Blanco Alto Índice 1,60", "ar": "ESSENTIAL", "precio": 102350 },
+        { "indice": "1.67", "producto": "Orgánico Alto Índice 1,67", "ar": null, "precio": 122934 },
+        { "indice": "1.56", "producto": "Orgánico Blue Light 1,56", "ar": null, "precio": 72959 },
+        { "indice": "1.56", "producto": "Orgánico Blue Light 1,56", "ar": "ESSENTIAL", "precio": 95240 },
+        { "indice": "1.60", "producto": "Orgánico Super Blue Light 1,60", "ar": null, "precio": 140604 },
+        { "indice": "1.60", "producto": "Orgánico Super Blue Light 1,60", "ar": "ESSENTIAL", "precio": 162885 },
+        { "indice": "1.67", "producto": "Orgánico Blue Light 1,67", "ar": null, "precio": 180504 },
+        { "indice": "1.56", "producto": "Orgánico Fotocromático Gris", "ar": null, "precio": 98715 },
+        { "indice": "1.56", "producto": "Orgánico Fotocromático Gris", "ar": "ESSENTIAL", "precio": 120996 },
+        { "indice": "1.56", "producto": "Orgánico Fotocromático Blue Light Grey", "ar": null, "precio": 138204 },
+        { "indice": "1.56", "producto": "Orgánico Fotocromático Blue Light", "ar": "ESSENTIAL", "precio": 160485 },
+        { "indice": "1.59", "producto": "Policarbonato Blanco", "ar": null, "precio": 88814 },
+        { "indice": "1.59", "producto": "Policarbonato Blue Light", "ar": null, "precio": 157440 },
+        { "indice": "1.59", "producto": "Policarbonato Fotocromático", "ar": null, "precio": 185130 }
+      ]
+    },
+    "ultra_relax": {
+      "_lee_esto": "Monofocal digital especial, para relajar la fatiga visual. ADD según edad: 18-30 años 0,36 · 30-35 0,52 · 35-40 0,72 · 40-45 0,96.",
+      "filas": [
+        { "indice": "1.49", "producto": "Orgánico Blanco", "ar": null, "precio": 48712 },
+        { "indice": "1.49", "producto": "Orgánico Blanco", "ar": "ESSENTIAL", "precio": 70993 },
+        { "indice": "1.60", "producto": "Orgánico Blanco Alto Índice 1,60", "ar": null, "precio": 71751 },
+        { "indice": "1.67", "producto": "Orgánico Alto Índice 1,67", "ar": null, "precio": 161855 },
+        { "indice": "1.56", "producto": "Orgánico Blue Light 1,56", "ar": null, "precio": 78150 },
+        { "indice": "1.56", "producto": "Orgánico Blue Light 1,56", "ar": "ESSENTIAL", "precio": 100431 },
+        { "indice": "1.60", "producto": "Orgánico Super Blue Light 1,60", "ar": null, "precio": 119542 },
+        { "indice": "1.60", "producto": "Orgánico Super Blue Light 1,60", "ar": "ESSENTIAL", "precio": 141824 },
+        { "indice": "1.67", "producto": "Orgánico Blue Light 1,67", "ar": null, "precio": 239903 },
+        { "indice": "1.59", "producto": "Policarbonato Blanco", "ar": null, "precio": 83061 },
+        { "indice": "1.59", "producto": "Policarbonato Blue Light", "ar": null, "precio": 136574 }
+      ]
+    },
+    "recargo_multifacetado": 31577
+  },
+
+  "condiciones": {
+    "precios": [
+      "Todos los precios están expresados POR PAR y SIN IVA (agregar 21%).",
+      "La facturación se realiza con la lista vigente el día de envío.",
+      "Precios sujetos a cambios sin previo aviso."
+    ],
+    "garantias": [
+      "No se aceptan reclamos sobre lentes calibradas y perforadas fuera del laboratorio de Grupo Óptico.",
+      "No se cubren roturas de lentes CR-39 montadas al aire (para eso: policarbonato / trivex / MR-8).",
+      "Grupo Óptico no se responsabiliza por defectos de armazones y/o cristales no adquiridos en el mismo.",
+      "Garantía por cambio de receta y/o adaptación de Smart Lens Digital y Smart Lens Super Blue: 90 días entre receta y receta. El resto de las lentes NO tiene cambio por errores de receta.",
+      "La garantía no cubre tratamientos adicionales (antirreflejos), salvo los tratamientos Essential, que sí se cubren.",
+      "No se toma ningún reclamo si la cuenta corriente no está al día."
+    ],
+    "como_leer_el_rango": [
+      "Si la receta tiene DISTINTO signo entre esfera y cilindro, la referencia es el valor más alto. Ej.: Esf +8,00 / Cil -2,00 → se toma +8,00.",
+      "Si tiene IGUAL signo, se SUMAN y ese total es la referencia. Ej.: Esf +8,00 / Cil +2,00 → +10,00. Esf -6,00 / Cil -4,00 → -10,00.",
+      "Además el cilindro por sí solo no puede superar el valor de la columna Cil.",
+      "Los máximos son posibles en diámetros chicos (55 mm).",
+      "Superándolos: lente digital multifacetado, o consultar al laboratorio con foto de la receta."
+    ],
+    "contacto": {
+      "facturacion_logistica": "351 333-8871",
+      "area_tecnica": "351 650-7060",
+      "cuentas_corrientes": "351 265-9781",
+      "mail": "grupooptico.lab@hotmail.com",
+      "web": "www.grupooptico.net"
+    }
+  }
+}
