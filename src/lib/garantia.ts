@@ -103,12 +103,17 @@ export const TERMINOS_CAMBIO = [
             `Entre una receta y la otra no pueden pasar más de ${GARANTIA_DIAS_ENTRE_RECETAS} días.`,
     },
     {
+        // Ishtar, 31/8/2026: "esto no lo cambiaría ni lo haría opcional". La
+        // regla se enuncia cerrada; la consulta por algo distinto queda como lo
+        // que es —una excepción que puede no concederse— y no como una opción
+        // que se le ofrece al cliente.
         titulo: 'Se repite el mismo cristal, en el mismo armazón',
         texto:
-            'El cambio se hace sobre el mismo producto y con el mismo armazón. Si se compró un ' +
-            'Orma blanco con Crizal Rock, se vuelve a hacer exactamente ese cristal. Cambiar a otro ' +
-            'cristal, otro material u otro tratamiento no entra en la garantía: se consulta, y tanto ' +
-            'la posibilidad de hacerlo como el costo quedan a criterio de la óptica.',
+            'El cambio se hace siempre sobre el mismo producto y con el mismo armazón. Si se compró ' +
+            'un Orma blanco con Crizal Rock, se vuelve a hacer exactamente ese cristal. La garantía ' +
+            'no contempla cambiar a otro cristal, otro material ni otro tratamiento. Cualquier ' +
+            'pedido distinto se evalúa por separado, no está garantizado, y la óptica define si es ' +
+            'posible y con qué cargo.',
     },
     {
         titulo: 'Mi Primer Varilux y Mi Primer Kodak: hasta 1,50 de adición',
