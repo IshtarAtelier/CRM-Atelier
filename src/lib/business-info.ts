@@ -49,7 +49,21 @@ export const BUSINESS_INFO = {
       closes: "17:00",
     },
   ],
+  /**
+   * Franja para AGENDAR UNA CONSULTA GENERAL en el local (probarse armazones,
+   * retirar, consultar). Coincide con el horario de atención.
+   */
   appointmentSlots: "de 8:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 (Sábados)",
+  /**
+   * TOMA DE GRADUACIÓN (agudeza visual): SOLO en la siesta, de 12 a 16.
+   *
+   * Regla que dio Ishtar el 31/8/2026. No es lo mismo que `appointmentSlots`:
+   * el local atiende de 8 a 20, pero el examen visual se hace únicamente en
+   * esa franja. Antes el sistema ofrecía turno para graduación en cualquier
+   * horario de atención — o sea que se le podía dar a alguien un turno que
+   * después no se le podía cumplir.
+   */
+  examSlots: "de 12:00 a 16:00 (la siesta)",
   discountCashPercent: 15,
   discountTransferPercent: 15,
   // 27/8/2026 (acuerdo de Ishtar con Mercado Pago): se suman los 12 cuotas.

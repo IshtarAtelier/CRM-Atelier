@@ -118,7 +118,10 @@ export class AgentOrchestrator {
         }
 
       } else if (intent === 'BOOK_APPOINTMENT') {
-        replyText = `¡Hola ${clientName}! Claro, con gusto te agendamos un turno para que te atiendan nuestros profesionales en el local de ${BUSINESS_INFO.address}. ¿Te queda cómodo algún día de esta semana ${BUSINESS_INFO.appointmentSlots}?`;
+        // Ojo: si el turno es para TOMAR LA GRADUACIÓN, la franja es la siesta
+        // (12 a 16), no el horario completo del local. Ofrecer cualquier hora
+        // era prometer un turno que después no se puede cumplir.
+        replyText = `¡Hola ${clientName}! Claro, con gusto te agendamos un turno en el local de ${BUSINESS_INFO.address}. Si es para tomarte la graduación, esos turnos son ${BUSINESS_INFO.examSlots}. Para cualquier otra consulta te esperamos ${BUSINESS_INFO.appointmentSlots}. ¿Qué día te queda cómodo?`;
 
       } else if (intent === 'ORDER_STATUS') {
         // Buscar pedidos activos del cliente
