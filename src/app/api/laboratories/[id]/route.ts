@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
+import { recalcularCostosDelLaboratorio } from '@/services/lab-recalc.service';
 
 // Compara previo vs. actualizado y registra la auditoría del laboratorio
 async function auditLabUpdate(req: Request, previo: any, lab: any) {
@@ -60,7 +61,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
         await auditLabUpdate(req, previo, lab);
 
-        return NextResponse.json({ laboratory: lab });
+        // Si cambió el calibrado o el IVA, los costos finales se recalculan
+        // desde el pelado (regla de Ishtar, 31/8/2026): la configuración es la
+        // fuente del cálculo, no un cartel decorativo.
+        let recalculo = null;
+        if (previo && (previo.calibrado !== lab.calibrado || previo.iva !== lab.iva)) {
+            recalculo = await recalcularCostosDelLaboratorio(lab.name, lab.calibrado, lab.iva, getActor(req));
+        }
+
+        return NextResponse.json({ laboratory: lab, recalculo });
     } catch (error: any) {
         if (error.code === 'P2002') {
             return NextResponse.json({ error: 'Ya existe un laboratorio con ese nombre' }, { status: 400 });
@@ -95,7 +104,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         await auditLabUpdate(req, previo, lab);
 
-        return NextResponse.json(lab);
+        let recalculo = null;
+        if (previo && (previo.calibrado !== lab.calibrado || previo.iva !== lab.iva)) {
+            recalculo = await recalcularCostosDelLaboratorio(lab.name, lab.calibrado, lab.iva, getActor(req));
+        }
+
+        return NextResponse.json({ ...lab, recalculo });
     } catch (error: any) {
         if (error.code === 'P2002') {
             return NextResponse.json({ error: 'Ya existe un laboratorio con ese nombre' }, { status: 400 });
