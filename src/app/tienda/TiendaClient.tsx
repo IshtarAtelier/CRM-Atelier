@@ -708,7 +708,7 @@ export function TiendaClient({
                               </span>
                               <span className="text-emerald-700 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
                               <span className="block text-xs text-stone-500">
-                                12 cuotas de ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")} · {ACLARACION_MP_CUOTAS_LARGAS} · {installmentsCount} s/interés
+                                12 cuotas de ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")} · {ACLARACION_MP_CUOTAS_LARGAS} · {installmentsCount} s/interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
                               </span>
                             </p>
                             {oferta && (
