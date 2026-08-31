@@ -1,14 +1,18 @@
 import { prisma } from "@/lib/db";
 import { resolveStorageUrl } from "@/lib/utils/storage";
+import { PricingService } from "@/services/PricingService";
+import { BUSINESS_INFO } from "@/lib/business-info";
 import type { LandingProduct } from "./campaigns";
 
-// Productos del home como fallback: una landing de ads nunca debe quedar vacía
-// ni romper si la DB no responde.
+// Fallback si la DB no responde: una landing de ads nunca debe quedar vacía
+// ni romper. SIN PRECIOS a propósito — acá había montos congelados a mano
+// ("6 cuotas de $9.167") de una lista vieja: publicar un precio vencido es
+// peor que no publicar ninguno (auditoría 31/8; misma regla R6 de social).
 const FALLBACK_PRODUCTS: LandingProduct[] = [
-  { name: "Atelier 9030", price: "6 cuotas de $9.167", img: "/images/products/atelier-9030-gold.png", slug: "" },
-  { name: "Rosé Cat Eye", price: "6 cuotas de $8.000", img: "/images/products/cateye-rose.png", slug: "" },
-  { name: "Pantos Blush", price: "6 cuotas de $7.500", img: "/images/products/pantos-pink.png", slug: "" },
-  { name: "Mistral Manglares", price: "6 cuotas de $8.667", img: "/images/products/mistral-manglares.png", slug: "" },
+  { name: "Atelier 9030", price: "", img: "/images/products/atelier-9030-gold.png", slug: "" },
+  { name: "Rosé Cat Eye", price: "", img: "/images/products/cateye-rose.png", slug: "" },
+  { name: "Pantos Blush", price: "", img: "/images/products/pantos-pink.png", slug: "" },
+  { name: "Mistral Manglares", price: "", img: "/images/products/mistral-manglares.png", slug: "" },
 ];
 
 /**
@@ -49,8 +53,14 @@ export async function getCampaignProducts(
         const catalogImages = wp.product.imagenesCatalogo ?? [];
         formatted.push({
           name: wp.name,
+          // Mismo criterio que toda la vidriera (Ishtar, 31/8): el precio
+          // protagonista es el de transferencia; la cuota va como dato de
+          // pago. Los montos salen de PricingService, nada dividido a mano.
           price: wp.product.price
-            ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}`
+            ? (() => {
+                const v = PricingService.preciosVidriera(wp.product.price, BUSINESS_INFO.discountCashPercent);
+                return `$${v.contado.toLocaleString("es-AR")} por transferencia · 6 cuotas sin interés de $${v.cuota6.toLocaleString("es-AR")}`;
+              })()
             : "",
           img: wp.imageUrl
             ? resolveStorageUrl(wp.imageUrl)
