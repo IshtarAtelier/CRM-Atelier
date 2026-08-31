@@ -60,6 +60,15 @@ export const BUSINESS_INFO = {
   // del bot, piezas de redes, anuncios y blog. Y nunca se dice "sin interés"
   // de las 12 (eso son solo 3 y 6).
   //
+  // ÚNICA EXCEPCIÓN, decidida por Ishtar el 31/8 después de leer la regla:
+  // el CARTEL superior de la tienda (`SystemSetting.web_announcement_text`)
+  // va sin el porcentaje, con su texto:
+  //   "Envío Gratis • Hasta 12 Cuotas • 6 Cuotas sin Interés • 15% OFF en Transferencia"
+  // Se le señaló que ahí las 12 quedan pegadas a "6 Cuotas sin Interés" y
+  // eligió ese texto igual. Es una decisión suya, no un descuido: NO
+  // "corregirlo" desde una sesión futura sin preguntarle. El resto de las
+  // superficies sí lleva la aclaración.
+  //
   // Hasta el 31/8 acá decía lo contrario ("NUNCA el %"), y esa regla se había
   // propagado a los generadores de redes y a los scripts de ads, dejando toda
   // la capa de marketing sin la aclaración mientras CLAUDE.md, PricingService
