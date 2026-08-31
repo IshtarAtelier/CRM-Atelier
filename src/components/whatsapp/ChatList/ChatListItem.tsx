@@ -40,6 +40,20 @@ export function ChatListItem({
     const ultimo = chat.messages?.[0];
     const nombre = getDisplayName(chat);
 
+    // Sin `onFijar` (la ventanita flotante) el avatar no es un botón: uno
+    // deshabilitado no emite click y dejaba un agujero de 48 px en la fila —
+    // tocabas la foto y no se abría el chat.
+    const AvatarTag = onFijar ? 'button' : 'span';
+    const avatarClases = `${compacto ? 'w-10 h-10 text-base' : 'w-12 h-12 text-lg'} rounded-2xl flex items-center justify-center font-black shrink-0 transition-all duration-200 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
+        fijado
+            ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
+            : seleccionado
+                ? chat.botEnabled
+                    ? 'bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-md'
+                    : 'bg-emerald-600 text-white'
+                : 'bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-200'
+    } ${onFijar ? 'hover:scale-110' : ''}`;
+
     return (
         <div
             role="button"
@@ -60,21 +74,16 @@ export function ChatListItem({
         >
             <div className="flex items-center gap-3">
                 <div className="relative group/avatar">
-                    <button
-                        type="button"
-                        onClick={e => { e.stopPropagation(); onFijar?.(chat); }}
-                        disabled={!onFijar}
-                        aria-label={fijado ? `Quitar a ${nombre} de favoritos` : `Marcar a ${nombre} como favorito`}
-                        title={fijado ? 'Quitar de favoritos' : 'Marcar como favorito'}
-                        className={`${compacto ? 'w-10 h-10 text-base' : 'w-12 h-12 text-lg'} rounded-2xl flex items-center justify-center font-black shrink-0 transition-all duration-200 relative overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
-                            fijado
-                                ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
-                                : seleccionado
-                                    ? chat.botEnabled
-                                        ? 'bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-md'
-                                        : 'bg-emerald-600 text-white'
-                                    : 'bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-200'
-                        } ${onFijar ? 'hover:scale-110' : ''}`}
+                    <AvatarTag
+                        {...(onFijar
+                            ? {
+                                type: 'button' as const,
+                                onClick: (e: React.MouseEvent) => { e.stopPropagation(); onFijar(chat); },
+                                'aria-label': fijado ? `Quitar a ${nombre} de favoritos` : `Marcar a ${nombre} como favorito`,
+                                title: fijado ? 'Quitar de favoritos' : 'Marcar como favorito',
+                            }
+                            : { 'aria-hidden': true })}
+                        className={avatarClases}
                     >
                         {fijado ? (
                             <Heart className="w-5 h-5 fill-current text-white" />
@@ -86,7 +95,7 @@ export function ChatListItem({
                                 )}
                             </>
                         )}
-                    </button>
+                    </AvatarTag>
                     {chat.botEnabled && asistenteGlobalActivo && !seleccionado && (
                         <span
                             title="El asistente responde este chat"
