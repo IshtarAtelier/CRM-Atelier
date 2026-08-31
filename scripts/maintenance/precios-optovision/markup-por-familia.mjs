@@ -26,6 +26,15 @@ const APLICAR = process.argv.includes('--aplicar');
 const PRODUCCION = process.argv.includes('--produccion');
 const iSolo = process.argv.indexOf('--solo');
 const SOLO = iSolo !== -1 ? process.argv[iSolo + 1] : null;
+/**
+ * NUNCA BAJAR (Ishtar, 31/8/2026): "si alguno con los costos reales estaba por
+ * más de 2.5, genial, dejalo; si estaba por debajo, nivelalo".
+ * O sea: el markup objetivo es un PISO por familia, no un precio exacto. Un
+ * producto que ya rinde más se deja tranquilo — bajarle el precio sería resignar
+ * margen que ya estaba ganado. Con --bajar-tambien se permite el ajuste exacto,
+ * que es lo que haría falta para armar una escalera entre marcas.
+ */
+const BAJAR = process.argv.includes('--bajar-tambien');
 const FIRMA = 'Ishtar (markup objetivo por familia)';
 
 const url = PRODUCCION ? process.env.PROD_DATABASE_URL : process.env.DATABASE_URL;
@@ -91,7 +100,8 @@ async function main() {
         const míos = productos.filter(p => familiaDe(p.name) === fam);
         const cambian = míos
             .map(p => ({ ...p, mk: p.price / p.cost, nuevo: Math.round(p.cost * fam.markup) }))
-            .filter(p => p.nuevo !== Math.round(p.price));
+            .filter(p => p.nuevo !== Math.round(p.price))
+            .filter(p => BAJAR || p.nuevo > p.price);   // por defecto solo sube
 
         console.log(`━━ ${fam.clave.toUpperCase()} → ×${fam.markup}  (${míos.length} productos, ${cambian.length} cambian)`);
         if (fam.nota) console.log(`   ${fam.nota}`);
