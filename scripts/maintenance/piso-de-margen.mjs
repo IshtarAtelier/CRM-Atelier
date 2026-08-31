@@ -47,26 +47,41 @@ async function main() {
         where category = 'Cristal' and cost > 0 and price > 0
         order by price / cost asc`;
 
-    // EXCEPCIÓN (Ishtar, 30/8/2026): la línea Sygnus / New Editions se precia
-    // "unos puntitos abajo del Kodak" para que sea atractiva como entrada, y
-    // eso puede dejarla bajo el piso — es una decisión comercial, no un error.
-    // Su precio lo fija scripts/maintenance/precios-optovision/precios-sygnus.mjs.
+    // EXCEPCIONES: las dos son decisiones comerciales, no errores de carga.
+    //
+    // 1) Sygnus / New Editions (Ishtar, 30/8/2026): se precia "unos puntitos
+    //    abajo del Kodak" para que sea atractiva como entrada, y eso puede
+    //    dejarla bajo el piso. Su precio lo fija precios-optovision/precios-sygnus.mjs.
+    // 2) Mi Primer Varilux / Mi Primer Kodak (Ishtar, 30/8/2026): es la promo
+    //    del 50% para el que compra su PRIMER multifocal. Quedan a ×2,39 a
+    //    propósito: el precio de entrada bajo es lo que hace a la promo, y
+    //    subirlos al piso le sacaría la razón de existir.
     const esSygnus = p => /new\s*editions?|sygnus/i.test(p.name || '');
+    const esMiPrimer = p => /mi\s*primer/i.test(p.name || '');
+    const exceptuado = p => esSygnus(p) || esMiPrimer(p);
     const bajos = cristales
-        .filter(p => !esSygnus(p))
+        .filter(p => !exceptuado(p))
         .map(p => ({ ...p, mk: p.price / p.cost, nuevo: Math.ceil(p.cost * PISO) }))
         .filter(p => p.mk < PISO);
+    const exentosBajoPiso = cristales.filter(p => exceptuado(p) && p.price / p.cost < PISO);
 
     console.log(`${cristales.length} cristales con costo y precio · ${bajos.length} debajo del piso\n`);
     let plata = 0;
     for (const p of bajos) {
         plata += p.nuevo - p.price;
-        const esPromo = /mi\s*primer/i.test(p.name);
         console.log(`  ×${p.mk.toFixed(2)}  ${String(p.name).slice(0, 46).padEnd(48)}` +
-            `${pesos(p.price).padStart(12)} → ${pesos(p.nuevo).padStart(12)}  (+${pesos(p.nuevo - p.price)})` +
-            (esPromo ? '  ← promo Mi Primer: el costo base es media lista' : ''));
+            `${pesos(p.price).padStart(12)} → ${pesos(p.nuevo).padStart(12)}  (+${pesos(p.nuevo - p.price)})`);
     }
     console.log(`\n  Suma de los ajustes: +${pesos(plata)} sobre la lista de precios.`);
+
+    // Se listan para que la excepción sea visible y revisable, no un silencio.
+    if (exentosBajoPiso.length) {
+        console.log(`\n  ${exentosBajoPiso.length} exceptuado(s) que quedan bajo el piso A PROPÓSITO (no se tocan):`);
+        for (const p of exentosBajoPiso) {
+            console.log(`    ×${(p.price / p.cost).toFixed(2)}  ${String(p.name).slice(0, 52).padEnd(54)}${pesos(p.price).padStart(12)}` +
+                `   ${esSygnus(p) ? 'Sygnus (precio de entrada)' : 'promo Mi Primer (50%)'}`);
+        }
+    }
 
     if (!APLICAR) { console.log('\nEnsayo: no se escribió nada. Para aplicarlo: --aplicar'); return; }
 
