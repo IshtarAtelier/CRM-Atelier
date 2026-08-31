@@ -69,12 +69,20 @@ async function init() {
     return phoneStatus;
 }
 
+/**
+ * Reintento acotado para ENVÍOS. Solo reintenta lo que sabemos que NO salió
+ * (rechazo limpio de Meta: 429 / rate limit). Un timeout nuestro o un 5xx de
+ * Graph vienen marcados `ambiguous`: Meta puede haber aceptado el mensaje y
+ * perdido la respuesta, así que reintentar le manda al cliente el mismo mensaje
+ * dos veces y factura dos conversaciones. Ante la duda: no reintentar y que el
+ * error suba, para que el CRM le diga al vendedor "verificá si le llegó".
+ */
 async function withRetry(fn, { attempts = 3, baseMs = 2000 } = {}) {
     let last;
     for (let i = 0; i < attempts; i++) {
         try { return await fn(); } catch (e) {
             last = e;
-            if (!e.retryable || i === attempts - 1) throw e;
+            if (!e.retryable || e.ambiguous || i === attempts - 1) throw e;
             const wait = baseMs * Math.pow(2, i);
             console.warn(`[CloudTransport] ${e.message} — reintento en ${wait}ms`);
             await new Promise(r => setTimeout(r, wait));

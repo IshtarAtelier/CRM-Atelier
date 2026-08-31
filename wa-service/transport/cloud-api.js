@@ -38,7 +38,7 @@ function isConfigured() {
 }
 
 class CloudApiError extends Error {
-    constructor(message, { code, status, metaCode, metaSubcode, retryable } = {}) {
+    constructor(message, { code, status, metaCode, metaSubcode, retryable, ambiguous } = {}) {
         super(message);
         this.name = 'CloudApiError';
         this.code = code || 'CLOUD_API_ERROR';
@@ -46,6 +46,10 @@ class CloudApiError extends Error {
         this.metaCode = metaCode;
         this.metaSubcode = metaSubcode;
         this.retryable = Boolean(retryable);
+        // true = no sabemos si el envío llegó a concretarse del lado de Meta.
+        // Quien reintenta un envío TIENE que mirar esto: reintentar un ambiguo
+        // le manda el mensaje dos veces al cliente y factura dos conversaciones.
+        this.ambiguous = Boolean(ambiguous);
     }
 }
 
@@ -104,14 +108,20 @@ async function graphFetch(path, { method = 'GET', body, headers = {}, timeoutMs 
             // Rate limit / transitorio: 429, 5xx, o códigos de Meta 4, 17, 80007, 130429
             const retryable = res.status === 429 || res.status >= 500 ||
                 [4, 17, 80007, 130429, 131056].includes(err.code);
+            // `ambiguous`: no sabemos si Meta llegó a procesar el mensaje. Un 5xx
+            // puede venir después de que la conversación ya se creó. Reintentar
+            // eso duplica el mensaje al cliente y la conversación facturada.
+            // Un 429 / rate limit, en cambio, es un rechazo limpio: no salió nada.
+            const ambiguous = res.status >= 500;
             throw new CloudApiError(
                 `Graph ${res.status}: ${err.message || text?.slice(0, 200) || 'sin detalle'}`,
-                { code: mapMetaError(err.code), status: res.status, metaCode: err.code, metaSubcode: err.error_subcode, retryable }
+                { code: mapMetaError(err.code), status: res.status, metaCode: err.code, metaSubcode: err.error_subcode, retryable, ambiguous }
             );
         }
         return json;
     } catch (e) {
-        if (e.name === 'AbortError') throw new CloudApiError(`Timeout de ${timeoutMs}ms llamando a Graph`, { code: 'TIMEOUT', retryable: true });
+        // Abortamos NOSOTROS por timeout: Meta pudo haber aceptado igual. Ambiguo.
+        if (e.name === 'AbortError') throw new CloudApiError(`Timeout de ${timeoutMs}ms llamando a Graph`, { code: 'TIMEOUT', retryable: true, ambiguous: true });
         throw e;
     } finally {
         clearTimeout(timer);

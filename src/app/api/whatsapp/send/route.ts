@@ -65,7 +65,15 @@ export async function POST(request: Request) {
             needsTemplate: r.needsTemplate === true,
         }, { status });
     } catch (error: any) {
+        // Acá solo caen fallos ANTES de intentar el envío (body mal formado, etc.):
+        // `sendWhatsApp` ya no lanza por errores de red, devuelve el resultado
+        // ambiguo con notSent:false. Igual se responde explícito notSent:false —
+        // decir "no salió" sin saberlo hace que la vendedora reescriba y el
+        // cliente reciba (y Meta cobre) dos veces.
         console.error('[WhatsApp Send] Error connecting to wa-service:', error.message);
-        return NextResponse.json({ error: `Servidor de WhatsApp no disponible: ${error.message}` }, { status: 503 });
+        return NextResponse.json({
+            error: `Servidor de WhatsApp no disponible: ${error.message}. Verificá el chat antes de reenviar.`,
+            notSent: false,
+        }, { status: 503 });
     }
 }

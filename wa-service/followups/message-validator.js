@@ -174,6 +174,11 @@ function validateSalesContent(text) {
  * @param {string} clientName - Nombre completo del cliente
  * @returns {{ valid: boolean, reason?: string }}
  */
+/** Escapa los metacaracteres de regex para poder buscar un texto arbitrario como literal. */
+function escaparParaRegex(str) {
+    return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function validateNameFrequency(text, clientName) {
     if (!clientName) return { valid: true };
 
@@ -181,7 +186,12 @@ function validateNameFrequency(text, clientName) {
     const firstName = clientName.split(/\s+/)[0];
     if (firstName.length < 3) return { valid: true }; // Nombres muy cortos no son fiables
 
-    const regex = new RegExp(firstName, 'gi');
+    // El nombre viene del PERFIL de WhatsApp: puede ser cualquier cosa, no un
+    // identificador. Sin escapar, un contacto llamado "+5493541215971" o
+    // "*Vale*" compilaba un regex inválido → SyntaxError → los 3 intentos de
+    // generación se consumían y ESE cliente nunca podía recibir un seguimiento
+    // (y el log culpaba a Gemini).
+    const regex = new RegExp(escaparParaRegex(firstName), 'gi');
     const matches = text.match(regex);
     if (matches && matches.length > 2) {
         return { valid: false, reason: `Nombre "${firstName}" repetido ${matches.length} veces` };
@@ -199,6 +209,14 @@ function sanitizeMessage(text) {
     if (!text) return '';
 
     let clean = text.trim();
+
+    // Etiqueta de imagen: en los seguimientos NADIE la interpreta (sender.js
+    // manda con media=null; el parser de `[IMAGE:…]` vive solo en el camino
+    // conversacional de index.js). Si el modelo la escribe igual, se borra acá:
+    // dejarla pasar mandaría el tag crudo al cliente, y dejar la URL con "/api/"
+    // hace que el validador tire el mensaje entero y el tier nunca salga.
+    // Las fotos de los seguimientos las adjunta el sistema (FOTO_POR_TIER).
+    clean = clean.replace(/\[IMAGE:[^\]]*\]/gi, '').trim();
 
     // Eliminar signos de apertura
     clean = clean.replace(/[¿¡]/g, '');

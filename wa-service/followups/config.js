@@ -183,6 +183,30 @@ const LINK_TIENDA = 'https://atelieroptica.com.ar/tienda';
 const CIERRE_TIENDA = `\n\nMientras tanto podés ver todos los modelos acá: ${LINK_TIENDA}`;
 
 // ──────────────────────────────────────────────
+// Foto adjunta por tier
+// ──────────────────────────────────────────────
+/**
+ * Foto que acompaña a un seguimiento, POR TIER. La adjunta el sistema
+ * (sender.js), no el modelo.
+ *
+ * Por qué acá y no en el prompt: el DIA_4 le ordenaba al modelo terminar el
+ * mensaje con `[IMAGE: https://…/api/storage/view?key=agent_fachada.jpg]`, y
+ * eso hacía fallar SIEMPRE los 3 intentos — el validador rechaza cualquier
+ * texto con `/api/` ("datos internos del sistema") y además la URL sola casi
+ * agotaba el tope de 250 caracteres. Resultado: el DIA_4 nunca salía y, como
+ * el DIA_15 exige `requiresPrevious: 'SEGUIMIENTO_DIA_4'`, el mensaje del 10%
+ * de descuento tampoco se disparaba NUNCA. La secuencia de 3 escalones era de 1.
+ *
+ * Además, `sender.js` manda con `media = null` y no interpreta `[IMAGE:…]`
+ * (eso solo pasa en el camino conversacional de index.js): relajar el validador
+ * habría hecho llegar el tag crudo al cliente.
+ */
+const FOTO_FACHADA_URL = 'https://atelieroptica.com.ar/api/storage/view?key=agent_fachada.jpg';
+const FOTO_POR_TIER = {
+    DIA_4: FOTO_FACHADA_URL,
+};
+
+// ──────────────────────────────────────────────
 // Tipeo simulado
 // ──────────────────────────────────────────────
 const TYPING_MS_PER_CHAR = 40;
@@ -218,6 +242,8 @@ module.exports = {
     MAX_MESSAGE_LENGTH,
     LINK_TIENDA,
     CIERRE_TIENDA,
+    FOTO_FACHADA_URL,
+    FOTO_POR_TIER,
     MAX_WORD_COUNT,
     TYPING_MS_PER_CHAR,
     TYPING_MIN_MS,

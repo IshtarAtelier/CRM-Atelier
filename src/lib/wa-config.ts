@@ -32,6 +32,20 @@ export function fetchWa(url: string | URL, init?: RequestInit): Promise<Response
     // "transitorio", así que retryWithBackoff no lo reintenta en bucle.
     const FETCH_TIMEOUT_MS = 100000;
 
+    // 🔴 Reintentar SOLO lo idempotente.
+    //
+    // `POST /api/send` NO es idempotente: si el wa-service ya le pasó el mensaje
+    // a Meta y la respuesta se pierde (timeout, 502 del proxy, socket cortado),
+    // el reintento manda el mensaje DE NUEVO. El cliente lo recibe dos veces y
+    // Meta cobra dos conversaciones. Con el reintento de abajo (cloud-transport)
+    // el peor caso eran 3×3 = 9 envíos por un solo click de "Enviar".
+    //
+    // Regla: GET/HEAD (estado, chats, catálogo) pueden reintentarse; todo lo que
+    // muta —POST/PUT/PATCH/DELETE— se intenta UNA sola vez y, ante la duda, se
+    // le dice la verdad al vendedor ("verificá si le llegó") en vez de duplicar.
+    const method = (init?.method || 'GET').toUpperCase();
+    const esIdempotente = method === 'GET' || method === 'HEAD';
+
     return retryWithBackoff(
         async () => {
             const controller = new AbortController();
@@ -55,7 +69,7 @@ export function fetchWa(url: string | URL, init?: RequestInit): Promise<Response
             }
         },
         {
-            maxRetries: 3,
+            maxRetries: esIdempotente ? 3 : 1,
             delayMs: 500,
             maxDelayMs: 2000,
             label: `WhatsApp API (${url})`

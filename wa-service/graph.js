@@ -459,6 +459,14 @@ function processAgentReturn(state) {
   return 'auditor';
 }
 
+/** Tras las tools: si se cortó un bucle, el turno termina; si no, vuelve al agente. */
+function routeAfterTools(state) {
+  return state.loopBroken ? 'auditor' : 'salesAgent';
+}
+function routeAfterExecutiveTools(state) {
+  return state.loopBroken ? 'auditor' : 'executiveAgent';
+}
+
 // ── GRAFO DE AGENTES (LANGGRAPH) ──
 const GraphAnnotation = Annotation.Root({
   ...MessagesAnnotation.spec,
@@ -471,6 +479,15 @@ const GraphAnnotation = Annotation.Root({
   dailyContext: Annotation({ reducer: (_, v) => v, default: () => "" }),
   chatId: Annotation({ reducer: (_, v) => v, default: () => "" }),
   waId: Annotation({ reducer: (_, v) => v, default: () => "" }),
+  // 🔴 Estos dos canales SON el cortacircuitos de bucles de wrapToolNodeWithCycleDetection.
+  // Sin declararlos acá, LangGraph descarta en silencio las claves que el nodo
+  // devuelve y que no son canales (state.js filtra por outputKeys): `toolCallLog`
+  // quedaba SIEMPRE undefined, el corte nunca se activaba y el turno moría por
+  // recursionLimit → el cliente no recibía nada. No borrar sin borrar el detector.
+  // `toolCallLog` ACUMULA (una firma por paso por tools); se reinicia solo porque
+  // el estado es por invocación, así que repetir una consulta en otro turno es legítimo.
+  toolCallLog: Annotation({ reducer: (prev, v) => [...(prev || []), ...(Array.isArray(v) ? v : [v])], default: () => [] }),
+  loopBroken: Annotation({ reducer: (prev, v) => v ?? prev ?? false, default: () => false }),
 });
 
 const workflow = new StateGraph(GraphAnnotation)
@@ -484,15 +501,21 @@ const workflow = new StateGraph(GraphAnnotation)
   .addConditionalEdges("router", routeAfterRouter)
   .addConditionalEdges("salesAgent", processAgentReturn)
   .addConditionalEdges("executiveAgent", processAgentReturn)
-  .addEdge("salesTools", "salesAgent")
-  .addEdge("executiveTools", "executiveAgent")
+  // Si el cortacircuitos disparó, NO se vuelve al agente (volvería a pedir la
+  // misma tool): el turno se cierra por el auditor con la respuesta al cliente
+  // que el detector ya dejó en `messages`.
+  .addConditionalEdges("salesTools", routeAfterTools, ["salesAgent", "auditor"])
+  .addConditionalEdges("executiveTools", routeAfterExecutiveTools, ["executiveAgent", "auditor"])
   .addEdge("auditor", "__end__");
 
 // OJO: compile() NO acepta recursionLimit (lo ignora en silencio). El límite
 // real se pasa en el config de graph.invoke() — ver index.js.
 const graph = workflow.compile();
-module.exports = { 
+module.exports = {
   graph,
+  // Se exporta para poder verificar que los canales del cortacircuitos
+  // (toolCallLog / loopBroken) realmente persisten entre nodos.
+  GraphAnnotation,
   DEFAULT_SALES_PROMPT,
   DEFAULT_EXECUTIVE_PROMPT
 };

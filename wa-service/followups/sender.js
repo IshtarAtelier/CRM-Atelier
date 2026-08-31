@@ -16,6 +16,7 @@ const {
     TYPING_MS_PER_CHAR,
     TYPING_MIN_MS,
     TYPING_MAX_MS,
+    FOTO_POR_TIER,
 } = require('./config');
 
 /**
@@ -149,8 +150,14 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
         // pero el mensaje puede esperar en cola desde minutos hasta horas
         // (pausas de lote, límite horario, retención nocturna) y en ese lapso
         // el cliente pudo escribir o la tarea pudo cancelarse.
-        console.log(`  ✉️ ${logPrefix} Enviando mensaje a ${clientName} (${targetWaId.substring(0, 15)}...)`);
-        const sent = await sendMessage(targetWaId, messageText, null, {
+        // Foto del tier (hoy solo el DIA_4 lleva la fachada). La adjunta el
+        // sistema, NO el modelo: el prompt ya no puede escribir `[IMAGE:…]`.
+        // El texto va como caption, así el cliente recibe UNA sola burbuja.
+        const fotoDelTier = FOTO_POR_TIER[followUpType] || null;
+        const media = fotoDelTier ? { url: fotoDelTier } : null;
+
+        console.log(`  ✉️ ${logPrefix} Enviando mensaje a ${clientName} (${targetWaId.substring(0, 15)}...)${media ? ' con foto adjunta' : ''}`);
+        const sent = await sendMessage(targetWaId, messageText, media, {
             isProactive: true,
             preflight: async () => {
                 const recheck = await preSendValidation(chatId, waId);
@@ -196,7 +203,8 @@ async function sendFollowUp({ waId, text, chatId, label, clientName, followUpTyp
             create: {
                 chatId: chatId,
                 direction: 'OUTBOUND',
-                type: 'TEXT',
+                type: media ? 'IMAGE' : 'TEXT',
+                mediaUrl: media ? media.url : null,
                 content: TEST_MODE ? `[TEST] ${text}` : text,
                 waMessageId: msgSerializedId,
                 senderName: 'Bot',

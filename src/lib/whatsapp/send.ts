@@ -62,15 +62,43 @@ export interface SendWhatsAppResult {
     error?: string;
 }
 
-async function post(body: Record<string, unknown>): Promise<{ res: Response; json: Record<string, unknown> | null }> {
-    const res = await fetchWa('/api/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
+/**
+ * Resultado ambiguo: la request se cortó (timeout, socket, DNS, 502 del proxy)
+ * antes de saber qué pasó. El mensaje PUEDE haber salido — el wa-service
+ * ya se lo pudo haber pasado a Meta. Por eso `notSent` queda en false: los
+ * llamadores lo leen como "verificá si le llegó antes de reintentar", que es
+ * la verdad. Reintentar solo acá cuesta plata (Meta cobra por conversación) y
+ * le llega dos veces al cliente.
+ */
+const AMBIGUO = 'SEND_UNKNOWN';
+
+async function post(body: Record<string, unknown>): Promise<{ res: Response | null; json: Record<string, unknown> | null; networkError?: string }> {
+    let res: Response;
+    try {
+        res = await fetchWa('/api/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error('[sendWhatsApp] La request al wa-service se cortó sin respuesta:', msg);
+        return { res: null, json: null, networkError: msg };
+    }
     let json: Record<string, unknown> | null = null;
     try { json = await res.clone().json(); } catch { /* texto plano o vacío */ }
     return { res, json };
+}
+
+function resultadoAmbiguo(via: 'text' | 'template', detalle: string): SendWhatsAppResult {
+    return {
+        ok: false,
+        via,
+        notSent: false, // NO sabemos si salió: nunca prometer que no salió.
+        status: 502,
+        code: AMBIGUO,
+        error: `No hubo respuesta del servidor de WhatsApp (${detalle}). El mensaje PUDO haber salido.`,
+    };
 }
 
 export async function sendWhatsApp(input: SendWhatsAppInput): Promise<SendWhatsAppResult> {
@@ -92,14 +120,16 @@ export async function sendWhatsApp(input: SendWhatsAppInput): Promise<SendWhatsA
         const preview = (tpl.name in WHATSAPP_TEMPLATES && tpl.bodyParams)
             ? renderTemplate(tpl.name as TemplateName, tpl.bodyParams)
             : `[Plantilla ${tpl.name}]`;
-        const { res, json } = await post({ ...base, message: preview, media: input.templateMedia ?? base.media, template: tpl });
+        const { res, json, networkError } = await post({ ...base, message: preview, media: input.templateMedia ?? base.media, template: tpl });
+        if (!res) return resultadoAmbiguo('template', networkError || 'sin detalle');
         if (res.ok) return { ok: true, via: 'template', status: res.status };
         return { ok: false, via: 'template', status: res.status, code: String(json?.code ?? ''), error: String(json?.error ?? `HTTP ${res.status}`), notSent: json?.notSent === true };
     };
 
     if (input.forceTemplate && input.template) return asTemplate();
 
-    const { res, json } = await post(base);
+    const { res, json, networkError } = await post(base);
+    if (!res) return resultadoAmbiguo('text', networkError || 'sin detalle');
     if (res.ok) return { ok: true, via: 'text', status: res.status };
 
     const needsTemplate = res.status === 409 && json?.needsTemplate === true;
@@ -124,6 +154,7 @@ export function explainSendFailure(r: SendWhatsAppResult): string {
         case 'INVALID_NUMBER': return 'El número no tiene WhatsApp o está mal cargado en la ficha.';
         case 'RECIPIENT_NOT_ALLOWED': return 'El número de prueba de Meta solo puede escribirle a los números de la lista de prueba.';
         case 'TEMPLATE_ERROR': return 'La plantilla no está aprobada o las variables no coinciden con lo que Meta espera.';
+        case AMBIGUO: return 'El servidor de WhatsApp no respondió a tiempo. NO sabemos si el mensaje salió: abrí el chat y fijate antes de reenviarlo (si lo reenviás y ya había salido, al cliente le llega dos veces).';
         default: return r.error || 'No se pudo enviar el WhatsApp.';
     }
 }

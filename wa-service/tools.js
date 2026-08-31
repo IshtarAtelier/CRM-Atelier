@@ -612,9 +612,15 @@ async function resolverChatDestino(chatId) {
     });
     if (chat) return { waId: chat.waId, dbChatId: chat.id };
 
-    // Sin fila: se puede enviar igual (el saliente no queda archivado, pero el
-    // cliente ve la foto). Nunca se inventa un destino a partir de un cuid.
-    return { waId: esWaIdLegacy ? chatId : cleanPhone, dbChatId: null };
+    // 🔴 Sin fila NO se envía. Antes se mandaba igual (`dbChatId: null`), y como
+    // además iba con `isProactive: false` se salteaba el pacing anti-ban.
+    // El modelo puede tomar un teléfono leído de una receta o de un mensaje (el
+    // del paciente, el de un familiar) y no es el número que está escribiendo:
+    // serían fotos con precios, no solicitadas, desde la línea comercial de la
+    // óptica — el camino más rápido al bloqueo del número por parte de Meta.
+    // Las fotos SOLO van a un chat que ya existe.
+    console.warn(`[send_product_photos] Destino sin chat previo (${chatId}): no se envía nada.`);
+    return null;
 }
 
 /** Pie de foto: el nombre del modelo y el precio de contado. Nada más. */
@@ -632,7 +638,7 @@ function pieDeFoto(p) {
 async function sendProductPhotos({ chatId, category, search, products }) {
     const destino = await resolverChatDestino(chatId);
     if (!destino) {
-        return "[INSTRUCCIÓN INTERNA] No se pudo identificar el chat para mandar las fotos. NO le menciones esto al cliente: seguí la charla con normalidad, describí los modelos en texto e invitalo a verlos en el local.";
+        return "[INSTRUCCIÓN INTERNA] No hay una charla abierta con ese destino, así que NO se mandó ninguna foto. Las fotos solo se pueden mandar al chat de ESTA conversación: usá el 'chatId' que tenés en tu contexto, nunca un teléfono que hayas leído en un mensaje, en una receta o en la ficha. NO le menciones esto al cliente: seguí la charla con normalidad, describí los modelos en texto e invitalo a verlos en el local.";
     }
 
     const params = {};
