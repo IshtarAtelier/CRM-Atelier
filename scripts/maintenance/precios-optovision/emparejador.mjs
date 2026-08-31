@@ -68,6 +68,10 @@ const MATERIALES = [
     // solo por el círculo de color: una gris y otra de 8 colores, con $60.315
     // de diferencia. El nombre del producto ya dice cuál es.
     [/orma.*transitions.*colores/i, 'ORMA TRANSITIONS GEN S (colores)'],
+    // Kodak Softwear y SV Digital traen DOS filas "ORMA TRANSITIONS GEN S" con
+    // precios distintos y sin decir qué las diferencia (así está en el PDF). Se
+    // transcribieron las dos y el nombre del producto dice cuál es.
+    [/orma.*transitions.*(2ª|2a|segunda)/i, 'ORMA TRANSITIONS GEN S (2ª fila del PDF)'],
     [/orma.*transitions/i, 'ORMA TRANSITIONS GEN S'],
     [/airwear.*xperio/i, 'AIRWEAR 1.59 XPERIO'],
     [/orma.*xperio/i, 'ORMA XPERIO'],
@@ -150,6 +154,39 @@ const FAMILIAS_MONO = [
  * Alto Índice 1.74). El Numax es su antirreflejo y va APARTE del precio Sin AR
  * de la lista — y el 2x1 lo incluye siempre (Ishtar, 29/8/2026).
  */
+/**
+ * Las OTRAS líneas Sygnus: Monofocal Digital ONE, Bifocal y Driver. Se cargaron
+ * el 31/8/2026 y hay que reconocerlas ANTES de emparejarMonofocal, porque su
+ * nombre dice el material ("Stylis BLUE UV") y el genérico de monofocales las
+ * agarraba: un "SYGNUS MONOFOCAL ONE - Stylis BLUE UV" terminaba costeado con
+ * el renglón del Blue UV Filter System, que es otra lente y otro precio.
+ * Igual que NEW EDITION, su antirreflejo es el Numax y va aparte del precio.
+ */
+function emparejarSygnus(nombre) {
+    const LINEAS = [
+        [/sygnus\s*monofocal\s*one|monofocal\s*digital\s*one/i, 'Sygnus Monofocal Digital ONE'],
+        [/sygnus\s*bifocal/i, 'Sygnus Bifocal'],
+        [/sygnus\s*driver/i, 'Sygnus Driver'],
+    ];
+    const linea = LINEAS.find(([re]) => re.test(nombre));
+    if (!linea) return null;
+    const fam = datos.sygnus?.familias.find(f => f.familia === linea[1]);
+    const numax = datos.sygnus?.numax ?? 0;
+    if (!fam || !numax) return null;
+
+    // El material va después del guion; se compara normalizado contra la lista.
+    const norm = t => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const trasGuion = nombre.split(' - ').slice(1).join(' - ').replace(/\s*\+\s*AR\s*Numax.*$/i, '');
+    const fila = fam.filas.find(f => norm(f.material) === norm(trasGuion))
+        ?? fam.filas.find(f => norm(trasGuion).includes(norm(f.material)));
+    if (!fila) return null;
+    return {
+        familia: linea[1], material: `${fila.material} + AR Numax`,
+        tratamiento: 'AR Numax (el antirreflejo de la línea)',
+        lista: fila.precio + numax, rango: fila.rangos ?? fila.rango ?? null, seguro: true,
+    };
+}
+
 function emparejarNewEditions(nombre) {
     if (!/new\s*editions?/i.test(nombre)) return null;
     const ne = datos.sygnus?.familias.find(f => /NEW EDITION/i.test(f.familia));
@@ -284,7 +321,7 @@ export function emparejar(productos) {
         const fam = primero(FAMILIAS, nombre);
         if (!fam) {
             const faltaConocida = primero(FALTAN_EN_LISTA, nombre);
-            const mono = faltaConocida ? null : (emparejarNewEditions(nombre) ?? emparejarLenteStock(nombre) ?? emparejarMonofocal(nombre));
+            const mono = faltaConocida ? null : (emparejarSygnus(nombre) ?? emparejarNewEditions(nombre) ?? emparejarLenteStock(nombre) ?? emparejarMonofocal(nombre));
             if (mono) {
                 const nuevo = costoDe(mono.lista);
                 ok.push({ ...p, ...mono, esPromo: false, costoNuevo: nuevo,
