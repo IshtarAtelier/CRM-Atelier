@@ -22,7 +22,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { config } from 'dotenv';
-import { emparejar, MARKUP } from './emparejador.mjs';
+import { emparejar, MARKUP, congeladoSinAr } from './emparejador.mjs';
 
 config();
 
@@ -59,9 +59,13 @@ async function main() {
     // También los que tienen el PELADO viejo o incoherente aunque el cost ya
     // coincida (caso real: Saphire HR con baseCost de otra época): dejarlo
     // pasar deja una bomba para el próximo recálculo desde el pelado.
-    const cambian = ok.filter(p => Math.round(p.cost || 0) !== p.costoNuevo
-        || Math.round(p.baseCost || 0) !== Math.round(p.lista));
+    const cambian = ok.filter(p => !congeladoSinAr(p.name)
+        && (Math.round(p.cost || 0) !== p.costoNuevo
+            || Math.round(p.baseCost || 0) !== Math.round(p.lista)));
     const iguales = ok.length - cambian.length;
+    // Se listan: un congelado invisible es indistinguible de un producto que
+    // el emparejador no encontró.
+    const congelados = ok.filter(p => congeladoSinAr(p.name));
 
     console.log(`${productos.length} cristales · ${ok.length} emparejados` +
         ` (${sinLista.length} sin lista, ${porNombre.length} por el nombre)`);
@@ -76,6 +80,14 @@ async function main() {
             const alerta = mkNuevo != null && mkNuevo < MARKUP - 0.05 ? '  ← margen bajo' : '';
             console.log(`  ${String(p.name).slice(0, 40).padEnd(42)}${pesos(p.cost).padStart(12)}${pesos(p.costoNuevo).padStart(13)}` +
                 `${(mkHoy ? '×' + mkHoy.toFixed(2) : '—').padStart(12)}${(mkNuevo ? '×' + mkNuevo.toFixed(2) : '—').padStart(13)}${alerta}`);
+        }
+    }
+
+    if (congelados.length) {
+        console.log(`\n  🔒 ${congelados.length} CONGELADO(S) — dicen "sin AR/sin Crizal" en el nombre, no se tocan:`);
+        for (const p of congelados) {
+            console.log(`     ${String(p.name).slice(0, 50).padEnd(52)}costo queda en ${pesos(p.cost)}` +
+                `  (la lista daría ${pesos(p.costoNuevo)})`);
         }
     }
 

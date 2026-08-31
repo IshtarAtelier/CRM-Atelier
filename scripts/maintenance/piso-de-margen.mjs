@@ -19,6 +19,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { config } from 'dotenv';
+import { congeladoSinAr } from './precios-optovision/emparejador.mjs';
 
 config();
 
@@ -56,9 +57,13 @@ async function main() {
     //    del 50% para el que compra su PRIMER multifocal. Quedan a ×2,39 a
     //    propósito: el precio de entrada bajo es lo que hace a la promo, y
     //    subirlos al piso le sacaría la razón de existir.
+    // 3) Los "sin AR / sin Crizal" (Ishtar, 30/8/2026): el costo les sube por la
+    //    política del mejor Crizal y el piso les duplicaba el precio (Blue UV
+    //    ORMA: $289.832 → $586.473). Son lentes que el cliente compra peladas.
+    //    Congelados hasta que ella los revise. Misma regla que sincronizar-costos.
     const esSygnus = p => /new\s*editions?|sygnus/i.test(p.name || '');
     const esMiPrimer = p => /mi\s*primer/i.test(p.name || '');
-    const exceptuado = p => esSygnus(p) || esMiPrimer(p);
+    const exceptuado = p => esSygnus(p) || esMiPrimer(p) || congeladoSinAr(p.name);
     const bajos = cristales
         .filter(p => !exceptuado(p))
         .map(p => ({ ...p, mk: p.price / p.cost, nuevo: Math.ceil(p.cost * PISO) }))
@@ -78,8 +83,10 @@ async function main() {
     if (exentosBajoPiso.length) {
         console.log(`\n  ${exentosBajoPiso.length} exceptuado(s) que quedan bajo el piso A PROPÓSITO (no se tocan):`);
         for (const p of exentosBajoPiso) {
-            console.log(`    ×${(p.price / p.cost).toFixed(2)}  ${String(p.name).slice(0, 52).padEnd(54)}${pesos(p.price).padStart(12)}` +
-                `   ${esSygnus(p) ? 'Sygnus (precio de entrada)' : 'promo Mi Primer (50%)'}`);
+            const motivo = esSygnus(p) ? 'Sygnus (precio de entrada)'
+                : esMiPrimer(p) ? 'promo Mi Primer (50%)'
+                    : 'sin AR — congelado, a revisar';
+            console.log(`    ×${(p.price / p.cost).toFixed(2)}  ${String(p.name).slice(0, 52).padEnd(54)}${pesos(p.price).padStart(12)}   ${motivo}`);
         }
     }
 

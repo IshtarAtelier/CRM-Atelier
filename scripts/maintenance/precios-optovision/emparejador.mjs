@@ -79,6 +79,23 @@ const MATERIALES = [
 const primero = (tabla, texto) => tabla.find(([re]) => re.test(texto));
 
 /**
+ * CONGELADOS (Ishtar, 30/8/2026): los cristales cuyo NOMBRE dice que van sin
+ * antirreflejo no se tocan — ni el costo ni el precio.
+ *
+ * Por qué: la política del mejor Crizal les suma $95.680 de Prevencia al costo,
+ * y con el piso de ×2,5 encima el precio se iba al doble (Blue UV ORMA pasaba
+ * de $289.832 a $586.473, +102%). Son lentes que el cliente compra PELADAS: se
+ * le cobraría como si llevaran el mejor tratamiento. Quedan como están hasta
+ * que Ishtar los revise.
+ *
+ * El "(Stock)" queda AFUERA de esta lista a propósito: ese ya se costea de su
+ * propio renglón de la pág. 20, sin sumarle Crizal, así que nunca subió.
+ */
+export const congeladoSinAr = nombre =>
+    /sin\s*ar\b|sin\s*crizal/i.test(String(nombre || ''))
+    && !/\(stock\)|de\s*stock/i.test(String(nombre || ''));
+
+/**
  * POLÍTICA DEL CRIZAL MÁS CARO (Ishtar, 26/8/2026): todo cristal con Crizal se
  * costea —y se cobra— con la columna MÁS CARA de su renglón (hoy Prevencia).
  * El Crizal real que lleva el par es un dato de la VENTA (elección obligatoria
