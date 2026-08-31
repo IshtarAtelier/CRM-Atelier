@@ -29,6 +29,9 @@ const HOURS_WHATSAPP_BLOCK = '*Horarios:*\n   • Lunes a viernes de 8:00 a 20:0
  * BUSINESS_INFO.appointmentSlots — visita general al local (probarse armazones,
  * retirar, consultar). Coincide con el horario de atención.
  */
+/** BUSINESS_INFO.hours — el horario en una línea, para prosa. */
+const HOURS = 'Lunes a Viernes de 8:00 a 20:00. Sábados de 9:00 a 17:00';
+
 const APPOINTMENT_SLOTS = 'de 8:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 (Sábados)';
 
 /**
@@ -42,6 +45,16 @@ const APPOINTMENT_SLOTS = 'de 8:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 
 const EXAM_SLOTS = 'de 12:00 a 16:00 (la siesta)';
 
 /** BUSINESS_INFO.discountCashPercent */
+/**
+ * BUSINESS_INFO.websiteDisplay — el dominio público, para armar el link del
+ * catálogo. Se verifica contra src/ en npm run check:businessinfo.
+ */
+const WEBSITE_DISPLAY = 'atelieroptica.com.ar';
+
+/** BUSINESS_INFO.discountCashLocalPercent — efectivo EN MANO, en el local. */
+const DISCOUNT_CASH_LOCAL_PERCENT = 20;
+
+/** BUSINESS_INFO.discountCashPercent — el de la tienda web. */
 const DISCOUNT_CASH_PERCENT = 15;
 
 /** BUSINESS_INFO.discountTransferPercent */
@@ -57,8 +70,11 @@ const RECARGO_MP_CUOTAS_LARGAS = 10;
 module.exports = {
     ADDRESS,
     HOURS_WHATSAPP_BLOCK,
+    HOURS,
     APPOINTMENT_SLOTS,
     EXAM_SLOTS,
+    WEBSITE_DISPLAY,
+    DISCOUNT_CASH_LOCAL_PERCENT,
     DISCOUNT_CASH_PERCENT,
     DISCOUNT_TRANSFER_PERCENT,
     RECARGO_MP_CUOTAS_LARGAS,

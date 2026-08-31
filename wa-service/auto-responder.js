@@ -43,7 +43,8 @@ const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
 const { resolveWaMessageId } = require('./shared/message-id');
 const {
     ADDRESS,
-    HOURS_WHATSAPP_BLOCK,
+    WEBSITE_DISPLAY,
+    DISCOUNT_CASH_LOCAL_PERCENT,
     DISCOUNT_CASH_PERCENT,
     DISCOUNT_TRANSFER_PERCENT,
     RECARGO_MP_CUOTAS_LARGAS,
@@ -105,17 +106,28 @@ function buildAutoReplyText() {
         : `${DISCOUNT_CASH_PERCENT}% de descuento en efectivo y ${DISCOUNT_TRANSFER_PERCENT}% por transferencia`;
 
     return [
-        '¡Hola! Este es un *mensaje automático*: ahora estamos fuera del horario de atención. Apenas abramos te responde una persona del equipo.',
+        // Texto de Ishtar (31/8), pedido TEXTUAL: "así tal cual sin que le
+        // cambies NADA, ABSOLUTAMENTE nada". Va carácter por carácter como lo
+        // escribió — incluidas las palabras sin tilde: no son descuido nuestro,
+        // son su mensaje. Decisiones suyas ya reafirmadas, no "corregirlas":
+        //   · sin la etiqueta "mensaje automático"
+        //   · "(hasta 12 cuotas)" sin el 10% — excepción como el cartel de la
+        //     tienda (ver src/lib/business-info.ts)
+        //   · 20% efectivo = EN EL LOCAL (la web usa 15%; son dos descuentos)
+        // Por eso este bloque es literal y no usa las constantes del espejo.
+        'Bienvenidos a Atelier Optica, en este momento estamos fuera de horario laborar. ',
+        'Contanos un poquito qué estás necesitando y si tenes tu recetita asi vamos adelantando 👀',
+        'Mientras tanto podés ver los modelos disponibles en atelieroptica.com.ar',
         '',
-        HOURS_WHATSAPP_BLOCK,
+        '📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba',
+        '🕐 Lunes a viernes de 8 a 20 hs · Sábados de 9 a 17 hs',
         '',
-        `*Dónde estamos:* ${ADDRESS}`,
+        'Formas de pago:',
+        '- 20% de descuento en efectivo',
+        '- 15% de descuento por transferencia',
+        '- 3 y 6 cuotas sin interés con tarjeta (hasta 12 cuotas)',
         '',
-        `*Formas de pago:* ${efectivo}. Con tarjeta, 3 y 6 cuotas sin interés. Y 12 cuotas con Mercado Pago, que llevan un ${RECARGO_MP_CUOTAS_LARGAS}% de costo financiero.`,
-        '',
-        // Ojo: nada de "gracias por escribirnos" ni "te respondemos a la brevedad".
-        // Esas frases matchean shared/meta-auto-patterns.js y el check las rebota.
-        'Dejanos tu consulta acá y te la respondemos apenas abramos. ¡Te esperamos!',
+        'La óptica mejor calificada de Córdoba según las reseñas de Google ⭐',
     ].join('\n');
 }
 

@@ -64,6 +64,21 @@ export const BUSINESS_INFO = {
    * después no se le podía cumplir.
    */
   examSlots: "de 12:00 a 16:00 (la siesta)",
+  /**
+   * SON DOS DESCUENTOS DISTINTOS, no uno mal cargado (Ishtar, 31/8/2026):
+   *
+   *   - `discountCashLocalPercent` (20%): EFECTIVO EN MANO, EN EL LOCAL. Es el
+   *     que usa el cotizador por defecto (`admin/cotizador`: useState(20)) y el
+   *     que corresponde nombrar en cualquier pieza que invite a venir al local.
+   *   - `discountCashPercent` (15%): el de la TIENDA WEB. Online no se paga en
+   *     efectivo, así que en la web va a la par de transferencia.
+   *
+   * Hasta hoy había un solo número y las dos realidades se pisaban: la web y
+   * los mensajes decían 15% mientras el cotizador cobraba 20%, y ninguna de
+   * las dos estaba "mal" — faltaba distinguirlas. Antes de cambiar cualquiera
+   * de los dos, mirá a qué canal pertenece la superficie que estás tocando.
+   */
+  discountCashLocalPercent: 20,
   discountCashPercent: 15,
   discountTransferPercent: 15,
   // 27/8/2026 (acuerdo de Ishtar con Mercado Pago): se suman los 12 cuotas.

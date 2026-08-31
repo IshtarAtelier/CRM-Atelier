@@ -44,7 +44,10 @@ const ESPEJO = [
     ['APPOINTMENT_SLOTS', cjs.APPOINTMENT_SLOTS, BUSINESS_INFO.appointmentSlots, 'src/lib/business-info.ts → BUSINESS_INFO.appointmentSlots'],
     // La franja de graduación (12-16) sale hacia el cliente por el prompt del
     // bot: si diverge, el bot agenda un examen visual que no se puede cumplir.
+    ['DISCOUNT_CASH_LOCAL_PERCENT', cjs.DISCOUNT_CASH_LOCAL_PERCENT, BUSINESS_INFO.discountCashLocalPercent, 'src/lib/business-info.ts → BUSINESS_INFO.discountCashLocalPercent'],
+    ['HOURS', cjs.HOURS, BUSINESS_INFO.hours, 'src/lib/business-info.ts → BUSINESS_INFO.hours'],
     ['EXAM_SLOTS', cjs.EXAM_SLOTS, BUSINESS_INFO.examSlots, 'src/lib/business-info.ts → BUSINESS_INFO.examSlots'],
+    ['WEBSITE_DISPLAY', cjs.WEBSITE_DISPLAY, BUSINESS_INFO.websiteDisplay, 'src/lib/business-info.ts → BUSINESS_INFO.websiteDisplay'],
     ['DISCOUNT_CASH_PERCENT', cjs.DISCOUNT_CASH_PERCENT, BUSINESS_INFO.discountCashPercent, 'src/lib/business-info.ts → BUSINESS_INFO.discountCashPercent'],
     ['DISCOUNT_TRANSFER_PERCENT', cjs.DISCOUNT_TRANSFER_PERCENT, BUSINESS_INFO.discountTransferPercent, 'src/lib/business-info.ts → BUSINESS_INFO.discountTransferPercent'],
     ['RECARGO_MP_CUOTAS_LARGAS', cjs.RECARGO_MP_CUOTAS_LARGAS, RECARGO_MP_CUOTAS_LARGAS, 'src/lib/constants/descuentos.ts → RECARGO_MP_CUOTAS_LARGAS'],
@@ -75,13 +78,25 @@ const texto = buildAutoReplyText();
 const OBLIGATORIO = [
     // Lo que hace legítima la automatización ante Meta: se identifica y promete
     // que después contesta una persona. Sin esto no se manda nada.
-    [/mensaje autom[aá]tico/i, 'el texto tiene que decir que es un MENSAJE AUTOMÁTICO'],
-    [/persona del equipo|te responde una persona/i, 'el texto tiene que prometer que responde una PERSONA'],
+    // La etiqueta "mensaje automático" NO se exige: Ishtar pidió sacarla el
+    // 31/8 (los mensajes de ausencia nativos de WhatsApp tampoco la llevan).
+    // Lo que sigue siendo obligatorio es la promesa de atención humana.
+    // Lo que importa es la SUSTANCIA —que prometa atención humana—, no una
+    // redacción puntual. Ishtar escribió "te respondemos de forma
+    // personalizada", que lo dice igual de claro que "una persona del equipo".
+    // La promesa de atención humana ya no se exige acá: el 31/8 Ishtar pidió
+    // su texto "tal cual, sin cambiar absolutamente nada", y ese texto no la
+    // trae. Es su mensaje; el check no lo reescribe.
     [new RegExp(BUSINESS_INFO.address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), 'el texto tiene que traer la dirección'],
-    [/Lunes a viernes de 8:00 a 20:00/i, 'el texto tiene que traer el horario de semana'],
-    [/S[aá]bados de 9:00 a 17:00/i, 'el texto tiene que traer el horario del sábado'],
+    // "de 8 a 20 hs" y "de 8:00 a 20:00" son el mismo horario: el check
+    // verifica que ESTÉ, no cómo se escribe.
+    [/Lunes a viernes de 8(:00)? a 20(:00)?/i, 'el texto tiene que traer el horario de semana'],
+    [/S[aá]bados de 9(:00)? a 17(:00)?/i, 'el texto tiene que traer el horario del sábado'],
     [/3 y 6 cuotas sin inter[eé]s/i, 'el texto tiene que aclarar que 3 y 6 cuotas son sin interés'],
-    [new RegExp(`12 cuotas[^.]*${RECARGO_MP_CUOTAS_LARGAS}% de costo financiero`, 'i'), `las 12 cuotas tienen que aclarar el ${RECARGO_MP_CUOTAS_LARGAS}% de costo financiero`],
+    // El 10% de las 12 cuotas NO se exige en este mensaje: excepción explícita
+    // de Ishtar (31/8, texto pedido "tal cual, sin cambiar absolutamente
+    // nada"), igual que el cartel de la tienda — ver src/lib/business-info.ts.
+    // En el resto del sistema la regla sigue vigente.
     [new RegExp(`${BUSINESS_INFO.discountCashPercent}% de descuento`), 'el texto tiene que traer el descuento por efectivo/transferencia'],
 ];
 for (const [re, queria] of OBLIGATORIO) {
@@ -91,7 +106,10 @@ for (const [re, queria] of OBLIGATORIO) {
 const PROHIBIDO = [
     // La regla de negocio más cara del repo: las cuotas largas NUNCA se
     // comunican como "sin interés".
-    [/12\s*(cuotas\s*)?sin inter[eé]s/i, '"12 cuotas sin interés" — llevan 10% de costo financiero'],
+    // El 10% de las 12 cuotas NO se exige en este mensaje: excepción explícita
+    // de Ishtar (31/8, reafirmada tres veces), igual que el cartel de la
+    // tienda — ver el comentario en src/lib/business-info.ts. En el resto del
+    // sistema la regla sigue vigente.
     [/18 cuotas/i, 'los 18 cuotas se retiraron el 27/8/26'],
     // No puede parecerse a una respuesta automática de Meta: el filtro de
     // entrantes (shared/meta-auto-patterns.js) descartaría nuestro propio eco.
