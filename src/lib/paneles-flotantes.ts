@@ -19,6 +19,31 @@ import { useEffect } from 'react';
  */
 
 const EVENTO = 'panel-flotante-abierto';
+const EVENTO_ABRIR = 'panel-flotante-abrir';
+
+/**
+ * Pide abrir un panel desde afuera (hoy: los botones del cajón de Accesos).
+ * Los disparadores viven en la barra de Accesos y los paneles en el layout:
+ * este evento es el cable entre los dos sin que ninguno importe al otro.
+ */
+export function pedirAbrirPanel(nombre: string) {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(EVENTO_ABRIR, { detail: nombre }));
+}
+
+/** Del lado del panel: abrirse cuando alguien lo pide por nombre. */
+export function useAbrirPanelRemoto(nombre: string, abrir: () => void) {
+    useEffect(() => {
+        const alPedir = (e: Event) => {
+            if ((e as CustomEvent<string>).detail === nombre) {
+                avisarPanelAbierto(nombre); // cierra al otro
+                abrir();
+            }
+        };
+        window.addEventListener(EVENTO_ABRIR, alPedir);
+        return () => window.removeEventListener(EVENTO_ABRIR, alPedir);
+    }, [nombre, abrir]);
+}
 
 /** Avisa que este panel se abrió: los demás se cierran solos. */
 export function avisarPanelAbierto(nombre: string) {

@@ -9,7 +9,6 @@ import { trackPhoneClick } from "@/lib/tracking";
 import { usePathname } from "next/navigation";
 
 export function FloatingWhatsApp({ message, productName }: { message?: string; productName?: string } = {}) {
-  const [tiempoCumplido, setTiempoCumplido] = useState(false);
   // Arranca en true (oculto) hasta comprobar si esta página declara un hero con
   // su propio CTA: es mejor tardar un tick que pisar el botón principal.
   const [heroTapando, setHeroTapando] = useState(true);
@@ -19,16 +18,6 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   const [isOptica, setIsOptica] = useState(false);
   const [tituloNota, setTituloNota] = useState<string | null>(null);
   const pathname = usePathname();
-
-  // 1,5s, no 5s: WhatsApp es el canal donde se cierra la venta de ticket alto y
-  // este es el botón más visible del sitio. A los 5 segundos, buena parte del
-  // tráfico pago de celular ya se fue sin haberlo visto nunca.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setTiempoCumplido(true);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Una pantalla que trae su propio CTA a WhatsApp se marca con `data-hero`
   // (hoy: el hero de la home). Mientras ese bloque está a la vista, la burbuja
@@ -50,7 +39,15 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     return () => io.disconnect();
   }, [pathname]);
 
-  const isVisible = tiempoCumplido && !heroTapando;
+  // Pedido de Ishtar (31/8): el botón de WhatsApp está SIEMPRE, en todas las
+  // páginas públicas, sin excepción. Antes se ocultaba mientras el hero con su
+  // propio CTA estaba a la vista (y no aparecía hasta 1,5 s).
+  //
+  // Ocultarlo era la forma barata de no pisar al CTA del hero ni a la barra
+  // fija de /capsulaescarlata. Ahora, en vez de desaparecer, se CORRE hacia
+  // arriba: sigue siempre disponible y nunca queda encima de otro botón.
+  const isVisible = true;
+  const corridoArriba = heroTapando || pathname?.startsWith("/capsulaescarlata");
 
   useEffect(() => {
     try {
@@ -89,14 +86,11 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
     setTituloNota(texto ? (texto.length > 80 ? `${texto.slice(0, 79).trimEnd()}…` : texto) : null);
   }, [pathname]);
 
-  // El catálogo (/capsulaescarlata) ya trae su propia barra de CTA con WhatsApp
-  // fija abajo (mismo ancho de pantalla): la burbuja flotante quedaba superpuesta.
-  if (
-    pathname?.startsWith("/admin") ||
-    pathname?.startsWith("/login") ||
-    pathname?.startsWith("/mayorista") ||
-    pathname?.startsWith("/capsulaescarlata")
-  ) {
+  // Solo el CRM queda afuera: /admin y /login no son la página pública, y el
+  // panel de administración tiene su propia ventanita de WhatsApp (la del
+  // buzón). /mayorista y /capsulaescarlata SÍ lo llevan — con el número y el
+  // tono de Cápsula Escarlata, que ya resuelve `isOptica` más abajo.
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/login")) {
     return null;
   }
 
@@ -134,7 +128,7 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div className={`fixed right-6 z-50 flex flex-col items-end gap-3 transition-[bottom] duration-300 ${corridoArriba ? 'bottom-28 md:bottom-32' : 'bottom-6'}`}>
       
       {/* Tooltip de Invitación tipo Chat Bubble.
           La animación va por CSS (`.wa-tooltip-in`, ya definida en globals.css con

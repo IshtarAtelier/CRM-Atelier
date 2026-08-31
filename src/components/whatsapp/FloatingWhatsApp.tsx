@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { avisarPanelAbierto, usePanelExclusivo } from '@/lib/paneles-flotantes';
+import { avisarPanelAbierto, usePanelExclusivo, useAbrirPanelRemoto } from '@/lib/paneles-flotantes';
 import { usePathname, useRouter } from 'next/navigation';
 import { Minimize2 } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
@@ -45,6 +45,9 @@ export function FloatingWhatsApp() {
     // El Copilot y esta ventanita se dibujan en el MISMO rectángulo: solo uno
     // puede estar abierto a la vez, si no se tapan entre ellos.
     usePanelExclusivo('whatsapp', abierto, useCallback(() => setAbierto(false), []));
+    // El disparador vive en la barra de Accesos, no acá: este componente ya no
+    // dibuja un botón redondo propio.
+    useAbrirPanelRemoto('whatsapp', useCallback(() => setAbierto(true), []));
     const [soloNoLeidos, setSoloNoLeidos] = useState(true);
     const [texto, setTexto] = useState('');
     const [adjunto, setAdjunto] = useState<AdjuntoMedia | null>(null);
@@ -134,23 +137,9 @@ export function FloatingWhatsApp() {
 
     return (
         <>
-            {/* Botón redondo. Va por encima del Copilot, que ocupa la esquina. */}
-            <button
-                type="button"
-                onClick={() => { avisarPanelAbierto('whatsapp'); setAbierto(true); }}
-                aria-label={unreadTotal > 0 ? `Abrir WhatsApp, ${unreadTotal} sin leer` : 'Abrir WhatsApp'}
-                title="WhatsApp (⌘⇧W)"
-                className={`fixed bottom-24 md:bottom-28 right-4 md:right-8 z-[90] w-14 h-14 rounded-full bg-emerald-700 text-white shadow-xl shadow-emerald-700/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-700 ${
-                    abierto ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'
-                }`}
-            >
-                <WhatsAppIcon className="w-7 h-7" />
-                {unreadTotal > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-6 h-6 px-1.5 rounded-full bg-red-600 text-white text-[11px] font-black flex items-center justify-center border-2 border-white dark:border-stone-900">
-                        {unreadTotal > 99 ? '99+' : unreadTotal}
-                    </span>
-                )}
-            </button>
+            {/* El botón vive en la barra de Accesos (FloatingDock), junto al
+                Copilot y a los accesos rápidos: todo en una sola píldora en vez
+                de botones sueltos apilados en la esquina. */}
 
             {/* El panel */}
             <div
