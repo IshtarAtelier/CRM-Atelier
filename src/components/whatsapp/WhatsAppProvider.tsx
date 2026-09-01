@@ -288,12 +288,25 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
                 // La API trae la ÚLTIMA página; las más viejas que la persona ya
                 // scrolleó se conservan. Antes esto reemplazaba la lista entera
                 // y el latido de 15 s "rebobinaba" el hilo a los últimos 60.
-                const ids = new Set(data.map((m: Message) => m.id));
-                const inicioVentana = new Date(data[0].createdAt).getTime();
-                const anteriores = actuales.filter(
-                    m => !ids.has(m.id) && new Date(m.createdAt).getTime() < inicioVentana,
+                //
+                // Unión por id, NO por corte de timestamp: un mensaje que empata
+                // al milisegundo con el borde de la ventana (mismo createdAt que
+                // el más viejo de los 60 recién traídos) fallaba las dos
+                // condiciones de un filtro por tiempo — ni entraba en la página
+                // nueva (Postgres puede desempatar distinto entre corridas) ni
+                // pasaba el `< inicioVentana` por ser igual, no menor — y
+                // desaparecía del hilo en silencio. Los `temp_...` (la burbuja
+                // optimista de un envío en curso) se descartan siempre acá: si
+                // el envío salió bien, el mensaje real ya viene en `data`; si
+                // falló, `quitarOptimista` en `enviar()` ya se ocupó.
+                const porId = new Map(
+                    actuales.filter(m => !m.id.startsWith('temp_')).map(m => [m.id, m] as const),
                 );
-                return { ...prev, [chatId]: [...anteriores, ...data] };
+                for (const m of data) porId.set(m.id, m as Message);
+                const fusion = Array.from(porId.values()).sort(
+                    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+                );
+                return { ...prev, [chatId]: fusion };
             });
         } catch {
             setErrorCarga(true);
