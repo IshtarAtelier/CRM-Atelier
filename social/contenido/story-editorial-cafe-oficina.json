@@ -1,0 +1,17 @@
+{
+  "id": "story-editorial-cafe-oficina",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "estilo",
+  "caption": "Anteojos que trabajan tanto como vos. Cristales con filtro para pantallas, medidos acá. #opticacordoba #anteojos",
+  "temas": ["oficina", "editorial"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "editorial/junio26-cafe-notebook.jpg",
+      "title": "Del café *a la pantalla*",
+      "subtitle": "Anteojos que trabajan tanto como vos. Con filtro para pantallas, si tu día es frente al monitor."
+    }
+  ]
+}

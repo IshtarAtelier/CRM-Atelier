@@ -1,0 +1,34 @@
+{
+  "id": "feed-editorial-temporada-sol",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "estilo",
+  "caption": "La temporada de sol ya se está probando en Atelier. De inspiración vintage a clásicos de siempre, con o sin receta. Vení a elegir el tuyo. #opticacordoba #lentesdesol #cerrodelasrosas",
+  "temas": ["sol", "editorial"],
+  "images_waived": "Carrusel editorial de campaña: la foto ES el contenido de cada slide, con texto breve encima. Un slide de solo texto rompería la pieza.",
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "editorial/junio26-pose-pared.jpg",
+      "title": "La temporada de sol *ya se está probando*",
+      "subtitle": "Editorial Atelier · Córdoba"
+    },
+    {
+      "type": "list",
+      "image": "editorial/junio26-flatlay-sol.jpg",
+      "title": "Un par para *cada carácter*",
+      "items": [
+        "Siluetas chicas de inspiración vintage",
+        "Clásicos negros que van con todo",
+        "Carey y color para las que se animan"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "editorial/junio26-carey-argyle.jpg",
+      "title": "Vení a elegir el tuyo"
+    }
+  ]
+}

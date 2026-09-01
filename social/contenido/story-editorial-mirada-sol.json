@@ -1,0 +1,17 @@
+{
+  "id": "story-editorial-mirada-sol",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "estilo",
+  "caption": "La temporada de sol ya se está probando. Lentes de sol con y sin receta, para elegir con calma en el local. #opticacordoba #lentesdesol",
+  "temas": ["sol", "editorial"],
+  "slides": [
+    {
+      "type": "cover",
+      "role": "portada",
+      "image": "editorial/junio26-modelo-sol-vertical.jpg",
+      "title": "El sol *se mira de frente*",
+      "subtitle": "Lentes de sol con y sin receta. Vení a probártelos."
+    }
+  ]
+}

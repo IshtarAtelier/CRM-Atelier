@@ -132,20 +132,19 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   es `esMpCuotasLargas()` en `src/lib/payment-card.ts`, y su espejo SQL vive en
   el filtro "con saldo" de `src/app/api/orders/route.ts` — se tocan juntos. Un
   pago MP 12 vale `monto ÷ 1,10` de lista para el saldo.
-- **El 10% de las 12 cuotas SE ACLARA SIEMPRE, en toda superficie** — decisión
-  explícita de Ishtar del **31/8/2026**, no una preferencia de estilo. Aplica a
-  tienda, checkout, PDFs, mails, plantillas de WhatsApp, prompts del bot, piezas
-  de redes, anuncios y blog. **Nunca** se dice ni se insinúa que las 12 son "sin
-  interés": sin interés son solo 3 y 6, y "y ahora TAMBIÉN hasta 12 cuotas"
-  cuenta como insinuarlo. Por qué está escrito así de fuerte: hasta ese día el
-  repo tenía dos reglas peleándose —`business-info.ts`, los generadores de redes
-  y los scripts de ads decían "nunca el %", mientras CLAUDE.md, `PricingService`
-  y los PDFs pedían lo contrario—, y ganaba la que estuviera escrita más cerca
-  del archivo que se tocaba. Si aparece un comentario que diga "nunca el %",
-  está desactualizado: se borra. El número sale de `RECARGO_MP_CUOTAS_LARGAS`
-  (`src/lib/constants/descuentos.ts`) y la redacción única de
-  `src/lib/promo-cuotas.ts` (y de `scripts/social/condiciones-pago.mjs` para las
-  piezas de redes) — nunca un "10" ni un "1.10" tipeado a mano.
+- **12 cuotas en marketing: se dice "hasta 12 cuotas con Mercado Pago", SIN el
+  porcentaje** — decisión de Ishtar del **31/8/2026 (noche)**, que REEMPLAZA a la
+  de esa misma mañana que pedía aclarar el 10% en toda superficie. En anuncios,
+  redes, landings y captions el % no se menciona ("que deje el resto a la
+  imaginación"). Lo que NO cambió: **nunca** se dice ni se insinúa que las 12
+  son "sin interés" (sin interés son solo 3 y 6), y donde se muestra un IMPORTE
+  de cuota (checkout, fichas, PDFs), ese importe sale de `PricingService` /
+  `leerPromoCuotas()` con el recargo adentro (lista × 1,10 ÷ 12) — el número
+  real no se disfraza. El recargo vive en `RECARGO_MP_CUOTAS_LARGAS`
+  (`src/lib/constants/descuentos.ts`) y la redacción en `src/lib/promo-cuotas.ts`
+  y `scripts/social/condiciones-pago.mjs` — nunca un "10" ni un "1.10" tipeado a
+  mano. Ojo: esos dos helpers todavía tienen la redacción vieja con el "(10% de
+  costo financiero)" — pendiente de actualizar.
 - **`web_promo_installments` es texto libre y solo lo interpreta
   `leerPromoCuotas()`** (`src/lib/promo-cuotas.ts`). Acepta únicamente 3 o 6:
   cualquier otro número cae al default. Estaba parseado a mano con
