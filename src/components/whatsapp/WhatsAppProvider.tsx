@@ -29,6 +29,7 @@ import { usePathname } from 'next/navigation';
 import type { Chat, Message, Tag, VistaWhatsApp, WhatsAppStatus } from './types';
 import { WHATSAPP_TEMPLATES, renderTemplate, type TemplateName } from '@/lib/whatsapp/templates';
 import { linkAlChat } from '@/lib/whatsapp/links';
+import { PAGINA_MENSAJES } from '@/lib/whatsapp/paginacion';
 import { saludoSegunHora } from './format';
 
 const INBOX_CACHE_KEY = 'wa-inbox-cache-v1';
@@ -65,6 +66,10 @@ interface DatosWhatsApp {
     selectedChatId: string | null;
     chatSeleccionado: Chat | null;
     messagesByChat: Record<string, Message[]>;
+    /** Por chat: true = el hilo ya se cargó hasta el primer mensaje. */
+    sinAnteriores: Record<string, boolean>;
+    /** Hay una página anterior en vuelo (para el cartelito del hilo). */
+    cargandoAnteriores: boolean;
     tags: Tag[];
     agentEnabled: boolean;
     followupsEnabled: boolean;
@@ -95,6 +100,8 @@ interface AccionesWhatsApp {
     toggleBot: (chatId: string, activo: boolean) => Promise<void>;
     refrescarChats: () => Promise<void>;
     refrescarMensajes: (chatId: string) => Promise<void>;
+    /** Trae la página anterior del hilo (scroll hacia arriba). */
+    cargarMensajesAnteriores: (chatId: string) => Promise<void>;
     refrescarStatus: () => Promise<void>;
     refrescarTags: () => Promise<void>;
     setAgentEnabled: (v: boolean) => void;
@@ -115,6 +122,8 @@ const DATOS_VACIOS: DatosWhatsApp = {
     selectedChatId: null,
     chatSeleccionado: null,
     messagesByChat: {},
+    sinAnteriores: {},
+    cargandoAnteriores: false,
     tags: [],
     agentEnabled: false,
     followupsEnabled: true,
@@ -182,8 +191,15 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
     const primeraCarga = useRef(true);
     /** `chats` fresco dentro de acciones que no deben depender de él. */
     const chatsRef = useRef<Chat[]>([]);
+    /** `messagesByChat` fresco dentro de acciones estables (paginación). */
+    const messagesRef = useRef<Record<string, Message[]>>({});
+    /** Por chat: true = ya se llegó al principio del hilo, no hay más para pedir. */
+    const [sinAnteriores, setSinAnteriores] = useState<Record<string, boolean>>({});
+    const [cargandoAnteriores, setCargandoAnteriores] = useState(false);
+    const cargandoAnterioresRef = useRef(false);
 
     useEffect(() => { chatsRef.current = chats; }, [chats]);
+    useEffect(() => { messagesRef.current = messagesByChat; }, [messagesByChat]);
     useEffect(() => { selectedChatIdRef.current = selectedChatId; }, [selectedChatId]);
     useEffect(() => { chatsCargadosRef.current = chatsCargados; }, [chatsCargados]);
 
@@ -261,9 +277,62 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
                 return;
             }
             setErrorCarga(false);
-            setMessagesByChat(prev => ({ ...prev, [chatId]: data }));
+            // La primera página corta de 60 quiere decir que el hilo entero ya
+            // está a la vista: no hay nada anterior que ofrecer.
+            if (data.length < PAGINA_MENSAJES) {
+                setSinAnteriores(prev => (prev[chatId] ? prev : { ...prev, [chatId]: true }));
+            }
+            setMessagesByChat(prev => {
+                const actuales = prev[chatId] || [];
+                if (data.length === 0) return { ...prev, [chatId]: [] };
+                // La API trae la ÚLTIMA página; las más viejas que la persona ya
+                // scrolleó se conservan. Antes esto reemplazaba la lista entera
+                // y el latido de 15 s "rebobinaba" el hilo a los últimos 60.
+                const ids = new Set(data.map((m: Message) => m.id));
+                const inicioVentana = new Date(data[0].createdAt).getTime();
+                const anteriores = actuales.filter(
+                    m => !ids.has(m.id) && new Date(m.createdAt).getTime() < inicioVentana,
+                );
+                return { ...prev, [chatId]: [...anteriores, ...data] };
+            });
         } catch {
             setErrorCarga(true);
+        }
+    }, []);
+
+    /**
+     * Trae la página anterior del hilo (scroll hacia arriba). Serializado: un
+     * segundo pedido mientras hay uno en vuelo se ignora — el scroll dispara
+     * muchos eventos por segundo y cada página son 60 mensajes con sus URLs
+     * firmadas.
+     */
+    const cargarMensajesAnteriores = useCallback(async (chatId: string) => {
+        if (cargandoAnterioresRef.current) return;
+        const actuales = messagesRef.current[chatId] || [];
+        const masViejo = actuales.find(m => !m.id.startsWith('temp_'));
+        if (!masViejo) return;
+        cargandoAnterioresRef.current = true;
+        setCargandoAnteriores(true);
+        try {
+            const res = await fetch(
+                `/api/whatsapp/chats/${chatId}/messages?before=${encodeURIComponent(masViejo.createdAt)}`,
+            );
+            const data = await res.json();
+            if (!res.ok || !Array.isArray(data)) return;
+            if (data.length < PAGINA_MENSAJES) {
+                setSinAnteriores(prev => ({ ...prev, [chatId]: true }));
+            }
+            if (data.length > 0) {
+                setMessagesByChat(prev => {
+                    const lista = prev[chatId] || [];
+                    const ids = new Set(lista.map(m => m.id));
+                    const nuevos = data.filter((m: Message) => !ids.has(m.id));
+                    return { ...prev, [chatId]: [...nuevos, ...lista] };
+                });
+            }
+        } catch { /* volver a scrollear arriba lo reintenta */ } finally {
+            cargandoAnterioresRef.current = false;
+            setCargandoAnteriores(false);
         }
     }, []);
 
@@ -314,6 +383,48 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
             setErrorCarga(true);
         }
     }, [agregarEvento]);
+
+    // ── Coalescer de refetches ────────────────────
+    // Cada evento de socket pedía SU fetch completo de la lista y del contador:
+    // una ráfaga de diez mensajes (el bot contestando, los ecos de una charla
+    // atendida desde el celular) eran diez GET /chats casi simultáneos. Los
+    // manejadores ahora solo PIDEN el refresco; el fetch sale una única vez,
+    // cerrada la ventana, con todo lo acumulado adentro.
+    const pedidoChats = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pedidoContador = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pedidoMensajes = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const pedirRefrescoChats = useCallback(() => {
+        if (pedidoChats.current) return;
+        pedidoChats.current = setTimeout(() => {
+            pedidoChats.current = null;
+            if (chatsCargadosRef.current) refrescarChats();
+        }, 700);
+    }, [refrescarChats]);
+
+    const pedirRefrescoContador = useCallback(() => {
+        if (pedidoContador.current) return;
+        pedidoContador.current = setTimeout(() => {
+            pedidoContador.current = null;
+            refrescarContador();
+        }, 700);
+    }, [refrescarContador]);
+
+    // Solo el chat que la persona está mirando; la ventana es más corta para
+    // que el mensaje nuevo aparezca al toque igual.
+    const pedirRefrescoMensajes = useCallback(() => {
+        if (pedidoMensajes.current) return;
+        pedidoMensajes.current = setTimeout(() => {
+            pedidoMensajes.current = null;
+            if (selectedChatIdRef.current) refrescarMensajes(selectedChatIdRef.current);
+        }, 300);
+    }, [refrescarMensajes]);
+
+    useEffect(() => () => {
+        if (pedidoChats.current) clearTimeout(pedidoChats.current);
+        if (pedidoContador.current) clearTimeout(pedidoContador.current);
+        if (pedidoMensajes.current) clearTimeout(pedidoMensajes.current);
+    }, []);
 
     // Cache local: pinta la última lista conocida al instante. Solo alimenta el
     // primer render — las notificaciones de leads siguen ancladas al fetch real.
@@ -371,21 +482,21 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
                 });
 
                 s.on('chat_updated', ({ chatId }: { chatId: string }) => {
-                    refrescarContador();
-                    if (chatsCargadosRef.current) refrescarChats();
-                    if (selectedChatIdRef.current === chatId) refrescarMensajes(chatId);
+                    pedirRefrescoContador();
+                    pedirRefrescoChats();
+                    if (selectedChatIdRef.current === chatId) pedirRefrescoMensajes();
                 });
 
                 s.on('chat_read_status', () => {
-                    refrescarContador();
-                    if (chatsCargadosRef.current) refrescarChats();
+                    pedirRefrescoContador();
+                    pedirRefrescoChats();
                 });
 
                 s.on('new_message_received', (d: { chatId: string; name: string; phone: string; content: string }) => {
-                    refrescarContador();
-                    if (chatsCargadosRef.current) refrescarChats();
+                    pedirRefrescoContador();
+                    pedirRefrescoChats();
                     if (selectedChatIdRef.current === d.chatId) {
-                        refrescarMensajes(d.chatId);
+                        pedirRefrescoMensajes();
                         return; // ya lo está mirando: ni toast ni cartel
                     }
                     agregarEvento('MESSAGE', { ...d });
@@ -445,7 +556,7 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
         refrescarContador();
 
         return () => { cancelado = true; socket?.disconnect(); };
-    }, [refrescarChats, refrescarContador, refrescarMensajes, agregarEvento, notificar]);
+    }, [pedirRefrescoChats, pedirRefrescoContador, pedirRefrescoMensajes, refrescarContador, agregarEvento, notificar]);
 
     // ── El latido ─────────────────────────────────
     // 15 s mirando el buzón; 2 minutos de fondo, donde solo importa la badge.
@@ -740,6 +851,8 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
         selectedChatId,
         chatSeleccionado,
         messagesByChat,
+        sinAnteriores,
+        cargandoAnteriores,
         tags,
         agentEnabled,
         followupsEnabled,
@@ -748,17 +861,19 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
         eventos,
         enviando,
     }), [status, cargandoStatus, chats, chatsCargados, errorCarga, unreadTotal, selectedChatId, chatSeleccionado,
-        messagesByChat, tags, agentEnabled, followupsEnabled, promptDelServicio, vista, eventos, enviando]);
+        messagesByChat, sinAnteriores, cargandoAnteriores, tags, agentEnabled, followupsEnabled,
+        promptDelServicio, vista, eventos, enviando]);
 
     // Identidad ESTABLE: si este objeto cambiara, todo el panel se re-renderizaría
     // con cada mensaje que entra, que es justo lo que separar los contextos evita.
     const acciones = useMemo<AccionesWhatsApp>(() => ({
         activarBuzon, abrirChat, cerrarChat, setVista, marcarLeido, enviar, enviarPlantilla,
         actualizarChat, aplicarChatLocal, toggleBot, refrescarChats, refrescarMensajes,
-        refrescarStatus, refrescarTags, setAgentEnabled, setFollowupsEnabled, descartarEvento, notificar,
+        cargarMensajesAnteriores, refrescarStatus, refrescarTags, setAgentEnabled,
+        setFollowupsEnabled, descartarEvento, notificar,
     }), [activarBuzon, abrirChat, cerrarChat, marcarLeido, enviar, enviarPlantilla, actualizarChat,
-        aplicarChatLocal, toggleBot, refrescarChats, refrescarMensajes, refrescarStatus, refrescarTags,
-        setAgentEnabled, setFollowupsEnabled, descartarEvento, notificar]);
+        aplicarChatLocal, toggleBot, refrescarChats, refrescarMensajes, cargarMensajesAnteriores,
+        refrescarStatus, refrescarTags, setAgentEnabled, setFollowupsEnabled, descartarEvento, notificar]);
 
     return (
         <AccionesContext.Provider value={acciones}>

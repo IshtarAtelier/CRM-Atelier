@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { prisma } from '@/lib/db';
-
-/** Cuántos mensajes trae una carga. El buzón muestra el final de la charla. */
-const TOPE_MENSAJES = 60;
+import { PAGINA_MENSAJES } from '@/lib/whatsapp/paginacion';
 
 // GET /api/whatsapp/chats/[id]/messages?before=<ISO>
 //
@@ -38,7 +36,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
                 ...(cursorValido ? { createdAt: { lt: cursorValido } } : {}),
             },
             orderBy: { createdAt: 'desc' },
-            take: TOPE_MENSAJES,
+            take: PAGINA_MENSAJES,
             select: {
                 id: true,
                 chatId: true,

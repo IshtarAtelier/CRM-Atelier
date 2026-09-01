@@ -10,9 +10,11 @@
  *  - con el buscador abierto nunca salta: te arrancaría el resultado de la vista.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import { formatDateDivider } from '../format';
 import { MessageBubble } from './MessageBubble';
+import { useWhatsAppAcciones, useWhatsAppDatos } from '../WhatsAppProvider';
+import { PAGINA_MENSAJES } from '@/lib/whatsapp/paginacion';
 import type { Message } from '../types';
 
 export interface ConversationHandle {
@@ -35,6 +37,31 @@ export const ConversationView = forwardRef<ConversationHandle, ConversationViewP
         const cajaRef = useRef<HTMLDivElement>(null);
         const finRef = useRef<HTMLDivElement>(null);
         const ultimoChatScrolleado = useRef<string | null>(null);
+
+        // ── Paginación hacia atrás ────────────────
+        // La API trae de a 60 (`PAGINA_MENSAJES`); scrollear cerca del techo
+        // pide la página anterior y se recoloca el scroll para que el mensaje
+        // que se estaba leyendo no se mueva. Vive acá y no en las pantallas:
+        // el buzón completo y la ventana flotante lo heredan igual.
+        const { sinAnteriores, cargandoAnteriores } = useWhatsAppDatos();
+        const { cargarMensajesAnteriores } = useWhatsAppAcciones();
+        const pidiendoAnteriores = useRef(false);
+        const hayAnteriores = mensajes.length >= PAGINA_MENSAJES && !sinAnteriores[chatId];
+
+        const onScroll = useCallback(async () => {
+            const caja = cajaRef.current;
+            if (!caja || pidiendoAnteriores.current || !hayAnteriores) return;
+            if (caja.scrollTop > 120) return;
+            pidiendoAnteriores.current = true;
+            const alturaPrevia = caja.scrollHeight;
+            const topPrevio = caja.scrollTop;
+            await cargarMensajesAnteriores(chatId);
+            requestAnimationFrame(() => {
+                const c = cajaRef.current;
+                if (c) c.scrollTop = c.scrollHeight - alturaPrevia + topPrevio;
+                pidiendoAnteriores.current = false;
+            });
+        }, [cargarMensajesAnteriores, chatId, hayAnteriores]);
 
         useImperativeHandle(ref, () => ({
             irAlFinal: (suave = true) => {
@@ -65,8 +92,19 @@ export const ConversationView = forwardRef<ConversationHandle, ConversationViewP
         return (
             <div
                 ref={cajaRef}
-                className={`flex-1 overflow-y-auto ${compacto ? 'px-3 py-4 space-y-3' : 'px-6 py-8 space-y-6'} custom-scrollbar-smooth`}
+                onScroll={onScroll}
+                // Sin el anclaje nativo del navegador: al prepender la página
+                // anterior ya recolocamos el scroll a mano, y con los dos
+                // activos la vista saltaba el doble.
+                className={`flex-1 overflow-y-auto [overflow-anchor:none] ${compacto ? 'px-3 py-4 space-y-3' : 'px-6 py-8 space-y-6'} custom-scrollbar-smooth`}
             >
+                {hayAnteriores && (
+                    <div className="flex justify-center py-1" aria-live="polite">
+                        <span className="text-[11px] font-medium text-stone-600 dark:text-stone-400">
+                            {cargandoAnteriores ? 'Cargando mensajes anteriores…' : 'Subí para ver mensajes anteriores'}
+                        </span>
+                    </div>
+                )}
                 {mensajes.map((msg, idx) => {
                     let mostrarDivisor = idx === 0;
                     if (idx > 0) {
