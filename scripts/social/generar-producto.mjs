@@ -324,6 +324,7 @@ export async function generarPlacasIndividuales({ limite = 10, categoria = null,
 
         // El cupón se valida contra la tienda EN PRODUCCIÓN, no se asume.
         let lineaCupon = null;
+        let cuponValor = null;
         try {
             const r = await fetch('https://atelieroptica.com.ar/api/checkout/validate-coupon', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -332,6 +333,7 @@ export async function generarPlacasIndividuales({ limite = 10, categoria = null,
             });
             const j = await r.json();
             if (j.valid && j.discountType === 'PERCENT') {
+                cuponValor = j.discountValue;
                 lineaCupon = `Cupón ${cupon}: ${j.discountValue}% OFF en la tienda, solo esta semana`;
                 console.log(`  · cupón ${cupon} verificado vivo: ${j.discountValue}% OFF`);
             } else console.log(`  · cupón ${cupon} NO vigente — la línea no se escribe`);
@@ -347,32 +349,36 @@ export async function generarPlacasIndividuales({ limite = 10, categoria = null,
             const cuota12 = (await cuotasLargas(p.product.price)).texto;
             const id = `placa-producto-${p.slug}`;
             const pieza = {
-                id, format: '4:5', theme: 'dark', pilar: 'producto',
+                // Fondo CLARO: pedido de Ishtar 1/9/26 — "las placas así tan
+                // oscuras no me gustan, eso no vende". Para producto, claro.
+                id, format: '4:5', theme: 'light', pilar: 'producto',
                 fuente: 'base',
                 generadoEl: new Date().toISOString().slice(0, 10),
                 generadoDesde: desdeProduccion ? 'produccion' : 'local',
                 images_waived: 'Placa de catálogo: la foto del armazón ES el producto, no un fondo.',
                 generado: new Date().toISOString().slice(0, 10),
+                // `promo.texto` YA dice "6 cuotas sin interés" — no repetirlo
+                // (el panel del 1/9 encontró "sin interés sin interés" al aire).
                 caption: [
                     `${limpiar(p.name)} — ${promo.texto} de ${plata(cuota)}.`,
                     cuota12 + '.',
                     lineaCupon ? lineaCupon + '.' : null,
                     `Envío gratis a todo el país 🇦🇷`,
                 ].filter(Boolean).join(' '),
+                // Plantilla `venta` — la "Góndola Luminosa" que eligió el
+                // panel creativo del 1/9/26. Los campos son los importes ya
+                // formateados; la plantilla solo maqueta.
                 slides: [{
-                    type: 'number', role: 'portada',
+                    type: 'venta', role: 'portada',
                     image: path.relative(path.join(RAIZ, 'public', 'images'), foto),
-                    fotoGrande: true, bomba: true,
-                    title: limpiar(p.name) + (
-                        p.product.brand && !limpiar(p.name).toLowerCase().includes(p.product.brand.toLowerCase())
-                            ? ` · ${p.product.brand}` : ''
-                    ),
-                    dato: `${promo.cantidad} x ${plata(cuota)}`,
-                    body: [
-                        `${promo.texto} sin interés · ${cuota12}`,
-                        `Transferencia ${descuento}% OFF: ${plata(alContado)}`,
-                        lineaCupon,
-                    ].filter(Boolean).join('\n'),
+                    title: limpiar(p.name),
+                    cuotasN: String(promo.cantidad),
+                    cuotaImporte: plata(cuota),
+                    descuento: String(descuento),
+                    transferencia: plata(alContado),
+                    lista: plata(p.product.price),
+                    doceCuotas: `Hasta ${cuota12}`,
+                    ...(lineaCupon ? { cupon, cuponDetalle: `${cuponValor}% OFF · SOLO ESTA SEMANA` } : {}),
                 }],
             };
             const ruta = path.join(DESTINO, `${id}.json`);

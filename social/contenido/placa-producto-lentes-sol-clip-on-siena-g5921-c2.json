@@ -1,7 +1,7 @@
 {
   "id": "placa-producto-lentes-sol-clip-on-siena-g5921-c2",
   "format": "4:5",
-  "theme": "dark",
+  "theme": "light",
   "pilar": "producto",
   "fuente": "base",
   "generadoEl": "2026-09-01",
@@ -11,14 +11,18 @@
   "caption": "Siena — 6 cuotas sin interés de $29.167. 12 cuotas fijas de $16.042. Cupón QUIEROMISLENTES: 10% OFF en la tienda, solo esta semana. Envío gratis a todo el país 🇦🇷",
   "slides": [
     {
-      "type": "number",
+      "type": "venta",
       "role": "portada",
       "image": "catalogo-social/lentes-sol-clip-on-siena-g5921-c2.jpg",
-      "fotoGrande": true,
-      "bomba": true,
-      "title": "Siena · Cápsula Escarlata",
-      "dato": "6 x $29.167",
-      "body": "6 cuotas sin interés sin interés · 12 cuotas fijas de $16.042\nTransferencia 15% OFF: $148.750\nCupón QUIEROMISLENTES: 10% OFF en la tienda, solo esta semana"
+      "title": "Siena",
+      "cuotasN": "6",
+      "cuotaImporte": "$29.167",
+      "descuento": "15",
+      "transferencia": "$148.750",
+      "lista": "$175.000",
+      "doceCuotas": "Hasta 12 cuotas fijas de $16.042",
+      "cupon": "QUIEROMISLENTES",
+      "cuponDetalle": "10% OFF · SOLO ESTA SEMANA"
     }
   ]
 }

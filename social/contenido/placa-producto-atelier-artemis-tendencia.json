@@ -1,7 +1,7 @@
 {
   "id": "placa-producto-atelier-artemis-tendencia",
   "format": "4:5",
-  "theme": "dark",
+  "theme": "light",
   "pilar": "producto",
   "fuente": "base",
   "generadoEl": "2026-09-01",
@@ -11,14 +11,18 @@
   "caption": "Artemis — 6 cuotas sin interés de $35.833. 12 cuotas fijas de $19.708. Cupón QUIEROMISLENTES: 10% OFF en la tienda, solo esta semana. Envío gratis a todo el país 🇦🇷",
   "slides": [
     {
-      "type": "number",
+      "type": "venta",
       "role": "portada",
       "image": "catalogo-social/atelier-artemis-tendencia.jpg",
-      "fotoGrande": true,
-      "bomba": true,
-      "title": "Artemis · Cápsula Escarlata",
-      "dato": "6 x $35.833",
-      "body": "6 cuotas sin interés sin interés · 12 cuotas fijas de $19.708\nTransferencia 15% OFF: $182.750\nCupón QUIEROMISLENTES: 10% OFF en la tienda, solo esta semana"
+      "title": "Artemis",
+      "cuotasN": "6",
+      "cuotaImporte": "$35.833",
+      "descuento": "15",
+      "transferencia": "$182.750",
+      "lista": "$215.000",
+      "doceCuotas": "Hasta 12 cuotas fijas de $19.708",
+      "cupon": "QUIEROMISLENTES",
+      "cuponDetalle": "10% OFF · SOLO ESTA SEMANA"
     }
   ]
 }

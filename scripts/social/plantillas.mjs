@@ -131,6 +131,56 @@ const PLANTILLAS = {
     ${pie(id)}`,
 
     /**
+     * Venta: la placa de producto para anuncios que diseñó el panel creativo
+     * del 1/9/26 ("Góndola Luminosa"): fondo claro, el armazón gigante sobre
+     * blanco, sticker de cuota, banda de transferencia con precio tachado,
+     * cupón troquelado y pie de marca. Habla el idioma del e-commerce porque
+     * el público de remarketing ya vio la tienda. Los importes llegan del
+     * generador (que los lee de la base — R6); acá solo se maquetan.
+     */
+    venta: (slide, id) => `
+    <div class="v-envio">ENVÍO GRATIS A TODO EL PAÍS</div>
+    <div class="v-nombre">
+      <p class="v-eyebrow">${esc(slide.eyebrow || 'VOLVISTE A MIRARLOS')}</p>
+      <h1 class="v-modelo">${esc(slide.title)}</h1>
+      <div class="v-barra"></div>
+    </div>
+    <div class="v-panel">
+      <div class="v-foto" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>
+      <div class="v-sticker">
+        <span class="v-s1">${esc(slide.cuotasN)} CUOTAS</span>
+        <span class="v-s2">${esc(slide.cuotaImporte)}</span>
+        <span class="v-s3">SIN INTERÉS</span>
+      </div>
+    </div>
+    <div class="v-precios">
+      <div class="v-heroe">
+        <div>
+          <p class="v-h1">TRANSFERENCIA · ${esc(slide.descuento)}% OFF</p>
+          <p class="v-h2">el precio más bajo</p>
+        </div>
+        <div class="v-hprecios">
+          <span class="v-final">${esc(slide.transferencia)}</span>
+          <span class="v-lista">${esc(slide.lista)}</span>
+        </div>
+      </div>
+      <div class="v-checks">
+        <div class="v-check"><span class="v-tilde">✓</span>${esc(slide.doceCuotas)}</div>
+        <div class="v-check"><span class="v-tilde">✓</span>Envío gratis a todo el país</div>
+      </div>
+    </div>
+    ${slide.cupon ? `<div class="v-cupon">
+      <span class="v-clabel">CUPÓN</span>
+      <span class="v-codigo">${esc(slide.cupon)}</span>
+      <span class="v-cdetalle">${esc(slide.cuponDetalle || '')}</span>
+    </div>` : ''}
+    <div class="v-pie">
+      ${id.logo ? `<img class="v-logo" src="${id.logo}" alt="Atelier Óptica">` : ''}
+      <span class="v-handle">@atelieroptica</span>
+      <span class="v-dir">${DIRECCION_PIE}<br>${HORARIO_PIE}</span>
+    </div>`,
+
+    /**
      * Collage: grilla de fotos chicas, cada celda un modelo distinto. Acá la
      * foto no es fondo sino contenido, así que va sin velo y el título arriba.
      * Las imágenes llegan por `images` (plural) y las resuelve render.mjs.
@@ -281,6 +331,100 @@ export function htmlDeSlide(slide, id, pieza) {
      Se vio mirando la captura, que es como manda la guía. */
   .contenido.list  { justify-content:center; }
   .contenido.list.con-foto { justify-content:flex-end; }
+
+  /* ── Plantilla venta (panel creativo 1/9/26) ─────────────────────────────
+     Colores derivados de la identidad con color-mix — nada de hex sueltos.
+     Layout absoluto por franjas: 90 / 170 / 505 / 355 / 130 / 100 px. */
+  .v-envio {
+    position:absolute; top:0; left:0; right:0; height:90px;
+    background:${id.oscuro}; color:${id.colores.fondo};
+    display:flex; align-items:center; justify-content:center;
+    font-size:32px; font-weight:800; letter-spacing:2px;
+  }
+  .v-nombre { position:absolute; top:90px; left:0; right:0; height:170px; text-align:center; }
+  .v-eyebrow {
+    margin-top:20px; font-size:26px; font-weight:700; letter-spacing:5px;
+    color:color-mix(in srgb, ${id.colores.marca} 72%, ${id.oscuro} 28%);
+  }
+  .v-modelo {
+    font-family:${id.fuentes.titulo}; font-size:96px; font-weight:900;
+    letter-spacing:-2px; line-height:1; color:${id.oscuro}; margin-top:6px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 40px;
+  }
+  .v-barra { width:220px; height:10px; background:${id.colores.marca}; margin:10px auto 0; }
+  .v-panel {
+    position:absolute; top:260px; left:0; right:0; height:505px; background:#ffffff;
+    border-top:1px solid color-mix(in srgb, ${id.oscuro} 10%, ${id.colores.fondo} 90%);
+    border-bottom:1px solid color-mix(in srgb, ${id.oscuro} 10%, ${id.colores.fondo} 90%);
+  }
+  .v-foto {
+    position:absolute; inset:20px 60px;
+    background-size:contain; background-repeat:no-repeat; background-position:center;
+  }
+  .v-sticker {
+    position:absolute; top:-30px; right:36px; width:250px; height:250px;
+    background:${id.oscuro}; border-radius:50%; transform:rotate(-8deg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; color:${id.colores.fondo}; box-shadow:0 12px 30px rgba(0,0,0,.18);
+  }
+  .v-sticker::before {
+    content:''; position:absolute; inset:10px; border:2px dashed ${id.colores.fondo};
+    border-radius:50%; opacity:.7;
+  }
+  .v-s1 { font-size:30px; font-weight:800; letter-spacing:1px; }
+  .v-s2 { font-family:${id.fuentes.titulo}; font-size:56px; font-weight:900; font-variant-numeric:tabular-nums; }
+  .v-s3 { font-size:22px; font-weight:700; letter-spacing:2px; }
+  .v-precios {
+    position:absolute; top:765px; left:50px; right:50px; height:355px;
+    background:#ffffff; border-radius:24px;
+    border:2px solid color-mix(in srgb, ${id.oscuro} 12%, ${id.colores.fondo} 88%);
+    box-shadow:0 8px 24px rgba(0,0,0,.06); padding:34px 44px;
+    display:flex; flex-direction:column; gap:26px;
+  }
+  .v-heroe {
+    background:color-mix(in srgb, ${id.colores.marca} 62%, ${id.oscuro} 38%);
+    border-radius:16px; padding:22px 28px; color:#ffffff;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .v-h1 { font-size:28px; font-weight:800; letter-spacing:.5px; }
+  .v-h2 { font-size:24px; font-weight:600; margin-top:4px; opacity:.92; }
+  .v-hprecios { display:flex; align-items:baseline; gap:18px; white-space:nowrap; }
+  .v-final { font-family:${id.fuentes.titulo}; font-size:72px; font-weight:900; font-variant-numeric:tabular-nums; }
+  .v-lista { font-size:30px; font-weight:600; opacity:.78; text-decoration:line-through; text-decoration-thickness:3px; }
+  .v-checks { display:flex; flex-direction:column; gap:16px; }
+  .v-check { display:flex; align-items:center; gap:16px; font-size:34px; font-weight:700; color:${id.oscuro}; }
+  .v-tilde {
+    flex:none; width:44px; height:44px; border-radius:50%; background:${id.colores.marca};
+    color:${id.colores.fondo}; display:flex; align-items:center; justify-content:center;
+    font-size:26px; font-weight:900;
+  }
+  .v-cupon {
+    position:absolute; top:1130px; left:70px; right:70px; height:110px;
+    background:#ffffff; border-radius:16px;
+    border:3px dashed color-mix(in srgb, ${id.colores.marca} 72%, ${id.oscuro} 28%);
+    display:flex; align-items:center; justify-content:center; gap:18px;
+    padding:0 44px; white-space:nowrap;
+  }
+  .v-cupon::before, .v-cupon::after {
+    content:''; position:absolute; top:50%; width:28px; height:28px; border-radius:50%;
+    background:${id.colores.fondo}; transform:translateY(-50%);
+  }
+  .v-cupon::before { left:-17px; } .v-cupon::after { right:-17px; }
+  .v-clabel { font-size:22px; font-weight:800; letter-spacing:2px; color:color-mix(in srgb, ${id.colores.marca} 72%, ${id.oscuro} 28%); }
+  .v-codigo {
+    background:${id.oscuro}; color:${id.colores.fondo}; font-size:30px; font-weight:900;
+    letter-spacing:1px; padding:8px 20px; border-radius:999px;
+  }
+  .v-cdetalle { font-size:23px; font-weight:800; color:${id.oscuro}; }
+  .v-pie {
+    position:absolute; bottom:0; left:0; right:0; height:100px;
+    background:${id.oscuro}; color:${id.colores.fondo};
+    display:flex; align-items:center; justify-content:space-between; padding:0 56px;
+  }
+  /* El logo del banco es oscuro; sobre la banda marrón se pasa a claro. */
+  .v-logo { height:46px; filter:brightness(0) invert(1); opacity:.95; }
+  .v-handle { font-size:28px; font-weight:700; }
+  .v-dir { font-size:22px; font-weight:500; text-align:right; line-height:1.3; }
 
   /* Collage: la grilla llena el centro y las celdas se recortan parejas.
      Sin velo — cada celda ES la foto — así que el texto va fuera de ellas. */
