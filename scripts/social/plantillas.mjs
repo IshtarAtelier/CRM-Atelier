@@ -54,10 +54,10 @@ function pie(id) {
     </footer>`;
 }
 
-function fondoDeImagen(imagen) {
+function fondoDeImagen(imagen, velo) {
     if (!imagen) return '';
     return `<div class="foto" style="background-image:url('${comoUrl(imagen)}')"></div>
-            <div class="velo"></div>`;
+            <div class="velo${velo === 'suave' ? ' suave' : ''}"></div>`;
 }
 
 /**
@@ -112,8 +112,8 @@ function estrellasDeResena(resena) {
 const PLANTILLAS = {
     /** Portada: el gancho. Título fuerte, bajada corta, imagen de fondo. */
     cover: (slide, id) => `
-    ${fondoDeImagen(slide.imagenResuelta)}
-    <div class="contenido cover">
+    ${fondoDeImagen(slide.imagenResuelta, slide.velo)}
+    <div class="contenido cover${slide.texto === 'arriba' ? ' arriba' : ''}">
       <h1>${resaltar(slide.title)}</h1>
       ${slide.subtitle ? `<p class="bajada">${resaltar(slide.subtitle)}</p>` : ''}
     </div>
@@ -266,6 +266,15 @@ export function htmlDeSlide(slide, id, pieza) {
   }
 
   .contenido.cover { justify-content:flex-end; }
+  /* texto: "arriba" en la slide: el título va arriba para despejar la foto
+     (pedido de Ishtar 31/8: que se vean los zapatos de la portada). */
+  .contenido.cover.arriba { justify-content:flex-start; padding-top:110px; }
+  /* velo: "suave": velo más liviano para fotos que tienen que verse. */
+  .velo.suave {
+    background:linear-gradient(180deg,
+      ${oscuro ? 'rgba(42,33,28,.18)' : 'rgba(250,248,245,.25)'} 0%,
+      ${oscuro ? 'rgba(42,33,28,.62)' : 'rgba(250,248,245,.72)'} 78%);
+  }
   /* La lista sin foto se centra; CON foto se apoya abajo, para no taparle la
      cara a la persona de la imagen ni dejar un hueco entre el texto y el pie.
      Se vio mirando la captura, que es como manda la guía. */

@@ -3,7 +3,7 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "estilo",
-  "caption": "Los anteojos son como los zapatos: nunca alcanza con un solo par. La temporada de sol ya se está probando en Atelier — de inspiración vintage a clásicos de siempre, con o sin receta. Vení a elegir el tuyo. #opticacordoba #lentesdesol #cerrodelasrosas",
+  "caption": "Los anteojos son como los zapatos: nunca alcanza con un solo par. La temporada de sol ya se está probando en la tienda online de Atelier — de inspiración vintage a clásicos de siempre, con o sin receta, y con envío gratis a todo el país. Los de sol están acá 👉 atelieroptica.com.ar/lentes-de-sol #opticacordoba #lentesdesol #cerrodelasrosas",
   "temas": ["sol", "editorial"],
   "images_waived": "Carrusel editorial de campaña: la foto ES el contenido de cada slide (incluido el collage de modelos), con texto breve encima. Un slide de solo texto rompería la pieza.",
   "slides": [
@@ -11,6 +11,8 @@
       "type": "cover",
       "role": "portada",
       "image": "editorial/junio26-estuches-zapatos.jpg",
+      "texto": "arriba",
+      "velo": "suave",
       "title": "Los anteojos son *como los zapatos*",
       "subtitle": "Nunca alcanza con un solo par."
     },
@@ -18,15 +20,15 @@
       "type": "collage",
       "title": "Un modelito *para cada día*",
       "images": [
-        "editorial/junio26-bandeja-metal.jpg",
-        "editorial/junio26-bandeja-sol.jpg",
-        "editorial/junio26-bandeja-negro.jpg",
-        "editorial/junio26-bandeja-verde.jpg",
-        "editorial/junio26-carey-argyle.jpg",
-        "editorial/junio26-bandeja-mini.jpg",
+        "editorial/tienda-sol-nashira-c3.webp",
         "editorial/junio26-oval-azul.jpg",
-        "editorial/junio26-verde-detalle.jpg",
-        "editorial/junio26-estatua-carey.jpg"
+        "editorial/tienda-sol-c-nopo-c4.webp",
+        "editorial/junio26-carey-argyle.jpg",
+        "editorial/tienda-sol-adhara-c4.webp",
+        "editorial/junio26-estuches-zapatos-b.jpg",
+        "editorial/tienda-sol-mizar-c2.webp",
+        "editorial/junio26-estatua-carey.jpg",
+        "editorial/tienda-sol-f-nix-c2.webp"
       ]
     },
     {
@@ -39,7 +41,7 @@
     {
       "type": "list",
       "image": "editorial/junio26-flatlay-sol.jpg",
-      "title": "Un par para *cada carácter*",
+      "title": "Un par para *cada situación*",
       "items": [
         "Siluetas chicas de inspiración vintage",
         "Clásicos negros que van con todo",
