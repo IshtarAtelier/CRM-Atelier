@@ -46,6 +46,10 @@ export const TEMPLATE_LANGUAGE = 'es_AR';
 const STORE_URL = 'https://atelieroptica.com.ar';
 
 export const WHATSAPP_TEMPLATES = {
+    // HORARIO VIEJO ("9 a 20"): el real es L-V 8 a 20 y sábados 9 a 17
+    // (BUSINESS_INFO.hours). Meta congela el texto aprobado, así que el fix es
+    // la _v2 de abajo — cuando Meta la apruebe, cambiar los consumidores
+    // (notify-ready y bot.service) a _v2 y anotar esta como histórica.
     pedido_listo: {
         name: 'pedido_listo',
         inventario: 'A1',
@@ -54,11 +58,30 @@ export const WHATSAPP_TEMPLATES = {
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }],
         buttons: [{ type: 'URL', text: 'Cómo llegar', url: 'https://maps.app.goo.gl/atelieroptica' }],
     },
+    pedido_listo_v2: {
+        name: 'pedido_listo_v2',
+        inventario: 'A1',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, tu pedido {{2}} ya está listo para retirar en Atelier Óptica (José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba). Te esperamos de lunes a viernes de 8 a 20, y sábados de 9 a 17 h. Cualquier consulta, respondé este mensaje.',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }],
+        buttons: [{ type: 'URL', text: 'Cómo llegar', url: 'https://maps.app.goo.gl/atelieroptica' }],
+    },
+    // HORARIO VIEJO — misma situación que pedido_listo: usar _v2 al aprobarse.
     pedido_listo_saldo: {
         name: 'pedido_listo_saldo',
         inventario: 'A12',
         category: 'UTILITY',
         body: 'Hola {{1}}, tu pedido {{2}} ya está listo para retirar en Atelier Óptica. Queda un saldo a abonar al retirar: con tarjeta o cuotas {{3}}, por transferencia {{4}}, en efectivo {{5}}. Te esperamos de lunes a viernes de 9 a 20 h.',
+        params: [
+            { label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' },
+            { label: 'saldo tarjeta', example: '$ 120.000' }, { label: 'saldo transferencia', example: '$ 110.000' }, { label: 'saldo efectivo', example: '$ 105.000' },
+        ],
+    },
+    pedido_listo_saldo_v2: {
+        name: 'pedido_listo_saldo_v2',
+        inventario: 'A12',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, tu pedido {{2}} ya está listo para retirar en Atelier Óptica. Queda un saldo a abonar al retirar: con tarjeta o cuotas {{3}}, por transferencia {{4}}, en efectivo {{5}}. Te esperamos de lunes a viernes de 8 a 20, y sábados de 9 a 17 h.',
         params: [
             { label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' },
             { label: 'saldo tarjeta', example: '$ 120.000' }, { label: 'saldo transferencia', example: '$ 110.000' }, { label: 'saldo efectivo', example: '$ 105.000' },
