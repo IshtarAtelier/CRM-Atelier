@@ -131,6 +131,22 @@ const PLANTILLAS = {
     ${pie(id)}`,
 
     /**
+     * Collage: grilla de fotos chicas, cada celda un modelo distinto. Acá la
+     * foto no es fondo sino contenido, así que va sin velo y el título arriba.
+     * Las imágenes llegan por `images` (plural) y las resuelve render.mjs.
+     */
+    collage: (slide, id) => `
+    <div class="contenido collage">
+      ${slide.title ? `<h2>${resaltar(slide.title)}</h2>` : ''}
+      <div class="grilla">
+        ${(slide.imagenesResueltas || []).filter(Boolean).map(u =>
+        `<div class="celda" style="background-image:url('${comoUrl(u)}')"></div>`).join('')}
+      </div>
+      ${slide.subtitle ? `<p class="bajada">${resaltar(slide.subtitle)}</p>` : ''}
+    </div>
+    ${pie(id)}`,
+
+    /**
      * Número: un dato grande. La guía lo recomienda para precios y plazos, y es
      * el que usan las piezas de producto que salen de la base.
      * La foto va ARRIBA y sin velo pesado: en un armazón la foto ES el producto,
@@ -255,6 +271,16 @@ export function htmlDeSlide(slide, id, pieza) {
      Se vio mirando la captura, que es como manda la guía. */
   .contenido.list  { justify-content:center; }
   .contenido.list.con-foto { justify-content:flex-end; }
+
+  /* Collage: la grilla llena el centro y las celdas se recortan parejas.
+     Sin velo — cada celda ES la foto — así que el texto va fuera de ellas. */
+  .contenido.collage { justify-content:flex-start; }
+  .contenido.collage h2 { margin-bottom:36px; }
+  .grilla {
+    display:grid; grid-template-columns:repeat(3, 1fr);
+    grid-auto-rows:1fr; gap:14px; flex:1; min-height:0;
+  }
+  .celda { background-size:cover; background-position:center; border-radius:8px; }
 
   h1 { font-size:82px; line-height:1.04; font-weight:900; letter-spacing:-.025em; }
   h2 { font-size:64px; line-height:1.1;  font-weight:900; letter-spacing:-.02em; margin-bottom:44px; }

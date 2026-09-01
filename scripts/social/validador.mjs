@@ -84,6 +84,12 @@ export function validarPieza(pieza) {
         if (s.image && !s.imagenResuelta) {
             problemas.push(error('R5', `Slide ${i + 1}: la imagen "${s.image}" no existe en public/images/.`));
         }
+        // El collage cita varias en `images`: la misma regla, foto por foto.
+        for (const [j, ref] of (s.images || []).entries()) {
+            if (ref && !(s.imagenesResueltas || [])[j]) {
+                problemas.push(error('R5', `Slide ${i + 1}: la imagen "${ref}" (collage, foto ${j + 1}) no existe en public/images/.`));
+            }
+        }
     }
 
     // ── R6: los precios se generan desde la base (nunca se exime) ───────────

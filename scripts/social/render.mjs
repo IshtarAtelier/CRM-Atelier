@@ -63,6 +63,9 @@ export async function renderizarPieza(rutaJson, { soloValidar = false } = {}) {
     // cuáles existen de verdad (regla R5).
     for (const slide of pieza.slides || []) {
         slide.imagenResuelta = resolverImagen(slide.image);
+        // El collage cita varias fotos en `images`; se resuelven una por una
+        // para que R5 pueda señalar exactamente cuál no existe.
+        slide.imagenesResueltas = (slide.images || []).map(resolverImagen);
     }
 
     // El validador es BLOQUEANTE. Si falla, no se renderiza nada.
@@ -118,6 +121,8 @@ export async function renderizarPieza(rutaJson, { soloValidar = false } = {}) {
     id.logo = await aDataUri(id.logo);
     for (const slide of pieza.slides || []) {
         slide.imagenResuelta = await aDataUri(slide.imagenResuelta);
+        slide.imagenesResueltas = await Promise.all(
+            (slide.imagenesResueltas || []).map(aDataUri));
     }
 
     for (const [i, slide] of (pieza.slides || []).entries()) {

@@ -3,13 +3,35 @@
   "format": "4:5",
   "theme": "dark",
   "pilar": "estilo",
-  "caption": "La temporada de sol ya se está probando en Atelier. De inspiración vintage a clásicos de siempre, con o sin receta. Vení a elegir el tuyo. #opticacordoba #lentesdesol #cerrodelasrosas",
+  "caption": "Los anteojos son como los zapatos: nunca alcanza con un solo par. La temporada de sol ya se está probando en Atelier — de inspiración vintage a clásicos de siempre, con o sin receta. Vení a elegir el tuyo. #opticacordoba #lentesdesol #cerrodelasrosas",
   "temas": ["sol", "editorial"],
-  "images_waived": "Carrusel editorial de campaña: la foto ES el contenido de cada slide, con texto breve encima. Un slide de solo texto rompería la pieza.",
+  "images_waived": "Carrusel editorial de campaña: la foto ES el contenido de cada slide (incluido el collage de modelos), con texto breve encima. Un slide de solo texto rompería la pieza.",
   "slides": [
     {
       "type": "cover",
       "role": "portada",
+      "image": "editorial/junio26-estuches-zapatos.jpg",
+      "title": "Los anteojos son *como los zapatos*",
+      "subtitle": "Nunca alcanza con un solo par."
+    },
+    {
+      "type": "collage",
+      "title": "Un modelito *para cada día*",
+      "images": [
+        "editorial/junio26-bandeja-metal.jpg",
+        "editorial/junio26-bandeja-sol.jpg",
+        "editorial/junio26-bandeja-negro.jpg",
+        "editorial/junio26-bandeja-verde.jpg",
+        "editorial/junio26-carey-argyle.jpg",
+        "editorial/junio26-bandeja-mini.jpg",
+        "editorial/junio26-oval-azul.jpg",
+        "editorial/junio26-verde-detalle.jpg",
+        "editorial/junio26-estatua-carey.jpg"
+      ]
+    },
+    {
+      "type": "cover",
+      "role": "bisagra",
       "image": "editorial/junio26-pose-pared.jpg",
       "title": "La temporada de sol *ya se está probando*",
       "subtitle": "Editorial Atelier · Córdoba"
@@ -27,7 +49,7 @@
     {
       "type": "cta",
       "role": "cierre",
-      "image": "editorial/junio26-carey-argyle.jpg",
+      "image": "editorial/junio26-cartera-lentes.jpg",
       "title": "Vení a elegir el tuyo"
     }
   ]
