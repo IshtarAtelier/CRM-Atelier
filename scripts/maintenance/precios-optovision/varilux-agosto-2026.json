@@ -2131,5 +2131,171 @@
       "par": 57588,
       "medio_par": 28794
     }
-  ]
+  ],
+  "lentes_stock_optovision": {
+    "_lee_esto": [
+      "Hoja «Lentes de stock Optovision» de la planilla de Ishtar. Lentes terminadas:",
+      "el precio del renglón es todo, no se les suma antirreflejo.",
+      "R1..R8 son los rangos de referencia del pie de esa hoja."
+    ],
+    "filas": [
+      {
+        "cat": "Clear 1.61",
+        "producto": "HD Super HMC Asférico BLC UV420",
+        "indice": "1.61",
+        "rango_ref": "R7",
+        "precio": 38339
+      },
+      {
+        "cat": "Clear 1.61",
+        "producto": "HD Super HMC Asférico BLC UV420 — Rango Extendido",
+        "indice": "1.61",
+        "rango_ref": "R8",
+        "precio": 50255
+      },
+      {
+        "cat": "Orgánica",
+        "producto": "Cr 39 Stock",
+        "indice": "1.50",
+        "rango_ref": "R2",
+        "precio": 4441
+      },
+      {
+        "cat": "Orgánica",
+        "producto": "Cr 39 Stock — Rango Extendido",
+        "indice": "1.50",
+        "rango_ref": "R6",
+        "precio": 16752
+      },
+      {
+        "cat": "Orgánica",
+        "producto": "Cr 39 Foto con Multicot",
+        "indice": "1.50",
+        "rango_ref": "R1",
+        "precio": 25841
+      },
+      {
+        "cat": "Orgánica",
+        "producto": "Cr 39 Foto con Multicot — Rango Extendido",
+        "indice": "1.50",
+        "rango_ref": "R5",
+        "precio": 55595
+      },
+      {
+        "cat": "Orgánica",
+        "producto": "Numax",
+        "indice": "1.50",
+        "rango_ref": "R1",
+        "precio": 44002
+      },
+      {
+        "cat": "Orgánica",
+        "producto": "Numax Stock — Rango Extendido",
+        "indice": "1.50",
+        "rango_ref": "R6",
+        "precio": 55681
+      },
+      {
+        "cat": "Orgánica",
+        "producto": "Multicot Max",
+        "indice": "1.50",
+        "rango_ref": "R2",
+        "precio": 8560
+      },
+      {
+        "cat": "Orgánica",
+        "producto": "Multicot Max — Rango Extendido",
+        "indice": "1.50",
+        "rango_ref": "R6",
+        "precio": 18190
+      },
+      {
+        "cat": "Policarbonato / Alto índice",
+        "producto": "Policarbonato Blanco",
+        "indice": "1.59",
+        "rango_ref": "C-R1",
+        "precio": 13567
+      },
+      {
+        "cat": "Policarbonato / Alto índice",
+        "producto": "Policarbonato Blanco con Multicot",
+        "indice": "1.59",
+        "rango_ref": "C-R2",
+        "precio": 20046
+      },
+      {
+        "cat": "Policarbonato / Alto índice",
+        "producto": "Policarbonato Fotocromático con Numax",
+        "indice": "1.59",
+        "rango_ref": "R3",
+        "precio": 156543
+      },
+      {
+        "cat": "Policarbonato / Alto índice",
+        "producto": "Policarbonato Blue Cut con Numax",
+        "indice": "1.59",
+        "rango_ref": "R1",
+        "precio": 80218
+      },
+      {
+        "cat": "Policarbonato / Alto índice",
+        "producto": "HD 1.67 MR7 Asférico SHMC UV420 Blue",
+        "indice": "1.67",
+        "rango_ref": null,
+        "precio": 41991
+      },
+      {
+        "cat": "Blue Light Cut",
+        "producto": "BLC HMC 1.56",
+        "indice": "1.56",
+        "rango_ref": "R2",
+        "precio": 11342
+      },
+      {
+        "cat": "Blue Light Cut",
+        "producto": "BLC HMC 1.56 — Rango Extendido",
+        "indice": "1.56",
+        "rango_ref": "R4",
+        "precio": 23701
+      },
+      {
+        "cat": "Blue Light Cut",
+        "producto": "BLC HMC 1.56 Fotosensible",
+        "indice": "1.56",
+        "rango_ref": "R1",
+        "precio": 76089
+      },
+      {
+        "cat": "Blue Light Cut",
+        "producto": "Antiage HD 1.60",
+        "indice": "1.60",
+        "rango_ref": "R1",
+        "precio": 107232
+      },
+      {
+        "cat": "Blue Light Cut",
+        "producto": "Antiage HD 1.60 — Rango Extendido",
+        "indice": "1.60",
+        "rango_ref": "R5",
+        "precio": 136960
+      },
+      {
+        "cat": "Endurecida",
+        "producto": "Cr 39 IRON",
+        "indice": "1.50",
+        "rango_ref": "R2",
+        "precio": 18757
+      }
+    ],
+    "rangos_ref": {
+      "R1": "+4.00 cil -2.00 a -4.00 cil +2.00",
+      "R2": "+6.00 cil -2.00 a -6.00 cil +2.00",
+      "R3": "+2.00 cil -1.00 a -2.00 cil +1.00",
+      "R4": "-4.00 cil -4.00 a -8.00 cil +2.00",
+      "R5": "+4.00 cil -4.00 a -4.00 cil +4.00",
+      "R6": "+4.00 cil -4.00 a -8.00 cil +4.00",
+      "R7": "+4.00 cil -2.00 a -6.00 cil -2.00",
+      "R8": "+4.25 a +6.00 cil -2.00 / -6.75 a -10.00 cil -2.00 / neutro a -6.00 cil 3.00"
+    }
+  }
 }

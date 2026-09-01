@@ -221,6 +221,19 @@ function emparejarNewEditions(nombre) {
 }
 
 function emparejarLenteStock(nombre) {
+    // La hoja «Lentes de stock Optovision» (planilla de Ishtar, 31/8/2026):
+    // lentes terminadas con su renglón propio. El HD MR7 estuvo meses como
+    // "fuera de la lista" con costo a mano porque esta hoja nunca se había
+    // transcripto — Ishtar lo marcó: "el HD tiene que estar, buscá mejor".
+    const hoja = datos.lentes_stock_optovision?.filas || [];
+    if (/hd\s*(1\.67\s*)?mr7/i.test(nombre)) {
+        const fila = hoja.find(x => /MR7/i.test(x.producto));
+        if (fila) return {
+            familia: 'Lente de stock Optovision', material: fila.producto,
+            tratamiento: 'incluido (lente de stock)', lista: fila.precio,
+            rango: null, seguro: true, renglonStock: true,
+        };
+    }
     const stock = datos.crizal?.lentes_de_stock || [];
     const cual = /rock/i.test(nombre) ? /ROCK/
         : /(sapphire|saphire)\s*hr/i.test(nombre) ? /SAPPHIRE HR/
