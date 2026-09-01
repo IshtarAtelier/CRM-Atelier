@@ -430,6 +430,8 @@ function medirCompra(opts: { order: { id: string; createdAt: Date }; ctx: Checko
           email: ctx.customer.email,
           phone: ctx.customer.phone,
           name: `${ctx.customer.firstName} ${ctx.customer.lastName}`,
+          firstName: ctx.customer.firstName,
+          lastName: ctx.customer.lastName,
         },
         createdAt: order.createdAt,
       },

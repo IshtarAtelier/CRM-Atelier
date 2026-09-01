@@ -1,9 +1,40 @@
 import crypto from 'crypto';
+import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+
+/**
+ * Meta Conversions API (CAPI) — la ÚNICA puerta server-side al píxel.
+ * Endpoint: POST https://graph.facebook.com/v24.0/{META_PIXEL_ID}/events.
+ *
+ * Credenciales: `META_PIXEL_ID` + `META_ACCESS_TOKEN` (el token del
+ * Conversions API; cómo generarlo en 2 minutos está en `.env.example`).
+ * Sin credenciales el service no rompe nada: loguea y sale.
+ *
+ * DEDUPLICACIÓN Pixel ↔ CAPI — estrategia única del proyecto:
+ * - Embudo (ViewContent / AddToCart / InitiateCheckout / Contact): el id nace
+ *   en UN solo lugar, `newEventId()` de `src/lib/tracking.ts`. Viaja al Pixel
+ *   como `{ eventID }` y a `/api/web/track` dentro de `meta.eventId`, desde
+ *   donde esta clase lo reenvía como `event_id`. Meta recibe los dos y cuenta
+ *   UNO: el del navegador llega antes, el del server resiste adblock/ITP.
+ * - Purchase: `event_id = order.id` en los dos lados — `trackPurchase()` en el
+ *   navegador y `sendWebPurchase()` acá, en las DOS ramas de cobro (Payway en
+ *   línea y webhook de Mercado Pago vía `finalize-web-payment.ts`).
+ * - Por eso NO hay un ViewContent disparado desde el server component de la
+ *   ficha: el id nace en el cliente, así que un evento emitido en el render
+ *   del server no podría compartirlo con el Pixel y Meta lo contaría doble.
+ *
+ * Datos personales: SIEMPRE hasheados con SHA-256 antes de salir (email,
+ * teléfono, nombre), normalizados como pide Meta. Este archivo no loguea
+ * jamás un email o teléfono en claro. fbp/fbc/IP/user-agent van en claro
+ * porque así lo exige el Conversions API.
+ */
 
 interface ClientData {
   phone?: string | null;
   email?: string | null;
+  /** Nombre completo. Si no vienen firstName/lastName, se parte acá (1ª palabra = nombre). */
   name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
 }
 
 interface OrderData {
@@ -34,10 +65,30 @@ export class AdsService {
   }
 
   /**
-   * Cleans and normalizes phone numbers (removes spaces, +, etc.)
+   * Teléfono en E.164 sin el '+' (549…), que es como lo exige Meta. Reusa el
+   * canon argentino de `src/lib/phone-utils` (el mismo con el que se escribe
+   * por WhatsApp): "0351 15 612-3456" y "+54 9 351 612-3456" hashean IGUAL.
+   * Antes solo se sacaban los no-dígitos, y un número tipeado en formato local
+   * producía un hash que no matcheaba con nadie.
    */
   private static normalizePhone(phone: string): string {
-    return phone.replace(/\D/g, '');
+    const e164 = formatPhoneForWhatsApp(phone);
+    // Menos de 12 dígitos no llega a ser un número argentino completo
+    // (549 + área + abonado ≈ 13). Hashear basura no matchea a nadie.
+    return e164.length >= 12 ? e164 : '';
+  }
+
+  /**
+   * Nombre/apellido como los pide Meta para fn/ln: minúsculas, sin espacios en
+   * los bordes y sin tildes (Meta recomienda a-z). "María" tipeado con y sin
+   * tilde tiene que producir el mismo hash o no matchea.
+   */
+  private static normalizeName(name: string): string {
+    return name
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
   }
 
   /**
@@ -69,7 +120,22 @@ export class AdsService {
 
       const userData: any = {};
       if (order.client.email) userData.em = [this.hashData(order.client.email)];
-      if (order.client.phone) userData.ph = [this.hashData(this.normalizePhone(order.client.phone))];
+      if (order.client.phone) {
+        const telefono = this.normalizePhone(order.client.phone);
+        if (telefono) userData.ph = [this.hashData(telefono)];
+      }
+      // fn/ln hasheados: más señales de matching = mejor atribución. Si el
+      // caller solo tiene el nombre completo (fichas del CRM), se parte acá:
+      // primera palabra = nombre, el resto = apellido. Un split imperfecto
+      // solo baja un poco el matcheo; nunca expone nada (viaja hasheado).
+      const nombre =
+        order.client.firstName || (order.client.name || '').trim().split(/\s+/)[0] || '';
+      const apellido =
+        order.client.lastName ||
+        (order.client.name || '').trim().split(/\s+/).slice(1).join(' ') ||
+        '';
+      if (nombre) userData.fn = [this.hashData(this.normalizeName(nombre))];
+      if (apellido) userData.ln = [this.hashData(this.normalizeName(apellido))];
       const match = opts.matchData;
       if (match?.fbc) userData.fbc = match.fbc;
       if (match?.fbp) userData.fbp = match.fbp;

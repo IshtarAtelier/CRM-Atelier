@@ -224,6 +224,8 @@ function medirCompraWeb(opts: {
           email: customer.email,
           phone: customer.phone,
           name: `${customer.firstName} ${customer.lastName}`,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
         },
         createdAt: order.createdAt,
       },
