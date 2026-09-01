@@ -12,11 +12,12 @@
     {
       "type": "number",
       "role": "portada",
-      "image": "editorial/junio26-estuches-zapatos-b.jpg",
+      "image": "editorial/junio26-verde-detalle.jpg",
       "encuadre": "cover",
-      "title": "El cupón QUIEROMISLENTES vence",
+      "title": "QUIEROMISLENTES vence",
       "dato": "30/9",
-      "body": "10% OFF en la tienda hasta fin de mes."
+      "body": "10% OFF en la tienda hasta fin de mes.",
+      "bomba": true
     }
   ]
 }

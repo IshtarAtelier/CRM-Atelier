@@ -12,11 +12,12 @@
     {
       "type": "number",
       "role": "portada",
-      "image": "editorial/junio26-cartera-lentes.jpg",
+      "image": "editorial/junio26-carey-argyle.jpg",
       "encuadre": "cover",
-      "title": "Con el cupón QUIEROMISLENTES",
+      "title": "Cupón QUIEROMISLENTES",
       "dato": "10% OFF",
-      "body": "En la tienda online, con envío gratis."
+      "body": "En la tienda online, con envío gratis.",
+      "bomba": true
     }
   ]
 }

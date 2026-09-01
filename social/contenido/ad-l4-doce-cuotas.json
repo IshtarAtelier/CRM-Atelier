@@ -12,11 +12,12 @@
     {
       "type": "number",
       "role": "portada",
-      "image": "editorial/junio26-pose-pared.jpg",
+      "image": "editorial/junio26-flatlay-sol.jpg",
       "encuadre": "cover",
-      "title": "Fijas, también en la tienda online",
+      "title": "Fijas, también en la tienda",
       "dato": "12 cuotas",
-      "body": "Los lentes que viste, en hasta 12 cuotas fijas. Y las 6 sin interés con tarjeta, como siempre."
+      "body": "Los lentes que viste, en hasta 12 cuotas fijas. Y las 6 sin interés con tarjeta, como siempre.",
+      "bomba": true
     }
   ]
 }

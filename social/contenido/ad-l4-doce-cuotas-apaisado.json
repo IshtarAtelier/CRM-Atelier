@@ -12,11 +12,12 @@
     {
       "type": "number",
       "role": "portada",
-      "image": "editorial/junio26-pose-pared.jpg",
+      "image": "editorial/junio26-flatlay-sol.jpg",
       "encuadre": "cover",
-      "title": "Fijas, también en la tienda online",
+      "title": "Fijas, también en la tienda",
       "dato": "12 cuotas",
-      "body": "Y 6 sin interés con tarjeta."
+      "body": "Y 6 sin interés con tarjeta.",
+      "bomba": true
     }
   ]
 }

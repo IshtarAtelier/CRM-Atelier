@@ -154,9 +154,10 @@ const PLANTILLAS = {
      */
     number: (slide, id) => {
         const claseCompacta = slide.compacto ? `compacto ${!slide.dato && !slide.body ? 'sin-datos' : ''}` : '';
+        const claseBomba = slide.bomba ? 'bomba' : '';
         return `
     ${slide.imagenResuelta ? `<div class="producto ${slide.encuadre === 'cover' ? 'llena' : ''} ${claseCompacta}" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>` : ''}
-    <div class="contenido number ${claseCompacta}">
+    <div class="contenido number ${claseCompacta} ${claseBomba}">
       <p class="rotulo">${resaltar(slide.title)}</p>
       ${slide.dato ? `<p class="dato">${esc(slide.dato)}</p>` : ''}
       ${slide.body ? `<p class="cuerpo">${resaltar(slide.body)}</p>` : ''}
@@ -343,6 +344,12 @@ export function htmlDeSlide(slide, id, pieza) {
     font-size:104px; font-weight:900; letter-spacing:-.03em; line-height:1;
     margin-top:14px; color:${id.colores.marca};
   }
+  /* bomba: true en la slide — el dato a tamaño cartel y el rótulo en caja
+     alta (pedido de Ishtar 31/8: "más bomba de marketing, grande"). */
+  .contenido.number.bomba .dato { font-size:170px; }
+  .contenido.number.bomba .rotulo {
+    font-size:46px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; opacity:1;
+  }
 
   /* Testimonio: la cita manda y ocupa el centro óptico de la placa.
      Las comillas grandes hacen el trabajo que en el feed hace el contexto —
@@ -507,6 +514,8 @@ export function htmlDeSlide(slide, id, pieza) {
   h2 { font-size:44px; margin-bottom:18px; }
   .rotulo { font-size:25px; }
   .dato { font-size:82px; margin-top:6px; }
+  .contenido.number.bomba .dato { font-size:104px; }
+  .contenido.number.bomba .rotulo { font-size:30px; }
   .cuerpo { font-size:25px; margin-top:14px; line-height:1.3; }
   .llamado { font-size:24px; margin-top:14px; line-height:1.25; }
   .bajada { font-size:25px; margin-top:14px; line-height:1.3; }
