@@ -346,10 +346,19 @@ const posts: Record<string, Post> = {
         <p>Consiste en una constelación de 1021 micro-lentes invisibles distribuidos en 11 anillos concéntricos alrededor del centro del cristal. Mientras que el centro del lente permite que el niño vea nítido de lejos, estos anillos periféricos crean un "volumen de señal" que le indica al globo ocular que frene su crecimiento desmedido (que es la causa principal del avance de la miopía).</p>
 
         <h2>Resultados Clínicos Comprobados</h2>
+        <p>Stellest no promete: publica. En 2018 Essilor inició un <strong>ensayo clínico de 3 años con 104 niños miopes</strong> junto a la Universidad Médica de Wenzhou, su socio de investigación en China, y los resultados aparecieron en <strong>JAMA Ophthalmology (2022)</strong>, una de las revistas de oftalmología más exigentes del mundo:</p>
         <ul>
-          <li><strong>Ralentización del avance:</strong> En promedio, los lentes Stellest ralentizan la progresión de la miopía en un <strong>67%</strong> comparado con los lentes tradicionales, usándolos al menos 12 horas por día.</li>
-          <li><strong>Freno en el crecimiento ocular:</strong> Evitan el elongamiento del globo ocular en la mayoría de los casos.</li>
-          <li><strong>Visión Nítida y Confort:</strong> A nivel estético son idénticos a los lentes comunes y los niños se adaptan en cuestión de horas.</li>
+          <li><strong>67% menos de progresión:</strong> en promedio, la miopía de los chicos con Stellest avanzó un 67% menos que la de los chicos con lentes monofocales comunes, usándolos al menos 12 horas por día.</li>
+          <li><strong>Crecimiento ocular casi normal:</strong> el ojo de 9 de cada 10 chicos con Stellest creció igual o más lento que el de chicos sin miopía.</li>
+          <li><strong>Graduación estable:</strong> 2 de cada 3 chicos mantuvieron su corrección estable después del primer año (menos de 0,50 dioptrías de cambio en ambos ojos).</li>
+          <li><strong>Estética idéntica a un lente común:</strong> las 1021 microlentes tienen acabado invisible; nadie nota que es un lente de tratamiento.</li>
+        </ul>
+
+        <h2>Edad, uso diario y candidatos</h2>
+        <ul>
+          <li><strong>Edad:</strong> Essilor los recomienda de los <strong>6 a los 16 años</strong>, siempre bajo indicación del oftalmólogo.</li>
+          <li><strong>Uso:</strong> todas las horas que el chico esté despierto, <strong>mínimo 12 horas por día, todos los días</strong>. La eficacia del 67% se midió con ese cumplimiento: un lente que queda en el estuche no frena nada.</li>
+          <li><strong>Candidatos:</strong> chicos que están empezando con miopía, que ya son miopes, o —el caso más urgente— con <strong>miopía progresiva</strong>, esa graduación que sube en cada control.</li>
         </ul>
 
         <h2>El compromiso de Atelier Óptica</h2>

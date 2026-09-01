@@ -100,6 +100,84 @@ export default function StellestPage() {
         </div>
       </section>
 
+      {/* FAQ con los datos oficiales de Essilor (essilor.com/ar-es, ago. 2026),
+          reescritos con nuestra voz. Los números citan sus estudios: el ensayo
+          de Wenzhou y el publicado en JAMA Ophthalmology 2022. */}
+      <section className="w-full py-24 px-6 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Preguntas frecuentes de Stellest</h2>
+            <p className="text-black/60 text-lg">
+              Las respuestas que los papás nos hacen en el mostrador, con los datos clínicos oficiales de Essilor.
+            </p>
+          </div>
+
+          <AccordionItem
+            title="¿A partir de qué edad puede usar Stellest mi hijo?"
+            subtitle="De 6 a 16 años, con indicación del oftalmólogo."
+            defaultOpen={true}
+          >
+            <p className="mb-4">
+              Essilor recomienda las lentes Stellest para chicos <strong>desde los 6 y hasta los 16 años</strong>,
+              siempre según la decisión del oftalmólogo. Son candidatos los que están empezando a tener miopía,
+              los que ya son miopes y, sobre todo, los que tienen <strong>miopía progresiva</strong> (la graduación
+              sube en cada control).
+            </p>
+          </AccordionItem>
+
+          <AccordionItem
+            title="¿Cuántas horas por día tiene que usarlas?"
+            subtitle="Todas las horas que esté despierto: mínimo 12."
+          >
+            <p className="mb-4">
+              El tratamiento funciona por exposición: la señal que frena el crecimiento del ojo actúa mientras
+              la lente está puesta. Por eso Essilor indica usarlas <strong>todas las horas que el chico esté
+              despierto, al menos 12 horas por día, todos los días</strong>. El 67% de eficacia promedio se midió
+              justamente en chicos que cumplieron ese uso.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem
+            title="¿Qué tan probada está la eficacia?"
+            subtitle="Ensayos clínicos publicados, no marketing."
+          >
+            <p className="mb-4">
+              En 2018 Essilor inició un <strong>ensayo clínico de 3 años con 104 niños miopes</strong> junto a la
+              Universidad Médica de Wenzhou. Los resultados, publicados en
+              <strong> JAMA Ophthalmology (2022)</strong>, muestran:
+            </p>
+            <ul className="list-disc pl-5 mb-4 space-y-2">
+              <li><strong>67% menos de progresión</strong> de la miopía en promedio frente a monofocales comunes, con uso de 12 horas diarias.</li>
+              <li>El crecimiento ocular de <strong>9 de cada 10 chicos</strong> con Stellest fue similar o más lento que el de chicos sin miopía.</li>
+              <li><strong>2 de cada 3 chicos</strong> mantuvieron una graduación estable después del primer año (cambio menor a 0,50 D en ambos ojos).</li>
+            </ul>
+          </AccordionItem>
+
+          <AccordionItem
+            title="¿Se ven distintas a unas lentes comunes?"
+            subtitle="No: las microlentes son invisibles."
+          >
+            <p className="mb-4">
+              A simple vista son cristales comunes: la constelación de 1.021 microlentes tiene un acabado
+              estético invisible, y la zona central ofrece la misma visión nítida de un monofocal. El chico ve
+              bien de lejos y de cerca desde el primer día — el tratamiento trabaja en silencio, en la periferia.
+            </p>
+          </AccordionItem>
+
+          <AccordionItem
+            title="¿Por qué importa frenarla ahora y no esperar?"
+            subtitle="Cada dioptría cuenta para su vida adulta."
+          >
+            <p className="mb-4">
+              La miopía alta en la adultez multiplica el riesgo de desprendimiento de retina, glaucoma y
+              cataratas tempranas. La ventana para actuar es la niñez, mientras el ojo todavía está creciendo:
+              cada dioptría que se frena hoy es riesgo que se resta para siempre. Por eso los oftalmopediatras
+              indican control de miopía apenas detectan progresión, sin esperar.
+            </p>
+          </AccordionItem>
+        </div>
+      </section>
+
       <section className="w-full py-12 px-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="relative h-64 md:h-80 w-full rounded-2xl overflow-hidden shadow-lg">
