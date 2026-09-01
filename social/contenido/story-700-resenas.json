@@ -3,17 +3,23 @@
   "format": "9:16",
   "theme": "dark",
   "pilar": "prueba",
+  "caption_plantilla": "Más de {{RESENAS}} reseñas en Google, con calificación {{RATING}}. Gracias por cada una.",
   "caption": "Más de 700 reseñas en Google, con calificación 5,0. Gracias por cada una.",
-  "temas": ["local"],
+  "temas": [
+    "local"
+  ],
   "slides": [
     {
       "type": "number",
       "role": "portada",
       "image": "blog/vidriera-atelier.jpg",
       "encuadre": "cover",
+      "title_plantilla": "Calificación *{{RATING}}* en Google",
       "title": "Calificación *5,0* en Google",
+      "dato_plantilla": "{{RESENAS}} gracias",
       "dato": "700 gracias",
-      "body": "Ya son más de setecientas reseñas de clientes reales, y las leemos todas. Gracias por confiarnos algo tan tuyo como *la vista*."
+      "body_plantilla": "Ya son más de {{RESENAS}} reseñas de clientes reales, y las leemos todas. Gracias por confiarnos algo tan tuyo como *la vista*.",
+      "body": "Ya son más de 700 reseñas de clientes reales, y las leemos todas. Gracias por confiarnos algo tan tuyo como *la vista*."
     }
   ]
 }

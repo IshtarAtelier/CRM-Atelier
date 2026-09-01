@@ -21,6 +21,7 @@ import path from 'node:path';
 import { cargarIdentidad, formatoDePieza, RAIZ } from './identidad.mjs';
 import { htmlDeSlide } from './plantillas.mjs';
 import { validarPieza } from './validador.mjs';
+import { leerResenasConocidas, resolverPiezaResenas } from './resenas.mjs';
 
 const SALIDA_BASE = path.join(RAIZ, 'public', 'social');
 const BANCO = path.join(RAIZ, 'public', 'images');
@@ -53,6 +54,12 @@ export function resolverImagen(ref) {
 export async function renderizarPieza(rutaJson, { soloValidar = false } = {}) {
     const pieza = JSON.parse(await readFile(rutaJson, 'utf-8'));
     const id = await cargarIdentidad();
+
+    // El número de reseñas se declara por plantilla ({{RESENAS}}/{{RATING}},
+    // ver resenas.mjs) y acá se resuelve con el último dato conocido: la placa
+    // sale siempre con ese número aunque el campo horneado del JSON esté
+    // atrasado. Falla fuerte si la pieza usa plantillas y no hay dato.
+    resolverPiezaResenas(pieza, await leerResenasConocidas());
 
     // El formato lo manda la pieza: una story es 1080x1920 y un carrusel de
     // feed 1080x1350. Antes se ignoraba el campo `format` y todo salía 4:5,

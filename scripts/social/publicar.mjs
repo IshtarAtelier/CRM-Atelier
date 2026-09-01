@@ -1,9 +1,11 @@
 /**
- * Publica un carrusel en Facebook y en Instagram.
+ * Publica una pieza en Facebook y en Instagram: los carruseles al feed y las
+ * piezas 9:16 como STORY en las dos plataformas.
  *
  *   node scripts/social/publicar.mjs social/contenido/armazones-destacados.json            → PRUEBA
  *   node scripts/social/publicar.mjs social/contenido/armazones-destacados.json --facebook
  *   node scripts/social/publicar.mjs social/contenido/armazones-destacados.json --facebook --instagram
+ *   node scripts/social/publicar.mjs social/contenido/story-700-resenas.json --facebook --instagram
  *
  * NADA SE PUBLICA SIN QUE UNA PERSONA LO APRUEBE. Sin `--facebook` ni
  * `--instagram` el script muestra exactamente qué haría y no toca nada. Suena
@@ -25,6 +27,7 @@ import path from 'node:path';
 import { RAIZ } from './identidad.mjs';
 import { registrarPublicacion } from './bitacora.mjs';
 import { captionConHashtags, altDeSlide } from './seo.mjs';
+import { leerResenasConocidas, resolverPiezaResenas } from './resenas.mjs';
 
 const API = 'https://graph.facebook.com/v21.0';
 const BASE_PUBLICA = process.env.NEXT_PUBLIC_APP_URL || 'https://atelieroptica.com.ar';
@@ -129,6 +132,35 @@ async function publicarEnFacebook(pageId, tokenPagina, jpgs, mensaje) {
 }
 
 /**
+ * Historia de PÁGINA de Facebook: dos pasos con el mismo token de Página.
+ *
+ * La placa se sube como foto SIN publicar (`published=false`, así no aparece
+ * en el muro) y con ese `photo_id` se crea la historia vía `/photo_stories`.
+ * Hasta acá llegaba el rechazo de antes: lo único implementado era el feed,
+ * que espera 4:5 y habría mostrado la placa 9:16 cortada. La historia es el
+ * formato nativo del 9:16, igual que en Instagram.
+ *
+ * Como la de Instagram, NO lleva epígrafe: el texto tiene que estar dentro de
+ * la placa. Dura 24 horas y cuenta como actividad en la bitácora.
+ */
+async function publicarStoryEnFacebook(pageId, tokenPagina, ruta) {
+    const form = new FormData();
+    form.append('source', new Blob([await readFile(ruta)], { type: 'image/jpeg' }), path.basename(ruta));
+    form.append('published', 'false');
+    form.append('access_token', tokenPagina);
+
+    const res = await fetch(`${API}/${pageId}/photos`, { method: 'POST', body: form, signal: AbortSignal.timeout(90000) });
+    const json = await res.json();
+    if (json.error) throw new Error(`Subiendo la placa: ${json.error.message}`);
+    info('placa subida (sin publicar en el muro)');
+
+    const story = await graph('POST', `/${pageId}/photo_stories`, { photo_id: json.id }, tokenPagina);
+    const id = story.post_id || story.id || json.id;
+    ok(`Story publicada en Facebook: ${id}`);
+    return id;
+}
+
+/**
  * Instagram Stories: otro `media_type`, una sola imagen y SIN caption.
  *
  * La story no acepta epígrafe: el texto tiene que estar dentro de la imagen.
@@ -194,6 +226,12 @@ async function publicarEnInstagram(igUserId, tokenPagina, urls, mensaje, alts = 
 
 export async function publicar(rutaJson, { facebook = false, instagram = false } = {}) {
     const pieza = JSON.parse(await readFile(rutaJson, 'utf-8'));
+
+    // Reseñas: si la pieza declara el número por plantilla (ver resenas.mjs),
+    // se resuelve acá en memoria para que el epígrafe salga con el último dato
+    // conocido aunque el campo horneado del JSON haya quedado atrás.
+    resolverPiezaResenas(pieza, await leerResenasConocidas());
+
     const carpeta = path.join(RAIZ, 'public', 'social', pieza.id);
 
     const jpgs = (pieza.slides || []).map((_, i) =>
@@ -213,9 +251,12 @@ export async function publicar(rutaJson, { facebook = false, instagram = false }
     const mensajeFacebook = conUtm(mensaje, pieza.id);
     const alts = (pieza.slides || []).map(s => altDeSlide(s, pieza));
 
-    // Una pieza 9:16 es una story: se publica por otro endpoint y no lleva
-    // epígrafe. Se decide por el formato declarado, no por la cantidad de
-    // slides, para que quede explícito en el JSON qué se está publicando.
+    // Una pieza 9:16 es una story: en las DOS plataformas se publica por el
+    // endpoint de historias y no lleva epígrafe. Se decide por el formato
+    // declarado, no por la cantidad de slides, para que quede explícito en el
+    // JSON qué se está publicando. Al FEED una 9:16 no va nunca — lo mostraría
+    // cortada (el feed espera 4:5) — por eso abajo el destino de Facebook se
+    // bifurca ANTES de tocar el feed.
     const esStory = pieza.format === '9:16';
     if (esStory && jpgs.length > 1) {
         throw new Error(
@@ -223,28 +264,30 @@ export async function publicar(rutaJson, { facebook = false, instagram = false }
             `dejar una sola slide, o separarla en varias piezas.`
         );
     }
-    if (esStory && facebook) {
-        throw new Error(
-            'Las stories por ahora solo van a Instagram. Publicar la misma placa en el feed de ' +
-            'Facebook la mostraría cortada: el feed espera 4:5 y esto es 9:16.'
-        );
-    }
 
     const seco = !facebook && !instagram;
+    const rotulo = (nombre) => (esStory ? `${nombre} (story)` : nombre);
 
     console.log(`\n═══ ${seco ? 'PRUEBA (no publica nada)' : 'PUBLICANDO'} ═══`);
     console.log(`Pieza    : ${pieza.id}`);
     console.log(`Slides   : ${jpgs.length}`);
-    console.log(`Destino  : ${[facebook && 'Facebook', instagram && 'Instagram'].filter(Boolean).join(' + ') || '(ninguno)'}`);
-    console.log(`\nTexto que acompaña:\n  "${mensaje}"`);
-    if (mensajeFacebook !== mensaje) {
-        console.log(`\nEn Facebook, con UTMs:\n  "${mensajeFacebook}"`);
+    console.log(`Destino  : ${[facebook && rotulo('Facebook'), instagram && rotulo('Instagram')].filter(Boolean).join(' + ') || '(ninguno)'}`);
+    if (esStory) {
+        console.log('\n(story: sin epígrafe — el texto va dentro de la placa)');
+    } else {
+        console.log(`\nTexto que acompaña:\n  "${mensaje}"`);
+        if (mensajeFacebook !== mensaje) {
+            console.log(`\nEn Facebook, con UTMs:\n  "${mensajeFacebook}"`);
+        }
     }
     console.log('\nImágenes:');
     urls.forEach(u => console.log(`  ${u}`));
 
     if (seco) {
         console.log('\nNo se publicó nada. Para publicar de verdad, agregar --facebook y/o --instagram.');
+        if (esStory) {
+            console.log('(9:16: con --facebook sale como HISTORIA de la página — nunca al feed —; con --instagram, como story.)');
+        }
         return { ok: true, seco: true };
     }
 
@@ -265,9 +308,17 @@ export async function publicar(rutaJson, { facebook = false, instagram = false }
     const resultado = { pieza: pieza.id, plataformas: [], slides: jpgs.length, urls: {} };
 
     if (facebook) {
-        paso('Publicando en Facebook');
-        resultado.urls.facebook = await publicarEnFacebook(PAGE_ID, tokenPagina, jpgs, mensajeFacebook);
-        resultado.plataformas.push('Facebook');
+        if (esStory) {
+            // El guard del feed, ahora como bifurcación: una 9:16 va a la
+            // HISTORIA de la página, jamás al feed (saldría cortada).
+            paso('Publicando story en Facebook');
+            resultado.urls.facebook = await publicarStoryEnFacebook(PAGE_ID, tokenPagina, jpgs[0]);
+            resultado.plataformas.push('Facebook (story)');
+        } else {
+            paso('Publicando en Facebook');
+            resultado.urls.facebook = await publicarEnFacebook(PAGE_ID, tokenPagina, jpgs, mensajeFacebook);
+            resultado.plataformas.push('Facebook');
+        }
     }
 
     if (instagram) {
