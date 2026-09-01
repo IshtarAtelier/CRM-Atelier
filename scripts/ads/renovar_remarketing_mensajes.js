@@ -49,7 +49,10 @@ const FAMILIAS = [
       story916: jpeg('ad-l2-calificacion-story'),
       apaisado: jpeg('ad-l2-calificacion-apaisado'),
     },
-    body: '★ 5,0 con más de 700 reseñas en Google. “Volví a elegirlos porque la calidad es realmente impecable. Los anteojos multifocales son hermosos y de primera.” — Claudia S. Escribinos por WhatsApp y comprobalo.',
+    // Regla 31/8: en anuncios pagos, reseñas SOLO como dato agregado — nunca
+    // la cita textual ni el nombre de un cliente (eso queda para stories
+    // orgánicas). El número invita a LEERLAS en Google, no las reproduce.
+    body: '★ 5,0 con más de 700 reseñas en Google. No nos creas a nosotros: buscá Atelier Óptica en Google y leé lo que cuentan los que ya compraron. Después escribinos por WhatsApp.',
     title: '★ 5,0 en Google — más de 700 reseñas',
   },
   {
