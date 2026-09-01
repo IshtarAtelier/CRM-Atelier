@@ -156,7 +156,7 @@ const PLANTILLAS = {
         const claseCompacta = slide.compacto ? `compacto ${!slide.dato && !slide.body ? 'sin-datos' : ''}` : '';
         const claseBomba = slide.bomba ? 'bomba' : '';
         return `
-    ${slide.imagenResuelta ? `<div class="producto ${slide.encuadre === 'cover' ? 'llena' : ''} ${claseCompacta}" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>` : ''}
+    ${slide.imagenResuelta ? `<div class="producto ${slide.encuadre === 'cover' ? 'llena' : ''} ${slide.fotoGrande ? 'grande' : ''} ${claseCompacta}" style="background-image:url('${comoUrl(slide.imagenResuelta)}')"></div>` : ''}
     <div class="contenido number ${claseCompacta} ${claseBomba}">
       <p class="rotulo">${resaltar(slide.title)}</p>
       ${slide.dato ? `<p class="dato">${esc(slide.dato)}</p>` : ''}
@@ -344,9 +344,14 @@ export function htmlDeSlide(slide, id, pieza) {
     font-size:104px; font-weight:900; letter-spacing:-.03em; line-height:1;
     margin-top:14px; color:${id.colores.marca};
   }
+  /* fotoGrande: true — el armazón ocupa más de la mitad de la placa
+     (pedido de Ishtar 1/9: "que se vea bien grande el anteojo"). */
+  .producto.grande { height:62%; }
   /* bomba: true en la slide — el dato a tamaño cartel y el rótulo en caja
      alta (pedido de Ishtar 31/8: "más bomba de marketing, grande"). */
   .contenido.number.bomba .dato { font-size:170px; }
+  /* Con foto grande el dato bomba baja un punto para no pisarla. */
+  .producto.grande ~ .contenido.number.bomba .dato { font-size:132px; }
   .contenido.number.bomba .rotulo {
     font-size:46px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; opacity:1;
   }

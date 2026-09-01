@@ -278,9 +278,129 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
     }
 }
 
+/**
+ * Placas INDIVIDUALES de producto (una por armazón) para anuncios: la foto del
+ * anteojo grande, la cuota como dato bomba y los descuentos reales. Pedido de
+ * Ishtar 1/9/26 ("10 placas diferentes, que se vea bien grande el anteojo").
+ *
+ * Mismas garantías que el carrusel: precios de la base (fuente: "base", R6) y
+ * el cupón se VALIDA EN VIVO contra el endpoint público de la tienda — si el
+ * cupón no está vigente, la línea no se escribe. Nada tipeado a mano.
+ */
+export async function generarPlacasIndividuales({ limite = 10, categoria = null, cupon = 'QUIEROMISLENTES' } = {}) {
+    const { PrismaClient } = await import('@prisma/client');
+    const desdeProduccion = Boolean(process.env.PROD_DATABASE_URL);
+    const prisma = new PrismaClient({
+        datasources: { db: { url: process.env.PROD_DATABASE_URL || process.env.DATABASE_URL } },
+    });
+    try {
+        const productos = await prisma.webProduct.findMany({
+            where: {
+                isActive: true,
+                imageUrl: { not: null },
+                ...(categoria ? { category: { equals: categoria, mode: 'insensitive' } } : {}),
+            },
+            include: { product: true },
+            take: 200,
+        });
+        let elegidos = productos.filter(p => p.product && p.product.price > 0);
+        const porNombre = new Map();
+        for (const p of elegidos) {
+            const clave = String(p.name).replace(/\s+C\d+\s*$/i, '').trim().toLowerCase();
+            if (!porNombre.has(clave)) porNombre.set(clave, p);
+        }
+        // Los destacados primero: son los que la óptica ya eligió como vidriera.
+        elegidos = [...porNombre.values()].sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured)).slice(0, limite);
+        if (!elegidos.length) throw new Error('Ningún producto activo con foto y precio.');
+
+        const filas = await prisma.systemSetting.findMany({
+            where: { key: { in: ['web_promo_installments', 'web_promo_cash_discount'] } },
+            select: { key: true, value: true },
+        });
+        const getS = (k) => filas.find(f => f.key === k)?.value;
+        const promo = leerPromoCuotas(getS('web_promo_installments'));
+        const crudo = Number(getS('web_promo_cash_discount'));
+        const descuento = Number.isFinite(crudo) && crudo > 0 ? crudo : 15;
+
+        // El cupón se valida contra la tienda EN PRODUCCIÓN, no se asume.
+        let lineaCupon = null;
+        try {
+            const r = await fetch('https://atelieroptica.com.ar/api/checkout/validate-coupon', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: cupon, subtotal: 150000 }),
+                signal: AbortSignal.timeout(15000),
+            });
+            const j = await r.json();
+            if (j.valid && j.discountType === 'PERCENT') {
+                lineaCupon = `Cupón ${cupon}: ${j.discountValue}% OFF en la tienda, solo esta semana`;
+                console.log(`  · cupón ${cupon} verificado vivo: ${j.discountValue}% OFF`);
+            } else console.log(`  · cupón ${cupon} NO vigente — la línea no se escribe`);
+        } catch { console.log('  · no se pudo validar el cupón — la línea no se escribe'); }
+
+        const limpiar = (n) => String(n).replace(/\s+C\d+\s*$/i, '').trim();
+        const rutas = [];
+        await mkdir(DESTINO, { recursive: true });
+        for (const p of elegidos) {
+            const foto = await fotoLocal(p.imageUrl, p.slug);
+            const cuota = Math.round(p.product.price / promo.cantidad);
+            const alContado = Math.round(p.product.price * (1 - descuento / 100));
+            const cuota12 = (await cuotasLargas(p.product.price)).texto;
+            const id = `placa-producto-${p.slug}`;
+            const pieza = {
+                id, format: '4:5', theme: 'dark', pilar: 'producto',
+                fuente: 'base',
+                generadoEl: new Date().toISOString().slice(0, 10),
+                generadoDesde: desdeProduccion ? 'produccion' : 'local',
+                images_waived: 'Placa de catálogo: la foto del armazón ES el producto, no un fondo.',
+                generado: new Date().toISOString().slice(0, 10),
+                caption: [
+                    `${limpiar(p.name)} — ${promo.texto} de ${plata(cuota)}.`,
+                    cuota12 + '.',
+                    lineaCupon ? lineaCupon + '.' : null,
+                    `Envío gratis a todo el país 🇦🇷`,
+                ].filter(Boolean).join(' '),
+                slides: [{
+                    type: 'number', role: 'portada',
+                    image: path.relative(path.join(RAIZ, 'public', 'images'), foto),
+                    fotoGrande: true, bomba: true,
+                    title: limpiar(p.name) + (
+                        p.product.brand && !limpiar(p.name).toLowerCase().includes(p.product.brand.toLowerCase())
+                            ? ` · ${p.product.brand}` : ''
+                    ),
+                    dato: `${promo.cantidad} x ${plata(cuota)}`,
+                    body: [
+                        `${promo.texto} sin interés · ${cuota12}`,
+                        `Transferencia ${descuento}% OFF: ${plata(alContado)}`,
+                        lineaCupon,
+                    ].filter(Boolean).join('\n'),
+                }],
+            };
+            const ruta = path.join(DESTINO, `${id}.json`);
+            await writeFile(ruta, JSON.stringify(pieza, null, 2) + '\n');
+            console.log(`  ✅ ${limpiar(p.name)} → ${id} (${plata(p.product.price)} lista)`);
+            rutas.push(ruta);
+        }
+        console.log(`\n${rutas.length} placas individuales. Precios de la base HOY.`);
+        return rutas;
+    } finally {
+        await prisma.$disconnect();
+    }
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
     const args = process.argv.slice(2);
     const val = (flag) => { const i = args.indexOf(flag); return i !== -1 ? args[i + 1] : null; };
+    if (args.includes('--individuales')) {
+        const rutas = await generarPlacasIndividuales({
+            limite: Number(val('--limite') || 10),
+            categoria: val('--categoria'),
+        });
+        if (args.includes('--render')) {
+            const { renderizarPieza } = await import('./render.mjs');
+            for (const r of rutas) await renderizarPieza(r);
+        }
+        process.exit(0);
+    }
     const r = await generarPiezaDeProductos({
         destacados: args.includes('--destacados'),
         marca: val('--marca'),

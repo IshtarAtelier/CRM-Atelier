@@ -1,0 +1,24 @@
+{
+  "id": "placa-producto-lentes-sol-clipon-capri-c5-g5929",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-09-01",
+  "generadoDesde": "produccion",
+  "images_waived": "Placa de catálogo: la foto del armazón ES el producto, no un fondo.",
+  "generado": "2026-09-01",
+  "caption": "Capri — 6 cuotas sin interés de $29.167. 12 cuotas fijas de $16.042. Cupón QUIEROMISLENTES: 10% OFF en la tienda, solo esta semana. Envío gratis a todo el país 🇦🇷",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "catalogo-social/lentes-sol-clipon-capri-c5-g5929.jpg",
+      "fotoGrande": true,
+      "bomba": true,
+      "title": "Capri · Cápsula Escarlata",
+      "dato": "6 x $29.167",
+      "body": "6 cuotas sin interés sin interés · 12 cuotas fijas de $16.042\nTransferencia 15% OFF: $148.750\nCupón QUIEROMISLENTES: 10% OFF en la tienda, solo esta semana"
+    }
+  ]
+}

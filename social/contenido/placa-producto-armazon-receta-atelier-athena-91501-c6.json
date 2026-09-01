@@ -1,0 +1,24 @@
+{
+  "id": "placa-producto-armazon-receta-atelier-athena-91501-c6",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-09-01",
+  "generadoDesde": "produccion",
+  "images_waived": "Placa de catálogo: la foto del armazón ES el producto, no un fondo.",
+  "generado": "2026-09-01",
+  "caption": "Athena — 6 cuotas sin interés de $26.667. 12 cuotas fijas de $14.667. Cupón QUIEROMISLENTES: 10% OFF en la tienda, solo esta semana. Envío gratis a todo el país 🇦🇷",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "catalogo-social/armazon-receta-atelier-athena-91501-c6.jpg",
+      "fotoGrande": true,
+      "bomba": true,
+      "title": "Athena · Cápsula escarlata",
+      "dato": "6 x $26.667",
+      "body": "6 cuotas sin interés sin interés · 12 cuotas fijas de $14.667\nTransferencia 15% OFF: $136.000\nCupón QUIEROMISLENTES: 10% OFF en la tienda, solo esta semana"
+    }
+  ]
+}
