@@ -47,9 +47,10 @@ const STORE_URL = 'https://atelieroptica.com.ar';
 
 export const WHATSAPP_TEMPLATES = {
     // HORARIO VIEJO ("9 a 20"): el real es L-V 8 a 20 y sábados 9 a 17
-    // (BUSINESS_INFO.hours). Meta congela el texto aprobado, así que el fix es
-    // la _v2 de abajo — cuando Meta la apruebe, cambiar los consumidores
-    // (notify-ready y bot.service) a _v2 y anotar esta como histórica.
+    // (BUSINESS_INFO.hours). Meta congela el texto aprobado, así que el fix
+    // fue dar de alta la _v2 de abajo — APROBADA el 1/9, notify-ready y
+    // bot.service ya la usan. Esta queda solo como registro histórico de
+    // envíos viejos; no la reutilices para mandar.
     pedido_listo: {
         name: 'pedido_listo',
         inventario: 'A1',
@@ -66,7 +67,7 @@ export const WHATSAPP_TEMPLATES = {
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }],
         buttons: [{ type: 'URL', text: 'Cómo llegar', url: 'https://maps.app.goo.gl/atelieroptica' }],
     },
-    // HORARIO VIEJO — misma situación que pedido_listo: usar _v2 al aprobarse.
+    // HORARIO VIEJO — misma situación que pedido_listo. Registro histórico.
     pedido_listo_saldo: {
         name: 'pedido_listo_saldo',
         inventario: 'A12',
