@@ -1,0 +1,23 @@
+{
+  "id": "story-resena-claudia",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "prueba",
+  "caption": "Reseña real de Google: la calidad de los multifocales, contada por una clienta que volvió.",
+  "temas": ["local", "multifocales"],
+  "slides": [
+    {
+      "type": "testimonio",
+      "role": "portada",
+      "image": "blog/mujer-oficina-multifocal.png",
+      "cita": "Ya había comprado antes y volví a elegirlos porque la calidad es realmente impecable. Los anteojos multifocales son hermosos y de primera.",
+      "resena": {
+        "autor": "CLAUDIA SONIA GUZMAN",
+        "fuente": "google",
+        "estrellas": 5,
+        "fecha": "enero 2026",
+        "url": "https://www.google.com/maps/contrib/104774864567102780209/reviews"
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "story-resena-silvia",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "prueba",
+  "caption": "Reseña real de Google: comparó precios en tres ópticas y eligió Atelier.",
+  "temas": ["local"],
+  "slides": [
+    {
+      "type": "testimonio",
+      "role": "portada",
+      "image": "blog/mostrador-marmol.jpg",
+      "cita": "Busque en tres ópticas precios y fue el mejor ya sea efectivo o tarjeta. Excelente atención en mostrador. Productos de excelencia.",
+      "resena": {
+        "autor": "Silvia Mariana Castellanos",
+        "fuente": "google",
+        "estrellas": 5,
+        "fecha": "mayo 2026",
+        "url": "https://www.google.com/maps/contrib/111817927238849623862/reviews"
+      }
+    }
+  ]
+}

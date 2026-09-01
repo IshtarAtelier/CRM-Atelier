@@ -1,0 +1,23 @@
+{
+  "id": "story-resena-anita",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "prueba",
+  "caption": "Reseña real de Google: la atención en el local, tal como la contó una clienta.",
+  "temas": ["local"],
+  "slides": [
+    {
+      "type": "testimonio",
+      "role": "portada",
+      "image": "blog/blog3_eligiendo.png",
+      "cita": "Desde el primer momento recibí una atención excelente: fueron muy amables, pacientes y se tomaron el tiempo para asesorarme y responder todas mis dudas.",
+      "resena": {
+        "autor": "Anita Gagliardi",
+        "fuente": "google",
+        "estrellas": 5,
+        "fecha": "junio 2026",
+        "url": "https://www.google.com/maps/contrib/112101643913939986173/reviews"
+      }
+    }
+  ]
+}

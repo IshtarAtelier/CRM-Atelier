@@ -1,0 +1,19 @@
+{
+  "id": "story-700-resenas",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "prueba",
+  "caption": "Más de 700 reseñas en Google, con calificación 5,0. Gracias por cada una.",
+  "temas": ["local"],
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "blog/vidriera-atelier.jpg",
+      "encuadre": "cover",
+      "title": "Calificación *5,0* en Google",
+      "dato": "700 gracias",
+      "body": "Ya son más de setecientas reseñas de clientes reales, y las leemos todas. Gracias por confiarnos algo tan tuyo como *la vista*."
+    }
+  ]
+}

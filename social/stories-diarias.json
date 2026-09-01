@@ -17,7 +17,7 @@
     "día). Si avanzara de a 2 como antes, la tarde repetiría exactamente lo de la",
     "mañana. El PLAN del cron es la única fuente de esos números.",
     "",
-    "Ciclos: contenido 57 piezas ÷ 4 = 14,25 días. Producto 24 ÷ 2 = 12 días.",
+    "Ciclos: contenido 66 piezas ÷ 4 = 16,5 días. Producto 24 ÷ 2 = 12 días.",
     "Ninguno es múltiplo exacto de lo que consume el día, así que los grupos",
     "diarios rotan entre vueltas — es deseado, no un bug: la misma pieza no cae",
     "siempre en la misma compañía.",
@@ -59,6 +59,17 @@
     "Para sacar algo del aire se lo borra de su lista. Para agregar: renderizar",
     "en 9:16, commitear el JPEG y sumarlo acá.",
     "",
+    "CADA ENTRADA ES UN OBJETO {id, tipo}, NUNCA un string pelado. El cron hace",
+    "`{ carril, ...lista[i] }`: un string se desparrama en caracteres sueltos,",
+    "`e.id` queda undefined y la story intenta publicar /social/undefined/01.jpg.",
+    "El 31/8 había cinco así al final del carril (los story-indice-*, smart-free",
+    "y essilor-lider) que habrían empezado a fallar el ~9/9; ya están convertidos.",
+    "",
+    "Reseñas (31/8/26): story-resena-anita, story-resena-claudia,",
+    "story-resena-silvia y story-700-resenas son prueba social con reseñas",
+    "REALES de Google (regla R7: cita textual + autor + fuente + fecha).",
+    "Van separadas ~10 posiciones para que no caigan dos el mismo día.",
+    "",
     "Las de producto se regeneran desde la base con:",
     "  node scripts/social/generar-story-producto.mjs --produccion --cantidad 20",
     "Eso las actualiza con los precios y las fotos vigentes.",
@@ -95,6 +106,10 @@
       {
         "id": "story-indice-que-es",
         "tipo": "educacion"
+      },
+      {
+        "id": "story-resena-anita",
+        "tipo": "prueba"
       },
       {
         "id": "story-marean",
@@ -137,6 +152,10 @@
         "tipo": "educacion"
       },
       {
+        "id": "story-resena-claudia",
+        "tipo": "prueba"
+      },
+      {
         "id": "story-lente-progresiva",
         "tipo": "educacion"
       },
@@ -177,6 +196,10 @@
         "tipo": "educacion"
       },
       {
+        "id": "story-resena-silvia",
+        "tipo": "prueba"
+      },
+      {
         "id": "story-dato-primer-control-3-anios",
         "tipo": "educacion"
       },
@@ -207,6 +230,10 @@
       {
         "id": "story-crizal-prevencia",
         "tipo": "educacion"
+      },
+      {
+        "id": "story-700-resenas",
+        "tipo": "prueba"
       },
       {
         "id": "story-lente-bifocal",
@@ -300,11 +327,26 @@
         "id": "story-tratamiento-crizal",
         "tipo": "educacion"
       },
-      "story-indice-1-67",
-      "story-indice-aro-al-aire",
-      "story-indice-no-cambia-la-vision",
-      "story-smart-free",
-      "story-essilor-lider"
+      {
+        "id": "story-indice-1-67",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-indice-aro-al-aire",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-indice-no-cambia-la-vision",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-smart-free",
+        "tipo": "educacion"
+      },
+      {
+        "id": "story-essilor-lider",
+        "tipo": "educacion"
+      }
     ],
     "producto": [
       {
