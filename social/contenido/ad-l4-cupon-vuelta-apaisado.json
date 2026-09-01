@@ -1,0 +1,22 @@
+{
+  "id": "ad-l4-cupon-vuelta-apaisado",
+  "format": "1.91:1",
+  "theme": "dark",
+  "pilar": "campania",
+  "temas": [
+    "tienda",
+    "remarketing"
+  ],
+  "caption": "Ese modelo que estuviste mirando sigue acá 👓 Usá el cupón QUIEROMISLENTES y llevátelo con 10% de descuento en la tienda online, con envío gratis a todo el país. Válido hasta el 30/9.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "editorial/junio26-cartera-lentes.jpg",
+      "encuadre": "cover",
+      "title": "Con el cupón QUIEROMISLENTES",
+      "dato": "10% OFF",
+      "body": "En la tienda online, con envío gratis."
+    }
+  ]
+}

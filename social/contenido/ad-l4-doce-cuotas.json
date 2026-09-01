@@ -1,0 +1,22 @@
+{
+  "id": "ad-l4-doce-cuotas",
+  "format": "4:5",
+  "theme": "dark",
+  "pilar": "campania",
+  "temas": [
+    "tienda",
+    "remarketing"
+  ],
+  "caption": "Los lentes que estuviste viendo se llevan en hasta 12 cuotas fijas 💳 Y siguen las 6 cuotas sin interés con tarjeta. En el local o en la tienda online, con envío gratis.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "editorial/junio26-pose-pared.jpg",
+      "encuadre": "cover",
+      "title": "Fijas, también en la tienda online",
+      "dato": "12 cuotas",
+      "body": "Los lentes que viste, en hasta 12 cuotas fijas. Y las 6 sin interés con tarjeta, como siempre."
+    }
+  ]
+}

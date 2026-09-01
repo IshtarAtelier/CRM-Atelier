@@ -1,0 +1,22 @@
+{
+  "id": "ad-l4-cupon-vence-story",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "campania",
+  "temas": [
+    "tienda",
+    "remarketing"
+  ],
+  "caption": "Último llamado: el cupón QUIEROMISLENTES (10% OFF en la tienda online) vence el 30 de septiembre. Envío gratis a todo el país 🇦🇷",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "editorial/junio26-estuches-zapatos-b.jpg",
+      "encuadre": "cover",
+      "title": "El cupón QUIEROMISLENTES vence",
+      "dato": "30/9",
+      "body": "10% de descuento en la tienda online hasta fin de septiembre. Después, precio de siempre."
+    }
+  ]
+}
