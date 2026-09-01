@@ -45,9 +45,13 @@ function textoDeSlide(slide) {
     // TODO campo de texto visible va acá. Si mañana se agrega uno a las
     // plantillas y no se suma a esta lista, R6 deja de mirarlo y por esa rendija
     // se puede publicar un precio escrito a mano — que es justo lo que pasó con
-    // `cta` el 10/8/2026.
-    return [slide.title, slide.subtitle, slide.body, slide.cita, slide.cta, ...(slide.items || [])]
-        .filter(Boolean).join(' ');
+    // `cta` el 10/8/2026, y de nuevo el 1/9/26 con los 5 campos de la plantilla
+    // `venta` (cuotaImporte, transferencia, lista, doceCuotas, cuponDetalle):
+    // se sumaron a la plantilla sin sumarse acá, y R6 no los miraba.
+    return [
+        slide.title, slide.subtitle, slide.body, slide.cita, slide.cta, ...(slide.items || []),
+        slide.cuotaImporte, slide.transferencia, slide.lista, slide.doceCuotas, slide.cuponDetalle,
+    ].filter(Boolean).join(' ');
 }
 
 /** Largo máximo de una cita: más que esto no entra en la placa y sale cortado. */
