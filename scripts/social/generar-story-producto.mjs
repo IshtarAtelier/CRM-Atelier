@@ -208,9 +208,9 @@ export async function generarStoriesDeProducto({ marca, cantidad, produccion, ti
             // (lista × factor ÷ 12), con el factor leído de
             // RECARGO_MP_CUOTAS_LARGAS en vez de un 1,10 tipeado acá.
             //
-            // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita):
-            // la cuota de 12 va SIEMPRE con su costo financiero al lado, y
-            // nunca se dice "sin interés" de las 12 (eso son solo 3 y 6).
+            // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 a la noche): las 12 se
+            // dicen "cuotas fijas", sin la leyenda del % — el recargo va
+            // ADENTRO del importe. Y nunca "sin interés" (eso son solo 3 y 6).
             const texto12 = (await cuotasLargas(precio)).texto;
 
             const pieza = {

@@ -332,9 +332,9 @@ export async function generarPiezaMultifocal({ produccion = false, categoriaArma
         // (lista × factor ÷ 12), con el factor leído de
         // RECARGO_MP_CUOTAS_LARGAS en vez de un 1,10 tipeado acá.
         //
-        // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita): la
-        // cuota de 12 se muestra SIEMPRE con su costo financiero al lado, y las
-        // 12 nunca se dicen "sin interés" (eso son solo 3 y 6).
+        // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 a la noche): las 12 se
+        // dicen "cuotas fijas", sin la leyenda del % — el recargo va ADENTRO
+        // del importe. Y nunca "sin interés" (eso son solo 3 y 6).
         const texto12 = (await cuotasLargas(ancla.precio)).texto;
         const hoy = new Date().toISOString().slice(0, 10);
 

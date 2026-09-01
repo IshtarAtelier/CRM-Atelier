@@ -93,7 +93,7 @@ const DEFAULT_FAQS: Faq[] = [
   {
     question: "¿Cómo pago? ¿Hay cuotas?",
     answer:
-      "Trabajamos con 3 y 6 cuotas sin interés, y hasta 12 cuotas con Mercado Pago (10% de costo financiero), y todos los medios de pago. En el presupuesto te detallamos el plan que más te convenga.",
+      "Trabajamos con 3 y 6 cuotas sin interés, hasta 12 cuotas fijas y todos los medios de pago. En el presupuesto te detallamos el plan que más te convenga.",
   },
   {
     question: "¿Qué es un cristal multifocal y para quién se recomienda?",
@@ -123,7 +123,7 @@ export const CAMPAIGNS: Record<string, CampaignConfig> = {
     seo: {
       title: "Atelier Óptica | Anteojos de Autor con Cristales Premium en Cuotas",
       description:
-        "Anteojos de diseño con cristales premium y multifocales Varilux. Asesoramiento personalizado por WhatsApp, 3 y 6 cuotas sin interés (y hasta 12 con Mercado Pago, 10% de costo financiero) y envíos a todo el país. Presupuesto en el acto.",
+        "Anteojos de diseño con cristales premium y multifocales Varilux. Asesoramiento personalizado por WhatsApp, 3 y 6 cuotas sin interés (y hasta 12 fijas) y envíos a todo el país. Presupuesto en el acto.",
     },
     hero: {
       badge: "Óptica de autor · Córdoba",
@@ -200,7 +200,7 @@ export const CAMPAIGNS: Record<string, CampaignConfig> = {
       { question: "¿Cómo funciona el clip solar?", answer: "El suplemento de sol se sujeta al armazón por imán: lo colocás cuando salís al sol y lo sacás cuando entrás. Firme, al ras y sin marcar el armazón." },
       { question: "¿Se puede hacer con mi graduación?", answer: "Sí. El armazón lleva tus cristales recetados (monofocales o multifocales) y el clip solar va por encima. Te asesoramos según tu receta." },
       { question: "¿El clip protege del sol de verdad?", answer: "Sí, el suplemento cuenta con protección UV. Sumás protección solar sobre tu anteojo graduado, sin resignar tu visión." },
-      { question: "¿Hacen envíos a todo el país?", answer: "Sí, enviamos a todo el país y coordinamos todo por WhatsApp. Podés pagar en 3 y 6 cuotas sin interés, o hasta 12 con Mercado Pago (10% de costo financiero)." },
+      { question: "¿Hacen envíos a todo el país?", answer: "Sí, enviamos a todo el país y coordinamos todo por WhatsApp. Podés pagar en 3 y 6 cuotas sin interés, o hasta 12 cuotas fijas." },
     ],
     waMessageBase:
       "Hola Atelier! 👋 Me interesan los anteojos Clip-On (recetados + sol magnético). ¿Me pasan modelos y precios?",
@@ -248,7 +248,7 @@ export const CAMPAIGNS: Record<string, CampaignConfig> = {
       { question: "¿Cuánto tarda la adaptación a los multifocales?", answer: `Suele ser de unos días a un par de semanas. ${GARANTIA_ADAPTACION.RESUMEN} ${GARANTIA_ADAPTACION.REQUISITO}` },
       { question: "Es mi primer multifocal, ¿me va a costar?", answer: "Te acompañamos en todo el proceso. Con un buen tallado digital y el armazón correcto, la adaptación es mucho más simple. Te asesoramos paso a paso." },
       { question: "¿Qué marcas de cristales usan?", answer: "Trabajamos con Varilux (Essilor) y otras primeras marcas, con tratamientos antirreflex, filtro azul y fotocromáticos según lo que necesites." },
-      { question: "¿Puedo hacerlo desde otra provincia?", answer: "Sí. Coordinamos tu receta por WhatsApp y enviamos a todo el país, en 3 y 6 cuotas sin interés (o hasta 12 con Mercado Pago, 10% de costo financiero)." },
+      { question: "¿Puedo hacerlo desde otra provincia?", answer: "Sí. Coordinamos tu receta por WhatsApp y enviamos a todo el país, en 3 y 6 cuotas sin interés (o hasta 12 cuotas fijas)." },
     ],
     waMessageBase:
       "Hola Atelier! 👋 Quiero asesoramiento y un presupuesto para anteojos multifocales.",
@@ -264,7 +264,7 @@ export const CAMPAIGNS: Record<string, CampaignConfig> = {
     seo: {
       title: "Anteojos Recetados a Medida | Atelier Óptica — Armazones de Diseño",
       description:
-        "Armá tus anteojos graduados: armazones de diseño + cristales a tu medida. Asesoramiento por WhatsApp, 3 y 6 cuotas sin interés (y hasta 12 con Mercado Pago, 10% de costo financiero) y envíos a todo el país. Presupuesto en el acto.",
+        "Armá tus anteojos graduados: armazones de diseño + cristales a tu medida. Asesoramiento por WhatsApp, 3 y 6 cuotas sin interés (y hasta 12 fijas) y envíos a todo el país. Presupuesto en el acto.",
     },
     hero: {
       badge: "Anteojos recetados · A tu medida",

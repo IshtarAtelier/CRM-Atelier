@@ -32,11 +32,14 @@ export const OPCIONES_RECARGO_CUOTAS = [0, 5, 10];
  * Costo financiero de las cuotas largas de Mercado Pago (12 y 18): el cliente
  * paga lista + este %.
  *
- * REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita): este
- * porcentaje se ACLARA SIEMPRE, en TODA superficie —tienda, checkout, PDFs,
- * mails, plantillas de WhatsApp, prompts del bot, piezas de redes, anuncios y
- * blog— y las 12 cuotas nunca se anuncian "sin interés" (sin interés son solo
- * 3 y 6). La redacción única para pantallas vive en `src/lib/promo-cuotas.ts`.
+ * REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 A LA NOCHE — reemplaza a la de esa
+ * mañana): el porcentaje NO se menciona en ninguna superficie de marketing —
+ * la fórmula es "3 y 6 cuotas sin interés, y hasta 12 cuotas fijas". El
+ * recargo va ADENTRO de todo importe que se muestre (PricingService), y las
+ * 12 jamás se anuncian "sin interés" (sin interés son solo 3 y 6). La
+ * redacción única vive en `src/lib/promo-cuotas.ts`; el % escrito con todas
+ * las letras sobrevive solo en los T&C (información contractual) y en los
+ * labels de método de pago de recibos/cotizador (documentan un cobro).
  *
  * No es negociable por venta (a diferencia de `discountCard`): es fijo, y la
  * conversión de saldos divide por (1 + este %) para los pagos MP 12/18.

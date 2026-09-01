@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { PricingService } from "@/services/PricingService";
-import { ACLARACION_MP_CUOTAS_LARGAS, leerPromoCuotas } from "@/lib/promo-cuotas";
+import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 
 import Image from "next/image";
@@ -146,14 +146,14 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                 <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40 flex flex-col gap-0.5">
                   <div className="flex items-baseline justify-between">
                     <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
-                      12 cuotas de <span className="font-semibold text-[#7d6249] dark:text-[#c8a55c]">${PricingService.cuotasMpLargas(p.price || 0).installment12.toLocaleString("es-AR")}</span>
+                      12 cuotas fijas de <span className="font-semibold text-[#7d6249] dark:text-[#c8a55c]">${PricingService.cuotasMpLargas(p.price || 0).installment12.toLocaleString("es-AR")}</span>
                     </p>
                     <span className="text-xs text-stone-900 dark:text-white uppercase tracking-wider font-bold group-hover:text-[#8a6d3b] dark:group-hover:text-[#c8a55c] transition-colors shrink-0">Ver anteojos ›</span>
                   </div>
-                  {/* La cuota de 12 de arriba nunca va sin su costo financiero
-                      (decisión de Ishtar del 31/8/26): abre esta línea. */}
+                  {/* Las 12 se dicen "cuotas fijas", sin el % (decisión de
+                      Ishtar, 31/8 noche — la redacción vive en promo-cuotas.ts). */}
                   <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
-                    {ACLARACION_MP_CUOTAS_LARGAS} · {installmentsCount} s/interés de ${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")} · Transf. {webSettings.web_promo_cash_discount}% OFF: ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
+                    {installmentsCount} s/interés de ${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")} · Transf. {webSettings.web_promo_cash_discount}% OFF: ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
                   </p>
                 </div>
               </div>

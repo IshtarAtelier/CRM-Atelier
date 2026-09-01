@@ -77,9 +77,10 @@ export function PaymentOptions({ variant = "inline", price, cashDiscount, instal
   const options = [
     {
       icon: <IconoTarjeta />,
-      // Decisión de Ishtar del 31/8/2026: la cuota de 12 SIEMPRE con su costo
-      // financiero al lado. La redacción sale de `promo-cuotas.ts`, que es el
-      // único lugar donde se escribe.
+      // Decisión de Ishtar del 31/8/2026 (noche): las 12 se dicen "cuotas
+      // fijas", sin el % ni "con Mercado Pago". La redacción sale de
+      // `promo-cuotas.ts`, que es el único lugar donde se escribe; el importe
+      // ya trae el recargo adentro.
       label: showCalculated ? textoCuotas12(cuota12Value) : TEXTO_MP_CUOTAS_LARGAS,
       sub: "por Mercado Pago",
       highlight: false,

@@ -62,8 +62,10 @@ const DISCOUNT_TRANSFER_PERCENT = 15;
 
 /**
  * RECARGO_MP_CUOTAS_LARGAS (`src/lib/constants/descuentos.ts`): las cuotas
- * largas de Mercado Pago (12) llevan este % de costo financiero, y TODO lugar
- * que las mencione tiene que aclararlo. Nunca "12 cuotas sin interés".
+ * largas de Mercado Pago (12) llevan este % de costo financiero ADENTRO del
+ * importe. Desde el 31/8/26 a la noche el % NO se menciona en la comunicación
+ * ("hasta 12 cuotas fijas") — solo se explica si el cliente pregunta por qué
+ * el total de 12 es más alto. Nunca "12 cuotas sin interés".
  */
 const RECARGO_MP_CUOTAS_LARGAS = 10;
 

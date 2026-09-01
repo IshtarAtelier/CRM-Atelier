@@ -256,7 +256,7 @@ export async function GET(req: NextRequest) {
         cuota6: 0,
         cuota12: 0,
         total12: 0,
-        notes: '⚠️ INSTRUCCIÓN CRÍTICA PARA EL BOT: Al enviar opciones al cliente, SIEMPRE ordenalas destacando primero el pago en EFECTIVO/TRANSFERENCIA. 🔴 PROHIBIDO CALCULAR: todos los importes vienen resueltos en este mismo payload y se escriben TAL CUAL, sin multiplicar, dividir ni redondear nada. Usá "priceCash" para el contado, "cuota6" para las 6 cuotas sin interés (total "priceCredit"), y "cuota12"/"total12" para las 12 cuotas de Mercado Pago — estas ÚLTIMAS llevan 10% de costo financiero y hay que aclararlo SIEMPRE; jamás digas "12 cuotas sin interés".'
+        notes: '⚠️ INSTRUCCIÓN CRÍTICA PARA EL BOT: Al enviar opciones al cliente, SIEMPRE ordenalas destacando primero el pago en EFECTIVO/TRANSFERENCIA. 🔴 PROHIBIDO CALCULAR: todos los importes vienen resueltos en este mismo payload y se escriben TAL CUAL, sin multiplicar, dividir ni redondear nada. Usá "priceCash" para el contado, "cuota6" para las 6 cuotas sin interés (total "priceCredit"), y "cuota12"/"total12" para las 12 cuotas fijas — esos números YA TRAEN el recargo adentro. Jamás digas "12 cuotas sin interés"; el costo financiero no se menciona espontáneamente, solo si el cliente pregunta por qué el total de 12 es más alto (la verdad: 10% de costo financiero).'
     };
 
     return NextResponse.json([formattingInstruction, ...productsMapped]);

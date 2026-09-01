@@ -11,13 +11,14 @@ import { BUSINESS_INFO } from '@/lib/business-info';
  * un solo parámetro {{1}}=nombre) — agregar una nueva es una línea acá,
  * después de confirmar que Meta ya la aprobó (PENDING rechaza el envío).
  */
-const PLANTILLAS_VALIDAS = ['promo_12_cuotas', 'promo_12_cuotas_v2'] as const satisfies readonly TemplateName[];
+const PLANTILLAS_VALIDAS = ['promo_12_cuotas', 'promo_12_cuotas_v2', 'promo_12_cuotas_v4'] as const satisfies readonly TemplateName[];
 type PlantillaCampania = typeof PLANTILLAS_VALIDAS[number];
 
 /**
  * Campaña puntual (agosto 2026, pedida por Ishtar): avisar a los contactos del
- * mes que NO compraron que hay 12 cuotas por Mercado Pago (con su 10% de costo
- * financiero SIEMPRE aclarado — nunca "sin interés", eso son solo 3 y 6).
+ * mes que NO compraron que hay hasta 12 cuotas fijas (fórmula de Ishtar del
+ * 31/8/26 a la noche: sin el % y sin "con Mercado Pago" — y nunca "sin
+ * interés", eso son solo 3 y 6).
  *
  * Diseño anti-ban (la cuenta está bajo la lupa de Meta y el transporte es la
  * vía no oficial): cada invocación procesa una TANDA CHICA (default 5) con
@@ -29,9 +30,8 @@ type PlantillaCampania = typeof PLANTILLAS_VALIDAS[number];
  * de Argentina (10-19). `?dryRun=1` lista sin enviar.
  *
  * `?desde=YYYY-MM-DD&hasta=YYYY-MM-DD` amplía el rango de contactos (default
- * agosto 2026). `?plantilla=promo_12_cuotas|promo_12_cuotas_v2` elige la
- * plantilla aprobada a usar (default la vieja — la v2 recién cuando Meta la
- * apruebe, ver templates.ts).
+ * agosto 2026). `?plantilla=` elige la plantilla aprobada a usar (default la
+ * v4, la única con la redacción vigente — ver templates.ts).
  */
 
 const TAG_CAMPANIA = 'Campaña MP 12 Cuotas';
@@ -61,12 +61,14 @@ export async function GET(request: NextRequest) {
     const dryRun = searchParams.get('dryRun') === '1';
     const batch = Math.min(Math.max(parseInt(searchParams.get('batch') || '5', 10) || 5, 1), 10);
 
-    // Plantilla a usar: la v2 es el DEFAULT desde el 30/8 (Meta la aprobó ese
-    // día). Trae las correcciones de Ishtar: sin "a través de Mercado Pago",
-    // 15% parejo en efectivo y transferencia (la v1 decía 20%, desactualizado)
-    // y botón al catálogo. La v1 quedó solo por si hace falta reproducir un
-    // envío viejo — NO usarla para mandar.
-    const plantillaParam = searchParams.get('plantilla') || 'promo_12_cuotas_v2';
+    // Plantilla a usar: la v4 es el DEFAULT desde el 31/8 a la noche — la
+    // fórmula de Ishtar ("hasta 12 cuotas fijas", sin el % y sin "con Mercado
+    // Pago"). OJO: recién se puede mandar cuando Meta la apruebe (PENDING
+    // rechaza el envío) — se da de alta con crear-plantillas.mjs. La v1 y la
+    // v2 quedan solo por si hace falta reproducir un envío viejo — NO usarlas
+    // para mandar. La v3 (con el "10% de costo financiero" de la regla de esa
+    // mañana) quedó deprecada la misma noche y nunca entró a esta lista.
+    const plantillaParam = searchParams.get('plantilla') || 'promo_12_cuotas_v4';
     if (!PLANTILLAS_VALIDAS.includes(plantillaParam as PlantillaCampania)) {
         return NextResponse.json({ error: `plantilla inválida: ${plantillaParam}` }, { status: 400 });
     }

@@ -163,8 +163,9 @@ export const WHATSAPP_TEMPLATES = {
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
     // Campaña puntual agosto 2026 (acuerdo MP de Ishtar): 12 cuotas por
-    // Mercado Pago. El 10% de costo financiero va SIEMPRE aclarado — "sin
-    // interés" son solo 3 y 6 (regla de negocio, ver CLAUDE.md).
+    // Mercado Pago. "Sin interés" son solo 3 y 6 — jamás las 12 (regla de
+    // negocio, ver CLAUDE.md; desde el 31/8 a la noche el % tampoco se
+    // menciona: la redacción vigente es la de la v4).
     // OJO: category=MARKETING → cada envío tiene costo (Meta cobra por
     // conversación abierta, no por mensaje). Ver el costo real medido en
     // docs/ o preguntar antes de mandar en volumen.
@@ -187,16 +188,31 @@ export const WHATSAPP_TEMPLATES = {
         params: [{ label: 'nombre', example: 'Julio' }],
         buttons: [{ type: 'URL', text: 'Ver catálogo', url: 'https://atelieroptica.com.ar/tienda' }],
     },
-    // v3 (31/8/26): la v2 PERDIÓ el "(con un 10% de costo financiero)" que la
-    // v1 sí tenía — se cayó al reescribirla para corregir el 20%→15%. Peor que
-    // omitirlo: la frase encadenaba "hasta en 12 cuotas. Y como siempre: 3 y 6
-    // cuotas sin interés", que se lee como un solo paquete sin interés.
-    // Ishtar decidió el 31/8 que el 10% se aclara SIEMPRE, en toda superficie.
+    // v3 (31/8/26, mañana): la v2 PERDIÓ el "(con un 10% de costo financiero)"
+    // que la v1 sí tenía, y esa mañana Ishtar había pedido aclararlo siempre.
+    // DEPRECADA la misma noche: la decisión de la noche del 31/8 saca el % de
+    // toda la comunicación — ver promo_12_cuotas_v4. NO usarla para mandar.
     promo_12_cuotas_v3: {
         name: 'promo_12_cuotas_v3',
-        inventario: 'Campaña MP 12 cuotas v3 (sep 2026) — la vigente',
+        inventario: 'Campaña MP 12 cuotas v3 (31/8/26) — DEPRECADA, ver promo_12_cuotas_v4',
         category: 'MARKETING',
         body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Podés comprar tus anteojos hasta en 12 cuotas con Mercado Pago (llevan un 10% de costo financiero). Y con tarjeta, 3 y 6 cuotas sin interés. Pagando en efectivo o por transferencia, 15% de descuento. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. Te esperamos en el local para tomar tu receta: Lunes a Viernes de 8 a 20, Sábados de 9 a 17.',
+        params: [{ label: 'nombre', example: 'Julio' }],
+        buttons: [{ type: 'URL', text: 'Ver catálogo', url: 'https://atelieroptica.com.ar/tienda' }],
+    },
+    // v4 (31/8/26, noche — la vigente): fórmula de Ishtar "3 y 6 cuotas sin
+    // interés, y hasta 12 cuotas fijas". Sin el porcentaje y sin "con Mercado
+    // Pago" ("no tiene sentido aclarar eso del 10 y mercado pago", textual).
+    // OJO: "fijas" está bien; JAMÁS decir "sin interés" de las 12 — sin
+    // interés son solo 3 y 6, y por eso van nombradas aparte, con la palabra
+    // "tarjeta" en el medio para que no se lean como un solo paquete.
+    // El importe real de la cuota (con su recargo adentro) lo cotiza después
+    // el presupuesto, que sale de PricingService.
+    promo_12_cuotas_v4: {
+        name: 'promo_12_cuotas_v4',
+        inventario: 'Campaña MP 12 cuotas v4 (sep 2026) — la vigente',
+        category: 'MARKETING',
+        body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Podés comprar tus anteojos hasta en 12 cuotas fijas. Y con tarjeta, 3 y 6 cuotas sin interés. Pagando en efectivo o por transferencia, 15% de descuento. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. Te esperamos en el local para tomar tu receta: Lunes a Viernes de 8 a 20, Sábados de 9 a 17.',
         params: [{ label: 'nombre', example: 'Julio' }],
         buttons: [{ type: 'URL', text: 'Ver catálogo', url: 'https://atelieroptica.com.ar/tienda' }],
     },

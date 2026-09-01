@@ -21,14 +21,14 @@
  * De `src/lib/business-info.ts` — las cuotas y los descuentos ya viven ahí
  * porque los usan el bot y los mensajes automáticos. Copiarlos acá sería tener
  * el mismo dato en dos lados, que es exactamente cómo se termina publicando
- * "3 cuotas" en un aviso mientras el bot dice 6. El costo financiero de las 12
- * cuotas sale de `src/lib/constants/descuentos.ts` (vía `condiciones-pago.mjs`),
- * que es la constante que también usa PricingService.
+ * "3 cuotas" en un aviso mientras el bot dice 6. Las 12 cuotas se dicen
+ * "fijas", sin el % ni "con Mercado Pago" (fórmula de Ishtar, 31/8/26 a la
+ * noche); si una placa mostrara el importe, saldría de `condiciones-pago.mjs`
+ * con el recargo adentro.
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { RAIZ } from './identidad.mjs';
-import { recargoCuotasLargas } from './condiciones-pago.mjs';
 
 const BUSINESS_INFO_TS = path.join(RAIZ, 'src', 'lib', 'business-info.ts');
 const SALIDA = path.join(RAIZ, 'social', 'contenido');
@@ -66,22 +66,22 @@ function promos(info) {
             // "Y ahora TAMBIÉN hasta 12 cuotas" decía esta bajada hasta el
             // 31/8: el "también" encadenaba las 12 al "sin interés" del titular
             // y las anunciaba como lo que no son. Las dos condiciones van
-            // separadas —"aparte"—, y las 12 con su costo financiero al lado.
-            bajada: `En anteojos recetados, multifocales y lentes de sol. Con tarjeta, en el local. Aparte, hasta 12 cuotas con Mercado Pago, que llevan ${info.aclaracionCuotasLargas}.`,
+            // separadas —"aparte"— y las 12 se dicen "fijas" (fórmula de
+            // Ishtar, 31/8 noche: sin el % y sin "con Mercado Pago").
+            bajada: 'En anteojos recetados, multifocales y lentes de sol. Con tarjeta, en el local. Aparte, hasta 12 cuotas fijas.',
             corto: 'En anteojos recetados y multifocales.',
             dato: '6 cuotas',
             rotulo: 'Sin interés, con tarjeta',
-            caption: `Hasta 6 cuotas sin interés con tarjeta, en anteojos recetados, multifocales y lentes de sol.\n\nAparte están las 12 cuotas con Mercado Pago, que llevan ${info.aclaracionCuotasLargas} (sin interés son las de 3 y 6).\n\nTambién ${info.descuentoEfectivo}% de descuento pagando en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo.`,
+            caption: `Hasta 6 cuotas sin interés con tarjeta, en anteojos recetados, multifocales y lentes de sol.\n\nAparte están las 12 cuotas fijas (sin interés son las de 3 y 6).\n\nTambién ${info.descuentoEfectivo}% de descuento pagando en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo.`,
         },
         // 27/8/2026: acuerdo con Mercado Pago.
         //
-        // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita): el
-        // costo financiero de las 12 cuotas se ACLARA SIEMPRE, también en el
-        // cartel. Y las 12 nunca se dicen "sin interés" (eso son solo 3 y 6).
-        // Hasta el 31/8 acá decía lo contrario ("nunca el costo financiero en
-        // el cartel"), y por eso las cuatro placas de esta promo salían
-        // mostrando una cuota financiada sin decir que lo estaba. La fuente del
-        // porcentaje es `RECARGO_MP_CUOTAS_LARGAS`, nunca un número tipeado.
+        // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 A LA NOCHE — reemplaza a la
+        // de esa mañana): fórmula "hasta 12 cuotas fijas", sin el porcentaje y
+        // sin "con Mercado Pago". Las 12 nunca se dicen "sin interés" (eso son
+        // solo 3 y 6); "fijas" sí. El recargo sigue ADENTRO de todo importe
+        // que una placa muestre (via condiciones-pago.mjs) — se sacó la
+        // leyenda, nunca el número real.
         '12pagos': {
             id: 'campania-12-pagos',
             temas: ['armazones', 'local'],
@@ -90,11 +90,11 @@ function promos(info) {
             // frasco de caramelos — "eso no es un anteojo", Ishtar 27/8.)
             imagen: 'blog/blog3_eligiendo.png',
             titulo: 'Ahora *hasta 12 cuotas*',
-            bajada: `Tus anteojos en 12 cuotas con Mercado Pago, con ${info.aclaracionCuotasLargas}. Recetados, multifocales y lentes de sol. Y las 6 cuotas sin interés de siempre.`,
-            corto: `En todo el local, con ${info.aclaracionCuotasLargas}.`,
+            bajada: 'Tus anteojos en hasta 12 cuotas fijas. Recetados, multifocales y lentes de sol. Y las 6 cuotas sin interés de siempre.',
+            corto: 'Recetados, multifocales y lentes de sol.',
             dato: '12 cuotas',
-            rotulo: 'Con Mercado Pago',
-            caption: `Ahora podés llevarte tus anteojos en hasta 12 cuotas con Mercado Pago 💳 Llevan ${info.aclaracionCuotasLargas}.\n\nY siguen las de siempre: 6 cuotas sin interés con tarjeta, ${info.descuentoEfectivo}% de descuento en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo.`,
+            rotulo: 'Fijas, en todo el local',
+            caption: `Ahora podés llevarte tus anteojos en hasta 12 cuotas fijas 💳\n\nY siguen las de siempre: 6 cuotas sin interés con tarjeta, ${info.descuentoEfectivo}% de descuento en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo.`,
         },
         // 29/8/2026: pieza combinada pedida por Ishtar — multifocales
         // específicamente en 12 cuotas, no el genérico de armazones de '12pagos'.
@@ -103,11 +103,11 @@ function promos(info) {
             temas: ['multifocales'],
             imagen: 'blog/pareja-multifocales-exterior.png',
             titulo: 'Tus *multifocales* en 12 cuotas',
-            bajada: `Tus multifocales en hasta 12 cuotas con Mercado Pago, con ${info.aclaracionCuotasLargas}. Medidos acá, con garantía de adaptación. Y las 6 cuotas sin interés de siempre.`,
-            corto: `Medidos acá, con ${info.aclaracionCuotasLargas}.`,
+            bajada: 'Tus multifocales en hasta 12 cuotas fijas. Medidos acá, con garantía de adaptación. Y las 6 cuotas sin interés de siempre.',
+            corto: 'Medidos acá, con garantía de adaptación.',
             dato: '12 cuotas',
             rotulo: 'En lentes multifocales',
-            caption: `Tus multifocales en hasta 12 cuotas con Mercado Pago 💳 Llevan ${info.aclaracionCuotasLargas}.\n\nMedidos acá, con garantía de adaptación de 30 días. Y siguen las de siempre: 6 cuotas sin interés con tarjeta, ${info.descuentoEfectivo}% de descuento en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo, o escribinos por WhatsApp.`,
+            caption: `Tus multifocales en hasta 12 cuotas fijas 💳\n\nMedidos acá, con garantía de adaptación de 30 días. Y siguen las de siempre: 6 cuotas sin interés con tarjeta, ${info.descuentoEfectivo}% de descuento en efectivo o ${info.descuentoTransferencia}% por transferencia.\n\n${info.address}. Sin turno previo, o escribinos por WhatsApp.`,
         },
         '2x1': {
             id: 'campania-2x1-multifocales',
@@ -157,20 +157,16 @@ function piezasDePromo(promo, tam) {
 
 export async function generarCampanias(cuales) {
     const ts = await readFile(BUSINESS_INFO_TS, 'utf-8');
-    // El recargo de las cuotas largas sale de su constante canónica
-    // (src/lib/constants/descuentos.ts), la misma que usa PricingService.
-    const recargo = await recargoCuotasLargas();
     const info = {
         address: leerCampo(ts, 'address'),
         descuentoEfectivo: leerCampo(ts, 'discountCashPercent'),
         descuentoTransferencia: leerCampo(ts, 'discountTransferPercent'),
-        aclaracionCuotasLargas: `${recargo}% de costo financiero`,
     };
 
     console.log('\nDatos leídos de business-info.ts (fuente única):');
     console.log(`  dirección  : ${info.address}`);
     console.log(`  descuentos : ${info.descuentoEfectivo}% efectivo · ${info.descuentoTransferencia}% transferencia`);
-    console.log(`  12 cuotas  : ${info.aclaracionCuotasLargas} (descuentos.ts → RECARGO_MP_CUOTAS_LARGAS)`);
+    console.log('  12 cuotas  : "hasta 12 cuotas fijas" — sin %, sin "con Mercado Pago" (Ishtar, 31/8 noche)');
 
     const todas = promos(info);
     const pedidas = cuales?.length ? cuales : Object.keys(todas);

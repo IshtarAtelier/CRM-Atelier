@@ -29,7 +29,7 @@ export interface OrderFinancials {
     installment3: number;
     /** Cuota sin interés a 6 meses = totalCard / 6 */
     installment6: number;
-    /** Total financiado MP 12 cuotas = totalCard × 1,10 (10% de costo financiero, SIEMPRE aclararlo) */
+    /** Total financiado MP 12 cuotas = totalCard × 1,10 — el recargo va ADENTRO del importe; la leyenda del % no se muestra (ver promo-cuotas.ts) */
     totalCardFinanced: number;
     /** Cuota MP a 12 meses = totalCardFinanced / 12 */
     installment12: number;

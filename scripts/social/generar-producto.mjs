@@ -167,11 +167,12 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
         })();
         console.log(`  · condiciones (de la tienda): ${cond.textoCuotas} · ${cond.descuento}% al contado`);
 
-        // El costo financiero de las 12 sale de RECARGO_MP_CUOTAS_LARGAS
+        // El recargo de las 12 sale de RECARGO_MP_CUOTAS_LARGAS
         // (src/lib/constants/descuentos.ts) — la misma constante que aplica
-        // PricingService. Acá NO se escribe el 1,10 a mano.
-        const aclaracion12 = (await cuotasLargas(0)).aclaracion;
-        console.log(`  · 12 cuotas: ${aclaracion12}`);
+        // PricingService — y va ADENTRO del importe. Acá NO se escribe el
+        // 1,10 a mano, y la leyenda del % no se escribe en ningún lado
+        // (fórmula de Ishtar, 31/8 noche: "hasta 12 cuotas fijas").
+        console.log(`  · 12 cuotas: fijas, recargo adentro del importe (${(await cuotasLargas(0)).recargo}%)`);
 
         // Portada: la foto del primero, sin precio (el gancho no es el precio).
         const primero = elegidos[0];
@@ -184,9 +185,10 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             image: path.relative(path.join(RAIZ, 'public', 'images'), fotoPortada),
             title: titulo || (categoria === 'Sol' ? 'Los de *sol* que están volando'
                 : marca ? `Armazones *${marca}*` : 'Los que más nos piden *esta temporada*'),
-            // "12 cuotas fijas o 6 sin interés" leía como si las dos fueran sin
-            // interés. Se nombran separadas y las 12 con su costo financiero.
-            subtitle: `Diseño de autor en 6 cuotas sin interés, o 12 cuotas con ${aclaracion12}. Envío sin cargo.`,
+            // Fórmula de Ishtar (31/8 noche): las 12 son "cuotas fijas", sin el
+            // % — y se nombran separadas de las sin interés para que no se
+            // lean como un solo paquete.
+            subtitle: `Diseño de autor en 6 cuotas sin interés, o hasta 12 cuotas fijas. Envío sin cargo.`,
         });
 
         // "Nashira C3" → "Nashira": el sufijo de color distingue variantes en
@@ -205,12 +207,10 @@ export async function generarPiezaDeProductos({ destacados = false, marca = null
             // (PricingService.cuotasMpLargas: lista × factor ÷ 12), con el
             // factor leído de RECARGO_MP_CUOTAS_LARGAS.
             //
-            // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita):
-            // el costo financiero se ACLARA SIEMPRE al lado de la cuota, en
-            // toda superficie, y las 12 nunca se dicen "sin interés" (eso son
-            // solo 3 y 6). Hasta el 31/8 acá decía lo contrario ("nunca el %"),
-            // y por eso los carruseles de catálogo publicaban la cuota
-            // financiada sin decir que lo estaba.
+            // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 a la noche): las 12 se
+            // dicen "cuotas fijas", sin la leyenda del % — el recargo va
+            // ADENTRO del importe que muestra la placa. Y nunca "sin interés"
+            // (eso son solo 3 y 6).
             const cuota12 = (await cuotasLargas(p.product.price)).texto;
             slides.push({
                 type: 'number',

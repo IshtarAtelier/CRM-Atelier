@@ -84,9 +84,10 @@ export function buildOrderDetailSummary(order: any): string {
     totales.push(`   ↳ 3 cuotas sin interés de ${money(f.installment3)}`);
     totales.push(`   ↳ 6 cuotas sin interés de ${money(f.installment6)}`);
     // Solo al cotizar: con pagos hechos el pedido está en etapa de saldo y no
-    // se le ofrecen 12 cuotas (regla de Ishtar, 27/8/26).
+    // se le ofrecen 12 cuotas (regla de Ishtar, 27/8/26). "Cuotas fijas", sin
+    // la leyenda del % (Ishtar, 31/8 noche); el importe ya trae el recargo.
     if (f.paidReal <= 0) {
-        totales.push(`   ↳ 12 cuotas de ${money(f.installment12)} (con 10% costo financiero)`);
+        totales.push(`   ↳ 12 cuotas fijas de ${money(f.installment12)}`);
     }
 
     if (f.hasBalance) {

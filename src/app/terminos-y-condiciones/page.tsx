@@ -59,10 +59,14 @@ export default function TerminosYCondicionesPage() {
               <p>
                 Las promociones de cuotas sin interés (3 y 6 cuotas) están sujetas a las condiciones y promociones bancarias vigentes provistas por Payway y pueden ser modificadas sin previo aviso. El descuento del 15% por efectivo o transferencia bancaria se aplicará sobre el precio de lista indicado en la tienda.
               </p>
-              {/* Los T&C son donde corresponde que el costo financiero esté
-                  escrito con todas las letras (decisión de Ishtar, 31/8/2026):
-                  hasta hoy el plan de 12 no figuraba acá, y era el único plan
-                  que le suma un cargo al precio de lista. */}
+              {/* Los T&C son el ÚNICO lugar donde el 10% de costo financiero
+                  sigue escrito con todas las letras. La decisión de Ishtar del
+                  31/8/2026 a la noche sacó el porcentaje de todo el marketing
+                  ("hasta 12 cuotas fijas", sin % ni "con Mercado Pago"), pero
+                  acá es información contractual, no una leyenda de venta: es
+                  el único plan que le suma un cargo al precio de lista y el
+                  comprador tiene que poder encontrarlo escrito. NO sacarlo de
+                  acá sin preguntarle a ella. */}
               <p>
                 El plan de <strong>hasta 12 cuotas por Mercado Pago</strong> <strong>NO es sin interés</strong>: lleva un <strong>10% de costo financiero</strong> fijo, que se calcula sobre el precio de lista y se informa antes de confirmar la compra. El importe de cada cuota y el total financiado se muestran en el checkout al elegir ese plan.
               </p>

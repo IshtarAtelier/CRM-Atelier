@@ -17,7 +17,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import { trackViewContent } from "@/lib/tracking";
 import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 import { PricingService } from "@/services/PricingService";
-import { textoCuotas12, ACLARACION_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
+import { textoCuotas12 } from "@/lib/promo-cuotas";
 import { UMBRAL_ULTIMAS_UNIDADES, claveMarca } from "@/lib/constants/social-proof";
 import { TrustStrip } from "@/components/Storefront/TrustStrip";
 import ProductReviews from "@/components/Storefront/ProductReviews";
@@ -958,13 +958,14 @@ export function ProductClient({
                       if (pSale) return <><span className="text-red-600 font-bold">${p.salePrice.toLocaleString("es-AR")}</span> <span className="text-[10px] text-stone-400 line-through">${(p.price || 0).toLocaleString("es-AR")}</span></>;
                       /* Mismo criterio que toda la vidriera (Ishtar, 31/8): el
                          precio que se muestra es el de TRANSFERENCIA, con la
-                         cuota de 12 como segunda línea, nunca sin su 10%. */
+                         cuota de 12 como segunda línea — "cuotas fijas", sin
+                         el % (la redacción vive en promo-cuotas.ts). */
                       const vPrecios = PricingService.preciosVidriera(p.price || 0, cashDiscount);
                       return (
                         <>
                           <span className="font-bold text-stone-900">${vPrecios.contado.toLocaleString("es-AR")}</span>
                           <span className="text-[10px] text-emerald-700 font-bold"> {cashDiscount}% OFF transf.</span>
-                          <span className="block text-[10px] text-stone-500">12 cuotas de ${vPrecios.cuota12.toLocaleString("es-AR")} ({ACLARACION_MP_CUOTAS_LARGAS})</span>
+                          <span className="block text-[10px] text-stone-500">{textoCuotas12(vPrecios.cuota12)}</span>
                           <span className="block text-[10px] text-stone-500">6 cuotas sin interés de ${vPrecios.cuota6.toLocaleString("es-AR")}</span>
                         </>
                       );

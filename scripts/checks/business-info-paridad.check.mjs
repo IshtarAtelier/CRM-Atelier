@@ -16,7 +16,8 @@
  *
  * Además del espejo, se anclan las reglas de negocio del TEXTO que se manda:
  * que se identifique como automático, que prometa respuesta humana, y que las
- * 12 cuotas nunca aparezcan como "sin interés" sino con su costo financiero.
+ * 12 cuotas nunca aparezcan como "sin interés" (regla de Ishtar; desde el
+ * 31/8/26 a la noche el % tampoco se menciona — "hasta 12 cuotas fijas").
  *
  * Uso: node --experimental-strip-types scripts/checks/business-info-paridad.check.mjs
  */
@@ -93,10 +94,9 @@ const OBLIGATORIO = [
     [/Lunes a viernes de 8(:00)? a 20(:00)?/i, 'el texto tiene que traer el horario de semana'],
     [/S[aá]bados de 9(:00)? a 17(:00)?/i, 'el texto tiene que traer el horario del sábado'],
     [/3 y 6 cuotas sin inter[eé]s/i, 'el texto tiene que aclarar que 3 y 6 cuotas son sin interés'],
-    // El 10% de las 12 cuotas NO se exige en este mensaje: excepción explícita
-    // de Ishtar (31/8, texto pedido "tal cual, sin cambiar absolutamente
-    // nada"), igual que el cartel de la tienda — ver src/lib/business-info.ts.
-    // En el resto del sistema la regla sigue vigente.
+    // El 10% de las 12 cuotas NO se exige: desde el 31/8/26 a la noche es la
+    // regla GENERAL (fórmula "hasta 12 cuotas fijas", sin el %) — antes era
+    // una excepción de este mensaje. Ver src/lib/business-info.ts.
     [new RegExp(`${BUSINESS_INFO.discountCashPercent}% de descuento`), 'el texto tiene que traer el descuento por efectivo/transferencia'],
 ];
 for (const [re, queria] of OBLIGATORIO) {
@@ -105,11 +105,11 @@ for (const [re, queria] of OBLIGATORIO) {
 
 const PROHIBIDO = [
     // La regla de negocio más cara del repo: las cuotas largas NUNCA se
-    // comunican como "sin interés".
-    // El 10% de las 12 cuotas NO se exige en este mensaje: excepción explícita
-    // de Ishtar (31/8, reafirmada tres veces), igual que el cartel de la
-    // tienda — ver el comentario en src/lib/business-info.ts. En el resto del
-    // sistema la regla sigue vigente.
+    // comunican como "sin interés" — "fijas" sí, "sin interés" jamás (eso son
+    // solo 3 y 6). El patrón mira "12 cuotas … sin interés" dentro de una
+    // misma oración; el orden inverso ("3 y 6 cuotas sin interés … 12") es la
+    // frase legítima y no debe disparar.
+    [/12\s*cuotas[^.!?\n]*sin\s*inter[eé]s/i, '"12 cuotas sin interés" (sin interés son solo 3 y 6)'],
     [/18 cuotas/i, 'los 18 cuotas se retiraron el 27/8/26'],
     // No puede parecerse a una respuesta automática de Meta: el filtro de
     // entrantes (shared/meta-auto-patterns.js) descartaría nuestro propio eco.

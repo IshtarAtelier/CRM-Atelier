@@ -18,7 +18,7 @@ interface QuoteOption {
   transferPrice: number;
   installments3: number;
   installments6: number;
-  /** Cuota MP 12: lleva 10% de costo financiero — quien lo muestre debe aclararlo */
+  /** Cuota MP 12: trae el 10% de recargo ADENTRO — se dice "12 cuotas fijas", nunca "sin interés" ni el % (promo-cuotas.ts) */
   installments12: number;
 }
 

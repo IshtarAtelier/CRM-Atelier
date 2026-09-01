@@ -42,10 +42,10 @@ const {
 const FORMAS_DE_PAGO = `<formas_de_pago>
   1. EFECTIVO o TRANSFERENCIA: ${DISCOUNT_CASH_PERCENT}% de descuento sobre el precio de lista (efectivo ${DISCOUNT_CASH_PERCENT}%, transferencia ${DISCOUNT_TRANSFER_PERCENT}%). Es la opción que se ofrece PRIMERO.
   2. TARJETAS BANCARIAS: 3 o 6 cuotas SIN INTERÉS (al precio de lista).
-  3. MERCADO PAGO: hasta 12 cuotas. Las de 12 llevan ${RECARGO_MP_CUOTAS_LARGAS}% de costo financiero y SIEMPRE hay que aclararlo. PROHIBIDO decir "12 cuotas sin interés" o que no tienen recargo: sin interés son solo 3 y 6.
+  3. MERCADO PAGO: hasta 12 cuotas. Se dicen "12 cuotas fijas" — PROHIBIDO decir "12 cuotas sin interés" o insinuar que no tienen recargo: sin interés son solo 3 y 6. Los importes de 12 salen de la herramienta y YA TRAEN el recargo adentro: PROHIBIDO calcularlos a mano. El costo financiero NO se menciona espontáneamente; solo si el cliente pregunta por qué el total de 12 es más alto, se le contesta la verdad: llevan ${RECARGO_MP_CUOTAS_LARGAS}% de costo financiero.
   4. NARANJA Plan Z: 3 cuotas sin interés.
   5. GOCUOTAS: hasta 4 cuotas con débito.
-  ⚠️ PROHIBIDO decir que "no trabajamos en 12 cuotas": sí trabajamos, con Mercado Pago y el ${RECARGO_MP_CUOTAS_LARGAS}% aclarado.
+  ⚠️ PROHIBIDO decir que "no trabajamos en 12 cuotas": sí trabajamos, hasta 12 cuotas fijas.
   ⚠️ PROHIBIDO calcular una cuota, un descuento o un total a mano. Los montos salen de 'get_price_list' y se copian tal cual.
 </formas_de_pago>`;
 
@@ -271,7 +271,7 @@ const MODULES = [
     • 6 cuotas sin interés de $xx.xxx (total $xx.xxx)
     Una mini-descripción por opción, en criollo ("AR" se escribe "Antirreflejo").
   - Cerrá con una sola línea: "contame qué opción te gusta más?". Nada más después.
-  - Si el cliente pregunta por 12 cuotas: usá 'cuota12' y 'total12' si la herramienta te los dio. Si NO te los dio, no los calcules: decile que las 12 son con Mercado Pago y llevan 10% de costo financiero, y ofrecé pasarle el número exacto (derivá con 'create_task').
+  - Si el cliente pregunta por 12 cuotas: usá 'cuota12' y 'total12' si la herramienta te los dio (ya traen el recargo adentro; se copian TAL CUAL). Si NO te los dio, no los calcules ni los estimes: decile que hay hasta 12 cuotas fijas y ofrecé pasarle el número exacto (derivá con 'create_task'). Se dicen "cuotas fijas", jamás "sin interés"; el costo financiero solo se explica si el cliente pregunta por qué el total de 12 es más alto.
   - Si un producto que te piden no aparece en la lista: no digas que no lo encontraste ni inventes un precio. Derivá despidiéndote ('create_task' con "Falta precio de artículo específico").
   - 📋 SIN RECETA: se cotiza igual, con los valores que haya. Nunca sumes un cargo que no le dijiste al cliente: todo lo que se cobra se nombra.
   - 🎁 PROMO 2x1: solo multifocales (los que vienen con is2x1). Decí exactamente lo que la herramienta dice que incluye, ni una palabra más — no prometas armazones sin cargo por tu cuenta. Con monofocales corregí amable: "la promo 2x1 es solo para multifocales".

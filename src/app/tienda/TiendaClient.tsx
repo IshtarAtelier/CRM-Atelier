@@ -11,7 +11,7 @@ import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { PricingService } from "@/services/PricingService";
-import { ACLARACION_MP_CUOTAS_LARGAS, leerPromoCuotas } from "@/lib/promo-cuotas";
+import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { UMBRAL_ULTIMAS_UNIDADES } from "@/lib/constants/social-proof";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
@@ -711,15 +711,16 @@ export function TiendaClient({
                             {/* El valor GRANDE es el de transferencia (pedido
                                 de Ishtar, 31/8): es el precio que decide la
                                 compra. Las cuotas quedan como segunda línea —
-                                la de 12 nunca sin su costo financiero. Los
-                                valores salen de PricingService. */}
+                                las 12 se dicen "fijas", sin el % (decisión de
+                                Ishtar, 31/8 noche). Los valores salen de
+                                PricingService, con el recargo adentro. */}
                             <p className="text-sm text-stone-600 font-medium">
                               <span className="font-black text-base text-stone-900">
                                 ${Math.round((oferta ? p.salePrice : base) * (1 - (webSettings.web_promo_cash_discount || 15) / 100)).toLocaleString("es-AR")}
                               </span>
                               <span className="text-emerald-700 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
                               <span className="block text-xs text-stone-500">
-                                12 cuotas de ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")} · {ACLARACION_MP_CUOTAS_LARGAS} · {installmentsCount} s/interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
+                                12 cuotas fijas de ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")} · {installmentsCount} s/interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
                               </span>
                             </p>
                             {oferta && (

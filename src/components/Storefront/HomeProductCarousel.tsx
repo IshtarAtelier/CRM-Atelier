@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { PricingService } from "@/services/PricingService";
-import { ACLARACION_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
+import { textoCuotas12 } from "@/lib/promo-cuotas";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
 import { WHATSAPP_PHONE } from "@/lib/constants";
@@ -220,8 +220,8 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                   <div className="flex flex-col gap-0.5">
                     {/* El valor GRANDE es el de transferencia (pedido de
                         Ishtar, 31/8): es el precio que decide la compra. Las
-                        cuotas quedan abajo como formas de pago — la de 12
-                        nunca sin su costo financiero (promo-cuotas.ts). */}
+                        cuotas quedan abajo como formas de pago — las 12 se
+                        dicen "fijas", sin el % (promo-cuotas.ts). */}
                     {item.rawPrice ? (
                       (() => {
                         const v = PricingService.preciosVidriera(item.rawPrice, 15);
@@ -232,7 +232,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                               ${v.contado.toLocaleString("es-AR")}
                             </span>
                             <span className="text-[10px] text-stone-500 font-medium">
-                              12 cuotas de ${v.cuota12.toLocaleString("es-AR")} {ACLARACION_MP_CUOTAS_LARGAS}
+                              {textoCuotas12(v.cuota12)}
                             </span>
                             <span className="text-[10px] text-stone-500 font-medium">
                               6 cuotas sin interés de ${v.cuota6.toLocaleString("es-AR")}

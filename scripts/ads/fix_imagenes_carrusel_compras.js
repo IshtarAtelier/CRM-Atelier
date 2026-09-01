@@ -55,10 +55,12 @@ const IMAGENES = [
       instagram_user_id: IG_USER,
       template_data: {
         link: LINK,
-        message: '👓 Tus próximos lentes están en Atelier Óptica\n💳 6 cuotas sin interés · hasta 12 cuotas con Mercado Pago\n🎁 Envío gratis a todo el país 🇦🇷',
+        // Fórmula de Ishtar (31/8/26 noche): "hasta 12 cuotas fijas" — sin el
+        // % y sin "con Mercado Pago"; "sin interés" son solo 3 y 6.
+        message: '👓 Tus próximos lentes están en Atelier Óptica\n💳 6 cuotas sin interés · hasta 12 cuotas fijas\n🎁 Envío gratis a todo el país 🇦🇷',
         call_to_action: { type: 'SHOP_NOW' },
         child_attachments: [
-          { link: LINK, image_hash: hashes[0], name: 'Ahora hasta 12 cuotas con Mercado Pago', call_to_action: { type: 'SHOP_NOW' }, static_card: true },
+          { link: LINK, image_hash: hashes[0], name: 'Ahora hasta 12 cuotas fijas', call_to_action: { type: 'SHOP_NOW' }, static_card: true },
           { link: LINK, image_hash: hashes[1], name: '6 cuotas sin interés + envío gratis', call_to_action: { type: 'SHOP_NOW' }, static_card: true },
           { link: LINK, call_to_action: { type: 'SHOP_NOW' } },
         ],

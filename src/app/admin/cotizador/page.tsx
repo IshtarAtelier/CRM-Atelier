@@ -39,9 +39,10 @@ import {
     armarParesDeCristal
 } from '@/lib/promo-utils';
 import { calculateQuoteTotals, PricingService } from '@/services/PricingService';
-// El 10% de costo financiero de las 12 cuotas se aclara SIEMPRE, en toda
-// superficie (decisión de Ishtar del 31/8). La redacción única vive en
-// promo-cuotas.ts: acá nunca se escribe el texto ni el porcentaje a mano.
+// Las 12 se dicen "cuotas fijas", sin la leyenda del % (decisión de Ishtar,
+// 31/8 noche). La redacción única vive en promo-cuotas.ts: acá nunca se
+// escribe el texto a mano. Los labels de MÉTODO DE PAGO tipo "MP 12c Ish
+// (+10%)" son otra cosa: documentan un cobro y conservan su recargo.
 import { ETIQUETA_MP_CUOTAS_LARGAS, textoCuotas12 } from '@/lib/promo-cuotas';
 import { RECARGO_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import {
@@ -723,8 +724,9 @@ function CotizadorPageContent() {
         const listPrice = Math.round(totalWithMarkup);
         const inst3 = Math.round(listPrice / 3);
         const inst6 = Math.round(listPrice / 6);
-        // MP 12: costo financiero fijo del 10% sobre lista, siempre aclarado.
-        // El cálculo vive en PricingService (regla: cálculo de plata SOLO ahí).
+        // MP 12: costo financiero fijo del 10% sobre lista, ADENTRO del importe.
+        // El cálculo vive en PricingService (regla: cálculo de plata SOLO ahí);
+        // al cliente se le dice "cuotas fijas", sin la leyenda del % (31/8 noche).
         const { installment12: inst12 } = PricingService.cuotasMpLargas(listPrice);
         
         // Build the message
@@ -746,7 +748,7 @@ function CotizadorPageContent() {
         msg += `💳 Tarjeta (Lista): $${listPrice.toLocaleString()}\n`;
         msg += `   ↳ 3 cuotas sin interés: $${inst3.toLocaleString()} c/u\n`;
         msg += `   ↳ 6 cuotas sin interés: $${inst6.toLocaleString()} c/u\n`;
-        msg += `   ↳ 12 cuotas (con 10% costo financiero): $${inst12.toLocaleString()} c/u\n`;
+        msg += `   ↳ 12 cuotas fijas: $${inst12.toLocaleString()} c/u\n`;
         msg += `\nAtelier Óptica`;
         
         const phone = formatPhoneForWhatsApp(pendingContact.phone);

@@ -83,29 +83,25 @@ export const BUSINESS_INFO = {
   discountTransferPercent: 15,
   // 27/8/2026 (acuerdo de Ishtar con Mercado Pago): se suman los 12 cuotas.
   //
-  // REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita):
-  // el 10% de costo financiero de las 12 cuotas se ACLARA SIEMPRE, en TODA
-  // superficie: tienda, checkout, PDFs, mails, plantillas de WhatsApp, prompts
-  // del bot, piezas de redes, anuncios y blog. Y nunca se dice "sin interés"
-  // de las 12 (eso son solo 3 y 6).
+  // REGLA DE COMUNICACIÓN VIGENTE (Ishtar, 31/8/2026 A LA NOCHE — reemplaza
+  // a la de esa misma mañana): la fórmula es
+  //     "3 y 6 cuotas sin interés, y hasta 12 cuotas fijas"
+  // SIN el porcentaje y SIN "con Mercado Pago" ("no tiene sentido aclarar eso
+  // del 10 y mercado pago", textual). Vale para TODA superficie de marketing y
+  // comunicación: tienda, checkout, mails, plantillas de WhatsApp, prompts del
+  // bot, piezas de redes, anuncios, landings y blog. Lo que el cartel de la
+  // tienda hacía como excepción ahora es la regla general.
+  // Historial: hasta el 31/8 convivían dos reglas opuestas; a la mañana ganó
+  // "siempre el %", y a la noche Ishtar la dio vuelta ("esto ya te dije que lo
+  // saques de todos lados") — esta es la vara.
   //
-  // ÚNICA EXCEPCIÓN, decidida por Ishtar el 31/8 después de leer la regla:
-  // el CARTEL superior de la tienda (`SystemSetting.web_announcement_text`)
-  // va sin el porcentaje, con su texto:
-  //   "Envío Gratis • Hasta 12 Cuotas • 6 Cuotas sin Interés • 15% OFF en Transferencia"
-  // Se le señaló que ahí las 12 quedan pegadas a "6 Cuotas sin Interés" y
-  // eligió ese texto igual. Es una decisión suya, no un descuido: NO
-  // "corregirlo" desde una sesión futura sin preguntarle. El resto de las
-  // superficies sí lleva la aclaración.
-  //
-  // Hasta el 31/8 acá decía lo contrario ("NUNCA el %"), y esa regla se había
-  // propagado a los generadores de redes y a los scripts de ads, dejando toda
-  // la capa de marketing sin la aclaración mientras CLAUDE.md, PricingService
-  // y los PDFs pedían lo opuesto. Dos reglas peleándose es la razón por la que
-  // la plantilla de campaña perdió el paréntesis del 10% sin que nadie lo
-  // notara. Si aparece otra vez un comentario que diga "nunca el %", está
-  // desactualizado: la vara es esta.
-  installmentsPromo: "3 o 6 cuotas sin interés con tarjeta, o hasta 12 cuotas con Mercado Pago (10% de costo financiero)",
+  // LO QUE NO CAMBIÓ: las 12 JAMÁS se dicen ni insinúan "sin interés" (eso
+  // son solo 3 y 6; "fijas" sí, "sin interés" nunca), y todo IMPORTE de cuota
+  // de 12 que se muestre sale de PricingService con el recargo ADENTRO
+  // (lista × 1,10 ÷ 12) — se saca la leyenda, nunca el número real. Los labels
+  // de método de pago en recibos/cotizador ("MP 12c Ish (+10%)") documentan un
+  // cobro y no se tocan. Los T&C conservan la explicación contractual del 10%.
+  installmentsPromo: "3 y 6 cuotas sin interés, y hasta 12 cuotas fijas",
   /**
    * Único tipo de factura que se comunica. Un commit del 29/8 (`f35d1757`)
    * puso "Factura A" acá diciendo que el fix del 28/8 (`346d9e5b`, "Factura B

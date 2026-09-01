@@ -11,12 +11,15 @@
  * Se lee con regex y no con `import` porque los generadores corren con `node`
  * pelado (ver package.json → social:producto), sin `--experimental-strip-types`.
  *
- * LA REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 — decisión explícita):
- * el costo financiero de las 12 cuotas se ACLARA SIEMPRE, en toda superficie.
- * Las 12 NUNCA se anuncian "sin interés" — sin interés son solo 3 y 6. Antes de
- * esa fecha acá regía lo contrario ("nunca el %"), y por eso las placas salían
- * mostrando la cuota financiada sin decir que lo estaba. Si aparece otra vez un
- * comentario que diga "nunca el %", está desactualizado.
+ * LA REGLA DE COMUNICACIÓN (Ishtar, 31/8/2026 A LA NOCHE — reemplaza a la de
+ * esa mañana): la fórmula es "3 y 6 cuotas sin interés, y hasta 12 cuotas
+ * FIJAS" — sin el porcentaje y sin "con Mercado Pago". Las 12 NUNCA se
+ * anuncian "sin interés" — sin interés son solo 3 y 6; "fijas" sí. El recargo
+ * se sigue leyendo de la constante porque va ADENTRO de todo importe que la
+ * placa muestre (misma fórmula que PricingService): lo que se sacó es la
+ * LEYENDA, nunca el número real de la cuota.
+ * Historial en dos líneas: hasta el 31/8 acá decía "nunca el %"; esa mañana
+ * pasó a "siempre el %"; a la noche Ishtar la dio vuelta — esta es la vigente.
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -42,8 +45,8 @@ export async function recargoCuotasLargas() {
 
 /**
  * Todo lo que hace falta para escribir las 12 cuotas en una pieza:
- * el importe (misma fórmula que `PricingService.cuotasMpLargas`) y la frase
- * con la aclaración obligatoria.
+ * el importe (misma fórmula que `PricingService.cuotasMpLargas`, con el
+ * recargo ADENTRO) y la frase con la redacción vigente ("cuotas fijas").
  */
 export async function cuotasLargas(precioLista) {
     const recargo = await recargoCuotasLargas();
@@ -54,17 +57,14 @@ export async function cuotasLargas(precioLista) {
         recargo,
         factor,
         importe,
-        /** "10% de costo financiero" */
-        aclaracion: `${recargo}% de costo financiero`,
-        /** "12 cuotas de $12.345 (10% de costo financiero)" */
-        texto: `12 cuotas de ${plata} (${recargo}% de costo financiero)`,
+        /** "12 cuotas fijas de $12.345" — el importe ya trae el recargo. */
+        texto: `12 cuotas fijas de ${plata}`,
     };
 }
 
 /** Las 12 cuotas nombradas SIN importe (placas sin precio, captions genéricos). */
-export async function textoCuotasLargasSinPrecio() {
-    const recargo = await recargoCuotasLargas();
-    return `hasta 12 cuotas con Mercado Pago (${recargo}% de costo financiero)`;
+export function textoCuotasLargasSinPrecio() {
+    return 'hasta 12 cuotas fijas';
 }
 
 /** Las únicas cantidades de cuotas que son de verdad sin interés. */

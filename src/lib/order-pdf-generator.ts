@@ -403,11 +403,11 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
                 </div>
                 ${financials.paidReal <= 0 ? `
                 <div class='inst-row' style="margin-top: 8px;">
-                    <span style="font-size:10px; font-weight:700;">12 Cuotas de</span>
+                    <span style="font-size:10px; font-weight:700;">12 Cuotas fijas de</span>
                     <span class='inst-quota'>$${financials.installment12.toLocaleString()}</span>
                 </div>
                 <div class='inst-row' style="margin-top: 2px;">
-                    <span style="font-size:8px; color:#78716c;">12 cuotas con 10% de costo financiero (total $${financials.totalCardFinanced.toLocaleString()})</span>
+                    <span style="font-size:8px; color:#78716c;">Total en 12 cuotas: $${financials.totalCardFinanced.toLocaleString()}</span>
                 </div>` : ''}
             </div>
         </div>
