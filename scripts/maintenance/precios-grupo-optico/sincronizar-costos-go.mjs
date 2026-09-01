@@ -36,8 +36,18 @@ const APLICAR = process.argv.includes('--aplicar');
 const PRODUCCION = process.argv.includes('--produccion');
 const FIRMA = 'Ishtar (costos desde la lista de Grupo Óptico)';
 
-/** El más caro de los 15 calibrados de la lista: orgánico laboratorio perforado. */
-export const CALIBRADO_GO = 15532;
+/**
+ * El calibrado de Grupo Óptico: $7.272 — el más caro de los montajes COMUNES
+ * (aro completo), que es el mineral de laboratorio.
+ *
+ * Historia del número (31/8/2026): la regla de Ishtar es "un solo calibrado por
+ * laboratorio, el de mayor valor". Aplicada a ciegas daba $15.532… que es el
+ * orgánico PERFORADO, un montaje raro. Ishtar lo frenó: "el calibrado no te
+ * creo que sea 15 mil de Grupo". Tenía razón: el $7.000 que había cargado a
+ * mano era, casi exacto, el techo de los montajes comunes ($7.272). La regla
+ * del mayor valor se aplica DENTRO de lo común, no sobre la excepción.
+ */
+export const CALIBRADO_GO = 7272;
 /** Grupo Óptico NO factura IVA. Verificado contra 377 facturas. */
 export const IVA_GO = 0;
 export const costoGO = lista => Math.round(lista + CALIBRADO_GO);
