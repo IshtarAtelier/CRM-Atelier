@@ -44,10 +44,14 @@ function fechaHoy() {
 }
 
 async function main() {
+    // --modelos story-a,story-b limita el desfile a esas stories (pedido 1/9:
+    // un desfile SOLO de soles). Sin el flag, entran todas como siempre.
+    const soloModelos = arg('modelos', null)?.split(',').map(s => s.trim()).filter(Boolean);
     const carpetas = (await readdir(BANCO, { withFileTypes: true }))
         .filter(d => d.isDirectory() && d.name.startsWith('story-producto-'))
         .map(d => d.name)
-        .filter(n => existsSync(path.join(BANCO, n, '01.jpg')));
+        .filter(n => existsSync(path.join(BANCO, n, '01.jpg')))
+        .filter(n => !soloModelos || soloModelos.includes(n));
 
     if (carpetas.length < 2) throw new Error('No hay suficientes stories de producto renderizadas.');
 
