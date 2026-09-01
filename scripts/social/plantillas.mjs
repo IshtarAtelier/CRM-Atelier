@@ -140,7 +140,7 @@ const PLANTILLAS = {
       ${slide.title ? `<h2>${resaltar(slide.title)}</h2>` : ''}
       <div class="grilla">
         ${(slide.imagenesResueltas || []).filter(Boolean).map(u =>
-        `<div class="celda" style="background-image:url('${comoUrl(u)}')"></div>`).join('')}
+        `<div class="celda${slide.encuadre === 'contain' ? ' entera' : ''}" style="background-image:url('${comoUrl(u)}')"></div>`).join('')}
       </div>
       ${slide.subtitle ? `<p class="bajada">${resaltar(slide.subtitle)}</p>` : ''}
     </div>
@@ -290,6 +290,9 @@ export function htmlDeSlide(slide, id, pieza) {
     grid-auto-rows:1fr; gap:14px; flex:1; min-height:0;
   }
   .celda { background-size:cover; background-position:center; border-radius:8px; }
+  /* encuadre: "contain" en la slide: para fotos de catálogo sobre fondo blanco,
+     el producto se ve ENTERO en vez de recortado. */
+  .celda.entera { background-size:contain; background-repeat:no-repeat; background-color:#ffffff; }
 
   h1 { font-size:82px; line-height:1.04; font-weight:900; letter-spacing:-.025em; }
   h2 { font-size:64px; line-height:1.1;  font-weight:900; letter-spacing:-.02em; margin-bottom:44px; }

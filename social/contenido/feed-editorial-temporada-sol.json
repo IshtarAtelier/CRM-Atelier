@@ -18,17 +18,15 @@
     },
     {
       "type": "collage",
+      "encuadre": "contain",
       "title": "Un modelito *para cada día*",
       "images": [
-        "editorial/tienda-sol-nashira-c3.webp",
-        "editorial/junio26-oval-azul.jpg",
-        "editorial/junio26-bandeja-metal.jpg",
-        "editorial/junio26-carey-argyle.jpg",
-        "editorial/tienda-sol-adhara-c4.webp",
-        "editorial/junio26-estuches-zapatos-b.jpg",
-        "editorial/tienda-sol-mizar-c2.webp",
-        "editorial/junio26-estatua-carey.jpg",
-        "editorial/tienda-sol-f-nix-c2.webp"
+        "editorial/tienda-sol-deneb-c1.webp",
+        "editorial/tienda-sol-sirio-c1.webp",
+        "editorial/tienda-sol-vega-c2.webp",
+        "editorial/tienda-sol-antares-c1.webp",
+        "editorial/tienda-sol-deneb-c2.webp",
+        "editorial/tienda-sol-sirio-c2.webp"
       ]
     },
     {
