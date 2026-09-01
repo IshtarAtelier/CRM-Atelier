@@ -7,16 +7,16 @@
     "tienda",
     "remarketing"
   ],
-  "caption": "Último llamado: el cupón QUIEROMISLENTES (10% OFF en la tienda online) vence el 30 de septiembre. Envío gratis a todo el país 🇦🇷",
+  "caption": "Solo por esta semana: 10% OFF en la tienda online con el cupón QUIEROMISLENTES 🏷️ Envío gratis a todo el país. Después, precio de siempre.",
   "slides": [
     {
       "type": "number",
       "role": "portada",
       "image": "editorial/junio26-verde-detalle.jpg",
       "encuadre": "cover",
-      "title": "QUIEROMISLENTES vence",
-      "dato": "30/9",
-      "body": "10% OFF en la tienda hasta fin de mes.",
+      "title": "Cupón QUIEROMISLENTES · 10% OFF",
+      "dato": "Solo esta semana",
+      "body": "En la tienda online, con envío gratis.",
       "bomba": true
     }
   ]
