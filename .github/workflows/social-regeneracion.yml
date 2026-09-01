@@ -78,7 +78,17 @@ jobs:
       # ({{RESENAS}}/{{RATING}}) y re-renderiza SOLO si el número publicado
       # cambió de escalón. Si el endpoint no responde, avisa y sigue con el
       # último dato conocido — check:social alerta cuando ese dato envejece.
+      # continue-on-error: sin esto, una falla ACÁ (Playwright renderizando
+      # una placa de reseñas, o un placeholder desconocido) corta el job antes
+      # de "Renderizar todo lo regenerado" y "Commitear si cambió algo" — y se
+      # pierden los precios que el paso anterior YA regeneró bien. Es el mismo
+      # bug ("el trabajo se hacía y se tiraba a la basura") que las fallas de
+      # permisos del 14/8 y 21/8 documentadas arriba, ahora por un módulo
+      # (reseñas) sin relación con el propósito principal de la corrida
+      # (precios). check:social y el mail diario ya avisan si el número de
+      # reseñas queda desactualizado — no hace falta que ESTE paso bloquee.
       - name: Refrescar el número de reseñas
+        continue-on-error: true
         run: node scripts/social/actualizar-resenas.mjs
 
       - name: Renderizar todo lo regenerado
