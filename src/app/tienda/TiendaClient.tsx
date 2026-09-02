@@ -236,7 +236,8 @@ export function TiendaClient({
   // "12 s/interés de $lista/12" — la frase prohibida, con el precio mal.
   const promo = leerPromoCuotas(webSettings.web_promo_installments);
   const installmentsCount = promo.cantidad;
-  const discountRate = webSettings.web_promo_cash_discount / 100;
+  // (El descuento se muestra como % en el encabezado y en cada card; acá ya no
+  //  hace falta la tasa suelta desde que se fue el chip de promo — A-25.)
 
   // ── STATE FOR PRODUCTS & PAGINATION ──
   const [products, setProducts] = useState<any[]>(initialProducts);
@@ -390,13 +391,6 @@ export function TiendaClient({
         <div className="bg-white border-b border-stone-100">
           <div className="max-w-[1600px] mx-auto px-5 py-4 flex flex-col xl:flex-row items-center justify-between gap-4">
             
-            {/* Espacio vacío para equilibrar en desktop si fuera necesario, o promos a la izquierda */}
-            <div className="hidden xl:flex flex-1 items-center gap-3">
-               <span className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full whitespace-nowrap">
-                  ENVÍO GRATIS A TODO EL PAÍS
-               </span>
-            </div>
-
             {/* Categorías (Centro) */}
             <div className="flex flex-wrap items-center justify-center gap-2">
               {CATEGORIES.map(cat => (
@@ -412,13 +406,19 @@ export function TiendaClient({
                   {cat}
                 </button>
               ))}
+              {/* A-25: Contacto y Cristales NO filtran esta grilla — se van a
+                  otra página. Tenían la misma píldora rellena que las
+                  categorías, así que se leían como un filtro más y el cambio de
+                  página era una sorpresa. Ahora son de contorno y llevan la
+                  flechita: la forma dice "esto te lleva a otro lado". */}
               {CATEGORIAS_CON_PAGINA_PROPIA.map(({ nombre, href }) => (
                 <Link
                   key={nombre}
                   href={href}
-                  className="shrink-0 min-h-11 inline-flex items-center text-[10px] md:text-[11px] font-black uppercase tracking-widest px-5 md:px-6 rounded-full transition-all duration-300 bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-black"
+                  className="shrink-0 min-h-11 inline-flex items-center gap-1.5 text-[10px] md:text-[11px] font-black uppercase tracking-widest px-5 md:px-6 rounded-full border border-stone-300 text-stone-600 hover:border-stone-900 hover:text-black transition-all duration-300"
                 >
                   {nombre}
+                  <span aria-hidden className="text-stone-400">→</span>
                 </Link>
               ))}
               {activeCategory !== "Todo" && (
@@ -431,21 +431,19 @@ export function TiendaClient({
               )}
             </div>
 
-            {/* Promos (Derecha) */}
-            <div className="flex xl:flex-1 justify-center xl:justify-end items-center gap-3 w-full xl:w-auto">
-               {isWholesale ? (
-                 <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full whitespace-nowrap">
-                    Tarifa Mayorista Activa
-                 </span>
-               ) : (
-                 <span className="text-[10px] font-black uppercase text-red-700 bg-red-50 px-3 py-1.5 rounded-full whitespace-nowrap">
-                    {discountRate * 100}% OFF TRANSFERENCIA
-                 </span>
-               )}
-               <span className="xl:hidden text-[10px] font-black uppercase text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full whitespace-nowrap">
-                  ENVÍO GRATIS
-               </span>
-            </div>
+            {/* A-25 (auditoría 2/9/26): acá había dos chips de promo ("15% OFF
+                transferencia" y "envío gratis") con exactamente la misma forma
+                que los chips de categoría. Tres cosas distintas —filtros,
+                servicios y promociones— con una sola forma: todo parecía
+                clickeable y todo parecía filtrar. Las promos ya viven en el
+                encabezado como texto (A-05), que es donde no se confunden con
+                un botón. Lo único que queda es el aviso de sesión mayorista,
+                que no es una promo: es el estado en el que está la persona. */}
+            {isWholesale && (
+              <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full whitespace-nowrap">
+                Tarifa Mayorista Activa
+              </span>
+            )}
             
           </div>
         </div>
