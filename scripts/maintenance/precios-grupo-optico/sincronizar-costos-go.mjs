@@ -28,7 +28,8 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { config } from 'dotenv';
-import { emparejar, datos } from './emparejador-go.mjs';
+import { pathToFileURL } from 'node:url';
+import { emparejar } from './emparejador-go.mjs';
 
 config();
 
@@ -52,17 +53,17 @@ export const CALIBRADO_GO = 7272;
 export const IVA_GO = 0;
 export const costoGO = lista => Math.round(lista + CALIBRADO_GO);
 
-const url = PRODUCCION ? process.env.PROD_DATABASE_URL : process.env.DATABASE_URL;
-if (!url) { console.error(`Falta ${PRODUCCION ? 'PROD_DATABASE_URL' : 'DATABASE_URL'} en el .env`); process.exit(1); }
-if (!PRODUCCION && !/localhost|127\.0\.0\.1/.test(url)) {
-    console.error('❌ DATABASE_URL no apunta a localhost. Para tocar producción hace falta --produccion.');
-    process.exit(1);
-}
-
-const prisma = new PrismaClient({ datasources: { db: { url } } });
 const pesos = n => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')}`;
 
 async function main() {
+    const url = PRODUCCION ? process.env.PROD_DATABASE_URL : process.env.DATABASE_URL;
+    if (!url) { console.error(`Falta ${PRODUCCION ? 'PROD_DATABASE_URL' : 'DATABASE_URL'} en el .env`); process.exitCode = 1; return; }
+    if (!PRODUCCION && !/localhost|127\.0\.0\.1/.test(url)) {
+        console.error('❌ DATABASE_URL no apunta a localhost. Para tocar producción hace falta --produccion.');
+        process.exitCode = 1; return;
+    }
+    const prisma = new PrismaClient({ datasources: { db: { url } } });
+    try {
     console.log(`Base: ${PRODUCCION ? '⚠️  PRODUCCIÓN' : 'LOCAL'} · modo: ${APLICAR ? 'APLICAR (escribe)' : 'ENSAYO (no escribe)'}`);
     console.log(`Fórmula: lista + $${CALIBRADO_GO.toLocaleString('es-AR')} de calibrado · SIN IVA\n`);
 
@@ -110,8 +111,14 @@ async function main() {
                     renglon: `${p.seccion} · ${p.renglon}`, calibrado: CALIBRADO_GO, iva: IVA_GO })}::jsonb, now())`;
     }
     console.log(`\n✅ ${cambian.length} costo(s) actualizados. El precio de venta no se tocó.`);
+    } finally { await prisma.$disconnect(); }
 }
 
-main()
-    .catch(err => { console.error(err); process.exitCode = 1; })
-    .finally(() => prisma.$disconnect());
+// SOLO corre si se invoca como script. Sin esta guarda, `import` desde otro
+// script ejecutaba main() con el argv del que importa: un script corrido con
+// `--aplicar` disparaba la sincronización entera sin pedirlo. Pasó el 31/8/2026
+// (contra la base local, por suerte) y con `--produccion` habría escrito en
+// producción sin que nadie lo pidiera.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+    main().catch(err => { console.error(err); process.exitCode = 1; });
+}
