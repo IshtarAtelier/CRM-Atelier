@@ -4,6 +4,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { track } from '@/lib/client-analytics';
 
 interface ProductFiltersProps {
   availableBrands: string[];
@@ -127,6 +128,12 @@ export function ProductFilters({
   );
 
   const handleFilterChange = (name: string, value: string) => {
+    // A-19: sin esto no había forma de saber si la gente filtra. Es la métrica
+    // que la auditoría pide para validar el rediseño del panel (A-03/A-04):
+    // "filtros aplicados por sesión en celular", hoy sin dato.
+    track('filtro_aplicado', {
+      meta: { filtro: name, valor: value || '(quitado)', resultados: resultCount ?? null },
+    });
     const qs = createQueryString(name, value);
     router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };

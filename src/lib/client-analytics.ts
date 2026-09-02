@@ -286,6 +286,21 @@ export function track(type: string, props: TrackProps = {}): void {
           : null,
     };
 
+    // ── A-19 (auditoría 2/9/26): el mismo evento, también al dataLayer ──────
+    //
+    // El sitio ya cargaba GTM, el pixel de Meta y Google Ads, y acá ya se
+    // medían seis eventos del configurador... pero solo contra la analítica
+    // propia. A GTM no llegaba ninguno, así que en GA4 y en Ads el embudo se
+    // cortaba en "visitó la página": no se podía ver cuánta gente abre el
+    // configurador, en qué paso se cae, ni qué filtros usa.
+    //
+    // Empujarlo acá y no en cada llamada es a propósito: los seis eventos que
+    // ya existían pasan a verse en GTM sin tocar un solo call site, y los que
+    // se agreguen en el futuro entran solos.
+    //
+    // Va ANTES del beacon porque el beacon puede cortar con `return`.
+    empujarADataLayer(type, payload);
+
     const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
     if (navigator.sendBeacon && navigator.sendBeacon('/api/web/track', blob)) return;
 
@@ -298,5 +313,36 @@ export function track(type: string, props: TrackProps = {}): void {
     }).catch(() => {});
   } catch {
     /* medir nunca rompe la UX */
+  }
+}
+
+/**
+ * Publica el evento en el dataLayer de GTM.
+ *
+ * Silencioso a propósito: si GTM no está (bloqueado por un adblocker, o en
+ * desarrollo), esto no hace nada y la analítica propia sigue funcionando. La
+ * medición nunca puede romper la tienda.
+ */
+function empujarADataLayer(type: string, payload: Record<string, unknown>): void {
+  try {
+    const w = window as unknown as { dataLayer?: unknown[] };
+    // Se crea el array si no existe: GTM lo adopta cuando carga, así que un
+    // evento disparado antes de que el script termine de bajar no se pierde.
+    w.dataLayer = w.dataLayer || [];
+    w.dataLayer.push({
+      event: `atelier_${type}`,
+      atelier: {
+        tipo: type,
+        path: payload.path ?? null,
+        productId: payload.productId ?? null,
+        productName: payload.productName ?? null,
+        value: payload.value ?? null,
+        device: payload.device ?? null,
+        utmSource: payload.utmSource ?? null,
+        utmCampaign: payload.utmCampaign ?? null,
+      },
+    });
+  } catch {
+    /* ídem: medir nunca rompe la UX */
   }
 }
