@@ -92,6 +92,65 @@ export function ProductClient({
     io.observe(nodo);
     return () => io.disconnect();
   }, []);
+
+  // ── F2-01: el configurador como diálogo accesible de verdad ───────────────
+  //
+  // El plan lo marca OBLIGATORIO y no estaba nada: sin rol de diálogo, sin
+  // trampa de foco, sin Esc, y con el fondo scrolleando detrás. Quien navega
+  // con teclado abría el modal y el foco se quedaba atrás, en la página —
+  // tabulaba "adentro" de un modal en el que nunca había entrado.
+  const modalRef = useRef<HTMLDivElement>(null);
+  const disparadorRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!showConfigurator) return;
+
+    // De dónde vino el foco, para devolverlo al cerrar.
+    disparadorRef.current = document.activeElement as HTMLElement | null;
+
+    // El fondo no scrollea mientras el modal está abierto.
+    const overflowPrevio = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const enfocables = () => Array.from(
+      modalRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
+      ) ?? []
+    ).filter(el => el.offsetParent !== null);
+
+    // El foco entra al modal, en el primer control real.
+    const t = setTimeout(() => enfocables()[0]?.focus(), 60);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowConfigurator(false);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      // Trampa de foco: el Tab da la vuelta adentro del modal.
+      const lista = enfocables();
+      if (!lista.length) return;
+      const primero = lista[0];
+      const ultimo = lista[lista.length - 1];
+      if (e.shiftKey && document.activeElement === primero) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && document.activeElement === ultimo) {
+        e.preventDefault();
+        primero.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = overflowPrevio;
+      // El foco vuelve al botón que lo abrió, no al principio de la página.
+      disparadorRef.current?.focus?.();
+    };
+  }, [showConfigurator]);
   
   // E-commerce states
   const [activeAccordion, setActiveAccordion] = useState<string | null>("description");
@@ -1040,7 +1099,13 @@ export function ProductClient({
           dentro. De 640 px para arriba sigue siendo el modal centrado de
           siempre, que ahí entra holgado. */}
       {showConfigurator && (
-        <div className="fixed inset-0 z-[200] flex min-h-full items-stretch sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
+        <div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Armá tus cristales para ${product.model}`}
+          className="fixed inset-0 z-[200] flex min-h-full items-stretch sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

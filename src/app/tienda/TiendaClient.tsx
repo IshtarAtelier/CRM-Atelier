@@ -385,8 +385,16 @@ export function TiendaClient({
             <h1 className="text-3xl md:text-5xl font-serif leading-tight">
               Tienda — Anteojos de diseño
             </h1>
+            {/* R7 del plan: todo cambio de estado se anuncia. Sin aria-live,
+                quien usa lector de pantalla filtra y no se entera de que el
+                número cambió — el filtro queda mudo justo para quien más
+                necesita el aviso. "polite" y no "assertive": no interrumpe lo
+                que se esté leyendo, avisa cuando termina. */}
             {totalCount > 0 && (
-              <p className="mt-1.5 text-[11px] font-bold uppercase tracking-widest text-stone-600">
+              <p
+                aria-live="polite"
+                className="mt-1.5 text-[11px] font-bold uppercase tracking-widest text-stone-600"
+              >
                 {totalCount} {totalCount === 1 ? "modelo" : "modelos"} · envío gratis · {webSettings.web_promo_cash_discount}% OFF transferencia
               </p>
             )}
@@ -556,7 +564,7 @@ export function TiendaClient({
               cada uno se saca de a uno con la cruz. */}
           {filtrosAplicados.length > 0 && (
             <div className="mb-5 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">
+              <span aria-live="polite" className="text-[10px] font-black uppercase tracking-widest text-stone-500">
                 {totalCount} {totalCount === 1 ? "modelo" : "modelos"} ·
               </span>
               {filtrosAplicados.map((f) => (
