@@ -140,7 +140,7 @@ io.use((socket, next) => {
 });
 io.on('connection', (socket) => {
     const s = transport.getStatus();
-    socket.emit('bot_status', { ...s, connected: s.isReady, phone: s.connectedPhone, qr: null, agentEnabled: bot.agentState.agentEnabled, followupsEnabled: false, prompt: bot.agentState.agentPrompt });
+    socket.emit('bot_status', { ...s, connected: s.isReady, phone: s.connectedPhone, qr: null, agentEnabled: bot.agentState.agentEnabled, followupsEnabled: Boolean(bot.agentState.followupsEnabled), prompt: bot.agentState.agentPrompt });
 });
 
 // ── Rutas ────────────────────────────────────────────────────────────────────

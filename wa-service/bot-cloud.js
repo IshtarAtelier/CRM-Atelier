@@ -98,6 +98,10 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         followupsEnabled: false,
         agentPrompt: '',
         dailyContext: '',
+        // El panel lo muestra y los crons del CRM lo obedecen. Vive en la base
+        // (`SystemSetting.followups_enabled`); acá solo se cachea para
+        // reportarlo por /api/status y por el socket.
+        followupsEnabled: false,
     };
 
     const debounceTimers = new Map();   // chatId → Timeout
@@ -146,12 +150,14 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
     /** Prompt y contexto del día. Si falla, quedan los valores en memoria. */
     async function loadConfig() {
         try {
-            const [enabled, prompt, contexto] = await Promise.all([
+            const [enabled, prompt, contexto, seguimientos] = await Promise.all([
                 prisma.systemSetting.findUnique({ where: { key: 'bot_enabled' } }),
                 prisma.systemSetting.findUnique({ where: { key: 'bot_prompt' } }),
                 prisma.systemSetting.findUnique({ where: { key: 'bot_daily_context' } }),
+                prisma.systemSetting.findUnique({ where: { key: 'followups_enabled' } }),
             ]);
             agentState.agentEnabled = enabled ? enabled.value === 'true' : false;
+            agentState.followupsEnabled = seguimientos ? seguimientos.value === 'true' : false;
             if (prompt) agentState.agentPrompt = prompt.value || '';
             if (contexto) agentState.dailyContext = contexto.value || '';
         } catch (e) {

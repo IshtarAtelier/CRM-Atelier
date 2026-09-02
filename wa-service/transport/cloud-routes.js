@@ -55,7 +55,13 @@ function createCloudRoutes({ transport, bot = null }) {
     router.get('/status', (req, res) => {
         const s = transport.getStatus();
         const st = (bot && bot.agentState) || {};
-        res.json({ ...s, connected: s.isReady, phone: s.connectedPhone, qr: null, agentEnabled: Boolean(st.agentEnabled), followupsEnabled: false, prompt: st.agentPrompt || '' });
+        // `followupsEnabled` iba HARDCODEADO en false: se asumía que con la API
+        // oficial no hay seguimientos. Los hay — los mandan tres crons del CRM
+        // (`api/cron/followups`, `campania-seguimiento`, `campania-mp-12-cuotas`)
+        // leyendo `SystemSetting.followups_enabled` de la base. El panel
+        // mostraba "Pausados" mientras salían igual, que es exactamente la
+        // mentira que el interruptor existe para no decir.
+        res.json({ ...s, connected: s.isReady, phone: s.connectedPhone, qr: null, agentEnabled: Boolean(st.agentEnabled), followupsEnabled: Boolean(st.followupsEnabled), prompt: st.agentPrompt || '' });
     });
 
     if (!bot) {
