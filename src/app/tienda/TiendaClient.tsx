@@ -147,6 +147,32 @@ export function TiendaClient({
   const filterGender = urlFilters.gender;
   const sortParam = urlFilters.sort;
 
+  // ── A-04: los filtros puestos, para mostrarlos y poder sacarlos de a uno ──
+  //
+  // La categoría NO entra acá: ya tiene sus propios chips arriba, donde además
+  // se ve cuál está activa. Estos son los que quedaban invisibles.
+  const filtrosAplicados = [
+    { param: 'marca', valor: filterBrand, etiqueta: filterBrand },
+    { param: 'forma', valor: filterShape, etiqueta: filterShape },
+    { param: 'material', valor: filterMaterial, etiqueta: filterMaterial },
+    { param: 'genero', valor: filterGender, etiqueta: filterGender },
+  ].filter(f => Boolean(f.valor));
+
+  const quitarFiltro = (param: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete(param);
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
+  /** Saca todos los filtros pero respeta la categoría y la búsqueda. */
+  const limpiarTodosLosFiltros = () => {
+    const params = new URLSearchParams(window.location.search);
+    ['marca', 'forma', 'material', 'genero'].forEach(p => params.delete(p));
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
   useEffect(() => {
     setVisibleCount(24);
   }, [activeCategory, searchQuery, filterGender]);
@@ -437,6 +463,8 @@ export function TiendaClient({
               availableBrands={availableBrands}
               availableShapes={availableShapes}
               availableMaterials={availableMaterials}
+              /* A-04: el número vivo para el botón "Ver N modelos". */
+              resultCount={totalCount}
             />
           </Suspense>
         </aside>
@@ -487,6 +515,39 @@ export function TiendaClient({
               </p>
             )}
           </div>
+
+          {/* A-04 (auditoría 2/9/26): se filtraba a ciegas. Femme + aviador
+              llevaba la grilla de 24 a 3 resultados sin ningún aviso en
+              pantalla: no había conteo, ni forma de ver qué estaba aplicado, ni
+              cómo volver atrás sin limpiar todo. Y al volver desde una ficha, la
+              grilla seguía filtrada sin decirlo.
+
+              Estos chips son la memoria visible de lo que la persona eligió, y
+              cada uno se saca de a uno con la cruz. */}
+          {filtrosAplicados.length > 0 && (
+            <div className="mb-5 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-stone-500">
+                {totalCount} {totalCount === 1 ? "modelo" : "modelos"} ·
+              </span>
+              {filtrosAplicados.map((f) => (
+                <button
+                  key={`${f.param}-${f.valor}`}
+                  onClick={() => quitarFiltro(f.param)}
+                  className="group inline-flex items-center gap-1.5 min-h-9 pl-3 pr-2 rounded-full border border-stone-300 bg-white text-[11px] font-bold text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-colors"
+                  aria-label={`Quitar el filtro ${f.etiqueta}`}
+                >
+                  {f.etiqueta}
+                  <X className="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-900 transition-colors" />
+                </button>
+              ))}
+              <button
+                onClick={limpiarTodosLosFiltros}
+                className="min-h-9 px-3 text-[11px] font-black uppercase tracking-widest text-stone-500 underline underline-offset-4 hover:text-stone-900 transition-colors"
+              >
+                Limpiar todo
+              </button>
+            </div>
+          )}
 
           {/* The skeleton is no longer needed since data is preloaded */}
           {/* initial={false}: la grilla ya viaja en el HTML del servidor, no ocultarla */}

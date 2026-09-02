@@ -9,6 +9,14 @@ interface ProductFiltersProps {
   availableBrands: string[];
   availableShapes?: string[];
   availableMaterials?: string[];
+  /**
+   * Cuántos modelos quedan con los filtros puestos. A-04 (auditoría 2/9/26):
+   * se filtraba a ciegas — femme + aviador llevaba de 24 a 3 resultados sin
+   * ningún aviso en pantalla. El número va en el botón que cierra el panel
+   * ("Ver 3 modelos"), que es el momento exacto en que la persona decide si
+   * lo que eligió le sirve.
+   */
+  resultCount?: number;
 }
 
 function getShapeIcon(shape: string) {
@@ -82,10 +90,11 @@ function getShapeIcon(shape: string) {
   );
 }
 
-export function ProductFilters({ 
-  availableBrands, 
-  availableShapes = [], 
-  availableMaterials = [] 
+export function ProductFilters({
+  availableBrands,
+  availableShapes = [],
+  availableMaterials = [],
+  resultCount,
 }: ProductFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -126,15 +135,25 @@ export function ProductFilters({
     router.push(pathname, { scroll: false });
   };
 
+  /** Cuántos filtros hay puestos. El orden no cuenta: no achica el resultado. */
+  const filtrosPuestos = [currentBrand, currentShape, currentMaterial, currentGender].filter(Boolean).length;
+
   return (
     <>
-      {/* Botón flotante para móviles */}
-      <button 
+      {/* Botón flotante para móviles. A-04: lleva la cuenta de filtros puestos,
+          que antes no se veía en ningún lado — se podía volver de una ficha sin
+          saber que la grilla seguía filtrada. */}
+      <button
         onClick={() => setIsOpen(true)}
-        className="lg:hidden w-full flex items-center justify-center gap-2 bg-stone-900 text-white py-4 font-bold tracking-widest text-xs uppercase mb-8 rounded-full hover:bg-[#c8a55c] transition-colors duration-300"
+        className="lg:hidden w-full flex items-center justify-center gap-2 bg-stone-900 text-white py-4 font-bold tracking-widest text-xs uppercase mb-5 rounded-full hover:bg-[#c8a55c] transition-colors duration-300"
       >
         <Filter className="w-4 h-4" />
         Filtrar y Ordenar
+        {filtrosPuestos > 0 && (
+          <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-white text-stone-900 text-[10px] font-black">
+            {filtrosPuestos}
+          </span>
+        )}
       </button>
 
       {/* Contenedor de Filtros (Sidebar en Desktop, Modal en Mobile) */}
@@ -153,7 +172,7 @@ export function ProductFilters({
       <div 
         className={`
           fixed lg:relative inset-y-0 left-0 z-50 lg:z-0 w-4/5 max-w-sm lg:w-full lg:max-w-none
-          bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 lg:px-2 lg:py-0
+          bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 pb-28 lg:p-0 lg:px-2 lg:py-0
           overflow-y-auto lg:overflow-visible flex-col gap-10
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0 flex' : '-translate-x-full lg:translate-x-0 hidden lg:flex'}
@@ -380,15 +399,40 @@ export function ProductFilters({
                 </div>
               )}
 
-              {/* Botón Limpiar Filtros */}
+              {/* Botón Limpiar Filtros — en escritorio, donde no hay pie fijo. */}
               {(currentBrand || currentShape || currentMaterial || currentGender || currentSort !== 'recientes') && (
-                <button 
+                <button
                   onClick={clearFilters}
-                  className="mt-4 text-xs font-bold text-stone-400 hover:text-[#8a6d3b] dark:hover:text-white uppercase tracking-[0.1em] transition-colors self-start"
+                  className="hidden lg:block mt-4 text-xs font-bold text-stone-400 hover:text-[#8a6d3b] dark:hover:text-white uppercase tracking-[0.1em] transition-colors self-start"
                 >
                   Limpiar Filtros
                 </button>
               )}
+
+              {/* A-03 y A-04: el pie fijo del panel en celular.
+                  Antes había que cerrar el panel a mano (o con la X) para ver
+                  cuántos modelos habían quedado, y "limpiar" era un texto gris
+                  perdido al final de un panel que scrollea. Acá está el número
+                  vivo —se actualiza con cada toque— y las dos salidas, siempre
+                  a la vista y del tamaño de un pulgar. */}
+              <div className="lg:hidden fixed bottom-0 left-0 w-4/5 max-w-sm bg-white border-t border-stone-200 px-6 py-4 flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+                {filtrosPuestos > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="min-h-11 px-4 text-[11px] font-black uppercase tracking-widest text-stone-600 border border-stone-300 rounded-full hover:border-stone-900 hover:text-stone-900 transition-colors whitespace-nowrap"
+                  >
+                    Limpiar
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="flex-1 min-h-11 bg-stone-900 text-white text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-[#c8a55c] transition-colors"
+                >
+                  {typeof resultCount === 'number'
+                    ? `Ver ${resultCount} ${resultCount === 1 ? 'modelo' : 'modelos'}`
+                    : 'Ver resultados'}
+                </button>
+              </div>
             </div>
     </>
   );
