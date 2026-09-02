@@ -588,11 +588,52 @@ export function TiendaClient({
                   ))}</>
                 ) : (
                   <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
+                    {/* A-28 (auditoría 2/9/26): antes esto era un cartel sin
+                        salida —"Intentá ajustar los filtros"— que dejaba a la
+                        persona sola frente a un panel de filtros que ella misma
+                        no sabía cómo había quedado. Dos filtros ya dejan 3
+                        resultados, así que llegar a cero es cuestión de tiempo.
+                        Ahora se nombra el filtro culpable y se saca de un
+                        toque. */}
                     <p className="text-xl font-serif text-stone-900 mb-2">No encontramos resultados</p>
-                    <p className="text-stone-500 mb-6 max-w-md mx-auto">Intentá ajustar los filtros o explorar otra categoría. Tenemos opciones increíbles esperándote.</p>
-                    <Link href="/tienda" className="bg-black text-white px-8 py-3 text-[11px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors">
-                      Ver Toda la Colección
-                    </Link>
+                    {filtrosAplicados.length > 0 ? (
+                      <>
+                        <p className="text-stone-500 mb-5 max-w-md mx-auto">
+                          Ningún modelo cumple con {filtrosAplicados.length === 1 ? 'el filtro' : 'los filtros'}{' '}
+                          {filtrosAplicados.map(f => f.etiqueta).join(' + ')}
+                          {searchQuery ? <> y la búsqueda «{searchQuery}»</> : null}.
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2 mb-6">
+                          {filtrosAplicados.map(f => (
+                            <button
+                              key={`vacio-${f.param}`}
+                              onClick={() => quitarFiltro(f.param)}
+                              className="inline-flex items-center gap-1.5 min-h-11 px-4 rounded-full border border-stone-300 bg-white text-[11px] font-bold text-stone-700 hover:border-stone-900 hover:text-stone-900 transition-colors"
+                            >
+                              Quitar «{f.etiqueta}»
+                              <X className="w-3.5 h-3.5 text-stone-400" />
+                            </button>
+                          ))}
+                          <button
+                            onClick={limpiarTodosLosFiltros}
+                            className="min-h-11 px-5 rounded-full bg-black text-white text-[11px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors"
+                          >
+                            Quitar todos los filtros
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-stone-500 mb-6 max-w-md mx-auto">
+                          {searchQuery
+                            ? <>No hay modelos que coincidan con «{searchQuery}». Probá con el nombre del modelo o la marca.</>
+                            : <>Esta categoría no tiene modelos cargados por ahora.</>}
+                        </p>
+                        <Link href="/tienda" className="inline-flex items-center min-h-11 bg-black text-white px-8 text-[11px] font-black uppercase tracking-widest hover:bg-stone-800 transition-colors rounded-full">
+                          Ver toda la colección
+                        </Link>
+                      </>
+                    )}
                   </div>
                 )
               ) : (
@@ -792,7 +833,12 @@ export function TiendaClient({
               disabled={isLoading}
               className="border-2 border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? "Cargando..." : "Cargar más productos"}
+              {/* A-27: el botón no decía cuánto faltaba. "Cargar más" cinco
+                  veces seguidas, sin ningún número que oriente, es no saber si
+                  quedan tres modelos o setenta. */}
+              {isLoading
+                ? "Cargando..."
+                : `Cargar más — mostrando ${displayedProducts.length} de ${totalCount}`}
             </button>
           </div>
         )}
