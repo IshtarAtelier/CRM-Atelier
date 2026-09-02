@@ -37,7 +37,7 @@ en ninguna base.
 1. **Repite el saludo / se re-presenta** (89): vuelve a saludar en el mismo hilo como si fuera la primera vez, incluso a mitad de conversación.
 2. **Precio citado por el bot** (65, a revisar): cotiza montos concretos ("$1.346.599") — hay que verificar cada uno contra lista vigente; el riesgo de precio desactualizado es alto porque el precio queda escrito en el chat.
 3. **Respuesta idéntica repetida** (30): manda dos veces exactamente el mismo texto — casi siempre el seguimiento comercial ("¿Pudiste revisar las opciones? ¿Te mando fotitos?"), que se percibe robótico e insistente.
-4. **Horario incorrecto** (21): informó "L-V 9 a 13:30 y 16 a 19:30, Sáb 10 a 14" cuando el real es L-V 8 a 20 y Sáb 9 a 17. El horario vive en `SystemSetting.bot_prompt` — quedó desactualizado ahí.
+4. **Horario incorrecto** (21): informó "L-V 9 a 13:30 y 16 a 19:30, Sáb 10 a 14" cuando el real es **L-V 9 a 20 y Sáb 9 a 17** (corregido el 1/9/26: abre a las 9, no a las 8 — antes acá decía "8 a 20"). El horario vive en `SystemSetting.bot_prompt` — quedó desactualizado ahí.
 5. **Ignora lo que el cliente ya dijo**: el cliente repite "tengo receta pero no a mano" o "quiero ver los precios" y el bot sigue su guion (maps, horarios) antes de responder lo pedido (conv-007 es el ejemplo canónico).
 6. **Ráfaga de mensajes cortos**: 3-5 salientes seguidos por turno; en pantalla se siente metralleta de bot, no conversación.
 7. **Descuento desactualizado** (1 detectado): "20% de descuento en cristales" — la promo vigente es 15%.

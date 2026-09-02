@@ -110,11 +110,13 @@ function detectarProblemas(conv) {
     }
   }
 
-  // 7. Horario incorrecto: el horario real es L-V 8-20 y Sáb 9-17
-  //    (business-info.ts). El bot venía informando el horario viejo.
-  const malHorario = msgs.find((m) => m.quien === 'Bot' && /(9 a 13:?30|16 a 19:?30|s.bados? de 10 a 14)/i.test(m.texto));
+  // 7. Horario incorrecto: el horario real es L-V 9-20 y Sáb 9-17
+  //    (business-info.ts, corregido el 1/9/26: abre a las 9, no a las 8).
+  //    Se detectan los DOS horarios viejos: el partido (9-13:30 / 16-19:30,
+  //    sáb 10-14) y el "8 a 20" que estuvo cargado hasta el 1/9/26.
+  const malHorario = msgs.find((m) => m.quien === 'Bot' && /(9 a 13:?30|16 a 19:?30|s.bados? de 10 a 14|\b8(:00)? a 20)/i.test(m.texto));
   if (malHorario) {
-    problemas.push({ tipo: 'horario_incorrecto', detalle: 'Informó el horario viejo (real: L-V 8 a 20, Sáb 9 a 17)', fragmento: frag(malHorario.texto) });
+    problemas.push({ tipo: 'horario_incorrecto', detalle: 'Informó un horario viejo (real: L-V 9 a 20, Sáb 9 a 17)', fragmento: frag(malHorario.texto) });
   }
 
   // 8. Descuento desactualizado: la promo vigente es 15% (efectivo y transferencia).
