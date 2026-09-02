@@ -43,21 +43,71 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
   
   const products = collections[activeTab] || [];
 
-  // A-10 y A-22 (auditoría 2/9/26). Acá vivía un "marquee híbrido": un
-  // requestAnimationFrame que empujaba `scrollLeft` un píxel por frame, con
-  // listeners de mouse/touch/wheel para pausarlo, y la lista de productos
-  // DUPLICADA para que el loop se viera continuo.
+  // ── Movimiento automático del carrusel ───────────────────────────────────
   //
-  // Dos problemas medidos, los dos en el primer contenido comercial del home:
-  //   A-10 — al pasar el mouse por encima, la rueda movía el carrusel en vez
-  //          de bajar la página.
-  //   A-22 — quien llegaba al final veía los mismos anteojos otra vez y
-  //          concluía que el catálogo son 12 modelos, no 112.
+  // Historia corta: acá había un "marquee híbrido" que empujaba `scrollLeft` un
+  // píxel por frame, con la lista de productos DUPLICADA para que el loop se
+  // viera continuo. Se sacó entero por dos problemas medidos (A-10 y A-22):
+  // la rueda del mouse movía el carrusel en vez de bajar la página, y quien
+  // llegaba al final veía los mismos anteojos otra vez y concluía que el
+  // catálogo son 12 modelos, no 112. Al sacarlo quedó quieto, e Ishtar pidió el
+  // movimiento de vuelta (2/9/26).
   //
-  // Se va entero. Queda scroll horizontal nativo con anclaje (snap), que es lo
-  // que la gente ya sabe usar, no pelea con la rueda, no duplica nada y no
-  // gasta un frame por segundo de CPU. El recorrido termina en una card que
-  // lleva al catálogo completo.
+  // Vuelve, pero de la forma que el plan autoriza (F2-06), que arregla las dos
+  // cosas sin perder el movimiento:
+  //   · El clon existe SOLO para que el loop se vea continuo, y va marcado con
+  //     `aria-hidden` y `tabIndex={-1}`: no lo lee un lector de pantalla, no lo
+  //     indexa Google y no duplica impresiones en la medición. El catálogo
+  //     sigue diciendo la verdad sobre su tamaño.
+  //   · NO se registra ningún listener de `wheel`. El scroll vertical nunca es
+  //     capturado: la rueda baja la página, siempre. Lo único que pausa es
+  //     `pointerenter` (mouse encima) y el arrastre con el dedo.
+  //   · Con `prefers-reduced-motion` no se mueve nada. Quien pidió menos
+  //     movimiento no recibe una cinta transportadora.
+  useEffect(() => {
+    const container = carouselRef.current;
+    if (!container) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+    let animationId = 0;
+    let pausado = false;
+    const pausar = () => { pausado = true; };
+    const reanudar = () => { pausado = false; };
+
+    // Ojo: `pointerenter`/`pointerleave`, no `mouseenter`. Con el dedo, el
+    // pointer "entra" y no sale nunca, así que tras arrastrar una vez el
+    // carrusel quedaría congelado para siempre en celular.
+    container.addEventListener('pointerenter', pausar);
+    container.addEventListener('pointerleave', reanudar);
+    container.addEventListener('touchstart', pausar, { passive: true });
+    container.addEventListener('touchend', reanudar, { passive: true });
+
+    let acumulado = 0;
+    const avanzar = () => {
+      if (!pausado) {
+        acumulado += 0.6; // ~36 px/s: se nota que vive, no marea
+        if (acumulado >= 1) {
+          const paso = Math.floor(acumulado);
+          container.scrollLeft += paso;
+          acumulado -= paso;
+          // La lista real ocupa la primera mitad; al pasarla, se vuelve al
+          // principio sin que se note, porque lo que sigue es su clon idéntico.
+          const mitad = container.scrollWidth / 2;
+          if (mitad > 0 && container.scrollLeft >= mitad) container.scrollLeft -= mitad;
+        }
+      }
+      animationId = requestAnimationFrame(avanzar);
+    };
+    animationId = requestAnimationFrame(avanzar);
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      container.removeEventListener('pointerenter', pausar);
+      container.removeEventListener('pointerleave', reanudar);
+      container.removeEventListener('touchstart', pausar);
+      container.removeEventListener('touchend', reanudar);
+    };
+  }, [products]);
 
   // Reset scroll when tab changes
   useEffect(() => {
@@ -66,44 +116,30 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
     }
   }, [activeTab]);
 
-  if (!collections || !products) return null;
-
-  return (
-    <section className="w-full bg-white pb-12 flex flex-col items-center">
-      
-      {/* TABS DE FILTRO */}
-      <div className="flex gap-4 px-5 mb-8 w-full max-w-7xl mx-auto overflow-x-auto no-scrollbar">
-        {[
-          { key: 'destacados', label: 'Destacados' },
-          { key: 'clipon', label: 'ClipOn' },
-          { key: 'sol', label: 'Sol' },
-          { key: 'receta', label: 'Receta' },
-          { key: 'nuevos', label: 'Nuevos' }
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as TabKey)}
-            className={`px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap rounded-full border cursor-pointer ${
-              activeTab === tab.key 
-                ? 'bg-black text-white border-black' 
-                : 'bg-white text-stone-500 border-stone-200 hover:border-black hover:text-black'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div 
-        ref={carouselRef}
-        className="flex w-full overflow-x-auto overscroll-x-contain snap-x snap-mandatory scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {products.map((item, i) => {
+  /**
+   * Una tanda de cards. Se pinta DOS veces: la real y su clon.
+   *
+   * El clon existe solo para que el loop se vea continuo — el auto-scroll
+   * vuelve al principio al pasar la mitad del ancho, y como lo que sigue es
+   * idéntico, el salto no se nota. Va con `aria-hidden` y `tabIndex={-1}`: no
+   * lo lee un lector de pantalla, no lo indexa Google y no duplica impresiones
+   * en la medición, que era el daño de la versión vieja (A-22).
+   *
+   * Las dos tandas terminan con la card de salida al catálogo, así las dos
+   * mitades miden exactamente lo mismo y la cuenta de `scrollWidth / 2` da
+   * justo. Si una mitad tuviera un elemento de más, el loop saltaría.
+   */
+  const renderTanda = (esClon: boolean) => (
+    <>
+      {products.map((item, i) => {
           const isTitanium = (item.model || '').toUpperCase().includes('TG') || (item.name || '').toUpperCase().includes('TITANIUM');
           return (
             <Link 
               href={`/producto/${item.slug}`} 
-              key={`${item.id}-${i}`} 
+              key={`${esClon ? "clon-" : ""}${item.id}-${i}`}
+              aria-hidden={esClon || undefined}
+              tabIndex={esClon ? -1 : undefined}
+              
               className="group flex-shrink-0 snap-start w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
             >
               {/* Contenedor de imagen — fondo blanco. Sin mix-blend ni isolate: en el
@@ -226,6 +262,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                   Comprar
                 </span>
                 <button
+                  tabIndex={esClon ? -1 : undefined}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -253,6 +290,8 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
             eran 12 modelos. */}
         <Link
           href="/tienda"
+          aria-hidden={esClon || undefined}
+          tabIndex={esClon ? -1 : undefined}
           className="group flex-shrink-0 snap-start w-[45vw] md:w-[33vw] lg:w-[25vw] flex flex-col items-center justify-center gap-3 border-r border-[#e5e5e5] bg-[#faf8f5] hover:bg-white transition-colors px-6 text-center"
         >
           <span className="text-3xl font-serif tracking-tight text-stone-900">{totalCount}</span>
@@ -263,6 +302,51 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
             Ver todos
           </span>
         </Link>
+    </>
+  );
+
+  if (!collections || !products) return null;
+
+  return (
+    <section className="w-full bg-white pb-12 flex flex-col items-center">
+      
+      {/* TABS DE FILTRO */}
+      <div className="flex gap-4 px-5 mb-8 w-full max-w-7xl mx-auto overflow-x-auto no-scrollbar">
+        {[
+          { key: 'destacados', label: 'Destacados' },
+          { key: 'clipon', label: 'ClipOn' },
+          { key: 'sol', label: 'Sol' },
+          { key: 'receta', label: 'Receta' },
+          { key: 'nuevos', label: 'Nuevos' }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key as TabKey)}
+            className={`px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap rounded-full border cursor-pointer ${
+              activeTab === tab.key 
+                ? 'bg-black text-white border-black' 
+                : 'bg-white text-stone-500 border-stone-200 hover:border-black hover:text-black'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* `snap-proximity` y NO `snap-mandatory`, y sin `scroll-smooth`: los dos
+          pelean con el movimiento automático. `smooth` hace que cada asignación
+          de scrollLeft se anime, así que los pasos de 1 px por frame nunca
+          llegan a destino; `mandatory` devuelve el carrusel a la card más
+          cercana y cancela el avance. Con proximity el anclaje sigue existiendo
+          cuando la persona arrastra, que es cuando sirve, y el auto-scroll
+          puede correr. Medido: con mandatory + smooth el carrusel quedaba
+          inmóvil (scrollLeft 0 después de 2,5 s). */}
+      <div 
+        ref={carouselRef}
+        className="flex w-full overflow-x-auto overscroll-x-contain snap-x snap-proximity [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {renderTanda(false)}
+        {renderTanda(true)}
       </div>
 
       {/* FIXED FOOTER CTA */}
