@@ -146,6 +146,40 @@ const getProduct = cache(async (slug: string) => {
   }
 });
 
+/**
+ * Pre-renderiza las fichas activas en el build (A-02, auditoría del 2/9/2026).
+ *
+ * QUÉ PROBLEMA RESUELVE
+ * Medido en producción: la PRIMERA visita del día a una ficha tardaba 10,7 s
+ * en el primer byte y 21,8 s en cargar. La misma ficha en caliente: 0,65 s y
+ * 0,81 s. Todo el delta es servidor — `revalidate = 300` ya estaba, pero sin
+ * `generateStaticParams` la primera persona que pide cada slug paga el render
+ * entero (arranque en frío + consulta a la base). Con 106 modelos, siempre hay
+ * alguien pagando esos 10 segundos, y es justo quien viene de un anuncio.
+ *
+ * Ahora las páginas salen ya construidas del build y el visitante recibe HTML
+ * cacheado; `revalidate` sigue refrescando precio y stock cada 5 minutos.
+ *
+ * SI LA BASE NO ESTÁ EN EL BUILD, no se rompe: devuelve [] y las fichas se
+ * generan on-demand como antes (mismo criterio que `rethrowUnlessBuild`). Un
+ * deploy nunca puede fallar porque la base no contestó.
+ */
+export async function generateStaticParams(): Promise<{ slug: string }[]> {
+  try {
+    // El slug vive en WebProduct, no en Product: es la entidad de la tienda
+    // (la misma que consulta getProduct acá arriba).
+    const publicados = await prisma.webProduct.findMany({
+      where: { isActive: true },
+      select: { slug: true },
+    });
+    return publicados
+      .filter(p => Boolean(p.slug))
+      .map(p => ({ slug: p.slug }));
+  } catch {
+    return [];
+  }
+}
+
 // Saca sufijos tipo "| Atelier" / "| Atelier Óptica" que ya vienen en el seoTitle,
 // para no duplicar la marca cuando armamos el title final
 function stripBrandSuffix(title: string) {
