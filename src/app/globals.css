@@ -52,6 +52,38 @@
   --color-stone-400: #a8a29e;
 }
 
+/* ── El dorado de marca, y cuál usar sobre qué fondo ─────────────────────────
+   A-31 de la auditoría del 2/9/2026. Medido con la fórmula de WCAG:
+
+     dorado          sobre marfil #faf8f5   sobre blanco   sobre negro #15181a
+     #c8a55c  claro           2,20 : 1        2,34 : 1          7,64 : 1
+     #b08f4c  medio           2,88 : 1        3,05 : 1          5,84 : 1
+     #8a6d3b  oscuro          4,57 : 1        4,85 : 1          3,68 : 1
+
+   El piso del proyecto para texto es 4,5:1 (misma regla que los grises de acá
+   arriba). O sea:
+
+     · Texto dorado sobre fondo CLARO  → --dorado-texto  (#8a6d3b)
+     · Texto dorado sobre fondo OSCURO → --dorado        (#c8a55c)
+     · #c8a55c sobre claro solo para cosas que NO son texto: filetes,
+       bordes, íconos decorativos, fondos de chip.
+
+   Por qué tokens y no un reemplazo masivo: hay 56 usos de `text-[#c8a55c]` y
+   muchos están sobre negro, donde el claro es el correcto y oscurecerlo sería
+   el error simétrico (el mismo criterio que se aplicó con los grises). Cambiar
+   los 56 a ciegas rompe la mitad. Estos tokens son para que lo nuevo nazca
+   bien y para poder migrar los viejos de a uno, mirando el fondo de cada uno.
+   La auditoría lo dejó anotado como "pendiente de medir uso por uso". */
+:root {
+  --dorado: #c8a55c;
+  --dorado-texto: #8a6d3b;
+}
+
+.dark {
+  /* Sobre fondo oscuro el claro es el que contrasta: 7,64:1. */
+  --dorado-texto: #c8a55c;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
