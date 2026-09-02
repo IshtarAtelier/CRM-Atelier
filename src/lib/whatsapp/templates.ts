@@ -76,6 +76,18 @@ export const WHATSAPP_TEMPLATES = {
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }],
         buttons: [{ type: 'URL', text: 'Cómo llegar', url: 'https://maps.app.goo.gl/atelieroptica' }],
     },
+    // v3 (1/9/26, urgente — Ishtar): corrige "8 a 20" → "9 a 20". Dada de alta
+    // para aprobación; una vez APROBADA por Meta, cambiar los call sites de
+    // 'pedido_listo_v2' a 'pedido_listo_v2' → 'pedido_listo_v3' (ventas/page.tsx,
+    // notify-ready/route.ts, bot.service.ts) y marcar la v2 como DEPRECADA.
+    pedido_listo_v3: {
+        name: 'pedido_listo_v3',
+        inventario: 'A1',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, tu pedido {{2}} ya está listo para retirar en Atelier Óptica (José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba). Te esperamos de lunes a viernes de 9 a 20, y sábados de 9 a 17 h. Cualquier consulta, respondé este mensaje.',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }],
+        buttons: [{ type: 'URL', text: 'Cómo llegar', url: 'https://maps.app.goo.gl/atelieroptica' }],
+    },
     // HORARIO VIEJO — misma situación que pedido_listo. Registro histórico.
     pedido_listo_saldo: {
         name: 'pedido_listo_saldo',
@@ -95,6 +107,19 @@ export const WHATSAPP_TEMPLATES = {
         inventario: 'A12',
         category: 'UTILITY',
         body: 'Hola {{1}}, tu pedido {{2}} ya está listo para retirar en Atelier Óptica. Queda un saldo a abonar al retirar: con tarjeta o cuotas {{3}}, por transferencia {{4}}, en efectivo {{5}}. Te esperamos de lunes a viernes de 8 a 20, y sábados de 9 a 17 h.',
+        params: [
+            { label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' },
+            { label: 'saldo tarjeta', example: '$ 120.000' }, { label: 'saldo transferencia', example: '$ 110.000' }, { label: 'saldo efectivo', example: '$ 105.000' },
+        ],
+    },
+    // v3 (1/9/26, urgente — Ishtar): corrige "8 a 20" → "9 a 20". Una vez
+    // APROBADA, cambiar los call sites de 'pedido_listo_saldo_v2' a
+    // 'pedido_listo_saldo_v3' y marcar la v2 como DEPRECADA.
+    pedido_listo_saldo_v3: {
+        name: 'pedido_listo_saldo_v3',
+        inventario: 'A12',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, tu pedido {{2}} ya está listo para retirar en Atelier Óptica. Queda un saldo a abonar al retirar: con tarjeta o cuotas {{3}}, por transferencia {{4}}, en efectivo {{5}}. Te esperamos de lunes a viernes de 9 a 20, y sábados de 9 a 17 h.',
         params: [
             { label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' },
             { label: 'saldo tarjeta', example: '$ 120.000' }, { label: 'saldo transferencia', example: '$ 110.000' }, { label: 'saldo efectivo', example: '$ 105.000' },
@@ -182,14 +207,23 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Vi que te quedaron unos productos en el carrito de la tienda, ¿te surgió alguna duda? Si querés te doy una mano para terminarlo.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
-    // HORARIO: si esta plantilla ya está aprobada en Meta, el texto de abajo
-    // quedó congelado con "8:00 a 20:00" y el real es "9:00 a 20:00" desde el
-    // 1/9/26 — no editar el body sin decisión explícita (ver pedido_listo_v2).
+    // HORARIO VIEJO: APROBADA en Meta con "8:00 a 20:00", el real es
+    // "9:00 a 20:00" desde el 1/9/26. Registro histórico — no editar. Ver v2.
     invitacion_local: {
         name: 'invitacion_local',
         inventario: 'E4 (segundo seguimiento: invitar al local)',
         category: 'UTILITY',
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te mandé? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 8:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo?',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    // v2 (1/9/26, urgente — Ishtar): corrige "8:00 a 20:00" → "9:00 a 20:00".
+    // Una vez APROBADA, cambiar los call sites de 'invitacion_local' a
+    // 'invitacion_local_v2' y marcar esta como DEPRECADA.
+    invitacion_local_v2: {
+        name: 'invitacion_local_v2',
+        inventario: 'E4 (segundo seguimiento: invitar al local)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te mandé? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo?',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
     // Marketing, no utilidad: menciona un descuento. Meta la cobra más caro y
@@ -247,14 +281,24 @@ export const WHATSAPP_TEMPLATES = {
     // "tarjeta" en el medio para que no se lean como un solo paquete.
     // El importe real de la cuota (con su recargo adentro) lo cotiza después
     // el presupuesto, que sale de PricingService.
-    // HORARIO: si ya está aprobada, el body quedó con "8 a 20" y el real es
-    // "9 a 20" desde el 1/9/26 — no editar sin decisión explícita (ver
-    // pedido_listo_v2).
+    // HORARIO VIEJO: APROBADA con "8 a 20", el real es "9 a 20" desde el
+    // 1/9/26. Registro histórico — no editar. Ver v5.
     promo_12_cuotas_v4: {
         name: 'promo_12_cuotas_v4',
-        inventario: 'Campaña MP 12 cuotas v4 (sep 2026) — la vigente',
+        inventario: 'Campaña MP 12 cuotas v4 (sep 2026) — DEPRECADA, ver promo_12_cuotas_v5',
         category: 'MARKETING',
         body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Podés comprar tus anteojos hasta en 12 cuotas fijas. Y con tarjeta, 3 y 6 cuotas sin interés. Pagando en efectivo o por transferencia, 15% de descuento. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. Te esperamos en el local para tomar tu receta: Lunes a Viernes de 8 a 20, Sábados de 9 a 17.',
+        params: [{ label: 'nombre', example: 'Julio' }],
+        buttons: [{ type: 'URL', text: 'Ver catálogo', url: 'https://atelieroptica.com.ar/tienda' }],
+    },
+    // v5 (1/9/26, urgente — Ishtar): corrige "8 a 20" → "9 a 20". Misma
+    // fórmula que v4 (sin %, sin "sin interés" en las 12). Una vez APROBADA,
+    // cambiar los call sites de 'promo_12_cuotas_v4' a 'promo_12_cuotas_v5'.
+    promo_12_cuotas_v5: {
+        name: 'promo_12_cuotas_v5',
+        inventario: 'Campaña MP 12 cuotas v5 (sep 2026) — la vigente',
+        category: 'MARKETING',
+        body: 'Hola {{1}}! Te escribimos de Atelier Óptica 👋 Podés comprar tus anteojos hasta en 12 cuotas fijas. Y con tarjeta, 3 y 6 cuotas sin interés. Pagando en efectivo o por transferencia, 15% de descuento. Si querés, retomamos tu consulta y te pasamos un presupuesto sin compromiso. Te esperamos en el local para tomar tu receta: Lunes a Viernes de 9 a 20, Sábados de 9 a 17.',
         params: [{ label: 'nombre', example: 'Julio' }],
         buttons: [{ type: 'URL', text: 'Ver catálogo', url: 'https://atelieroptica.com.ar/tienda' }],
     },
