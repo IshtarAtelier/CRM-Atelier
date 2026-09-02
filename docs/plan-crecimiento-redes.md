@@ -30,7 +30,7 @@ Todo lo de esta sección sale de leer el repo el 28/8/2026, no de recuerdos.
 
 ### La cadencia real, por formato
 
-**Stories: 6 por día, todos los días.** Desde hoy. Dos tandas, 10:00 y 17:00 ART:
+**Stories: 6 por día, todos los días.** Desde hoy. Dos tandas, 8:00 y 18:05 ART:
 mañana 2 de contenido + 2 de producto, tarde 2 de contenido.
 Fuente: `PLAN` en `src/app/api/cron/social-story-diaria/route.ts` y el `schedule` de
 `.github/workflows/social-crons.yml`. Antes eran 4/día en una sola tanda.
@@ -205,7 +205,7 @@ Lo que **NO** es brecha, y conviene decirlo para no "arreglar" lo que está bien
 ### Fase 1 — Volumen y cobertura ✅ HECHA (28/8/2026)
 
 **Qué se hizo:**
-- Stories de 4 a 6 por día, en dos tandas (10:00 y 17:00 ART), con el índice resuelto por
+- Stories de 4 a 6 por día, en dos tandas (8:00 y 18:05 ART), con el índice resuelto por
   un único objeto `PLAN` que evita las dos trampas conocidas (la tarde republicando la
   mañana, y la tarde repitiéndose al día siguiente).
 - Carril `contenido` de 20 a 58 entradas: +35 piezas nuevas (5 Stellest, 2 Kodak, 3 índices,
