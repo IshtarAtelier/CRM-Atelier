@@ -8,6 +8,7 @@ import { buildWhatsAppUrl } from "@/lib/whatsapp-link";
 import { track } from "@/lib/client-analytics";
 import { RECETA_POR_WHATSAPP } from '@/lib/checkout/receta';
 import { leerPromoCuotas } from '@/lib/promo-cuotas';
+import { formatearPrecio } from '@/lib/format-precio';
 
 type LensType = "MONOFOCAL" | "BIFOCAL" | "MULTIFOCAL" | "NONE" | null;
 type Treatment = "ORGANICO_BLANCO" | "ORGANICO_AR" | "ORGANICO_BLUE" | "POLI_BLUE" | "ORGANICO_FOTOCROMATICO" | "ORGANICO_BLANCO_TENIDO" | "SMART_FREE" | "VARILUX" | "FOTOCROMATICO" | "UNICO" | null;
@@ -614,7 +615,7 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             key={calculateTotal()}
             className="text-4xl font-serif tracking-tight"
           >
-            ${calculateTotal().toLocaleString()}
+            ${formatearPrecio(calculateTotal())}
           </motion.p>
           <div className="flex flex-col items-center gap-1 mt-3.5 text-center">
             <p className="text-[11px] font-bold text-stone-700">

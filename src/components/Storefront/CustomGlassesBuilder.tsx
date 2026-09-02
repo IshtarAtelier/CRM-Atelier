@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import { formatearPrecio } from "@/lib/format-precio";
 const Interactive3DImage = dynamic(() => import("./Interactive3DImage").then(mod => mod.Interactive3DImage), { ssr: false });
 // Carga diferida: el configurador recién se monta cuando el cliente elige un armazón,
 // así no pesa en el bundle inicial del builder.
@@ -232,7 +233,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
         />
         <p className="text-[10px] uppercase tracking-[0.3em] text-[#999] font-bold mb-2">{selectedProduct.brand}</p>
         <h4 className="text-3xl font-serif uppercase tracking-tight leading-none mb-4">{selectedProduct.model}</h4>
-        <p className="text-sm font-medium text-black">${selectedProduct.price.toLocaleString()}</p>
+        <p className="text-sm font-medium text-black">${formatearPrecio(selectedProduct.price)}</p>
       </div>
 
       <LensConfigurator 
@@ -573,7 +574,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                           {group.baseName}
                         </h3>
                         <p className={`text-[11px] font-bold transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-600'}`}>
-                          ${activeVariant.price.toLocaleString()}
+                          ${formatearPrecio(activeVariant.price)}
                         </p>
                       </button>
 
