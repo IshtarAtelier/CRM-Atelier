@@ -30,7 +30,14 @@ import { RefreshCw, Play, Tag, Image as ImageIcon, Settings, MoreHorizontal } fr
 export interface InboxHeaderProps {
     conectado: boolean;
     telefono: string | null;
-    /** Transporte oficial de Meta: no hay bot ni seguimientos que apagar. */
+    /**
+     * Transporte oficial de Meta (Cloud API). Cambia las acciones propias de
+     * Baileys (Sincronizar, Probar chat), NO los interruptores: el bot que
+     * contesta por la API oficial es `wa-service/bot-cloud.js` y se apaga con
+     * el mismo `SystemSetting.bot_enabled`. Esconder acá el interruptor dejó a
+     * la dueña sin ninguna forma de callar al bot mientras seguía escribiéndole
+     * a los clientes — no volver a gatearlo por transporte.
+     */
     esApiOficial: boolean;
     calidad?: string | null;
     error?: string | null;
@@ -128,29 +135,32 @@ export default function InboxHeader({
             </div>
 
             <div className="flex items-center gap-4 flex-shrink-0">
-                {/* ── 2. Lo que cambia el comportamiento ─────────────────── */}
-                {!esApiOficial && (
-                    <div className="flex items-center gap-5 bg-white/80 dark:bg-stone-900/70 px-4 py-2 rounded-2xl border border-stone-300/70 dark:border-stone-800 shadow-sm">
-                        <Interruptor
-                            rotulo="Asistente IA"
-                            activo={asistenteActivo}
-                            textoActivo="Activa" textoInactivo="Inactiva"
-                            color="emerald"
-                            onToggle={() => onToggleAsistente(!asistenteActivo)}
-                        />
-                        <span aria-hidden className="w-px h-8 bg-stone-300 dark:bg-stone-700" />
-                        <Interruptor
-                            rotulo="Seguimientos"
-                            activo={seguimientosActivos}
-                            textoActivo="Activos" textoInactivo="Pausados"
-                            color="sky"
-                            onToggle={() => onToggleSeguimientos(!seguimientosActivos)}
-                            title={seguimientosActivos
-                                ? 'Pausar todos los seguimientos automáticos salientes'
-                                : 'Reanudar los seguimientos automáticos salientes'}
-                        />
-                    </div>
-                )}
+                {/* ── 2. Lo que cambia el comportamiento ───────────────────
+                    SIEMPRE visible, con cualquier transporte: es el botón de
+                    apagado del bot. Ver el comentario de `esApiOficial`. */}
+                <div className="flex items-center gap-5 bg-white/80 dark:bg-stone-900/70 px-4 py-2 rounded-2xl border border-stone-300/70 dark:border-stone-800 shadow-sm">
+                    <Interruptor
+                        rotulo="Asistente IA"
+                        activo={asistenteActivo}
+                        textoActivo="Activa" textoInactivo="Inactiva"
+                        color="emerald"
+                        onToggle={() => onToggleAsistente(!asistenteActivo)}
+                        title={asistenteActivo
+                            ? 'Apagar el bot: deja de contestar solo en TODOS los chats'
+                            : 'Encender el bot: vuelve a contestar solo'}
+                    />
+                    <span aria-hidden className="w-px h-8 bg-stone-300 dark:bg-stone-700" />
+                    <Interruptor
+                        rotulo="Seguimientos"
+                        activo={seguimientosActivos}
+                        textoActivo="Activos" textoInactivo="Pausados"
+                        color="sky"
+                        onToggle={() => onToggleSeguimientos(!seguimientosActivos)}
+                        title={seguimientosActivos
+                            ? 'Pausar todos los seguimientos automáticos salientes'
+                            : 'Reanudar los seguimientos automáticos salientes'}
+                    />
+                </div>
 
                 {/* ── 3. La acción de todos los días ─────────────────────── */}
                 {conectado && !esApiOficial && (
@@ -193,17 +203,17 @@ export default function InboxHeader({
                             <Link href="/admin/whatsapp/fotos" role="menuitem" className={itemMenu} onClick={() => setMenuAbierto(false)}>
                                 <ImageIcon className="w-4 h-4 text-stone-500" /> Galería de fotos
                             </Link>
+                            <span aria-hidden className="block h-px my-1.5 bg-stone-200 dark:bg-stone-800" />
                             {!esApiOficial && (
-                                <>
-                                    <span aria-hidden className="block h-px my-1.5 bg-stone-200 dark:bg-stone-800" />
-                                    <button type="button" role="menuitem" className={itemMenu} onClick={() => { setMenuAbierto(false); onProbarChat(); }}>
-                                        <Play className="w-4 h-4 text-stone-500" /> Probar chat
-                                    </button>
-                                    <button type="button" role="menuitem" className={itemMenu} onClick={() => { setMenuAbierto(false); onAbrirPersonalidad(); }}>
-                                        <Settings className="w-4 h-4 text-stone-500" /> Personalidad del asistente
-                                    </button>
-                                </>
+                                <button type="button" role="menuitem" className={itemMenu} onClick={() => { setMenuAbierto(false); onProbarChat(); }}>
+                                    <Play className="w-4 h-4 text-stone-500" /> Probar chat
+                                </button>
                             )}
+                            {/* El prompt vive en SystemSetting.bot_prompt y lo usa
+                                también el bot de la API oficial: no se gatea. */}
+                            <button type="button" role="menuitem" className={itemMenu} onClick={() => { setMenuAbierto(false); onAbrirPersonalidad(); }}>
+                                <Settings className="w-4 h-4 text-stone-500" /> Personalidad del asistente
+                            </button>
                         </div>
                     )}
                 </div>
