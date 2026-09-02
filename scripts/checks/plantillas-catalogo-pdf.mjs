@@ -27,10 +27,15 @@ function cargarCatalogo() {
 const CATEGORIA_META = {
     comprobante_pago: 'UTILITY', estado_pedido: 'UTILITY', factura_electronica: 'UTILITY',
     pedido_enviado: 'UTILITY', pedido_listo: 'UTILITY', pedido_listo_saldo: 'UTILITY',
-    // _v2: las que se mandan desde el 1/9/26 (las v1 quedaron con el horario viejo).
+    // _v2: horas después el 1/9/26, quedaron viejas también ("8 a 20") — las
+    // que se mandan ahora son las _v3/_v2-nueva/_v5, categoría heredada de su
+    // predecesora hasta que Meta confirme la propia (quedaron PENDING).
     pedido_listo_v2: 'UTILITY', pedido_listo_saldo_v2: 'UTILITY',
+    pedido_listo_v3: 'UTILITY', pedido_listo_saldo_v3: 'UTILITY',
     venta_confirmada: 'UTILITY',
-    invitacion_local: 'MARKETING', pedido_resena: 'MARKETING', presupuesto: 'MARKETING',
+    invitacion_local: 'MARKETING', invitacion_local_v2: 'MARKETING',
+    promo_12_cuotas_v5: 'MARKETING',
+    pedido_resena: 'MARKETING', presupuesto: 'MARKETING',
     presupuesto_pdf: 'MARKETING', retomar_conversacion: 'MARKETING', seguimiento_carrito: 'MARKETING',
     seguimiento_lentes: 'MARKETING', seguimiento_presupuesto: 'MARKETING', ultimo_seguimiento: 'MARKETING',
 };

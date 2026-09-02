@@ -61,16 +61,12 @@ export const WHATSAPP_TEMPLATES = {
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }],
         buttons: [{ type: 'URL', text: 'Cómo llegar', url: 'https://maps.app.goo.gl/atelieroptica' }],
     },
-    // HORARIO DESACTUALIZADO DE NUEVO (1/9/26): esta plantilla se aprobó HOY
-    // con "8 a 20", y el mismo día el horario real volvió a ser "9 a 20". El
-    // texto de Meta queda congelado tal cual se aprobó — no se edita acá — así
-    // que hasta que se dé de alta y apruebe una _v3, el bot sigue mandando "8
-    // a 20" con este template. No tocar sin decisión explícita de Ishtar: cada
-    // versión nueva es una aprobación de Meta y category UTILITY no tiene costo
-    // por envío, pero sí el tiempo de revisión.
+    // DEPRECADA (1/9/26, mismo día de su aprobación): "8 a 20" quedó viejo
+    // horas después, el real volvió a "9 a 20". Reemplazada por pedido_listo_v3,
+    // ya en uso en el código. Registro histórico — no editar el body.
     pedido_listo_v2: {
         name: 'pedido_listo_v2',
-        inventario: 'A1',
+        inventario: 'A1 — DEPRECADA, ver pedido_listo_v3',
         category: 'UTILITY',
         body: 'Hola {{1}}, tu pedido {{2}} ya está listo para retirar en Atelier Óptica (José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba). Te esperamos de lunes a viernes de 8 a 20, y sábados de 9 a 17 h. Cualquier consulta, respondé este mensaje.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }],
@@ -99,12 +95,11 @@ export const WHATSAPP_TEMPLATES = {
             { label: 'saldo tarjeta', example: '$ 120.000' }, { label: 'saldo transferencia', example: '$ 110.000' }, { label: 'saldo efectivo', example: '$ 105.000' },
         ],
     },
-    // Mismo caso que pedido_listo_v2: aprobada HOY (1/9) con "8 a 20", el
-    // horario real volvió a "9 a 20" el mismo día. No editar sin decisión
-    // explícita — ver el comentario de pedido_listo_v2.
+    // DEPRECADA (1/9/26, mismo día de su aprobación) — mismo caso que
+    // pedido_listo_v2. Reemplazada por pedido_listo_saldo_v3, ya en uso.
     pedido_listo_saldo_v2: {
         name: 'pedido_listo_saldo_v2',
-        inventario: 'A12',
+        inventario: 'A12 — DEPRECADA, ver pedido_listo_saldo_v3',
         category: 'UTILITY',
         body: 'Hola {{1}}, tu pedido {{2}} ya está listo para retirar en Atelier Óptica. Queda un saldo a abonar al retirar: con tarjeta o cuotas {{3}}, por transferencia {{4}}, en efectivo {{5}}. Te esperamos de lunes a viernes de 8 a 20, y sábados de 9 a 17 h.',
         params: [
@@ -211,14 +206,13 @@ export const WHATSAPP_TEMPLATES = {
     // "9:00 a 20:00" desde el 1/9/26. Registro histórico — no editar. Ver v2.
     invitacion_local: {
         name: 'invitacion_local',
-        inventario: 'E4 (segundo seguimiento: invitar al local)',
+        inventario: 'E4 — DEPRECADA, ver invitacion_local_v2',
         category: 'UTILITY',
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te mandé? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 8:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo?',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
     // v2 (1/9/26, urgente — Ishtar): corrige "8:00 a 20:00" → "9:00 a 20:00".
-    // Una vez APROBADA, cambiar los call sites de 'invitacion_local' a
-    // 'invitacion_local_v2' y marcar esta como DEPRECADA.
+    // Ya en uso en quick-replies.ts.
     invitacion_local_v2: {
         name: 'invitacion_local_v2',
         inventario: 'E4 (segundo seguimiento: invitar al local)',

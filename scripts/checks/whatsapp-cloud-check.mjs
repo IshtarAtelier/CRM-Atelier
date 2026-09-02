@@ -24,9 +24,12 @@ const BUSINESS_ID = process.env.META_BUSINESS_ID || '796163885437265';
 const TOKEN = process.env.WA_CLOUD_TOKEN || '';
 // Las que HOY se mandan. Las v1 de pedido_listo quedaron con el horario viejo
 // ("9 a 20", sin sábado) y Meta no deja editar una plantilla aprobada, así que
-// se reemplazaron por las _v2 (1/9/26) — vigilar las viejas era vigilar algo
-// que ya nadie manda.
-const CATALOGO = ['pedido_listo_v2', 'pedido_listo_saldo_v2', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf', 'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion'];
+// se reemplazaron por las _v2 (1/9/26) — y esas, horas después el mismo día,
+// por las _v3 ("9 a 20" real). Vigilar las viejas era vigilar algo que ya
+// nadie manda. OJO: pedido_listo_v3/pedido_listo_saldo_v3 estaban PENDING de
+// aprobación al momento del cambio de código — si este check las marca como
+// no aprobadas, es esperable hasta que Meta responda, no un bug.
+const CATALOGO = ['pedido_listo_v3', 'pedido_listo_saldo_v3', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf', 'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion'];
 
 const ok = (s) => `✅ ${s}`, warn = (s) => `⚠️  ${s}`, bad = (s) => `❌ ${s}`;
 

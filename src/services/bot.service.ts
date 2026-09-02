@@ -219,8 +219,8 @@ ${saldoHtml}
                     const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
                     const fmt = (n: number) => `$ ${Number(n || 0).toLocaleString('es-AR')}`;
                     const template = financials.hasBalance
-                        ? templateSpec('pedido_listo_saldo_v2', [clientName, nro, fmt(financials.remainingCard), fmt(financials.remainingTransfer), fmt(financials.remainingCash)])
-                        : templateSpec('pedido_listo_v2', [clientName, nro]);
+                        ? templateSpec('pedido_listo_saldo_v3', [clientName, nro, fmt(financials.remainingCard), fmt(financials.remainingTransfer), fmt(financials.remainingCash)])
+                        : templateSpec('pedido_listo_v3', [clientName, nro]);
                     const res = await sendWhatsApp({
                         chatId: `${formattedPhone}@c.us`,
                         message,

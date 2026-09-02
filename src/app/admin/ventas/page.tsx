@@ -1753,11 +1753,12 @@ export default function VentasPage() {
                                                                 chatId: `${phone}@c.us`,
                                                                 message: msg,
                                                                 // API oficial, fuera de la ventana de 24 h: plantilla A1 / A12.
-                                                                // Las _v2 llevan el horario real (9 a 20, sábados 9 a 17);
-                                                                // las v1 decían "9 a 20" y no nombraban el sábado.
+                                                                // Las _v3 llevan el horario real (9 a 20, sábados 9 a 17),
+                                                                // corregido el 1/9/26 — las _v2 decían "8 a 20" (aprobadas
+                                                                // el mismo día, quedaron viejas horas después).
                                                                 template: financials.hasBalance
-                                                                    ? { name: 'pedido_listo_saldo_v2', bodyParams: [(order.client?.name || 'cliente').split(' ')[0], `#${order.id.slice(-4).toUpperCase()}`, `$ ${financials.remainingCard.toLocaleString('es-AR')}`, `$ ${financials.remainingTransfer.toLocaleString('es-AR')}`, `$ ${financials.remainingCash.toLocaleString('es-AR')}`] }
-                                                                    : { name: 'pedido_listo_v2', bodyParams: [(order.client?.name || 'cliente').split(' ')[0], `#${order.id.slice(-4).toUpperCase()}`] },
+                                                                    ? { name: 'pedido_listo_saldo_v3', bodyParams: [(order.client?.name || 'cliente').split(' ')[0], `#${order.id.slice(-4).toUpperCase()}`, `$ ${financials.remainingCard.toLocaleString('es-AR')}`, `$ ${financials.remainingTransfer.toLocaleString('es-AR')}`, `$ ${financials.remainingCash.toLocaleString('es-AR')}`] }
+                                                                    : { name: 'pedido_listo_v3', bodyParams: [(order.client?.name || 'cliente').split(' ')[0], `#${order.id.slice(-4).toUpperCase()}`] },
                                                             })
                                                         });
                                                         if (res.ok) {

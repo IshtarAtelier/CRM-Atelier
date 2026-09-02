@@ -26,6 +26,6 @@ export const QUICK_REPLIES: QuickReply[] = [
     { label: 'Seguimiento presupuesto', templateName: 'seguimiento_presupuesto', text: WHATSAPP_TEMPLATES.seguimiento_presupuesto.body },
     { label: 'Seguimiento lentes', templateName: 'seguimiento_lentes', text: WHATSAPP_TEMPLATES.seguimiento_lentes.body },
     { label: 'Seguimiento carrito', templateName: 'seguimiento_carrito', text: WHATSAPP_TEMPLATES.seguimiento_carrito.body },
-    { label: 'Invitación al local', templateName: 'invitacion_local', text: WHATSAPP_TEMPLATES.invitacion_local.body },
+    { label: 'Invitación al local', templateName: 'invitacion_local_v2', text: WHATSAPP_TEMPLATES.invitacion_local_v2.body },
     { label: 'Pedir reseña', templateName: 'pedido_resena', text: WHATSAPP_TEMPLATES.pedido_resena.body },
 ];

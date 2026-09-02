@@ -11,7 +11,12 @@ import { BUSINESS_INFO } from '@/lib/business-info';
  * un solo parámetro {{1}}=nombre) — agregar una nueva es una línea acá,
  * después de confirmar que Meta ya la aprobó (PENDING rechaza el envío).
  */
-const PLANTILLAS_VALIDAS = ['promo_12_cuotas', 'promo_12_cuotas_v2', 'promo_12_cuotas_v4'] as const satisfies readonly TemplateName[];
+// promo_12_cuotas_v5 (1/9/26, horario "9 a 20" corregido) está PENDING de
+// aprobación en Meta — se suma a la lista de válidas para poder pasarla por
+// ?plantilla= en cuanto Meta la apruebe, pero el default sigue en v4 hasta
+// entonces (mandar con una PENDING la rechaza y quema un turno de la tanda
+// anti-ban).
+const PLANTILLAS_VALIDAS = ['promo_12_cuotas', 'promo_12_cuotas_v2', 'promo_12_cuotas_v4', 'promo_12_cuotas_v5'] as const satisfies readonly TemplateName[];
 type PlantillaCampania = typeof PLANTILLAS_VALIDAS[number];
 
 /**
