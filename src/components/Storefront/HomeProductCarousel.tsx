@@ -43,65 +43,21 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
   
   const products = collections[activeTab] || [];
 
-  // Hybrid Marquee Logic
-  useEffect(() => {
-    const container = carouselRef.current;
-    if (!container) return;
-
-    let animationId: number;
-    let isInteracting = false;
-
-    const onInteract = () => { isInteracting = true; };
-    const onStopInteract = () => { isInteracting = false; };
-
-    container.addEventListener('touchstart', onInteract, { passive: true });
-    container.addEventListener('touchend', onStopInteract, { passive: true });
-    container.addEventListener('mousedown', onInteract, { passive: true });
-    container.addEventListener('mouseup', onStopInteract, { passive: true });
-    container.addEventListener('mouseenter', onInteract, { passive: true });
-    container.addEventListener('mouseleave', onStopInteract, { passive: true });
-
-    let wheelTimeout: any;
-    const onWheel = () => {
-      isInteracting = true;
-      clearTimeout(wheelTimeout);
-      wheelTimeout = setTimeout(() => {
-        isInteracting = false;
-      }, 500);
-    };
-    container.addEventListener('wheel', onWheel, { passive: true });
-
-    let scrollAccumulator = 0;
-    const scroll = () => {
-      if (!isInteracting) {
-        scrollAccumulator += 1; // 1 pixel per frame (approx 60px/s)
-        if (scrollAccumulator >= 1) {
-          const shift = Math.floor(scrollAccumulator);
-          container.scrollLeft += shift;
-          scrollAccumulator -= shift;
-          
-          if (container.scrollLeft >= container.scrollWidth / 2) {
-            container.scrollLeft -= container.scrollWidth / 2;
-          }
-        }
-      }
-      animationId = requestAnimationFrame(scroll);
-    };
-
-    animationId = requestAnimationFrame(scroll);
-
-    return () => {
-      cancelAnimationFrame(animationId);
-      container.removeEventListener('touchstart', onInteract);
-      container.removeEventListener('touchend', onStopInteract);
-      container.removeEventListener('mousedown', onInteract);
-      container.removeEventListener('mouseup', onStopInteract);
-      container.removeEventListener('mouseenter', onInteract);
-      container.removeEventListener('mouseleave', onStopInteract);
-      container.removeEventListener('wheel', onWheel);
-      clearTimeout(wheelTimeout);
-    };
-  }, [products]);
+  // A-10 y A-22 (auditoría 2/9/26). Acá vivía un "marquee híbrido": un
+  // requestAnimationFrame que empujaba `scrollLeft` un píxel por frame, con
+  // listeners de mouse/touch/wheel para pausarlo, y la lista de productos
+  // DUPLICADA para que el loop se viera continuo.
+  //
+  // Dos problemas medidos, los dos en el primer contenido comercial del home:
+  //   A-10 — al pasar el mouse por encima, la rueda movía el carrusel en vez
+  //          de bajar la página.
+  //   A-22 — quien llegaba al final veía los mismos anteojos otra vez y
+  //          concluía que el catálogo son 12 modelos, no 112.
+  //
+  // Se va entero. Queda scroll horizontal nativo con anclaje (snap), que es lo
+  // que la gente ya sabe usar, no pelea con la rueda, no duplica nada y no
+  // gasta un frame por segundo de CPU. El recorrido termina en una card que
+  // lleva al catálogo completo.
 
   // Reset scroll when tab changes
   useEffect(() => {
@@ -140,16 +96,15 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
 
       <div 
         ref={carouselRef}
-        className="flex w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex w-full overflow-x-auto overscroll-x-contain snap-x snap-mandatory scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {/* Duplicamos para el loop infinito suave */}
-        {[...products, ...products].map((item, i) => {
+        {products.map((item, i) => {
           const isTitanium = (item.model || '').toUpperCase().includes('TG') || (item.name || '').toUpperCase().includes('TITANIUM');
           return (
             <Link 
               href={`/producto/${item.slug}`} 
               key={`${item.id}-${i}`} 
-              className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
+              className="group flex-shrink-0 snap-start w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
             >
               {/* Contenedor de imagen — fondo blanco. Sin mix-blend ni isolate: en el
                   carrusel auto-scrolleado esa capa de composición NO se pintaba en prod
@@ -292,6 +247,22 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
           </Link>
         );
         })}
+
+        {/* A-10/A-22: el recorrido termina en una salida al catálogo. Antes
+            terminaba en la lista repetida, que hacía parecer que el catálogo
+            eran 12 modelos. */}
+        <Link
+          href="/tienda"
+          className="group flex-shrink-0 snap-start w-[45vw] md:w-[33vw] lg:w-[25vw] flex flex-col items-center justify-center gap-3 border-r border-[#e5e5e5] bg-[#faf8f5] hover:bg-white transition-colors px-6 text-center"
+        >
+          <span className="text-3xl font-serif tracking-tight text-stone-900">{totalCount}</span>
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-600 leading-relaxed">
+            modelos en total
+          </span>
+          <span className="mt-1 text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-black text-white group-hover:bg-stone-800 transition-colors rounded-full">
+            Ver todos
+          </span>
+        </Link>
       </div>
 
       {/* FIXED FOOTER CTA */}
