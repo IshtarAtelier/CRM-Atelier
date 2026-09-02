@@ -140,7 +140,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
               aria-hidden={esClon || undefined}
               tabIndex={esClon ? -1 : undefined}
               
-              className="group flex-shrink-0 snap-start w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
+              className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] block transition-shadow duration-500 hover:z-10 relative bg-white hover:shadow-[0_0_40px_rgba(0,0,0,0.05)]"
             >
               {/* Contenedor de imagen — fondo blanco. Sin mix-blend ni isolate: en el
                   carrusel auto-scrolleado esa capa de composición NO se pintaba en prod
@@ -292,7 +292,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
           href="/tienda"
           aria-hidden={esClon || undefined}
           tabIndex={esClon ? -1 : undefined}
-          className="group flex-shrink-0 snap-start w-[45vw] md:w-[33vw] lg:w-[25vw] flex flex-col items-center justify-center gap-3 border-r border-[#e5e5e5] bg-[#faf8f5] hover:bg-white transition-colors px-6 text-center"
+          className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] flex flex-col items-center justify-center gap-3 border-r border-[#e5e5e5] bg-[#faf8f5] hover:bg-white transition-colors px-6 text-center"
         >
           <span className="text-3xl font-serif tracking-tight text-stone-900">{totalCount}</span>
           <span className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-600 leading-relaxed">
@@ -333,17 +333,21 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
         ))}
       </div>
 
-      {/* `snap-proximity` y NO `snap-mandatory`, y sin `scroll-smooth`: los dos
-          pelean con el movimiento automático. `smooth` hace que cada asignación
-          de scrollLeft se anime, así que los pasos de 1 px por frame nunca
-          llegan a destino; `mandatory` devuelve el carrusel a la card más
-          cercana y cancela el avance. Con proximity el anclaje sigue existiendo
-          cuando la persona arrastra, que es cuando sirve, y el auto-scroll
-          puede correr. Medido: con mandatory + smooth el carrusel quedaba
-          inmóvil (scrollLeft 0 después de 2,5 s). */}
+      {/* SIN scroll-snap y SIN scroll-smooth, a propósito.
+          Los dos son incompatibles con el movimiento automático y lo dejaban
+          inmóvil:
+            · `scroll-smooth` anima cada asignación de scrollLeft, así que los
+              pasos de 1 px por frame nunca llegan a destino.
+            · `scroll-snap`, incluso en `proximity`, trata cada avance de 1 px
+              como un scroll que terminó y devuelve el carrusel al punto de
+              anclaje más cercano — que es la card actual. Vuelve a 0 siempre.
+          El plan pedía snap (F0-04), pero eso era EN LUGAR del auto-scroll: son
+          dos formas distintas de resolver lo mismo y no conviven. Elegido el
+          movimiento, el snap se va. El arrastre con el dedo sigue funcionando
+          igual, solo que sin imantarse a la card. */}
       <div 
         ref={carouselRef}
-        className="flex w-full overflow-x-auto overscroll-x-contain snap-x snap-proximity [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex w-full overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {renderTanda(false)}
         {renderTanda(true)}
