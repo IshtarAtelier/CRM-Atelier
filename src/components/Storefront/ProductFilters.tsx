@@ -60,10 +60,17 @@ function getShapeIcon(shape: string) {
     );
   }
   if (s.includes('xl')) {
+    // A-24 (auditoría 2/9/26): acá se dibujaba la palabra "XL" adentro del
+    // ícono, y justo abajo el chip repite la etiqueta — se leía "XL XL". Todas
+    // las demás formas muestran un glifo + su nombre; esta era la única que
+    // escribía el nombre dos veces. Ahora lleva glifo como el resto: el mismo
+    // armazón redondo pero ancho, que es lo que XL quiere decir.
     return (
-      <div className="w-8 h-4 flex items-center justify-center font-black text-[8px] tracking-widest border border-current/30 rounded-sm transition-transform group-hover:scale-110 duration-300">
-        XL
-      </div>
+      <svg viewBox="0 0 48 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-3.5 transition-transform group-hover:scale-110 duration-300">
+        <rect x="3" y="4.5" width="17" height="15" rx="5" />
+        <rect x="28" y="4.5" width="17" height="15" rx="5" />
+        <path d="M20 12 C22 10.5, 26 10.5, 28 12" />
+      </svg>
     );
   }
   return (
@@ -166,9 +173,16 @@ export function ProductFilters({
                   Ordenar por
                 </h3>
                 <div className="flex flex-col gap-3">
+                  {/* A-23 (auditoría 2/9/26): acá figuraba "Forma del Armazón"
+                      como criterio de ORDEN, y la forma también existe abajo
+                      como FILTRO. El mismo campo cumplía dos roles
+                      contradictorios: ordenar por forma no ordena nada que la
+                      persona pueda comparar (¿aviador va antes que redondo?).
+                      El orden queda solo con cosas comparables. Una URL vieja
+                      con ?orden=forma sigue funcionando: el backend la ignora
+                      y cae en el orden por defecto. */}
                   {[
                     { id: 'recientes', label: 'Más Recientes' },
-                    { id: 'forma', label: 'Forma del Armazón' },
                     { id: 'menor_precio', label: 'Menor Precio' },
                     { id: 'mayor_precio', label: 'Mayor Precio' },
                   ].map((option) => (
