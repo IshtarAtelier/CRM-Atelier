@@ -18,6 +18,13 @@ interface ProductFiltersProps {
    * lo que eligió le sirve.
    */
   resultCount?: number;
+  /**
+   * F1-02: cuántos modelos hay detrás de cada opción, por faceta. Los calcula
+   * el endpoint contra los OTROS filtros activos — ver el comentario largo en
+   * api/store/products. `null` mientras no llegó la primera respuesta: en ese
+   * caso no se muestra ningún número, que es mejor que mostrar uno inventado.
+   */
+  conteos?: { marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number> } | null;
 }
 
 function getShapeIcon(shape: string) {
@@ -96,6 +103,7 @@ export function ProductFilters({
   availableShapes = [],
   availableMaterials = [],
   resultCount,
+  conteos = null,
 }: ProductFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -143,6 +151,32 @@ export function ProductFilters({
   const clearFilters = () => {
     router.push(pathname, { scroll: false });
   };
+
+  /**
+   * F1-02: el conteo de una opción, sin depender de cómo esté escrita.
+   * `undefined` = todavía no llegó la respuesta (no se muestra número).
+   */
+  const conteoDe = (faceta: 'marca' | 'forma' | 'material', valor: string): number | undefined => {
+    const tabla = conteos?.[faceta];
+    if (!tabla) return undefined;
+    const clave = Object.keys(tabla).find(k => k.toLowerCase() === valor.toLowerCase());
+    return clave ? tabla[clave] : 0;
+  };
+
+  /**
+   * Las opciones con cero van al FINAL, nunca ocultas (lo pide el plan): que
+   * desaparezcan hace pensar que el catálogo se achicó. La opción elegida se
+   * queda donde está aunque su conteo sea 0, o saltaría de lugar al tocarla.
+   */
+  const ordenarPorConteo = (faceta: 'marca' | 'forma' | 'material', lista: string[], seleccionada: string) =>
+    [...lista].sort((a, b) => {
+      if (a.toLowerCase() === seleccionada.toLowerCase()) return -1;
+      if (b.toLowerCase() === seleccionada.toLowerCase()) return 1;
+      const ca = conteoDe(faceta, a) ?? 1;
+      const cb = conteoDe(faceta, b) ?? 1;
+      if ((ca === 0) !== (cb === 0)) return ca === 0 ? 1 : -1;
+      return 0;
+    });
 
   /** Cuántos filtros hay puestos. El orden no cuenta: no achica el resultado. */
   const filtrosPuestos = [currentBrand, currentShape, currentMaterial, currentGender, currentPrecioMin || currentPrecioMax].filter(Boolean).length;
@@ -353,22 +387,28 @@ export function ProductFilters({
                     </button>
  
                     {/* Lista de Formas */}
-                    {availableShapes.map((shape) => {
+                    {ordenarPorConteo('forma', availableShapes, currentShape).map((shape) => {
                       const isSelected = currentShape.toLowerCase() === shape.toLowerCase();
+                      const n = conteoDe('forma', shape);
+                      const vacia = n === 0 && !isSelected;
                       return (
                         <button
                           key={shape}
+                          disabled={vacia}
+                          title={vacia ? 'No hay modelos con esta forma y los filtros puestos' : undefined}
                           onClick={() => handleFilterChange('forma', isSelected ? '' : shape)}
                           className={`group flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-center transition-all duration-300 ${
                             isSelected
                               ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 dark:border-stone-50 shadow-md scale-[1.02]'
-                              : 'border-stone-200 hover:border-stone-400 bg-white text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
+                              : `border-stone-200 bg-white text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300 ${vacia ? 'opacity-40 cursor-not-allowed' : 'hover:border-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'}`
                           }`}
                         >
                           <div className="w-8 h-4 flex items-center justify-center mb-1">
                             {getShapeIcon(shape)}
                           </div>
-                          <span className="text-[9px] font-bold uppercase tracking-wider">{shape}</span>
+                          <span className="text-[9px] font-bold uppercase tracking-wider">
+                            {shape}{typeof n === 'number' && <span className="ml-1 opacity-60">({n})</span>}
+                          </span>
                         </button>
                       );
                     })}
@@ -393,11 +433,15 @@ export function ProductFilters({
                     >
                       Todos
                     </button>
-                    {availableMaterials.map((material) => {
+                    {ordenarPorConteo('material', availableMaterials, currentMaterial).map((material) => {
                       const isSelected = currentMaterial.toLowerCase() === material.toLowerCase();
+                      const n = conteoDe('material', material);
+                      const vacia = n === 0 && !isSelected;
                       return (
                         <button
                           key={material}
+                          disabled={vacia}
+                          title={vacia ? 'No hay modelos de este material con los filtros puestos' : undefined}
                           onClick={() => handleFilterChange('material', isSelected ? '' : material)}
                           className={`px-4 min-h-11 inline-flex items-center text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
                             isSelected
@@ -405,7 +449,7 @@ export function ProductFilters({
                               : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                           }`}
                         >
-                          {material}
+                          {material}{typeof n === 'number' && <span className="ml-1 opacity-60">({n})</span>}
                         </button>
                       );
                     })}
@@ -439,7 +483,7 @@ export function ProductFilters({
                     </label>
 
                     {/* Lista de Marcas */}
-                    {availableBrands.map((brand) => (
+                    {ordenarPorConteo('marca', availableBrands, currentBrand).map((brand) => (
                       <label key={brand} className="flex items-center gap-3 cursor-pointer group min-h-11">
                         <div className={`w-5 h-5 rounded border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${currentBrand === brand ? 'bg-[#c8a55c] border-[#c8a55c] text-white' : 'group-hover:border-stone-500'}`}>
                           {currentBrand === brand && <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
@@ -453,7 +497,9 @@ export function ProductFilters({
                           className="hidden" 
                         />
                         <span className={`text-base tracking-wide ${currentBrand === brand ? 'font-bold text-[#8a6d3b] dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
-                          {brand}
+                          {brand}{typeof conteoDe('marca', brand) === 'number' && (
+                            <span className="ml-1.5 text-sm opacity-60">({conteoDe('marca', brand)})</span>
+                          )}
                         </span>
                       </label>
                     ))}

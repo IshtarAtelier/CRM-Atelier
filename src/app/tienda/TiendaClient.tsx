@@ -102,6 +102,7 @@ export function TiendaClient({
   initialCategory = 'Todo',
   initialProducts,
   initialTotalCount = 0,
+  initialConteos = null,
   availableBrands = [],
   availableShapes = [],
   availableMaterials = [],
@@ -110,6 +111,8 @@ export function TiendaClient({
   initialCategory?: string;
   initialProducts: any[];
   initialTotalCount?: number;
+  /** F1-02: conteos por opción para el primer pintado (ver tienda/page.tsx). */
+  initialConteos?: { marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number> } | null;
   availableBrands?: string[];
   availableShapes?: string[];
   availableMaterials?: string[];
@@ -201,6 +204,11 @@ export function TiendaClient({
   useEffect(() => {
     setVisibleCount(24);
   }, [activeCategory, searchQuery, filterGender]);
+
+  // F1-02: cuántos modelos hay detrás de cada opción de cada faceta. Los
+  // calcula el endpoint contra los OTROS filtros activos (ver el comentario en
+  // api/store/products), así que acá solo se transportan a ProductFilters.
+  const [conteos, setConteos] = useState<{ marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number> } | null>(initialConteos);
 
   const [isWholesale, setIsWholesale] = useState(false);
   const [webSettings, setWebSettings] = useState({
@@ -343,6 +351,7 @@ export function TiendaClient({
           }
           setTotalPages(data.totalPages || 1);
           setTotalCount(data.totalCount || 0);
+          setConteos(data.conteos || null);
         }
       } catch (err) {
         console.error("Error loading products:", err);
@@ -503,6 +512,8 @@ export function TiendaClient({
               availableMaterials={availableMaterials}
               /* A-04: el número vivo para el botón "Ver N modelos". */
               resultCount={totalCount}
+              /* F1-02: cuántos modelos hay detrás de cada opción. */
+              conteos={conteos}
             />
           </Suspense>
         </aside>

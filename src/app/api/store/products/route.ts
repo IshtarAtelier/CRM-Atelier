@@ -214,10 +214,88 @@ export async function GET(request: NextRequest) {
         const skip = (page - 1) * limit;
         const paginatedProducts = filtered.slice(skip, skip + limit);
 
+        // ── F1-02: cuántos modelos hay detrás de cada opción ─────────────────
+        //
+        // Sin esto se filtra a ciegas: la persona elige "Aviador" sin saber si
+        // detrás hay 7 modelos o ninguno, y cae en callejones sin salida. El
+        // plan pide `AVIADOR (7)`, con las de cero deshabilitadas y al final.
+        //
+        // LA SEMÁNTICA IMPORTA: el conteo de cada opción se calcula contra los
+        // OTROS filtros activos, no contra el suyo. Si ya elegiste "Titanio",
+        // "Aviador (3)" significa "3 aviadores de titanio". Pero al contar las
+        // opciones de FORMA no se aplica el filtro de forma, porque si no,
+        // elegida una forma, todas las demás dirían cero y parecería que el
+        // catálogo se vació. Es la diferencia entre un contador útil y uno que
+        // miente.
+        const coincideCategoria = (p: any) => {
+            if (!category || category === 'Todo') return true;
+            const active = category.toLowerCase();
+            const cat = (p.category || '').toLowerCase();
+            if (active === 'receta') return cat.includes('receta') || cat.includes('armazón');
+            if (active === 'sol') return cat.includes('sol');
+            if (active === 'clip-on') return cat.includes('clip');
+            if (active === 'contacto') return cat.includes('contacto');
+            if (active === 'cristales') return cat.includes('cristal');
+            return cat.includes(active);
+        };
+        const coincideMarca = (p: any) => !brand || (p.brand || '').toUpperCase() === brand.toUpperCase();
+        const coincideForma = (p: any) => !shape || (p.shape || '').toUpperCase() === shape.toUpperCase();
+        const coincideMaterial = (p: any) => !material || (p.material || '').toUpperCase() === material.toUpperCase();
+        const coincideGenero = (p: any) => {
+            if (!gender) return true;
+            if (!p.gender) return true;
+            const fg = gender.toLowerCase();
+            const g = p.gender.toLowerCase();
+            const unisex = g.includes('unisex') || g.includes('sin_genero') || g.includes('no_gender');
+            if (fg === 'femme') return g.includes('femenino') || g.includes('mujer') || g.includes('femme') || unisex;
+            if (fg === 'homme') return g.includes('masculino') || g.includes('hombre') || g.includes('homme') || unisex;
+            if (fg === 'no_gender') return unisex;
+            return true;
+        };
+        const coincidePrecio = (p: any) => {
+            if (precioMin <= 0 && precioMax <= 0) return true;
+            const lista = p.price || 0;
+            const oferta = p.salePrice;
+            const valor = oferta != null && oferta > 0 && oferta < lista ? oferta : lista;
+            if (precioMin > 0 && valor < precioMin) return false;
+            if (precioMax > 0 && valor > precioMax) return false;
+            return true;
+        };
+        const coincideBusqueda = (p: any) => {
+            if (!search) return true;
+            const query = normalizarTexto(search);
+            return normalizarTexto(p.model).includes(query)
+                || normalizarTexto(p.modelCode).includes(query)
+                || normalizarTexto(p.category).includes(query)
+                || normalizarTexto(p.brand).includes(query);
+        };
+
+        /** Cuenta por valor de `campo`, ignorando el filtro de esa misma faceta. */
+        const contarPor = (campo: 'brand' | 'shape' | 'material', excluir: () => boolean) => {
+            const cuenta: Record<string, number> = {};
+            for (const p of mappedProducts) {
+                if (!coincideCategoria(p) || !coincideGenero(p) || !coincidePrecio(p) || !coincideBusqueda(p)) continue;
+                if (campo !== 'brand' && !coincideMarca(p)) continue;
+                if (campo !== 'shape' && !coincideForma(p)) continue;
+                if (campo !== 'material' && !coincideMaterial(p)) continue;
+                const valor = (p as any)[campo];
+                if (!valor) continue;
+                cuenta[String(valor)] = (cuenta[String(valor)] || 0) + 1;
+            }
+            return cuenta;
+        };
+
+        const conteos = {
+            marca: contarPor('brand', () => true),
+            forma: contarPor('shape', () => true),
+            material: contarPor('material', () => true),
+        };
+
         return NextResponse.json({
             products: paginatedProducts,
             totalPages,
-            totalCount
+            totalCount,
+            conteos,
         });
     } catch (error) {
         console.error('Error fetching store products:', error);

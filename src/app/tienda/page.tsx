@@ -80,6 +80,34 @@ export default async function TiendaPage() {
   const mappedInitialProducts = catalog.slice(0, 24);
   const initialTotalCount = catalog.length;
 
+  // F1-02: los conteos por opción para el PRIMER pintado.
+  //
+  // El cliente los recibe del endpoint en cada filtrado, pero la primera carga
+  // no llama al endpoint a propósito (el servidor ya mandó los productos, ver
+  // la guarda `isFirstRenderWithInitialData` en TiendaClient). Sin esto, quien
+  // abre el panel sin haber filtrado todavía no ve ningún número — justo la
+  // primera vez, que es cuando más orienta. El plan pide calcularlos acá, en el
+  // Server Component.
+  //
+  // Sin filtros aplicados, el conteo de cada opción es simplemente cuántos hay
+  // en todo el catálogo: no hay "otros filtros activos" contra los cuales
+  // acotar. Por eso acá alcanza con contar, sin replicar la lógica de facetas
+  // del endpoint.
+  const contarCatalogoPor = (campo: 'brand' | 'shape' | 'material') => {
+    const cuenta: Record<string, number> = {};
+    for (const p of catalog) {
+      const valor = (p as any)[campo];
+      if (!valor) continue;
+      cuenta[String(valor)] = (cuenta[String(valor)] || 0) + 1;
+    }
+    return cuenta;
+  };
+  const initialConteos = {
+    marca: contarCatalogoPor('brand'),
+    forma: contarCatalogoPor('shape'),
+    material: contarCatalogoPor('material'),
+  };
+
   const collectionLd = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
@@ -112,6 +140,7 @@ export default async function TiendaPage() {
       <TiendaClient
         initialProducts={mappedInitialProducts}
         initialTotalCount={initialTotalCount}
+        initialConteos={initialConteos}
         availableBrands={availableBrands}
         availableShapes={availableShapes}
         availableMaterials={availableMaterials}
