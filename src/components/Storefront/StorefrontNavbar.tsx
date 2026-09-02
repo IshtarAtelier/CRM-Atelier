@@ -414,13 +414,13 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
             ) : null}
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="flex items-center justify-center hover:opacity-60 transition-opacity p-2 sm:p-0"
+              className="flex items-center justify-center hover:opacity-60 transition-opacity p-2 min-w-11 min-h-11 sm:min-w-0 sm:min-h-0 sm:p-0"
               aria-label="Buscar"
             >
               <Search className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
             </button>
             <button
-              className="flex items-center justify-center hover:opacity-60 transition-opacity relative p-2 sm:p-0"
+              className="flex items-center justify-center hover:opacity-60 transition-opacity relative p-2 min-w-11 min-h-11 sm:min-w-0 sm:min-h-0 sm:p-0"
               aria-label="Carrito"
               onClick={() => setCartOpen(true)}
             >

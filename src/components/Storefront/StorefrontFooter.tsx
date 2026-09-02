@@ -44,27 +44,27 @@ export async function StorefrontFooter() {
           {/* Links principales */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Atelier</p>
-            <Link href="/quienes-somos" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Quiénes Somos</Link>
-            <Link href="/contacto" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Contacto</Link>
-            <Link href="/faq" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Atención al Cliente</Link>
-            <Link href="/nuestro-local" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Nuestro Local</Link>
-            <Link href="/resenas" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Opiniones de Clientes</Link>
-            <Link href="/blog" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Editorial</Link>
+            <Link href="/quienes-somos" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Quiénes Somos</Link>
+            <Link href="/contacto" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Contacto</Link>
+            <Link href="/faq" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Atención al Cliente</Link>
+            <Link href="/nuestro-local" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Nuestro Local</Link>
+            <Link href="/resenas" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Opiniones de Clientes</Link>
+            <Link href="/blog" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Editorial</Link>
           </div>
 
           {/* Guías (interlinking SEO: las mismas en StorefrontFooterStatic) */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Guías</p>
-            <Link href="/optica-cordoba" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Óptica en Córdoba</Link>
+            <Link href="/optica-cordoba" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Óptica en Córdoba</Link>
             {/* La página existe y está bien resuelta, pero solo la linkeaban el
                 footer de /faq y el de /tienda: desde la home no había forma de
                 llegar. Es una de las primeras preguntas de quien compra lentes. */}
-            <Link href="/obras-sociales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Obras Sociales</Link>
-            <Link href="/blog/guia-armazones-segun-rostro" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Armazones según tu rostro</Link>
-            <Link href="/blog/guia-precios-multifocales-argentina" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Precios de Multifocales</Link>
-            <Link href="/blog/control-miopia-infantil-lentes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Control de Miopía Infantil</Link>
-            <Link href="/blog/lentes-polarizados-vs-comunes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Polarizados vs. Comunes</Link>
-            <Link href="/blog/guia-cristales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Guía de Cristales</Link>
+            <Link href="/obras-sociales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Obras Sociales</Link>
+            <Link href="/blog/guia-armazones-segun-rostro" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Armazones según tu rostro</Link>
+            <Link href="/blog/guia-precios-multifocales-argentina" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Precios de Multifocales</Link>
+            <Link href="/blog/control-miopia-infantil-lentes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Control de Miopía Infantil</Link>
+            <Link href="/blog/lentes-polarizados-vs-comunes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Polarizados vs. Comunes</Link>
+            <Link href="/blog/guia-cristales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Guía de Cristales</Link>
           </div>
 
           {/* Ubicación */}
