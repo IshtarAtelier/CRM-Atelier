@@ -72,10 +72,19 @@ for (let i = 0; i < lineas.length; i++) {
         //   1. La galería de fotos (la secundaria entra con un fundido).
         //   2. Lo que está adentro de un `{showAlgo && (` — modales como el
         //      configurador de cristales.
-        const contexto = lineas.slice(Math.max(0, i - 10), i).join('\n');
+        //
+        // La ventana hacia atrás es de 30 líneas, no de 10. Con 10 este check
+        // dio un falso positivo el 2/9/26: agregarle accesibilidad al modal
+        // (role, aria-modal, aria-label, ref) empujó el `{showConfigurator && (`
+        // fuera de la ventana y el check marcó como bug algo que estaba bien.
+        // Un check que se rompe cuando el código mejora entrena a ignorarlo.
+        const contexto = lineas.slice(Math.max(0, i - 30), i).join('\n');
         const esGaleria = /activeImageIndex|AnimatePresence|lightbox|Lightbox/.test(contexto);
         const esModalPorClic = /\{\s*(show|is|open|mostrar|abierto)[A-Za-z]*\s*&&\s*\(/.test(contexto);
-        if (esGaleria || esModalPorClic) continue;
+        // Y por si el bloque condicional queda aún más lejos: un elemento con
+        // role="dialog" arriba es, por definición, algo que se abre a pedido.
+        const esDialogo = /role="dialog"/.test(contexto);
+        if (esGaleria || esModalPorClic || esDialogo) continue;
 
         problemas.push({
             linea: i + 1,
