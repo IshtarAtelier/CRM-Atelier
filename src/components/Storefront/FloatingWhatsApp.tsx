@@ -48,6 +48,8 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   // arriba: sigue siempre disponible y nunca queda encima de otro botón.
   const isVisible = true;
   const corridoArriba = heroTapando || pathname?.startsWith("/capsulaescarlata");
+  /** Páginas con una barra de acción fija abajo: ahí sí hay con qué chocar. */
+  const hayBarraFijaAbajo = pathname?.startsWith("/capsulaescarlata");
 
   useEffect(() => {
     try {
@@ -128,7 +130,19 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed right-6 z-50 flex flex-col items-end gap-3 transition-[bottom] duration-300 ${corridoArriba ? 'bottom-[45%] md:bottom-32' : 'bottom-6'}`}>
+    // A-11 (auditoría 2/9/26): `bottom-[45%]` dejaba el botón en la MITAD de la
+    // pantalla del celular, encima de los chips de categoría y de las cards —
+    // medido: tapaba "Receta" y "Sol" en /tienda, o sea que un toque a "Sol"
+    // abría un chat.
+    //
+    // El corrimiento nació para no pisar el CTA del hero, pero en celular
+    // levantar el botón lo mete en el medio del contenido, que es peor que el
+    // problema que resuelve. Ahora en celular solo se levanta donde hay una
+    // BARRA FIJA abajo con la que chocaría de verdad (/capsulaescarlata); con
+    // el hero a la vista se queda en el piso, que es donde no tapa nada — el
+    // colchón inferior de cada grilla (pb-32) le reserva el lugar.
+    // En pantallas medianas y grandes sobra espacio y el criterio viejo sigue.
+    <div className={`fixed right-6 z-50 flex flex-col items-end gap-3 transition-[bottom] duration-300 ${hayBarraFijaAbajo ? 'bottom-28' : 'bottom-6'} ${corridoArriba ? 'md:bottom-32' : 'md:bottom-6'}`}>
       
       {/* Tooltip de Invitación tipo Chat Bubble.
           La animación va por CSS (`.wa-tooltip-in`, ya definida en globals.css con
@@ -150,11 +164,16 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
       {/* Llamar. Segunda vía de contacto real para una óptica con local: en
           celular abre el discador directo. La medición va por trackPhoneClick
           porque un `tel:` no pasa por el interceptor de links a wa.me. */}
+      {/* A-11: en celular queda UN solo botón flotante. Este de llamar sale de
+          la pila (md:flex) porque es el que menos se usa —el canal real de la
+          óptica es WhatsApp— y porque dos círculos apilados sobre una grilla de
+          375 px tapan una card entera. El teléfono sigue a un toque en el
+          navbar, en el pie y en la página de contacto. */}
       {!isOptica && (
         <a
           href={`tel:${BUSINESS_INFO.phoneE164}`}
           onClick={() => trackPhoneClick(BUSINESS_INFO.phoneE164)}
-          className="relative group pointer-events-auto"
+          className="relative group pointer-events-auto hidden md:block"
           aria-label={`Llamar al ${BUSINESS_INFO.phone}`}
         >
           <div className="relative bg-white text-stone-800 border border-stone-200 w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:scale-110 hover:border-stone-300 transition-all duration-300">

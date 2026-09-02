@@ -450,7 +450,10 @@ export function TiendaClient({
         </div>
       </div>
 
-      <main className="max-w-[1600px] mx-auto px-5 py-12 pb-20 flex flex-col lg:flex-row gap-8 lg:gap-12 relative">
+      {/* pb-32 en celular (A-11): el botón flotante de WhatsApp vive a 24 px
+          del piso y mide 56, así que sin este colchón se come la última fila
+          de la grilla y el "Cargar más". */}
+      <main className="max-w-[1600px] mx-auto px-5 py-12 pb-32 md:pb-20 flex flex-col lg:flex-row gap-8 lg:gap-12 relative">
         <aside className="w-full lg:w-64 flex-shrink-0">
           {/* ProductFilters usa useSearchParams: necesita su propio Suspense para
               no arrastrar el resto de la página al render en cliente */}
