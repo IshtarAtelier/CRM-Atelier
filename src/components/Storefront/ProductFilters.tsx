@@ -186,7 +186,7 @@ export function ProductFilters({
                     { id: 'menor_precio', label: 'Menor Precio' },
                     { id: 'mayor_precio', label: 'Mayor Precio' },
                   ].map((option) => (
-                    <label key={option.id} className="flex items-center gap-3 cursor-pointer group">
+                    <label key={option.id} className="flex items-center gap-3 cursor-pointer group min-h-11">
                       <div className={`w-4 h-4 rounded-full border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${currentSort === option.id ? 'border-[#c8a55c]' : 'group-hover:border-stone-500'}`}>
                         {currentSort === option.id && <div className="w-2 h-2 bg-[#c8a55c] rounded-full" />}
                       </div>
@@ -214,7 +214,7 @@ export function ProductFilters({
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => handleFilterChange('genero', '')}
-                    className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
+                    className={`px-4 min-h-11 inline-flex items-center text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
                       !currentGender
                         ? 'border-[#c8a55c] bg-[#c8a55c] text-white shadow-md shadow-[#c8a55c]/20 scale-[1.02]'
                         : 'border-stone-200 hover:border-[#c8a55c]/50 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
@@ -232,7 +232,7 @@ export function ProductFilters({
                       <button
                         key={genderOption.id}
                         onClick={() => handleFilterChange('genero', isSelected ? '' : genderOption.id)}
-                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
+                        className={`px-4 min-h-11 inline-flex items-center text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
                           isSelected
                             ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 shadow-md scale-[1.02]'
                             : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
@@ -304,7 +304,7 @@ export function ProductFilters({
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => handleFilterChange('material', '')}
-                      className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
+                      className={`px-4 min-h-11 inline-flex items-center text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
                         !currentMaterial
                           ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 shadow-md scale-[1.02]'
                           : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
@@ -318,7 +318,7 @@ export function ProductFilters({
                         <button
                           key={material}
                           onClick={() => handleFilterChange('material', isSelected ? '' : material)}
-                          className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
+                          className={`px-4 min-h-11 inline-flex items-center text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
                             isSelected
                               ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 shadow-md scale-[1.02]'
                               : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
@@ -340,7 +340,7 @@ export function ProductFilters({
                   </h3>
                   <div className="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                     {/* Opción Todas */}
-                    <label className="flex items-center gap-3 cursor-pointer group">
+                    <label className="flex items-center gap-3 cursor-pointer group min-h-11">
                       <div className={`w-4 h-4 rounded border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${!currentBrand ? 'bg-[#c8a55c] border-[#c8a55c] text-white' : 'group-hover:border-stone-500'}`}>
                         {!currentBrand && <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                       </div>
@@ -359,7 +359,7 @@ export function ProductFilters({
 
                     {/* Lista de Marcas */}
                     {availableBrands.map((brand) => (
-                      <label key={brand} className="flex items-center gap-3 cursor-pointer group">
+                      <label key={brand} className="flex items-center gap-3 cursor-pointer group min-h-11">
                         <div className={`w-5 h-5 rounded border border-stone-300 dark:border-stone-700 flex items-center justify-center transition-colors ${currentBrand === brand ? 'bg-[#c8a55c] border-[#c8a55c] text-white' : 'group-hover:border-stone-500'}`}>
                           {currentBrand === brand && <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5"><path d="M3 7.5L5.5 10L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                         </div>

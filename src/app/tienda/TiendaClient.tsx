@@ -377,7 +377,7 @@ export function TiendaClient({
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`shrink-0 text-[10px] md:text-[11px] font-black uppercase tracking-widest px-5 md:px-6 py-2.5 md:py-3 rounded-full transition-all duration-300 ${
+                  className={`shrink-0 min-h-11 inline-flex items-center text-[10px] md:text-[11px] font-black uppercase tracking-widest px-5 md:px-6 rounded-full transition-all duration-300 ${
                     activeCategory === cat
                       ? "bg-black text-white shadow-md scale-105"
                       : "bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-black"
@@ -390,7 +390,7 @@ export function TiendaClient({
                 <Link
                   key={nombre}
                   href={href}
-                  className="shrink-0 text-[10px] md:text-[11px] font-black uppercase tracking-widest px-5 md:px-6 py-2.5 md:py-3 rounded-full transition-all duration-300 bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-black"
+                  className="shrink-0 min-h-11 inline-flex items-center text-[10px] md:text-[11px] font-black uppercase tracking-widest px-5 md:px-6 rounded-full transition-all duration-300 bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-black"
                 >
                   {nombre}
                 </Link>
