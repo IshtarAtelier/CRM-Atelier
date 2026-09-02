@@ -7,6 +7,7 @@
 
 const express = require('express');
 const { contenidoATexto } = require('./shared/ai-content');
+const { limpiarSalidaBot } = require('./shared/limpiar-salida-bot');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
@@ -856,33 +857,12 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
 
             // Seteamos DESPUÉS del check de mensajes nuevos para evitar leak en early return
             botReplyingTo.add(waId);
-            // Limpiar signos de interrogación y exclamación de apertura para seguir la regla de estilo humano
-            let cleanResponseText = responseText.replace(/¿/g, '').replace(/¡/g, '');
-
-            // ── Componente 6: Filtro post-procesamiento contra frases repetitivas ──
-            const PROHIBITED_FILLER_PHRASES = [
-                'dame un segundito', 'esperame que busco', 'ahí te paso',
-                'dejame verificar', 'te calculo los precios', 'ahí te busco',
-                'dejame chequear', 'ya te busco', 'un momentito',
-                // Narración de trabajo interno / sistema (el cliente jamás debe verlo)
-                'reviso en el sistema', 'consulto en el sistema', 'verifico en el sistema',
-                'busco en el sistema', 'en el sistema veo', 'en el sistema figura',
-                'según nuestros registros', 'segun nuestros registros',
-                'estoy revisando', 'estoy consultando', 'estoy verificando',
-                'dejame revisar', 'aguardame un momento'
-            ];
-            const lowerResponse = cleanResponseText.toLowerCase();
-            for (const phrase of PROHIBITED_FILLER_PHRASES) {
-                if (lowerResponse.includes(phrase)) {
-                    // Eliminar la ORACIÓN completa que contiene la frase prohibida.
-                    // Borrar solo la subcadena dejaba el resto de la oración narrando
-                    // trabajo interno (ej: "Esperame que busco los precios" → "los precios").
-                    const escPhrase = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const sentenceRegex = new RegExp(`[^.!?\\n]*${escPhrase}[^.!?\\n]*[.!?]*`, 'gi');
-                    cleanResponseText = cleanResponseText.replace(sentenceRegex, '').replace(/\s{2,}/g, ' ').trim();
-                    console.log(`  🚫 [Anti-Relleno] Oración con frase prohibida eliminada: "${phrase}"`);
-                }
-            }
+            // Saneado ÚNICO de la salida (shared/limpiar-salida-bot.js). Antes
+            // acá vivía una COPIA de la lista de frases de bot-cloud.js, y
+            // ninguna de las dos sacaba los marcadores internos.
+            const { texto: textoSaneado, quitado: quitadoDeSalida } = limpiarSalidaBot(responseText);
+            let cleanResponseText = textoSaneado;
+            if (quitadoDeSalida.length) console.log(`  🧹 [Bot] Saneado de salida: ${quitadoDeSalida.join(' · ')}`);
 
             // Detectar si la respuesta repite literalmente frases de los últimos mensajes del bot
             const recentBotMessages = recentMessages

@@ -35,6 +35,7 @@ const { runOutputGuardrail } = require('./services/ai.service');
 const { generateAndSaveHandoffSummary } = require('./tools');
 const { TAGS_SIN_BOT } = require('./utils');
 const { isBusinessHours } = require('./shared/business-hours');
+const { limpiarSalidaBot } = require('./shared/limpiar-salida-bot');
 const { resolveWaMessageId } = require('./shared/message-id');
 const { setSender } = require('./shared/sender');
 
@@ -54,16 +55,6 @@ const MAX_CONSECUTIVE_FAILED_TURNS = 3;
 // Cada cuánto se refresca la config en memoria (la que muestra el panel).
 const CONFIG_POLL_MS = 60 * 1000;
 
-const PROHIBITED_FILLER_PHRASES = [
-    'dame un segundito', 'esperame que busco', 'ahí te paso',
-    'dejame verificar', 'te calculo los precios', 'ahí te busco',
-    'dejame chequear', 'ya te busco', 'un momentito',
-    'reviso en el sistema', 'consulto en el sistema', 'verifico en el sistema',
-    'busco en el sistema', 'en el sistema veo', 'en el sistema figura',
-    'según nuestros registros', 'segun nuestros registros',
-    'estoy revisando', 'estoy consultando', 'estoy verificando',
-    'dejame revisar', 'aguardame un momento',
-];
 
 /** Mimetype por extensión: la Cloud API decide imagen/documento por el mimetype. */
 function guessMimetype(url = '') {
@@ -521,14 +512,11 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
 
             botReplyingTo.add(waId);
 
-            let texto = String(responseText).replace(/¿/g, '').replace(/¡/g, '');
-            for (const frase of PROHIBITED_FILLER_PHRASES) {
-                if (texto.toLowerCase().includes(frase)) {
-                    const esc = frase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    texto = texto.replace(new RegExp(`[^.!?\\n]*${esc}[^.!?\\n]*[.!?]*`, 'gi'), '').replace(/\s{2,}/g, ' ').trim();
-                    console.log(`  🚫 [BotCloud] Oración de relleno eliminada: "${frase}"`);
-                }
-            }
+            // Saneado ÚNICO de la salida (shared/limpiar-salida-bot.js): saca los
+            // marcadores internos que el cliente no debe ver y el relleno.
+            const { texto: textoLimpio, quitado } = limpiarSalidaBot(responseText);
+            let texto = textoLimpio;
+            if (quitado.length) console.log(`  🧹 [BotCloud] Saneado de salida: ${quitado.join(' · ')}`);
             if (!texto.trim()) {
                 console.log('  ⏹️ [BotCloud] Respuesta vacía tras el filtrado. No se envía nada.');
                 botReplyingTo.delete(waId);
