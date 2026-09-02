@@ -22,27 +22,12 @@ const CATEGORIAS_CON_PAGINA_PROPIA: { nombre: string; href: string }[] = [
   { nombre: "Cristales", href: "/cristales-opticos" },
 ];
 
-const CATEGORY_IMAGES: Record<string, string> = {
-  "Todo": "/images/banners/todo.png",
-  "Receta": "/images/banners/receta.png",
-  "Sol": "/images/banners/sol.png",
-  "Clip-On": "/images/banners/clipon.png",
-  "Contacto": "/images/banners/contacto.png",
-  "Cristales": "/images/banners/cristales.png"
-};
+// A-05/A-15 (auditoría 2/9/26): estos banners alimentaban el hero de /tienda,
+// que se sacó — era el grueso de los 1.060 px de decoración antes del primer
+// anteojo, y además se servía a 1024x1024 estirado a 1800x550 (borroso). Las
+// imágenes siguen en /public por si vuelven a usarse en el home, que es donde
+// un hero tiene sentido; acá ya no se referencian.
 
-// Portada del canal mayorista: las mismas piezas editoriales del home
-// (el reel cinematográfico de la portada pública), para que la óptica
-// entre a una vitrina con la identidad de la marca, no a los banners de
-// promo minorista.
-const CATEGORY_IMAGES_WHOLESALE: Record<string, string> = {
-  "Todo": "/images/editorial/filmmaker-frida.webp",
-  "Receta": "/images/editorial/monalisa.webp",
-  "Sol": "/images/editorial/filmmaker-venus.webp",
-  "Clip-On": "/images/editorial/filmmaker-dali.webp",
-  "Contacto": "/images/editorial/filmmaker-pearl.webp",
-  "Cristales": "/images/editorial/filmmaker-dali.webp"
-};
 
 // Removed duplicated isXlProduct function
 
@@ -332,59 +317,49 @@ export function TiendaClient({
       <StorefrontNavbar theme="light" />
 
       {/* ── HERO BAR (TEXT) ── */}
-      <div className="pt-28 pb-8 bg-white border-b border-stone-100">
-        <div className="max-w-[1600px] mx-auto px-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* A-05 (auditoría 2/9/26): hasta acá había 1.060 px de decoración antes
+          del primer anteojo en celular — 1,3 pantallas. Este bloque solo (con
+          pt-28) medía 310 px y abajo venía un hero de 350. La persona llegó a
+          ver anteojos: el encabezado se achica y el contador aparece de una,
+          que es el dato que orienta. */}
+      <div className="pt-24 pb-5 bg-white border-b border-stone-100">
+        <div className="max-w-[1600px] mx-auto px-5 flex flex-col md:flex-row md:items-end justify-between gap-2 md:gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-500 mb-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-500 mb-1.5">
               {isWholesale ? "Cápsula Escarlata" : "Atelier Óptica"}
             </p>
-            <h1 className="text-4xl md:text-5xl font-serif">
+            <h1 className="text-3xl md:text-5xl font-serif leading-tight">
               Tienda — Anteojos de diseño
             </h1>
+            {totalCount > 0 && (
+              <p className="mt-1.5 text-[11px] font-bold uppercase tracking-widest text-stone-600">
+                {totalCount} {totalCount === 1 ? "modelo" : "modelos"} · envío gratis · {webSettings.web_promo_cash_discount}% OFF transferencia
+              </p>
+            )}
           </div>
-          <p className="text-sm text-stone-500 max-w-xs leading-relaxed">
+          <p className="hidden md:block text-sm text-stone-500 max-w-xs leading-relaxed">
             Armazones seleccionados a mano. Cada pieza elegida por diseño, calidad y carácter.
           </p>
         </div>
       </div>
 
-      {/* ── DYNAMIC HERO BANNER ── */}
-      <div className="w-full">
-        {/* Image Container */}
-        <div className="relative w-full h-[350px] md:h-[450px] lg:h-[550px] bg-stone-200 overflow-hidden">
-          {/* initial={false}: el primer render llega del SSR y debe pintar visible
-              (sin esto el HTML sale con opacity:0 hasta hidratar y arruina el LCP) */}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={activeCategory}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.6 }}
-              className="absolute inset-0"
-            >
-              <Image
-                src={(isWholesale ? CATEGORY_IMAGES_WHOLESALE : CATEGORY_IMAGES)[activeCategory] || (isWholesale ? CATEGORY_IMAGES_WHOLESALE : CATEGORY_IMAGES)["Todo"]}
-                alt={`Colección ${activeCategory}`}
-                fill
-                priority
-                className="object-cover object-center"
-                // Es una banda decorativa recortada con object-cover, no una
-                // foto que se mire en detalle: con `100vw` pelado Next servía
-                // la variante de 3840 px (151 KB) y era el recurso más pesado
-                // de la página. Arriba de 1600 px no se gana nada visible.
-                sizes="(max-width: 1600px) 100vw, 1600px"
-              />
-              <div className="absolute inset-0 bg-black/20" />
-            </motion.div>
-          </AnimatePresence>
-          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-             <p className="text-white text-5xl md:text-7xl font-serif text-center drop-shadow-2xl tracking-tight">
-                {activeCategory === "Todo" ? "Nueva Colección" : activeCategory}
-             </p>
-          </div>
-        </div>
+      {/* ── A-05 y A-15: acá vivía un hero decorativo de 350 px en celular
+             (550 en escritorio) con la palabra "Nueva Colección" encima.
+             Se va, por dos razones medidas:
 
+             A-05 — era el grueso de los 1.060 px de decoración que había que
+                    pasar antes de ver el primer anteojo. Quien entra a /tienda
+                    ya decidió que quiere ver anteojos; recibía en cambio una
+                    imagen del tamaño de su pantalla. El lugar de un hero es el
+                    home, donde todavía hay que convencer.
+             A-15 — la imagen es de 1024x1024 y se mostraba a 1800x550: se
+                    agrandaba un 76% (borrosa) y se recortaban dos tercios de
+                    la composición.
+
+             La categoría activa ya se lee en los chips de acá abajo, que es
+             donde además se cambia. El contador y los beneficios subieron al
+             encabezado. */}
+      <div className="w-full">
         {/* ── BANNER DE CATEGORÍAS Y PROMOS ── */}
         <div className="bg-white border-b border-stone-100">
           <div className="max-w-[1600px] mx-auto px-5 py-4 flex flex-col xl:flex-row items-center justify-between gap-4">
@@ -453,7 +428,7 @@ export function TiendaClient({
       {/* pb-32 en celular (A-11): el botón flotante de WhatsApp vive a 24 px
           del piso y mide 56, así que sin este colchón se come la última fila
           de la grilla y el "Cargar más". */}
-      <main className="max-w-[1600px] mx-auto px-5 py-12 pb-32 md:pb-20 flex flex-col lg:flex-row gap-8 lg:gap-12 relative">
+      <main className="max-w-[1600px] mx-auto px-5 pt-5 md:pt-12 pb-32 md:pb-20 flex flex-col lg:flex-row gap-4 lg:gap-12 relative">
         <aside className="w-full lg:w-64 flex-shrink-0">
           {/* ProductFilters usa useSearchParams: necesita su propio Suspense para
               no arrastrar el resto de la página al render en cliente */}
@@ -468,7 +443,11 @@ export function TiendaClient({
 
         <div className="flex-1">
           {/* Buscador de Productos */}
-          <div className="mb-10 w-full max-w-md">
+          {/* A-05: era mb-10 (40 px). Entre los chips, el botón de filtros y
+              el buscador se acumulaban ~190 px de aire antes del primer
+              anteojo. En celular el aire va alrededor del producto, no entre
+              controles. */}
+          <div className="mb-5 md:mb-10 w-full max-w-md">
             <div className="relative">
               <input
                 type="text"
