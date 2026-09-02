@@ -2,6 +2,7 @@
 
 import { motion, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import { useRef, useEffect, useState } from "react";
 
 export function HomeMacroFilm() {
@@ -153,6 +154,20 @@ export function HomeMacroFilm() {
         <div className="absolute inset-0 bg-gradient-to-l from-black/70 via-transparent to-black/30 pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/30 pointer-events-none" />
       </motion.div>
+
+      {/* A-29 (auditoría 2/9/26): esta pieza ocupa casi una pantalla entera y
+          terminaba sin ningún llamado a la acción. Alguien la mira completa,
+          se emociona con el acetato... y la única salida es seguir scrolleando.
+          El enlace va sobre el film, abajo y centrado, sin tapar la
+          composición. El dorado claro sobre negro da 7,64:1, que es el uso
+          correcto de ese tono (ver la tabla de contraste en globals.css). */}
+      <Link
+        href="/tienda"
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 min-h-11 px-7 rounded-full border border-[#c8a55c]/60 bg-black/40 backdrop-blur-sm text-[#c8a55c] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-[#c8a55c] hover:text-black transition-colors"
+      >
+        Ver los modelos
+        <span aria-hidden>→</span>
+      </Link>
     </section>
   );
 }
