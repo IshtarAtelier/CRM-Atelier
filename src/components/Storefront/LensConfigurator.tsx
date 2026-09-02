@@ -631,7 +631,13 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
             grande es el ancla: anclaba en el más caro. Se da vuelta la
             jerarquía. La ficha de producto ya lo mostraba así; era el modal el
             que la contradecía. Los importes no cambian, cambia cuál se grita. */}
-        <div className="w-full flex flex-col items-center mb-2">
+        {/* F2-01: el presupuesto queda ANCLADO abajo en celular.
+            El plan lo llama "el ancla de decisión: no puede scrollear fuera de
+            pantalla". Antes se iba con el cuerpo, así que en el momento de
+            elegir un tratamiento el total ya no se veía y había que scrollear
+            para saber cuánto costaba lo que se estaba por tocar.
+            De 640 px para arriba se queda en el flujo: ahí entra todo junto. */}
+        <div className="w-full flex flex-col items-center mb-2 sticky bottom-0 z-20 bg-[#fafafa]/95 backdrop-blur border-t border-[#e8e2db] pt-3 pb-2 -mx-5 px-5 sm:static sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:mx-0 sm:px-0 sm:pt-0">
           <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#78716c] mb-2">Tu anteojo completo</p>
           <motion.p
             key={calculateTotal()}
