@@ -324,41 +324,21 @@ export function ProductClient({
               };
               const tipo = tipoMap[product.category];
               return tipo ? (
-                <motion.p
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.15, duration: 0.6 }}
-                  className="text-[11px] font-black uppercase tracking-[0.25em] text-[#8a6d3b] mb-1.5"
-                >
+                <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[#8a6d3b] mb-1.5">
                   {tipo}
-                </motion.p>
+                </p>
               ) : null;
             })()}
-            <motion.h1
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
-              className="text-4xl lg:text-5xl font-serif tracking-tight mb-2 uppercase"
-            >
+            <h1 className="text-4xl lg:text-5xl font-serif tracking-tight mb-2 uppercase">
               {product.model}
-            </motion.h1>
-            <motion.p 
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.8 }}
-              className="text-[11px] text-[#666] font-bold uppercase tracking-[0.2em] mb-4"
-            >
+            </h1>
+            <p className="text-[11px] text-[#666] font-bold uppercase tracking-[0.2em] mb-4">
               por {product.brand}
-            </motion.p>
+            </p>
 
             {/* Prominent Titanium highlight */}
             {product.material === "Titanio" && (
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35, duration: 0.8 }}
-                className="mb-6 p-4.5 bg-gradient-to-r from-stone-900 via-stone-950 to-stone-900 border border-stone-800 text-white rounded-xl shadow-lg flex items-center justify-between"
-              >
+              <div className="mb-6 p-4.5 bg-gradient-to-r from-stone-900 via-stone-950 to-stone-900 border border-stone-800 text-white rounded-xl shadow-lg flex items-center justify-between">
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] font-black tracking-[0.25em] text-amber-400 uppercase">Colección Premium</span>
                   <span className="text-base font-serif tracking-wide text-stone-100">100% Titanio Puro</span>
@@ -366,15 +346,10 @@ export function ProductClient({
                 <span className="text-[10px] font-black uppercase tracking-widest bg-white/10 border border-white/20 px-3 py-1.5 rounded-full whitespace-nowrap">
                   Ultraliviano y Resistente
                 </span>
-              </motion.div>
+              </div>
             )}
             
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.35, duration: 0.8 }}
-              className="flex flex-wrap items-center gap-2 mb-6 text-[11px] text-stone-500"
-            >
+            <div className="flex flex-wrap items-center gap-2 mb-6 text-[11px] text-stone-500">
               <span className="uppercase tracking-widest font-bold">SKU: {product.id?.substring(0, 8).toUpperCase() || 'ATELIER'}</span>
               {product.modelCode && (
                 <>
@@ -394,7 +369,7 @@ export function ProductClient({
               ) : (
                 <span className="text-stone-500 uppercase tracking-widest">En Stock</span>
               )}
-            </motion.div>
+            </div>
 
             {/* "Elegido por N clientes": clientes REALES contados en la base
                 (ventas respaldadas por pago o laboratorio). El umbral lo
@@ -416,12 +391,7 @@ export function ProductClient({
                 más que la ficha. Solo se muestran los que existen — el color
                 sale del alt de la foto y puede faltar (ver frame-specs.ts). */}
             {((product as any).color || product.material || (product as any).shape) && (
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
-                className="flex flex-wrap gap-2 mb-6"
-              >
+              <div className="flex flex-wrap gap-2 mb-6">
                 {[
                   (product as any).color && { label: "Color", value: (product as any).color },
                   product.material && { label: "Material", value: product.material },
@@ -437,7 +407,7 @@ export function ProductClient({
                       <span className="text-stone-800 capitalize">{spec.value}</span>
                     </span>
                   ))}
-              </motion.div>
+              </div>
             )}
 
             {variants && variants.length > 1 && (
@@ -489,12 +459,7 @@ export function ProductClient({
             )}
             
             {isWholesale ? (
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
-                className="mb-6 flex flex-col gap-1"
-              >
+              <div className="mb-6 flex flex-col gap-1">
                 {/* Sin wholesalePrice cargado (> 0) el backend cobra retail:
                     no etiquetar el precio de lista como "Mayorista". */}
                 {productWholesalePrice > 0 ? (
@@ -523,15 +488,10 @@ export function ProductClient({
                     </span>
                   </div>
                 )}
-              </motion.div>
+              </div>
             ) : (
               <>
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4, duration: 0.8 }}
-                  className="mb-6"
-                >
+                <div className="mb-6">
                   {hasSale ? (
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <span className="text-3xl font-black tracking-tight text-red-600">
@@ -563,7 +523,7 @@ export function ProductClient({
                       </span>
                     </div>
                   )}
-                </motion.div>
+                </div>
 
                 <PaymentOptions
                   variant="inline"
@@ -683,13 +643,10 @@ export function ProductClient({
               </div>
             </div>
             
-              {/* E-Commerce Accordions */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="mt-8 border-t border-[#e5e5e5]"
-            >
+              {/* E-Commerce Accordions.
+                  SIN animación de entrada: ver A-01 de la auditoría del 2/9/26.
+                  El estado final es el default; la animación es la excepción. */}
+            <div className="mt-8 border-t border-[#e5e5e5]">
               {/* Accordion: Descripción */}
               <div className="border-b border-[#e5e5e5]">
                 <button 
@@ -848,7 +805,7 @@ export function ProductClient({
                   )}
                 </AnimatePresence>
               </div>
-            </motion.div>
+            </div>
           </div>
 
           <div className="p-8 lg:p-14 lg:pt-8 flex-1 flex flex-col gap-3">
