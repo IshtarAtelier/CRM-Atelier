@@ -27,6 +27,8 @@ function cargarCatalogo() {
 const CATEGORIA_META = {
     comprobante_pago: 'UTILITY', estado_pedido: 'UTILITY', factura_electronica: 'UTILITY',
     pedido_enviado: 'UTILITY', pedido_listo: 'UTILITY', pedido_listo_saldo: 'UTILITY',
+    // _v2: las que se mandan desde el 1/9/26 (las v1 quedaron con el horario viejo).
+    pedido_listo_v2: 'UTILITY', pedido_listo_saldo_v2: 'UTILITY',
     venta_confirmada: 'UTILITY',
     invitacion_local: 'MARKETING', pedido_resena: 'MARKETING', presupuesto: 'MARKETING',
     presupuesto_pdf: 'MARKETING', retomar_conversacion: 'MARKETING', seguimiento_carrito: 'MARKETING',

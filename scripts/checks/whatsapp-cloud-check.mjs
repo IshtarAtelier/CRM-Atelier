@@ -22,7 +22,11 @@ const GRAPH = process.env.WA_CLOUD_GRAPH_URL || 'https://graph.facebook.com';
 const V = process.env.WA_CLOUD_API_VERSION || 'v21.0';
 const BUSINESS_ID = process.env.META_BUSINESS_ID || '796163885437265';
 const TOKEN = process.env.WA_CLOUD_TOKEN || '';
-const CATALOGO = ['pedido_listo', 'pedido_listo_saldo', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf', 'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion'];
+// Las que HOY se mandan. Las v1 de pedido_listo quedaron con el horario viejo
+// ("9 a 20", sin sábado) y Meta no deja editar una plantilla aprobada, así que
+// se reemplazaron por las _v2 (1/9/26) — vigilar las viejas era vigilar algo
+// que ya nadie manda.
+const CATALOGO = ['pedido_listo_v2', 'pedido_listo_saldo_v2', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf', 'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion'];
 
 const ok = (s) => `✅ ${s}`, warn = (s) => `⚠️  ${s}`, bad = (s) => `❌ ${s}`;
 
