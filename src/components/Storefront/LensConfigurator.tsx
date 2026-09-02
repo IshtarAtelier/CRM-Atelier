@@ -293,6 +293,22 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
         </div>
       )}
 
+      {/* A-06 (auditoría 2/9/26): no había ningún indicador de en qué paso
+          estaba la persona ni cuántos faltaban. En un modal que en celular no
+          entra entero, eso es quedarse sin saber si falta un toque o diez.
+          El paso 4 es el último (receta / cierre), por eso el total es 4. */}
+      <div className="mb-6 flex items-center gap-3">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 whitespace-nowrap">
+          Paso {Math.min(step, 4)} de 4
+        </span>
+        <div className="flex-1 h-1 bg-stone-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-stone-900 rounded-full transition-[width] duration-500"
+            style={{ width: `${(Math.min(step, 4) / 4) * 100}%` }}
+          />
+        </div>
+      </div>
+
       {flowType === "SUN" ? (
         <>
           {/* ====== FLUJO DE SOL ====== */}

@@ -1028,9 +1028,19 @@ export function ProductClient({
         </div>
       )}
 
-      {/* Modal Configurador de Cristales para la vista de producto */}
+      {/* Modal Configurador de Cristales para la vista de producto.
+
+          A-06 (auditoría 2/9/26): medía 683 px en un alto útil de ~594 px, así
+          que en el paso 01 "bifocal" y "solo armazón" quedaban debajo del borde
+          de la pantalla — se elegía entre las opciones que se veían, no entre
+          las que hay.
+
+          En celular pasa a pantalla completa: sin márgenes, sin esquinas
+          redondeadas, con el cierre fijo arriba y el cuerpo scrolleando por
+          dentro. De 640 px para arriba sigue siendo el modal centrado de
+          siempre, que ahí entra holgado. */}
       {showConfigurator && (
-        <div className="fixed inset-0 z-[200] flex min-h-full items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[200] flex min-h-full items-stretch sm:items-center justify-center p-0 sm:p-4 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1041,12 +1051,12 @@ export function ProductClient({
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="relative bg-[#fafafa] w-full max-w-4xl max-h-[85vh] overflow-y-auto px-6 py-8 sm:p-12 text-black rounded-[2rem] shadow-2xl z-10"
+            className="relative bg-[#fafafa] w-full sm:max-w-4xl min-h-full sm:min-h-0 sm:max-h-[85vh] overflow-y-auto px-5 pt-16 pb-8 sm:p-12 text-black rounded-none sm:rounded-[2rem] shadow-2xl z-10"
           >
             <button
               onClick={() => setShowConfigurator(false)}
               aria-label="Cerrar configurador"
-              className="absolute top-4 right-4 p-2 text-stone-500 hover:text-black hover:bg-stone-200 rounded-full transition-colors z-20"
+              className="fixed sm:absolute top-3 right-3 sm:top-4 sm:right-4 p-2 min-h-11 min-w-11 flex items-center justify-center text-stone-600 bg-white/90 sm:bg-transparent backdrop-blur sm:backdrop-blur-none shadow-sm sm:shadow-none hover:text-black hover:bg-stone-200 rounded-full transition-colors z-20"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
