@@ -173,19 +173,65 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
     : (webSettings ? webSettings.web_announcement_text : CARTEL_PROMO_POR_DEFECTO);
   const announcementLink = isWholesaleSession ? "/tienda" : (webSettings ? webSettings.web_announcement_link : "/tienda");
 
+  // A-26: los pedazos del cartel, para rotarlos de a uno en pantallas chicas.
+  // El separador es "•" (lo pone `CARTEL_PROMO_POR_DEFECTO`), pero el texto lo
+  // puede escribir una persona desde /admin/web, así que se aceptan también
+  // "·" y "|". Si no trae separadores, queda un solo pedazo y no rota nada.
+  const pedazosAnuncio = announcementText
+    .split(/\s*[•·|]\s*/)
+    .map(t => t.trim())
+    .filter(Boolean);
+  const [indiceAnuncio, setIndiceAnuncio] = useState(0);
+
+  useEffect(() => {
+    if (pedazosAnuncio.length < 2) return;
+    // Quien pidió menos movimiento ve el primer mensaje, quieto.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const id = setInterval(() => {
+      setIndiceAnuncio(i => (i + 1) % pedazosAnuncio.length);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [pedazosAnuncio.length]);
+
+  // Índice acotado: si cambia el texto desde el admin y queda con menos
+  // pedazos, el índice viejo no puede dejar el cartel en blanco.
+  const anuncioRotativo = pedazosAnuncio[indiceAnuncio % pedazosAnuncio.length] ?? announcementText;
+
   return (
     <>
       <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${isHeaderScrolled ? 'shadow-sm border-b border-[#e8e2db]/50 bg-[#faf8f5]/90' : 'bg-transparent'}`}>
-        {/* Dynamic Announcement Bar */}
+        {/* Dynamic Announcement Bar.
+
+            A-26 (auditoría 2/9/26): en celular este texto entraba en TRES
+            renglones — 110 px de 812, el 13% de la pantalla, en todas las
+            páginas y todas las sesiones. Apilado se lee como letra chica, no
+            como argumentos, y son los 78 px que le faltaban al primer producto
+            de /tienda para entrar en pantalla.
+
+            Ahora: una sola línea siempre. En pantallas chicas se muestra un
+            mensaje por vez, rotando; de 640 px para arriba entra el texto
+            entero. La rotación se apaga con `prefers-reduced-motion` (queda
+            fijo el primero) — el cartel entero es un link a la tienda, así que
+            nadie depende de esperar a que rote para llegar a la promo. */}
         {showAnnouncement && (
-          <div className="w-full bg-black text-white text-center py-2 px-3 text-[10px] font-black uppercase tracking-[0.25em] relative z-10 transition-all shadow-sm flex items-center justify-center gap-1.5">
-            {announcementLink ? (
-              <Link href={announcementLink} className="hover:underline flex items-center justify-center gap-1 hover:opacity-90">
-                {announcementText}
-              </Link>
-            ) : (
-              <span>{announcementText}</span>
-            )}
+          <div className="w-full bg-black text-white text-center py-2 px-3 text-[10px] font-black uppercase tracking-[0.25em] relative z-10 shadow-sm flex items-center justify-center h-8 overflow-hidden">
+            {(() => {
+              const contenido = (
+                <>
+                  {/* Chico: un mensaje por vez, sin corte de línea. */}
+                  <span className="sm:hidden whitespace-nowrap tracking-[0.18em]">{anuncioRotativo}</span>
+                  {/* Grande: el texto completo, que entra holgado. */}
+                  <span className="hidden sm:inline whitespace-nowrap">{announcementText}</span>
+                </>
+              );
+              return announcementLink ? (
+                <Link href={announcementLink} className="hover:underline hover:opacity-90 flex items-center justify-center">
+                  {contenido}
+                </Link>
+              ) : (
+                <span className="flex items-center justify-center">{contenido}</span>
+              );
+            })()}
           </div>
         )}
 
