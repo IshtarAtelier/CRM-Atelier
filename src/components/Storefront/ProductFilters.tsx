@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useTransition } from 'react';
 import { Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { track } from '@/lib/client-analytics';
@@ -110,6 +110,23 @@ export function ProductFilters({
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
 
+  // R6 del plan: la URL es la fuente de verdad de los filtros, pero el cambio
+  // se hace con `replace` dentro de `useTransition`, no con `push`.
+  //
+  // Con `push`, cada toque a un filtro dejaba una entrada en el historial: si
+  // alguien probaba cuatro combinaciones, el botón "atrás" del celular la hacía
+  // recorrer las cuatro de vuelta en lugar de volver de donde vino. El filtro
+  // no es navegación, es refinar la misma vista.
+  //
+  // `useTransition` evita el otro síntoma: sin él, React trata el cambio como
+  // urgente y la grilla parpadea en blanco mientras llega la respuesta. Con la
+  // transición, lo viejo se queda en pantalla (atenuado) hasta que lo nuevo
+  // está listo.
+  const [isPending, startTransition] = useTransition();
+  const navegarAFiltro = (url: string) => {
+    startTransition(() => router.replace(url, { scroll: false }));
+  };
+
   const currentBrand = searchParams.get('marca') || '';
   const currentSort = searchParams.get('orden') || 'recientes';
   const currentShape = searchParams.get('forma') || '';
@@ -145,11 +162,11 @@ export function ProductFilters({
       meta: { filtro: name, valor: value || '(quitado)', resultados: resultCount ?? null },
     });
     const qs = createQueryString(name, value);
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
   };
 
   const clearFilters = () => {
-    router.push(pathname, { scroll: false });
+    navegarAFiltro(pathname);
   };
 
   /**
@@ -195,7 +212,7 @@ export function ProductFilters({
     if (min) params.set('precioMin', min); else params.delete('precioMin');
     if (max) params.set('precioMax', max); else params.delete('precioMax');
     const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
   };
 
   return (
@@ -234,8 +251,9 @@ export function ProductFilters({
           fixed lg:relative inset-y-0 left-0 z-50 lg:z-0 w-4/5 max-w-sm lg:w-full lg:max-w-none
           bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 pb-28 lg:p-0 lg:px-2 lg:py-0
           overflow-y-auto lg:overflow-visible flex-col gap-10
-          transition-transform duration-300 ease-in-out
+          transition-[transform,opacity] duration-300 ease-in-out
           ${isOpen ? 'translate-x-0 flex' : '-translate-x-full lg:translate-x-0 hidden lg:flex'}
+          ${isPending ? 'opacity-60' : 'opacity-100'}
         `}
       >
               {/* Cabecera Móvil */}

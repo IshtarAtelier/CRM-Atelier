@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, useTransition, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -121,6 +121,12 @@ export function TiendaClient({
   const router = useRouter();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
+  // R6: ver el comentario en ProductFilters. Los chips de categoría y los de
+  // filtro aplicado escriben la misma URL y tienen que comportarse igual.
+  const [, startTransition] = useTransition();
+  const navegarAFiltro = (url: string) => {
+    startTransition(() => router.replace(url, { scroll: false }));
+  };
   const [visibleCount, setVisibleCount] = useState(24);
 
   const [urlFilters, setUrlFilters] = useState<FiltrosUrl>({
@@ -148,7 +154,7 @@ export function TiendaClient({
     if (cat && cat !== 'Todo') params.set('categoria', cat);
     else params.delete('categoria');
     const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
   };
 
   const filterBrand = urlFilters.brand;
@@ -190,7 +196,7 @@ export function TiendaClient({
       params.delete(param);
     }
     const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
   };
 
   /** Saca todos los filtros pero respeta la categoría y la búsqueda. */
@@ -198,7 +204,7 @@ export function TiendaClient({
     const params = new URLSearchParams(window.location.search);
     ['marca', 'forma', 'material', 'genero', 'precioMin', 'precioMax'].forEach(p => params.delete(p));
     const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
   };
 
   useEffect(() => {
