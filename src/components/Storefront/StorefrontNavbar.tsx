@@ -183,6 +183,27 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
     .filter(Boolean);
   const [indiceAnuncio, setIndiceAnuncio] = useState(0);
 
+  // F0-06: la × que cierra el cartel, con memoria de 7 días.
+  //
+  // Arranca SIEMPRE visible en el servidor y se esconde recién al montar si
+  // corresponde. Al revés —leer localStorage para el primer render— el HTML del
+  // servidor y el del cliente no coinciden y es un desajuste de hidratación,
+  // que en este proyecto ya costó el precio invisible de la ficha.
+  const CLAVE_CARTEL = 'ate_anuncio_cerrado';
+  const [anuncioCerrado, setAnuncioCerrado] = useState(false);
+  useEffect(() => {
+    try {
+      const hasta = Number(localStorage.getItem(CLAVE_CARTEL) || 0);
+      if (hasta && Date.now() < hasta) setAnuncioCerrado(true);
+    } catch { /* modo incógnito o storage bloqueado: el cartel se muestra */ }
+  }, []);
+  const cerrarAnuncio = () => {
+    setAnuncioCerrado(true);
+    try {
+      localStorage.setItem(CLAVE_CARTEL, String(Date.now() + 7 * 24 * 60 * 60 * 1000));
+    } catch { /* si no se puede guardar, vuelve en la próxima visita */ }
+  };
+
   useEffect(() => {
     if (pedazosAnuncio.length < 2) return;
     // Quien pidió menos movimiento ve el primer mensaje, quieto.
@@ -213,7 +234,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
             entero. La rotación se apaga con `prefers-reduced-motion` (queda
             fijo el primero) — el cartel entero es un link a la tienda, así que
             nadie depende de esperar a que rote para llegar a la promo. */}
-        {showAnnouncement && (
+        {showAnnouncement && !anuncioCerrado && (
           <div className="w-full bg-black text-white text-center py-2 px-3 text-[10px] font-black uppercase tracking-[0.25em] relative z-10 shadow-sm flex items-center justify-center h-8 overflow-hidden">
             {(() => {
               const contenido = (
@@ -232,6 +253,15 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                 <span className="flex items-center justify-center">{contenido}</span>
               );
             })()}
+            {/* 44x44 de área táctil (R4) dentro de una barra de 32: se logra
+                con padding negativo hacia afuera, sin agrandar la barra. */}
+            <button
+              onClick={cerrarAnuncio}
+              aria-label="Cerrar este aviso"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-11 w-11 flex items-center justify-center text-white/70 hover:text-white transition-colors"
+            >
+              <X className="w-3.5 h-3.5" aria-hidden />
+            </button>
           </div>
         )}
 
