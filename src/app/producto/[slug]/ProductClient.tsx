@@ -17,6 +17,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import { trackViewContent } from "@/lib/tracking";
 import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 import { PricingService } from "@/services/PricingService";
+import { formatearPrecio } from "@/lib/format-precio";
 import { textoCuotas12 } from "@/lib/promo-cuotas";
 import { UMBRAL_ULTIMAS_UNIDADES, claveMarca } from "@/lib/constants/social-proof";
 import { TrustStrip } from "@/components/Storefront/TrustStrip";
@@ -591,15 +592,24 @@ export function ProductClient({
                   // piso del proyecto es 4,5:1 (ver globals.css y la regla de
                   // contraste). El -700 llega a ~5:1 y se sigue leyendo verde.
                   product.category === "Receta" && !isWholesale
-                    ? `w-full px-8 py-5 text-[15px] font-black uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed shadow-xl hover:scale-[1.02] ${isAdded ? 'bg-green-800 text-white' : 'bg-green-700 text-white hover:bg-green-800 disabled:opacity-50 disabled:bg-stone-400 disabled:hover:scale-100 disabled:shadow-none'}`
+                    ? `w-full px-8 py-4 text-[13px] font-black uppercase tracking-[0.16em] transition-all disabled:cursor-not-allowed ${isAdded ? 'bg-green-800 text-white' : 'bg-white text-stone-900 border-2 border-stone-900 hover:bg-stone-900 hover:text-white disabled:opacity-50 disabled:border-stone-300 disabled:text-stone-400 disabled:hover:bg-white'}`
                     : `w-full px-8 py-5 text-[15px] font-black uppercase tracking-[0.2em] transition-all disabled:cursor-not-allowed shadow-xl hover:scale-[1.02] ${isAdded ? 'bg-green-700 text-white' : 'bg-black text-white hover:bg-stone-900 disabled:opacity-50 disabled:bg-stone-400 disabled:hover:scale-100 disabled:shadow-none'}`
                 }
               >
+                {/* A-12 (auditoría 2/9/26): en Receta este botón decía sólo
+                    "Comprar", con el mismo peso visual que "Elegir mis
+                    cristales". Dos llamados iguales = ninguno es el principal,
+                    y peor: en un armazón recetado "comprar" se lleva el armazón
+                    SIN cristales. La persona cree que compró sus anteojos.
+                    Ahora dice qué se lleva y por cuánto, y es secundario de
+                    verdad (contorno, no relleno). */}
                 {isAdded
                   ? "Agregado al carrito ✓"
                   : ((product.stock !== undefined && product.stock <= 0 && product.category !== "Cristal")
                     ? "Agotado"
-                    : (product.category === "Receta" && !isWholesale ? "Comprar" : "Comprar Ahora >"))}
+                    : (product.category === "Receta" && !isWholesale
+                      ? `Comprar solo el armazón — $${formatearPrecio(effectivePrice)}`
+                      : "Comprar Ahora >"))}
               </button>
             </div>
 
