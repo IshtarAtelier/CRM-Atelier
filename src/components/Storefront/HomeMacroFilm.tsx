@@ -63,7 +63,7 @@ export function HomeMacroFilm() {
   return (
     <section
       ref={containerRef}
-      className="w-full h-[90vh] md:h-screen relative overflow-hidden bg-[#050505] flex items-center justify-center select-none"
+      className="w-full h-[62svh] max-h-[500px] md:h-screen md:max-h-none relative overflow-hidden bg-[#050505] flex items-center justify-center select-none"
       style={{ perspective: "1500px" }}
     >
       {/* ─── BACKGROUND REVEALED CORES (Brand Text) ─── */}

@@ -112,8 +112,12 @@ export function FilmmakerReel({ reviewCount = 0, rating = 0 }: FilmmakerReelProp
 
   // data-hero le dice a FloatingWhatsApp que esta pantalla ya tiene su propio CTA
   // a WhatsApp, así la burbuja flotante no se monta encima de los botones.
+  // F3-05: 78svh en celular, no 100. El hero ocupaba la pantalla EXACTA, así que
+  // nada de abajo asomaba y no había ninguna pista de que la página siguiera.
+  // Dejar asomar la sección siguiente ("peek") es la afordancia de scroll más
+  // barata que existe. En escritorio se queda en 100svh, donde el alto sobra.
   return (
-    <section ref={sectionRef} data-hero className="relative w-full bg-black overflow-hidden" style={{ height: "100svh", minHeight: 560 }}>
+    <section ref={sectionRef} data-hero className="relative w-full bg-black overflow-hidden h-[78svh] md:h-[100svh]" style={{ minHeight: 560 }}>
       
       {/* ─── LETTERBOX BARS ─── */}
       <div className="absolute top-0 left-0 right-0 h-[6%] bg-black z-20" />

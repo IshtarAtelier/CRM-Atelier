@@ -80,11 +80,16 @@ export async function HomeStorePreview() {
               </div>
             </div>
 
-            <div className="space-y-5 lg:space-y-8 pt-2 lg:pt-4">
+            {/* F3-05: esta sección medía 1.692 px —una dirección y dos horarios en
+                más de dos pantallas— y el plan le pone tope de 750. Los tres
+                bloques se apilaban en una sola columna con íconos de 56 px. En
+                celular pasan a dos columnas y los íconos se achican; de lg para
+                arriba queda como estaba, que ahí el alto no molesta. */}
+            <div className="grid grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-0 lg:space-y-8 pt-2 lg:pt-4">
               {/* Address */}
-              <div className="flex gap-5 group cursor-default">
-                <div className="w-14 h-14 rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-center shrink-0 group-hover:border-[#b08f4c]/50 group-hover:bg-[#b08f4c]/10 transition-all duration-500 shadow-lg">
-                  <MapPin className="w-6 h-6 text-[#b08f4c] group-hover:scale-110 transition-transform duration-500" />
+              <div className="flex gap-3 lg:gap-5 group cursor-default">
+                <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-center shrink-0 group-hover:border-[#b08f4c]/50 group-hover:bg-[#b08f4c]/10 transition-all duration-500 shadow-lg">
+                  <MapPin className="w-5 h-5 lg:w-6 lg:h-6 text-[#b08f4c] group-hover:scale-110 transition-transform duration-500" />
                 </div>
                 <div className="space-y-1 pt-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-stone-300">Dirección</p>
@@ -94,9 +99,9 @@ export async function HomeStorePreview() {
               </div>
 
               {/* Hours */}
-              <div className="flex gap-5 group cursor-default">
-                <div className="w-14 h-14 rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-center shrink-0 group-hover:border-[#b08f4c]/50 group-hover:bg-[#b08f4c]/10 transition-all duration-500 shadow-lg">
-                  <Clock className="w-6 h-6 text-[#b08f4c] group-hover:scale-110 transition-transform duration-500" />
+              <div className="col-span-2 lg:col-span-1 flex gap-3 lg:gap-5 group cursor-default">
+                <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-center shrink-0 group-hover:border-[#b08f4c]/50 group-hover:bg-[#b08f4c]/10 transition-all duration-500 shadow-lg">
+                  <Clock className="w-5 h-5 lg:w-6 lg:h-6 text-[#b08f4c] group-hover:scale-110 transition-transform duration-500" />
                 </div>
                 <div className="space-y-1 pt-1.5 w-full">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-stone-300 mb-2">Horarios de Atención</p>
@@ -121,9 +126,9 @@ export async function HomeStorePreview() {
               </div>
 
               {/* Phone */}
-              <div className="flex gap-5 group cursor-default">
-                <div className="w-14 h-14 rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-center shrink-0 group-hover:border-[#b08f4c]/50 group-hover:bg-[#b08f4c]/10 transition-all duration-500 shadow-lg">
-                  <Phone className="w-6 h-6 text-[#b08f4c] group-hover:scale-110 transition-transform duration-500" />
+              <div className="flex gap-3 lg:gap-5 group cursor-default">
+                <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-center shrink-0 group-hover:border-[#b08f4c]/50 group-hover:bg-[#b08f4c]/10 transition-all duration-500 shadow-lg">
+                  <Phone className="w-5 h-5 lg:w-6 lg:h-6 text-[#b08f4c] group-hover:scale-110 transition-transform duration-500" />
                 </div>
                 <div className="space-y-1 pt-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-stone-300">Contacto directo</p>

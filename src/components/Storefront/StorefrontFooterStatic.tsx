@@ -35,7 +35,7 @@ export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: 
       <div className="relative z-10 w-full h-full bg-stone-950/90 backdrop-blur-3xl border-t border-white/10 text-stone-300">
         <div className="mx-auto w-full max-w-6xl px-6 md:px-10 py-12 flex flex-col gap-10 md:flex-row md:justify-between md:gap-8">
           {/* Links principales */}
-          <div className="flex flex-col gap-1 md:gap-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0 md:flex md:flex-col md:gap-3 [&>p]:col-span-2">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Atelier</p>
             <Link href="/quienes-somos" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Quiénes Somos</Link>
             <Link href="/contacto" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Contacto</Link>
@@ -46,7 +46,7 @@ export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: 
           </div>
 
           {/* Comprar / Categorías */}
-          <div className="flex flex-col gap-1 md:gap-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0 md:flex md:flex-col md:gap-3 [&>p]:col-span-2">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Comprar</p>
             <Link href="/receta" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Anteojos de Receta</Link>
             <Link href="/lentes-de-sol" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Lentes de Sol</Link>
@@ -57,7 +57,7 @@ export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: 
           </div>
 
           {/* Guías (interlinking SEO: las mismas en StorefrontFooter) */}
-          <div className="flex flex-col gap-1 md:gap-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0 md:flex md:flex-col md:gap-3 [&>p]:col-span-2">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Guías</p>
             <Link href="/optica-cordoba" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Óptica en Córdoba</Link>
             <Link href="/blog/guia-armazones-segun-rostro" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Armazones según tu rostro</Link>
@@ -80,7 +80,7 @@ export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: 
           </div>
 
           {/* Políticas Legales */}
-          <div className="flex flex-col gap-1 md:gap-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0 md:flex md:flex-col md:gap-3 [&>p]:col-span-2">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-300 mb-2">Legales</p>
             <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Cambios y Devoluciones</Link>
             <Link href="/terminos-y-condiciones" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Términos y Condiciones</Link>
@@ -88,7 +88,7 @@ export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: 
           </div>
 
           {/* Redes sociales */}
-          <div className="flex flex-col gap-1 md:gap-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0 md:flex md:flex-col md:gap-3 [&>p]:col-span-2">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-300 mb-2">Social</p>
             <a href="https://instagram.com/atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Instagram</a>
             <a href="https://www.youtube.com/@AtelierOptica/shorts" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">YouTube</a>
