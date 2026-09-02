@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+
+import { prisma } from '@/lib/db';
 import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
 import { WHATSAPP_TEMPLATES, templateSpec, type TemplateName } from '@/lib/whatsapp/templates';
 
@@ -54,7 +56,26 @@ export async function POST(request: Request) {
             forceTemplate: body.forceTemplate === true,
         });
 
-        if (r.ok) return NextResponse.json({ success: true, via: r.via });
+        if (r.ok) {
+            // ── Traspaso a humano ───────────────────────────────────────────
+            // Si escribió una PERSONA, el bot se calla en ese chat. Antes esto
+            // solo pasaba en el estado local del navegador
+            // (`WhatsAppProvider` → `aplicarChatLocal({ botEnabled: false })`),
+            // que no escribe nada: en la base `botEnabled` seguía en true, el
+            // bot contestaba encima del vendedor, y al primer refresco de la
+            // lista el interruptor volvía a mostrarse "Activa".
+            //
+            // El disparador es `sessionUserName`, que sale del JWT vía
+            // middleware: los flujos automáticos (crons, seguimientos, bot) no
+            // llegan nunca con cookie de sesión, así que no se auto-apagan.
+            if (sessionUserName) {
+                await prisma.whatsAppChat.update({
+                    where: { id: String(body.chatId) },
+                    data: { botEnabled: false },
+                }).catch((e: any) => console.error('[WhatsApp Send] No se pudo apagar el bot del chat:', e.message));
+            }
+            return NextResponse.json({ success: true, via: r.via });
+        }
 
         const status = r.needsTemplate ? 409 : (r.status && r.status >= 400 ? r.status : 502);
         return NextResponse.json({
