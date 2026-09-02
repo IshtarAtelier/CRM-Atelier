@@ -5,6 +5,20 @@ import Image from "next/image";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { BUSINESS_INFO } from "@/lib/business-info";
 
+/**
+ * Los dos renglones de horario que muestra esta sección, derivados de
+ * `BUSINESS_INFO.openingHoursSpecification` — la misma fuente que usan el
+ * schema.org, el bot y los mensajes al cliente. Se arman acá y no se escriben
+ * a mano justamente porque la versión escrita a mano quedó vieja.
+ */
+const franja = (dia: string) => {
+  const spec = BUSINESS_INFO.openingHoursSpecification.find(o =>
+    (o.dayOfWeek as readonly string[]).includes(dia));
+  return spec ? `${spec.opens} - ${spec.closes} hs` : '';
+};
+const HORARIO_SEMANA = franja('Monday');
+const HORARIO_SABADO = franja('Saturday');
+
 export async function HomeStorePreview() {
   const settings = await getWebSettings();
 
@@ -23,17 +37,17 @@ export async function HomeStorePreview() {
   // de 4,5:1. Aclarar el token global no es la salida: rompería el fondo claro,
   // que es para lo que se corrió. La sección oscura elige su propio tono.
   return (
-    <section className="relative w-full bg-stone-950 pt-24 lg:pt-32 pb-16 lg:pb-20 overflow-hidden border-t border-stone-900">
+    <section className="relative w-full bg-stone-950 pt-12 lg:pt-32 pb-10 lg:pb-20 overflow-hidden border-t border-stone-900">
       {/* Dynamic Background Effects */}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#b08f4c]/10 rounded-full blur-[150px] pointer-events-none translate-x-1/3 -translate-y-1/3" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#b08f4c]/5 rounded-full blur-[120px] pointer-events-none -translate-x-1/3 translate-y-1/3" />
 
       <div className="relative max-w-[1400px] mx-auto px-6 lg:px-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-12 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
           {/* Info Column (Left 5 cols on lg) */}
-          <div className="lg:col-span-5 space-y-10">
-            <div className="space-y-6">
+          <div className="lg:col-span-5 space-y-6 lg:space-y-10">
+            <div className="space-y-4 lg:space-y-6">
               <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#b08f4c]/10 border border-[#b08f4c]/20">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#b08f4c] opacity-75"></span>
@@ -66,7 +80,7 @@ export async function HomeStorePreview() {
               </div>
             </div>
 
-            <div className="space-y-8 pt-4">
+            <div className="space-y-5 lg:space-y-8 pt-2 lg:pt-4">
               {/* Address */}
               <div className="flex gap-5 group cursor-default">
                 <div className="w-14 h-14 rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-center shrink-0 group-hover:border-[#b08f4c]/50 group-hover:bg-[#b08f4c]/10 transition-all duration-500 shadow-lg">
@@ -86,14 +100,21 @@ export async function HomeStorePreview() {
                 </div>
                 <div className="space-y-1 pt-1.5 w-full">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-stone-300 mb-2">Horarios de Atención</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Los horarios salen de BUSINESS_INFO, no escritos a mano.
+                      Acá decían "08:00 - 20:00" cuando el local abre 9:00: el
+                      barrido del 1/9/26 no los agarró porque usan otro formato
+                      (cero adelante y guion) que no matcheaba "8 a 20" ni
+                      "8:00 a 20:00". Es exactamente el bug que el comentario de
+                      `hoursWhatsAppBlock` advierte: una copia a mano que queda
+                      vieja y nadie encuentra. */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
                     <div>
                       <p className="text-sm font-medium text-stone-200">Lunes a Viernes</p>
-                      <p className="text-sm text-stone-300">08:00 - 20:00 hs</p>
+                      <p className="text-sm text-stone-300">{HORARIO_SEMANA}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-stone-200">Sábados</p>
-                      <p className="text-sm text-stone-300">09:00 - 17:00 hs</p>
+                      <p className="text-sm text-stone-300">{HORARIO_SABADO}</p>
                     </div>
                   </div>
                 </div>

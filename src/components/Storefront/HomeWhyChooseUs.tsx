@@ -31,17 +31,22 @@ export function HomeWhyChooseUs() {
     }
   ];
 
+  // A-18 (auditoría 2/9/26): esta sección medía 1.474 px en celular para decir
+  // cuatro beneficios — más de una pantalla y media de alto para cuatro
+  // frases. El aire en una óptica de autor va alrededor del PRODUCTO, no entre
+  // bloques de texto. En celular pasa a dos columnas y se recorta el padding;
+  // de sm para arriba queda como estaba.
   return (
-    <section className="w-full bg-[#1c1917] py-24 border-t border-stone-800">
+    <section className="w-full bg-[#1c1917] py-12 md:py-24 border-t border-stone-800">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-16">
-        <div className="text-center mb-16">
+        <div className="text-center mb-8 md:mb-16">
           <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#b08f4c] mb-3">Nuestros Pilares</p>
           <h2 className="text-3xl sm:text-4xl font-serif text-white tracking-tight">
             ¿Por qué elegir Atelier Óptica?
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 sm:gap-x-8 gap-y-8 md:gap-y-12">
           {features.map((feat, i) => (
             <motion.div
               key={feat.title}
@@ -51,10 +56,10 @@ export function HomeWhyChooseUs() {
               viewport={{ once: true }}
               className="flex flex-col items-center text-center p-6 bg-white/5 border border-white/10 rounded-2xl shadow-xl hover:bg-white/10 transition-colors duration-300 group"
             >
-              <div className="w-16 h-16 rounded-full bg-black/30 flex items-center justify-center mb-6 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-300">
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-black/30 flex items-center justify-center mb-3 md:mb-6 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-300">
                 {feat.icon}
               </div>
-              <h3 className="text-[13px] font-black uppercase tracking-widest text-white mb-3">
+              <h3 className="text-[13px] font-black uppercase tracking-widest text-white mb-1.5 md:mb-3">
                 {feat.title}
               </h3>
               <p className="text-sm text-stone-400 font-medium leading-relaxed max-w-[250px]">
