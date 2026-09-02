@@ -455,7 +455,12 @@ export function TiendaClient({
           del piso y mide 56, así que sin este colchón se come la última fila
           de la grilla y el "Cargar más". */}
       <main className="max-w-[1600px] mx-auto px-5 pt-5 md:pt-12 pb-32 md:pb-20 flex flex-col lg:flex-row gap-4 lg:gap-12 relative">
-        <aside className="w-full lg:w-64 flex-shrink-0">
+        {/* A-09 (auditoría 2/9/26): la columna de filtros medía 3.609 px y no
+            quedaba fija, así que refinar una búsqueda en escritorio obligaba a
+            volver hasta arriba en cada iteración. Ahora se ancla debajo del
+            header (80 px) con scroll propio: los filtros quedan a la vista
+            mientras se recorre la grilla. */}
+        <aside className="w-full lg:w-64 flex-shrink-0 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
           {/* ProductFilters usa useSearchParams: necesita su propio Suspense para
               no arrastrar el resto de la página al render en cliente */}
           <Suspense fallback={null}>
