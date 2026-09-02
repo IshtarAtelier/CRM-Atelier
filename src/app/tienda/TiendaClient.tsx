@@ -723,7 +723,11 @@ export function TiendaClient({
                     </div>
 
                     {/* Info */}
-                    <div className="flex flex-col gap-1 mt-4 px-1 pb-4">
+                    {/* A-21 (auditoría 2/9/26): la card medía 156x419 px, o sea
+                        que una fila se comía el 60% de la pantalla y nunca
+                        entraban dos. Elegir anteojos es COMPARAR formas, y así no
+                        se podían comparar. El aire de acá se ajusta en celular. */}
+                    <div className="flex flex-col gap-1 mt-2.5 md:mt-4 px-1 pb-2 md:pb-4">
                       <div className="flex items-center justify-between mb-0.5">
                         {/* La marca es un <p>, no un encabezado: iba como <h3>
                             ANTES del <h2> del nombre, así que cada tarjeta
@@ -735,7 +739,7 @@ export function TiendaClient({
                           </span>
                         )}
                       </div>
-                      <h2 className="text-2xl font-serif tracking-tight text-black leading-tight mb-3 group-hover:text-stone-600 transition-colors">
+                      <h2 className="text-base md:text-2xl font-serif tracking-tight text-black leading-tight mb-1.5 md:mb-3 group-hover:text-stone-600 transition-colors">
                         {p.name || p.model}
                       </h2>
                       
@@ -819,7 +823,7 @@ export function TiendaClient({
                         );
                       })()}
 
-                      <div className="mt-4 w-full border border-stone-300 text-stone-900 group-hover:border-stone-900 group-hover:bg-stone-900 group-hover:text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 text-center rounded-xl transition-all duration-300">
+                      <div className="hidden md:block mt-4 w-full border border-stone-300 text-stone-900 group-hover:border-stone-900 group-hover:bg-stone-900 group-hover:text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 text-center rounded-xl transition-all duration-300">
                         Ver Modelo
                       </div>
                     </div>
