@@ -7,7 +7,7 @@ import { buildWhatsAppUrl, currentPageUrl } from "@/lib/whatsapp-link";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { PaymentOptions } from "@/components/Storefront/PaymentOptions";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Share2, ChevronDown, Truck, Package, ShieldCheck, CreditCard, Percent, Users } from "lucide-react";
@@ -69,6 +69,29 @@ export function ProductClient({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showConfigurator, setShowConfigurator] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
+
+  // ── A-16 (auditoría 2/9/26): la barra de compra fija en celular ───────────
+  //
+  // Los CTA viven solo arriba. La persona baja a leer las medidas del armazón,
+  // se convence de que le va a calzar... y en ese momento no tiene ningún botón
+  // cerca: tiene que volver a subir. La barra aparece cuando los botones de
+  // arriba salen de pantalla y desaparece cuando vuelven, así que nunca hay dos
+  // llamados compitiendo (A-12).
+  const ctaPrincipalRef = useRef<HTMLDivElement>(null);
+  const [ctaFueraDeVista, setCtaFueraDeVista] = useState(false);
+
+  useEffect(() => {
+    const nodo = ctaPrincipalRef.current;
+    if (!nodo) return;
+    const io = new IntersectionObserver(
+      ([entrada]) => setCtaFueraDeVista(!entrada.isIntersecting),
+      // rootMargin negativo abajo: la barra aparece cuando el botón ya salió
+      // de verdad, no cuando le falta un píxel.
+      { rootMargin: '0px 0px -80px 0px' }
+    );
+    io.observe(nodo);
+    return () => io.disconnect();
+  }, []);
   
   // E-commerce states
   const [activeAccordion, setActiveAccordion] = useState<string | null>("description");
@@ -536,7 +559,7 @@ export function ProductClient({
               </>
             )}
 
-            <div className="flex flex-col gap-3 mb-6 mt-4">
+            <div ref={ctaPrincipalRef} className="flex flex-col gap-3 mb-6 mt-4">
               {/* En Receta hay dos caminos y los dos son CTA plenos: configurar
                   cristales (negro) o llevarse el armazón solo (verde). Antes el
                   segundo era un botón chico de contorno que decía "Comprar solo
@@ -956,7 +979,54 @@ export function ProductClient({
 
       {footer}
 
-      
+      {/* ── A-16: barra de compra fija en celular ──────────────────────────
+          Aparece recién cuando los botones de arriba salieron de pantalla, así
+          que nunca compite con ellos. Lleva la miniatura, el nombre y el precio
+          para que se entienda de qué producto se está hablando después de tres
+          pantallas de medidas y garantías.
+          De paso resuelve dos cosas más que marcó la auditoría: el precio queda
+          siempre a la vista (A-01) y el botón de WhatsApp flotante ya no es el
+          único elemento fijo compitiendo por el pulgar (A-11). */}
+      {!isWholesale && (
+        <div
+          className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-stone-200 px-4 py-3 flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] transition-transform duration-300 ${
+            ctaFueraDeVista ? 'translate-y-0' : 'translate-y-full'
+          }`}
+          aria-hidden={!ctaFueraDeVista}
+        >
+          {images[0] && (
+            <div className="relative w-12 h-12 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-stone-100">
+              <Image
+                unoptimized={String(images[0]).startsWith('data:')}
+                src={images[0]}
+                alt=""
+                fill
+                sizes="48px"
+                className="object-contain"
+              />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-stone-900 truncate">{product.model}</p>
+            <p className="text-[13px] font-black text-stone-900">${formatearPrecio(effectivePrice)}</p>
+          </div>
+          <button
+            disabled={product.stock !== undefined && product.stock <= 0}
+            onClick={() => {
+              if (product.category === "Receta") {
+                setShowConfigurator(true);
+              } else {
+                ctaPrincipalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }}
+            className="flex-shrink-0 min-h-11 px-5 bg-black text-white text-[11px] font-black uppercase tracking-widest rounded-full hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:bg-stone-400"
+          >
+            {(product.stock !== undefined && product.stock <= 0)
+              ? "Agotado"
+              : product.category === "Receta" ? "Elegir cristales" : "Comprar"}
+          </button>
+        </div>
+      )}
 
       {/* Modal Configurador de Cristales para la vista de producto */}
       {showConfigurator && (
