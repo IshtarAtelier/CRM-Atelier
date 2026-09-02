@@ -9,6 +9,7 @@ const { evaluarElegibilidad } = require('./politica');
 const { sendMessage, sendTypingState } = require('../whatsapp/client');
 const { runOutputGuardrail } = require('../services/ai.service');
 const { resolveWaMessageId, rememberBotMessage } = require('../shared/message-id');
+const { limpiarSalidaBot } = require('../shared/limpiar-salida-bot');
 const {
     TEST_MODE,
     TEST_PHONE,
@@ -88,8 +89,21 @@ async function preSendValidation(chatId, waId) {
  *   pospuso, el updatedAt cambió y este envío se descarta solo — sin duplicados.
  * @returns {Promise<{ sent: boolean, reason?: string }>}
  */
-async function sendFollowUp({ waId, text, chatId, label, clientName, followUpType, claim, origen, outboxId }) {
+async function sendFollowUp({ waId, text: textoCrudo, chatId, label, clientName, followUpType, claim, origen, outboxId }) {
     const logPrefix = TEST_MODE ? '[TEST Follow-Up]' : '[Follow-Up]';
+
+    // Saneado ANTES de todo (mismo helper y mismo orden que los dos bots): el
+    // texto del seguimiento también lo escribe el modelo, así que puede traer
+    // marcadores internos, y las ocho frases que comparten el guardrail y el
+    // anti-relleno acá descartaban el seguimiento entero (SKIPPED) en vez de
+    // perder solo su oración. Se sanea antes de persistir en la outbox para que
+    // lo guardado sea EXACTAMENTE lo que se manda.
+    const { texto: text, quitado } = limpiarSalidaBot(textoCrudo);
+    if (quitado.length) console.log(`  🧹 ${logPrefix} Saneado de salida: ${quitado.join(' · ')}`);
+    if (!text.trim()) {
+        console.warn(`  ⏹️ ${logPrefix} Vacío tras el saneado para ${clientName}. No se envía.`);
+        return { sent: false, reason: 'Vacío tras el saneado' };
+    }
 
     // Outbox (Fase 1 del motor): el envío queda persistido desde acá hasta su
     // resultado. Si el proceso muere con el mensaje esperando en la cola del

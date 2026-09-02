@@ -14,6 +14,7 @@ const { ALL_FOLLOWUP_LABELS } = require('../followups/config');
 const { generateFollowUpMessage } = require('../followups/message-generator');
 const { evaluateConversationGate, applyCancelVerdict } = require('../followups/conversation-gate');
 const { runOutputGuardrail } = require('../services/ai.service');
+const { limpiarSalidaBot } = require('../shared/limpiar-salida-bot');
 const { resolveWaMessageId, rememberBotMessage } = require('../shared/message-id');
 
 // Pool de variantes de RESPALDO: solo se usa si la generación personalizada falla.
@@ -216,6 +217,20 @@ async function checkAndSendInactivityFollowUps({ isAgentEnabled, isFollowupsEnab
                         const pool = unused.length > 0 ? unused : FOLLOW_UP_TEXT_VARIANTS;
                         selectedText = pool[Math.floor(Math.random() * pool.length)];
                     }
+
+                    // Saneado ANTES del guardrail (mismo orden que los bots y
+                    // que `followups/sender.js`): este camino no pasa por
+                    // `sendFollowUp`, llama a `sendMessage` directo, así que
+                    // necesita su propio saneado o el recordatorio sale con
+                    // marcadores internos — o lo descarta entero una frase que
+                    // el anti-relleno solo habría recortado.
+                    const { texto: textoSaneado, quitado } = limpiarSalidaBot(selectedText);
+                    if (quitado.length) console.log(`  🧹 [Follow-Up] Saneado de salida: ${quitado.join(' · ')}`);
+                    if (!textoSaneado.trim()) {
+                        console.warn(`  ⏹️ [Follow-Up] Vacío tras el saneado para ${chat.profileName || chat.waId}. Se saltea.`);
+                        continue;
+                    }
+                    selectedText = textoSaneado;
 
                     // Guardrail de salida: mismo filtro final que el bot conversacional
                     const guardrail = runOutputGuardrail(selectedText);
