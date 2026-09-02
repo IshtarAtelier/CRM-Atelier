@@ -177,9 +177,9 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
   // El separador es "•" (lo pone `CARTEL_PROMO_POR_DEFECTO`), pero el texto lo
   // puede escribir una persona desde /admin/web, así que se aceptan también
   // "·" y "|". Si no trae separadores, queda un solo pedazo y no rota nada.
-  const pedazosAnuncio = announcementText
+  const pedazosAnuncio: string[] = String(announcementText ?? '')
     .split(/\s*[•·|]\s*/)
-    .map(t => t.trim())
+    .map((t: string) => t.trim())
     .filter(Boolean);
   const [indiceAnuncio, setIndiceAnuncio] = useState(0);
 
