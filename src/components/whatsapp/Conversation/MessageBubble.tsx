@@ -45,6 +45,45 @@ export function resaltarCoincidencias(texto: string, consulta: string, esActivo:
     return partes;
 }
 
+
+/**
+ * Renderiza el marcado de WhatsApp (*negrita*, _cursiva_, ~tachado~, `mono`).
+ *
+ * POR QUÉ: el bot manda los presupuestos con negritas —"Precio contado:
+ * *$170.000*"— porque en WhatsApp eso se ve en negrita. En el buzón se veían
+ * los asteriscos crudos, así que el equipo leía símbolos donde el cliente lee
+ * texto formateado, y no había forma de revisar de verdad lo que salió.
+ *
+ * Reglas (las de WhatsApp): el delimitador abre pegado a un carácter que no sea
+ * espacio, cierra igual, y no cruza saltos de línea. Por eso "3 * 4" o
+ * "$88.500 * 2" no se convierten en nada.
+ */
+const MARCADO = /(?<![\w*_~`])([*_~`])(?=\S)((?:(?!\1)[^\n])*\S)\1(?![\w*_~`])/;
+
+const ETIQUETA_DE_MARCA: Record<string, 'strong' | 'em' | 's' | 'code'> = {
+    '*': 'strong', '_': 'em', '~': 's', '`': 'code',
+};
+
+export function formatearMarkupWhatsApp(texto: string, hoja: (t: string) => React.ReactNode): React.ReactNode {
+    const partes: React.ReactNode[] = [];
+    let resto = texto;
+    let n = 0;
+
+    for (let m = MARCADO.exec(resto); m; m = MARCADO.exec(resto)) {
+        if (m.index > 0) partes.push(hoja(resto.slice(0, m.index)));
+        const Etiqueta = ETIQUETA_DE_MARCA[m[1]];
+        partes.push(
+            <Etiqueta key={`f${n++}`} className={m[1] === '`' ? 'font-mono text-[0.92em]' : undefined}>
+                {formatearMarkupWhatsApp(m[2], hoja)}
+            </Etiqueta>
+        );
+        resto = resto.slice(m.index + m[0].length);
+    }
+
+    if (resto) partes.push(hoja(resto));
+    return partes.length ? partes : hoja(texto);
+}
+
 const ESTADOS: Record<string, { marca: string; palabra: string; clase: string }> = {
     FAILED: { marca: '✕', palabra: 'No se entregó', clase: 'text-red-100 font-black' },
     READ: { marca: '✓✓', palabra: 'Leído', clase: 'text-sky-100 font-black' },
@@ -90,9 +129,10 @@ export function MessageBubble({
 
                     {msg.content ? (
                         <p className={`${compacto ? 'text-[13px]' : 'text-[15px]'} font-medium leading-relaxed whitespace-pre-wrap break-words`}>
-                            {busqueda.trim()
-                                ? resaltarCoincidencias(msg.content, busqueda, esResultadoActivo)
-                                : msg.content}
+                            {formatearMarkupWhatsApp(
+                                msg.content,
+                                t => busqueda.trim() ? resaltarCoincidencias(t, busqueda, esResultadoActivo) : t,
+                            )}
                         </p>
                     ) : null}
 

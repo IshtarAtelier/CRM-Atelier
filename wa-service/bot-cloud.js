@@ -469,8 +469,28 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             const responseText = salida[salida.length - 1].content;
             if (!responseText) return;
 
+            // ── Saneado ANTES del guardrail ─────────────────────────────────
+            // El orden importa y estaba al revés. Ocho frases ("reviso en el
+            // sistema", "según nuestros registros", …) están en las DOS listas:
+            // en `internalErrorKeywords` del guardrail y en el anti-relleno.
+            // Con el guardrail primero ganaba siempre el guardrail, que no
+            // borra la oración: DESCARTA el mensaje entero (el cliente no
+            // recibe nada) y suma una falla; a la tercera seguida el bot se
+            // apaga en ese chat con "Errores técnicos persistentes". El
+            // anti-relleno, que solo habría sacado esa oración, era código
+            // muerto para esas frases.
+            // Saneando primero, el guardrail juzga LO QUE EL CLIENTE VA A VER,
+            // y ya no se le puede disparar con un marcador interno que el
+            // modelo repitió y que igual íbamos a borrar.
+            const { texto: textoLimpio, quitado } = limpiarSalidaBot(responseText);
+            if (quitado.length) console.log(`  🧹 [BotCloud] Saneado de salida: ${quitado.join(' · ')}`);
+            if (!textoLimpio.trim()) {
+                console.log('  ⏹️ [BotCloud] Respuesta vacía tras el saneado. No se envía nada.');
+                return;
+            }
+
             // ── Guardrail de salida ─────────────────────────────────────────
-            const guardrail = runOutputGuardrail(responseText);
+            const guardrail = runOutputGuardrail(textoLimpio);
             if (!guardrail.safe) {
                 console.warn(`  ⚠️ [BotCloud] Respuesta bloqueada por el guardrail: ${guardrail.reason}`);
                 if (guardrail.reason === 'Narración de Error Interno' || guardrail.reason === 'Solicitud de Dato Prohibido o Presentación Indebida') {
@@ -512,11 +532,7 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
 
             botReplyingTo.add(waId);
 
-            // Saneado ÚNICO de la salida (shared/limpiar-salida-bot.js): saca los
-            // marcadores internos que el cliente no debe ver y el relleno.
-            const { texto: textoLimpio, quitado } = limpiarSalidaBot(responseText);
             let texto = textoLimpio;
-            if (quitado.length) console.log(`  🧹 [BotCloud] Saneado de salida: ${quitado.join(' · ')}`);
             if (!texto.trim()) {
                 console.log('  ⏹️ [BotCloud] Respuesta vacía tras el filtrado. No se envía nada.');
                 botReplyingTo.delete(waId);

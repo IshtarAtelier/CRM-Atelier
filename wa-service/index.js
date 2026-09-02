@@ -785,8 +785,22 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
         const responseText = lastMessage.content;
 
         if (responseText) {
+            // ── Saneado ANTES del guardrail ──
+            // Mismo orden que en `bot-cloud.js`, y por el mismo motivo: ocho
+            // frases están en las DOS listas (guardrail y anti-relleno). Con el
+            // guardrail primero, esas frases descartaban el mensaje ENTERO en
+            // vez de perder solo su oración, y el cliente quedaba sin respuesta.
+            // Además el guardrail se podía disparar con un marcador interno que
+            // el modelo repitió y que igual íbamos a borrar.
+            const { texto: textoSaneado, quitado: quitadoDeSalida } = limpiarSalidaBot(responseText);
+            if (quitadoDeSalida.length) console.log(`  🧹 [Bot] Saneado de salida: ${quitadoDeSalida.join(' · ')}`);
+            if (!textoSaneado.trim()) {
+                console.log('  ⏹️ Respuesta vacía tras el saneado. No se envía nada.');
+                return;
+            }
+
             // ── Capa de Seguridad (Output Guardrail) ──
-            const guardrail = runOutputGuardrail(responseText);
+            const guardrail = runOutputGuardrail(textoSaneado);
             if (!guardrail.safe) {
                 console.warn(`  ⚠️ [Output Guardrail] Respuesta bloqueada para ${profileName} por: ${guardrail.reason}`);
 
@@ -795,7 +809,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
                 // pero NO se apaga el bot. Es una falla transitoria — silencio este turno
                 // y reintento en el próximo mensaje.
                 if (guardrail.reason === 'Narración de Error Interno' || guardrail.reason === 'Solicitud de Dato Prohibido o Presentación Indebida') {
-                    await handleTransientBotFailure(chat, waId, profileName, realPhone, `Guardrail bloqueó respuesta (${guardrail.reason}): "${responseText.substring(0, 100)}"`);
+                    await handleTransientBotFailure(chat, waId, profileName, realPhone, `Guardrail bloqueó respuesta (${guardrail.reason}): "${textoSaneado.substring(0, 100)}"`);
                     return;
                 }
 
@@ -857,12 +871,7 @@ async function processBotTurn(chat, waId, profileName, realPhone) {
 
             // Seteamos DESPUÉS del check de mensajes nuevos para evitar leak en early return
             botReplyingTo.add(waId);
-            // Saneado ÚNICO de la salida (shared/limpiar-salida-bot.js). Antes
-            // acá vivía una COPIA de la lista de frases de bot-cloud.js, y
-            // ninguna de las dos sacaba los marcadores internos.
-            const { texto: textoSaneado, quitado: quitadoDeSalida } = limpiarSalidaBot(responseText);
             let cleanResponseText = textoSaneado;
-            if (quitadoDeSalida.length) console.log(`  🧹 [Bot] Saneado de salida: ${quitadoDeSalida.join(' · ')}`);
 
             // Detectar si la respuesta repite literalmente frases de los últimos mensajes del bot
             const recentBotMessages = recentMessages
