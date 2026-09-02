@@ -340,6 +340,13 @@ function empujarADataLayer(type: string, payload: Record<string, unknown>): void
         device: payload.device ?? null,
         utmSource: payload.utmSource ?? null,
         utmCampaign: payload.utmCampaign ?? null,
+        // Los parámetros propios de cada evento viven en `meta`, y son
+        // justamente los que el Anexo C del plan pide: `filters_applied` y
+        // `results_count` en view_item_list, `sort_value` en sort_changed,
+        // `page` en load_more. Sin esto llegaba el nombre del evento pero no
+        // el dato — o sea, se podía contar cuánta gente filtró pero no QUÉ
+        // filtró, que es la pregunta que se quería responder.
+        ...((payload.meta && typeof payload.meta === 'object') ? payload.meta as Record<string, unknown> : {}),
       },
     });
   } catch {

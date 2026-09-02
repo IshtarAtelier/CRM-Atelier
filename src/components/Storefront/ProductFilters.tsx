@@ -292,7 +292,15 @@ export function ProductFilters({
                         name="sort" 
                         value={option.id} 
                         checked={currentSort === option.id}
-                        onChange={(e) => handleFilterChange('orden', e.target.value)}
+                        onChange={(e) => {
+                          // F1-08 / Anexo C: el orden es su propio evento, no un
+                          // filtro. Sirve para otra pregunta: si mucha gente
+                          // ordena por precio, el catálogo se está leyendo como
+                          // caro y eso se responde con merchandising, no con
+                          // filtros.
+                          track('sort_changed', { meta: { sort_value: e.target.value } });
+                          handleFilterChange('orden', e.target.value);
+                        }}
                         className="hidden" 
                       />
                       <span className={`text-sm ${currentSort === option.id ? 'font-semibold text-[#8a6d3b] dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>

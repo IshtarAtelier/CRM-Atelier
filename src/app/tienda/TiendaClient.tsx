@@ -13,6 +13,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import { PricingService } from "@/services/PricingService";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { UMBRAL_ULTIMAS_UNIDADES } from "@/lib/constants/social-proof";
+import { track } from "@/lib/client-analytics";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
 // devolvía una grilla vacía. Tienen su propia página, así que ahora llevan ahí.
@@ -164,6 +165,25 @@ export function TiendaClient({
   const sortParam = urlFilters.sort;
   const filterPrecioMin = urlFilters.precioMin;
   const filterPrecioMax = urlFilters.precioMax;
+
+  // ── F1-08 / Anexo C: `view_item_list` ────────────────────────────────────
+  //
+  // Se dispara cuando la grilla termina de pintar un set nuevo. Es el evento
+  // que abre el embudo: sin él no se puede calcular "de cada 100 que ven la
+  // grilla, cuántas abren una ficha", que es la métrica principal de las tres
+  // pruebas A/B del plan.
+  //
+  // Va con los filtros puestos adentro, porque la pregunta útil no es cuánta
+  // gente vio la grilla sino cuánta vio una grilla YA filtrada — que es la que
+  // el rediseño del panel quiere mover.
+  const listaReportada = useRef<string>('');
+  /**
+   * Firma de los filtros cuyo fetch YA terminó. Sin esto, el evento se
+   * disparaba con el `totalCount` viejo: en /tienda?genero=Femme&material=Acetato
+   * reportaba 106 cuando el resultado real eran 45. Un embudo con el
+   * denominador equivocado es peor que no tener embudo.
+   */
+  const filtrosDelUltimoFetch = useRef<string>('');
 
   // ── A-04: los filtros puestos, para mostrarlos y poder sacarlos de a uno ──
   //
@@ -358,6 +378,9 @@ export function TiendaClient({
           setTotalPages(data.totalPages || 1);
           setTotalCount(data.totalCount || 0);
           setConteos(data.conteos || null);
+          filtrosDelUltimoFetch.current = [activeCategory, filterBrand, filterShape,
+            filterMaterial, filterGender, filterPrecioMin, filterPrecioMax,
+            sortParam, searchQuery, currentPage].join('|');
         }
       } catch (err) {
         console.error("Error loading products:", err);
@@ -377,6 +400,55 @@ export function TiendaClient({
   }, [currentPage, activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, filterPrecioMin, filterPrecioMax, sortParam, isWholesale, reloadNonce]);
 
   const displayedProducts = products;
+
+  useEffect(() => {
+    if (!displayedProducts.length) return;
+    // No reportar hasta que los datos terminaron de llegar: si no, el conteo
+    // que viaja en el evento es el del set anterior.
+    if (isLoading) return;
+    // Y no reportar mientras el estado todavía no refleja la URL.
+    //
+    // Quien entra por un link filtrado —o sea, cualquiera que venga de un
+    // anuncio o de un link compartido por WhatsApp— pasa por dos renders: el
+    // del servidor, sin filtros, y el del cliente cuando lee la URL. Sin esta
+    // guarda se reportaban DOS vistas de lista por una sola visita, y la
+    // primera con los filtros vacíos: el denominador del embudo quedaba
+    // inflado justo en el tráfico pago, que es el que se quiere medir.
+    const enUrl = new URLSearchParams(window.location.search);
+    const coincide = (param: string, valor: string) => (enUrl.get(param) || '') === valor;
+    if (!coincide('marca', filterBrand) || !coincide('forma', filterShape)
+      || !coincide('material', filterMaterial) || !coincide('genero', filterGender)
+      || !coincide('precioMin', filterPrecioMin) || !coincide('precioMax', filterPrecioMax)) {
+      return;
+    }
+    // Una "lista" es la combinación de filtros + página. Se reporta una sola
+    // vez por combinación: sin esta guarda, cada re-render (y son muchos: el
+    // panel, el contador, el hover de una card) mandaría el evento de nuevo y
+    // el denominador del embudo quedaría inflado.
+    const clave = [activeCategory, filterBrand, filterShape, filterMaterial,
+      filterGender, filterPrecioMin, filterPrecioMax, sortParam, searchQuery,
+      currentPage].join('|');
+    if (listaReportada.current === clave) return;
+    // El conteo que viaja en el evento tiene que ser el de ESTOS filtros. Si el
+    // último fetch fue por otra combinación, `totalCount` todavía es el viejo:
+    // se espera. La excepción es la primera carga sin filtros, donde el
+    // servidor ya mandó el número correcto y no hay fetch que esperar.
+    const hayFiltros = clave.split('|').slice(0, 7).some(Boolean);
+    if (hayFiltros && filtrosDelUltimoFetch.current !== clave) return;
+    listaReportada.current = clave;
+
+    track('view_item_list', {
+      meta: {
+        list_id: activeCategory.toLowerCase(),
+        filters_applied: filtrosAplicados.map(f => `${f.param}:${f.valor}`),
+        results_count: totalCount,
+        page: currentPage,
+      },
+    });
+  }, [displayedProducts.length, isLoading, activeCategory, filterBrand, filterShape,
+      filterMaterial, filterGender, filterPrecioMin, filterPrecioMax,
+      sortParam, searchQuery, currentPage, totalCount, filtrosAplicados]);
+
 
   return (
     <div className="bg-white min-h-screen text-black font-sans selection:bg-black selection:text-white">
@@ -888,7 +960,13 @@ export function TiendaClient({
         {currentPage < totalPages && (
           <div className="mt-12 flex justify-center w-full">
             <button 
-              onClick={() => setCurrentPage(p => p + 1)}
+              onClick={() => {
+                // F1-08 / Anexo C: cuántas veces la gente pide más. Si el
+                // número es alto, el problema no es la paginación: es que los
+                // filtros no la están llevando a lo que busca.
+                track('load_more', { meta: { page: currentPage + 1, items_loaded: displayedProducts.length } });
+                setCurrentPage(p => p + 1);
+              }}
               disabled={isLoading}
               className="border-2 border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
