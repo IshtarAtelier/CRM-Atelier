@@ -62,6 +62,9 @@ type FiltrosUrl = {
   material: string;
   gender: string;
   sort: string;
+  /** A-08: rango de precio. Van juntos y pueden estar vacíos los dos. */
+  precioMin: string;
+  precioMax: string;
 };
 
 // useSearchParams fuerza render en cliente hasta el <Suspense> más cercano; lo
@@ -87,6 +90,8 @@ function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosUrl) => void
       material: searchParams.get('material') || '',
       gender: searchParams.get('genero') || '',
       sort: searchParams.get('orden') || 'recientes',
+      precioMin: searchParams.get('precioMin') || '',
+      precioMax: searchParams.get('precioMax') || '',
     });
   }, [searchParams, onChange]);
 
@@ -125,6 +130,8 @@ export function TiendaClient({
     material: '',
     gender: '',
     sort: 'recientes',
+    precioMin: '',
+    precioMax: '',
   });
 
   // La categoría vivía en un useState suelto: la grilla cambiaba pero la URL
@@ -146,6 +153,8 @@ export function TiendaClient({
   const filterMaterial = urlFilters.material;
   const filterGender = urlFilters.gender;
   const sortParam = urlFilters.sort;
+  const filterPrecioMin = urlFilters.precioMin;
+  const filterPrecioMax = urlFilters.precioMax;
 
   // ── A-04: los filtros puestos, para mostrarlos y poder sacarlos de a uno ──
   //
@@ -156,11 +165,27 @@ export function TiendaClient({
     { param: 'forma', valor: filterShape, etiqueta: filterShape },
     { param: 'material', valor: filterMaterial, etiqueta: filterMaterial },
     { param: 'genero', valor: filterGender, etiqueta: filterGender },
+    // A-08: el rango de precio son dos parámetros pero UN chip, con la
+    // etiqueta escrita como la lee una persona. Al quitarlo se van los dos.
+    {
+      param: 'precio',
+      valor: filterPrecioMin || filterPrecioMax,
+      etiqueta: filterPrecioMin && filterPrecioMax
+        ? `$${Number(filterPrecioMin).toLocaleString('es-AR')} a $${Number(filterPrecioMax).toLocaleString('es-AR')}`
+        : filterPrecioMax
+          ? `Hasta $${Number(filterPrecioMax).toLocaleString('es-AR')}`
+          : `Más de $${Number(filterPrecioMin).toLocaleString('es-AR')}`,
+    },
   ].filter(f => Boolean(f.valor));
 
   const quitarFiltro = (param: string) => {
     const params = new URLSearchParams(window.location.search);
-    params.delete(param);
+    if (param === 'precio') {
+      params.delete('precioMin');
+      params.delete('precioMax');
+    } else {
+      params.delete(param);
+    }
     const qs = params.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
@@ -168,7 +193,7 @@ export function TiendaClient({
   /** Saca todos los filtros pero respeta la categoría y la búsqueda. */
   const limpiarTodosLosFiltros = () => {
     const params = new URLSearchParams(window.location.search);
-    ['marca', 'forma', 'material', 'genero'].forEach(p => params.delete(p));
+    ['marca', 'forma', 'material', 'genero', 'precioMin', 'precioMax'].forEach(p => params.delete(p));
     const qs = params.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
@@ -295,6 +320,8 @@ export function TiendaClient({
         if (filterShape) queryParams.set('shape', filterShape);
         if (filterMaterial) queryParams.set('material', filterMaterial);
         if (filterGender) queryParams.set('gender', filterGender);
+        if (filterPrecioMin) queryParams.set('precioMin', filterPrecioMin);
+        if (filterPrecioMax) queryParams.set('precioMax', filterPrecioMax);
         queryParams.set('sort', sortParam);
         if (searchQuery) queryParams.set('search', searchQuery);
         if (isWholesale) queryParams.set('channel', 'wholesale');
@@ -332,7 +359,7 @@ export function TiendaClient({
     return () => {
       active = false;
     };
-  }, [currentPage, activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, sortParam, isWholesale, reloadNonce]);
+  }, [currentPage, activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, filterPrecioMin, filterPrecioMax, sortParam, isWholesale, reloadNonce]);
 
   const displayedProducts = products;
 

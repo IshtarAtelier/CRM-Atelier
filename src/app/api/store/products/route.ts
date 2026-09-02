@@ -126,6 +126,32 @@ export async function GET(request: NextRequest) {
             filtered = filtered.filter(p => (p.material || '').toUpperCase() === material.toUpperCase());
         }
 
+        // 4-bis) Filtrado por RANGO DE PRECIO (A-08, auditoría del 2/9/2026).
+        //
+        // De los tres filtros que la auditoría marca como los que realmente
+        // decide un comprador de anteojos —precio, color y calce— este es el
+        // que se puede resolver sin tocar el modelo de datos: el precio ya está
+        // en cada producto. Color y calce necesitan que el dato sea filtrable
+        // (hoy el calce vive dentro del texto de specs de cada ficha) y quedan
+        // para cuando se haga A-07/A-08 completo.
+        //
+        // Se filtra por el precio EFECTIVO (con oferta si la hay), que es el
+        // que la grilla muestra — igual que el orden por precio de acá abajo.
+        // Si mostrás $150.000 y filtrás por el de lista, el resultado no
+        // coincide con lo que la persona ve.
+        const precioMin = Number(request.nextUrl.searchParams.get('precioMin') || 0);
+        const precioMax = Number(request.nextUrl.searchParams.get('precioMax') || 0);
+        if (precioMin > 0 || precioMax > 0) {
+            filtered = filtered.filter(p => {
+                const lista = p.price || 0;
+                const oferta = p.salePrice;
+                const valor = oferta != null && oferta > 0 && oferta < lista ? oferta : lista;
+                if (precioMin > 0 && valor < precioMin) return false;
+                if (precioMax > 0 && valor > precioMax) return false;
+                return true;
+            });
+        }
+
         // 5) Filtrado por Género
         if (gender) {
             const fg = gender.toLowerCase();

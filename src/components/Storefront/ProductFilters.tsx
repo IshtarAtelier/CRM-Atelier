@@ -107,6 +107,8 @@ export function ProductFilters({
   const currentShape = searchParams.get('forma') || '';
   const currentMaterial = searchParams.get('material') || '';
   const currentGender = searchParams.get('genero') || '';
+  const currentPrecioMin = searchParams.get('precioMin') || '';
+  const currentPrecioMax = searchParams.get('precioMax') || '';
 
   // Helper to update URL params cleanly
   // Un filtro puesto en su valor por defecto no cambia nada de lo que se ve, así
@@ -143,7 +145,24 @@ export function ProductFilters({
   };
 
   /** Cuántos filtros hay puestos. El orden no cuenta: no achica el resultado. */
-  const filtrosPuestos = [currentBrand, currentShape, currentMaterial, currentGender].filter(Boolean).length;
+  const filtrosPuestos = [currentBrand, currentShape, currentMaterial, currentGender, currentPrecioMin || currentPrecioMax].filter(Boolean).length;
+
+  /**
+   * El rango de precio son DOS parámetros que se mueven juntos (A-08), así que
+   * no puede pasar por `handleFilterChange`, que escribe de a uno: elegir un
+   * rango tiene que borrar el anterior completo, no dejar el `precioMax` viejo
+   * conviviendo con el `precioMin` nuevo.
+   */
+  const cambiarRangoDePrecio = (min: string, max: string) => {
+    track('filtro_aplicado', {
+      meta: { filtro: 'precio', valor: min || max ? `${min || '0'}-${max || '∞'}` : '(quitado)', resultados: resultCount ?? null },
+    });
+    const params = new URLSearchParams(searchParams.toString());
+    if (min) params.set('precioMin', min); else params.delete('precioMin');
+    if (max) params.set('precioMax', max); else params.delete('precioMax');
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
 
   return (
     <>
@@ -229,6 +248,42 @@ export function ProductFilters({
                       </span>
                     </label>
                   ))}
+                </div>
+              </div>
+
+              {/* Sección Precio — A-08 (auditoría 2/9/26).
+                  De los tres filtros que la auditoría marca como los que
+                  realmente decide un comprador de anteojos (precio, color y
+                  calce), este es el que no faltaba solo en la UI: faltaba
+                  entero. Tres rangos fijos, no un slider: con 106 modelos un
+                  slider pide precisión que nadie tiene ("¿mi tope son 180 o
+                  190 mil?") y en celular es el control más difícil de acertar. */}
+              <div>
+                <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
+                  Precio
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: '', etiqueta: 'Todos', min: '', max: '' },
+                    { id: 'hasta-150', etiqueta: 'Hasta $150.000', min: '', max: '150000' },
+                    { id: '150-250', etiqueta: '$150.000 a $250.000', min: '150000', max: '250000' },
+                    { id: 'desde-250', etiqueta: 'Más de $250.000', min: '250000', max: '' },
+                  ].map(rango => {
+                    const activo = currentPrecioMin === rango.min && currentPrecioMax === rango.max;
+                    return (
+                      <button
+                        key={rango.id || 'todos'}
+                        onClick={() => cambiarRangoDePrecio(rango.min, rango.max)}
+                        className={`px-4 min-h-11 inline-flex items-center text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
+                          activo
+                            ? 'border-[#c8a55c] bg-[#c8a55c] text-white shadow-md shadow-[#c8a55c]/20 scale-[1.02]'
+                            : 'border-stone-200 text-stone-600 hover:border-stone-900 hover:text-stone-900'
+                        }`}
+                      >
+                        {rango.etiqueta}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
