@@ -124,7 +124,7 @@ export function GoogleReviews() {
               href="https://www.google.com/maps?cid=14830223812501661125"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center lg:justify-start gap-2 text-xs font-bold uppercase tracking-widest text-[#8a6d3b] hover:text-stone-900 transition-colors"
+              className="inline-flex items-center justify-center lg:justify-start gap-2 min-h-11 text-xs font-bold uppercase tracking-widest text-[#8a6d3b] hover:text-stone-900 transition-colors"
             >
               Ver todas las opiniones{userRatingCount > 0 ? ` (${userRatingCount})` : ""} →
             </a>

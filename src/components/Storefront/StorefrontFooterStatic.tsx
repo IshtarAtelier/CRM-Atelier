@@ -37,34 +37,34 @@ export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: 
           {/* Links principales */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Atelier</p>
-            <Link href="/quienes-somos" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Quiénes Somos</Link>
-            <Link href="/contacto" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Contacto</Link>
-            <Link href="/faq" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Atención al Cliente</Link>
-            <Link href="/nuestro-local" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Nuestro Local</Link>
-            <Link href="/resenas" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Opiniones de Clientes</Link>
-            <Link href="/blog" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Editorial</Link>
+            <Link href="/quienes-somos" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Quiénes Somos</Link>
+            <Link href="/contacto" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Contacto</Link>
+            <Link href="/faq" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Atención al Cliente</Link>
+            <Link href="/nuestro-local" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Nuestro Local</Link>
+            <Link href="/resenas" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Opiniones de Clientes</Link>
+            <Link href="/blog" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Editorial</Link>
           </div>
 
           {/* Comprar / Categorías */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Comprar</p>
-            <Link href="/receta" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Anteojos de Receta</Link>
-            <Link href="/lentes-de-sol" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Lentes de Sol</Link>
-            <Link href="/clip-on" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Clip-On 2 en 1</Link>
-            <Link href="/arma-tus-lentes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Armá tus Lentes</Link>
-            <Link href="/obras-sociales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Obras Sociales</Link>
-            <Link href="/urgencias" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Urgencias 24h</Link>
+            <Link href="/receta" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Anteojos de Receta</Link>
+            <Link href="/lentes-de-sol" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Lentes de Sol</Link>
+            <Link href="/clip-on" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Clip-On 2 en 1</Link>
+            <Link href="/arma-tus-lentes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Armá tus Lentes</Link>
+            <Link href="/obras-sociales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Obras Sociales</Link>
+            <Link href="/urgencias" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Urgencias 24h</Link>
           </div>
 
           {/* Guías (interlinking SEO: las mismas en StorefrontFooter) */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] md:text-[11px] uppercase tracking-widest font-black text-stone-300 mb-2">Guías</p>
-            <Link href="/optica-cordoba" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Óptica en Córdoba</Link>
-            <Link href="/blog/guia-armazones-segun-rostro" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Armazones según tu rostro</Link>
-            <Link href="/blog/guia-precios-multifocales-argentina" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Precios de Multifocales</Link>
-            <Link href="/blog/control-miopia-infantil-lentes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Control de Miopía Infantil</Link>
-            <Link href="/blog/lentes-polarizados-vs-comunes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Polarizados vs. Comunes</Link>
-            <Link href="/blog/guia-cristales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors py-2 md:py-0">Guía de Cristales</Link>
+            <Link href="/optica-cordoba" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Óptica en Córdoba</Link>
+            <Link href="/blog/guia-armazones-segun-rostro" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Armazones según tu rostro</Link>
+            <Link href="/blog/guia-precios-multifocales-argentina" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Precios de Multifocales</Link>
+            <Link href="/blog/control-miopia-infantil-lentes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Control de Miopía Infantil</Link>
+            <Link href="/blog/lentes-polarizados-vs-comunes" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Polarizados vs. Comunes</Link>
+            <Link href="/blog/guia-cristales" className="text-[13px] md:text-[14px] font-medium text-stone-200 hover:text-white transition-colors min-h-11 md:min-h-0 inline-flex items-center">Guía de Cristales</Link>
           </div>
 
           {/* Ubicación */}
@@ -74,7 +74,7 @@ export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: 
               {addressLine}<br />
               {localityLine}
             </p>
-            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] text-amber-500/90 font-bold hover:text-amber-400 transition-colors underline decoration-amber-500/30 underline-offset-4 mt-1">
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] text-amber-500/90 font-bold hover:text-amber-400 transition-colors underline decoration-amber-500/30 underline-offset-4 mt-1 min-h-11 md:min-h-0 inline-flex items-center">
               Ver en Google Maps
             </a>
           </div>
@@ -82,17 +82,17 @@ export function StorefrontFooterStatic({ isWholesale = false }: { isWholesale?: 
           {/* Políticas Legales */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-300 mb-2">Legales</p>
-            <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Cambios y Devoluciones</Link>
-            <Link href="/terminos-y-condiciones" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Términos y Condiciones</Link>
-            <Link href="/politicas-de-privacidad" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Políticas de Privacidad</Link>
+            <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Cambios y Devoluciones</Link>
+            <Link href="/terminos-y-condiciones" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Términos y Condiciones</Link>
+            <Link href="/politicas-de-privacidad" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Políticas de Privacidad</Link>
           </div>
 
           {/* Redes sociales */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-300 mb-2">Social</p>
-            <a href="https://instagram.com/atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Instagram</a>
-            <a href="https://www.youtube.com/@AtelierOptica/shorts" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">YouTube</a>
-            <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">WhatsApp</a>
+            <a href="https://instagram.com/atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Instagram</a>
+            <a href="https://www.youtube.com/@AtelierOptica/shorts" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">YouTube</a>
+            <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">WhatsApp</a>
           </div>
         </div>
 

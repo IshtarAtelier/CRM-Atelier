@@ -225,7 +225,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                 </>
               );
               return announcementLink ? (
-                <Link href={announcementLink} className="hover:underline hover:opacity-90 flex items-center justify-center">
+                <Link href={announcementLink} className="hover:underline hover:opacity-90 flex items-center justify-center h-8 w-full">
                   {contenido}
                 </Link>
               ) : (
@@ -282,7 +282,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                 onMouseLeave={() => setIsExploreOpen(false)}
               >
                 <button aria-expanded={isExploreOpen} aria-haspopup="true"
-                  className={`flex items-center gap-0.5 lg:gap-1 text-[11px] lg:text-[13px] leading-none font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 lg:p-0`}
+                  className={`flex items-center gap-0.5 lg:gap-1 text-[11px] lg:text-[13px] leading-none font-medium ${activeTextColorClass} hover:opacity-60 transition-opacity p-2 min-h-11 lg:min-h-0 lg:p-0`}
                   style={activeTextShadowStyle}
                 >
                   <span className="hidden lg:inline">Explorar</span>
@@ -382,7 +382,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
           <div className="flex-shrink-0 flex justify-center items-center z-10 px-2">
             <Link
               href={isOptica ? "/tienda" : "/"}
-              className={`text-[11px] sm:text-[14px] md:text-[16px] leading-none font-bold tracking-[0.05em] sm:tracking-[0.10em] md:tracking-[0.15em] ${activeTextColorClass} drop-shadow-md text-center whitespace-nowrap`}
+              className={`text-[11px] sm:text-[14px] md:text-[16px] leading-none font-bold tracking-[0.05em] sm:tracking-[0.10em] md:tracking-[0.15em] ${activeTextColorClass} drop-shadow-md text-center whitespace-nowrap min-h-11 inline-flex items-center justify-center sm:min-h-0`}
               style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
             >
               {isOptica ? "CÁPSULA ESCARLATA" : "ATELIER ÓPTICA"}

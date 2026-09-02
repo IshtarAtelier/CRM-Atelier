@@ -74,7 +74,7 @@ export async function StorefrontFooter() {
               {addressLine}<br />
               {localityLine}
             </p>
-            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] text-amber-500/90 font-bold hover:text-amber-400 transition-colors underline decoration-amber-500/30 underline-offset-4 mt-1">
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-[13px] text-amber-500/90 font-bold hover:text-amber-400 transition-colors underline decoration-amber-500/30 underline-offset-4 mt-1 min-h-11 md:min-h-0 inline-flex items-center">
               Ver en Google Maps
             </a>
           </div>
@@ -82,9 +82,9 @@ export async function StorefrontFooter() {
           {/* Políticas Legales */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-300 mb-2">Legales</p>
-            <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Cambios y Devoluciones</Link>
-            <Link href="/terminos-y-condiciones" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Términos y Condiciones</Link>
-            <Link href="/politicas-de-privacidad" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Políticas de Privacidad</Link>
+            <Link href="/politicas-de-cambio" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Cambios y Devoluciones</Link>
+            <Link href="/terminos-y-condiciones" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Términos y Condiciones</Link>
+            <Link href="/politicas-de-privacidad" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Políticas de Privacidad</Link>
             <div className="mt-4">
               <p className="text-[10px] uppercase tracking-widest font-bold text-stone-300 mb-2">Corporativo</p>
               <Link href="/mayorista/ingreso" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0 text-[#c8a55c]">Acceso Mayoristas</Link>
@@ -94,9 +94,9 @@ export async function StorefrontFooter() {
           {/* Redes sociales */}
           <div className="flex flex-col gap-1 md:gap-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-stone-300 mb-2">Social</p>
-            <a href="https://instagram.com/atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">Instagram</a>
-            <a href="https://www.youtube.com/@AtelierOptica/shorts" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">YouTube</a>
-            <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity py-2 md:py-0">WhatsApp</a>
+            <a href="https://instagram.com/atelieroptica_" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">Instagram</a>
+            <a href="https://www.youtube.com/@AtelierOptica/shorts" target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">YouTube</a>
+            <a href={`https://wa.me/${whatsappPhoneId}`} target="_blank" rel="noopener noreferrer" className="text-[13px] font-medium hover:opacity-60 transition-opacity min-h-11 md:min-h-0 inline-flex items-center">WhatsApp</a>
           </div>
           
         </div>
