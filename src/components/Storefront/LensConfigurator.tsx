@@ -609,20 +609,29 @@ export function LensConfigurator({ basePrice, wholesaleBasePrice, productId, cat
           </div>
         </div>
 
+        {/* A-13 (auditoría 2/9/26): antes acá iba el precio de LISTA en 4xl
+            ("Inversión Final $215.000") y el precio que la mayoría paga
+            —transferencia, 15% menos— aparecía último y en 11px. El número
+            grande es el ancla: anclaba en el más caro. Se da vuelta la
+            jerarquía. La ficha de producto ya lo mostraba así; era el modal el
+            que la contradecía. Los importes no cambian, cambia cuál se grita. */}
         <div className="w-full flex flex-col items-center mb-2">
-          <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#78716c] mb-2">Inversión Final</p>
-          <motion.p 
+          <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#78716c] mb-2">Tu anteojo completo</p>
+          <motion.p
             key={calculateTotal()}
             className="text-4xl font-serif tracking-tight"
           >
-            ${formatearPrecio(calculateTotal())}
+            ${formatearPrecio(calculateTotal() * (1 - discountRate))}
           </motion.p>
+          <p className="text-[11px] font-black uppercase tracking-wide text-[#8a6d3b] mt-1">
+            transferencia o efectivo · {webSettings.web_promo_cash_discount}% OFF
+          </p>
           <div className="flex flex-col items-center gap-1 mt-3.5 text-center">
             <p className="text-[11px] font-bold text-stone-700">
-              💳 {promo.texto} de <span className="underline">${Math.round(calculateTotal() / installmentsCount).toLocaleString('es-AR')}</span>
+              💳 ${formatearPrecio(calculateTotal())} con tarjeta
             </p>
-            <p className="text-[11px] font-bold text-[#8a6d3b] bg-[#faf8f5] px-3.5 py-1 rounded-full border border-[#e8e2db] mt-0.5 shadow-sm">
-              💵 ${Math.round(calculateTotal() * (1 - discountRate)).toLocaleString('es-AR')} en efectivo / transferencia <span className="text-[10px] font-black uppercase text-[#8a6d3b] ml-1">({webSettings.web_promo_cash_discount}% OFF)</span>
+            <p className="text-[11px] font-bold text-stone-700">
+              {promo.texto} de <span className="underline">${formatearPrecio(calculateTotal() / installmentsCount)}</span>
             </p>
           </div>
         </div>
