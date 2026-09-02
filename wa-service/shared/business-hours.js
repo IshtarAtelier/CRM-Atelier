@@ -19,8 +19,8 @@ function isBusinessHours(date = new Date()) {
     if (day === 6) {
         return timeDecimal >= 9 && timeDecimal < 17; // Sábado 9:00 - 17:00
     }
-    // Lunes a Viernes: 8:00 - 20:00 (corrido, sin siesta)
-    return timeDecimal >= 8 && timeDecimal < 20;
+    // Lunes a Viernes: 9:00 - 20:00 (corrido, sin siesta)
+    return timeDecimal >= 9 && timeDecimal < 20;
 }
 
 module.exports = { isBusinessHours };

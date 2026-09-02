@@ -4,17 +4,14 @@
   "theme": "dark",
   "pilar": "accion",
   "fuente": "business-info",
-  "caption": "Lunes a Viernes de 8:00 a 20:00. Sábados de 9:00 a 17:00. José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
+  "caption": "Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00. José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.",
   "slides": [
     {
       "type": "cta",
       "role": "portada",
       "image": "blog/vidriera-atelier.jpg",
       "title": "Cuándo estamos abiertos",
-      "body": "Lunes a viernes de 8 a 20\nSábados de 9 a 17\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba"
+      "body": "Lunes a viernes de 9 a 20\nSábados de 9 a 17\n\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba"
     }
-  ],
-  "temas": [
-    "local"
   ]
 }

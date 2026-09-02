@@ -64,11 +64,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ ok: false, motivo: 'followups_enabled=false — campaña pausada' });
     }
 
-    // Horario real del local (BUSINESS_INFO.hours): 8 a 20 en semana. La
+    // Horario real del local (BUSINESS_INFO.hours): 9 a 20 en semana. La
     // campaña hermana (12 cuotas) usa 10-19 por conservadora, pero acá se
     // sigue el horario comercial real para no quedar mandando de más afuera.
     const hora = horaArgentina();
-    if (!dryRun && (hora < 8 || hora >= 20)) {
+    if (!dryRun && (hora < 9 || hora >= 20)) {
         return NextResponse.json({ ok: false, motivo: `fuera de horario comercial (hora ART ${hora})` });
     }
 

@@ -14,7 +14,7 @@ export const QUICK_REPLIES: QuickReply[] = [
     { label: 'Receta', text: '¿Me podés compartir tu receta óptica para ayudarte mejor?' },
     { label: 'Turno', text: '¿Querés coordinar un turno para una consulta en el local? 📍' },
     { label: 'Dirección', text: '📍 Nos encontrás en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n\nTe dejo la ubicación para que llegues fácil 👉 https://g.co/kgs/5Jp7D4e' },
-    { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 8 a 20hs. Sábados de 9 a 17hs.\n\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n👉 https://g.co/kgs/5Jp7D4e\n\nCuándo te queda cómodo que te esperemos?' },
+    { label: 'Horario', text: 'Atendemos de Lunes a Viernes de 9 a 20hs. Sábados de 9 a 17hs.\n\n📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n👉 https://g.co/kgs/5Jp7D4e\n\nCuándo te queda cómodo que te esperemos?' },
     { label: 'Listo para retirar', text: '🎉 ¡Tu pedido está listo para retirar!' },
     { label: 'Pago pendiente', text: 'Te recuerdo que quedó pendiente el saldo restante. ¿Cuándo te viene bien coordinar el pago?' },
     { label: 'Instagram', text: '¡Te invito a seguirnos en Instagram para ver todas nuestras novedades, promos y modelitos nuevos! 📸✨\n\n👉 https://www.instagram.com/atelieroptica_/\n\n¡Nos encontrás como @atelieroptica_!' },

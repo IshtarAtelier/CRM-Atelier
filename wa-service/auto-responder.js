@@ -63,9 +63,11 @@ const SENDER_NAME = 'Auto-respondedor';
 /**
  * Cuánto se espera antes de volver a mandarle el aviso al MISMO chat.
  *
- * 40 horas, elegidas para que sea IMPOSIBLE mandar más de uno por período
- * cerrado: el cierre más largo de la semana es sábado 17:00 → lunes 8:00, que
- * son 39 horas. Con una ventana más corta (p. ej. 12 h, el cierre de un día
+ * 41 horas, elegidas para que sea IMPOSIBLE mandar más de uno por período
+ * cerrado: el cierre más largo de la semana es sábado 17:00 → lunes 9:00 (el
+ * local ahora abre a las 9, no a las 8), que son 40 horas exactas — la ventana
+ * tiene que ser ESTRICTAMENTE mayor a eso, no igual, o un caso límite podría
+ * mandar dos. Con una ventana más corta (p. ej. 12 h, el cierre de un día
  * hábil) un cliente que escribe el sábado a la noche y otra vez el domingo a la
  * noche recibía dos avisos idénticos en el mismo fin de semana cerrado.
  *
@@ -75,7 +77,7 @@ const SENDER_NAME = 'Auto-respondedor';
  * escribió dos veces sin que nadie le haya contestado nunca — y a ese repetirle
  * el mismo texto automático no le suma nada.
  */
-const VENTANA_ANTI_REPETICION_MS = 40 * 60 * 60 * 1000;
+const VENTANA_ANTI_REPETICION_MS = 41 * 60 * 60 * 1000;
 
 /**
  * Nombres de remitente que NO son una persona del equipo. Un saliente firmado
@@ -120,7 +122,7 @@ function buildAutoReplyText() {
         'Mientras tanto podés ver los modelos disponibles en atelieroptica.com.ar',
         '',
         '📍 José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba',
-        '🕐 Lunes a viernes de 8 a 20 hs · Sábados de 9 a 17 hs',
+        '🕐 Lunes a viernes de 9 a 20 hs · Sábados de 9 a 17 hs',
         '',
         'Formas de pago:',
         '- 20% de descuento en efectivo',

@@ -26,20 +26,22 @@ export const BUSINESS_INFO = {
   youtubeUrl: "https://www.youtube.com/@AtelierOptica",
   mapsUrl: "https://www.google.com/maps?cid=14830223812501661125",
   entityId: "https://atelieroptica.com.ar/#optica",
-  hours: "Lunes a Viernes de 8:00 a 20:00. Sábados de 9:00 a 17:00",
+  // 1/9/2026 (Ishtar): corrige el horario de apertura de semana, que estaba
+  // mal desde siempre en 8:00 — es 9:00. Sábados no cambia (9 a 17).
+  hours: "Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00",
   /**
    * Mismos horarios que `hours`, con el formato de viñetas que usan los mensajes
    * de WhatsApp al cliente. Existe para que ese bloque no se vuelva a copiar a
    * mano: ya pasó que quedara desactualizado en un lugar y el bot mandara
    * horarios inventados.
    */
-  hoursWhatsAppBlock: "*Horarios:*\n   • Lunes a viernes de 8:00 a 20:00\n   • Sábados de 9:00 a 17:00 hs",
+  hoursWhatsAppBlock: "*Horarios:*\n   • Lunes a viernes de 9:00 a 20:00\n   • Sábados de 9:00 a 17:00 hs",
   /** Mismos horarios que `hours`, en formato schema.org — mantener sincronizados. */
   openingHoursSpecification: [
     {
       "@type": "OpeningHoursSpecification",
       dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      opens: "08:00",
+      opens: "09:00",
       closes: "20:00",
     },
     {
@@ -53,12 +55,12 @@ export const BUSINESS_INFO = {
    * Franja para AGENDAR UNA CONSULTA GENERAL en el local (probarse armazones,
    * retirar, consultar). Coincide con el horario de atención.
    */
-  appointmentSlots: "de 8:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 (Sábados)",
+  appointmentSlots: "de 9:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 (Sábados)",
   /**
    * TOMA DE GRADUACIÓN (agudeza visual): SOLO en la siesta, de 12 a 16.
    *
    * Regla que dio Ishtar el 31/8/2026. No es lo mismo que `appointmentSlots`:
-   * el local atiende de 8 a 20, pero el examen visual se hace únicamente en
+   * el local atiende de 9 a 20, pero el examen visual se hace únicamente en
    * esa franja. Antes el sistema ofrecía turno para graduación en cualquier
    * horario de atención — o sea que se le podía dar a alguien un turno que
    * después no se le podía cumplir.

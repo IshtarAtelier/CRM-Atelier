@@ -46,11 +46,13 @@ export const TEMPLATE_LANGUAGE = 'es_AR';
 const STORE_URL = 'https://atelieroptica.com.ar';
 
 export const WHATSAPP_TEMPLATES = {
-    // HORARIO VIEJO ("9 a 20"): el real es L-V 8 a 20 y sábados 9 a 17
-    // (BUSINESS_INFO.hours). Meta congela el texto aprobado, así que el fix
-    // fue dar de alta la _v2 de abajo — APROBADA el 1/9, notify-ready y
-    // bot.service ya la usan. Esta queda solo como registro histórico de
-    // envíos viejos; no la reutilices para mandar.
+    // HORARIO VIEJO ("9 a 20"): en su momento el real era L-V 8 a 20 y sábados
+    // 9 a 17. Meta congela el texto aprobado, así que el fix fue dar de alta
+    // la _v2 de abajo — APROBADA el 1/9, notify-ready y bot.service ya la
+    // usan. Esta queda solo como registro histórico de envíos viejos; no la
+    // reutilices para mandar. OJO: el 1/9, el mismo día de la aprobación, el
+    // horario real volvió a "9 a 20" (BUSINESS_INFO.hours) — la _v2 quedó
+    // desactualizada también, ver su comentario.
     pedido_listo: {
         name: 'pedido_listo',
         inventario: 'A1',
@@ -59,6 +61,13 @@ export const WHATSAPP_TEMPLATES = {
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'nº de pedido', example: '#A1B2' }],
         buttons: [{ type: 'URL', text: 'Cómo llegar', url: 'https://maps.app.goo.gl/atelieroptica' }],
     },
+    // HORARIO DESACTUALIZADO DE NUEVO (1/9/26): esta plantilla se aprobó HOY
+    // con "8 a 20", y el mismo día el horario real volvió a ser "9 a 20". El
+    // texto de Meta queda congelado tal cual se aprobó — no se edita acá — así
+    // que hasta que se dé de alta y apruebe una _v3, el bot sigue mandando "8
+    // a 20" con este template. No tocar sin decisión explícita de Ishtar: cada
+    // versión nueva es una aprobación de Meta y category UTILITY no tiene costo
+    // por envío, pero sí el tiempo de revisión.
     pedido_listo_v2: {
         name: 'pedido_listo_v2',
         inventario: 'A1',
@@ -78,6 +87,9 @@ export const WHATSAPP_TEMPLATES = {
             { label: 'saldo tarjeta', example: '$ 120.000' }, { label: 'saldo transferencia', example: '$ 110.000' }, { label: 'saldo efectivo', example: '$ 105.000' },
         ],
     },
+    // Mismo caso que pedido_listo_v2: aprobada HOY (1/9) con "8 a 20", el
+    // horario real volvió a "9 a 20" el mismo día. No editar sin decisión
+    // explícita — ver el comentario de pedido_listo_v2.
     pedido_listo_saldo_v2: {
         name: 'pedido_listo_saldo_v2',
         inventario: 'A12',
@@ -170,6 +182,9 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Vi que te quedaron unos productos en el carrito de la tienda, ¿te surgió alguna duda? Si querés te doy una mano para terminarlo.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
+    // HORARIO: si esta plantilla ya está aprobada en Meta, el texto de abajo
+    // quedó congelado con "8:00 a 20:00" y el real es "9:00 a 20:00" desde el
+    // 1/9/26 — no editar el body sin decisión explícita (ver pedido_listo_v2).
     invitacion_local: {
         name: 'invitacion_local',
         inventario: 'E4 (segundo seguimiento: invitar al local)',
@@ -232,6 +247,9 @@ export const WHATSAPP_TEMPLATES = {
     // "tarjeta" en el medio para que no se lean como un solo paquete.
     // El importe real de la cuota (con su recargo adentro) lo cotiza después
     // el presupuesto, que sale de PricingService.
+    // HORARIO: si ya está aprobada, el body quedó con "8 a 20" y el real es
+    // "9 a 20" desde el 1/9/26 — no editar sin decisión explícita (ver
+    // pedido_listo_v2).
     promo_12_cuotas_v4: {
         name: 'promo_12_cuotas_v4',
         inventario: 'Campaña MP 12 cuotas v4 (sep 2026) — la vigente',

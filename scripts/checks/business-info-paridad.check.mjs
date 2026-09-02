@@ -89,9 +89,10 @@ const OBLIGATORIO = [
     // su texto "tal cual, sin cambiar absolutamente nada", y ese texto no la
     // trae. Es su mensaje; el check no lo reescribe.
     [new RegExp(BUSINESS_INFO.address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), 'el texto tiene que traer la dirección'],
-    // "de 8 a 20 hs" y "de 8:00 a 20:00" son el mismo horario: el check
-    // verifica que ESTÉ, no cómo se escribe.
-    [/Lunes a viernes de 8(:00)? a 20(:00)?/i, 'el texto tiene que traer el horario de semana'],
+    // "de 9 a 20 hs" y "de 9:00 a 20:00" son el mismo horario: el check
+    // verifica que ESTÉ, no cómo se escribe. Corregido el 1/9/26: el local
+    // abre a las 9, no a las 8 (BUSINESS_INFO.hours).
+    [/Lunes a viernes de 9(:00)? a 20(:00)?/i, 'el texto tiene que traer el horario de semana'],
     [/S[aá]bados de 9(:00)? a 17(:00)?/i, 'el texto tiene que traer el horario del sábado'],
     [/3 y 6 cuotas sin inter[eé]s/i, 'el texto tiene que aclarar que 3 y 6 cuotas son sin interés'],
     // El 10% de las 12 cuotas NO se exige: desde el 31/8/26 a la noche es la
