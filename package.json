@@ -14,6 +14,7 @@
     "verify": "node scripts/checks/verify-build.js",
     "check:gate": "node --experimental-strip-types scripts/checks/factory-gate.check.mjs",
     "check:ficha": "node scripts/checks/ficha-visible.check.mjs",
+    "check:humo": "node scripts/checks/humo-tienda.check.mjs",
     "check:catalog": "node --experimental-strip-types scripts/checks/catalog-resilience.check.mjs",
     "check:comprobantes": "node --experimental-strip-types scripts/checks/receipt-references.check.mjs",
     "check:adtag": "node --experimental-strip-types scripts/checks/ad-tag-paridad.check.mjs",

@@ -9,14 +9,27 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://atelieroptica.com.ar";
 
 /**
- * URL absoluta de la página actual. Usa `window.location` cuando existe (así el
- * link es exactamente el que ve el cliente, con su dominio real) y cae al
- * dominio canónico + pathname en el render del servidor.
+ * URL absoluta de la página actual, SIEMPRE sobre el dominio canónico.
+ *
+ * Antes esto tenía una rama `typeof window !== "undefined"` que devolvía
+ * `window.location.origin` en el cliente y `SITE_URL` en el servidor. Eso es
+ * exactamente el patrón que React nombra primero cuando explica un desajuste de
+ * hidratación ("A server/client branch"), y lo estaba produciendo de verdad: el
+ * `href` del botón flotante de WhatsApp salía distinto de los dos lados y React
+ * 19 reportaba el mismatch en /tienda y en cada ficha de producto. Medido con
+ * `npm run check:humo` el 2/9/26.
+ *
+ * Y el dominio canónico no es solo lo determinístico: es lo correcto. Esta URL
+ * viaja DENTRO de un mensaje de WhatsApp a un cliente. Con `window.location`,
+ * quien abría el sitio desde un dominio de preview —o desde localhost -- le
+ * mandaba al cliente un link que no puede abrir. El link que se comparte tiene
+ * que ser siempre el público.
+ *
+ * Ver también la nota de `buildWhatsAppUrl` acá abajo: es la misma lección
+ * aprendida por el otro lado (la frase de origen del anuncio tampoco puede
+ * entrar acá, porque vive solo en el navegador).
  */
 export function currentPageUrl(pathname?: string): string {
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}${window.location.pathname}`;
-  }
   return `${SITE_URL}${pathname || ""}`;
 }
 
