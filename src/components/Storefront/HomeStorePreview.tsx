@@ -49,8 +49,16 @@ export async function HomeStorePreview() {
               </h2>
               
               <div className="space-y-3">
+                {/* A-30 (auditoría 2/9/26): acá decía "Si no te animaste a
+                    comprar en la web, ¡te esperamos en nuestro local!". Era la
+                    única frase del sitio que nombraba la fricción de comprar
+                    online y, en vez de resolverla, la volvía oficial: le daba
+                    permiso a la persona para no comprar. Con 701 reseñas 5,0,
+                    envío gratis y 30 días de garantía de adaptación no hace
+                    falta pedir disculpas — el showroom es una opción más, no
+                    la salida para el que no se anima. */}
                 <p className="text-[#e6d0a3] text-lg font-medium leading-relaxed max-w-md">
-                  Si no te animaste a comprar en la web, ¡te esperamos en nuestro local!
+                  Probátelos 30 días: si no te adaptás, te los cambiamos.
                 </p>
                 <p className="text-stone-300 text-base md:text-lg font-light leading-relaxed max-w-md">
                   Vení a conocer nuestro espacio en Córdoba Capital. Te brindamos asesoramiento estético (visagismo) y técnico especializado en un ambiente diseñado para tu comodidad.
