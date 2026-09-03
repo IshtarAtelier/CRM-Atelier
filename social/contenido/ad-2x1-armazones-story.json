@@ -7,13 +7,13 @@
   "temas": [
     "armazones"
   ],
-  "caption": "2x1 en armazones seleccionados: llevás dos y pagás uno. El más barato de los dos va sin cargo, y se aplica solo en el carrito de la tienda online. 3 y 6 cuotas sin interés, y hasta 12 cuotas fijas. Envío gratis a todo el país o retiro en el local, en Cerro de las Rosas.",
+  "caption": "2x1 en armazones seleccionados: llevás dos y pagás uno. El más barato de los dos va sin cargo, y se aplica solo en el carrito de la tienda online. Mirá cuáles entran en la tienda — están marcados con el sello 2x1. 3 y 6 cuotas sin interés, y hasta 12 cuotas fijas. Envío gratis a todo el país o retiro en el local, en Cerro de las Rosas.",
   "slides": [
     {
       "type": "cover",
       "role": "portada",
       "image": "blog/blog3_eligiendo.png",
-      "title": "*2x1* en armazones",
+      "title": "*2x1* en armazones seleccionados",
       "subtitle": "Llevate dos y pagá uno — el más barato va sin cargo"
     }
   ]
