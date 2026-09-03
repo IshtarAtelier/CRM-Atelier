@@ -13,17 +13,29 @@ import { useEffect, useState } from "react";
  * se ve es la tienda sin promo, que siempre es cierto. Al revés —asumir que
  * está prendida— mostraría un 2x1 que el checkout no va a aplicar.
  */
-export function usePromo2x1(): boolean {
+export interface Promo2x1Web {
+    /** La promo está prendida Y hay armazones marcados. */
+    activa: boolean;
+    /** Ids de los armazones que entran. Vacío = ninguno. */
+    ids: Set<string>;
+}
+
+export function usePromo2x1(): Promo2x1Web {
     const [activa, setActiva] = useState(false);
+    const [ids, setIds] = useState<Set<string>>(() => new Set());
 
     useEffect(() => {
         let vivo = true;
         fetch("/api/store/promos")
             .then(r => (r.ok ? r.json() : null))
-            .then(d => { if (vivo && d) setActiva(d.dosPorUnoArmazones === true); })
+            .then(d => {
+                if (!vivo || !d) return;
+                setActiva(d.dosPorUnoArmazones === true);
+                setIds(new Set(Array.isArray(d.armazones2x1) ? d.armazones2x1 : []));
+            })
             .catch(() => { /* sin promo: el default ya es false */ });
         return () => { vivo = false; };
     }, []);
 
-    return activa;
+    return { activa, ids };
 }

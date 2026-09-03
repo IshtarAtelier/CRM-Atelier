@@ -13,7 +13,7 @@
  * Uso: node scripts/checks/promo-2x1-armazones.check.mjs
  */
 
-import { calcular2x1Armazones } from '../../src/lib/promo-2x1-armazones.ts';
+import { calcular2x1Armazones, armazonesDelCarrito } from '../../src/lib/promo-2x1-armazones.ts';
 
 const casos = [];
 let fallas = 0;
@@ -95,6 +95,47 @@ caso('cantidad 0: la línea no participa',
 caso('el descuento es como mucho la mitad del valor de los armazones',
     [arm('a', 136000), arm('b', 136000)], true,
     { descuento: 136000 });
+
+// ── El tilde: solo entran los armazones marcados en /admin/web ──────────────
+// Es la parte que decide QUÉ se regala. Un error acá regala un armazón que
+// nadie marcó, o no regala el que sí.
+const linea = (id, productId, precio, extra = {}) =>
+    ({ id, productId, price: precio, basePrice: precio, quantity: 1, ...extra });
+
+const casoTilde = (nombre, items, esMayorista, marcados, esperado) => {
+    const r = armazonesDelCarrito(items, esMayorista, new Set(marcados));
+    const dio = { cantidad: r.length, ids: r.map(x => x.id) };
+    const errores = Object.entries(esperado)
+        .filter(([k, v]) => JSON.stringify(dio[k]) !== JSON.stringify(v))
+        .map(([k, v]) => `${k}: esperaba ${JSON.stringify(v)}, dio ${JSON.stringify(dio[k])}`);
+    if (errores.length) { fallas++; casos.push({ nombre, errores }); }
+    else casos.push({ nombre, errores: null });
+};
+
+casoTilde('sin ningún armazón marcado, no entra nada',
+    [linea('l1', 'p1', 136000), linea('l2', 'p2', 150000)], false, [],
+    { cantidad: 0 });
+
+casoTilde('solo entra el marcado',
+    [linea('l1', 'p1', 136000), linea('l2', 'p2', 150000)], false, ['p2'],
+    { cantidad: 1, ids: ['l2'] });
+
+casoTilde('los dos marcados entran los dos',
+    [linea('l1', 'p1', 136000), linea('l2', 'p2', 150000)], false, ['p1', 'p2'],
+    { cantidad: 2, ids: ['l1', 'l2'] });
+
+casoTilde('mayorista: no entra ni el marcado',
+    [linea('l1', 'p1', 136000), linea('l2', 'p2', 150000)], true, ['p1', 'p2'],
+    { cantidad: 0 });
+
+casoTilde('el segundo par del 2x1 de Varilux queda afuera aunque esté marcado',
+    [linea('l1', 'p1', 136000), linea('l2', 'p1', 0, { lensConfig: { secondPair2x1: true } })],
+    false, ['p1'],
+    { cantidad: 1, ids: ['l1'] });
+
+casoTilde('un ítem sin productId no entra',
+    [linea('l1', undefined, 136000), linea('l2', 'p2', 150000)], false, ['p2'],
+    { cantidad: 1, ids: ['l2'] });
 
 // ── Salida ───────────────────────────────────────────────────────────────────
 console.log(`\n▶ 2x1 de armazones de la tienda — ${casos.length} casos\n`);

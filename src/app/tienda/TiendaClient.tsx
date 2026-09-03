@@ -238,7 +238,7 @@ export function TiendaClient({
   const [conteos, setConteos] = useState<{ marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number> } | null>(initialConteos);
 
   const [isWholesale, setIsWholesale] = useState(false);
-  const promo2x1Activa = usePromo2x1();
+  const { activa: promo2x1Activa, ids: idsPromo2x1 } = usePromo2x1();
   const [webSettings, setWebSettings] = useState({
     web_promo_cash_discount: 15,
     web_promo_installments: "6 cuotas sin interés"
@@ -892,7 +892,7 @@ export function TiendaClient({
                           está la categoría, arriba a la derecha "últimas N u." y
                           abajo a la izquierda "Titanio". Es la única esquina
                           libre, y así ningún sello tapa a otro. */}
-                      {promo2x1Activa && !isWholesale && (
+                      {promo2x1Activa && !isWholesale && idsPromo2x1.has(p.id) && (
                         <span className="absolute bottom-3 right-3 text-[10px] font-black uppercase tracking-[0.15em] bg-stone-950 text-[var(--dorado)] px-2.5 py-1 z-10 rounded-sm shadow-md">
                           2x1
                         </span>

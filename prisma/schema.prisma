@@ -324,6 +324,12 @@ model Product {
   // nadie entra en la promo hasta que alguien lo tilde. Antes se deducía de la
   // marca y regalaba armazones que no correspondían.
   eligible2x1           Boolean      @default(false)
+  // 2x1 de armazones de la TIENDA WEB: si este armazón entra en la promo.
+  // Campo aparte de `eligible2x1` a propósito: ese es del 2x1 de multifocales
+  // del mostrador. Compartir el tilde haría que marcar uno para la web lo
+  // vuelva regalable también en el local, sin que nadie lo haya decidido.
+  // Arranca en false — se marca a mano desde /admin/web.
+  eligible2x1Web        Boolean      @default(false)
   botRecommended        Boolean      @default(false)
   botLabel              String?
   ageGroup              String?

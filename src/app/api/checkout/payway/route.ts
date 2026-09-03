@@ -458,10 +458,13 @@ export async function POST(req: Request) {
       //  · mayoristas, que ya compran a precio mayorista;
       //  · el segundo par del 2x1 de Varilux, que ya vale $0 (bonificarlo otra
       //    vez sería descontar dos veces el mismo armazón);
-      //  · lo que no es armazón.
+      //  · lo que no es armazón;
+      //  · lo que no está MARCADO en /admin/web (`eligible2x1Web`). El
+      //    interruptor prende la promo; el tilde dice sobre qué armazones. Sin
+      //    tilde no se regala nada, aunque la promo esté prendida.
       // Se guarda el precio del ARMAZÓN, no el del ítem: si viene con cristales,
       // lo que se regala es el armazón, nunca los cristales.
-      if (!isWholesaleUser && !item.lensConfig?.secondPair2x1 && isFrame(dbProduct)) {
+      if (!isWholesaleUser && !item.lensConfig?.secondPair2x1 && isFrame(dbProduct) && (dbProduct as any).eligible2x1Web === true) {
         armazonesParaPromo.push({
           id: String(item.id ?? safeProductId ?? dbProduct.id),
           precioArmazon: effectiveFramePrice(dbProduct, isWholesaleUser),

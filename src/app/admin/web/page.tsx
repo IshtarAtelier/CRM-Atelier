@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Selector2x1Web } from "@/components/admin/Selector2x1Web";
 import { 
   Globe, 
   BookOpen, 
@@ -1497,6 +1498,22 @@ export default function WebManagementPage() {
                         </p>
                       </div>
                     </label>
+
+                    {/* La lista de armazones solo aparece con la promo prendida.
+                        Apagada, elegir cuáles entran es trabajo que no hace nada
+                        — y ocupa media pantalla del panel. */}
+                    {configForm.web_promo_2x1_frames && (
+                      <div className="mt-4 pt-4 border-t border-stone-200 dark:border-stone-800">
+                        <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">
+                          Qué armazones entran
+                        </p>
+                        <p className="text-[11px] text-stone-500 mb-3 leading-relaxed">
+                          El interruptor de arriba prende la promo; acá se elige sobre qué armazones.
+                          Se guarda con el botón, no al tildar.
+                        </p>
+                        <Selector2x1Web />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

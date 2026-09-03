@@ -163,10 +163,18 @@ export function armazonesDelCarrito(
         lensConfig?: { secondPair2x1?: boolean } | null;
     }[],
     esMayorista: boolean,
+    /**
+     * Ids de los armazones marcados en /admin/web. Solo esos entran.
+     * Un Set vacío significa que no entra ninguno — y eso es lo correcto: la
+     * promo se prende con el interruptor, pero sobre QUÉ se aplica lo dice el
+     * tilde. Sin tildes no hay 2x1.
+     */
+    marcados: Set<string>,
 ): ArmazonEnCarrito[] {
     if (esMayorista) return [];
     return items
         .filter(i => !!i.productId && i.productId !== 'unknown')
+        .filter(i => marcados.has(i.productId as string))
         .filter(i => !i.lensConfig?.secondPair2x1)
         .map(i => ({
             id: i.id,

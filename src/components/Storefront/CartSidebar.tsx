@@ -18,10 +18,10 @@ import { ETIQUETA_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
 export function CartSidebar() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal } = useCart();
   const { isWholesale } = useIsWholesale();
-  const promo2x1Activa = usePromo2x1();
+  const { activa: promo2x1Activa, ids: idsPromo2x1 } = usePromo2x1();
   // El descuento se calcula con la MISMA función que usa la ruta de pago. Acá
   // es solo para mostrar: quien cobra es el servidor, contra la base.
-  const promo2x1 = calcular2x1Armazones(armazonesDelCarrito(items, isWholesale), promo2x1Activa);
+  const promo2x1 = calcular2x1Armazones(armazonesDelCarrito(items, isWholesale, idsPromo2x1), promo2x1Activa);
   const totalConPromo = Math.max(0, getCartTotal(isWholesale) - promo2x1.descuento);
   useWholesaleCartBackfill(isWholesale);
   const [mounted, setMounted] = useState(false);

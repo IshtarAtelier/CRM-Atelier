@@ -79,8 +79,8 @@ export function CheckoutClient({
   // número y el resumen otro.
   // El orden es 2x1 → cupón → método de pago. El 2x1 cambia QUÉ se vende; el
   // cupón y el 15% son descuentos sobre lo que quedó a pagar.
-  const promo2x1Activa = usePromo2x1();
-  const promo2x1 = calcular2x1Armazones(armazonesDelCarrito(items, !!isWholesale), promo2x1Activa);
+  const { activa: promo2x1Activa, ids: idsPromo2x1 } = usePromo2x1();
+  const promo2x1 = calcular2x1Armazones(armazonesDelCarrito(items, !!isWholesale, idsPromo2x1), promo2x1Activa);
   const totalConPromo2x1 = Math.max(0, getCartTotal(!!isWholesale) - promo2x1.descuento);
 
   // Monto del descuento por cupón, calculado sobre el subtotal actual (solo display;
