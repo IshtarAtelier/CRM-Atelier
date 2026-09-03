@@ -17,6 +17,15 @@ export interface WebSettings {
   // abandonado (24hs). Debe ser un código existente en el modelo Coupon; el
   // descuento real (monto/%) sale de esa fila, no de acá. Vacío = email sin cupón.
   web_recovery_coupon_code: string;
+  /**
+   * 2x1 en ARMAZONES de la tienda web: dos al carrito, se paga el más caro.
+   * Es un interruptor y no una constante porque esta promo regala producto
+   * —un armazón de la tienda son $136.000— y tiene que poder apagarse desde
+   * /admin/web sin esperar un deploy. La regla vive en
+   * `src/lib/promo-2x1-armazones.ts`; acá solo se decide si corre.
+   * Nada que ver con el 2x1 de multifocales del CRM, que es otra promo.
+   */
+  web_promo_2x1_frames: boolean;
 }
 
 export const defaultWebSettings: WebSettings = {
@@ -34,6 +43,9 @@ export const defaultWebSettings: WebSettings = {
   web_promo_installments: TEXTO_CUOTAS_POR_DEFECTO,
   web_promo_cash_discount: 15,
   web_recovery_coupon_code: "",
+  // Apagada por defecto: una promo que regala armazones se prende a propósito,
+  // nunca por venir así de fábrica.
+  web_promo_2x1_frames: false,
 };
 
 export async function getWebSettings(): Promise<WebSettings> {

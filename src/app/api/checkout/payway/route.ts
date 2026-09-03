@@ -9,6 +9,8 @@ import { CrystalMapping } from '@/lib/config/crystal-mapping';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
 import { recalculateItemPrice, effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
+import { calcular2x1Armazones } from '@/lib/promo-2x1-armazones';
+import { isFrame } from '@/lib/promo-utils';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
 import { notifyZeroCostSale } from '@/lib/zero-cost-alert';
 import { notifyPaymentFailed } from '@/lib/payment-failed-alert';
@@ -414,6 +416,10 @@ export async function POST(req: Request) {
     // Recalculate prices and verify total
     let recalculatedItemsTotal = 0;
     const sanitizedItems = [];
+    // Armazones candidatos al 2x1 de la tienda. Se juntan acá adentro del loop
+    // porque el precio que vale es el que se acaba de leer de la DB, no el que
+    // mandó el cliente.
+    const armazonesParaPromo: { id: string; precioArmazon: number; cantidad: number }[] = [];
 
     for (const item of items) {
       // Cantidad: entero positivo y acotado. Sin esto, un qty negativo produce
@@ -448,11 +454,38 @@ export async function POST(req: Request) {
 
       recalculatedItemsTotal += calculatedPrice * item.quantity;
 
+      // 2x1 de armazones de la tienda. Tres exclusiones, cada una por su motivo:
+      //  · mayoristas, que ya compran a precio mayorista;
+      //  · el segundo par del 2x1 de Varilux, que ya vale $0 (bonificarlo otra
+      //    vez sería descontar dos veces el mismo armazón);
+      //  · lo que no es armazón.
+      // Se guarda el precio del ARMAZÓN, no el del ítem: si viene con cristales,
+      // lo que se regala es el armazón, nunca los cristales.
+      if (!isWholesaleUser && !item.lensConfig?.secondPair2x1 && isFrame(dbProduct)) {
+        armazonesParaPromo.push({
+          id: String(item.id ?? safeProductId ?? dbProduct.id),
+          precioArmazon: effectiveFramePrice(dbProduct, isWholesaleUser),
+          cantidad: item.quantity,
+        });
+      }
+
       sanitizedItems.push({
         ...item,
         productId: safeProductId,
         price: calculatedPrice
       });
+    }
+
+    // ── 2x1 de armazones ────────────────────────────────────────────────────
+    // Se aplica ACÁ, sobre precios leídos de la DB, y no en el carrito del
+    // navegador: el carrito solo muestra: quien cobra es esta línea. Si el
+    // cliente manda un total más bajo del que le corresponde, la guarda de
+    // abajo lo rechaza igual.
+    const promo2x1 = calcular2x1Armazones(armazonesParaPromo, webSettings.web_promo_2x1_frames === true);
+    if (promo2x1.aplica) {
+      // Piso en 0 por las dudas: ningún descuento puede dar una orden negativa.
+      recalculatedItemsTotal = Math.max(0, recalculatedItemsTotal - promo2x1.descuento);
+      console.log(`[PAYWAY CHECKOUT] 2x1 armazones: ${promo2x1.bonificados} bonificado(s), -$${promo2x1.descuento}`);
     }
 
     console.log("[PAYWAY CHECKOUT] Precio recalculado backend:", recalculatedItemsTotal, "| Total frontend:", total, "| Diferencia:", Math.abs(recalculatedItemsTotal - total));
