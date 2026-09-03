@@ -129,9 +129,40 @@ if (isMetaAutoReplyText(texto)) {
 // WhatsApp corta feo los mensajes larguísimos; este tiene que entrar cómodo.
 if (texto.length > 1000) fallar(`El mensaje mide ${texto.length} caracteres: demasiado largo para WhatsApp.`);
 
+// ── El pie de las placas de redes ───────────────────────────────────────────
+//
+// `scripts/social/plantillas.mjs` estampa dirección y horario en TODAS las
+// placas, y también tiene su copia: corre con node pelado y no puede importar
+// un .ts. Hasta el 2/9/26 esa copia se sincronizaba "a mano", según pedía un
+// comentario. No se sincronizó: decía "Lun a Vie 8–20" cuando el horario ya era
+// 9–20, y todas las placas renderizadas desde el cambio salieron con el horario
+// viejo. Se descubrió mirando una placa recién hecha, no por un check.
+//
+// Se compara el HORARIO por sus números, no el texto: el pie usa la forma corta
+// ("Lun a Vie 9–20 · Sáb 9–17") y BUSINESS_INFO la larga ("Lunes a Viernes de
+// 9:00 a 20:00…"). Lo que tiene que coincidir son las horas.
+const { DIRECCION_PIE, HORARIO_PIE } = await import(pathToFileURL(resolve(raiz, 'scripts/social/plantillas.mjs')).href);
+
+const horasDe = (t) => (String(t).match(/\b\d{1,2}(?=[:\s–-]|$)/g) || []).map(Number);
+const horasPie = horasDe(HORARIO_PIE);
+const horasInfo = horasDe(BUSINESS_INFO.hours).filter(h => h !== 0);
+
+if (JSON.stringify(horasPie) !== JSON.stringify(horasInfo)) {
+    fallar(`El pie de las placas dice "${HORARIO_PIE}" (${horasPie.join('/')}) pero ` +
+        `BUSINESS_INFO.hours dice "${BUSINESS_INFO.hours}" (${horasInfo.join('/')}). ` +
+        `Corregir HORARIO_PIE en scripts/social/plantillas.mjs.`);
+}
+
+// La dirección: que el número de la calle del pie sea el de BUSINESS_INFO.
+const nroPie = (DIRECCION_PIE.match(/\d{3,5}/) || [])[0];
+const nroInfo = (String(BUSINESS_INFO.address || '').match(/\d{3,5}/) || [])[0];
+if (nroPie && nroInfo && nroPie !== nroInfo) {
+    fallar(`El pie de las placas dice la altura ${nroPie} y BUSINESS_INFO dice ${nroInfo}.`);
+}
+
 if (fallas) {
     console.error(`\n❌ ${fallas} problema(s). El espejo de wa-service tiene que copiar los valores de src/, no corregirlos.`);
     process.exit(1);
 }
 
-console.log(`✅ Datos comerciales del wa-service en paridad con src/ (${ESPEJO.length} valores) y mensaje del auto-respondedor válido (${texto.length} caracteres).`);
+console.log(`✅ Datos comerciales del wa-service en paridad con src/ (${ESPEJO.length} valores), pie de las placas al día (${HORARIO_PIE}) y mensaje del auto-respondedor válido (${texto.length} caracteres).`);

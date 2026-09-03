@@ -37,10 +37,23 @@ const resaltar = (texto) =>
 const comoUrl = (dataUri) => dataUri;
 
 // Dirección y horarios en TODAS las placas (pedido de Ishtar 27/8/26: "sí o
-// sí"). Si cambian, actualizar TAMBIÉN src/lib/business-info.ts — es el mismo
-// dato; acá va la versión corta que entra en un renglón del pie.
+// sí"). Es la versión corta, la que entra en un renglón del pie.
+//
+// Este archivo NO puede importar `src/lib/business-info.ts`: los scripts de
+// social corren con node pelado y ese archivo es TypeScript. Así que sí, es una
+// copia — pero una copia VIGILADA: `npm run check:businessinfo` compara estas
+// dos constantes contra `BUSINESS_INFO` y falla si se separan.
+//
+// La vigilancia no es teórica. Acá decía "Lun a Vie 8–20" con un comentario que
+// pedía sincronizar a mano. Cuando el 2/9/26 los horarios pasaron a 9–20, el
+// comentario no alcanzó: TODAS las placas que se renderizaron desde entonces
+// salieron con el horario viejo, y se descubrió de casualidad al mirar una
+// recién hecha. Un recordatorio en un comentario no es un mecanismo.
 const DIRECCION_PIE = 'Tejeda 4380 · Cerro de las Rosas';
-const HORARIO_PIE = 'Lun a Vie 8–20 · Sáb 9–17';
+const HORARIO_PIE = 'Lun a Vie 9–20 · Sáb 9–17';
+
+// Exportadas solo para que el check de paridad pueda leerlas.
+export { DIRECCION_PIE, HORARIO_PIE };
 
 function pie(id) {
     // El logo va alineado VERTICALMENTE AL CENTRO con el handle, no al fondo de
