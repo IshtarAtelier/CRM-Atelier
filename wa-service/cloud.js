@@ -95,7 +95,22 @@ function dispatchInbound(msg, res) {
 // Solo recibe ENTRANTES reales: los ecos del celular (smb_message_echoes) los
 // persiste `persistEcho` y jamás pasan por acá, así que ningún automatismo le
 // contesta a un mensaje que escribió el propio negocio.
-app.use('/webhook/whatsapp', createWebhookRouter({ io, onInbound: dispatchInbound }));
+// Rechazo de Meta que es de la CUENTA (pago, plantilla rota): aviso por email
+// a la administración, como mucho uno por hora por código. Un problema de
+// cuenta mata TODOS los envíos hasta que alguien lo arregle en Meta, y el
+// 3/9/26 pasó una semana entera sin que nadie lo viera.
+const alertasDeCuenta = new Map(); // code -> última vez (ms)
+async function onStatus(s, r) {
+    if (!r || !r.deCuenta) return;
+    const ultima = alertasDeCuenta.get(r.code) || 0;
+    if (Date.now() - ultima < 60 * 60 * 1000) return;
+    alertasDeCuenta.set(r.code, Date.now());
+    await transport.notifyAdminDown(
+        `WhatsApp: Meta está rechazando los envíos (código ${r.code})`,
+        `Meta rechazó un WhatsApp al ${r.waId || '?'}${r.senderName ? ` mandado por ${r.senderName}` : ''}.\n\nMotivo: ${r.motivo}\n\nMientras esto siga, NINGÚN mensaje fuera de la ventana de 24 h llega (pedidos listos, presupuestos, comprobantes), aunque la ficha diga "enviado". Cada rechazo deja una nota de error y una tarea en la ficha del cliente. Este aviso se repite como mucho una vez por hora.`,
+    ).catch(() => {});
+}
+app.use('/webhook/whatsapp', createWebhookRouter({ io, onInbound: dispatchInbound, onStatus }));
 
 app.use(express.json({ limit: '10mb' }));
 

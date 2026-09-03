@@ -145,8 +145,8 @@ function createWebhookRouter(deps = {}) {
             }
             for (const s of statuses) {
                 try {
-                    await persistStatus(s, { io: deps.io });
-                    if (deps.onStatus) await deps.onStatus(s);
+                    const r = await persistStatus(s, { io: deps.io });
+                    if (deps.onStatus) await deps.onStatus(s, r);
                 } catch (e) {
                     console.error('[Webhook] Error procesando estado:', e.message);
                 }

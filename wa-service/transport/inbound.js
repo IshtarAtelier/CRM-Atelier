@@ -324,21 +324,81 @@ async function persistEchoUnlocked(e, { io } = {}) {
  * Meta manda uno por transición; se guarda el más avanzado.
  */
 const STATUS_RANK = { SENT: 1, DELIVERED: 2, READ: 3, FAILED: 9 };
+
+/**
+ * Qué significa cada rechazo de Meta, en criollo, para la ficha del cliente.
+ * `cuenta: true` = el problema es de NUESTRA cuenta (todo envío muere igual),
+ * no del número del cliente: hay que avisar a la administración, no al vendedor.
+ * Códigos: https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes
+ */
+const META_ERRORES = {
+    131042: { texto: 'problema de pago de la cuenta de WhatsApp Business (Meta no cobra la conversación). Se arregla en WhatsApp Manager → Configuración → Métodos de pago.', cuenta: true },
+    131047: { texto: 'pasaron más de 24 h desde el último mensaje del cliente y no salió como plantilla.', cuenta: false },
+    131026: { texto: 'el número no tiene WhatsApp o bloqueó al negocio.', cuenta: false },
+    131049: { texto: 'Meta frenó el mensaje de marketing (el cliente recibió demasiados esta semana).', cuenta: false },
+    132000: { texto: 'las variables de la plantilla no coinciden con lo aprobado en Meta.', cuenta: true },
+    132001: { texto: 'la plantilla no existe o no está aprobada en Meta.', cuenta: true },
+    132015: { texto: 'la plantilla está pausada en Meta por baja calidad.', cuenta: true },
+    130472: { texto: 'el cliente pidió no recibir mensajes de marketing por WhatsApp.', cuenta: false },
+};
+
+/**
+ * Actualiza el estado de un saliente: sent → delivered → read, o failed.
+ * Meta manda uno por transición; se guarda el más avanzado.
+ *
+ * Un FAILED es la ÚNICA señal de que un mensaje que Meta aceptó (HTTP 200,
+ * la ficha ya decía "✅ enviado") nunca llegó. Del 28/8 al 3/9/26 murieron
+ * así 45 mensajes — avisos de pedido listo, presupuestos, un comprobante —
+ * por un problema de pago de la cuenta (131042), y nadie se enteró porque
+ * el rechazo solo quedaba en un console.warn de Railway. Ahora deja rastro
+ * donde se mira: una nota de error y una tarea en la ficha del cliente.
+ * Devuelve el error interpretado para que cloud.js alerte a la administración
+ * cuando el problema es de la cuenta.
+ */
 async function persistStatus(s, { io } = {}) {
-    if (!s?.id || !s?.status) return;
+    if (!s?.id || !s?.status) return null;
     const status = String(s.status).toUpperCase(); // sent|delivered|read|failed
-    const row = await prisma.whatsAppMessage.findUnique({ where: { waMessageId: s.id }, select: { id: true, chatId: true, status: true } });
-    if (!row) return; // saliente que no salió de acá (p. ej. de otro sistema): se ignora
+    const row = await prisma.whatsAppMessage.findUnique({
+        where: { waMessageId: s.id },
+        select: { id: true, chatId: true, status: true, content: true, senderName: true, templateName: true, chat: { select: { clientId: true, waId: true } } },
+    });
+    if (!row) return null; // saliente que no salió de acá (p. ej. de otro sistema): se ignora
     const cur = STATUS_RANK[row.status] || 0;
-    if ((STATUS_RANK[status] || 0) <= cur && status !== 'FAILED') return;
-    const data = { status };
-    if (status === 'FAILED') {
-        const err = s.errors?.[0];
-        if (err) data.content = undefined; // el contenido no se toca; el motivo va al log
-        console.warn(`[Status] Envío ${s.id} FAILED: ${err?.code || ''} ${err?.title || ''} ${err?.message || ''}`);
-    }
-    await prisma.whatsAppMessage.update({ where: { id: row.id }, data }).catch(() => {});
+    if ((STATUS_RANK[status] || 0) <= cur && status !== 'FAILED') return null;
+    const yaEraFailed = row.status === 'FAILED';
+    await prisma.whatsAppMessage.update({ where: { id: row.id }, data: { status } }).catch(() => {});
     if (io) io.emit('chat_updated', { chatId: row.chatId });
+    if (status !== 'FAILED') return null;
+
+    const err = s.errors?.[0] || {};
+    const code = Number(err.code) || 0;
+    const conocido = META_ERRORES[code];
+    const motivo = conocido ? conocido.texto : `${err.title || 'error'} ${err.message || ''} (código ${code || '?'})`.trim();
+    console.warn(`[Status] Envío ${s.id} FAILED: ${code} ${err.title || ''} ${err.message || ''}`);
+
+    // Rastro en la ficha (una sola vez por mensaje: Meta puede repetir el estado).
+    if (row.chat?.clientId && !yaEraFailed) {
+        const resumen = (row.content || '').replace(/\s+/g, ' ').slice(0, 90);
+        const quien = row.senderName ? ` (lo mandó ${row.senderName})` : '';
+        await prisma.interaction.create({
+            data: {
+                clientId: row.chat.clientId,
+                type: 'ERROR',
+                userName: 'Sistema',
+                content: `⚠️ WhatsApp NO entregado — Meta lo rechazó: ${motivo}${quien}. Mensaje: "${resumen}"`,
+            },
+        }).catch(e => console.error('[Status] No se pudo anotar el rechazo en la ficha:', e.message));
+        await prisma.clientTask.create({
+            data: {
+                clientId: row.chat.clientId,
+                type: 'TASK',
+                status: 'PENDING',
+                createdBy: 'Sistema (WhatsApp)',
+                description: `⚠️ Un WhatsApp al cliente NO llegó (${conocido?.cuenta ? 'problema de la cuenta, no del cliente' : 'problema con este número'}): "${resumen}". ${conocido?.cuenta ? 'Cuando la cuenta esté arreglada, reenviarlo.' : 'Contactarlo por otro medio o revisar el número.'}`,
+            },
+        }).catch(e => console.error('[Status] No se pudo crear la tarea del rechazo:', e.message));
+    }
+    return { code, motivo, deCuenta: !!conocido?.cuenta, waId: row.chat?.waId, senderName: row.senderName };
 }
 
 module.exports = { persistInbound, persistStatus, persistEcho, findClientIdByPhone };
