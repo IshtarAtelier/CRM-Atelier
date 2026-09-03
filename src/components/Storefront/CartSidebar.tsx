@@ -6,6 +6,8 @@ import { WHOLESALE_MIN_PIECES } from "@/lib/constants";
 import { X, Trash2, ChevronRight, ShieldCheck, Truck, CreditCard, Building2, Handshake } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { calcular2x1Armazones, armazonesDelCarrito } from "@/lib/promo-2x1-armazones";
+import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { Modal } from "@/components/ui/Modal";
 import { LensConfigurator } from "@/components/Storefront/LensConfigurator";
 import Image from "next/image";
@@ -16,6 +18,11 @@ import { ETIQUETA_MP_CUOTAS_LARGAS } from "@/lib/promo-cuotas";
 export function CartSidebar() {
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, getCartTotal } = useCart();
   const { isWholesale } = useIsWholesale();
+  const promo2x1Activa = usePromo2x1();
+  // El descuento se calcula con la MISMA función que usa la ruta de pago. Acá
+  // es solo para mostrar: quien cobra es el servidor, contra la base.
+  const promo2x1 = calcular2x1Armazones(armazonesDelCarrito(items, isWholesale), promo2x1Activa);
+  const totalConPromo = Math.max(0, getCartTotal(isWholesale) - promo2x1.descuento);
   useWholesaleCartBackfill(isWholesale);
   const [mounted, setMounted] = useState(false);
   const [configuringItemId, setConfiguringItemId] = useState<string | null>(null);
@@ -156,16 +163,56 @@ export function CartSidebar() {
                     <span>Precio Neto</span>
                   </div>
                 )}
+                {/* El 2x1, cuando entró: se dice qué se ahorró y cuánto.
+                    Va ARRIBA del subtotal porque explica por qué el número de
+                    abajo bajó — si apareciera después, se leería como un cargo. */}
+                {promo2x1.aplica && (
+                  <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-stone-800 bg-stone-950 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--dorado)]">2x1 aplicado</p>
+                      <p className="text-[11px] font-semibold text-stone-300 mt-0.5">
+                        {promo2x1.bonificados === 1 ? "1 armazón sin cargo" : `${promo2x1.bonificados} armazones sin cargo`}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-sm font-black text-[var(--dorado)]">
+                      −${promo2x1.descuento.toLocaleString("es-AR")}
+                    </span>
+                  </div>
+                )}
+
+                {/* El empujón: solo cuando falta UNO. Con dos o más faltando, el
+                    mensaje deja de ser una oportunidad al alcance y pasa a ser
+                    una condición de venta. */}
+                {promo2x1Activa && !isWholesale && promo2x1.faltanParaElProximo === 1 && (
+                  <div className="mb-3 rounded-xl border border-dashed border-stone-400 bg-white px-4 py-3">
+                    <p className="text-[11px] font-bold text-stone-800 leading-snug">
+                      Sumá <span className="font-black">un armazón más</span> y te llevás el más barato de los dos <span className="font-black">sin cargo</span>.
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-xs font-black uppercase tracking-widest text-stone-500">Subtotal</span>
-                  <span className="text-xl font-light">${getCartTotal(isWholesale).toLocaleString("es-AR")}</span>
+                  <span className="flex items-baseline gap-2">
+                    {promo2x1.aplica && (
+                      <span className="text-sm font-medium text-stone-400 line-through decoration-1">
+                        ${getCartTotal(isWholesale).toLocaleString("es-AR")}
+                      </span>
+                    )}
+                    <span className="text-xl font-light">${totalConPromo.toLocaleString("es-AR")}</span>
+                  </span>
                 </div>
 
                 {/* Números resueltos en el paso de mayor abandono: cuánto por
                     cuota, cuánto al contado y cuánto en 12 — el cliente no
                     calcula nada (los valores salen de PricingService). */}
-                {!isWholesale && getCartTotal(false) > 0 && (() => {
-                  const v = PricingService.preciosVidriera(getCartTotal(false), 15);
+                {/* Sobre `totalConPromo`, no sobre el subtotal: si el 2x1 ya
+                    entró, las cuotas y el contado se calculan sobre lo que se
+                    paga de verdad. Con el bruto, el cliente vería una cuota más
+                    alta que la que le van a cobrar. Primero el 2x1, después el
+                    15% — al revés el descuento daría negativo. */}
+                {!isWholesale && totalConPromo > 0 && (() => {
+                  const v = PricingService.preciosVidriera(totalConPromo, 15);
                   return (
                     // Orden de venta (pedido de Ishtar, 27/8): primero 12,
                     // después 6, después transferencia.

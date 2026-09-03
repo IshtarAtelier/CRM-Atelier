@@ -10,6 +10,7 @@ import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
+import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { PricingService } from "@/services/PricingService";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { UMBRAL_ULTIMAS_UNIDADES } from "@/lib/constants/social-proof";
@@ -237,6 +238,7 @@ export function TiendaClient({
   const [conteos, setConteos] = useState<{ marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number> } | null>(initialConteos);
 
   const [isWholesale, setIsWholesale] = useState(false);
+  const promo2x1Activa = usePromo2x1();
   const [webSettings, setWebSettings] = useState({
     web_promo_cash_discount: 15,
     web_promo_installments: "6 cuotas sin interés"
@@ -490,6 +492,54 @@ export function TiendaClient({
             Armazones seleccionados a mano. Cada pieza elegida por diseño, calidad y carácter.
           </p>
         </div>
+
+        {/* ── La placa del 2x1 ────────────────────────────────────────────────
+            Solo aparece con la promo prendida en /admin/web; apagada, la tienda
+            queda exactamente como estaba.
+
+            Va acá y no arriba de todo a propósito: arriba está la barra de
+            anuncios, que rota entre cuotas, 15% y envío. Un 2x1 que regala un
+            armazón no puede entrar en una rotación donde le toca un tercio del
+            tiempo — necesita un lugar fijo, y este es el primero que se ve
+            después del título, antes del primer anteojo.
+
+            Negra con dorado, como la placa del carrusel: es la misma familia de
+            "esto es lo importante". El dorado sobre negro es `--dorado`, el que
+            la tabla de contraste de globals.css marca para fondo oscuro. */}
+        {promo2x1Activa && !isWholesale && (
+          <div className="mt-4 relative overflow-hidden rounded-2xl bg-stone-950 px-5 py-4 sm:px-8 sm:py-7">
+            <div
+              className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[var(--dorado)]/20 blur-[70px] pointer-events-none"
+              aria-hidden="true"
+            />
+            <div className="relative flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--dorado)]">
+                  Promo del mes
+                </p>
+                <p className="mt-1 text-2xl sm:text-4xl font-serif tracking-tight text-white">
+                  2x1 en armazones
+                </p>
+                <p className="mt-1.5 text-[13px] sm:text-sm text-stone-300 leading-snug sm:leading-relaxed max-w-md">
+                  Llevate dos y pagá uno: el más barato va{" "}
+                  <span className="font-bold text-white">sin cargo</span>.
+                  <span className="hidden sm:inline"> Se aplica solo en el carrito.</span>
+                </p>
+              </div>
+              {/* Un <a> de verdad, no un <span> con forma de botón. Ya estamos
+                  en /tienda, así que baja a la grilla en vez de navegar: la
+                  placa está arriba de todo y sin esto el llamado no llevaba a
+                  ningún lado — parecía un botón roto. */}
+              <a
+                href="#grilla"
+                className="shrink-0 self-start sm:self-auto inline-flex items-center gap-2 rounded-full bg-[var(--dorado)] px-5 py-2.5 sm:py-3 min-h-11 text-[11px] font-black uppercase tracking-widest text-stone-950 transition-transform duration-300 hover:scale-105"
+              >
+                Elegí los dos
+                <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── A-05 y A-15: acá vivía un hero decorativo de 350 px en celular
@@ -690,7 +740,8 @@ export function TiendaClient({
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-8 md:gap-y-14"
+              id="grilla"
+            className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-8 md:gap-y-14"
             >
               {loadError ? (
                 <div className="col-span-full py-16 flex flex-col items-center justify-center text-center">
@@ -834,6 +885,16 @@ export function TiendaClient({
                       {!isWholesale && typeof p.stock === 'number' && p.stock > 0 && p.stock <= UMBRAL_ULTIMAS_UNIDADES && (
                         <span className="absolute top-3 right-3 text-[10px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1 z-10 rounded-sm shadow-sm">
                           ¡Últimas {p.stock} u.!
+                        </span>
+                      )}
+
+                      {/* Sello 2x1. Abajo a la derecha: arriba a la izquierda
+                          está la categoría, arriba a la derecha "últimas N u." y
+                          abajo a la izquierda "Titanio". Es la única esquina
+                          libre, y así ningún sello tapa a otro. */}
+                      {promo2x1Activa && !isWholesale && (
+                        <span className="absolute bottom-3 right-3 text-[10px] font-black uppercase tracking-[0.15em] bg-stone-950 text-[var(--dorado)] px-2.5 py-1 z-10 rounded-sm shadow-md">
+                          2x1
                         </span>
                       )}
 

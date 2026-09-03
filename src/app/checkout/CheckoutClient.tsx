@@ -1,6 +1,8 @@
 "use client";
 
 import { useCart } from "@/store/useCart";
+import { calcular2x1Armazones, armazonesDelCarrito } from "@/lib/promo-2x1-armazones";
+import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { useWholesaleCartBackfill } from "@/hooks/useIsWholesale";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { useEffect, useState, useRef } from "react";
@@ -69,11 +71,23 @@ export function CheckoutClient({
   // para que el resumen muestre lo que el backend efectivamente va a cobrar.
   useWholesaleCartBackfill(isWholesale);
 
+  // ── 2x1 de armazones ──────────────────────────────────────────────────────
+  // Mismo cálculo que la ruta de pago (`promo-2x1-armazones.ts`). De acá para
+  // abajo, TODO lo que hable de plata sale de `totalConPromo2x1` y no de
+  // `getCartTotal`: el botón, el cupón, las cuotas, el tracking y lo que se le
+  // manda al backend. Si alguno se quedara con el bruto, el botón diría un
+  // número y el resumen otro.
+  // El orden es 2x1 → cupón → método de pago. El 2x1 cambia QUÉ se vende; el
+  // cupón y el 15% son descuentos sobre lo que quedó a pagar.
+  const promo2x1Activa = usePromo2x1();
+  const promo2x1 = calcular2x1Armazones(armazonesDelCarrito(items, !!isWholesale), promo2x1Activa);
+  const totalConPromo2x1 = Math.max(0, getCartTotal(!!isWholesale) - promo2x1.descuento);
+
   // Monto del descuento por cupón, calculado sobre el subtotal actual (solo display;
   // el backend lo vuelve a validar y calcular al pagar). No aplica a mayoristas.
   const couponDiscount = (() => {
     if (!appliedCoupon || isWholesale) return 0;
-    const subtotal = getCartTotal();
+    const subtotal = totalConPromo2x1;
     const raw = appliedCoupon.discountType === 'PERCENT'
       ? Math.round((subtotal * appliedCoupon.discountValue) / 100)
       : Math.round(appliedCoupon.discountValue);
@@ -86,7 +100,7 @@ export function CheckoutClient({
   useEffect(() => {
     if (mounted && items.length > 0 && !initiatedRef.current) {
       try {
-        trackInitiateCheckout(items, getCartTotal(isWholesale));
+        trackInitiateCheckout(items, totalConPromo2x1);
         initiatedRef.current = true;
       } catch (e) {
         console.error("InitiateCheckout tracking error:", e);
@@ -298,7 +312,7 @@ export function CheckoutClient({
       try {
         // Mismo criterio que las otras ramas: el event_id es el id de la orden,
         // así Meta descarta el duplicado contra el que ya mandó el servidor.
-        if (orderId) trackPurchase(orderId, getCartTotal(isWholesale), items);
+        if (orderId) trackPurchase(orderId, totalConPromo2x1, items);
       } catch (e) {
         console.error("Purchase tracking error:", e);
       }
@@ -356,7 +370,7 @@ export function CheckoutClient({
               shippingMethod: formData.shippingMethod,
               shippingBranch: formData.shippingBranch
             },
-            total: getCartTotal(isWholesale)
+            total: totalConPromo2x1
           };
 
           try {
@@ -369,7 +383,7 @@ export function CheckoutClient({
             if (data.sessionId && !sessionId) {
               localStorage.setItem("atelier-checkout-session-id", data.sessionId);
               // Etapa del embudo: dejó datos de contacto en el checkout (una vez).
-              track('add_contact', { value: getCartTotal(isWholesale) });
+              track('add_contact', { value: totalConPromo2x1 });
             }
           } catch (e) {
             console.error("Failed to sync checkout session", e);
@@ -446,7 +460,7 @@ export function CheckoutClient({
               shippingBranch: formData.shippingBranch
             },
             items: items,
-            total: getCartTotal(isWholesale),
+            total: totalConPromo2x1,
             couponCode: appliedCoupon?.code || null,
             paymentToken: null,
             analyticsSessionId: getSessionId(),
@@ -486,7 +500,7 @@ export function CheckoutClient({
               shippingBranch: formData.shippingBranch
             },
             items: items,
-            total: getCartTotal(isWholesale),
+            total: totalConPromo2x1,
             couponCode: appliedCoupon?.code || null,
             paymentToken: null,
             analyticsSessionId: getSessionId(),
@@ -517,7 +531,7 @@ export function CheckoutClient({
             // nunca coincidían y la MISMA venta se contaba dos veces. Si no vino
             // orderId, no se mide del lado del navegador: ya lo cubre el server.
             if (data?.orderId) {
-              trackPurchase(data.orderId, getCartTotal(isWholesale), items);
+              trackPurchase(data.orderId, totalConPromo2x1, items);
             }
           } catch (e) {
             console.error("Purchase tracking error:", e);
@@ -619,7 +633,7 @@ export function CheckoutClient({
                 shippingBranch: formData.shippingBranch
               },
               items: items,
-              total: getCartTotal(isWholesale),
+              total: totalConPromo2x1,
               couponCode: appliedCoupon?.code || null,
               paymentToken: token,
               bin: bin,
@@ -650,7 +664,7 @@ export function CheckoutClient({
                 // Ídem rama transferencia: el transaction_id tiene que ser el id
                 // de la orden para que Meta deduplique contra el evento del CAPI.
                 if (data?.orderId) {
-                  trackPurchase(data.orderId, getCartTotal(isWholesale), items);
+                  trackPurchase(data.orderId, totalConPromo2x1, items);
                 }
               } catch (e) {
                 console.error("Purchase tracking error:", e);
@@ -701,7 +715,7 @@ export function CheckoutClient({
   // miente. Vive acá arriba porque lo usan el botón de pago Y la pantalla de
   // éxito (regla del proyecto: un dato que se muestra en dos lados se arma una
   // sola vez).
-  const subtotalConCupon = Math.max(0, getCartTotal(!!isWholesale) - (couponDiscount || 0));
+  const subtotalConCupon = Math.max(0, totalConPromo2x1 - (couponDiscount || 0));
   const payableTotal =
     formData.paymentMethod === 'TRANSFER'
       ? subtotalConCupon * (1 - (webSettings?.web_promo_cash_discount || 15) / 100)
@@ -892,6 +906,8 @@ export function CheckoutClient({
           appliedCoupon={appliedCoupon}
           couponDiscount={couponDiscount}
           onCouponApplied={setAppliedCoupon}
+          descuento2x1={promo2x1.descuento}
+          bonificados2x1={promo2x1.bonificados}
         />
       </main>
       

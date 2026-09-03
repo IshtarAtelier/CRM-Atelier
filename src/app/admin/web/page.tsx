@@ -493,7 +493,8 @@ export default function WebManagementPage() {
     web_store_phone: "",
     web_store_whatsapp_id: "",
     web_promo_installments: "",
-    web_promo_cash_discount: 15
+    web_promo_cash_discount: 15,
+    web_promo_2x1_frames: false
   });
 
   useEffect(() => {
@@ -521,7 +522,10 @@ export default function WebManagementPage() {
           web_store_phone: data.web_store_phone || "+54 9 351 868-5644",
           web_store_whatsapp_id: data.web_store_whatsapp_id || WHATSAPP_PHONE,
           web_promo_installments: data.web_promo_installments || "6 cuotas sin interés",
-          web_promo_cash_discount: data.web_promo_cash_discount !== undefined ? Number(data.web_promo_cash_discount) : 15
+          web_promo_cash_discount: data.web_promo_cash_discount !== undefined ? Number(data.web_promo_cash_discount) : 15,
+          // Apagada salvo que la base diga explícitamente que sí. Un `undefined`
+          // no puede terminar prendiendo una promo que regala armazones.
+          web_promo_2x1_frames: data.web_promo_2x1_frames === true
         });
       }
     } catch (error) {
@@ -1465,6 +1469,34 @@ export default function WebManagementPage() {
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-stone-400">%</span>
                     </div>
+                  </div>
+
+                  {/* 2x1 de armazones. Va con aviso y no como un toggle más:
+                      prenderlo REGALA un armazón por cada dos del carrito, y un
+                      armazón de la tienda son $136.000. El default es apagado. */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Promo 2x1 en armazones (tienda web)</label>
+                    <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${configForm.web_promo_2x1_frames ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-300 dark:border-rose-800' : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700'}`}>
+                      <div className={`relative w-10 h-6 shrink-0 mt-0.5 rounded-full transition-colors ${configForm.web_promo_2x1_frames ? 'bg-rose-500' : 'bg-stone-300 dark:bg-stone-700'}`}>
+                        <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${configForm.web_promo_2x1_frames ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={configForm.web_promo_2x1_frames}
+                        onChange={e => setConfigForm({ ...configForm, web_promo_2x1_frames: e.target.checked })}
+                      />
+                      <div className="min-w-0">
+                        <p className={`text-xs font-black uppercase tracking-widest ${configForm.web_promo_2x1_frames ? 'text-rose-600 dark:text-rose-400' : 'text-stone-500'}`}>
+                          {configForm.web_promo_2x1_frames ? 'Prendida — se está regalando un armazón cada dos' : 'Apagada'}
+                        </p>
+                        <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 leading-relaxed">
+                          Con dos armazones en el carrito, el cliente paga el más caro y se lleva el otro sin cargo.
+                          Tres armazones = uno gratis; cuatro = dos. Los cristales se cobran siempre.
+                          No aplica a mayoristas. El 15% de transferencia se calcula después, sobre lo que queda a pagar.
+                        </p>
+                      </div>
+                    </label>
                   </div>
                 </div>
               </div>

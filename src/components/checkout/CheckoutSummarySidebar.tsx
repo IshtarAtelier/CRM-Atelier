@@ -7,11 +7,16 @@ import { PricingService } from "@/services/PricingService";
 import { recetaPendiente } from '@/lib/checkout/receta';
 import { ETIQUETA_MP_CUOTAS_LARGAS } from '@/lib/promo-cuotas';
 
-export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings, isWholesale, appliedCoupon, couponDiscount = 0, onCouponApplied }: { items: any[], getCartTotal: any, formData: any, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, isWholesale?: boolean, appliedCoupon?: AppliedCoupon | null, couponDiscount?: number, onCouponApplied?: (coupon: AppliedCoupon | null) => void }) {
+export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSettings, isWholesale, appliedCoupon, couponDiscount = 0, onCouponApplied, descuento2x1 = 0, bonificados2x1 = 0 }: { items: any[], getCartTotal: any, formData: any, webSettings?: { web_promo_cash_discount: number, web_promo_installments: string }, isWholesale?: boolean, appliedCoupon?: AppliedCoupon | null, couponDiscount?: number, onCouponApplied?: (coupon: AppliedCoupon | null) => void, descuento2x1?: number, bonificados2x1?: number }) {
   const discountRate = (webSettings?.web_promo_cash_discount || 15) / 100;
 
   // Subtotal según canal: mayorista ve tarifa mayorista, minorista la de lista.
-  const cartTotal = getCartTotal(!!isWholesale);
+  // `bruto` es lo que suman los productos; `cartTotal` es lo que se cobra, ya
+  // con el 2x1 descontado. De acá para abajo TODO usa `cartTotal`: el cupón se
+  // calcula sobre lo que queda a pagar, no sobre el bruto, y el "ahorrás" del
+  // 15% también. El bruto solo se muestra tachado.
+  const bruto = getCartTotal(!!isWholesale);
+  const cartTotal = Math.max(0, bruto - (descuento2x1 || 0));
 
   // El cupón se descuenta del subtotal; sobre ese resultado se aplica el % por método de pago.
   const subtotalAfterCoupon = Math.max(0, cartTotal - (couponDiscount || 0));
@@ -95,6 +100,17 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
 
       {!isWholesale && onCouponApplied && (
         <div className="border-t border-stone-200 pt-6 mb-2">
+          {descuento2x1 > 0 && (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-stone-800 bg-stone-950 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--dorado)]">2x1 aplicado</p>
+                <p className="text-[11px] font-semibold text-stone-300 mt-0.5">
+                  {bonificados2x1 === 1 ? "1 armazón sin cargo" : `${bonificados2x1} armazones sin cargo`}
+                </p>
+              </div>
+              <span className="shrink-0 text-sm font-black text-[var(--dorado)]">−${descuento2x1.toLocaleString("es-AR")}</span>
+            </div>
+          )}
           <CouponField subtotal={cartTotal} appliedCoupon={appliedCoupon || null} onApplied={onCouponApplied} />
         </div>
       )}
@@ -102,7 +118,12 @@ export function CheckoutSummarySidebar({ items, getCartTotal, formData, webSetti
       <div className="border-t border-stone-200 pt-6 flex flex-col gap-3">
         <div className="flex justify-between text-sm text-stone-500">
           <span>Subtotal</span>
-          <span>${cartTotal.toLocaleString("es-AR")}</span>
+          <span className="flex items-baseline gap-2">
+            {descuento2x1 > 0 && (
+              <span className="text-sm font-medium text-stone-400 line-through decoration-1">${bruto.toLocaleString("es-AR")}</span>
+            )}
+            ${cartTotal.toLocaleString("es-AR")}
+          </span>
         </div>
 
         {couponDiscount > 0 && appliedCoupon && (
