@@ -25,6 +25,7 @@ interface User {
     role: string;
     cashManager?: boolean;
     notificationEmail?: string | null;
+    whatsappPhone?: string | null;
     createdAt: string;
 }
 
@@ -143,6 +144,7 @@ export default function ConfiguracionPage() {
     const [editRole, setEditRole] = useState('');
     const [editCashManager, setEditCashManager] = useState(false);
     const [editNotificationEmail, setEditNotificationEmail] = useState('');
+    const [editWhatsappPhone, setEditWhatsappPhone] = useState('');
 
     // Change password
     const [newPass, setNewPass] = useState('');
@@ -465,6 +467,7 @@ export default function ConfiguracionPage() {
         setEditRole(user.role);
         setEditCashManager(!!user.cashManager);
         setEditNotificationEmail(user.notificationEmail || '');
+        setEditWhatsappPhone(user.whatsappPhone || '');
     };
 
     const saveEdit = async (userId: string) => {
@@ -472,7 +475,7 @@ export default function ConfiguracionPage() {
             const res = await fetch(`/api/users/${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: editName, role: editRole, cashManager: editCashManager, notificationEmail: editNotificationEmail }),
+                body: JSON.stringify({ name: editName, role: editRole, cashManager: editCashManager, notificationEmail: editNotificationEmail, whatsappPhone: editWhatsappPhone }),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Usuario actualizado' });
@@ -811,6 +814,13 @@ export default function ConfiguracionPage() {
                                                         placeholder="Email de avisos (vacío = casilla del local)"
                                                         className="px-3 py-1.5 border-2 border-primary rounded-lg text-xs font-medium outline-none bg-white dark:bg-stone-900 w-80"
                                                     />
+                                                    <input
+                                                        type="tel"
+                                                        value={editWhatsappPhone}
+                                                        onChange={e => setEditWhatsappPhone(e.target.value)}
+                                                        placeholder="WhatsApp para copia de notas (ej. 351 1234567; vacío = sin copia)"
+                                                        className="px-3 py-1.5 border-2 border-primary rounded-lg text-xs font-medium outline-none bg-white dark:bg-stone-900 w-80"
+                                                    />
                                                     <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
                                                         <input
                                                             type="checkbox"
@@ -846,6 +856,7 @@ export default function ConfiguracionPage() {
                                                         {user.role !== 'OPTICA' && (
                                                             <span className="ml-2 text-stone-400/80">
                                                                 ✉️ {user.notificationEmail || 'casilla del local'}
+                                                                <span className="ml-2">📱 {user.whatsappPhone || 'sin copia por WhatsApp'}</span>
                                                             </span>
                                                         )}
                                                     </p>

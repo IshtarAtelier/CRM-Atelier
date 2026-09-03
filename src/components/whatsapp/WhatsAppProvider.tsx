@@ -699,7 +699,7 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
                     if (esAudio || media) {
                         return {
                             estado: 'error',
-                            mensaje: 'El cliente no escribió en las últimas 24 h: los adjuntos solo se pueden mandar con la conversación abierta. Mandale primero la plantilla "retomar conversación".',
+                            mensaje: 'El cliente no escribió en las últimas 24 h: los adjuntos sueltos solo se pueden mandar con la conversación abierta. Si es un presupuesto, usá "Presupuesto en PDF" en las respuestas rápidas (sale como plantilla con el PDF adjunto); si no, mandale primero la plantilla "retomar conversación".',
                         };
                     }
                     const chat = chatsRef.current.find(c => c.id === chatId);

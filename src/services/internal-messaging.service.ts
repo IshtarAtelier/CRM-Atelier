@@ -18,6 +18,7 @@
 
 import { prisma } from '@/lib/db';
 import { logAudit } from '@/lib/audit';
+import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
 import type { Actor } from '@/lib/actor';
 
 /** Tipos de conversación. */
@@ -85,7 +86,7 @@ export class InternalMessagingService {
      * `catch`, que reintenta como respuesta en el hilo que acaba de ganar.
      */
     private static async escribirEnDirecto(params: {
-        deId: string; paraId: string; cuerpo: string; asunto?: string | null; urgent?: boolean;
+        deId: string; paraId: string; cuerpo: string; asunto?: string | null; urgent?: boolean; copiaWhatsapp?: boolean;
     }) {
         const key = this.llaveDirecta(params.deId, params.paraId);
         const existente = await prisma.internalThread.findUnique({
@@ -94,7 +95,7 @@ export class InternalMessagingService {
         if (existente) {
             await this.responder({
                 threadId: existente.id, senderId: params.deId,
-                body: params.cuerpo, urgent: params.urgent,
+                body: params.cuerpo, urgent: params.urgent, copiaWhatsapp: params.copiaWhatsapp,
             });
             return { id: existente.id, nuevo: false };
         }
@@ -129,6 +130,9 @@ export class InternalMessagingService {
                     },
                 });
                 return { id: t.id, nuevo: true };
+            }).then(r => {
+                if (params.copiaWhatsapp) this.copiarPorWhatsApp({ threadId: r.id, senderId: params.deId, cuerpo: params.cuerpo, soloA: [params.paraId] });
+                return r;
             });
         } catch (e: any) {
             // P2002 = violación de unicidad: otra petición creó el mismo par en
@@ -142,7 +146,7 @@ export class InternalMessagingService {
             if (!ganador) throw e;
             await this.responder({
                 threadId: ganador.id, senderId: params.deId,
-                body: params.cuerpo, urgent: params.urgent,
+                body: params.cuerpo, urgent: params.urgent, copiaWhatsapp: params.copiaWhatsapp,
             });
             return { id: ganador.id, nuevo: false };
         }
@@ -452,6 +456,8 @@ export class InternalMessagingService {
         kind?: ThreadKind;
         primerMensaje: string;
         urgent?: boolean;
+        /** Además del aviso en pantalla, copia al celular de cada destinatario (ver copiarPorWhatsApp). */
+        copiaWhatsapp?: boolean;
     }, actor?: Actor) {
         const { creadorId, primerMensaje } = params;
         const cuerpo = (primerMensaje || '').trim();
@@ -482,7 +488,7 @@ export class InternalMessagingService {
         if (kind === 'DIRECT' && paraOk.length === 1 && copiaOk.length === 0) {
             const r = await this.escribirEnDirecto({
                 deId: creadorId, paraId: paraOk[0], cuerpo,
-                asunto: params.subject, urgent: params.urgent,
+                asunto: params.subject, urgent: params.urgent, copiaWhatsapp: params.copiaWhatsapp,
             });
             return { id: r.id, reusada: !r.nuevo };
         }
@@ -519,14 +525,16 @@ export class InternalMessagingService {
             action: 'CREATE',
             entityType: 'OTHER',
             entityId: thread.id,
-            details: { tipo: 'InternalThread', kind, para: paraOk, copia: copiaOk, subject: params.subject || null, urgent: !!params.urgent },
+            details: { tipo: 'InternalThread', kind, para: paraOk, copia: copiaOk, subject: params.subject || null, urgent: !!params.urgent, copiaWhatsapp: !!params.copiaWhatsapp },
         }).catch(console.error);
+
+        if (params.copiaWhatsapp) this.copiarPorWhatsApp({ threadId: thread.id, senderId: creadorId, cuerpo, soloA: [...paraOk, ...copiaOk] });
 
         return { id: thread.id, reusada: false };
     }
 
     /** Responde en una conversación existente. */
-    static async responder(params: { threadId: string; senderId: string; body: string; urgent?: boolean }) {
+    static async responder(params: { threadId: string; senderId: string; body: string; urgent?: boolean; copiaWhatsapp?: boolean }) {
         const { threadId, senderId } = params;
         const cuerpo = (params.body || '').trim();
         if (!cuerpo) throw new Error('El mensaje no puede estar vacío');
@@ -554,7 +562,50 @@ export class InternalMessagingService {
             return m;
         });
 
+        if (params.copiaWhatsapp) this.copiarPorWhatsApp({ threadId, senderId, cuerpo });
+
         return mensaje;
+    }
+
+    /**
+     * Copia por WhatsApp al celular de los demás participantes (pedido de
+     * Ishtar del 3/9/26: que las notas del equipo le lleguen al teléfono, y a
+     * los vendedores también). Fire-and-forget: el mensaje YA está guardado y
+     * el aviso en pantalla ya funciona; esto es un canal más, y si falla se
+     * loguea y listo. Quién tiene número lo decide `User.whatsappPhone`
+     * (/admin/configuracion → Usuarios); quien no lo tiene, no recibe copia.
+     */
+    private static copiarPorWhatsApp(params: { threadId: string; senderId: string; cuerpo: string; soloA?: string[] }) {
+        (async () => {
+            const [remitente, thread] = await Promise.all([
+                prisma.user.findUnique({ where: { id: params.senderId }, select: { id: true, name: true } }),
+                prisma.internalThread.findUnique({
+                    where: { id: params.threadId },
+                    select: {
+                        subject: true,
+                        participants: {
+                            where: { leftAt: null },
+                            select: { user: { select: { id: true, name: true, whatsappPhone: true } } },
+                        },
+                    },
+                }),
+            ]);
+            if (!thread) return;
+            const filtro = params.soloA ? new Set(params.soloA) : null;
+            const destinatarios = thread.participants
+                .map(p => p.user)
+                .filter(u => u.id !== params.senderId && (!filtro || filtro.has(u.id)));
+            if (destinatarios.length === 0) return;
+
+            const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, '');
+            await avisarEquipoPorWhatsApp({
+                destinatarios,
+                remitente: { id: remitente?.id, name: remitente?.name },
+                contexto: thread.subject ? `la conversación "${thread.subject}"` : 'la mensajería del equipo',
+                texto: params.cuerpo,
+                link: `${base}/admin/mensajes?abrir=${params.threadId}`,
+            });
+        })().catch(e => console.error('[mensajeria-interna] Copia por WhatsApp:', e?.message));
     }
 
     // ── URGENTES ────────────────────────────────────────────────────────────

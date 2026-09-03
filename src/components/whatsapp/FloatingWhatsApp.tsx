@@ -27,6 +27,7 @@ import { ChatHeader } from './Header/ChatHeader';
 import { ConversationView } from './Conversation/ConversationView';
 import { Composer } from './Composer/Composer';
 import { TemplatePromptModal } from './TemplatePromptModal';
+import { EnviarPresupuestoModal } from './EnviarPresupuestoModal';
 import { inicialDe, telefonoParaLink } from './format';
 import { useWhatsAppAcciones, useWhatsAppDatos } from './WhatsAppProvider';
 import type { AdjuntoMedia, QuickReply } from './types';
@@ -52,6 +53,7 @@ export function FloatingWhatsApp() {
     const [texto, setTexto] = useState('');
     const [adjunto, setAdjunto] = useState<AdjuntoMedia | null>(null);
     const [templatePrompt, setTemplatePrompt] = useState<{ chatId: string; texto: string; nombre: string } | null>(null);
+    const [presupuestoPdf, setPresupuestoPdf] = useState(false);
 
     const enElBuzon = pathname === '/admin/whatsapp';
 
@@ -186,6 +188,7 @@ export function FloatingWhatsApp() {
                                 onEnviar={enviarMensaje}
                                 onEnviarAudio={enviarAudio}
                                 onPlantillaRapida={enviarPlantilla}
+                                onPresupuestoPdf={chatSeleccionado.client ? () => setPresupuestoPdf(true) : undefined}
                                 compacto
                             />
                         </>
@@ -254,6 +257,18 @@ export function FloatingWhatsApp() {
                     onClose={() => setTemplatePrompt(null)}
                     onSent={() => {
                         acciones.refrescarMensajes(templatePrompt.chatId);
+                        acciones.refrescarChats();
+                    }}
+                />
+            )}
+
+            {presupuestoPdf && chatSeleccionado && (
+                <EnviarPresupuestoModal
+                    open
+                    chat={chatSeleccionado}
+                    onClose={() => setPresupuestoPdf(false)}
+                    onSent={() => {
+                        acciones.refrescarMensajes(chatSeleccionado.id);
                         acciones.refrescarChats();
                     }}
                 />

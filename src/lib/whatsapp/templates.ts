@@ -400,6 +400,24 @@ export const WHATSAPP_TEMPLATES = {
             { label: 'seña o saldo', example: 'SEÑA — queda saldo $ 200.000' },
         ],
     },
+    // Copia por WhatsApp de una nota o mensaje interno del equipo (pedido de
+    // Ishtar del 3/9/26: "las notas que me dejen los vendedores que me lleguen
+    // por WhatsApp, y a ellos también"). Va al celular del colaborador
+    // (User.whatsappPhone), que casi nunca escribió al número del negocio en
+    // las últimas 24 h — por eso tiene que ser plantilla. El texto de la nota
+    // viaja en {{3}} (recortado a un renglón: Meta no acepta saltos de línea
+    // dentro de una variable) y {{4}} dice de qué es (un cliente, un hilo).
+    nota_interna: {
+        name: 'nota_interna',
+        inventario: 'B3',
+        category: 'UTILITY',
+        body: 'Aviso de Atelier Sistema — {{1}} te dejó un mensaje sobre {{2}}: {{3}}. Podés responderle desde el sistema.',
+        params: [
+            { label: 'remitente', example: 'Matías' },
+            { label: 'contexto', example: 'el cliente Julio Lescano' },
+            { label: 'texto de la nota', example: 'Vino a retirar y quiere cambiar el color del armazón' },
+        ],
+    },
 } as const satisfies Record<string, TemplateDef>;
 
 export type TemplateName = keyof typeof WHATSAPP_TEMPLATES;

@@ -16,7 +16,7 @@ export async function PATCH(
 
         const { id } = await params;
         const body = await request.json();
-        const { name, role, password, notificationEmail, cashManager } = body;
+        const { name, role, password, notificationEmail, cashManager, whatsappPhone } = body;
 
         const isAdmin = roleHeader === 'ADMIN';
         const isSelf = !!requesterId && requesterId === id;
@@ -70,6 +70,16 @@ export async function PATCH(
             }
             data.notificationEmail = cleaned || null;
         }
+        // Celular para la copia por WhatsApp de notas internas. Se guarda tal
+        // cual lo tipearon (con espacios o guiones); lo normaliza al enviar
+        // whatsappPhoneFor(). Vacío = no recibe copia.
+        if (whatsappPhone !== undefined) {
+            const cleaned = String(whatsappPhone || '').trim();
+            if (cleaned && cleaned.replace(/\D/g, '').length < 10) {
+                return NextResponse.json({ error: 'El WhatsApp no parece un celular válido (código de área + número, sin el 0 ni el 15)' }, { status: 400 });
+            }
+            data.whatsappPhone = cleaned || null;
+        }
         // La contraseña la puede cambiar el ADMIN o el propio usuario
         if (password) {
             data.password = await bcrypt.hash(password, 10);
@@ -89,6 +99,7 @@ export async function PATCH(
                 role: true,
                 cashManager: true,
                 notificationEmail: true,
+                whatsappPhone: true,
                 createdAt: true,
             },
         });

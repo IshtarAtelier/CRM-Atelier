@@ -241,7 +241,7 @@ export default function HistoryManager({
                     </select>
                     {directedToId && (
                         <span className="text-[10px] font-medium text-stone-400">
-                            le llega un email con el link a esta ficha
+                            le llega un email con el link a esta ficha, y la nota por WhatsApp si tiene su celular cargado
                         </span>
                     )}
                 </div>

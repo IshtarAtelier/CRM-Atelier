@@ -163,12 +163,55 @@ export async function register() {
             }
         };
 
+        // ---- RECORDATORIO DE RETIRO (pedido listo), una vez por hora ----
+        // /api/cron/pickup-reminder avisa al cliente que su pedido está listo
+        // cuando el lab lo terminó hace más de 24 h y nadie lo pasó a READY. Ese
+        // cron figuraba en vercel.json, que Railway NO ejecuta, y en dos docs
+        // como "pendiente de dar de alta en cron-job.org": nunca corrió, y los
+        // pedidos FINISHED se quedaban sin aviso (reporte de Ishtar del 3/9/26:
+        // "no están llegando los avisos de que el pedido está listo"). Acá
+        // adentro corre sí o sí mientras el server esté vivo, como el resto.
+        //
+        // Una vez por hora y en horario de local: la ruta reintenta sola lo que
+        // falló (deja el pedido FINISHED), y cada fallo genera una tarea al
+        // vendedor — cada 10 min sería una tarea nueva por pedido cada 10 min.
+        let pickupLastHourKey: string | null = null;
+        let pickupRunning = false;
+        const maybeRunPickupReminder = async () => {
+            const { hour, dateKey } = argNow();
+            if (hour < 9 || hour >= 20) return;
+            const hourKey = `${dateKey}T${hour}`;
+            if (pickupLastHourKey === hourKey || pickupRunning) return;
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            pickupRunning = true;
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/pickup-reminder`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(5 * 60 * 1000),
+                });
+                if (!res.ok) {
+                    console.error(`[CRON pickup-reminder] HTTP ${res.status} — se reintenta en el próximo tick.`);
+                    return;
+                }
+                pickupLastHourKey = hourKey;
+                const data = await res.json().catch(() => ({}));
+                if (data.processed) console.log(`[CRON pickup-reminder] ${data.processed} pendiente(s): ${JSON.stringify(data.results ?? [])}`);
+            } catch (err) {
+                console.error('[CRON pickup-reminder] Error disparando el recordatorio (se reintenta):', err);
+            } finally {
+                pickupRunning = false;
+            }
+        };
+
         // ---- Pase RÁPIDO SmartLab (robot chico), cada 10 min ----
         const runSync = async () => {
             // El diario se evalúa en cada tick, independiente del horario del pase
             // rápido (aunque 08:30 cae dentro de 8-20, esto lo deja robusto).
             maybeRunDaily().catch(err => console.error('[CRON lab-invoices] maybeRunDaily:', err));
             maybeRunResumen().catch(err => console.error('[CRON resumen-equipo] maybeRunResumen:', err));
+            maybeRunPickupReminder().catch(err => console.error('[CRON pickup-reminder] maybeRunPickupReminder:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');

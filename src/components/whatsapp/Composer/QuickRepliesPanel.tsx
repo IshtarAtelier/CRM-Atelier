@@ -18,9 +18,11 @@ export interface QuickRepliesPanelProps {
     onElegirTexto: (texto: string) => void;
     /** Plantilla oficial: se envía como plantilla. */
     onElegirPlantilla: (qr: QuickReply) => void;
+    /** Abre el modal "Presupuesto en PDF" (plantilla con el PDF del pedido adjunto). Sin esto no se muestra. */
+    onPresupuestoPdf?: () => void;
 }
 
-export function QuickRepliesPanel({ onElegirTexto, onElegirPlantilla }: QuickRepliesPanelProps) {
+export function QuickRepliesPanel({ onElegirTexto, onElegirPlantilla, onPresupuestoPdf }: QuickRepliesPanelProps) {
     const libres = QUICK_REPLIES.filter(q => !q.templateName);
     const plantillas = QUICK_REPLIES.filter(q => q.templateName);
 
@@ -54,7 +56,23 @@ export function QuickRepliesPanel({ onElegirTexto, onElegirPlantilla }: QuickRep
             <p className="text-[11px] font-black text-violet-800 dark:text-violet-300 uppercase tracking-widest mt-4 mb-2">
                 Plantillas aprobadas · salen aunque la conversación esté cerrada
             </p>
-            <div className="flex flex-wrap gap-2">{plantillas.map(qr => boton(qr, true))}</div>
+            <div className="flex flex-wrap gap-2">
+                {plantillas.map(qr => boton(qr, true))}
+                {onPresupuestoPdf && (
+                    <button
+                        type="button"
+                        onClick={onPresupuestoPdf}
+                        className="px-4 py-2 min-h-10 rounded-xl shadow-sm hover:shadow-md border transition-all text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 bg-violet-100 dark:bg-violet-950/60 border-violet-400 dark:border-violet-700"
+                    >
+                        <span className="block text-[12px] font-black text-stone-900 dark:text-white uppercase tracking-wider">
+                            📄 Presupuesto en PDF
+                        </span>
+                        <span className="block text-xs text-stone-700 dark:text-stone-300 truncate max-w-[220px] mt-0.5">
+                            Elegís el pedido de la ficha y va con el PDF adjunto
+                        </span>
+                    </button>
+                )}
+            </div>
         </div>
     );
 }

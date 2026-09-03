@@ -28,6 +28,8 @@ export interface ComposerProps {
     onEnviar: () => void;
     onEnviarAudio: (base64: string, mimetype: string) => void;
     onPlantillaRapida: (qr: QuickReply) => void;
+    /** Abre "Presupuesto en PDF" (solo si el chat tiene ficha de cliente). */
+    onPresupuestoPdf?: () => void;
     compacto?: boolean;
 }
 
@@ -40,6 +42,7 @@ export function Composer({
     onEnviar,
     onEnviarAudio,
     onPlantillaRapida,
+    onPresupuestoPdf,
     compacto = false,
 }: ComposerProps) {
     const [verEmojis, setVerEmojis] = useState(false);
@@ -68,6 +71,7 @@ export function Composer({
                 <QuickRepliesPanel
                     onElegirTexto={t => { setVerRapidas(false); onTexto(t); }}
                     onElegirPlantilla={qr => { setVerRapidas(false); onPlantillaRapida(qr); }}
+                    onPresupuestoPdf={onPresupuestoPdf ? () => { setVerRapidas(false); onPresupuestoPdf(); } : undefined}
                 />
             )}
 

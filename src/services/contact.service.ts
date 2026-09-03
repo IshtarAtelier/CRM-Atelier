@@ -9,6 +9,7 @@ import { templateSpec } from '@/lib/whatsapp/templates';
 import { logAudit } from '@/lib/audit';
 import { SYSTEM_ACTOR, type Actor } from '@/lib/actor';
 import { notifyDirectedNote } from '@/lib/note-notify';
+import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
 import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
 import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
 import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/lib/payment-card';
@@ -1131,7 +1132,7 @@ export const ContactService = {
         const directedTo = directedToId
             ? await prisma.user.findUnique({
                 where: { id: directedToId },
-                select: { id: true, name: true, email: true, notificationEmail: true },
+                select: { id: true, name: true, email: true, notificationEmail: true, whatsappPhone: true },
             })
             : null;
 
@@ -1162,6 +1163,16 @@ export const ContactService = {
                     clientId,
                     clientName: client?.name || 'Cliente',
                 });
+                // Copia al celular (pedido del 3/9/26). A diferencia del mail,
+                // acá SÍ va el texto: el WhatsApp es personal, no una casilla
+                // compartida. Fire-and-forget: la nota ya está guardada.
+                avisarEquipoPorWhatsApp({
+                    destinatarios: [directedTo],
+                    remitente: { id: actor?.id, name: actor?.name || 'Sistema' },
+                    contexto: `el cliente ${client?.name || 'sin nombre'}`,
+                    texto: content,
+                    link: `${(process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, '')}/admin/contactos?id=${clientId}`,
+                }).catch(e => console.error('[Interaction] Copia por WhatsApp de la nota dirigida:', e?.message));
             } catch (e) {
                 directedEmailSent = false;
                 console.error('[Interaction] Error avisando la nota dirigida:', e);

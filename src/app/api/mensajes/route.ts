@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
             // responder en un hilo ya abierto, que es el camino menos urgente
             // de los dos.
             urgent: !!body.urgent,
+            copiaWhatsapp: !!body.copiaWhatsapp,
         }, actor);
         return NextResponse.json(res);
     } catch (e: any) {

@@ -17,6 +17,7 @@ export async function GET() {
                 role: true,
                 cashManager: true,
                 notificationEmail: true,
+                whatsappPhone: true,
                 createdAt: true,
             },
             orderBy: { createdAt: 'desc' },

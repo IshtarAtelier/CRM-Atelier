@@ -18,6 +18,7 @@ import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
 import { buildQuoteMessage } from '@/lib/quote-message';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
+import { generateOrderPDF } from '@/lib/order-pdf-generator';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -74,19 +75,59 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         };
 
         try {
-            // Texto libre dentro de la ventana de 24 h; plantilla "presupuesto" (A4) si está cerrada.
             const f = PricingService.calculateOrderFinancials(order);
             const money = (n: number) => `$ ${Number(n || 0).toLocaleString('es-AR')}`;
-            const res = await sendWhatsApp({
-                chatId: destino,
-                message: texto,
-                senderName: actor.name,
-                template: templateSpec('presupuesto', [order.client.name.split(' ')[0], money(f.totalCard), money(f.totalTransfer), money(f.totalCash)]),
-            });
+            const nombre = order.client.name.split(' ')[0];
+
+            // 1) Texto libre, que solo sale si el cliente escribió en las últimas 24 h.
+            let res = await sendWhatsApp({ chatId: destino, message: texto, senderName: actor.name });
+            let conPdf = false;
+
+            // 2) Ventana cerrada: plantilla CON el PDF adjunto. Antes caía a la
+            // plantilla `presupuesto` (solo texto): el cliente recibía cuatro
+            // importes sueltos y ningún documento, y la vendedora veía "enviado"
+            // sin saber que el PDF no había ido (reporte del 3/9/26: "no permite
+            // enviar el presupuesto en PDF a clientes que pasaron 24 h"). El PDF
+            // se genera recién acá, porque dentro de la ventana no hace falta.
+            if (!res.ok && res.needsTemplate) {
+                let pdf: Awaited<ReturnType<typeof generateOrderPDF>> | null = null;
+                try {
+                    pdf = await generateOrderPDF(order, order.client, actor.name);
+                } catch (e: any) {
+                    console.error('[send-quote] No se pudo generar el PDF para la plantilla:', e?.message);
+                }
+                if (pdf) {
+                    const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
+                    const template = esVenta
+                        ? templateSpec('venta_confirmada', [nombre, nro, money(f.totalCard)])
+                        : templateSpec('presupuesto_pdf', [nombre, money(f.totalCard), '7']);
+                    res = await sendWhatsApp({
+                        chatId: destino,
+                        message: texto,
+                        senderName: actor.name,
+                        forceTemplate: true,
+                        template,
+                        templateMedia: { base64: pdf.base64, mimetype: 'application/pdf', filename: pdf.filename },
+                    });
+                    conPdf = res.ok;
+                } else {
+                    // Sin PDF (Chromium caído, etc.): la plantilla de texto, que es mejor que nada.
+                    res = await sendWhatsApp({
+                        chatId: destino,
+                        message: texto,
+                        senderName: actor.name,
+                        forceTemplate: true,
+                        template: templateSpec('presupuesto', [nombre, money(f.totalCard), money(f.totalTransfer), money(f.totalCash)]),
+                    });
+                }
+            }
 
             if (res.ok) {
-                await registrar(`por WhatsApp al ${order.client.phone || formattedPhone}${res.via === 'template' ? ' (plantilla, fuera de la ventana de 24 h)' : ''}.`, true);
-                return NextResponse.json({ success: true, via: res.via });
+                const comoSalio = res.via === 'template'
+                    ? (conPdf ? ' (fuera de la ventana de 24 h: salió como plantilla con el PDF adjunto)' : ' (plantilla de texto, fuera de la ventana de 24 h)')
+                    : '';
+                await registrar(`por WhatsApp al ${order.client.phone || formattedPhone}${comoSalio}.`, true);
+                return NextResponse.json({ success: true, via: res.via, conPdf });
             }
 
             // notSent = el wa-service garantiza que no salió nada: se puede

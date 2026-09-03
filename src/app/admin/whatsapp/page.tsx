@@ -21,6 +21,7 @@ import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { TestChatModal } from '@/components/ui/TestChatModal';
 import InboxHeader from '@/components/whatsapp/InboxHeader';
 import { TemplatePromptModal } from '@/components/whatsapp/TemplatePromptModal';
+import { EnviarPresupuestoModal } from '@/components/whatsapp/EnviarPresupuestoModal';
 import { ConnectionState } from '@/components/whatsapp/ConnectionState';
 import { ChatFilters } from '@/components/whatsapp/ChatList/ChatFilters';
 import { ChatList } from '@/components/whatsapp/ChatList/ChatList';
@@ -198,6 +199,8 @@ function WhatsAppPageContent() {
         const r = await acciones.enviar(chatSeleccionado.id, '', { base64, mimetype, filename: `audio_${Date.now()}.webm` });
         if (r.estado === 'error') alert(`❌ No se pudo enviar el audio: ${r.mensaje}`);
     };
+
+    const [showPresupuestoPdf, setShowPresupuestoPdf] = useState(false);
 
     const enviarPlantillaRapida = async (qr: QuickReply) => {
         if (!qr.templateName || !chatSeleccionado) return;
@@ -540,6 +543,7 @@ function WhatsAppPageContent() {
                                     onEnviar={enviarMensaje}
                                     onEnviarAudio={enviarAudio}
                                     onPlantillaRapida={enviarPlantillaRapida}
+                                    onPresupuestoPdf={chatSeleccionado.client ? () => setShowPresupuestoPdf(true) : undefined}
                                 />
                             </>
                         ) : (
@@ -556,6 +560,18 @@ function WhatsAppPageContent() {
             )}
 
             <TestChatModal isOpen={showTestChat} onClose={() => setShowTestChat(false)} />
+
+            {showPresupuestoPdf && chatSeleccionado && (
+                <EnviarPresupuestoModal
+                    open
+                    chat={chatSeleccionado}
+                    onClose={() => setShowPresupuestoPdf(false)}
+                    onSent={() => {
+                        acciones.refrescarMensajes(chatSeleccionado.id);
+                        acciones.refrescarChats();
+                    }}
+                />
+            )}
 
             {templatePrompt && (
                 <TemplatePromptModal

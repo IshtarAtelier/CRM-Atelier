@@ -61,6 +61,7 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ id: st
             senderId: actor.id!,
             body: body.mensaje ?? '',
             urgent: !!body.urgent,
+            copiaWhatsapp: !!body.copiaWhatsapp,
         });
         return NextResponse.json(mensaje);
     } catch (e: any) {

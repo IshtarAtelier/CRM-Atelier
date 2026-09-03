@@ -29,7 +29,11 @@ const TOKEN = process.env.WA_CLOUD_TOKEN || '';
 // nadie manda. OJO: pedido_listo_v3/pedido_listo_saldo_v3 estaban PENDING de
 // aprobación al momento del cambio de código — si este check las marca como
 // no aprobadas, es esperable hasta que Meta responda, no un bug.
-const CATALOGO = ['pedido_listo_v3', 'pedido_listo_saldo_v3', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf', 'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion'];
+// aviso_pago_interno y nota_interna son las INTERNAS (van al celular del
+// equipo, no a clientes): el 3/9/26 aviso_pago_interno no existía en Meta y
+// nadie lo veía porque no estaba en esta lista — el aviso de cada pago cobrado
+// moría en silencio.
+const CATALOGO = ['pedido_listo_v3', 'pedido_listo_saldo_v3', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf', 'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion', 'aviso_pago_interno', 'nota_interna'];
 
 const ok = (s) => `✅ ${s}`, warn = (s) => `⚠️  ${s}`, bad = (s) => `❌ ${s}`;
 

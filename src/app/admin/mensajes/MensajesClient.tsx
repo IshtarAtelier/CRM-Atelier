@@ -13,7 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { usePulso } from '@/components/mensajes/PulsoProvider';
 import { BotonAvisos } from '@/components/mensajes/BotonAvisos';
-import { Send, Users, Plus, X, Loader2, MessagesSquare, ArrowLeft, UserPlus, AlertTriangle } from 'lucide-react';
+import { Send, Users, Plus, X, Loader2, MessagesSquare, ArrowLeft, UserPlus, AlertTriangle, MessageCircle } from 'lucide-react';
 
 interface Participante { id: string; name: string; role: string }
 interface Conversacion {
@@ -152,6 +152,10 @@ export default function MensajesClient() {
     const [redactando, setRedactando] = useState(false);
     const [preElegido, setPreElegido] = useState<string | null>(null);
     const [urgente, setUrgente] = useState(false);
+    // Copia al celular de los demás (pedido del 3/9/26). Arranca prendida:
+    // Ishtar pidió que las notas le lleguen por WhatsApp sin tener que acordarse
+    // de tildar nada; quien no quiere la copia en un mensaje puntual la apaga.
+    const [copiaWhatsapp, setCopiaWhatsapp] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const finRef = useRef<HTMLDivElement>(null);
     // La conversación que se PIDIÓ por última vez. Toda respuesta de red se
@@ -307,7 +311,7 @@ export default function MensajesClient() {
             const res = await fetch(`/api/mensajes/${activa}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mensaje: cuerpo, urgent: urgente }),
+                body: JSON.stringify({ mensaje: cuerpo, urgent: urgente, copiaWhatsapp }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'No se pudo enviar');
@@ -507,6 +511,18 @@ export default function MensajesClient() {
                                     <AlertTriangle size={15} /> {urgente ? 'URGENTE' : 'Urgente'}
                                 </button>
                                 <button
+                                    onClick={() => setCopiaWhatsapp(c => !c)}
+                                    title={copiaWhatsapp ? 'Además del aviso en pantalla, le llega una copia al celular (si tiene WhatsApp cargado en Usuarios)' : 'Solo aviso en pantalla, sin copia al celular'}
+                                    aria-pressed={copiaWhatsapp}
+                                    className={`h-10 px-3 rounded-lg border transition inline-flex items-center gap-1.5 text-xs font-bold ${
+                                        copiaWhatsapp
+                                            ? 'bg-emerald-600 text-white border-emerald-600'
+                                            : 'bg-white text-stone-500 border-stone-300 hover:border-emerald-300 hover:text-emerald-700'
+                                    }`}
+                                >
+                                    <MessageCircle size={15} /> WhatsApp
+                                </button>
+                                <button
                                     onClick={enviar}
                                     disabled={!texto.trim() || enviando}
                                     className="h-10 px-4 rounded-lg bg-primary text-white disabled:opacity-40 hover:opacity-90 transition inline-flex items-center gap-2"
@@ -539,6 +555,7 @@ function RedactarModal({ onCerrar, onEnviado, preElegido }: { onCerrar: () => vo
     const [subject, setSubject] = useState('');
     const [mensaje, setMensaje] = useState('');
     const [urgente, setUrgente] = useState(false);
+    const [copiaWhatsapp, setCopiaWhatsapp] = useState(true);
     const [enviando, setEnviando] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -577,7 +594,7 @@ function RedactarModal({ onCerrar, onEnviado, preElegido }: { onCerrar: () => vo
             const res = await fetch('/api/mensajes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paraIds: para, copiaIds: copia, subject: subject.trim() || null, mensaje, urgent: urgente }),
+                body: JSON.stringify({ paraIds: para, copiaIds: copia, subject: subject.trim() || null, mensaje, urgent: urgente, copiaWhatsapp }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'No se pudo enviar');
@@ -660,6 +677,23 @@ function RedactarModal({ onCerrar, onEnviado, preElegido }: { onCerrar: () => vo
                         <span className="mt-0.5 block text-xs text-stone-500">
                             Le aparece un aviso sobre toda la pantalla, esté donde esté en el sistema.
                             Lo puede achicar, pero no se le va hasta que lo lea.
+                        </span>
+                    </button>
+
+                    <button
+                        onClick={() => setCopiaWhatsapp(c => !c)}
+                        aria-pressed={copiaWhatsapp}
+                        className={`w-full rounded-lg border-2 px-4 py-3 text-left transition ${
+                            copiaWhatsapp ? 'border-emerald-500 bg-emerald-50' : 'border-stone-200 bg-white hover:border-stone-300'
+                        }`}
+                    >
+                        <span className="flex items-center gap-2 text-sm font-bold text-stone-800">
+                            <MessageCircle size={16} className={copiaWhatsapp ? 'text-emerald-600' : 'text-stone-400'} />
+                            Copia por WhatsApp
+                        </span>
+                        <span className="mt-0.5 block text-xs text-stone-500">
+                            Le llega también al celular, a cada destinatario y a los que van en copia.
+                            Solo a quien tenga su WhatsApp cargado en Configuración → Usuarios.
                         </span>
                     </button>
 
