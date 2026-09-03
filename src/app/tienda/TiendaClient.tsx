@@ -518,12 +518,17 @@ export function TiendaClient({
                   Promo del mes
                 </p>
                 <p className="mt-1 text-2xl sm:text-4xl font-serif tracking-tight text-white">
-                  2x1 en armazones
+                  2x1 en armazones seleccionados
                 </p>
+                {/* "Seleccionados" va en el TÍTULO, no en la letra chica: la promo
+                    entra solo en los armazones marcados en /admin/web, y decir
+                    "2x1 en armazones" a secas promete el catálogo entero — que es
+                    justo lo que el carrito no va a cumplir. Y se dice cómo
+                    reconocerlos, porque si no hay que adivinar cuáles son. */}
                 <p className="mt-1.5 text-[13px] sm:text-sm text-stone-300 leading-snug sm:leading-relaxed max-w-md">
                   Llevate dos y pagá uno: el más barato va{" "}
-                  <span className="font-bold text-white">sin cargo</span>.
-                  <span className="hidden sm:inline"> Se aplica solo en el carrito.</span>
+                  <span className="font-bold text-white">sin cargo</span>. Los que entran llevan el sello{" "}
+                  <span className="font-black text-[var(--dorado)]">2x1</span> sobre la foto.
                 </p>
               </div>
               {/* Un <a> de verdad, no un <span> con forma de botón. Ya estamos
@@ -893,7 +898,10 @@ export function TiendaClient({
                           abajo a la izquierda "Titanio". Es la única esquina
                           libre, y así ningún sello tapa a otro. */}
                       {promo2x1Activa && !isWholesale && idsPromo2x1.has(p.id) && (
-                        <span className="absolute bottom-3 right-3 text-[10px] font-black uppercase tracking-[0.15em] bg-stone-950 text-[var(--dorado)] px-2.5 py-1 z-10 rounded-sm shadow-md">
+                        <span
+                          title="Este armazón entra en el 2x1: llevando dos, el más barato va sin cargo"
+                          className="absolute bottom-3 right-3 text-[10px] font-black uppercase tracking-[0.15em] bg-stone-950 text-[var(--dorado)] px-2.5 py-1 z-10 rounded-sm shadow-md"
+                        >
                           2x1
                         </span>
                       )}
