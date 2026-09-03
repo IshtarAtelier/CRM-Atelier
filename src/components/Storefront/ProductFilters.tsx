@@ -249,7 +249,7 @@ export function ProductFilters({
       <div 
         className={`
           fixed lg:relative inset-y-0 left-0 z-50 lg:z-0 w-4/5 max-w-sm lg:w-full lg:max-w-none
-          bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 pb-28 lg:p-0 lg:px-2 lg:py-0
+          bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-8 pb-0 lg:p-0 lg:px-2 lg:py-0
           overflow-y-auto lg:overflow-visible flex-col gap-10
           transition-[transform,opacity] duration-300 ease-in-out
           ${isOpen ? 'translate-x-0 flex' : '-translate-x-full lg:translate-x-0 hidden lg:flex'}
@@ -549,7 +549,23 @@ export function ProductFilters({
                   perdido al final de un panel que scrollea. Acá está el número
                   vivo —se actualiza con cada toque— y las dos salidas, siempre
                   a la vista y del tamaño de un pulgar. */}
-              <div className="lg:hidden fixed bottom-0 left-0 w-4/5 max-w-sm bg-white border-t border-stone-200 px-6 py-4 flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+              {/* `sticky`, NO `fixed`. Con `fixed` esta barra se movía con el
+                  scroll y terminaba flotando en el medio del panel, tapando el
+                  título "Forma": el panel tiene `translate-x` para entrar y
+                  salir, y CUALQUIER transform en un ancestro hace que un hijo
+                  `fixed` se posicione contra ese ancestro y no contra la
+                  pantalla. Como el ancestro scrollea, la barra scrolleaba con
+                  él. Sin scrollear se veía bien —por eso la primera medición no
+                  lo detectó—: con el panel arriba de todo, el fondo del panel y
+                  el fondo de la pantalla coinciden.
+                  `sticky bottom-0` no depende de eso y hace lo que se quería:
+                  queda pegada abajo mientras el contenido pasa por detrás.
+                  Los márgenes negativos la estiran hasta los bordes del panel,
+                  que tiene p-8. El panel ya no lleva relleno inferior: existía
+                  para que el contenido no quedara debajo de la barra `fixed`, y
+                  con la barra en el flujo solo servía para correrla 112 px
+                  hacia arriba. */}
+              <div className="lg:hidden sticky bottom-0 -mx-8 mt-auto bg-white border-t border-stone-200 px-6 py-4 flex items-center gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
                 {filtrosPuestos > 0 && (
                   <button
                     onClick={clearFilters}
