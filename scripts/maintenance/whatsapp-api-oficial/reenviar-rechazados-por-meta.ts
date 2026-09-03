@@ -61,11 +61,11 @@ async function main() {
 
     for (const m of fallidos) {
         const tipo = clasificar(m);
-        const clienteId = m.chat.clientId;
+        const clientId = m.chat.clientId;
         const etiqueta = `${m.createdAt.toISOString().slice(5, 16)} ${tipo.padEnd(13)} ${m.chat.waId}`;
         if (solo && solo !== tipo) { cuenta('filtrado'); continue; }
-        if (!clienteId) { console.log(`- ${etiqueta}: sin ficha de cliente, se salta`); cuenta('sin ficha'); continue; }
-        const llave = `${clienteId}|${tipo}`;
+        if (!clientId) { console.log(`- ${etiqueta}: sin ficha de cliente, se salta`); cuenta('sin ficha'); continue; }
+        const llave = `${clientId}|${tipo}`;
         if (hechos.has(llave)) { cuenta('duplicado (ya reenviado en esta corrida)'); continue; }
 
         if (tipo === 'campania' || tipo === 'retomar' || tipo === 'comprobante' || tipo === 'otro') {
@@ -82,17 +82,26 @@ async function main() {
 
         if (tipo === 'pedido-listo') {
             const sufijo = (m.content.match(/#([A-Z0-9]{4})/) || [])[1];
+            // `select` explícito (trampa conocida: el schema local va adelantado
+            // y un `include` contra producción pide columnas que allá no existen).
             const order = await prisma.order.findFirst({
                 where: { clientId, isDeleted: false, ...(sufijo ? { id: { endsWith: sufijo.toLowerCase() } } : {}) },
-                include: { client: true, items: { include: { product: true } }, payments: true },
+                select: { id: true, labStatus: true, client: { select: { name: true } } },
                 orderBy: { createdAt: 'desc' },
             });
             if (!order) { console.log(`- ${etiqueta}: pedido ${sufijo || '?'} no encontrado`); cuenta('pedido no encontrado'); continue; }
             if (order.labStatus !== 'READY') { console.log(`- ${etiqueta}: pedido #${sufijo} ya no está en READY (${order.labStatus}), no se reenvía`); cuenta('pedido ya entregado/otro estado'); continue; }
             console.log(`- ${etiqueta}: ${APPLY ? 'REENVIANDO' : 'reenviaría'} aviso de pedido listo #${sufijo} a ${order.client?.name}`);
             if (APPLY) {
-                const ok = await BotService.notifyOrderReady(order);
-                await marcar(clienteId, m.id, `aviso de pedido listo #${sufijo}`, ok);
+                // El aviso necesita el pedido completo (PricingService): solo con
+                // --apply, y por eso el script se corre con el código YA deployado
+                // (misma versión de schema que la base).
+                const completo = await prisma.order.findUnique({
+                    where: { id: order.id },
+                    include: { client: true, items: { include: { product: true } }, payments: true },
+                });
+                const ok = completo ? await BotService.notifyOrderReady(completo) : false;
+                await marcar(clientId, m.id, `aviso de pedido listo #${sufijo}`, ok);
                 cuenta(ok ? 'REENVIADO pedido listo' : 'FALLÓ pedido listo');
             } else cuenta('reenviaría pedido listo');
             hechos.add(llave);
@@ -102,7 +111,7 @@ async function main() {
         // presupuesto
         const quote = await prisma.order.findFirst({
             where: { clientId, isDeleted: false, orderType: 'QUOTE' },
-            include: { client: true, items: { include: { product: true } } },
+            select: { id: true, client: { select: { name: true, phone: true } }, items: { select: { productNameSnapshot: true, product: { select: { name: true } } } } },
             orderBy: { createdAt: 'desc' },
         });
         if (!quote) { console.log(`- ${etiqueta}: el cliente ya no tiene presupuesto vivo (¿compró?), no se reenvía`); cuenta('sin presupuesto vivo'); continue; }
@@ -116,7 +125,7 @@ async function main() {
                 text: `Hola ${nombre}, te reenviamos tu presupuesto por: ${articulos}. Disculpá la demora.\n\nAtelier Óptica, la óptica mejor calificada en Córdoba ⭐⭐⭐⭐⭐.`,
                 actor: SYSTEM_ACTOR,
             });
-            await marcar(clienteId, m.id, `presupuesto #${quote.id.slice(-4).toUpperCase()} en PDF`, r.ok);
+            await marcar(clientId, m.id, `presupuesto #${quote.id.slice(-4).toUpperCase()} en PDF`, r.ok);
             cuenta(r.ok ? 'REENVIADO presupuesto' : `FALLÓ presupuesto (${r.error})`);
         } else cuenta('reenviaría presupuesto');
         hechos.add(llave);
