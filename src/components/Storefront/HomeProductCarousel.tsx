@@ -292,14 +292,29 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
           href="/tienda"
           aria-hidden={esClon || undefined}
           tabIndex={esClon ? -1 : undefined}
-          className="group flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] flex flex-col items-center justify-center gap-3 border-r border-[#e5e5e5] bg-[#faf8f5] hover:bg-white transition-colors px-6 text-center"
+          className="group relative flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] flex flex-col items-center justify-center gap-3 overflow-hidden bg-stone-950 px-6 text-center"
         >
-          <span className="text-3xl font-serif tracking-tight text-stone-900">{totalCount}</span>
-          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-600 leading-relaxed">
+          {/* Placa negra (pedido de Ishtar, 2/9). El resplandor dorado no es
+              adorno: la tarjeta es lo último de una fila de fondos blancos, y
+              contra ese blanco un negro plano se leía como un hueco. El halo la
+              vuelve el punto final del recorrido.
+              El dorado es #c8a55c, que es el tono que la tabla de contraste de
+              globals.css marca para FONDO OSCURO — el claro (#8a6d3b) acá no
+              llegaría al piso de 4,5:1. */}
+          <div
+            className="absolute -top-1/3 left-1/2 h-[130%] w-[130%] -translate-x-1/2 rounded-full bg-[var(--dorado)]/15 blur-[70px] transition-opacity duration-500 group-hover:opacity-70 pointer-events-none"
+            aria-hidden="true"
+          />
+
+          <span className="relative text-4xl md:text-5xl font-serif tracking-tight text-white">
+            {totalCount}
+          </span>
+          <span className="relative text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-[var(--dorado)] leading-relaxed">
             modelos en total
           </span>
-          <span className="mt-1 text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-black text-white group-hover:bg-stone-800 transition-colors rounded-full">
+          <span className="relative mt-2 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-5 py-2.5 bg-[var(--dorado)] text-stone-950 rounded-full transition-transform duration-300 group-hover:scale-105">
             Ver todos
+            <span className="transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">→</span>
           </span>
         </Link>
     </>
