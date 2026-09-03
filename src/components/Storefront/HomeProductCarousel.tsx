@@ -200,11 +200,9 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                 <div>
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-[12px] font-bold text-stone-900 line-clamp-1 uppercase tracking-wide">{item.name}</h3>
-                    {isTitanium && (
-                      <span className="text-[10px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-                        Titanio
-                      </span>
-                    )}
+                    {/* Acá había un segundo chip "Titanio". La misma tarjeta ya lo
+                        dice sobre la foto, y de paso le robaba el ancho al nombre:
+                        "Aquiles C4" se mostraba como "AQUILE…". */}
                   </div>
                 
                 <div className="mt-1 pr-2 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
@@ -222,10 +220,16 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                             <span className="text-[15px] font-black text-stone-900 tracking-tight whitespace-nowrap">
                               ${v.contado.toLocaleString("es-AR")}
                             </span>
-                            <span className="text-[10px] text-stone-500 font-medium">
+                            {/* Las cuotas se ven de `sm` para arriba, igual que en
+                                la grilla de /tienda: en celular la tarjeta llevaba
+                                seis renglones de plata para una foto chica, y se
+                                veía más precio que anteojo. Están en la barra de
+                                arriba y completas en la ficha. Los importes siguen
+                                saliendo de PricingService. */}
+                            <span className="hidden sm:block text-[10px] text-stone-500 font-medium">
                               {textoCuotas12(v.cuota12)}
                             </span>
-                            <span className="text-[10px] text-stone-500 font-medium">
+                            <span className="hidden sm:block text-[10px] text-stone-500 font-medium">
                               6 cuotas sin interés de ${v.cuota6.toLocaleString("es-AR")}
                             </span>
                           </p>
@@ -247,9 +251,15 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                     )}
                   </div>
                   <div className="flex flex-row flex-wrap gap-1 sm:flex-col sm:items-end">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
-                      15% OFF 🔥
-                    </span>
+                    {/* Acá había un "15% OFF 🔥" en TODAS las tarjetas. Ese 15%
+                        es cierto, pero es una CONDICIÓN DE PAGO (efectivo o
+                        transferencia), no una oferta: no depende del producto y
+                        está en todos por igual. La misma tarjeta ya lo dice, dos
+                        centímetros a la izquierda, como "Transferencia 15% OFF".
+                        Con el mismo cartel en las 106, el ojo lo deja de ver a la
+                        tercera — y quemaba el único lugar donde una rebaja real
+                        podría gritarse. Es el mismo criterio que ya se aplicó en
+                        la grilla de /tienda. */}
                     <span className="text-[10px] font-black uppercase tracking-widest text-stone-700 bg-stone-100 px-1.5 py-0.5 rounded-sm whitespace-nowrap">
                       Envío Gratis
                     </span>
