@@ -85,7 +85,12 @@ export async function HomeStorePreview() {
                 bloques se apilaban en una sola columna con íconos de 56 px. En
                 celular pasan a dos columnas y los íconos se achican; de lg para
                 arriba queda como estaba, que ahí el alto no molesta. */}
-            <div className="grid grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-0 lg:space-y-8 pt-2 lg:pt-4">
+            {/* Una sola columna en celular. Con dos, la dirección y el teléfono
+                ocupaban media pantalla mientras el horario cruzaba las dos, así
+                que quedaba un hueco a la derecha y los datos se partían mal:
+                "José Luis de / Tejeda 4380", "+54 9 351 868- / 5644". Un número
+                de teléfono cortado al medio no se puede leer ni copiar. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-0 lg:space-y-8 pt-2 lg:pt-4">
               {/* Address */}
               <div className="flex gap-3 lg:gap-5 group cursor-default">
                 <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl bg-stone-900 border border-stone-800 flex items-center justify-center shrink-0 group-hover:border-[#b08f4c]/50 group-hover:bg-[#b08f4c]/10 transition-all duration-500 shadow-lg">
@@ -138,7 +143,7 @@ export async function HomeStorePreview() {
             </div>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-8">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-5 sm:pt-8">
               <a
                 href={`https://wa.me/${whatsappPhoneId}?text=${encodeURIComponent("Hola Atelier, vi la dirección en su web y me gustaría hacer una consulta.")}`}
                 target="_blank"
@@ -161,7 +166,12 @@ export async function HomeStorePreview() {
           </div>
 
           {/* Map & Photos Column (Right 7 cols on lg) */}
-          <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-6 h-[500px] lg:h-[700px] w-full relative z-10 mt-8 lg:mt-0">
+          {/* La foto y el mapa, uno al lado del otro en celular en vez de apilados.
+              Apilados dentro de un contenedor de 500 px cada uno quedaba en ~240:
+              ni la fachada ni el mapa se leían, y costaban media pantalla de scroll.
+              Lado a lado en 260 px de alto los dos siguen siendo reconocibles y la
+              sección baja 240 px. De `md` para arriba no cambia nada. */}
+          <div className="lg:col-span-7 grid grid-cols-2 gap-3 md:gap-6 h-[260px] md:h-[500px] lg:h-[700px] w-full relative z-10 mt-6 lg:mt-0">
             {/* Store Photo */}
             <div className="w-full h-full overflow-hidden rounded-[2rem] border border-stone-800/60 shadow-2xl relative group">
               <div className="absolute inset-0 bg-stone-900 animate-pulse" /> {/* Placeholder while loading */}
@@ -174,7 +184,7 @@ export async function HomeStorePreview() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-950/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-500" />
               
-              <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+              <div className="absolute bottom-0 left-0 right-0 p-3 md:p-8 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                 <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg">
                   <div className="w-2 h-2 rounded-full bg-[#b08f4c] shadow-[0_0_10px_rgba(176,143,76,0.8)]" />
                   <span className="text-[10px] font-black uppercase tracking-widest">

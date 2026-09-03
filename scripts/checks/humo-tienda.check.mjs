@@ -83,6 +83,25 @@ async function main() {
     process.exit(1);
   }
 
+  // ── ¿Es Atelier lo que hay del otro lado? ─────────────────────────────────
+  //
+  // El BASE por defecto es localhost:3000, y en esta máquina el 3000 lo suele
+  // tener OTRO proyecto. El 2/9/26 este check corrió contra un sitio de cortinas
+  // y reportó, con toda seriedad, "alto total del home 8523 px" y "no se pudo
+  // auditar ninguna ficha". Números de otra web, presentados como los nuestros.
+  //
+  // Un check que mide el sitio equivocado es peor que uno que no corre: el que
+  // no corre se nota. Así que antes de medir nada, se confirma que estamos donde
+  // creemos estar.
+  const titulo = await page.title();
+  if (!/atelier/i.test(titulo)) {
+    console.error(`\n❌ ${BASE} no es Atelier — el <title> dice "${titulo}".`);
+    console.error(`   Probablemente el puerto lo tenga otro proyecto.`);
+    console.error(`   Corré:  BASE_URL=http://localhost:<puerto> npm run check:humo\n`);
+    await navegador.close();
+    process.exit(1);
+  }
+
   // ── D.1 · Nombre y precio visibles en la ficha ────────────────────────────
   //
   // El corazón del Anexo D. Siete nodos del bloque de compra quedaban en

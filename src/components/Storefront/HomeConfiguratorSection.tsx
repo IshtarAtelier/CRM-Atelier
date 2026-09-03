@@ -6,9 +6,9 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 
 export function HomeConfiguratorSection() {
   return (
-    <section className="w-full bg-[#f2f2f2] py-24 flex flex-col items-center justify-center text-center px-4 md:px-8 overflow-hidden">
+    <section className="w-full bg-[#f2f2f2] py-14 md:py-24 flex flex-col items-center justify-center text-center px-4 md:px-8 overflow-hidden">
       <motion.h2 
-        className="text-2xl md:text-4xl font-serif uppercase tracking-tight mb-16"
+        className="text-2xl md:text-4xl font-serif uppercase tracking-tight mb-8 md:mb-16"
         initial={{ opacity: 0, y: 15 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
@@ -17,12 +17,19 @@ export function HomeConfiguratorSection() {
         Armá tus anteojos graduados
       </motion.h2>
 
-      <div className="w-full max-w-5xl flex flex-col md:flex-row items-center justify-between gap-12 md:gap-4 mb-16 relative">
-        {/* Línea conectora (solo Desktop) */}
-        <div className="hidden md:block absolute top-6 left-[10%] right-[10%] h-[1px] bg-black/10 z-0"></div>
+      {/* Los cuatro pasos.
 
-        {/* Línea conectora (solo Mobile) */}
-        <div className="md:hidden absolute top-0 bottom-0 left-1/2 w-[1px] bg-black/10 -translate-x-1/2 z-0"></div>
+          En celular es una grilla 2x2, no una columna. Apilados con `gap-12`
+          medían 1.092 px: la sección más alta del home después del pie, y el
+          cuarto paso quedaba a tres pantallas del primero, así que nadie leía
+          el proceso completo — que es justamente lo que esta sección explica.
+          En 2x2 los cuatro entran juntos y la sección baja a ~580 px.
+
+          La línea conectora sobrevive solo en escritorio, donde los pasos
+          están en fila y la línea significa "y después". En una grilla 2x2 no
+          significa nada, así que se va en vez de decorar. */}
+      <div className="w-full max-w-5xl grid grid-cols-2 gap-x-4 gap-y-8 md:flex md:flex-row md:items-center md:justify-between md:gap-4 mb-8 md:mb-16 relative">
+        <div className="hidden md:block absolute top-6 left-[10%] right-[10%] h-[1px] bg-black/10 z-0"></div>
 
         {[
           { num: 1, title: "Elegí tu armazón", desc: "Explorá la colección" },

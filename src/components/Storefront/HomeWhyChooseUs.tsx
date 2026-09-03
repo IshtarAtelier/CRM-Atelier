@@ -46,7 +46,12 @@ export function HomeWhyChooseUs() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 sm:gap-x-8 gap-y-8 md:gap-y-12">
+        {/* En celular NO es una grilla de dos columnas: es una lista de filas con el
+            icono a la izquierda. Con dos columnas cada card medía ~168 px de ancho,
+            la descripción se partía en ocho renglones y la sección llegaba a 1.002 px.
+            En fila, el texto usa todo el ancho, entra en dos o tres renglones y se
+            lee de un vistazo. De `sm` para arriba vuelve la grilla. */}
+        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-x-8 sm:gap-y-8 md:gap-y-12">
           {features.map((feat, i) => (
             <motion.div
               key={feat.title}
@@ -54,17 +59,23 @@ export function HomeWhyChooseUs() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1, duration: 0.5 }}
               viewport={{ once: true }}
-              className="flex flex-col items-center text-center p-6 bg-white/5 border border-white/10 rounded-2xl shadow-xl hover:bg-white/10 transition-colors duration-300 group"
+              className="flex flex-row items-center text-left gap-4 p-4 sm:flex-col sm:items-center sm:text-center sm:gap-0 sm:p-6 bg-white/5 border border-white/10 rounded-2xl shadow-xl hover:bg-white/10 transition-colors duration-300 group"
             >
-              <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-black/30 flex items-center justify-center mb-3 md:mb-6 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-300">
+              <div className="w-12 h-12 md:w-16 md:h-16 shrink-0 rounded-full bg-black/30 flex items-center justify-center sm:mb-3 md:mb-6 shadow-inner border border-white/5 group-hover:scale-110 transition-transform duration-300">
                 {feat.icon}
               </div>
-              <h3 className="text-[13px] font-black uppercase tracking-widest text-white mb-1.5 md:mb-3">
-                {feat.title}
-              </h3>
-              <p className="text-sm text-stone-400 font-medium leading-relaxed max-w-[250px]">
-                {feat.desc}
-              </p>
+              {/* Título y texto van juntos en un bloque: en la fila de celular el
+                  icono queda a la izquierda y estos dos apilados a su derecha.
+                  Sueltos como hermanos del icono, el flex-row los ponía en tres
+                  columnas y "Garantía de adaptación" se partía en tres renglones. */}
+              <div className="min-w-0 sm:contents">
+                <h3 className="text-[13px] font-black uppercase tracking-widest text-white mb-1 sm:mb-1.5 md:mb-3">
+                  {feat.title}
+                </h3>
+                <p className="text-sm text-stone-400 font-medium leading-relaxed sm:max-w-[250px]">
+                  {feat.desc}
+                </p>
+              </div>
             </motion.div>
           ))}
         </div>

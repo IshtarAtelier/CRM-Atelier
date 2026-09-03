@@ -690,7 +690,7 @@ export function TiendaClient({
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-14"
+              className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-8 md:gap-y-14"
             >
               {loadError ? (
                 <div className="col-span-full py-16 flex flex-col items-center justify-center text-center">
@@ -857,11 +857,10 @@ export function TiendaClient({
                             ANTES del <h2> del nombre, así que cada tarjeta
                             invertía la jerarquía del listado. */}
                         <p className="text-[10px] text-stone-500 font-black uppercase tracking-[0.20em]">{isWholesale ? 'Cápsula Escarlata' : (p.brand || 'ATELIER')}</p>
-                        {p.material === "Titanio" && (
-                          <span className="text-[10px] font-black uppercase tracking-[0.15em] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
-                            Titanio
-                          </span>
-                        )}
+                        {/* Acá había un segundo chip "Titanio". La misma tarjeta
+                            ya lo dice sobre la foto, abajo a la izquierda, y el
+                            lector de pantalla leía "Titanio Atelier Titanio".
+                            Un dato repetido no informa dos veces: ocupa lugar. */}
                       </div>
                       <h2 className="text-base md:text-2xl font-serif tracking-tight text-black leading-tight mb-1.5 md:mb-3 group-hover:text-stone-600 transition-colors">
                         {p.name || p.model}
@@ -933,8 +932,19 @@ export function TiendaClient({
                               <span className="font-black text-base text-stone-900">
                                 ${Math.round((oferta ? p.salePrice : base) * (1 - (webSettings.web_promo_cash_discount || 15) / 100)).toLocaleString("es-AR")}
                               </span>
-                              <span className="text-emerald-700 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
-                              <span className="block text-xs text-stone-500">
+                              {/* Renglón propio en celular. Pegado al precio, "15% OFF transf."
+                                  se cortaba solo y dejaba "transf." colgando en verde
+                                  abajo a la izquierda, que se leía como un error. */}
+                              <span className="block sm:inline text-emerald-700 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
+                              {/* Las cuotas se ven de `sm` para arriba. En celular
+                                  la tarjeta llevaba tres renglones de precio para
+                                  una foto de 170 px: se veía más plata que anteojo,
+                                  que es lo contrario de lo que la grilla tiene que
+                                  hacer (pedido de Ishtar, 2/9). En celular queda el
+                                  precio que decide la compra; las cuotas están en
+                                  la barra de arriba y completas en la ficha.
+                                  Los importes siguen saliendo de PricingService. */}
+                              <span className="hidden sm:block text-xs text-stone-500">
                                 12 cuotas fijas de ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")} · {installmentsCount} s/interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
                               </span>
                             </p>

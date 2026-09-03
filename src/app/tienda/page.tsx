@@ -144,7 +144,14 @@ export default async function TiendaPage() {
         availableBrands={availableBrands}
         availableShapes={availableShapes}
         availableMaterials={availableMaterials}
-        footer={<PieSegunSesion />}
+        // El `key` no es decorativo. Este elemento se crea en un componente de
+        // servidor y viaja como prop hasta un componente cliente: React lo
+        // deserializa en posición de lista y, sin key, avisaba en cada carga de
+        // /tienda ("Each child in a list should have a unique key prop"). El
+        // aviso es de desarrollo, pero es el mismo mecanismo que hace que React
+        // desmonte y remonte un nodo cuando no puede identificarlo — acá, el pie
+        // entero. Verificado: con `footer={null}` el aviso desaparece.
+        footer={<PieSegunSesion key="pie-tienda" />}
       />
     </>
   );
