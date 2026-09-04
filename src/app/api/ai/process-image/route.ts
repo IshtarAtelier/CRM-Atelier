@@ -28,15 +28,23 @@ async function normalizeImageSize(inputBuffer: Buffer): Promise<Buffer> {
       .toBuffer({ resolveWithObject: true });
 
     const channels = info.channels;
-    const WHITE_THRESHOLD = 240;
+    // 235 y no 240: el fondo que devuelve Gemini no es blanco puro, es un crema
+    // muy claro. Con 240 ese fondo contaba como producto.
+    const WHITE_THRESHOLD = 235;
+    // Una fila con cuatro píxeles sueltos es ruido de compresión, no el armazón.
+    // Sin este piso, una sola fila de basura que cruza la imagen de punta a punta
+    // hacía creer que el armazón medía el doble, y salía a la mitad de tamaño
+    // (así quedó el producto que se ve al 42% en la grilla).
+    const MIN_PIXELES_POR_FILA = Math.max(8, Math.round(info.width * 0.01));
 
-    // For each row, track the leftmost and rightmost non-white pixel
+    // Por fila: el primer y el último píxel con producto, ignorando las filas
+    // que no llegan al mínimo.
     const rowSpans: { left: number; right: number; width: number }[] = [];
     let globalMinY = info.height, globalMaxY = 0;
 
     for (let y = 0; y < info.height; y++) {
       let rowMinX = info.width, rowMaxX = 0;
-      let hasContent = false;
+      let pixeles = 0;
 
       for (let x = 0; x < info.width; x++) {
         const idx = (y * info.width + x) * channels;
@@ -44,11 +52,11 @@ async function normalizeImageSize(inputBuffer: Buffer): Promise<Buffer> {
         if (a > 20 && (r < WHITE_THRESHOLD || g < WHITE_THRESHOLD || b < WHITE_THRESHOLD)) {
           if (x < rowMinX) rowMinX = x;
           if (x > rowMaxX) rowMaxX = x;
-          hasContent = true;
+          pixeles++;
         }
       }
 
-      if (hasContent) {
+      if (pixeles >= MIN_PIXELES_POR_FILA) {
         rowSpans.push({ left: rowMinX, right: rowMaxX, width: rowMaxX - rowMinX });
         if (y < globalMinY) globalMinY = y;
         if (y > globalMaxY) globalMaxY = y;
@@ -62,11 +70,11 @@ async function normalizeImageSize(inputBuffer: Buffer): Promise<Buffer> {
       return inputBuffer;
     }
 
-    // Find the WIDEST row span — this is the front of the frame (lenses area)
-    let maxRowWidth = 0;
-    for (const span of rowSpans) {
-      if (span.width > maxRowWidth) maxRowWidth = span.width;
-    }
+    // El frente del armazón (la zona de los cristales) es la parte más ancha.
+    // Tomamos el percentil 98 de los anchos y no el máximo: una sola fila
+    // anómala deja de decidir la escala de toda la foto.
+    const anchos = rowSpans.map(s => s.width).filter(w => w > 0).sort((a, b) => a - b);
+    const maxRowWidth = anchos[Math.min(anchos.length - 1, Math.floor(anchos.length * 0.98))];
 
     // Full bounding box for cropping
     let globalMinX = info.width, globalMaxX = 0;
@@ -122,6 +130,19 @@ async function normalizeImageSize(inputBuffer: Buffer): Promise<Buffer> {
       .toBuffer();
 
     console.log(`[Photo Studio] Normalized: widest row=${maxRowWidth}px, bbox=${cropWidth}x${cropHeight} → ${rw}x${rh} on ${CANVAS_SIZE}x${CANVAS_SIZE}`);
+
+    // Verificar lo que salió, no lo que quisimos. Hasta acá la normalización
+    // podía fallar en silencio y nadie se enteraba: quedaron fotos con el
+    // armazón al 42% y otras al 91%, que en la grilla se ven de tamaños
+    // distintos. Si el ancho final no da, queda dicho en el log.
+    const anchoFinal = Math.round((100 * rw) / CANVAS_SIZE);
+    const objetivo = Math.round(PRODUCT_WIDTH_RATIO * 100);
+    if (Math.abs(anchoFinal - objetivo) > 8) {
+      console.warn(
+        `[Photo Studio] ⚠️ El armazón quedó al ${anchoFinal}% del ancho y el catálogo usa ${objetivo}%. ` +
+        `Se va a ver de otro tamaño que el resto de la grilla — revisar la foto de origen.`
+      );
+    }
     return result;
   } catch (err) {
     console.error('[Photo Studio] Normalize failed, returning original:', err);
@@ -142,6 +163,24 @@ async function normalizeImageSize(inputBuffer: Buffer): Promise<Buffer> {
 const CATALOG_PROMPT = `You are a professional product photographer for a premium eyewear e-commerce catalog.
 
 TASK: Clean up this eyewear photo for catalog use. You MUST follow ALL rules below without exception.
+
+=== RULE ZERO — THE PRODUCT IS REAL, DO NOT REDRAW IT ===
+
+This photo shows a REAL pair of glasses that a customer will buy. The output must
+show THAT pair — not a similar one, not a nicer one, not a more typical one.
+
+- KEEP THE CAMERA ANGLE. If the input is a SIDE PROFILE, the output stays a SIDE
+  PROFILE. If it is a 45-degree view, it stays 45 degrees. NEVER rotate a
+  non-frontal photo into a front view.
+- KEEP THE SHAPE. A rectangular frame stays rectangular; an oval frame stays oval.
+- KEEP THE COLOUR AND PATTERN, including the exact tortoiseshell pattern and the
+  colour of the metal detail on the temples (silver stays silver, gold stays gold).
+- KEEP THE PROPORTIONS: rim thickness, lens size, bridge, temple length.
+- If you cannot clean the photo without altering the product, return the product
+  unchanged on white rather than inventing a different frame.
+
+Everything below is subordinate to this rule. Removing the background must never
+become an excuse to redraw the glasses.
 
 === BACKGROUND REMOVAL ===
 - Remove the ENTIRE background. Remove ALL shadows, reflections, glare, lighting artifacts.
