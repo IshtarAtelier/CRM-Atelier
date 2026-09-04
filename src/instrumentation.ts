@@ -163,6 +163,48 @@ export async function register() {
             }
         };
 
+        // ---- SALUD DIARIA DE WHATSAPP (API oficial), 9:15 ARG ----
+        // /api/cron/whatsapp-calidad figuraba como "dar de alta en cron-job.org
+        // al migrar" y nunca se dio de alta. Mismo patrón que el resumen: guard
+        // persistente, reintento si falla, sin despertador externo.
+        const CALIDAD_KEY = 'whatsapp_calidad_last_run';
+        let calidadRanForDate: string | null = null;
+        let calidadRunning = false;
+        const maybeRunCalidad = async () => {
+            const { hour, minute, dateKey } = argNow();
+            if (hour < 9 || (hour === 9 && minute < 15)) return;
+            if (calidadRanForDate === dateKey || calidadRunning) return;
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            try {
+                const { prisma } = await import('@/lib/db');
+                const row = await prisma.systemSetting.findUnique({ where: { key: CALIDAD_KEY } });
+                if (row?.value === dateKey) { calidadRanForDate = dateKey; return; }
+            } catch (err) {
+                console.error('[CRON whatsapp-calidad] No se pudo leer el guard diario (se intenta igual):', err);
+            }
+            calidadRunning = true;
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/whatsapp-calidad`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(3 * 60 * 1000),
+                });
+                if (!res.ok) { console.error(`[CRON whatsapp-calidad] HTTP ${res.status} — se reintenta en el próximo tick.`); return; }
+                try {
+                    const { prisma } = await import('@/lib/db');
+                    await prisma.systemSetting.upsert({ where: { key: CALIDAD_KEY }, update: { value: dateKey }, create: { key: CALIDAD_KEY, value: dateKey } });
+                } catch (err) {
+                    console.error('[CRON whatsapp-calidad] No se pudo persistir el guard:', err);
+                }
+                calidadRanForDate = dateKey;
+            } catch (err) {
+                console.error('[CRON whatsapp-calidad] Error disparando el chequeo (se reintenta):', err);
+            } finally {
+                calidadRunning = false;
+            }
+        };
+
         // ---- RECORDATORIO DE RETIRO (pedido listo), una vez por hora ----
         // /api/cron/pickup-reminder avisa al cliente que su pedido está listo
         // cuando el lab lo terminó hace más de 24 h y nadie lo pasó a READY. Ese
@@ -212,6 +254,7 @@ export async function register() {
             maybeRunDaily().catch(err => console.error('[CRON lab-invoices] maybeRunDaily:', err));
             maybeRunResumen().catch(err => console.error('[CRON resumen-equipo] maybeRunResumen:', err));
             maybeRunPickupReminder().catch(err => console.error('[CRON pickup-reminder] maybeRunPickupReminder:', err));
+            maybeRunCalidad().catch(err => console.error('[CRON whatsapp-calidad] maybeRunCalidad:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');

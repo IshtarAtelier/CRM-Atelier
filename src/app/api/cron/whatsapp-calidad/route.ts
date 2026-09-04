@@ -3,6 +3,7 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { sendEmail } from '@/lib/email';
 import { fetchWa } from '@/lib/wa-config';
 import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates';
+import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,9 +53,22 @@ export async function GET(request: Request) {
         if (rechazadas.length) problemas.push(`Plantillas rechazadas/pausadas: ${rechazadas.join(', ')}`);
         if (faltan.length) problemas.push(`Plantillas del catálogo que faltan en Meta: ${faltan.join(', ')}`);
 
+        // Rechazados por Meta en las últimas 24 h (el FAILED llega por webhook
+        // después de que la ficha ya dijo "enviado"). Del 28/8 al 3/9/26 se
+        // acumularon 45 sin que nadie lo viera: esto los pone en el mail diario.
+        const rechazados = await prisma.whatsAppMessage.findMany({
+            where: { direction: 'OUTBOUND', status: 'FAILED', createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } },
+            select: { content: true, senderName: true, chat: { select: { client: { select: { name: true } }, waId: true } } },
+            take: 30,
+        }).catch(() => []);
+        if (rechazados.length) {
+            const lineas = rechazados.map(m => `${m.chat.client?.name || m.chat.waId}${m.senderName ? ` (${m.senderName})` : ''}: "${(m.content || '').replace(/\s+/g, ' ').slice(0, 60)}"`);
+            problemas.push(`${rechazados.length} WhatsApp rechazado(s) por Meta en las últimas 24 h (la ficha decía "enviado"):\n  - ${lineas.join('\n  - ')}`);
+        }
+
         const resumen = `${st.phone || '?'} · calidad ${st.qualityRating || '?'} · límite ${st.messagingLimitTier || '?'} · plantillas OK ${Object.keys(WHATSAPP_TEMPLATES).length - faltan.length - pendientes.length - rechazadas.length}/${Object.keys(WHATSAPP_TEMPLATES).length}`;
         const subject = problemas.length
-            ? `⚠️ WhatsApp API: ${problemas.length} cosa(s) para mirar — ${resumen}`
+            ? `⚠️ WhatsApp API: ${problemas.length} cosa(s) para mirar${rechazados.length ? ` · ${rechazados.length} NO entregado(s)` : ''} — ${resumen}`
             : `✅ WhatsApp API sana — ${resumen}`;
         const text = [
             `Número: ${st.phone || '?'} (${st.verifiedName || 'sin nombre verificado'})`,

@@ -101,13 +101,23 @@ function dispatchInbound(msg, res) {
 // 3/9/26 pasó una semana entera sin que nadie lo viera.
 const alertasDeCuenta = new Map(); // code -> última vez (ms)
 async function onStatus(s, r) {
-    if (!r || !r.deCuenta) return;
-    const ultima = alertasDeCuenta.get(r.code) || 0;
-    if (Date.now() - ultima < 60 * 60 * 1000) return;
-    alertasDeCuenta.set(r.code, Date.now());
+    if (!r) return;
+    // Pedido de Ishtar (3/9/26): "que me avise a mí si algo no se pudo". Un
+    // rechazo por el número del cliente avisa siempre (son pocos); uno de la
+    // cuenta se agrupa a uno por hora, porque tira todos los envíos juntos.
+    if (r.deCuenta) {
+        const ultima = alertasDeCuenta.get(r.code) || 0;
+        if (Date.now() - ultima < 60 * 60 * 1000) return;
+        alertasDeCuenta.set(r.code, Date.now());
+        await transport.notifyAdminDown(
+            `WhatsApp: Meta está rechazando los envíos (código ${r.code})`,
+            `Meta rechazó un WhatsApp al ${r.waId || '?'}${r.senderName ? ` mandado por ${r.senderName}` : ''}.\n\nMotivo: ${r.motivo}\n\nMientras esto siga, NINGÚN mensaje fuera de la ventana de 24 h llega (pedidos listos, presupuestos, comprobantes), aunque la ficha diga "enviado". Cada rechazo deja una nota de error y una tarea en la ficha del cliente. Este aviso se repite como mucho una vez por hora.`,
+        ).catch(() => {});
+        return;
+    }
     await transport.notifyAdminDown(
-        `WhatsApp: Meta está rechazando los envíos (código ${r.code})`,
-        `Meta rechazó un WhatsApp al ${r.waId || '?'}${r.senderName ? ` mandado por ${r.senderName}` : ''}.\n\nMotivo: ${r.motivo}\n\nMientras esto siga, NINGÚN mensaje fuera de la ventana de 24 h llega (pedidos listos, presupuestos, comprobantes), aunque la ficha diga "enviado". Cada rechazo deja una nota de error y una tarea en la ficha del cliente. Este aviso se repite como mucho una vez por hora.`,
+        `WhatsApp NO entregado al ${r.waId || '?'}`,
+        `Un WhatsApp${r.senderName ? ` mandado por ${r.senderName}` : ''} al ${r.waId || '?'} no llegó.\n\nMotivo: ${r.motivo}\n\nQuedó anotado como error y como tarea en la ficha del cliente. Conviene contactarlo por otro medio o revisar el número.`,
     ).catch(() => {});
 }
 app.use('/webhook/whatsapp', createWebhookRouter({ io, onInbound: dispatchInbound, onStatus }));
