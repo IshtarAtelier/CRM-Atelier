@@ -1,0 +1,31 @@
+{
+  "id": "story-producto-capsula-escarlata-onix-tendencia-rectangular-negro-armazon-receta",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-09-04",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Cápsula escarlata Tendencia Rectangular Negro",
+    "slug": "capsula-escarlata-onix-tendencia-rectangular-negro-armazon-receta",
+    "marca": "Cápsula escarlata",
+    "categoria": "Receta"
+  },
+  "caption": "Cápsula escarlata Tendencia Rectangular Negro · Cápsula escarlata\n\n12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/capsula-escarlata-onix-tendencia-rectangular-negro-armazon-receta\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/onix-tendencia-rectangular-negro-1.webp",
+      "compacto": true,
+      "title": "Cápsula escarlata Tendencia Rectangular Negro · Cápsula escarlata",
+      "dato": "$26.667",
+      "body": "12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}
