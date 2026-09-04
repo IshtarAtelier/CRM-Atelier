@@ -1,4 +1,5 @@
 import { WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
+import { VIGENCIA_PRESUPUESTO_DIAS } from '@/lib/constants';
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -132,9 +133,9 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         .tot-paid { text-align: right; border-left: 2px solid ${brandBeige}; padding-left: 25px; margin-left: 10px; }
         .paid-value { font-size: 24px; font-weight: 900; color: #b45309; }
 
-        .footer { margin-top: 40px; text-align: center; border-top: 2px solid ${brandBeige}; padding-top: 20px; font-size: 9px; color: #a8a29e; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; }
+        .footer { margin-top: 16px; text-align: center; border-top: 2px solid ${brandBeige}; padding-top: 10px; break-before: avoid; page-break-before: avoid; font-size: 9px; color: #a8a29e; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; }
         
-        @media print { body { padding: 30px; } }
+        @media print { body { padding: 22px 30px; } }
     </style>
 </head>
 <body>
@@ -164,7 +165,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
         <div class='info-box'>
             <h3>🏢 Atelier Local</h3>
             <div class='info-row'><span class='info-label'>Sucursal</span><span class='info-value'>Cerro de las Rosas</span></div>
-            <div class='info-row'><span class='info-label'>Vigencia</span><span class='info-value'>15 días corridos</span></div>
+            <div class='info-row'><span class='info-label'>Vigencia</span><span class='info-value'>${VIGENCIA_PRESUPUESTO_DIAS} días corridos</span></div>
         </div>
     </div>
 
@@ -468,7 +469,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
             filas.push(`<div><div style="font-size: 8px; font-weight: 900; color: ${brandSand};">TRATAMIENTO</div><div style="font-size: 12px; font-weight: 700; margin-top: 3px;">${escapeHtml(lab.tint.text)}</div></div>`);
         }
         return `
-    <div style="margin-top: 22px; border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 14px 16px; page-break-inside: avoid; break-inside: avoid;">
+    <div style="margin-top: 14px; border: 1.5px solid ${brandBeige}; border-radius: 12px; padding: 12px 16px; page-break-inside: avoid; break-inside: avoid;">
         <div style="font-size: 8px; font-weight: 900; color: ${brandSand}; letter-spacing: 2px; margin-bottom: 10px;">DETALLES DE LABORATORIO</div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">${filas.join('')}</div>
     </div>`;
@@ -482,7 +483,7 @@ function getOrderHtml(order: any, client: any, vendorName?: string): string {
     ` : ''}
 
     ${resolveVendorName(order, vendorName) ? `
-        <div style="margin-top: 26px; display: flex; justify-content: flex-end; page-break-inside: avoid; break-inside: avoid;">
+        <div style="margin-top: 14px; display: flex; justify-content: flex-end; page-break-inside: avoid; break-inside: avoid;">
             <div style="text-align: center; min-width: 220px;">
                 <div style="font-size: 13px; font-weight: 700; padding: 0 18px 6px;">${escapeHtml(resolveVendorName(order, vendorName)!)}</div>
                 <div style="border-top: 1.5px solid ${brandBeige}; padding-top: 6px;">

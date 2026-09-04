@@ -10,6 +10,7 @@
 // navegador no puede alterar los importes.
 
 import { NextResponse } from 'next/server';
+import { VIGENCIA_PRESUPUESTO_DIAS } from '@/lib/constants';
 import { prisma } from '@/lib/db';
 import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
@@ -100,7 +101,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
                     const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
                     const template = esVenta
                         ? templateSpec('venta_confirmada', [nombre, nro, money(f.totalCard)])
-                        : templateSpec('presupuesto_pdf', [nombre, money(f.totalCard), '7']);
+                        : templateSpec('presupuesto_pdf', [nombre, money(f.totalCard), String(VIGENCIA_PRESUPUESTO_DIAS)]);
                     res = await sendWhatsApp({
                         chatId: destino,
                         message: texto,

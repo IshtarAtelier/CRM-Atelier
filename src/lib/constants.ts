@@ -191,3 +191,10 @@ export const PRODUCT_CATEGORIES = [
     { id: 'Lentes Especiales', label: '✨ Especiales', icon: '✨' },
     { id: 'Tratamiento', label: '💧 Tratamientos', icon: '💧', subtypes: ['Tratamientos', 'Colores de Cristal'] },
 ];
+
+/**
+ * Cuántos días vale un presupuesto. Lo dice el PDF ("Vigencia: N días corridos")
+ * y la plantilla de WhatsApp `presupuesto_pdf` ("Tiene validez de N días"): los
+ * dos leen de acá. El 4/9/26 el PDF decía 15 y el WhatsApp 7, en el mismo envío.
+ */
+export const VIGENCIA_PRESUPUESTO_DIAS = 15;

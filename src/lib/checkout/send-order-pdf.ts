@@ -9,6 +9,7 @@
  * alguien "arregla" un caso y el otro queda desactualizado.
  */
 import { prisma } from '@/lib/db';
+import { VIGENCIA_PRESUPUESTO_DIAS } from '@/lib/constants';
 import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
 import { PricingService } from '@/services/PricingService';
@@ -131,7 +132,7 @@ export async function sendOrderPdf(
       const money = (n: number) => `$ ${Number(n || 0).toLocaleString('es-AR')}`;
       const template = esVenta
         ? templateSpec('venta_confirmada', [order.client.name.split(' ')[0], nro, money(fin.totalCard)])
-        : templateSpec('presupuesto_pdf', [order.client.name.split(' ')[0], money(fin.totalCard), '7']);
+        : templateSpec('presupuesto_pdf', [order.client.name.split(' ')[0], money(fin.totalCard), String(VIGENCIA_PRESUPUESTO_DIAS)]);
 
       const res = await sendWhatsApp({
         chatId: chatIdForBot,

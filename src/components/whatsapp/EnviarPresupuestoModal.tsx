@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { VIGENCIA_PRESUPUESTO_DIAS } from '@/lib/constants';
 import { FileText, Loader2, X } from 'lucide-react';
 import { renderTemplate } from '@/lib/whatsapp/templates';
 import { formatDate } from '@/lib/format-date';
@@ -93,7 +94,7 @@ export function EnviarPresupuestoModal({ open, chat, onClose, onSent }: Props) {
     const preview = pedido
         ? (esVenta
             ? renderTemplate('venta_confirmada', [nombre, nro(pedido.id), precioConSigno(pedido.total)])
-            : renderTemplate('presupuesto_pdf', [nombre, precioConSigno(pedido.total), '7']))
+            : renderTemplate('presupuesto_pdf', [nombre, precioConSigno(pedido.total), String(VIGENCIA_PRESUPUESTO_DIAS)]))
         : '';
 
     const enviar = async () => {
