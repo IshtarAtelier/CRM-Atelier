@@ -67,12 +67,21 @@ inicia checkout → CheckoutSession PENDING
 - `RECOVERED` es la métrica del recupero: cuántos volvieron después de un
   toque. Se ve en la salud de la tienda (`src/lib/tienda/salud.ts`).
 - **Campaña de carritos por WhatsApp** (`/api/cron/campania-carritos`): retoma
-  por WhatsApp a quien abandonó un carrito en los últimos N días (default 30)
-  con la plantilla aprobada `seguimiento_carrito`. Misma mecánica que las otras
-  campañas: tandas chicas, dedup por etiqueta "Campaña Carrito WhatsApp",
-  respeta el interruptor "Campañas" y el horario. **`dryRun` es el default**:
-  lista la audiencia y el texto; manda solo con `&dryRun=0`. Deja el mismo
-  rastro que un seguimiento del embudo.
+  por WhatsApp a quien abandonó un carrito con la plantilla aprobada
+  `seguimiento_carrito`. Misma mecánica que las otras campañas: tandas
+  chicas, dedup por etiqueta "Campaña Carrito WhatsApp", respeta el
+  interruptor "Campañas" y el horario. **`dryRun` es el default**: lista la
+  audiencia y el texto; manda solo con `&dryRun=0`. Deja el mismo rastro que
+  un seguimiento del embudo.
+  - **Ventana con tope duro en `VENTANA_EMBUDO_DIAS`** (los mismos 30 días del
+    embudo, `leads-pipeline.ts`): más viejo que eso quedó atrás para siempre,
+    no solo hasta el próximo dry-run — `?dias=` no puede pedir más. Decisión
+    de Ishtar del 5/9/26 después de que un `&dias=90` a mano trajera a alguien
+    de hace 5 semanas y un carrito de prueba de hace más de dos meses.
+  - También respeta `Client.opportunityDismissedAt`: si una vendedora ya
+    descartó a esa persona desde Oportunidades de Cierre, la campaña no la
+    reactiva (misma señal que usa ese panel — descartar en un lugar vale en
+    los dos).
 
 ## Qué NO hace el sistema (a propósito)
 
