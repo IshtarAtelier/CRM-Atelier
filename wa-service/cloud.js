@@ -27,6 +27,7 @@ const { Server } = require('socket.io');
 const { prisma } = require('./db');
 const transport = require('./transport/cloud-transport');
 const { createWebhookRouter } = require('./transport/webhook');
+const { marcarTraspasoHumano } = require('./shared/traspaso-humano');
 const { createCloudRoutes } = require('./transport/cloud-routes');
 const { createApiRouter } = require('./routes/api');
 const { verificarSocketToken } = require('./shared/socket-token');
@@ -120,7 +121,31 @@ async function onStatus(s, r) {
         `Un WhatsApp${r.senderName ? ` mandado por ${r.senderName}` : ''} al ${r.waId || '?'} no llegó.\n\nMotivo: ${r.motivo}\n\nQuedó anotado como error y como tarea en la ficha del cliente. Conviene contactarlo por otro medio o revisar el número.`,
     ).catch(() => {});
 }
-app.use('/webhook/whatsapp', createWebhookRouter({ io, onInbound: dispatchInbound, onStatus }));
+/**
+ * Alguien del equipo escribió desde el CELULAR o WhatsApp Web (eco de
+ * coexistencia). Es una intervención humana igual que escribir desde el CRM,
+ * así que el bot se apaga en ese chat.
+ *
+ * Faltaba: el camino del CRM (`routes/api.js` → /send) ya llamaba a
+ * `disableBotForChatById`, pero el eco no llamaba a nada. Quien atendía desde
+ * el teléfono seguía teniendo al bot contestando encima.
+ *
+ * Se usa el MISMO helper que el CRM y no un `update` suelto, porque además de
+ * apagar cancela el turno que ya estaba programado en el debounce (si no, la
+ * respuesta que el bot ya tenía agendada salía igual, después del humano),
+ * refresca el buzón y deja el resumen de traspaso.
+ */
+async function onEcho(_e, r) {
+    const chat = r && r.chat;
+    if (!chat || !chat.botEnabled) return;
+    await marcarTraspasoHumano({
+        prisma, chatId: chat.id,
+        disableBotForChatById: bot.disableBotForChatById,
+        motivo: 'Intervención humana (escribieron desde el celular o WhatsApp Web)',
+    });
+}
+
+app.use('/webhook/whatsapp', createWebhookRouter({ io, onInbound: dispatchInbound, onStatus, onEcho }));
 
 app.use(express.json({ limit: '10mb' }));
 

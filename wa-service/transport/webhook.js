@@ -130,7 +130,8 @@ function createWebhookRouter(deps = {}) {
         (async () => {
             for (const e of echoes) {
                 try {
-                    await persistEcho(e, { io: deps.io });
+                    const r = await persistEcho(e, { io: deps.io });
+                    if (deps.onEcho) await deps.onEcho(e, r);
                 } catch (err) {
                     console.error('[Webhook] Error procesando eco del teléfono:', err.message);
                 }

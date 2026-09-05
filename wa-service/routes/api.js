@@ -13,6 +13,8 @@ const path = require('path');
 const fs = require('fs');
 const { getFileExtension, clasificarFalloDeEnvio } = require('../utils');
 const { resolveWaMessageId } = require('../shared/message-id');
+const { marcarTraspasoHumano } = require('../shared/traspaso-humano');
+const { esRemitenteHumano } = require('../shared/remitentes');
 const { olvidarInterruptor } = require('../followups/politica');
 
 const configPath = path.join(__dirname, '..', 'agent_config.json');
@@ -496,20 +498,13 @@ function createApiRouter(deps) {
 
             // Limpiar flag de botReplyingTo y DESACTIVAR el bot, ya que un humano tomó el control
             botReplyingTo.delete(waId);
-            if (dbChatId && !proactive) {
-                await disableBotForChatById(dbChatId, 'Intervención humana (mensaje desde CRM)');
-                // Marca permanente: sin esta etiqueta, el Auto-Resume de 24hs y la garantía de
-                // Meta Ads reencienden el bot en una charla que un humano ya tomó.
-                try {
-                    const chatRow = await prisma.whatsAppChat.findUnique({ where: { id: dbChatId } });
-                    const labels = [...(chatRow?.chatLabels || [])];
-                    if (!labels.includes('[SISTEMA - BOT APAGADO]')) {
-                        labels.push('[SISTEMA - BOT APAGADO]');
-                        await prisma.whatsAppChat.update({ where: { id: dbChatId }, data: { chatLabels: labels } });
-                    }
-                } catch (labelErr) {
-                    console.error('Error marcando apagado permanente tras envío desde CRM:', labelErr.message);
-                }
+            // Un envío automático (campaña, seguimiento) NO es un traspaso: firma
+            // con 'Bot'/'Sistema' o viene marcado `isProactive`.
+            if (dbChatId && !proactive && esRemitenteHumano(senderName || 'CRM')) {
+                await marcarTraspasoHumano({
+                    prisma, chatId: dbChatId, disableBotForChatById,
+                    motivo: `Intervención humana (${senderName || 'CRM'} escribió desde el buzón)`,
+                });
             }
 
             // Ya no guardamos el mensaje manualmente aquí para evitar duplicados.
