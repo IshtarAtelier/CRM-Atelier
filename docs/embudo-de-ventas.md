@@ -20,6 +20,7 @@ confirma y manda**, y **ese envío mueve la tarjeta**. Si una tarjeta dice
 | El tablero (leads, columnas, "para hoy") | `src/services/embudo.service.ts` | `/api/leads/pipeline`, resumen diario |
 | El rastro de un seguimiento enviado (mueve la tarjeta) | `src/lib/embudo/registrar-seguimiento.ts` | `/api/whatsapp/send` |
 | Quién NO es cliente (proveedor, laboratorio, mayorista, equipo) | `src/lib/no-cliente.ts` + `wa-service/transport/alta-de-ficha.js` | tablero, Oportunidades, alta de ficha |
+| Materializar "para hoy" como tarea real | `src/lib/embudo/sincronizar-tareas.ts` | dashboard (TasksPanel), ficha del cliente (TaskManager) |
 | Plantillas aprobadas | `src/lib/whatsapp/templates.ts` (Meta las aprueba; `scripts/checks/whatsapp-cloud-check.mjs` vigila) | buzón, playbook |
 
 ## Embudo 1 — WhatsApp (venta y seguimiento)
@@ -45,7 +46,17 @@ escribe por WhatsApp
   AuditLog. La tarjeta pasa a "Seguimiento enviado" y a la columna que
   corresponde.
 - **"Para hoy"** (barra del tablero) = leads con un paso vencido. El mismo
-  número llega a los ADMIN en el resumen diario de las 9:00.
+  número llega a los ADMIN en el resumen diario de las 9:00, y ADEMÁS queda
+  como una `ClientTask` real (`type: 'TASK'`) — la misma que ya muestran el
+  dashboard y la ficha del cliente. Sin esto, un vendedor que no abre
+  /admin/leads no tenía dónde enterarse de "a quién escribirle hoy".
+  `EmbudoService.correrDiario()` la sincroniza UNA VEZ POR DÍA (la corrida del
+  resumen), no en cada carga del tablero — evita duplicar la tarea en cada
+  poll del navegador. Una tarea viva por cliente (se actualiza si el paso
+  cambió, no se apila); si el vendedor manda el seguimiento, la tarea se
+  cierra en el momento y a SU nombre (cuenta en su resumen diario); si el
+  lead deja de tener nada vencido por otro motivo (cotizó, se cerró, se
+  descartó), se cancela sola al otro día.
 - Salida del embudo: ✓ Ganado (ficha → CONFIRMED), ✗ Desinteresado (etiqueta
   "no interesado"), o etiqueta de no-cliente.
 
