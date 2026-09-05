@@ -129,7 +129,7 @@ export function useLeadsPipeline() {
   return {
     // Data
     columns: filteredColumns,
-    stats: data?.stats ?? { totalLeads: 0, totalValue: 0 },
+    stats: data?.stats ?? { totalLeads: 0, totalValue: 0, paraHoy: 0 },
 
     // State
     loading,

@@ -10,6 +10,7 @@ import {
   Calendar,
   CheckCircle2,
   AlertTriangle,
+  AlarmClock,
 } from 'lucide-react';
 import type { PipelineLead } from '@/types/leads';
 import { displayContactSource } from '@/lib/contact-source';
@@ -106,6 +107,28 @@ export default function LeadCard({ lead, stageKey, actionLoading, onMarkWon, onM
         )
       )}
 
+      {/* ── Qué toca hoy ─────────────────────────────────────
+           Lo decide el playbook (src/lib/embudo/playbook.ts): la misma regla
+           que cuenta "Para hoy" arriba y que llega en el resumen diario. Con
+           ícono + texto y contraste alto, como el badge de contacto. */}
+      <span
+        className={`flex items-center gap-1.5 w-fit max-w-full px-2 py-1 rounded-lg border text-[9px] font-black uppercase tracking-wider ${
+          lead.proximaAccion.vencida
+            ? 'bg-rose-500/10 border-rose-600/25 text-rose-800 dark:text-rose-300'
+            : lead.proximaAccion.tipo === 'cotizar'
+              ? 'bg-primary/10 border-primary/25 text-primary'
+              : 'bg-stone-500/10 border-stone-500/20 text-stone-600 dark:text-stone-300'
+        }`}
+        title={lead.proximaAccion.venceEn ? `Vence: ${new Date(lead.proximaAccion.venceEn).toLocaleDateString('es-AR')}` : undefined}
+      >
+        {lead.proximaAccion.vencida
+          ? <AlarmClock className="w-3 h-3 shrink-0" aria-hidden="true" />
+          : lead.proximaAccion.tipo === 'cotizar'
+            ? <Calculator className="w-3 h-3 shrink-0" aria-hidden="true" />
+            : <Calendar className="w-3 h-3 shrink-0" aria-hidden="true" />}
+        <span className="truncate">{lead.proximaAccion.etiqueta}</span>
+      </span>
+
       {/* ── Tags (prepaga / interés / DNI / fuente) ─────── */}
       <div className="flex flex-wrap gap-1.5">
         {lead.insurance && (
@@ -191,8 +214,11 @@ export default function LeadCard({ lead, stageKey, actionLoading, onMarkWon, onM
               // El buzón abre la conversación por ?phone= y NADA MÁS: el
               // ?chatId=…@c.us que había acá no lo lee nadie, así que el botón
               // llevaba al buzón vacío. El link se arma en un solo lugar.
-              href={linkAlChat(lead.phone)}
-              title="Ir al Chat"
+              // Si el playbook dice que hoy toca una plantilla, el buzón la
+              // abre lista para confirmar (?plantilla=). Una persona sigue
+              // apretando "Enviar": el sistema propone, no manda.
+              href={linkAlChat(lead.phone, undefined, lead.proximaAccion.tipo === 'plantilla' ? { plantilla: lead.proximaAccion.plantilla } : undefined)}
+              title={lead.proximaAccion.tipo === 'plantilla' ? `Abrir el chat con "${lead.proximaAccion.etiqueta.replace(/^Hoy: /, '')}" lista para enviar` : 'Ir al Chat'}
               className="p-2 bg-green-500/10 border border-green-500/20 text-green-500 rounded-xl transition-all hover:scale-105 active:scale-95"
             >
               <MessageSquare className="w-3.5 h-3.5" />

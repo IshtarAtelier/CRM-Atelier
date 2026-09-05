@@ -33,7 +33,14 @@ const TOKEN = process.env.WA_CLOUD_TOKEN || '';
 // equipo, no a clientes): el 3/9/26 aviso_pago_interno no existía en Meta y
 // nadie lo veía porque no estaba en esta lista — el aviso de cada pago cobrado
 // moría en silencio.
-const CATALOGO = ['pedido_listo_v3', 'pedido_listo_saldo_v3', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf', 'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion', 'aviso_pago_interno', 'nota_interna'];
+// Las de SEGUIMIENTO (5/9/26): son las que el embudo le propone al equipo cada
+// día (src/lib/embudo/playbook.ts) y las respuestas rápidas del buzón. No
+// estaban acá: si Meta pausaba una, el botón fallaba y nadie se enteraba.
+const CATALOGO = [
+    'pedido_listo_v3', 'pedido_listo_saldo_v3', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf',
+    'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion', 'aviso_pago_interno', 'nota_interna',
+    'seguimiento_presupuesto', 'seguimiento_lentes', 'seguimiento_carrito', 'invitacion_local_v2', 'ultimo_seguimiento', 'pedido_resena',
+];
 
 const ok = (s) => `✅ ${s}`, warn = (s) => `⚠️  ${s}`, bad = (s) => `❌ ${s}`;
 

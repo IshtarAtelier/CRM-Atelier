@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // Types for the Leads Pipeline (Embudo de Ventas)
 // ─────────────────────────────────────────────────────────────
+import type { ProximaAccion } from '@/lib/embudo/playbook';
 
 export interface PipelineRx {
   id: string;
@@ -38,6 +39,8 @@ export interface PipelineLead {
    * Solo es significativo en las columnas de seguimiento.
    */
   contactado: boolean;
+  /** Qué toca hacer con este lead hoy (lo decide src/lib/embudo/playbook.ts). */
+  proximaAccion: ProximaAccion;
 }
 
 export type PipelineStageKey =
@@ -60,6 +63,8 @@ export interface PipelineColumn {
 export interface PipelineStats {
   totalLeads: number;
   totalValue: number;
+  /** Leads con un paso vencido: lo que el equipo tiene que hacer HOY. */
+  paraHoy: number;
 }
 
 export interface PipelineData {

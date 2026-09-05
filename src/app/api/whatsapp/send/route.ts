@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendWhatsApp, explainSendFailure } from '@/lib/whatsapp/send';
 import { WHATSAPP_TEMPLATES, templateSpec, type TemplateName } from '@/lib/whatsapp/templates';
+import { registrarSeguimientoEnviado } from '@/lib/embudo/registrar-seguimiento';
+import { getActor } from '@/lib/actor';
 
 // POST /api/whatsapp/send — enviar mensaje desde el CRM (buzón, botones de
 // Ventas / Pedidos / Facturación / Cotizador).
@@ -73,6 +75,19 @@ export async function POST(request: Request) {
                     where: { id: String(body.chatId) },
                     data: { botEnabled: false },
                 }).catch((e: any) => console.error('[WhatsApp Send] No se pudo apagar el bot del chat:', e.message));
+            }
+
+            // ── Rastro del embudo ───────────────────────────────────────────
+            // Si lo que salió fue una plantilla de SEGUIMIENTO, queda anotado:
+            // etiqueta en el chat + nota firmada en la ficha. Es lo que mueve
+            // la tarjeta en /admin/leads. Va después del envío confirmado y
+            // nunca lo tumba: el mensaje ya llegó, el registro es lo accesorio.
+            if (template?.name) {
+                await registrarSeguimientoEnviado({
+                    chatId: String(body.chatId),
+                    plantilla: template.name,
+                    actor: getActor(request),
+                }).catch((e: any) => console.error('[WhatsApp Send] No se pudo registrar el seguimiento en el embudo:', e.message));
             }
             return NextResponse.json({ success: true, via: r.via });
         }

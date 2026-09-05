@@ -43,6 +43,12 @@ const HOUR = 3_600_000;
 export const SEG1_HOURS = 48; // >48h  → Seguimiento 1
 export const SEG2_HOURS = 96; // >96h  (4 días)  → Seguimiento 2
 export const FRIO_HOURS = 360; // >360h (15 días) → Frío
+/**
+ * Ventana del embudo activo, en días. Más viejo que esto ya no es un lead a
+ * seguir: es alguien a cerrar (ganado/perdido) o a reactivar con una campaña.
+ * Es la misma regla de Oportunidades de Cierre ("no compró aún + ≤30 días").
+ */
+export const VENTANA_EMBUDO_DIAS = 30;
 
 /** Etapa que corresponde por pura antigüedad del presupuesto. */
 export function stageByQuoteAge(quoteCreatedAt: Date, now: number): PipelineStageKey {
