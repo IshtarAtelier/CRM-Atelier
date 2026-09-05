@@ -2,8 +2,11 @@ const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { contenidoATexto } = require('./shared/ai-content');
 const { HumanMessage } = require("@langchain/core/messages");
 const { prisma } = require('./db');
-const { addTagToClient, convertIntoLead, updateClientData, reportInvoiceRequest, isPhrase } = require('./tools');
+const { addTagToClient, convertIntoLead, updateClientData, reportInvoiceRequest } = require('./tools');
 const { withTimeout } = require('./utils');
+// esNombreValido vive en shared/: lo comparte con el alta de ficha del webhook
+// de la API oficial (transport/alta-de-ficha.js). Una sola definición.
+const { esNombreValido } = require('./shared/nombre-de-persona');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
@@ -20,24 +23,6 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 // intención de compra: un contacto con nombre y teléfono ya vale, y el origen se
 // completa solo. Ante la duda NO se crea (mejor ninguna ficha que una basura).
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** Nombres que no son nombres: vacíos, genéricos, con muchos dígitos o frases. */
-function esNombreValido(nombre) {
-    if (!nombre || typeof nombre !== 'string') return false;
-    const limpio = nombre.trim();
-    if (limpio.length < 2) return false;
-
-    // "3541215971", "cliente 12345": si tiene 5+ dígitos es un teléfono disfrazado
-    if ((limpio.match(/\d/g) || []).length >= 5) return false;
-
-    const generico = limpio.toLowerCase();
-    if (['contacto nuevo wa', 'contacto nuevo', 'cliente', 'desconocido', '-', 'sin nombre'].includes(generico)) return false;
-
-    // "hola quiero info de multifocales" no es un nombre
-    if (isPhrase(limpio)) return false;
-
-    return true;
-}
 
 /** El teléfono del chat, ya normalizado. null si es un @lid falso o basura. */
 function telefonoValido(chatInfo, waId) {

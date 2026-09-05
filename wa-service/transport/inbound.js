@@ -22,6 +22,7 @@
 const { prisma } = require('../db');
 const { prefillAdTag, fallbackAdTag } = require('../shared/ad-tag');
 const { uploadMediaToCrm } = require('../shared/media');
+const { asegurarFichaDeLead } = require('./alta-de-ficha');
 const cloud = require('./cloud-api');
 
 const TYPE_MAP = {
@@ -197,6 +198,12 @@ async function persistInboundUnlocked(m, { io } = {}) {
     } catch (e) {
         if (e.code !== 'P2002') throw e; // carrera residual: ya está guardado
     }
+
+    // ── Ficha del CRM (alta automática) ─────────────────────────────────────
+    // Va DESPUÉS de guardar el mensaje a propósito: el alta resuelve el origen
+    // del contacto y la fecha del primer contacto leyendo los mensajes de este
+    // chat, y corriendo antes no tendría nada que leer.
+    chat = await asegurarFichaDeLead(chat, waId, m.profileName);
 
     // ── Eventos para el buzón (mismos nombres que hoy) ──────────────────────
     if (io) {

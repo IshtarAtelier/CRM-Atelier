@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { serverCache } from '@/lib/cache';
 import { getActor } from '@/lib/actor';
 import { ensureClientForAbandonedCart } from '@/services/cart-recovery.service';
+import { SOLO_CLIENTES_POSIBLES } from '@/lib/no-cliente';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 
 /**
@@ -51,6 +52,9 @@ export async function GET() {
                 isDeleted: false,
                 status: { notIn: ['CLIENT', 'active'] },
                 opportunityDismissedAt: null,
+                // Un proveedor marcado como favorito no es una oportunidad de
+                // venta: la etiqueta lo saca de acá y del embudo por igual.
+                ...SOLO_CLIENTES_POSIBLES,
                 orders: {
                     none: {
                         OR: [
@@ -188,7 +192,8 @@ export async function GET() {
                 // compró. La señal operativa de cierre ES el status.
                 client: {
                     isDeleted: false,
-                    status: { notIn: ['CLIENT', 'active'] }
+                    status: { notIn: ['CLIENT', 'active'] },
+                    ...SOLO_CLIENTES_POSIBLES
                 }
             },
             select: {

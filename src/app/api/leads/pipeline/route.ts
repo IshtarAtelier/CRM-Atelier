@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { PIPELINE_COLUMNS, type PipelineStageKey } from '@/types/leads';
 import { classifyLead } from '@/lib/leads-pipeline';
+import { TAGS_NO_CLIENTE } from '@/lib/no-cliente';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,14 @@ export const dynamic = 'force-dynamic';
 // grouped by funnel stage based on latest quote age.
 // ─────────────────────────────────────────────────────────────
 
-const EXCLUSION_TAGS = ['no interesado', 'cancelar bot', 'spam', 'no bot', 'cerrado', 'post-venta'];
+// Etiquetas que sacan a alguien del embudo. Las de "no es un cliente"
+// (proveedor, laboratorio, mayorista) salen del helper compartido: la misma
+// lista la usa Oportunidades de Cierre, así que una ficha marcada desaparece
+// de los dos lados o de ninguno.
+const EXCLUSION_TAGS = [
+  'no interesado', 'cancelar bot', 'spam', 'no bot', 'cerrado', 'post-venta',
+  ...TAGS_NO_CLIENTE,
+];
 
 export async function GET() {
   try {
