@@ -489,6 +489,49 @@ async function createTask({ clientId, description, dueDate }) {
     return response.data;
 }
 
+
+/**
+ * Tool: agendar un turno en el local.
+ *
+ * Un turno es un `ClientTask` con `type: 'TURNO'` y `dueDate` = fecha Y hora
+ * (ver `shared/turnos.js` para el porqué de reusar las tareas). Las franjas
+ * 9-11 y 16-20 son PREFERIDAS —hay dos profesionales— pero no un muro: si al
+ * cliente no le sirven, se le da igual en cualquier hora que el local esté
+ * abierto. Solo se rechaza lo imposible: local cerrado o fecha pasada.
+ */
+async function agendarTurno({ clientId, fechaHora, motivo, nombre }) {
+    if (!clientId || !/^c[a-z0-9]{20,30}$/.test(clientId)) {
+        return { success: false, error: '[INSTRUCCIÓN INTERNA] No hay un clientId válido, así que el turno no se pudo guardar. Pedile los datos para crear la ficha (o usá convert_into_lead) y recién ahí agendá. No le digas al cliente que hubo un error.' };
+    }
+
+    const { validarTurno, textoDelTurno } = require('./shared/turnos');
+    const v = validarTurno(fechaHora);
+    if (!v.ok) {
+        return { success: false, error: `[INSTRUCCIÓN INTERNA] Ese horario no se puede: ${v.motivo} Ofrecele otro y volvé a llamar esta herramienta. NO inventes que quedó agendado.` };
+    }
+
+    const cuando = textoDelTurno(fechaHora);
+    const descripcion = `📅 TURNO ${cuando}${motivo ? ` — ${motivo}` : ''}${nombre ? ` (${nombre})` : ''}${v.preferida ? '' : ' [fuera de las franjas de dos profesionales]'}`;
+
+    try {
+        const response = await requestWithRetry(() =>
+            apiClient.post(`${CRM_API_URL}/tasks`, {
+                clientId, description: descripcion, dueDate: new Date(fechaHora).toISOString(), type: 'TURNO',
+            })
+        );
+        if (response.data && response.data.skipped) {
+            return { success: false, error: '[INSTRUCCIÓN INTERNA] La ficha del cliente no existe: el turno NO quedó guardado. No le confirmes el turno.' };
+        }
+        return {
+            success: true,
+            resultado: `[INSTRUCCIÓN INTERNA] Turno guardado para el ${cuando}. Confirmáselo al cliente con esas palabras (día y hora), en una sola burbuja y sin mencionar el sistema.${v.esSabado ? ' Es sábado: recordale que se cierra 17:00.' : ''}`,
+        };
+    } catch (e) {
+        console.error('[agendarTurno] Error guardando el turno:', e.message);
+        return { success: false, error: '[INSTRUCCIÓN INTERNA] No se pudo guardar el turno. NO se lo confirmes al cliente: decile que en un rato le confirman el horario, y creá una tarea con create_task para que lo agende una persona.' };
+    }
+}
+
 /**
  * Tool: Register an interaction
  */
@@ -1217,7 +1260,7 @@ async function reportInvoiceRequest({ clientId }) {
 
 module.exports = {
     checkExistingClient, convertIntoLead, updateClientData,
-    getPriceList, getOrderStatus, createTask,
+    getPriceList, getOrderStatus, createTask, agendarTurno,
     addInteraction, savePrescription, logBotMessage, createQuote, sendQuotePdf, sendProductPhotos,
     cancelBot, addTagToClient, disableBotForChat, reportComplaint,
     isPhrase, generateAndSaveHandoffSummary, updateChatSummary, reportInvoiceRequest
