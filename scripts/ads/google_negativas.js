@@ -166,7 +166,89 @@ const SEGUNDA_TANDA = [
   ['mas vision dinosaurio', 'PHRASE'],
 ];
 
+// Quinta tanda (4/9/2026). Motivo: la dueña reporta "muchas llamadas de gente
+// que piensa que somos un lugar de oftalmología" y otras que buscan ópticas
+// para autos. El diagnóstico contra la API confirmó un círculo vicioso: la
+// conversión que más pesa en la cuenta es "Clicks to call" (701 en 90 días),
+// así que cada llamada equivocada de alguien que buscaba una clínica cuenta
+// como ÉXITO y Google manda todavía más gente de oftalmología. En 90 días:
+// 306 términos médicos, 1.062 impresiones y $10.452 de gasto, con 14
+// "conversiones" que son exactamente esas llamadas equivocadas.
+//
+// Criterio de esta tanda:
+//  · "clinica"/"clínica" en AMPLIA. Ninguna búsqueda legítima de óptica lleva
+//    esa palabra, y en EXACTA no servía: se bloqueaba "clinica romagosa
+//    oftalmologia" y entraba "clinica romagosa" a secas.
+//  · Clínicas con nombre propio que aparecieron en los términos reales
+//    (Reyes Giobellina, Santa Lucía, Maldonado Bas, Mostaza Sánchez, Onnis,
+//    SOF, Alvear). Onnis y Mostaza Sánchez son apellidos: no tapan producto.
+//  · La acepción de AUTO: "óptica" también es el faro. Amplia en auto,
+//    vehículo, moto, repuestos y las marcas de autos.
+//  · "de ojos" / "del ojo" en FRASE: cubre "clínica de ojos", "centro de
+//    ojos", "médico del ojo" sin tocar "anteojos" (es una sola palabra).
+//
+// Lo que NO se bloquea, revisado uno por uno contra el negocio:
+//  · "campo visual" suelto, "iris", "modelo", "lens": son producto de Atelier.
+//  · Obras sociales que la óptica SÍ atiende (OSDE, Apross, Swiss, Galeno).
+//  · Localidades: hay envío a todo el país.
+//  · "luz azul": es el filtro de los cristales, NO un faro.
+const QUINTA_TANDA = [
+  // Intención médica pura
+  ['clinica', 'BROAD'], ['clínica', 'BROAD'],
+  ['oculista', 'BROAD'],
+  ['oftalmologo', 'BROAD'], ['oftalmólogo', 'BROAD'],
+  ['oftalmologa', 'BROAD'], ['oftalmóloga', 'BROAD'],
+  ['sanatorio', 'BROAD'], ['hospital', 'BROAD'],
+  ['turno', 'BROAD'], ['turnos', 'BROAD'],
+  ['consultorio', 'BROAD'],
+  ['cataratas', 'BROAD'], ['glaucoma', 'BROAD'], ['retina', 'BROAD'],
+  ['conjuntivitis', 'BROAD'], ['orzuelo', 'BROAD'], ['pterigion', 'BROAD'], ['estrabismo', 'BROAD'],
+  ['lasik', 'BROAD'],
+  ['laser ojos', 'PHRASE'], ['láser ojos', 'PHRASE'],
+  ['fondo de ojo', 'PHRASE'],
+  ['operacion de ojos', 'PHRASE'], ['operación de ojos', 'PHRASE'],
+  ['operacion de la vista', 'PHRASE'], ['operación de la vista', 'PHRASE'],
+  ['centro oftalmologico', 'PHRASE'], ['centro oftalmológico', 'PHRASE'],
+  ['medico de ojos', 'PHRASE'], ['médico de ojos', 'PHRASE'],
+  ['doctor de ojos', 'PHRASE'],
+  ['especialista en ojos', 'PHRASE'],
+  ['control de la vista', 'PHRASE'],
+  ['examen de la vista', 'PHRASE'],
+  ['estudio de la vista', 'PHRASE'],
+  ['de ojos', 'PHRASE'], ['del ojo', 'PHRASE'],
+  ['ojos cordoba', 'PHRASE'], ['ojos córdoba', 'PHRASE'],
+  // Clínicas con nombre propio vistas en los términos reales
+  ['reyes giobellina', 'BROAD'],
+  ['santa lucia', 'PHRASE'], ['santa lucía', 'PHRASE'],
+  ['maldonado bas', 'BROAD'],
+  ['mostaza sanchez', 'BROAD'], ['mostaza sánchez', 'BROAD'],
+  ['onnis', 'BROAD'],
+  ['sof oftalmologia', 'PHRASE'], ['sof oftalmología', 'PHRASE'],
+  ['alvear cordoba', 'PHRASE'],
+  // La acepción AUTO de "óptica" (el faro)
+  ['optica de auto', 'PHRASE'], ['óptica de auto', 'PHRASE'],
+  ['optica para auto', 'PHRASE'], ['óptica para auto', 'PHRASE'],
+  ['opticas para autos', 'PHRASE'], ['ópticas para autos', 'PHRASE'],
+  ['optica de vehiculo', 'PHRASE'], ['óptica de vehículo', 'PHRASE'],
+  ['optica delantera', 'PHRASE'], ['óptica delantera', 'PHRASE'],
+  ['optica trasera', 'PHRASE'], ['óptica trasera', 'PHRASE'],
+  ['auto', 'BROAD'], ['autos', 'BROAD'],
+  ['vehiculo', 'BROAD'], ['vehículo', 'BROAD'],
+  ['camioneta', 'BROAD'], ['moto', 'BROAD'],
+  ['repuestos', 'BROAD'], ['autopartes', 'BROAD'],
+  ['chevrolet', 'BROAD'], ['renault', 'BROAD'], ['peugeot', 'BROAD'],
+  ['toyota', 'BROAD'], ['volkswagen', 'BROAD'], ['fiat', 'BROAD'], ['ford', 'BROAD'],
+  // Fibra óptica e instrumentos (los otros sentidos de la palabra)
+  ['fibra optica', 'PHRASE'], ['fibra óptica', 'PHRASE'],
+  ['microscopio', 'BROAD'], ['telescopio', 'BROAD'],
+  ['binoculares', 'BROAD'], ['mira telescopica', 'PHRASE'],
+  // Empleo
+  ['empleo', 'BROAD'], ['curriculum', 'BROAD'], ['currículum', 'BROAD'],
+  ['vacante', 'BROAD'], ['busco trabajo', 'PHRASE'], ['bolsa de trabajo', 'PHRASE'],
+];
+
 const TERMINOS = [
+  ...QUINTA_TANDA,
   ...CUARTA_TANDA,
   ...TERCERA_TANDA,
   ...SEGUNDA_TANDA,
