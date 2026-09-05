@@ -8,22 +8,28 @@ import { runRecoveryTouch, RECOVERY_STAGE, type RecoveryTouch } from '@/lib/chec
  *
  * Dos oportunidades, no una:
  *  - ~1h de la última actividad: mail corto de recordatorio, SIN cupón.
- *  - ~24h: el mail con cupón de siempre — o, si la persona ya tiene chat de
- *    WhatsApp con mensajes entrantes, una ClientTask '[CARRITO]' que manda el
- *    pipeline de seguimientos EN LUGAR del segundo mail (nunca los dos).
+ *  - ~24h: el mail con cupón de siempre.
+ *
+ * Los dos toques salen por MAIL. El de las 24hs supo preferir un toque por
+ * WhatsApp cuando el cliente ya tenía chat abierto; eso dependía de un ejecutor
+ * que no existe en la API oficial, así que consumía el toque sin mandar nada
+ * (ver runRecoveryTouch). Por WhatsApp los toca una persona desde Oportunidades
+ * de Cierre.
  *
  * Piso de 72h: un carrito de hace cuatro días ya no se recupera, se persigue.
  *
  * El candado de "ya compró" y el reclamo del toque viven en
  * `src/lib/checkout/recovery.ts`; acá solo se elige a quién le toca.
  *
- * Alta del cron: GET a /api/cron/abandoned-carts?secret=CRON_SECRET. Con el
- * segundo toque conviene que corra CADA HORA: con una corrida diaria el toque
- * temprano casi nunca cae en su ventana y el carrito recibe solo el de 24hs
- * (que es exactamente el comportamiento anterior, así que no rompe nada).
- * El `vercel.json` de la raíz declara el schedule pero NO lo ejecuta nadie: el
- * deploy es Railway, así que el alta hay que hacerla en el scheduler externo
- * (mismo criterio que el resto de los crons del proyecto).
+ * Quién lo dispara: el scheduler interno de `src/instrumentation.ts`, una vez
+ * por hora de 9 a 20 ARG. Antes decía "hay que darlo de alta en un scheduler
+ * externo" y nadie lo dio de alta nunca — el `vercel.json` que declaraba el
+ * schedule no lo ejecuta Railway. Sigue aceptando el disparo manual: GET a
+ * /api/cron/abandoned-carts?secret=CRON_SECRET.
+ *
+ * Cada hora y no una vez por día: con una corrida diaria el toque temprano casi
+ * nunca cae dentro de su ventana de 1h a 24h y el carrito termina recibiendo
+ * solo el de las 24hs.
  */
 
 /** Horas desde la última actividad del cliente para cada toque. */
