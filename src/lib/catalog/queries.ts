@@ -133,7 +133,13 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
       // OJO: Product.category mete clip-ons y sol juntos bajo "Lentes de Sol".
       // La distinción real está en WebProduct.category ("Clip-On" vs "Sol"), que
       // es la que usa el admin — filtrar por la del Product mezcla las dos solapas.
-      const [destacados, clipon, sol, receta, nuevos, count] = await Promise.all([
+      // Los CONTEOS por categoría van en el mismo Promise.all: son counts
+      // indexados y corren en paralelo con las listas, así que no agregan una
+      // vuelta más. Hacen falta porque las listas vienen con `take: 24` y
+      // además pasan por la dedup de variantes — su `.length` NO es el total
+      // real de la categoría (Receta tiene 91 y la lista trae 24).
+      const [destacados, clipon, sol, receta, nuevos, count,
+             countClipon, countSol, countReceta] = await Promise.all([
         prisma.webProduct.findMany({
           where: {
             isActive: true,
@@ -171,8 +177,20 @@ export function catalogQueries(prisma: CatalogPrismaClient) {
         prisma.webProduct.count({
           where: { isActive: true, product: { publishToWeb: true, stock: { gt: 0 }, category: { not: "Cristal" } } },
         }),
+        prisma.webProduct.count({
+          where: { isActive: true, category: "Clip-On", product: { publishToWeb: true, stock: { gt: 0 } } },
+        }),
+        prisma.webProduct.count({
+          where: { isActive: true, category: "Sol", product: { publishToWeb: true, stock: { gt: 0 } } },
+        }),
+        prisma.webProduct.count({
+          where: { isActive: true, category: "Receta", product: { publishToWeb: true, stock: { gt: 0 } } },
+        }),
       ]);
-      return { destacados, clipon, sol, receta, nuevos, count };
+      return {
+        destacados, clipon, sol, receta, nuevos, count,
+        conteos: { clipon: countClipon, sol: countSol, receta: countReceta },
+      };
     },
 
     /** Metadatos del sidebar de filtros de /tienda (marcas/formas/materiales). */

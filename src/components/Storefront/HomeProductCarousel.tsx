@@ -33,15 +33,43 @@ interface Props {
     nuevos: CarouselProduct[];
   };
   totalCount: number;
+  /** Totales reales por categoría, para que la salida del carrusel sepa
+   *  cuántos hay de la solapa que se está mirando. Opcional: sin el dato, la
+   *  salida se comporta como siempre (todo el catálogo). */
+  conteos?: { clipon: number; sol: number; receta: number };
 }
 
 type TabKey = 'destacados' | 'clipon' | 'sol' | 'receta' | 'nuevos';
 
-export function HomeProductCarousel({ collections, totalCount }: Props) {
+/**
+ * A dónde lleva la salida del carrusel y qué dice, según la solapa abierta.
+ *
+ * EL PASO DE MÁS QUE SACA (auditoría 5/9/26): estando en la solapa "Sol", la
+ * placa del final decía "106 modelos · Ver todos" y llevaba al catálogo
+ * COMPLETO. O sea: filtrabas, querías más de lo mismo, y la salida te devolvía
+ * sin filtrar para que volvieras a filtrar allá. Ahora cada solapa sale a su
+ * propia página, que además ya existía y sale entera del servidor.
+ */
+function salidaDeLaSolapa(
+  tab: TabKey,
+  totalCount: number,
+  conteos?: { clipon: number; sol: number; receta: number },
+): { href: string; numero: number; etiqueta: string } {
+  if (tab === 'sol' && conteos?.sol) return { href: '/lentes-de-sol', numero: conteos.sol, etiqueta: 'lentes de sol' };
+  if (tab === 'receta' && conteos?.receta) return { href: '/receta', numero: conteos.receta, etiqueta: 'de receta' };
+  if (tab === 'clipon' && conteos?.clipon) return { href: '/clip-on', numero: conteos.clipon, etiqueta: 'clip-on' };
+  // "Destacados" y "Nuevos" no son categorías del catálogo: son recortes. Su
+  // salida natural sigue siendo la tienda entera.
+  return { href: '/tienda', numero: totalCount, etiqueta: 'modelos en total' };
+}
+
+export function HomeProductCarousel({ collections, totalCount, conteos }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('destacados');
   const carouselRef = useRef<HTMLDivElement>(null);
   
   const products = collections[activeTab] || [];
+  // A dónde sale el carrusel según la solapa abierta (ver salidaDeLaSolapa).
+  const salida = salidaDeLaSolapa(activeTab, totalCount, conteos);
 
   // ── Movimiento automático del carrusel ───────────────────────────────────
   //
@@ -299,7 +327,7 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
             terminaba en la lista repetida, que hacía parecer que el catálogo
             eran 12 modelos. */}
         <Link
-          href="/tienda"
+          href={salida.href}
           aria-hidden={esClon || undefined}
           tabIndex={esClon ? -1 : undefined}
           className="group relative flex-shrink-0 w-[45vw] md:w-[33vw] lg:w-[25vw] flex flex-col items-center justify-center gap-3 overflow-hidden bg-stone-950 px-6 text-center"
@@ -317,10 +345,10 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
           />
 
           <span className="relative text-4xl md:text-5xl font-serif tracking-tight text-white">
-            {totalCount}
+            {salida.numero}
           </span>
           <span className="relative text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] text-[var(--dorado)] leading-relaxed">
-            modelos en total
+            {salida.etiqueta}
           </span>
           <span className="relative mt-2 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-5 py-2.5 bg-[var(--dorado)] text-stone-950 rounded-full transition-transform duration-300 group-hover:scale-105">
             Ver todos

@@ -8,6 +8,7 @@ const StorefrontFooter = dynamic(() => import("@/components/Storefront/Storefron
 const FloatingWhatsApp = dynamic(() => import("@/components/Storefront/FloatingWhatsApp").then(mod => mod.FloatingWhatsApp));
 const GoogleReviews = dynamic(() => import("@/components/Storefront/GoogleReviews").then(mod => mod.GoogleReviews));
 const HomeProductCarousel = dynamic(() => import("@/components/Storefront/HomeProductCarousel").then(mod => mod.HomeProductCarousel));
+const HomeCategoryCovers = dynamic(() => import("@/components/Storefront/HomeCategoryCovers").then(mod => mod.HomeCategoryCovers));
 const HomeConfiguratorSection = dynamic(() => import("@/components/Storefront/HomeConfiguratorSection").then(mod => mod.HomeConfiguratorSection));
 const HomeMacroFilm = dynamic(() => import("@/components/Storefront/HomeMacroFilm").then(mod => mod.HomeMacroFilm));
 const HomeStorePreview = dynamic(() => import("@/components/Storefront/HomeStorePreview").then(mod => mod.HomeStorePreview));
@@ -185,7 +186,19 @@ export default async function Home() {
       </section>
 
       {/* PRODUCT GRID — Scroll horizontal infinito en Cliente */}
-      <HomeProductCarousel collections={carouselData} totalCount={catalogCount} />
+      <HomeProductCarousel collections={carouselData} totalCount={catalogCount} conteos={homeData.conteos} />
+
+      {/* Las tres puertas del catálogo, justo después del carrusel: es donde
+          las ganas de mirar están más altas, y la pregunta que sigue a "qué
+          lindo esto" es "¿qué tipos tenés?". Van a /receta, /lentes-de-sol y
+          /clip-on — páginas que ya existían y a las que solo se llegaba desde
+          el pie. Ver el comentario largo del componente. */}
+      <HomeCategoryCovers
+        receta={carouselData.receta}
+        sol={carouselData.sol}
+        clipon={carouselData.clipon}
+        conteos={homeData.conteos}
+      />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}

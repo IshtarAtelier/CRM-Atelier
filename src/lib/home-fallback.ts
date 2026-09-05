@@ -35,6 +35,13 @@ export interface HomeSourceData {
   receta: HomeWebProductRow[];
   nuevos: HomeWebProductRow[];
   count: number;
+  /**
+   * Total REAL de cada categoría. Opcional a propósito: el snapshot de
+   * emergencia commiteado se generó antes de que esto existiera, y una home
+   * servida desde el snapshot tiene que seguir funcionando. Sin el dato, las
+   * portadas no muestran ningún número — mejor sin número que con uno viejo.
+   */
+  conteos?: { clipon: number; sol: number; receta: number };
 }
 
 export function countProducts(data: HomeSourceData | null | undefined): number {
