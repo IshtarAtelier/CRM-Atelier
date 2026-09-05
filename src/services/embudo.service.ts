@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { PIPELINE_COLUMNS, type PipelineStageKey, type PipelineLead, type PipelineColumn, type PipelineStats } from '@/types/leads';
 import { classifyLead } from '@/lib/leads-pipeline';
 import { proximaAccion, ordenarPorUrgencia } from '@/lib/embudo/playbook';
+import { sincronizarTareasDelDia, type ResultadoSync } from '@/lib/embudo/sincronizar-tareas';
 import { TAGS_NO_CLIENTE } from '@/lib/no-cliente';
 
 /**
@@ -137,11 +138,22 @@ export const EmbudoService = {
     },
 
     /**
-     * Una línea para el resumen diario del equipo. Sale del mismo tablero,
-     * así el número del mail y el del panel son el mismo.
+     * Corre UNA VEZ POR DÍA (la llama /api/cron/resumen-diario-equipo, que ya
+     * tiene el guard de "una vez por día" y el horario). Hace las dos cosas
+     * que dependen del mismo tablero, para no calcularlo dos veces:
+     *   1. materializa "para hoy" como ClientTask reales — visibles en el
+     *      dashboard y en la ficha del cliente, no solo en /admin/leads;
+     *   2. arma la línea de texto para el resumen del equipo.
      */
-    async lineaParaHoy(now = Date.now()): Promise<string> {
+    async correrDiario(now = Date.now()): Promise<{ paraHoy: Tablero['paraHoy']; sync: ResultadoSync; linea: string }> {
         const { paraHoy } = await EmbudoService.tablero(now);
+        const sync = await sincronizarTareasDelDia(paraHoy);
+        return { paraHoy, sync, linea: EmbudoService.armarLinea(paraHoy, sync) };
+    },
+
+    /** La línea de texto del resumen diario. Separada de `correrDiario` para
+     * poder probarla sola, sin tocar la base. */
+    armarLinea(paraHoy: Tablero['paraHoy'], sync: ResultadoSync): string {
         if (paraHoy.length === 0) return '🎯 Embudo: nadie con seguimiento vencido. Al día.';
         const porTipo = { plantilla: 0, cotizar: 0, decidir: 0 };
         for (const l of paraHoy) if (l.proximaAccion.tipo in porTipo) porTipo[l.proximaAccion.tipo as keyof typeof porTipo]++;
@@ -151,6 +163,13 @@ export const EmbudoService = {
             porTipo.decidir ? `${porTipo.decidir} para cerrar (ganado/perdido)` : null,
         ].filter(Boolean);
         const primeros = paraHoy.slice(0, 5).map(l => `${l.name.split(' ')[0]} (${l.proximaAccion.etiqueta.replace(/^Hoy: /, '')})`).join(', ');
-        return `🎯 Embudo — para hoy: ${partes.join(' · ')}.\n    ${primeros}${paraHoy.length > 5 ? ` y ${paraHoy.length - 5} más` : ''} → /admin/leads`;
+        // Las tareas quedan en el dashboard de TODOS (TasksPanel) y en la
+        // ficha de cada cliente — el mail es el aviso, la tarea es donde se
+        // tacha. `actualizadas` no se muestra: para el equipo es la misma
+        // tarea de ayer, solo cambió internamente el texto del paso.
+        const tareas = sync.creadas || sync.cerradas
+            ? ` (${sync.creadas} tarea(s) nueva(s) en el dashboard${sync.cerradas ? `, ${sync.cerradas} cerrada(s) sola(s) porque ya se resolvieron` : ''})`
+            : '';
+        return `🎯 Embudo — para hoy: ${partes.join(' · ')}.${tareas}\n    ${primeros}${paraHoy.length > 5 ? ` y ${paraHoy.length - 5} más` : ''} → /admin/leads`;
     },
 };

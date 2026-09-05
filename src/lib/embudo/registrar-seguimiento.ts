@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { logAudit } from '@/lib/audit';
 import type { Actor } from '@/lib/actor';
 import { ETIQUETA_POR_PLANTILLA, NOMBRE_CORTO_PLANTILLA, esPlantillaDeSeguimiento } from './playbook';
+import { cerrarTareaDelEmbudo } from './sincronizar-tareas';
 
 /**
  * Deja el rastro de un seguimiento ENVIADO. Es lo que hace que la tarjeta del
@@ -66,6 +67,10 @@ export async function registrarSeguimientoEnviado(input: {
             where: { clientId: chat.clientId, type: 'FOLLOWUP', status: 'PENDING' },
             data: { status: 'CANCELLED' },
         });
+        // La tarea del embudo (type 'TASK', la que sí se ve en el dashboard y
+        // en la ficha) se cierra AHORA, atribuida a quien mandó el mensaje —
+        // no hace falta esperar a la sincronización de mañana.
+        await cerrarTareaDelEmbudo(chat.clientId, actor.name).catch(console.error);
         logAudit({
             userId: actor.id,
             userName: actor.name,

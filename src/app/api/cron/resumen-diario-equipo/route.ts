@@ -107,8 +107,11 @@ export async function GET(request: NextRequest) {
             // Lo de HOY en el embudo, del mismo tablero que ve /admin/leads. Sin
             // esto nadie avisaba "a estos leads hay que escribirles": con la API
             // oficial ya no hay seguimientos automáticos, así que el empujón
-            // diario tiene que llegarle a una persona.
-            const embudo = await EmbudoService.lineaParaHoy().catch(err => {
+            // diario tiene que llegarle a una persona. `correrDiario` de paso
+            // materializa cada "para hoy" como una ClientTask real — la única
+            // corrida que las escribe, así no se duplican en cada poll de
+            // /admin/leads.
+            const embudo = await EmbudoService.correrDiario().then(r => r.linea).catch(err => {
                 console.error('[ResumenDiario] embudo:', err);
                 return null;
             });
