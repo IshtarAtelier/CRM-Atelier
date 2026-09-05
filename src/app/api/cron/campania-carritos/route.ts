@@ -10,6 +10,7 @@ import { registrarSeguimientoEnviado } from '@/lib/embudo/registrar-seguimiento'
 import { esNoCliente } from '@/lib/no-cliente';
 import { SYSTEM_ACTOR } from '@/lib/actor';
 import { BUSINESS_INFO } from '@/lib/business-info';
+import { VENTANA_EMBUDO_DIAS } from '@/lib/leads-pipeline';
 
 /**
  * Campaña: retomar por WhatsApp los carritos abandonados de la tienda.
@@ -54,7 +55,15 @@ export async function GET(request: NextRequest) {
     }
 
     const dryRun = searchParams.get('dryRun') !== '0'; // manda SOLO con ?dryRun=0 explícito
-    const dias = Math.min(Math.max(parseInt(searchParams.get('dias') || '30', 10) || 30, 1), 365);
+    // Tope duro en VENTANA_EMBUDO_DIAS (la MISMA ventana de 30 días del embudo
+    // de leads, leads-pipeline.ts): un carrito más viejo que eso ya "quedó
+    // atrás" para el resto del pipeline y no puede volver a aparecer acá.
+    // Antes el tope era 365 y un &dias=90 a mano trajo a alguien de hace 5
+    // semanas y a un carrito de $100 de hace más de dos meses (5/9/26,
+    // decisión de Ishtar: no se les manda nada, quedan afuera para siempre —
+    // no solo hasta el próximo `dryRun`). Reactivar a alguien tan viejo es
+    // trabajo de una campaña puntual con su propio código, no de este cron.
+    const dias = Math.min(Math.max(parseInt(searchParams.get('dias') || String(VENTANA_EMBUDO_DIAS), 10) || VENTANA_EMBUDO_DIAS, 1), VENTANA_EMBUDO_DIAS);
     const batch = Math.min(Math.max(parseInt(searchParams.get('batch') || '5', 10) || 5, 1), 10);
 
     const setting = await prisma.systemSetting.findUnique({ where: { key: 'followups_enabled' } });
@@ -97,16 +106,20 @@ export async function GET(request: NextRequest) {
     // en el where porque la ficha puede no existir todavía.
     type Candidato = { sesion: typeof unicas[number]; clientId: string; nombre: string; telefono: string };
     const candidatos: Candidato[] = [];
-    const descartes = { yaCompro: 0, yaRecibio: 0, noCliente: 0, sinFicha: 0 };
+    const descartes = { yaCompro: 0, yaRecibio: 0, noCliente: 0, sinFicha: 0, descartadoEnOportunidades: 0 };
     for (const s of unicas) {
         if (await hasClosedOrder(s.email, s.phone)) { descartes.yaCompro++; continue; }
         const clientId = s.clientId ?? await ensureClientForAbandonedCart(s);
         if (!clientId) { descartes.sinFicha++; continue; }
         const ficha = await prisma.client.findUnique({
             where: { id: clientId },
-            select: { name: true, isDeleted: true, tags: { select: { id: true, name: true } } },
+            select: { name: true, isDeleted: true, opportunityDismissedAt: true, tags: { select: { id: true, name: true } } },
         });
         if (!ficha || ficha.isDeleted) { descartes.sinFicha++; continue; }
+        // Misma señal que usa Oportunidades de Cierre (sales-opportunities/route.ts):
+        // si una vendedora ya descartó a esta PERSONA desde el panel, la campaña
+        // no la reactiva. Sin esto, "descartar" en un lugar no valía en el otro.
+        if (ficha.opportunityDismissedAt) { descartes.descartadoEnOportunidades++; continue; }
         if (ficha.tags.some(t => t.id === tag.id)) { descartes.yaRecibio++; continue; }
         if (esNoCliente(ficha.tags)) { descartes.noCliente++; continue; }
         const nombre = (s.firstName || ficha.name || '').trim().split(/\s+/)[0] || 'Hola';
