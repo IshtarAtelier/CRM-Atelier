@@ -39,7 +39,6 @@
     "logs/next.log",
     "public/images/og-image.bak.jpg",
     "scripts/audit_lab_invoices.ts",
-    "scripts/broadcast-followup.ts",
     "scripts/check-users.ts",
     "scripts/check_payway_payments.ts",
     "scripts/checks/sondas-imap-optovision/dump1m.mjs",

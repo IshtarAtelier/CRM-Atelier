@@ -1,51 +1,36 @@
-import { spawn } from 'child_process';
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 
-export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-
-    // Solo header Bearer o ?secret= contra CRON_SECRET (patrón de los demás
-    // crons). Antes la clave era 'atelier2026' hardcodeada acá: cualquiera con
-    // la URL podía disparar una campaña masiva de WhatsApp.
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret) {
-        return NextResponse.json({ error: 'CRON_SECRET no está configurado.' }, { status: 500 });
-    }
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-    if (searchParams.get('secret') !== cronSecret && token !== cronSecret) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Botón de pánico: el interruptor "Seguimientos" del CRM pausa TODO lo
-    // saliente automático, incluido este camino. Sin este check, apagarlo
-    // frenaba los crons del wa-service pero este broadcast salía igual.
-    const followupsSetting = await prisma.systemSetting.findUnique({
-        where: { key: 'followups_enabled' },
-    });
-    if (followupsSetting && followupsSetting.value !== 'true') {
-        return NextResponse.json({
-            status: 'skipped',
-            message: 'Seguimientos pausados desde el CRM. No se inició el broadcast.',
-        });
-    }
-
-    try {
-        // Lanzar el script en segundo plano de forma independiente (detached)
-        // para que la respuesta HTTP no se quede colgando y el bot trabaje tranquilo.
-        const child = spawn('npx', ['tsx', 'scripts/broadcast-followup.ts'], {
-            detached: true,
-            stdio: 'ignore'
-        });
-
-        child.unref();
-
-        return NextResponse.json({
-            status: 'success',
-            message: '🚀 Bot de seguimiento masivo iniciado en segundo plano. Procesará los cierres de este mes.'
-        });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+/**
+ * Broadcast masivo de seguimientos de cierre — DADO DE BAJA.
+ *
+ * Lo que hacía: lanzaba `scripts/broadcast-followup.ts` con `npx tsx` en
+ * segundo plano y contestaba "🚀 Bot de seguimiento masivo iniciado".
+ *
+ * Por qué se da de baja, y no se arregla:
+ *
+ *  1. No funcionaba. La respuesta era una mentira estructural: `spawn` no
+ *     espera nada, así que la ruta contestaba "iniciado" pasara lo que pasara.
+ *     Y en producción no podía andar — el contenedor corre el build standalone
+ *     de Next (`node server.js`), donde no está la carpeta `scripts/` ni `tsx`.
+ *     Un cron externo apuntándole veía 200 y nadie recibía nada.
+ *
+ *  2. No vuelve. El script mandaba texto libre por WhatsApp a gente que no
+ *     había escrito. Con la API oficial eso fuera de la ventana de 24 h solo
+ *     entra como plantilla aprobada, y la decisión del 18/8/2026 fue que los
+ *     seguimientos proactivos por IA no vuelven (docs/plan-whatsapp-api-oficial.md,
+ *     C7: "SE VA"). Los seguimientos los hace una persona desde el embudo
+ *     (/admin/leads) y desde Oportunidades de Cierre.
+ *
+ * Queda la ruta —en vez de borrarla— devolviendo 410 para que, si hay un
+ * despertador externo todavía apuntando acá, falle FUERTE y con motivo en vez
+ * de recibir un 200 alegre o un 404 mudo.
+ */
+export async function GET() {
+    return NextResponse.json(
+        {
+            status: 'gone',
+            message: 'El broadcast masivo de seguimientos por WhatsApp está dado de baja. Los seguimientos se hacen desde /admin/leads y Oportunidades de Cierre. Si esto lo llamó un cron externo, hay que darlo de baja.',
+        },
+        { status: 410 },
+    );
 }

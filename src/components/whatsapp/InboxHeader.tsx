@@ -150,15 +150,30 @@ export default function InboxHeader({
                             : 'Encender el bot: vuelve a contestar solo'}
                     />
                     <span aria-hidden className="w-px h-8 bg-stone-300 dark:bg-stone-700" />
+                    {/* El rótulo cambia con el transporte porque cambia lo que
+                        el interruptor realmente hace. Con WhatsApp Web frenaba
+                        los seguimientos automáticos diarios (los 5 sistemas del
+                        wa-service). Con la API oficial esos no existen —
+                        `cloud.js` no los carga— y lo único que sigue leyendo
+                        `followups_enabled` son los crons de CAMPAÑA masiva. Que
+                        dijera "Seguimientos: Activos" en la API oficial era
+                        prometer que algo sale solo todos los días, y no sale
+                        nada: los seguimientos del día a día los hace una
+                        persona desde /admin/leads. */}
                     <Interruptor
-                        rotulo="Seguimientos"
+                        rotulo={esApiOficial ? 'Campañas' : 'Seguimientos'}
                         activo={seguimientosActivos}
-                        textoActivo="Activos" textoInactivo="Pausados"
+                        textoActivo={esApiOficial ? 'Habilitadas' : 'Activos'}
+                        textoInactivo={esApiOficial ? 'Frenadas' : 'Pausados'}
                         color="sky"
                         onToggle={() => onToggleSeguimientos(!seguimientosActivos)}
-                        title={seguimientosActivos
-                            ? 'Pausar todos los seguimientos automáticos salientes'
-                            : 'Reanudar los seguimientos automáticos salientes'}
+                        title={esApiOficial
+                            ? (seguimientosActivos
+                                ? 'Freno de mano de los envíos masivos (campañas). No hay seguimientos automáticos diarios: esos los hace una persona desde el embudo.'
+                                : 'Habilitar los envíos masivos de campaña. Los seguimientos del día a día se hacen igual, a mano, desde el embudo.')
+                            : (seguimientosActivos
+                                ? 'Pausar todos los seguimientos automáticos salientes'
+                                : 'Reanudar los seguimientos automáticos salientes')}
                     />
                 </div>
 
