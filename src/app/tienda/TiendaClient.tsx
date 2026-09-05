@@ -1015,20 +1015,26 @@ export function TiendaClient({
                               <span className="font-black text-base text-stone-900">
                                 ${Math.round((oferta ? p.salePrice : base) * (1 - (webSettings.web_promo_cash_discount || 15) / 100)).toLocaleString("es-AR")}
                               </span>
-                              {/* Renglón propio en celular. Pegado al precio, "15% OFF transf."
-                                  se cortaba solo y dejaba "transf." colgando en verde
-                                  abajo a la izquierda, que se leía como un error. */}
-                              <span className="block sm:inline text-emerald-700 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
-                              {/* Las cuotas se ven de `sm` para arriba. En celular
-                                  la tarjeta llevaba tres renglones de precio para
-                                  una foto de 170 px: se veía más plata que anteojo,
-                                  que es lo contrario de lo que la grilla tiene que
-                                  hacer (pedido de Ishtar, 2/9). En celular queda el
-                                  precio que decide la compra; las cuotas están en
-                                  la barra de arriba y completas en la ficha.
-                                  Los importes siguen saliendo de PricingService. */}
-                              <span className="hidden sm:block text-xs text-stone-500">
-                                12 cuotas fijas de ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")} · {installmentsCount} s/interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
+                              {/* El 15% va en el MISMO renglón que el precio
+                                  (pedido de Ishtar, 5/9). */}
+                              <span className="text-emerald-700 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
+                              {/* Las cuotas van SIEMPRE —también en celular— y
+                                  UNA DEBAJO DE LA OTRA, no separadas por un "·"
+                                  en el mismo renglón (pedido de Ishtar, 5/9:
+                                  "primero uno después el otro"). El 2/9 se habían
+                                  ocultado en celular para que la tarjeta respirara;
+                                  se revierte: el valor de la cuota es parte de lo
+                                  que decide la compra y tiene que verse en la
+                                  grilla, no solo en la ficha.
+                                  "fijas" se mantiene: es la palabra que distingue
+                                  las 12 (que llevan el costo financiero del 10%)
+                                  de las 3 y 6, que sí son sin interés — regla de
+                                  CLAUDE.md. Los importes salen de PricingService. */}
+                              <span className="block text-xs text-stone-500">
+                                12 cuotas fijas de ${PricingService.cuotasMpLargas(oferta ? p.salePrice : base).installment12.toLocaleString("es-AR")}
+                              </span>
+                              <span className="block text-xs text-stone-500">
+                                {installmentsCount} cuotas sin interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
                               </span>
                             </p>
                             {oferta && (

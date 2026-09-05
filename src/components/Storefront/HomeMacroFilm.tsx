@@ -163,7 +163,12 @@ export function HomeMacroFilm() {
           correcto de ese tono (ver la tabla de contraste en globals.css). */}
       <Link
         href="/tienda"
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 min-h-11 px-7 rounded-full border border-[#c8a55c]/60 bg-black/40 backdrop-blur-sm text-[#c8a55c] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-[#c8a55c] hover:text-black transition-colors"
+        // `whitespace-nowrap`: sin esto, en pantallas angostas (≤360 px) el
+        // texto se partía en "VER LOS / MODELOS" y la flecha quedaba flotando
+        // sola a la derecha, centrada entre los dos renglones — se veía como un
+        // botón roto. El padding y el tracking se achican un punto en celular
+        // para que la etiqueta entera entre en una línea sin desbordar.
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 min-h-11 whitespace-nowrap px-5 sm:px-7 rounded-full border border-[#c8a55c]/60 bg-black/40 backdrop-blur-sm text-[#c8a55c] text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] hover:bg-[#c8a55c] hover:text-black transition-colors"
       >
         Ver los modelos
         <span aria-hidden>→</span>
