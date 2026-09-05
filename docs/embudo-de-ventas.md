@@ -66,6 +66,13 @@ inicia checkout → CheckoutSession PENDING
   Oportunidades (el botón registra la Interaction).
 - `RECOVERED` es la métrica del recupero: cuántos volvieron después de un
   toque. Se ve en la salud de la tienda (`src/lib/tienda/salud.ts`).
+- **Campaña de carritos por WhatsApp** (`/api/cron/campania-carritos`): retoma
+  por WhatsApp a quien abandonó un carrito en los últimos N días (default 30)
+  con la plantilla aprobada `seguimiento_carrito`. Misma mecánica que las otras
+  campañas: tandas chicas, dedup por etiqueta "Campaña Carrito WhatsApp",
+  respeta el interruptor "Campañas" y el horario. **`dryRun` es el default**:
+  lista la audiencia y el texto; manda solo con `&dryRun=0`. Deja el mismo
+  rastro que un seguimiento del embudo.
 
 ## Qué NO hace el sistema (a propósito)
 
