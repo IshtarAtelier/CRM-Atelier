@@ -4,17 +4,17 @@
   "theme": "dark",
   "pilar": "producto",
   "fuente": "base",
-  "generadoEl": "2026-08-29",
+  "generadoEl": "2026-09-04",
   "generadoDesde": "produccion",
   "images_waived": "Carrusel de catálogo: cada slide es un armazón y su foto es el producto, no un fondo.",
-  "generado": "2026-08-29",
+  "generado": "2026-09-04",
   "slides": [
     {
       "type": "cover",
       "role": "portada",
       "image": "catalogo-social/atelier-artemis-tendencia.jpg",
       "title": "Armazones *de receta* con firma propia",
-      "subtitle": "Diseño de autor en 12 cuotas fijas o 6 sin interés, y con envío sin cargo."
+      "subtitle": "Diseño de autor en 6 cuotas sin interés, o hasta 12 cuotas fijas. Envío sin cargo."
     },
     {
       "type": "number",
