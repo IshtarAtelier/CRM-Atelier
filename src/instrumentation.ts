@@ -247,6 +247,52 @@ export async function register() {
             }
         };
 
+        // ---- RECUPERO DE CARRITOS ABANDONADOS, una vez por hora ----
+        // Mismo caso que el pickup-reminder: el schedule estaba declarado en
+        // `vercel.json`, que Railway NO ejecuta, y la ruta lo dice en su propio
+        // comentario ("el alta hay que hacerla en el scheduler externo"). Nadie
+        // la hizo. Resultado: desde que existe el recupero multi-toque no salió
+        // NUNCA un mail de carrito abandonado — ni el recordatorio de la hora ni
+        // el de las 24hs con el cupón.
+        //
+        // Una vez por hora es lo que pide la ruta: con una corrida diaria el
+        // toque temprano casi nunca cae dentro de su ventana de 1h a 24h.
+        // Horario de local (9-20 ARG) a propósito: son mails a clientes reales
+        // y a las 4 de la mañana no se manda nada. Un carrito abandonado de
+        // noche entra en la primera corrida de la mañana, todavía adentro de la
+        // ventana de 72hs.
+        let carritosLastHourKey: string | null = null;
+        let carritosRunning = false;
+        const maybeRunCarritos = async () => {
+            const { hour, dateKey } = argNow();
+            if (hour < 9 || hour >= 20) return;
+            const hourKey = `${dateKey}T${hour}`;
+            if (carritosLastHourKey === hourKey || carritosRunning) return;
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            carritosRunning = true;
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/abandoned-carts`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(5 * 60 * 1000),
+                });
+                if (!res.ok) {
+                    console.error(`[CRON abandoned-carts] HTTP ${res.status} — se reintenta en el próximo tick.`);
+                    return;
+                }
+                carritosLastHourKey = hourKey;
+                const data = await res.json().catch(() => ({}));
+                if (data.processed) {
+                    console.log(`[CRON abandoned-carts] ${data.processed} carrito(s): ${data.early || 0} recordatorios (1h), ${data.late || 0} con cupón (24h), ${data.sinCanal || 0} sin mail, ${data.failed || 0} fallidos`);
+                }
+            } catch (err) {
+                console.error('[CRON abandoned-carts] Error disparando el recupero (se reintenta):', err);
+            } finally {
+                carritosRunning = false;
+            }
+        };
+
         // ---- Pase RÁPIDO SmartLab (robot chico), cada 10 min ----
         const runSync = async () => {
             // El diario se evalúa en cada tick, independiente del horario del pase
@@ -255,6 +301,7 @@ export async function register() {
             maybeRunResumen().catch(err => console.error('[CRON resumen-equipo] maybeRunResumen:', err));
             maybeRunPickupReminder().catch(err => console.error('[CRON pickup-reminder] maybeRunPickupReminder:', err));
             maybeRunCalidad().catch(err => console.error('[CRON whatsapp-calidad] maybeRunCalidad:', err));
+            maybeRunCarritos().catch(err => console.error('[CRON abandoned-carts] maybeRunCarritos:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');
@@ -296,6 +343,6 @@ export async function register() {
             setInterval(runSync, INTERVAL_MS);
         }, 30000);
 
-        console.log('[CRON SmartLab] Programado: cada 10 minutos, 8am-20pm ARG (+ conciliación diaria ~8:30 ARG + resumen del equipo ~9:00 ARG)');
+        console.log('[CRON SmartLab] Programado: cada 10 minutos, 8am-20pm ARG (+ conciliación diaria ~8:30 ARG + resumen del equipo ~9:00 ARG + carritos abandonados por hora)');
     }
 }

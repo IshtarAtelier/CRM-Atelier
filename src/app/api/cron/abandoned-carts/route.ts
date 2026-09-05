@@ -75,7 +75,10 @@ export async function GET(request: Request) {
     // Toque de las 24hs: el que ya existía. `recoveryStage < 2` deja entrar
     // tanto al que recibió el temprano como al que se lo salteó (cron caído,
     // o carrito abandonado hace 30hs que nunca estuvo en la ventana de 1h).
-    // Alcanza con teléfono: sin mail, el único canal posible es WhatsApp.
+    // Los que dejaron teléfono y no mail entran igual y salen contados en
+    // `sinCanal`: no se les consume el toque (el reclamo pasa después del
+    // chequeo de email), así que siguen enteros en Oportunidades de Cierre
+    // para que una persona los toque por WhatsApp.
     const tardios = await prisma.checkoutSession.findMany({
       where: {
         status: 'PENDING',
@@ -91,7 +94,6 @@ export async function GET(request: Request) {
     const stats = {
       early: 0,
       late: 0,
-      whatsapp: 0,
       skippedPurchased: 0,
       alreadyTouched: 0,
       // Dejó teléfono pero no mail, y no tiene chat con entrantes: no hay canal
@@ -105,8 +107,7 @@ export async function GET(request: Request) {
         try {
           const result = await runRecoveryTouch(session, touch);
           if (result.sent) {
-            if (result.channel === 'WHATSAPP') stats.whatsapp++;
-            else if (touch === 'EARLY') stats.early++;
+            if (touch === 'EARLY') stats.early++;
             else stats.late++;
           } else if (result.skipped === 'purchased') {
             stats.skippedPurchased++;
@@ -132,7 +133,7 @@ export async function GET(request: Request) {
     const processed = tempranos.length + tardios.length;
     console.log(
       `[Cron Abandoned Cart] ${stats.early} recordatorios (1h), ${stats.late} emails (24h), ` +
-      `${stats.whatsapp} toques por WhatsApp, ${stats.skippedPurchased} omitidos (ya compró), ` +
+      `${stats.skippedPurchased} omitidos (ya compró), ` +
       `${stats.alreadyTouched} ya tocados, ${stats.sinCanal} sin canal, ${stats.failed} fallidos de ${processed}`
     );
 
@@ -141,7 +142,7 @@ export async function GET(request: Request) {
       processed,
       // `sent` es el total de toques efectivos: lo que miraban los reportes
       // cuando esto mandaba un solo mail.
-      sent: stats.early + stats.late + stats.whatsapp,
+      sent: stats.early + stats.late,
       ...stats,
     });
   } catch (error: any) {
