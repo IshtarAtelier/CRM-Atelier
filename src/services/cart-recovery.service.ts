@@ -20,6 +20,22 @@ import { normalizeArgentinePhone } from './contact.service';
 
 export const CART_WEB_TAG = 'Carrito Web';
 
+/**
+ * Vincula el carrito a la ficha SIN mover `updatedAt`.
+ *
+ * `updatedAt` es el reloj del abandono: con él se miden las ventanas de 1h /
+ * 24h / 72h del recupero. Un `prisma.checkoutSession.update` normal lo pisa
+ * (`@updatedAt`), y eso convertía un carrito de hace cinco semanas en uno
+ * "abandonado hace una hora" cada vez que alguien abría Oportunidades de
+ * Cierre o corría el dryRun de la campaña — y el cron le mandaba el
+ * recordatorio como si fuera fresco. Mismo motivo por el que el reclamo del
+ * toque (`claimRecoveryTouch`) va en SQL crudo.
+ */
+function vincularSesionAFicha(sessionId: string, clientId: string) {
+    return prisma.$executeRaw`UPDATE "CheckoutSession" SET "clientId" = ${clientId} WHERE "id" = ${sessionId}`;
+}
+
+
 type CheckoutSessionLike = {
     id: string;
     clientId: string | null;
@@ -82,10 +98,7 @@ export async function ensureClientForAbandonedCart(session: CheckoutSessionLike)
 
     if (existing) {
         await prisma.$transaction([
-            prisma.checkoutSession.update({
-                where: { id: session.id },
-                data: { clientId: existing.id },
-            }),
+            vincularSesionAFicha(session.id, existing.id),
             prisma.client.update({
                 where: { id: existing.id },
                 data: { tags: { connectOrCreate: { where: { name: CART_WEB_TAG }, create: { name: CART_WEB_TAG, color: '#f59e0b' } } } },
@@ -142,10 +155,7 @@ export async function ensureClientForAbandonedCart(session: CheckoutSessionLike)
         }
     }
 
-    await prisma.checkoutSession.update({
-        where: { id: session.id },
-        data: { clientId: client.id },
-    });
+    await vincularSesionAFicha(session.id, client.id);
 
     logAudit({
         userId: SYSTEM_ACTOR.id,
