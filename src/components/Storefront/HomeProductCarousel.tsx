@@ -220,16 +220,16 @@ export function HomeProductCarousel({ collections, totalCount }: Props) {
                             <span className="text-[15px] font-black text-stone-900 tracking-tight whitespace-nowrap">
                               ${v.contado.toLocaleString("es-AR")}
                             </span>
-                            {/* Las cuotas se ven de `sm` para arriba, igual que en
-                                la grilla de /tienda: en celular la tarjeta llevaba
-                                seis renglones de plata para una foto chica, y se
-                                veía más precio que anteojo. Están en la barra de
-                                arriba y completas en la ficha. Los importes siguen
-                                saliendo de PricingService. */}
-                            <span className="hidden sm:block text-[10px] text-stone-500 font-medium">
+                            {/* Las cuotas van SIEMPRE, también en celular (pedido
+                                de Ishtar, 5/9). El 2/9 se habían ocultado en
+                                celular junto con las de /tienda; se revierte por
+                                el mismo motivo: el valor de la cuota es parte de
+                                lo que decide la compra. Los importes salen de
+                                PricingService. */}
+                            <span className="block text-[10px] text-stone-500 font-medium">
                               {textoCuotas12(v.cuota12)}
                             </span>
-                            <span className="hidden sm:block text-[10px] text-stone-500 font-medium">
+                            <span className="block text-[10px] text-stone-500 font-medium">
                               6 cuotas sin interés de ${v.cuota6.toLocaleString("es-AR")}
                             </span>
                           </p>

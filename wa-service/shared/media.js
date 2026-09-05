@@ -104,4 +104,77 @@ async function uploadMediaToCrm(buffer, mimetype, filename, label = 'media') {
     return null;
 }
 
-module.exports = { downloadMediaWithRetry, uploadMediaToCrm };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ¿Meta va a poder descargar esta foto?
+//
+// La Cloud API no recibe los bytes: recibe una URL y la descarga ELLA. Si esa
+// descarga falla, Meta rechaza el MENSAJE ENTERO — no manda la foto sin el
+// texto, no manda nada. El caption se pierde con la imagen.
+//
+// El 5/9/26 el bot le mandó a una clienta la dirección, el horario y el link
+// del mapa como caption de la foto de la fachada. La foto
+// (`agent_fachada.jpg`) daba 404, así que Meta descartó todo: la clienta nunca
+// recibió la dirección. Las fotos `agent_*` viven en `storage/uploads`, el
+// disco del contenedor, que Railway borra en cada deploy — se van a volver a
+// morir. Las del catálogo (`/images/products/…`, commiteadas) están bien.
+//
+// Por eso, antes de mandar, se comprueba que la URL responda. Si no responde,
+// el turno sigue con el TEXTO SOLO: el cliente se queda sin la foto, nunca sin
+// la dirección.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Chequear la misma URL en cada mensaje es plata y latencia al pedo. */
+const CACHE_MEDIA_TTL_MS = 10 * 60 * 1000;
+const cacheMedia = new Map(); // url → { ok, ts }
+const MEDIA_CHECK_TIMEOUT_MS = 6_000;
+
+/**
+ * `true` si la URL sirve una imagen que Meta puede bajar. Ante la duda (timeout,
+ * red caída) devuelve `true`: perder una foto por un chequeo nervioso es peor
+ * que intentarla — lo que se corta acá son los 404 y 403 seguros.
+ */
+async function mediaDescargable(url) {
+    if (!url || !/^https?:\/\//i.test(url)) return false;
+
+    const cacheado = cacheMedia.get(url);
+    if (cacheado && Date.now() - cacheado.ts < CACHE_MEDIA_TTL_MS) return cacheado.ok;
+
+    let ok = true;
+    try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), MEDIA_CHECK_TIMEOUT_MS);
+        try {
+            // HEAD primero; hay servidores que no lo implementan y contestan 405.
+            let r = await fetch(url, { method: 'HEAD', signal: ctrl.signal, redirect: 'follow' });
+            if (r.status === 405 || r.status === 501) {
+                r = await fetch(url, { method: 'GET', signal: ctrl.signal, redirect: 'follow' });
+            }
+            // Solo un rechazo CLARO del servidor descarta la foto.
+            if (r.status >= 400 && r.status < 500) ok = false;
+        } finally {
+            clearTimeout(t);
+        }
+    } catch {
+        ok = true; // timeout o red: se intenta igual
+    }
+
+    cacheMedia.set(url, { ok, ts: Date.now() });
+    if (!ok) console.warn(`[Media] La URL no se puede descargar, se manda el texto solo: ${String(url).slice(0, 110)}`);
+    return ok;
+}
+
+
+/**
+ * La foto de la fachada que manda el bot.
+ *
+ * Vive en `public/` (commiteada en el repo del CRM), NO en `storage/uploads`.
+ * Esa diferencia es el bug: `storage/uploads` es el disco del contenedor y
+ * Railway lo borra en cada deploy, así que la vieja
+ * (`/api/storage/view?key=agent_fachada.jpg`) daba 404 y Meta rechazaba el
+ * mensaje entero — dirección, horario y mapa incluidos. Cualquier foto FIJA que
+ * mande el bot tiene que salir de `public/`, como las del catálogo.
+ */
+const FOTO_FACHADA_URL = 'https://atelieroptica.com.ar/images/blog/fachada-ladrillo.jpg';
+
+module.exports = { downloadMediaWithRetry, uploadMediaToCrm, mediaDescargable, FOTO_FACHADA_URL };
