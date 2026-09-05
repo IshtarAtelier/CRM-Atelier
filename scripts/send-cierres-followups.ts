@@ -243,7 +243,13 @@ async function generateFollowUp(opp: any): Promise<string | null> {
 // Envío a producción
 // ──────────────────────────────────────────────
 async function sendWhatsApp(phone: string, text: string): Promise<boolean> {
-  const BOT_API_KEY = process.env.BOT_API_KEY || 'atelier-bot-secret-key-2026';
+  // Sin fallback: la clave del bot estuvo escrita acá en texto plano y
+  // publicada en el repo. Si falta la variable, el script no corre.
+  const BOT_API_KEY = process.env.BOT_API_KEY;
+  if (!BOT_API_KEY) {
+    console.error('❌ Falta BOT_API_KEY en el entorno. No se manda nada.');
+    process.exit(1);
+  }
   const url = 'https://crm-atelier-production-ae72.up.railway.app/api/whatsapp/send';
 
   // Normalización completa (0 de área, "15" intercalado): el recorte de los
