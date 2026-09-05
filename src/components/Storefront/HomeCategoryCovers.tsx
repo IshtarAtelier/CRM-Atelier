@@ -1,9 +1,7 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { CarouselProduct } from "@/lib/home-fallback";
+import { primeraFotoQueExiste } from "@/lib/catalog/foto-portada";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Las tres puertas del catálogo: Receta, Sol y Clip-On.
@@ -38,19 +36,25 @@ import type { CarouselProduct } from "@/lib/home-fallback";
 // marco neutro y sigue funcionando como puerta (nombre, conteo y enlace). El
 // dato de fondo hay que arreglarlo aparte — no es cosa de esta sección.
 //
-// POR QUÉ TRES EN FILA TAMBIÉN EN CELULAR
-// El home ya está 1.110 px por encima de su tope de altura. Apiladas, estas
-// tres portadas sumarían ~600 px; en fila, ~200. Y las tres juntas se leen
-// como lo que son: las tres opciones de una misma decisión, no tres secciones.
+// EL FORMATO: BANDAS ANCHAS EN CELULAR, TRES COLUMNAS EN ESCRITORIO
+// La primera versión eran tres cuadraditos en fila también en celular, para
+// ahorrar alto. Ishtar las rechazó ("no me gusta") y tenía razón: con tres en
+// fila el anteojo queda diminuto, y ella pidió PORTADAS — claras y con el
+// anteojo grande (mismo criterio con el que rechazó las placas oscuras y
+// minimalistas el 1/9). Un mosaico apretado no es una portada.
+// Ahora en celular es una banda ancha por categoría: la foto grande a la
+// izquierda, el nombre en serif y el conteo a la derecha. De `sm` para arriba
+// vuelven a ser tres columnas, donde el ancho alcanza para que la foto respire.
+// Cuesta ~200 px más de alto en celular que la versión apretada; es el precio
+// de que se vea, y el alto del home es un tema aparte que ya está anotado.
 // ────────────────────────────────────────────────────────────────────────────
 
 interface Portada {
   slug: string;
   etiqueta: string;
   href: string;
-  /** Todos los de la categoría: si la foto del primero no carga, se prueba el
-   *  siguiente. Ya vienen en las props del home, no cuesta una consulta más. */
-  productos: CarouselProduct[];
+  /** El producto YA elegido en el servidor, con foto verificada. */
+  producto?: CarouselProduct;
   total?: number;
 }
 
@@ -68,77 +72,57 @@ export function HomeCategoryCovers({
   conteos?: { receta: number; sol: number; clipon: number };
 }) {
   const portadas: Portada[] = [
-    { slug: "receta", etiqueta: "Receta", href: "/receta", productos: (receta || []).filter(x => x?.img), total: conteos?.receta },
-    { slug: "sol", etiqueta: "Sol", href: "/lentes-de-sol", productos: (sol || []).filter(x => x?.img), total: conteos?.sol },
-    { slug: "clipon", etiqueta: "Clip-On", href: "/clip-on", productos: (clipon || []).filter(x => x?.img), total: conteos?.clipon },
+    { slug: "receta", etiqueta: "Receta", href: "/receta", producto: primeraFotoQueExiste(receta), total: conteos?.receta },
+    { slug: "sol", etiqueta: "Sol", href: "/lentes-de-sol", producto: primeraFotoQueExiste(sol), total: conteos?.sol },
+    { slug: "clipon", etiqueta: "Clip-On", href: "/clip-on", producto: primeraFotoQueExiste(clipon), total: conteos?.clipon },
   ];
 
   // Una portada sin foto no se dibuja: un recuadro vacío con un nombre adentro
   // se lee como algo roto, no como una categoría. Si una categoría se queda sin
   // stock, su puerta simplemente no aparece.
-  const visibles = portadas.filter((p) => p.productos.length > 0);
-
-  // Con qué producto de cada categoría se está intentando. No se puede saber
-  // desde el servidor si un archivo existe: se descubre al fallar la carga y
-  // se avanza al siguiente.
-  const [indice, setIndice] = useState<Record<string, number>>({});
+  const visibles = portadas.filter((p) => p.producto?.img);
 
   if (visibles.length === 0) return null;
 
   return (
     <section className="w-full bg-white pb-14 px-5">
       <div className="mx-auto w-full max-w-7xl">
-        <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-stone-500 mb-4">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8a6d3b] mb-4">
           Elegí por tipo
         </h2>
 
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+        <div className="flex flex-col gap-3 sm:grid sm:grid-cols-3 sm:gap-4">
           {visibles.map((p) => (
             <Link
               key={p.slug}
               href={p.href}
-              className="group flex flex-col rounded-xl overflow-hidden border border-[#e5e5e5] bg-[#faf8f5] hover:border-stone-900 transition-colors"
+              className="group flex flex-row sm:flex-col items-stretch rounded-2xl overflow-hidden border border-[#e5e5e5] bg-[#faf8f5] hover:border-stone-900 transition-colors"
             >
-              <div className="relative aspect-square bg-white overflow-hidden">
-                {(() => {
-                  const i = indice[p.slug] ?? 0;
-                  const producto = p.productos[i];
-                  if (!producto) {
-                    // Se acabaron los candidatos: ninguna foto de la categoría
-                    // cargó. Marco neutro, la puerta sigue sirviendo.
-                    return (
-                      <div className="absolute inset-0 flex items-center justify-center text-stone-300">
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" />
-                        </svg>
-                      </div>
-                    );
-                  }
-                  return (
-                    <Image
-                      key={producto.img}
-                      unoptimized={String(producto.img).startsWith("data:")}
-                      src={producto.img}
-                      alt={`Anteojos de ${p.etiqueta.toLowerCase()} en Atelier Óptica`}
-                      fill
-                      sizes="(max-width: 640px) 33vw, 25vw"
-                      onError={() => setIndice((prev) => ({ ...prev, [p.slug]: (prev[p.slug] ?? 0) + 1 }))}
-                      className="object-contain p-3 sm:p-5 mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
-                    />
-                  );
-                })()}
+              <div className="relative w-[45%] shrink-0 sm:w-full aspect-square bg-white overflow-hidden">
+                <Image
+                  unoptimized={String(p.producto!.img).startsWith("data:")}
+                  src={p.producto!.img}
+                  alt={`Anteojos de ${p.etiqueta.toLowerCase()} en Atelier Óptica`}
+                  fill
+                  sizes="(max-width: 640px) 45vw, 25vw"
+                  className="object-contain p-2 sm:p-4 mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
+                />
               </div>
-              <div className="px-2.5 py-2.5 sm:px-4 sm:py-3">
-                <p className="text-[11px] sm:text-[13px] font-black uppercase tracking-widest text-stone-900 leading-tight">
+              <div className="flex-1 flex flex-col justify-center px-5 py-4 sm:px-4 sm:py-4">
+                <p className="text-2xl sm:text-xl font-serif tracking-tight text-stone-900 leading-none">
                   {p.etiqueta}
                 </p>
                 {/* El número solo si es real. Sin dato (home servida desde el
                     snapshot) no se inventa uno. */}
                 {typeof p.total === "number" && p.total > 0 && (
-                  <p className="text-[10px] sm:text-[11px] text-stone-500 mt-0.5">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-stone-500 mt-1.5">
                     {p.total} {p.total === 1 ? "modelo" : "modelos"}
                   </p>
                 )}
+                <span className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#8a6d3b]">
+                  Ver todos
+                  <span className="transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">→</span>
+                </span>
               </div>
             </Link>
           ))}
