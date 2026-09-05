@@ -1179,26 +1179,11 @@ export const ContactService = {
             }
         }
 
-        if (type === 'STORE_VISIT') {
-            try {
-                const client = await prisma.client.findUnique({ where: { id: clientId } });
-                if (client) {
-                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
-                    const link = `${appUrl}/admin/contactos?id=${client.id}`;
-                    const groupMessage = `📍 *Ingreso de cliente al Atelier*\n👤 *Cliente:* ${client.name}\n\n⚠️ _Aclarar si es calle / meta / referido_\n🔗 *Ficha:* ${link}`;
-                    
-                    // 18/8/2026 (B19 del plan de la API oficial): el aviso al grupo
-                    // de ventas pasa a email — la API oficial no tiene grupos.
-                    sendEmail({
-                        to: process.env.SALES_NOTIFY_EMAIL || process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                        subject: `📍 Ingreso al local — ${client.name}`,
-                        html: `<pre style="font-family:inherit;white-space:pre-wrap">${groupMessage.replace(/[*_]/g, '')}</pre>`,
-                    }).catch(err => console.error('[Store Visit Notification] Error enviando email:', err));
-                }
-            } catch (e) {
-                console.error('Error sending store visit notification:', e);
-            }
-        }
+        // El ingreso de un cliente al local NO manda aviso (Ishtar, 5/9/2026): la
+        // visita queda registrada como Interaction en la ficha, que es donde se
+        // consulta. El aviso nació como mensaje al grupo de ventas de WhatsApp y el
+        // 18/8/2026 se pasó a email (B19 del plan de la API oficial, que no tiene
+        // grupos); a esta altura era ruido en la casilla y se apaga.
 
         return { ...interaction, directedEmailSent };
     },
