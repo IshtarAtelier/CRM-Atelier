@@ -35,7 +35,7 @@ const { runOutputGuardrail } = require('./services/ai.service');
 const { generateAndSaveHandoffSummary } = require('./tools');
 const { TAGS_SIN_BOT } = require('./utils');
 const { isBusinessHours } = require('./shared/business-hours');
-const { limpiarSalidaBot } = require('./shared/limpiar-salida-bot');
+const { limpiarSalidaBot, quitarRepeticiones } = require('./shared/limpiar-salida-bot');
 const { esConsulta } = require('./shared/tipos-entrantes');
 const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano } = require('./shared/remitentes');
@@ -510,10 +510,23 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             // Saneando primero, el guardrail juzga LO QUE EL CLIENTE VA A VER,
             // y ya no se le puede disparar con un marcador interno que el
             // modelo repitió y que igual íbamos a borrar.
-            const { texto: textoLimpio, quitado } = limpiarSalidaBot(responseText);
+            const { texto: saneado, quitado } = limpiarSalidaBot(responseText);
             if (quitado.length) console.log(`  🧹 [BotCloud] Saneado de salida: ${quitado.join(' · ')}`);
+
+            // No repetirse. Se compara SOLO contra lo que dijo el bot: lo que
+            // escribió una persona del equipo no se toca (y si el bot lo
+            // repitiera, el problema es otro). `bot-cloud.js` no tenía ningún
+            // anti-repetición — el que había vivía en `index.js`, el transporte
+            // viejo, y era literal.
+            const dichoPorElBot = recientes
+                .filter(m => m.direction === 'OUTBOUND' && !esRemitenteHumano(m.senderName))
+                .slice(0, 3)
+                .map(m => m.content || '');
+            const { texto: textoLimpio, quitadas } = quitarRepeticiones(saneado, dichoPorElBot);
+            if (quitadas.length) console.log(`  🔄 [BotCloud] Ya lo había dicho, se saca: ${quitadas.map(q => `"${q.slice(0, 50)}…"`).join(' · ')}`);
+
             if (!textoLimpio.trim()) {
-                console.log('  ⏹️ [BotCloud] Respuesta vacía tras el saneado. No se envía nada.');
+                console.log('  ⏹️ [BotCloud] No quedó nada para decir (era todo repetido o interno). No se envía nada.');
                 return;
             }
 
