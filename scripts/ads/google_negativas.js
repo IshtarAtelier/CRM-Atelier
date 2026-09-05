@@ -247,7 +247,51 @@ const QUINTA_TANDA = [
   ['vacante', 'BROAD'], ['busco trabajo', 'PHRASE'], ['bolsa de trabajo', 'PHRASE'],
 ];
 
+// Sexta tanda (4/9/2026). Marcas de anteojos que Atelier NO vende y que igual
+// se llevaban $3.035 en 90 días (509 impresiones, 9 clics). Quien busca una
+// marca busca ESA marca: no compra otra cosa.
+//
+// Verificado contra el catálogo de producción antes de bloquear:
+//  · NO se bloquean Rusty, Mormaii, Karun, Mistral, Tiffany ni Ossira —
+//    están en el stock aunque hoy no estén publicadas en la web.
+//  · NO se bloquean las FORMAS (aviador, wayfarer, clubmaster, hexagonal):
+//    son formas de armazón que Atelier sí vende con nombre propio, y la
+//    tienda filtra por forma. "ray ban aviador" ya cae por "ray ban".
+//  · Las de dos palabras van en FRASE; las de una, amplia, salvo "carrera"
+//    y "police", que son palabras corrientes en castellano y van en frase
+//    pegadas a lo que se busca.
+const SEXTA_TANDA = [
+  ['ray ban', 'BROAD'], ['rayban', 'BROAD'], ['ray-ban', 'BROAD'],
+  ['oakley', 'BROAD'],
+  ['vulk', 'BROAD'],
+  ['lacoste', 'BROAD'],
+  ['versace', 'BROAD'],
+  ['prada', 'BROAD'],
+  ['gucci', 'BROAD'],
+  ['armani', 'BROAD'], ['emporio armani', 'PHRASE'],
+  ['miu miu', 'PHRASE'],
+  ['polaroid', 'BROAD'],
+  ['cartier', 'BROAD'],
+  ['persol', 'BROAD'],
+  ['fendi', 'BROAD'],
+  ['tommy hilfiger', 'PHRASE'],
+  ['chanel', 'BROAD'],
+  ['guess', 'BROAD'],
+  ['dolce gabbana', 'PHRASE'], ['dolce & gabbana', 'PHRASE'],
+  ['michael kors', 'PHRASE'],
+  ['burberry', 'BROAD'],
+  ['calvin klein', 'PHRASE'],
+  ['swarovski', 'BROAD'],
+  ['dior', 'BROAD'],
+  ['maui jim', 'PHRASE'],
+  ['arnette', 'BROAD'],
+  ['hugo boss', 'PHRASE'],
+  ['anteojos carrera', 'PHRASE'], ['lentes carrera', 'PHRASE'], ['carrera anteojos', 'PHRASE'],
+  ['anteojos police', 'PHRASE'], ['lentes police', 'PHRASE'],
+];
+
 const TERMINOS = [
+  ...SEXTA_TANDA,
   ...QUINTA_TANDA,
   ...CUARTA_TANDA,
   ...TERCERA_TANDA,
