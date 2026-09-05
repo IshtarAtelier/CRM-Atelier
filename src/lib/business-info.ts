@@ -53,19 +53,26 @@ export const BUSINESS_INFO = {
   ],
   /**
    * Franja para AGENDAR UNA CONSULTA GENERAL en el local (probarse armazones,
-   * retirar, consultar). Coincide con el horario de atención.
-   */
-  appointmentSlots: "de 9:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 (Sábados)",
-  /**
-   * TOMA DE GRADUACIÓN (agudeza visual): SOLO en la siesta, de 12 a 16.
+   * retirar, consultar).
    *
-   * Regla que dio Ishtar el 31/8/2026. No es lo mismo que `appointmentSlots`:
-   * el local atiende de 9 a 20, pero el examen visual se hace únicamente en
-   * esa franja. Antes el sistema ofrecía turno para graduación en cualquier
-   * horario de atención — o sea que se le podía dar a alguien un turno que
-   * después no se le podía cumplir.
+   * Regla de Ishtar del 5/9/2026: son franjas PREFERIDAS, no un muro. El
+   * motivo es de personal — de 9 a 11 y de 16 a 20 hay dos profesionales
+   * atendiendo al mismo tiempo. Si al cliente no le sirven, se le da turno en
+   * cualquier hora que el local esté abierto: perder la visita por defender
+   * una franja es peor que atender con una sola persona.
    */
-  examSlots: "de 12:00 a 16:00 (la siesta)",
+  appointmentSlots: "preferentemente de 9:00 a 11:00 o de 16:00 a 20:00 —en esas franjas hay DOS profesionales atendiendo, así que se espera menos—; si a la persona no le sirve ninguna, se le acomoda en cualquier horario en que el local esté abierto. Los sábados, en lo posible, evitarlos",
+  /**
+   * TOMA DE GRADUACIÓN (agudeza visual): en qué franjas se cita.
+   *
+   * ACTUALIZADO el 5/9/2026 por Ishtar: ya NO es la siesta. Ahora coincide con
+   * `appointmentSlots` y por el mismo motivo — de 9 a 11 y de 16 a 20 hay dos
+   * profesionales. Reemplaza la regla del 31/8 ("SOLO de 12 a 16"), que queda
+   * sin efecto. Lo que NO cambió es el porqué de que exista el campo: el bot
+   * no puede ofrecer graduación "cuando quieras" y prometer un turno que
+   * después no se cumple.
+   */
+  examSlots: "preferentemente de 9:00 a 11:00 o de 16:00 a 20:00 —en esas franjas hay DOS profesionales atendiendo, así que se espera menos—; si a la persona no le sirve ninguna, se le acomoda en cualquier horario en que el local esté abierto. Los sábados, en lo posible, evitarlos",
   /**
    * SON DOS DESCUENTOS DISTINTOS, no uno mal cargado (Ishtar, 31/8/2026):
    *
