@@ -38,6 +38,7 @@ const { isBusinessHours } = require('./shared/business-hours');
 const { limpiarSalidaBot } = require('./shared/limpiar-salida-bot');
 const { esConsulta } = require('./shared/tipos-entrantes');
 const { mediaDescargable } = require('./shared/media');
+const { esRemitenteHumano } = require('./shared/remitentes');
 const { resolveWaMessageId } = require('./shared/message-id');
 const { setSender } = require('./shared/sender');
 
@@ -338,7 +339,16 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
 
         const crudos = cronologicos.map(m => {
             const ts = `[${formatter.format(new Date(m.createdAt))}] `;
-            if (m.direction === 'OUTBOUND') return { role: 'ai', content: ts + (m.content || '') };
+            if (m.direction === 'OUTBOUND') {
+                // Un saliente que escribió una PERSONA del equipo no puede
+                // entrar como palabras del bot: si no, el modelo cree que él
+                // cotizó, prometió una fecha o pidió la receta, y sigue desde
+                // ahí — repitiendo o contradiciendo a la vendedora.
+                if (esRemitenteHumano(m.senderName)) {
+                    return { role: 'ai', content: `${ts}[Lo escribió ${m.senderName}, del equipo de la óptica, NO vos. Respetá lo que ya dijo y no lo repitas.] ${m.content || ''}`.trim() };
+                }
+                return { role: 'ai', content: ts + (m.content || '') };
+            }
             if (m.type === 'IMAGE') {
                 const img = imagenes.get(m.waMessageId);
                 if (img) {

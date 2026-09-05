@@ -40,6 +40,7 @@
 
 const { isBusinessHours: isBusinessHoursReal } = require('./shared/business-hours');
 const { TIPOS_CON_CONSULTA } = require('./shared/tipos-entrantes');
+const { REMITENTES_NO_HUMANOS, SENDER_NAME_AUTORESPONDEDOR } = require('./shared/remitentes');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
 const { resolveWaMessageId } = require('./shared/message-id');
 const {
@@ -59,7 +60,7 @@ const CLAVE_BANDERA = 'auto_responder_enabled';
  * usa la regla anti-repetición para reconocer sus propios mensajes. Cambiarla
  * rompe la regla 4 en silencio (empezaría a mandar uno por mensaje entrante).
  */
-const SENDER_NAME = 'Auto-respondedor';
+const SENDER_NAME = SENDER_NAME_AUTORESPONDEDOR;
 
 /**
  * Cuánto se espera antes de volver a mandarle el aviso al MISMO chat.
@@ -80,11 +81,6 @@ const SENDER_NAME = 'Auto-respondedor';
  */
 const VENTANA_ANTI_REPETICION_MS = 41 * 60 * 60 * 1000;
 
-/**
- * Nombres de remitente que NO son una persona del equipo. Un saliente firmado
- * por alguno de estos no resetea la ventana anti-repetición.
- */
-const REMITENTES_NO_HUMANOS = new Set([SENDER_NAME, 'Bot', 'Sistema']);
 
 
 /**
