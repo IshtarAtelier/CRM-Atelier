@@ -39,6 +39,7 @@
  */
 
 const { isBusinessHours: isBusinessHoursReal } = require('./shared/business-hours');
+const { TIPOS_CON_CONSULTA } = require('./shared/tipos-entrantes');
 const { isMetaAutoReplyText } = require('./shared/meta-auto-patterns');
 const { resolveWaMessageId } = require('./shared/message-id');
 const {
@@ -85,13 +86,6 @@ const VENTANA_ANTI_REPETICION_MS = 41 * 60 * 60 * 1000;
  */
 const REMITENTES_NO_HUMANOS = new Set([SENDER_NAME, 'Bot', 'Sistema']);
 
-/**
- * Tipos de entrante que merecen el aviso. Todo lo demás (reacción, sticker,
- * `unsupported`, estados) es ruido: el cliente no hizo una consulta.
- */
-const TIPOS_CON_CONSULTA = new Set([
-    'text', 'image', 'audio', 'video', 'document', 'location', 'contacts', 'button', 'interactive',
-]);
 
 /**
  * El texto EXACTO que recibe el cliente. Fijo, sin variables, sin IA.

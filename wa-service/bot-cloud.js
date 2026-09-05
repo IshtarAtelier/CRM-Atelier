@@ -36,6 +36,8 @@ const { generateAndSaveHandoffSummary } = require('./tools');
 const { TAGS_SIN_BOT } = require('./utils');
 const { isBusinessHours } = require('./shared/business-hours');
 const { limpiarSalidaBot } = require('./shared/limpiar-salida-bot');
+const { esConsulta } = require('./shared/tipos-entrantes');
+const { mediaDescargable } = require('./shared/media');
 const { resolveWaMessageId } = require('./shared/message-id');
 const { setSender } = require('./shared/sender');
 
@@ -198,6 +200,16 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         if (!chat) return false;
 
         if (!(await isEnabled())) return false;
+
+        // Una reacción NO es una consulta. Se guarda como texto "[Reacción] 👍"
+        // (`transport/inbound.js`), así que sin este filtro un pulgar arriba le
+        // programaba al bot un turno entero y el cliente recibía otra respuesta
+        // encima de la que acababa de leer. El auto-respondedor ya filtraba por
+        // el mismo criterio; el bot no filtraba nada.
+        if (!esConsulta(msg)) {
+            console.log(`  🤏 [BotCloud] Entrante tipo "${msg && msg.type}" no es una consulta: no se responde.`);
+            return false;
+        }
 
         // Fuera de horario NO contesta: ese turno es del auto-respondedor.
         if (!horario()) {
@@ -545,7 +557,22 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 return;
             }
 
-            const bloques = texto.split('\n\n').map(b => b.trim()).filter(Boolean);
+            // Un mismo bloque no sale dos veces en el mismo turno. El 5/9/26 el
+            // bot mandó DOS veces idéntico el mensaje de la dirección + foto de
+            // la fachada, con un minuto de diferencia cero: el modelo lo escribió
+            // repetido y acá se enviaba tal cual, una burbuja por bloque. El
+            // transporte no duplica (su reintento respeta `ambiguous`), así que
+            // el único lugar donde se puede cortar es éste.
+            const vistos = new Set();
+            const bloques = texto.split('\n\n').map(b => b.trim()).filter(Boolean).filter(b => {
+                const firma = b.toLowerCase().replace(/\s+/g, ' ');
+                if (vistos.has(firma)) {
+                    console.log(`  ♻️ [BotCloud] Bloque repetido en el mismo turno, no se manda: "${b.slice(0, 60)}…"`);
+                    return false;
+                }
+                vistos.add(firma);
+                return true;
+            });
             for (let i = 0; i < bloques.length; i++) {
                 let bloque = bloques[i];
                 const urls = [];
@@ -555,18 +582,33 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 bloque = bloque.replace(/\[IMAGE:\s*(https?:\/\/[^\]]+)\]/gi, '').trim();
                 if (!bloque && urls.length === 0) continue;
 
-                if (urls.length > 0) {
-                    for (let j = 0; j < urls.length; j++) {
+                // Meta descarga la foto ELLA. Si la URL está muerta rechaza el
+                // mensaje ENTERO —caption incluido— y el cliente no recibe nada.
+                // Las que no se pueden bajar se descartan acá y el texto sale igual.
+                const urlsVivas = [];
+                for (const u of urls) {
+                    if (await mediaDescargable(u)) urlsVivas.push(u);
+                }
+                if (urls.length && !urlsVivas.length && !bloque) continue;
+
+                if (urlsVivas.length > 0) {
+                    for (let j = 0; j < urlsVivas.length; j++) {
                         const caption = j === 0 ? bloque : '';
                         let enviado = null;
+                        let salioConFoto = true;
                         try {
-                            enviado = await sendViaCloud(waId, caption, { url: urls[j] }, { chat: freshChat });
+                            enviado = await sendViaCloud(waId, caption, { url: urlsVivas[j] }, { chat: freshChat });
                         } catch (e) {
                             // Una foto caída no puede voltear el turno: se manda el texto solo.
-                            console.error(`  ⚠️ [BotCloud] Falló la imagen ${urls[j].substring(0, 80)}: ${e.message}`);
+                            console.error(`  ⚠️ [BotCloud] Falló la imagen ${urlsVivas[j].substring(0, 80)}: ${e.message}`);
+                            salioConFoto = false;
                             if (caption) enviado = await sendViaCloud(waId, caption, null, { chat: freshChat }).catch(() => null);
                         }
-                        await guardarSaliente(chat.id, waId, enviado, caption || '[Media]', urls[j] ? 'IMAGE' : 'TEXT');
+                        // El tipo sale del envío REAL, no de la intención: cuando la
+                        // foto falla y sale el texto solo, acá se anotaba igual
+                        // 'IMAGE' y el buzón mostraba "Imagen de WhatsApp" en un
+                        // mensaje que nunca llevó foto.
+                        await guardarSaliente(chat.id, waId, enviado, caption || '[Media]', salioConFoto ? 'IMAGE' : 'TEXT');
                     }
                 } else {
                     const enviado = await sendViaCloud(waId, bloque, null, { chat: freshChat });

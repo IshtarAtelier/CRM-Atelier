@@ -201,7 +201,7 @@ const CIERRE_TIENDA = `\n\nMientras tanto podés ver todos los modelos acá: ${L
  * (eso solo pasa en el camino conversacional de index.js): relajar el validador
  * habría hecho llegar el tag crudo al cliente.
  */
-const FOTO_FACHADA_URL = 'https://atelieroptica.com.ar/api/storage/view?key=agent_fachada.jpg';
+const { FOTO_FACHADA_URL } = require('../shared/media');
 const FOTO_POR_TIER = {
     DIA_4: FOTO_FACHADA_URL,
 };
