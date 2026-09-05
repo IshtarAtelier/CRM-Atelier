@@ -104,11 +104,19 @@ async function claimRecoveryTouch(sessionId: string, touch: RecoveryTouch, chann
   return claimed === 1;
 }
 
-/** Marca la sesión como cerrada porque la persona ya compró (reconcilia el PENDING colgado). */
+/**
+ * Marca la sesión como cerrada porque la persona ya compró (reconcilia el
+ * PENDING colgado). Si antes había recibido algún toque del recupero, queda
+ * RECOVERED y no COMPLETED: es la única forma de saber cuántos carritos volvió
+ * a traer el recupero. El estado existía en el schema y en los comentarios,
+ * pero nadie lo escribía nunca — el embudo de la tienda no podía medir su
+ * propio resultado.
+ */
 async function markPurchased(sessionId: string): Promise<RecoveryResult> {
+  const tocada = await prisma.checkoutSession.findUnique({ where: { id: sessionId }, select: { recoveryStage: true } });
   await prisma.checkoutSession.update({
     where: { id: sessionId },
-    data: { status: 'COMPLETED' }
+    data: { status: (tocada?.recoveryStage ?? 0) > 0 ? 'RECOVERED' : 'COMPLETED' }
   }).catch(() => {});
   return { sent: false, skipped: 'purchased' };
 }

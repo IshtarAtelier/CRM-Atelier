@@ -14,6 +14,7 @@
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { esPlantillaDeSeguimiento } from '@/lib/embudo/playbook';
 import { Loader2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
@@ -121,6 +122,11 @@ function WhatsAppPageContent() {
         handledUrlPhoneRef.current = true;
 
         const urlText = searchParams.get('text');
+        // ?plantilla= viene del embudo (/admin/leads): la tarjeta sabe qué
+        // seguimiento toca hoy y lo trae lista. Se abre con el diálogo de
+        // confirmación de siempre — la persona ve el texto exacto y decide.
+        const urlPlantillaRaw = searchParams.get('plantilla');
+        const urlPlantilla = urlPlantillaRaw && esPlantillaDeSeguimiento(urlPlantillaRaw) ? urlPlantillaRaw : null;
         const normalizado = urlPhone.replace(/\D/g, '');
         const objetivo = chats.find(c =>
             c.waId.includes(normalizado)
@@ -129,6 +135,7 @@ function WhatsAppPageContent() {
         if (objetivo) {
             acciones.abrirChat(objetivo.id);
             if (urlText) setNewMessage(urlText);
+            if (urlPlantilla) acciones.enviarPlantilla(objetivo.id, urlPlantilla).catch(() => {});
             return;
         }
 
@@ -142,6 +149,7 @@ function WhatsAppPageContent() {
                 await acciones.refrescarChats();
                 await acciones.abrirChat(nuevo.id);
                 if (urlText) setNewMessage(urlText);
+                if (urlPlantilla) acciones.enviarPlantilla(nuevo.id, urlPlantilla).catch(() => {});
             } catch {
                 alert(`No hay conversación de WhatsApp iniciada con el número ${urlPhone}. Podés mandarle el primer mensaje desde tu celular para abrir el chat.`);
             }

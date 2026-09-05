@@ -35,6 +35,7 @@ export interface SaludTienda {
   demanda: {
     checkoutsIniciados30d: number;
     checkoutsAbandonados30d: number;
+    checkoutsRecuperados30d: number;
     ventasWeb30d: number;
     resenasDeProducto: number;
   };
@@ -111,7 +112,9 @@ export async function medirSaludTienda(): Promise<SaludTienda> {
     },
     demanda: {
       checkoutsIniciados30d: sesiones.length,
-      checkoutsAbandonados30d: sesiones.filter((s) => s.status !== 'COMPLETED' && s.status !== 'FINALIZED').length,
+      // RECOVERED = compró después de un toque del recupero: no es un abandono.
+      checkoutsAbandonados30d: sesiones.filter((s) => !['COMPLETED', 'FINALIZED', 'RECOVERED'].includes(s.status)).length,
+      checkoutsRecuperados30d: sesiones.filter((s) => s.status === 'RECOVERED').length,
       ventasWeb30d: ventas,
       resenasDeProducto: resenas,
     },

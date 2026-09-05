@@ -1,4 +1,4 @@
-import { Users, TrendingUp, Calculator, type LucideIcon } from 'lucide-react';
+import { Users, TrendingUp, Calculator, type LucideIcon, AlarmClock } from 'lucide-react';
 import type { PipelineStats } from '@/types/leads';
 
 // ─────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ export default function PipelineStatsBar({ stats }: PipelineStatsBarProps) {
     : '0';
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <StatCard
         icon={Users}
         iconBg="bg-primary/10"
@@ -58,6 +58,16 @@ export default function PipelineStatsBar({ stats }: PipelineStatsBarProps) {
         iconColor="text-amber-500"
         label="Promedio por Lead"
         value={`$${avgTicket}`}
+      />
+      {/* Lo que el equipo tiene que hacer HOY: leads con un paso vencido según
+          el playbook (src/lib/embudo/playbook.ts). Es el mismo número que
+          llega en el resumen diario. */}
+      <StatCard
+        icon={AlarmClock}
+        iconBg={stats.paraHoy > 0 ? 'bg-rose-500/10' : 'bg-emerald-500/10'}
+        iconColor={stats.paraHoy > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}
+        label="Para hoy"
+        value={stats.paraHoy}
       />
     </div>
   );

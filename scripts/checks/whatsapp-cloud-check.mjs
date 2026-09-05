@@ -29,7 +29,14 @@ const TOKEN = process.env.WA_CLOUD_TOKEN || '';
 // nadie manda. OJO: pedido_listo_v3/pedido_listo_saldo_v3 estaban PENDING de
 // aprobación al momento del cambio de código — si este check las marca como
 // no aprobadas, es esperable hasta que Meta responda, no un bug.
-const CATALOGO = ['pedido_listo_v3', 'pedido_listo_saldo_v3', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf', 'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion'];
+// Las de SEGUIMIENTO (5/9/26): son las que el embudo le propone al equipo cada
+// día (src/lib/embudo/playbook.ts) y las respuestas rápidas del buzón. No
+// estaban acá: si Meta pausaba una, el botón fallaba y nadie se enteraba.
+const CATALOGO = [
+    'pedido_listo_v3', 'pedido_listo_saldo_v3', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf',
+    'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion',
+    'seguimiento_presupuesto', 'seguimiento_lentes', 'seguimiento_carrito', 'invitacion_local_v2', 'ultimo_seguimiento', 'pedido_resena',
+];
 
 const ok = (s) => `✅ ${s}`, warn = (s) => `⚠️  ${s}`, bad = (s) => `❌ ${s}`;
 

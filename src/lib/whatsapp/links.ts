@@ -36,16 +36,24 @@
  */
 
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+import type { TemplateName } from '@/lib/whatsapp/templates';
 
 /**
  * Link al buzón abriendo la conversación de ese teléfono.
  *
  * @param phone  Teléfono en cualquier formato (con o sin 54/9/0/15, con guiones).
  * @param texto  Mensaje a precargar en el redactor (`?text=`), opcional.
+ * @param opciones.plantilla  Plantilla de seguimiento a dejar lista para
+ *               confirmar (`?plantilla=`): la usa el embudo cuando la tarjeta
+ *               ya sabe qué toca hoy. El buzón solo acepta las del playbook.
  * @returns      `/admin/whatsapp?phone=…` — o `/admin/whatsapp` pelado si el
  *               teléfono no tiene dígitos usables (mejor el buzón que un link roto).
  */
-export function linkAlChat(phone: string | null | undefined, texto?: string): string {
+export function linkAlChat(
+    phone: string | null | undefined,
+    texto?: string,
+    opciones?: { plantilla?: TemplateName },
+): string {
     // `formatPhoneForWhatsApp` devuelve siempre "549" + parte nacional; '549'
     // pelado significa que no había ni un dígito real detrás.
     const normalizado = formatPhoneForWhatsApp(phone);
@@ -54,5 +62,6 @@ export function linkAlChat(phone: string | null | undefined, texto?: string): st
 
     const params = new URLSearchParams({ phone: nacional });
     if (texto) params.set('text', texto);
+    if (opciones?.plantilla) params.set('plantilla', opciones.plantilla);
     return `/admin/whatsapp?${params.toString()}`;
 }

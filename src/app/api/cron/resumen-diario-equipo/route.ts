@@ -22,6 +22,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { EmbudoService } from '@/services/embudo.service';
 import { InternalMessagingService } from '@/services/internal-messaging.service';
 import { safeCompare, tokenBearer } from '@/lib/safe-compare';
 // El día de AYER en hora argentina. El cálculo vive en lib porque el briefing
@@ -103,6 +104,14 @@ export async function GET(request: NextRequest) {
                 (t, r) => ({ p: t.p + r.presupuestos, f: t.f + r.fabrica, c: t.c + r.cerradas, s: t.s + r.resenas }),
                 { p: 0, f: 0, c: 0, s: 0 },
             );
+            // Lo de HOY en el embudo, del mismo tablero que ve /admin/leads. Sin
+            // esto nadie avisaba "a estos leads hay que escribirles": con la API
+            // oficial ya no hay seguimientos automáticos, así que el empujón
+            // diario tiene que llegarle a una persona.
+            const embudo = await EmbudoService.lineaParaHoy().catch(err => {
+                console.error('[ResumenDiario] embudo:', err);
+                return null;
+            });
             const cuerpo = [
                 `📊 Resumen del equipo — ${etiqueta}`,
                 ``,
@@ -110,6 +119,7 @@ export async function GET(request: NextRequest) {
                     `• ${r.nombre}\n    ${r.presupuestos} presupuesto(s) · ${r.fabrica} a fábrica · ${r.cerradas} tarea(s) · ${r.resenas} comentario(s)`),
                 ``,
                 `Total del día: ${totales.p} presupuesto(s), ${totales.f} enviado(s) a fábrica, ${totales.c} tarea(s) terminada(s), ${totales.s} comentario(s) pedido(s).`,
+                ...(embudo ? [``, embudo] : []),
             ].join('\n');
 
             for (const admin of admins) {
