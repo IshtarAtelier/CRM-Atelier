@@ -5,11 +5,15 @@ import { useCallback, useState, useTransition } from 'react';
 import { Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { track } from '@/lib/client-analytics';
+import { todasLasFamilias, type FamiliaColor } from '@/lib/catalog/color-normalizado';
 
 interface ProductFiltersProps {
   availableBrands: string[];
   availableShapes?: string[];
   availableMaterials?: string[];
+  /** Familias de color que tiene ALGÚN producto del catálogo hoy — no se
+   *  muestra un chip de color que nadie tiene. */
+  availableColors?: string[];
   /**
    * Cuántos modelos quedan con los filtros puestos. A-04 (auditoría 2/9/26):
    * se filtraba a ciegas — femme + aviador llevaba de 24 a 3 resultados sin
@@ -24,7 +28,7 @@ interface ProductFiltersProps {
    * api/store/products. `null` mientras no llegó la primera respuesta: en ese
    * caso no se muestra ningún número, que es mejor que mostrar uno inventado.
    */
-  conteos?: { marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number> } | null;
+  conteos?: { marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number>; color?: Record<string, number> } | null;
 }
 
 function getShapeIcon(shape: string) {
@@ -102,6 +106,7 @@ export function ProductFilters({
   availableBrands,
   availableShapes = [],
   availableMaterials = [],
+  availableColors = [],
   resultCount,
   conteos = null,
 }: ProductFiltersProps) {
@@ -132,6 +137,7 @@ export function ProductFilters({
   const currentShape = searchParams.get('forma') || '';
   const currentMaterial = searchParams.get('material') || '';
   const currentGender = searchParams.get('genero') || '';
+  const currentColor = searchParams.get('color') || '';
   const currentPrecioMin = searchParams.get('precioMin') || '';
   const currentPrecioMax = searchParams.get('precioMax') || '';
 
@@ -173,7 +179,7 @@ export function ProductFilters({
    * F1-02: el conteo de una opción, sin depender de cómo esté escrita.
    * `undefined` = todavía no llegó la respuesta (no se muestra número).
    */
-  const conteoDe = (faceta: 'marca' | 'forma' | 'material', valor: string): number | undefined => {
+  const conteoDe = (faceta: 'marca' | 'forma' | 'material' | 'color', valor: string): number | undefined => {
     const tabla = conteos?.[faceta];
     if (!tabla) return undefined;
     const clave = Object.keys(tabla).find(k => k.toLowerCase() === valor.toLowerCase());
@@ -185,7 +191,7 @@ export function ProductFilters({
    * desaparezcan hace pensar que el catálogo se achicó. La opción elegida se
    * queda donde está aunque su conteo sea 0, o saltaría de lugar al tocarla.
    */
-  const ordenarPorConteo = (faceta: 'marca' | 'forma' | 'material', lista: string[], seleccionada: string) =>
+  const ordenarPorConteo = (faceta: 'marca' | 'forma' | 'material' | 'color', lista: string[], seleccionada: string) =>
     [...lista].sort((a, b) => {
       if (a.toLowerCase() === seleccionada.toLowerCase()) return -1;
       if (b.toLowerCase() === seleccionada.toLowerCase()) return 1;
@@ -196,7 +202,7 @@ export function ProductFilters({
     });
 
   /** Cuántos filtros hay puestos. El orden no cuenta: no achica el resultado. */
-  const filtrosPuestos = [currentBrand, currentShape, currentMaterial, currentGender, currentPrecioMin || currentPrecioMax].filter(Boolean).length;
+  const filtrosPuestos = [currentBrand, currentShape, currentMaterial, currentGender, currentColor, currentPrecioMin || currentPrecioMax].filter(Boolean).length;
 
   /**
    * El rango de precio son DOS parámetros que se mueven juntos (A-08), así que
@@ -326,8 +332,15 @@ export function ProductFilters({
                   {[
                     { id: '', etiqueta: 'Todos', min: '', max: '' },
                     { id: 'hasta-150', etiqueta: 'Hasta $150.000', min: '', max: '150000' },
-                    { id: '150-250', etiqueta: '$150.000 a $250.000', min: '150000', max: '250000' },
-                    { id: 'desde-250', etiqueta: 'Más de $250.000', min: '250000', max: '' },
+                    // El segundo rango empieza en 150001, no en 150000: los dos
+                    // límites de arriba y abajo se comparan con <= (ver
+                    // coincidePrecio en la API), así que compartir el 150000
+                    // hacía que un armazón de exactamente $150.000 calzara en
+                    // los DOS botones a la vez. Nunca hubo un producto justo en
+                    // ese precio (auditado), pero era una trampa para el día
+                    // que lo haya. Mismo motivo en 250001.
+                    { id: '150-250', etiqueta: '$150.000 a $250.000', min: '150001', max: '250000' },
+                    { id: 'desde-250', etiqueta: 'Más de $250.000', min: '250001', max: '' },
                   ].map(rango => {
                     const activo = currentPrecioMin === rango.min && currentPrecioMax === rango.max;
                     return (
@@ -483,6 +496,60 @@ export function ProductFilters({
                 </div>
               )}
 
+              {/* Sección Color — familias agrupadas, no el texto libre exacto
+                  del alt de la foto (ver color-normalizado.ts): "negro con
+                  patillas plateadas" y "negro mate" son las dos "Negro". Un
+                  armazón puede contar para dos chips ("negro y dorado" entra
+                  en Negro Y en Dorado) — mismo criterio que ya usa forma/
+                  material para no ocultar nunca una opción en cero, solo
+                  deshabilitarla y mandarla al final. */}
+              {availableColors.length > 0 && (
+                <div>
+                  <h3 className="text-[10px] font-bold text-[#8a6d3b] dark:text-stone-200 uppercase tracking-[0.25em] mb-4 border-t border-stone-100 lg:border-none pt-8 lg:pt-0">
+                    Color
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleFilterChange('color', '')}
+                      className={`px-4 min-h-11 inline-flex items-center text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
+                        !currentColor
+                          ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 shadow-md scale-[1.02]'
+                          : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    {ordenarPorConteo('color', availableColors, currentColor).map((colorId) => {
+                      const familia: FamiliaColor | undefined = todasLasFamilias().find(f => f.id === colorId);
+                      if (!familia) return null; // id desconocido: no se dibuja un chip roto
+                      const isSelected = currentColor.toLowerCase() === colorId.toLowerCase();
+                      const n = conteoDe('color', colorId);
+                      const vacia = n === 0 && !isSelected;
+                      return (
+                        <button
+                          key={colorId}
+                          disabled={vacia}
+                          title={vacia ? 'No hay modelos de este color con los filtros puestos' : undefined}
+                          onClick={() => handleFilterChange('color', isSelected ? '' : colorId)}
+                          className={`px-3.5 min-h-11 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
+                            isSelected
+                              ? 'border-stone-950 bg-stone-900 text-white dark:bg-stone-50 dark:text-stone-950 shadow-md scale-[1.02]'
+                              : `border-stone-200 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 ${vacia ? 'opacity-40 cursor-not-allowed' : 'hover:border-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'}`
+                          }`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`w-3 h-3 rounded-full shrink-0 border ${isSelected ? 'border-white/40' : 'border-black/10 dark:border-white/10'}`}
+                            style={{ backgroundColor: familia.swatch }}
+                          />
+                          {familia.etiqueta}{typeof n === 'number' && <span className="opacity-60">({n})</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Sección Marca */}
               {availableBrands.length > 1 && (
                 <div>
@@ -534,7 +601,7 @@ export function ProductFilters({
               )}
 
               {/* Botón Limpiar Filtros — en escritorio, donde no hay pie fijo. */}
-              {(currentBrand || currentShape || currentMaterial || currentGender || currentSort !== 'recientes') && (
+              {(currentBrand || currentShape || currentMaterial || currentGender || currentColor || currentSort !== 'recientes') && (
                 <button
                   onClick={clearFilters}
                   className="hidden lg:block mt-4 text-xs font-bold text-stone-400 hover:text-[#8a6d3b] dark:hover:text-white uppercase tracking-[0.1em] transition-colors self-start"

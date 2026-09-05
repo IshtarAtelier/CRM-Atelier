@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { getTiendaFiltros } from '@/lib/catalog/sources';
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
+import { calcularFacetas, facetaValorUnico, facetaValoresMultiples } from '@/lib/catalog/facetas';
 
 // ISR de verdad: la página se prerenderiza y se regenera cada minuto.
 //
@@ -59,6 +60,14 @@ export default async function TiendaPage() {
     const modelCode = wp.product?.model || wp.name || '';
     const { shape, material } = getProductAttributes(modelCode, wp.product?.seoTags);
     if (shape) {
+      // `.split(',')` sigue acá por las dudas: hasta el 5/9/26 el heurístico de
+      // respaldo de getProductAttributes() podía devolver "Cuadrado, XL" (un
+      // bug real, ver product-controllers.ts) y esto lo separaba en dos
+      // opciones válidas para el LISTADO de chips, aunque el producto en sí
+      // quedara sin filtrar bien por ninguna de las dos. El bug ya no puede
+      // pasar (la función nunca devuelve un valor compuesto), pero un valor
+      // con coma sigue siendo, en el peor de los casos, dos opciones de más
+      // en la lista — nunca un chip roto.
       shape.split(',').forEach(s => shapesSet.add(s.trim()));
     }
     if (material) {
@@ -71,6 +80,10 @@ export default async function TiendaPage() {
   const availableBrands = Array.from(brandsSet).sort();
   const availableShapes = Array.from(shapesSet).sort();
   const availableMaterials = Array.from(materialsSet).sort();
+  // Color: solo las familias que ALGÚN producto del catálogo tiene hoy (no
+  // tiene sentido mostrar un chip "Verde" si nadie es verde). Se calcula sobre
+  // el catálogo ya mapeado (`catalog`, más abajo) en vez de `filterMetadata`
+  // porque ahí es donde vive `coloresFamilia`, ya resuelto por tienda-map.ts.
 
   // 2) Primera página de productos para el SSR y el SEO. Mismo catálogo mapeado
   // (y mismo serverCache de 180s) que /api/store/products: una sola copia, con
@@ -86,27 +99,26 @@ export default async function TiendaPage() {
   // no llama al endpoint a propósito (el servidor ya mandó los productos, ver
   // la guarda `isFirstRenderWithInitialData` en TiendaClient). Sin esto, quien
   // abre el panel sin haber filtrado todavía no ve ningún número — justo la
-  // primera vez, que es cuando más orienta. El plan pide calcularlos acá, en el
-  // Server Component.
+  // primera vez, que es cuando más orienta.
   //
-  // Sin filtros aplicados, el conteo de cada opción es simplemente cuántos hay
-  // en todo el catálogo: no hay "otros filtros activos" contra los cuales
-  // acotar. Por eso acá alcanza con contar, sin replicar la lógica de facetas
-  // del endpoint.
-  const contarCatalogoPor = (campo: 'brand' | 'shape' | 'material') => {
-    const cuenta: Record<string, number> = {};
-    for (const p of catalog) {
-      const valor = (p as any)[campo];
-      if (!valor) continue;
-      cuenta[String(valor)] = (cuenta[String(valor)] || 0) + 1;
-    }
-    return cuenta;
+  // Se usa el MISMO módulo genérico que el endpoint (`calcularFacetas`), con
+  // `filtrosActivos: {}` — sin nada elegido, cada faceta cuenta el catálogo
+  // entero, que es exactamente lo que hacía el contador de acá antes a mano.
+  // La ventaja de no reimplementarlo: el color (multi-valor) sale gratis, sin
+  // escribir un tercer contador que solo entienda un valor por producto.
+  const FACETAS_INICIALES = [
+    facetaValorUnico<any>('marca', (p) => p.brand),
+    facetaValorUnico<any>('forma', (p) => p.shape),
+    facetaValorUnico<any>('material', (p) => p.material),
+    facetaValoresMultiples<any>('color', (p) => p.coloresFamilia || []),
+  ];
+  const initialConteos = calcularFacetas(catalog, FACETAS_INICIALES, {}) as {
+    marca: Record<string, number>;
+    forma: Record<string, number>;
+    material: Record<string, number>;
+    color: Record<string, number>;
   };
-  const initialConteos = {
-    marca: contarCatalogoPor('brand'),
-    forma: contarCatalogoPor('shape'),
-    material: contarCatalogoPor('material'),
-  };
+  const availableColors = Object.keys(initialConteos.color || {}).sort();
 
   const collectionLd = {
     '@context': 'https://schema.org',
@@ -144,6 +156,7 @@ export default async function TiendaPage() {
         availableBrands={availableBrands}
         availableShapes={availableShapes}
         availableMaterials={availableMaterials}
+        availableColors={availableColors}
         // El `key` no es decorativo. Este elemento se crea en un componente de
         // servidor y viaja como prop hasta un componente cliente: React lo
         // deserializa en posición de lista y, sin key, avisaba en cada carga de

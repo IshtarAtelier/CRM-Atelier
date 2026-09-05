@@ -15,6 +15,7 @@ import { getTiendaCatalogo, type CatalogRow } from "@/lib/catalog/sources";
 import { parseFrameSpecs, pickDescriptiveAlt } from "@/lib/catalog/frame-specs";
 import type { CatalogOrigin } from "@/lib/catalog/resilience";
 import { armarNombreVisible } from "./display-name";
+import { idsDeColor } from "./color-normalizado";
 
 export interface MappedWebProduct {
   id: string;
@@ -35,6 +36,12 @@ export interface MappedWebProduct {
    * atributo equivocado es motivo de desaprobación del producto.
    */
   color: string | null;
+  /**
+   * Familias de color reconocidas en `color` (ver color-normalizado.ts):
+   * "negro y dorado" → ["negro", "dorado"]. Vacío si no se reconoció ninguna
+   * palabra de color — nunca se completa con una adivinada.
+   */
+  coloresFamilia: string[];
   gender: string;
   /** Campos que solo consume el feed de Google/Meta, no la grilla. */
   mpn: string | null;
@@ -98,6 +105,7 @@ function mapRow(wp: CatalogRow): MappedWebProduct {
     // que no incluye imageAlts).
     material: specs.material || material || "Acetato",
     color: specs.color,
+    coloresFamilia: idsDeColor(specs.color),
     gender: wp.product.gender || "Unisex",
     mpn: wp.product.mpn || null,
     ageGroup: wp.product.ageGroup || null,

@@ -94,8 +94,18 @@ export function getProductAttributes(modelName: string | null | undefined, seoTa
         shape = 'XL';
     } else {
         // Fallback to model code analysis
+        // OJO — bug real encontrado en la auditoría del 5/9/26: acá decía
+        // `shape = 'Cuadrado, XL'`, un string con DOS valores pegados por una
+        // coma. Cualquier filtro compara con `===` contra un valor único
+        // ("CUADRADO" o "XL"), así que "Cuadrado, XL" no calzaba con NINGUNO
+        // de los dos — el producto quedaba invisible en ambos filtros y en
+        // ambos conteos. Hoy no afecta a ningún producto real (los dos "3684"
+        // publicados ya traen forma en seoTags y nunca llegan a este fallback),
+        // pero era una trampa para el próximo que se cargue sin tags. Un
+        // producto tiene UNA forma; "XL" es el override que ya decide
+        // `tienda-map.ts` con su propia lista, no este heurístico.
         if (modelUpper.includes('3684')) {
-            shape = 'Cuadrado, XL';
+            shape = 'Cuadrado';
         } else if (modelUpper.includes('XL')) {
             shape = 'XL';
         } else if (modelUpper.includes('91501') || modelUpper.includes('901501') || modelUpper.includes('G7013') || modelUpper.includes('ZTGX')) {

@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
+import { familiaColorPorId } from "@/lib/catalog/color-normalizado";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { usePromo2x1 } from "@/hooks/usePromo2x1";
@@ -63,6 +64,9 @@ type FiltrosUrl = {
   shape: string;
   material: string;
   gender: string;
+  /** Familia de color (?color=negro). Un armazón puede pertenecer a más de
+   *  una — ver color-normalizado.ts. */
+  color: string;
   sort: string;
   /** A-08: rango de precio. Van juntos y pueden estar vacíos los dos. */
   precioMin: string;
@@ -91,6 +95,7 @@ function FiltrosDesdeUrl({ onChange }: { onChange: (filtros: FiltrosUrl) => void
       shape: searchParams.get('forma') || '',
       material: searchParams.get('material') || '',
       gender: searchParams.get('genero') || '',
+      color: searchParams.get('color') || '',
       sort: searchParams.get('orden') || 'recientes',
       precioMin: searchParams.get('precioMin') || '',
       precioMax: searchParams.get('precioMax') || '',
@@ -108,16 +113,18 @@ export function TiendaClient({
   availableBrands = [],
   availableShapes = [],
   availableMaterials = [],
+  availableColors = [],
   footer
 }: { 
   initialCategory?: string;
   initialProducts: any[];
   initialTotalCount?: number;
   /** F1-02: conteos por opción para el primer pintado (ver tienda/page.tsx). */
-  initialConteos?: { marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number> } | null;
+  initialConteos?: { marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number>; color?: Record<string, number> } | null;
   availableBrands?: string[];
   availableShapes?: string[];
   availableMaterials?: string[];
+  availableColors?: string[];
   footer?: React.ReactNode;
 }) {
   const router = useRouter();
@@ -140,6 +147,7 @@ export function TiendaClient({
     shape: '',
     material: '',
     gender: '',
+    color: '',
     sort: 'recientes',
     precioMin: '',
     precioMax: '',
@@ -163,6 +171,7 @@ export function TiendaClient({
   const filterShape = urlFilters.shape;
   const filterMaterial = urlFilters.material;
   const filterGender = urlFilters.gender;
+  const filterColor = urlFilters.color;
   const sortParam = urlFilters.sort;
   const filterPrecioMin = urlFilters.precioMin;
   const filterPrecioMax = urlFilters.precioMax;
@@ -195,6 +204,7 @@ export function TiendaClient({
     { param: 'forma', valor: filterShape, etiqueta: filterShape },
     { param: 'material', valor: filterMaterial, etiqueta: filterMaterial },
     { param: 'genero', valor: filterGender, etiqueta: filterGender },
+    { param: 'color', valor: filterColor, etiqueta: familiaColorPorId(filterColor)?.etiqueta || filterColor },
     // A-08: el rango de precio son dos parámetros pero UN chip, con la
     // etiqueta escrita como la lee una persona. Al quitarlo se van los dos.
     {
@@ -223,7 +233,7 @@ export function TiendaClient({
   /** Saca todos los filtros pero respeta la categoría y la búsqueda. */
   const limpiarTodosLosFiltros = () => {
     const params = new URLSearchParams(window.location.search);
-    ['marca', 'forma', 'material', 'genero', 'precioMin', 'precioMax'].forEach(p => params.delete(p));
+    ['marca', 'forma', 'material', 'genero', 'color', 'precioMin', 'precioMax'].forEach(p => params.delete(p));
     const qs = params.toString();
     navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
   };
@@ -235,7 +245,7 @@ export function TiendaClient({
   // F1-02: cuántos modelos hay detrás de cada opción de cada faceta. Los
   // calcula el endpoint contra los OTROS filtros activos (ver el comentario en
   // api/store/products), así que acá solo se transportan a ProductFilters.
-  const [conteos, setConteos] = useState<{ marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number> } | null>(initialConteos);
+  const [conteos, setConteos] = useState<{ marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number>; color?: Record<string, number> } | null>(initialConteos);
 
   const [isWholesale, setIsWholesale] = useState(false);
   const { activa: promo2x1Activa, ids: idsPromo2x1 } = usePromo2x1();
@@ -337,6 +347,7 @@ export function TiendaClient({
       !filterShape &&
       !filterMaterial &&
       !filterGender &&
+      !filterColor &&
       sortParam === "recientes" &&
       !isWholesale;
 
@@ -356,6 +367,7 @@ export function TiendaClient({
         if (filterShape) queryParams.set('shape', filterShape);
         if (filterMaterial) queryParams.set('material', filterMaterial);
         if (filterGender) queryParams.set('gender', filterGender);
+        if (filterColor) queryParams.set('color', filterColor);
         if (filterPrecioMin) queryParams.set('precioMin', filterPrecioMin);
         if (filterPrecioMax) queryParams.set('precioMax', filterPrecioMax);
         queryParams.set('sort', sortParam);
@@ -381,7 +393,7 @@ export function TiendaClient({
           setTotalCount(data.totalCount || 0);
           setConteos(data.conteos || null);
           filtrosDelUltimoFetch.current = [activeCategory, filterBrand, filterShape,
-            filterMaterial, filterGender, filterPrecioMin, filterPrecioMax,
+            filterMaterial, filterGender, filterColor, filterPrecioMin, filterPrecioMax,
             sortParam, searchQuery, currentPage].join('|');
         }
       } catch (err) {
@@ -399,7 +411,7 @@ export function TiendaClient({
     return () => {
       active = false;
     };
-  }, [currentPage, activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, filterPrecioMin, filterPrecioMax, sortParam, isWholesale, reloadNonce]);
+  }, [currentPage, activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, filterColor, filterPrecioMin, filterPrecioMax, sortParam, isWholesale, reloadNonce]);
 
   const displayedProducts = products;
 
@@ -420,6 +432,7 @@ export function TiendaClient({
     const coincide = (param: string, valor: string) => (enUrl.get(param) || '') === valor;
     if (!coincide('marca', filterBrand) || !coincide('forma', filterShape)
       || !coincide('material', filterMaterial) || !coincide('genero', filterGender)
+      || !coincide('color', filterColor)
       || !coincide('precioMin', filterPrecioMin) || !coincide('precioMax', filterPrecioMax)) {
       return;
     }
@@ -428,14 +441,14 @@ export function TiendaClient({
     // panel, el contador, el hover de una card) mandaría el evento de nuevo y
     // el denominador del embudo quedaría inflado.
     const clave = [activeCategory, filterBrand, filterShape, filterMaterial,
-      filterGender, filterPrecioMin, filterPrecioMax, sortParam, searchQuery,
+      filterGender, filterColor, filterPrecioMin, filterPrecioMax, sortParam, searchQuery,
       currentPage].join('|');
     if (listaReportada.current === clave) return;
     // El conteo que viaja en el evento tiene que ser el de ESTOS filtros. Si el
     // último fetch fue por otra combinación, `totalCount` todavía es el viejo:
     // se espera. La excepción es la primera carga sin filtros, donde el
     // servidor ya mandó el número correcto y no hay fetch que esperar.
-    const hayFiltros = clave.split('|').slice(0, 7).some(Boolean);
+    const hayFiltros = clave.split('|').slice(0, 8).some(Boolean);
     if (hayFiltros && filtrosDelUltimoFetch.current !== clave) return;
     listaReportada.current = clave;
 
@@ -448,7 +461,7 @@ export function TiendaClient({
       },
     });
   }, [displayedProducts.length, isLoading, activeCategory, filterBrand, filterShape,
-      filterMaterial, filterGender, filterPrecioMin, filterPrecioMax,
+      filterMaterial, filterGender, filterColor, filterPrecioMin, filterPrecioMax,
       sortParam, searchQuery, currentPage, totalCount, filtrosAplicados]);
 
 
@@ -643,6 +656,7 @@ export function TiendaClient({
               availableBrands={availableBrands}
               availableShapes={availableShapes}
               availableMaterials={availableMaterials}
+              availableColors={availableColors}
               /* A-04: el número vivo para el botón "Ver N modelos". */
               resultCount={totalCount}
               /* F1-02: cuántos modelos hay detrás de cada opción. */
