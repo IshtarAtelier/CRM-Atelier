@@ -130,7 +130,7 @@ export const WHATSAPP_TEMPLATES = {
     // cuota cuesta eso. Acá dice "$985.910 en 3 o 6 cuotas", que es lo cierto.
     pedido_listo_saldo_v4: {
         name: 'pedido_listo_saldo_v4',
-        inventario: 'A12',
+        inventario: 'A12 — DEPRECADA, ver pedido_listo_saldo_v5',
         category: 'UTILITY',
         body: 'Hola {{1}}, ¿cómo estás?\n\nTe cuento que tu pedido {{2}} ya está listo para retirar en Atelier Óptica.\n\nQueda un saldo a abonar al retirar:\nCon tarjeta: {{3}} en 3 o 6 cuotas sin interés\nPor transferencia: {{4}}\nEn efectivo: {{5}}\n\nConfirmame cuándo podrías acercarte. Te esperamos de lunes a viernes de 9 a 20, y sábados de 9 a 17 h.\n\nSi por algún motivo no llegás a retirarlo dentro de los 7 días hábiles, podés abonarlo por un medio online.',
         params: [
@@ -141,10 +141,42 @@ export const WHATSAPP_TEMPLATES = {
     // v4 (7/9/26): mismo cambio de formato que la de saldo, con renglones.
     pedido_listo_v4: {
         name: 'pedido_listo_v4',
-        inventario: 'A1',
+        inventario: 'A1 — DEPRECADA, ver pedido_listo_v5',
         category: 'UTILITY',
         body: 'Hola {{1}}, ¿cómo estás?\n\nTe cuento que tu pedido {{2}} ya está listo para retirar en Atelier Óptica.\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n\nConfirmame cuándo podrías acercarte. Te esperamos de lunes a viernes de 9 a 20, y sábados de 9 a 17 h.',
         params: [{ label: 'nombre', example: 'Bárbara' }, { label: 'nº de pedido', example: '#42X2' }],
+    },
+    // v5 (7/9/26, Ishtar): "registrá quién envía el mensaje". Suma la firma.
+    //
+    // REGLA DE META que costó dos rechazos: una variable NO puede quedar al
+    // principio ni al final del cuerpo ("Las variables no pueden estar al
+    // principio ni al final de la plantilla", subcode 2388299). Por eso la
+    // firma cierra con "— Atelier Óptica" y no con la variable pelada. Cuando lo manda una persona desde el botón, va SU nombre; cuando
+    // sale solo, va el del vendedor del pedido (`Order.labSentBy` — el vendedor
+    // de una venta es quien la mandó a fábrica, ver CLAUDE.md).
+    //
+    // {{3}} sigue siendo el saldo TOTAL con tarjeta, no el valor de la cuota.
+    pedido_listo_saldo_v5: {
+        name: 'pedido_listo_saldo_v5',
+        inventario: 'A12',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, ¿cómo estás?\n\nTe cuento que tu pedido {{2}} ya está listo para retirar en Atelier Óptica.\n\nQueda un saldo a abonar al retirar:\nCon tarjeta: {{3}} en 3 o 6 cuotas sin interés\nPor transferencia: {{4}}\nEn efectivo: {{5}}\n\nConfirmame cuándo podrías acercarte. Te esperamos de lunes a viernes de 9 a 20, y sábados de 9 a 17 h.\n\nSi por algún motivo no llegás a retirarlo dentro de los 7 días hábiles, podés abonarlo por un medio online.\n\nMuchas gracias!\n\nSaludos, {{6}} — Atelier Óptica',
+        params: [
+            { label: 'nombre', example: 'Bárbara' }, { label: 'nº de pedido', example: '#42X2' },
+            { label: 'saldo tarjeta', example: '$ 985.910' }, { label: 'saldo transferencia', example: '$ 838.024' }, { label: 'saldo efectivo', example: '$ 788.728' },
+            { label: 'quien lo envía', example: 'Milena' },
+        ],
+    },
+    // v5: mismo agregado de la firma que la de saldo.
+    pedido_listo_v5: {
+        name: 'pedido_listo_v5',
+        inventario: 'A1',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, ¿cómo estás?\n\nTe cuento que tu pedido {{2}} ya está listo para retirar en Atelier Óptica.\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n\nConfirmame cuándo podrías acercarte. Te esperamos de lunes a viernes de 9 a 20, y sábados de 9 a 17 h.\n\nMuchas gracias!\n\nSaludos, {{3}} — Atelier Óptica',
+        params: [
+            { label: 'nombre', example: 'Bárbara' }, { label: 'nº de pedido', example: '#42X2' },
+            { label: 'quien lo envía', example: 'Milena' },
+        ],
     },
     // Recordatorio de saldo, a los 7 días de haberle avisado que el pedido
     // está listo y con el saldo todavía sin pagar (pedido de Ishtar, 7/9/26).

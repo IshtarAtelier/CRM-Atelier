@@ -20,6 +20,12 @@ export const dynamic = 'force-dynamic';
  * Sale UNA sola vez. El segundo golpe lo decide una persona: insistir solo con
  * plata es lo que hace que un cliente deje de contestar.
  *
+ * ARRANCA EN SECO (`MODO_POR_DEFECTO = 'seco'`): calcula y lista a quién le
+ * escribiría, pero NO manda. Decisión de Ishtar el 7/9/26 ("no mandes nada").
+ * Que el primer mensaje de plata a un cliente sea una decisión suya y no un
+ * efecto colateral del deploy. Para encenderlo, sin necesidad de deploy:
+ *   SystemSetting.recordatorio_saldo_modo = 'real'
+ *
  * NO mira `followups_enabled`, igual que el aviso de pedido listo. Ese
  * interruptor pausa lo comercial (campañas y toques del embudo); esto es plata
  * que el cliente debe por una compra que ya hizo. Si se apagara con el mismo
@@ -30,6 +36,8 @@ export const dynamic = 'force-dynamic';
  */
 
 const DIAS_PARA_RECORDAR = 7;
+/** 'seco' = lista sin mandar. Se pisa con `SystemSetting.recordatorio_saldo_modo`. */
+const MODO_POR_DEFECTO: 'seco' | 'real' = 'seco';
 const HORA_DESDE = 10;
 const HORA_HASTA = 19;
 
@@ -47,7 +55,13 @@ export async function GET(request: Request) {
     if (!cronSecret) return NextResponse.json({ error: 'CRON_SECRET no está configurado.' }, { status: 500 });
     if (secret !== cronSecret && token !== cronSecret) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const dryRun = searchParams.get('dryRun') === '1';
+    const modoGuardado = await prisma.systemSetting
+        .findUnique({ where: { key: 'recordatorio_saldo_modo' } })
+        .then(r => r?.value)
+        .catch(() => null);
+    const modo = modoGuardado === 'real' ? 'real' : (modoGuardado === 'seco' ? 'seco' : MODO_POR_DEFECTO);
+    const dryRun = searchParams.get('dryRun') === '1' || modo === 'seco';
+
     const hora = horaArgentina();
     if (!dryRun && (hora < HORA_DESDE || hora >= HORA_HASTA)) {
         return NextResponse.json({ ok: true, motivo: `fuera de horario (${HORA_DESDE}-${HORA_HASTA} ART)`, enviados: [] });
@@ -128,5 +142,5 @@ export async function GET(request: Request) {
         }
     }
 
-    return NextResponse.json({ ok: true, dryRun, candidatos: candidatos.length, enviados, salteados });
+    return NextResponse.json({ ok: true, modo, dryRun, candidatos: candidatos.length, enviados, salteados });
 }
