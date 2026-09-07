@@ -84,9 +84,23 @@ export class SmartLabService {
             const context = await browser.newContext();
             const page = await context.newPage();
 
+            // EL PORTAL DE GRUPO ÓPTICO ES LENTO, y en septiembre de 2026 están
+            // migrando de servidor (dato de Ishtar, 7/9/26). El default de
+            // Playwright son 30 s, y con eso el `waitForNavigation` del login
+            // reventaba y se llevaba puesta la sincronización ENTERA — no solo
+            // ese paso. Acá se le da aire: más vale un pase que tarda dos
+            // minutos que un pase que no corre.
+            //
+            // Medido el 7/9/26: el login queda en "Iniciando sesión…" bastante
+            // después de que la red se aquieta, así que esperar por
+            // `networkidle` tampoco alcanza.
+            const ESPERA_MS = 90_000;
+            page.setDefaultTimeout(ESPERA_MS);
+            page.setDefaultNavigationTimeout(ESPERA_MS);
+
             // ── Login ──────────────────────────────────
-            await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'domcontentloaded' });
-            await page.waitForSelector('input', { timeout: 10000 });
+            await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'domcontentloaded', timeout: ESPERA_MS });
+            await page.waitForSelector('input', { timeout: ESPERA_MS });
 
             const inputs = await page.$$('input');
             if (inputs.length < 2) throw new Error('No se encontraron los campos de login en SmartLab.');
@@ -104,7 +118,7 @@ export class SmartLabService {
                 if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
                     await page.waitForTimeout(1000);
                     await Promise.all([
-                        page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+                        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: ESPERA_MS }),
                         btn.click({ delay: 300 })
                     ]);
                     loginClicked = true;
@@ -113,7 +127,7 @@ export class SmartLabService {
             }
             if (!loginClicked) {
                 await Promise.all([
-                    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+                    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: ESPERA_MS }),
                     inputs[1].press('Enter', { delay: 200 })
                 ]);
             }
@@ -121,11 +135,12 @@ export class SmartLabService {
 
             // ── Navegar a lista ──────────────────────────
             console.log('[SmartLab Sync] Navegando a lista de pedidos...');
-            await page.goto('https://grupooptico.dyndns.info/smartlab/laboratory/list', { waitUntil: 'domcontentloaded' });
+            await page.goto('https://grupooptico.dyndns.info/smartlab/laboratory/list', { waitUntil: 'domcontentloaded', timeout: ESPERA_MS });
             
             console.log('[SmartLab Sync] Esperando a que carguen los campos de búsqueda...');
-            await page.waitForSelector('input[type="text"]', { timeout: 15000 }).catch(() => console.log('Timeout esperando inputs'));
-            await page.waitForTimeout(2000);
+            await page.waitForSelector('input[type="text"]', { timeout: ESPERA_MS }).catch(() => console.log('Timeout esperando inputs'));
+            // Un respiro extra: la tabla se pinta después de que aparecen los inputs.
+            await page.waitForTimeout(5000);
 
             // ── Limpiar Filtro de Fechas y Cambiar a 100 registros para ver pedidos trabados ──
             let stuckOrdersList: any[] = [];

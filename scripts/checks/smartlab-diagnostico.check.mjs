@@ -39,6 +39,27 @@ try {
         console.log(`    input ${i}: type=${tipo} name=${nombre}`);
     }
 
+    paso('Entrando (login real) y cronometrando');
+    const t0 = Date.now();
+    await page.waitForTimeout(1500);
+    await inputs[0].fill('pisano.ishtar@gmail.com');
+    await inputs[1].fill('atelier');
+    const botonesLogin = await page.$$('button, input[type=submit], a');
+    let clickeado = false;
+    for (const b of botonesLogin) {
+        const t = ((await b.innerText().catch(() => '')) || (await b.getAttribute('value')) || '').trim();
+        if (/iniciar|ingresar|login/i.test(t)) { await b.click().catch(() => {}); clickeado = true; break; }
+    }
+    console.log(`  ${clickeado ? '✅ botón clickeado' : '❌ no se encontró el botón'}`);
+    try {
+        await page.waitForLoadState('networkidle', { timeout: 60000 });
+        console.log(`  ✅ cargó tras el login en ${((Date.now() - t0) / 1000).toFixed(1)}s → ${page.url()}`);
+        const entro = !/login/i.test(page.url());
+        console.log(`  ${entro ? '✅ ENTRÓ al sistema' : '❌ sigue en la pantalla de login (credenciales o portal)'}`);
+    } catch (e) {
+        console.log(`  ⏱️ NO terminó de cargar en 60s — su sistema está lento o colgado (${e.message.slice(0, 60)})`);
+    }
+
     paso('Buscando el botón de ingresar');
     const botones = await page.$$('button, input[type=submit], a');
     const textos = [];
