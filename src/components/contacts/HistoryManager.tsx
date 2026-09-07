@@ -225,7 +225,7 @@ export default function HistoryManager({
                         </div>
                     )}
                 </div>
-                {/* Dirigir la nota a un compañero: se le avisa por email con link a esta ficha */}
+                {/* Dirigir la nota a un compañero: le llega a Mensajes del equipo y a su WhatsApp */}
                 <div className="flex items-center gap-2 mt-3 ml-1">
                     <AtSign className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
                     <label className="text-[10px] font-black uppercase tracking-widest text-stone-500 flex-shrink-0">Dirigir a</label>
@@ -241,7 +241,7 @@ export default function HistoryManager({
                     </select>
                     {directedToId && (
                         <span className="text-[10px] font-medium text-stone-400">
-                            le llega un email con el link a esta ficha, y la nota por WhatsApp si tiene su celular cargado
+                            le llega a Mensajes del equipo, y por WhatsApp si tiene su celular cargado
                         </span>
                     )}
                 </div>

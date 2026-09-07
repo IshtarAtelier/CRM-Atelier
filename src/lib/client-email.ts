@@ -1,18 +1,24 @@
 import { sendEmail } from '@/lib/email';
-import { ATELIER_COPY_EMAIL } from '@/lib/constants';
 
 /**
- * Email a un CLIENTE, más una copia propia a la casilla del negocio.
+ * Email a un CLIENTE.
  *
  * Existe para que los avisos importantes tengan un segundo canal además de
  * WhatsApp, y para que ese canal se arme en UN solo lugar: si cada ruta escribe
- * su propio bloque de email, el pie, la copia al negocio y el escapado divergen.
+ * su propio bloque de email, el pie y el escapado divergen.
  *
  * Reglas que respeta todo lo que pasa por acá:
  * - Es un canal ADICIONAL: nunca lanza. Su falla no puede tumbar el envío por
  *   WhatsApp de la ruta que lo llama.
- * - Copia oculta al negocio (nunca `to`): el cliente no ve la casilla interna.
  * - Todo lo interpolado se escapa: los nombres los tipea cualquiera en la ficha.
+ *
+ * Lo que ya NO hace: mandar una copia de cada aviso a la casilla del negocio
+ * (`atelier.optica.cerro@`). Nació el 7/8/2026 para poder distinguir "no llegó
+ * la copia" de "no se mandó", y terminó siendo un mail por cada presupuesto y
+ * cada pedido listo en una casilla que se lee a mano — ruido, y se apaga
+ * (Ishtar, 7/9/2026). Si un aviso salió o no sigue quedando en el log
+ * (`[ClientEmail] "<label>" enviado a …` / `… falló para …`), que es donde se
+ * mira cuando hay una duda concreta.
  */
 
 /** Escapa texto que se interpola dentro del HTML del mail. */
@@ -61,27 +67,6 @@ export async function sendClientEmail({ to, subject, bodyHtml, attachments, labe
         }
     } catch (err) {
         console.error(`[ClientEmail] "${label}" lanzó para ${dest}:`, err);
-    }
-
-    // Copia interna al negocio como email PROPIO, no como BCC del mail al cliente.
-    //
-    // El BCC tenía tres problemas: llegaba con el asunto y el "para" del cliente
-    // (imposible de filtrar o buscar por cliente), Gmail lo agrupa con el hilo
-    // del cliente, y sobre todo NO se puede distinguir "no llegó la copia" de
-    // "no se mandó" — que fue exactamente la duda del 7/8/2026. Como email
-    // propio, tiene asunto claro, dice a quién se le mandó y si el envío al
-    // cliente salió o falló.
-    try {
-        await sendEmail({
-            to: ATELIER_COPY_EMAIL,
-            subject: `[Copia] ${subject} — ${dest}`,
-            html: `<p style="background:#f4f4f4;padding:10px;border-radius:6px">
-                <strong>Copia interna.</strong> Este es el mensaje que ${enviado ? 'se le envió' : '<strong>NO se pudo enviar</strong>'} a <strong>${escHtml(dest)}</strong> (${escHtml(label)}).
-            </p>${bodyHtml}${PIE}`,
-            ...(attachments?.length ? { attachments } : {}),
-        });
-    } catch (err) {
-        console.error(`[ClientEmail] copia interna de "${label}" falló:`, err);
     }
 
     return enviado;
