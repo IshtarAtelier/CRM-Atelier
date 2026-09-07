@@ -11,6 +11,8 @@ export interface Product {
     type: string | null;
     stock: number;
     price: number;
+    /** Precio de oferta de la tienda ("precio tachado"). Leerlo SOLO con `precioConOferta()` de src/lib/precio-oferta.ts. */
+    salePrice?: number | null;
     cost: number;
     /** Costo pelado (lista del lab, sin calibrado ni IVA). Null en los productos que nunca pasaron por la fórmula. */
     baseCost?: number | null;
