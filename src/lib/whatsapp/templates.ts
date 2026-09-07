@@ -146,6 +146,23 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, ¿cómo estás?\n\nTe cuento que tu pedido {{2}} ya está listo para retirar en Atelier Óptica.\nJosé Luis de Tejeda 4380, Cerro de las Rosas, Córdoba.\n\nConfirmame cuándo podrías acercarte. Te esperamos de lunes a viernes de 9 a 20, y sábados de 9 a 17 h.',
         params: [{ label: 'nombre', example: 'Bárbara' }, { label: 'nº de pedido', example: '#42X2' }],
     },
+    // Recordatorio de saldo, a los 7 días de haberle avisado que el pedido
+    // está listo y con el saldo todavía sin pagar (pedido de Ishtar, 7/9/26).
+    // Es UTILITY y no marketing: es plata que el cliente debe por una compra
+    // que ya hizo, no una promoción. Sale UNA sola vez — el segundo golpe lo
+    // decide una persona.
+    //
+    // {{3}} es el saldo TOTAL con tarjeta, no el valor de la cuota.
+    recordatorio_saldo: {
+        name: 'recordatorio_saldo',
+        inventario: 'A13 (saldo pendiente a los 7 días)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, ¿cómo estás?\n\nTe escribo por tu pedido {{2}}, que está listo para retirar hace unos días y todavía tiene un saldo pendiente:\n\nCon tarjeta: {{3}} en 3 o 6 cuotas sin interés\nPor transferencia: {{4}}\nEn efectivo: {{5}}\n\nContame si podés acercarte esta semana. Si se te complica venir, podés abonarlo por un medio online y coordinamos la entrega.\n\nTe esperamos de lunes a viernes de 9 a 20, y sábados de 9 a 17 h.',
+        params: [
+            { label: 'nombre', example: 'Bárbara' }, { label: 'nº de pedido', example: '#42X2' },
+            { label: 'saldo tarjeta', example: '$ 985.910' }, { label: 'saldo transferencia', example: '$ 838.024' }, { label: 'saldo efectivo', example: '$ 788.728' },
+        ],
+    },
     venta_confirmada: {
         name: 'venta_confirmada',
         inventario: 'A2',
