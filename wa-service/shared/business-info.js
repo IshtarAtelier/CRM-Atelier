@@ -32,17 +32,17 @@ const HOURS_WHATSAPP_BLOCK = '*Horarios:*\n   • Lunes a viernes de 9:00 a 20:0
 /** BUSINESS_INFO.hours — el horario en una línea, para prosa. */
 const HOURS = 'Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00';
 
-const APPOINTMENT_SLOTS = 'de 9:00 a 20:00 (Lunes a Viernes), o de 9:00 a 17:00 (Sábados)';
+const APPOINTMENT_SLOTS = 'preferentemente de 9:00 a 11:00 o de 16:00 a 20:00 —en esas franjas hay DOS profesionales atendiendo, así que se espera menos—; si a la persona no le sirve ninguna, se le acomoda en cualquier horario en que el local esté abierto. Los sábados, en lo posible, evitarlos';
 
 /**
- * BUSINESS_INFO.examSlots — TOMA DE GRADUACIÓN (agudeza visual): SOLO la siesta.
+ * BUSINESS_INFO.examSlots — TOMA DE GRADUACIÓN (agudeza visual).
  *
- * NO es lo mismo que `APPOINTMENT_SLOTS`: el local atiende de 9 a 20, pero el
- * examen visual se hace únicamente en esta franja. El bot lo necesita porque
- * venía ofreciendo control visual "cuando quieras" (conv-047 del dataset de
- * bot-eval), o sea prometiendo un turno que después no se puede cumplir.
+ * Desde el 5/9/2026 coincide con APPOINTMENT_SLOTS: las mismas franjas
+ * preferidas, por el mismo motivo (dos profesionales de 9 a 11 y de 16 a 20).
+ * Reemplaza la regla del 31/8 que lo limitaba a la siesta. El campo sigue
+ * existiendo aparte por si vuelven a separarse.
  */
-const EXAM_SLOTS = 'de 12:00 a 16:00 (la siesta)';
+const EXAM_SLOTS = 'preferentemente de 9:00 a 11:00 o de 16:00 a 20:00 —en esas franjas hay DOS profesionales atendiendo, así que se espera menos—; si a la persona no le sirve ninguna, se le acomoda en cualquier horario en que el local esté abierto. Los sábados, en lo posible, evitarlos';
 
 /** BUSINESS_INFO.discountCashPercent */
 /**

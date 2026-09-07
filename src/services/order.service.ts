@@ -1335,19 +1335,14 @@ export class OrderService {
                                 }
                             });
 
-                            // Copia a la administración por EMAIL (antes WhatsApp;
-                            // 18/8/2026 — menos tráfico automático del bot). Con el
-                            // mismo PDF adjunto que recibe el cliente.
-                            sendEmail({
-                                to: process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                                subject: `🏭 Pedido enviado a fábrica — ${fullOrder.client?.name || ''} (Op. ${labOrderNumber || fullOrder.labOrderNumber || 'sin asignar'})`,
-                                text: `Copia del mensaje que recibió el cliente por WhatsApp:\n\n${msg}`,
-                                attachments: pdfMedia ? [{
-                                    filename: pdfMedia.filename,
-                                    content: pdfMedia.base64,
-                                    contentType: 'application/pdf',
-                                }] : undefined,
-                            }).catch(err => console.error('[Lab Status] Error enviando copia al admin por email:', err));
+                            // SIN copia a la administración (Ishtar, 5/9/2026): el mail
+                            // "🏭 Pedido enviado a fábrica" era la copia del WhatsApp que
+                            // recibe el cliente, y con el volumen actual es ruido diario en
+                            // la casilla — el envío ya queda registrado en la ficha, en el
+                            // AuditLog y en el estado de la venta. Antes iba por WhatsApp al
+                            // grupo de ventas y el 18/8/2026 se pasó a email; el 5/9/2026 se
+                            // apaga del todo. Si alguna vez hace falta volver a verlo, el
+                            // mensaje al cliente está en la ficha, no hace falta el mail.
                         }
                     } catch (err: any) {
                         console.error('[Lab Status Notification Error]:', err.message);

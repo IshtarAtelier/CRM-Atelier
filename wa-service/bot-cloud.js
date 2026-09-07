@@ -12,8 +12,9 @@
  * Cómo se engancha (ver `cloud.js`): el webhook llama a una CADENA de
  * manejadores del entrante y cada uno decide si le toca. Este devuelve `true`
  * solo cuando se hace cargo del mensaje; si devuelve `false` (bot apagado,
- * fuera de horario, chat excluido) el siguiente de la cadena —hoy el
- * auto-respondedor fuera de horario— tiene su chance.
+ * bot apagado, chat excluido) el siguiente de la cadena —hoy el
+ * auto-respondedor— tiene su chance. El bot ya NO se calla por horario:
+ * atiende las 24 h (ver `handleInbound`).
  *
  * Reglas que este módulo garantiza:
  *  1. Nada sale sin pasar por el transporte cloud (ventana de 24 h incluida).
@@ -34,8 +35,7 @@ const { BotService } = require('./services/bot.service');
 const { runOutputGuardrail } = require('./services/ai.service');
 const { generateAndSaveHandoffSummary } = require('./tools');
 const { TAGS_SIN_BOT } = require('./utils');
-const { isBusinessHours } = require('./shared/business-hours');
-const { limpiarSalidaBot, quitarRepeticiones } = require('./shared/limpiar-salida-bot');
+const { limpiarSalidaBot, quitarRepeticiones, limitarEmojis, partirEnBurbujas } = require('./shared/limpiar-salida-bot');
 const { esConsulta } = require('./shared/tipos-entrantes');
 const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano } = require('./shared/remitentes');
@@ -90,9 +90,8 @@ function adaptMedia(media) {
  * @param {{ sendMessage: Function }} deps.transport transporte cloud
  * @param {Set<string>} deps.botReplyingTo
  * @param {(chatId: string) => void} deps.broadcastChatUpdate
- * @param {(date?: Date) => boolean} [deps.isBusinessHours] inyectable para tests
  */
-function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpdate, isBusinessHours: horario = isBusinessHours }) {
+function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpdate }) {
     // Estado que lee y escribe el panel (routes/api.js#GET|POST /agent).
     // `followupsEnabled` queda en false y no se usa: con la API oficial no hay
     // seguimientos proactivos por IA (fuera de la ventana solo entran plantillas).
@@ -212,11 +211,22 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             return false;
         }
 
-        // Fuera de horario NO contesta: ese turno es del auto-respondedor.
-        if (!horario()) {
-            console.log(`  🌙 [BotCloud] Fuera de horario comercial: el bot no atiende ${chat.waId}.`);
-            return false;
-        }
+        // ATIENDE A TODA HORA (decisión de Ishtar, 5/9/2026).
+        //
+        // Antes se callaba fuera de horario y le dejaba el turno al
+        // auto-respondedor. El problema: el auto-respondedor tiene su PROPIO
+        // interruptor (`auto_responder_enabled`), y estaba apagado. O sea que
+        // con el local cerrado no contestaba NADIE. Pasó el sábado 5/9 a las
+        // 19:17 — el local cierra 17:00 los sábados — con una clienta que venía
+        // de un anuncio de Meta preguntando por clip-ons: quedó sin respuesta.
+        //
+        // Dos candados independientes para el mismo silencio es un mal diseño:
+        // el que apaga uno no se entera de que el otro también hace falta. Ahora
+        // el bot atiende siempre, y el auto-respondedor queda como red para
+        // cuando el bot está apagado (la cadena de `cloud.js` lo llama después).
+        //
+        // El bot SABE la hora: el prompt recibe [HORA_ACTUAL] y el horario del
+        // local, así que dice que está cerrado sin que haya que callarlo.
 
         const fresh = await prisma.whatsAppChat.findUnique({
             where: { id: chat.id },
@@ -595,7 +605,17 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 }
                 vistos.add(firma);
                 return true;
-            });
+            })
+            // Escribir como el equipo, no como un folleto. Medido en producción:
+            // el bot manda 129 caracteres de mediana contra 31 del equipo, y usa
+            // emoji en el 52% de las burbujas contra el 19%. Las mismas reglas
+            // están en el prompt desde el 31/8 y no se cumplen — una regla de
+            // estilo en el prompt es una sugerencia; la que rige es la del código.
+            // Los presupuestos, la dirección y todo lo que tiene viñetas, precios
+            // o links NO se parte: eso el equipo también lo manda largo.
+                .flatMap(partirEnBurbujas)
+                .map(limitarEmojis)
+                .filter(Boolean);
             for (let i = 0; i < bloques.length; i++) {
                 let bloque = bloques[i];
                 const urls = [];

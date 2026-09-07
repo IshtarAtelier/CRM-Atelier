@@ -10,6 +10,7 @@ import { logAudit } from '@/lib/audit';
 import { SYSTEM_ACTOR, type Actor } from '@/lib/actor';
 import { notifyDirectedNote } from '@/lib/note-notify';
 import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
+import { TAG_VISITA_LOCAL } from '@/lib/embudo/visito-local';
 import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
 import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
 import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/lib/payment-card';
@@ -1149,6 +1150,27 @@ export const ContactService = {
             }
         });
 
+        // Registrar una visita al local deja la ETIQUETA puesta sola (7/9/2026).
+        // El botón ya creaba la interacción, pero la etiqueta había que
+        // ponerla a mano y casi nadie lo hacía: el dashboard separaba mal las
+        // ventas en local vs online, y el embudo no tenía cómo saber que la
+        // persona ya había venido (le seguía mandando la invitación al local).
+        // Fire-and-forget: la visita ya quedó registrada y que falle la
+        // etiqueta no puede voltear la operación.
+        if (type === 'STORE_VISIT') {
+            prisma.client.update({
+                where: { id: clientId },
+                data: {
+                    tags: {
+                        connectOrCreate: {
+                            where: { name: TAG_VISITA_LOCAL },
+                            create: { name: TAG_VISITA_LOCAL, color: '#10b981' },
+                        },
+                    },
+                },
+            }).catch(e => console.error('[Visita] No se pudo etiquetar la visita al local:', e.message));
+        }
+
         let directedEmailSent: boolean | undefined;
         // No avisamos si uno se dirige la nota a sí mismo.
         if (directedTo && directedTo.id !== actor?.id) {
@@ -1179,26 +1201,11 @@ export const ContactService = {
             }
         }
 
-        if (type === 'STORE_VISIT') {
-            try {
-                const client = await prisma.client.findUnique({ where: { id: clientId } });
-                if (client) {
-                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app';
-                    const link = `${appUrl}/admin/contactos?id=${client.id}`;
-                    const groupMessage = `📍 *Ingreso de cliente al Atelier*\n👤 *Cliente:* ${client.name}\n\n⚠️ _Aclarar si es calle / meta / referido_\n🔗 *Ficha:* ${link}`;
-                    
-                    // 18/8/2026 (B19 del plan de la API oficial): el aviso al grupo
-                    // de ventas pasa a email — la API oficial no tiene grupos.
-                    sendEmail({
-                        to: process.env.SALES_NOTIFY_EMAIL || process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                        subject: `📍 Ingreso al local — ${client.name}`,
-                        html: `<pre style="font-family:inherit;white-space:pre-wrap">${groupMessage.replace(/[*_]/g, '')}</pre>`,
-                    }).catch(err => console.error('[Store Visit Notification] Error enviando email:', err));
-                }
-            } catch (e) {
-                console.error('Error sending store visit notification:', e);
-            }
-        }
+        // El ingreso de un cliente al local NO manda aviso (Ishtar, 5/9/2026): la
+        // visita queda registrada como Interaction en la ficha, que es donde se
+        // consulta. El aviso nació como mensaje al grupo de ventas de WhatsApp y el
+        // 18/8/2026 se pasó a email (B19 del plan de la API oficial, que no tiene
+        // grupos); a esta altura era ruido en la casilla y se apaga.
 
         return { ...interaction, directedEmailSent };
     },

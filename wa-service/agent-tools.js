@@ -333,6 +333,13 @@ const createTaskTool = new DynamicStructuredTool({
     func: safeToolRun(async (input) => await createTask(safeParse(input, "create_task"))),
 });
 
+const agendarTurnoTool = new DynamicStructuredTool({
+    schema: z.object({ clientId: z.string(), fechaHora: z.string(), motivo: z.string().optional(), nombre: z.string().optional() }).catchall(z.any()),
+    name: "agendar_turno",
+    description: "Agenda un turno en el local (control visual, probarse armazones, retirar). Usá JSON con 'clientId' (MANDATORIO, el clientData.id real), 'fechaHora' (MANDATORIO, fecha y hora exactas en formato ISO con zona -03:00, ej '2026-09-12T10:30:00-03:00'), 'motivo' (para qué viene) y 'nombre' (del cliente, si lo sabés). Ofrecé PRIMERO las franjas de 9 a 11 o de 16 a 20 (se espera menos), pero si al cliente no le sirven agendá igual en cualquier hora que el local esté abierto. Los sábados, en lo posible, evitalos. NUNCA le confirmes el turno al cliente antes de que esta herramienta te diga que quedó guardado.",
+    func: safeToolRun(async (input) => await agendarTurno(safeParse(input, "agendar_turno"))),
+});
+
 const requestInvoiceTool = new DynamicStructuredTool({
     schema: z.object({ clientId: z.string().optional() }).catchall(z.any()),
     name: "request_invoice",
@@ -416,6 +423,7 @@ const salesToolsList = [
     addTagToClientTool,
     addInteractionTool,
     createTaskTool,
+    agendarTurnoTool,
     createQuoteTool,
     sendQuotePdfTool,
     sendProductPhotosTool,
@@ -434,6 +442,7 @@ const executiveToolsList = [
     sendQuotePdfTool,
     sendProductPhotosTool,
     createTaskTool,
+    agendarTurnoTool,
     addInteractionTool,
     savePrescriptionDataTool,
     cancelBotTool,

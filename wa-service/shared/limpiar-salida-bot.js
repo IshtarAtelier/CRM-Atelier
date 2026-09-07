@@ -46,8 +46,20 @@ const MARCADORES_DE_LINEA = [
  */
 const TOKEN_INTERNO = /\[(?!IMAGE\s*:)\s*(?:[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ0-9_]*(?:[ _][A-ZÁÉÍÓÚÑ0-9_]+)*|nombre|telefono|teléfono)\s*(?::[^\]]*)?\]/g;
 
-/** Sello de hora del historial (`[09:33] `) al principio de una línea. */
-const SELLO_DE_HORA = /^\s*\[\s*\d{1,2}:\d{2}(?::\d{2})?\s*\]\s*/gm;
+/**
+ * Sello de fecha/hora del historial, al principio de una línea.
+ *
+ * OJO CON EL FORMATO: `bot-cloud.js` no prefija `[09:33]` sino lo que devuelve
+ * `Intl.DateTimeFormat('es-AR', {weekday, month, day, hour, minute})`, o sea
+ * `[mié, 2 sept, 09:19 a. m.]`. La primera versión de esta regex exigía que el
+ * corchete arrancara con dígitos y se le escapaban todos: 17 mensajes salieron
+ * al cliente con la fecha pegada adelante.
+ *
+ * Ahora se matchea cualquier corchete al principio de línea que contenga una
+ * HORA (`\d{1,2}:\d{2}`). Es lo que tienen en común todos los formatos, y es
+ * lo bastante específico como para no comerse un corchete legítimo.
+ */
+const SELLO_DE_HORA = /^\s*\[[^\]\n]*\d{1,2}:\d{2}[^\]\n]*\]\s*/gm;
 
 
 /**
@@ -239,4 +251,75 @@ function quitarRepeticiones(texto, mensajesPreviosDelBot = []) {
     return { texto: salida.trim(), quitadas };
 }
 
-module.exports = { limpiarSalidaBot, quitarRepeticiones, FRASES_DE_RELLENO, FRASES_DE_IDENTIDAD };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Escribir como escribe el equipo.
+//
+// Medido en producción (30 días, 341 mensajes del bot contra 4.820 del equipo):
+//
+//                        BOT    EQUIPO
+//   largo mediano         129        31
+//   % de 40 o menos        11%       57%
+//   % con emoji            52%       19%
+//
+// El prompt tiene estas reglas escritas desde el 31/8 y no se cumplen: el bot
+// escribe CUATRO VECES más largo y usa el triple de emojis. La conclusión es
+// que una regla de estilo en el prompt es una sugerencia; la que se cumple es
+// la que está en el código. (Prueba: la regla de no usar `¿` ni `¡` SÍ se
+// cumple —0% contra 2% del equipo— y es la única que estaba en código.)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EMOJI = /(?:\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;
+
+/** Deja como mucho UN emoji por burbuja: el primero. */
+function limitarEmojis(texto) {
+    let visto = false;
+    return texto.replace(EMOJI, m => {
+        if (visto) return '';
+        visto = true;
+        return m;
+    }).replace(/[ \t]{2,}/g, ' ').replace(/\s+([.,!?])/g, '$1').trim();
+}
+
+/**
+ * ¿Este bloque tiene estructura que NO hay que partir? Los presupuestos, la
+ * dirección con el mapa y las listas de opciones se leen mejor juntos: son lo
+ * único largo que el equipo también manda largo.
+ */
+function tieneEstructura(bloque) {
+    return /^\s*[•\-*]\s/m.test(bloque)          // viñetas
+        || /\*\$[\d.]+\*/.test(bloque)            // precios en negrita
+        || /\[IMAGE:/i.test(bloque)               // foto adjunta
+        || /https?:\/\//.test(bloque)             // links (mapa, tienda, ficha)
+        || (bloque.match(/\n/g) || []).length >= 2; // ya viene armado en renglones
+}
+
+/** A partir de acá una burbuja de prosa se siente un párrafo, no un mensaje. */
+const LARGO_MAXIMO_BURBUJA = 160;
+
+/**
+ * Parte un bloque largo de PROSA en varias burbujas, cortando por oración.
+ * Lo estructurado no se toca. Nunca deja una burbuja huérfana de menos de 25
+ * caracteres: se la pega a la anterior.
+ */
+function partirEnBurbujas(bloque) {
+    if (bloque.length <= LARGO_MAXIMO_BURBUJA || tieneEstructura(bloque)) return [bloque];
+
+    const oraciones = bloque.split(/(?<=[.!?])\s+/).filter(Boolean);
+    if (oraciones.length < 2) return [bloque];
+
+    const burbujas = [];
+    let actual = '';
+    for (const o of oraciones) {
+        if (!actual) { actual = o; continue; }
+        if ((actual + ' ' + o).length <= LARGO_MAXIMO_BURBUJA) actual += ' ' + o;
+        else { burbujas.push(actual); actual = o; }
+    }
+    if (actual) {
+        if (actual.length < 25 && burbujas.length) burbujas[burbujas.length - 1] += ' ' + actual;
+        else burbujas.push(actual);
+    }
+    return burbujas;
+}
+
+module.exports = { limpiarSalidaBot, quitarRepeticiones, limitarEmojis, partirEnBurbujas, FRASES_DE_RELLENO, FRASES_DE_IDENTIDAD };

@@ -188,11 +188,33 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
+    // Reemplazadas por seguimiento_lentes_sin_receta / seguimiento_lentes_con_receta
+    // (7/9/26, pedido de Ishtar): la charla frenada sin cotizar tiene DOS
+    // situaciones distintas y hasta acá se les mandaba el mismo texto — a
+    // quien ya mandó la receta no tenía sentido pedirle "recordá enviarla".
+    // Queda registrada como DEPRECADA, no se borra ni se reusa el nombre: una
+    // plantilla aprobada no se edita en Meta (crear una nueva es la única vía),
+    // y wa-service todavía puede tener el nombre viejo dando vueltas en algún
+    // lado no migrado.
     seguimiento_lentes: {
         name: 'seguimiento_lentes',
-        inventario: 'E4 (Oportunidades de cierre · charla frenada)',
+        inventario: 'E4 — DEPRECADA, ver seguimiento_lentes_sin_receta / _con_receta',
         category: 'UTILITY',
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te escribo por los lentes que estuvimos viendo, ¿seguís con la idea? Si querés te mando fotitos de los modelos que tenemos ahora.',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    seguimiento_lentes_sin_receta: {
+        name: 'seguimiento_lentes_sin_receta',
+        inventario: 'E4 (Oportunidades de cierre · charla frenada, sin receta)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te escribo por tu consultita ¿seguís interesado en que confeccionemos el presupuesto? Recordá enviarme la recetita para poder evaluarla y si querés te mando fotitos de nuestros modelitos disponibles. También te dejo nuestro catálogo de la tienda atelieroptica.com.ar',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    seguimiento_lentes_con_receta: {
+        name: 'seguimiento_lentes_con_receta',
+        inventario: 'E4 (Oportunidades de cierre · charla frenada, con receta)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te escribo por tu consultita, ¿retomamos el armado de tu presupuesto? Te dejo nuestro catálogo de la tienda atelieroptica.com.ar para que me cuentes qué estilo de modelito te gusta y te envío más fotitos.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
     seguimiento_carrito: {
@@ -215,9 +237,24 @@ export const WHATSAPP_TEMPLATES = {
     // Ya en uso en quick-replies.ts.
     invitacion_local_v2: {
         name: 'invitacion_local_v2',
-        inventario: 'E4 (segundo seguimiento: invitar al local)',
+        inventario: 'E4 — DEPRECADA, ver invitacion_local_v3',
         category: 'UTILITY',
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te mandé? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo?',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    // v4 (7/9/26, Ishtar): la v2 más la prueba social ("la óptica mejor
+    // calificada de Córdoba") y el link de ubicación.
+    //
+    // Por qué v4 y no v3: la v3 llegó a crearse sin el link, se borró de Meta
+    // para rehacerla con el nombre igual, y Meta contestó que el nombre queda
+    // bloqueado CUATRO SEMANAS después de un borrado. O sea: un nombre de
+    // plantilla se quema para siempre en la práctica. Si hay que cambiar un
+    // texto, se sube una versión nueva — nunca se borra para reusar el nombre.
+    invitacion_local_v4: {
+        name: 'invitacion_local_v4',
+        inventario: 'E4 (segundo seguimiento: invitar al local)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Ubicación: https://share.google/j2ZT7ReboDLt7onCp Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo? Te cuento que somos la óptica mejor calificada de Córdoba.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
     // Marketing, no utilidad: menciona un descuento. Meta la cobra más caro y
@@ -407,6 +444,21 @@ export const WHATSAPP_TEMPLATES = {
     // las últimas 24 h — por eso tiene que ser plantilla. El texto de la nota
     // viaja en {{3}} (recortado a un renglón: Meta no acepta saltos de línea
     // dentro de una variable) y {{4}} dice de qué es (un cliente, un hilo).
+    // Recordatorio al CLIENTE de que tiene turno. Se manda el día anterior.
+    // Va como plantilla porque a esa altura la ventana de 24 h casi siempre
+    // está cerrada (el turno se sacó días antes). Sin botones: un "confirmar"
+    // obliga a leer y actuar sobre la respuesta, y hoy nadie la mira.
+    recordatorio_turno: {
+        name: 'recordatorio_turno',
+        inventario: 'B4',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, te recordamos tu turno en Atelier Óptica: {{2}}. Estamos en {{3}}. Si no podés venir, respondé este mensaje y lo reprogramamos.',
+        params: [
+            { label: 'nombre', example: 'Julio' },
+            { label: 'cuándo', example: 'martes 8/9 a las 10:00' },
+            { label: 'dirección', example: 'José Luis de Tejeda 4380, Cerro de las Rosas' },
+        ],
+    },
     nota_interna: {
         name: 'nota_interna',
         inventario: 'B3',

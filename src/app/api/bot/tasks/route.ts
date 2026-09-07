@@ -8,7 +8,15 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { clientId, description, dueDate } = body;
+        const { clientId, description, dueDate, type } = body;
+
+        // El tipo venía hardcodeado en 'TASK'. Un TURNO es una tarea con fecha
+        // Y HORA, y necesita distinguirse para que la agenda y los
+        // recordatorios lo encuentren. Lista blanca: el bot no elige tipos
+        // libres — 'FOLLOWUP' y 'REVIEW_REQUEST' los crean otros procesos con
+        // sus propias reglas, y dejarlos acá abriría la puerta a que el bot
+        // fabricara seguimientos salientes.
+        const tipo = type === 'TURNO' ? 'TURNO' : 'TASK';
 
         if (!clientId || !description) {
             return NextResponse.json({ error: 'clientId y descripción son requeridos' }, { status: 400 });
@@ -27,7 +35,7 @@ export async function POST(request: Request) {
                 description,
                 dueDate: dueDate ? new Date(dueDate) : null,
                 status: 'PENDING',
-                type: 'TASK',
+                type: tipo,
                 // Sin esto quedaba null: el índice [createdBy, status, createdAt]
                 // que usa el cupo diario del generador de tareas no distinguía
                 // las que crea el bot de las que quedaron sin dueño.
@@ -40,7 +48,7 @@ export async function POST(request: Request) {
             data: {
                 clientId,
                 type: 'NOTE',
-                content: `🤖 Bot creó tarea: ${description}`,
+                content: tipo === 'TURNO' ? `🤖 Bot agendó un turno: ${description}` : `🤖 Bot creó tarea: ${description}`,
                 userId: BOT_ACTOR.id,
                 userName: BOT_ACTOR.name,
             }
@@ -52,7 +60,7 @@ export async function POST(request: Request) {
             action: 'CREATE',
             entityType: 'TASK',
             entityId: task.id,
-            details: { clientId, description, dueDate: task.dueDate },
+            details: { clientId, description, dueDate: task.dueDate, tipo },
         }).catch(console.error);
 
         return NextResponse.json(task);

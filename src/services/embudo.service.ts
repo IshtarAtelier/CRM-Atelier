@@ -4,6 +4,7 @@ import { classifyLead } from '@/lib/leads-pipeline';
 import { proximaAccion, ordenarPorUrgencia } from '@/lib/embudo/playbook';
 import { sincronizarTareasDelDia, type ResultadoSync } from '@/lib/embudo/sincronizar-tareas';
 import { TAGS_NO_CLIENTE } from '@/lib/no-cliente';
+import { tieneEtiquetaDeVisita } from '@/lib/embudo/visito-local';
 
 /**
  * EmbudoService — el tablero de leads (/admin/leads) y "lo de hoy".
@@ -47,6 +48,11 @@ async function leadsCalificados() {
             prescriptions: { orderBy: { date: 'desc' }, take: 1 },
             orders: { where: { isDeleted: false, orderType: 'QUOTE' }, orderBy: { createdAt: 'desc' }, take: 1 },
             tags: true,
+            // Turnos ya cumplidos: señal (floja) de que pasó por el local.
+            // Ver el porqué del criterio en `lib/embudo/visito-local.ts`.
+            tasks: { where: { type: 'TURNO' }, select: { dueDate: true } },
+            // La señal BUENA: el botón "Visita" de la ficha, que el equipo ya usa.
+            interactions: { where: { type: 'STORE_VISIT' }, select: { id: true }, take: 1 },
             // Siempre el chat más reciente: hay clientes con dos chats y sin
             // este orden la etiqueta se lee del equivocado.
             whatsappChats: { orderBy: { lastMessageAt: 'desc' }, take: 1 },
@@ -83,9 +89,15 @@ export const EmbudoService = {
                 now,
             });
 
+            const visitoElLocal = lead.interactions.length > 0
+                || tieneEtiquetaDeVisita(lead.tags.map(t => t.name))
+                || lead.tasks.some(t => t.dueDate !== null && t.dueDate.getTime() < now);
+
             const accion = proximaAccion({
                 stage,
                 contactado,
+                hasPrescription: !!latestRx,
+                visitoElLocal,
                 quoteCreatedAt: latestQuote?.createdAt ?? null,
                 createdAt: lead.createdAt,
                 tieneChat: !!chat,
