@@ -89,8 +89,16 @@ export async function GET(request: Request) {
         results.resumenDiario = await LabCostReconciliationService.alertNewFindings({ modo: 'diario' })
             .catch((err: any) => ({ error: err?.message }));
 
-        // Pedidos de Optovision facturados hace 3+ días hábiles → FINISHED (la
-        // factura llega unos días antes de que el pedido esté terminado).
+        // Pedidos de Optovision con TODAS sus operaciones facturadas hace 5+
+        // días hábiles (`OPTOVISION_DIAS_FACTURA_A_LISTO`): la factura llega
+        // unos días antes de que el pedido esté terminado.
+        //
+        // OJO, NO los marca listos ni le avisa al cliente: deja una
+        // notificación LAB_CHECK para que una persona corrobore con el
+        // laboratorio y cambie el estado. Es la regla del administrador del
+        // 22/7/26 — facturado no es lo mismo que terminado. El comentario
+        // anterior decía "3+ días hábiles → FINISHED" y las dos cosas eran
+        // falsas.
         results.promoted = await LabCostReconciliationService.promoteFinishedOptovision()
             .catch((err: any) => ({ error: err?.message }));
 
