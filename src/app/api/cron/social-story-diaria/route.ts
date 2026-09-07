@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { prisma } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
 import { publicarStory, origenPublico } from '@/services/social-publisher.service';
 import { evaluarFrescura, leerPieza } from '@/lib/social/frescura';
 
@@ -251,33 +250,17 @@ export async function GET(request: Request) {
 
         const fallaron = resultados.filter(r => !r.ok);
 
-        // No reintenta: avisa. Dos stories iguales es peor que ninguna.
+        // No reintenta y ya no manda mail (Ishtar, 7/9/2026): dos stories
+        // iguales es peor que ninguna, y el aviso por correo se ignoraba. Qué
+        // falló queda en el log y en la respuesta del endpoint (`fallaron`),
+        // que es lo que mira `npm run check:social`.
         if (fallaron.length) {
-            await sendEmail({
-                to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
-                subject: `⚠️ ${fallaron.length} de ${resultados.length} stories no salieron (tanda de la ${tanda})`,
-                html: `
-                    <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
-                        <h2 style="color:#b45309">No salieron todas las stories de hoy</h2>
-                        <ul style="font-size:15px">
-                            ${resultados.map(r => `<li><strong>${r.id}</strong> (${r.carril}): ${r.ok ? '✅ publicada' : `❌ ${r.error}`}</li>`).join('')}
-                        </ul>
-                        <p style="font-size:14px">
-                            No se reintenta solo, para no terminar con la misma story publicada dos veces.
-                            Se puede publicar a mano desde el celular, o revisar qué pasó y esperar a mañana.
-                        </p>
-                        ${vencidas.length ? `
-                        <div style="background:#fdf6ec;border-left:4px solid #b45309;padding:10px 14px;margin:16px 0">
-                            <p style="margin:0 0 6px;font-size:14px;font-weight:700">Precios vencidos: hay que regenerar</p>
-                            ${vencidas.map(v => `<p style="margin:4px 0;font-size:13px">• <strong>${v.id}</strong>: ${v.motivo}</p>`).join('')}
-                            <pre style="background:#f3f4f6;padding:10px;border-radius:6px;font-size:12px;white-space:pre-wrap">node scripts/social/generar-story-producto.mjs --produccion
-for f in social/contenido/story-producto-*.json; do node scripts/social/render.mjs "$f"; done</pre>
-                        </div>` : ''}
-                        <p style="margin-top:22px;font-size:12px;color:#6b7280">
-                            Si la causa es "la imagen no responde 200", falta deployar la placa.
-                        </p>
-                    </div>`,
-            }).catch(console.error);
+            console.error(`[cron social-story-diaria] ${fallaron.length} de ${resultados.length} stories no salieron (tanda ${tanda}):`,
+                fallaron.map(r => `${r.id}: ${r.error}`).join(' | '));
+            if (vencidas.length) {
+                console.error('[cron social-story-diaria] Precios vencidos, hay que regenerar:',
+                    vencidas.map(v => `${v.id}: ${v.motivo}`).join(' | '));
+            }
         }
 
         return NextResponse.json({

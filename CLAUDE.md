@@ -181,7 +181,8 @@ Reglas para que el proyecto escale sin volverse un mazacote.
   corriendo durante el rollout).
 - **Errores**: las páginas públicas usan `rethrowUnlessBuild` (`db-guard.ts`);
   el bot nunca muestra errores al cliente (calla y reintenta); los crons avisan
-  por email, no autocorrigen.
+  por email, no autocorrigen. Excepción: los tres crons de redes ya no mandan
+  mail (7/9/2026) — avisan por log y por la respuesta del endpoint.
 
 ## Higiene del repo (mantenerlo sin basura)
 - **`npm run check:orden` es el guardián: las reglas de acá abajo las verifica él.**
@@ -250,8 +251,11 @@ porqué de cada decisión están en `docs/plan-publicacion-meta.md`.
 - Ante cualquier falla de publicación, empezar por `node scripts/social/meta-check.mjs`.
 - **`npm run check:social` dice si lo programado va a poder salir**: archivos que
   faltan, piezas cuyo precio vence antes de su fecha, y si la regeneración de los
-  viernes sigue corriendo. Corre sin base ni red. El mismo diagnóstico llega por
-  mail todos los días (cron `social-cadencia`).
+  viernes sigue corriendo. Corre sin base ni red. **Es la única forma de
+  enterarse**: desde el 7/9/2026 los crons de redes ya no mandan mail cuando algo
+  falla (`social-cadencia`, `social-feed`, `social-story-diaria`) — el motivo
+  queda en el log del cron y en la respuesta del endpoint. Se apagó porque el
+  mail se ignoraba; el precio es que hay que correr el check a mano.
 - **Los crons de redes NO deducen del reloj cuál les toca.** GitHub demora los
   schedules 40-80 min y el 12/8 los dos disparos de stories terminaron llamando
   al feed: no salió ninguna story y los runs quedaron en verde. Cuál cron corrió
