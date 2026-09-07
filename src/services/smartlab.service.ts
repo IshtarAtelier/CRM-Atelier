@@ -98,39 +98,70 @@ export class SmartLabService {
             page.setDefaultTimeout(ESPERA_MS);
             page.setDefaultNavigationTimeout(ESPERA_MS);
 
-            // ── Login ──────────────────────────────────
-            await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'domcontentloaded', timeout: ESPERA_MS });
-            await page.waitForSelector('input', { timeout: ESPERA_MS });
+            // ── Login, CON REINTENTOS ──────────────────
+            // "Que tome el tiempo necesario pero que no deje de sincronizar"
+            // (Ishtar, 7/9/26). El login es el paso que falla cuando el portal
+            // está lento: si se cae una vez, antes se perdía la corrida entera
+            // y había que esperar al tick siguiente. Ahora se reintenta acá
+            // mismo, con una pausa creciente entre intentos — sin apurar al
+            // portal, que además está migrando de servidor.
+            const INTENTOS_LOGIN = 3;
+            const PAUSA_ENTRE_INTENTOS_MS = [0, 15_000, 30_000];
+            let ultimoError: unknown = null;
 
-            const inputs = await page.$$('input');
-            if (inputs.length < 2) throw new Error('No se encontraron los campos de login en SmartLab.');
+            for (let intento = 0; intento < INTENTOS_LOGIN; intento++) {
+                if (PAUSA_ENTRE_INTENTOS_MS[intento]) {
+                    console.log(`[SmartLab Sync] Reintentando el login en ${PAUSA_ENTRE_INTENTOS_MS[intento] / 1000}s (intento ${intento + 1}/${INTENTOS_LOGIN})...`);
+                    await page.waitForTimeout(PAUSA_ENTRE_INTENTOS_MS[intento]);
+                }
+                try {
+                    await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'domcontentloaded', timeout: ESPERA_MS });
+                    await page.waitForSelector('input', { timeout: ESPERA_MS });
 
-            await page.waitForTimeout(2000);
-            await inputs[0].fill('pisano.ishtar@gmail.com');
-            await page.waitForTimeout(1500);
-            await inputs[1].fill('atelier');
-            await page.waitForTimeout(2000);
+                    const inputs = await page.$$('input');
+                    if (inputs.length < 2) throw new Error('No se encontraron los campos de login en SmartLab.');
 
-            const buttons = await page.$$('button');
-            let loginClicked = false;
-            for (const btn of buttons) {
-                const text = await btn.innerText();
-                if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
-                    await page.waitForTimeout(1000);
-                    await Promise.all([
-                        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: ESPERA_MS }),
-                        btn.click({ delay: 300 })
-                    ]);
-                    loginClicked = true;
+                    await page.waitForTimeout(2000);
+                    await inputs[0].fill('pisano.ishtar@gmail.com');
+                    await page.waitForTimeout(1500);
+                    await inputs[1].fill('atelier');
+                    await page.waitForTimeout(2000);
+
+                    const buttons = await page.$$('button');
+                    let loginClicked = false;
+                    for (const btn of buttons) {
+                        const text = await btn.innerText();
+                        if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
+                            await page.waitForTimeout(1000);
+                            await Promise.all([
+                                page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: ESPERA_MS }),
+                                btn.click({ delay: 300 })
+                            ]);
+                            loginClicked = true;
+                            break;
+                        }
+                    }
+                    if (!loginClicked) {
+                        await Promise.all([
+                            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: ESPERA_MS }),
+                            inputs[1].press('Enter', { delay: 200 })
+                        ]);
+                    }
+
+                    // Entró de verdad: la URL dejó de ser la del login. Sin este
+                    // chequeo, un login que "no explota" pero tampoco entra se
+                    // arrastraba hasta el scraping, que fallaba mucho después y
+                    // con un error que no decía nada.
+                    if (/\/login/i.test(page.url())) throw new Error(`El portal no salió de la pantalla de login (${page.url()})`);
+
+                    ultimoError = null;
                     break;
+                } catch (err) {
+                    ultimoError = err;
+                    console.warn(`[SmartLab Sync] Login falló (intento ${intento + 1}/${INTENTOS_LOGIN}): ${(err as Error)?.message}`);
                 }
             }
-            if (!loginClicked) {
-                await Promise.all([
-                    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: ESPERA_MS }),
-                    inputs[1].press('Enter', { delay: 200 })
-                ]);
-            }
+            if (ultimoError) throw ultimoError;
             console.log('[SmartLab Sync] Login exitoso');
 
             // ── Navegar a lista ──────────────────────────

@@ -440,7 +440,13 @@ export async function register() {
                     headers: { 'Content-Type': 'application/json' },
                     // Tope de 9,5 min: un sync colgado no debe pisarse con el
                     // siguiente disparo del intervalo ni quedar esperando eterno.
-                    signal: AbortSignal.timeout(9.5 * 60 * 1000),
+                    // 14 min y no 9,5: desde el 7/9/26 el login reintenta hasta 3 veces
+                    // (el portal de Grupo Óptico está lento y migrando), y en el
+                    // peor caso son 5 min solo para entrar más el scraping. Con
+                    // 9,5 el fetch abortaba a mitad de un pase que iba a terminar
+                    // bien, y el log decía "falló" sobre una corrida sana. El
+                    // solapamiento con el tick siguiente lo previene `isSyncing`.
+                    signal: AbortSignal.timeout(14 * 60 * 1000),
                 });
                 if (!res.ok) {
                     const body = await res.text();
