@@ -43,6 +43,14 @@ export class GrupoOpticoProvider {
      * toda la era en cada corrida. La pasada completa sigue siendo la diaria.
      */
     static async collect(opts: { sinceDays?: number } = {}) {
+        // Dónde está Chromium. Mismo caso —y misma consecuencia— que
+        // `smartlab.service.ts`: el build lo instala en `.playwright-browsers`
+        // y Playwright lo busca por defecto en ~/.cache/ms-playwright, vacía en
+        // el contenedor. Sin esta línea el launch falla y no entra NINGÚN costo
+        // de Grupo Óptico: la última entrada era del 21/8/26, y por eso dejaron
+        // de salir los avisos por mail de lo que se carga en el laboratorio.
+        const nodePath = await import('path');
+        process.env.PLAYWRIGHT_BROWSERS_PATH = nodePath.join(process.cwd(), '.playwright-browsers');
         const { chromium } = await import('playwright');
         const browser = await chromium.launch({
             headless: true,

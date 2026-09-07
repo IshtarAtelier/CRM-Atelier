@@ -45,6 +45,12 @@ export async function POST(request: Request) {
         // 3. Lanzar navegador oculto para autenticación
         console.log('Iniciando sesión en SmartLab vía Headless Browser...');
         const path = await import('path');
+        // Dónde está Chromium: el build lo instala en `.playwright-browsers` y
+        // Playwright lo busca por defecto en una cache que en el contenedor está
+        // vacía. Es lo mismo que tenía roto a `smartlab.service.ts` y al
+        // proveedor de Grupo Óptico — acá el costo sería peor: sin esto no se
+        // puede MANDAR un pedido a fábrica.
+        process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.cwd(), '.playwright-browsers');
         const { chromium } = await import('playwright');
         browser = await chromium.launch({ headless: true });
         const context = await browser.newContext();
