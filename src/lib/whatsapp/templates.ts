@@ -242,16 +242,19 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te mandé? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo?',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
-    // v3 (7/9/26, Ishtar): mismo cuerpo que la v2 pero cierra con la prueba
-    // social ("la óptica mejor calificada de Córdoba"), que es el argumento
-    // que más mueve a alguien que todavía no se decidió a venir. La v2 queda
-    // DEPRECADA: una plantilla aprobada no se edita en Meta, solo se
-    // reemplaza por una nueva.
-    invitacion_local_v3: {
-        name: 'invitacion_local_v3',
+    // v4 (7/9/26, Ishtar): la v2 más la prueba social ("la óptica mejor
+    // calificada de Córdoba") y el link de ubicación.
+    //
+    // Por qué v4 y no v3: la v3 llegó a crearse sin el link, se borró de Meta
+    // para rehacerla con el nombre igual, y Meta contestó que el nombre queda
+    // bloqueado CUATRO SEMANAS después de un borrado. O sea: un nombre de
+    // plantilla se quema para siempre en la práctica. Si hay que cambiar un
+    // texto, se sube una versión nueva — nunca se borra para reusar el nombre.
+    invitacion_local_v4: {
+        name: 'invitacion_local_v4',
         inventario: 'E4 (segundo seguimiento: invitar al local)',
         category: 'UTILITY',
-        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo? Te cuento que somos la óptica mejor calificada de Córdoba.',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Ubicación: https://share.google/j2ZT7ReboDLt7onCp Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo? Te cuento que somos la óptica mejor calificada de Córdoba.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
     // Marketing, no utilidad: menciona un descuento. Meta la cobra más caro y

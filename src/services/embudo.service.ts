@@ -51,6 +51,8 @@ async function leadsCalificados() {
             // Turnos ya cumplidos: señal (floja) de que pasó por el local.
             // Ver el porqué del criterio en `lib/embudo/visito-local.ts`.
             tasks: { where: { type: 'TURNO' }, select: { dueDate: true } },
+            // La señal BUENA: el botón "Visita" de la ficha, que el equipo ya usa.
+            interactions: { where: { type: 'STORE_VISIT' }, select: { id: true }, take: 1 },
             // Siempre el chat más reciente: hay clientes con dos chats y sin
             // este orden la etiqueta se lee del equivocado.
             whatsappChats: { orderBy: { lastMessageAt: 'desc' }, take: 1 },
@@ -87,7 +89,8 @@ export const EmbudoService = {
                 now,
             });
 
-            const visitoElLocal = tieneEtiquetaDeVisita(lead.tags.map(t => t.name))
+            const visitoElLocal = lead.interactions.length > 0
+                || tieneEtiquetaDeVisita(lead.tags.map(t => t.name))
                 || lead.tasks.some(t => t.dueDate !== null && t.dueDate.getTime() < now);
 
             const accion = proximaAccion({

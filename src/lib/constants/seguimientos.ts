@@ -55,6 +55,6 @@ export const PLANTILLAS_AUTOMATICAS: readonly TemplateName[] = [
     'seguimiento_presupuesto',
     'seguimiento_lentes_sin_receta',
     'seguimiento_lentes_con_receta',
-    'invitacion_local_v3',
+    'invitacion_local_v4',
     'ultimo_seguimiento',
 ];

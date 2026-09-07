@@ -33,7 +33,7 @@ export const ETIQUETA_POR_PLANTILLA: Partial<Record<TemplateName, string>> = {
     seguimiento_lentes_sin_receta: 'SEGUIMIENTO_DIA_1',
     seguimiento_lentes_con_receta: 'SEGUIMIENTO_DIA_1',
     seguimiento_carrito: 'SEGUIMIENTO_DIA_1',
-    invitacion_local_v3: 'SEGUIMIENTO_DIA_4',
+    invitacion_local_v4: 'SEGUIMIENTO_DIA_4',
     ultimo_seguimiento: 'SEGUIMIENTO_DIA_15',
 };
 
@@ -47,7 +47,7 @@ export function esPlantillaDeSeguimiento(nombre: string): nombre is TemplateName
 /** Escalón de seguimiento → plantilla que le corresponde. */
 const PLANTILLA_POR_ESCALON: Record<'seguimiento1' | 'seguimiento2' | 'seguimiento10dias', TemplateName> = {
     seguimiento1: 'seguimiento_presupuesto',
-    seguimiento2: 'invitacion_local_v3',
+    seguimiento2: 'invitacion_local_v4',
     seguimiento10dias: 'ultimo_seguimiento',
 };
 
@@ -64,7 +64,7 @@ export const NOMBRE_CORTO_PLANTILLA: Partial<Record<TemplateName, string>> = {
     seguimiento_lentes_sin_receta: 'Retomar la charla (sin receta)',
     seguimiento_lentes_con_receta: 'Retomar la charla (con receta)',
     seguimiento_carrito: 'Seguimiento del carrito',
-    invitacion_local_v3: 'Invitar al local',
+    invitacion_local_v4: 'Invitar al local',
     ultimo_seguimiento: 'Último seguimiento',
 };
 
@@ -124,7 +124,7 @@ function diasDesde(fecha: Date, now: number): number {
  * - Presupuesto de hace 10h                              → esperar (vence a las 48h)
  * - Presupuesto de hace 3 días, nadie escribió           → plantilla seguimiento_presupuesto (vencida)
  * - Presupuesto de hace 3 días, DIA_1 enviado            → esperar (vence a los 4 días)
- * - Presupuesto de hace 6 días, solo DIA_1               → plantilla invitacion_local_v3 (vencida)
+ * - Presupuesto de hace 6 días, solo DIA_1               → plantilla invitacion_local_v4 (vencida)
  * - Presupuesto de hace 6 días, solo DIA_1, YA VINO      → esperar al día 15 (no se lo invita al local)
  * - Presupuesto de hace 20 días, DIA_4 enviado           → plantilla ultimo_seguimiento (vencida)
  * - Presupuesto de hace 20 días, DIA_15 enviado          → decidir

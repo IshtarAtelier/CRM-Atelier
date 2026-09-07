@@ -10,6 +10,7 @@ import { logAudit } from '@/lib/audit';
 import { SYSTEM_ACTOR, type Actor } from '@/lib/actor';
 import { notifyDirectedNote } from '@/lib/note-notify';
 import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
+import { TAG_VISITA_LOCAL } from '@/lib/embudo/visito-local';
 import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
 import { isPlausiblePaymentDate, formatDate } from '@/lib/format-date';
 import { cardVoucherKey, describeCardVoucher, type CardVoucherDetails } from '@/lib/payment-card';
@@ -1148,6 +1149,27 @@ export const ContactService = {
                 imageUrl: imageUrl || null
             }
         });
+
+        // Registrar una visita al local deja la ETIQUETA puesta sola (7/9/2026).
+        // El botón ya creaba la interacción, pero la etiqueta había que
+        // ponerla a mano y casi nadie lo hacía: el dashboard separaba mal las
+        // ventas en local vs online, y el embudo no tenía cómo saber que la
+        // persona ya había venido (le seguía mandando la invitación al local).
+        // Fire-and-forget: la visita ya quedó registrada y que falle la
+        // etiqueta no puede voltear la operación.
+        if (type === 'STORE_VISIT') {
+            prisma.client.update({
+                where: { id: clientId },
+                data: {
+                    tags: {
+                        connectOrCreate: {
+                            where: { name: TAG_VISITA_LOCAL },
+                            create: { name: TAG_VISITA_LOCAL, color: '#10b981' },
+                        },
+                    },
+                },
+            }).catch(e => console.error('[Visita] No se pudo etiquetar la visita al local:', e.message));
+        }
 
         let directedEmailSent: boolean | undefined;
         // No avisamos si uno se dirige la nota a sí mismo.
