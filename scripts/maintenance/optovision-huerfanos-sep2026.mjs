@@ -38,10 +38,24 @@ const LAB = 'OPTOVISION';
 const FIRMA = 'Ishtar (asignación manual de facturas de Optovisión)';
 const HOY = new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
 
-/** `importe` es el TOTAL con IVA: Atelier es monotributo y no recupera el IVA. */
+/**
+ * `importe` es el TOTAL con IVA: Atelier es monotributo y no recupera el IVA.
+ *
+ * `postventa` marca los REPROCESOS. Su nº de pedido no vive en ninguna venta
+ * (está en PostSaleCase.newOrderNumber), así que la venta a la que se cuelga la
+ * entrada se busca por `ventaPorNumero` — el pedido ORIGINAL. Un reproceso queda
+ * fuera del cruce de costo, igual que hace cost-matching.ts: con importe cargado
+ * el estado es OK, no OVERCOST/UNDERCOST.
+ */
 const ASIGNACIONES = [
     { factura: '3008-00075115', pedido: '610111', importe: 578623.09, fuente: 'confirmado en la ficha por Ishtar (venta 610111 - 610126)' },
     { factura: '3008-00073418', pedido: '606136', importe: 473417.82, fuente: 'planilla física' },
+    {
+        factura: '3008-00067549', pedido: '596770', importe: 17173.72,
+        fuente: 'planilla física — reproceso PSI, cambio de RP del pedido 580844 (alias de planilla 7101095)',
+        postventa: true, ventaPorNumero: '580844',
+        notaPostventa: 'Pedido de POSTVENTA (caso Cambio de receta, cobertura: Con cargo).',
+    },
 ];
 
 /** Filas duplicadas a borrar: clave fantasma → pedido real que ya la cubre. */
@@ -61,19 +75,32 @@ async function main() {
     const listas = [];
     for (const a of ASIGNACIONES) {
         const nro = a.factura.split('-')[1].replace(/^0+/, '');
+        // Un reproceso se cuelga de la venta del pedido ORIGINAL: su propio nº
+        // no figura en ninguna venta.
+        const numeroDeVenta = a.ventaPorNumero ?? a.pedido;
         const [venta] = await prisma.$queryRaw`
             select o.id, o."labOrderNumber", c.name as cliente
             from "Order" o left join "Client" c on c.id = o."clientId"
-            where o."isDeleted" = false and o."labOrderNumber" like ${'%' + a.pedido + '%'} limit 1`;
+            where o."isDeleted" = false and o."labOrderNumber" like ${'%' + numeroDeVenta + '%'} limit 1`;
         const existentes = await prisma.$queryRaw`
             select id, "labOrderNumber", "billedTotal", status, "orderId", "sourceFile"
             from "LabCostEntry" where lab = ${LAB} and "sourceFile" like ${'%' + nro + '%'}`;
 
         const problemas = [];
-        if (!venta) problemas.push('ninguna venta tiene ese nº de pedido');
+        if (!venta) problemas.push(`ninguna venta tiene el nº ${numeroDeVenta}`);
         if (existentes.length > 1) problemas.push(`hay ${existentes.length} entradas para esa factura: revisar a mano`);
         const yaAsignada = existentes.find(e => e.orderId);
         if (yaAsignada) problemas.push(`ya está asignada (${yaAsignada.labOrderNumber})`);
+        // Un reproceso tiene que tener su caso de postventa cargado: si no, la
+        // entrada quedaría colgada de la venta sin decir que es un reproceso.
+        if (a.postventa) {
+            const [caso] = await prisma.$queryRaw`
+                select p.id, p."caseType", p.coverage, c.name as cliente
+                from "PostSaleCase" p left join "Client" c on c.id = p."clientId"
+                where coalesce(p."newOrderNumber", '') like ${'%' + a.pedido + '%'} limit 1`;
+            if (!caso) problemas.push(`no hay ningún caso de postventa con el nº ${a.pedido}`);
+            else console.log(`   [reproceso de ${caso.cliente}: ${caso.caseType || 's/tipo'}${caso.coverage ? `, ${caso.coverage}` : ''}]`);
+        }
 
         console.log(`${a.factura}  →  pedido ${a.pedido}   ${pesos(a.importe)}   [${a.fuente}]`);
         console.log(`   venta:   ${venta ? `${venta.cliente} (${venta.labOrderNumber})` : 'NINGUNA'}`);
@@ -111,21 +138,25 @@ async function main() {
     if (!APLICAR) { console.log('Ensayo terminado. Nada se escribió.'); return; }
 
     for (const p of listas) {
+        // Un reproceso no entra al cruce de costo: con importe cargado va OK,
+        // igual que decide cost-matching.ts. El resto queda PENDING para que la
+        // conciliación le calcule la diferencia en la próxima pasada.
+        const estado = p.postventa ? 'OK' : 'PENDING';
+        const nota = [p.notaPostventa, `Pedido asignado a mano el ${HOY} (${p.fuente}). ${FIRMA}.`]
+            .filter(Boolean).join(' ');
         if (p.entrada) {
             await prisma.$executeRaw`
                 update "LabCostEntry"
                 set "labOrderNumber" = ${p.pedido}, "orderId" = ${p.venta.id},
                     "billedTotal" = ${p.importe}, "sourceFile" = ${`FA_${p.factura}.pdf`},
-                    notes = ${`Pedido asignado a mano el ${HOY} (${p.fuente}). ${FIRMA}.`},
-                    status = 'PENDING', "updatedAt" = now()
+                    notes = ${nota}, status = ${estado}, "updatedAt" = now()
                 where id = ${p.entrada.id}`;
         } else {
             await prisma.$executeRaw`
                 insert into "LabCostEntry" (id, lab, "labOrderNumber", "orderId", "billedTotal",
                     source, "sourceFile", status, notes, "createdAt", "updatedAt")
                 values (gen_random_uuid()::text, ${LAB}, ${p.pedido}, ${p.venta.id}, ${p.importe},
-                    'MANUAL', ${`FA_${p.factura}.pdf`}, 'PENDING',
-                    ${`Pedido asignado a mano el ${HOY} (${p.fuente}). ${FIRMA}.`}, now(), now())`;
+                    'MANUAL', ${`FA_${p.factura}.pdf`}, ${estado}, ${nota}, now(), now())`;
         }
         await prisma.$executeRaw`
             insert into "AuditLog" (id, "userName", action, "entityType", "entityId", details, "createdAt")
