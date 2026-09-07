@@ -93,72 +93,69 @@ export default function QuienesSomosPage() {
           </div>
         </section>
 
-        {/* Somos nosotras */}
-        <section className="grid md:grid-cols-2 gap-8 items-center">
-          <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border border-stone-200 dark:border-stone-800 shadow-sm">
-            <Image
-              src="/images/blog/ishtar/hermanas-anteojos.jpg"
-              alt="Ishtar y Yani, las hermanas detrás de Atelier Óptica"
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover"
-            />
-          </div>
-          <div>
+        {/* Somos nosotras: el texto arriba y las dos fotos del carrusel abajo */}
+        <section>
+          <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-3xl font-black text-stone-900 dark:text-white mb-4">
               Detrás de Atelier <span className="text-primary italic">somos nosotras</span>
             </h2>
-            <p className="text-lg text-stone-600 dark:text-stone-300 mb-6">
+            <p className="text-lg text-stone-600 dark:text-stone-300 mb-8">
               Ishtar y Yani. Una óptica de familia, no una cadena. Por eso acá nadie es un número.
             </p>
-            <ul className="space-y-3">
-              {[
-                "El que te atiende hoy es el mismo que te ajusta el aro en un año",
-                "Nadie te apura ni te despacha: la elección lleva lo que lleva",
-                "El nombre está en juego en cada anteojo que sale del taller"
-              ].map((item, i) => (
-                <li key={i} className="flex items-start text-stone-700 dark:text-stone-300">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
           </div>
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 mb-8">
+            <div className="relative aspect-[9/16] rounded-3xl overflow-hidden border border-stone-200 dark:border-stone-800">
+              <Image
+                src="/images/blog/ishtar/hermanas-espejo.jpg"
+                alt="Ishtar y Yani reflejadas en un espejo redondo"
+                fill
+                sizes="(max-width: 640px) 50vw, 400px"
+                className="object-cover"
+              />
+            </div>
+            <div className="relative aspect-[9/16] rounded-3xl overflow-hidden border border-stone-200 dark:border-stone-800">
+              <Image
+                src="/images/blog/ishtar/hermanas-anteojos.jpg"
+                alt="Ishtar y Yani, las hermanas detrás de Atelier Óptica"
+                fill
+                sizes="(max-width: 640px) 50vw, 400px"
+                className="object-cover"
+              />
+            </div>
+          </div>
+          <ul className="space-y-3 max-w-2xl mx-auto">
+            {[
+              "El que te atiende hoy es el mismo que te ajusta el aro en un año",
+              "Nadie te apura ni te despacha: la elección lleva lo que lleva",
+              "El nombre está en juego en cada anteojo que sale del taller"
+            ].map((item, i) => (
+              <li key={i} className="flex items-start text-stone-700 dark:text-stone-300">
+                <div className="w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
         </section>
 
-        {/* Las dos, una por una */}
+        {/* Las dos, una por una. Sin retrato: las únicas fotos sueltas de Ishtar
+            son de viaje y desentonaban al lado de la de Yani. */}
         <section className="grid sm:grid-cols-2 gap-8">
           {[
             {
               nombre: "Ishtar",
               rol: "Al frente de la óptica",
-              foto: "/images/blog/ishtar/ishtar-retrato.jpg",
-              alt: "Ishtar, al frente de Atelier Óptica",
               texto: "Desde el primer día. Elige cada armazón que entra al local y sigue tu pedido hasta que te lo entrega puesto.",
             },
             {
               nombre: "Yani",
               rol: "Licenciada en Nutrición (UNC)",
-              foto: "/images/blog/ishtar/yani-retrato.jpg",
-              alt: "Yani, Licenciada en Nutrición y parte del equipo de Atelier Óptica",
               texto: "Del mismo equipo de siempre, y flamante egresada de la UNC. Para nosotras la salud se cuida entera: la vista es parte de ese todo.",
             },
           ].map((p) => (
-            <article key={p.nombre} className="bg-white dark:bg-stone-900 rounded-3xl overflow-hidden border border-stone-200 dark:border-stone-800 shadow-sm">
-              <div className="relative aspect-[4/5]">
-                <Image
-                  src={p.foto}
-                  alt={p.alt}
-                  fill
-                  sizes="(max-width: 640px) 100vw, 50vw"
-                  className="object-cover object-top"
-                />
-              </div>
-              <div className="p-6 lg:p-8">
-                <h3 className="text-2xl font-bold text-stone-900 dark:text-white">{p.nombre}</h3>
-                <p className="text-primary text-[11px] font-bold uppercase tracking-widest mt-1 mb-3">{p.rol}</p>
-                <p className="text-stone-600 dark:text-stone-300">{p.texto}</p>
-              </div>
+            <article key={p.nombre} className="bg-white dark:bg-stone-900 rounded-3xl p-8 border border-stone-200 dark:border-stone-800 shadow-sm">
+              <h3 className="text-2xl font-bold text-stone-900 dark:text-white">{p.nombre}</h3>
+              <p className="text-primary text-[11px] font-bold uppercase tracking-widest mt-1 mb-3">{p.rol}</p>
+              <p className="text-stone-600 dark:text-stone-300">{p.texto}</p>
             </article>
           ))}
         </section>
