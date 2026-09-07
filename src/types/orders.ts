@@ -203,6 +203,8 @@ export interface Product {
     type: string | null;
     category: string;
     price: number;
+    /** Precio de oferta de la tienda ("precio tachado"). Leerlo SOLO con `precioConOferta()` de src/lib/precio-oferta.ts. */
+    salePrice?: number | null;
     cost?: number;
     wholesalePrice?: number;
     stock: number;

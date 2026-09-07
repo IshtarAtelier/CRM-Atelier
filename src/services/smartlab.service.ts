@@ -84,48 +84,94 @@ export class SmartLabService {
             const context = await browser.newContext();
             const page = await context.newPage();
 
-            // ── Login ──────────────────────────────────
-            await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'domcontentloaded' });
-            await page.waitForSelector('input', { timeout: 10000 });
+            // EL PORTAL DE GRUPO ÓPTICO ES LENTO, y en septiembre de 2026 están
+            // migrando de servidor (dato de Ishtar, 7/9/26). El default de
+            // Playwright son 30 s, y con eso el `waitForNavigation` del login
+            // reventaba y se llevaba puesta la sincronización ENTERA — no solo
+            // ese paso. Acá se le da aire: más vale un pase que tarda dos
+            // minutos que un pase que no corre.
+            //
+            // Medido el 7/9/26: el login queda en "Iniciando sesión…" bastante
+            // después de que la red se aquieta, así que esperar por
+            // `networkidle` tampoco alcanza.
+            const ESPERA_MS = 90_000;
+            page.setDefaultTimeout(ESPERA_MS);
+            page.setDefaultNavigationTimeout(ESPERA_MS);
 
-            const inputs = await page.$$('input');
-            if (inputs.length < 2) throw new Error('No se encontraron los campos de login en SmartLab.');
+            // ── Login, CON REINTENTOS ──────────────────
+            // "Que tome el tiempo necesario pero que no deje de sincronizar"
+            // (Ishtar, 7/9/26). El login es el paso que falla cuando el portal
+            // está lento: si se cae una vez, antes se perdía la corrida entera
+            // y había que esperar al tick siguiente. Ahora se reintenta acá
+            // mismo, con una pausa creciente entre intentos — sin apurar al
+            // portal, que además está migrando de servidor.
+            const INTENTOS_LOGIN = 3;
+            const PAUSA_ENTRE_INTENTOS_MS = [0, 15_000, 30_000];
+            let ultimoError: unknown = null;
 
-            await page.waitForTimeout(2000);
-            await inputs[0].fill('pisano.ishtar@gmail.com');
-            await page.waitForTimeout(1500);
-            await inputs[1].fill('atelier');
-            await page.waitForTimeout(2000);
+            for (let intento = 0; intento < INTENTOS_LOGIN; intento++) {
+                if (PAUSA_ENTRE_INTENTOS_MS[intento]) {
+                    console.log(`[SmartLab Sync] Reintentando el login en ${PAUSA_ENTRE_INTENTOS_MS[intento] / 1000}s (intento ${intento + 1}/${INTENTOS_LOGIN})...`);
+                    await page.waitForTimeout(PAUSA_ENTRE_INTENTOS_MS[intento]);
+                }
+                try {
+                    await page.goto('https://grupooptico.dyndns.info/smartlab/auth/authSmartlab/login', { waitUntil: 'domcontentloaded', timeout: ESPERA_MS });
+                    await page.waitForSelector('input', { timeout: ESPERA_MS });
 
-            const buttons = await page.$$('button');
-            let loginClicked = false;
-            for (const btn of buttons) {
-                const text = await btn.innerText();
-                if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
-                    await page.waitForTimeout(1000);
-                    await Promise.all([
-                        page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-                        btn.click({ delay: 300 })
-                    ]);
-                    loginClicked = true;
+                    const inputs = await page.$$('input');
+                    if (inputs.length < 2) throw new Error('No se encontraron los campos de login en SmartLab.');
+
+                    await page.waitForTimeout(2000);
+                    await inputs[0].fill('pisano.ishtar@gmail.com');
+                    await page.waitForTimeout(1500);
+                    await inputs[1].fill('atelier');
+                    await page.waitForTimeout(2000);
+
+                    const buttons = await page.$$('button');
+                    let loginClicked = false;
+                    for (const btn of buttons) {
+                        const text = await btn.innerText();
+                        if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
+                            await page.waitForTimeout(1000);
+                            await Promise.all([
+                                page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: ESPERA_MS }),
+                                btn.click({ delay: 300 })
+                            ]);
+                            loginClicked = true;
+                            break;
+                        }
+                    }
+                    if (!loginClicked) {
+                        await Promise.all([
+                            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: ESPERA_MS }),
+                            inputs[1].press('Enter', { delay: 200 })
+                        ]);
+                    }
+
+                    // Entró de verdad: la URL dejó de ser la del login. Sin este
+                    // chequeo, un login que "no explota" pero tampoco entra se
+                    // arrastraba hasta el scraping, que fallaba mucho después y
+                    // con un error que no decía nada.
+                    if (/\/login/i.test(page.url())) throw new Error(`El portal no salió de la pantalla de login (${page.url()})`);
+
+                    ultimoError = null;
                     break;
+                } catch (err) {
+                    ultimoError = err;
+                    console.warn(`[SmartLab Sync] Login falló (intento ${intento + 1}/${INTENTOS_LOGIN}): ${(err as Error)?.message}`);
                 }
             }
-            if (!loginClicked) {
-                await Promise.all([
-                    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-                    inputs[1].press('Enter', { delay: 200 })
-                ]);
-            }
+            if (ultimoError) throw ultimoError;
             console.log('[SmartLab Sync] Login exitoso');
 
             // ── Navegar a lista ──────────────────────────
             console.log('[SmartLab Sync] Navegando a lista de pedidos...');
-            await page.goto('https://grupooptico.dyndns.info/smartlab/laboratory/list', { waitUntil: 'domcontentloaded' });
+            await page.goto('https://grupooptico.dyndns.info/smartlab/laboratory/list', { waitUntil: 'domcontentloaded', timeout: ESPERA_MS });
             
             console.log('[SmartLab Sync] Esperando a que carguen los campos de búsqueda...');
-            await page.waitForSelector('input[type="text"]', { timeout: 15000 }).catch(() => console.log('Timeout esperando inputs'));
-            await page.waitForTimeout(2000);
+            await page.waitForSelector('input[type="text"]', { timeout: ESPERA_MS }).catch(() => console.log('Timeout esperando inputs'));
+            // Un respiro extra: la tabla se pinta después de que aparecen los inputs.
+            await page.waitForTimeout(5000);
 
             // ── Limpiar Filtro de Fechas y Cambiar a 100 registros para ver pedidos trabados ──
             let stuckOrdersList: any[] = [];

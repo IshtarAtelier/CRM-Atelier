@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { CashService } from './cash.service';
-import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE } from '@/lib/constants';
+import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE, CRM_ORIGIN } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
 import { PricingService } from './PricingService';
 import { sendEmail } from '@/lib/email';
@@ -8,7 +8,7 @@ import { sendWhatsApp } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
 import { logAudit } from '@/lib/audit';
 import { SYSTEM_ACTOR, type Actor } from '@/lib/actor';
-import { notifyDirectedNote } from '@/lib/note-notify';
+import { InternalMessagingService } from '@/services/internal-messaging.service';
 import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
 import { TAG_VISITA_LOCAL } from '@/lib/embudo/visito-local';
 import { balanceDueKind, itemsForEstimation } from '@/lib/lab-orders';
@@ -1128,8 +1128,8 @@ export const ContactService = {
     },
 
     async addInteraction(clientId: string, type: string, content: string, actor?: Actor, directedToId?: string | null, imageUrl?: string | null) {
-        // Nota dirigida: se guarda a quién va y se le avisa por email con link
-        // a la ficha (su casilla propia o la compartida del local).
+        // Nota dirigida: se guarda a quién va y se le avisa por los dos canales
+        // que el equipo sí mira — mensajes del equipo y WhatsApp (ver abajo).
         const directedTo = directedToId
             ? await prisma.user.findUnique({
                 where: { id: directedToId },
@@ -1171,7 +1171,7 @@ export const ContactService = {
             }).catch(e => console.error('[Visita] No se pudo etiquetar la visita al local:', e.message));
         }
 
-        let directedEmailSent: boolean | undefined;
+        let directedNoticeSent: boolean | undefined;
         // No avisamos si uno se dirige la nota a sí mismo.
         if (directedTo && directedTo.id !== actor?.id) {
             try {
@@ -1179,12 +1179,33 @@ export const ContactService = {
                     where: { id: clientId },
                     select: { id: true, name: true },
                 });
-                directedEmailSent = await notifyDirectedNote({
-                    directedTo,
-                    authorName: actor?.name || 'Sistema',
-                    clientId,
-                    clientName: client?.name || 'Cliente',
-                });
+                const ficha = `${CRM_ORIGIN}/admin/contactos?id=${clientId}`;
+
+                // Aviso en MENSAJES DEL EQUIPO, no por email (Ishtar, 7/9/2026).
+                // El mail avisaba sin el texto de la nota —los vendedores
+                // comparten casilla— así que obligaba a abrir la ficha para
+                // saber de qué se trataba, y terminó siendo un mail que nadie
+                // abre. En la mensajería el aviso llega firmado por quien la
+                // dejó, con el texto adentro y con el link a la ficha.
+                //
+                // Sin `actor.id` no hay de parte de quién escribir (un proceso
+                // automático no tiene cuenta): en ese caso queda solo el
+                // WhatsApp, que no necesita remitente con cuenta.
+                if (actor?.id) {
+                    await InternalMessagingService.crearConversacion({
+                        creadorId: actor.id,
+                        paraIds: [directedTo.id],
+                        // Sin asunto a propósito: el hilo uno-a-uno se reusa
+                        // para siempre, y titularlo con el cliente de la
+                        // primera nota dejaría el nombre de esa persona como
+                        // título de toda la conversación.
+                        primerMensaje: `📝 Nota en la ficha de ${client?.name || 'un cliente'}:\n\n${content.trim()}\n\n${ficha}`,
+                    }, actor);
+                    directedNoticeSent = true;
+                } else {
+                    directedNoticeSent = false;
+                }
+
                 // Copia al celular (pedido del 3/9/26). A diferencia del mail,
                 // acá SÍ va el texto: el WhatsApp es personal, no una casilla
                 // compartida. Fire-and-forget: la nota ya está guardada.
@@ -1193,10 +1214,10 @@ export const ContactService = {
                     remitente: { id: actor?.id, name: actor?.name || 'Sistema' },
                     contexto: `el cliente ${client?.name || 'sin nombre'}`,
                     texto: content,
-                    link: `${(process.env.NEXT_PUBLIC_APP_URL || 'https://crm-atelier-production-ae72.up.railway.app').replace(/\/$/, '')}/admin/contactos?id=${clientId}`,
+                    link: ficha,
                 }).catch(e => console.error('[Interaction] Copia por WhatsApp de la nota dirigida:', e?.message));
             } catch (e) {
-                directedEmailSent = false;
+                directedNoticeSent = false;
                 console.error('[Interaction] Error avisando la nota dirigida:', e);
             }
         }
@@ -1207,7 +1228,7 @@ export const ContactService = {
         // 18/8/2026 se pasó a email (B19 del plan de la API oficial, que no tiene
         // grupos); a esta altura era ruido en la casilla y se apaga.
 
-        return { ...interaction, directedEmailSent };
+        return { ...interaction, directedNoticeSent };
     },
 
     async getById(id: string) {
@@ -2342,24 +2363,37 @@ export const ContactService = {
                             : result.hasBalance
                                 ? `SALDO PARCIAL — queda $ ${result.remainingCard.toLocaleString('es-AR')}`
                                 : 'SALDO CANCELADO — pedido totalmente abonado';
+                        // 7/9/26: esto apuntaba a `aviso_pago_interno`, que NUNCA
+                        // se dio de alta en Meta. O sea que el código estaba, se
+                        // ejecutaba, y fallaba en silencio en cada pago: el aviso
+                        // por WhatsApp no llegó nunca. Ahora usa
+                        // `aviso_pago_interno_v2` (aprobada), con el formato que
+                        // pidió Ishtar: una línea por dato.
+                        //
+                        // La v2 NO lleva el recibo de encabezado. La v1 sí, y eso
+                        // la ataba a que el PDF se generara bien: sin PDF la
+                        // plantilla salía incompleta y Meta la rechazaba. El
+                        // recibo se mira en la ficha, cuyo link va en el mensaje.
+                        //
+                        // Ningún valor puede ir vacío o Meta rechaza el envío: por
+                        // eso la referencia cae en "—" cuando no hay notas.
                         const r = await sendWhatsApp({
                             chatId: ADMIN_WHATSAPP_PHONE,
-                            message: `Aviso de Atelier Sistema — Pago registrado: ${result.clientName} abonó $ ${amount.toLocaleString('es-AR')} ${methodLabel} del pedido #${String(orderId).slice(-4).toUpperCase()}. Total del pedido: $ ${fullTotal.toLocaleString('es-AR')}. ${señaOSaldo}. Recibo adjunto.`,
+                            message: msgText,
                             senderName: 'Sistema Atelier',
                             isProactive: true,
-                            // La plantilla lleva el recibo de ENCABEZADO: sin PDF no
-                            // puede salir como plantilla (Meta la rechaza incompleta),
-                            // así que en ese caso raro va como texto y listo.
-                            forceTemplate: Boolean(pdfMedia),
-                            template: !pdfMedia ? null : templateSpec('aviso_pago_interno', [
+                            forceTemplate: true,
+                            template: templateSpec('aviso_pago_interno_v2', [
+                                tipoPago,
                                 result.clientName,
+                                actorName || 'sin identificar',
                                 `$ ${amount.toLocaleString('es-AR')}`,
-                                methodLabel,
-                                `#${String(orderId).slice(-4).toUpperCase()}`,
+                                method,
                                 `$ ${fullTotal.toLocaleString('es-AR')}`,
+                                (notes && notes.trim()) ? notes.trim() : '—',
                                 señaOSaldo,
+                                clientLink,
                             ]),
-                            templateMedia: pdfMedia,
                         });
                         if (!r.ok) console.error('[Payment Notification] Aviso interno por WhatsApp no salió:', r.code, r.error);
                     })().catch(e => console.error('[Payment Notification] Aviso interno:', e.message));

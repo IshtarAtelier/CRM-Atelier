@@ -57,6 +57,7 @@ import {
     FlaskConical
 } from 'lucide-react';
 import type { Product } from '@/types/orders';
+import { precioConOferta } from '@/lib/precio-oferta';
 import { normalizeLensOrigin, lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 import { formatLensRange } from '@/lib/lens-range';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -524,7 +525,11 @@ function CotizadorPageContent() {
 
     // Cart logic
     const addToQuote = (p: Product) => {
-        const sprice = safePrice(p.price);
+        // El precio que entra al presupuesto es el MISMO que ve la clienta en la
+        // tienda: si el producto tiene una oferta cargada en /admin/web, se cotiza
+        // el precio rebajado. Antes el cotizador ignoraba `salePrice` y presupuestaba
+        // a precio de lista un armazón que la web mostraba rebajado.
+        const sprice = safePrice(precioConOferta(p).final);
         
         // Teñido addon validation: warn if no orgánico blanco in cart
         const isTeñidoAddon = (p.name || '').toLowerCase() === 'teñido' && p.type === 'ADDON';
@@ -1169,7 +1174,8 @@ function CotizadorPageContent() {
                                         <tbody>
                                             {filtered.map((product) => {
                                                 const inQuote = quoteItems.find(i => i.product?.id === product.id);
-                                                const sprice = safePrice(product.price);
+                                                const oferta = precioConOferta(product);
+                                                const sprice = safePrice(oferta.final);
                                                 const pTotal = sprice * (1 + markup / 100);
                                                 const pCash = pTotal * (1 - discountCash / 100);
                                                 const pTrans = pTotal * (1 - discountTransfer / 100);
@@ -1204,6 +1210,14 @@ function CotizadorPageContent() {
                                                                     </span>
                                                                 )}
                                                                 <p className="text-[13px] font-semibold leading-snug">{product.name || '—'}</p>
+                                                                {/* Oferta de la tienda: se avisa acá, junto al nombre, porque
+                                                                    las columnas de precio ya muestran el rebajado y sin este
+                                                                    cartel no se distingue de un producto sin promo. */}
+                                                                {oferta.enOferta && (
+                                                                    <span className="shrink-0 mt-px px-1.5 py-0.5 rounded text-[9px] font-black tracking-wide bg-rose-100 text-rose-700 border border-rose-200">
+                                                                        {oferta.descuentoPct}% OFF
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-2 text-center align-top">
@@ -1247,7 +1261,8 @@ function CotizadorPageContent() {
                             <div className="md:hidden flex flex-col gap-2">
                                 {filtered.map(product => {
                                     const inQuote = quoteItems.find(i => i.product?.id === product.id);
-                                    const sprice = safePrice(product.price);
+                                    const oferta = precioConOferta(product);
+                                    const sprice = safePrice(oferta.final);
                                     const pTotal = sprice * (1 + markup / 100);
                                     const pCash = pTotal * (1 - discountCash / 100);
                                     const { installment12: pCuota12 } = PricingService.cuotasMpLargas(pTotal);
@@ -1274,6 +1289,11 @@ function CotizadorPageContent() {
                                             )}
                                             <div className="flex items-center justify-between mt-2">
                                                 <div className="flex flex-col">
+                                                    {oferta.enOferta && (
+                                                        <span className="text-[10px] font-black text-rose-600">
+                                                            <span className="line-through text-foreground/45 font-semibold">${oferta.lista.toLocaleString('es-AR')}</span> {oferta.descuentoPct}% OFF
+                                                        </span>
+                                                    )}
                                                     <span className="text-base font-black text-primary tabular-nums">${Math.round(pCash).toLocaleString('es-AR')}</span>
                                                     <span className="text-[10px] font-semibold text-foreground/55 tabular-nums">{textoCuotas12(pCuota12)}</span>
                                                 </div>
@@ -1318,7 +1338,8 @@ function CotizadorPageContent() {
                                         <tbody>
                                             {filtered.map((product, idx) => {
                                                 const inQuote = quoteItems.find(i => i.product?.id === product.id);
-                                                const { installment12: tCuota12 } = PricingService.cuotasMpLargas(safePrice(product.price));
+                                                const oferta = precioConOferta(product);
+                                                const { installment12: tCuota12 } = PricingService.cuotasMpLargas(safePrice(oferta.final));
                                                 return (
                                                     <tr
                                                         key={product.id}
@@ -1337,7 +1358,17 @@ function CotizadorPageContent() {
                                                         <td className="px-4 py-2.5 text-center">
                                                             <span className="text-[10px] font-bold uppercase text-amber-600">{product.laboratory || 'A Pedido'}</span>
                                                         </td>
-                                                        <td className="px-4 py-2.5 text-right font-bold text-xs">${safePrice(product.price).toLocaleString()}</td>
+                                                        {/* Con oferta cargada se muestra el precio rebajado y, debajo,
+                                                            el de lista tachado con el % — igual que en la tienda, para
+                                                            que el vendedor vea de una que ese producto está en promo. */}
+                                                        <td className="px-4 py-2.5 text-right font-bold text-xs">
+                                                            ${safePrice(oferta.final).toLocaleString()}
+                                                            {oferta.enOferta && (
+                                                                <span className="block font-semibold text-[10px] text-rose-600">
+                                                                    <span className="line-through text-foreground/45">${oferta.lista.toLocaleString()}</span> {oferta.descuentoPct}% OFF
+                                                                </span>
+                                                            )}
+                                                        </td>
                                                         <td className="px-4 py-2.5 text-right font-semibold text-xs text-foreground/55">${tCuota12.toLocaleString()}</td>
                                                         {userRole === 'ADMIN' && (
                                                             <td className="px-4 py-2.5 text-right font-bold text-xs text-blue-600">${safePrice(product.wholesalePrice).toLocaleString()}</td>
@@ -1377,7 +1408,8 @@ function CotizadorPageContent() {
                                                 const config = getTypeConfig(product.type, product.category);
                                                 const TypeIcon = config.icon;
                                                 // Las CUATRO formas de pago, resueltas: el vendedor no calcula nada.
-                                                const bLista = safePrice(product.price) * (1 + markup / 100);
+                                                const oferta = precioConOferta(product);
+                                                const bLista = safePrice(oferta.final) * (1 + markup / 100);
                                                 const bEfectivo = bLista * (1 - discountCash / 100);
                                                 const bTransf = bLista * (1 - discountTransfer / 100);
                                                 const { installment12: bCuota12 } = PricingService.cuotasMpLargas(bLista);
@@ -1422,6 +1454,12 @@ function CotizadorPageContent() {
                                                                     {product.publishToWeb && (
                                                                         <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">
                                                                             🌐 Web
+                                                                        </span>
+                                                                    )}
+                                                                    {/* Misma oferta que ve la clienta en la tienda. */}
+                                                                    {oferta.enOferta && (
+                                                                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
+                                                                            {oferta.descuentoPct}% OFF
                                                                         </span>
                                                                     )}
                                                                 </div>

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
 import { evaluarSaludProgramacion, DIAS_COBERTURA_MINIMA } from '@/lib/social/salud-programacion';
 
 /**
@@ -89,74 +88,11 @@ export async function GET(request: Request) {
                         ? `⚠️ Redes: ${plural(dias!, 'día', 'días')} sin publicar · ${plural(semana, 'publicación', 'publicaciones')} en la última semana`
                         : `📣 Redes: ${plural(semana, 'publicación', 'publicaciones')} en 7 días · ${plural(salud.entradasFuturas, 'fecha programada', 'fechas programadas')} por delante`;
 
-        const fecha = (iso: string) =>
-            new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
-
-        const ultimasFilas = bitacora.slice(0, 5).map(p =>
-            `<tr>
-                <td style="padding:5px 8px;border:1px solid #e5e7eb">${fecha(p.fecha)}</td>
-                <td style="padding:5px 8px;border:1px solid #e5e7eb">${p.pieza || '—'}</td>
-                <td style="padding:5px 8px;border:1px solid #e5e7eb">${(p.plataformas || []).join(' + ') || '—'}</td>
-             </tr>`).join('');
-
-        const html = `
-            <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
-                <h2 style="color:${atrasado ? '#b45309' : '#1b6b5a'}">
-                    ${nuncaSePublico ? 'Todavía no se publicó nada' : `${semana} publicaciones en los últimos 7 días`}
-                </h2>
-                <p style="font-size:15px">
-                    ${nuncaSePublico
-                        ? 'El sistema de publicación está montado pero no registra ninguna pieza publicada.'
-                        : `La última fue <strong>${cuando}</strong>. En los últimos 30 días: <strong>${mes}</strong>.`}
-                </p>
-                ${atrasado ? `
-                <p style="background:#fef3c7;padding:12px 14px;border-radius:8px;font-size:14px">
-                    La cadencia que se sostiene es de <strong>${META_SEMANAL} por semana</strong>. Menos de eso y el
-                    algoritmo deja de mostrar las publicaciones; más, no se mantiene en el tiempo.
-                </p>` : ''}
-                ${salud.regeneracionCaida ? `
-                <div style="background:#fee2e2;border-left:4px solid #b91c1c;padding:12px 14px;margin:16px 0">
-                    <p style="margin:0 0 6px;font-size:15px;font-weight:700">Los precios dejaron de regenerarse</p>
-                    <p style="margin:0;font-size:14px">
-                        La última regeneración fue el <strong>${salud.ultimaRegeneracion || '—'}</strong>
-                        (hace ${salud.diasDesdeRegeneracion} días). Corre sola los viernes; si no vuelve a correr,
-                        las ${salud.piezasConPrecio} piezas con precio dejan de publicarse una por una.
-                    </p>
-                </div>` : ''}
-                ${salud.enRiesgo.length ? `
-                <div style="background:#fdf6ec;border-left:4px solid #b45309;padding:12px 14px;margin:16px 0">
-                    <p style="margin:0 0 6px;font-size:15px;font-weight:700">
-                        ${salud.enRiesgo.length} ${salud.enRiesgo.length === 1 ? 'pieza programada no va' : 'piezas programadas no van'} a poder salir
-                    </p>
-                    ${salud.enRiesgo.slice(0, 8).map(p =>
-                        `<p style="margin:4px 0;font-size:13px">• <strong>${p.id}</strong> (${p.fecha}): ${p.motivo}</p>`).join('')}
-                    ${salud.enRiesgo.length > 8 ? `<p style="margin:4px 0;font-size:13px">…y ${salud.enRiesgo.length - 8} más.</p>` : ''}
-                </div>` : ''}
-                <p style="font-size:14px;color:#4b5563">
-                    Por delante: <strong>${salud.entradasFuturas} fechas</strong> programadas hasta el
-                    <strong>${salud.ultimaFecha || '—'}</strong>${salud.diasDeCobertura < DIAS_COBERTURA_MINIMA
-                        ? ' — <span style="color:#b45309">queda poco, conviene cargar más</span>' : ''}.
-                </p>
-                ${ultimasFilas ? `
-                <p style="margin:18px 0 6px;font-weight:bold">Últimas publicaciones</p>
-                <table style="border-collapse:collapse;width:100%;font-size:13px">
-                    <tr style="background:#f9fafb">
-                        <th style="padding:5px 8px;border:1px solid #e5e7eb;text-align:left">Fecha</th>
-                        <th style="padding:5px 8px;border:1px solid #e5e7eb;text-align:left">Pieza</th>
-                        <th style="padding:5px 8px;border:1px solid #e5e7eb;text-align:left">Dónde</th>
-                    </tr>
-                    ${ultimasFilas}
-                </table>` : ''}
-                <p style="margin-top:22px;font-size:12px;color:#6b7280">
-                    Este mail llega todos los días, publiques o no. El día que deje de llegar, algo se cortó.
-                </p>
-            </div>`;
-
-        await sendEmail({
-            to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
-            subject: asunto,
-            html,
-        });
+        // Sin mail (Ishtar, 7/9/2026). El mismo diagnóstico lo da
+        // `npm run check:social`, que corre sin base ni red, y queda en la
+        // respuesta de este endpoint. El cron sigue corriendo: lo que se apaga
+        // es el correo diario, no el chequeo.
+        console.log(`[cron social-cadencia] ${asunto}`);
 
         return NextResponse.json({
             ok: true,

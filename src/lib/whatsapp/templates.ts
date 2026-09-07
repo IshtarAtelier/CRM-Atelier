@@ -512,6 +512,32 @@ export const WHATSAPP_TEMPLATES = {
             { label: 'seña o saldo', example: 'SEÑA — queda saldo $ 200.000' },
         ],
     },
+    // v2 (7/9/26, Ishtar): el formato que ella pidió, con una línea por dato.
+    // La v1 nunca se creó en Meta y era un párrafo corrido con el recibo
+    // adjunto; ésta va sin adjunto (el recibo se mira en la ficha) para que no
+    // dependa de subir un PDF de muestra en cada alta.
+    //
+    // Ningún valor puede ir vacío: Meta rechaza una variable sin contenido. El
+    // que arma el mensaje manda "—" cuando no hay referencia. Y la última
+    // variable NO puede cerrar el cuerpo (subcode 2388299), por eso termina en
+    // "— Atelier Óptica".
+    aviso_pago_interno_v2: {
+        name: 'aviso_pago_interno_v2',
+        inventario: 'B2 (aviso interno de cada pago cobrado)',
+        category: 'UTILITY',
+        body: 'Nuevo pago registrado ({{1}})\n\n👤 Cliente: {{2}}\n🧑 Cargado por: {{3}}\n💰 Monto de este pago: {{4}}\n💳 Método: {{5}}\n📈 Total de la operación: {{6}}\n📝 Referencia: {{7}}\n\n{{8}}\n\nFicha del cliente: {{9}} — Atelier Óptica',
+        params: [
+            { label: 'seña o saldo', example: 'SEÑA' },
+            { label: 'cliente', example: 'Karina Gutierrez' },
+            { label: 'cargado por', example: 'Ishtar' },
+            { label: 'monto', example: '$ 435.900' },
+            { label: 'método', example: 'TRANSFERENCIA_ISHTAR' },
+            { label: 'total de la operación', example: '$ 435.900' },
+            { label: 'referencia', example: '177763074234' },
+            { label: 'estado del saldo', example: 'Pedido totalmente abonado' },
+            { label: 'link a la ficha', example: 'https://atelieroptica.com.ar/admin/contactos?id=abc123' },
+        ],
+    },
     // Copia por WhatsApp de una nota o mensaje interno del equipo (pedido de
     // Ishtar del 3/9/26: "las notas que me dejen los vendedores que me lleguen
     // por WhatsApp, y a ellos también"). Va al celular del colaborador

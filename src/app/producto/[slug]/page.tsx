@@ -12,6 +12,7 @@ import { ProductClient } from './ProductClient';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { armarNombreVisible, baseDelNombre } from '@/lib/catalog/display-name';
+import { precioConOferta } from '@/lib/precio-oferta';
 
 // Slugs históricos de productos renombrados (julio 2026): la URL vieja redirige a la definitiva
 const LEGACY_SLUGS: Record<string, string> = {
@@ -558,7 +559,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       '@type': 'Offer',
       url: `https://atelieroptica.com.ar/producto/${product.slug}`,
       priceCurrency: 'ARS',
-      price: ((product as any).salePrice != null && (product as any).salePrice > 0 && (product as any).salePrice < product.price) ? (product as any).salePrice : product.price,
+      // Mismo precio que ve la clienta en la ficha: con la oferta aplicada si la
+      // tiene. Un JSON-LD que declara un precio distinto del visible es motivo
+      // de desaprobación en Merchant Center.
+      price: precioConOferta(product as any).final,
       availability: (product.stock !== undefined && product.stock > 0) || product.slug === 'atelier-carey-vintage' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       itemCondition: 'https://schema.org/NewCondition',
       priceValidUntil,

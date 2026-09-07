@@ -19,6 +19,7 @@ import { GARANTIA_ADAPTACION } from "@/lib/garantia";
 import { PricingService } from "@/services/PricingService";
 import { formatearPrecio } from "@/lib/format-precio";
 import { textoCuotas12 } from "@/lib/promo-cuotas";
+import { precioConOferta } from "@/lib/precio-oferta";
 import { UMBRAL_ULTIMAS_UNIDADES, claveMarca } from "@/lib/constants/social-proof";
 import { TrustStrip } from "@/components/Storefront/TrustStrip";
 import ProductReviews from "@/components/Storefront/ProductReviews";
@@ -251,12 +252,10 @@ export function ProductClient({
   const altFor = (index: number) =>
     (imageAlts[index]?.trim()) || `${product.brand} ${product.model}${index > 0 ? ` - vista ${index + 1}` : ''}`.trim();
 
-  // Precio de oferta ("precio tachado"): solo si es un descuento real sobre el precio de lista
-  const listPrice = product.price || 0;
-  const saleRaw = (product as any).salePrice;
-  const hasSale = saleRaw != null && saleRaw > 0 && saleRaw < listPrice;
-  const effectivePrice = hasSale ? saleRaw : listPrice;
-  const pctOff = hasSale ? Math.round((1 - saleRaw / listPrice) * 100) : 0;
+  // Precio de oferta ("precio tachado"). La regla vive en src/lib/precio-oferta.ts:
+  // la misma que usan la grilla de la tienda, el JSON-LD y el cotizador.
+  const { lista: listPrice, final: effectivePrice, enOferta: hasSale, descuentoPct: pctOff } =
+    precioConOferta(product as any);
 
   // Analítica propia: vista de ficha de producto (una vez por producto cargado).
   useEffect(() => {
@@ -1002,7 +1001,7 @@ export function ProductClient({
                   <h3 className="text-xs font-bold text-stone-900 truncate uppercase mt-0.5">{p.model}</h3>
                   <p className="text-xs text-stone-600 font-medium mt-1">
                     {(() => {
-                      const pSale = p.salePrice != null && p.salePrice > 0 && p.salePrice < p.price;
+                      const pSale = precioConOferta(p).enOferta;
                       if (isWholesale) return <>${(wholesalePriceOf(p.id) || p.price || 0).toLocaleString("es-AR")} <span className="text-[10px] font-black text-blue-600">(Mayorista)</span></>;
                       if (pSale) return <><span className="text-red-600 font-bold">${p.salePrice.toLocaleString("es-AR")}</span> <span className="text-[10px] text-stone-400 line-through">${(p.price || 0).toLocaleString("es-AR")}</span></>;
                       /* Mismo criterio que toda la vidriera (Ishtar, 31/8): el

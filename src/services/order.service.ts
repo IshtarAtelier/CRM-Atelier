@@ -2439,15 +2439,14 @@ export class OrderService {
                         `Detalle:\n• ${saleSummaries}\n` +
                         `🔗 *Ficha:* ${link}`;
 
-                    // 18/8/2026 (B18 del plan de la API oficial): el aviso al
-                    // GRUPO de ventas de WhatsApp pasa a email. La API oficial no
-                    // tiene grupos y, mientras la cuenta está bajo observación,
-                    // el número del bot no emite avisos internos.
-                    sendEmail({
-                        to: process.env.SALES_NOTIFY_EMAIL || process.env.ADMIN_EMAIL || 'pisano.ishtar@gmail.com',
-                        subject: `🎉 Venta confirmada — ${existingOrder.client.name} ($${(updatedOrder.total || 0).toLocaleString('es-AR')})`,
-                        html: `<pre style="font-family:inherit;white-space:pre-wrap">${groupMessage.replace(/\*/g, '')}</pre>`,
-                    }).catch(err => console.error('[Sales Notification] Error enviando email:', err));
+                    // Sin aviso: la confirmación de venta NO manda mail (Ishtar,
+                    // 7/9/2026). El aviso nació como mensaje al grupo de ventas de
+                    // WhatsApp y el 18/8/2026 pasó a email (B18 del plan de la API
+                    // oficial, que no tiene grupos); una venta confirmada por día
+                    // es algo que ya se ve en el CRM y en el dashboard, así que el
+                    // mail era una copia de algo que nadie iba a buscar al correo.
+                    // El resumen queda en el log por si hace falta rastrear una.
+                    console.log(`[Venta confirmada] ${existingOrder.client.name} — $${(updatedOrder.total || 0).toLocaleString('es-AR')} (${confirmedBy})`);
                 } catch (e) {
                     console.error('Error al preparar mensaje de venta al grupo WhatsApp:', e);
                 }

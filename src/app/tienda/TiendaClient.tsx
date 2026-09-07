@@ -14,6 +14,7 @@ import { resolveStorageUrl } from "@/lib/utils/storage";
 import { usePromo2x1 } from "@/hooks/usePromo2x1";
 import { PricingService } from "@/services/PricingService";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
+import { precioConOferta } from "@/lib/precio-oferta";
 import { UMBRAL_ULTIMAS_UNIDADES } from "@/lib/constants/social-proof";
 import { track } from "@/lib/client-analytics";
 
@@ -1000,8 +1001,9 @@ export function TiendaClient({
                         // Ahora el cartel llamativo es exclusivo de la rebaja
                         // real, y el 15% se dice donde corresponde: al lado del
                         // precio de contado, como la condición que es.
-                        const oferta = (p.salePrice || 0) > 0 && p.salePrice < base;
-                        const ahorro = oferta ? Math.round((1 - p.salePrice / base) * 100) : 0;
+                        // La regla de la oferta vive en src/lib/precio-oferta.ts:
+                        // la misma que usan la ficha, el JSON-LD y el cotizador.
+                        const { enOferta: oferta, descuentoPct: ahorro } = precioConOferta(p);
 
                         return (
                           <div className="pt-1 flex items-center justify-between gap-2">

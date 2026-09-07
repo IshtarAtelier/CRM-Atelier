@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { prisma } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
 import { publicarCarrusel, publicarReel, origenPublico } from '@/services/social-publisher.service';
 import { evaluarFrescura } from '@/lib/social/frescura';
 
@@ -140,15 +139,9 @@ export async function GET(request: Request) {
                 });
                 return NextResponse.json({ ok: true, reel: entrada.reel, instagramId: rr.storyId });
             }
-            await sendEmail({
-                to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
-                subject: `⚠️ No salió el reel de hoy (${entrada.reel})`,
-                html: `<div style="font-family:Arial,sans-serif;color:#1f2937">
-                    <h2 style="color:#b45309">El reel programado no se publicó</h2>
-                    <p>Reel: <strong>${entrada.reel}</strong><br>Motivo: <strong>${rr.error}</strong></p>
-                    <p style="font-size:13px">No se reintenta solo. Se puede subir a mano desde la app con el mp4 de social/contenido/reels/salida/.</p>
-                </div>`,
-            }).catch(console.error);
+            // Sin mail (Ishtar, 7/9/2026): el motivo queda en el log y en la
+            // respuesta del endpoint. No se reintenta solo, para no duplicar.
+            console.error(`[cron social-feed] El reel ${entrada.reel} no se publicó:`, rr.error);
             return NextResponse.json({ ok: false, reel: entrada.reel, error: rr.error });
         }
 
@@ -181,19 +174,10 @@ export async function GET(request: Request) {
             const cuando = veredicto.dias === null
                 ? 'fecha desconocida'
                 : `hace ${veredicto.dias} días`;
-            await sendEmail({
-                to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
-                subject: `⚠️ Carrusel "${pieza.id}" no salió: precios de ${cuando}`,
-                html: `
-                    <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
-                        <h2 style="color:#b45309">El carrusel de hoy no se publicó</h2>
-                        <p style="font-size:15px">${veredicto.motivo}</p>
-                        <p style="font-size:14px">Para regenerarlo con los precios de hoy y publicarlo:</p>
-                        <pre style="background:#f3f4f6;padding:10px;border-radius:6px;font-size:12px">node scripts/social/generar-producto.mjs ${pieza.id === 'sol-seleccion' ? '--categoria "Sol" --id sol-seleccion' : pieza.id === 'receta-seleccion' ? '--categoria "Receta" --id receta-seleccion --saltear 3' : ''} --produccion --render
-node scripts/social/publicar.mjs social/contenido/${pieza.id}.json --facebook --instagram</pre>
-                    </div>`,
-            }).catch(console.error);
-            return NextResponse.json({ ok: false, pieza: pieza.id, motivo: `${veredicto.motivo} No se publica. Mail enviado.` });
+            // Sin mail (Ishtar, 7/9/2026). Que la pieza esté vencida es la regla
+            // R6 haciendo su trabajo: NO se publica un precio viejo. Queda en el log.
+            console.error(`[cron social-feed] Carrusel "${pieza.id}" no salió, precios de ${cuando}:`, veredicto.motivo);
+            return NextResponse.json({ ok: false, pieza: pieza.id, motivo: `${veredicto.motivo} No se publica.` });
         }
 
         const urls = (pieza.slides || []).map((_: any, i: number) =>
@@ -217,22 +201,9 @@ node scripts/social/publicar.mjs social/contenido/${pieza.id}.json --facebook --
             return NextResponse.json({ ok: true, pieza: pieza.id, facebook: r.facebookId, instagram: r.instagramId });
         }
 
-        await sendEmail({
-            to: process.env.ADMIN_EMAIL || 'ventas@atelieroptica.com.ar',
-            subject: `⚠️ No salió el carrusel de hoy (${pieza.id})`,
-            html: `
-                <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#1f2937">
-                    <h2 style="color:#b45309">El carrusel programado para hoy no se publicó</h2>
-                    <p style="font-size:15px">
-                        Pieza: <strong>${pieza.id}</strong><br>
-                        Motivo: <strong>${r.error}</strong>
-                    </p>
-                    <p style="font-size:14px">
-                        No se reintenta solo, para no duplicar la publicación. Se puede publicar a mano con:<br>
-                        <code>node scripts/social/publicar.mjs social/contenido/${pieza.id}.json --facebook --instagram</code>
-                    </p>
-                </div>`,
-        }).catch(console.error);
+        // Sin mail (Ishtar, 7/9/2026). Se puede publicar a mano con:
+        //   node scripts/social/publicar.mjs social/contenido/<pieza>.json --facebook --instagram
+        console.error(`[cron social-feed] El carrusel ${pieza.id} no se publicó:`, r.error);
 
         return NextResponse.json({ ok: false, pieza: pieza.id, error: r.error });
     } catch (error: any) {
