@@ -65,6 +65,42 @@ const FANTASMAS = [
     { fantasma: '3025', real: '3578631' },
 ];
 
+/**
+ * Filas duplicadas de la MISMA factura donde NINGUNA tiene venta todavía: se
+ * queda la de clave explícita y se borra la de serie pelada. La serie pelada es
+ * un casillero único por laboratorio (la unicidad es [lab, labOrderNumber]), así
+ * que cada factura nueva sin nº de pedido PISA a la anterior — el 5/9 esa fila
+ * era la factura 70740 por $220.850,72 y el 7/9 ya era la 76510 por $30,24.
+ * Borrarla evita que se siga comiendo facturas en silencio.
+ */
+const DUPLICADOS_SIN_VENTA = [
+    { borrar: '3008', conservar: 'S/PEDIDO 3008-00076510' },
+];
+
+/**
+ * ANOTACIONES sobre los huérfanos VIEJOS, de la época del sistema anterior.
+ * No cambian estado ni plata: dejan escrito adónde se rastreó cada uno el
+ * 7/9/2026, para que nadie los vuelva a perseguir como si fueran ventas que
+ * faltan cargar. Los siete primeros aparecen en la ficha del cliente (en las
+ * interacciones), no como venta del CRM; los cinco últimos no aparecen en
+ * ningún lado.
+ */
+const MARCA_REVISION = '[Revisado 7/9/2026]';
+const ANOTACIONES = [
+    { pedido: '574011', nota: 'Sistema anterior: figura en la ficha de Ramiro Gomez. Sin venta en el CRM nuevo; no es un pedido perdido.' },
+    { pedido: '567417', nota: 'Sistema anterior: figura en la ficha de Sardeni Teofilia. Sin venta en el CRM nuevo; no es un pedido perdido.' },
+    { pedido: '578082', nota: 'Sistema anterior: figura en la ficha de Carlos Cuomo. Sin venta en el CRM nuevo; no es un pedido perdido.' },
+    { pedido: '578085', nota: 'Sistema anterior: figura en la ficha de Carlos Cuomo. Sin venta en el CRM nuevo; no es un pedido perdido.' },
+    { pedido: '565423', nota: 'Sistema anterior: figura en la ficha de Claudio Busico. Sin venta en el CRM nuevo; no es un pedido perdido.' },
+    { pedido: '575961', nota: 'Sistema anterior: figura en la ficha de Claudio Busico. Sin venta en el CRM nuevo; no es un pedido perdido.' },
+    { pedido: '575971', nota: 'Sistema anterior: figura en la ficha de Claudio Busico. Sin venta en el CRM nuevo; no es un pedido perdido.' },
+    { pedido: '567420', nota: 'Sistema anterior: buscado en ventas, postventas y fichas — no aparece en ningún lado. Pedir el nombre del cliente a Optovisión.' },
+    { pedido: '566040', nota: 'Sistema anterior: buscado en ventas, postventas y fichas — no aparece en ningún lado. Pedir el nombre del cliente a Optovisión.' },
+    { pedido: '566048', nota: 'Sistema anterior: buscado en ventas, postventas y fichas — no aparece en ningún lado. Pedir el nombre del cliente a Optovisión.' },
+    { pedido: '577396', nota: 'Sistema anterior: buscado en ventas, postventas y fichas — no aparece en ningún lado. Pedir el nombre del cliente a Optovisión.' },
+    { pedido: '577397', nota: 'Sistema anterior: buscado en ventas, postventas y fichas — no aparece en ningún lado. Pedir el nombre del cliente a Optovisión.' },
+];
+
 const pesos = n => n == null ? '—' : `$${n.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`;
 
 async function main() {
@@ -134,7 +170,41 @@ async function main() {
         console.log();
     }
 
-    console.log(`RESUMEN: ${listas.length} factura(s) a asignar · ${borrables.length} fila(s) duplicada(s) a borrar\n`);
+    // ── 3) DUPLICADOS DE SERIE PELADA (ninguna con venta) ─────────────────
+    console.log('═══ BORRAR LA FILA DE SERIE PELADA ═══\n');
+    const pelados = [];
+    for (const d of DUPLICADOS_SIN_VENTA) {
+        const [b] = await prisma.$queryRaw`
+            select id, "labOrderNumber", "billedTotal", "orderId", "sourceFile"
+            from "LabCostEntry" where lab = ${LAB} and "labOrderNumber" = ${d.borrar}`;
+        const [c] = await prisma.$queryRaw`
+            select id, "labOrderNumber", "billedTotal", "orderId", "sourceFile"
+            from "LabCostEntry" where lab = ${LAB} and "labOrderNumber" = ${d.conservar}`;
+        console.log(`serie pelada "${d.borrar}"`);
+        console.log(`   borrar:    ${b ? `${pesos(b.billedTotal)} · ${b.sourceFile} · venta=${b.orderId || 'ninguna'}` : 'NO existe'}`);
+        console.log(`   conservar: ${c ? `${pesos(c.billedTotal)} · ${c.sourceFile} · venta=${c.orderId || 'ninguna'}` : 'NO existe'}`);
+        if (!b || !c) console.log('   AVISO: falta una de las dos, no se toca nada');
+        else if (b.orderId) console.log('   AVISO: la fila a borrar TIENE venta asignada, no se toca');
+        else if (b.sourceFile !== c.sourceFile) console.log('   AVISO: no son la misma factura, no se toca');
+        else { console.log('   OK: misma factura, ninguna asignada; se borra la de serie pelada'); pelados.push({ ...d, b, c }); }
+        console.log();
+    }
+
+    // ── 4) ANOTACIONES sobre los viejos ───────────────────────────────────
+    console.log('═══ ANOTAR LOS HUÉRFANOS VIEJOS ═══\n');
+    const anotar = [];
+    for (const a of ANOTACIONES) {
+        const [e] = await prisma.$queryRaw`
+            select id, "labOrderNumber", notes, "billedTotal", status
+            from "LabCostEntry" where lab = ${LAB} and "labOrderNumber" = ${a.pedido}`;
+        if (!e) { console.log(`  ${a.pedido.padEnd(9)} AVISO: ya no existe esa entrada`); continue; }
+        if ((e.notes || '').includes(MARCA_REVISION)) { console.log(`  ${a.pedido.padEnd(9)} ya estaba anotado`); continue; }
+        console.log(`  ${a.pedido.padEnd(9)} ${pesos(e.billedTotal).padStart(12)} [${e.status}] → "${a.nota.slice(0, 70)}…"`);
+        anotar.push({ ...a, entrada: e });
+    }
+    console.log();
+
+    console.log(`RESUMEN: ${listas.length} factura(s) a asignar · ${borrables.length} duplicada(s) a borrar · ${pelados.length} serie pelada a borrar · ${anotar.length} anotación(es)\n`);
     if (!APLICAR) { console.log('Ensayo terminado. Nada se escribió.'); return; }
 
     for (const p of listas) {
@@ -173,6 +243,19 @@ async function main() {
                 ${JSON.stringify({ borrada: b.fantasma, motivo: 'duplicado de la factura ya asignada', cubiertaPor: b.real })}::jsonb, now())`;
         console.log(`  borrada la fila duplicada "${b.fantasma}" (la cubre ${b.real})`);
     }
+
+    for (const d of pelados) {
+        await prisma.$executeRaw`delete from "LabCostEntry" where id = ${d.b.id}`;
+        console.log(`  borrada la fila de serie pelada "${d.borrar}" (queda "${d.conservar}", misma factura)`);
+    }
+
+    for (const a of anotar) {
+        const nueva = [a.entrada.notes, `${MARCA_REVISION} ${a.nota}`].filter(Boolean).join(' ');
+        await prisma.$executeRaw`
+            update "LabCostEntry" set notes = ${nueva}, "updatedAt" = now() where id = ${a.entrada.id}`;
+        console.log(`  anotado el pedido ${a.pedido}`);
+    }
+
     console.log('\nListo.');
 }
 
