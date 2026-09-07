@@ -2363,24 +2363,37 @@ export const ContactService = {
                             : result.hasBalance
                                 ? `SALDO PARCIAL — queda $ ${result.remainingCard.toLocaleString('es-AR')}`
                                 : 'SALDO CANCELADO — pedido totalmente abonado';
+                        // 7/9/26: esto apuntaba a `aviso_pago_interno`, que NUNCA
+                        // se dio de alta en Meta. O sea que el código estaba, se
+                        // ejecutaba, y fallaba en silencio en cada pago: el aviso
+                        // por WhatsApp no llegó nunca. Ahora usa
+                        // `aviso_pago_interno_v2` (aprobada), con el formato que
+                        // pidió Ishtar: una línea por dato.
+                        //
+                        // La v2 NO lleva el recibo de encabezado. La v1 sí, y eso
+                        // la ataba a que el PDF se generara bien: sin PDF la
+                        // plantilla salía incompleta y Meta la rechazaba. El
+                        // recibo se mira en la ficha, cuyo link va en el mensaje.
+                        //
+                        // Ningún valor puede ir vacío o Meta rechaza el envío: por
+                        // eso la referencia cae en "—" cuando no hay notas.
                         const r = await sendWhatsApp({
                             chatId: ADMIN_WHATSAPP_PHONE,
-                            message: `Aviso de Atelier Sistema — Pago registrado: ${result.clientName} abonó $ ${amount.toLocaleString('es-AR')} ${methodLabel} del pedido #${String(orderId).slice(-4).toUpperCase()}. Total del pedido: $ ${fullTotal.toLocaleString('es-AR')}. ${señaOSaldo}. Recibo adjunto.`,
+                            message: msgText,
                             senderName: 'Sistema Atelier',
                             isProactive: true,
-                            // La plantilla lleva el recibo de ENCABEZADO: sin PDF no
-                            // puede salir como plantilla (Meta la rechaza incompleta),
-                            // así que en ese caso raro va como texto y listo.
-                            forceTemplate: Boolean(pdfMedia),
-                            template: !pdfMedia ? null : templateSpec('aviso_pago_interno', [
+                            forceTemplate: true,
+                            template: templateSpec('aviso_pago_interno_v2', [
+                                tipoPago,
                                 result.clientName,
+                                actorName || 'sin identificar',
                                 `$ ${amount.toLocaleString('es-AR')}`,
-                                methodLabel,
-                                `#${String(orderId).slice(-4).toUpperCase()}`,
+                                method,
                                 `$ ${fullTotal.toLocaleString('es-AR')}`,
+                                (notes && notes.trim()) ? notes.trim() : '—',
                                 señaOSaldo,
+                                clientLink,
                             ]),
-                            templateMedia: pdfMedia,
                         });
                         if (!r.ok) console.error('[Payment Notification] Aviso interno por WhatsApp no salió:', r.code, r.error);
                     })().catch(e => console.error('[Payment Notification] Aviso interno:', e.message));
