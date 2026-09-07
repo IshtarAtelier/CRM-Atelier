@@ -218,9 +218,13 @@ ${saldoHtml}
                     // no, plantilla aprobada (A1 / A12 del plan de la API oficial).
                     const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
                     const fmt = (n: number) => `$ ${Number(n || 0).toLocaleString('es-AR')}`;
+                    // Firma: el vendedor del pedido, que es quien lo mandó a
+                    // fábrica (`labSentBy`, ver CLAUDE.md). Sin vendedor cargado
+                    // firma el equipo — nunca "Sistema", que suena a máquina.
+                    const firma = String((order as any).labSentBy || '').split(' ')[0] || 'el equipo de Atelier';
                     const template = financials.hasBalance
-                        ? templateSpec('pedido_listo_saldo_v3', [clientName, nro, fmt(financials.remainingCard), fmt(financials.remainingTransfer), fmt(financials.remainingCash)])
-                        : templateSpec('pedido_listo_v3', [clientName, nro]);
+                        ? templateSpec('pedido_listo_saldo_v5', [clientName, nro, fmt(financials.remainingCard), fmt(financials.remainingTransfer), fmt(financials.remainingCash), firma])
+                        : templateSpec('pedido_listo_v5', [clientName, nro, firma]);
                     const res = await sendWhatsApp({
                         chatId: `${formattedPhone}@c.us`,
                         message,

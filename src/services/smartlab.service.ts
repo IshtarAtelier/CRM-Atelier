@@ -54,6 +54,23 @@ export class SmartLabService {
         }
         let browser;
         try {
+            // Dónde está Chromium. El build lo instala en `.playwright-browsers`
+            // (ver el script `build` del package.json), pero Playwright lo busca
+            // por defecto en la cache del sistema (~/.cache/ms-playwright), que
+            // en el contenedor de Railway está vacía. Sin esta línea el launch
+            // falla y la sincronización entera muere ANTES de llegar al portal.
+            //
+            // Es exactamente lo que pasó: `smartlab_down_since` marcaba el
+            // 24/8/26 y estuvo catorce días sin sincronizar, con el portal
+            // respondiendo HTTP 200. Los otros cuatro usos de Playwright del
+            // proyecto (los tres generadores de PDF y kazwini-sync) ya seteaban
+            // esta ruta; este archivo era el único que no.
+            //
+            // Consecuencia de la caída: sin estados de SmartLab ningún pedido de
+            // Grupo Óptico llega a 100%, y sin eso no se crea la notificación
+            // LAB_READY que dispara el aviso automático de "pedido listo".
+            const nodePath = await import('path');
+            process.env.PLAYWRIGHT_BROWSERS_PATH = nodePath.join(process.cwd(), '.playwright-browsers');
             const { chromium } = await import('playwright');
             browser = await chromium.launch({
                 headless: true,

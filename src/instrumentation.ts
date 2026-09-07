@@ -375,6 +375,42 @@ export async function register() {
             }
         };
 
+        // ---- RECORDATORIO DE SALDO PENDIENTE, una vez por hora ----
+        // `/api/cron/recordatorio-saldo` le escribe al cliente cuyo pedido está
+        // listo, ya avisado, y a los 7 días sigue con saldo sin pagar. Una sola
+        // vez: el segundo golpe lo decide una persona.
+        let saldoLastHourKey: string | null = null;
+        let saldoRunning = false;
+        const maybeRunSaldo = async () => {
+            const { hour, dateKey } = argNow();
+            if (hour < 9 || hour >= 20) return;
+            const hourKey = `${dateKey}T${hour}`;
+            if (saldoLastHourKey === hourKey || saldoRunning) return;
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            saldoRunning = true;
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/recordatorio-saldo`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(5 * 60 * 1000),
+                });
+                if (!res.ok) {
+                    console.error(`[CRON recordatorio-saldo] HTTP ${res.status} — se reintenta en el próximo tick.`);
+                    return;
+                }
+                saldoLastHourKey = hourKey;
+                const data = await res.json().catch(() => ({}));
+                if (data.enviados?.length || data.salteados?.length) {
+                    console.log(`[CRON recordatorio-saldo] ${data.enviados?.length ?? 0} recordatorio(s) · ${data.salteados?.length ?? 0} salteado(s)`);
+                }
+            } catch (err) {
+                console.error('[CRON recordatorio-saldo] Error disparando el recordatorio (se reintenta):', err);
+            } finally {
+                saldoRunning = false;
+            }
+        };
+
         // ---- Pase RÁPIDO SmartLab (robot chico), cada 10 min ----
         const runSync = async () => {
             // El diario se evalúa en cada tick, independiente del horario del pase
@@ -386,6 +422,7 @@ export async function register() {
             maybeRunCarritos().catch(err => console.error('[CRON abandoned-carts] maybeRunCarritos:', err));
             maybeRunTurnos().catch(err => console.error('[CRON turnos] maybeRunTurnos:', err));
             maybeRunSeguimientos().catch(err => console.error('[CRON seguimientos] maybeRunSeguimientos:', err));
+            maybeRunSaldo().catch(err => console.error('[CRON recordatorio-saldo] maybeRunSaldo:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');

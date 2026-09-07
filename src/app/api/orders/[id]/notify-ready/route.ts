@@ -6,12 +6,17 @@ import { PricingService } from '@/services/PricingService';
 import { normalizeArgentinePhone } from '@/services/contact.service';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import { sendClientEmail, escHtml } from '@/lib/client-email';
+import { getActor } from '@/lib/actor';
 
 // POST /api/orders/[id]/notify-ready
 export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    // Quién apretó el botón: firma el mensaje al cliente y queda en el buzón
+    // (pedido de Ishtar, 7/9/26: "registrá quién envía el mensaje").
+    const actor = getActor(request);
+
     try {
         const { id: orderId } = await params;
         
@@ -84,13 +89,14 @@ ${saldoHtml}
             // Texto libre dentro de la ventana de 24 h; plantilla A1/A12 si está cerrada.
             const nro = `#${String(order.id).slice(-4).toUpperCase()}`;
             const fmt = (n: number) => `$ ${Number(n || 0).toLocaleString('es-AR')}`;
+            const firma = (actor.name || 'el equipo de Atelier').split(' ')[0];
             const template = financials.hasBalance
-                ? templateSpec('pedido_listo_saldo_v3', [shortName, nro, fmt(financials.remainingCard), fmt(financials.remainingTransfer), fmt(financials.remainingCash)])
-                : templateSpec('pedido_listo_v3', [shortName, nro]);
+                ? templateSpec('pedido_listo_saldo_v5', [shortName, nro, fmt(financials.remainingCard), fmt(financials.remainingTransfer), fmt(financials.remainingCash), firma])
+                : templateSpec('pedido_listo_v5', [shortName, nro, firma]);
             const res = await sendWhatsApp({
                 chatId: chatIdForBot,
                 message: msgText,
-                senderName: 'Sistema Atelier',
+                senderName: actor.name || 'Sistema Atelier',
                 template,
             });
             whatsappEnviado = res.ok;
