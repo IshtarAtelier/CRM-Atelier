@@ -4,7 +4,7 @@ Diseño pedido por Ishtar el 7/9/2026: *"yo limpiaría y levantaría solo
 algunos, y me ocuparía de que el pipeline funcione perfecto. Diseñá algo que
 sea escalable y modular."*
 
-**Estado: DISEÑO. No construido.**
+**Estado: CONSTRUIDO el 7/9/2026, arranca EN SECO.** Código en `src/lib/seguimientos/`, `src/lib/constants/seguimientos.ts` y `src/app/api/cron/seguimientos/route.ts`. Para que mande de verdad: `MODO_POR_DEFECTO = 'real'` (o `SystemSetting.seguimientos_auto_modo = 'real'`).
 
 ---
 
@@ -120,17 +120,21 @@ nada es indistinguible de un motor que anda bien y no tenía a quién mandarle.
 
 ## 4. Qué levantar, y qué no
 
-Levantar **tres**, que son los que el playbook ya define:
+Levantar **tres escalones** (cuatro plantillas), que son los que el playbook ya define:
 
 | Toque | Cuándo | Plantilla |
 |---|---|---|
-| Primer toque | 48 h sin respuesta | `seguimiento_presupuesto` |
+| Primer toque, CON presupuesto | 48 h sin respuesta | `seguimiento_presupuesto` |
+| Primer toque, SIN presupuesto (charla frenada) | 48 h | `seguimiento_lentes` |
 | Segundo toque | 4 días | `invitacion_local_v2` |
 | Último | 15 días | `ultimo_seguimiento` |
 
+*Corrección al borrador anterior:* `seguimiento_lentes` NO duplica al primer
+toque — es la otra puerta de entrada al mismo escalón, para el que preguntó y
+nunca llegó a presupuesto. Sin ella, el motor ignora a la mitad de los leads.
+
 Retirar del automático:
 - `seguimiento_carrito` — ya lo cubre el cron de carritos abandonados.
-- `seguimiento_lentes` — duplica el primer toque; que quede para envío manual.
 - `retomar_conversacion` — hoy la usan Matías e Ishtar a mano, y está bien así.
 
 Borrar `wa-service/sales-followups.js` y `wa-service/followups/` una vez que el
@@ -145,9 +149,8 @@ las campañas. Hay 779 leads dormidos de más de un mes: vaciar esa cola son
 varios días. Propuesta: **30 por día**, ajustable desde `SystemSetting` sin
 deploy.
 
-**Corte de antigüedad.** Hay 126 leads de más de tres meses. Escribirle a
-alguien que preguntó en junio se lee como spam y un bloqueo sí le pega a la
-calidad del número (hoy GREEN). Propuesta: **nada de más de 60 días**.
+**Corte de antigüedad — DECIDIDO (7/9):** a los viejos se les escribe a mano. El motor
+solo toca leads que entraron desde el 7/9/2026 (`MOTOR_SEGUIMIENTOS_DESDE`).
 
 **Arranque en seco.** Primer día en `dryRun`, mirando a quién le habría
 escrito, antes de dejarlo mandar de verdad.
