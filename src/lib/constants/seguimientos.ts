@@ -44,15 +44,17 @@ export const HORA_HASTA = 19;
 export const SILENCIO_MINIMO_HORAS = 48;
 
 /**
- * Las plantillas que el motor tiene permitido mandar solo. Las cuatro son los
- * escalones del embudo (`playbook.ts`): dos puertas de entrada al primer toque
- * (con presupuesto / sin presupuesto), el segundo y el último.
+ * Las plantillas que el motor tiene permitido mandar solo. Cinco: las DOS
+ * puertas de entrada al primer toque (con presupuesto / sin presupuesto —
+ * esta última partida en con/sin receta desde el 7/9/26), el segundo y el
+ * último (`playbook.ts`).
  * `seguimiento_carrito` NO está: lo cubre el cron de carritos abandonados.
  * `retomar_conversacion` NO está: la usan Matías e Ishtar a mano, y está bien así.
  */
 export const PLANTILLAS_AUTOMATICAS: readonly TemplateName[] = [
     'seguimiento_presupuesto',
-    'seguimiento_lentes',
-    'invitacion_local_v2',
+    'seguimiento_lentes_sin_receta',
+    'seguimiento_lentes_con_receta',
+    'invitacion_local_v3',
     'ultimo_seguimiento',
 ];

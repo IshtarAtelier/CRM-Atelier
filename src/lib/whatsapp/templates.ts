@@ -188,11 +188,33 @@ export const WHATSAPP_TEMPLATES = {
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿pudiste ver el presupuesto que te pasamos? ¿Qué te pareció, está dentro de lo que estabas buscando? Si querés te mando fotitos de los modelos que tenemos disponibles.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
+    // Reemplazadas por seguimiento_lentes_sin_receta / seguimiento_lentes_con_receta
+    // (7/9/26, pedido de Ishtar): la charla frenada sin cotizar tiene DOS
+    // situaciones distintas y hasta acá se les mandaba el mismo texto — a
+    // quien ya mandó la receta no tenía sentido pedirle "recordá enviarla".
+    // Queda registrada como DEPRECADA, no se borra ni se reusa el nombre: una
+    // plantilla aprobada no se edita en Meta (crear una nueva es la única vía),
+    // y wa-service todavía puede tener el nombre viejo dando vueltas en algún
+    // lado no migrado.
     seguimiento_lentes: {
         name: 'seguimiento_lentes',
-        inventario: 'E4 (Oportunidades de cierre · charla frenada)',
+        inventario: 'E4 — DEPRECADA, ver seguimiento_lentes_sin_receta / _con_receta',
         category: 'UTILITY',
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te escribo por los lentes que estuvimos viendo, ¿seguís con la idea? Si querés te mando fotitos de los modelos que tenemos ahora.',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    seguimiento_lentes_sin_receta: {
+        name: 'seguimiento_lentes_sin_receta',
+        inventario: 'E4 (Oportunidades de cierre · charla frenada, sin receta)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te escribo por tu consultita ¿seguís interesado en que confeccionemos el presupuesto? Recordá enviarme la recetita para poder evaluarla y si querés te mando fotitos de nuestros modelitos disponibles. También te dejo nuestro catálogo de la tienda atelieroptica.com.ar',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    seguimiento_lentes_con_receta: {
+        name: 'seguimiento_lentes_con_receta',
+        inventario: 'E4 (Oportunidades de cierre · charla frenada, con receta)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Te escribo por tu consultita, ¿retomamos el armado de tu presupuesto? Te dejo nuestro catálogo de la tienda atelieroptica.com.ar para que me cuentes qué estilo de modelito te gusta y te envío más fotitos.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
     seguimiento_carrito: {
@@ -215,9 +237,21 @@ export const WHATSAPP_TEMPLATES = {
     // Ya en uso en quick-replies.ts.
     invitacion_local_v2: {
         name: 'invitacion_local_v2',
-        inventario: 'E4 (segundo seguimiento: invitar al local)',
+        inventario: 'E4 — DEPRECADA, ver invitacion_local_v3',
         category: 'UTILITY',
         body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te mandé? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo?',
+        params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
+    },
+    // v3 (7/9/26, Ishtar): mismo cuerpo que la v2 pero cierra con la prueba
+    // social ("la óptica mejor calificada de Córdoba"), que es el argumento
+    // que más mueve a alguien que todavía no se decidió a venir. La v2 queda
+    // DEPRECADA: una plantilla aprobada no se edita en Meta, solo se
+    // reemplaza por una nueva.
+    invitacion_local_v3: {
+        name: 'invitacion_local_v3',
+        inventario: 'E4 (segundo seguimiento: invitar al local)',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, {{2}}! ¿Cómo estás? Contame, ¿te gustó alguna de las opciones que te envié? Si querés pasá por el local y las ves en persona, estamos en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. Lunes a Viernes de 9:00 a 20:00. Sábados de 9:00 a 17:00. ¿Qué día te queda más cómodo? Te cuento que somos la óptica mejor calificada de Córdoba.',
         params: [{ label: 'nombre', example: 'Julio' }, { label: 'saludo según la hora', example: 'buen día' }],
     },
     // Marketing, no utilidad: menciona un descuento. Meta la cobra más caro y

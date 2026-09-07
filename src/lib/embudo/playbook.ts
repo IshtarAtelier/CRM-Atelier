@@ -30,9 +30,10 @@ const HORA_MS = 3_600_000;
  */
 export const ETIQUETA_POR_PLANTILLA: Partial<Record<TemplateName, string>> = {
     seguimiento_presupuesto: 'SEGUIMIENTO_DIA_1',
-    seguimiento_lentes: 'SEGUIMIENTO_DIA_1',
+    seguimiento_lentes_sin_receta: 'SEGUIMIENTO_DIA_1',
+    seguimiento_lentes_con_receta: 'SEGUIMIENTO_DIA_1',
     seguimiento_carrito: 'SEGUIMIENTO_DIA_1',
-    invitacion_local_v2: 'SEGUIMIENTO_DIA_4',
+    invitacion_local_v3: 'SEGUIMIENTO_DIA_4',
     ultimo_seguimiento: 'SEGUIMIENTO_DIA_15',
 };
 
@@ -46,7 +47,7 @@ export function esPlantillaDeSeguimiento(nombre: string): nombre is TemplateName
 /** Escalón de seguimiento → plantilla que le corresponde. */
 const PLANTILLA_POR_ESCALON: Record<'seguimiento1' | 'seguimiento2' | 'seguimiento10dias', TemplateName> = {
     seguimiento1: 'seguimiento_presupuesto',
-    seguimiento2: 'invitacion_local_v2',
+    seguimiento2: 'invitacion_local_v3',
     seguimiento10dias: 'ultimo_seguimiento',
 };
 
@@ -60,9 +61,10 @@ const VENCE_A_LAS_HORAS: Record<'seguimiento1' | 'seguimiento2' | 'seguimiento10
 /** Nombres cortos para mostrar en la tarjeta y en el resumen. */
 export const NOMBRE_CORTO_PLANTILLA: Partial<Record<TemplateName, string>> = {
     seguimiento_presupuesto: 'Seguimiento del presupuesto',
-    seguimiento_lentes: 'Retomar la charla',
+    seguimiento_lentes_sin_receta: 'Retomar la charla (sin receta)',
+    seguimiento_lentes_con_receta: 'Retomar la charla (con receta)',
     seguimiento_carrito: 'Seguimiento del carrito',
-    invitacion_local_v2: 'Invitar al local',
+    invitacion_local_v3: 'Invitar al local',
     ultimo_seguimiento: 'Último seguimiento',
 };
 
@@ -95,6 +97,10 @@ export interface EntradaProximaAccion {
     quoteCreatedAt: Date | null;
     /** Alta del lead: para la charla frenada sin presupuesto. */
     createdAt: Date;
+    /** ¿Ya mandó la receta? Decide cuál de las dos plantillas de charla frenada le toca. */
+    hasPrescription: boolean;
+    /** ¿Ya vino al local? Si vino, la invitación al local no se manda (ver visito-local.ts). */
+    visitoElLocal: boolean;
     /** ¿Tiene chat de WhatsApp donde mandarle algo? */
     tieneChat: boolean;
     chatLabels: string[];
@@ -112,12 +118,14 @@ function diasDesde(fecha: Date, now: number): number {
  * Casos (entrada → acción):
  * - Sin presupuesto, alta hace 1 día                     → cotizar
  * - Sin presupuesto, alta hace 40 días                   → decidir (fuera de ventana, NO cuenta para hoy)
- * - Sin presupuesto, con chat, 3 días, sin DIA_1         → plantilla seguimiento_lentes (vencida)
+ * - Sin presupuesto, con chat, 3 días, sin DIA_1, sin receta → plantilla seguimiento_lentes_sin_receta (vencida)
+ * - Sin presupuesto, con chat, 3 días, sin DIA_1, con receta → plantilla seguimiento_lentes_con_receta (vencida)
  * - Sin presupuesto, con chat, 3 días, ya con DIA_1      → cotizar
  * - Presupuesto de hace 10h                              → esperar (vence a las 48h)
  * - Presupuesto de hace 3 días, nadie escribió           → plantilla seguimiento_presupuesto (vencida)
  * - Presupuesto de hace 3 días, DIA_1 enviado            → esperar (vence a los 4 días)
- * - Presupuesto de hace 6 días, solo DIA_1               → plantilla invitacion_local_v2 (vencida)
+ * - Presupuesto de hace 6 días, solo DIA_1               → plantilla invitacion_local_v3 (vencida)
+ * - Presupuesto de hace 6 días, solo DIA_1, YA VINO      → esperar al día 15 (no se lo invita al local)
  * - Presupuesto de hace 20 días, DIA_4 enviado           → plantilla ultimo_seguimiento (vencida)
  * - Presupuesto de hace 20 días, DIA_15 enviado          → decidir
  * - Presupuesto de hace 45 días, lo que sea             → decidir (fuera de ventana, NO cuenta para hoy)
@@ -139,10 +147,13 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
         const yaRetomada = e.chatLabels.some(l => l.toUpperCase() === 'SEGUIMIENTO_DIA_1');
         const charlaFrenada = e.tieneChat && !yaRetomada && (e.now - e.createdAt.getTime()) > SEG1_HOURS * HORA_MS;
         if (charlaFrenada) {
+            // Misma etapa del embudo, dos plantillas: a quien ya mandó la
+            // receta no tiene sentido pedirle que la mande (7/9/2026).
+            const plantilla = e.hasPrescription ? 'seguimiento_lentes_con_receta' : 'seguimiento_lentes_sin_receta';
             return {
                 tipo: 'plantilla',
-                plantilla: 'seguimiento_lentes',
-                etiqueta: `Hoy: ${NOMBRE_CORTO_PLANTILLA.seguimiento_lentes} (${diasDesde(e.createdAt, e.now)} días sin presupuesto)`,
+                plantilla,
+                etiqueta: `Hoy: ${NOMBRE_CORTO_PLANTILLA[plantilla]} (${diasDesde(e.createdAt, e.now)} días sin presupuesto)`,
                 venceEn: new Date(e.createdAt.getTime() + SEG1_HOURS * HORA_MS).toISOString(),
                 vencida: true,
             };
@@ -188,6 +199,22 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
     // En un escalón de seguimiento sin haber mandado ese escalón: toca hoy.
     if (e.stage in PLANTILLA_POR_ESCALON) {
         const escalon = e.stage as keyof typeof PLANTILLA_POR_ESCALON;
+
+        // Ya vino al local: la invitación no tiene sentido y se lee como que
+        // nadie está mirando. Se saltea ese toque — no se reemplaza por otro
+        // mensaje: espera al último seguimiento, que sigue aplicando.
+        if (escalon === 'seguimiento2' && e.visitoElLocal) {
+            const faltanDias = Math.max(0, Math.ceil((q + FRIO_HOURS * HORA_MS - e.now) / (24 * HORA_MS)));
+            return {
+                tipo: 'esperar',
+                etiqueta: faltanDias === 0
+                    ? 'Ya vino al local · próximo toque: hoy'
+                    : `Ya vino al local · próximo toque en ${faltanDias} día${faltanDias === 1 ? '' : 's'}`,
+                venceEn: vence(FRIO_HOURS),
+                vencida: false,
+            };
+        }
+
         const plantilla = PLANTILLA_POR_ESCALON[escalon];
         return {
             tipo: 'plantilla',
