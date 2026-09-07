@@ -407,6 +407,21 @@ export const WHATSAPP_TEMPLATES = {
     // las últimas 24 h — por eso tiene que ser plantilla. El texto de la nota
     // viaja en {{3}} (recortado a un renglón: Meta no acepta saltos de línea
     // dentro de una variable) y {{4}} dice de qué es (un cliente, un hilo).
+    // Recordatorio al CLIENTE de que tiene turno. Se manda el día anterior.
+    // Va como plantilla porque a esa altura la ventana de 24 h casi siempre
+    // está cerrada (el turno se sacó días antes). Sin botones: un "confirmar"
+    // obliga a leer y actuar sobre la respuesta, y hoy nadie la mira.
+    recordatorio_turno: {
+        name: 'recordatorio_turno',
+        inventario: 'B4',
+        category: 'UTILITY',
+        body: 'Hola {{1}}, te recordamos tu turno en Atelier Óptica: {{2}}. Estamos en {{3}}. Si no podés venir, respondé este mensaje y lo reprogramamos.',
+        params: [
+            { label: 'nombre', example: 'Julio' },
+            { label: 'cuándo', example: 'martes 8/9 a las 10:00' },
+            { label: 'dirección', example: 'José Luis de Tejeda 4380, Cerro de las Rosas' },
+        ],
+    },
     nota_interna: {
         name: 'nota_interna',
         inventario: 'B3',

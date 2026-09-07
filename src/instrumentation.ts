@@ -293,6 +293,51 @@ export async function register() {
             }
         };
 
+        // ---- RECORDATORIOS DE TURNO, una vez por hora ----
+        // Dos avisos distintos, los dos desde `/api/cron/turnos-recordatorio`:
+        // al EQUIPO la lista de los turnos de hoy (a primera hora, uno solo por
+        // día) y al CLIENTE el recordatorio del turno de mañana.
+        //
+        // Va acá adentro y no en un scheduler externo por lo mismo que el
+        // pickup-reminder y los carritos: los que se declararon en `vercel.json`
+        // nunca corrieron, porque Railway no lo ejecuta y nadie los dio de alta
+        // afuera. Un recordatorio que no sale no se nota hasta que el cliente
+        // no viene.
+        //
+        // Horario de local: son mensajes a clientes reales, no se mandan de
+        // madrugada. La ruta se encarga sola de no repetir (marca la tarea).
+        let turnosLastHourKey: string | null = null;
+        let turnosRunning = false;
+        const maybeRunTurnos = async () => {
+            const { hour, dateKey } = argNow();
+            if (hour < 9 || hour >= 20) return;
+            const hourKey = `${dateKey}T${hour}`;
+            if (turnosLastHourKey === hourKey || turnosRunning) return;
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            turnosRunning = true;
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/turnos-recordatorio`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${cronSecret}` },
+                    signal: AbortSignal.timeout(5 * 60 * 1000),
+                });
+                if (!res.ok) {
+                    console.error(`[CRON turnos] HTTP ${res.status} — se reintenta en el próximo tick.`);
+                    return;
+                }
+                turnosLastHourKey = hourKey;
+                const data = await res.json().catch(() => ({}));
+                if (data.avisadosCliente || data.turnosDeHoy) {
+                    console.log(`[CRON turnos] ${data.avisadosCliente} recordatorio(s) al cliente · ${data.turnosDeHoy} turno(s) hoy · equipo avisado: ${data.avisoAlEquipo}`);
+                }
+            } catch (err) {
+                console.error('[CRON turnos] Error disparando los recordatorios (se reintenta):', err);
+            } finally {
+                turnosRunning = false;
+            }
+        };
+
         // ---- Pase RÁPIDO SmartLab (robot chico), cada 10 min ----
         const runSync = async () => {
             // El diario se evalúa en cada tick, independiente del horario del pase
@@ -302,6 +347,7 @@ export async function register() {
             maybeRunPickupReminder().catch(err => console.error('[CRON pickup-reminder] maybeRunPickupReminder:', err));
             maybeRunCalidad().catch(err => console.error('[CRON whatsapp-calidad] maybeRunCalidad:', err));
             maybeRunCarritos().catch(err => console.error('[CRON abandoned-carts] maybeRunCarritos:', err));
+            maybeRunTurnos().catch(err => console.error('[CRON turnos] maybeRunTurnos:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');
