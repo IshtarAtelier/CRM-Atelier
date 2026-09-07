@@ -35,7 +35,7 @@ const { BotService } = require('./services/bot.service');
 const { runOutputGuardrail } = require('./services/ai.service');
 const { generateAndSaveHandoffSummary } = require('./tools');
 const { TAGS_SIN_BOT } = require('./utils');
-const { limpiarSalidaBot, quitarRepeticiones } = require('./shared/limpiar-salida-bot');
+const { limpiarSalidaBot, quitarRepeticiones, limitarEmojis, partirEnBurbujas } = require('./shared/limpiar-salida-bot');
 const { esConsulta } = require('./shared/tipos-entrantes');
 const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano } = require('./shared/remitentes');
@@ -605,7 +605,17 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
                 }
                 vistos.add(firma);
                 return true;
-            });
+            })
+            // Escribir como el equipo, no como un folleto. Medido en producción:
+            // el bot manda 129 caracteres de mediana contra 31 del equipo, y usa
+            // emoji en el 52% de las burbujas contra el 19%. Las mismas reglas
+            // están en el prompt desde el 31/8 y no se cumplen — una regla de
+            // estilo en el prompt es una sugerencia; la que rige es la del código.
+            // Los presupuestos, la dirección y todo lo que tiene viñetas, precios
+            // o links NO se parte: eso el equipo también lo manda largo.
+                .flatMap(partirEnBurbujas)
+                .map(limitarEmojis)
+                .filter(Boolean);
             for (let i = 0; i < bloques.length; i++) {
                 let bloque = bloques[i];
                 const urls = [];
