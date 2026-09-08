@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { tipoDeRecetaSegunNumeros } from '@/lib/receta/tipo-de-lente';
 import { 
     FileText, Plus, History, X, AlertCircle
 } from 'lucide-react';
@@ -46,7 +47,7 @@ export default function PrescriptionManager({
         nearSphereOD: '', nearCylinderOD: '', nearAxisOD: '',
         nearSphereOI: '', nearCylinderOI: '', nearAxisOI: '',
         distanceOD: '', distanceOI: '', heightOD: '', heightOI: '',
-        notes: '', imageUrl: '', prescriptionType: 'ADDITION'
+        notes: '', imageUrl: '', prescriptionType: 'FAR'
     });
 
     // Track whether addition was manually edited (to avoid overriding manual changes)
@@ -107,7 +108,7 @@ export default function PrescriptionManager({
             nearSphereOD: '', nearCylinderOD: '', nearAxisOD: '',
             nearSphereOI: '', nearCylinderOI: '', nearAxisOI: '',
             distanceOD: '', distanceOI: '', heightOD: '', heightOI: '',
-            notes: '', imageUrl: '', prescriptionType: 'ADDITION'
+            notes: '', imageUrl: '', prescriptionType: 'FAR'
         });
         setAdditionManualOD(false);
         setAdditionManualOI(false);
@@ -142,7 +143,7 @@ export default function PrescriptionManager({
             heightOI: rx.heightOI?.toString() || '',
             notes: rx.notes || '',
             imageUrl: rx.imageUrl || '',
-            prescriptionType: rx.prescriptionType || 'ADDITION'
+            prescriptionType: rx.prescriptionType || tipoDeRecetaSegunNumeros(rx)
         });
         setAdditionManualOD(false);
         setAdditionManualOI(false);
@@ -248,7 +249,13 @@ export default function PrescriptionManager({
                         nearSphereOI: safeFloat(form.nearSphereOI),
                         nearCylinderOI: safeFloat(form.nearCylinderOI),
                         nearAxisOI: safeInt(form.nearAxisOI),
-                        prescriptionType: form.nearSphereOD || form.nearSphereOI ? 'NEAR' : form.prescriptionType,
+                        // El tipo sale de la ADICIÓN cargada, no de un default del
+                        // formulario: arrancaba fijo en 'ADDITION' y no hay ningún
+                        // control para elegir "monofocal", así que TODA receta
+                        // cargada a mano se guardaba como multifocal (8/9/2026).
+                        prescriptionType: form.nearSphereOD || form.nearSphereOI
+                            ? 'NEAR'
+                            : tipoDeRecetaSegunNumeros({ additionOD: form.additionOD, additionOI: form.additionOI }),
                     })
                 });
                 
@@ -284,7 +291,13 @@ export default function PrescriptionManager({
                         nearSphereOI: safeFloat(form.nearSphereOI),
                         nearCylinderOI: safeFloat(form.nearCylinderOI),
                         nearAxisOI: safeInt(form.nearAxisOI),
-                        prescriptionType: form.nearSphereOD || form.nearSphereOI ? 'NEAR' : form.prescriptionType,
+                        // El tipo sale de la ADICIÓN cargada, no de un default del
+                        // formulario: arrancaba fijo en 'ADDITION' y no hay ningún
+                        // control para elegir "monofocal", así que TODA receta
+                        // cargada a mano se guardaba como multifocal (8/9/2026).
+                        prescriptionType: form.nearSphereOD || form.nearSphereOI
+                            ? 'NEAR'
+                            : tipoDeRecetaSegunNumeros({ additionOD: form.additionOD, additionOI: form.additionOI }),
                     })
                 });
                 
