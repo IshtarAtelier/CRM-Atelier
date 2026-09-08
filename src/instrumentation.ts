@@ -323,6 +323,7 @@ export async function register() {
         // Una vez por hora y en horario de local: la ruta reintenta sola lo que
         // falló (deja el pedido FINISHED), y cada fallo genera una tarea al
         // vendedor — cada 10 min sería una tarea nueva por pedido cada 10 min.
+        const PICKUP_KEY = 'pickup_reminder_last_hour';
         let pickupLastHourKey: string | null = null;
         let pickupRunning = false;
         const maybeRunPickupReminder = async () => {
@@ -332,6 +333,19 @@ export async function register() {
             if (pickupLastHourKey === hourKey || pickupRunning) return;
             const cronSecret = process.env.CRON_SECRET;
             if (!cronSecret) return;
+            // ESTE MANDA MENSAJES AL CLIENTE, así que el guard no puede vivir solo
+            // en la memoria del proceso: con dos instancias corriendo este archivo
+            // —y con los redeploys, que reinician la memoria— la misma hora se
+            // disparaba más de una vez y la persona podía recibir dos veces el
+            // aviso de que su pedido está listo. Se reclama la hora en la base.
+            let previoPickup: string | null = null;
+            try {
+                previoPickup = await reclamarCorrida(PICKUP_KEY, hourKey);
+                if (previoPickup === null) { pickupLastHourKey = hourKey; return; }
+            } catch (err) {
+                console.error('[CRON pickup-reminder] No se pudo reclamar la hora:', err);
+                return; // ante la duda NO se manda: un aviso repetido es peor que uno tarde
+            }
             pickupRunning = true;
             try {
                 const res = await fetch(`${baseUrl}/api/cron/pickup-reminder`, {
@@ -341,6 +355,7 @@ export async function register() {
                 });
                 if (!res.ok) {
                     console.error(`[CRON pickup-reminder] HTTP ${res.status} — se reintenta en el próximo tick.`);
+                    await devolverCorrida(PICKUP_KEY, hourKey, previoPickup);
                     return;
                 }
                 pickupLastHourKey = hourKey;
@@ -367,6 +382,7 @@ export async function register() {
         // y a las 4 de la mañana no se manda nada. Un carrito abandonado de
         // noche entra en la primera corrida de la mañana, todavía adentro de la
         // ventana de 72hs.
+        const CARRITOS_KEY = 'abandoned_carts_last_hour';
         let carritosLastHourKey: string | null = null;
         let carritosRunning = false;
         const maybeRunCarritos = async () => {
@@ -376,6 +392,17 @@ export async function register() {
             if (carritosLastHourKey === hourKey || carritosRunning) return;
             const cronSecret = process.env.CRON_SECRET;
             if (!cronSecret) return;
+            // Mismo motivo que el recordatorio de retiro: esto le escribe al
+            // cliente, y con dos instancias más los redeploys la memoria del
+            // proceso no alcanza para garantizar "una vez por hora".
+            let previoCarritos: string | null = null;
+            try {
+                previoCarritos = await reclamarCorrida(CARRITOS_KEY, hourKey);
+                if (previoCarritos === null) { carritosLastHourKey = hourKey; return; }
+            } catch (err) {
+                console.error('[CRON abandoned-carts] No se pudo reclamar la hora:', err);
+                return;
+            }
             carritosRunning = true;
             try {
                 const res = await fetch(`${baseUrl}/api/cron/abandoned-carts`, {
@@ -385,6 +412,7 @@ export async function register() {
                 });
                 if (!res.ok) {
                     console.error(`[CRON abandoned-carts] HTTP ${res.status} — se reintenta en el próximo tick.`);
+                    await devolverCorrida(CARRITOS_KEY, hourKey, previoCarritos);
                     return;
                 }
                 carritosLastHourKey = hourKey;
