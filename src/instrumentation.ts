@@ -39,6 +39,47 @@ export async function register() {
         let dailyRanForDate: string | null = null; // memoria del proceso
         let dailyRunning = false;
 
+        /**
+         * RECLAMA una corrida para UNA SOLA instancia.
+         *
+         * Hoy hay dos procesos ejecutando este mismo archivo, así que el patrón
+         * "leer el guard y después escribirlo" no alcanza: los dos leen el valor
+         * viejo y los dos disparan. Un UPDATE condicional (`updateMany` con
+         * `NOT: { value }`) es atómico en Postgres — exactamente uno ve
+         * `count === 1`. El que gana recibe el valor ANTERIOR (para poder
+         * devolverlo si su corrida falla); el que pierde recibe `null`.
+         */
+        const reclamarCorrida = async (key: string, valor: string): Promise<string | null> => {
+            const { prisma } = await import('@/lib/db');
+            const previo = (await prisma.systemSetting.findUnique({ where: { key } }))?.value ?? null;
+            if (previo === valor) return null; // ya corrió (o lo está corriendo la otra)
+            if (previo === null) {
+                // Nadie lo corrió nunca: la unicidad de `key` deja pasar a uno solo.
+                try {
+                    await prisma.systemSetting.create({ data: { key, value: valor } });
+                    return '';
+                } catch {
+                    return null;
+                }
+            }
+            const tomado = await prisma.systemSetting.updateMany({
+                where: { key, value: previo },
+                data: { value: valor },
+            });
+            return tomado.count === 1 ? previo : null;
+        };
+
+        /** Devuelve el guard a su valor anterior cuando la corrida reclamada falló. */
+        const devolverCorrida = async (key: string, valor: string, previo: string | null) => {
+            if (previo === null) return;
+            try {
+                const { prisma } = await import('@/lib/db');
+                await prisma.systemSetting.updateMany({ where: { key, value: valor }, data: { value: previo } });
+            } catch (err) {
+                console.error(`[CRON] No se pudo devolver el guard ${key}:`, err);
+            }
+        };
+
         const maybeRunDaily = async () => {
             const { hour, minute, dateKey } = argNow();
             // ¿Ya pasó la hora objetivo de hoy?
@@ -52,16 +93,25 @@ export async function register() {
                 return;
             }
 
-            // ¿Otro proceso/reinicio ya lo corrió hoy? (persistente)
+            // ¿Otro proceso/reinicio ya lo corrió hoy?
+            //
+            // ANTES ERA LEER-Y-DESPUÉS-ESCRIBIR, y eso no es un candado: dos
+            // instancias leían el valor viejo, las dos lo daban por no corrido y
+            // las dos disparaban. Medido en LabAuditRun: la conciliación corría
+            // DOS VECES todos los días, sin faltar uno, con 2 a 7 minutos de
+            // diferencia — y por eso cada aviso llegaba duplicado y desde dos
+            // remitentes distintos. Ahora se RECLAMA el día con un UPDATE
+            // condicional, que en Postgres es atómico: de las dos instancias,
+            // exactamente una ve `count === 1` y es la única que corre.
+            let reclamoPrevio: string | null = null;
             try {
-                const { prisma } = await import('@/lib/db');
-                const row = await prisma.systemSetting.findUnique({ where: { key: DAILY_KEY } });
-                if (row?.value === dateKey) {
+                reclamoPrevio = await reclamarCorrida(DAILY_KEY, dateKey);
+                if (reclamoPrevio === null) {
                     dailyRanForDate = dateKey;
-                    return;
+                    return; // lo tomó la otra instancia
                 }
             } catch (err) {
-                console.error('[CRON lab-invoices] No se pudo leer el guard diario (se intenta igual):', err);
+                console.error('[CRON lab-invoices] No se pudo reclamar el día (se intenta igual):', err);
             }
 
             dailyRunning = true;
@@ -82,26 +132,77 @@ export async function register() {
                 if (!res.ok) {
                     const body = await res.text();
                     console.error(`[CRON lab-invoices] HTTP ${res.status}: ${body} — se reintenta en el próximo tick.`);
-                    return; // NO marcar el día: reintenta al próximo tick
+                    // El día quedó reclamado por nosotros y la corrida falló: se
+                    // devuelve el valor anterior para que el próximo tick lo pueda
+                    // volver a tomar. Sin esto, reclamar de antemano convertiría
+                    // cualquier falla en "hoy ya corrió" y el diario se saltearía
+                    // el día entero.
+                    await devolverCorrida(DAILY_KEY, dateKey, reclamoPrevio);
+                    return;
                 }
-                // Corrió OK: marcar el día (persistente + memoria) para no repetir.
-                try {
-                    const { prisma } = await import('@/lib/db');
-                    await prisma.systemSetting.upsert({
-                        where: { key: DAILY_KEY },
-                        update: { value: dateKey },
-                        create: { key: DAILY_KEY, value: dateKey },
-                    });
-                } catch (err) {
-                    console.error('[CRON lab-invoices] Corrió OK pero no se pudo persistir el guard diario:', err);
-                }
+                // Corrió OK: el día ya quedó marcado al reclamarlo. Solo la memoria.
                 dailyRanForDate = dateKey;
                 const data = await res.json().catch(() => ({}));
                 console.log(`[CRON lab-invoices] Diario OK (${dateKey}). stale=${JSON.stringify(data.stale ?? [])} backfill=${JSON.stringify(data.backfill ?? [])}`);
             } catch (err) {
                 console.error('[CRON lab-invoices] Error disparando el diario (se reintenta):', err);
+                await devolverCorrida(DAILY_KEY, dateKey, reclamoPrevio);
             } finally {
                 dailyRunning = false;
+            }
+        };
+
+        // ---- REPORTE SEMANAL DE LABORATORIO, auto-disparado ----
+        //
+        // Es el que trae la CUENTA CORRIENTE al día de los dos laboratorios, y
+        // NUNCA CORRIÓ: la ruta existía desde siempre pero no la disparaba nadie
+        // —no estaba acá y no hay rastro de que se diera de alta en cron-job.org—,
+        // así que ese reporte no llegó una sola vez. Lo mismo le pasaba a
+        // `laboratorios-semanal`, que se dispara junto con este.
+        //
+        // Viernes a las 9:30 ARG, que es para cuando la ruta fue pensada
+        // ("correr los viernes/domingos y dejar al día la tratativa").
+        const SEMANAL_KEY = 'lab_weekly_report_last_run';
+        const SEMANAL_DIA = 5; // viernes
+        const SEMANAL_HORA = 9;
+        const SEMANAL_MIN = 30;
+        let semanalRunning = false;
+
+        const maybeRunSemanalLab = async () => {
+            const { hour, minute, dateKey } = argNow();
+            // Día de la semana en hora argentina, del mismo dateKey que ya se calculó.
+            const diaSemana = new Date(`${dateKey}T12:00:00Z`).getUTCDay();
+            if (diaSemana !== SEMANAL_DIA) return;
+            if (hour < SEMANAL_HORA || (hour === SEMANAL_HORA && minute < SEMANAL_MIN)) return;
+            if (semanalRunning) return;
+
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+
+            let previo: string | null = null;
+            try {
+                previo = await reclamarCorrida(SEMANAL_KEY, dateKey);
+                if (previo === null) return; // ya corrió, o lo tomó la otra instancia
+            } catch (err) {
+                console.error('[CRON lab-weekly-report] No se pudo reclamar la semana:', err);
+                return;
+            }
+
+            semanalRunning = true;
+            try {
+                for (const ruta of ['lab-weekly-report', 'laboratorios-semanal']) {
+                    const res = await fetch(`${baseUrl}/api/cron/${ruta}?secret=${cronSecret}`, {
+                        method: 'GET',
+                        signal: AbortSignal.timeout(10 * 60 * 1000),
+                    });
+                    if (!res.ok) throw new Error(`${ruta} respondió HTTP ${res.status}: ${await res.text()}`);
+                    console.log(`[CRON ${ruta}] Semanal OK (${dateKey}).`);
+                }
+            } catch (err) {
+                console.error('[CRON lab-weekly-report] Falló el semanal (se reintenta en el próximo tick):', err);
+                await devolverCorrida(SEMANAL_KEY, dateKey, previo);
+            } finally {
+                semanalRunning = false;
             }
         };
 
@@ -421,6 +522,7 @@ export async function register() {
             // El diario se evalúa en cada tick, independiente del horario del pase
             // rápido (aunque 08:30 cae dentro de 8-20, esto lo deja robusto).
             maybeRunDaily().catch(err => console.error('[CRON lab-invoices] maybeRunDaily:', err));
+            maybeRunSemanalLab().catch(err => console.error('[CRON lab-weekly-report] maybeRunSemanalLab:', err));
             maybeRunResumen().catch(err => console.error('[CRON resumen-equipo] maybeRunResumen:', err));
             maybeRunPickupReminder().catch(err => console.error('[CRON pickup-reminder] maybeRunPickupReminder:', err));
             maybeRunCalidad().catch(err => console.error('[CRON whatsapp-calidad] maybeRunCalidad:', err));
