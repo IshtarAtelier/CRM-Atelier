@@ -467,6 +467,23 @@ function CotizadorPageContent() {
         setRxEsf(''); setRxCil(''); setRxAdd('');
     };
 
+    /**
+     * La LÍNEA comercial de un cristal, que es como el vendedor los piensa.
+     * Agrupar por marca dejaba los 161 multifocales de Grupo Óptico en un solo
+     * bloque "Smart": una pared de filas para scrollear. La línea vive al
+     * principio del nombre ("Multifocal SMART FREE - …", "VARILUX PHYSIO - …").
+     */
+    const lineaDe = (p: Product) => {
+        const n = (p.name || '').toUpperCase();
+        const m = n.match(/SMART\s+(AI LENS|EXCLUSIVE|DRIVE|FREE|PRO|ONE|NEW)/)
+            || n.match(/MI PRIMER (VARILUX|KODAK)[\s-]*([A-Z0-9.]+(?:\s+MAX)?)?/)
+            || n.match(/VARILUX\s+(XR DESIGN|COMFORT MAX|COMFORT|PHYSIO 3\.0|PHYSIO|LIBERTY|DIGITIME)/)
+            || n.match(/KODAK\s+(UNIQUE DRO|PRECISE|SOFTWEAR|SV DIGITAL)/)
+            || n.match(/(NEW EDITIONS|EYEZEN [A-Z]+|MYOPILUX [A-Z]+|STELLEST|INTERVIEW|ESPACE PLUS|KRIPTOCK|MYOFIX|MYOLENS)/);
+        if (m) return m[0].replace(/\s+/g, ' ').trim();
+        return (p.brand?.trim() || 'Otros');
+    };
+
     const filtered = useMemo(() => {
         const normalizeText = (str: string) => {
             let text = str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -556,23 +573,6 @@ function CotizadorPageContent() {
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [products, search, activeType, onlyWeb, selectedSubtype, selectedOrigin, selectedBrand, selectedLab, selectedIndex, orden, rxEsf, rxCil, rxAdd]);
-
-    /**
-     * La LÍNEA comercial de un cristal, que es como el vendedor los piensa.
-     * Agrupar por marca dejaba los 161 multifocales de Grupo Óptico en un solo
-     * bloque "Smart": una pared de filas para scrollear. La línea vive al
-     * principio del nombre ("Multifocal SMART FREE - …", "VARILUX PHYSIO - …").
-     */
-    const lineaDe = (p: Product) => {
-        const n = (p.name || '').toUpperCase();
-        const m = n.match(/SMART\s+(AI LENS|EXCLUSIVE|DRIVE|FREE|PRO|ONE|NEW)/)
-            || n.match(/MI PRIMER (VARILUX|KODAK)[\s-]*([A-Z0-9.]+(?:\s+MAX)?)?/)
-            || n.match(/VARILUX\s+(XR DESIGN|COMFORT MAX|COMFORT|PHYSIO 3\.0|PHYSIO|LIBERTY|DIGITIME)/)
-            || n.match(/KODAK\s+(UNIQUE DRO|PRECISE|SOFTWEAR|SV DIGITAL)/)
-            || n.match(/(NEW EDITIONS|EYEZEN [A-Z]+|MYOPILUX [A-Z]+|STELLEST|INTERVIEW|ESPACE PLUS|KRIPTOCK|MYOFIX|MYOLENS)/);
-        if (m) return m[0].replace(/\s+/g, ' ').trim();
-        return (p.brand?.trim() || 'Otros');
-    };
 
     const groupedProducts = useMemo(() => {
         const groups: { [key: string]: Product[] } = {};
