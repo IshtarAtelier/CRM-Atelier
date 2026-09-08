@@ -189,16 +189,41 @@ function mediaKind(mimetype = '') {
 }
 
 /**
+ * Red de contención para envíos por URL sin `mimetype`.
+ *
+ * Caer en 'document' cuando falta el dato es lo correcto para un adjunto
+ * desconocido, pero convierte una foto en un archivo sin que nadie se entere:
+ * la API responde 200 igual. Pasó con las fotos de armazones del bot, que
+ * viajaban como documento (8/9/2026). Si la URL delata una imagen, se manda
+ * como imagen; si no, se avisa en el log para que el que llama pase el dato.
+ */
+function tipoDeMedioPorUrl(url = '') {
+    const sinQuery = String(url).split('?')[0];
+    if (/\.(jpe?g|png|webp|gif)$/i.test(sinQuery)) return 'image/jpeg';
+    if (/product-image/i.test(url)) return 'image/jpeg'; // el conversor a JPEG del catálogo
+    return null;
+}
+
+/**
  * Medio + caption opcional (ventana abierta). `media` = { base64 | buffer | url, mimetype, filename }.
  */
 async function sendMedia(to, media, caption = '') {
-    const kind = mediaKind(media.mimetype);
+    let mimetype = media.mimetype;
+    if (!mimetype && media.url) {
+        mimetype = tipoDeMedioPorUrl(media.url);
+        if (mimetype) {
+            console.warn(`[cloud] Envío por URL sin mimetype; se deduce ${mimetype} de la URL. Conviene pasarlo explícito.`);
+        } else {
+            console.warn('[cloud] Envío por URL sin mimetype y sin pista en la URL: va como documento.');
+        }
+    }
+    const kind = mediaKind(mimetype);
     let ref;
     if (media.url) {
         ref = { link: media.url };
     } else {
         const buffer = media.buffer || Buffer.from(media.base64, 'base64');
-        const id = await uploadMedia(buffer, media.mimetype, media.filename);
+        const id = await uploadMedia(buffer, mimetype, media.filename);
         ref = { id };
     }
     const obj = { ...ref };

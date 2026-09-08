@@ -7,6 +7,7 @@ import { sendEmail } from '@/lib/email';
 import { sendWhatsApp } from '@/lib/whatsapp/send';
 import { templateSpec } from '@/lib/whatsapp/templates';
 import { logAudit } from '@/lib/audit';
+import { tipoDeRecetaConDefault } from '@/lib/receta/tipo-de-lente';
 import { SYSTEM_ACTOR, type Actor } from '@/lib/actor';
 import { InternalMessagingService } from '@/services/internal-messaging.service';
 import { avisarEquipoPorWhatsApp } from '@/lib/whatsapp/aviso-interno';
@@ -1592,6 +1593,13 @@ export const ContactService = {
     async addPrescription(clientId: string, data: any, actor?: Actor) {
         const transposed = this._transposePrescription(data);
         const isNear = data.prescriptionType === 'NEAR';
+        // El default era `data.prescriptionType || 'ADDITION'`: sin dato, el
+        // sistema asumía MULTIFOCAL — el más caro de los dos errores posibles.
+        // Ahora, sin dato, lo deciden los números (adición presente o no). Se
+        // calcula UNA sola vez: el candado anti-duplicados de abajo compara por
+        // este campo, y si no fuera el mismo valor que el del create, la receta
+        // se guardaría dos veces.
+        const prescriptionType = tipoDeRecetaConDefault(transposed, data.prescriptionType);
 
         // DEDUPLICATION GATE: Check if an identical prescription already exists for this client
         const existing = await prisma.prescription.findFirst({
@@ -1612,7 +1620,7 @@ export const ContactService = {
                 heightOD: transposed.heightOD,
                 heightOI: transposed.heightOI,
                 imageUrl: transposed.imageUrl || null,
-                prescriptionType: data.prescriptionType || 'ADDITION',
+                prescriptionType,
                 nearSphereOD: isNear ? transposed.nearSphereOD : null,
                 nearSphereOI: isNear ? transposed.nearSphereOI : null,
                 nearCylinderOD: isNear ? transposed.nearCylinderOD : null,
@@ -1646,7 +1654,7 @@ export const ContactService = {
                 heightOI: transposed.heightOI,
                 imageUrl: transposed.imageUrl || null,
                 notes: transposed.notes || null,
-                prescriptionType: data.prescriptionType || 'ADDITION',
+                prescriptionType,
                 nearSphereOD: isNear ? transposed.nearSphereOD : null,
                 nearSphereOI: isNear ? transposed.nearSphereOI : null,
                 nearCylinderOD: isNear ? transposed.nearCylinderOD : null,
@@ -1720,6 +1728,8 @@ export const ContactService = {
     },
 
     async updatePrescription(presId: string, data: any, role?: string | null, actor?: Actor) {
+        // Mismo criterio que en addPrescription: sin tipo explícito no se
+        // asume multifocal, se deriva de la adición.
         await this._assertPrescriptionEditable(presId, role);
         // Foto previa para auditar solo los campos clínicos que cambian
         const prev = await prisma.prescription.findUnique({ where: { id: presId } });
@@ -1744,7 +1754,7 @@ export const ContactService = {
                 heightOI: transposed.heightOI,
                 imageUrl: transposed.imageUrl,
                 notes: transposed.notes,
-                prescriptionType: data.prescriptionType || 'ADDITION',
+                prescriptionType: tipoDeRecetaConDefault(transposed, data.prescriptionType),
                 nearSphereOD: isNear ? transposed.nearSphereOD : null,
                 nearSphereOI: isNear ? transposed.nearSphereOI : null,
                 nearCylinderOD: isNear ? transposed.nearCylinderOD : null,
