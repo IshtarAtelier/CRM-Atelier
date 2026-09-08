@@ -177,6 +177,17 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                           <span className="font-black text-base text-stone-900 dark:text-white">
                             ${Math.round(base * (1 - discountRate)).toLocaleString("es-AR")}
                           </span>
+                          {/* El precio de lista TACHADO, solo cuando hay rebaja
+                              de verdad (pedido de Ishtar, 8/9: "la idea es que
+                              la oferta se vea"). Sin el tachado, una rebaja del
+                              26% se leía como un precio normal: el cartel de
+                              arriba decía el porcentaje pero no había contra
+                              qué compararlo. */}
+                          {enOferta && (
+                            <span className="ml-1.5 text-xs font-medium text-stone-400 line-through decoration-1">
+                              ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
+                            </span>
+                          )}
                           <span className="text-emerald-700 dark:text-emerald-400 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
                           <span className="block text-xs text-stone-500 dark:text-stone-400">
                             12 cuotas fijas de ${PricingService.cuotasMpLargas(base).installment12.toLocaleString("es-AR")}

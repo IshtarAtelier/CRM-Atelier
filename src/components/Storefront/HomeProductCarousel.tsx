@@ -276,8 +276,19 @@ export function HomeProductCarousel({ collections, totalCount, conteos }: Props)
                         return (
                           <p className="flex flex-col gap-0.5">
                             <span className="text-[10px] font-medium text-emerald-700 whitespace-nowrap">Transferencia 15% OFF</span>
-                            <span className="text-[15px] font-black text-stone-900 tracking-tight whitespace-nowrap">
-                              ${v.contado.toLocaleString("es-AR")}
+                            <span className="whitespace-nowrap">
+                              <span className="text-[15px] font-black text-stone-900 tracking-tight">
+                                ${v.contado.toLocaleString("es-AR")}
+                              </span>
+                              {/* El de lista tachado, solo con rebaja real
+                                  (pedido de Ishtar, 8/9: "que la oferta se
+                                  vea"). Con el mismo 15% aplicado, para que
+                                  los dos números sean comparables. */}
+                              {item.salePrice && item.rawPrice && item.salePrice < item.rawPrice ? (
+                                <span className="ml-1.5 text-[11px] font-medium text-stone-400 line-through decoration-1">
+                                  ${PricingService.preciosVidriera(item.rawPrice, 15).contado.toLocaleString("es-AR")}
+                                </span>
+                              ) : null}
                             </span>
                             {/* Las cuotas van SIEMPRE, también en celular (pedido
                                 de Ishtar, 5/9). El 2/9 se habían ocultado en

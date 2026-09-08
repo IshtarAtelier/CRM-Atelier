@@ -90,6 +90,12 @@ export const LISTADO_SELECT = {
       model: true,
       seoTags: true,
       price: true,
+      // Sin `salePrice`, /receta, /lentes-de-sol y /clip-on mostraban el precio
+      // de LISTA para un producto rebajado, y sin el cartel de oferta:
+      // `CategoryGrid` sabe resolver la oferta pero nunca la recibía. Un Rigel
+      // rebajado de $215.000 a $160.000 se anunciaba a $182.750 ahí y a
+      // $136.000 en /tienda (auditoría 8/9/26).
+      salePrice: true,
       stock: true,
       imagenesCatalogo: true,
       gender: true,

@@ -44,6 +44,7 @@
     "check:promo2x1web": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/promo-2x1-armazones.check.mjs",
     "check:colores": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/color-normalizado.check.mjs",
     "check:facetas": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/facetas.check.mjs",
+    "check:oferta": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/precio-oferta.check.mjs",
     "check:color-lente": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/color-de-lente.check.mjs",
     "check:venta-no-repricea": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-no-repricea.check.mjs",
     "check:venta-reabierta-24h": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/venta-reabierta-24h.check.mjs",

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { LISTADO_SELECT } from '@/lib/catalog/queries';
 import { getProductAttributes } from '@/utils/product-controllers';
 import { resolveStorageUrl } from '@/lib/utils/storage';
+import { precioConOferta } from '@/lib/precio-oferta';
 
 /**
  * Listado de una categoría del catálogo: grilla + filtros + JSON-LD.
@@ -59,10 +60,12 @@ export async function ListadoCategoria({
     },
   };
 
-  const orderBy: Record<string, unknown>[] = [{ isFeatured: 'desc' }];
-  if (orden === 'menor_precio') orderBy.push({ product: { price: 'asc' } });
-  else if (orden === 'mayor_precio') orderBy.push({ product: { price: 'desc' } });
-  else orderBy.push({ createdAt: 'desc' });
+  // El orden por precio se resuelve en memoria, más abajo, y NO acá: la base
+  // solo sabe ordenar por `price` (el de lista), y un producto rebajado de
+  // $215.000 a $160.000 quedaría ubicado por los $215.000 mientras la tarjeta
+  // muestra $160.000 — "menor precio" listando mal justo lo más barato.
+  const ordenaPorPrecio = orden === 'menor_precio' || orden === 'mayor_precio';
+  const orderBy: Record<string, unknown>[] = [{ isFeatured: 'desc' }, { createdAt: 'desc' }];
 
   let filas: any[] = [];
   let meta: any[] = [];
@@ -103,6 +106,7 @@ export async function ListadoCategoria({
       brand: wp.product.brand,
       model: wp.name || codigo,
       price: wp.product.price,
+      salePrice: wp.product.salePrice,
       stock: wp.product.stock,
       imagenesCatalogo: fotos,
       category: wp.category,
@@ -137,6 +141,13 @@ export async function ListadoCategoria({
   }
   if (orden === 'forma') {
     visibles.sort((a, b) => (a.shape || '').localeCompare(b.shape || ''));
+  }
+  // Orden por precio EFECTIVO (la oferta si la hay), que es el número que la
+  // tarjeta muestra. Ordenar por el de lista dejaba lo más barato en el lugar
+  // equivocado dentro de "Menor precio".
+  if (ordenaPorPrecio) {
+    const signo = orden === 'menor_precio' ? 1 : -1;
+    visibles.sort((a, b) => signo * (precioConOferta(a).final - precioConOferta(b).final));
   }
 
   const enumerados = visibles.slice(0, ITEMS_EN_SCHEMA);

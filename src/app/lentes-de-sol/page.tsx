@@ -125,6 +125,11 @@ export default async function LentesDeSolPage() {
       model: wp.name || modelCode,
       modelCode: modelCode,
       price: wp.product.price,
+      // Sin esto la página mostraba el precio de LISTA para un producto
+      // rebajado: Febo C1, de $200.000 a $140.000, se anunciaba a $170.000
+      // (200.000 − 15%) en vez de $119.000. Cada listado tiene su propio
+      // mapeo, así que el olvido se repitió en los tres (auditoría 8/9/26).
+      salePrice: wp.product.salePrice,
       stock: wp.product.stock,
       imagenesCatalogo: (() => {
         let combinedImages = wp.images.length > 0 ? [...wp.images] : [];

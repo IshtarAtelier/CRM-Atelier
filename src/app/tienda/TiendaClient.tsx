@@ -1040,6 +1040,17 @@ export function TiendaClient({
                               <span className="font-black text-base text-stone-900">
                                 ${Math.round((oferta ? p.salePrice : base) * (1 - (webSettings.web_promo_cash_discount || 15) / 100)).toLocaleString("es-AR")}
                               </span>
+                              {/* El precio de lista TACHADO, solo con rebaja real
+                                  (pedido de Ishtar, 8/9: "que la oferta se vea").
+                                  Va con el mismo 15% aplicado que el de al lado,
+                                  para que los dos números se puedan comparar:
+                                  tachar el de lista PELADO contra un final CON
+                                  descuento infla la rebaja aparente. */}
+                              {oferta && (
+                                <span className="ml-1.5 text-xs font-medium text-stone-400 line-through decoration-1">
+                                  ${Math.round((base || 0) * (1 - (webSettings.web_promo_cash_discount || 15) / 100)).toLocaleString("es-AR")}
+                                </span>
+                              )}
                               {/* El 15% va en el MISMO renglón que el precio
                                   (pedido de Ishtar, 5/9). */}
                               <span className="text-emerald-700 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
