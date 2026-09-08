@@ -20,6 +20,7 @@ export interface HomeWebProductRow {
   product: {
     id: string;
     price: number | null;
+    salePrice: number | null;
     stock: number | null;
     model: string | null;
     category: string | null;
@@ -64,6 +65,8 @@ export interface CarouselProduct {
   id: string;
   name: string;
   rawPrice: number | null;
+  /** Precio rebajado, si el producto está en oferta de verdad. */
+  salePrice: number | null;
   price: string;
   img: string;
   slug: string;
@@ -90,6 +93,7 @@ export function formatProducts(
     id: wp.product.id,
     name: wp.name,
     rawPrice: wp.product.price,
+    salePrice: wp.product.salePrice,
     price: wp.product.price ? `6 cuotas de $${Math.round(wp.product.price / 6).toLocaleString("es-AR")}` : "",
     img: wp.imageUrl
       ? resolveUrl(wp.imageUrl)
