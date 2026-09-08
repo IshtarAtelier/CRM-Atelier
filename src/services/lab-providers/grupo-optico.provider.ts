@@ -70,7 +70,8 @@ export class GrupoOpticoProvider {
             // Sin timeout, un stall del portal deja este Chromium colgado para
             // siempre — y el pase corre cada 10 min: browsers acumulados hasta
             // tumbar el contenedor. Todo lo que espere, espera con tope.
-            page.setDefaultTimeout(60000);
+            // Portal muy lento durante la migración (8/9/26): 5 min por paso.
+        page.setDefaultTimeout(300000);
             page.setDefaultNavigationTimeout(60000);
 
             // El portal (dyndns casero) tira errores transitorios de red
@@ -111,7 +112,7 @@ export class GrupoOpticoProvider {
                 const res: any = await page.evaluate(async (u) => {
                     // AbortSignal.timeout: un fetch que el portal nunca responde
                     // colgaría el evaluate (y el browser) indefinidamente.
-                    const r = await fetch(u, { credentials: 'include', signal: AbortSignal.timeout(45000) });
+                    const r = await fetch(u, { credentials: 'include', signal: AbortSignal.timeout(180000) });
                     if (!r.ok) return { error: r.status };
                     return await r.json();
                 }, url);
@@ -227,11 +228,11 @@ export class GrupoOpticoProvider {
         const user = process.env.SMARTLAB_USER || 'pisano.ishtar@gmail.com';
         const pass = process.env.SMARTLAB_PASSWORD || 'atelier';
 
-        await page.goto(`${PORTAL_BASE}/smartlab/auth/authSmartlab/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.goto(`${PORTAL_BASE}/smartlab/auth/authSmartlab/login`, { waitUntil: 'domcontentloaded', timeout: 300000 });
         // El portal es un dyndns casero y la app tarda en hidratar; desde el
         // contenedor (Singapur) los 15s originales se agotaban seguido y la
         // corrida entera se perdía. 45s da margen sin colgar el pase.
-        await page.waitForSelector('input', { timeout: 45000 });
+        await page.waitForSelector('input', { timeout: 300000 });
         const inputs = await page.$$('input');
         if (inputs.length < 2) throw new Error('No se encontraron los campos de login de SmartLab.');
         await page.waitForTimeout(1500);
@@ -243,21 +244,31 @@ export class GrupoOpticoProvider {
         for (const btn of await page.$$('button')) {
             const t = ((await btn.innerText()) || '').toLowerCase();
             if (t.includes('iniciar') || t.includes('ingresar') || t.includes('login')) {
-                await Promise.all([
-                    page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => {}),
-                    btn.click({ delay: 200 }),
-                ]);
+                await btn.click({ delay: 200 });
                 clicked = true;
                 break;
             }
         }
         if (!clicked) {
-            await Promise.all([
-                page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => {}),
-                inputs[1].press('Enter', { delay: 150 }),
-            ]);
+            await inputs[1].press('Enter', { delay: 150 }).catch(() => {});
         }
-        await page.waitForTimeout(2500);
-        if (page.url().includes('/auth/')) throw new Error('Login de SmartLab falló (sigue en la pantalla de auth).');
+
+        // ACÁ ESTABA EL BUG (8/9/26). Después del clic esperaba 2,5 SEGUNDOS y
+        // si la URL seguía en /auth/ daba el login por fallado. Con el portal
+        // lento —están migrando de servidor— eso es siempre: el error
+        // "Login de SmartLab falló (sigue en la pantalla de auth)" no era un
+        // login rechazado, era una espera de dos segundos y medio. Por eso no
+        // entró un solo costo de Grupo Óptico desde el 21/8.
+        //
+        // Ahora se espera POR EL RESULTADO: se mira la URL cada 5 s hasta cinco
+        // minutos. El login se resuelve por JavaScript ("Iniciando sesión…"),
+        // así que tampoco sirve atarse a `waitForNavigation`.
+        const ESPERA_LOGIN_MS = 300_000;
+        const limite = Date.now() + ESPERA_LOGIN_MS;
+        while (Date.now() < limite) {
+            if (!page.url().includes('/auth/')) return;
+            await page.waitForTimeout(5000);
+        }
+        throw new Error(`Login de SmartLab no salió de /auth/ en ${ESPERA_LOGIN_MS / 60000} min (el portal está muy lento).`);
     }
 }

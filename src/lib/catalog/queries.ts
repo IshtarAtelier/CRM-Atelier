@@ -32,6 +32,11 @@ export const HOME_SELECT = {
     select: {
       id: true,
       price: true,
+      // 7/9/26: sin `salePrice` el carrusel del home no podía saber si un
+      // producto estaba REBAJADO, así que una oferta real era invisible
+      // justo en la pantalla que más gente ve. Mismo agujero que tenía
+      // /clip-on.
+      salePrice: true,
       stock: true,
       model: true,
       category: true,

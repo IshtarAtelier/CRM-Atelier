@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { evaluarSaludProgramacion, DIAS_COBERTURA_MINIMA } from '@/lib/social/salud-programacion';
+import { evaluarSaludProgramacion } from '@/lib/social/salud-programacion';
 
 /**
  * Aviso diario de la cadencia de publicación en redes.

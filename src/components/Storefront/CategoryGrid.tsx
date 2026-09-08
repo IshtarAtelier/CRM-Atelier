@@ -6,6 +6,7 @@ import { WHATSAPP_PHONE } from "@/lib/constants";
 import { PricingService } from "@/services/PricingService";
 import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { resolveStorageUrl } from "@/lib/utils/storage";
+import { precioConOferta } from "@/lib/precio-oferta";
 
 import Image from "next/image";
 
@@ -129,8 +130,23 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                     Agotado
                   </div>
                 )}
+                {/* ESQUINA SUPERIOR DERECHA: la OFERTA REAL, igual que en la
+                    tienda (pedido de Ishtar, 7/9). Hasta hoy esta grilla NO
+                    mostraba las ofertas: un producto rebajado se veía idéntico a
+                    uno que no, porque la tarjeta ni miraba `salePrice`.
+                    "Destacado" baja a la esquina de abajo para no pelearse con
+                    el cartel de la oferta, que es el que decide la compra. */}
+                {(() => {
+                  const { enOferta, descuentoPct } = precioConOferta(p);
+                  if (!enOferta) return null;
+                  return (
+                    <div className="absolute top-3 right-3 z-10 text-[11px] font-black uppercase tracking-widest text-white bg-rose-600 px-2 py-1 rounded-sm shadow-md">
+                      {descuentoPct}% OFF 🔥
+                    </div>
+                  );
+                })()}
                 {p.isFeatured && p.stock > 0 && (
-                  <div className="absolute top-3 right-3 bg-black text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded">
+                  <div className="absolute bottom-3 right-3 bg-black text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded z-10">
                     Destacado
                   </div>
                 )}
@@ -143,19 +159,37 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
 
                 {/* Orden de venta (pedido de Ishtar, 27/8): 12 cuotas como
                     ancla, el resto en una sola línea discreta. */}
-                <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40 flex flex-col gap-0.5">
-                  <div className="flex items-baseline justify-between">
-                    <p className="text-sm font-medium text-stone-900 dark:text-stone-100">
-                      12 cuotas fijas de <span className="font-semibold text-[#7d6249] dark:text-[#c8a55c]">${PricingService.cuotasMpLargas(p.price || 0).installment12.toLocaleString("es-AR")}</span>
-                    </p>
-                    <span className="text-xs text-stone-900 dark:text-white uppercase tracking-wider font-bold group-hover:text-[#8a6d3b] dark:group-hover:text-[#c8a55c] transition-colors shrink-0">Ver anteojos ›</span>
-                  </div>
-                  {/* Las 12 se dicen "cuotas fijas", sin el % (decisión de
-                      Ishtar, 31/8 noche — la redacción vive en promo-cuotas.ts). */}
-                  <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium">
-                    {installmentsCount} s/interés de ${Math.round((p.price || 0) / installmentsCount).toLocaleString("es-AR")} · Transf. {webSettings.web_promo_cash_discount}% OFF: ${Math.round((p.price || 0) * (1 - discountRate)).toLocaleString("es-AR")}
-                  </p>
-                </div>
+                {/* MISMO bloque de precio que la tienda (pedido de Ishtar,
+                    7/9: "actualizá todo a como está en la tienda principal").
+                    Antes acá el ancla era la cuota de 12 y el precio de
+                    transferencia iba al final de un renglón corrido: el mismo
+                    producto se leía distinto en /tienda y en /clip-on.
+                    El orden es el de la tienda: precio de transferencia GRANDE,
+                    el 15% en el mismo renglón, y las cuotas una debajo de la
+                    otra. Los importes salen de PricingService. */}
+                {(() => {
+                  const { enOferta } = precioConOferta(p);
+                  const base = enOferta ? (p.salePrice || 0) : (p.price || 0);
+                  return (
+                    <div className="mt-auto pt-2 border-t border-stone-100/60 dark:border-stone-800/40">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-sm text-stone-600 dark:text-stone-400 font-medium">
+                          <span className="font-black text-base text-stone-900 dark:text-white">
+                            ${Math.round(base * (1 - discountRate)).toLocaleString("es-AR")}
+                          </span>
+                          <span className="text-emerald-700 dark:text-emerald-400 text-xs font-bold"> {webSettings.web_promo_cash_discount}% OFF transf.</span>
+                          <span className="block text-xs text-stone-500 dark:text-stone-400">
+                            12 cuotas fijas de ${PricingService.cuotasMpLargas(base).installment12.toLocaleString("es-AR")}
+                          </span>
+                          <span className="block text-xs text-stone-500 dark:text-stone-400">
+                            {installmentsCount} cuotas sin interés de ${Math.round(base / installmentsCount).toLocaleString("es-AR")}
+                          </span>
+                        </p>
+                        <span className="text-xs text-stone-900 dark:text-white uppercase tracking-wider font-bold group-hover:text-[#8a6d3b] dark:group-hover:text-[#c8a55c] transition-colors shrink-0 self-start">Ver anteojos ›</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </Link>
           </div>

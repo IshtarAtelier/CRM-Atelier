@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { PricingService } from "@/services/PricingService";
+import { precioConOferta } from "@/lib/precio-oferta";
 import { textoCuotas12 } from "@/lib/promo-cuotas";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 
@@ -15,6 +16,7 @@ interface CarouselProduct {
   name: string;
   price: string;
   rawPrice?: number | null;
+  salePrice?: number | null;
   img: string;
   slug: string;
   stock?: number | null;
@@ -174,6 +176,22 @@ export function HomeProductCarousel({ collections, totalCount, conteos }: Props)
                   carrusel auto-scrolleado esa capa de composición NO se pintaba en prod
                   (cards en gris vacío). El fondo blanco funde las fotos igual de limpio. */}
               <div className="bg-white aspect-square overflow-hidden border-r border-[#e5e5e5] relative">
+                {/* OFERTA REAL, arriba a la derecha (pedido de Ishtar, 7/9),
+                    igual que en /tienda y /clip-on. Hasta hoy el home NI SIQUIERA
+                    recibía `salePrice`: una rebaja de verdad era invisible en la
+                    pantalla que más gente ve. La regla de qué es una oferta vive
+                    en `lib/precio-oferta.ts`, la misma que usan la tienda, la
+                    ficha y el cotizador. */}
+                {(() => {
+                  const { enOferta, descuentoPct } = precioConOferta({ price: item.rawPrice ?? null, salePrice: item.salePrice ?? null });
+                  if (!enOferta) return null;
+                  return (
+                    <span className="absolute top-3 right-3 z-10 text-[11px] font-black uppercase tracking-widest text-white bg-rose-600 px-2 py-1 rounded-sm shadow-md">
+                      {descuentoPct}% OFF 🔥
+                    </span>
+                  );
+                })()}
+
                 {/* Titanium Badge */}
                 {isTitanium && (
                   <span className="absolute bottom-3 left-3 text-[10px] font-black uppercase tracking-[0.18em] bg-stone-900/90 text-stone-100 backdrop-blur-sm px-2.5 py-1 z-10 border border-stone-700 shadow-md flex items-center gap-1.5 rounded-sm">

@@ -84,17 +84,21 @@ export class SmartLabService {
             const context = await browser.newContext();
             const page = await context.newPage();
 
-            // EL PORTAL DE GRUPO ÓPTICO ES LENTO, y en septiembre de 2026 están
-            // migrando de servidor (dato de Ishtar, 7/9/26). El default de
-            // Playwright son 30 s, y con eso el `waitForNavigation` del login
-            // reventaba y se llevaba puesta la sincronización ENTERA — no solo
-            // ese paso. Acá se le da aire: más vale un pase que tarda dos
-            // minutos que un pase que no corre.
+            // EL PORTAL DE GRUPO ÓPTICO FUNCIONA, PERO CON DEMORAS ENORMES:
+            // están migrando de servidor (dato de Ishtar, 7-8/9/26: "funciona
+            // perfecto pero con muchísimas demoras, es temporal pero hay que
+            // afrontarlo"). El default de Playwright son 30 s y con eso el
+            // `waitForNavigation` del login reventaba, llevándose puesta la
+            // sincronización ENTERA. Con 90 s tampoco alcanzaba.
             //
-            // Medido el 7/9/26: el login queda en "Iniciando sesión…" bastante
-            // después de que la red se aquieta, así que esperar por
-            // `networkidle` tampoco alcanza.
-            const ESPERA_MS = 90_000;
+            // Ahora la ventana es de CINCO MINUTOS por paso. Es un número
+            // deliberadamente incómodo: el pase entero puede tardar 15 min. Se
+            // banca porque `isSyncing` evita que dos corridas se pisen y el
+            // disparador (instrumentation.ts) tiene margen de sobra. Mientras
+            // dure la migración, un pase lento que TERMINA vale infinitamente
+            // más que uno rápido que aborta: sin él no hay estados, no hay
+            // avisos de "pedido listo" y no se cruza ningún costo.
+            const ESPERA_MS = 300_000;
             page.setDefaultTimeout(ESPERA_MS);
             page.setDefaultNavigationTimeout(ESPERA_MS);
 
@@ -105,8 +109,10 @@ export class SmartLabService {
             // y había que esperar al tick siguiente. Ahora se reintenta acá
             // mismo, con una pausa creciente entre intentos — sin apurar al
             // portal, que además está migrando de servidor.
-            const INTENTOS_LOGIN = 3;
-            const PAUSA_ENTRE_INTENTOS_MS = [0, 15_000, 30_000];
+            // DOS intentos: con 5 min de ventana cada uno, tres serían 15 min
+            // solo para entrar y no quedaría tiempo para el scraping.
+            const INTENTOS_LOGIN = 2;
+            const PAUSA_ENTRE_INTENTOS_MS = [0, 20_000];
             let ultimoError: unknown = null;
 
             for (let intento = 0; intento < INTENTOS_LOGIN; intento++) {
@@ -133,26 +139,33 @@ export class SmartLabService {
                         const text = await btn.innerText();
                         if (text.toLowerCase().includes('iniciar') || text.toLowerCase().includes('ingresar') || text.toLowerCase().includes('login')) {
                             await page.waitForTimeout(1000);
-                            await Promise.all([
-                                page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: ESPERA_MS }),
-                                btn.click({ delay: 300 })
-                            ]);
+                            // Sin `waitForNavigation`: la espera real es el
+                            // bucle de abajo, que mira la URL.
+                            await btn.click({ delay: 300 });
                             loginClicked = true;
                             break;
                         }
                     }
                     if (!loginClicked) {
-                        await Promise.all([
-                            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: ESPERA_MS }),
-                            inputs[1].press('Enter', { delay: 200 })
-                        ]);
+                        await inputs[1].press('Enter', { delay: 200 }).catch(() => {});
                     }
 
-                    // Entró de verdad: la URL dejó de ser la del login. Sin este
-                    // chequeo, un login que "no explota" pero tampoco entra se
-                    // arrastraba hasta el scraping, que fallaba mucho después y
-                    // con un error que no decía nada.
-                    if (/\/login/i.test(page.url())) throw new Error(`El portal no salió de la pantalla de login (${page.url()})`);
+                    // ESPERAR POR EL RESULTADO, NO POR UN EVENTO.
+                    //
+                    // El login es una pantalla que hace su trabajo por JavaScript:
+                    // el botón queda en "Iniciando sesión…" y la navegación puede
+                    // llegar mucho después —o no dispararse como evento—. Atarse a
+                    // `waitForNavigation` hacía fallar logins que en realidad iban
+                    // a entrar. Acá se pregunta lo único que importa: ¿la URL dejó
+                    // de ser la del login? Se consulta cada 5 s hasta agotar la
+                    // ventana.
+                    let dentro = false;
+                    const limite = Date.now() + ESPERA_MS;
+                    while (Date.now() < limite) {
+                        if (!/\/login/i.test(page.url())) { dentro = true; break; }
+                        await page.waitForTimeout(5000);
+                    }
+                    if (!dentro) throw new Error(`El portal no salió de la pantalla de login en ${ESPERA_MS / 60000} min (${page.url()})`);
 
                     ultimoError = null;
                     break;
