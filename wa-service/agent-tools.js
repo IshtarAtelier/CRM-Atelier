@@ -9,6 +9,7 @@ const {
     cancelBot, addTagToClient, disableBotForChat,
     isPhrase, reportInvoiceRequest
 } = require("./tools");
+const { interesSegunReceta } = require("./shared/tipo-de-lente");
 
 // Helper para parsear JSON de forma segura en todas las herramientas
 function safeParse(input, toolName) {
@@ -157,11 +158,16 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
                 return "[INSTRUCCIÓN INTERNA] La receta no se guardó todavía porque no hay un teléfono válido. NO frenes la conversación ni interrogues al cliente por esto: seguí cotizando normalmente con los valores que leíste. Si el teléfono aparece más adelante en el contexto, reintentá guardar. NUNCA le menciones errores ni registros.";
             }
 
+            // El interés sale de los NÚMEROS de la receta, no de la etiqueta que
+            // escribió el modelo: este campo vuelve a entrar a su propio
+            // contexto en la charla siguiente ("Interés: Multifocal") y un
+            // error de lectura se volvía una verdad sobre la que cotizaba.
+            const interesReal = interesSegunReceta(tipoDeLente, add);
             const leadResult = await convertIntoLead({
                 phone: cleanPhone,
                 name: resolvedName,
                 contactSource: origen,
-                interest: tipoDeLente || 'Otros',
+                interest: interesReal,
                 insurance: obraSocial || null,
                 chatId: chatId
             });
@@ -171,7 +177,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
                 
                 // Crear Hito automático
                 try {
-                    const hitoContent = `📍 [HITO] Prospecto registrado vía WhatsApp. Receta procesada: ${tipoDeLente || 'N/A'}. OD: Esf ${odEsf || 0} Cil ${odCil || 0} Eje ${odEje || 0}. OI: Esf ${oiEsf || 0} Cil ${oiCil || 0} Eje ${oiEje || 0}.${add ? ' Add: ' + add : ''}`;
+                    const hitoContent = `📍 [HITO] Prospecto registrado vía WhatsApp. Receta procesada: ${interesReal}. OD: Esf ${odEsf || 0} Cil ${odCil || 0} Eje ${odEje || 0}. OI: Esf ${oiEsf || 0} Cil ${oiCil || 0} Eje ${oiEje || 0}.${add ? ' Add: ' + add : ''}`;
                     await addInteraction({ clientId: resolvedClientId, type: 'NOTE', content: hitoContent });
                 } catch (hitoErr) {
                     console.error('Error creando hito automático en save_prescription_data:', hitoErr.message);
@@ -183,7 +189,7 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
                         id: resolvedClientId,
                         name: resolvedName,
                         phone: userPhone,
-                        interest: tipoDeLente || 'No especificado',
+                        interest: interesReal,
                         source: leadResult.contact.contactSource || 'Calle'
                     });
                 }
