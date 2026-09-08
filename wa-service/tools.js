@@ -258,10 +258,19 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
         // Auto-etiquetar como Bot Lead
         await addTagToClient({ clientId: newContact.id, tagName: 'Bot Lead' });
         
-        // Agregar etiqueta visual explícita según la fuente detectada
+        // Agregar etiqueta visual explícita según la fuente detectada.
+        //
+        // OJO: acá se etiquetaba también 'Multifocal' a TODO lead que llegara
+        // por Meta, porque la campaña de ese momento era de multifocales. Eso
+        // escribía una suposición de marketing como si fuera un dato clínico
+        // de la ficha — y el bot LEE las etiquetas del cliente en su contexto
+        // (graph.js arma "Etiquetas: ..."), así que a cualquiera que llegara
+        // por un anuncio le cotizaba multifocales aunque su receta fuera
+        // monofocal. Reportado por Ishtar el 8/9/26 con un caso concreto.
+        // El origen ya queda registrado con 'Meta Ads' y en el hito de abajo;
+        // el tipo de lente lo decide la RECETA, nunca el anuncio que lo trajo.
         if (resolvedSource === 'Meta') {
             await addTagToClient({ clientId: newContact.id, tagName: 'Meta Ads' });
-            await addTagToClient({ clientId: newContact.id, tagName: 'Multifocal' });
         } else if (resolvedSource === 'Google Ads') {
             await addTagToClient({ clientId: newContact.id, tagName: 'Google Ads' });
         }
@@ -738,7 +747,13 @@ async function sendProductPhotos({ chatId, category, search, products }) {
         const caption = pieDeFoto(p);
         let sent = null;
         try {
-            sent = await sendMessage(destino.waId, caption, { url: p.imageUrl }, {
+            // `mimetype` NO es opcional: sin él, la API oficial cae en
+            // `mediaKind('')` → 'document', y la foto del armazón le llega al
+            // cliente como un archivo adjunto en vez de una imagen (o no le
+            // llega). Siempre es JPEG: la URL sale de /api/store/product-image,
+            // que convierte a JPEG justo porque el catálogo publica en AVIF y
+            // WhatsApp no lo soporta.
+            sent = await sendMessage(destino.waId, caption, { url: p.imageUrl, mimetype: 'image/jpeg' }, {
                 isProactive: false,
                 isAutomated: true,
             });

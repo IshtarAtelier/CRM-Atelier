@@ -1653,11 +1653,15 @@ const handleMessage = async (msg) => {
 
         broadcastChatUpdate(chat.id);
         
-        // ── Auto-etiquetado Meta Ads y Multifocales ──
+        // ── Auto-etiquetado Meta Ads ──
+        // Acá se etiquetaba también 'Multifocal' por venir de un anuncio de
+        // multifocales. El bot lee las etiquetas de la ficha en su contexto,
+        // así que esa suposición terminaba en presupuestos de multifocal a
+        // gente con receta monofocal (8/9/26). El tipo de lente sale de la
+        // receta, no del anuncio.
         if (isMetaAdsMessage && chat.clientId) {
             const { addTagToClient } = require('./tools');
             await addTagToClient({ clientId: chat.clientId, tagName: 'Meta Ads' }).catch(e => console.error("Error auto-tag Meta:", e.message));
-            await addTagToClient({ clientId: chat.clientId, tagName: 'Multifocal' }).catch(e => console.error("Error auto-tag Multifocal:", e.message));
         }
 
         // Emitir evento para notificaciones de escritorio en el CRM
