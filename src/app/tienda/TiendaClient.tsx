@@ -898,15 +898,35 @@ export function TiendaClient({
                         </span>
                       )}
 
-                      {/* Escasez REAL: el mismo stock (y el mismo umbral) que la
-                          ficha ya anuncia como "¡Últimas N u.!", ahora visible
-                          desde la grilla. Solo stock verdadero de la base —
-                          nunca un contador inventado. */}
-                      {!isWholesale && typeof p.stock === 'number' && p.stock > 0 && p.stock <= UMBRAL_ULTIMAS_UNIDADES && (
-                        <span className="absolute top-3 right-3 text-[10px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1 z-10 rounded-sm shadow-sm">
-                          ¡Últimas {p.stock} u.!
-                        </span>
-                      )}
+                      {/* ESQUINA SUPERIOR DERECHA (pedido de Ishtar, 7/9): la
+                          OFERTA REAL manda acá arriba, sobre la foto, que es
+                          donde el ojo llega primero. Antes vivía abajo, al lado
+                          del precio, compitiendo con las cuotas.
+                          Ojo: es la oferta de verdad (`salePrice`), NO el 15%
+                          de transferencia — ese está en todos los productos por
+                          igual y por eso se dice al lado del precio, no como
+                          cartel (ver el comentario largo del bloque de precio).
+                          El aviso de stock se apila DEBAJO en la misma columna:
+                          las dos cosas pueden darse a la vez y así no se tapan. */}
+                      {(() => {
+                        const { enOferta, descuentoPct } = precioConOferta(p);
+                        const hayStockBajo = !isWholesale && typeof p.stock === 'number' && p.stock > 0 && p.stock <= UMBRAL_ULTIMAS_UNIDADES;
+                        if (!enOferta && !hayStockBajo) return null;
+                        return (
+                          <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5">
+                            {enOferta && (
+                              <span className="text-[11px] font-black uppercase tracking-widest text-white bg-rose-600 px-2 py-1 rounded-sm shadow-md">
+                                {descuentoPct}% OFF 🔥
+                              </span>
+                            )}
+                            {hayStockBajo && (
+                              <span className="text-[10px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1 rounded-sm shadow-sm">
+                                ¡Últimas {p.stock} u.!
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Sello 2x1. Abajo a la derecha: arriba a la izquierda
                           está la categoría, arriba a la derecha "últimas N u." y
@@ -1003,7 +1023,10 @@ export function TiendaClient({
                         // precio de contado, como la condición que es.
                         // La regla de la oferta vive en src/lib/precio-oferta.ts:
                         // la misma que usan la ficha, el JSON-LD y el cotizador.
-                        const { enOferta: oferta, descuentoPct: ahorro } = precioConOferta(p);
+                        // `descuentoPct` ya no se lee acá: el cartel del % vive
+                        // arriba, sobre la foto. Acá solo hace falta saber SI hay
+                        // oferta, para tomar `salePrice` en vez del precio de lista.
+                        const { enOferta: oferta } = precioConOferta(p);
 
                         return (
                           <div className="pt-1 flex items-center justify-between gap-2">
@@ -1039,11 +1062,9 @@ export function TiendaClient({
                                 {installmentsCount} cuotas sin interés de ${Math.round((oferta ? p.salePrice : base) / installmentsCount).toLocaleString("es-AR")}
                               </span>
                             </p>
-                            {oferta && (
-                              <span className="text-[10px] font-black uppercase tracking-widest text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-sm whitespace-nowrap shrink-0">
-                                {ahorro}% OFF 🔥
-                              </span>
-                            )}
+                            {/* El cartel de oferta se mudó a la esquina
+                                superior derecha de la foto (7/9). Acá abajo
+                                queda solo el precio. */}
                           </div>
                         );
                       })()}
