@@ -1,4 +1,23 @@
 import { prisma } from '@/lib/db';
+
+/**
+ * El portal contestó "usuario o contraseña incorrectos". Es una causa DISTINTA
+ * de "el portal está lento", y se resuelve en otro lado: hay que pedirle la
+ * clave nueva a Grupo Óptico y cargarla en SMARTLAB_USER / SMARTLAB_PASSWORD.
+ * Tiene tipo propio para que el reintento no la trate como una falla pasajera.
+ */
+class CredencialRechazadaError extends Error {
+    constructor() {
+        const configurada = !!process.env.SMARTLAB_USER && !!process.env.SMARTLAB_PASSWORD;
+        super(
+            'CREDENCIAL RECHAZADA por el portal de Grupo Óptico ("usuario o contraseña incorrectos"). '
+            + (configurada
+                ? 'SMARTLAB_USER/SMARTLAB_PASSWORD están cargadas pero el portal no las acepta: pedirle la clave nueva a Grupo Óptico.'
+                : 'SMARTLAB_USER/SMARTLAB_PASSWORD NO están cargadas, así que se usó la clave escrita en el código, que ya no sirve.')
+        );
+        this.name = 'CredencialRechazadaError';
+    }
+}
 import { sendEmail } from '@/lib/email';
 
 import { CRM_ORIGIN } from '@/lib/constants';
@@ -127,10 +146,16 @@ export class SmartLabService {
                     const inputs = await page.$$('input');
                     if (inputs.length < 2) throw new Error('No se encontraron los campos de login en SmartLab.');
 
+                    // LA CREDENCIAL SALE DEL ENTORNO (8/9/26). Estaba tipeada acá
+                    // adentro, así que cambiarla en Railway no servía de nada: el
+                    // sync de estados seguía entrando con la vieja mientras la
+                    // conciliación de costos usaba la nueva. Mismo par de
+                    // variables que grupo-optico.provider.ts, para que se toquen
+                    // en un solo lugar.
                     await page.waitForTimeout(2000);
-                    await inputs[0].fill('pisano.ishtar@gmail.com');
+                    await inputs[0].fill(process.env.SMARTLAB_USER || 'pisano.ishtar@gmail.com');
                     await page.waitForTimeout(1500);
-                    await inputs[1].fill('atelier');
+                    await inputs[1].fill(process.env.SMARTLAB_PASSWORD || 'atelier');
                     await page.waitForTimeout(2000);
 
                     const buttons = await page.$$('button');
@@ -159,10 +184,23 @@ export class SmartLabService {
                     // a entrar. Acá se pregunta lo único que importa: ¿la URL dejó
                     // de ser la del login? Se consulta cada 5 s hasta agotar la
                     // ventana.
+                    //
+                    // Y se mira TAMBIÉN el cartel de error: una credencial
+                    // rechazada deja la URL en /login para siempre, así que sin
+                    // esto el ciclo quemaba los 5 minutos —por cada intento— y
+                    // terminaba avisando "el portal está lento". Con esa cara el
+                    // corte del 24/8 al 8/9 duró quince días buscando un problema
+                    // de red que no existía: el portal contesta en 2,4 s y lo que
+                    // decía era "usuario o contraseña incorrectos". Reintentar una
+                    // clave equivocada tampoco sirve: se corta en el acto.
                     let dentro = false;
                     const limite = Date.now() + ESPERA_MS;
                     while (Date.now() < limite) {
                         if (!/\/login/i.test(page.url())) { dentro = true; break; }
+                        const enPantalla = (await page.innerText('body').catch(() => '') || '');
+                        if (/incorrect|no se pudo iniciar sesi|credenciales inv/i.test(enPantalla)) {
+                            throw new CredencialRechazadaError();
+                        }
                         await page.waitForTimeout(5000);
                     }
                     if (!dentro) throw new Error(`El portal no salió de la pantalla de login en ${ESPERA_MS / 60000} min (${page.url()})`);
@@ -172,6 +210,10 @@ export class SmartLabService {
                 } catch (err) {
                     ultimoError = err;
                     console.warn(`[SmartLab Sync] Login falló (intento ${intento + 1}/${INTENTOS_LOGIN}): ${(err as Error)?.message}`);
+                    // Una clave equivocada no mejora reintentando: se corta acá y
+                    // el aviso dice qué hay que tocar, en vez de esperar otros
+                    // 5 minutos para dar el mismo error con cara de lentitud.
+                    if (err instanceof CredencialRechazadaError) break;
                 }
             }
             if (ultimoError) throw ultimoError;

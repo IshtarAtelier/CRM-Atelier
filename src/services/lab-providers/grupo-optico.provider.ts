@@ -263,10 +263,28 @@ export class GrupoOpticoProvider {
         // Ahora se espera POR EL RESULTADO: se mira la URL cada 5 s hasta cinco
         // minutos. El login se resuelve por JavaScript ("Iniciando sesión…"),
         // así que tampoco sirve atarse a `waitForNavigation`.
+        // UNA CREDENCIAL RECHAZADA NO ES LENTITUD (8/9/26). Esperar por la URL
+        // era necesario pero no suficiente: cuando el portal contesta "Usuario o
+        // contraseña incorrectos" la URL se queda en /auth/ para siempre, así que
+        // el ciclo agotaba los 5 minutos y avisaba "el portal está muy lento".
+        // Con esa cara, el corte duró 15 días —del 24/8 al 8/9— buscando un
+        // problema de red que no existía: medido, el portal contesta en 2,4 s.
+        // Ahora se mira TAMBIÉN el cartel de error y se corta al instante,
+        // diciendo lo que de verdad pasa y qué hay que tocar.
         const ESPERA_LOGIN_MS = 300_000;
         const limite = Date.now() + ESPERA_LOGIN_MS;
         while (Date.now() < limite) {
             if (!page.url().includes('/auth/')) return;
+            const enPantalla = (await page.innerText('body').catch(() => '') || '').toLowerCase();
+            if (/incorrect|no se pudo iniciar sesi|credenciales inv/i.test(enPantalla)) {
+                const configurada = !!process.env.SMARTLAB_USER && !!process.env.SMARTLAB_PASSWORD;
+                throw new Error(
+                    'CREDENCIAL RECHAZADA por el portal de Grupo Óptico: dice "usuario o contraseña incorrectos". '
+                    + (configurada
+                        ? 'SMARTLAB_USER/SMARTLAB_PASSWORD están configuradas pero el portal no las acepta: hay que pedirle la clave nueva a Grupo Óptico y actualizarlas.'
+                        : 'SMARTLAB_USER/SMARTLAB_PASSWORD NO están configuradas, así que se usó la clave escrita en el código, que ya no sirve: cargarlas en las variables de entorno.')
+                );
+            }
             await page.waitForTimeout(5000);
         }
         throw new Error(`Login de SmartLab no salió de /auth/ en ${ESPERA_LOGIN_MS / 60000} min (el portal está muy lento).`);
