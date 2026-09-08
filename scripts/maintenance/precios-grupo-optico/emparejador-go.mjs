@@ -183,6 +183,15 @@ const SECCIONES = [
             ? f.disponibilidad === 'RANGO EXTENDIDO' : f.disponibilidad === 'STOCK',
     },
     {
+        // DIGITAL antes que CNC: comparten las mismas filas de la lista y solo
+        // cambia la columna de precio (`ultra` vs `cnc`). Sin esta sección los
+        // 26 digitales caían en CNC, chocaban con su gemelo tallado y su costo
+        // no coincidía con la lista — 32 falsos "no coincide" en la auditoría.
+        nombre: 'Monofocal de laboratorio DIGITAL',
+        test: n => /monofocal\s*digital|digital\s*-/i.test(n),
+        filas: () => datos.monofocal_laboratorio.filas, precio: 'ultra',
+    },
+    {
         nombre: 'Monofocal de laboratorio (CNC)',
         test: () => true,   // el resto: monofocales tallados
         filas: () => datos.monofocal_laboratorio.filas, precio: 'cnc',

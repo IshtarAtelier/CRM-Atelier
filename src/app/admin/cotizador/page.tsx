@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { 
     Search, 
@@ -146,6 +148,16 @@ function CotizadorPageContent() {
     const [selectedBrand, setSelectedBrand] = useState('');
     const [selectedLab, setSelectedLab] = useState('');
     const [selectedIndex, setSelectedIndex] = useState('');
+    // Cómo se ordena la grilla. Antes era siempre por precio ascendente y no
+    // se podía cambiar: para vender de arriba hacia abajo había que leer la
+    // lista al revés.
+    const [orden, setOrden] = useState<'familia' | 'precio' | 'precio-desc' | 'indice'>('familia');
+    // La receta que el vendedor tiene en la mano. Filtra por lo que el cristal
+    // realmente cubre: es el dato que evita mandar a fábrica algo que el
+    // laboratorio después rechaza.
+    const [rxEsf, setRxEsf] = useState('');
+    const [rxCil, setRxCil] = useState('');
+    const [rxAdd, setRxAdd] = useState('');
     const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
     const [markup, setMarkup] = useState(0);
     const [discountCash, setDiscountCash] = useState(20);
@@ -436,6 +448,9 @@ function CotizadorPageContent() {
         if (selectedOrigin) tags.push({ key: 'origin', label: selectedOrigin === 'STOCK' ? 'Stock' : 'Laboratorio', clear: () => setSelectedOrigin('') });
         if (selectedBrand) tags.push({ key: 'brand', label: selectedBrand, clear: () => setSelectedBrand('') });
         if (selectedIndex) tags.push({ key: 'index', label: `Índice ${selectedIndex}`, clear: () => setSelectedIndex('') });
+        if (rxEsf.trim()) tags.push({ key: 'rx-esf', label: `Esf ${rxEsf}`, clear: () => setRxEsf('') });
+        if (rxCil.trim()) tags.push({ key: 'rx-cil', label: `Cil ${rxCil}`, clear: () => setRxCil('') });
+        if (rxAdd.trim()) tags.push({ key: 'rx-add', label: `Ad ${rxAdd}`, clear: () => setRxAdd('') });
         if (selectedLab) tags.push({ key: 'lab', label: selectedLab, clear: () => setSelectedLab('') });
         return tags;
     }, [selectedSubtype, selectedOrigin, selectedBrand, selectedLab, selectedIndex]);
@@ -449,6 +464,7 @@ function CotizadorPageContent() {
         setSelectedBrand('');
         setSelectedLab('');
         setSelectedIndex('');
+        setRxEsf(''); setRxCil(''); setRxAdd('');
     };
 
     const filtered = useMemo(() => {
@@ -465,7 +481,7 @@ function CotizadorPageContent() {
         };
         const words = search ? normalizeText(search).split(/\s+/).filter(Boolean) : [];
 
-        return products.filter(p => {
+        const base = products.filter(p => {
             const matchesSearch = words.length === 0 || (() => {
                 const haystack = normalizeText(`${p.brand || ''} ${p.model || ''} ${p.name || ''} ${p.type || ''} ${p.category || ''} ${p.lensIndex || ''}`);
                 return words.every(w => haystack.includes(w));
@@ -499,29 +515,87 @@ function CotizadorPageContent() {
                 if (p.laboratory?.toLowerCase() !== selectedLab.toLowerCase()) return false;
             }
             
+            // FILTRO POR RECETA: se queda solo con los cristales que cubren esa
+            // graduación. Un cristal sin rango cargado NO se descarta —quedaría
+            // invisible por un dato que falta, no por no servir— pero se marca
+            // aparte en la fila.
+            const cubre = (v: string, min: number | null | undefined, max: number | null | undefined) => {
+                if (!v.trim()) return true;
+                const n = parseFloat(v.replace(',', '.'));
+                if (!Number.isFinite(n)) return true;
+                if (min == null || max == null) return true;
+                return n >= Math.min(min, max) && n <= Math.max(min, max);
+            };
+            if (!cubre(rxEsf, p.sphereMin, p.sphereMax)) return false;
+            if (!cubre(rxCil, p.cylinderMin, p.cylinderMax)) return false;
+            if (!cubre(rxAdd, p.additionMin, p.additionMax)) return false;
+
             return matchesSearch && matchesWeb;
-        }).sort((a, b) => (a.price || 0) - (b.price || 0));
-    }, [products, search, activeType, onlyWeb, selectedSubtype, selectedOrigin, selectedBrand, selectedLab, selectedIndex]);
+        });
+        // El orden POR FAMILIA agrupa de verdad: primero junta cada línea, la
+        // más barata arriba, y adentro ordena por precio. Sin esto las líneas se
+        // intercalan y la tabla sale con una cabecera cada dos filas.
+        if (orden === 'familia') {
+            const minPorLinea = new Map<string, number>();
+            for (const p of base) {
+                const k = lineaDe(p);
+                const v = safePrice(p.price);
+                if (!minPorLinea.has(k) || v < (minPorLinea.get(k) as number)) minPorLinea.set(k, v);
+            }
+            return base.sort((a, b) => {
+                const la = lineaDe(a), lb = lineaDe(b);
+                if (la !== lb) return (minPorLinea.get(la) ?? 0) - (minPorLinea.get(lb) ?? 0) || la.localeCompare(lb);
+                return (a.price || 0) - (b.price || 0);
+            });
+        }
+        return base.sort((a, b) => {
+            if (orden === 'precio-desc') return (b.price || 0) - (a.price || 0);
+            if (orden === 'indice') return (parseFloat(String(a.lensIndex || 0)) - parseFloat(String(b.lensIndex || 0)))
+                || ((a.price || 0) - (b.price || 0));
+            return (a.price || 0) - (b.price || 0);
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [products, search, activeType, onlyWeb, selectedSubtype, selectedOrigin, selectedBrand, selectedLab, selectedIndex, orden, rxEsf, rxCil, rxAdd]);
+
+    /**
+     * La LÍNEA comercial de un cristal, que es como el vendedor los piensa.
+     * Agrupar por marca dejaba los 161 multifocales de Grupo Óptico en un solo
+     * bloque "Smart": una pared de filas para scrollear. La línea vive al
+     * principio del nombre ("Multifocal SMART FREE - …", "VARILUX PHYSIO - …").
+     */
+    const lineaDe = (p: Product) => {
+        const n = (p.name || '').toUpperCase();
+        const m = n.match(/SMART\s+(AI LENS|EXCLUSIVE|DRIVE|FREE|PRO|ONE|NEW)/)
+            || n.match(/MI PRIMER (VARILUX|KODAK)[\s-]*([A-Z0-9.]+(?:\s+MAX)?)?/)
+            || n.match(/VARILUX\s+(XR DESIGN|COMFORT MAX|COMFORT|PHYSIO 3\.0|PHYSIO|LIBERTY|DIGITIME)/)
+            || n.match(/KODAK\s+(UNIQUE DRO|PRECISE|SOFTWEAR|SV DIGITAL)/)
+            || n.match(/(NEW EDITIONS|EYEZEN [A-Z]+|MYOPILUX [A-Z]+|STELLEST|INTERVIEW|ESPACE PLUS|KRIPTOCK|MYOFIX|MYOLENS)/);
+        if (m) return m[0].replace(/\s+/g, ' ').trim();
+        return (p.brand?.trim() || 'Otros');
+    };
 
     const groupedProducts = useMemo(() => {
         const groups: { [key: string]: Product[] } = {};
         filtered.forEach(p => {
-            const brand = p.brand?.trim() || 'Otros';
-            if (!groups[brand]) {
-                groups[brand] = [];
-            }
-            groups[brand].push(p);
+            const k = activeType === 'Cristal' ? lineaDe(p) : (p.brand?.trim() || 'Otros');
+            (groups[k] ??= []).push(p);
         });
         return groups;
-    }, [filtered]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filtered, activeType]);
 
     const sortedBrands = useMemo(() => {
+        // Las líneas salen ordenadas por su cristal más barato: así el vendedor
+        // ve la escalera comercial de entrada a premium, que es como cotiza.
+        // Alfabético dejaba "AI LENS" arriba de "ONE", al revés del precio.
+        const minDe = (k: string) => Math.min(...(groupedProducts[k] || []).map(p => safePrice(p.price) || Infinity));
         return Object.keys(groupedProducts).sort((a, b) => {
             if (a === 'Otros') return 1;
             if (b === 'Otros') return -1;
-            return a.localeCompare(b);
+            if (orden === 'familia') return a.localeCompare(b);
+            return minDe(a) - minDe(b);
         });
-    }, [groupedProducts]);
+    }, [groupedProducts, orden]);
 
     // Cart logic
     const addToQuote = (p: Product) => {
@@ -908,6 +982,39 @@ function CotizadorPageContent() {
                         )}
                     </div>
 
+                    {/* LA RECETA y el ORDEN. Solo en cristales: en armazones no
+                        aplican. La receta es lo que el vendedor tiene en la mano,
+                        así que filtrar por ella es más directo que adivinar qué
+                        cristal cubre esa graduación. */}
+                    {activeType === 'Cristal' && (
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-foreground/40 pl-1">Receta</span>
+                            {([['Esf', rxEsf, setRxEsf], ['Cil', rxCil, setRxCil], ['Ad', rxAdd, setRxAdd]] as const).map(([lbl, val, set]) => (
+                                <input
+                                    key={lbl}
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={val}
+                                    onChange={(e) => set(e.target.value)}
+                                    placeholder={lbl}
+                                    aria-label={`Filtrar por ${lbl === 'Esf' ? 'esfera' : lbl === 'Cil' ? 'cilindro' : 'adición'} de la receta`}
+                                    className={`${chipBase} w-[62px] px-2 text-center ${val.trim() ? chipActivo : chipInactivo}`}
+                                />
+                            ))}
+                            <select
+                                value={orden}
+                                onChange={(e) => setOrden(e.target.value as typeof orden)}
+                                aria-label="Ordenar"
+                                className={`${chipBase} px-2 ${chipInactivo} cursor-pointer`}
+                            >
+                                <option value="familia">Por familia</option>
+                                <option value="precio">Precio ↑</option>
+                                <option value="precio-desc">Precio ↓</option>
+                                <option value="indice">Índice</option>
+                            </select>
+                        </div>
+                    )}
+
                     {/* MARCA e ÍNDICE, pegados al buscador y FUERA de la fila que
                         scrollea. Son los dos filtros que más se piden en el
                         mostrador ("mostrame todos los 1.67", "los Varilux");
@@ -1151,17 +1258,18 @@ function CotizadorPageContent() {
                             {/* Desktop / tablet: tabla densa y jerarquizada */}
                             <div className="hidden md:block rounded-xl border border-sidebar-border overflow-hidden bg-sidebar">
                                 <div className="overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
-                                    <table className="w-full text-left border-collapse table-fixed" style={{ minWidth: 980 }}>
+                                    <table className="w-full text-left border-collapse table-fixed" style={{ minWidth: 1080 }}>
                                         <thead>
                                             <tr className="bg-sidebar text-foreground/55 border-b border-sidebar-border">
-                                                <th className="pl-4 pr-1 py-2.5 text-[9px] font-bold uppercase tracking-wider w-[104px]">Tipo · Marca</th>
+                                                <th className="pl-4 pr-1 py-2.5 text-[9px] font-bold uppercase tracking-wider w-[118px]">Tipo · Marca</th>
                                                 <th className="px-1 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[44px]">Índice</th>
                                                 <th className="px-1.5 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[86px]">Confección</th>
                                                 <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider">Descripción</th>
-                                                <th className="px-2 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[150px]">Rango</th>
+                                                <th className="px-2 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[136px]">Rango</th>
                                                 <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[90px]">Lista</th>
                                                 <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[110px] text-primary">Efectivo</th>
                                                 <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[90px]">Transf.</th>
+                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[92px]" title="3 y 6 cuotas sin interés">6 Cuotas</th>
                                                 {/* El 10% se aclara siempre. Acá no entra la etiqueta completa
                                                     (columna de 100px), así que va abreviada y la frase canónica
                                                     queda al pie de la tabla. */}
@@ -1172,8 +1280,15 @@ function CotizadorPageContent() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filtered.map((product) => {
-                                                const inQuote = quoteItems.find(i => i.product?.id === product.id);
+                                            {filtered.map((product, i) => {
+                                                // Fila de LÍNEA cada vez que cambia la familia. Sin esto la tabla
+                                                // es una pared plana: con Grupo Óptico cargado son 161 cristales
+                                                // seguidos bajo la misma marca "Smart", y el vendedor scrollea a
+                                                // ciegas. La cabecera dice qué línea es y cuántos hay.
+                                                const linea = lineaDe(product);
+                                                const abreLinea = orden === 'familia' && (i === 0 || lineaDe(filtered[i - 1]) !== linea);
+                                                const enLinea = abreLinea ? filtered.filter(x => lineaDe(x) === linea).length : 0;
+                                                const inQuote = quoteItems.find(i2 => i2.product?.id === product.id);
                                                 const oferta = precioConOferta(product);
                                                 const sprice = safePrice(oferta.final);
                                                 const pTotal = sprice * (1 + markup / 100);
@@ -1182,14 +1297,22 @@ function CotizadorPageContent() {
                                                 const { installment12: pCuota12 } = PricingService.cuotasMpLargas(pTotal);
                                                 const origin = normalizeLensOrigin(product.origin);
                                                 return (
+                                                    <React.Fragment key={product.id}>
+                                                    {abreLinea && (
+                                                        <tr>
+                                                            <td colSpan={11} className="bg-primary/[0.07] border-y border-sidebar-border px-4 py-2">
+                                                                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/70">{linea}</span>
+                                                                <span className="ml-2 text-[10px] font-medium text-foreground/45">{enLinea} {enLinea === 1 ? 'cristal' : 'cristales'}</span>
+                                                            </td>
+                                                        </tr>
+                                                    )}
                                                     <tr
-                                                        key={product.id}
                                                         onClick={() => addToQuote(product)}
                                                         className="group cursor-pointer transition-colors border-b border-sidebar-border last:border-b-0 hover:bg-primary/[0.06]"
                                                     >
                                                         <td className="px-4 py-2 align-top">
-                                                            <p className="text-[10px] font-bold uppercase text-foreground/55 whitespace-nowrap">{tipoConSeparador(product.type)}</p>
-                                                            <p className="text-[10px] font-semibold uppercase text-foreground/55 mt-0.5 truncate max-w-[120px]">{product.brand || '—'}</p>
+                                                            <p className="text-[10px] font-bold uppercase text-foreground/55 leading-tight truncate">{tipoConSeparador(product.type)}</p>
+                                                            <p className="text-[10px] font-semibold uppercase text-foreground/55 mt-0.5 truncate">{product.brand || '—'}</p>
                                                         </td>
                                                         <td className="px-3 py-2 text-center align-top">
                                                             <span className="text-[10px] font-bold text-foreground/55">{product.lensIndex || '—'}</span>
@@ -1232,6 +1355,12 @@ function CotizadorPageContent() {
                                                         <td className="px-3 py-2 text-right align-top">
                                                             <span className="text-xs font-semibold text-foreground/55 tabular-nums">${Math.round(pTrans).toLocaleString('es-AR')}</span>
                                                         </td>
+                                                        {/* 3 y 6 cuotas son SIN INTERÉS: la cuota es el precio de
+                                                            lista dividido 6, sin recargo. Faltaba, y es la forma de
+                                                            pago que más se ofrece en el mostrador. */}
+                                                        <td className="px-3 py-2 text-right align-top">
+                                                            <span className="text-xs font-semibold text-foreground/55 tabular-nums">${Math.round(pTotal / 6).toLocaleString('es-AR')}</span>
+                                                        </td>
                                                         <td className="px-3 py-2 text-right align-top">
                                                             <span className="text-xs font-semibold text-foreground/55 tabular-nums">${pCuota12.toLocaleString('es-AR')}</span>
                                                         </td>
@@ -1247,6 +1376,7 @@ function CotizadorPageContent() {
                                                             )}
                                                         </td>
                                                     </tr>
+                                                    </React.Fragment>
                                                 );
                                             })}
                                         </tbody>
@@ -1469,19 +1599,26 @@ function CotizadorPageContent() {
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-4 flex-shrink-0 ml-4">
-                                                            <div className="text-right tabular-nums leading-tight">
-                                                                <p className="text-sm font-black text-primary">
-                                                                    ${Math.round(bEfectivo).toLocaleString('es-AR')}
-                                                                    <span className="text-[8px] font-bold text-foreground/55 uppercase ml-1">efectivo</span>
-                                                                </p>
-                                                                <p className="text-[9px] font-semibold text-foreground/55">
-                                                                    Lista ${Math.round(bLista).toLocaleString('es-AR')}
-                                                                    <span className="text-foreground/40"> · </span>
-                                                                    Transf. ${Math.round(bTransf).toLocaleString('es-AR')}
-                                                                </p>
-                                                                <p className="text-[9px] font-semibold text-foreground/55" title={textoCuotas12(bCuota12)}>
-                                                                    12 cuotas de <span className="text-foreground/40">${bCuota12.toLocaleString('es-AR')}</span>
-                                                                </p>
+                                                            {/* Las CINCO formas de pago, cada una con su rótulo y
+                                                                alineadas en columna. Antes iban apretadas en dos
+                                                                renglones de 9px ("Lista $X · Transf. $Y") y había que
+                                                                adivinar cuál era cuál en el mostrador. */}
+                                                            <div className="text-right tabular-nums leading-tight min-w-[168px]">
+                                                                <div className="flex items-baseline justify-end gap-2">
+                                                                    <span className="text-[8px] font-bold uppercase tracking-wider text-foreground/45">Efectivo</span>
+                                                                    <span className="text-sm font-black text-primary">${Math.round(bEfectivo).toLocaleString('es-AR')}</span>
+                                                                </div>
+                                                                {([
+                                                                    ['Transf.', Math.round(bTransf)],
+                                                                    ['Lista', Math.round(bLista)],
+                                                                    ['6 cuotas', Math.round(bLista / 6)],
+                                                                    ['12 cuotas', bCuota12],
+                                                                ] as const).map(([rotulo, valor]) => (
+                                                                    <div key={rotulo} className="flex items-baseline justify-end gap-2">
+                                                                        <span className="text-[8px] font-bold uppercase tracking-wider text-foreground/40">{rotulo}</span>
+                                                                        <span className="text-[10px] font-semibold text-foreground/60">${valor.toLocaleString('es-AR')}</span>
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                             {inQuote ? (
                                                                 <div className="flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-[10px] font-bold shadow-md shadow-primary/20">
