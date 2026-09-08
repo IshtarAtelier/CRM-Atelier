@@ -167,6 +167,34 @@ export async function scanOptovisionInbox(sinceDays = 35) {
                             ? `${CLAVE_SIN_NUMERO} ${nroFactura[1]}-${nroFactura[2]}`
                             : `${CLAVE_SIN_NUMERO} ${(attachment.filename || 'factura').replace(/\.pdf$/i, '')}`;
 
+                        // ¿ESTA FACTURA YA FUE ASIGNADA A MANO? Entonces NO se
+                        // registra de nuevo.
+                        //
+                        // El bug (medido el 7/9/2026): la unicidad es
+                        // [lab, labOrderNumber]. Cuando alguien le asigna a mano el
+                        // pedido real, la fila pasa a tener ESE número como clave —
+                        // y la clave literal "S/PEDIDO 3008-000XXXXX" queda libre.
+                        // El escaneo del día siguiente vuelve a leer el mismo PDF,
+                        // no encuentra número adentro, y crea una SEGUNDA fila con
+                        // la misma plata. Pasó con tres facturas asignadas el 24/8
+                        // (Víctor Sanmartino, Cels Guillermo, Paola de Diaz): al día
+                        // siguiente cada una tenía su fantasma, y esos fantasmas
+                        // inflaban el conteo de huérfanos con $624.227 que ya
+                        // estaban cruzados. Sin esta guarda vuelve a pasar mañana
+                        // con las tres que se asignaron hoy.
+                        const yaAsignada = await prisma.labCostEntry.findFirst({
+                            where: {
+                                lab: 'OPTOVISION',
+                                orderId: { not: null },
+                                sourceFile: attachment.filename || undefined,
+                            },
+                            select: { labOrderNumber: true },
+                        }).catch(() => null);
+                        if (yaAsignada) {
+                            console.log(`[LabCost] Factura ${attachment.filename} ya está asignada al pedido ${yaAsignada.labOrderNumber}: no se registra otra vez.`);
+                            continue;
+                        }
+
                         if (total !== null && total > 0) {
                             const entry = await upsertEntry({
                                 lab: 'OPTOVISION',

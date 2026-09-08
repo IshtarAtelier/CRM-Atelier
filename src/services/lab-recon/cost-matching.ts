@@ -100,10 +100,27 @@ async function labConfigDe(lab: string) {
 }
 
 export async function upsertEntry(input: LabCostInput) {
+    // UN Nº DE PEDIDO TIENE 5 DÍGITOS O MÁS.
+    //
+    // Esto aceptaba 4, y una SERIE de comprobante tiene exactamente 4 ("3008",
+    // "3025"). Cuando una factura llegaba sin nº de pedido y en el texto asomaba
+    // la serie, se guardaba con esa clave — y como la unicidad es
+    // [lab, labOrderNumber], ese "3008" era un casillero ÚNICO por laboratorio:
+    // cada factura nueva que caía ahí PISABA a la anterior. Verificado el
+    // 7-8/9/2026: la fila "3008" tenía el 5/9 la factura 70740 por $220.850,72 y
+    // el 7/9 ya era la 76510 por $30,24. Los $220.850 desaparecieron de la
+    // auditoría sin dejar rastro — no inflaba el conteo, lo ESCONDÍA.
+    //
+    // El parser de Optovisión ya exige `\d{5,}` y la pantalla valida lo mismo
+    // (`ES_PEDIDO`); esta era la única puerta que aceptaba menos. Si no hay un
+    // número plausible, no se inventa una clave: se avisa y no se registra.
     const cleanNumber = input.claveLiteral
         ? input.labOrderNumber.trim()
-        : (input.labOrderNumber.match(/\d{4,}/) || [input.labOrderNumber.trim()])[0];
-    if (!cleanNumber) return null;
+        : (input.labOrderNumber.match(/\d{5,}/) || [])[0];
+    if (!cleanNumber) {
+        console.warn(`[LabCost] "${input.labOrderNumber}" no tiene un nº de pedido válido (5+ dígitos): no se registra. Fuente: ${input.sourceFile || input.source}`);
+        return null;
+    }
 
     // Backfill pendiente para este lab → modo silencioso (ver arriba).
     const quiet = await isQuietLab(String(input.lab));
