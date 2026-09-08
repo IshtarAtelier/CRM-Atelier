@@ -259,7 +259,20 @@ export function HomeProductCarousel({ collections, totalCount, conteos }: Props)
                         dicen "fijas", sin el % (promo-cuotas.ts). */}
                     {item.rawPrice ? (
                       (() => {
-                        const v = PricingService.preciosVidriera(item.rawPrice, 15);
+                        // El precio sale del EFECTIVO (la oferta si la hay), no del
+                        // de lista. Hasta el 8/9 esto usaba `item.rawPrice` a secas
+                        // y quedaba un arreglo a medias: el 7/9 se le puso a esta
+                        // misma tarjeta el cartel "26% OFF 🔥" —que sí mira
+                        // `salePrice`— pero el número de abajo seguía saliendo del
+                        // precio de lista. Resultado: Rigel C3, rebajado de
+                        // $215.000 a $160.000, mostraba "26% OFF" al lado de
+                        // $182.750 (215.000 − 15%), mientras /tienda mostraba
+                        // $136.000 (160.000 − 15%) por el mismo anteojo. El home es
+                        // la pantalla que más gente ve, y era la que mentía.
+                        // `precioConOferta` es la misma regla que usan la tienda,
+                        // la ficha y el cotizador.
+                        const { final } = precioConOferta({ price: item.rawPrice ?? null, salePrice: item.salePrice ?? null });
+                        const v = PricingService.preciosVidriera(final, 15);
                         return (
                           <p className="flex flex-col gap-0.5">
                             <span className="text-[10px] font-medium text-emerald-700 whitespace-nowrap">Transferencia 15% OFF</span>
