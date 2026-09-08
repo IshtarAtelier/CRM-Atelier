@@ -182,14 +182,21 @@ export async function scanOptovisionInbox(sinceDays = 35) {
                         // inflaban el conteo de huérfanos con $624.227 que ya
                         // estaban cruzados. Sin esta guarda vuelve a pasar mañana
                         // con las tres que se asignaron hoy.
-                        const yaAsignada = await prisma.labCostEntry.findFirst({
+                        // Se busca por el NÚMERO DE COMPROBANTE, no por el nombre
+                        // del archivo: la asignación a mano reescribe `sourceFile`
+                        // como "FA_3008-00075115.pdf" y el adjunto que llega puede
+                        // llamarse distinto (copias con " (1)", mayúsculas, etc.).
+                        // Comparar el nombre exacto no encontraba nada y el
+                        // fantasma se creaba igual — lo verifiqué en producción.
+                        const nroComprobante = nroFactura ? nroFactura[2] : null;
+                        const yaAsignada = nroComprobante ? await prisma.labCostEntry.findFirst({
                             where: {
                                 lab: 'OPTOVISION',
                                 orderId: { not: null },
-                                sourceFile: attachment.filename || undefined,
+                                sourceFile: { contains: nroComprobante },
                             },
                             select: { labOrderNumber: true },
-                        }).catch(() => null);
+                        }).catch(() => null) : null;
                         if (yaAsignada) {
                             console.log(`[LabCost] Factura ${attachment.filename} ya está asignada al pedido ${yaAsignada.labOrderNumber}: no se registra otra vez.`);
                             continue;

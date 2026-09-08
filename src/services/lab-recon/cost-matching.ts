@@ -6,6 +6,7 @@ import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
 import { LAB_ITEM_PATTERNS, TOLERANCE } from './types';
 import { costoParBonificado } from '../../lib/lens-cost';
+import { CLAVE_SIN_NUMERO } from '../../lib/lab-factura';
 
 /**
  * EL NÚCLEO DEL CRUCE: registra el costo que facturó un laboratorio por un nº de
@@ -114,7 +115,14 @@ export async function upsertEntry(input: LabCostInput) {
     // El parser de Optovisión ya exige `\d{5,}` y la pantalla valida lo mismo
     // (`ES_PEDIDO`); esta era la única puerta que aceptaba menos. Si no hay un
     // número plausible, no se inventa una clave: se avisa y no se registra.
-    const cleanNumber = input.claveLiteral
+    //
+    // La clave "S/PEDIDO 3008-000XXXXX" es SIEMPRE literal, la marquen o no en
+    // la llamada: es un identificador entero, no un texto del que haya que
+    // sacar dígitos. Sin esta línea, un camino que la pase sin `claveLiteral`
+    // le extrae un número de adentro e inventa una tercera fila para la misma
+    // factura — pasó el 8/9/2026 con "00075115" y "00073418".
+    const literal = input.claveLiteral || input.labOrderNumber.trim().startsWith(CLAVE_SIN_NUMERO);
+    const cleanNumber = literal
         ? input.labOrderNumber.trim()
         : (input.labOrderNumber.match(/\d{5,}/) || [])[0];
     if (!cleanNumber) {
