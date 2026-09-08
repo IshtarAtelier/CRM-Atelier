@@ -290,8 +290,8 @@ export function getConfirmationHtml(customer: any, orderId: string, emailTotal: 
     <tr>
       <td style="padding: 24px 40px 0;">
         <p style="margin: 0; font-family: ${SANS}; font-size: 12px; line-height: 1.9; color: ${MUTED};">
-          El cambio de cristales se hace <strong style="color: ${IVORY};">&uacute;nicamente por cambio de receta</strong>,
-          sobre el mismo cristal y el mismo armaz&oacute;n, y las se&ntilde;as no tienen devoluci&oacute;n.
+          Todos los cristales incluyen garant&iacute;a de <strong style="color: ${IVORY};">UN cambio por cambio de receta</strong>
+          &mdash; un solo cambio, sobre el mismo cristal y el mismo armaz&oacute;n. Las se&ntilde;as no tienen devoluci&oacute;n.
           <a href="${APP_ORIGIN}/politicas-de-cambio#terminos-del-cambio" style="color: ${GOLD}; text-decoration: underline;">Ver&nbsp;las&nbsp;condiciones&nbsp;completas</a>.
         </p>
       </td>

@@ -1,6 +1,7 @@
 import { formatDate } from '@/lib/format-date';
 import { PricingService } from '@/services/PricingService';
 import { WHATSAPP_PHONE_DISPLAY } from '@/lib/constants';
+import { GARANTIA_UNA_LINEA } from '@/lib/garantia';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import fs from 'fs';
@@ -332,6 +333,10 @@ function getClientHtml(client: any): string {
         ${interactionsHtml}
     </div>
     ` : '<div style="border:1.5px solid #E5E5E5; border-radius:12px; padding:12px; text-align:center; color:#a8a29e; font-style:italic;">Sin notas registradas.</div>'}
+
+    <div style="margin-top:26px; border:1.5px solid ${brandBeige}; border-radius:12px; padding:11px 14px; font-size:10px; color:#57534e; text-align:center;">
+        <strong style="color:#7d6249;">${GARANTIA_UNA_LINEA}</strong>
+    </div>
 
     <div class='footer'>Atelier Óptica · Tejeda 4380 · Profesionalismo Ética y Diseño · ${format(new Date(), "yyyy")}</div>
 </body>

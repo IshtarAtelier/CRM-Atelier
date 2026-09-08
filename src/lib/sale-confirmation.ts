@@ -23,6 +23,7 @@ import { normalizeArgentinePhone } from '@/services/contact.service';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { uploadFile, getFileBuffer } from '@/lib/storage';
 import { STORE_ORIGIN } from '@/lib/constants';
+import { GARANTIA_UNA_LINEA } from '@/lib/garantia';
 import { PricingService } from '@/services/PricingService';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
@@ -309,6 +310,7 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         // después: es el último momento en que el cliente puede decidir sabiendo
         // que el cambio es solo por receta nueva, sobre el mismo cristal y el
         // mismo armazón, y que la seña no se devuelve (Ishtar, 31/8/2026).
+        `✅ ${GARANTIA_UNA_LINEA}`,
         `📄 Condiciones de cambio y garantía: ${STORE_ORIGIN}/politicas-de-cambio#terminos-del-cambio`,
     ).join('\n');
 

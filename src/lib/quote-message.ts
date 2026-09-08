@@ -12,6 +12,7 @@
 
 import { PricingService } from '@/services/PricingService';
 import { STORE_ORIGIN } from '@/lib/constants';
+import { GARANTIA_UNA_LINEA } from '@/lib/garantia';
 import { lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 
 const money = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
@@ -91,6 +92,7 @@ export function buildQuoteMessage(order: any, clientName: string): string {
     // nueva, sobre el mismo cristal y el mismo armazón, y que la seña no se
     // devuelve. Que las tenga ANTES de decidir es el punto (Ishtar, 31/8/2026).
     lineas.push(``);
+    lineas.push(`✅ ${GARANTIA_UNA_LINEA}`);
     lineas.push(`📄 Condiciones de cambio y garantía:`);
     lineas.push(`${STORE_ORIGIN}/politicas-de-cambio#terminos-del-cambio`);
 

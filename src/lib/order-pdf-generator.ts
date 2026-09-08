@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PricingService } from '@/services/PricingService';
 import { lensOriginLabel, lensOriginFromItem } from '@/lib/lens-origin';
+import { GARANTIA_UNA_LINEA } from '@/lib/garantia';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { colorLineaLabel } from '@/lib/crystal-color';
 import { colorDeLenteEnPedido } from '@/lib/color-de-lente';
@@ -873,6 +874,14 @@ async function generateOrderPDFWithJsPDF(order: any, contact: any, filename: str
         doc.text('TE ATENDIÓ · ATELIER ÓPTICA', firmaX + firmaW / 2, y, { align: 'center' });
         y += 8;
     }
+
+    // --- GARANTÍA ---
+    // El cliente se lleva el PDF: la condición tiene que viajar con él, no
+    // quedar solo en el WhatsApp que se pierde en la conversación.
+    // "Un solo cambio" es el límite que Ishtar pidió dejar escrito (8/9/2026).
+    doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(125, 98, 73);
+    doc.text(GARANTIA_UNA_LINEA.toUpperCase(), pw / 2, y, { align: 'center' });
+    y += 5;
 
     // --- FOOTER ---
     doc.setDrawColor(...brandBeige); doc.setLineWidth(0.5);

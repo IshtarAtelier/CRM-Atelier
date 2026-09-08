@@ -97,10 +97,14 @@ export const GARANTIA_TEXTO_CORTO = GARANTIA_ADAPTACION.RESUMEN;
  */
 export const TERMINOS_CAMBIO = [
     {
-        titulo: 'El cambio es únicamente por cambio de receta',
+        // Ishtar, 8/9/2026: "que todos tienen garantía de UN cambio por cambio
+        // de receta (SOLO UN CAMBIO)". El límite estaba sobreentendido y no
+        // escrito, que es como terminan las discusiones en el mostrador.
+        titulo: 'Un cambio, y es por cambio de receta',
         texto:
-            `La garantía se hace efectiva solo cuando el oftalmólogo emite una receta nueva. ` +
-            `Entre una receta y la otra no pueden pasar más de ${GARANTIA_DIAS_ENTRE_RECETAS} días.`,
+            `La garantía cubre UN solo cambio de cristales, y se hace efectiva únicamente cuando el ` +
+            `oftalmólogo emite una receta nueva. Entre una receta y la otra no pueden pasar más de ` +
+            `${GARANTIA_DIAS_ENTRE_RECETAS} días. Hecho ese cambio, la garantía queda consumida.`,
     },
     {
         // Ishtar, 31/8/2026: "esto no lo cambiaría ni lo haría opcional". La
@@ -139,6 +143,15 @@ export const TERMINOS_CAMBIO = [
             'un turno nuevo.',
     },
 ] as const;
+
+/**
+ * La garantía en una línea, para el pie del presupuesto y de la confirmación.
+ * Es lo que el cliente tiene que leer sí o sí antes de decidir; el detalle
+ * completo está a un clic, en /politicas-de-cambio.
+ */
+export const GARANTIA_UNA_LINEA =
+    `Todos los cristales incluyen garantía de UN cambio por cambio de receta ` +
+    `(hasta ${GARANTIA_DIAS_ENTRE_RECETAS} días entre una receta y la otra).`;
 
 /** Los mismos términos en texto plano, para WhatsApp y PDFs. */
 export const TERMINOS_CAMBIO_TEXTO = TERMINOS_CAMBIO

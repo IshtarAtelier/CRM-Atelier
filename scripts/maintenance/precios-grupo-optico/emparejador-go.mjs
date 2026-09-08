@@ -115,13 +115,39 @@ const SECCIONES = [
     },
     {
         nombre: 'Multifocal Smart Lens NEW',
-        test: n => /multifocal\s*new/i.test(n),
+        test: n => /multifocal\s*new|smart\s*new/i.test(n),
         filas: () => datos.multifocales.filas, precio: 'new', add: () => [0.75, 3.5],
     },
     {
         nombre: 'Multifocal Smart Lens ONE',
-        test: n => /multifocal\s*one/i.test(n),
+        // Acepta "Multifocal ONE" y "Multifocal SMART ONE": la carga vieja usaba
+        // el primero, la de septiembre el segundo. Sin el `smart\s*one` los 20
+        // que se dieron de alta el 8/9/2026 caían en el catch-all de monofocales.
+        test: n => /multifocal\s*one|smart\s*one/i.test(n),
         filas: () => datos.multifocales.filas, precio: 'one', add: () => [0.75, 3.5],
+    },
+    {
+        nombre: 'Multifocal Smart Lens PRO',
+        test: n => /smart\s*pro|multifocal\s*pro/i.test(n),
+        filas: () => datos.multifocales.filas, precio: 'pro', add: () => [0.75, 3.5],
+    },
+    {
+        nombre: 'Multifocal Smart Lens EXCLUSIVE',
+        test: n => /smart\s*exclusive|multifocal\s*exclusive/i.test(n),
+        filas: () => datos.multifocales.filas, precio: 'exclusive', add: () => [0.75, 3.5],
+    },
+    {
+        nombre: 'Multifocal Smart Lens AI LENS',
+        test: n => /smart\s*ai\s*lens|ai\s*lens/i.test(n),
+        filas: () => datos.multifocales.filas, precio: 'ai_lens', add: () => [0.75, 3.5],
+    },
+    {
+        // DRIVE tiene su propia tabla en la lista (`multifocales.drive`), no una
+        // columna más de la grilla: por eso sus filas usan `precio` y no el
+        // nombre del diseño.
+        nombre: 'Multifocal Smart Lens DRIVE',
+        test: n => /smart\s*drive|multifocal\s*drive|\bdrive\b/i.test(n),
+        filas: () => datos.multifocales.drive, precio: 'precio', add: () => [0.75, 3.5],
     },
     {
         nombre: 'Control de miopía Smart MyoFix',
