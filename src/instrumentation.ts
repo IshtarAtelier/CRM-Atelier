@@ -72,7 +72,12 @@ export async function register() {
                     headers: { 'Content-Type': 'application/json' },
                     // El diario hace IMAP 35 días + portal GO: puede tardar. Tope amplio
                     // para no dejarlo colgado eternamente.
-                    signal: AbortSignal.timeout(9.5 * 60 * 1000),
+                    // 25 min y no 9,5: la conciliación entra al portal de Grupo
+                    // Óptico, que durante la migración tarda minutos por paso
+                    // (8/9/26). Con 9,5 el fetch abortaba a mitad de una corrida
+                    // que iba a terminar bien. Corre una vez por día: que tarde
+                    // media hora no molesta a nadie.
+                    signal: AbortSignal.timeout(25 * 60 * 1000),
                 });
                 if (!res.ok) {
                     const body = await res.text();
@@ -446,7 +451,12 @@ export async function register() {
                     // 9,5 el fetch abortaba a mitad de un pase que iba a terminar
                     // bien, y el log decía "falló" sobre una corrida sana. El
                     // solapamiento con el tick siguiente lo previene `isSyncing`.
-                    signal: AbortSignal.timeout(14 * 60 * 1000),
+                    // 25 min: el login solo puede llevarse 5 (ver ESPERA_MS en
+                    // smartlab.service.ts) y después falta recorrer la lista de
+                    // pedidos, con el portal en migración. `isSyncing` impide que
+                    // dos corridas se pisen, así que un pase largo simplemente
+                    // hace que el tick siguiente se saltee.
+                    signal: AbortSignal.timeout(25 * 60 * 1000),
                 });
                 if (!res.ok) {
                     const body = await res.text();

@@ -39,26 +39,26 @@ try {
         console.log(`    input ${i}: type=${tipo} name=${nombre}`);
     }
 
-    paso('Entrando (login real) y cronometrando');
+    paso('Entrando (login real) — esperando hasta 8 minutos');
     const t0 = Date.now();
     await page.waitForTimeout(1500);
     await inputs[0].fill('pisano.ishtar@gmail.com');
+    await page.waitForTimeout(1500);
     await inputs[1].fill('atelier');
-    const botonesLogin = await page.$$('button, input[type=submit], a');
-    let clickeado = false;
-    for (const b of botonesLogin) {
+    await page.waitForTimeout(1500);
+    for (const b of await page.$$('button, input[type=submit], a')) {
         const t = ((await b.innerText().catch(() => '')) || (await b.getAttribute('value')) || '').trim();
-        if (/iniciar|ingresar|login/i.test(t)) { await b.click().catch(() => {}); clickeado = true; break; }
+        if (/iniciar|ingresar|login/i.test(t)) { await b.click().catch(() => {}); break; }
     }
-    console.log(`  ${clickeado ? '✅ botón clickeado' : '❌ no se encontró el botón'}`);
-    try {
-        await page.waitForLoadState('networkidle', { timeout: 60000 });
-        console.log(`  ✅ cargó tras el login en ${((Date.now() - t0) / 1000).toFixed(1)}s → ${page.url()}`);
-        const entro = !/login/i.test(page.url());
-        console.log(`  ${entro ? '✅ ENTRÓ al sistema' : '❌ sigue en la pantalla de login (credenciales o portal)'}`);
-    } catch (e) {
-        console.log(`  ⏱️ NO terminó de cargar en 60s — su sistema está lento o colgado (${e.message.slice(0, 60)})`);
+    console.log('  clic hecho, esperando a que salga del login...');
+    let entro = false;
+    for (let i = 0; i < 96; i++) {              // 96 x 5s = 8 minutos
+        await page.waitForTimeout(5000);
+        const url = page.url();
+        if (!/\/login/i.test(url)) { entro = true; console.log(`  ✅ ENTRÓ a los ${((Date.now() - t0) / 1000).toFixed(0)}s → ${url}`); break; }
+        if (i % 6 === 5) console.log(`     ...${((Date.now() - t0) / 1000).toFixed(0)}s y sigue en el login`);
     }
+    if (!entro) console.log(`  ❌ 8 MINUTOS y no salió de la pantalla de login`);
 
     paso('Buscando el botón de ingresar');
     const botones = await page.$$('button, input[type=submit], a');
