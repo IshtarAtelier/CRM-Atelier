@@ -259,7 +259,12 @@ function CotizadorPageContent() {
                 const res = await fetch('/api/products');
                 const data = await res.json();
                 if (Array.isArray(data)) {
-                    setProducts(data);
+                    // Los ARCHIVADOS no se cotizan. Es la forma de sacar un
+                    // producto de la venta sin borrarlo: la ficha sigue viva
+                    // para las ventas ya hechas, los reportes de costo de
+                    // laboratorio siguen cuadrando, pero el vendedor no lo ve.
+                    // Borrarlo dejaría huérfanas esas ventas.
+                    setProducts(data.filter((p: Product) => !/^\s*\[archivado\]/i.test(p.name || '')));
                 } else {
                     console.error('Error loading products:', data);
                     setProducts([]);
