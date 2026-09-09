@@ -1,0 +1,196 @@
+{
+  "_lee_esto": "Rangos de graduación transcriptos de las páginas 5 a 16 del PDF de Optovisión de agosto 2026, leídas como imagen. El cilindro va en null cuando la lista NO lo publica para ese renglón — no se inventa.",
+  "_de_donde_sale_cada_dato": {
+    "esf": "Columna ESFÉRICO de cada tabla, renglón por renglón. Es el único dato impreso en la fila misma.",
+    "cil": "NINGUNA tabla de producto de estas páginas trae columna de cilindro por fila. El cilindro sale de la FICHA TÉCNICA del mismo capítulo: pág. 10 (Varilux, 'Hasta -6.00D' para todos los diseños), pág. 12 (Eyezen, 'Hasta -6.00D'), pág. 13 (Myopilux, 'Hasta -4.00 D') y pág. 14 (Kodak, 'Hasta -6.00D' para las cuatro gamas). La pág. 5 además lo repite al pie ('Cilindro hasta -6.00'). Única excepción: la fila STYLIS 1.67 TRANSITIONS GEN S de Kodak Softwear (pág. 16) trae su propio cilindro impreso en la celda: '-14.00 A 8.00 CIL -6.00'.",
+    "add": "También de las fichas técnicas (columna ADICIONES / ADICIÓN). En los monofocales (Eyezen, Myopilux lite/plus como monofocal, Kodak SV Digital y Softwear) la lista no publica adición: va null."
+  },
+  "pagina_5": {
+    "seccion": "Corregir la visión — LENTES PROGRESIVAS Varilux XR series (Varilux XR pro y Varilux XR design)",
+    "filas": [
+      { "diseno": "VARILUX XR PRO", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR PRO", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR PRO", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-12, 9], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR PRO", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR PRO", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR PRO", "material": "STYLIS 1,67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-12, 9], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR PRO", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR PRO", "material": "AIRWEAR 1.59 XPERIO", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+
+      { "diseno": "VARILUX XR DESIGN", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR DESIGN", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR DESIGN", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-12, 9], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR DESIGN", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR DESIGN", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR DESIGN", "material": "STYLIS 1,67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-12, 9], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR DESIGN", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 },
+      { "diseno": "VARILUX XR DESIGN", "material": "AIRWEAR 1.59 XPERIO", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 5 }
+    ]
+  },
+  "pagina_6": {
+    "seccion": "Corregir la visión — LENTES PROGRESIVAS Varilux LÍNEA 3.0 (Varilux Physio 3.0 y Varilux Comfort Max)",
+    "filas": [
+      { "diseno": "VARILUX PHYSIO 3.0", "material": "ORMA", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 6 },
+      { "diseno": "VARILUX PHYSIO 3.0", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 6 },
+      { "diseno": "VARILUX PHYSIO 3.0", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 6 },
+      { "diseno": "VARILUX PHYSIO 3.0", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 6 },
+      { "diseno": "VARILUX PHYSIO 3.0", "material": "ORMA TRANSITIONS XTRACTIVE", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 6 },
+      { "diseno": "VARILUX PHYSIO 3.0", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 6 },
+      { "diseno": "VARILUX PHYSIO 3.0", "material": "STYLIS 1,67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 6 },
+      { "diseno": "VARILUX PHYSIO 3.0", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 6 },
+      { "diseno": "VARILUX PHYSIO 3.0", "material": "AIRWEAR 1.59 XPERIO", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 6 },
+
+      { "diseno": "VARILUX COMFORT MAX", "material": "ORMA", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 6 },
+      { "diseno": "VARILUX COMFORT MAX", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 6 },
+      { "diseno": "VARILUX COMFORT MAX", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 6 },
+      { "diseno": "VARILUX COMFORT MAX", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 6 },
+      { "diseno": "VARILUX COMFORT MAX", "material": "ORMA TRANSITIONS XTRACTIVE", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 6 },
+      { "diseno": "VARILUX COMFORT MAX", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 6 },
+      { "diseno": "VARILUX COMFORT MAX", "material": "STYLIS 1,67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 6 },
+      { "diseno": "VARILUX COMFORT MAX", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 6 },
+      { "diseno": "VARILUX COMFORT MAX", "material": "AIRWEAR 1.59 XPERIO", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 6 }
+    ]
+  },
+  "pagina_7": {
+    "seccion": "Corregir la visión — LENTES PROGRESIVAS Varilux LÍNEA 3.0 (Varilux Liberty 3.0 y Varilux Digitime) + promo Mi 1er Varilux",
+    "filas": [
+      { "diseno": "VARILUX LIBERTY 3.0", "material": "ORMA", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 7 },
+      { "diseno": "VARILUX LIBERTY 3.0", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 7 },
+      { "diseno": "VARILUX LIBERTY 3.0", "material": "ORMA TRANSITIONS XTRACTIVE", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 7 },
+      { "diseno": "VARILUX LIBERTY 3.0", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 7], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 7 },
+
+      { "diseno": "VARILUX DIGITIME", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 7 },
+      { "diseno": "VARILUX DIGITIME", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 7 },
+      { "diseno": "VARILUX DIGITIME", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 7 },
+      { "diseno": "VARILUX DIGITIME", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 7 },
+      { "diseno": "VARILUX DIGITIME", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 7 },
+      { "diseno": "VARILUX DIGITIME", "material": "STYLIS 1.67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 7 }
+    ]
+  },
+  "pagina_8": {
+    "seccion": "Corregir la visión — LENTES PROGRESIVAS Varilux (Varilux Physio y Varilux Comfort)",
+    "filas": [
+      { "diseno": "VARILUX PHYSIO", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 8 },
+      { "diseno": "VARILUX PHYSIO", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 8 },
+      { "diseno": "VARILUX PHYSIO", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 8 },
+      { "diseno": "VARILUX PHYSIO", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 8 },
+      { "diseno": "VARILUX PHYSIO", "material": "ORMA TRANSITIONS XTRACTIVE", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 8 },
+      { "diseno": "VARILUX PHYSIO", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 8 },
+      { "diseno": "VARILUX PHYSIO", "material": "STYLIS 1.67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 8 },
+      { "diseno": "VARILUX PHYSIO", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 8 },
+      { "diseno": "VARILUX PHYSIO", "material": "AIRWEAR 1.59 XPERIO", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4.0], "pagina": 8 },
+
+      { "diseno": "VARILUX COMFORT", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 8 },
+      { "diseno": "VARILUX COMFORT", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 8 },
+      { "diseno": "VARILUX COMFORT", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 8 },
+      { "diseno": "VARILUX COMFORT", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 8 },
+      { "diseno": "VARILUX COMFORT", "material": "ORMA TRANSITIONS XTRACTIVE", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 8 },
+      { "diseno": "VARILUX COMFORT", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 8 },
+      { "diseno": "VARILUX COMFORT", "material": "STYLIS 1,67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 8 },
+      { "diseno": "VARILUX COMFORT", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 8 },
+      { "diseno": "VARILUX COMFORT", "material": "AIRWEAR 1.59 XPERIO", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 8 }
+    ]
+  },
+  "pagina_9": {
+    "seccion": "Corregir la visión — LENTES PROGRESIVAS Varilux (Varilux Liberty) + aviso Varilux Doble Disfrute",
+    "filas": [
+      { "diseno": "VARILUX LIBERTY", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 9 },
+      { "diseno": "VARILUX LIBERTY", "material": "ORMA TRANSITIONS XTRACTIVE", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 9 },
+      { "diseno": "VARILUX LIBERTY", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 9 }
+    ]
+  },
+  "pagina_10": {
+    "seccion": "Corregir la visión — FICHA TÉCNICA y CONSIDERACIONES GENERALES LENTES VARILUX (sin tabla de precios)",
+    "filas": []
+  },
+  "pagina_11": {
+    "seccion": "Corregir la visión — Eyezen LENTES MONOFOCALES (Eyezen Boost y Eyezen Start)",
+    "filas": [
+      { "diseno": "EYEZEN BOOST", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN BOOST", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN BOOST", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN BOOST", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN BOOST", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN BOOST", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN BOOST", "material": "STYLIS 1.67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 11 },
+
+      { "diseno": "EYEZEN START", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN START", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN START", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN START", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN START", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN START", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 11 },
+      { "diseno": "EYEZEN START", "material": "STYLIS 1.67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 11 }
+    ]
+  },
+  "pagina_12": {
+    "seccion": "Corregir la visión — LENTES MONOFOCALES Eyezen Kids + ficha técnica Eyezen",
+    "filas": [
+      { "diseno": "EYEZEN KIDS", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 12 },
+      { "diseno": "EYEZEN KIDS", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 12 }
+    ]
+  },
+  "pagina_13": {
+    "seccion": "Corregir la visión — LENTES MONOFOCALES Myopilux (Myopilux Lite y Myopilux Plus) + ficha técnica",
+    "filas": [
+      { "diseno": "MYOPILUX LITE", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-8, 0], "cil": [-4, 4], "add": null, "pagina": 13 },
+      { "diseno": "MYOPILUX LITE", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-8, 0], "cil": [-4, 4], "add": null, "pagina": 13 },
+
+      { "diseno": "MYOPILUX PLUS", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-8, 0], "cil": [-4, 4], "add": [2.0, 2.0], "pagina": 13 },
+      { "diseno": "MYOPILUX PLUS", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-8, 0], "cil": [-4, 4], "add": [2.0, 2.0], "pagina": 13 },
+      { "diseno": "MYOPILUX PLUS", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-8, 0], "cil": [-4, 4], "add": [2.0, 2.0], "pagina": 13 },
+      { "diseno": "MYOPILUX PLUS", "material": "STYLIS 1.67 TRANSITIONS GEN S", "indice": "1.67", "esf": [-8, 0], "cil": [-4, 4], "add": [2.0, 2.0], "pagina": 13 }
+    ]
+  },
+  "pagina_14": {
+    "seccion": "Corregir la visión — GAMA DE LENTES DIGITALES Kodak (Kodak Unique DRO) + ficha técnica Kodak",
+    "filas": [
+      { "diseno": "KODAK UNIQUE DRO", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "ORMA BLUE UV", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "AIRWEAR 1.59 BLUE UV", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-11, 8], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "STYLIS 1.67 BLUE UV", "indice": "1.67", "esf": [-11, 8], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "ORMA ACCLIMATES", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "STYLIS 1.67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-11, 8], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 },
+      { "diseno": "KODAK UNIQUE DRO", "material": "AIRWEAR 1.59 XPERIO", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 14 }
+    ]
+  },
+  "pagina_15": {
+    "seccion": "Corregir la visión — GAMA DE LENTES DIGITALES Kodak (Kodak Precise Next) + promo 2x1 Kodak",
+    "filas": [
+      { "diseno": "KODAK PRECISE NEXT", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 },
+      { "diseno": "KODAK PRECISE NEXT", "material": "ORMA BLUE UV", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 },
+      { "diseno": "KODAK PRECISE NEXT", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 },
+      { "diseno": "KODAK PRECISE NEXT", "material": "AIRWEAR 1.59 BLUE UV", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 },
+      { "diseno": "KODAK PRECISE NEXT", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-11, 8], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 },
+      { "diseno": "KODAK PRECISE NEXT", "material": "STYLIS 1.67 BLUE UV", "indice": "1.67", "esf": [-11, 8], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 },
+      { "diseno": "KODAK PRECISE NEXT", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 },
+      { "diseno": "KODAK PRECISE NEXT", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 },
+      { "diseno": "KODAK PRECISE NEXT", "material": "STYLIS 1.67 TRANSITIONS GEN S", "indice": "1.67", "esf": [-11, 8], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 },
+      { "diseno": "KODAK PRECISE NEXT", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 },
+      { "diseno": "KODAK PRECISE NEXT", "material": "AIRWEAR 1.59 XPERIO", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 15 }
+    ]
+  },
+  "pagina_16": {
+    "seccion": "Corregir la visión — GAMA DE LENTES DIGITALES Kodak (Kodak Softwear) + promo Mi 1er Progresivo",
+    "filas": [
+      { "diseno": "KODAK SOFTWEAR", "material": "ORMA", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "ORMA BLUE UV", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "AIRWEAR 1.59 BLUE UV", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-14, 8], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "STYLIS 1.67 BLUE UV", "indice": "1.67", "esf": [-14, 8], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "ORMA ACCLIMATES", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "ORMA TRANSITIONS GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "STYLIS 1.67 TRANSITIONS GEN S", "indice": "1.67", "esf": [-14, 8], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "ORMA XPERIO", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 16 },
+      { "diseno": "KODAK SOFTWEAR", "material": "AIRWEAR 1.59 XPERIO", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 16 }
+    ]
+  }
+}

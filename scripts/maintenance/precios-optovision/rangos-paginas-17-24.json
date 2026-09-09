@@ -1,0 +1,137 @@
+{
+  "_lee_esto": "Rangos de graduación transcriptos de las páginas 17 a 24 del PDF de Optovisión de agosto 2026, leídas como imagen. El cilindro va en null cuando la lista NO lo publica para ese renglón — no se inventa.",
+  "pagina_17": {
+    "seccion": "Corregir la visión — GAMA DE LENTES DIGITALES Kodak (Kodak SV Digital) + LENTES MONOFOCALES DE STOCK Kodak",
+    "filas": [
+      { "diseno": "Kodak SV Digital", "material": "ORMA", "indice": null, "esf": [-10, 6], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "ORMA BLUE UV", "indice": null, "esf": [-10, 6], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "AIRWEAR 1.59 BLUE UV", "indice": "1.59", "esf": [-10, 6], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-11, 8], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "STYLIS 1.67 BLUE UV", "indice": "1.67", "esf": [-11, 8], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "ORMA ACCLIMATES", "indice": null, "esf": [-10, 6], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "ORMA TRANSITIONS GEN S", "indice": null, "esf": [-10, 6], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "ORMA TRANSITIONS GEN S", "indice": null, "esf": [-10, 6], "cil": null, "add": null, "pagina": 17, "nota": "segunda fila con el mismo nombre; se distingue solo por la paleta de colores (7 colores) y el precio más alto" },
+      { "diseno": "Kodak SV Digital", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "STYLIS 1,67  TRANSITIONS GEN S", "indice": "1.67", "esf": [-11, 8], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "ORMA XPERIO", "indice": null, "esf": [-10, 6], "cil": null, "add": null, "pagina": 17 },
+      { "diseno": "Kodak SV Digital", "material": "AIRWEAR 1.59 XPERIO", "indice": "1.59", "esf": [-10, 6], "cil": null, "add": null, "pagina": 17 },
+
+      { "diseno": "FSV KODAK No Reflex Blue 1.56 RANGO CENTRAL", "material": "FSV KODAK No Reflex Blue 1.56", "indice": "1.56", "esf": [-4, 4], "cil": [-2, 2], "add": null, "pagina": 17, "nota": "texto impreso: 'Esf.+4.00/Esf.-4.00 cil +2.00. La suma entre Esférico y Cilíndrico no debe superar las 4.00 Dioptrías (para ambos Cilindros: +/-)'" },
+      { "diseno": "FSV KODAK No Reflex Blue 1.56 RANGO EXTENDIDO", "material": "FSV KODAK No Reflex Blue 1.56", "indice": "1.56", "esf": [-4, 4], "cil": [-4, -2.25], "add": null, "pagina": 17, "nota": "texto impreso: 'Esf +4.00/Esf -4.00 Cil -2.25 a -4.00. La suma entre Esférico y Cilíndrico no debe superar las 4.00 Dioptrías (para ambos Cilindros: +/-)'" },
+      { "diseno": "FSV KODAK No Reflex Blue 1.56 RANGO EXTENDIDO", "material": "FSV KODAK No Reflex Blue 1.56", "indice": "1.56", "esf": [4.25, 6], "cil": [-4, 4], "add": null, "pagina": 17, "nota": "texto impreso: 'Esf +4.25 a +6.00 Cil -4.00. La suma entre Esférico y Cilíndrico no debe superar las 6.00 Dioptrías (para ambos Cilindros: +/-)'. El cilindro se publica como -4.00 con la aclaración '(para ambos Cilindros: +/-)'" },
+      { "diseno": "FSV KODAK No Reflex Blue 1.56 RANGO EXTENDIDO", "material": "FSV KODAK No Reflex Blue 1.56", "indice": "1.56", "esf": [-8, -4.25], "cil": [-4, 0], "add": null, "pagina": 17, "nota": "texto impreso: 'Esf -4.25 a -8.00 Cil -4.00. La suma entre Esférico y Cilíndrico no debe superar las -8.00 Dioptrías Esféricas (solamente para Cilindro -)'" },
+      { "diseno": "FSV KODAK No Reflex Blue 1.56 RANGO EXTENDIDO", "material": "FSV KODAK No Reflex Blue 1.56", "indice": "1.56", "esf": [-10, -8.25], "cil": [-2, 0], "add": null, "pagina": 17, "nota": "texto impreso: 'Esf -8.25 a -10.00 Cil -2.00. La suma entre Esférico y Cilíndrico no debe superar las -10.00 Dioptrías Esféricas (solamente para Cilindro -)'" }
+    ]
+  },
+  "pagina_18": {
+    "seccion": "Corregir la visión — ESSILOR INTERVIEW® y ESPACE Plus Digital",
+    "filas": [
+      { "diseno": "ESSILOR INTERVIEW®", "material": "ORMA (DEG 0,80 Y 1,30)", "indice": null, "esf": [-2, 4.5], "cil": null, "add": null, "pagina": 18 },
+      { "diseno": "ESSILOR INTERVIEW®", "material": "AIRWEAR 1.59 (DEG 0,80 Y 1,30)", "indice": "1.59", "esf": [-2, 4.5], "cil": null, "add": null, "pagina": 18 },
+      { "diseno": "ESPACE Plus Digital", "material": "ORMA", "indice": null, "esf": [-10, 6], "cil": null, "add": null, "pagina": 18 },
+      { "diseno": "ESPACE Plus Digital", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-10, 6], "cil": null, "add": null, "pagina": 18 },
+      { "diseno": "ESPACE Plus Digital", "material": "ORMA ACCLIMATES", "indice": null, "esf": [-10, 6], "cil": null, "add": null, "pagina": 18 },
+      { "diseno": "ESPACE Plus Digital", "material": "ORMA TRANSITIONS GEN S", "indice": null, "esf": [-10, 6], "cil": null, "add": null, "pagina": 18 },
+      { "diseno": "ESPACE Plus Digital", "material": "AIRWEAR 1.59 TRANSITIONS GEN S", "indice": "1.59", "esf": [-10, 6], "cil": null, "add": null, "pagina": 18 }
+    ]
+  },
+  "pagina_19": {
+    "seccion": "Transitions / Proteger los ojos — NUEVA GENIALIDAD Gen S (página publicitaria, sin tabla)",
+    "filas": []
+  },
+  "pagina_20": {
+    "seccion": "Proteger los ojos — LUZ AZUL (BlueUV Filter System), FOTOSENSIBLES (Transitions Gen S / XTRActive / Acclimates), POLARIZADOS (Xperio), OTROS MONOFOCALES DE LABORATORIO y MONOFOCAL DE STOCK",
+    "filas": [
+      { "diseno": "BlueUV Filter System", "material": "ORMA", "indice": null, "esf": [-12, 12], "cil": [-4, 4], "add": null, "pagina": 20 },
+      { "diseno": "BlueUV Filter System", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-12, 8], "cil": [-4, 4], "add": null, "pagina": 20 },
+      { "diseno": "BlueUV Filter System", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-12, 8], "cil": [-4, 4], "add": null, "pagina": 20 },
+
+      { "diseno": "Transitions Gen S", "material": "ORMA", "indice": null, "esf": [-4, 4], "cil": [-2, 2], "add": null, "pagina": 20, "nota": "fila marcada '(stock)'" },
+      { "diseno": "Transitions Gen S", "material": "ORMA", "indice": null, "esf": [-13, 7], "cil": [-6, 6], "add": null, "pagina": 20 },
+      { "diseno": "Transitions Gen S", "material": "ORMA", "indice": null, "esf": [-13, 7], "cil": [-6, 6], "add": null, "pagina": 20, "nota": "segunda fila ORMA con paleta de 7 colores" },
+      { "diseno": "Transitions Gen S", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-12, 8], "cil": [-4, 4], "add": null, "pagina": 20 },
+      { "diseno": "Transitions Gen S", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-14, 8], "cil": [-4, 4], "add": null, "pagina": 20 },
+      { "diseno": "Transitions XTRActive", "material": "ORMA", "indice": null, "esf": [-13, 7], "cil": [-6, 6], "add": null, "pagina": 20 },
+      { "diseno": "Acclimates", "material": "ORMA", "indice": null, "esf": [-13, 7], "cil": [-6, 6], "add": null, "pagina": 20 },
+
+      { "diseno": "Xperio", "material": "ORMA", "indice": null, "esf": [-5, 7], "cil": [-4, 4], "add": null, "pagina": 20 },
+      { "diseno": "Xperio", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-12, 8], "cil": [-4, 4], "add": null, "pagina": 20 },
+
+      { "diseno": "OTROS MONOFOCALES DE LABORATORIO", "material": "ORMA", "indice": null, "esf": [-12, 12], "cil": [-4, 4], "add": null, "pagina": 20 },
+      { "diseno": "OTROS MONOFOCALES DE LABORATORIO", "material": "AIRWEAR 1.59", "indice": "1.59", "esf": [-12, 8], "cil": [-4, 4], "add": null, "pagina": 20 },
+      { "diseno": "OTROS MONOFOCALES DE LABORATORIO", "material": "STYLIS 1.67", "indice": "1.67", "esf": [-12, 8], "cil": [-4, 4], "add": null, "pagina": 20 },
+
+      { "diseno": "MONOFOCAL DE STOCK", "material": "ORMA", "indice": null, "esf": [-6, 6], "cil": [-2, 2], "add": null, "pagina": 20 }
+    ]
+  },
+  "pagina_21": {
+    "seccion": "Crizal — Mejorar la claridad de visión (página publicitaria, sin tabla)",
+    "filas": []
+  },
+  "pagina_22": {
+    "seccion": "Mejorar la claridad de las lentes — Crizal LENTES DE STOCK y TRATAMIENTOS RX",
+    "filas": [
+      { "diseno": "Crizal Lentes de stock", "material": "ORMA BLUE UV CRIZAL ROCK", "indice": null, "esf": [-4, 4], "cil": [-2, 2], "add": null, "pagina": 22, "nota": "impreso 'CILINDRO +2.00'" },
+      { "diseno": "Crizal Lentes de stock", "material": "ORMA BLUE UV CRIZAL SAPPHIRE HR", "indice": null, "esf": [-4, 4], "cil": [-2, 2], "add": null, "pagina": 22, "nota": "impreso 'CILINDRO +2.00'" },
+      { "diseno": "Crizal Lentes de stock", "material": "ORMA CRIZAL PREVENCIA", "indice": null, "esf": [-4, 4], "cil": [-2, 2], "add": null, "pagina": 22, "nota": "impreso 'CILINDRO +2.00'" }
+    ]
+  },
+  "pagina_23": {
+    "seccion": "LENTES DIGITALES SYGNUS — PROGRESIVAS DIGITALES (Sygnus New Edition, progresivos personalizados)",
+    "filas": [
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Orma", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Orma BLUE UV", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Orma Transitions GEN S.", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Orma Xperio Gris / Café / Gris-Verde", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Orma Acclimates", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Airwear 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Airwear BLUE UV", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Airwear 1.59 Transitions GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Airwear 1.59 Xperio Café / Gris", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Stylis 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Stylis BLUE UV", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Stylis 1.67 Transitions GEN S", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Orgánico Espejado Azul/Plata", "indice": "1.50", "esf": [-3, 3], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Policarbonato Polarizado Espejado Azul/Plata", "indice": "1.59", "esf": [-3, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Orgánico Fotosensible BLC", "indice": "1.56", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 },
+      { "diseno": "SYGNUS PROGRESIVA DIGITAL NEW EDITION", "material": "Alto Indice 1.74", "indice": "1.74", "esf": [-18, 11], "cil": [-6, 6], "add": [0.75, 3.5], "pagina": 23 }
+    ]
+  },
+  "pagina_24": {
+    "seccion": "LENTES DIGITALES SYGNUS — Monofocal Digital ONE, BIFOCAL y DRIVER",
+    "filas": [
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Orma", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Orma BLUE UV", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Orma Transitions GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Orma Transitions XTRActive Gris", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Orma Acclimates / Fotosensible", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24, "nota": "la columna Ne dice 1.59 aunque el material sea Orma — así está impreso" },
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Airwear 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Airwear BLUE UV", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Airwear 1.59 Transitions GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Stylis 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Stylis BLUE UV", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS MONOFOCAL DIGITAL ONE", "material": "Stylis 1.67 Transitions GEN S", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 24 },
+
+      { "diseno": "SYGNUS BIFOCAL", "material": "Orma", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4], "pagina": 24 },
+      { "diseno": "SYGNUS BIFOCAL", "material": "Orma BLUE UV", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4], "pagina": 24 },
+      { "diseno": "SYGNUS BIFOCAL", "material": "Orma Transitions GEN S", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4], "pagina": 24 },
+      { "diseno": "SYGNUS BIFOCAL", "material": "Orma Acclimates", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4], "pagina": 24 },
+      { "diseno": "SYGNUS BIFOCAL", "material": "Airwear 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4], "pagina": 24 },
+      { "diseno": "SYGNUS BIFOCAL", "material": "Airwear BLUE UV", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4], "pagina": 24 },
+      { "diseno": "SYGNUS BIFOCAL", "material": "Airwear 1.59 Transitions GEN S", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": [0.75, 4], "pagina": 24 },
+      { "diseno": "SYGNUS BIFOCAL", "material": "Stylis 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 4], "pagina": 24, "nota": "impreso con espacio de más: '+9.00 a -14 .00 cil. 6.00'" },
+      { "diseno": "SYGNUS BIFOCAL", "material": "Stylis BLUE UV", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 4], "pagina": 24, "nota": "impreso con typo: '+9.00 a -1400. cil. 6.00' — se interpreta como -14.00 por analogía con las otras filas Stylis" },
+      { "diseno": "SYGNUS BIFOCAL", "material": "Stylis 1.67 Transitions GEN S", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": [0.75, 4], "pagina": 24 },
+
+      { "diseno": "SYGNUS DRIVER", "material": "Orma", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS DRIVER", "material": "Orma BLUE UV", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS DRIVER", "material": "Orma Xperio Gris", "indice": "1.50", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS DRIVER", "material": "Airwear 1.59", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS DRIVER", "material": "Airwear BLUE UV", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS DRIVER", "material": "Airwear 1.59 Xperio Gris", "indice": "1.59", "esf": [-10, 6], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS DRIVER", "material": "Stylis 1.67", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 24 },
+      { "diseno": "SYGNUS DRIVER", "material": "Stylis BLUE UV", "indice": "1.67", "esf": [-14, 9], "cil": [-6, 6], "add": null, "pagina": 24 }
+    ]
+  }
+}
