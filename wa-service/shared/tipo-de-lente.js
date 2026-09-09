@@ -13,11 +13,24 @@
  * Si se cambia la regla, se cambia en los DOS lados (acá y en el .ts).
  */
 
-/** ¿Hay adición? Se mira el valor absoluto: de una foto puede salir con signo. */
+/**
+ * Rango clínico de una adición real (+0,75 a +3,50 en la práctica; se deja
+ * hasta 4,50 por margen). Fuera de esto el número no es una adición.
+ *
+ * El 9/9/2026 el bot cotizó multifocales a un cliente con miopía de -8,00 sin
+ * adición: su receta tenía la columna "A.V." (agudeza visual) con "20/25", y
+ * `parseFloat("20/25")` da 20. Sin este rango, ese 20 pasaba por adición.
+ */
+const ADICION_MINIMA = 0.5;
+const ADICION_MAXIMA = 4.5;
+
+/** ¿Hay una adición PLAUSIBLE? Valor absoluto: de una foto puede salir con signo. */
 function tieneAdicion(add) {
     if (add === null || add === undefined || add === '') return false;
     const n = typeof add === 'number' ? add : parseFloat(String(add).replace(',', '.'));
-    return Number.isFinite(n) && Math.abs(n) > 0;
+    if (!Number.isFinite(n)) return false;
+    const abs = Math.abs(n);
+    return abs >= ADICION_MINIMA && abs <= ADICION_MAXIMA;
 }
 
 /**
