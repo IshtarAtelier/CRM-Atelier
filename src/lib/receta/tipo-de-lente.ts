@@ -41,13 +41,37 @@ function aNumero(v: unknown): number {
 }
 
 /**
- * ¿Esta receta tiene adición? Se mira el valor ABSOLUTO: una adición se escribe
- * en positivo, pero de una foto puede salir con signo y "-2.00" es igual de
- * multifocal que "+2.00" — lo que importa es que exista.
+ * Rango clínico de una adición real. Fuera de esto, el número NO es una
+ * adición: es otra cosa que se leyó mal de la foto.
+ *
+ * La adición corrige presbicia y en la práctica va de +0,75 a +3,50 (se deja
+ * hasta 4,50 por margen). Nunca es 20, ni 0,8, ni 15.
+ *
+ * Por qué existe: el 9/9/2026 el bot cotizó multifocales de $735.000 a un
+ * cliente con miopía de -8,00 y NINGUNA adición. Su receta tenía una columna
+ * "A.V." (agudeza visual) con "20/25" — un `parseFloat("20/25")` da 20, y sin
+ * este rango ese 20 entraba como adición y convertía una receta monofocal en
+ * multifocal. La regla "hay adición → multifocal" solo es segura si antes se
+ * verifica que el número PUEDA ser una adición.
+ */
+const ADICION_MINIMA = 0.5;
+const ADICION_MAXIMA = 4.5;
+
+/** ¿Este número puede ser una adición de verdad? */
+export function esAdicionPlausible(v: unknown): boolean {
+    const n = Math.abs(aNumero(v));
+    return n >= ADICION_MINIMA && n <= ADICION_MAXIMA;
+}
+
+/**
+ * ¿Esta receta tiene adición? Se mira el valor ABSOLUTO (de una foto puede
+ * salir con signo, y "-2.00" es igual de multifocal que "+2.00") y que caiga
+ * en el rango clínico: un "20" leído de la columna de agudeza visual no es
+ * una adición, es basura de OCR.
  */
 export function tieneAdicion(data: AdicionDeReceta): boolean {
     return [data.addition, data.additionOD, data.additionOI, data.add]
-        .some(v => Math.abs(aNumero(v)) > 0);
+        .some(esAdicionPlausible);
 }
 
 /**

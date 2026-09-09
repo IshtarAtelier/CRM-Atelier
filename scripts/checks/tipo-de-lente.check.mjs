@@ -39,6 +39,12 @@ const casos = [
     ['adición por ojo', tipoDeRecetaSegunNumeros({ additionOD: 1.75 }), 'ADDITION'],
     ['adición negativa (mal leída de una foto)', tipoDeRecetaSegunNumeros({ add: -2 }), 'ADDITION'],
     ['receta vacía', tipoDeRecetaSegunNumeros({}), 'FAR'],
+    // Caso real (9/9/2026, receta de Sambran Maximiliano): miopía -7,50/-8,00,
+    // columna A.V. con "20/25" y NINGUNA adición. El bot la leyó como
+    // multifocal y cotizó $735.000. Un parseFloat("20/25") da 20.
+    ['A.V. 20/25 leída como adición', tipoDeRecetaSegunNumeros({ add: 20 }, 'Multifocal'), 'FAR'],
+    ['A.V. en decimales (1.0)', tipoDeRecetaSegunNumeros({ add: 1.0 }) === 'ADDITION' ? 'ADDITION' : 'FAR', 'ADDITION'],
+    ['adición fuera de rango (15)', tipoDeRecetaSegunNumeros({ add: 15 }), 'FAR'],
     ['receta de cerca se respeta', tipoDeRecetaSegunNumeros({}, 'NEAR'), 'NEAR'],
     ['sin dato explícito NO asume multifocal', tipoDeRecetaConDefault({}, undefined), 'FAR'],
     ['elección explícita de un óptico se respeta', tipoDeRecetaConDefault({}, 'ADDITION'), 'ADDITION'],

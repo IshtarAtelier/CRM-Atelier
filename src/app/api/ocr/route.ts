@@ -46,6 +46,29 @@ Reglas de extracción importantes:
 2. Esférico Cerca (nearSphere): Si la receta tiene una sección o valores de "Cerca" explicitados (ej. OD +5.25, OI +5.50), extráelos en "nearSphereOD" y "nearSphereOI".
 3. Adición (addition): Si la receta tiene "Ad." o "Add" (adición), ej. "+2.50", o si se puede calcular como la diferencia entre la esfera de cerca y la esfera de lejos (Cerca - Lejos = Adición), colócalo en "additionOD" y "additionOI".
 4. Cilíndrico y Eje de Cerca: Generalmente son iguales a los de Lejos, pero si están explicitados en la sección de Cerca, extráelos.
+5. ⚠️ LO QUE **NO** ES UNA ADICIÓN. Esta es la regla más importante de todas, porque confundirla hace que se le cotice un lente multifocal (el más caro) a alguien que necesita uno monofocal:
+   - La columna **A.V.** (agudeza visual, a veces "AV", "Visión" o "Visus") NO es la adición. Se escribe como una fracción tipo "20/20", "20/25", "20/40", o en decimales "1.0", "0.8". Si ves una fracción con barra, NUNCA la pongas en "addition": va en null.
+   - El **eje** (0 a 180) no es adición. La **DIP/DNP** (distancia pupilar, 50 a 75) no es adición. La **altura** no es adición.
+   - Una adición REAL siempre está entre **+0.75 y +3.50** (excepcionalmente +4.00), y siempre es POSITIVA. Si el número que ibas a poner en "addition" no cae en ese rango, NO es una adición: devolvé null.
+   - Si la receta solo tiene una sección de "Lejos" y ninguna columna "Add"/"Adición" ni sección de "Cerca", entonces NO HAY ADICIÓN. Devolvé null en "additionOD" y "additionOI". Una miopía alta (ej. -8.00) sin adición es una receta MONOFOCAL, por más alta que sea la graduación.
+6. Ante la duda, null. Es preferible que una persona complete el dato a que se cotice el lente equivocado.
+
+Ejemplos de lectura correcta:
+
+  a) Receta con columnas "Esf | Cil | Eje | A.V." y una sola fila "Lejos":
+     OD  -7.50  -1.25  150  20/25
+     OI  -8.00  -1.75   10  20/25
+     → sphereOD:-7.5, cylinderOD:-1.25, axisOD:150, additionOD:null
+       sphereOI:-8, cylinderOI:-1.75, axisOI:10, additionOI:null
+       (el 20/25 es agudeza visual; NO hay adición: es monofocal)
+
+  b) Receta con "Lejos" y "Add":
+     Lejos OD +1.25 -0.50 90   Add +2.00
+     → sphereOD:1.25, cylinderOD:-0.5, axisOD:90, additionOD:2
+
+  c) Receta con secciones "Lejos" y "Cerca" sin columna Add:
+     Lejos OD -2.00 | Cerca OD +0.50
+     → sphereOD:-2, nearSphereOD:0.5, additionOD:2.5 (Cerca - Lejos)
 
 Devuelve los resultados usando esta estructura JSON exacta. Usa null si un valor no está presente o no se puede determinar.
 {
