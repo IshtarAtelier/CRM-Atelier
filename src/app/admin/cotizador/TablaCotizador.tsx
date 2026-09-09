@@ -2,9 +2,9 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Check, Plus } from 'lucide-react';
+import { Check, Plus, Glasses, Eye, Sun, Activity, Box, Watch, Droplets, Gem, FlaskConical } from 'lucide-react';
 import type { Product } from '@/types/orders';
-import { safePrice } from '@/lib/promo-utils';
+import { safePrice, getCategoryKey } from '@/lib/promo-utils';
 import { PricingService } from '@/services/PricingService';
 import { ETIQUETA_MP_CUOTAS_LARGAS } from '@/lib/promo-cuotas';
 import { RECARGO_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
@@ -48,6 +48,37 @@ type Props = {
     tipoConSeparador: (t?: string | null) => string;
 };
 
+/**
+ * La miniatura del producto, con RESPALDO. Varias fotos del catálogo apuntan a
+ * www.kazwiniopticalgroup.com, que la CSP del sitio no permite (solo el dominio
+ * sin www): esas imágenes NO cargan y dejaban el ícono de imagen rota en cada
+ * fila. Si la imagen falla, se muestra el ícono de la categoría.
+ */
+const ICONO_POR_CATEGORIA: Record<string, React.ComponentType<{ className?: string }>> = {
+    'Armazón': Glasses, 'Cristal': Eye, 'Lente de sol': Sun, 'Lente de contacto': Activity,
+    'Accesorio': Box, 'Reloj': Watch, 'Líquido / Solución': Droplets, 'Joyería': Gem,
+    'Tratamiento': FlaskConical,
+};
+
+function Miniatura({ product, src }: { product: Product; src: string | null }) {
+    const [falló, setFalló] = React.useState(false);
+    const Icono = ICONO_POR_CATEGORIA[getCategoryKey(product.type ?? null, product.category)] ?? Box;
+    if (src && !falló) {
+        return (
+            <Image unoptimized width={28} height={28} src={src} alt={product.name || ''}
+                onError={() => setFalló(true)}
+                className="w-7 h-7 object-contain rounded border border-sidebar-border bg-background shrink-0" />
+        );
+    }
+    return (
+        <div className="w-7 h-7 rounded border border-sidebar-border bg-background flex items-center justify-center shrink-0">
+            <Icono className="w-3.5 h-3.5 text-foreground/40" />
+        </div>
+    );
+}
+
+const esTratamiento = (p: Product) => getCategoryKey(p.type ?? null, p.category) === 'Tratamiento';
+
 const pesos = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
 
 /** Las cinco formas de pago salen SIEMPRE de acá — nunca recalculadas en la vista. */
@@ -85,7 +116,7 @@ export default function TablaCotizador({
                             <tr className="bg-sidebar text-foreground/55 border-b border-sidebar-border">
                                 <th className="pl-4 pr-1 py-2.5 text-[9px] font-bold uppercase tracking-wider w-[118px]">Tipo · Marca</th>
                                 {esCristal && <th className="px-1 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[44px]">Índice</th>}
-                                <th className="px-1.5 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[86px]">{esCristal ? 'Confección' : 'Stock'}</th>
+                                <th className="px-1.5 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[86px]">{esCristal ? 'Confección' : 'Stock / Lab'}</th>
                                 <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider">Descripción</th>
                                 {esCristal && <th className="px-2 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[136px]">Rango</th>}
                                 <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[90px]">Lista</th>
@@ -126,8 +157,12 @@ export default function TablaCotizador({
                                             className="group cursor-pointer transition-colors border-b border-sidebar-border last:border-b-0 hover:bg-primary/[0.06]"
                                         >
                                             <td className="px-4 py-2 align-top">
-                                                <p className="text-[10px] font-bold uppercase text-foreground/55 leading-tight truncate">{tipoConSeparador(product.type)}</p>
-                                                <p className="text-[10px] font-semibold uppercase text-foreground/55 mt-0.5 truncate">{product.brand || '—'}</p>
+                                                {/* Sin tipo cargado no se pinta un renglón con un guion: la marca
+                                                    sube y la fila queda de una línea, no de dos vacías. */}
+                                                {product.type && (
+                                                    <p className="text-[10px] font-bold uppercase text-foreground/55 leading-tight truncate">{tipoConSeparador(product.type)}</p>
+                                                )}
+                                                <p className={`text-[10px] font-semibold uppercase text-foreground/55 truncate ${product.type ? 'mt-0.5' : ''}`}>{product.brand || '—'}</p>
                                             </td>
                                             {esCristal && (
                                                 <td className="px-3 py-2 text-center align-top">
@@ -141,6 +176,12 @@ export default function TablaCotizador({
                                                             {origin === 'STOCK' ? 'Stock' : 'Laboratorio'}
                                                         </span>
                                                     ) : <span className="text-[10px] text-foreground/55">—</span>
+                                                ) : esTratamiento(product) ? (
+                                                    // Un tratamiento no tiene unidades en góndola: lo que importa
+                                                    // es qué laboratorio lo hace.
+                                                    <span className="text-[9px] font-bold uppercase tracking-wide text-amber-600">
+                                                        {product.laboratory || 'A pedido'}
+                                                    </span>
                                                 ) : (
                                                     // En armazones y accesorios lo que importa es cuántos quedan:
                                                     // el vendedor no puede prometer lo que no está.
@@ -154,10 +195,7 @@ export default function TablaCotizador({
                                             </td>
                                             <td className="px-4 py-2 align-top">
                                                 <div className="flex items-start gap-2">
-                                                    {!esCristal && img && (
-                                                        <Image unoptimized width={28} height={28} src={img} alt={product.name || ''}
-                                                            className="w-7 h-7 object-contain rounded border border-sidebar-border bg-background shrink-0" />
-                                                    )}
+                                                    {!esCristal && <Miniatura product={product} src={img} />}
                                                     {/* El 2x1 es la promo que más se vende: tiene que verse de lejos. */}
                                                     {product.is2x1 && (
                                                         <span className="shrink-0 mt-px px-1.5 py-0.5 rounded text-[9px] font-black tracking-wide bg-primary text-primary-foreground shadow-sm">2x1</span>
@@ -232,8 +270,8 @@ export default function TablaCotizador({
                             className={`w-full text-left p-3 rounded-xl border transition-all ${inQuote ? 'bg-primary/[0.06] border-primary/30' : 'bg-sidebar border-sidebar-border'}`}
                         >
                             <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                                <span className="text-[9px] font-bold uppercase text-foreground/55">{tipoConSeparador(product.type)}</span>
-                                {product.brand && <span className="text-[9px] font-bold uppercase text-foreground/55">· {product.brand}</span>}
+                                {product.type && <span className="text-[9px] font-bold uppercase text-foreground/55">{tipoConSeparador(product.type)}</span>}
+                                {product.brand && <span className="text-[9px] font-bold uppercase text-foreground/55">{product.type ? '· ' : ''}{product.brand}</span>}
                                 {product.lensIndex && <span className="text-[9px] font-bold text-foreground/55">· idx {product.lensIndex}</span>}
                                 {product.is2x1 && <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-primary text-primary-foreground">2x1</span>}
                                 {origin && (
