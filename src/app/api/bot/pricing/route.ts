@@ -43,6 +43,9 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category')?.toUpperCase();
     const onlyBotRecommended = searchParams.get('botRecommended') === 'true';
     const search = searchParams.get('search')?.trim();
+    // Género de la PERSONA que consulta (lo deduce el bot del nombre de pila).
+    // 'HOMBRE' | 'MUJER'. Si no viene, no se filtra nada.
+    const genero = searchParams.get('genero')?.toUpperCase();
 
     // ── Fuente 1: Productos del inventario ──────────────────────────────────
     const productWhere: any = {};
@@ -93,6 +96,33 @@ export async function GET(req: NextRequest) {
                 { brand: { contains: sanitizedSearch, mode: 'insensitive' } },
                 { model: { contains: sanitizedSearch, mode: 'insensitive' } }
             ]
+        });
+    }
+
+    // ── Género: se EXCLUYE lo contrario, no se filtra por lo propio ─────────
+    //
+    // Pedido de Ishtar (9/9/26): el bot mandaba armazones de hombre a mujeres y
+    // al revés. La tentación es filtrar `gender = 'Masculino'`, pero el dato
+    // está flojo: de 184 armazones, 62 no tienen género cargado, 21 son Unisex
+    // y ~38 traen los tres valores juntos ("Unisex, Femenino, Masculino").
+    // Filtrar por lo propio dejaría 12 modelos para un hombre.
+    //
+    // Por eso la regla es al revés: se sacan los que son CLARAMENTE del otro
+    // género —los que nombran al opuesto y NO al propio— y queda todo lo demás
+    // (el suyo, los unisex, los mixtos y los que no tienen dato). Se equivoca
+    // hacia mostrar de más, nunca hacia mostrarle una montura que claramente no
+    // es para esa persona.
+    if (genero === 'HOMBRE' || genero === 'MUJER') {
+        const opuesto = genero === 'HOMBRE' ? 'femenino' : 'masculino';
+        const propio = genero === 'HOMBRE' ? 'masculino' : 'femenino';
+        filtros.push({
+            OR: [
+                { gender: null },
+                { gender: '' },
+                { gender: { contains: propio, mode: 'insensitive' } },
+                { gender: { contains: 'unisex', mode: 'insensitive' } },
+                { NOT: { gender: { contains: opuesto, mode: 'insensitive' } } },
+            ],
         });
     }
 

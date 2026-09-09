@@ -228,9 +228,9 @@ const checkExistingClientTool = new DynamicStructuredTool({
 });
 
 const getPriceListTool = new DynamicStructuredTool({
-    schema: z.object({ category: z.string().optional(), search: z.string().optional(), botRecommended: z.boolean().optional() }).catchall(z.any()),
+    schema: z.object({ category: z.string().optional(), search: z.string().optional(), botRecommended: z.boolean().optional(), genero: z.enum(['HOMBRE', 'MUJER']).optional() }).catchall(z.any()),
     name: "get_price_list",
-    description: "Obtiene precios del catálogo. Usa JSON con 'category' (MONOFOCAL, MULTIFOCAL, CONTACTO, ARMAZON, CLIPON), 'search' (ej. 'clipon', 'prune') para buscar por nombre/marca/modelo, y 'botRecommended' (booleano opcional, por defecto es true si no hay search para mostrar productos estrella, y false si hay search para buscar en todo el catálogo).",
+    description: "Obtiene precios del catálogo. Usa JSON con 'category' (MONOFOCAL, MULTIFOCAL, CONTACTO, ARMAZON, CLIPON), 'search' (ej. 'clipon', 'prune') para buscar por nombre/marca/modelo, y 'botRecommended' (booleano opcional, por defecto es true si no hay search para mostrar productos estrella, y false si hay search para buscar en todo el catálogo). Sumá 'genero' ('HOMBRE' o 'MUJER') SOLO cuando el nombre de pila lo diga sin dudas: los armazones vienen con foto y sin esto le mostrás monturas del género contrario. Si el nombre es ambiguo o no lo tenés, no lo pases.",
     func: safeToolRun(async (input) => await getPriceList(safeParse(input, "get_price_list"))),
 });
 
@@ -320,9 +320,10 @@ const sendProductPhotosTool = new DynamicStructuredTool({
         category: z.string().optional(),
         search: z.string().optional(),
         products: z.array(z.string()).optional(),
+        genero: z.enum(['HOMBRE', 'MUJER']).optional(),
     }).catchall(z.any()),
     name: "send_product_photos",
-    description: "Le manda al cliente por WhatsApp las FOTOS de armazones, lentes de sol o clip-ons, cada una con el nombre del modelo y su precio de contado al pie. Usala cuando el cliente pide ver modelos ('mandame fotos', 'qué modelos tenés', 'querés que te muestre?' y te dice que sí) o cuando responde a la campaña contando qué modelito le gustó. Usa JSON con 'chatId' (MANDATORIO, el que ya tenés en tu contexto — JAMÁS le pidas el teléfono al cliente), 'category' ('ARMAZON' por defecto, o 'SOL' / 'CLIPON'), 'search' (opcional, para buscar por nombre/marca/modelo: usalo cuando el cliente nombra algo concreto) y 'products' (opcional, array con los nombres exactos de los modelos que querés mostrar). Manda como MÁXIMO 3 fotos por llamada y las elige el sistema. NO la llames más de una vez por turno y NO la uses si el cliente no pidió ver modelos. Después de usarla, escribí una sola línea corta preguntando cuál le gustó: las fotos ya llegaron con su precio, no los repitas.",
+    description: "Le manda al cliente por WhatsApp las FOTOS de armazones, lentes de sol o clip-ons, cada una con el nombre del modelo y su precio de contado al pie. Usala cuando el cliente pide ver modelos ('mandame fotos', 'qué modelos tenés', 'querés que te muestre?' y te dice que sí) o cuando responde a la campaña contando qué modelito le gustó. Usa JSON con 'chatId' (MANDATORIO, el que ya tenés en tu contexto — JAMÁS le pidas el teléfono al cliente), 'category' ('ARMAZON' por defecto, o 'SOL' / 'CLIPON'), 'search' (opcional, para buscar por nombre/marca/modelo: usalo cuando el cliente nombra algo concreto) y 'products' (opcional, array con los nombres exactos de los modelos que querés mostrar). Manda como MÁXIMO 3 fotos por llamada y las elige el sistema. NO la llames más de una vez por turno y NO la uses si el cliente no pidió ver modelos. Después de usarla, escribí una sola línea corta preguntando cuál le gustó: las fotos ya llegaron con su precio, no los repitas. GÉNERO: pasá 'genero' ('HOMBRE' o 'MUJER') cuando el nombre de pila de la persona lo diga sin lugar a dudas (Juan, Carlos → HOMBRE; María, Lucía → MUJER), para no mandarle monturas del género contrario. Si el nombre es ambiguo, unisex, extranjero o no lo tenés (Alex, Guadalupe, Cris, o directamente no sabés), NO INVENTES: no pases 'genero' y NO uses esta herramienta — mandale el link de la tienda (https://atelieroptica.com.ar/tienda) para que elija a gusto.",
     func: safeToolRun(async (input) => {
         const parsed = safeParse(input, "send_product_photos");
         if (!parsed.chatId) {

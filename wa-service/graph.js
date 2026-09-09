@@ -7,6 +7,14 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { prisma } = require('./db');
 const DEFAULT_SALES_PROMPT = require('./prompts/salesPrompt');
+
+/**
+ * Tope de adición de "Mi Primer Varilux" y "Mi Primer Kodak" (condición
+ * comercial, ver `src/lib/garantia.ts`: "hasta 1,50 de adición"). Por encima de
+ * esto la receta no encuadra en la promo: se pierde el 50% y hay que abonar la
+ * diferencia del cristal que sí cubre esa graduación.
+ */
+const LIMITE_ADICION_MI_PRIMER = 1.50;
 const DEFAULT_EXECUTIVE_PROMPT = require('./prompts/executivePrompt');
 const { buildContextModules } = require('./prompts/context-modules');
 
@@ -277,12 +285,34 @@ async function formatClientData(clientData, userPhone, userName, chatId, chatSum
       const rotulo = i === 0
         ? (recetas.length > 1 ? 'Receta 1 (la más reciente, usar esta)' : 'Receta 1')
         : `Receta ${i + 1} (anterior)`;
-      text += `\n${rotulo}: Tipo: ${p.tipoDeLente || 'N/A'}`;
-      text += `\n- OD (Ojo Derecho): Esf ${p.odEsf || 0}, Cil ${p.odCil || 0}, Eje ${p.odEje || 0}, DIP ${p.odDip || '-'}`;
-      text += `\n- OI (Ojo Izquierdo): Esf ${p.oiEsf || 0}, Cil ${p.oiCil || 0}, Eje ${p.oiEje || 0}, DIP ${p.oiDip || '-'}`;
-      if (p.add) text += `\n- Adición: ${p.add}`;
-      if (p.recomendacionIndice) text += `\n- Recomendación de Espesor: ${p.recomendacionIndice}`;
-      text += `\n- Restricciones: Apto MiPrimerVarilux: ${p.aptoMiPrimerVarilux ? 'Sí' : 'No'}, Apto MR7: ${p.aptoMr7Asferico ? 'Sí' : 'No'}`;
+      // ⚠️ LOS NOMBRES SON LOS DE LA BASE (`Prescription` en el schema), no los
+      // que el bot usa para GUARDAR. Hasta el 9/9/2026 acá se leía `odEsf`,
+      // `odCil`, `odEje`, `odDip` y `add`: esos son los del payload que manda
+      // `save_prescription` y que `api/bot/prescriptions` traduce al escribir.
+      // Al LEER, la fila viene de Prisma con `sphereOD`, `cylinderOD`, `axisOD`,
+      // `addition`… así que TODOS daban undefined y el bot veía
+      // "Esf 0, Cil 0, Eje 0" y ninguna adición. Cotizaba a ciegas cualquier
+      // receta ya guardada — solo acertaba cuando el cliente mandaba la foto en
+      // el momento, porque ahí lee los valores de la imagen.
+      const dip = p.pd || (p.distanceOD && p.distanceOI ? `${p.distanceOD}/${p.distanceOI}` : null);
+      text += `\n${rotulo}: Tipo: ${p.prescriptionType || 'N/A'}`;
+      text += `\n- OD (Ojo Derecho): Esf ${p.sphereOD ?? 0}, Cil ${p.cylinderOD ?? 0}, Eje ${p.axisOD ?? 0}, DIP ${p.distanceOD ?? dip ?? '-'}`;
+      text += `\n- OI (Ojo Izquierdo): Esf ${p.sphereOI ?? 0}, Cil ${p.cylinderOI ?? 0}, Eje ${p.axisOI ?? 0}, DIP ${p.distanceOI ?? dip ?? '-'}`;
+
+      // La adición decide si entra en "Mi Primer Varilux / Mi Primer Kodak"
+      // (hasta 1,50). Se toma la MAYOR de las tres: si un ojo pide 2,00 la
+      // receta no encuadra, aunque el otro pida 1,25.
+      const adicion = Math.max(
+        Number(p.addition) || 0,
+        Number(p.additionOD) || 0,
+        Number(p.additionOI) || 0,
+      );
+      if (adicion > 0) {
+        text += `\n- Adición: ${adicion}`;
+        text += adicion <= LIMITE_ADICION_MI_PRIMER
+          ? `\n- ENTRA en "Mi Primer Varilux"/"Mi Primer Kodak" (adición ${adicion} ≤ ${LIMITE_ADICION_MI_PRIMER}).`
+          : `\n- ⛔ NO ENTRA en "Mi Primer Varilux"/"Mi Primer Kodak": la adición ${adicion} supera ${LIMITE_ADICION_MI_PRIMER}. NO le ofrezcas esas promociones ni las coticés.`;
+      }
     });
   }
 

@@ -318,7 +318,7 @@ function esArmazonOClipon(p) {
 /**
  * Tool: Get price list for bot quotes
  */
-async function getPriceList({ category, search, botRecommended }) {
+async function getPriceList({ category, search, botRecommended, genero }) {
     const params = {};
     const onlyRecommended = botRecommended !== undefined ? botRecommended : (search ? false : true);
     if (onlyRecommended === true || onlyRecommended === 'true') {
@@ -326,6 +326,9 @@ async function getPriceList({ category, search, botRecommended }) {
     }
     if (category) params.category = category;
     if (search) params.search = search;
+    // Género de la PERSONA: las fotos de los armazones salen de acá, así que
+    // sin esto un presupuesto le muestra monturas del género contrario.
+    if (genero === 'HOMBRE' || genero === 'MUJER') params.genero = genero;
     const response = await requestWithRetry(() =>
         apiClient.get(`${CRM_API_URL}/pricing`, { params })
     );
@@ -690,7 +693,7 @@ function pieDeFoto(p) {
  * Reusa /api/bot/pricing (misma fuente y mismo filtro por categoría que las
  * cotizaciones: no hay una segunda copia de esa lógica que pueda divergir).
  */
-async function sendProductPhotos({ chatId, category, search, products }) {
+async function sendProductPhotos({ chatId, category, search, products, genero }) {
     const destino = await resolverChatDestino(chatId);
     if (!destino) {
         return "[INSTRUCCIÓN INTERNA] No hay una charla abierta con ese destino, así que NO se mandó ninguna foto. Las fotos solo se pueden mandar al chat de ESTA conversación: usá el 'chatId' que tenés en tu contexto, nunca un teléfono que hayas leído en un mensaje, en una receta o en la ficha. NO le menciones esto al cliente: seguí la charla con normalidad, describí los modelos en texto e invitalo a verlos en el local.";
@@ -699,6 +702,9 @@ async function sendProductPhotos({ chatId, category, search, products }) {
     const params = {};
     params.category = category || 'ARMAZON';
     if (search) params.search = search;
+    // Género de la PERSONA. La ruta no filtra por el propio: excluye lo
+    // claramente contrario (ver el comentario largo en api/bot/pricing).
+    if (genero === 'HOMBRE' || genero === 'MUJER') params.genero = genero;
     // Mismo criterio que 'get_price_list': con búsqueda se barre todo el
     // catálogo de la categoría; sin búsqueda se priorizan los recomendados por
     // la óptica (y la ruta ya cae sola a la categoría entera si no hay ninguno).
