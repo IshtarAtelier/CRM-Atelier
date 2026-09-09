@@ -161,6 +161,26 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   (`src/lib/constants/descuentos.ts`) y la redacción única en
   `src/lib/promo-cuotas.ts` y `scripts/social/condiciones-pago.mjs` — nunca un
   "10" ni un "1.10" tipeado a mano.
+- **Los gastos fijos del mes son una lista canónica, no una plantilla.**
+  `src/lib/constants/gastos-fijos.ts` es la única fuente: agregar un concepto
+  ahí lo hace aparecer en TODOS los meses, los ya abiertos incluidos, porque
+  `gastos.service.ts` reconcilia el mes en cada lectura. Antes era un
+  `DEFAULT_TEMPLATES` dentro de la pantalla que se aplicaba una sola vez, así
+  que un concepto nuevo no llegaba a los meses viejos y uno borrado no volvía.
+  Los conceptos de la lista son `obligatorio`: la API se niega a borrarlos.
+- **Meta Ads, Google Ads y el abono en dólares NO se cargan a mano.** Los trae
+  la plataforma (`fetchGastoMensualArs`, `GoogleAdsService.getGastoMensualArs`,
+  dólar × USD fijo) y se PERSISTEN en `FixedCost`, porque el dashboard y el
+  cierre leen esa tabla (`report.service.ts`) — un gasto que solo viviera en la
+  pantalla no entraría nunca en el resultado. La API rechaza editarlos: si se
+  pudieran pisar, el número del cierre dejaría de ser el de la plataforma.
+- **Un gasto en $0 cuenta como cargado** (decisión de Ishtar, 8/9/2026). Sin un
+  "confirmar en $0" explícito no hay forma de distinguir el gasto que de verdad
+  fue cero del que se olvidó, y frenar por un cero legítimo dejaría el mes sin
+  poder cerrarse nunca. Lo que SÍ frena el cierre (`month-close`, HTTP 409) es
+  un automático ILEGIBLE: el importe existe en Meta o en Google, y cerrar sin
+  él informa una ganancia más alta que la real. Se puede forzar con `&forzar=1`.
+  Los $0 se listan en el mail del cierre para que se vean.
 - **`web_promo_installments` es texto libre y solo lo interpreta
   `leerPromoCuotas()`** (`src/lib/promo-cuotas.ts`). Acepta únicamente 3 o 6:
   cualquier otro número cae al default. Estaba parseado a mano con

@@ -97,10 +97,25 @@ export async function dolarBlue(): Promise<number> {
 let firmaInvalida = false;
 let avisoFirmaDada = false;
 
+/**
+ * Ventana temporal de la consulta. Meta acepta `date_preset` (atajos como
+ * "this_month") o `time_range` con fechas explícitas. El preset no sirve para
+ * un mes cerrado cualquiera —no existe "agosto"—, así que para eso va el rango.
+ */
+export type VentanaInsights = { preset: string } | { since: string; until: string };
+
+function aplicarVentana(url: URL, ventana: VentanaInsights): void {
+  if ('preset' in ventana) {
+    url.searchParams.set('date_preset', ventana.preset);
+  } else {
+    url.searchParams.set('time_range', JSON.stringify({ since: ventana.since, until: ventana.until }));
+  }
+}
+
 async function fetchInsights(
   account: string,
   level: 'campaign' | 'ad',
-  preset: string,
+  ventana: VentanaInsights,
   rate: number,
 ): Promise<InsightRow[]> {
   const token = process.env.META_ADS_TOKEN;
@@ -118,7 +133,7 @@ async function fetchInsights(
         ? 'ad_name,campaign_name,spend,actions,account_currency'
         : 'campaign_name,spend,impressions,clicks,ctr,frequency,actions,cost_per_action_type,account_currency',
     );
-    url.searchParams.set('date_preset', preset);
+    aplicarVentana(url, ventana);
     url.searchParams.set('limit', '200');
     url.searchParams.set('access_token', token);
     // Una vez que Meta rechazó la firma, no se manda más: reintentar en cada
@@ -184,12 +199,39 @@ async function fetchInsights(
 }
 
 /** Insights por campaña de TODAS las cuentas configuradas, gasto en pesos. */
-export async function fetchCampaignInsights(preset: string, rate?: number): Promise<InsightRow[]> {
+export async function fetchCampaignInsights(
+  ventana: string | VentanaInsights,
+  rate?: number,
+): Promise<InsightRow[]> {
+  const v: VentanaInsights = typeof ventana === 'string' ? { preset: ventana } : ventana;
   const r = rate ?? (await dolarBlue());
   const out: InsightRow[] = [];
   // Secuencial a propósito: mismo principio "sin paralelismo" de scripts/ads.
-  for (const acct of accountIds()) out.push(...(await fetchInsights(acct, 'campaign', preset, r)));
+  for (const acct of accountIds()) out.push(...(await fetchInsights(acct, 'campaign', v, r)));
   return out;
+}
+
+/**
+ * Gasto total en pesos de un mes calendario, sumando todas las cuentas.
+ *
+ * Devuelve `null` si la integración no está configurada o si Meta falla: para
+ * el cierre de mes no es lo mismo "gastamos cero" que "no pude leer cuánto
+ * gastamos", y un cero falso se lee como que hay plata de sobra.
+ */
+export async function fetchGastoMensualArs(month: number, year: number): Promise<number | null> {
+  if (!metaAdsConfigured()) return null;
+  const ultimoDia = new Date(year, month, 0).getDate();
+  const mm = String(month).padStart(2, '0');
+  try {
+    const rows = await fetchCampaignInsights({
+      since: `${year}-${mm}-01`,
+      until: `${year}-${mm}-${String(ultimoDia).padStart(2, '0')}`,
+    });
+    return rows.reduce((acc, r) => acc + (r.spendArs || 0), 0);
+  } catch (e) {
+    console.error('[meta-insights] No se pudo leer el gasto del mes:', redact(String(e)));
+    return null;
+  }
 }
 
 /** Gasto por etiqueta de anuncio (en pesos), sumando todas las cuentas. */
@@ -200,7 +242,7 @@ export async function fetchSpendByTag(
   const r = rate ?? (await dolarBlue());
   const acc = new Map<string, { gasto: number; convMeta: number }>();
   for (const acct of accountIds()) {
-    for (const row of await fetchInsights(acct, 'ad', preset, r)) {
+    for (const row of await fetchInsights(acct, 'ad', { preset }, r)) {
       const tag = adTag(row.ad_name);
       if (!tag) continue;
       const conv = (row.actions || [])

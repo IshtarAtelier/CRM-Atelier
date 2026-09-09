@@ -409,16 +409,33 @@ export class GoogleAdsService {
    * Esa distinción importa: un cero falso invita a gastar de más.
    */
   public static async getMonthToDateSpendArs(): Promise<number | null> {
+    const hoy = new Date();
+    return this.getSpendArsForRange(
+      `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`,
+      hoy.toISOString().slice(0, 10),
+    );
+  }
+
+  /**
+   * Gasto de un mes calendario cualquiera, en pesos. Mismo contrato que
+   * `getMonthToDateSpendArs`: `null` significa "no pude leer", nunca cero.
+   * Lo usa el cierre de mes, que necesita meses ya cerrados y para los que no
+   * existe ningún `date_preset` equivalente.
+   */
+  public static async getGastoMensualArs(month: number, year: number): Promise<number | null> {
+    const mm = String(month).padStart(2, '0');
+    const ultimoDia = String(new Date(year, month, 0).getDate()).padStart(2, '0');
+    return this.getSpendArsForRange(`${year}-${mm}-01`, `${year}-${mm}-${ultimoDia}`);
+  }
+
+  /** Suma de `cost_micros` entre dos fechas (inclusive), en pesos. */
+  private static async getSpendArsForRange(desde: string, hasta: string): Promise<number | null> {
     const customerId = this.customerId();
     const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
     if (!customerId || !developerToken) return null;
 
     const accessToken = await this.getAccessToken();
     if (!accessToken) return null;
-
-    const hoy = new Date();
-    const desde = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
-    const hasta = hoy.toISOString().slice(0, 10);
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${accessToken}`,

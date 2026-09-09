@@ -841,6 +841,20 @@ model FixedCost {
   createdAt DateTime @default(now())
   type      String   @default("FIJO")
 
+  /// Identidad estable del concepto a lo largo de los meses (ver
+  /// src/lib/constants/gastos-fijos.ts). Los gastos sueltos que se agregan a
+  /// mano desde la pantalla no tienen clave: son de un mes y nada más.
+  clave String?
+
+  /// De dónde sale el importe: "manual" lo carga una persona; el resto lo
+  /// escribe el sistema en cada lectura del mes y la pantalla lo deja de solo
+  /// lectura (meta-ads, google-ads, usd-fijo, laboratorio).
+  fuente String @default("manual")
+
+  /// Un concepto obligatorio se recrea todos los meses y no se puede borrar.
+  obligatorio Boolean @default(false)
+
+  @@unique([clave, month, year])
   @@index([month, year])
 }
 

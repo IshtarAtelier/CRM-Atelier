@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/email';
 import { ReportService } from '@/services/report.service';
 import { PricingService } from '@/services/PricingService';
 import { METHOD_LABELS } from '@/lib/constants';
+import { estadoDeCarga } from '@/services/gastos.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,6 +80,35 @@ export async function GET(request: Request) {
         const from = `${year}-${String(month).padStart(2, '0')}-01`;
         const to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
         const monthLabel = `${MONTH_NAMES[month - 1]} ${year}`;
+
+        // ── Los gastos del mes tienen que estar antes de cerrar ──
+        //
+        // `estadoDeCarga` reconcilia el mes contra la lista de conceptos fijos
+        // y trae los importes de Meta, de Google y del abono en dólares. Se
+        // llama ACÁ, antes de calcular cualquier número, por dos motivos: deja
+        // los gastos automáticos escritos en la base (que es de donde los lee
+        // ReportService, así que si no se corriera primero el cierre saldría
+        // sin la inversión en publicidad), y frena el cierre si alguno no se
+        // pudo leer.
+        //
+        // Solo frena por un automático ilegible. Un renglón manual en $0 no
+        // frena: sin un "confirmar en $0" no hay forma de distinguir el gasto
+        // que de verdad fue cero del que se olvidó, y frenar por un cero
+        // legítimo dejaría el mes sin poder cerrarse nunca. Los $0 se informan
+        // en el mail para que se vean.
+        const estadoGastos = await estadoDeCarga(month, year);
+        const forzar = searchParams.get('forzar') === '1';
+
+        if (!estadoGastos.listoParaCerrar && !forzar) {
+            console.error(`[Cron Month-Close] Cierre de ${monthLabel} frenado: ${estadoGastos.ilegibles.join(' | ')}`);
+            return NextResponse.json({
+                success: false,
+                error: 'Cierre frenado: faltan gastos que trae el sistema',
+                message: `No se pudo leer ${estadoGastos.ilegibles.length === 1 ? 'un gasto automático' : 'varios gastos automáticos'} de ${monthLabel}. Cerrar sin ellos informaría una ganancia más alta que la real. Se puede reintentar cuando la plataforma responda, o forzar el cierre con &forzar=1 asumiendo que esos gastos van en cero.`,
+                faltantes: estadoGastos.ilegibles,
+                period: { from, to },
+            }, { status: 409 });
+        }
 
         const data = await ReportService.generateReportData(from, to);
         const s = data.summary;
@@ -175,6 +205,23 @@ export async function GET(request: Request) {
                 <td style="padding: 7px 0; text-align: right; font-weight: 700; color: #433831; font-size: 12px;">${money(fc.amount)}</td>
             </tr>
         `).join('') || `<tr><td colspan="3" style="padding: 12px 0; text-align: center; color: #a8a095; font-style: italic; font-size: 12px;">No hay gastos cargados para este mes.</td></tr>`;
+
+        // Los gastos fijos que quedaron en $0. No frenan el cierre, pero un mes
+        // con la mitad de los gastos sin cargar da una ganancia inventada, así
+        // que van arriba de la tabla y no al pie.
+        const avisoGastosEnCero = estadoGastos.enCero.length === 0 ? '' : `
+            <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;">
+                <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 800; color: #92400e;">
+                    ${estadoGastos.enCero.length === 1 ? 'Quedó 1 gasto fijo en $0' : `Quedaron ${estadoGastos.enCero.length} gastos fijos en $0`}
+                </p>
+                <p style="margin: 0; font-size: 11px; color: #b45309; line-height: 1.5;">
+                    ${estadoGastos.enCero.join(' · ')}
+                </p>
+                <p style="margin: 6px 0 0 0; font-size: 10px; color: #b45309;">
+                    Si alguno era un gasto real, la ganancia de abajo está más alta que la verdadera. Se cargan en Gastos y se puede volver a pedir el cierre.
+                </p>
+            </div>
+        `;
 
         const pendingRows = pendingOrders.map(p => `
             <tr style="border-bottom: 1px dotted #f0eae4;">
@@ -299,6 +346,7 @@ export async function GET(request: Request) {
                                         </table>
 
                                         ${sectionTitle('Gastos del mes')}
+                                        ${avisoGastosEnCero}
                                         <table style="width: 100%; border-collapse: collapse;">
                                             <tbody>${expenseRows}</tbody>
                                         </table>
@@ -383,6 +431,12 @@ export async function GET(request: Request) {
             message: `Cierre de ${monthLabel} enviado exitosamente`,
             emailMessageId: emailResult.messageId,
             period: { from, to },
+            gastos: {
+                fijosCargados: `${estadoGastos.cargados}/${estadoGastos.total}`,
+                enCero: estadoGastos.enCero,
+                ilegibles: estadoGastos.ilegibles,
+                forzado: forzar,
+            },
             summary: {
                 billed: Math.round(billed),
                 collected: Math.round(collected),
