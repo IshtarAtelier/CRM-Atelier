@@ -57,6 +57,9 @@ jobs:
       - name: Paridad de datos comerciales (wa-service ↔ src)
         run: npm run check:businessinfo
 
+      - name: Tipo de lente (la adición manda, no una etiqueta)
+        run: npm run check:receta
+
       - name: Build Next.js app
         run: npm run build
         env:
