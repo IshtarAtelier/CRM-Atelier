@@ -5,7 +5,6 @@ import { sendChargedReworkAlert } from './alerts';
 import { completePostSaleCost } from './order-status';
 import type { LabCostInput, LabName } from './types';
 import { LAB_ITEM_PATTERNS, TOLERANCE } from './types';
-import { costoParBonificado } from '../../lib/lens-cost';
 import { CLAVE_SIN_NUMERO } from '../../lib/lab-factura';
 
 /**
@@ -48,19 +47,32 @@ export function systemCostForLab(order: any, lab: string): number {
     // En una venta 2x1 el par gratis (cristal con price 0) le cuesta al lab SOLO el
     // calibrado, no el costo de lista del cristal. Contarlo entero infla el systemCost
     // y enmascara un sobrecosto real. Mismo criterio que report.service.
+    // EL SEGUNDO PAR DE UN 2x1 NO TIENE COSTO. El 2x1 lo hace el LABORATORIO:
+    // nos manda el segundo par sin cargo, así que lo que esperamos pagar por él
+    // es CERO — regla de Ishtar del 8/9/2026, "el segundo par de un dos por uno
+    // nunca debe tener costo en ninguno de los dos laboratorios".
+    //
+    // Antes se valuaba en el calibrado del lab, y eso no coincide con lo que
+    // pasa de verdad. Medido sobre las 48 ventas 2x1 desde el 8/4/2026:
+    //   · Optovisión cobra el segundo par $5, $14, $21, $22, $28, $41 — nada.
+    //     Contra un calibrado supuesto de $27.830, cada 2x1 de Optovisión
+    //     mostraba un "a favor" fantasma de casi $28.000 que no existía.
+    //   · Grupo Óptico cobra $3.724 a $15.385 por el segundo par. Con la regla
+    //     nueva eso pasa a verse como sobrecosto, que es justamente lo que hay
+    //     que reclamarle: si el 2x1 lo regala el lab, ese cargo sobra.
+    //   · Y en 14 ventas el segundo par vino COBRADO ENTERO.
+    //
+    // Ojo: esto es lo que el cruce ESPERA pagar. El costo real que entra al
+    // resultado del negocio (dashboard y report.service) sigue usando
+    // `costoParBonificado`: ahí importa lo que efectivamente se pagó, no lo que
+    // debería haber costado.
     const is2x1 = (order.appliedPromoName || '').toLowerCase().includes('2x1')
         || items.some((i: any) => /cristal/i.test(categoryOf(i)) && i.price === 0);
-    // Calibrado + IVA del par bonificado. Sale de la config del laboratorio si
-    // se pudo leer (`order.__labConfig`), y si no del respaldo único de
-    // lens-cost.ts. Antes era un 15000 escrito acá mismo, que quedó viejo.
-    const CALIBRADO_COST = costoParBonificado(order?.__labConfig);
-
     return relevant.reduce((total, item) => {
         const perEyeHalf = item.eye ? 0.5 : 1;
         const isCrystal = /cristal/i.test(categoryOf(item));
-        if (is2x1 && isCrystal && item.price === 0) {
-            return total + CALIBRADO_COST * perEyeHalf * (item.quantity || 1);
-        }
+        // El par bonificado no suma nada: lo pone el laboratorio.
+        if (is2x1 && isCrystal && item.price === 0) return total;
         const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
         return total + cost * perEyeHalf * (item.quantity || 1);
     }, 0);

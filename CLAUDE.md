@@ -110,6 +110,17 @@ AuditLog y emails/WhatsApp que la mencionen.
 Cada una nació de un dato mal calculado en producción. No deducirlas del código.
 - **Los costos de cristales son POR PAR**: `item.eye ? cost / 2 : cost`. Grupo
   Óptico factura por línea, nunca el total del comprobante.
+- **El SEGUNDO PAR de un 2x1 no tiene costo, en ningún laboratorio.** El 2x1 lo
+  hace el LAB: manda el par bonificado sin cargo. En el cruce
+  (`systemCostForLab`) ese par suma CERO, y cualquier importe que el lab le
+  facture es un sobrecosto a reclamar. Decisión de Ishtar del 8/9/2026, con los
+  datos a la vista: sobre 48 ventas 2x1, Optovisión cobra el segundo par $5 a
+  $41 —nada—, Grupo Óptico entre $3.724 y $15.385, y en 14 ventas lo cobró
+  ENTERO. Antes se valuaba en el calibrado del lab ($27.830 en Optovisión), y
+  eso inventaba un "a favor" de casi $28.000 en cada 2x1 de Optovisión. OJO: esto
+  vale para el CRUCE (lo que se espera pagar). El resultado del negocio
+  (dashboard, `report.service`) sigue usando `costoParBonificado`, porque ahí
+  importa lo que se pagó de verdad.
 - **El saldo NUNCA es lista − cobrado.** Hay que convertir cada pago a su
   equivalente de lista; la resta directa inventó 76 saldos fantasma en prod.
 - **Un cobro de más no redefine el precio de la venta.** Nada debe pisar
