@@ -206,6 +206,65 @@ export async function register() {
             }
         };
 
+        // ---- REPORTE DIARIO DE ADS y CIERRE DE MES, auto-disparados ----
+        //
+        // Los dos existían como ruta y no los llamaba nadie. Medido el 8/9/2026:
+        // el de ads no salía desde el 10/8 y el cierre de mes desde el 17/7 —
+        // faltaban los cierres de JULIO y AGOSTO enteros, que es la foto de
+        // facturación y ganancia del negocio.
+        //
+        // Ads a las 10:00 (ya cerró el día anterior en Meta). Cierre de mes el
+        // día 1 a las 10:30, que es lo que la ruta espera: sin `?month=`,
+        // los primeros días reportan el mes anterior completo.
+        const ADS_KEY = 'ads_report_last_run';
+        const CIERRE_KEY = 'month_close_last_run';
+        let adsRunning = false;
+        let cierreRunning = false;
+
+        const dispararSimple = async (
+            ruta: string, key: string, dateKey: string, etiqueta: string,
+        ) => {
+            const cronSecret = process.env.CRON_SECRET;
+            if (!cronSecret) return;
+            let previo: string | null = null;
+            try {
+                previo = await reclamarCorrida(key, dateKey);
+                if (previo === null) return;
+            } catch (err) {
+                console.error(`[CRON ${etiqueta}] No se pudo reclamar la corrida:`, err);
+                return;
+            }
+            try {
+                const res = await fetch(`${baseUrl}/api/cron/${ruta}?secret=${cronSecret}`, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(10 * 60 * 1000),
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+                console.log(`[CRON ${etiqueta}] OK (${dateKey}).`);
+            } catch (err) {
+                console.error(`[CRON ${etiqueta}] Falló (se reintenta en el próximo tick):`, err);
+                await devolverCorrida(key, dateKey, previo);
+            }
+        };
+
+        const maybeRunAds = async () => {
+            const { hour, dateKey } = argNow();
+            if (hour < 10 || adsRunning) return;
+            adsRunning = true;
+            try { await dispararSimple('ads-report', ADS_KEY, dateKey, 'ads-report'); }
+            finally { adsRunning = false; }
+        };
+
+        const maybeRunCierreMes = async () => {
+            const { hour, minute, dateKey } = argNow();
+            if (!dateKey.endsWith('-01')) return;           // solo el día 1
+            if (hour < 10 || (hour === 10 && minute < 30)) return;
+            if (cierreRunning) return;
+            cierreRunning = true;
+            try { await dispararSimple('month-close', CIERRE_KEY, dateKey, 'month-close'); }
+            finally { cierreRunning = false; }
+        };
+
         // ---- RESUMEN DIARIO DEL EQUIPO, auto-disparado ----
         // Mismo patrón que el diario de arriba, y por el mismo motivo: acá adentro
         // no depende de ningún despertador externo que pueda pausarse en silencio.
@@ -551,6 +610,8 @@ export async function register() {
             // rápido (aunque 08:30 cae dentro de 8-20, esto lo deja robusto).
             maybeRunDaily().catch(err => console.error('[CRON lab-invoices] maybeRunDaily:', err));
             maybeRunSemanalLab().catch(err => console.error('[CRON lab-weekly-report] maybeRunSemanalLab:', err));
+            maybeRunAds().catch(err => console.error('[CRON ads-report] maybeRunAds:', err));
+            maybeRunCierreMes().catch(err => console.error('[CRON month-close] maybeRunCierreMes:', err));
             maybeRunResumen().catch(err => console.error('[CRON resumen-equipo] maybeRunResumen:', err));
             maybeRunPickupReminder().catch(err => console.error('[CRON pickup-reminder] maybeRunPickupReminder:', err));
             maybeRunCalidad().catch(err => console.error('[CRON whatsapp-calidad] maybeRunCalidad:', err));

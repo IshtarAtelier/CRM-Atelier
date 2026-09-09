@@ -89,6 +89,14 @@ export async function dolarBlue(): Promise<number> {
   }
 }
 
+/**
+ * Meta rechazó el `appsecret_proof` en esta corrida: el secreto configurado no
+ * es el de la app que emitió el token de Ads. Se recuerda a nivel módulo para
+ * dejar de firmar y no pagar una llamada fallida por cada página.
+ */
+let firmaInvalida = false;
+let avisoFirmaDada = false;
+
 async function fetchInsights(
   account: string,
   level: 'campaign' | 'ad',
@@ -113,7 +121,9 @@ async function fetchInsights(
     url.searchParams.set('date_preset', preset);
     url.searchParams.set('limit', '200');
     url.searchParams.set('access_token', token);
-    const secret = process.env.META_APP_SECRET;
+    // Una vez que Meta rechazó la firma, no se manda más: reintentar en cada
+    // página duplicaría todas las llamadas para nada.
+    const secret = firmaInvalida ? null : process.env.META_APP_SECRET;
     if (secret) {
       url.searchParams.set(
         'appsecret_proof',
@@ -122,12 +132,40 @@ async function fetchInsights(
     }
     if (after) url.searchParams.set('after', after);
 
-    const res = await fetch(url);
-    // Un 502 de proxy puede devolver HTML: no dejar que el SyntaxError críptico
-    // reemplace al error real.
-    const json = await res.json().catch(() => {
-      throw new Error(`Meta Insights: respuesta no-JSON (HTTP ${res.status})`);
-    });
+    const pedir = async (u: URL) => {
+      const res = await fetch(u);
+      // Un 502 de proxy puede devolver HTML: no dejar que el SyntaxError críptico
+      // reemplace al error real.
+      return await res.json().catch(() => {
+        throw new Error(`Meta Insights: respuesta no-JSON (HTTP ${res.status})`);
+      });
+    };
+
+    let json = await pedir(url);
+
+    // LA FIRMA PUEDE SER DE OTRA APP.
+    //
+    // `appsecret_proof` es un HMAC del token hecho con el secreto de LA APP QUE
+    // EMITIÓ ESE TOKEN. Acá el token es `META_ADS_TOKEN` y el secreto es
+    // `META_APP_SECRET`, y no son de la misma app: Meta responde "Invalid
+    // appsecret_proof" y la llamada muere. Como el throw estaba en el camino
+    // principal, se llevaba puesto el reporte ENTERO — por eso el mail de ads
+    // dejó de llegar el 10/8/2026 y estuvo un mes mudo.
+    //
+    // La firma es un endurecimiento OPCIONAL (solo obligatorio si la app tiene
+    // "Require app secret" prendido, que no es el caso: verificado el 8/9/2026,
+    // las mismas consultas responden bien sin ella). Así que si Meta la
+    // rechaza, se reintenta sin firma en vez de perder el reporte.
+    if (json?.error && /appsecret_proof/i.test(String(json.error.message || ''))) {
+      if (!avisoFirmaDada) {
+        console.warn('[meta-insights] Meta rechazó el appsecret_proof (META_APP_SECRET no es de la app del token de Ads): se sigue sin firma.');
+        avisoFirmaDada = true;
+      }
+      firmaInvalida = true;
+      url.searchParams.delete('appsecret_proof');
+      json = await pedir(url);
+    }
+
     if (json.error) {
       throw new Error(redact(`Meta Insights error ${json.error.code}: ${json.error.message}`));
     }
