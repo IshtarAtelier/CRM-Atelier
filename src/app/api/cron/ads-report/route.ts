@@ -8,6 +8,7 @@ import {
   fetchCampaignInsights,
   dolarBlue,
   actionValue,
+  redact,
   type InsightRow,
 } from '@/lib/ads/meta-insights';
 // El cruce anuncio ↔ chats ↔ ventas ya no vive acá: lo calcula el service, que
@@ -365,6 +366,14 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('[CRON ads-report] Error:', error);
-    return NextResponse.json({ error: 'Error generando el reporte de ads' }, { status: 500 });
+    // DECIR QUÉ FALLÓ, no solo que falló. Este endpoint estuvo devolviendo
+    // "Error generando el reporte de ads" desde el 10/8/2026 y con eso era
+    // imposible saber la causa sin acceso a los logs del contenedor: se perdió
+    // un mes de reportes por un mensaje mudo. La respuesta ya está detrás de
+    // CRON_SECRET, y el texto pasa por `redact()`, que borra tokens.
+    return NextResponse.json({
+      error: 'Error generando el reporte de ads',
+      detalle: redact(error instanceof Error ? error.message : String(error)),
+    }, { status: 500 });
   }
 }

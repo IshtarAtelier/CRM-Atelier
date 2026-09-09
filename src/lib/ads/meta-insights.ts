@@ -42,7 +42,7 @@ function accountIds(): string[] {
     .map((id) => (id.startsWith('act_') ? id : `act_${id}`));
 }
 
-function redact(text: string): string {
+export function redact(text: string): string {
   let out = text;
   for (const secret of [process.env.META_ADS_TOKEN, process.env.META_APP_SECRET]) {
     if (secret) out = out.split(secret).join('***');
