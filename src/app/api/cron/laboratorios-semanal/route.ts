@@ -172,16 +172,41 @@ export async function GET(request: Request) {
                     <td style="${BD};text-align:right;font-weight:bold">${fmtARS(facturado(e))}</td>
                 </tr>`);
 
-            const filasDiferencias = diferencias.map((e, i) => `
+            // UNA FILA POR VENTA, no una por pedido.
+            //
+            // El costo de sistema y la diferencia se calculan A NIVEL VENTA y se
+            // estampan igual en TODAS las entradas hermanas. En un 2x1 la venta
+            // tiene dos pedidos, así que la tabla mostraba el mismo costo dos
+            // veces —"$588.913" en las dos filas de Adriana Ragagnin— y se leía
+            // como si cada par costara eso y se perdieran $115.474 por cada uno.
+            // Ishtar lo marcó el 8/9/2026: "entiende que ambos pares tienen
+            // costo y está mal, solo uno tiene costo".
+            //
+            // Ahora los pedidos de la misma venta van juntos en una fila: los dos
+            // números, el costo UNA vez, y lo facturado SUMADO (que es lo que hay
+            // que comparar contra ese costo). Es el mismo criterio que ya usa el
+            // aviso diario en alerts.ts.
+            const porVenta = new Map<string, typeof diferencias>();
+            for (const e of diferencias) {
+                const k = e.orderId ? `v:${e.orderId}` : `e:${e.labOrderNumber}`;
+                if (!porVenta.has(k)) porVenta.set(k, [] as typeof diferencias);
+                porVenta.get(k)!.push(e);
+            }
+            const filasDiferencias = [...porVenta.values()].map((grupo, i) => {
+                const e = grupo[0];
+                const facturadoTotal = grupo.reduce((a, x) => a + (facturado(x) ?? 0), 0);
+                const numeros = grupo.map(x => x.labOrderNumber).join(' + ');
+                return `
                 <tr style="background:${i % 2 ? '#f9fafb' : '#fff'}">
-                    <td style="${BD};font-family:monospace">${e.labOrderNumber}</td>
+                    <td style="${BD};font-family:monospace">${numeros}${grupo.length > 1 ? `<div style="font-size:11px;color:#6b7280;font-family:inherit">${grupo.length} pedidos de la misma venta</div>` : ''}</td>
                     <td style="${BD};white-space:nowrap">${fmtFecha(fechaRef(e))}</td>
                     <td style="${BD}">${ficha(e.order?.clientId, e.order?.client?.name || '—')}</td>
                     <td style="${BD};text-align:right">${fmtARS(e.systemCost)}</td>
-                    <td style="${BD};text-align:right;font-weight:bold">${fmtARS(facturado(e))}</td>
+                    <td style="${BD};text-align:right;font-weight:bold">${fmtARS(facturadoTotal)}</td>
                     <td style="${BD};text-align:right;font-weight:bold;color:${e.difference! > 0 ? '#b91c1c' : '#047857'}">
                         ${e.difference! > 0 ? '+' : ''}${fmtARS(e.difference)}</td>
-                </tr>`);
+                </tr>`;
+            });
 
             const filasPostventa = enPostventa.map((e, i) => {
                 const c = casoDe(e.labOrderNumber);
