@@ -27,7 +27,6 @@ import {
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
-import { resolveStorageUrl } from '@/lib/utils/storage';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
@@ -45,8 +44,6 @@ import { calculateQuoteTotals, PricingService } from '@/services/PricingService'
 // 31/8 noche). La redacción única vive en promo-cuotas.ts: acá nunca se
 // escribe el texto a mano. Los labels de MÉTODO DE PAGO tipo "MP 12c Ish
 // (+10%)" son otra cosa: documentan un cobro y conservan su recargo.
-import { ETIQUETA_MP_CUOTAS_LARGAS, textoCuotas12 } from '@/lib/promo-cuotas';
-import { RECARGO_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import {
     Glasses,
     Sun,
@@ -61,9 +58,8 @@ import {
 import type { Product } from '@/types/orders';
 import { precioConOferta } from '@/lib/precio-oferta';
 import { normalizeLensOrigin, lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
-import { formatLensRange } from '@/lib/lens-range';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import Image from "next/image";
+import TablaCotizador from './TablaCotizador';
 
 // Recibe la CLAVE ya resuelta (p.ej. 'Cristal', 'Tratamiento') — no la vuelve a
 // derivar. `getTypeConfig(cat)` reinvocaba getCategoryKey tratando la clave como
@@ -104,7 +100,6 @@ const chipInactivo = 'bg-sidebar text-foreground/55 border-sidebar-border hover:
 // sola línea, sin que se corte en dos renglones dentro de la columna angosta.
 const tipoConSeparador = (type?: string | null) => (type || '').replace(' ', ' · ') || '—';
 
-const getTypeConfig = (type: string | null, category?: string | null) => getTypeConfigByKey(getCategoryKey(type, category));
 
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 
@@ -586,7 +581,6 @@ function CotizadorPageContent() {
             (groups[k] ??= []).push(p);
         });
         return groups;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filtered, activeType]);
 
     const sortedBrands = useMemo(() => {
@@ -601,6 +595,9 @@ function CotizadorPageContent() {
             return minDe(a) - minDe(b);
         });
     }, [groupedProducts, orden]);
+
+    /** Los cristales tienen columnas propias (índice, confección, rango); el resto no. */
+    const esVistaCristal = Boolean(activeType?.startsWith('Cristal'));
 
     // Cart logic
     const addToQuote = (p: Product) => {
@@ -1258,390 +1255,26 @@ function CotizadorPageContent() {
                                 <RotateCcw className="w-3.5 h-3.5" /> Limpiar filtros
                             </button>
                         </div>
-                    ) : activeType?.startsWith('Cristal') ? (
-                        <div className="max-w-[1500px] mx-auto">
-                            {/* Desktop / tablet: tabla densa y jerarquizada */}
-                            <div className="hidden md:block rounded-xl border border-sidebar-border overflow-hidden bg-sidebar">
-                                <div className="overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
-                                    <table className="w-full text-left border-collapse table-fixed" style={{ minWidth: 1080 }}>
-                                        <thead>
-                                            <tr className="bg-sidebar text-foreground/55 border-b border-sidebar-border">
-                                                <th className="pl-4 pr-1 py-2.5 text-[9px] font-bold uppercase tracking-wider w-[118px]">Tipo · Marca</th>
-                                                <th className="px-1 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[44px]">Índice</th>
-                                                <th className="px-1.5 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[86px]">Confección</th>
-                                                <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider">Descripción</th>
-                                                <th className="px-2 py-2.5 text-[9px] font-bold uppercase tracking-wider text-center w-[136px]">Rango</th>
-                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[90px]">Lista</th>
-                                                <th className="px-4 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[110px] text-primary">Efectivo</th>
-                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[90px]">Transf.</th>
-                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[92px]" title="3 y 6 cuotas sin interés">6 Cuotas</th>
-                                                {/* El 10% se aclara siempre. Acá no entra la etiqueta completa
-                                                    (columna de 100px), así que va abreviada y la frase canónica
-                                                    queda al pie de la tabla. */}
-                                                <th className="px-3 py-2.5 text-[9px] font-bold uppercase tracking-wider text-right w-[100px]" title={ETIQUETA_MP_CUOTAS_LARGAS}>
-                                                    12 Cuotas +{RECARGO_MP_CUOTAS_LARGAS}%
-                                                </th>
-                                                <th className="px-2 py-2.5 w-10 text-center"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filtered.map((product, i) => {
-                                                // Fila de LÍNEA cada vez que cambia la familia. Sin esto la tabla
-                                                // es una pared plana: con Grupo Óptico cargado son 161 cristales
-                                                // seguidos bajo la misma marca "Smart", y el vendedor scrollea a
-                                                // ciegas. La cabecera dice qué línea es y cuántos hay.
-                                                const linea = lineaDe(product);
-                                                const abreLinea = orden === 'familia' && (i === 0 || lineaDe(filtered[i - 1]) !== linea);
-                                                const enLinea = abreLinea ? filtered.filter(x => lineaDe(x) === linea).length : 0;
-                                                const inQuote = quoteItems.find(i2 => i2.product?.id === product.id);
-                                                const oferta = precioConOferta(product);
-                                                const sprice = safePrice(oferta.final);
-                                                const pTotal = sprice * (1 + markup / 100);
-                                                const pCash = pTotal * (1 - discountCash / 100);
-                                                const pTrans = pTotal * (1 - discountTransfer / 100);
-                                                const { installment12: pCuota12 } = PricingService.cuotasMpLargas(pTotal);
-                                                const origin = normalizeLensOrigin(product.origin);
-                                                return (
-                                                    <React.Fragment key={product.id}>
-                                                    {abreLinea && (
-                                                        <tr>
-                                                            <td colSpan={11} className="bg-primary/[0.07] border-y border-sidebar-border px-4 py-2">
-                                                                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/70">{linea}</span>
-                                                                <span className="ml-2 text-[10px] font-medium text-foreground/45">{enLinea} {enLinea === 1 ? 'cristal' : 'cristales'}</span>
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                    <tr
-                                                        onClick={() => addToQuote(product)}
-                                                        className="group cursor-pointer transition-colors border-b border-sidebar-border last:border-b-0 hover:bg-primary/[0.06]"
-                                                    >
-                                                        <td className="px-4 py-2 align-top">
-                                                            <p className="text-[10px] font-bold uppercase text-foreground/55 leading-tight truncate">{tipoConSeparador(product.type)}</p>
-                                                            <p className="text-[10px] font-semibold uppercase text-foreground/55 mt-0.5 truncate">{product.brand || '—'}</p>
-                                                        </td>
-                                                        <td className="px-3 py-2 text-center align-top">
-                                                            <span className="text-[10px] font-bold text-foreground/55">{product.lensIndex || '—'}</span>
-                                                        </td>
-                                                        <td className="px-1.5 py-2 text-center align-top">
-                                                            {origin ? (
-                                                                <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${origin === 'STOCK' ? 'border-emerald-800 text-emerald-500' : 'border-sky-800 text-sky-500'}`}>
-                                                                    {origin === 'STOCK' ? 'Stock' : 'Laboratorio'}
-                                                                </span>
-                                                            ) : <span className="text-[10px] text-foreground/55">—</span>}
-                                                        </td>
-                                                        <td className="px-4 py-2 align-top">
-                                                            <div className="flex items-start gap-2">
-                                                                {/* El 2x1 es la promo que más se vende: tiene que verse de lejos. */}
-                                                                {product.is2x1 && (
-                                                                    <span className="shrink-0 mt-px px-1.5 py-0.5 rounded text-[9px] font-black tracking-wide bg-primary text-primary-foreground shadow-sm">
-                                                                        2x1
-                                                                    </span>
-                                                                )}
-                                                                <p className="text-[13px] font-semibold leading-snug">{product.name || '—'}</p>
-                                                                {/* Oferta de la tienda: se avisa acá, junto al nombre, porque
-                                                                    las columnas de precio ya muestran el rebajado y sin este
-                                                                    cartel no se distingue de un producto sin promo. */}
-                                                                {oferta.enOferta && (
-                                                                    <span className="shrink-0 mt-px px-1.5 py-0.5 rounded text-[9px] font-black tracking-wide bg-rose-100 text-rose-700 border border-rose-200">
-                                                                        {oferta.descuentoPct}% OFF
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3 py-2 text-center align-top">
-                                                            <span className="text-[10px] font-medium text-foreground/55 leading-tight block">{formatLensRange(product) || '—'}</span>
-                                                        </td>
-                                                        <td className="px-3 py-2 text-right align-top">
-                                                            <span className="text-xs font-semibold text-foreground/55 tabular-nums">${Math.round(pTotal).toLocaleString('es-AR')}</span>
-                                                        </td>
-                                                        <td className="px-4 py-2 text-right align-top">
-                                                            <span className="text-sm font-black text-primary tabular-nums">${Math.round(pCash).toLocaleString('es-AR')}</span>
-                                                        </td>
-                                                        <td className="px-3 py-2 text-right align-top">
-                                                            <span className="text-xs font-semibold text-foreground/55 tabular-nums">${Math.round(pTrans).toLocaleString('es-AR')}</span>
-                                                        </td>
-                                                        {/* 3 y 6 cuotas son SIN INTERÉS: la cuota es el precio de
-                                                            lista dividido 6, sin recargo. Faltaba, y es la forma de
-                                                            pago que más se ofrece en el mostrador. */}
-                                                        <td className="px-3 py-2 text-right align-top">
-                                                            <span className="text-xs font-semibold text-foreground/55 tabular-nums">${Math.round(pTotal / 6).toLocaleString('es-AR')}</span>
-                                                        </td>
-                                                        <td className="px-3 py-2 text-right align-top">
-                                                            <span className="text-xs font-semibold text-foreground/55 tabular-nums">${pCuota12.toLocaleString('es-AR')}</span>
-                                                        </td>
-                                                        <td className="px-2 py-2 text-center align-top">
-                                                            {inQuote ? (
-                                                                <div className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center mx-auto">
-                                                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                                                </div>
-                                                            ) : (
-                                                                <div className="w-6 h-6 rounded-full border border-sidebar-border flex items-center justify-center mx-auto opacity-60 group-hover:opacity-100 group-hover:border-primary group-hover:bg-primary/10 transition-all">
-                                                                    <Plus className="w-3.5 h-3.5 text-foreground/55 group-hover:text-primary transition-colors" />
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                    </React.Fragment>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <p className="px-4 py-2 text-[9px] font-bold uppercase tracking-wider text-foreground/55 border-t border-sidebar-border">
-                                    {ETIQUETA_MP_CUOTAS_LARGAS} · Mercado Pago
-                                </p>
-                            </div>
-
-                            {/* Mobile: cards con la misma jerarquía */}
-                            <div className="md:hidden flex flex-col gap-2">
-                                {filtered.map(product => {
-                                    const inQuote = quoteItems.find(i => i.product?.id === product.id);
-                                    const oferta = precioConOferta(product);
-                                    const sprice = safePrice(oferta.final);
-                                    const pTotal = sprice * (1 + markup / 100);
-                                    const pCash = pTotal * (1 - discountCash / 100);
-                                    const { installment12: pCuota12 } = PricingService.cuotasMpLargas(pTotal);
-                                    const origin = normalizeLensOrigin(product.origin);
-                                    return (
-                                        <button
-                                            key={product.id}
-                                            onClick={() => addToQuote(product)}
-                                            className={`w-full text-left p-3 rounded-xl border transition-all ${inQuote ? 'bg-primary/[0.06] border-primary/30' : 'bg-sidebar border-sidebar-border'}`}
-                                        >
-                                            <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                                                <span className="text-[9px] font-bold uppercase text-foreground/55">{tipoConSeparador(product.type)}</span>
-                                                {product.brand && <span className="text-[9px] font-bold uppercase text-foreground/55">· {product.brand}</span>}
-                                                {product.lensIndex && <span className="text-[9px] font-bold text-foreground/55">· idx {product.lensIndex}</span>}
-                                                {origin && (
-                                                    <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${origin === 'STOCK' ? 'border-emerald-800 text-emerald-500' : 'border-sky-800 text-sky-500'}`}>
-                                                        {origin === 'STOCK' ? 'Stock' : 'Laboratorio'}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-sm font-semibold text-foreground leading-snug">{product.name || '—'}</p>
-                                            {formatLensRange(product) && (
-                                                <p className="text-[10px] font-medium text-foreground/55 mt-1">{formatLensRange(product)}</p>
-                                            )}
-                                            <div className="flex items-center justify-between mt-2">
-                                                <div className="flex flex-col">
-                                                    {oferta.enOferta && (
-                                                        <span className="text-[10px] font-black text-rose-600">
-                                                            <span className="line-through text-foreground/45 font-semibold">${oferta.lista.toLocaleString('es-AR')}</span> {oferta.descuentoPct}% OFF
-                                                        </span>
-                                                    )}
-                                                    <span className="text-base font-black text-primary tabular-nums">${Math.round(pCash).toLocaleString('es-AR')}</span>
-                                                    <span className="text-[10px] font-semibold text-foreground/55 tabular-nums">{textoCuotas12(pCuota12)}</span>
-                                                </div>
-                                                {inQuote ? (
-                                                    <div className="w-7 h-7 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center">
-                                                        <Check className="w-4 h-4 text-emerald-400" />
-                                                    </div>
-                                                ) : (
-                                                    <div className="w-7 h-7 rounded-full border border-primary/40 bg-primary/10 flex items-center justify-center">
-                                                        <Plus className="w-4 h-4 text-primary" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ) : activeType === 'Tratamiento' ? (
-                        <div className="max-w-[1500px] mx-auto">
-                            <div className="rounded-2xl border border-sidebar-border overflow-hidden shadow-md bg-sidebar">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse" style={{ minWidth: 700 }}>
-                                        <thead>
-                                            <tr className="bg-background text-foreground/55 border-b border-sidebar-border">
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider">Producto</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[120px]">Tipo</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[80px]">Índice</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-center w-[120px]">Stock</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[120px]">P. Minorista</th>
-                                                {/* Igual que en cristales: abreviado por ancho de columna, con la
-                                                    frase canónica completa al pie de la tabla. */}
-                                                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[110px]" title={ETIQUETA_MP_CUOTAS_LARGAS}>
-                                                    12 Cuotas +{RECARGO_MP_CUOTAS_LARGAS}%
-                                                </th>
-                                                {userRole === 'ADMIN' && (
-                                                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-right w-[120px] text-blue-600">P. Mayorista</th>
-                                                )}
-                                                <th className="px-3 py-3 w-12 text-center"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filtered.map((product, idx) => {
-                                                const inQuote = quoteItems.find(i => i.product?.id === product.id);
-                                                const oferta = precioConOferta(product);
-                                                const { installment12: tCuota12 } = PricingService.cuotasMpLargas(safePrice(oferta.final));
-                                                return (
-                                                    <tr
-                                                        key={product.id}
-                                                        onClick={() => addToQuote(product)}
-                                                        className={`cursor-pointer transition-colors border-b border-sidebar-border ${idx % 2 === 0 ? 'bg-sidebar' : 'bg-background'} hover:bg-primary/5`}
-                                                    >
-                                                        <td className="px-4 py-2.5">
-                                                            <p className="text-xs font-semibold whitespace-normal break-words">{product.name || '—'}</p>
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-center">
-                                                            <span className="text-[10px] font-bold uppercase text-foreground/55">{product.type || '—'}</span>
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-center">
-                                                            <span className="text-[10px] font-bold">{product.lensIndex || '—'}</span>
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-center">
-                                                            <span className="text-[10px] font-bold uppercase text-amber-600">{product.laboratory || 'A Pedido'}</span>
-                                                        </td>
-                                                        {/* Con oferta cargada se muestra el precio rebajado y, debajo,
-                                                            el de lista tachado con el % — igual que en la tienda, para
-                                                            que el vendedor vea de una que ese producto está en promo. */}
-                                                        <td className="px-4 py-2.5 text-right font-bold text-xs">
-                                                            ${safePrice(oferta.final).toLocaleString()}
-                                                            {oferta.enOferta && (
-                                                                <span className="block font-semibold text-[10px] text-rose-600">
-                                                                    <span className="line-through text-foreground/45">${oferta.lista.toLocaleString()}</span> {oferta.descuentoPct}% OFF
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-2.5 text-right font-semibold text-xs text-foreground/55">${tCuota12.toLocaleString()}</td>
-                                                        {userRole === 'ADMIN' && (
-                                                            <td className="px-4 py-2.5 text-right font-bold text-xs text-blue-600">${safePrice(product.wholesalePrice).toLocaleString()}</td>
-                                                        )}
-                                                        <td className="px-3 py-2.5 text-center">
-                                                            {inQuote ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> : <Plus className="w-4 h-4 text-foreground/40 group-hover:text-primary mx-auto transition-colors" />}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <p className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-foreground/55 border-t border-sidebar-border">
-                                    {ETIQUETA_MP_CUOTAS_LARGAS} · Mercado Pago
-                                </p>
-                            </div>
-                        </div>
                     ) : (
-                        <div className="max-w-[1500px] mx-auto flex flex-col gap-6">
-                            {sortedBrands.map(brandName => {
-                                const brandProducts = groupedProducts[brandName] || [];
-                                return (
-                                    <div key={brandName} className="space-y-2">
-                                        <div className="flex items-center gap-3 py-1">
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/55">
-                                                {brandName}
-                                            </h3>
-                                            <div className="h-px flex-1 bg-foreground/10/50" />
-                                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-foreground/55">
-                                                {brandProducts.length} {brandProducts.length === 1 ? 'item' : 'items'}
-                                            </span>
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-2">
-                                            {brandProducts.map(product => {
-                                                const inQuote = quoteItems.find(i => i.product?.id === product.id);
-                                                const config = getTypeConfig(product.type, product.category);
-                                                const TypeIcon = config.icon;
-                                                // Las CUATRO formas de pago, resueltas: el vendedor no calcula nada.
-                                                const oferta = precioConOferta(product);
-                                                const bLista = safePrice(oferta.final) * (1 + markup / 100);
-                                                const bEfectivo = bLista * (1 - discountCash / 100);
-                                                const bTransf = bLista * (1 - discountTransfer / 100);
-                                                const { installment12: bCuota12 } = PricingService.cuotasMpLargas(bLista);
-                                                return (
-                                                    <button
-                                                        key={product.id}
-                                                        onClick={() => addToQuote(product)}
-                                                        className={`w-full p-3 rounded-xl border transition-all text-left flex items-center justify-between hover:shadow-sm duration-200 group ${inQuote 
-                                                            ? 'bg-primary/[0.03] border-primary/30 shadow-sm' 
-                                                            : 'bg-sidebar border-sidebar-border'}`}
-                                                    >
-                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                            {(() => {
-                                                                 const imgUrl = resolveStorageUrl(product.imagenesCatalogo?.[0] || product.rawImageUrls?.[0] || null);
-                                                                 if (imgUrl) {
-                                                                     return (
-                                                                         <Image unoptimized
-                                                                             width={32}
-                                                                             height={32}
-                                                                             src={imgUrl}
-                                                                             alt={product.name || ''} 
-                                                                             className="w-8 h-8 object-contain rounded-lg border border-sidebar-border bg-background shadow-sm shrink-0"
-                                                                         />
-                                                                     );
-                                                                 }
-                                                                 return (
-                                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${inQuote ? 'bg-primary/10 text-primary' : 'bg-background text-foreground/55 group-hover:bg-primary/5 group-hover:text-primary transition-colors'}`}>
-                                                                         <TypeIcon className="w-4 h-4" />
-                                                                     </div>
-                                                                 );
-                                                             })()}
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-foreground/[0.06] text-foreground/55">
-                                                                        {product.type || 'Otros'}
-                                                                    </span>
-                                                                    {product.stock !== undefined && product.stock <= 2 && (
-                                                                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">
-                                                                            Stock: {product.stock}
-                                                                        </span>
-                                                                    )}
-                                                                    {product.publishToWeb && (
-                                                                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-100 text-violet-700">
-                                                                            🌐 Web
-                                                                        </span>
-                                                                    )}
-                                                                    {/* Misma oferta que ve la clienta en la tienda. */}
-                                                                    {oferta.enOferta && (
-                                                                        <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
-                                                                            {oferta.descuentoPct}% OFF
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <p className="text-xs font-semibold mt-1 text-foreground/90 group-hover:text-foreground transition-colors truncate">
-                                                                    {product.name}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-4 flex-shrink-0 ml-4">
-                                                            {/* Las CINCO formas de pago, cada una con su rótulo y
-                                                                alineadas en columna. Antes iban apretadas en dos
-                                                                renglones de 9px ("Lista $X · Transf. $Y") y había que
-                                                                adivinar cuál era cuál en el mostrador. */}
-                                                            <div className="text-right tabular-nums leading-tight min-w-[168px]">
-                                                                <div className="flex items-baseline justify-end gap-2">
-                                                                    <span className="text-[8px] font-bold uppercase tracking-wider text-foreground/45">Efectivo</span>
-                                                                    <span className="text-sm font-black text-primary">${Math.round(bEfectivo).toLocaleString('es-AR')}</span>
-                                                                </div>
-                                                                {([
-                                                                    ['Transf.', Math.round(bTransf)],
-                                                                    ['Lista', Math.round(bLista)],
-                                                                    ['6 cuotas', Math.round(bLista / 6)],
-                                                                    ['12 cuotas', bCuota12],
-                                                                ] as const).map(([rotulo, valor]) => (
-                                                                    <div key={rotulo} className="flex items-baseline justify-end gap-2">
-                                                                        <span className="text-[8px] font-bold uppercase tracking-wider text-foreground/40">{rotulo}</span>
-                                                                        <span className="text-[10px] font-semibold text-foreground/60">${valor.toLocaleString('es-AR')}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                            {inQuote ? (
-                                                                <div className="flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-[10px] font-bold shadow-md shadow-primary/20">
-                                                                    {inQuote.quantity}
-                                                                </div>
-                                                            ) : (
-                                                                <div className="w-6 h-6 rounded-full border border-sidebar-border flex items-center justify-center group-hover:border-primary/45 group-hover:bg-primary/5 transition-all">
-                                                                    <Plus className="w-3.5 h-3.5 text-foreground/55 group-hover:text-primary transition-colors" />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                        // UNA sola tabla para todas las solapas (Ishtar, 8/9/2026:
+                        // "igualá a este modelo todas las vistas"). Antes había tres
+                        // renders distintos —cristales, tratamientos y tarjetas— y solo
+                        // el de cristales mostraba las cinco formas de pago.
+                        <div className="max-w-[1500px] mx-auto">
+                            <TablaCotizador
+                                productos={esVistaCristal ? filtered : sortedBrands.flatMap(b => groupedProducts[b] || [])}
+                                variante={esVistaCristal ? 'cristal' : 'general'}
+                                markup={markup}
+                                discountCash={discountCash}
+                                discountTransfer={discountTransfer}
+                                quoteItems={quoteItems}
+                                addToQuote={addToQuote}
+                                agrupar={esVistaCristal
+                                    ? (orden === 'familia' ? lineaDe : null)
+                                    : (p: Product) => p.brand?.trim() || 'Otros'}
+                                sustantivo={esVistaCristal ? ['cristal', 'cristales'] : ['item', 'items']}
+                                tipoConSeparador={tipoConSeparador}
+                            />
                         </div>
                     )}
                 </div>
