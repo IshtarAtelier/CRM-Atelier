@@ -117,7 +117,29 @@ export async function GET(request: Request) {
             });
         }
 
-        if (stale.length > 0) {
+        // UNA VEZ POR DÍA, no una por corrida.
+        //
+        // Este aviso salía en CADA pasada, y mientras una fuente está caída el
+        // diario se reintenta en cada tick de 10 minutos: el 8/9/2026 salieron
+        // cinco mails idénticos entre las 18:39 y las 19:19. Con ese volumen el
+        // aviso deja de leerse y termina borrado —de hecho así terminaron: en la
+        // papelera—, que es exactamente cómo un corte de Grupo Óptico se sostuvo
+        // quince días "avisando" todos los días. Un aviso que no se lee no avisa.
+        //
+        // El guard es por DÍA y por CONJUNTO de fuentes caídas: si mañana cae
+        // otra distinta, se avisa igual.
+        const STALE_KEY = 'lab_stale_alert_last';
+        const staleHoy = `${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })}:${stale.map(s => s.name).sort().join(',')}`;
+        const yaAvisado = stale.length > 0 && (await prisma.systemSetting.findUnique({
+            where: { key: STALE_KEY },
+        }).catch(() => null))?.value === staleHoy;
+
+        if (stale.length > 0 && !yaAvisado) {
+            await prisma.systemSetting.upsert({
+                where: { key: STALE_KEY },
+                update: { value: staleHoy },
+                create: { key: STALE_KEY, value: staleHoy },
+            }).catch(err => console.error('[Cron lab-invoices] No se pudo marcar el aviso de fuentes caídas:', err));
             const items = stale.map(p =>
                 `<li><strong>${p.name}</strong> (${p.description}): ${p.days === null ? 'nunca corrió bien' : `sin corrida exitosa hace ${p.days} días`}</li>`
             ).join('');
