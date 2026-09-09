@@ -98,6 +98,25 @@ const chipInactivo = 'bg-sidebar text-foreground/55 border-sidebar-border hover:
 
 // "Cristal Multifocal" → "Cristal · Multifocal": el tipo y el subtipo en una
 // sola línea, sin que se corte en dos renglones dentro de la columna angosta.
+/**
+ * Las familias de cristal, con el nombre que usa el vendedor. El valor es el
+ * que matchea contra `type` ("Cristal Multifocal", "Cristal Bifocal"...).
+ */
+const FAMILIAS_DE_CRISTAL: [string, string][] = [
+    ['Multifocal', 'Familia de multifocales'],
+    ['Bifocal', 'Familia de bifocales'],
+    ['Monofocal', 'Familia de monofocales'],
+    ['Ocupacional', 'Familia de ocupacionales'],
+    ['Control Miopico', 'Control de miopía'],
+];
+
+/** Cómo se confecciona el cristal. El orden es el del mostrador: lo que hay hoy primero. */
+const ETIQUETA_TALLADO: Record<string, string> = {
+    STOCK: 'Stock',
+    CNC: 'Tallado CNC',
+    DIGITAL: 'Tallado digital',
+};
+
 const tipoConSeparador = (type?: string | null) => (type || '').replace(' ', ' · ') || '—';
 
 
@@ -150,9 +169,7 @@ function CotizadorPageContent() {
     // La receta que el vendedor tiene en la mano. Filtra por lo que el cristal
     // realmente cubre: es el dato que evita mandar a fábrica algo que el
     // laboratorio después rechaza.
-    const [rxEsf, setRxEsf] = useState('');
-    const [rxCil, setRxCil] = useState('');
-    const [rxAdd, setRxAdd] = useState('');
+    const [selectedTallado, setSelectedTallado] = useState('');
     const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
     const [markup, setMarkup] = useState(0);
     const [discountCash, setDiscountCash] = useState(20);
@@ -448,12 +465,10 @@ function CotizadorPageContent() {
         if (selectedOrigin) tags.push({ key: 'origin', label: selectedOrigin === 'STOCK' ? 'Stock' : 'Laboratorio', clear: () => setSelectedOrigin('') });
         if (selectedBrand) tags.push({ key: 'brand', label: selectedBrand, clear: () => setSelectedBrand('') });
         if (selectedIndex) tags.push({ key: 'index', label: `Índice ${selectedIndex}`, clear: () => setSelectedIndex('') });
-        if (rxEsf.trim()) tags.push({ key: 'rx-esf', label: `Esf ${rxEsf}`, clear: () => setRxEsf('') });
-        if (rxCil.trim()) tags.push({ key: 'rx-cil', label: `Cil ${rxCil}`, clear: () => setRxCil('') });
-        if (rxAdd.trim()) tags.push({ key: 'rx-add', label: `Ad ${rxAdd}`, clear: () => setRxAdd('') });
+        if (selectedTallado) tags.push({ key: 'tallado', label: ETIQUETA_TALLADO[selectedTallado] ?? selectedTallado, clear: () => setSelectedTallado('') });
         if (selectedLab) tags.push({ key: 'lab', label: selectedLab, clear: () => setSelectedLab('') });
         return tags;
-    }, [selectedSubtype, selectedOrigin, selectedBrand, selectedLab, selectedIndex]);
+    }, [selectedSubtype, selectedOrigin, selectedBrand, selectedLab, selectedIndex, selectedTallado]);
 
     const clearAllFilters = () => {
         setSearch('');
@@ -464,7 +479,24 @@ function CotizadorPageContent() {
         setSelectedBrand('');
         setSelectedLab('');
         setSelectedIndex('');
-        setRxEsf(''); setRxCil(''); setRxAdd('');
+        setSelectedTallado('');
+    };
+
+    /**
+     * CÓMO SE CONFECCIONA el cristal, que es lo que el vendedor necesita filtrar:
+     * de stock (sale de la góndola), tallado CNC (el método tradicional) o
+     * tallado digital / free-form (el moderno, más caro y de mejor visión).
+     * Está en el nombre porque así lo escribe la lista de cada laboratorio.
+     */
+    const talladoDe = (p: Product) => {
+        if (normalizeLensOrigin(p.origin) === 'STOCK') return 'STOCK';
+        const n = (p.name || '').toUpperCase();
+        // Solo cuenta cuando el NOMBRE lo dice. Buscar "DIGITAL" a secas traía
+        // media lista: "KODAK SV DIGITAL", "SYGNUS MONOFOCAL DIGITAL ONE" o
+        // "ESPACE PLUS DIGITAL" son nombres de diseño, no métodos de tallado.
+        if (/FREE-FORM|\bTDI\b|TALLADO DIGITAL|MAJESTIC DIGITAL/.test(n)) return 'DIGITAL';
+        if (/\bCNC\b/.test(n)) return 'CNC';
+        return '';
     };
 
     /**
@@ -532,20 +564,7 @@ function CotizadorPageContent() {
                 if (p.laboratory?.toLowerCase() !== selectedLab.toLowerCase()) return false;
             }
             
-            // FILTRO POR RECETA: se queda solo con los cristales que cubren esa
-            // graduación. Un cristal sin rango cargado NO se descarta —quedaría
-            // invisible por un dato que falta, no por no servir— pero se marca
-            // aparte en la fila.
-            const cubre = (v: string, min: number | null | undefined, max: number | null | undefined) => {
-                if (!v.trim()) return true;
-                const n = parseFloat(v.replace(',', '.'));
-                if (!Number.isFinite(n)) return true;
-                if (min == null || max == null) return true;
-                return n >= Math.min(min, max) && n <= Math.max(min, max);
-            };
-            if (!cubre(rxEsf, p.sphereMin, p.sphereMax)) return false;
-            if (!cubre(rxCil, p.cylinderMin, p.cylinderMax)) return false;
-            if (!cubre(rxAdd, p.additionMin, p.additionMax)) return false;
+            if (selectedTallado && talladoDe(p) !== selectedTallado) return false;
 
             return matchesSearch && matchesWeb;
         });
@@ -572,7 +591,7 @@ function CotizadorPageContent() {
             return (a.price || 0) - (b.price || 0);
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [products, search, activeType, onlyWeb, selectedSubtype, selectedOrigin, selectedBrand, selectedLab, selectedIndex, orden, rxEsf, rxCil, rxAdd]);
+    }, [products, search, activeType, onlyWeb, selectedSubtype, selectedOrigin, selectedBrand, selectedLab, selectedIndex, orden, selectedTallado]);
 
     const groupedProducts = useMemo(() => {
         const groups: { [key: string]: Product[] } = {};
@@ -984,32 +1003,21 @@ function CotizadorPageContent() {
                         )}
                     </div>
 
-                    {/* LA RECETA y el ORDEN. Solo en cristales: en armazones no
-                        aplican. La receta es lo que el vendedor tiene en la mano,
-                        así que filtrar por ella es más directo que adivinar qué
-                        cristal cubre esa graduación. */}
+                    {/* EL ORDEN. Solo en cristales: en armazones no aplica.
+                        Acá vivían tres casillas para tipear la receta (Esf / Cil /
+                        Ad) que filtraban por graduación. Ishtar las sacó el
+                        9/9/2026 —"no entiendo qué sentido tenga"—: en el mostrador
+                        se busca por marca, índice y tipo de tallado, no cargando
+                        la receta de nuevo en el cotizador. */}
                     {activeType === 'Cristal' && (
                         <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-foreground/40 pl-1">Receta</span>
-                            {([['Esf', rxEsf, setRxEsf], ['Cil', rxCil, setRxCil], ['Ad', rxAdd, setRxAdd]] as const).map(([lbl, val, set]) => (
-                                <input
-                                    key={lbl}
-                                    type="text"
-                                    inputMode="decimal"
-                                    value={val}
-                                    onChange={(e) => set(e.target.value)}
-                                    placeholder={lbl}
-                                    aria-label={`Filtrar por ${lbl === 'Esf' ? 'esfera' : lbl === 'Cil' ? 'cilindro' : 'adición'} de la receta`}
-                                    className={`${chipBase} w-[62px] px-2 text-center ${val.trim() ? chipActivo : chipInactivo}`}
-                                />
-                            ))}
                             <select
                                 value={orden}
                                 onChange={(e) => setOrden(e.target.value as typeof orden)}
                                 aria-label="Ordenar"
                                 className={`${chipBase} px-2 ${chipInactivo} cursor-pointer`}
                             >
-                                <option value="familia">Por familia</option>
+                                <option value="familia">Agrupar por línea</option>
                                 <option value="precio">Precio ↑</option>
                                 <option value="precio-desc">Precio ↓</option>
                                 <option value="indice">Índice</option>
@@ -1044,6 +1052,28 @@ function CotizadorPageContent() {
                                 >
                                     <option value="">Índice</option>
                                     {uniqueIndexes.map((i) => <option key={i} value={i}>{i}</option>)}
+                                </select>
+                            )}
+                            {activeType === 'Cristal' && (
+                                <select
+                                    value={selectedSubtype}
+                                    onChange={(e) => setSelectedSubtype(e.target.value)}
+                                    aria-label="Filtrar por familia de cristal"
+                                    className={`${chipBase} px-2 ${selectedSubtype ? chipActivo : chipInactivo} cursor-pointer`}
+                                >
+                                    <option value="">Familia</option>
+                                    {FAMILIAS_DE_CRISTAL.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                                </select>
+                            )}
+                            {activeType === 'Cristal' && (
+                                <select
+                                    value={selectedTallado}
+                                    onChange={(e) => setSelectedTallado(e.target.value)}
+                                    aria-label="Filtrar por tipo de tallado"
+                                    className={`${chipBase} px-2 ${selectedTallado ? chipActivo : chipInactivo} cursor-pointer`}
+                                >
+                                    <option value="">Tallado</option>
+                                    {Object.entries(ETIQUETA_TALLADO).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                                 </select>
                             )}
                         </div>
