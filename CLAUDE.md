@@ -110,8 +110,14 @@ AuditLog y emails/WhatsApp que la mencionen.
 Cada una nació de un dato mal calculado en producción. No deducirlas del código.
 - **Los costos de cristales son POR PAR**: `item.eye ? cost / 2 : cost`. Grupo
   Óptico factura por línea, nunca el total del comprobante.
-- **El SEGUNDO PAR de un 2x1 no tiene costo, en ningún laboratorio.** El 2x1 lo
-  hace el LAB: manda el par bonificado sin cargo. En el cruce
+- **Los CRISTALES del segundo par de un 2x1 no tienen costo, en ningún
+  laboratorio. El ARMAZÓN del segundo par SÍ.** El 2x1 de los cristales lo hace
+  el LAB: manda el par bonificado sin cargo. El armazón, en cambio, lo regala
+  la ÓPTICA —es promo propia—, así que su costo es real y se cuenta entero
+  (aclaración de Ishtar del 9/9/2026). En el código la distinción ya existe:
+  `costoDeItemParaCruce` solo pone en cero los ítems de categoría Cristal. Hoy
+  no hay ningún armazón a $0 en las 59 ventas 2x1 desde abril, porque la promo
+  todavía no regala armazones; cuando se prenda, se cuenta solo. En el cruce
   (`systemCostForLab`) ese par suma CERO, y cualquier importe que el lab le
   facture es un sobrecosto a reclamar. Decisión de Ishtar del 8/9/2026, con los
   datos a la vista: sobre 48 ventas 2x1, Optovisión cobra el segundo par $5 a
@@ -180,6 +186,18 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   cierre leen esa tabla (`report.service.ts`) — un gasto que solo viviera en la
   pantalla no entraría nunca en el resultado. La API rechaza editarlos: si se
   pudieran pisar, el número del cierre dejaría de ser el de la plataforma.
+- **Los LABORATORIOS y la POST-VENTA no se guardan como gasto: se muestran.**
+  Son vistas derivadas —las ventas del mes y los reprocesos que el lab facturó—
+  y el resultado del negocio ya las tiene (`totalCostLenses` y
+  `totalPostSaleCosts` en `report.service`). Persistirlas contaba la misma plata
+  dos veces en el mail del cierre. El costo por laboratorio sale de
+  `costoPorLaboratorioDeVenta` (la regla del cruce, en `lab-recon/cost-matching`),
+  nunca de una suma propia.
+- **La post-venta se imputa al mes en que el lab la facturó, no al de la venta.**
+  Solo cuenta con `costSource: 'LAB'` y `costConfirmedAt` (lo que el schema exige
+  para imputar a caja): la estimación del vendedor no es un gasto. Difiere a
+  propósito de `report.service`, que la imputa al mes de la venta original —ahí
+  se mide cuánto dejó esa venta; acá, cuánta plata sale este mes.
 - **Un gasto en $0 cuenta como cargado** (decisión de Ishtar, 8/9/2026). Sin un
   "confirmar en $0" explícito no hay forma de distinguir el gasto que de verdad
   fue cero del que se olvidó, y frenar por un cero legítimo dejaría el mes sin
