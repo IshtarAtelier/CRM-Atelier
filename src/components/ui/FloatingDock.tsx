@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { ChevronRight, LayoutGrid, Sparkles } from 'lucide-react';
+import { ChevronRight, ChevronUp, ChevronDown, LayoutGrid, Sparkles } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { pedirAbrirPanel } from '@/lib/paneles-flotantes';
 import { useWhatsAppDatos } from '@/components/whatsapp/WhatsAppProvider';
@@ -10,6 +10,7 @@ import { GlobalOpportunities } from '../dashboard/GlobalOpportunities';
 import { GlobalBalanceReminders } from '../dashboard/GlobalBalanceReminders';
 import { GlobalReviewRequests } from '../dashboard/GlobalReviewRequests';
 import { GlobalTasks } from '../dashboard/GlobalTasks';
+import { GlobalEmbudoTasks } from '../dashboard/GlobalEmbudoTasks';
 import { GlobalLabReady } from '../dashboard/GlobalLabReady';
 
 /**
@@ -19,7 +20,12 @@ import { GlobalLabReady } from '../dashboard/GlobalLabReady';
  * plegado por default en cada página: WhatsApp y Copilot quedaban a la vista,
  * pero Oportunidades/Saldos/Laboratorio/Reseñas/Tareas necesitaban un click
  * extra para aparecer — ese click extra era justo lo que nadie hacía. Ahora no
- * hay nada que abrir: los siete accesos están siempre ahí, centrados abajo.
+ * hay nada que abrir: los accesos están siempre ahí, centrados abajo.
+ *
+ * Lo único plegable es la manija de la derecha (10/9/2026): esconde la barra
+ * un rato para leer lo que tapa, deja una pastillita chica abajo para traerla
+ * de vuelta, y se destapa sola al cambiar de pantalla. No se recuerda entre
+ * páginas — ver el comentario de `oculto`.
  *
  * En `/admin/whatsapp` se mantiene el pill chico de antes, arriba a la derecha:
  * esa pantalla ya tiene su propio Composer fijo abajo (el cuadro de escribir
@@ -29,12 +35,22 @@ export function FloatingDock() {
     const pathname = usePathname();
     const isWhatsApp = pathname === '/admin/whatsapp';
     const [isCollapsed, setIsCollapsed] = useState(isWhatsApp);
+    /**
+     * Escondido a mano, para leer lo que la barra tapa (Ishtar, 10/9/2026).
+     * Es TEMPORAL a propósito: no se guarda en ningún lado y vuelve sola al
+     * cambiar de pantalla. El dock es fijo abajo justamente porque plegado por
+     * default nadie lo abría (1/9/2026) — si esto se recordara entre páginas,
+     * en una semana estaríamos de vuelta en ese problema. Lo que queda a la
+     * vista es una manija chiquita: nunca desaparece del todo.
+     */
+    const [oculto, setOculto] = useState(false);
     const { unreadTotal } = useWhatsAppDatos();
     const noLeidos = unreadTotal || 0;
 
     useEffect(() => {
         setIsCollapsed(isWhatsApp);
-    }, [isWhatsApp]);
+        setOculto(false);
+    }, [isWhatsApp, pathname]);
 
     // El cotizador tiene su propia barra fija abajo en mobile (el carrito,
     // z-[50]) — el dock se corre arriba de esa barra para no quedar tapado.
@@ -43,6 +59,22 @@ export function FloatingDock() {
     const contenedorClase = isWhatsApp
         ? 'fixed top-[160px] right-4 z-[40] flex items-center gap-1 p-1 bg-white/60 dark:bg-stone-900/60 backdrop-blur-xl border border-stone-200/50 dark:border-stone-800/50 rounded-full shadow-lg hover:shadow-xl hover:border-stone-300/80 dark:hover:border-stone-700/80 transition-all duration-300'
         : `fixed ${enCotizador ? 'bottom-20 lg:bottom-5' : 'bottom-4 md:bottom-5'} left-1/2 -translate-x-1/2 z-[40] flex items-center gap-1 p-1.5 bg-white/75 dark:bg-stone-900/75 backdrop-blur-xl border border-stone-200/60 dark:border-stone-800/60 rounded-full shadow-2xl transition-all duration-300`;
+
+    // Escondido: queda la manija, pegada al borde de abajo y casi sin tapar nada.
+    if (oculto && !isWhatsApp) {
+        return (
+            <button
+                type="button"
+                onClick={() => setOculto(false)}
+                className={`fixed ${enCotizador ? 'bottom-20 lg:bottom-1' : 'bottom-1'} left-1/2 -translate-x-1/2 z-[40] flex items-center gap-1.5 px-3 py-1 bg-white/70 dark:bg-stone-900/70 backdrop-blur-xl border border-stone-200/60 dark:border-stone-800/60 rounded-full shadow-lg text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-white dark:hover:bg-stone-900 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400`}
+                title="Mostrar la barra de accesos"
+                aria-label="Mostrar la barra de accesos"
+            >
+                <ChevronUp className="w-4 h-4" />
+                <span className="text-[9px] font-black uppercase tracking-widest hidden md:inline">Accesos</span>
+            </button>
+        );
+    }
 
     return (
         <div className={contenedorClase}>
@@ -113,6 +145,7 @@ export function FloatingDock() {
                         <GlobalLabReady />
                         <GlobalReviewRequests />
                         <GlobalTasks />
+                        <GlobalEmbudoTasks />
                     </div>
                 </>
             ) : (
@@ -125,6 +158,20 @@ export function FloatingDock() {
                         <GlobalLabReady />
                         <GlobalReviewRequests />
                         <GlobalTasks />
+                        <GlobalEmbudoTasks />
+                        {/* Escondelo un rato para leer lo que tapa (Ishtar,
+                            10/9/2026): el dock es fijo abajo al centro y en las
+                            tablas largas se come la última fila. */}
+                        <span aria-hidden="true" className="w-px h-6 bg-stone-200 dark:bg-stone-700 mx-0.5" />
+                        <button
+                            type="button"
+                            onClick={() => setOculto(true)}
+                            className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+                            title="Ocultar la barra"
+                            aria-label="Ocultar la barra de accesos"
+                        >
+                            <ChevronDown className="w-5 h-5" />
+                        </button>
                     </div>
                 </>
             )}

@@ -5,6 +5,7 @@ import { Zap, X, ChevronRight, Heart, FileText, ShoppingCart, Loader2, Check } f
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { buildFollowUpMessage } from '@/lib/whatsapp-followup';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
+import TelefonoCopiable from '@/components/ui/TelefonoCopiable';
 import Link from 'next/link';
 
 interface Opportunity {
@@ -172,6 +173,13 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                                     <p className="text-xs font-bold text-stone-500 dark:text-stone-400 line-clamp-2 leading-tight">
                                         {opp.detail}
                                     </p>
+                                    {/* El número a la vista y copiable: el cierre lo
+                                        sigue un vendedor de verdad desde SU WhatsApp,
+                                        y así no se gasta una plantilla de la API
+                                        oficial (Ishtar, 10/9/2026). */}
+                                    {opp.phone && (
+                                        <TelefonoCopiable phone={opp.phone} className="text-xs mt-1.5" />
+                                    )}
                                 </div>
                                 <ChevronRight className="w-5 h-5 text-stone-200 group-hover:text-amber-500 transition-all group-hover:translate-x-1" />
                             </Link>

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { TIPO_EMBUDO } from '@/lib/tareas/origen';
 import type { PipelineLead, PipelineStageKey } from '@/types/leads';
 
 /**
@@ -8,11 +9,12 @@ import type { PipelineLead, PipelineStageKey } from '@/types/leads';
  * mail consolidado a los ADMIN una vez por día: un vendedor que no abre esas
  * dos pantallas no tenía dónde enterarse.
  *
- * `type: 'TASK'` a propósito, no `'FOLLOWUP'`: el dashboard y la ficha solo
- * levantan `type: 'TASK'` (`ContactService.getAllPendingTasks` /
- * `ContactService.getTasks`) — las `FOLLOWUP` que crean `contact.service.ts`
- * y `order.service.ts` no aparecen en ningún lado de la UI, quedaron como
- * fósil del motor de seguimientos por IA que las consumía directo de la base.
+ * `type: 'EMBUDO'` desde el 10/9/2026, no `'TASK'`. Nacieron como `'TASK'`
+ * para que se vieran en la campanita, y ahí estaba el problema: el vendedor
+ * abría Tareas y encontraba lo que el sistema calculó mezclado con lo que él
+ * mismo había programado. Ahora tienen ícono propio en el dock
+ * (`GlobalEmbudoTasks`) y la campanita no las ve. La separación completa vive
+ * en `src/lib/tareas/origen.ts`.
  *
  * Corre UNA VEZ POR DÍA desde `/api/cron/resumen-diario-equipo` (mismo
  * guard/horario que ya tenía). No corre en cada `GET /api/leads/pipeline`:
@@ -64,14 +66,14 @@ export interface ResultadoSync {
  */
 export async function cerrarTareaDelEmbudo(clientId: string, completadaPor: string = CREADO_POR): Promise<void> {
     await prisma.clientTask.updateMany({
-        where: { clientId, type: 'TASK', status: 'PENDING', createdBy: CREADO_POR },
+        where: { clientId, type: TIPO_EMBUDO, status: 'PENDING', createdBy: CREADO_POR },
         data: { status: 'COMPLETED', completedBy: completadaPor, completedAt: new Date() },
     });
 }
 
 export async function sincronizarTareasDelDia(paraHoy: LeadDeHoy[]): Promise<ResultadoSync> {
     const vivas = await prisma.clientTask.findMany({
-        where: { type: 'TASK', status: 'PENDING', createdBy: CREADO_POR },
+        where: { type: TIPO_EMBUDO, status: 'PENDING', createdBy: CREADO_POR },
         select: { id: true, clientId: true, description: true },
     });
     const vivaPorCliente = new Map(vivas.map(t => [t.clientId, t]));
@@ -87,7 +89,7 @@ export async function sincronizarTareasDelDia(paraHoy: LeadDeHoy[]): Promise<Res
         const viva = vivaPorCliente.get(lead.id);
         if (!viva) {
             await prisma.clientTask.create({
-                data: { clientId: lead.id, description: texto, type: 'TASK', status: 'PENDING', dueDate, createdBy: CREADO_POR },
+                data: { clientId: lead.id, description: texto, type: TIPO_EMBUDO, status: 'PENDING', dueDate, createdBy: CREADO_POR },
             });
             creadas++;
         } else if (viva.description !== texto) {

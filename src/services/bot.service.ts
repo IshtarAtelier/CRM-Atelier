@@ -6,6 +6,7 @@ import { templateSpec } from '@/lib/whatsapp/templates';
 import { PricingService } from './PricingService';
 import { normalizeArgentinePhone } from './contact.service';
 import { BUSINESS_INFO } from '@/lib/business-info';
+import { avisarAlEquipo } from '@/lib/avisos/aviso-al-equipo';
 import { sendClientEmail, escHtml } from '@/lib/client-email';
 
 export class BotService {
@@ -263,19 +264,17 @@ ${saldoHtml}
             return true;
         } catch (error: any) {
             console.error('[Auto-Notify READY] Error:', error.message);
-            // Log fallback task for failure
-            try {
-                await prisma.clientTask.create({
-                    data: {
-                        clientId: order.clientId,
-                        description: `⚠️ Falló la notificación automática de Listo para Retirar al cliente (${order.client?.name || 'Cliente'}). Por favor, notificar manualmente.`,
-                        status: 'PENDING',
-                        type: 'TASK'
-                    }
-                });
-            } catch (dbErr) {
-                console.error('Error creating fallback task for notifyOrderReady failure:', dbErr);
-            }
+            // El equipo se entera por la mensajería interna, no por una tarea
+            // (Ishtar, 10/9/2026): Tareas es solo lo que programa una persona.
+            const quien = order.client?.name || 'Cliente';
+            // El nº de pedido va en el asunto porque el asunto ES la llave del
+            // dedup: sin él, dos clientes distintos en el mismo día se pisan y
+            // el segundo aviso no sale.
+            const pedido = `#${String(order.id).slice(-4).toUpperCase()}`;
+            avisarAlEquipo({
+                asunto: `⚠️ No salió el aviso de "Listo para retirar" ${pedido}`,
+                cuerpo: `Falló el aviso automático de LISTO PARA RETIRAR a ${quien} (pedido ${pedido}).\n\nHay que avisarle a mano que su pedido ya está.`,
+            }).catch(avisoErr => console.error('[Auto-Notify READY] No se pudo avisar al equipo:', avisoErr));
             return false;
         }
     }

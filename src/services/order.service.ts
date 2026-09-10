@@ -15,6 +15,7 @@ import { AdsService } from '@/services/ads.service';
 import { GoogleAdsService } from '@/services/google-ads.service';
 import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { formatDateTime } from '@/lib/format-date';
+import { avisarAlEquipo } from '@/lib/avisos/aviso-al-equipo';
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 import { ventaRecapCompleto } from '@/lib/sale-recap-text';
 import { framesDeLaOrden, cantidadDeArmazones } from '@/lib/order-frames';
@@ -519,19 +520,14 @@ export class OrderService {
             console.error('[Auto-Notify DESPACHO] Error:', error?.message);
             // Igual que en notifyOrderReady: si no se pudo avisar, alguien tiene
             // que hacerlo a mano. El silencio es justo lo que este aviso ataca.
+            // Va como mensaje del sistema al equipo, no como tarea (Ishtar,
+            // 10/9/2026): Tareas es solo lo que programa una persona.
             if (clientIdParaFallback) {
-                try {
-                    await prisma.clientTask.create({
-                        data: {
-                            clientId: clientIdParaFallback,
-                            description: `⚠️ Falló el aviso automático de despacho a ${nombreParaFallback} (pedido #${orderId.slice(-4).toUpperCase()}). Avisarle a mano que su pedido salió.`,
-                            status: 'PENDING',
-                            type: 'TASK',
-                        },
-                    });
-                } catch (dbErr) {
-                    console.error('Error creando la tarea de fallback del aviso de despacho:', dbErr);
-                }
+                const pedido = `#${orderId.slice(-4).toUpperCase()}`;
+                avisarAlEquipo({
+                    asunto: `⚠️ No salió el aviso de despacho ${pedido}`,
+                    cuerpo: `Falló el aviso automático de despacho a ${nombreParaFallback} (pedido ${pedido}).\n\nHay que avisarle a mano que su pedido salió.`,
+                }).catch(avisoErr => console.error('[Auto-Notify DESPACHO] No se pudo avisar al equipo:', avisoErr));
             }
             return false;
         }
@@ -1319,19 +1315,15 @@ export class OrderService {
                                 }
                             }).catch(async (err) => {
                                 console.error('[Lab Status] Error enviando WhatsApp:', err);
-                                try {
-                                    if (fullOrder && fullOrder.clientId) {
-                                        await prisma.clientTask.create({
-                                            data: {
-                                                clientId: fullOrder.clientId,
-                                                description: `⚠️ Falló el mensaje automático de laboratorio al cliente (${fullOrder.client?.name || ''}). Por favor, notificar manualmente.`,
-                                                status: 'PENDING',
-                                                type: 'TASK'
-                                            }
-                                        });
-                                    }
-                                } catch (dbErr) {
-                                    console.error('Error creating fallback task for WhatsApp failure:', dbErr);
+                                // Mensaje del sistema al equipo, no una tarea
+                                // (Ishtar, 10/9/2026).
+                                if (fullOrder && fullOrder.clientId) {
+                                    const quien = fullOrder.client?.name || 'el cliente';
+                                    const pedido = `#${String(fullOrder.id).slice(-4).toUpperCase()}`;
+                                    avisarAlEquipo({
+                                        asunto: `⚠️ No salió el aviso de fábrica ${pedido}`,
+                                        cuerpo: `Falló el mensaje automático de laboratorio a ${quien} (pedido ${pedido}).\n\nHay que avisarle a mano que el pedido se envió a fabricar.`,
+                                    }).catch(avisoErr => console.error('[Lab Status] No se pudo avisar al equipo:', avisoErr));
                                 }
                             });
 

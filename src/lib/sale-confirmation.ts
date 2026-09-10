@@ -28,6 +28,7 @@ import { PricingService } from '@/services/PricingService';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
 import { logAudit } from '@/lib/audit';
+import { avisarAlEquipo } from '@/lib/avisos/aviso-al-equipo';
 import { SELECT_REPASO_CON_CLIENTE } from '@/lib/order-recap-select';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import { cristalesPorArmazon } from '@/lib/order-frames';
@@ -776,15 +777,14 @@ export async function sendSaleConfirmation(
         }).catch(err => console.error('[Confirmación de compra] No se pudo registrar la nota:', err));
 
         // Si NINGÚN canal salió, alguien tiene que enterarse y mandarla a mano.
+        // Va como MENSAJE DEL SISTEMA al equipo, no como tarea (Ishtar,
+        // 10/9/2026): Tareas es solo lo que programa una persona.
         if (!resultado.email && !resultado.whatsapp) {
-            await prisma.clientTask.create({
-                data: {
-                    clientId: order.client.id,
-                    description: `⚠️ La confirmación de compra del pedido #${String(order.id).slice(-4).toUpperCase()} NO llegó ni por mail ni por WhatsApp. Enviarla a mano y pedirle el OK.`,
-                    status: 'PENDING',
-                    type: 'TASK',
-                },
-            }).catch(err => console.error('[Confirmación de compra] No se pudo crear la tarea de aviso:', err));
+            const pedido = `#${String(order.id).slice(-4).toUpperCase()}`;
+            avisarAlEquipo({
+                asunto: `⚠️ No salió la confirmación de compra ${pedido}`,
+                cuerpo: `La confirmación de compra del pedido ${pedido} de ${order.client.name} NO llegó ni por mail ni por WhatsApp.\n\nHay que enviarla a mano y pedirle el OK.`,
+            }).catch(err => console.error('[Confirmación de compra] No se pudo avisar al equipo:', err));
         }
 
         logAudit({

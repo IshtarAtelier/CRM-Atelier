@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { SOLO_DEL_VENDEDOR, SOLO_DEL_EMBUDO, TIPO_EMBUDO } from '@/lib/tareas/origen';
 import { CashService } from './cash.service';
 import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE, CRM_ORIGIN } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
@@ -1013,7 +1014,7 @@ export const ContactService = {
             // Si se convierte en CLIENT (venta), completar automáticamente todas las tareas pendientes
             if (status === 'CLIENT') {
                 await prisma.clientTask.updateMany({
-                    where: { clientId: id, status: 'PENDING', type: 'TASK' },
+                    where: { clientId: id, status: 'PENDING', type: { in: ['TASK', TIPO_EMBUDO] } },
                     data: { status: 'COMPLETED', completedBy: 'Sistema (cierre venta)', completedAt: new Date() }
                 });
             }
@@ -1388,8 +1389,10 @@ export const ContactService = {
     },
 
     async getTasks(clientId: string) {
+        // Solo las que programó una persona. Lo que calcula el embudo tiene su
+        // propio ícono en el dock (Ishtar, 10/9/2026) — ver `lib/tareas/origen`.
         return await prisma.clientTask.findMany({
-            where: { clientId, type: 'TASK' },
+            where: { clientId, ...SOLO_DEL_VENDEDOR },
             orderBy: { createdAt: 'desc' }
         });
     },
@@ -3135,7 +3138,20 @@ export const ContactService = {
 
     async getAllPendingTasks() {
         return await prisma.clientTask.findMany({
-            where: { status: 'PENDING', type: 'TASK' },
+            where: { status: 'PENDING', ...SOLO_DEL_VENDEDOR },
+            include: { client: true },
+            orderBy: { dueDate: 'asc' }
+        });
+    },
+
+    /**
+     * Las del EMBUDO, para su propio ícono del dock. Van aparte a propósito:
+     * son el cálculo del sistema sobre el pipeline, no lo que el vendedor se
+     * anotó. Ver `src/lib/tareas/origen.ts`.
+     */
+    async getAllPendingEmbudoTasks() {
+        return await prisma.clientTask.findMany({
+            where: { status: 'PENDING', ...SOLO_DEL_EMBUDO },
             include: { client: true },
             orderBy: { dueDate: 'asc' }
         });

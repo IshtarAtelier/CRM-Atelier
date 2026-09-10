@@ -67,9 +67,9 @@ export async function registrarSeguimientoEnviado(input: {
             where: { clientId: chat.clientId, type: 'FOLLOWUP', status: 'PENDING' },
             data: { status: 'CANCELLED' },
         });
-        // La tarea del embudo (type 'TASK', la que sí se ve en el dashboard y
-        // en la ficha) se cierra AHORA, atribuida a quien mandó el mensaje —
-        // no hace falta esperar a la sincronización de mañana.
+        // La tarea del embudo (type 'EMBUDO', la que se ve en su propio ícono
+        // del dock) se cierra AHORA, atribuida a quien mandó el mensaje — no
+        // hace falta esperar a la sincronización de mañana.
         await cerrarTareaDelEmbudo(chat.clientId, actor.name).catch(console.error);
         logAudit({
             userId: actor.id,
