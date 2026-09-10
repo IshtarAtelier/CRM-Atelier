@@ -7,6 +7,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { prisma } = require('./db');
 const DEFAULT_SALES_PROMPT = require('./prompts/salesPrompt');
+const { interesSegunReceta } = require('./shared/tipo-de-lente');
 
 /**
  * Tope de adición de "Mi Primer Varilux" y "Mi Primer Kodak" (condición
@@ -295,7 +296,17 @@ async function formatClientData(clientData, userPhone, userName, chatId, chatSum
       // receta ya guardada — solo acertaba cuando el cliente mandaba la foto en
       // el momento, porque ahí lee los valores de la imagen.
       const dip = p.pd || (p.distanceOD && p.distanceOI ? `${p.distanceOD}/${p.distanceOI}` : null);
-      text += `\n${rotulo}: Tipo: ${p.prescriptionType || 'N/A'}`;
+      // El tipo NO se lee del campo guardado: se DERIVA de la adición.
+      // Medido contra producción el 9/9/2026: 195 de 346 recetas estaban
+      // guardadas como 'ADDITION' (multifocal) SIN tener ninguna adición —
+      // el formulario del CRM arrancaba fijo en multifocal y no tenía opción
+      // para elegir monofocal. El bot leía ese "Tipo: ADDITION" y cotizaba
+      // multifocales. Derivarlo acá lo vuelve inmune a esas filas viejas.
+      const adicionDeLaReceta = p.addition ?? p.additionOD ?? p.additionOI ?? null;
+      const tipoReal = p.prescriptionType === 'NEAR'
+        ? 'Monofocal de cerca'
+        : interesSegunReceta(null, adicionDeLaReceta);
+      text += `\n${rotulo}: Tipo: ${tipoReal}`;
       text += `\n- OD (Ojo Derecho): Esf ${p.sphereOD ?? 0}, Cil ${p.cylinderOD ?? 0}, Eje ${p.axisOD ?? 0}, DIP ${p.distanceOD ?? dip ?? '-'}`;
       text += `\n- OI (Ojo Izquierdo): Esf ${p.sphereOI ?? 0}, Cil ${p.cylinderOI ?? 0}, Eje ${p.axisOI ?? 0}, DIP ${p.distanceOI ?? dip ?? '-'}`;
 
