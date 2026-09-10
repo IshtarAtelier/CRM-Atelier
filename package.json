@@ -21,6 +21,7 @@
     "check:capi": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/capi-payload.check.mjs",
     "check:businessinfo": "node --experimental-strip-types scripts/checks/business-info-paridad.check.mjs",
     "check:receta": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/tipo-de-lente.check.mjs",
+    "check:contrato-bot": "node scripts/checks/contrato-tools-bot.check.mjs",
     "check:social": "node --experimental-strip-types scripts/checks/social-programacion.check.mjs",
     "check:outbox": "node scripts/checks/outbox.check.mjs",
     "check:politica": "node scripts/checks/politica.check.mjs",

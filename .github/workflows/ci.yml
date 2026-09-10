@@ -60,6 +60,9 @@ jobs:
       - name: Tipo de lente (la adición manda, no una etiqueta)
         run: npm run check:receta
 
+      - name: Contrato herramientas del bot ↔ rutas del CRM
+        run: npm run check:contrato-bot
+
       - name: Build Next.js app
         run: npm run build
         env:
