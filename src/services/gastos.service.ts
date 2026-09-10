@@ -257,10 +257,10 @@ export async function listarGastosDelMes(month: number, year: number): Promise<G
 
     // Los renglones manuales de laboratorio que quedaron en $0 sobran: el
     // importe real ahora lo pone el cruce con las ventas.
-    const duplicadosDeLab = new Set(['Laboratorio Optovision', 'Laboratorio Grupo Óptico', 'Cristaldo']);
+    const duplicadosDeLab = new Set(['laboratorio optovision', 'laboratorio grupo óptico', 'cristaldo']);
 
     return todas
-        .filter((g) => !(g.fuente === 'manual' && g.amount === 0 && duplicadosDeLab.has(g.name)))
+        .filter((g) => !(g.fuente === 'manual' && g.amount === 0 && duplicadosDeLab.has(g.name.trim().toLowerCase())))
         .map((g) => ({
             id: g.id,
             name: g.name,
