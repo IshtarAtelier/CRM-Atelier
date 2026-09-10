@@ -268,8 +268,22 @@ export async function sincronizarMesDeGastos(month: number, year: number): Promi
         if (automatico && importe !== null && importe !== fila.amount) cambios.amount = importe;
 
         if (Object.keys(cambios).length > 0) {
-            const actualizada = await prisma.fixedCost.update({ where: { id: fila.id }, data: cambios });
-            porClave.set(concepto.clave, actualizada);
+            try {
+                const actualizada = await prisma.fixedCost.update({ where: { id: fila.id }, data: cambios });
+                porClave.set(concepto.clave, actualizada);
+            } catch (e: any) {
+                // Adoptar una fila vieja le ESCRIBE la clave, así que también
+                // puede chocar contra [clave, month, year]: si otra request
+                // creó la fila del concepto mientras esta adoptaba la de la
+                // plantilla vieja, la segunda explota. Pasa una sola vez por
+                // mes (la primera sincronización de los meses ya cargados),
+                // pero justo ahí es cuando dos pestañas abiertas se pisan.
+                if (e?.code !== 'P2002') throw e;
+                const ganadora = await prisma.fixedCost.findFirst({
+                    where: { clave: concepto.clave, month, year },
+                });
+                if (ganadora) porClave.set(concepto.clave, ganadora);
+            }
         }
     }
 
@@ -393,8 +407,11 @@ export function calcularEstado(gastos: GastoDelMes[]): EstadoDeCarga {
     const desactualizados = obligatorios
         .filter((g) => g.aviso && (g.amount || 0) > 0)
         .map((g) => `${g.name}: ${g.aviso}`);
+    // Los automáticos quedan fuera de "en cero": un mes sin pauta hace que Meta
+    // devuelva 0, y ese 0 es un dato, no un olvido. Listarlo en el mail del
+    // cierre como gasto sin cargar mandaba a buscar un importe que no existe.
     const enCero = obligatorios
-        .filter((g) => (g.amount || 0) === 0 && !g.aviso)
+        .filter((g) => !g.isCalculated && (g.amount || 0) === 0 && !g.aviso)
         .map((g) => g.name);
 
     return {

@@ -209,6 +209,23 @@ export async function GET(request: Request) {
         // Los gastos fijos que quedaron en $0. No frenan el cierre, pero un mes
         // con la mitad de los gastos sin cargar da una ganancia inventada, así
         // que van arriba de la tabla y no al pie.
+        // Un importe que no se pudo actualizar entra igual al resultado, pero es
+        // el de la lectura anterior: si Meta no contestó, la inversión del mes
+        // que se está informando es la del mes pasado. Hay que decirlo.
+        const avisoDesactualizados = estadoGastos.desactualizados.length === 0 ? '' : `
+            <div style="background-color: #fff7ed; border: 1px solid #fdba74; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;">
+                <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 800; color: #9a3412;">
+                    ${estadoGastos.desactualizados.length === 1 ? 'Un importe no se pudo actualizar' : `${estadoGastos.desactualizados.length} importes no se pudieron actualizar`}
+                </p>
+                <p style="margin: 0; font-size: 11px; color: #c2410c; line-height: 1.5;">
+                    ${estadoGastos.desactualizados.join('<br>')}
+                </p>
+                <p style="margin: 6px 0 0 0; font-size: 10px; color: #c2410c;">
+                    El número que figura abajo es el de la lectura anterior, no el de este mes.
+                </p>
+            </div>
+        `;
+
         const avisoGastosEnCero = estadoGastos.enCero.length === 0 ? '' : `
             <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;">
                 <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 800; color: #92400e;">
@@ -346,6 +363,7 @@ export async function GET(request: Request) {
                                         </table>
 
                                         ${sectionTitle('Gastos del mes')}
+                                        ${avisoDesactualizados}
                                         ${avisoGastosEnCero}
                                         <table style="width: 100%; border-collapse: collapse;">
                                             <tbody>${expenseRows}</tbody>
