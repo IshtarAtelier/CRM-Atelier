@@ -318,7 +318,7 @@ function esArmazonOClipon(p) {
 /**
  * Tool: Get price list for bot quotes
  */
-async function getPriceList({ category, search, botRecommended, genero, graduacion, odEsf, oiEsf, odCil, oiCil }) {
+async function getPriceList({ category, search, botRecommended, genero, graduacion, odEsf, oiEsf, odCil, oiCil, clientId }) {
     const params = {};
     const onlyRecommended = botRecommended !== undefined ? botRecommended : (search ? false : true);
     if (onlyRecommended === true || onlyRecommended === 'true') {
@@ -337,6 +337,10 @@ async function getPriceList({ category, search, botRecommended, genero, graduaci
     if (Number.isFinite(grad) && grad !== 0) params.graduacion = String(Math.abs(grad));
     // La receta con SIGNO: el CRM cruza cada cristal contra el rango que declara
     // en su nombre ("… · Esf -10/+8 Cil -6/6") y descarta los que no la cubren.
+    // El CRM busca la receta guardada de esta persona: es lo que decide si hay
+    // precios de cristales y cuáles se le pueden hacer. Va el id, no los
+    // números, para que el control no dependa de lo que mande el modelo.
+    if (clientId && clientId !== 'none' && clientId !== 'null') params.clientId = clientId;
     for (const [clave, valor] of Object.entries({ odEsf, oiEsf, odCil, oiCil })) {
         const n = typeof valor === 'number' ? valor : parseFloat(valor);
         if (Number.isFinite(n)) params[clave] = String(n);
