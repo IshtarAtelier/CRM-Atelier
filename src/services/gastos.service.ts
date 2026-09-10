@@ -13,10 +13,20 @@
  * de mes leen `FixedCost` derecho de la base (`report.service.ts`), así que un
  * gasto que solo existiera en la pantalla no entraría nunca en el resultado
  * del negocio — que es justo el número que importa.
+ *
+ * Los LABORATORIOS son la excepción y NO se guardan: son una vista derivada de
+ * las ventas del mes y el resultado del negocio ya los tiene por otro lado
+ * (`totalCostLenses`). Guardarlos hacía que el mail del cierre mostrara la
+ * misma plata dos veces —una como "Laboratorio (costo de cristales)" y otra
+ * como tres renglones de "Gastos del mes"— y encima con dos importes
+ * distintos, porque cada lado la calculaba a su manera. El número que se
+ * muestra sale de `costoPorLaboratorioDeVenta`, la misma regla del cruce
+ * (medio par, cantidad, y el segundo par del 2x1 en cero).
  */
 import { prisma } from '@/lib/db';
 import { CONCEPTOS_GASTO, esAutomatico, type ConceptoGasto } from '@/lib/constants/gastos-fijos';
-import { fetchGastoMensualArs, dolarBlue, metaAdsConfigured } from '@/lib/ads/meta-insights';
+import { fetchGastoMensualArs, cotizacionDolarONull, metaAdsConfigured } from '@/lib/ads/meta-insights';
+import { costoPorLaboratorioDeVenta } from '@/services/lab-recon/cost-matching';
 import { GoogleAdsService } from '@/services/google-ads.service';
 
 export interface GastoDelMes {
@@ -42,8 +52,10 @@ export interface EstadoDeCarga {
     cargados: number;
     /** Obligatorios que quedaron en $0. */
     enCero: string[];
-    /** Automáticos que el sistema no pudo leer: son los que frenan el cierre. */
+    /** Automáticos que quedaron SIN importe: son los que frenan el cierre. */
     ilegibles: string[];
+    /** Automáticos que no se pudieron actualizar pero conservan el importe anterior. */
+    desactualizados: string[];
     /** `false` solo si hay automáticos ilegibles. */
     listoParaCerrar: boolean;
 }
@@ -82,7 +94,7 @@ async function importeAutomatico(
             return conCache(clave, () => GoogleAdsService.getGastoMensualArs(month, year));
         case 'usd-fijo': {
             if (!concepto.usdMensual) return null;
-            const cotizacion = await conCache(`dolar-${year}-${month}`, async () => dolarBlue());
+            const cotizacion = await conCache(`dolar-${year}-${month}`, cotizacionDolarONull);
             return cotizacion ? Math.round(concepto.usdMensual * cotizacion) : null;
         }
         default:
@@ -91,14 +103,16 @@ async function importeAutomatico(
 }
 
 /**
- * Costo de cada laboratorio según las ventas enviadas a fábrica en el mes.
+ * Costo esperado de cada laboratorio según las ventas enviadas a fábrica en el
+ * mes. La regla NO vive acá: sale de `costoPorLaboratorioDeVenta`, la misma
+ * que usa el cruce de facturas (medio par, cantidad, y el segundo par de un
+ * 2x1 en cero). Esta función solo elige qué ventas mirar y suma.
  *
- * OJO con el medio par: un cristal cargado por ojo (`eye`) viene con el costo
- * del PAR en cada línea, porque los labs facturan por par. Sumar las dos
- * líneas duplicaría el costo, así que se cuenta una sola vez por producto y
- * pedido — mismo criterio que traía la ruta API.
+ * Antes tenía su propia cuenta —deduplicar por productId y sumar el snapshot
+ * crudo— que no aplicaba ninguna de esas tres reglas: el importe salía más
+ * alto que lo que el laboratorio va a facturar.
  */
-async function costosDeLaboratorio(month: number, year: number) {
+async function costosDeLaboratorio(month: number, year: number): Promise<Map<string, number>> {
     const desde = new Date(year, month - 1, 1);
     const hasta = new Date(year, month, 1);
 
@@ -110,32 +124,40 @@ async function costosDeLaboratorio(month: number, year: number) {
         },
         select: {
             id: true,
+            appliedPromoName: true,
             items: {
-                select: { productId: true, productCostSnapshot: true, laboratorySnapshot: true },
+                select: {
+                    eye: true,
+                    price: true,
+                    quantity: true,
+                    productCostSnapshot: true,
+                    productCategorySnapshot: true,
+                    laboratorySnapshot: true,
+                    product: { select: { cost: true, category: true, laboratory: true } },
+                },
             },
         },
     });
 
     const porLab = new Map<string, number>();
     for (const order of orders) {
-        const yaContados = new Set<string>();
-        for (const item of order.items) {
-            if (!item.laboratorySnapshot || !item.productCostSnapshot) continue;
-            const prodId = item.productId || 'unknown';
-            if (yaContados.has(prodId)) continue;
-            yaContados.add(prodId);
-            const lab = item.laboratorySnapshot.trim();
-            porLab.set(lab, (porLab.get(lab) || 0) + item.productCostSnapshot);
+        for (const [lab, costo] of costoPorLaboratorioDeVenta(order)) {
+            porLab.set(lab, (porLab.get(lab) || 0) + costo);
         }
     }
     return porLab;
 }
 
 /**
- * Deja el mes con la lista fija completa y los automáticos al día, y devuelve
- * todos los gastos del mes listos para mostrar.
+ * ESCRIBE: deja el mes con la lista fija completa y los importes automáticos al
+ * día, y devuelve todos los gastos listos para mostrar.
+ *
+ * Se llama `sincronizar` y no `listar` porque hace hasta 26 upserts: estaba
+ * colgada del GET de /api/expenses, así que mirar la pantalla mutaba la base.
+ * Ahora la escritura se pide explícitamente (POST /api/expenses/sincronizar) y
+ * el GET solo lee.
  */
-export async function listarGastosDelMes(month: number, year: number): Promise<GastoDelMes[]> {
+export async function sincronizarMesDeGastos(month: number, year: number): Promise<GastoDelMes[]> {
     const existentes = await prisma.fixedCost.findMany({
         where: { month, year },
         orderBy: { createdAt: 'asc' },
@@ -164,24 +186,52 @@ export async function listarGastosDelMes(month: number, year: number): Promise<G
 
     const avisos = new Map<string, string>();
 
+    // Los importes automáticos se piden TODOS JUNTOS antes del bucle: Meta
+    // pagina y Google hace OAuth, y encadenados uno detrás del otro dentro del
+    // recorrido de conceptos sumaban su latencia a la del mes entero.
+    const automaticos = CONCEPTOS_GASTO.filter((c) => esAutomatico(c.fuente));
+    const importes = new Map<string, number | null>(
+        await Promise.all(
+            automaticos.map(
+                async (c) => [c.clave, await importeAutomatico(c, month, year)] as [string, number | null],
+            ),
+        ),
+    );
+
     // ── 1. Reconciliar la lista fija ──────────────────────────────────────
     for (const concepto of CONCEPTOS_GASTO) {
         const fila = porClave.get(concepto.clave) ?? adoptar(concepto);
         const automatico = esAutomatico(concepto.fuente);
-        const importe = automatico ? await importeAutomatico(concepto, month, year) : null;
+        const importe = automatico ? importes.get(concepto.clave) ?? null : null;
 
+        // Un automático que no se pudo leer PERO que ya tiene importe guardado
+        // de una lectura anterior no es "ilegible": el número está y entra al
+        // resultado. Marcarlo como tal mostraba "$314.000" y "sin datos" en el
+        // mismo renglón, y frenaba el cierre del mes entero porque la API de
+        // la cotización no contestó un rato. Solo frena si NO hay importe.
         if (automatico && importe === null) {
+            const importeViejo = fila?.amount ?? 0;
+            const queNoSePudo =
+                concepto.fuente === 'usd-fijo'
+                    ? 'la cotización del dólar'
+                    : 'el gasto de la plataforma';
             avisos.set(
                 concepto.clave,
-                concepto.fuente === 'usd-fijo'
-                    ? 'No se pudo obtener la cotización del dólar.'
-                    : 'No se pudo leer el gasto de la plataforma.',
+                importeViejo > 0
+                    ? `No se pudo actualizar ${queNoSePudo}: este es el importe de la última lectura.`
+                    : `No se pudo leer ${queNoSePudo}.`,
             );
         }
 
         if (!fila) {
-            const creada = await prisma.fixedCost.create({
-                data: {
+            // upsert y no create: dos lecturas del mismo mes a la vez —la
+            // pantalla y el cron, o dos pestañas— veían las dos el mes vacío y
+            // la segunda chocaba contra el índice único [clave, month, year].
+            // Prisma tiraba P2002, la ruta devolvía 500 y la pantalla quedaba
+            // en blanco sin decir por qué.
+            const creada = await prisma.fixedCost.upsert({
+                where: { clave_month_year: { clave: concepto.clave, month, year } },
+                create: {
                     clave: concepto.clave,
                     name: concepto.name,
                     amount: importe ?? 0,
@@ -191,6 +241,14 @@ export async function listarGastosDelMes(month: number, year: number): Promise<G
                     obligatorio: true,
                     month,
                     year,
+                },
+                // Si la ganó la otra request, no se le pisa el importe.
+                update: {
+                    name: concepto.name,
+                    category: concepto.category,
+                    type: concepto.type,
+                    fuente: concepto.fuente,
+                    obligatorio: true,
                 },
             });
             porClave.set(concepto.clave, creada);
@@ -215,51 +273,66 @@ export async function listarGastosDelMes(month: number, year: number): Promise<G
         }
     }
 
-    // ── 2. Laboratorios: se descubren de las ventas, no de la lista fija ──
-    const labs = await costosDeLaboratorio(month, year);
-    for (const [lab, monto] of labs) {
-        const clave = `lab-${lab.toLowerCase().replace(/\s+/g, '-')}`;
-        const name = lab.toLowerCase().includes('laboratorio') ? lab : `Laboratorio ${lab}`;
-        const fila =
-            porClave.get(clave) ??
-            sinClavePorNombre.get(name.trim().toLowerCase()) ??
-            sinClavePorNombre.get(lab.trim().toLowerCase());
-        if (fila) sinClavePorNombre.delete(fila.name.trim().toLowerCase());
-        if (!fila) {
-            const creada = await prisma.fixedCost.create({
-                data: {
-                    clave,
-                    name,
-                    amount: monto,
-                    category: 'PROVEEDOR',
-                    type: 'PROVEEDOR',
-                    fuente: 'laboratorio',
-                    obligatorio: false,
-                    month,
-                    year,
-                },
-            });
-            porClave.set(clave, creada);
-        } else if (fila.amount !== monto || fila.fuente !== 'laboratorio' || fila.clave !== clave) {
-            const actualizada = await prisma.fixedCost.update({
-                where: { id: fila.id },
-                data: { amount: monto, fuente: 'laboratorio', name, clave },
-            });
-            porClave.set(clave, actualizada);
-        }
+    // ── 2. Conceptos RETIRADOS ────────────────────────────────────────────
+    //
+    // Una fila con clave que ya no está en la lista es un concepto que se dejó
+    // de usar (la gestión de campañas de Uriel, por ejemplo). Quedaba marcada
+    // `obligatorio` para siempre: la pantalla le escondía el tacho y la API se
+    // negaba a borrarla, así que pedía ese renglón en $0 todos los meses y no
+    // había forma de sacarlo. Se degrada a gasto suelto: conserva su importe
+    // histórico y vuelve a ser borrable.
+    const clavesVigentes = new Set(CONCEPTOS_GASTO.map((c) => c.clave));
+    const retiradas = existentes.filter(
+        (e) => e.clave && e.obligatorio && !clavesVigentes.has(e.clave),
+    );
+    for (const fila of retiradas) {
+        await prisma.fixedCost.update({
+            where: { id: fila.id },
+            data: { obligatorio: false, fuente: 'manual' },
+        });
     }
 
-    // ── 3. Devolver el mes entero (lo reconciliado + los gastos sueltos) ──
+    return armarGastosDelMes(month, year, avisos);
+}
+
+/**
+ * Arma la lista que ve la pantalla: lo guardado en la base más los
+ * laboratorios, que son filas VIRTUALES —una vista derivada de las ventas—.
+ * No escribe nada: la usan tanto la sincronización como la lectura pura.
+ */
+async function armarGastosDelMes(
+    month: number,
+    year: number,
+    avisos: Map<string, string>,
+): Promise<GastoDelMes[]> {
+    const labs = await costosDeLaboratorio(month, year);
+    const filasDeLab: GastoDelMes[] = [...labs.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([lab, monto]) => ({
+            id: `lab-${lab.toLowerCase().replace(/\s+/g, '-')}-${year}-${month}`,
+            name: lab.toLowerCase().includes('laboratorio') ? lab : `Laboratorio ${lab}`,
+            amount: monto,
+            category: 'PROVEEDOR',
+            type: 'PROVEEDOR',
+            month,
+            year,
+            notes: null,
+            clave: null,
+            fuente: 'laboratorio',
+            obligatorio: false,
+            isCalculated: true,
+        }));
+
     const todas = await prisma.fixedCost.findMany({
         where: { month, year },
         orderBy: { createdAt: 'asc' },
     });
 
     // Los renglones manuales de laboratorio que quedaron en $0 sobran: el
-    // importe real ahora lo pone el cruce con las ventas.
+    // importe real lo pone el cruce con las ventas.
     const duplicadosDeLab = new Set(['laboratorio optovision', 'laboratorio grupo óptico', 'cristaldo']);
 
-    return todas
+    const guardadas = todas
         .filter((g) => !(g.fuente === 'manual' && g.amount === 0 && duplicadosDeLab.has(g.name.trim().toLowerCase())))
         .map((g) => ({
             id: g.id,
@@ -276,6 +349,18 @@ export async function listarGastosDelMes(month: number, year: number): Promise<G
             isCalculated: esAutomatico(g.fuente),
             aviso: g.clave ? avisos.get(g.clave) : undefined,
         }));
+
+    return [...guardadas, ...filasDeLab];
+}
+
+/**
+ * Los gastos del mes SIN tocar la base. Es lo que responde el GET: mirar no
+ * debería escribir. Si el mes todavía no se sincronizó, la lista fija puede
+ * venir incompleta — para eso está `sincronizarMesDeGastos`, que es la
+ * operación de escritura y se pide explícitamente.
+ */
+export async function leerGastosDelMes(month: number, year: number): Promise<GastoDelMes[]> {
+    return armarGastosDelMes(month, year, new Map());
 }
 
 /**
@@ -289,25 +374,35 @@ export async function listarGastosDelMes(month: number, year: number): Promise<G
  * cerrar el mes sin él es informar una ganancia más alta que la real.
  */
 export async function estadoDeCarga(month: number, year: number): Promise<EstadoDeCarga> {
-    return calcularEstado(await listarGastosDelMes(month, year));
+    return calcularEstado(await sincronizarMesDeGastos(month, year));
 }
 
 /**
  * La misma cuenta, sobre gastos ya leídos. Existe para que quien acaba de
- * llamar a `listarGastosDelMes` no vuelva a reconciliar el mes entero: la
- * pantalla pide las dos cosas de una y eran ~44 consultas para el mismo dato.
+ * sincronizar el mes no lo vuelva a reconciliar entero: la pantalla pide las
+ * dos cosas de una y eran ~44 consultas para el mismo dato.
  */
 export function calcularEstado(gastos: GastoDelMes[]): EstadoDeCarga {
     const obligatorios = gastos.filter((g) => g.obligatorio);
 
-    const enCero = obligatorios.filter((g) => (g.amount || 0) === 0 && !g.aviso).map((g) => g.name);
-    const ilegibles = obligatorios.filter((g) => g.aviso).map((g) => `${g.name}: ${g.aviso}`);
+    // Solo frena el cierre el automático que quedó SIN importe. Uno con el
+    // valor de la lectura anterior avisa, pero el número está y se puede cerrar.
+    const ilegibles = obligatorios
+        .filter((g) => g.aviso && (g.amount || 0) === 0)
+        .map((g) => `${g.name}: ${g.aviso}`);
+    const desactualizados = obligatorios
+        .filter((g) => g.aviso && (g.amount || 0) > 0)
+        .map((g) => `${g.name}: ${g.aviso}`);
+    const enCero = obligatorios
+        .filter((g) => (g.amount || 0) === 0 && !g.aviso)
+        .map((g) => g.name);
 
     return {
         total: obligatorios.length,
         cargados: obligatorios.length - enCero.length - ilegibles.length,
         enCero,
         ilegibles,
+        desactualizados,
         listoParaCerrar: ilegibles.length === 0,
     };
 }

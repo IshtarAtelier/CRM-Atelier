@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
-import { listarGastosDelMes, calcularEstado } from '@/services/gastos.service';
+import { leerGastosDelMes, calcularEstado } from '@/services/gastos.service';
 import { esAutomatico } from '@/lib/constants/gastos-fijos';
 
 export const dynamic = 'force-dynamic';
@@ -25,9 +25,11 @@ export async function GET(request: Request) {
         const m = parseInt(month, 10);
         const y = parseInt(year, 10);
 
-        // Toda la lógica (lista fija obligatoria, Meta, Google, dólar,
-        // laboratorios) vive en el service: la ruta valida y responde.
-        const gastos = await listarGastosDelMes(m, y);
+        // SOLO LECTURA: devuelve lo guardado más los laboratorios (que son una
+        // vista derivada de las ventas). Reconciliar la lista fija y traer los
+        // importes de Meta y Google escribe, así que vive en
+        // POST /api/expenses/sincronizar y se pide aparte.
+        const gastos = await leerGastosDelMes(m, y);
 
         // ?estado=1 devuelve además cómo viene la carga del mes, para el
         // cartel de la pantalla y para el cierre.

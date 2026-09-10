@@ -12,6 +12,7 @@ interface EstadoDeCarga {
     cargados: number;
     enCero: string[];
     ilegibles: string[];
+    desactualizados: string[];
     listoParaCerrar: boolean;
 }
 
@@ -189,6 +190,7 @@ export default function GastosPage() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [expenses, setExpenses] = useState<any[]>([]);
     const [estado, setEstado] = useState<EstadoDeCarga | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     
     const selectedMonth = currentDate.getMonth() + 1;
@@ -204,15 +206,28 @@ export default function GastosPage() {
     // copiar el mes anterior — copiar arrastraba importes viejos sin revisar.
     const fetchExpenses = async (m: number, y: number) => {
         setLoading(true);
+        setError(null);
         try {
-            const res = await fetch(`/api/expenses?month=${m}&year=${y}&estado=1`);
-            const data = await res.json();
-            if (!data.error) {
+            // POST y no GET: abrir un mes lo sincroniza (completa la lista fija
+            // y trae Meta/Google), y eso es una escritura. Mirar no debería mutar.
+            const res = await fetch(`/api/expenses/sincronizar?month=${m}&year=${y}`, { method: 'POST' });
+            const data = await res.json().catch(() => ({ error: 'El servidor respondió algo que no se pudo leer.' }));
+            // Si falla, hay que DECIRLO. Tragarse el error dejaba la pantalla
+            // con el mes vacío y las cuatro secciones en blanco: se ve igual
+            // que un mes sin gastos, y quien lo mire puede ponerse a recargar
+            // a mano encima de datos que sí están.
+            if (!res.ok || data.error) {
+                setError(data.error || `No se pudieron cargar los gastos (HTTP ${res.status}).`);
+                setExpenses([]);
+                setEstado(null);
+            } else {
                 setExpenses(data.gastos || []);
                 setEstado(data.estado || null);
             }
-        } catch (error) {
-            console.error("Error fetching expenses", error);
+        } catch (e: any) {
+            setError(e?.message || 'No se pudo conectar con el servidor.');
+            setExpenses([]);
+            setEstado(null);
         }
         setLoading(false);
     };
@@ -243,11 +258,6 @@ export default function GastosPage() {
                 if (exists) return prev.map(x => x.id === body.id ? { ...x, ...body } : x);
                 return [...prev, body];
             });
-            setEstado(prev => prev && ({
-                ...prev,
-                enCero: prev.enCero.filter(n => n !== body.name),
-                cargados: prev.enCero.includes(body.name) && body.amount > 0 ? prev.cargados + 1 : prev.cargados,
-            }));
         } catch (error) {
             console.error(error);
         }
@@ -280,6 +290,7 @@ export default function GastosPage() {
     const completadosCount = obligatorios.length - pendientesCount;
     const progress = obligatorios.length > 0 ? (completadosCount / obligatorios.length) * 100 : 0;
     const ilegibles = estado?.ilegibles || [];
+    const desactualizados = estado?.desactualizados || [];
     
     const now = new Date();
     const isCurrentMonth = now.getMonth() + 1 === selectedMonth && now.getFullYear() === selectedYear;
@@ -330,6 +341,27 @@ export default function GastosPage() {
                 </div>
             </div>
 
+            {error && (
+                <div className="max-w-4xl mx-auto px-4 mt-4">
+                    <div className="bg-red-50 dark:bg-red-950/30 border-2 border-red-300 dark:border-red-900 rounded-xl p-4 flex items-start gap-3">
+                        <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
+                        <div className="flex-1">
+                            <p className="text-sm font-black text-red-600 dark:text-red-400">No se pudieron cargar los gastos</p>
+                            <p className="text-xs font-medium text-red-500 dark:text-red-300 mt-0.5">{error}</p>
+                            <p className="text-xs font-medium text-red-500 dark:text-red-300 mt-1">
+                                El mes NO está vacío: no se pudo leer. No cargues nada encima hasta que esto se resuelva.
+                            </p>
+                            <button
+                                onClick={() => fetchExpenses(selectedMonth, selectedYear)}
+                                className="mt-2 px-3 py-1.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-red-200 dark:hover:bg-red-900/60 transition-colors"
+                            >
+                                Reintentar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {ilegibles.length > 0 && (
                 <div className="max-w-4xl mx-auto px-4 mt-4">
                     <div className="bg-red-50 dark:bg-red-950/30 border-2 border-red-300 dark:border-red-900 rounded-xl p-4 flex items-start gap-3">
@@ -342,6 +374,25 @@ export default function GastosPage() {
                             <ul className="mt-2 space-y-1">
                                 {ilegibles.map(m => (
                                     <li key={m} className="text-xs font-bold text-red-600 dark:text-red-400">· {m}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {desactualizados.length > 0 && (
+                <div className="max-w-4xl mx-auto px-4 mt-4">
+                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl p-3 flex items-start gap-3">
+                        <CloudOff className="text-amber-500 flex-shrink-0 mt-0.5" size={18} />
+                        <div>
+                            <p className="text-sm font-black text-amber-700 dark:text-amber-400">Importes sin actualizar</p>
+                            <p className="text-xs font-medium text-amber-600 dark:text-amber-300 mt-0.5">
+                                No frenan el cierre —el importe está—, pero es el de la lectura anterior.
+                            </p>
+                            <ul className="mt-1.5 space-y-0.5">
+                                {desactualizados.map(m => (
+                                    <li key={m} className="text-xs font-bold text-amber-700 dark:text-amber-400">· {m}</li>
                                 ))}
                             </ul>
                         </div>
@@ -368,7 +419,7 @@ export default function GastosPage() {
                     <div className="flex justify-center py-20">
                         <Loader2 className="animate-spin text-stone-300 w-8 h-8" />
                     </div>
-                ) : (
+                ) : error ? null : (
                     <div className="space-y-8">
                         {EXPENSE_TYPES.map(type => {
                             const typeExpenses = expenses.filter(e => e.type === type.id);

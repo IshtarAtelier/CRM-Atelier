@@ -66,16 +66,58 @@ export function systemCostForLab(order: any, lab: string): number {
     // resultado del negocio (dashboard y report.service) sigue usando
     // `costoParBonificado`: ahí importa lo que efectivamente se pagó, no lo que
     // debería haber costado.
-    const is2x1 = (order.appliedPromoName || '').toLowerCase().includes('2x1')
+    const is2x1 = esVenta2x1(order);
+    return relevant.reduce((total, item) => total + costoDeItemParaCruce(item, is2x1), 0);
+}
+
+/** Una venta es 2x1 si lo dice la promo aplicada o si trae un cristal a precio 0. */
+export function esVenta2x1(order: any): boolean {
+    const items: any[] = order.items || [];
+    const categoryOf = (item: any) => item.productCategorySnapshot || item.product?.category || '';
+    return (order.appliedPromoName || '').toLowerCase().includes('2x1')
         || items.some((i: any) => /cristal/i.test(categoryOf(i)) && i.price === 0);
-    return relevant.reduce((total, item) => {
-        const perEyeHalf = item.eye ? 0.5 : 1;
-        const isCrystal = /cristal/i.test(categoryOf(item));
-        // El par bonificado no suma nada: lo pone el laboratorio.
-        if (is2x1 && isCrystal && item.price === 0) return total;
-        const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
-        return total + cost * perEyeHalf * (item.quantity || 1);
-    }, 0);
+}
+
+/**
+ * Lo que ESPERAMOS pagarle al lab por un ítem. Es la regla de arriba, extraída
+ * para que exista en un solo lugar: la pantalla de Gastos también necesita el
+ * costo por laboratorio del mes y tenía su propia suma, que ignoraba el medio
+ * par, la cantidad y el 2x1 — o sea, tres reglas del negocio de las que el
+ * comentario grande de acá arriba explica el porqué. Una copia iba a divergir.
+ */
+export function costoDeItemParaCruce(item: any, is2x1: boolean): number {
+    const categoria = item.productCategorySnapshot || item.product?.category || '';
+    const esCristal = /cristal/i.test(categoria);
+    // El par bonificado no suma nada: lo pone el laboratorio.
+    if (is2x1 && esCristal && item.price === 0) return 0;
+    const perEyeHalf = item.eye ? 0.5 : 1;
+    const cost = item.productCostSnapshot ?? item.product?.cost ?? 0;
+    return cost * perEyeHalf * (item.quantity || 1);
+}
+
+/**
+ * Costo esperado por laboratorio de una venta, agrupando por el laboratorio de
+ * cada ítem. `systemCostForLab` responde "¿cuánto espero pagarle a ESTE lab?"
+ * y para eso tiene un patrón por lab; acá la pregunta es la inversa —"¿entre
+ * qué labs se reparte esta venta?"— así que el lab sale del ítem y no hace
+ * falta conocerlo de antemano. Los ítems sin laboratorio quedan afuera: no hay
+ * a quién pagarle.
+ */
+export function costoPorLaboratorioDeVenta(order: any): Map<string, number> {
+    const items: any[] = order.items || [];
+    const is2x1 = esVenta2x1(order);
+    const porLab = new Map<string, number>();
+    for (const item of items) {
+        const lab = (item.laboratorySnapshot || item.product?.laboratory || '').trim();
+        if (!lab) continue;
+        const costo = costoDeItemParaCruce(item, is2x1);
+        if (!costo) continue;
+        // Se agrupa en mayúsculas: "GRUPO OPTICO" y "Grupo Optico" son el mismo
+        // laboratorio y con la clave sensible a mayúsculas uno pisaba al otro.
+        const k = lab.toUpperCase();
+        porLab.set(k, (porLab.get(k) || 0) + costo);
+    }
+    return porLab;
 }
 
 

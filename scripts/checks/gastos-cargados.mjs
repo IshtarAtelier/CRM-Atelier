@@ -37,12 +37,28 @@ const prisma = new PrismaClient({ datasourceUrl: url });
 // Conceptos canónicos, leídos del propio archivo de constantes para no
 // mantener la lista en dos lugares.
 const fuente = readFileSync(new URL('../../src/lib/constants/gastos-fijos.ts', import.meta.url), 'utf8');
-const conceptos = [...fuente.matchAll(/\{ clave: '([^']+)', name: '([^']+)', type: '([^']+)', category: '[^']+', fuente: '([^']+)'[^}]*\}/g)]
-    .map((m) => ({
-        clave: m[1], name: m[2], type: m[3], fuente: m[4],
-        // Los alias se leen del mismo bloque del concepto.
-        alias: [...m[0].matchAll(/'([^']*)'/g)].map((a) => a[1]).slice(5),
-    }));
+// Cada campo se lee POR NOMBRE, no por posición: antes los alias salían de
+// "todas las comillas del bloque menos las cinco primeras", así que agregarle
+// un campo de texto a un concepto corría el corte y el check informaba como
+// huérfanos nombres que sí estaban cubiertos — una auditoría que miente es
+// peor que no tenerla.
+const campo = (bloque, nombre) => {
+    const m = bloque.match(new RegExp(`\\b${nombre}:\\s*'((?:[^'\\\\]|\\\\.)*)'`));
+    return m ? m[1] : null;
+};
+const conceptos = [...fuente.matchAll(/\{\s*clave:\s*'[^']+'[^}]*\}/g)]
+    .map((m) => {
+        const bloque = m[0];
+        const alias = bloque.match(/\balias:\s*\[([^\]]*)\]/);
+        return {
+            clave: campo(bloque, 'clave'),
+            name: campo(bloque, 'name'),
+            type: campo(bloque, 'type'),
+            fuente: campo(bloque, 'fuente'),
+            alias: alias ? [...alias[1].matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((a) => a[1]) : [],
+        };
+    })
+    .filter((c) => c.clave && c.name);
 const normal = (s) => s.trim().toLowerCase();
 // El nombre canónico Y cada alias apuntan al concepto: es exactamente lo que
 // hace la adopción en gastos.service.ts.

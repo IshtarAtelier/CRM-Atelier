@@ -75,18 +75,34 @@ export function adTag(text?: string | null): string | null {
   return null;
 }
 
-/** Cotización blue (venta) para pasar el gasto en USD a pesos. */
-export async function dolarBlue(): Promise<number> {
+/**
+ * Cotización blue (venta), o `null` si no se pudo leer.
+ *
+ * Existe aparte de `dolarBlue` porque los dos usos son distintos: un REPORTE
+ * prefiere un número aproximado antes que no salir, pero convertir un gasto
+ * que se va a GUARDAR y a entrar al estado de resultados con un respaldo
+ * escrito a mano es inventar plata con cara de dato.
+ */
+export async function cotizacionDolarONull(): Promise<number | null> {
   try {
     const res = await fetch('https://mercados.ambito.com/dolar/informal/variacion', {
       signal: AbortSignal.timeout(8000),
     });
     const j = await res.json();
     const v = Number(String(j?.venta ?? '').replace(/\./g, '').replace(',', '.'));
-    return Number.isFinite(v) && v > 0 ? v : 1570;
+    return Number.isFinite(v) && v > 0 ? v : null;
   } catch {
-    return 1570; // respaldo: el reporte no se cae por la cotización
+    return null;
   }
+}
+
+/** Respaldo cuando la cotización no se pudo leer. Solo para reportes. */
+export const DOLAR_DE_RESPALDO = 1570;
+
+/** Cotización blue (venta) para pasar el gasto en USD a pesos. */
+export async function dolarBlue(): Promise<number> {
+  // El reporte no se cae por la cotización: si no se pudo leer, vale el respaldo.
+  return (await cotizacionDolarONull()) ?? DOLAR_DE_RESPALDO;
 }
 
 /**
