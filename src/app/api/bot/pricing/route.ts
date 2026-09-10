@@ -95,6 +95,15 @@ export async function GET(req: NextRequest) {
     // categoría es el que acota el universo; el search refina DENTRO de él.
     const filtros: any[] = [];
 
+    // Los ARCHIVADOS no se cotizan, tampoco por el bot. El prefijo [ARCHIVADO]
+    // es la forma de sacar un producto de la venta sin borrar la fila —tiene
+    // ventas atrás y borrarla descuadra los reportes de costo de laboratorio—,
+    // pero hasta hoy solo lo respetaba el cotizador. O sea que un cristal
+    // archivado seguía saliendo por WhatsApp, que es donde más se cotiza.
+    // Pasó con el Stellest (9/9/2026): se archivó porque su rango cargado tenía
+    // positivos y el bot lo habría seguido ofreciendo a un hipermétrope.
+    filtros.push({ NOT: { name: { startsWith: '[ARCHIVADO]' } } });
+
     if (category) {
         if (category === 'CLIPON') {
             filtros.push({
