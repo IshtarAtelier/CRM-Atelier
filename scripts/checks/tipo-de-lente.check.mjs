@@ -22,6 +22,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { tipoDeRecetaSegunNumeros, tipoDeRecetaConDefault } from '../../src/lib/receta/tipo-de-lente.ts';
+import { cubreLaReceta, parsearRango } from '../../src/lib/receta/rango-de-cristal.ts';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -98,6 +99,26 @@ for (const [datos, declarado, esperadoEspejo] of paridad) {
     delEspejo === esperadoEspejo && delEspejo === delCrm
         ? ok(`add=${datos.add} declarado=${declarado} → ${delEspejo} en los dos`)
         : mal(`add=${datos.add} declarado=${declarado}: espejo dice ${delEspejo}, CRM dice ${delCrm}`);
+}
+
+// ── 5. El rango del cristal cruza con la receta ──────────────────────────────
+// Cotizar un cristal fuera de rango es prometer algo que el laboratorio no
+// puede fabricar. El rango va declarado en el nombre ("… · Esf -10/+8 Cil -6/6").
+console.log('\n5. Ningún cristal se ofrece fuera del rango que cubre');
+const maxi = { odEsf: -7.5, odCil: -1.25, oiEsf: -8, oiCil: -1.75 }; // receta real del 9/9/2026
+const casosRango = [
+    ['stock Esf -4/+4 NO sirve para -8', cubreLaReceta('Stock · Mineral 1.523 · Esf -4/+4 Cil -2/2', maxi), false],
+    ['stock Esf -6/+6 NO sirve para -8', cubreLaReceta('Stock · Policarbonato · Esf -6/+6 Cil -2/2', maxi), false],
+    ['tallado Esf -10/+8 sí sirve', cubreLaReceta('Monofocal TALLADO (CNC) · Esf -10/+8 Cil -6/6', maxi), true],
+    ['Esf +8/+22 no sirve para un -8 (el signo importa)', cubreLaReceta('… Esf +8/+22 Cil -2/2', maxi), false],
+    ['Esf +8/+22 sí sirve para un +9', cubreLaReceta('… Esf +8/+22 Cil -2/2', { odEsf: 9, oiEsf: 9 }), true],
+    ['cilindro -4 no entra en Cil -2/2', cubreLaReceta('… Esf -6/+6 Cil -2/2', { odEsf: -2, odCil: -4 }), false],
+    ['sin rango declarado no se descarta', cubreLaReceta('KODAK SV DIGITAL - ORMA + CRIZAL', maxi), true],
+    ['sin datos de receta no se descarta', cubreLaReceta('… Esf -4/+4 Cil -2/2', {}), true],
+    ['lee el rango del nombre', parsearRango('… Esf -10/+8 Cil -6/6')?.esfMin, -10],
+];
+for (const [nombre, real, esperado] of casosRango) {
+    real === esperado ? ok(`${nombre}`) : mal(`${nombre} → ${real}, esperado ${esperado}`);
 }
 
 console.log('');
