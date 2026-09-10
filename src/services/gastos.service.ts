@@ -88,6 +88,10 @@ async function importeAutomatico(
     const clave = `${concepto.clave}-${year}-${month}`;
     switch (concepto.fuente) {
         case 'meta-ads':
+            // Sin credenciales no hay nada que leer, y eso NO es lo mismo que
+            // "Meta no contestó": se arregla en otro lado (las variables de
+            // entorno) y conviene que el aviso lo diga, si no se pierde tiempo
+            // mirando si la plataforma está caída.
             if (!metaAdsConfigured()) return null;
             return conCache(clave, () => fetchGastoMensualArs(month, year));
         case 'google-ads':
@@ -211,15 +215,18 @@ export async function sincronizarMesDeGastos(month: number, year: number): Promi
         // la cotización no contestó un rato. Solo frena si NO hay importe.
         if (automatico && importe === null) {
             const importeViejo = fila?.amount ?? 0;
+            const sinConfigurar = concepto.fuente === 'meta-ads' && !metaAdsConfigured();
             const queNoSePudo =
                 concepto.fuente === 'usd-fijo'
                     ? 'la cotización del dólar'
                     : 'el gasto de la plataforma';
             avisos.set(
                 concepto.clave,
-                importeViejo > 0
-                    ? `No se pudo actualizar ${queNoSePudo}: este es el importe de la última lectura.`
-                    : `No se pudo leer ${queNoSePudo}.`,
+                sinConfigurar
+                    ? 'La integración con Meta no está configurada en este servidor.'
+                    : importeViejo > 0
+                        ? `No se pudo actualizar ${queNoSePudo}: este es el importe de la última lectura.`
+                        : `No se pudo leer ${queNoSePudo}.`,
             );
         }
 
