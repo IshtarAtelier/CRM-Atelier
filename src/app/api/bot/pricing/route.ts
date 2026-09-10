@@ -7,6 +7,9 @@ import { PricingService } from '@/services/PricingService';
 import { esGraduacionAlta, CATEGORIAS_DE_CRISTAL, PALABRAS_DE_TALLADO } from '@/lib/receta/graduacion';
 import { cubreLaReceta, tieneGraduacion, motivoDeDescarte } from '@/lib/receta/rango-de-cristal';
 
+/** Cuántos cristales se le mandan al bot cuando la receta acotó el universo. */
+const MAX_OPCIONES_CRUZADAS = 8;
+
 /**
  * La foto se entrega vía /api/store/product-image, que la convierte a JPEG: el
  * catálogo publica casi todo en AVIF y WhatsApp no lo soporta (le llegaría al
@@ -275,6 +278,18 @@ export async function GET(req: NextRequest) {
         if (descartados.length) {
             console.log(`[bot/pricing] ${descartados.length} de ${antes} cristales descartados por rango: ${descartados.slice(0, 3).join(' | ')}`);
         }
+    }
+
+    // ── Cuántas opciones ve el bot, y en qué orden ──────────────────────────
+    // Con una receta cruzada quedan decenas de cristales elegibles (70 para una
+    // de -8). Mandarle los 70 al modelo es peor que mandarle 6: elige cualquiera
+    // y suele quedarse con el primero que ve, que ordenado por NOMBRE es
+    // arbitrario y a menudo el más caro. Se ordena por precio y se recorta a un
+    // abanico corto — el bot ofrece 3, así que con 8 alcanza y sobra.
+    if (tieneGraduacion(receta) && products.length > MAX_OPCIONES_CRUZADAS) {
+        products = [...products]
+            .sort((a, b) => (a.price ?? 0) - (b.price ?? 0))
+            .slice(0, MAX_OPCIONES_CRUZADAS);
     }
 
     // Normalizar formato para el bot
