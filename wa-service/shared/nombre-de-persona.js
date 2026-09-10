@@ -16,6 +16,13 @@ function esNombreValido(nombre) {
     const limpio = nombre.trim();
     if (limpio.length < 2) return false;
 
+    // Al menos DOS LETRAS de verdad. `length >= 2` cuenta cualquier carácter, y
+    // un emoji ocupa dos: nombres de perfil como "😊" o "🫵🏻💪" pasaban el filtro
+    // y quedaban como fichas en el embudo (3 de 66 en la semana del 9/9/2026).
+    // No se puede llamar, ni buscar, ni saludar a una ficha así.
+    const letras = (limpio.match(/\p{L}/gu) || []).length;
+    if (letras < 2) return false;
+
     // "3541215971", "cliente 12345": si tiene 5+ dígitos es un teléfono disfrazado
     if ((limpio.match(/\d/g) || []).length >= 5) return false;
 
