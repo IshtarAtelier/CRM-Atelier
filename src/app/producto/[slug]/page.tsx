@@ -534,9 +534,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     ? product.imagenesCatalogo.map(resolveAbsolute)
     : [`https://atelieroptica.com.ar${(product as any).mockImage || '/images/og-image.jpg'}`];
 
-  // Extract color code from model name (e.g., "C1", "C2", "GLD")
-  const colorMatch = product.model?.match(/\(([^)]+)\)/) || product.model?.match(/\b(C\d+)\b/i);
-  const colorCode = colorMatch ? colorMatch[1] : undefined;
+  // Color para el JSON-LD: el NOMBRE del color ("dorado"), que es el que la
+  // ficha ya muestra y el que viaja en el feed. Antes salía el código de
+  // variante ("C2"), que para Google no es un color: contradecía al feed y
+  // hacía inútil el campo en las fichas gratuitas de Shopping.
+  const colorSchema = specs.color || undefined;
 
   // Vigencia del precio para el Offer (Google la pide); se renueva ~45 días.
   const priceValidUntil = new Date(Date.now() + 1000 * 60 * 60 * 24 * 45).toISOString().slice(0, 10);
@@ -554,7 +556,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       name: product.brand,
     },
     category: product.category,
-    material: material,
+    // El material del alt le gana al adivinado, igual que en la ficha y el feed.
+    material: specs.material || material,
     offers: {
       '@type': 'Offer',
       url: `https://atelieroptica.com.ar/producto/${product.slug}`,
@@ -591,9 +594,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     },
   };
 
-  // Add color if extracted
-  if (colorCode) {
-    jsonLd.color = colorCode;
+  // Solo si se pudo leer del alt: mejor sin color que con uno inventado.
+  if (colorSchema) {
+    jsonLd.color = colorSchema;
   }
 
   // Add measurement properties

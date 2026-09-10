@@ -9,6 +9,7 @@ import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { ProductFilters } from "@/components/Storefront/ProductFilters";
 import { familiaColorPorId } from "@/lib/catalog/color-normalizado";
+import { formaFemenina } from "@/lib/catalog/forma-armazon";
 import { GoogleReviews } from "@/components/Storefront/GoogleReviews";
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { usePromo2x1 } from "@/hooks/usePromo2x1";
@@ -46,12 +47,10 @@ function altGrilla(p: { model?: string; category?: string | null; shape?: string
   const tipo = p.category === 'Sol' ? 'anteojos de sol'
     : p.category === 'Clip-On' ? 'anteojos de sol clip-on'
     : 'armazón de receta';
-  // "forma cuadrada", no "forma cuadrado": los valores del filtro vienen en
-  // masculino porque califican al armazón, y acá califican a la forma.
-  const FEMENINO: Record<string, string> = { Cuadrado: 'cuadrada', Redondo: 'redonda' };
-  const forma = p.shape && p.shape !== 'Otros'
-    ? (FEMENINO[p.shape] ?? p.shape.toLowerCase())
-    : null;
+  // "forma cuadrada", no "forma cuadrado": los valores del catálogo vienen en
+  // masculino porque califican al armazón, y acá califican a la forma. La tabla
+  // completa vive en forma-armazon.ts, compartida con el feed de Shopping.
+  const forma = formaFemenina(p.shape);
   const rasgos = [
     p.material ? `de ${p.material.toLowerCase()}` : null,
     forma ? `forma ${forma}` : null,

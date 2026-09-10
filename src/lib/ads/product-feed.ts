@@ -8,6 +8,7 @@
  * Usa el catálogo mapeado resiliente — no rompe si la DB parpadea.
  */
 import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
+import { formaAdjetivo, formaFemenina, formaVisible } from '@/lib/catalog/forma-armazon';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { captureError } from '@/lib/logger';
 
@@ -32,7 +33,7 @@ const esc = (s: string) =>
 
 const priceStr = (n: number) => `${n.toFixed(2)} ARS`;
 
-/** Sin tildes y en minúscula: para comparar textos, nunca para mostrar. */
+/** Sin tildes y en minúscula: para comparar nombres, nunca para mostrar. */
 const plano = (s: string) =>
   (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
@@ -93,37 +94,6 @@ const SUSTANTIVO: Record<Tipo, { texto: string; plural: boolean }> = {
   clip: { texto: 'Armazón con clip-on de sol', plural: false },
   receta: { texto: 'Armazón para lentes recetados', plural: false },
 };
-
-/**
- * Forma del armazón como ADJETIVO, que es la palabra que se busca ("anteojos
- * redondos", "lentes cuadrados") y no la que se declara en el atributo. Se
- * mantiene la lista explícita en vez de pluralizar con una regla: una forma
- * que no esté acá se omite del título, porque un adjetivo mal concordado en
- * el título se lee como error de la tienda.
- */
-const FORMA_ADJETIVO: Record<string, { sing: string; plur: string }> = {
-  cuadrado: { sing: 'cuadrado', plur: 'cuadrados' },
-  redondo: { sing: 'redondo', plur: 'redondos' },
-  hexagonal: { sing: 'hexagonal', plur: 'hexagonales' },
-  'cat-eye': { sing: 'cat-eye', plur: 'cat-eye' },
-  aviador: { sing: 'aviador', plur: 'aviador' },
-  ovalado: { sing: 'ovalado', plur: 'ovalados' },
-  rectangular: { sing: 'rectangular', plur: 'rectangulares' },
-  xl: { sing: 'XL', plur: 'XL' },
-};
-
-function formaAdjetivo(shape: string | null, plural: boolean): string {
-  const f = FORMA_ADJETIVO[plano(shape || '')];
-  if (!f) return '';
-  return plural ? f.plur : f.sing;
-}
-
-/** Forma tal como se nombra de cara al cliente ("Cat-Eye", "XL", "Cuadrado"). */
-function formaVisible(shape: string | null): string {
-  const s = (shape || '').trim();
-  if (!s || plano(s) === 'otros') return '';
-  return s;
-}
 
 /**
  * Saca la marca del nombre del modelo cuando ya viene adentro: hay fichas
@@ -224,8 +194,10 @@ function describe(
         : `${name}: armazón para anteojos recetados.`;
 
   const specs: string[] = [];
-  const forma = formaVisible(shape);
-  if (forma) specs.push(`forma ${forma.toLowerCase()}`);
+  // formaFemenina() ya devuelve la palabra como se escribe ("cuadrada", "XL"):
+  // bajarla a minúsculas acá dejaba "forma xl".
+  const forma = formaFemenina(shape);
+  if (forma) specs.push(`forma ${forma}`);
   if (color) specs.push(`color ${color.toLowerCase()}`);
   if (material) specs.push(`material del marco ${material.toLowerCase()}`);
   const ficha = specs.length ? ` Marco de ${specs.join(', ')}.` : '';
@@ -262,8 +234,8 @@ function productType(category: string | null, material: string | null, shape: st
 function highlights(category: string | null, color: string | null, material: string | null, shape: string | null): string[] {
   const tipo = tipoDe(category);
   const out: string[] = [];
-  const forma = formaVisible(shape);
-  if (forma) out.push(`Forma ${forma.toLowerCase()}`);
+  const forma = formaFemenina(shape);
+  if (forma) out.push(`Forma ${forma}`);
   if (material) out.push(`Marco de ${material.toLowerCase()}`);
   if (color) out.push(`Color ${color.toLowerCase()}`);
   if (tipo === 'sol') out.push('Protección UV');
