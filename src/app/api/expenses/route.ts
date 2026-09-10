@@ -64,11 +64,21 @@ export async function POST(request: Request) {
             // Update existing
             const previo = await prisma.fixedCost.findUnique({ where: { id } });
 
+            // Los laboratorios son filas VIRTUALES: su id ("lab-grupo-optico-
+            // 2026-8") no existe en la base. Sin este corte, el update tiraba
+            // P2025 y la pantalla mostraba un error de Prisma en crudo.
+            if (!previo) {
+                return NextResponse.json(
+                    { error: 'Ese gasto ya no existe. Actualizá la pantalla.' },
+                    { status: 404 },
+                );
+            }
+
             // Un importe automático no se pisa a mano: si se pudiera, el número
             // del cierre dejaría de ser el de la plataforma y no habría forma
             // de saber cuál de los dos es el verdadero. Además el service lo
             // volvería a sobreescribir en la próxima lectura del mes.
-            if (previo && esAutomatico(previo.fuente)) {
+            if (esAutomatico(previo.fuente)) {
                 return NextResponse.json(
                     { error: `"${previo.name}" lo calcula el sistema: no se edita a mano.` },
                     { status: 409 },
@@ -87,12 +97,10 @@ export async function POST(request: Request) {
 
             const before: Record<string, any> = {};
             const after: Record<string, any> = {};
-            if (previo) {
-                for (const campo of ['name', 'amount', 'category', 'month'] as const) {
-                    if (previo[campo] !== expense[campo]) {
-                        before[campo] = previo[campo];
-                        after[campo] = expense[campo];
-                    }
+            for (const campo of ['name', 'amount', 'category', 'month'] as const) {
+                if (previo[campo] !== expense[campo]) {
+                    before[campo] = previo[campo];
+                    after[campo] = expense[campo];
                 }
             }
             await logAudit({

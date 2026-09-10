@@ -281,9 +281,6 @@ export default function GastosPage() {
     };
 
     const totalMes = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-    // El progreso se mide sobre la lista fija: los gastos sueltos que alguien
-    // agrega a mano ya vienen con importe, y los laboratorios los calcula el
-    // sistema. Mezclarlos hacía que el contador nunca llegara a completo.
     // Qué falta cargar lo decide el SERVIDOR (calcularEstado), no la pantalla.
     // Acá había una segunda versión de la regla y ya divergía: contaba como
     // olvidado cualquier obligatorio en $0, automáticos incluidos — así que un
