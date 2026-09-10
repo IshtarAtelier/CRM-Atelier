@@ -32,6 +32,18 @@ export interface AdicionDeReceta {
     additionOI?: number | string | null;
     /** Alias del bot (agent-tools manda `add`). */
     add?: number | string | null;
+    /**
+     * Graduación de LEJOS y de CERCA. Una receta multifocal se escribe de dos
+     * maneras y las dos son válidas (regla dictada por Ishtar, 9/9/2026):
+     *   · "Lejos" + columna "Add", o
+     *   · dos secciones, "Lejos" y "Cerca", cada una con su graduación.
+     * En la segunda no hay columna Add: la adición ES la diferencia entre
+     * ambas. Sin esto, una receta escrita así se leía como monofocal.
+     */
+    sphereOD?: number | string | null;
+    sphereOI?: number | string | null;
+    nearSphereOD?: number | string | null;
+    nearSphereOI?: number | string | null;
 }
 
 function aNumero(v: unknown): number {
@@ -70,8 +82,32 @@ export function esAdicionPlausible(v: unknown): boolean {
  * una adición, es basura de OCR.
  */
 export function tieneAdicion(data: AdicionDeReceta): boolean {
-    return [data.addition, data.additionOD, data.additionOI, data.add]
-        .some(esAdicionPlausible);
+    if ([data.addition, data.additionOD, data.additionOI, data.add].some(esAdicionPlausible)) return true;
+    // Sin columna Add: la receta puede traer "Lejos" y "Cerca" por separado.
+    // La adición es la diferencia (Cerca − Lejos), y vale si cae en el rango.
+    return esAdicionPlausible(adicionImplicita(data));
+}
+
+/**
+ * La adición que se deduce de tener graduación de lejos y de cerca.
+ * Devuelve 0 si no hay ambas, o si la diferencia no es una adición plausible.
+ * Se toma la mayor de los dos ojos: alcanza con que un ojo la tenga.
+ */
+export function adicionImplicita(data: AdicionDeReceta): number {
+    const pares: [unknown, unknown][] = [
+        [data.nearSphereOD, data.sphereOD],
+        [data.nearSphereOI, data.sphereOI],
+    ];
+    let mayor = 0;
+    for (const [cerca, lejos] of pares) {
+        if (cerca === null || cerca === undefined || cerca === '') continue;
+        if (lejos === null || lejos === undefined || lejos === '') continue;
+        const diferencia = aNumero(cerca) - aNumero(lejos);
+        // La adición SUMA respecto de lejos (es positiva): una diferencia
+        // negativa no es una adición, es otra cosa mal leída.
+        if (diferencia > 0 && diferencia > mayor) mayor = diferencia;
+    }
+    return mayor;
 }
 
 /**

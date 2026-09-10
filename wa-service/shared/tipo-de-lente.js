@@ -39,13 +39,37 @@ function tieneAdicion(add) {
  * CRM ('Monofocal' | 'Multifocal'), o el declarado si no habla de focos
  * (ej. 'Lentes de Contacto', que la adición no distingue).
  */
-function interesSegunReceta(tipoDeLenteDeclarado, add) {
+/**
+ * Adición deducida de tener graduación de LEJOS y de CERCA (Cerca − Lejos).
+ * Una receta multifocal se escribe de dos formas válidas: "Lejos" + columna
+ * "Add", o dos secciones "Lejos" y "Cerca" con su graduación cada una.
+ */
+function adicionImplicita({ sphereOD, sphereOI, nearSphereOD, nearSphereOI } = {}) {
+    const n = (v) => {
+        if (v === null || v === undefined || v === '') return null;
+        const x = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'));
+        return Number.isFinite(x) ? x : null;
+    };
+    let mayor = 0;
+    for (const [cerca, lejos] of [[nearSphereOD, sphereOD], [nearSphereOI, sphereOI]]) {
+        const c = n(cerca), l = n(lejos);
+        if (c === null || l === null) continue;
+        const d = c - l;
+        if (d > 0 && d > mayor) mayor = d;
+    }
+    return mayor;
+}
+
+function interesSegunReceta(tipoDeLenteDeclarado, add, receta) {
     const declarado = String(tipoDeLenteDeclarado || '').trim();
     const hablaDeFocos = /mono|multi|bifocal|progres/i.test(declarado);
     // Un interés que no es sobre focos (contacto, solar) no se toca: la
     // adición no dice nada sobre eso.
     if (declarado && !hablaDeFocos) return declarado;
-    return tieneAdicion(add) ? 'Multifocal' : 'Monofocal';
+    if (tieneAdicion(add)) return 'Multifocal';
+    // Sin columna Add, pero con graduación de lejos y de cerca: también es multifocal.
+    if (receta && tieneAdicion(adicionImplicita(receta))) return 'Multifocal';
+    return 'Monofocal';
 }
 
-module.exports = { tieneAdicion, interesSegunReceta };
+module.exports = { tieneAdicion, interesSegunReceta, adicionImplicita };
