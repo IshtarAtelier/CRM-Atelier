@@ -694,10 +694,25 @@ async function resolverChatDestino(chatId) {
 }
 
 /** Pie de foto: el nombre del modelo y el precio de contado. Nada más. */
+/**
+ * El pie que acompaña cada foto: nombre, precio de contado y —si el armazón
+ * está publicado— el LINK a su ficha en la tienda.
+ *
+ * El link es pedido de Ishtar (9/9/2026): "sugiero que envíes directamente de
+ * la tienda el link del armazón, para que pueda entrar y navegar". Resuelve dos
+ * cosas de una: el cliente ve el modelo desde todos los ángulos y con la
+ * descripción completa (la foto es una sola), y desde ahí puede seguir mirando
+ * el catálogo solo. Además vuelve menos grave no haber acertado el género: si le
+ * mostramos algo que no era, con un toque se va a ver el resto.
+ *
+ * `link` ya venía calculado por /api/bot/pricing (slug de la tienda); acá solo
+ * no se estaba usando.
+ */
 function pieDeFoto(p) {
     const nombre = p.name || 'Armazón';
     const contado = Math.round(p.priceCash || 0).toLocaleString('es-AR');
-    return `*${nombre}*\n• Precio contado: *$${contado}*`;
+    const base = `*${nombre}*\n• Precio contado: *$${contado}*`;
+    return p.link ? `${base}\n👉 ${p.link}` : base;
 }
 
 /**
@@ -801,12 +816,21 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
                 if (!twin) {
                     await prisma.whatsAppMessage.upsert({
                         where: { waMessageId },
-                        update: { senderName: 'Bot' },
+                        // `mediaUrl` también en el update: las filas viejas se
+                        // guardaron sin él y así se completan solas al reenviar.
+                        update: { senderName: 'Bot', mediaUrl: p.imageUrl },
                         create: {
                             chatId: destino.dbChatId,
                             direction: 'OUTBOUND',
                             type: 'IMAGE',
                             content: caption,
+                            // Sin esto la burbuja quedaba SIN imagen en el buzón:
+                            // 18 de las 19 fotos que mandó el bot en 30 días son
+                            // así. La vendedora abre el chat y no puede ver qué
+                            // armazones le mostró el bot al cliente. La URL es
+                            // pública (/api/store/product-image), la misma que
+                            // recibió WhatsApp.
+                            mediaUrl: p.imageUrl,
                             waMessageId,
                             senderName: 'Bot',
                             status: 'SENT',

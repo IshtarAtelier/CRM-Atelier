@@ -113,8 +113,19 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
                         ]
                     })
                 ]);
+                // Se pide "RECETA" o "NO_RECETA", pero el modelo contesta lo que
+                // quiere. El chequeo era `includes('RECETA') && !includes('NO_RECETA')`
+                // y "NO RECETA" (con ESPACIO, sin guión bajo) lo pasaba como
+                // receta: incluye 'RECETA' y no incluye 'NO_RECETA'. Lo mismo
+                // "no es una receta". Consecuencia: se adjuntaba a la ficha una
+                // imagen que no es la receta —un comprobante de pago, la foto de
+                // un armazón— como si lo fuera.
+                //
+                // Ahora se normaliza a letras y se exige que EMPIECE con RECETA:
+                // "NORECETA" y cualquier explicación quedan afuera.
                 const classification = validationResponse.content.toString().trim().toUpperCase();
-                if (classification.includes('RECETA') && !classification.includes('NO_RECETA')) {
+                const limpio = classification.replace(/[^A-Z]/g, '');
+                if (limpio.startsWith('RECETA')) {
                     confirmedPrescriptionItem = item;
                     break;
                 }
@@ -286,7 +297,7 @@ const getOrderStatusTool = new DynamicStructuredTool({
 const createQuoteTool = new DynamicStructuredTool({
     schema: z.object({ clientId: z.string().optional(), items: z.array(z.any()).optional(), total: z.number().optional(), discountCash: z.number().optional() }).catchall(z.any()),
     name: "create_quote",
-    description: "Registra un presupuesto/cotización en el CRM. Usa JSON con 'clientId' (el ID de la ficha si existe en tu contexto; si el contacto no tiene ficha todavía, llamala igual sin clientId), 'items' (array con los productos cotizados), 'total' (monto total), 'discountCash' (descuento en efectivo, opcional). El resultado trae 'id': guardalo, lo necesitás para 'send_quote_pdf'.",
+    description: "Registra un presupuesto/cotización en el CRM y es lo que después manda el PDF. Usa JSON con: 'clientId' (MANDATORIO — el ID de la ficha; si el contacto todavía no tiene ficha, creala PRIMERO con 'convert_into_lead' o 'save_prescription_data' y usá el id que devuelven: sin clientId esta herramienta falla), 'items' (MANDATORIO — array de objetos, y CADA UNO tiene que llevar 'productId' con el id EXACTO que te devolvió 'get_price_list' para ese producto: {productId:'abc123', quantity:1}. Sin ese id el presupuesto se rechaza entero, porque el sistema no cotiza nada cuyo precio no pueda verificar contra el catálogo. NO inventes ids ni mandes solo el nombre. Si querés cotizar un cristal para un solo ojo agregá 'eye' ('OD' o 'OI'); sin 'eye' la línea vale el PAR, que es lo normal), 'total' (opcional, el total que calculaste: el sistema lo recalcula solo y si el tuyo no coincide te avisa) y 'discountCash' (opcional). El resultado trae 'id': guardalo, lo necesitás para 'send_quote_pdf'.",
     func: safeToolRun(async (input) => {
         const parsed = safeParse(input, "create_quote");
         if (!parsed.clientId || parsed.clientId === 'null' || parsed.clientId === 'none') {
