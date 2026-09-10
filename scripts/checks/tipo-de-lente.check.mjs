@@ -101,6 +101,21 @@ for (const [datos, declarado, esperadoEspejo] of paridad) {
         : mal(`add=${datos.add} declarado=${declarado}: espejo dice ${delEspejo}, CRM dice ${delCrm}`);
 }
 
+// ── 4-bis. Nombres de ficha ──────────────────────────────────────────────────
+// Un nombre de perfil de WhatsApp que son puros emojis no es un nombre: no se
+// puede llamar, buscar ni saludar a esa ficha, y entra igual al embudo.
+console.log('\n4-bis. Una ficha nueva necesita un nombre de verdad');
+const { esNombreValido } = require('../../wa-service/shared/nombre-de-persona.js');
+for (const [nombre, esperado] of [
+    ['Julio Pérez', true], ['Ana', true], ['José María', true],
+    ['😊', false], ['🫵🏻💪', false], ['⭐⭐⭐🌅☝', false], ['...', false],
+    ['3541215971', false], ['hola quiero info', false],
+]) {
+    esNombreValido(nombre) === esperado
+        ? ok(`"${nombre}" → ${esperado ? 'válido' : 'rechazado'}`)
+        : mal(`"${nombre}" → ${esNombreValido(nombre) ? 'válido' : 'rechazado'}, esperado ${esperado ? 'válido' : 'rechazado'}`);
+}
+
 // ── 5. El rango del cristal cruza con la receta ──────────────────────────────
 // Cotizar un cristal fuera de rango es prometer algo que el laboratorio no
 // puede fabricar. El rango va declarado en el nombre ("… · Esf -10/+8 Cil -6/6").
