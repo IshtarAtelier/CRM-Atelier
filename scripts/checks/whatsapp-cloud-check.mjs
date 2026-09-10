@@ -17,30 +17,58 @@
  * No imprime el token ni parcialmente. Sin WA_CLOUD_TOKEN explica qué falta.
  */
 import 'dotenv/config';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 const GRAPH = process.env.WA_CLOUD_GRAPH_URL || 'https://graph.facebook.com';
 const V = process.env.WA_CLOUD_API_VERSION || 'v21.0';
 const BUSINESS_ID = process.env.META_BUSINESS_ID || '796163885437265';
 const TOKEN = process.env.WA_CLOUD_TOKEN || '';
-// Las que HOY se mandan. Las v1 de pedido_listo quedaron con el horario viejo
-// ("9 a 20", sin sábado) y Meta no deja editar una plantilla aprobada, así que
-// se reemplazaron por las _v2 (1/9/26) — y esas, horas después el mismo día,
-// por las _v3 ("9 a 20" real). Vigilar las viejas era vigilar algo que ya
-// nadie manda. OJO: pedido_listo_v3/pedido_listo_saldo_v3 estaban PENDING de
-// aprobación al momento del cambio de código — si este check las marca como
-// no aprobadas, es esperable hasta que Meta responda, no un bug.
-// aviso_pago_interno y nota_interna son las INTERNAS (van al celular del
-// equipo, no a clientes): el 3/9/26 aviso_pago_interno no existía en Meta y
-// nadie lo veía porque no estaba en esta lista — el aviso de cada pago cobrado
-// moría en silencio.
-// Las de SEGUIMIENTO (5/9/26): son las que el embudo le propone al equipo cada
-// día (src/lib/embudo/playbook.ts) y las respuestas rápidas del buzón. No
-// estaban acá: si Meta pausaba una, el botón fallaba y nadie se enteraba.
-const CATALOGO = [
-    'pedido_listo_v3', 'pedido_listo_saldo_v3', 'venta_confirmada', 'comprobante_pago', 'presupuesto', 'presupuesto_pdf',
-    'pedido_enviado', 'estado_pedido', 'factura_electronica', 'retomar_conversacion', 'aviso_pago_interno', 'nota_interna',
-    'seguimiento_presupuesto', 'seguimiento_lentes', 'seguimiento_carrito', 'invitacion_local_v2', 'ultimo_seguimiento', 'pedido_resena',
-];
+// ── Qué plantillas vigilar: LAS QUE EL CÓDIGO MANDA, no una lista a mano ────
+//
+// Acá vivía un array escrito a mano, y se desactualizó como se desactualizan
+// todas: medido el 9/9/2026, vigilaba 4 plantillas que el código ya no usaba
+// (falsas alarmas, y un guardián que grita en falso se termina ignorando) y NO
+// vigilaba 8 que sí se mandan — entre ellas `pedido_listo_v5`,
+// `recordatorio_saldo` y `aviso_pago_interno_v2`. O sea que si Meta pausaba el
+// aviso de "tu pedido está listo", nadie se enteraba: justo el agujero que
+// este check existe para tapar.
+//
+// Ahora la lista se DERIVA: se leen los nombres del catálogo
+// (src/lib/whatsapp/templates.ts) y se marca cuáles aparecen citados en algún
+// otro archivo de src/. Eso es "la manda alguien". No puede quedar vieja
+// porque no hay nada que actualizar a mano.
+function plantillasEnUso() {
+    const raiz = new URL('../../', import.meta.url).pathname;
+    const leer = (ruta) => readFileSync(ruta, 'utf8').replace(/\r\n/g, '\n');
+
+    // 1. Los nombres que existen en el catálogo.
+    const catalogo = leer(join(raiz, 'src/lib/whatsapp/templates.ts'));
+    // Se lee `name: '…'`, que es el nombre REAL con el que Meta la conoce — no
+    // la clave del objeto, porque adentro de cada plantilla hay otras claves
+    // (`params`, `body`) que si no se colaban como si fueran plantillas.
+    const nombres = [...catalogo.matchAll(/^\s+name:\s*'([a-z0-9_]+)'/gm)].map(m => m[1]);
+
+    // 2. Cuáles se citan en el resto del código.
+    const enUso = new Set();
+    const recorrer = (dir) => {
+        for (const entrada of readdirSync(dir)) {
+            if (['node_modules', '.next', '.git'].includes(entrada)) continue;
+            const ruta = join(dir, entrada);
+            if (statSync(ruta).isDirectory()) { recorrer(ruta); continue; }
+            if (!/\.(ts|tsx)$/.test(entrada)) continue;
+            if (ruta.endsWith('whatsapp/templates.ts')) continue; // la definición no cuenta como uso
+            const fuente = leer(ruta);
+            for (const n of nombres) {
+                if (fuente.includes(`'${n}'`) || fuente.includes(`"${n}"`) || fuente.includes(`.${n}`)) enUso.add(n);
+            }
+        }
+    };
+    recorrer(join(raiz, 'src'));
+    return [...enUso].sort();
+}
+
+const CATALOGO = plantillasEnUso();
 
 const ok = (s) => `✅ ${s}`, warn = (s) => `⚠️  ${s}`, bad = (s) => `❌ ${s}`;
 
