@@ -372,6 +372,35 @@ const addInteractionTool = new DynamicStructuredTool({
     func: safeToolRun(async (input) => await addInteraction(safeParse(input, "add_interaction"))),
 });
 
+/**
+ * "No sé esto": el bot se aparta y avisa, en vez de improvisar.
+ *
+ * Es distinta de `cancel_bot` (que es "acá tiene que hablar un humano" por el
+ * TIPO de conversación: proveedor, cliente enojado). Esta es por FALTA DE
+ * CERTEZA: el bot no sabe algo y lo importante es que no lo invente.
+ */
+const pedirAyudaTool = new DynamicStructuredTool({
+    schema: z.object({ chatId: z.string(), motivo: z.string(), detalle: z.string().optional() }).catchall(z.any()),
+    name: "pedir_ayuda",
+    description: "Te apartás de la conversación y avisás al equipo, porque NO SABÉS algo y no querés inventarlo. Usala SIEMPRE que estés por decir algo de lo que no tenés certeza: un precio que no te devolvió ninguna herramienta, si un cristal se puede hacer para esa receta, un plazo de entrega raro, si algo entra por la obra social, una promo que no figura en tu contexto, o cualquier dato importante que tendrías que 'suponer'. Preferimos MIL VECES que te apartes a que le des al cliente un dato equivocado: un precio mal dicho por WhatsApp después hay que sostenerlo o desdecirlo, y las dos cosas cuestan. Usa JSON con 'chatId' (MANDATORIO, el de tu contexto), 'motivo' (una frase corta y en criollo que va a LEER una vendedora: 'no sé si el cristal 1.74 entra en ese armazón', 'me pide un plazo para el interior y no lo tengo') y 'detalle' (opcional, contexto extra). Antes de llamarla, escribile al cliente UNA línea natural avisándole que lo va a atender alguien del equipo — sin explicarle que sos un sistema ni por qué te apartás. Después de llamarla NO sigas respondiendo en ese chat.",
+    func: safeToolRun(async (input) => {
+        const parsed = safeParse(input, "pedir_ayuda");
+        if (!parsed.chatId) return "[INSTRUCCIÓN INTERNA] Falta el chatId: no se pudo avisar al equipo. Seguí la conversación SIN inventar el dato que no sabías — decile que se lo confirmás y no des números.";
+        const { escalarAHumano } = require('./shared/escalar');
+        // Solo el transporte: `escalarAHumano` apaga el bot de ese chat con su
+        // propio update. Construir un BotService acá pediría media docena de
+        // dependencias (io, broadcastChatUpdate…) que esta tool no tiene, y la
+        // primera llamada moriría con un TypeError justo cuando más se la
+        // necesita — que es cuando el bot ya no sabe qué hacer.
+        const transport = require('./transport/cloud-transport');
+        await escalarAHumano(
+            { notifyAdminDown: transport.notifyAdminDown },
+            { chatId: parsed.chatId, motivo: parsed.motivo, detalle: parsed.detalle },
+        );
+        return "[INSTRUCCIÓN INTERNA] Listo: el equipo ya fue avisado y quedó una tarea en el panel. NO respondas nada más en este chat.";
+    }),
+});
+
 const cancelBotTool = new DynamicStructuredTool({
     schema: z.object({ clientId: z.string().optional(), waId: z.string().optional() }).catchall(z.any()),
     name: "cancel_bot",
@@ -428,6 +457,7 @@ const updateChatSummaryTool = new DynamicStructuredTool({
 });
 
 const salesToolsList = [
+    pedirAyudaTool,
     checkExistingClientTool,
     getPriceListTool,
     // 30/8/2026: estaba SOLO en executiveToolsList. El prompt de ventas le
@@ -452,6 +482,7 @@ const salesToolsList = [
 ];
 
 const executiveToolsList = [
+    pedirAyudaTool,
     checkExistingClientTool,
     getPriceListTool,
     updateClientDataTool,
