@@ -435,6 +435,7 @@ export async function GET(request: Request) {
                 fijosCargados: `${estadoGastos.cargados}/${estadoGastos.total}`,
                 enCero: estadoGastos.enCero,
                 ilegibles: estadoGastos.ilegibles,
+                desactualizados: estadoGastos.desactualizados,
                 forzado: forzar,
             },
             summary: {

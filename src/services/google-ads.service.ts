@@ -34,6 +34,7 @@
 import crypto from 'crypto';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { prisma } from '@/lib/db';
+import { cotizacionDolarONull } from '@/lib/ads/meta-insights';
 
 const API_VERSION = 'v24';
 const API_BASE = 'https://googleads.googleapis.com';
@@ -451,7 +452,12 @@ export class GoogleAdsService {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          query: `SELECT metrics.cost_micros FROM customer WHERE segments.date BETWEEN '${desde}' AND '${hasta}'`,
+          // La moneda viene en la misma consulta: `cost_micros` está en la
+          // moneda DE LA CUENTA, no en pesos. Devolverlo como pesos sin mirar
+          // es informar un gasto mil veces más chico si la cuenta factura en
+          // dólares — y una ganancia mucho más alta que la real. Meta ya hacía
+          // esta distinción (lee `account_currency`); acá faltaba.
+          query: `SELECT customer.currency_code, metrics.cost_micros FROM customer WHERE segments.date BETWEEN '${desde}' AND '${hasta}'`,
         }),
         signal: AbortSignal.timeout(15000),
       });
@@ -462,9 +468,27 @@ export class GoogleAdsService {
         return null;
       }
 
-      const body = (await res.json()) as { results?: Array<{ metrics?: { costMicros?: string } }> };
-      const micros = (body.results ?? []).reduce((acc, r) => acc + Number(r.metrics?.costMicros ?? 0), 0);
-      return micros / 1_000_000;
+      const body = (await res.json()) as {
+        results?: Array<{ customer?: { currencyCode?: string }; metrics?: { costMicros?: string } }>;
+      };
+      const results = body.results ?? [];
+      const micros = results.reduce((acc, r) => acc + Number(r.metrics?.costMicros ?? 0), 0);
+      const enLaMonedaDeLaCuenta = micros / 1_000_000;
+
+      const moneda = (results.find((r) => r.customer?.currencyCode)?.customer?.currencyCode || 'ARS').toUpperCase();
+      if (moneda === 'ARS') return enLaMonedaDeLaCuenta;
+      if (moneda !== 'USD') {
+        console.error(`[GoogleAdsService] La cuenta factura en ${moneda} y no sé convertirlo a pesos.`);
+        return null;
+      }
+      const cotizacion = await cotizacionDolarONull();
+      if (!cotizacion) {
+        // Sin cotización se devuelve null, no el número en dólares: un gasto
+        // mil veces más chico se lee como "hay margen de sobra".
+        console.error('[GoogleAdsService] Cuenta en USD y sin cotización: no puedo dar el gasto en pesos.');
+        return null;
+      }
+      return enLaMonedaDeLaCuenta * cotizacion;
     } catch (err) {
       console.error('[GoogleAdsService] Excepción leyendo el gasto del mes:', err);
       return null;
