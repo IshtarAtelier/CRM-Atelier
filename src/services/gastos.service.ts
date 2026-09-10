@@ -56,6 +56,8 @@ export interface EstadoDeCarga {
     ilegibles: string[];
     /** Automáticos que no se pudieron actualizar pero conservan el importe anterior. */
     desactualizados: string[];
+    /** Gastos sueltos que parecen el gemelo de un concepto fijo: se cuentan dos veces. */
+    repetidos: string[];
     /** `false` solo si hay automáticos ilegibles. */
     listoParaCerrar: boolean;
 }
@@ -313,7 +315,32 @@ export async function sincronizarMesDeGastos(month: number, year: number): Promi
         });
     }
 
-    return armarGastosDelMes(month, year, avisos);
+    // ── 3. Gemelos sin adoptar ────────────────────────────────────────────
+    //
+    // Una fila sin clave cuyo nombre es el de un concepto que YA tiene su fila
+    // no se puede adoptar: la clave es única por mes. Pasa cuando a un concepto
+    // se le agrega un alias DESPUÉS de que el mes ya se sincronizó — el gemelo
+    // queda de gasto suelto y su importe se suma aparte, así que la publicidad
+    // (o lo que sea) se cuenta dos veces sin que nadie lo note.
+    //
+    // No se borra ni se fusiona solo: los dos tienen importe y elegir cuál vale
+    // es una decisión de quien lleva los números. Se MARCA, para que se vea.
+    const conceptoPorNombre = new Map<string, ConceptoGasto>();
+    for (const c of CONCEPTOS_GASTO) {
+        for (const n of [c.name, ...(c.alias || [])]) conceptoPorNombre.set(n.trim().toLowerCase(), c);
+    }
+    const avisosPorId = new Map<string, string>();
+    for (const [nombre, fila] of sinClavePorNombre) {
+        const concepto = conceptoPorNombre.get(nombre);
+        if (concepto && porClave.has(concepto.clave)) {
+            avisosPorId.set(
+                fila.id,
+                `Parece el mismo gasto que "${concepto.name}", que ya está más arriba. Revisá cuál vale y borrá el que sobre: mientras estén los dos, se cuenta dos veces.`,
+            );
+        }
+    }
+
+    return armarGastosDelMes(month, year, avisos, avisosPorId);
 }
 
 /**
@@ -325,6 +352,7 @@ async function armarGastosDelMes(
     month: number,
     year: number,
     avisos: Map<string, string>,
+    avisosPorId: Map<string, string> = new Map(),
 ): Promise<GastoDelMes[]> {
     const labs = await costosDeLaboratorio(month, year);
     const filasDeLab: GastoDelMes[] = [...labs.entries()]
@@ -343,6 +371,27 @@ async function armarGastosDelMes(
             obligatorio: false,
             isCalculated: true,
         }));
+
+    // Reprocesos de post-venta: también VIRTUAL y por el mismo motivo que los
+    // laboratorios — el resultado del negocio ya los tiene (`totalPostSaleCosts`
+    // en report.service), así que guardarlos contaría la misma plata dos veces.
+    const postVenta = await costosDePostVenta(month, year);
+    if (postVenta.total > 0) {
+        filasDeLab.push({
+            id: `postventa-${year}-${month}`,
+            name: `Post-venta (${postVenta.casos} ${postVenta.casos === 1 ? 'reproceso facturado' : 'reprocesos facturados'})`,
+            amount: postVenta.total,
+            category: 'PROVEEDOR',
+            type: 'PROVEEDOR',
+            month,
+            year,
+            notes: null,
+            clave: null,
+            fuente: 'postventa',
+            obligatorio: false,
+            isCalculated: true,
+        });
+    }
 
     const todas = await prisma.fixedCost.findMany({
         where: { month, year },
@@ -368,10 +417,39 @@ async function armarGastosDelMes(
             fuente: g.fuente,
             obligatorio: g.obligatorio,
             isCalculated: esAutomatico(g.fuente),
-            aviso: g.clave ? avisos.get(g.clave) : undefined,
+            aviso: (g.clave ? avisos.get(g.clave) : undefined) ?? avisosPorId.get(g.id),
         }));
 
     return [...guardadas, ...filasDeLab];
+}
+
+/**
+ * Costo de los reprocesos de post-venta facturados en el mes.
+ *
+ * Se cuentan SOLO los casos con el costo cerrado por el laboratorio
+ * (`costSource: 'LAB'`) y corroborado por el administrador
+ * (`costConfirmedAt`), que es exactamente lo que el schema exige para imputar
+ * un caso a caja: lo que estima el vendedor al abrir el caso puede no coincidir
+ * con lo que después factura el lab, y un gasto no se informa con una
+ * estimación.
+ *
+ * El mes es el de la CORROBORACIÓN, no el de la venta que originó el reproceso.
+ * Es a propósito y difiere del resultado del negocio: `report.service` imputa
+ * el costo de post-venta al mes de la venta original (`totalPostSaleCosts`),
+ * porque ahí se mide cuánto dejó esa venta. Acá la pregunta es otra —cuánta
+ * plata sale este mes— y un reproceso de una venta de junio que el lab facturó
+ * en agosto es plata de agosto.
+ */
+async function costosDePostVenta(month: number, year: number): Promise<{ total: number; casos: number }> {
+    const casos = await prisma.postSaleCase.findMany({
+        where: {
+            costSource: 'LAB',
+            cost: { gt: 0 },
+            costConfirmedAt: { gte: new Date(year, month - 1, 1), lt: new Date(year, month, 1) },
+        },
+        select: { cost: true },
+    });
+    return { total: casos.reduce((a, c) => a + c.cost, 0), casos: casos.length };
 }
 
 /**
@@ -409,10 +487,16 @@ export function calcularEstado(gastos: GastoDelMes[]): EstadoDeCarga {
     // Solo frena el cierre el automático que quedó SIN importe. Uno con el
     // valor de la lectura anterior avisa, pero el número está y se puede cerrar.
     const ilegibles = obligatorios
-        .filter((g) => g.aviso && (g.amount || 0) === 0)
+        .filter((g) => g.isCalculated && g.aviso && (g.amount || 0) === 0)
         .map((g) => `${g.name}: ${g.aviso}`);
     const desactualizados = obligatorios
-        .filter((g) => g.aviso && (g.amount || 0) > 0)
+        .filter((g) => g.isCalculated && g.aviso && (g.amount || 0) > 0)
+        .map((g) => `${g.name}: ${g.aviso}`);
+
+    // Los gemelos son gastos sueltos (no obligatorios), así que se buscan en la
+    // lista entera: si no, un renglón duplicado no lo veía nadie.
+    const repetidos = gastos
+        .filter((g) => !g.isCalculated && g.aviso)
         .map((g) => `${g.name}: ${g.aviso}`);
     // Los automáticos quedan fuera de "en cero": un mes sin pauta hace que Meta
     // devuelva 0, y ese 0 es un dato, no un olvido. Listarlo en el mail del
@@ -427,6 +511,7 @@ export function calcularEstado(gastos: GastoDelMes[]): EstadoDeCarga {
         enCero,
         ilegibles,
         desactualizados,
+        repetidos,
         listoParaCerrar: ilegibles.length === 0,
     };
 }

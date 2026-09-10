@@ -13,6 +13,7 @@ interface EstadoDeCarga {
     enCero: string[];
     ilegibles: string[];
     desactualizados: string[];
+    repetidos: string[];
     listoParaCerrar: boolean;
 }
 
@@ -31,6 +32,7 @@ const FUENTE_LABELS: Record<string, string> = {
     'google-ads': 'Traído de Google Ads',
     'usd-fijo': 'Abono en USD convertido',
     laboratorio: 'Calculado de las ventas',
+    postventa: 'Reprocesos facturados',
 };
 
 function etiquetaFuente(fuente?: string): string {
@@ -73,8 +75,11 @@ function ExpenseRow({ expense, onSave, onDelete }: { expense: any, onSave: (e: a
                     {expense.name} 
                     {expense.isCalculated && !expense.aviso && <span className="ml-2 text-[10px] bg-stone-200 dark:bg-stone-700 px-2 py-0.5 rounded-full text-stone-500 dark:text-stone-300 uppercase tracking-wider border border-stone-300 dark:border-stone-600">{etiquetaFuente(expense.fuente)}</span>}
                     {expense.aviso && (
-                        <span className="ml-2 inline-flex items-center gap-1 text-[10px] bg-red-100 dark:bg-red-950/50 px-2 py-0.5 rounded-full text-red-600 dark:text-red-400 uppercase tracking-wider border border-red-200 dark:border-red-900">
-                            <CloudOff size={10} /> Sin datos
+                        <span
+                            className="ml-2 inline-flex items-center gap-1 text-[10px] bg-red-100 dark:bg-red-950/50 px-2 py-0.5 rounded-full text-red-600 dark:text-red-400 uppercase tracking-wider border border-red-200 dark:border-red-900"
+                            title={expense.aviso}
+                        >
+                            <CloudOff size={10} /> {expense.isCalculated ? 'Sin datos' : 'Repetido'}
                         </span>
                     )}
                 </span>
@@ -294,6 +299,7 @@ export default function GastosPage() {
     const progress = totalObligatorios > 0 ? (completadosCount / totalObligatorios) * 100 : 0;
     const ilegibles = estado?.ilegibles || [];
     const desactualizados = estado?.desactualizados || [];
+    const repetidos = estado?.repetidos || [];
     
     const now = new Date();
     const isCurrentMonth = now.getMonth() + 1 === selectedMonth && now.getFullYear() === selectedYear;
@@ -377,6 +383,25 @@ export default function GastosPage() {
                             <ul className="mt-2 space-y-1">
                                 {ilegibles.map(m => (
                                     <li key={m} className="text-xs font-bold text-red-600 dark:text-red-400">· {m}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {repetidos.length > 0 && (
+                <div className="max-w-4xl mx-auto px-4 mt-4">
+                    <div className="bg-orange-50 dark:bg-orange-950/30 border-2 border-orange-300 dark:border-orange-900 rounded-xl p-4 flex items-start gap-3">
+                        <AlertCircle className="text-orange-500 flex-shrink-0 mt-0.5" size={18} />
+                        <div>
+                            <p className="text-sm font-black text-orange-700 dark:text-orange-400">Gastos que parecen repetidos</p>
+                            <p className="text-xs font-medium text-orange-600 dark:text-orange-300 mt-0.5">
+                                Mientras estén los dos, esa plata se cuenta dos veces en el total del mes.
+                            </p>
+                            <ul className="mt-1.5 space-y-1">
+                                {repetidos.map(m => (
+                                    <li key={m} className="text-xs font-bold text-orange-700 dark:text-orange-400">· {m}</li>
                                 ))}
                             </ul>
                         </div>

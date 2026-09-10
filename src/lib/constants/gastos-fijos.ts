@@ -18,12 +18,13 @@
  *   - "usd-fijo":    suscripción de importe fijo en dólares, convertida a pesos.
  *   - "laboratorio": lo calculan las ventas del mes (no está en esta lista;
  *                    los labs se descubren solos desde los pedidos).
+ *   - "postventa":   los reprocesos que el lab facturó en el mes.
  * Todo lo que no sea "manual" se muestra de solo lectura: si el importe se
  * pudiera pisar a mano, el número del cierre dejaría de ser el de la
  * plataforma y no habría forma de saber cuál de los dos es el verdadero.
  */
 
-export type FuenteGasto = 'manual' | 'meta-ads' | 'google-ads' | 'usd-fijo' | 'laboratorio';
+export type FuenteGasto = 'manual' | 'meta-ads' | 'google-ads' | 'usd-fijo' | 'laboratorio' | 'postventa';
 
 export interface ConceptoGasto {
     /** Identidad estable entre meses. NUNCA cambiar la de un concepto existente. */
