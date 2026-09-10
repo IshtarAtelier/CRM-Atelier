@@ -168,6 +168,12 @@ Cada una nació de un dato mal calculado en producción. No deducirlas del códi
   `DEFAULT_TEMPLATES` dentro de la pantalla que se aplicaba una sola vez, así
   que un concepto nuevo no llegaba a los meses viejos y uno borrado no volvía.
   Los conceptos de la lista son `obligatorio`: la API se niega a borrarlos.
+- **Renombrar un concepto de gasto = cambiar `name` y agregar el nombre viejo a
+  `alias`.** La adopción de las filas existentes es POR NOMBRE (las de antes de
+  9/2026 no tienen clave), así que un rename sin alias no rompe nada visible
+  pero deja el importe viejo colgado como gasto suelto y pide el concepto en
+  $0 al lado. `node scripts/checks/gastos-cargados.mjs --prod` (solo lee) dice
+  qué nombres quedarían huérfanos y si dos caen en el mismo concepto y mes.
 - **Meta Ads, Google Ads y el abono en dólares NO se cargan a mano.** Los trae
   la plataforma (`fetchGastoMensualArs`, `GoogleAdsService.getGastoMensualArs`,
   dólar × USD fijo) y se PERSISTEN en `FixedCost`, porque el dashboard y el
