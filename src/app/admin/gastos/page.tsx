@@ -284,11 +284,17 @@ export default function GastosPage() {
     // El progreso se mide sobre la lista fija: los gastos sueltos que alguien
     // agrega a mano ya vienen con importe, y los laboratorios los calcula el
     // sistema. Mezclarlos hacía que el contador nunca llegara a completo.
+    // Qué falta cargar lo decide el SERVIDOR (calcularEstado), no la pantalla.
+    // Acá había una segunda versión de la regla y ya divergía: contaba como
+    // olvidado cualquier obligatorio en $0, automáticos incluidos — así que un
+    // mes sin pauta mostraba "Meta Ads" como gasto sin cargar mientras el mail
+    // del cierre, con la regla corregida, no lo mencionaba.
     const obligatorios = expenses.filter(e => e.obligatorio);
-    const pendientes = obligatorios.filter(e => (e.amount || 0) === 0);
+    const pendientes = estado?.enCero || [];
     const pendientesCount = pendientes.length;
-    const completadosCount = obligatorios.length - pendientesCount;
-    const progress = obligatorios.length > 0 ? (completadosCount / obligatorios.length) * 100 : 0;
+    const completadosCount = estado ? estado.cargados : 0;
+    const totalObligatorios = estado ? estado.total : obligatorios.length;
+    const progress = totalObligatorios > 0 ? (completadosCount / totalObligatorios) * 100 : 0;
     const ilegibles = estado?.ilegibles || [];
     const desactualizados = estado?.desactualizados || [];
     
@@ -324,11 +330,11 @@ export default function GastosPage() {
                         </button>
                     </div>
 
-                    {obligatorios.length > 0 && (
+                    {totalObligatorios > 0 && (
                         <div className="mt-4">
                             <div className="flex justify-between items-center mb-1.5">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Gastos fijos cargados</span>
-                                <span className="text-[10px] font-black text-primary">{completadosCount}/{obligatorios.length} Cargados</span>
+                                <span className="text-[10px] font-black text-primary">{completadosCount}/{totalObligatorios} Cargados</span>
                             </div>
                             <div className="h-1.5 w-full bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
                                 <div 
@@ -407,7 +413,7 @@ export default function GastosPage() {
                         <div>
                             <p className="text-sm font-black text-amber-700 dark:text-amber-400">Alerta de carga</p>
                             <p className="text-xs font-medium text-amber-600 dark:text-amber-300">
-                                Ya pasamos el día 10 y {pendientesCount === 1 ? 'queda 1 gasto fijo' : `quedan ${pendientesCount} gastos fijos`} en $0: {pendientes.slice(0, 4).map(e => e.name).join(', ')}{pendientes.length > 4 ? ` y ${pendientes.length - 4} más` : ''}.
+                                Ya pasamos el día 10 y {pendientesCount === 1 ? 'queda 1 gasto fijo' : `quedan ${pendientesCount} gastos fijos`} en $0: {pendientes.slice(0, 4).join(', ')}{pendientes.length > 4 ? ` y ${pendientes.length - 4} más` : ''}.
                             </p>
                         </div>
                     </div>
