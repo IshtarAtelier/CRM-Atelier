@@ -20,9 +20,19 @@
  * descripción de la herramienta que la llama los nombre. No prueba que el
  * modelo obedezca; prueba que al menos se le haya DICHO.
  */
-import { readFileSync } from 'node:fs';
-import { readdirSync, statSync } from 'node:fs';
+import { readFileSync as leerCrudo } from 'node:fs';
 import { join } from 'node:path';
+
+/**
+ * Leer normalizando los finales de línea.
+ *
+ * El repo se clona con `core.autocrlf` activo: en un checkout limpio (CI, un
+ * worktree nuevo) los archivos vienen con CRLF aunque en la copia de trabajo se
+ * vean con LF. Un patrón que termine en `",\n` no matchea `",\r\n`, y el check
+ * pasa en la máquina de quien lo escribió y falla en CI diciendo cualquier cosa
+ * — exactamente lo que pasó la primera vez que se subió este archivo.
+ */
+const readFileSync = (ruta, enc = 'utf8') => leerCrudo(ruta, enc).replace(/\r\n/g, '\n');
 
 const RAIZ = new URL('../../', import.meta.url).pathname;
 const fallas = [];
