@@ -59,12 +59,58 @@ export async function GET(req: NextRequest) {
         const v = parseFloat(searchParams.get(k) || '');
         return Number.isFinite(v) ? v : null;
     };
-    const receta = { odEsf: nOpt('odEsf'), oiEsf: nOpt('oiEsf'), odCil: nOpt('odCil'), oiCil: nOpt('oiCil') };
+    let receta = { odEsf: nOpt('odEsf'), oiEsf: nOpt('oiEsf'), odCil: nOpt('odCil'), oiCil: nOpt('oiCil') };
+    const clientIdConsulta = searchParams.get('clientId') || null;
     // La graduación se deduce de la receta si vino; si no, del parámetro suelto
     // (compatibilidad). Es la esfera más alta en valor absoluto.
+    const esCristal = !!category && CATEGORIAS_DE_CRISTAL.includes(category);
+
+    // ── 🔒 CANDADO: sin receta no se cotizan cristales ──────────────────────
+    //
+    // Regla de negocio de Ishtar: "un presupuesto de cristales SIEMPRE sale de
+    // una receta". Estuvo escrita en el prompt del bot desde el 9/9/2026 y el
+    // 10/9 a las 06:55 el bot igual le cotizó monofocales Y multifocales a una
+    // clienta cuya receta NO había podido leer — lo dijo él mismo en el
+    // mensaje: "tu receta está pendiente de lectura". Una instrucción en el
+    // prompt es una sugerencia fuerte; esto es un candado.
+    //
+    // La receta se lee ACÁ, de la base, y no de lo que mande el modelo: si
+    // dependiera de que el bot pase los números, bastaría con que no los pase
+    // (o los invente) para saltear el control. Los parámetros sueltos
+    // (odEsf/oiEsf) quedan como respaldo para llamadas sin ficha.
+    if (esCristal) {
+        if (clientIdConsulta) {
+            const rx = await prisma.prescription.findFirst({
+                where: { clientId: clientIdConsulta },
+                orderBy: { date: 'desc' },
+                select: { sphereOD: true, sphereOI: true, cylinderOD: true, cylinderOI: true },
+            }).catch(() => null);
+            if (rx) {
+                receta = { odEsf: rx.sphereOD, oiEsf: rx.sphereOI, odCil: rx.cylinderOD, oiCil: rx.cylinderOI };
+            }
+        }
+        if (!tieneGraduacion(receta)) {
+            return NextResponse.json([{
+                id: 'SIN_RECETA',
+                source: 'SERVICE',
+                name: 'NO HAY RECETA: NO SE PUEDEN COTIZAR CRISTALES',
+                category: 'SYSTEM',
+                priceCash: 0, priceCredit: 0, creditMonths: 6, cuota6: 0, cuota12: 0, total12: 0,
+                notes: '🔴 NO tenés la receta de esta persona, así que NO HAY PRECIOS DE CRISTALES para darle. ' +
+                    'No inventes, no des "una idea", no ofrezcas monofocales y multifocales "para que compare", y NO digas que la receta está pendiente de lectura. ' +
+                    'Lo que SÍ podés hacer: pedirle la receta (o la foto) para armarle el presupuesto exacto; hablar de precios de ARMAZONES, que sí podés consultar; ' +
+                    'y contarle que si no tiene la receta a mano puede traer los anteojos que usa y se los medimos en el local, o coordinar un turno y le medimos la graduación sin cargo con su compra. ' +
+                    'Si ya te mandó la foto y no pudiste leerla, NO se lo menciones: pedile ayuda al equipo con \'pedir_ayuda\' y seguí la charla sin dar precios de cristales.',
+            }]);
+        }
+    }
+
+    // La graduación se calcula DESPUÉS del candado, porque recién ahí `receta`
+    // tiene los valores de la base. Calcularla antes daba 0 cuando el bot no
+    // mandaba los números a mano, y el filtro de tallados no se aplicaba nunca
+    // en el caso más común: el cliente ya tiene su receta cargada en la ficha.
     const graduacionDeLaReceta = Math.max(Math.abs(receta.odEsf ?? 0), Math.abs(receta.oiEsf ?? 0));
     const graduacion = graduacionDeLaReceta || parseFloat(searchParams.get('graduacion') || '');
-    const esCristal = !!category && CATEGORIAS_DE_CRISTAL.includes(category);
     const altaGraduacion = esGraduacionAlta(graduacion) && esCristal;
 
     // ── Fuente 1: Productos del inventario ──────────────────────────────────
