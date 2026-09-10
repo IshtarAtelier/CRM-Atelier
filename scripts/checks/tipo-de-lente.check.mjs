@@ -23,6 +23,7 @@
 import { readFileSync } from 'node:fs';
 import { tipoDeRecetaSegunNumeros, tipoDeRecetaConDefault } from '../../src/lib/receta/tipo-de-lente.ts';
 import { cubreLaReceta, parsearRango } from '../../src/lib/receta/rango-de-cristal.ts';
+import { classifyLead } from '../../src/lib/leads-pipeline.ts';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -134,6 +135,41 @@ const casosRango = [
 ];
 for (const [nombre, real, esperado] of casosRango) {
     real === esperado ? ok(`${nombre}`) : mal(`${nombre} → ${real}, esperado ${esperado}`);
+}
+
+// ── 6. La tarjeta no dice "Sin contactar" si alguien le escribió ─────────────
+// Medido el 9/9/2026: 194 de 339 leads con presupuesto figuraban "Sin
+// contactar" y una PERSONA les había escrito. La única prueba de contacto era
+// la etiqueta que deja una PLANTILLA, pero dentro de la ventana de 24 h el
+// equipo contesta con texto libre. El tablero le mentía al equipo sobre su
+// propio trabajo. Son DOS preguntas distintas y hay que mantenerlas separadas:
+// `contactado` (¿le hablaron?) y `escalonCubierto` (¿el toque de hoy está hecho?).
+console.log('\n6. "Sin contactar" solo cuando de verdad nadie le habló');
+const D = 86400000, ahora = Date.now(), haceDias = (d) => new Date(ahora - d * D);
+const baseLead = { hasPrescription: false, chatLabels: [], tagNames: [], now: ahora };
+const casosEmbudo = [
+    ['le escribieron hace 2 días: NO es "sin contactar"',
+     classifyLead({ ...baseLead, quoteCreatedAt: haceDias(6), ultimoMensajeHumano: haceDias(2) }),
+     { contactado: true, escalonCubierto: false }],
+    ['…y el toque de hoy sigue marcado como pendiente', null, null],
+    ['nadie le escribió nunca: sí es "sin contactar"',
+     classifyLead({ ...baseLead, quoteCreatedAt: haceDias(6) }),
+     { contactado: false, escalonCubierto: false }],
+    ['un mensaje ANTERIOR al presupuesto no cuenta',
+     classifyLead({ ...baseLead, quoteCreatedAt: haceDias(3), ultimoMensajeHumano: haceDias(9) }),
+     { contactado: false, escalonCubierto: false }],
+    ['el mensaje humano cubre el escalón vigente ese día',
+     classifyLead({ ...baseLead, quoteCreatedAt: haceDias(3), ultimoMensajeHumano: haceDias(0.2) }),
+     { contactado: true, escalonCubierto: true }],
+    ['la plantilla enviada sigue contando como siempre',
+     classifyLead({ ...baseLead, quoteCreatedAt: haceDias(3), chatLabels: ['SEGUIMIENTO_DIA_1'] }),
+     { contactado: true, escalonCubierto: true }],
+];
+for (const [nombre, real, esperado] of casosEmbudo) {
+    if (!real) { ok(nombre); continue; }
+    real.contactado === esperado.contactado && real.escalonCubierto === esperado.escalonCubierto
+        ? ok(`${nombre}`)
+        : mal(`${nombre} → contactado:${real.contactado} escalón:${real.escalonCubierto}, esperado ${JSON.stringify(esperado)}`);
 }
 
 console.log('');
