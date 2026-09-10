@@ -305,7 +305,7 @@ async function formatClientData(clientData, userPhone, userName, chatId, chatSum
       const adicionDeLaReceta = p.addition ?? p.additionOD ?? p.additionOI ?? null;
       const tipoReal = p.prescriptionType === 'NEAR'
         ? 'Monofocal de cerca'
-        : interesSegunReceta(null, adicionDeLaReceta);
+        : interesSegunReceta(null, adicionDeLaReceta, p);
       text += `\n${rotulo}: Tipo: ${tipoReal}`;
       text += `\n- OD (Ojo Derecho): Esf ${p.sphereOD ?? 0}, Cil ${p.cylinderOD ?? 0}, Eje ${p.axisOD ?? 0}, DIP ${p.distanceOD ?? dip ?? '-'}`;
       text += `\n- OI (Ojo Izquierdo): Esf ${p.sphereOI ?? 0}, Cil ${p.cylinderOI ?? 0}, Eje ${p.axisOI ?? 0}, DIP ${p.distanceOI ?? dip ?? '-'}`;

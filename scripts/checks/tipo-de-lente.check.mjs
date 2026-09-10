@@ -45,6 +45,15 @@ const casos = [
     ['A.V. 20/25 leída como adición', tipoDeRecetaSegunNumeros({ add: 20 }, 'Multifocal'), 'FAR'],
     ['A.V. en decimales (1.0)', tipoDeRecetaSegunNumeros({ add: 1.0 }) === 'ADDITION' ? 'ADDITION' : 'FAR', 'ADDITION'],
     ['adición fuera de rango (15)', tipoDeRecetaSegunNumeros({ add: 15 }), 'FAR'],
+    // Las DOS formas válidas de escribir una receta multifocal (regla de
+    // Ishtar, 9/9/2026): "Lejos" + columna Add, o "Lejos" y "Cerca" con su
+    // graduación cada una. La segunda no tiene columna Add: la adición es la
+    // diferencia, y sin esto esa receta se leía como monofocal.
+    ['add baja +0.75 (presbicia inicial)', tipoDeRecetaSegunNumeros({ add: 0.75 }), 'ADDITION'],
+    ['Lejos -2.00 y Cerca +0.50, sin columna Add', tipoDeRecetaSegunNumeros({ sphereOD: -2, nearSphereOD: 0.5 }), 'ADDITION'],
+    ['Lejos -6 y Cerca -4.75, sin columna Add', tipoDeRecetaSegunNumeros({ sphereOD: -6, nearSphereOD: -4.75 }), 'ADDITION'],
+    ['Cerca igual a Lejos: no hay adición', tipoDeRecetaSegunNumeros({ sphereOD: -2, nearSphereOD: -2 }), 'FAR'],
+    ['diferencia absurda entre lejos y cerca', tipoDeRecetaSegunNumeros({ sphereOD: -2, nearSphereOD: 8 }), 'FAR'],
     ['receta de cerca se respeta', tipoDeRecetaSegunNumeros({}, 'NEAR'), 'NEAR'],
     ['sin dato explícito NO asume multifocal', tipoDeRecetaConDefault({}, undefined), 'FAR'],
     ['elección explícita de un óptico se respeta', tipoDeRecetaConDefault({}, 'ADDITION'), 'ADDITION'],
