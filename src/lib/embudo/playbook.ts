@@ -92,8 +92,13 @@ export interface ProximaAccion {
 
 export interface EntradaProximaAccion {
     stage: PipelineStageKey;
-    /** Resultado de classifyLead: la etapa vino por un envío real, no por el tiempo. */
-    contactado: boolean;
+    /**
+     * De classifyLead: ¿el escalón que toca hoy ya está hecho? NO es lo mismo
+     * que "lo contactaron": a alguien se le puede haber escrito el martes y
+     * deberle igual el toque de esta semana. Lo que decide si hay que mandar
+     * algo es esto, no el saludo del martes.
+     */
+    escalonCubierto: boolean;
     quoteCreatedAt: Date | null;
     /** Alta del lead: para la charla frenada sin presupuesto. */
     createdAt: Date;
@@ -179,7 +184,7 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
     }
 
     // Al día en la etapa actual: el reloj apunta al próximo escalón.
-    if (e.stage === 'cotizacionEnviada' || (e.contactado && e.stage !== 'seguimiento10dias')) {
+    if (e.stage === 'cotizacionEnviada' || (e.escalonCubierto && e.stage !== 'seguimiento10dias')) {
         const siguiente = e.stage === 'cotizacionEnviada' ? 'seguimiento1'
             : e.stage === 'seguimiento1' ? 'seguimiento2' : 'seguimiento10dias';
         const horas = VENCE_A_LAS_HORAS[siguiente];
@@ -192,7 +197,7 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
         };
     }
 
-    if (e.stage === 'seguimiento10dias' && e.contactado) {
+    if (e.stage === 'seguimiento10dias' && e.escalonCubierto) {
         return { tipo: 'decidir', etiqueta: 'Decidir: ganado o perdido', venceEn: vence(FRIO_HOURS), vencida: true };
     }
 

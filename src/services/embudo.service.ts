@@ -68,6 +68,33 @@ export const EmbudoService = {
     async tablero(now = Date.now()): Promise<Tablero> {
         const leads = await leadsCalificados();
 
+        // ── Último mensaje de una PERSONA por chat ──────────────────────────
+        // UNA sola consulta agrupada, no una por lead: con 339 leads eso serían
+        // 339 idas a la base cada vez que alguien abre el tablero (que además
+        // se refresca solo).
+        //
+        // Para qué: dentro de la ventana de 24 h el equipo contesta con texto
+        // libre, y eso no deja etiqueta. Sin este dato el tablero marcaba "Sin
+        // contactar" a 194 de 339 leads a los que sí les habían escrito.
+        // 'Bot' y 'Sistema Atelier' no cuentan: la pregunta es si una PERSONA
+        // se ocupó.
+        const chatIds = leads.map(l => l.whatsappChats[0]?.id).filter((x): x is string => !!x);
+        const ultimoHumanoPorChat = new Map<string, Date>();
+        if (chatIds.length > 0) {
+            const filas = await prisma.whatsAppMessage.groupBy({
+                by: ['chatId'],
+                where: {
+                    chatId: { in: chatIds },
+                    direction: 'OUTBOUND',
+                    senderName: { notIn: ['Bot', 'Sistema Atelier'] },
+                },
+                _max: { createdAt: true },
+            });
+            for (const f of filas) {
+                if (f._max.createdAt) ultimoHumanoPorChat.set(f.chatId, f._max.createdAt);
+            }
+        }
+
         const columns = {} as Record<PipelineStageKey, PipelineColumn>;
         for (const [key, cfg] of Object.entries(PIPELINE_COLUMNS)) {
             columns[key as PipelineStageKey] = { title: cfg.title, color: cfg.color, icon: cfg.icon, count: 0, totalAmount: 0, leads: [] };
@@ -81,11 +108,12 @@ export const EmbudoService = {
             const chat = lead.whatsappChats[0] ?? null;
             const chatLabels = chat?.chatLabels || [];
 
-            const { stage, contactado } = classifyLead({
+            const { stage, contactado, escalonCubierto } = classifyLead({
                 quoteCreatedAt: latestQuote?.createdAt ?? null,
                 hasPrescription: !!latestRx,
                 chatLabels,
                 tagNames: lead.tags.map(t => t.name),
+                ultimoMensajeHumano: chat ? ultimoHumanoPorChat.get(chat.id) ?? null : null,
                 now,
             });
 
@@ -95,7 +123,7 @@ export const EmbudoService = {
 
             const accion = proximaAccion({
                 stage,
-                contactado,
+                escalonCubierto,
                 hasPrescription: !!latestRx,
                 visitoElLocal,
                 quoteCreatedAt: latestQuote?.createdAt ?? null,
