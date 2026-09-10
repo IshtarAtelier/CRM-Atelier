@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
-import { leerGastosDelMes, calcularEstado } from '@/services/gastos.service';
+import { leerGastosDelMes } from '@/services/gastos.service';
 import { esAutomatico } from '@/lib/constants/gastos-fijos';
 
 export const dynamic = 'force-dynamic';
@@ -31,12 +31,11 @@ export async function GET(request: Request) {
         // POST /api/expenses/sincronizar y se pide aparte.
         const gastos = await leerGastosDelMes(m, y);
 
-        // ?estado=1 devuelve además cómo viene la carga del mes, para el
-        // cartel de la pantalla y para el cierre.
-        if (searchParams.get('estado')) {
-            return NextResponse.json({ gastos, estado: calcularEstado(gastos) });
-        }
-
+        // El estado de carga NO se responde acá. Necesita los avisos de las
+        // lecturas de Meta y Google, que solo existen cuando el mes se
+        // sincroniza: calculado sobre una lectura pura daba siempre
+        // "listoParaCerrar: true" aunque las plataformas estuvieran caídas.
+        // Vive en POST /api/expenses/sincronizar, junto a los gastos.
         return NextResponse.json(gastos);
     } catch (error: any) {
         console.error('Error fetching expenses:', error);
