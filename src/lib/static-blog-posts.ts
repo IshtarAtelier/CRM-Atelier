@@ -9,6 +9,14 @@ export interface StaticBlogPost {
 
 export const staticPosts: StaticBlogPost[] = [
   {
+    slug: 'stellest',
+    title: 'Lentes Stellest: qué son, cómo funcionan y qué esperar de verdad',
+    excerpt: 'Si el oftalmopediatra te nombró Stellest y saliste con la palabra anotada en un papel: qué tiene adentro ese cristal, de dónde sale el 67% y qué necesita para funcionar.',
+    date: '2026-09-09',
+    category: 'Control de miopía',
+    imageUrl: '/images/stellest/stellest-2.jpeg'
+  },
+  {
     slug: 'anteojos-obras-de-arte',
     title: 'Los anteojos son auténticas obras de arte: más de 100 procesos detrás de cada par',
     excerpt: 'Una familia de artistas, escultura y grabado, doce años de óptica contactóloga, diez de gerencia comercial y ópticas recorridas por el mundo. Ishtar Pissano cuenta cómo nació Atelier en un papelito escrito con su hermana.',

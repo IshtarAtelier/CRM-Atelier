@@ -21,12 +21,6 @@ export default function ControlMiopiaInfantilPage() {
             Control de Miopía Infantil en Córdoba: Todo sobre Lentes Stellest y MyoFix
           </h1>
           
-          <div className="bg-stone-200 p-6 rounded-md mb-10 border-l-4 border-[#c8a55c]">
-            <p className="text-sm md:text-base text-stone-800 m-0 font-medium leading-relaxed">
-              <strong>Aviso importante:</strong> En Atelier Óptica somos ópticos especialistas, no médicos. Nuestro rol es brindarte el mejor asesoramiento en cristales y armazones basándonos en tu receta previa. Si notás que tu hijo entrecierra los ojos o se acerca mucho a las pantallas, el paso fundamental es <strong>visitar a su oftalmopediatra de confianza</strong>. Solo un profesional de la salud visual puede diagnosticar y recetar la corrección adecuada. No realizamos medición de vista ni diagnósticos en nuestro local en el Cerro de las Rosas.
-            </p>
-          </div>
-
           <p className="text-lg text-stone-700 leading-relaxed mb-6">
             ¿Sabías que los casos de miopía en niños han aumentado drásticamente? El uso intensivo de pantallas y la falta de actividades al aire libre son los principales responsables. Sin embargo, la tecnología óptica avanzó a pasos agigantados. Hoy en día, no solo buscamos que los chicos vean bien, sino que contamos con cristales inteligentes diseñados para ralentizar la progresión de este defecto visual.
           </p>
@@ -98,6 +92,17 @@ export default function ControlMiopiaInfantilPage() {
               Consultar por WhatsApp
             </a>
           </div>
+
+          {/* La aclaración de que no somos médicos importa —y por eso sigue—,
+              pero abría la nota y era lo primero que leía un padre preocupado.
+              Ishtar, 9/9/2026: "no quiero que el blog empiece así". Va al pie,
+              donde cumple la misma función sin espantar la lectura. */}
+          <p className="text-xs text-stone-500 leading-relaxed mt-12 pt-6 border-t border-stone-200">
+            En Atelier Óptica somos ópticos especialistas, no médicos: asesoramos sobre cristales y
+            armazones a partir de la receta de tu oftalmopediatra. No hacemos medición de vista ni
+            diagnósticos. Si notás que tu hijo entrecierra los ojos o se acerca mucho a las pantallas,
+            el primer paso es su oftalmopediatra de confianza.
+          </p>
 
         </article>
       </main>
