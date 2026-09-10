@@ -318,7 +318,7 @@ function esArmazonOClipon(p) {
 /**
  * Tool: Get price list for bot quotes
  */
-async function getPriceList({ category, search, botRecommended, genero }) {
+async function getPriceList({ category, search, botRecommended, genero, graduacion }) {
     const params = {};
     const onlyRecommended = botRecommended !== undefined ? botRecommended : (search ? false : true);
     if (onlyRecommended === true || onlyRecommended === 'true') {
@@ -329,6 +329,12 @@ async function getPriceList({ category, search, botRecommended, genero }) {
     // Género de la PERSONA: las fotos de los armazones salen de acá, así que
     // sin esto un presupuesto le muestra monturas del género contrario.
     if (genero === 'HOMBRE' || genero === 'MUJER') params.genero = genero;
+    // Graduación de la receta (esfera más alta, valor absoluto). Con una
+    // graduación alta la ruta devuelve los TALLADOS (digital / CNC) en vez de
+    // cristales de stock, que a esa receta quedan gruesos e inusables.
+    // Ver src/lib/receta/graduacion.ts.
+    const grad = typeof graduacion === 'number' ? graduacion : parseFloat(graduacion);
+    if (Number.isFinite(grad) && grad !== 0) params.graduacion = String(Math.abs(grad));
     const response = await requestWithRetry(() =>
         apiClient.get(`${CRM_API_URL}/pricing`, { params })
     );

@@ -228,9 +228,9 @@ const checkExistingClientTool = new DynamicStructuredTool({
 });
 
 const getPriceListTool = new DynamicStructuredTool({
-    schema: z.object({ category: z.string().optional(), search: z.string().optional(), botRecommended: z.boolean().optional(), genero: z.enum(['HOMBRE', 'MUJER']).optional() }).catchall(z.any()),
+    schema: z.object({ category: z.string().optional(), search: z.string().optional(), botRecommended: z.boolean().optional(), genero: z.enum(['HOMBRE', 'MUJER']).optional(), graduacion: z.number().optional() }).catchall(z.any()),
     name: "get_price_list",
-    description: "Obtiene precios del catálogo. Usa JSON con 'category' (MONOFOCAL, MULTIFOCAL, CONTACTO, ARMAZON, CLIPON), 'search' (ej. 'clipon', 'prune') para buscar por nombre/marca/modelo, y 'botRecommended' (booleano opcional, por defecto es true si no hay search para mostrar productos estrella, y false si hay search para buscar en todo el catálogo). Sumá 'genero' ('HOMBRE' o 'MUJER') SOLO cuando el nombre de pila lo diga sin dudas: los armazones vienen con foto y sin esto le mostrás monturas del género contrario. Si el nombre es ambiguo o no lo tenés, no lo pases.",
+    description: "Obtiene precios del catálogo. Usa JSON con 'category' (MONOFOCAL, MULTIFOCAL, CONTACTO, ARMAZON, CLIPON), 'search' (ej. 'clipon', 'prune') para buscar por nombre/marca/modelo, y 'botRecommended' (booleano opcional, por defecto es true si no hay search para mostrar productos estrella, y false si hay search para buscar en todo el catálogo). Sumá 'genero' ('HOMBRE' o 'MUJER') SOLO cuando el nombre de pila lo diga sin dudas: los armazones vienen con foto y sin esto le mostrás monturas del género contrario. Si el nombre es ambiguo o no lo tenés, no lo pases. ⚠️ Sumá SIEMPRE 'graduacion' (número) cuando ya leíste la receta: es la esfera MÁS ALTA de los dos ojos en valor absoluto (ej. si la receta dice OD -7.50 y OI -8.00, mandá 8). Con graduación alta el sistema te devuelve los cristales TALLADOS (digital y CNC), que son los que resuelven bien esa receta; sin ese dato te devuelve cristales de stock que a esa graduación quedan gruesos e inusables.",
     func: safeToolRun(async (input) => await getPriceList(safeParse(input, "get_price_list"))),
 });
 

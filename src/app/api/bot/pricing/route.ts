@@ -4,6 +4,7 @@ import { STORE_ORIGIN } from '@/lib/constants';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { getWebSettings } from '@/lib/web-settings';
 import { PricingService } from '@/services/PricingService';
+import { esGraduacionAlta, CATEGORIAS_DE_CRISTAL, PALABRAS_DE_TALLADO, GRADUACION_ALTA } from '@/lib/receta/graduacion';
 
 /**
  * La foto se entrega vía /api/store/product-image, que la convierte a JPEG: el
@@ -46,11 +47,29 @@ export async function GET(req: NextRequest) {
     // Género de la PERSONA que consulta (lo deduce el bot del nombre de pila).
     // 'HOMBRE' | 'MUJER'. Si no viene, no se filtra nada.
     const genero = searchParams.get('genero')?.toUpperCase();
+    // Graduación de la receta (esfera más alta, valor absoluto). La manda el bot
+    // cuando ya leyó la receta. Ver más abajo por qué cambia lo que se ofrece.
+    const graduacion = parseFloat(searchParams.get('graduacion') || '');
+    const esCristal = !!category && CATEGORIAS_DE_CRISTAL.includes(category);
+    const altaGraduacion = esGraduacionAlta(graduacion) && esCristal;
 
     // ── Fuente 1: Productos del inventario ──────────────────────────────────
     const productWhere: any = {};
     if (onlyBotRecommended || !search) {
         productWhere.botRecommended = true;
+    }
+    // GRADUACIÓN ALTA: las opciones salen de los TALLADOS (digital / CNC), que
+    // se calculan para esa receta y vienen en índices altos. Un cristal de
+    // stock 1.49 a -8 queda grueso e inusable.
+    //
+    // Y se SACA el filtro de recomendados a propósito: de los 6 productos
+    // marcados no hay ni un tallado (son 4 multifocales caros, 1 bifocal y 1
+    // monofocal básico), así que con ese filtro puesto el bot no podía ofrecer
+    // un tallado ni queriendo. Esa desproporción —1 monofocal contra 4
+    // multifocales— es la razón mecánica por la que todo terminaba en un
+    // presupuesto de multifocal. Ver src/lib/receta/graduacion.ts.
+    if (altaGraduacion) {
+        delete productWhere.botRecommended;
     }
 
     // ── Categoría y búsqueda se combinan con AND, nunca uno u otro ──────────
@@ -82,6 +101,12 @@ export async function GET(req: NextRequest) {
             const fragmento = FRAGMENTO_POR_CATEGORIA[category] || category;
             filtros.push({ type: { contains: fragmento, mode: 'insensitive' } });
         }
+    }
+
+    if (altaGraduacion) {
+        filtros.push({
+            OR: PALABRAS_DE_TALLADO.map(palabra => ({ name: { contains: palabra, mode: 'insensitive' as const } })),
+        });
     }
 
     if (search) {
