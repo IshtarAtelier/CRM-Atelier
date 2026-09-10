@@ -4,7 +4,8 @@ import { STORE_ORIGIN } from '@/lib/constants';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { getWebSettings } from '@/lib/web-settings';
 import { PricingService } from '@/services/PricingService';
-import { esGraduacionAlta, CATEGORIAS_DE_CRISTAL, PALABRAS_DE_TALLADO, GRADUACION_ALTA } from '@/lib/receta/graduacion';
+import { esGraduacionAlta, CATEGORIAS_DE_CRISTAL, PALABRAS_DE_TALLADO } from '@/lib/receta/graduacion';
+import { cubreLaReceta, tieneGraduacion, motivoDeDescarte } from '@/lib/receta/rango-de-cristal';
 
 /**
  * La foto se entrega vía /api/store/product-image, que la convierte a JPEG: el
@@ -49,7 +50,17 @@ export async function GET(req: NextRequest) {
     const genero = searchParams.get('genero')?.toUpperCase();
     // Graduación de la receta (esfera más alta, valor absoluto). La manda el bot
     // cuando ya leyó la receta. Ver más abajo por qué cambia lo que se ofrece.
-    const graduacion = parseFloat(searchParams.get('graduacion') || '');
+    // La receta, para cruzarla con el rango que cubre cada cristal. La manda el
+    // bot cuando ya la leyó. Ver src/lib/receta/rango-de-cristal.ts.
+    const nOpt = (k: string) => {
+        const v = parseFloat(searchParams.get(k) || '');
+        return Number.isFinite(v) ? v : null;
+    };
+    const receta = { odEsf: nOpt('odEsf'), oiEsf: nOpt('oiEsf'), odCil: nOpt('odCil'), oiCil: nOpt('oiCil') };
+    // La graduación se deduce de la receta si vino; si no, del parámetro suelto
+    // (compatibilidad). Es la esfera más alta en valor absoluto.
+    const graduacionDeLaReceta = Math.max(Math.abs(receta.odEsf ?? 0), Math.abs(receta.oiEsf ?? 0));
+    const graduacion = graduacionDeLaReceta || parseFloat(searchParams.get('graduacion') || '');
     const esCristal = !!category && CATEGORIAS_DE_CRISTAL.includes(category);
     const altaGraduacion = esGraduacionAlta(graduacion) && esCristal;
 
@@ -244,6 +255,27 @@ export async function GET(req: NextRequest) {
     // cambia en el panel, el bot y la web cambian juntos.
     const settings = await getWebSettings().catch(() => null);
     const descuentoContadoPct = settings?.web_promo_cash_discount ?? 15;
+
+    // ── Cruce con el RANGO que cubre cada cristal ───────────────────────────
+    // El rango va declarado en el nombre ("… · Esf -10/+8 Cil -6/6"). Ofrecer
+    // un cristal fuera de rango es cotizar algo que el laboratorio no puede
+    // fabricar: el presupuesto no vale nada y se descubre tarde. Solo se
+    // descarta lo que se sabe con certeza que no entra — un producto sin rango
+    // declarado (la mayoría) pasa igual.
+    if (tieneGraduacion(receta)) {
+        const antes = products.length;
+        const descartados: string[] = [];
+        products = products.filter(p => {
+            const nombre = `${p.brand ?? ''} ${p.name ?? ''}`.trim();
+            if (cubreLaReceta(p.name, receta) && cubreLaReceta(nombre, receta)) return true;
+            const motivo = motivoDeDescarte(p.name ?? '', receta) || motivoDeDescarte(nombre, receta);
+            descartados.push(`${p.name} (${motivo})`);
+            return false;
+        });
+        if (descartados.length) {
+            console.log(`[bot/pricing] ${descartados.length} de ${antes} cristales descartados por rango: ${descartados.slice(0, 3).join(' | ')}`);
+        }
+    }
 
     // Normalizar formato para el bot
     const productsMapped = products.map(p => {

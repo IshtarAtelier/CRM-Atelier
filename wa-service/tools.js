@@ -318,7 +318,7 @@ function esArmazonOClipon(p) {
 /**
  * Tool: Get price list for bot quotes
  */
-async function getPriceList({ category, search, botRecommended, genero, graduacion }) {
+async function getPriceList({ category, search, botRecommended, genero, graduacion, odEsf, oiEsf, odCil, oiCil }) {
     const params = {};
     const onlyRecommended = botRecommended !== undefined ? botRecommended : (search ? false : true);
     if (onlyRecommended === true || onlyRecommended === 'true') {
@@ -335,6 +335,12 @@ async function getPriceList({ category, search, botRecommended, genero, graduaci
     // Ver src/lib/receta/graduacion.ts.
     const grad = typeof graduacion === 'number' ? graduacion : parseFloat(graduacion);
     if (Number.isFinite(grad) && grad !== 0) params.graduacion = String(Math.abs(grad));
+    // La receta con SIGNO: el CRM cruza cada cristal contra el rango que declara
+    // en su nombre ("… · Esf -10/+8 Cil -6/6") y descarta los que no la cubren.
+    for (const [clave, valor] of Object.entries({ odEsf, oiEsf, odCil, oiCil })) {
+        const n = typeof valor === 'number' ? valor : parseFloat(valor);
+        if (Number.isFinite(n)) params[clave] = String(n);
+    }
     const response = await requestWithRetry(() =>
         apiClient.get(`${CRM_API_URL}/pricing`, { params })
     );
