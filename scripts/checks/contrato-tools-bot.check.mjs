@@ -54,6 +54,12 @@ const CONTRATO = [
     { tool: 'create_task', ruta: 'tasks/route.ts', metodo: 'POST' },
     { tool: 'add_interaction', ruta: 'interactions/route.ts', metodo: 'POST' },
     {
+        tool: 'agendar_turno', ruta: 'tasks/route.ts', metodo: 'POST',
+        // El turno se guarda como ClientTask: `description` la arma tools.js
+        // ("📅 TURNO <cuándo> — <motivo>") a partir de fechaHora y motivo.
+        derivados: ['description'],
+    },
+    {
         tool: 'send_quote_pdf', ruta: 'orders/[id]/send-pdf/route.ts', metodo: 'POST',
         // `formattedPhone` lo deriva tools.js del chatId (`chatId.split('@')[0]`)
         // a propósito: al modelo NUNCA se le pide un teléfono — es la regla que

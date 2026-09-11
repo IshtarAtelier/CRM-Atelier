@@ -173,17 +173,27 @@ export async function POST(request: Request) {
             }
         }
 
-        // Get an existing admin user to act as the SYSTEM creator
+        // `Order.userId` es obligatorio y con clave foránea, así que la orden
+        // del bot necesita un usuario real. Tiene que ser el usuario SISTEMA
+        // ("Asistente"), no un ADMIN: acá se buscaba primero `role: 'ADMIN'` y
+        // eso hacía que cada presupuesto del bot quedara a nombre de Ishtar —
+        // le sumaba a SUS estadísticas (`actividadDe` cuenta presupuestos por
+        // userId) y en el listado figuraba como hecho por ella. Regla de
+        // CLAUDE.md: lo que hace el bot se firma como Bot/Sistema, nunca como
+        // una persona. Revisión del 10/9/2026.
         let systemUser = await prisma.user.findFirst({
-            where: { role: 'ADMIN' },
-            orderBy: { createdAt: 'asc' }
+            where: { role: 'SISTEMA' },
+            orderBy: { createdAt: 'asc' },
         });
-
         if (!systemUser) {
-            systemUser = await prisma.user.findFirst();
+            console.error('[Bot Bridge Orders POST] No hay usuario con rol SISTEMA: el presupuesto queda a nombre del primer ADMIN. Crear el usuario "Asistente" (rol SISTEMA).');
+            systemUser = await prisma.user.findFirst({ where: { role: 'ADMIN' }, orderBy: { createdAt: 'asc' } })
+                ?? await prisma.user.findFirst();
         }
-
-        const fallbackUserId = systemUser ? systemUser.id : 'SYSTEM';
+        if (!systemUser) {
+            return NextResponse.json({ error: 'No hay ningún usuario en el sistema para firmar el presupuesto.' }, { status: 500 });
+        }
+        const fallbackUserId = systemUser.id;
 
         // DEDUPLICATION GATE: Check for duplicate order creation (double click) within last 10 seconds
         const tenSecondsAgo = new Date(Date.now() - 10000);
