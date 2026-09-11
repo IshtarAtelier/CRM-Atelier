@@ -3,7 +3,7 @@
  * mirando el listado de monofocales ítem por ítem:
  *   · Orgánico Blanco 1.49 ............................ ×4
  *   · Orgánico Blanco 1.49 · Rango Extendido .......... ×4
- *   · Mineral Blanco 1.523 · Esf -4/+4 ................ ×3
+ *   · Mineral Blanco 1.523 · Esf -4/+4 y -2/+2 ........ ×3 (el ±2 cuesta menos: si no, quedaba más caro que el ±4)
  *
  *   node scripts/maintenance/precios-grupo-optico/stock-markups-10-sep.mjs --produccion --aplicar
  */
@@ -17,6 +17,7 @@ const CAMBIOS = [
     ['Stock · Orgánico Blanco 1.49', 4],
     ['Stock · Orgánico Blanco 1.49 · Rango Extendido', 4],
     ['Stock · Mineral Blanco 1.523 · Esf -4/+4', 3],
+    ['Stock · Mineral Blanco 1.523 · Esf -2/+2', 3],
 ];
 const f = n => `$${Math.round(Number(n)).toLocaleString('es-AR')}`;
 
