@@ -5,7 +5,7 @@
  * los más vendidos no se les baja el precio. Por eso se mueven SOLO los que no
  * tienen ventas, y lo justo para ordenar la escalera:
  *
- *  · CNC Fotocromático Gris 1.56 y 1.60 (0 ventas, ×3) salían más baratos que
+ *  · CNC Fotocromático Gris 1.56 ESSENTIAL y 1.60 (0 ventas, ×3) salían más baratos que
  *    el CNC Polarizado ($264.000, 4 ventas), que cuesta menos. Suben apenas por
  *    encima de él, con el 1.56 (más caro al lab) arriba del 1.60.
  *  · MyoFix Super Blue 1.60 (0 ventas) salía $562 más caro que el MyoFix Blue
@@ -18,7 +18,10 @@ import { config } from 'dotenv';
 
 config();
 const CAMBIOS = [
-    ['Monofocal TALLADO (CNC) · Orgánico Fotocromático Gris 1.56', 264600],
+    // OJO: hay DOS Fotocromático Gris 1.56 CNC, el común y el Essential. La
+    // auditoría hablaba del Essential ($86.162 de costo). La primera versión de
+    // este script apuntó al común por nombre y lo subió de $212.463 a $264.600.
+    ['Monofocal TALLADO (CNC) · Orgánico Fotocromático Gris 1.56 · Essential', 264600],
     ['Monofocal TALLADO (CNC) · Orgánico Fotocromático Gris 1.60', 264300],
     ['Control miopía MyoFix · Orgánico Super Blue Light 1.60', 607500],
 ];
