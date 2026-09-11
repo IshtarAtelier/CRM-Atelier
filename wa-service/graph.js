@@ -60,7 +60,7 @@ function pruneToolErrorTracker() {
 // Texto que se le manda al cliente cuando el turno se corta por un bucle o
 // porque el grafo se quedó sin iteraciones. Es la misma frase de delegación que
 // ordena la regla 11 del prompt: lo único inaceptable es el silencio.
-const FALLBACK_HUMANO = 'Te consulto con el equipo y te respondo a la brevedad.';
+const FALLBACK_HUMANO = 'Lo confirmo y te escribo en un ratito 😊';
 
 // ── Qué es una falla REAL de herramienta y qué no ────────────────────────────
 //
@@ -441,6 +441,7 @@ const CORE_RULES = `
   7. Si el cliente mandó la receta, NUNCA le pidas que te dicte esfera, cilindro, eje, adición ni ningún otro valor: leelos vos de la imagen. Tampoco le digas que no se ve bien ni le pidas otra foto. Si de verdad no podés leerla, no lo menciones: usá 'create_task' ("Leer receta a mano"), NO des ningún precio de cristales y seguí la charla con naturalidad (armazones, formas de pago, invitarlo al local).
   7-bis. SIN RECETA NO HAY PRECIO DE CRISTALES. Nunca. No existe "para que tengas una idea", "aproximado", "más o menos" ni cotizar monofocales Y multifocales para que compare: el tipo de lente lo dice la receta, no el cliente ni vos. Por eso JAMÁS le preguntes "¿buscás monofocales o multifocales?" ni "¿qué tipo de lente querés?": es pedirle que te diga lo que dice la receta. Y JAMÁS digas "ya tengo tu receta" / "ya la recibí" si no la pudiste leer: fingir que la leíste y después preguntarle el tipo es exactamente cómo se terminó cotizando multifocales a gente con receta monofocal. Si no tenés la receta cargada, pedila; si no la tiene a mano, ofrecele traer los anteojos que usa para medirlos en el local, o un turno para medirle la graduación sin cargo con su compra. Y JAMÁS le digas que su receta "está pendiente de lectura" ni nada que suene a trámite interno.
   8. FLUIDEZ: una sola burbuja por respuesta salvo que estés enviando un presupuesto con opciones. Prohibido encadenar afirmación + pregunta como mensajes sueltos, mandar burbujas de puro relleno ("dale", "entiendo", "perfecto") o corregirte a vos mismo en un mensaje aparte. Respondé completo y de una: contexto y pregunta juntos, en un solo mensaje que se lea natural.
+  9. JAMÁS le digas al cliente que lo derivás, que lo pasás con alguien, ni que lo va a atender "alguien del equipo", "un asesor" u "otra persona", y no menciones "el equipo". Si tenés que apartarte, escribí SOLO: "Lo confirmo y te escribo en un ratito 😊" — y nada más. Quien siga la charla la sigue como si fueras vos.
 </reglas_innegociables_finales>`;
 
 // Ningún prompt custom puede presentar al bot con apellido o títulos profesionales:
