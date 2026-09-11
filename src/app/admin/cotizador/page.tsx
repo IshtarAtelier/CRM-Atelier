@@ -318,7 +318,7 @@ function CotizadorPageContent() {
                         // Restore pricing settings — fields are directly on the order object
                         setMarkup(quote.markup || 0);
                         setDiscountCash(quote.discountCash ?? DESCUENTO_EFECTIVO_POR_DEFECTO);
-                        setDiscountTransfer(quote.discountTransfer ?? 15);
+                        setDiscountTransfer(quote.discountTransfer ?? DESCUENTO_TRANSFERENCIA_POR_DEFECTO);
                         setDiscountCard(quote.discountCard ?? 0);
                         setSpecialDiscount(quote.specialDiscount ?? 0);
                         setEditingOrderData(quote);
@@ -925,7 +925,7 @@ function CotizadorPageContent() {
         // Restore all pricing settings — fields are on the order object directly (not in metadata)
         setMarkup(quote.markup || 0);
         setDiscountCash(quote.discountCash ?? DESCUENTO_EFECTIVO_POR_DEFECTO);
-        setDiscountTransfer(quote.discountTransfer ?? 15);
+        setDiscountTransfer(quote.discountTransfer ?? DESCUENTO_TRANSFERENCIA_POR_DEFECTO);
         setDiscountCard(quote.discountCard ?? 0);
         setSpecialDiscount(quote.specialDiscount ?? 0);
         setEditingOrderData(quote);
