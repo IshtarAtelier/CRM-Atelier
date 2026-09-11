@@ -72,6 +72,16 @@ export async function cerrarTareaDelEmbudo(clientId: string, completadaPor: stri
 }
 
 export async function sincronizarTareasDelDia(paraHoy: LeadDeHoy[]): Promise<ResultadoSync> {
+    // Migración sola, sin script a mano: las tareas del embudo de antes del
+    // 10/9/2026 nacieron `type: 'TASK'` y quedaban en la campanita del
+    // vendedor. Se pasan a EMBUDO en el lugar (mismo id, misma fecha) y el
+    // dedup de abajo las toma como vivas en vez de duplicarlas. Después del
+    // primer día es un no-op.
+    await prisma.clientTask.updateMany({
+        where: { type: 'TASK', status: 'PENDING', createdBy: CREADO_POR },
+        data: { type: TIPO_EMBUDO },
+    });
+
     const vivas = await prisma.clientTask.findMany({
         where: { type: TIPO_EMBUDO, status: 'PENDING', createdBy: CREADO_POR },
         select: { id: true, clientId: true, description: true },

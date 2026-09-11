@@ -24,7 +24,10 @@
 
 import { BUSINESS_INFO } from './business-info';
 
-export type FollowUpType = 'STALLED_FAVORITE' | 'PENDING_QUOTE' | 'ABANDONED_CART' | 'SIN_PRESUPUESTO';
+import type { TipoCierre } from './cierres/armado';
+
+/** Los mismos tipos que el panel de Cierres: una sola definición. */
+export type FollowUpType = TipoCierre;
 
 /** Cuál de los 3 seguimientos corresponde. */
 export type FollowUpTouch = 1 | 2 | 3;

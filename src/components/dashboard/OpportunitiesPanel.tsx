@@ -6,24 +6,11 @@ import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { buildFollowUpMessage } from '@/lib/whatsapp-followup';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import TelefonoCopiable from '@/components/ui/TelefonoCopiable';
+import type { Oportunidad } from '@/lib/cierres/armado';
 import Link from 'next/link';
 
-interface Opportunity {
-    id: string;
-    type: 'STALLED_FAVORITE' | 'PENDING_QUOTE' | 'ABANDONED_CART' | 'SIN_PRESUPUESTO';
-    title: string;
-    clientName: string;
-    clientId: string | null;
-    phone: string | null;
-    detail: string;
-    amount: number | null;
-    daysElapsed: number;
-    lastActivity: string;
-    /** Ticket alto / multifocal / miopía / graduación alta: "importante del mes". */
-    importante?: boolean;
-    /** Si una persona ya le escribió en los últimos días (solo llega en los importantes). */
-    yaEscrito?: { cuando: string; quien: string | null };
-}
+// El shape lo define el armado del panel (una sola definición, servidor y pantalla).
+type Opportunity = Oportunidad;
 
 /** "hoy", "ayer", "hace 3 días". */
 function haceCuanto(iso: string): string {

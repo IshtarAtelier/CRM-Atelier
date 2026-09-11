@@ -8,8 +8,8 @@
 // (ficha / teléfono / email), igual que la ruta.
 //
 // SOLO LEE. Corre contra OPORTUNIDADES_DB_URL o, si falta, DATABASE_URL.
-//   OPORTUNIDADES_DB_URL="$PROD_DATABASE_URL" node --env-file=.env \
-//     scripts/checks/cierres-volumen.check.mjs
+//   OPORTUNIDADES_DB_URL="$PROD_DATABASE_URL" node --env-file=.env --experimental-strip-types \
+//     --import ./scripts/checks/_alias.mjs scripts/checks/cierres-volumen.check.mjs
 // ────────────────────────────────────────────────────────────────────────────
 
 import { PrismaClient } from '@prisma/client';
@@ -109,24 +109,17 @@ for (const hasta of [7, 10, 14, 21, 30]) {
   fila('  C) B + sin presupuesto', v);
 }
 
-// ── La regla VIGENTE (src/lib/constants/cierres.ts): ventanas por tipo, y lo
-// común al que ya le escribió una persona en 5 días se esconde.
-const DIAS = { alto: 30, comun: 14, sin: 30, carrito: 30, escondida: 5 };
-const vigente = todas.filter((o) =>
-  o.tipo === 'sin presupuesto' ? o.dias <= DIAS.sin :
-  o.tipo === 'carrito' ? o.dias <= DIAS.carrito :
-  o.dias <= (o.alto ? DIAS.alto : DIAS.comun));
-const unicas = dedup(vigente);
-const ids = unicas.map((o) => o.cid).filter(Boolean);
-const escritos = new Set((await prisma.interaction.findMany({
-  where: { clientId: { in: ids }, type: 'FOLLOWUP', userId: { not: null }, createdAt: { gte: hace(DIAS.escondida) } },
-  select: { clientId: true },
-})).map((i) => i.clientId));
-const esc = unicas.filter((o) => o.cid && escritos.has(o.cid));
-console.log('\n── REGLA VIGENTE (por tipo)');
-fila('  en la ventana', vigente);
-console.log(`  de esas, ya les escribió alguien en ${DIAS.escondida} días: ${esc.length} (comunes que se esconden: ${esc.filter((o) => !o.alto).length} · importantes que quedan atenuados: ${esc.filter((o) => o.alto).length})`);
-console.log(`  → PARA ESCRIBIR HOY: ${unicas.length - esc.length}   (importantes: ${unicas.filter((o) => o.alto && !escritos.has(o.cid)).length})`);
+// ── La regla VIGENTE: el servicio REAL, no una copia. La copia que había acá
+// ya divergió una vez (heredó el bug de los carritos EMAIL_SENT) y daba
+// números para decidir que no eran los del panel. `oportunidades()` solo lee.
+process.env.DATABASE_URL = url;
+const { CierresService } = await import('../../src/services/cierres.service.ts');
+const panel = await CierresService.oportunidades();
+const porTipo = panel.reduce((a, o) => ((a[o.type] = (a[o.type] || 0) + 1), a), {});
+console.log('\n── REGLA VIGENTE (lo que muestra el panel hoy)');
+console.log(`  ${panel.length} tarjetas · ${JSON.stringify(porTipo)}`);
+console.log(`  importantes: ${panel.filter((o) => o.importante).length} (ya escritos, atenuados: ${panel.filter((o) => o.yaEscrito).length})`);
+console.log(`  → PARA ESCRIBIR HOY: ${panel.filter((o) => !o.yaEscrito).length}`);
 
 // Entrada diaria: cuántas tarjetas NUEVAS aparecen por día (lo que el vendedor
 // tiene que absorber cada mañana), promedio de las últimas 4 semanas.
@@ -140,3 +133,4 @@ console.log('\nFichas sin presupuesto (30 días), por origen:');
 for (const [f, n] of [...porFuente].sort((a, b) => b[1] - a[1]).slice(0, 10)) console.log(`  ${String(n).padStart(5)}  ${f}`);
 
 await prisma.$disconnect();
+process.exit(0);

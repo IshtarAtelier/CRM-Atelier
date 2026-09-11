@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { runRecoveryTouch, RECOVERY_STAGE, type RecoveryTouch } from '@/lib/checkout/recovery';
+import { ensureClientForAbandonedCart } from '@/services/cart-recovery.service';
 
 /**
  * Recuperación de carritos abandonados (tienda), multi-toque.
@@ -136,11 +137,26 @@ export async function GET(request: Request) {
     await procesar(tempranos, 'EARLY');
     await procesar(tardios, 'LATE');
 
+    // A las 24 h el carrito ya es "abandonado" y entra en Oportunidades de
+    // Cierre: se le asegura la ficha ACÁ. Antes la creaba el GET del panel —
+    // una escritura (y una carga de todas las fichas con teléfono) en una ruta
+    // que cada vendedor consulta cada 60 s. Idempotente: si ya tiene, no toca.
+    let fichas = 0;
+    for (const session of tardios) {
+      if (session.clientId) continue;
+      try {
+        if (await ensureClientForAbandonedCart(session)) fichas++;
+      } catch (err: any) {
+        console.error(`[Cron Abandoned Cart] No se pudo asegurar ficha para ${session.id}:`, err.message);
+      }
+    }
+
     const processed = tempranos.length + tardios.length;
     console.log(
       `[Cron Abandoned Cart] ${stats.early} recordatorios (1h), ${stats.late} emails (24h), ` +
       `${stats.skippedPurchased} omitidos (ya compró), ` +
-      `${stats.alreadyTouched} ya tocados, ${stats.sinCanal} sin canal, ${stats.failed} fallidos de ${processed}`
+      `${stats.alreadyTouched} ya tocados, ${stats.sinCanal} sin canal, ${stats.failed} fallidos de ${processed}, ` +
+      `${fichas} fichas nuevas para Cierres`
     );
 
     return NextResponse.json({

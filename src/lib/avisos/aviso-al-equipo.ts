@@ -15,11 +15,7 @@
  * el silencio. Falla a `console.error`, igual que `logAudit`.
  */
 
-import { prisma } from '@/lib/db';
 import { InternalMessagingService } from '@/services/internal-messaging.service';
-
-/** Los mismos roles que participan de la mensajería interna. */
-const ROLES_INTERNOS = ['ADMIN', 'STAFF'];
 
 export interface AvisoAlEquipo {
     /**
@@ -59,10 +55,9 @@ export interface AvisoAlEquipo {
  */
 export async function avisarAlEquipo(aviso: AvisoAlEquipo): Promise<number> {
     try {
-        const equipo = await prisma.user.findMany({
-            where: { role: { in: ROLES_INTERNOS } },
-            select: { id: true },
-        });
+        // Los mismos colaboradores que ve el selector de la mensajería: una sola
+        // definición de "el equipo" (antes estaba copiada acá).
+        const equipo = await InternalMessagingService.listarColaboradores();
         if (!equipo.length) {
             console.warn('[Aviso al equipo] No hay usuarios internos a quién avisar:', aviso.asunto);
             return 0;

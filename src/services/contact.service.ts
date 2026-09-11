@@ -3139,7 +3139,9 @@ export const ContactService = {
     async getAllPendingTasks() {
         return await prisma.clientTask.findMany({
             where: { status: 'PENDING', ...SOLO_DEL_VENDEDOR },
-            include: { client: true },
+            // Solo lo que usa la campanita (nombre y teléfono). Con `client: true`
+            // viajaba la ficha entera de cada cliente al navegador cada minuto.
+            include: { client: { select: { id: true, name: true, phone: true } } },
             orderBy: { dueDate: 'asc' }
         });
     },
@@ -3152,7 +3154,9 @@ export const ContactService = {
     async getAllPendingEmbudoTasks() {
         return await prisma.clientTask.findMany({
             where: { status: 'PENDING', ...SOLO_DEL_EMBUDO },
-            include: { client: true },
+            // Solo lo que muestra el panel: con `client: true` viajaba la ficha
+            // entera de ~400 clientes al navegador de cada vendedor, cada minuto.
+            include: { client: { select: { id: true, name: true, phone: true } } },
             orderBy: { dueDate: 'asc' }
         });
     },
