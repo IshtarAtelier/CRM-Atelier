@@ -42,7 +42,7 @@ const PROHIBIDO: { re: RegExp; regla: string; salvo?: RegExp }[] = [
         salvo: /(nunca|jam[aá]s|prohibido|no) (le )?(digas|decir|anunci)[^.]{0,60}(te paso con|derivo|alguien del equipo)/i,
     },
     {
-        re: /(ante (cualquier )?duda[^.]{0,40}(pregunt[aá]|consult[aá])[^.]{0,30}(mono|multi))|pregunt[aá]le?[^.]{0,40}(¿|si )?(busc[aá]s?|quer[eé]s?) (mono|multi)/i,
+        re: /(ante (cualquier )?duda[^.]{0,40}(pregunt[aá]|consult[aá])[^.]{0,30}(mono|multi))|(duda entre (mono|multi)[^.]{0,40}(pregunt[aá]|consult[aá]))|pregunt[aá]le?[^.]{0,40}(¿|si )?(busc[aá]s?|quer[eé]s?) (mono|multi)/i,
         regla: 'le ordena preguntar "¿monofocal o multifocal?". La gente no sabe qué necesita: el tipo lo dice la RECETA.',
         salvo: /(nunca|jam[aá]s|prohibido|no) (le )?pregunt[^.]{0,40}(mono|multi)/i,
     },
