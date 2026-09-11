@@ -11,6 +11,8 @@ import { resolveStorageUrl } from '@/lib/utils/storage';
 import Image from "next/image";
 import sanitizeHtml from 'sanitize-html';
 import { FAQSection } from '@/components/blog/FAQSection';
+import { YouTubeEmbed } from '@/components/blog/YouTubeEmbed';
+import { VIDEOS_POR_SLUG } from '@/lib/constants/videos-blog';
 import blogFaqs from '@/lib/blog-faqs.json';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 
@@ -1715,6 +1717,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             post.content
           )}
         </article>
+
+        {/* Reels educativos que le corresponden a esta nota — ver
+            src/lib/constants/videos-blog.ts, la única fuente. */}
+        {(VIDEOS_POR_SLUG[post.slug] || []).map((v) => (
+          <YouTubeEmbed key={v.id} videoId={v.id} titulo={v.titulo} />
+        ))}
 
         {/* Render FAQs */}
         {postFaqs && postFaqs.length > 0 && (

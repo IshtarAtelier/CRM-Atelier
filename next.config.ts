@@ -243,8 +243,13 @@ const nextConfig: NextConfig = {
     // antifraude de la pasarela corriendo a ciegas. Tercera vez que esta CSP
     // rompe una integración en silencio (Meta, Google Ads, y ahora pagos): el
     // host propio del proveedor va junto a los suyos que ya estaban permitidos.
+    // i.ytimg.com: cuarta vez que esta CSP rompe una integración en silencio
+    // (Meta, Google Ads, Payway, y ahora los videos de YouTube que se
+    // embeben en el blog — ver YouTubeEmbed.tsx). Sin esto, la miniatura del
+    // video no carga y solo se ve un cuadro vacío: "The action has been
+    // blocked" en consola, no un error visible en la página.
     const imgSrc =
-      "img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com https://www.google.com.ar https://h.online-metrix.net";
+      "img-src 'self' data: blob: https://kazwiniopticalgroup.com https://*.firebasestorage.googleapis.com https://firebasestorage.googleapis.com https://storage.googleapis.com https://promo.atelieroptica.com.ar https://lh3.googleusercontent.com https://i.ytimg.com https://www.facebook.com https://*.google-analytics.com https://www.googletagmanager.com https://stats.g.doubleclick.net https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com https://www.google.com.ar https://h.online-metrix.net";
     // script-src también se comparte entre las dos CSP: estaba duplicado y es
     // exactamente así como la activa se quedó atrás la vez anterior.
     const scriptSrc = (allowEval: boolean) =>
@@ -263,7 +268,11 @@ const nextConfig: NextConfig = {
       // promueva a activa cortaría la conversión de verdad. Se agrega ahora, con
       // la política todavía en modo reporte, que es cuando sale gratis.
       `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://mercados.ambito.com${waOrigins}`,
-      "frame-src 'self' https://maps.google.com https://www.google.com",
+      // youtube-nocookie.com: mismo motivo que i.ytimg.com en imgSrc — el
+      // iframe del video embebido en el blog. La activa ya permite cualquier
+      // origen (https://*), así que hoy esto solo evita que la Report-Only
+      // quede logueando una violación que en la práctica no bloquea nada.
+      "frame-src 'self' https://maps.google.com https://www.google.com https://www.youtube-nocookie.com",
       "media-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",
