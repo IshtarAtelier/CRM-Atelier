@@ -534,7 +534,7 @@ export async function register() {
         // ---- MOTOR DE SEGUIMIENTOS, una vez por hora ----
         // `/api/cron/seguimientos` manda solo los toques del embudo que el
         // playbook dice que tocan hoy. Diseño en docs/plan-motor-seguimientos.md.
-        // Arranca EN SECO (MODO_POR_DEFECTO): lista, no manda. El horario y el
+        // Modo real desde el 11/9/2026 (MODO_POR_DEFECTO en constants/seguimientos.ts). El horario y el
         // cupo los decide la ruta; acá solo se evita llamarla de madrugada.
         // Guard persistente de la hora: el motor LE ESCRIBE A CLIENTES, y con dos
         // instancias corriendo este archivo, la variable en memoria no alcanza.
