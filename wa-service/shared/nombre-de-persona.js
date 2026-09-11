@@ -30,6 +30,8 @@ function esNombreValido(nombre) {
     if (['contacto nuevo wa', 'contacto nuevo', 'cliente', 'desconocido', '-', 'sin nombre'].includes(generico)) return false;
 
     // "hola quiero info de multifocales" no es un nombre
+    // "anteojo de cerca" llegó como nombre de perfil (11/9/2026): lo que uno busca no es quién es.
+    if (/\b(anteojos?|lentes?|armaz[oó]n|multifocal(es)?|cerca|lejos|sol)\b/i.test(limpio)) return false;
     if (isPhrase(limpio)) return false;
 
     return true;
