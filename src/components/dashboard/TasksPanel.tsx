@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 import Link from 'next/link';
 
 import { WhatsAppIcon } from '@/components/ui/icons';
+import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 
 interface TasksPanelProps {
     tasks: any[];
@@ -145,31 +146,23 @@ export default function TasksPanel({ tasks, onClose }: TasksPanelProps) {
                                             }
                                             
                                             finalMessage = `Hola ${task.client.name.split(' ')[0]}, Te escribo para pedirte un favor enorme 🙏\n\nMe dejarias una reseña en Google? me ayuda muchísimo, si podés compartir cómo fue tu experiencia y qué fue lo que más te gustó de nuestra atención.\n\nSi podés, contá en la reseña qué te parecieron tus ${productNames}, ¡nos ayuda un montón! 🙌\n\n👉 https://g.page/r/CcVls8v7ic_NEBM/review\n\n\nMe suma muchísimo para seguir creciendo! Espero tu comentario 🤍✨🫶`;
-                                        } else {
-                                            try {
-                                                const res = await fetch('/api/sales-opportunities/generate-message', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({
-                                                        id: task.id,
-                                                        type: 'TASK',
-                                                        clientName: task.client.name.split(' ')[0],
-                                                        taskDescription: task.description
-                                                    })
-                                                });
-                                                if (res.ok) {
-                                                    const data = await res.json();
-                                                    if (data.message) {
-                                                        finalMessage = data.message;
-                                                    }
-                                                }
-                                            } catch (err) {
-                                                console.error('Error generating AI message for task', err);
-                                            }
                                         }
+                                        // Sin IA (10/9/2026): el texto lo redactaba Gemini, llamado
+                                        // directo desde una ruta y sin ninguna de las reglas que el
+                                        // negocio sí exige (nada de "12 cuotas sin interés", precios que
+                                        // salen de PricingService, nada que suene a bot). La tarea la
+                                        // programó el propio vendedor: sabe qué decir. Se abre el chat
+                                        // con el saludo y lo escribe él.
 
-                                        let phone = task.client.phone.replace(/\D/g, '');
-                                        if (phone.length === 10) phone = '549' + phone;
+                                        // Normalización completa (0 de área, "15" intercalado, +54 9).
+                                        // El recorte a mano de antes mandaba "0351 15 6998877" tal cual
+                                        // (13 dígitos) y abría un chat que no era el del cliente.
+                                        const phone = formatPhoneForWhatsApp(task.client.phone);
+                                        if (!phone || phone.length <= 3) {
+                                            btn.innerHTML = originalHTML;
+                                            btn.disabled = false;
+                                            return;
+                                        }
                                         window.location.href = `/admin/whatsapp?phone=${phone}&text=${encodeURIComponent(finalMessage)}`;
                                         onClose();
                                     }}

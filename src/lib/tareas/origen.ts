@@ -32,6 +32,9 @@
 
 import type { Prisma } from '@prisma/client';
 
+/** Los únicos estados que puede tener una tarea. */
+export const ESTADOS_DE_TAREA = ['PENDING', 'COMPLETED', 'CANCELLED'] as const;
+
 /** Las tareas del embudo llevan su propio tipo, fuera de la campanita. */
 export const TIPO_EMBUDO = 'EMBUDO';
 

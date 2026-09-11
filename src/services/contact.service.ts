@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import { SOLO_DEL_VENDEDOR, SOLO_DEL_EMBUDO, TIPO_EMBUDO } from '@/lib/tareas/origen';
+import { SOLO_DEL_VENDEDOR, SOLO_DEL_EMBUDO, TIPO_EMBUDO, ESTADOS_DE_TAREA } from '@/lib/tareas/origen';
 import { CashService } from './cash.service';
 import { ISH_POSNET_THRESHOLD, ISH_POSNET_METHODS, ATTENTION_CUTOFF_ISO, OVERPAYMENT_TOLERANCE, ADMIN_WHATSAPP_PHONE, CRM_ORIGIN } from '@/lib/constants';
 import { ReceiptAgentService } from './receipt-agent.service';
@@ -1444,7 +1444,18 @@ export const ContactService = {
         });
     },
 
+    /** ¿Esta tarea es de este cliente? La ruta de la ficha lo exige antes de tocarla. */
+    async tareaEsDelCliente(taskId: string, clientId: string): Promise<boolean> {
+        const t = await prisma.clientTask.findUnique({ where: { id: taskId }, select: { clientId: true } });
+        return t?.clientId === clientId;
+    },
+
     async updateTaskStatus(taskId: string, status: string, actor?: Actor) {
+        // Lista blanca: cualquier otro valor dejaba la tarea fuera de TODAS las
+        // vistas (ni pendiente ni cerrada) sin rastro de qué pasó.
+        if (!ESTADOS_DE_TAREA.includes(status as (typeof ESTADOS_DE_TAREA)[number])) {
+            throw new Error(`Estado de tarea inválido: ${status}`);
+        }
         // Obtener la tarea para saber qué se está finalizando
         const task = await prisma.clientTask.findUnique({
             where: { id: taskId }
