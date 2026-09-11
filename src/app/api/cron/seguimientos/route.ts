@@ -81,7 +81,11 @@ export async function GET(request: Request) {
     const chatIds = candidatos.map(c => c.waChatId).filter((x): x is string => !!x);
     const filas = chatIds.length ? await prisma.whatsAppChat.findMany({
         where: { id: { in: chatIds } },
-        select: { id: true, lastInboundAt: true, lastFollowUpAt: true, followUpPausedUntil: true },
+        select: {
+            id: true, lastInboundAt: true, lastFollowUpAt: true, followUpPausedUntil: true,
+            // El interruptor por persona: etiqueta del chat o de la ficha (politica.ts).
+            chatLabels: true, client: { select: { tags: { select: { name: true } } } },
+        },
     }) : [];
     // Último SALIENTE de cada chat (de quien sea): lo mira la compuerta de 48 h.
     const salientes = chatIds.length ? await prisma.whatsAppMessage.groupBy({
@@ -91,7 +95,11 @@ export async function GET(request: Request) {
     }) : [];
     const ultimoSaliente = new Map(salientes.map(s => [s.chatId, s._max.createdAt]));
     const chats = new Map<string, EstadoDelChat>(
-        filas.map(f => [f.id, { ...f, lastOutboundAt: ultimoSaliente.get(f.id) ?? null }]),
+        filas.map(f => [f.id, {
+            lastInboundAt: f.lastInboundAt, lastFollowUpAt: f.lastFollowUpAt, followUpPausedUntil: f.followUpPausedUntil,
+            lastOutboundAt: ultimoSaliente.get(f.id) ?? null,
+            chatLabels: f.chatLabels, tagNames: (f.client?.tags || []).map(t => t.name),
+        }]),
     );
 
     const seleccion = seleccionar({ candidatos, chats, ctx: { now }, cupo });

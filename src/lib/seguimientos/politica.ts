@@ -1,5 +1,6 @@
 import type { TemplateName } from '@/lib/whatsapp/templates';
 import { MOTOR_SEGUIMIENTOS_DESDE, PLANTILLAS_AUTOMATICAS, SILENCIO_MINIMO_HORAS } from '@/lib/constants/seguimientos';
+import { esNombreDePersona } from '@/lib/nombre-de-persona';
 
 /**
  * LAS COMPUERTAS del motor de seguimientos.
@@ -34,6 +35,22 @@ export interface EstadoDelChat {
     followUpPausedUntil: Date | null;
     /** Último mensaje SALIENTE del chat, de quien sea (persona, sistema o el motor). */
     lastOutboundAt: Date | null;
+    /** Etiquetas del chat (`SIN_SEGUIMIENTO` = lo apagaron desde el buzón). */
+    chatLabels?: string[];
+    /** Etiquetas de la ficha ("Sin Seguimiento", "no interesado" = lo apagaron desde la ficha). */
+    tagNames?: string[];
+}
+
+/** Etiquetas de ficha que apagan el seguimiento automático de esa persona. */
+export const TAGS_QUE_APAGAN_EL_SEGUIMIENTO = ['sin seguimiento', 'no interesado'] as const;
+export const LABEL_SIN_SEGUIMIENTO = 'SIN_SEGUIMIENTO';
+
+/** true si alguien apagó el seguimiento de esta persona, desde el chat o desde la ficha. */
+export function seguimientoApagado(chat: Pick<EstadoDelChat, 'chatLabels' | 'tagNames'> | null | undefined): string | null {
+    if (!chat) return null;
+    if ((chat.chatLabels || []).includes(LABEL_SIN_SEGUIMIENTO)) return 'seguimiento apagado desde el chat (Sin seguimiento)';
+    const tag = (chat.tagNames || []).find(t => TAGS_QUE_APAGAN_EL_SEGUIMIENTO.some(x => t.toLowerCase().includes(x)));
+    return tag ? `seguimiento apagado desde la ficha (etiqueta "${tag}")` : null;
 }
 
 export interface Contexto {
@@ -47,8 +64,8 @@ const HORA_MS = 3_600_000;
 /** Nombre de pila para la plantilla; sin él el mensaje diría "Hola Hola,". */
 export function nombreDePila(nombre: string | null | undefined): string | null {
     const pila = (nombre || '').trim().split(/\s+/)[0] || '';
-    // Un número, un "cliente" genérico o una sola letra no son un nombre.
-    if (pila.length < 2 || /\d/.test(pila) || /^(cliente|contacto|sin|s\/n)$/i.test(pila)) return null;
+    // Un número, un "cliente" genérico, una sola letra o puros emojis no son un nombre.
+    if (/\d/.test(pila) || !esNombreDePersona(pila)) return null;
     return pila.charAt(0).toUpperCase() + pila.slice(1).toLowerCase();
 }
 
@@ -66,6 +83,12 @@ export const COMPUERTAS: Compuerta[] = [
     (c) => (nombreDePila(c.nombre) ? null : 'sin nombre de pila para la plantilla'),
 
     (_c, chat) => (chat ? null : 'el chat no existe en la base'),
+
+    // Lo apagaron a mano: desde el buzón ("Sin seguimiento" en la cabecera del
+    // chat) o desde la ficha (etiqueta). Es EL interruptor por persona: el
+    // motor es 100 % automático salvo para quien lo tenga apagado
+    // (decisión de Ishtar, 11/9/2026).
+    (_c, chat) => seguimientoApagado(chat),
 
     // "Hablamos a fin de mes" y los SKIP de la compuerta de conversación.
     (_c, chat, ctx) => (chat!.followUpPausedUntil && chat!.followUpPausedUntil.getTime() > ctx.now
