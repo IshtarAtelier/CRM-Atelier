@@ -23,6 +23,7 @@ const { prisma } = require('../db');
 const { prefillAdTag, fallbackAdTag } = require('../shared/ad-tag');
 const { uploadMediaToCrm } = require('../shared/media');
 const { asegurarFichaDeLead } = require('./alta-de-ficha');
+const { deshacerSeguimientoFallido, PAUSA_DIAS } = require('../shared/seguimiento-fallido');
 const cloud = require('./cloud-api');
 
 const TYPE_MAP = {
@@ -387,12 +388,19 @@ async function persistStatus(s, { io } = {}) {
     if (row.chat?.clientId && !yaEraFailed) {
         const resumen = (row.content || '').replace(/\s+/g, ' ').slice(0, 90);
         const quien = row.senderName ? ` (lo mandó ${row.senderName})` : '';
+        // Si lo mandó el motor solo, se deshace el escalón y el motor se aparta
+        // de esta charla: sigue una persona (ver shared/seguimiento-fallido.js).
+        const deshecho = await deshacerSeguimientoFallido(prisma, { ...row, chatId: row.chatId })
+            .catch(e => { console.error('[Status] No se pudo deshacer el seguimiento automático:', e.message); return null; });
+        const sigueUnaPersona = deshecho
+            ? ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}) y el motor no le va a escribir por ${PAUSA_DIAS} días: le toca a una persona.`
+            : '';
         await prisma.interaction.create({
             data: {
                 clientId: row.chat.clientId,
                 type: 'ERROR',
                 userName: 'Sistema',
-                content: `⚠️ WhatsApp NO entregado — Meta lo rechazó: ${motivo}${quien}. Mensaje: "${resumen}"`,
+                content: `⚠️ WhatsApp NO entregado — Meta lo rechazó: ${motivo}${quien}. Mensaje: "${resumen}"${sigueUnaPersona}`,
             },
         }).catch(e => console.error('[Status] No se pudo anotar el rechazo en la ficha:', e.message));
         await prisma.clientTask.create({
@@ -401,7 +409,7 @@ async function persistStatus(s, { io } = {}) {
                 type: 'TASK',
                 status: 'PENDING',
                 createdBy: 'Sistema (WhatsApp)',
-                description: `⚠️ Un WhatsApp al cliente NO llegó (${conocido?.cuenta ? 'problema de la cuenta, no del cliente' : 'problema con este número'}): "${resumen}". ${conocido?.cuenta ? 'Cuando la cuenta esté arreglada, reenviarlo.' : 'Contactarlo por otro medio o revisar el número.'}`,
+                description: `⚠️ Un WhatsApp al cliente NO llegó (${conocido?.cuenta ? 'problema de la cuenta, no del cliente' : 'problema con este número'}): "${resumen}". ${conocido?.cuenta ? 'Cuando la cuenta esté arreglada, reenviarlo.' : 'Contactarlo por otro medio o revisar el número.'}${sigueUnaPersona}`,
             },
         }).catch(e => console.error('[Status] No se pudo crear la tarea del rechazo:', e.message));
     }
