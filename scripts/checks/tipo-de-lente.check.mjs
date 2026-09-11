@@ -172,6 +172,29 @@ for (const [nombre, real, esperado] of casosEmbudo) {
         : mal(`${nombre} → contactado:${real.contactado} escalón:${real.escalonCubierto}, esperado ${JSON.stringify(esperado)}`);
 }
 
+// ── 7. El bot VE las fotos (causa raíz del 10/9/2026) ────────────────────────
+// Las fotos de WhatsApp se guardan sin extensión y el servidor las sirve como
+// application/octet-stream. El bot descartaba todo lo que no dijera "image/" en
+// la cabecera: no vio NINGUNA receta desde el pase a la API oficial, e inventó
+// las que "guardó" (Maxi: real -7.50/-8.00, guardó -6/-5.50 con adición 2.5).
+console.log('\n7. El bot recibe las fotos aunque el servidor no diga "image/"');
+const { detectarTipoDeImagen } = require('../../wa-service/shared/tipo-de-imagen.js');
+const jpeg = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 0, 0x10, 0x4A, 0x46, 0x49, 0x46, 0, 1]);
+detectarTipoDeImagen(jpeg) === 'image/jpeg' ? ok('un JPEG se reconoce por sus bytes') : mal('no reconoce un JPEG por sus bytes');
+detectarTipoDeImagen(Buffer.from('<!DOCTYPE html><html>')) === null ? ok('un HTML no pasa por imagen') : mal('un HTML pasa por imagen');
+const botCloud = readFileSync(new URL('../../wa-service/bot-cloud.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+botCloud.includes("if (!mimeType.startsWith('image/')) return null;")
+    ? mal('bot-cloud.js volvió a filtrar la foto por la cabecera del servidor')
+    : ok('bot-cloud.js decide por los bytes, no por la cabecera');
+
+// ── 8. Nunca derivar (regla estricta de Ishtar, 10/9/2026) ───────────────────
+console.log('\n8. El bot nunca le dice al cliente que lo deriva');
+const { limpiarSalidaBot } = require('../../wa-service/shared/limpiar-salida-bot.js');
+for (const frase of ['Te paso con alguien del equipo que te va a responder a la brevedad 😊', 'Te derivo con un asesor.', 'Dejame que lo vea con el equipo y te confirmamos']) {
+    const sale = limpiarSalidaBot(frase).texto;
+    /deriv|alguien del equipo|con el equipo|asesor/i.test(sale) ? mal(`se escapa: "${frase}"`) : ok(`"${frase.slice(0, 40)}…" se reemplaza`);
+}
+
 console.log('');
 if (fallas.length) {
     console.error(`❌ ${fallas.length} problema(s). El tipo de lente lo decide la ADICIÓN, nunca una etiqueta ni un default.`);

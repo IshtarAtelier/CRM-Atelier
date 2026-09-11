@@ -31,6 +31,23 @@ const FRASES_DE_RELLENO = [
     'dejame revisar', 'aguardame un momento',
 ];
 
+/**
+ * DERIVACIÓN — regla estricta de Ishtar (10/9/2026): el bot NUNCA le dice al
+ * cliente que lo deriva, que lo pasa con alguien, ni que lo va a atender
+ * "alguien del equipo". Estaba en el prompt como EJEMPLO a copiar ("Te paso con
+ * alguien del equipo que te va a responder a la brevedad"). Una instrucción en
+ * el prompt no alcanza (lección del 10/9: el modelo la ignora cuando quiere),
+ * así que acá es un candado: la oración se reemplaza por la frase aprobada, que
+ * habla en primera persona y no anuncia ningún traspaso.
+ */
+const FRASES_DE_DERIVACION = [
+    /te deriv/i, /\bderiv(o|amos|arte|arlo|arla)\b/i,
+    /te paso (con|a) (alguien|una persona|otra persona|un compa|una compa|un asesor|una asesora|el equipo)/i,
+    /alguien del equipo/i, /\bcon el equipo\b/i, /\bdel equipo\b/i,
+    /te va(n)? a (atender|responder|contactar|escribir) (alguien|una persona|otra persona|un asesor|una asesora)/i,
+    /un (asesor|humano|agente|compañero|compa[ñn]ero) (te|va)/i,
+];
+const FRASE_EN_VEZ_DE_DERIVAR = 'Lo confirmo y te escribo en un ratito 😊';
 /** Marcadores que, si aparecen, se llevan la LÍNEA entera: lo que sigue es interno. */
 const MARCADORES_DE_LINEA = [
     /^\s*.{0,3}\[\s*INSTRUCCI[ÓO]N\s+INTERNA\s*\].*$/gim,
@@ -121,6 +138,19 @@ function limpiarSalidaBot(crudo) {
         TOKEN_INTERNO.lastIndex = 0;
         texto = texto.replace(TOKEN_INTERNO, '');
         quitado.push('placeholder del prompt');
+    }
+
+    // Derivación: se reemplaza la ORACIÓN por la frase aprobada, una sola vez.
+    let derivo = false;
+    for (const re of FRASES_DE_DERIVACION) {
+        if (!re.test(texto)) continue;
+        const global = new RegExp(`[^.!?\\n]*${re.source}[^.!?\\n]*[.!?]*`, 'gi');
+        texto = texto.replace(global, '');
+        derivo = true;
+    }
+    if (derivo) {
+        texto = texto.trim() ? `${texto.trim()}\n${FRASE_EN_VEZ_DE_DERIVAR}` : FRASE_EN_VEZ_DE_DERIVAR;
+        quitado.push('frase de derivación (reemplazada)');
     }
 
     // La autoidentificación se saca por ORACIÓN, antes que el relleno.

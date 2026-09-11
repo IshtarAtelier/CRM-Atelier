@@ -40,6 +40,7 @@ const { esConsulta } = require('./shared/tipos-entrantes');
 const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano } = require('./shared/remitentes');
 const { resolveWaMessageId } = require('./shared/message-id');
+const { detectarTipoDeImagen } = require('./shared/tipo-de-imagen');
 const { setSender } = require('./shared/sender');
 
 // Cuánto se espera antes de contestar, para juntar las burbujas que el cliente
@@ -312,11 +313,21 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             const base = (process.env.CRM_API_URL || '').replace(/\/api(\/bot)?$/, '');
             const url = /^https?:\/\//i.test(m.mediaUrl) ? m.mediaUrl : `${base}${m.mediaUrl}`;
             const r = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000, maxContentLength: 15 * 1024 * 1024 });
-            const mimeType = (r.headers['content-type'] || 'image/jpeg').split(';')[0].trim();
-            if (!mimeType.startsWith('image/')) return null;
+            // El tipo sale de los BYTES, no de la cabecera: las fotos de WhatsApp
+            // se guardan sin extensión y el servidor las sirve como
+            // application/octet-stream. Con el chequeo por cabecera el bot
+            // descartaba la foto y el modelo nunca veía la receta (ver
+            // shared/tipo-de-imagen.js). La cabecera queda como respaldo.
+            const buffer = Buffer.from(r.data);
+            const cabecera = (r.headers['content-type'] || '').split(';')[0].trim();
+            const mimeType = detectarTipoDeImagen(buffer) || (cabecera.startsWith('image/') ? cabecera : null);
+            if (!mimeType) {
+                console.warn(`  ⚠️ [BotCloud] ${m.waMessageId}: el archivo no es una imagen reconocible (cabecera "${cabecera}"). No se le muestra al modelo.`);
+                return null;
+            }
             return cachearMedia(chatId, {
                 waMessageId: m.waMessageId,
-                base64: Buffer.from(r.data).toString('base64'),
+                base64: buffer.toString('base64'),
                 mimeType,
                 timestamp: Date.now(),
             });
