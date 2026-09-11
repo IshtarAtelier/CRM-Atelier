@@ -208,6 +208,21 @@ validar({ add: -2.5 }).add === 2.5 ? ok('una adición leída con signo queda pos
 validar({ odEje: 200 }).odEje === null ? ok('un eje de 200° se descarta') : mal('pasó un eje de 200°');
 validar({ odEsf: 200 }).odEsf === null ? ok('una esfera de 200 (sin coma) se descarta, no se inventa') : mal('pasó una esfera de 200');
 validar({ dip: 20 }).dip === null ? ok('una DIP de 20 se descarta') : mal('pasó una DIP de 20');
+// Transposición a cilindro negativo (11/9: Julieta leída -4.00 +2.00 x92 → -2.00 -2.00 x2).
+const { dudaGrave } = require('../../wa-service/shared/leer-receta.js');
+const tj = validar({ odEsf: -3.25, odCil: 1.75, odEje: 71, oiEsf: -4, oiCil: 2, oiEje: 92 });
+tj.odEsf === -1.5 && tj.odCil === -1.75 && tj.odEje === 161 && tj.oiEsf === -2 && tj.oiCil === -2 && tj.oiEje === 2
+    ? ok('cilindro positivo → se transpone a negativo (misma receta, esfera real)')
+    : mal(`transposición mal: ${JSON.stringify(tj)}`);
+const tn = validar({ odEsf: null, odCil: 1, odEje: 90, odCercaEsf: 2 });
+tn.odEsf === 1 && tn.odCil === -1 && tn.odEje === 180 && tn.odCercaEsf === 3
+    ? ok('sin esfera con cilindro +1 x90 → +1.00 -1.00 x180, y la cerca se corre igual')
+    : mal(`transposición sin esfera mal: ${JSON.stringify(tn)}`);
+const tneg = validar({ odEsf: -2, odCil: -1.5, odEje: 10 });
+tneg.odEsf === -2 && tneg.odCil === -1.5 && tneg.odEje === 10 ? ok('cilindro negativo queda como está') : mal('tocó un cilindro negativo');
+dudaGrave('Signo de OI Esfera y Cilindro no visibles.') && dudaGrave('el eje del OD podría ser 15 o 45') && !dudaGrave('') && !dudaGrave('DIP no visible') && !dudaGrave('fecha ilegible, firma no se lee')
+    ? ok('una duda sobre un valor invalida la lectura; sobre DIP/fecha/firma no')
+    : mal('dudaGrave no distingue dudas de valores de dudas inocuas');
 
 // ── 10. Los candados siguen puestos ──────────────────────────────────────────
 console.log('\n10. Los candados del bot siguen en su lugar');
@@ -215,6 +230,41 @@ const pricing = readFileSync(new URL('../../src/app/api/bot/pricing/route.ts', i
 pricing.includes("id: 'SIN_RECETA'") ? ok('sin receta no hay precio de cristales') : mal('se sacó el candado de "sin receta"');
 pricing.includes("id: 'RECETA_MONOFOCAL'") ? ok('a una receta monofocal no se le dan multifocales') : mal('se sacó el candado de tipo');
 botCloud.includes('procesarRecetaDeLaFoto(') ? ok('el bot pasa cada foto por el lector dedicado') : mal('el bot ya no usa el lector dedicado');
+botCloud.includes('preleerFoto(fresh, msg)') && botCloud.includes('lecturasEnCurso.get(')
+    ? ok('la foto se empieza a leer al llegar, en paralelo al debounce, y el turno espera esa lectura')
+    : mal('la lectura de la foto volvió a arrancar recién en el turno (suma hasta 25 s de latencia)');
+// ── 11. La URL de la foto: clave pelada de la nube → /api/storage/view ────────
+// 11/9/2026: 717/717 fotos entrantes eran clave pelada y el bot armaba
+// `host + clave` (sin barra): un host inexistente. Nunca bajó una foto en prod.
+console.log('\n11. La URL para bajar la foto (espejo de resolveMediaUrl del CRM)');
+const { urlDelMedio, origenDelCrm } = require('../../wa-service/shared/url-del-medio.js');
+const { resolveMediaUrl } = await import('../../src/components/whatsapp/format.ts');
+const BASE = 'https://crm.test';
+for (const [guardado, esperado] of [
+    ['1789078202399_in_1789078202332', `${BASE}/api/storage/view?key=1789078202399_in_1789078202332`],
+    ['local://in_123.jpeg', `${BASE}/api/storage/view?key=in_123.jpeg`],
+    ['/uploads/foto.jpg', `${BASE}/uploads/foto.jpg`],
+    ['https://otro.host/x.jpg', 'https://otro.host/x.jpg'],
+]) {
+    const bot = urlDelMedio(guardado, BASE);
+    const ui = resolveMediaUrl(guardado);
+    const uiAbs = ui.startsWith('http') ? ui : `${BASE}${ui}`;
+    bot === esperado && uiAbs === esperado
+        ? ok(`«${guardado}» → ${esperado.replace(BASE, '')}`)
+        : mal(`«${guardado}»: bot=${bot} · ui=${uiAbs} · esperado=${esperado}`);
+}
+origenDelCrm('https://crm.test/api/bot') === BASE && origenDelCrm('https://crm.test/api/') === BASE
+    ? ok('CRM_API_URL con /api/bot, /api o barra final da el mismo origen')
+    : mal(`origenDelCrm: ${origenDelCrm('https://crm.test/api/bot')} · ${origenDelCrm('https://crm.test/api/')}`);
+botCloud.includes('urlDelMedio(m.mediaUrl)') ? ok('bot-cloud baja la foto con urlDelMedio') : mal('bot-cloud volvió a armar la URL a mano');
+!/`\$\{base\}\$\{m(sg)?\.mediaUrl\}`/.test(botCloud + readFileSync(new URL('../../wa-service/index.js', import.meta.url), 'utf8'))
+    ? ok('no queda ningún `base + mediaUrl` a mano en el bot')
+    : mal('queda un `base + mediaUrl` a mano (clave pelada → host inexistente)');
+
+const leerRecetaSrc = readFileSync(new URL('../../wa-service/shared/leer-receta.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+leerRecetaSrc.includes('MÁS DE UNA foto, son de la MISMA receta') && botCloud.includes('leerReceta({ imagenes })')
+    ? ok('varias fotos del mismo turno se leen JUNTAS (lejos en una, cerca en la otra)')
+    : mal('las fotos de un turno se leen de a una: una receta en dos fotos da dos recetas sueltas');
 const agentTools = readFileSync(new URL('../../wa-service/agent-tools.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 agentTools.includes("prisma.clientTask.findFirst({ where: { clientId, description: { contains: marcaFoto } }")
     ? ok('si el lector dijo "no legible", la tool no guarda lo que adivine el modelo')

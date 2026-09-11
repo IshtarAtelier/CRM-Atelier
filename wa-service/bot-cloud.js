@@ -41,7 +41,8 @@ const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano } = require('./shared/remitentes');
 const { resolveWaMessageId } = require('./shared/message-id');
 const { detectarTipoDeImagen } = require('./shared/tipo-de-imagen');
-const { leerReceta } = require('./shared/leer-receta');
+const { leerReceta, MAX_FOTOS_POR_LECTURA } = require('./shared/leer-receta');
+const { urlDelMedio } = require('./shared/url-del-medio');
 const { setSender } = require('./shared/sender');
 
 // Cuánto se espera antes de contestar, para juntar las burbujas que el cliente
@@ -239,8 +240,40 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         if (await tieneExclusion(fresh, msg)) return false;
 
         programarTurno(fresh, msg);
+        // La foto se empieza a leer YA, en paralelo a la espera del debounce:
+        // así la lectura (10-25 s) casi nunca suma latencia al turno.
+        if (String(msg.type || '').toLowerCase() === 'image') preleerFoto(fresh, msg);
         return true;
     }
+
+    /**
+     * Lecturas de recetas arrancadas apenas llegó la foto, por waMessageId.
+     * `procesarRecetaDeLaFoto` las espera en vez de volver a pedirlas. Cada
+     * entrada se va sola a los LECTURA_TTL_MS: si el turno se canceló (bot
+     * apagado durante el debounce) nadie la consume.
+     */
+    const lecturasEnCurso = new Map();
+    const fotosYaLeidas = new Set(); // fotos que ya pasaron por procesarRecetaDeLaFoto
+    const LECTURA_TTL_MS = 10 * 60 * 1000;
+    function preleerFoto(chat, msg) {
+        const id = msg && msg.wamid;
+        if (!id || lecturasEnCurso.has(id) || fotosYaLeidas.has(id)) return;
+        const lectura = (async () => {
+            // inbound.js ya bajó el medio y guardó el mensaje con su mediaUrl.
+            const fila = await prisma.whatsAppMessage.findUnique({ where: { waMessageId: id }, select: { mediaUrl: true } });
+            const img = fila && await obtenerImagenDelMensaje({ waMessageId: id, mediaUrl: fila.mediaUrl }, chat.id);
+            if (!img) return null;
+            const t0 = Date.now();
+            const r = await leerReceta({ base64: img.base64, mimeType: img.mimeType });
+            console.log(`  👓 [LeerReceta] ${id} (adelantada): ${describirLectura(r)} · ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+            return r;
+        })().catch(e => { console.error(`  ❌ [LeerReceta] adelantada ${id} falló:`, e.message); return null; });
+        lecturasEnCurso.set(id, lectura);
+        const t = setTimeout(() => lecturasEnCurso.delete(id), LECTURA_TTL_MS);
+        t.unref?.();
+    }
+
+    const describirLectura = (r) => `${r.esReceta ? (r.legible ? `receta ${r.tipo}` : 'receta NO legible') : 'no es receta'} · ${r.modelo || r.error || '—'}`;
 
     /**
      * Etiquetas que apagan el bot (de la ficha o del chat). Un mensaje que viene
@@ -311,8 +344,9 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
         if (!m.mediaUrl) return null;
         try {
             const axios = require('axios');
-            const base = (process.env.CRM_API_URL || '').replace(/\/api(\/bot)?$/, '');
-            const url = /^https?:\/\//i.test(m.mediaUrl) ? m.mediaUrl : `${base}${m.mediaUrl}`;
+            // La URL la arma shared/url-del-medio.js: con la clave pelada de la
+            // nube, `base + mediaUrl` apuntaba a un host inexistente.
+            const url = urlDelMedio(m.mediaUrl);
             const r = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000, maxContentLength: 15 * 1024 * 1024 });
             // El tipo sale de los BYTES, no de la cabecera: las fotos de WhatsApp
             // se guardan sin extensión y el servidor las sirve como
@@ -441,27 +475,36 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
     //
     // Idempotente: cada foto deja la marca [foto:<waMessageId>] en la receta
     // (o en la tarea) y no se vuelve a guardar, ni por acá ni por la tool.
-    const fotosYaLeidas = new Set();
     async function procesarRecetaDeLaFoto(chatId, recientes, freshChat) {
-        const foto = recientes.find(m => m.direction === 'INBOUND' && m.type === 'IMAGE');
-        if (!foto || !foto.waMessageId || fotosYaLeidas.has(foto.waMessageId)) return null;
-        fotosYaLeidas.add(foto.waMessageId);
-        // Solo la foto que llegó en ESTE turno (después de nuestra última respuesta).
+        // Solo las fotos que llegaron en ESTE turno (después de nuestra última
+        // respuesta), y se leen JUNTAS: una receta puede venir en dos fotos
+        // (lejos en una, cerca en la otra) y leída de a una parecía monofocal.
         const nuestra = recientes.find(m => m.direction === 'OUTBOUND');
-        if (nuestra && nuestra.createdAt > foto.createdAt) return null;
+        const fotos = recientes
+            .filter(m => m.direction === 'INBOUND' && m.type === 'IMAGE' && m.waMessageId && !fotosYaLeidas.has(m.waMessageId))
+            .filter(m => !nuestra || m.createdAt > nuestra.createdAt)
+            .slice(0, MAX_FOTOS_POR_LECTURA)
+            .reverse(); // cronológico: la primera foto suele ser la principal
+        if (!fotos.length) return null;
+        fotos.forEach(f => fotosYaLeidas.add(f.waMessageId));
 
-        const img = ((global.mediaCache || {})[chatId] || []).find(i => i.waMessageId === foto.waMessageId);
-        if (!img) return null;
+        const cache = (global.mediaCache || {})[chatId] || [];
+        const imagenes = fotos.map(f => cache.find(i => i.waMessageId === f.waMessageId)).filter(Boolean);
+        if (!imagenes.length) return null;
         const clientId = freshChat.clientId;
         if (!clientId) return null; // sin ficha no hay dónde guardarla (alta-de-ficha ya lo intentó)
-        const marca = `[foto:${foto.waMessageId}]`;
+        const marca = fotos.map(f => `[foto:${f.waMessageId}]`).join(' ');
 
-        const yaGuardada = await prisma.prescription.findFirst({ where: { clientId, notes: { contains: marca } }, select: { id: true } });
+        const yaGuardada = await prisma.prescription.findFirst({ where: { clientId, OR: fotos.map(f => ({ notes: { contains: `[foto:${f.waMessageId}]` } })) }, select: { id: true } });
         if (yaGuardada) return { guardada: true, yaEstaba: true };
 
         const t0 = Date.now();
-        const r = await leerReceta({ base64: img.base64, mimeType: img.mimeType });
-        console.log(`  👓 [LeerReceta] ${foto.waMessageId}: ${r.esReceta ? (r.legible ? `receta ${r.tipo}` : 'receta NO legible') : 'no es receta'} · ${r.modelo || r.error || '—'} · ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+        // Una sola foto: se usa la lectura que arrancó al llegar (ver preleerFoto).
+        // Varias: se leen juntas, aunque cada una tenga su lectura adelantada.
+        const adelantada = fotos.length === 1 ? lecturasEnCurso.get(fotos[0].waMessageId) : null;
+        const r = (adelantada && await adelantada) || await leerReceta({ imagenes });
+        fotos.forEach(f => lecturasEnCurso.delete(f.waMessageId));
+        console.log(`  👓 [LeerReceta] ${marca}: ${describirLectura(r)} · ${adelantada ? 'esperada' : 'leída ahora'} en ${((Date.now() - t0) / 1000).toFixed(1)}s`);
         if (!r.esReceta) return null;
 
         if (!r.legible) {
@@ -477,13 +520,14 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
 
         const v = r.valores;
         const { savePrescription } = require('./tools');
+        const principal = imagenes[0];
         await savePrescription({
             clientId, tipoDeLente: r.tipo,
             odEsf: v.odEsf, odCil: v.odCil, odEje: v.odEje,
             oiEsf: v.oiEsf, oiCil: v.oiCil, oiEje: v.oiEje,
             add: v.add, odDip: v.dip, nearSphereOD: v.odCercaEsf, nearSphereOI: v.oiCercaEsf,
-            notes: `Leída por el sistema de la foto de WhatsApp (${r.modelo})${r.dudas ? `. Dudas: ${r.dudas}` : ''} ${marca}`,
-            imageBase64: img.base64, imageMimeType: img.mimeType,
+            notes: `Leída por el sistema de ${fotos.length > 1 ? `${fotos.length} fotos` : 'la foto'} de WhatsApp (${r.modelo})${r.dudas ? `. Dudas: ${r.dudas}` : ''} ${marca}`,
+            imageBase64: principal.base64, imageMimeType: principal.mimeType,
         });
         return { guardada: true };
     }
