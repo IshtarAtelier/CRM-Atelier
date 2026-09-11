@@ -4,10 +4,10 @@
   "theme": "dark",
   "pilar": "producto",
   "fuente": "base",
-  "generadoEl": "2026-09-04",
+  "generadoEl": "2026-09-11",
   "generadoDesde": "produccion",
   "images_waived": "Carrusel de catálogo: cada slide es un armazón y su foto es el producto, no un fondo.",
-  "generado": "2026-09-04",
+  "generado": "2026-09-11",
   "slides": [
     {
       "type": "cover",
@@ -27,7 +27,7 @@
     {
       "type": "number",
       "image": "catalogo-social/armazon-receta-atelier-athena-91501-c6.jpg",
-      "title": "Athena · Cápsula escarlata",
+      "title": "Athena · Cápsula Escarlata",
       "dato": "$26.667",
       "body": "12 cuotas fijas de $14.667\n6 cuotas sin interés\nTransferencia 15% OFF: $136.000"
     },

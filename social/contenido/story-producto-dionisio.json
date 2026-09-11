@@ -4,7 +4,7 @@
   "theme": "dark",
   "pilar": "producto",
   "fuente": "base",
-  "generadoEl": "2026-09-04",
+  "generadoEl": "2026-09-11",
   "generadoDesde": "produccion",
   "temas": [
     "armazones"
@@ -12,17 +12,17 @@
   "producto": {
     "nombre": "Dionisio",
     "slug": "dionisio",
-    "marca": "Cápsula escarlata",
+    "marca": "Cápsula Escarlata",
     "categoria": "Receta"
   },
-  "caption": "Dionisio · Cápsula escarlata\n\n12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/dionisio\nO vení a probártelo, Cerro de las Rosas.",
+  "caption": "Dionisio · Cápsula Escarlata\n\n12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/dionisio\nO vení a probártelo, Cerro de las Rosas.",
   "slides": [
     {
       "type": "number",
       "role": "portada",
       "image": "assets/products/acetato/FG1643-c4.avif",
       "compacto": true,
-      "title": "Dionisio · Cápsula escarlata",
+      "title": "Dionisio · Cápsula Escarlata",
       "dato": "$30.000",
       "body": "12 cuotas fijas de $16.500\n6 cuotas sin interés de $30.000\nTransferencia 15% OFF: $153.000",
       "cta": "Pedí tu presupuesto 👉 WhatsApp"

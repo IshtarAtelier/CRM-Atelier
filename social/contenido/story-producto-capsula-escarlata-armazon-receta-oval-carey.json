@@ -1,0 +1,31 @@
+{
+  "id": "story-producto-capsula-escarlata-armazon-receta-oval-carey",
+  "format": "9:16",
+  "theme": "dark",
+  "pilar": "producto",
+  "fuente": "base",
+  "generadoEl": "2026-09-11",
+  "generadoDesde": "produccion",
+  "temas": [
+    "armazones"
+  ],
+  "producto": {
+    "nombre": "Capsula escarlata Carey",
+    "slug": "capsula-escarlata-armazon-receta-oval-carey",
+    "marca": "Cápsula Escarlata",
+    "categoria": "Receta"
+  },
+  "caption": "Capsula escarlata Carey · Cápsula Escarlata\n\n12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000\n\nEn la tienda: https://atelieroptica.com.ar/producto/capsula-escarlata-armazon-receta-oval-carey\nO vení a probártelo, Cerro de las Rosas.",
+  "slides": [
+    {
+      "type": "number",
+      "role": "portada",
+      "image": "images/products/escarlata-oval-carey-1.webp",
+      "compacto": true,
+      "title": "Capsula escarlata Carey · Cápsula Escarlata",
+      "dato": "$26.667",
+      "body": "12 cuotas fijas de $14.667\n6 cuotas sin interés de $26.667\nTransferencia 15% OFF: $136.000",
+      "cta": "Pedí tu presupuesto 👉 WhatsApp"
+    }
+  ]
+}
