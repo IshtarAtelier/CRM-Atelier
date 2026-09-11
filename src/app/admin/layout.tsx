@@ -6,6 +6,7 @@ import { LeadToastNotifications } from "@/components/ui/LeadToastNotifications";
 import { CopilotChat } from "@/components/admin/CopilotChat";
 import NovedadesGuiadas from "@/components/admin/NovedadesGuiadas";
 import BriefingDiario from "@/components/admin/BriefingDiario";
+import { RecordatorioDiario } from "@/components/admin/RecordatorioDiario";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { PulsoProvider } from "@/components/mensajes/PulsoProvider";
@@ -38,6 +39,7 @@ export default async function AdminLayout({
             mismo día caen las dos cosas, primero se lee la novedad —que es
             puntual— y atrás queda el briefing, que vuelve todos los días. */}
         <BriefingDiario />
+        <RecordatorioDiario />
         <LeadToastNotifications />
         <CopilotChat userName={userName} userRole={userRole} />
         {/* WhatsApp sin salir de la pantalla en la que estás. Se esconde solo
