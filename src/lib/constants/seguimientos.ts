@@ -15,12 +15,16 @@ import type { TemplateName } from '@/lib/whatsapp/templates';
 export const MOTOR_SEGUIMIENTOS_DESDE = new Date('2026-09-07T00:00:00-03:00');
 
 /**
- * Arranca EN SECO: calcula y lista a quién le habría escrito, no manda nada.
- * Pasar a 'real' es un cambio de una línea, a propósito: que el primer envío
- * automático sea una decisión y no un efecto colateral del deploy. Se puede
- * pisar sin deploy con `SystemSetting.seguimientos_auto_modo` ('seco'|'real').
+ * PRENDIDO ('real') desde el 11/9/2026, con el OK explícito de Ishtar sobre la
+ * lista real del día (24 personas, plantilla `seguimiento_presupuesto`):
+ * "el embudo de seguimientos de leads tiene que ser 100 % automático, salvo
+ * que se apague desde el lead". Arrancó EN SECO el 7/9 y corrió así cuatro
+ * días listando a quién le habría escrito; en ese lapso se cerraron los
+ * dobles envíos latentes y se agregó el interruptor por persona
+ * (`seguimientoApagado` en politica.ts). Se puede apagar sin deploy con
+ * `SystemSetting.seguimientos_auto_modo = 'seco'` (o `followups_enabled = false`).
  */
-export const MODO_POR_DEFECTO: 'seco' | 'real' = 'seco';
+export const MODO_POR_DEFECTO: 'seco' | 'real' = 'real';
 
 /** Tope de envíos automáticos por día. Se pisa con `SystemSetting.seguimientos_cupo_diario`. */
 export const CUPO_DIARIO_POR_DEFECTO = 30;
