@@ -66,6 +66,9 @@ jobs:
       - name: Contrato herramientas del bot ↔ rutas del CRM
         run: npm run check:contrato-bot
 
+      - name: Prompts del bot (nada prohibido, nada obligatorio que falte)
+        run: npm run check:prompt-bot
+
       - name: Build Next.js app
         run: npm run build
         env:

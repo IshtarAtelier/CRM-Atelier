@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/email';
 import { fetchWa } from '@/lib/wa-config';
 import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates';
 import { prisma } from '@/lib/db';
+import { lintPromptDelBot, describirHallazgos } from '@/lib/whatsapp/lint-prompt';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,13 @@ export const dynamic = 'force-dynamic';
  * una alarma rota. Lo que mira:
  *   - que la API responda y el número esté conectado;
  *   - la calidad del número (GREEN / YELLOW / RED) y el límite de mensajería;
- *   - plantillas del catálogo que falten, estén PENDING, REJECTED o PAUSED.
+ *   - plantillas del catálogo que falten, estén PENDING, REJECTED o PAUSED;
+ *   - WhatsApp que Meta rechazó en las últimas 24 h con la ficha diciendo "enviado";
+ *   - el PROMPT VIVO del bot (SystemSetting.bot_prompt): que no contradiga
+ *     ninguna decisión tomada ni le falte una regla obligatoria (10/9/2026:
+ *     se editaba desde el panel y nadie lo validaba; convivían reglas opuestas
+ *     con "prioridad absoluta" y el modelo eligió la mala). El lint es el mismo
+ *     de CI (`check:prompt-bot`); CI ve el repo, esto ve la base.
  * Si el transporte todavía es WhatsApp Web (legacy), lo dice y termina.
  */
 export async function GET(request: Request) {
@@ -64,6 +71,14 @@ export async function GET(request: Request) {
         if (rechazados.length) {
             const lineas = rechazados.map(m => `${m.chat.client?.name || m.chat.waId}${m.senderName ? ` (${m.senderName})` : ''}: "${(m.content || '').replace(/\s+/g, ' ').slice(0, 60)}"`);
             problemas.push(`${rechazados.length} WhatsApp rechazado(s) por Meta en las últimas 24 h (la ficha decía "enviado"):\n  - ${lineas.join('\n  - ')}`);
+        }
+
+        const promptVivo = await prisma.systemSetting.findUnique({ where: { key: 'bot_prompt' }, select: { value: true } }).catch(() => null);
+        if (!promptVivo || promptVivo.value.trim().length <= 300) {
+            problemas.push('El bot está respondiendo con el prompt del REPO: el prompt vivo (bot_prompt) está vacío o tiene menos de 300 caracteres.');
+        } else {
+            const hallazgos = describirHallazgos(lintPromptDelBot(promptVivo.value));
+            if (hallazgos.length) problemas.push(`Prompt vivo del bot con ${hallazgos.length} problema(s) — corregir desde el panel del asistente:\n  - ${hallazgos.join('\n  - ')}`);
         }
 
         const resumen = `${st.phone || '?'} · calidad ${st.qualityRating || '?'} · límite ${st.messagingLimitTier || '?'} · plantillas OK ${Object.keys(WHATSAPP_TEMPLATES).length - faltan.length - pendientes.length - rechazadas.length}/${Object.keys(WHATSAPP_TEMPLATES).length}`;
