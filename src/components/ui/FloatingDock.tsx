@@ -66,7 +66,7 @@ export function FloatingDock() {
             <button
                 type="button"
                 onClick={() => setOculto(false)}
-                className={`fixed ${enCotizador ? 'bottom-20 lg:bottom-1' : 'bottom-1'} left-1/2 -translate-x-1/2 z-[40] flex items-center gap-1.5 px-3 py-1 bg-white/70 dark:bg-stone-900/70 backdrop-blur-xl border border-stone-200/60 dark:border-stone-800/60 rounded-full shadow-lg text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-white dark:hover:bg-stone-900 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400`}
+                className={`fixed ${enCotizador ? 'bottom-20 lg:bottom-1' : 'bottom-1'} left-1/2 -translate-x-1/2 z-[40] flex items-center gap-1.5 px-3 py-1 bg-white/70 dark:bg-stone-900/70 backdrop-blur-xl border border-stone-200/60 dark:border-stone-800/60 rounded-full shadow-lg text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-white dark:hover:bg-stone-900 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400`}
                 title="Mostrar la barra de accesos"
                 aria-label="Mostrar la barra de accesos"
             >
@@ -166,7 +166,7 @@ export function FloatingDock() {
                         <button
                             type="button"
                             onClick={() => setOculto(true)}
-                            className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
+                            className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 transition-colors flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
                             title="Ocultar la barra"
                             aria-label="Ocultar la barra de accesos"
                         >

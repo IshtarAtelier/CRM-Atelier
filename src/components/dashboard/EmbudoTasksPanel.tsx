@@ -47,7 +47,7 @@ export default function EmbudoTasksPanel({ tasks, onClose }: EmbudoTasksPanelPro
                         <h3 className="font-black text-stone-800 dark:text-white uppercase tracking-tighter italic text-xl">
                             Tareas de embudo
                         </h3>
-                        <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">
+                        <p className="text-[10px] font-bold text-stone-600 dark:text-stone-400 uppercase tracking-widest mt-0.5">
                             Lo que propone el sistema
                         </p>
                     </div>
@@ -83,7 +83,7 @@ export default function EmbudoTasksPanel({ tasks, onClose }: EmbudoTasksPanelPro
                                         <TelefonoCopiable phone={task.client.phone} className="text-xs mt-1.5" />
                                     )}
                                     {task.dueDate && (
-                                        <div className={`flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-widest ${paraHoy(task) ? 'text-sky-600 dark:text-sky-400' : 'text-stone-400'}`}>
+                                        <div className={`flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-widest ${paraHoy(task) ? 'text-sky-700 dark:text-sky-400' : 'text-stone-600 dark:text-stone-400'}`}>
                                             <Clock className="w-3 h-3" />
                                             <span>
                                                 {paraHoy(task) ? 'para hoy' : 'para'} {format(new Date(task.dueDate), "d 'de' MMM", { locale: es })}
@@ -120,7 +120,7 @@ export default function EmbudoTasksPanel({ tasks, onClose }: EmbudoTasksPanelPro
                                     e.stopPropagation();
                                     setOcultas(prev => new Set(prev).add(task.id));
                                 }}
-                                className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-2 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-300 hover:text-stone-500 shadow-sm transition-all z-10"
+                                className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-2 md:p-2.5 rounded-xl md:rounded-2xl bg-white hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100 shadow-sm transition-all z-10"
                                 title="Ocultar por ahora"
                             >
                                 <X className="w-4 h-4 md:w-5 md:h-5" />
@@ -132,7 +132,7 @@ export default function EmbudoTasksPanel({ tasks, onClose }: EmbudoTasksPanelPro
                         <div className="w-20 h-20 bg-white dark:bg-stone-800 rounded-full flex items-center justify-center shadow-xl mb-6">
                             <Filter className="w-10 h-10 text-stone-200" />
                         </div>
-                        <p className="text-sm font-black text-stone-300 uppercase tracking-widest leading-relaxed">El embudo no propone nada hoy</p>
+                        <p className="text-sm font-black text-stone-600 dark:text-stone-400 uppercase tracking-widest leading-relaxed">El embudo no propone nada hoy</p>
                     </div>
                 )}
             </div>
@@ -141,11 +141,11 @@ export default function EmbudoTasksPanel({ tasks, onClose }: EmbudoTasksPanelPro
                 <Link
                     href="/admin/leads"
                     onClick={onClose}
-                    className="block w-full py-4 bg-white dark:bg-stone-800 border-2 border-sky-500/20 text-sky-600 dark:text-sky-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest hover:bg-sky-500 hover:text-white transition-all shadow-lg text-center"
+                    className="block w-full py-4 bg-white dark:bg-stone-800 border-2 border-sky-500/20 text-sky-700 dark:text-sky-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest hover:bg-sky-500 hover:text-white transition-all shadow-lg text-center"
                 >
                     Ver el embudo completo
                 </Link>
-                <p className="text-[10px] font-black text-stone-400 uppercase tracking-[0.3em] text-center">
+                <p className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-[0.3em] text-center">
                     Se recalcula solo, todos los días
                 </p>
             </footer>

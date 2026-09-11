@@ -43,12 +43,12 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
 
     const getOppBadge = (type: string) => {
         if (type === 'STALLED_FAVORITE') return (
-            <span className="text-[8px] font-black bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
+            <span className="text-[8px] font-black bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
                 Favorito Frío
             </span>
         );
         if (type === 'PENDING_QUOTE') return (
-            <span className="text-[8px] font-black bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
+            <span className="text-[8px] font-black bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
                 Presupuesto
             </span>
         );
@@ -58,7 +58,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
             </span>
         );
         return (
-            <span className="text-[8px] font-black bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
+            <span className="text-[8px] font-black bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
                 {/* "Carrito abandonado" con todas las letras (Ishtar, 10/9/2026):
                     "Carrito Web" no decía qué pasó — el cliente armó la compra en
                     la tienda y no la pagó. */}
@@ -193,15 +193,22 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                     opportunities.map((opp, i) => (
                         <div key={opp.id}>
                         {tituloDeGrupo(opp, i) && (
-                            <p className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 ${i === 0 ? 'pb-2' : 'pt-4 pb-2'} ${opp.importante && !opp.yaEscrito ? 'text-amber-700 dark:text-amber-400' : 'text-stone-500 dark:text-stone-400'}`}>
+                            <p className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 ${i === 0 ? 'pb-2' : 'pt-4 pb-2'} ${opp.importante && !opp.yaEscrito ? 'text-amber-700 dark:text-amber-400' : 'text-stone-600 dark:text-stone-400'}`}>
                                 {tituloDeGrupo(opp, i)}
                             </p>
                         )}
-                        <div className={`relative group ${opp.yaEscrito ? 'opacity-60 hover:opacity-100 transition-opacity' : ''}`}>
+                        {/* Sin opacidad: la regla de baja visión del equipo (piso 4,5:1)
+                            prohíbe bajar el contraste del texto. "Ya le escribieron" se
+                            distingue con fondo gris y borde punteado. */}
+                        <div className="relative group">
                             <Link
                                 href={getLinkHref(opp)}
                                 onClick={onClose}
-                                className="w-full flex items-center gap-4 p-4 md:p-5 bg-white dark:bg-stone-800 rounded-[2rem] md:rounded-[2.5rem] border border-stone-100 dark:border-stone-700 hover:border-amber-500/30 dark:hover:border-amber-500/20 hover:shadow-xl transition-all text-left relative overflow-hidden"
+                                className={`w-full flex items-center gap-4 p-4 md:p-5 rounded-[2rem] md:rounded-[2.5rem] border hover:shadow-xl transition-all text-left relative overflow-hidden ${
+                                    opp.yaEscrito
+                                        ? 'bg-stone-100 dark:bg-stone-900 border-dashed border-stone-300 dark:border-stone-700'
+                                        : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 hover:border-amber-500/30 dark:hover:border-amber-500/20'
+                                }`}
                             >
                                 <div className={`absolute top-0 left-0 w-1.5 h-full ${getOppColorClass(opp.type)} opacity-40 group-hover:opacity-100 transition-colors`} />
 
@@ -216,7 +223,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                                         </p>
                                         {getOppBadge(opp.type)}
                                     </div>
-                                    <p className="text-xs font-bold text-stone-500 dark:text-stone-400 line-clamp-2 leading-tight">
+                                    <p className="text-xs font-bold text-stone-600 dark:text-stone-400 line-clamp-2 leading-tight">
                                         {opp.detail}
                                     </p>
                                     {/* El número a la vista y copiable: el cierre lo
@@ -232,7 +239,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                                             />
                                         )}
                                         {opp.yaEscrito ? (
-                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-500 dark:text-stone-400">
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-600 dark:text-stone-300">
                                                 <MessageCircle className="w-3 h-3" />
                                                 {opp.yaEscrito.quien ? `Le escribió ${opp.yaEscrito.quien.split(' ')[0]}` : 'Ya le escribieron'} {haceCuanto(opp.yaEscrito.cuando)}
                                             </span>
@@ -241,7 +248,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                                                 type="button"
                                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); registrarEscrito(opp, 'manual'); }}
                                                 disabled={marcandoId === opp.id}
-                                                className="inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 -mx-1 text-[11px] font-bold text-stone-500 hover:text-emerald-700 hover:bg-emerald-50 dark:text-stone-400 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/30 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                                                className="inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 -mx-1 text-[11px] font-bold text-stone-600 hover:text-emerald-700 hover:bg-emerald-50 dark:text-stone-400 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/30 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
                                                 title={opp.importante ? 'Queda a la vista, abajo, con la fecha' : 'Se esconde 5 días y vuelve si no compró'}
                                             >
                                                 {marcandoId === opp.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}

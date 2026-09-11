@@ -95,7 +95,7 @@ export default function TelefonoCopiable({ phone, className = '', onCopiado }: P
             {telefonoLegible(phone)}
             {copiado
                 ? <Check className="w-3 h-3 shrink-0" />
-                : <Copy className="w-3 h-3 shrink-0 opacity-50" />}
+                : <Copy className="w-3 h-3 shrink-0" />}
         </button>
     );
 }
