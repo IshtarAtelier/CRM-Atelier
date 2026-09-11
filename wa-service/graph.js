@@ -157,12 +157,40 @@ function firmaDeToolCalls(state) {
         .substring(0, 800);
 }
 
+/**
+ * Una línea de log por herramienta ejecutada: nombre, argumentos (recortados),
+ * si terminó bien o mal, y cuánto tardó el paso. Es lo único que permite ver
+ * desde afuera qué hace el modelo: el 9/9/2026 se midió que el bot llevaba
+ * meses sin crear un solo presupuesto porque cada `create_quote` rebotaba con
+ * 400, y nadie lo supo porque el bot seguía charlando como si nada. Con esta
+ * línea, `railway logs -f "create_quote"` lo muestra el primer día.
+ */
+function registrarToolCalls(state, result, agentType, chatId, ms) {
+    try {
+        const last = (state.messages || [])[(state.messages || []).length - 1];
+        const porId = new Map(((last && last.tool_calls) || []).map(c => [c.id, c]));
+        for (const msg of (result && result.messages) || []) {
+            if (msg.tool_call_id === undefined) continue;
+            const call = porId.get(msg.tool_call_id);
+            const nombre = msg.name || (call && call.name) || 'tool';
+            const args = call ? JSON.stringify(call.args || {}).replace(/"(imageBase64|base64)":"[^"]{0,20}[^"]*"/g, '"$1":"…"').substring(0, 160) : '';
+            const contenido = (msg.content === undefined || msg.content === null) ? '' : String(msg.content).replace(/\s+/g, ' ');
+            const fallo = esFallaTransitoriaDeHerramienta(msg) || /^(error|❌)/i.test(contenido);
+            console.log(`  🔧 [${agentType}] chat ${chatId} · ${nombre}(${args}) → ${fallo ? '❌ ' + contenido.substring(0, 160) : 'ok'} · ${ms}ms`);
+        }
+    } catch (e) {
+        console.warn('  ⚠️ registrarToolCalls:', e.message);
+    }
+}
+
 function wrapToolNodeWithCycleDetection(originalToolNode, agentType) {
     return async (state) => {
         pruneToolErrorTracker();
         const chatId = state.chatId || 'unknown';
         const firma = firmaDeToolCalls(state);
+        const t0 = Date.now();
         const result = await originalToolNode.invoke(state);
+        registrarToolCalls(state, result, agentType, chatId, Date.now() - t0);
 
         // ── Bucle de la MISMA tool con los MISMOS argumentos ────────────────
         // El detector de abajo solo corta cuando el resultado es una falla real
