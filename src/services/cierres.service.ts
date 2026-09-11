@@ -5,8 +5,9 @@ import { SOLO_CLIENTES_POSIBLES } from '@/lib/no-cliente';
 import { ensureClientForAbandonedCart } from '@/services/cart-recovery.service';
 import {
     DIAS_PARA_ENFRIARSE, DIAS_TICKET_ALTO, DIAS_PRESUPUESTO_COMUN, DIAS_SIN_PRESUPUESTO,
-    DIAS_CARRITO, DIAS_ESCONDIDA_TRAS_ESCRIBIRLE, REMITENTES_AUTOMATICOS,
+    DIAS_CARRITO, DIAS_ESCONDIDA_TRAS_ESCRIBIRLE,
 } from '@/lib/constants/cierres';
+import { REMITENTES_AUTOMATICOS } from '@/lib/whatsapp/remitentes';
 import {
     type Oportunidad, type TipoCierre, type YaEscrito,
     esLenteEspecial, esGraduacionAlta, esMontoAlto,

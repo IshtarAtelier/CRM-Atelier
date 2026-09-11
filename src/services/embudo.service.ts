@@ -5,6 +5,7 @@ import { proximaAccion, ordenarPorUrgencia } from '@/lib/embudo/playbook';
 import { sincronizarTareasDelDia, type ResultadoSync } from '@/lib/embudo/sincronizar-tareas';
 import { TAGS_NO_CLIENTE } from '@/lib/no-cliente';
 import { tieneEtiquetaDeVisita } from '@/lib/embudo/visito-local';
+import { REMITENTES_AUTOMATICOS } from '@/lib/whatsapp/remitentes';
 
 /**
  * EmbudoService — el tablero de leads (/admin/leads) y "lo de hoy".
@@ -76,7 +77,9 @@ export const EmbudoService = {
         // Para qué: dentro de la ventana de 24 h el equipo contesta con texto
         // libre, y eso no deja etiqueta. Sin este dato el tablero marcaba "Sin
         // contactar" a 194 de 339 leads a los que sí les habían escrito.
-        // 'Bot' y 'Sistema Atelier' no cuentan: la pregunta es si una PERSONA
+        // Los robots no cuentan (`REMITENTES_AUTOMATICOS`, la misma lista que
+        // Cierres; antes acá faltaba 'Sistema' y un recordatorio de turno
+        // marcaba al lead como atendido): la pregunta es si una PERSONA
         // se ocupó.
         const chatIds = leads.map(l => l.whatsappChats[0]?.id).filter((x): x is string => !!x);
         const ultimoHumanoPorChat = new Map<string, Date>();
@@ -86,7 +89,7 @@ export const EmbudoService = {
                 where: {
                     chatId: { in: chatIds },
                     direction: 'OUTBOUND',
-                    senderName: { notIn: ['Bot', 'Sistema Atelier'] },
+                    senderName: { notIn: [...REMITENTES_AUTOMATICOS] },
                 },
                 _max: { createdAt: true },
             });

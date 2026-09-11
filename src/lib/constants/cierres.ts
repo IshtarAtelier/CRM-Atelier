@@ -39,12 +39,3 @@ export const MONTO_TICKET_ALTO = 250_000;
  * nadie le escribe dos veces en la misma semana desde dos pantallas.
  */
 export const DIAS_ESCONDIDA_TRAS_ESCRIBIRLE = 5;
-
-/**
- * Remitentes de WhatsApp que NO son una persona. Un saliente de cualquier otro
- * ("Teléfono" = el celular de la óptica, o el nombre de quien contestó desde el
- * buzón) cuenta como "ya le escribió". Medido el 10/9/2026: el equipo escribe
- * sobre todo desde el celular (2.129 salientes "Teléfono" en 5 días contra 147
- * desde el buzón), y eso SÍ llega al sistema por la coexistencia de la API.
- */
-export const REMITENTES_AUTOMATICOS = ['Bot', 'Sistema Atelier', 'Sistema'] as const;
