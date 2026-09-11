@@ -195,6 +195,27 @@ for (const frase of ['Te paso con alguien del equipo que te va a responder a la 
     /deriv|alguien del equipo|con el equipo|asesor/i.test(sale) ? mal(`se escapa: "${frase}"`) : ok(`"${frase.slice(0, 40)}…" se reemplaza`);
 }
 
+// ── 9. El lector dedicado no deja pasar valores imposibles ───────────────────
+// Lo que devuelve el modelo nunca se guarda sin pasar por validar(): un valor
+// fuera de rango clínico se descarta (no se "corrige"). Es la red para que una
+// mala lectura no termine como receta en una ficha.
+console.log('\n9. El lector de recetas descarta lo que no puede ser');
+const { validar } = require('../../wa-service/shared/leer-receta.js');
+const v = validar({ odEsf: -7.5, odCil: -1.25, odEje: 150, oiEsf: '-8', oiCil: -1.75, oiEje: 10, add: 20, dip: 64 });
+v.add === null ? ok('un "20" (agudeza visual) no entra como adición') : mal(`entró la adición ${v.add}`);
+v.oiEsf === -8 ? ok('un valor que viene como texto se convierte bien') : mal(`oiEsf quedó ${v.oiEsf}`);
+validar({ add: -2.5 }).add === 2.5 ? ok('una adición leída con signo queda positiva') : mal('la adición con signo quedó mal');
+validar({ odEje: 200 }).odEje === null ? ok('un eje de 200° se descarta') : mal('pasó un eje de 200°');
+validar({ odEsf: 200 }).odEsf === null ? ok('una esfera de 200 (sin coma) se descarta, no se inventa') : mal('pasó una esfera de 200');
+validar({ dip: 20 }).dip === null ? ok('una DIP de 20 se descarta') : mal('pasó una DIP de 20');
+
+// ── 10. Los candados siguen puestos ──────────────────────────────────────────
+console.log('\n10. Los candados del bot siguen en su lugar');
+const pricing = readFileSync(new URL('../../src/app/api/bot/pricing/route.ts', import.meta.url), 'utf8');
+pricing.includes("id: 'SIN_RECETA'") ? ok('sin receta no hay precio de cristales') : mal('se sacó el candado de "sin receta"');
+pricing.includes("id: 'RECETA_MONOFOCAL'") ? ok('a una receta monofocal no se le dan multifocales') : mal('se sacó el candado de tipo');
+botCloud.includes('procesarRecetaDeLaFoto(') ? ok('el bot pasa cada foto por el lector dedicado') : mal('el bot ya no usa el lector dedicado');
+
 console.log('');
 if (fallas.length) {
     console.error(`❌ ${fallas.length} problema(s). El tipo de lente lo decide la ADICIÓN, nunca una etiqueta ni un default.`);

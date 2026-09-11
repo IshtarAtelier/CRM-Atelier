@@ -136,12 +136,24 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
 
         const finalItem = confirmedPrescriptionItem || cacheItems[cacheItems.length - 1];
 
+        // Si el sistema ya leyó y guardó ESTA foto (bot-cloud.js → leer-receta),
+        // no se guarda otra vez con los valores que dijo el modelo.
+        const marcaFoto = finalItem && finalItem.waMessageId ? `[foto:${finalItem.waMessageId}]` : null;
+        if (marcaFoto && clientId && clientId !== 'none' && clientId !== 'null') {
+            const { prisma } = require('./db');
+            const ya = await prisma.prescription.findFirst({ where: { clientId, notes: { contains: marcaFoto } }, select: { id: true } }).catch(() => null);
+            if (ya) return "[INSTRUCCIÓN INTERNA] Esa receta ya está guardada: el sistema la leyó de la foto. Usá los valores de RECETAS GUARDADAS y NO la vuelvas a guardar.";
+        }
+
         const prescriptionData = {
             tipoDeLente,
             odEsf, odCil, odEje,
             oiEsf, oiCil, oiEje,
             add, odDip, oiDip,
-            origen, obraSocial, notes
+            origen, obraSocial,
+            // La marca de la foto viaja en las notas: así el lector del sistema
+            // no la vuelve a guardar si la tool llegó primero.
+            notes: [notes, marcaFoto].filter(Boolean).join(' ') || undefined,
         };
 
         if (finalItem) {

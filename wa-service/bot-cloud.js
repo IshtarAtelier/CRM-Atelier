@@ -41,6 +41,7 @@ const { mediaDescargable } = require('./shared/media');
 const { esRemitenteHumano } = require('./shared/remitentes');
 const { resolveWaMessageId } = require('./shared/message-id');
 const { detectarTipoDeImagen } = require('./shared/tipo-de-imagen');
+const { leerReceta } = require('./shared/leer-receta');
 const { setSender } = require('./shared/sender');
 
 // Cuánto se espera antes de contestar, para juntar las burbujas que el cliente
@@ -430,6 +431,63 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
 
     // ── El turno ────────────────────────────────────────────────────────────
 
+    // ── Lector dedicado de recetas ──────────────────────────────────────────
+    // Apenas llega una foto, el SISTEMA la lee con su propio paso
+    // (shared/leer-receta.js: reglas estrictas, modelo fino, validación de
+    // rangos) y, si es una receta legible, la guarda con la foto. El agente de
+    // ventas recibe la ficha ya con la receta: no tiene que "mirar la foto
+    // mientras charla", decidir los valores ni acordarse de guardarla — que es
+    // como se inventaron recetas y se preguntó "¿mono o multi?".
+    //
+    // Idempotente: cada foto deja la marca [foto:<waMessageId>] en la receta
+    // (o en la tarea) y no se vuelve a guardar, ni por acá ni por la tool.
+    const fotosYaLeidas = new Set();
+    async function procesarRecetaDeLaFoto(chatId, recientes, freshChat) {
+        const foto = recientes.find(m => m.direction === 'INBOUND' && m.type === 'IMAGE');
+        if (!foto || !foto.waMessageId || fotosYaLeidas.has(foto.waMessageId)) return null;
+        fotosYaLeidas.add(foto.waMessageId);
+        // Solo la foto que llegó en ESTE turno (después de nuestra última respuesta).
+        const nuestra = recientes.find(m => m.direction === 'OUTBOUND');
+        if (nuestra && nuestra.createdAt > foto.createdAt) return null;
+
+        const img = ((global.mediaCache || {})[chatId] || []).find(i => i.waMessageId === foto.waMessageId);
+        if (!img) return null;
+        const clientId = freshChat.clientId;
+        if (!clientId) return null; // sin ficha no hay dónde guardarla (alta-de-ficha ya lo intentó)
+        const marca = `[foto:${foto.waMessageId}]`;
+
+        const yaGuardada = await prisma.prescription.findFirst({ where: { clientId, notes: { contains: marca } }, select: { id: true } });
+        if (yaGuardada) return { guardada: true, yaEstaba: true };
+
+        const t0 = Date.now();
+        const r = await leerReceta({ base64: img.base64, mimeType: img.mimeType });
+        console.log(`  👓 [LeerReceta] ${foto.waMessageId}: ${r.esReceta ? (r.legible ? `receta ${r.tipo}` : 'receta NO legible') : 'no es receta'} · ${r.modelo || r.error || '—'} · ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+        if (!r.esReceta) return null;
+
+        if (!r.legible) {
+            const yaHayTarea = await prisma.clientTask.findFirst({ where: { clientId, description: { contains: marca } }, select: { id: true } });
+            if (!yaHayTarea) {
+                await prisma.clientTask.create({ data: {
+                    clientId, type: 'TASK', status: 'PENDING', dueDate: new Date(), createdBy: 'Bot',
+                    description: `Leer receta a mano: el sistema no pudo leerla con seguridad${r.dudas ? ` (${r.dudas})` : ''}. ${marca}`,
+                } }).catch(() => {});
+            }
+            return { guardada: false };
+        }
+
+        const v = r.valores;
+        const { savePrescription } = require('./tools');
+        await savePrescription({
+            clientId, tipoDeLente: r.tipo,
+            odEsf: v.odEsf, odCil: v.odCil, odEje: v.odEje,
+            oiEsf: v.oiEsf, oiCil: v.oiCil, oiEje: v.oiEje,
+            add: v.add, odDip: v.dip, nearSphereOD: v.odCercaEsf, nearSphereOI: v.oiCercaEsf,
+            notes: `Leída por el sistema de la foto de WhatsApp (${r.modelo})${r.dudas ? `. Dudas: ${r.dudas}` : ''} ${marca}`,
+            imageBase64: img.base64, imageMimeType: img.mimeType,
+        });
+        return { guardada: true };
+    }
+
     async function processBotTurn(chat, waId, profileName, realPhone) {
         try {
             const freshChat = await prisma.whatsAppChat.findUnique({
@@ -453,6 +511,18 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             });
             const masNuevoProcesado = recientes[0] || null;
             const messages = await armarHistorial(recientes, chat.id);
+
+            // Si llegó una foto de receta, el sistema la lee y la guarda ANTES de
+            // que hable el agente; después se recarga la ficha para que el agente
+            // la vea en "RECETAS GUARDADAS". Si falla, el turno sigue igual.
+            const lectura = await procesarRecetaDeLaFoto(chat.id, recientes, freshChat)
+                .catch(e => { console.error('  ❌ [LeerReceta] falló (el turno sigue):', e.message); return null; });
+            if (lectura && lectura.guardada && !lectura.yaEstaba && freshChat.clientId) {
+                freshChat.client = await prisma.client.findUnique({
+                    where: { id: freshChat.clientId },
+                    include: { tags: true, prescriptions: { orderBy: { date: 'desc' }, take: 3 }, interactions: { orderBy: { createdAt: 'desc' }, take: 5 } },
+                }).catch(() => freshChat.client);
+            }
 
             const state = {
                 messages,
