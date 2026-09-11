@@ -20,6 +20,7 @@ import { calculateEstimatedDays } from '@/lib/business-days';
 import { syncAdTagFromChats } from '@/lib/ads/ad-tag';
 import { matchContactSource, SIN_ORIGEN } from '@/lib/contact-source';
 import { etiquetasQueLeCorresponden, esEtiquetaDesconectable } from '@/lib/contact-tags';
+import { DESCUENTO_EFECTIVO_POR_DEFECTO, DESCUENTO_TRANSFERENCIA_POR_DEFECTO } from '@/lib/constants/descuentos';
 
 
 // Qué congela la receta ya NO se decide por estado de laboratorio: se decide por
@@ -248,8 +249,8 @@ async function alertOverpayment(
     ]);
     const equivalenteLista = Math.round(PricingService.listEquivalentOfPayments(
         pagos,
-        orderDiscounts?.discountCash ?? 20,
-        orderDiscounts?.discountTransfer ?? 15,
+        orderDiscounts?.discountCash ?? DESCUENTO_EFECTIVO_POR_DEFECTO,
+        orderDiscounts?.discountTransfer ?? DESCUENTO_TRANSFERENCIA_POR_DEFECTO,
     ));
     const excess = Math.round(equivalenteLista - listPrice);
     if (excess <= OVERPAYMENT_TOLERANCE) return;
