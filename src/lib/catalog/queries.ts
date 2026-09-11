@@ -57,6 +57,9 @@ export const TIENDA_SELECT = {
   // la categoría Gafas. Ver src/lib/catalog/frame-specs.ts.
   imageAlts: true,
   isFeatured: true,
+  // La descripción de la ficha. La lee SOLO el mapeo, para saber si el lente es
+  // polarizado (ver esPolarizado en tienda-map.ts); el texto no viaja a la grilla.
+  description: true,
   product: {
     select: {
       id: true,

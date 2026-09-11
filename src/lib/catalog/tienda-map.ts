@@ -42,6 +42,13 @@ export interface MappedWebProduct {
    * palabra de color — nunca se completa con una adivinada.
    */
   coloresFamilia: string[];
+  /**
+   * Si la ficha dice que el lente es polarizado. Sale del texto que ve la
+   * clienta, nunca se supone: en el feed, "polarizado" en un anteojo que no lo
+   * es es motivo de desaprobación por información engañosa. El snapshot de
+   * emergencia no trae descripción, así que ahí queda en false.
+   */
+  polarizado: boolean;
   gender: string;
   /** Campos que solo consume el feed de Google/Meta, no la grilla. */
   mpn: string | null;
@@ -71,6 +78,16 @@ export async function invalidateWebCatalog() {
     // Fuera de un request de Next (scripts sueltos) no hay store de
     // revalidación; ahí alcanza con el TTL corto del ISR.
   }
+}
+
+/**
+ * "Polarizado" leído de la descripción de la ficha. Ante cualquier negación
+ * ("no polarizado", "sin polarizar") devuelve false: en la duda, no se afirma.
+ */
+function esPolarizado(texto?: string | null): boolean {
+  const t = (texto || "").toLowerCase();
+  if (!/polariz/.test(t)) return false;
+  return !/\b(no|sin)\s+polariz/.test(t);
 }
 
 function mapRow(wp: CatalogRow): MappedWebProduct {
@@ -105,6 +122,7 @@ function mapRow(wp: CatalogRow): MappedWebProduct {
     // que no incluye imageAlts).
     material: specs.material || material || "Acetato",
     color: specs.color,
+    polarizado: esPolarizado(wp.description),
     coloresFamilia: idsDeColor(specs.color),
     gender: wp.product.gender || "Unisex",
     mpn: wp.product.mpn || null,

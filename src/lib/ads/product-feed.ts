@@ -133,13 +133,18 @@ function feedTitle(
   color: string | null,
   material: string | null,
   shape: string | null,
+  polarizado: boolean,
 ): string {
-  const { texto, plural } = SUSTANTIVO[tipoDe(category)];
+  const tipo = tipoDe(category);
+  const { texto, plural } = SUSTANTIVO[tipo];
   const forma = formaAdjetivo(shape, plural);
   const mat = (material || '').trim().toLowerCase();
   const col = (color || '').trim().toLowerCase();
 
   let t = texto;
+  // "Polarizados" es de lo más buscado en sol, y va pegado al sustantivo porque
+  // así se escribe la búsqueda. Solo cuando la ficha lo dice (ver esPolarizado).
+  if (polarizado && tipo !== 'receta') t += plural ? ' polarizados' : ' polarizado';
   if (forma) t += ` ${forma}`;
   if (mat) t += ` de ${mat}`;
   if (col) t += `, color ${col}`;
@@ -184,13 +189,14 @@ function describe(
   color: string | null,
   material: string | null,
   shape: string | null,
+  polarizado: boolean,
 ): string {
   const tipo = tipoDe(category);
   const cabeza =
     tipo === 'sol'
-      ? `${name}: anteojos de sol con protección UV.`
+      ? `${name}: anteojos de sol con ${polarizado ? 'lentes polarizados y ' : ''}protección UV.`
       : tipo === 'clip'
-        ? `${name}: armazón para lentes recetados con clip-on de sol magnético.`
+        ? `${name}: armazón para lentes recetados con clip-on de sol magnético${polarizado ? ' de lentes polarizados' : ''}.`
         : `${name}: armazón para anteojos recetados.`;
 
   const specs: string[] = [];
@@ -231,13 +237,20 @@ function productType(category: string | null, material: string | null, shape: st
  * 10, hasta 150 caracteres cada uno y sin texto promocional (misma regla que
  * la descripción).
  */
-function highlights(category: string | null, color: string | null, material: string | null, shape: string | null): string[] {
+function highlights(
+  category: string | null,
+  color: string | null,
+  material: string | null,
+  shape: string | null,
+  polarizado: boolean,
+): string[] {
   const tipo = tipoDe(category);
   const out: string[] = [];
   const forma = formaFemenina(shape);
   if (forma) out.push(`Forma ${forma}`);
   if (material) out.push(`Marco de ${material.toLowerCase()}`);
   if (color) out.push(`Color ${color.toLowerCase()}`);
+  if (polarizado && tipo !== 'receta') out.push('Lentes polarizados');
   if (tipo === 'sol') out.push('Protección UV');
   if (tipo === 'clip') out.push('Clip-on de sol magnético incluido');
   out.push('Cristales a medida según tu receta, monofocales o multifocales');
@@ -273,7 +286,7 @@ export async function buildProductFeed(platform: FeedPlatform): Promise<string> 
       const color = p.color || null;
 
       const name = `${p.brand} ${modeloSinMarca(p.brand, p.model)}`.trim();
-      const title = feedTitle(p.brand, p.model, p.category, color, material, shape);
+      const title = feedTitle(p.brand, p.model, p.category, color, material, shape, p.polarizado);
       const link = `${APP_URL}/producto/${p.slug}`;
       const available = (p.stock ?? 0) > 0 ? cfg.inStock : cfg.outOfStock;
       const hasSale = p.salePrice && p.salePrice > 0 && p.salePrice < p.price;
@@ -286,7 +299,7 @@ export async function buildProductFeed(platform: FeedPlatform): Promise<string> 
     <item>
       <g:id>${esc(p.id)}</g:id>
       <g:title>${esc(title)}</g:title>
-      <g:description>${esc(describe(name, p.category, color, material, shape))}</g:description>
+      <g:description>${esc(describe(name, p.category, color, material, shape, p.polarizado))}</g:description>
       <g:link>${esc(link)}</g:link>
       <g:image_link>${esc(img)}</g:image_link>${extra
         .slice(0, 10)
@@ -311,7 +324,7 @@ export async function buildProductFeed(platform: FeedPlatform): Promise<string> 
         <g:section_name>Armazón</g:section_name>
         <g:attribute_name>Forma</g:attribute_name>
         <g:attribute_value>${esc(shape)}</g:attribute_value>
-      </g:product_detail>` : ''}${highlights(p.category, color, material, shape)
+      </g:product_detail>` : ''}${highlights(p.category, color, material, shape, p.polarizado)
         .map((h) => `
       <g:product_highlight>${esc(h)}</g:product_highlight>`)
         .join('')}
