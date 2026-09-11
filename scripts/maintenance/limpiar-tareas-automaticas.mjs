@@ -27,13 +27,20 @@
 // una persona). Si alguna era manual, se cancela — y esa es justamente la
 // pizarra limpia que se pidió.
 //
+// LOS AVISOS "⚠️" NO SE CANCELAN EN SILENCIO. Son cosas que alguien tenía que
+// hacer a mano ("Falló el mensaje de laboratorio a Axel Bruni"): el 11/9 había
+// 22 pendientes en prod, de antes de que los avisos pasaran a Mensajes del
+// equipo, y la campanita ya no los muestra. Con --aplicar se mandan TODOS en un
+// solo mensaje del sistema al equipo y recién después se cancelan; si el aviso
+// no llega a nadie, esos no se tocan.
+//
 // ⚠️ ESCRIBE en la base que diga TAREAS_DB_URL (o DATABASE_URL si falta).
 // Por defecto SIMULA. Solo escribe con --aplicar.
 //
-//   Simulacro local:  node --env-file=.env --experimental-strip-types \
+//   Simulacro local:  node --env-file=.env --experimental-strip-types --import ./scripts/checks/_alias.mjs \
 //                       scripts/maintenance/limpiar-tareas-automaticas.mjs
-//   Simulacro prod:   TAREAS_DB_URL="$PROD_DATABASE_URL" node --env-file=.env \
-//                       --experimental-strip-types scripts/maintenance/limpiar-tareas-automaticas.mjs
+//   Simulacro prod:   TAREAS_DB_URL="$PROD_DATABASE_URL" node --env-file=.env --experimental-strip-types \
+//                       --import ./scripts/checks/_alias.mjs scripts/maintenance/limpiar-tareas-automaticas.mjs
 //   En serio:         ...idem con --aplicar
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -70,7 +77,7 @@ console.log(`\n— Limpieza de tareas automáticas (base: ${esProd ? 'PRODUCCIÓ
 // Foto de lo que hay, para que el simulacro sirva de algo.
 const pendientes = await prisma.clientTask.findMany({
     where: { status: 'PENDING', type: 'TASK' },
-    select: { id: true, type: true, createdBy: true, description: true },
+    select: { id: true, type: true, createdBy: true, description: true, createdAt: true, client: { select: { name: true } } },
 });
 
 const esAutomatica = (t) =>
@@ -91,7 +98,13 @@ for (const [clave, n] of [...porAutor.entries()].sort((a, b) => b[1] - a[1])) {
     console.log(`  ${String(n).padStart(6)}  ${clave}`);
 }
 
+const avisos = automaticas.filter((t) => /^⚠/.test(t.description || ''));
 console.log(`\n  Se cancelan: ${automaticas.length}`);
+console.log(`  …de esas, avisos ⚠️ que ANTES se mandan juntos a Mensajes del equipo: ${avisos.length}`);
+for (const t of avisos.slice(0, 25)) {
+    console.log(`    · ${t.createdAt.toISOString().slice(0, 10)} ${t.client?.name ?? ''}: ${t.description.slice(0, 90)}`);
+}
+if (avisos.length > 25) console.log(`    … y ${avisos.length - 25} más`);
 console.log(`  Quedan del embudo (el sync diario las pasa a su panel, no se cancelan): ${delEmbudo.length}`);
 console.log(`  Sobreviven en la campanita (las programó una persona): ${humanas.length}`);
 for (const t of humanas.slice(0, 20)) {
@@ -104,8 +117,26 @@ if (!aplicar) {
 } else if (!automaticas.length) {
     console.log('\nNo hay nada que cancelar.\n');
 } else {
+    let noTocar = [];
+    if (avisos.length) {
+        // La mensajería vive en src/ (hilos, participantes, dedup): se usa esa,
+        // contra la MISMA base que este script.
+        process.env.DATABASE_URL = url;
+        const { avisarAlEquipo } = await import('../../src/lib/avisos/aviso-al-equipo.ts');
+        const lineas = avisos.map((t) => `• ${t.createdAt.toISOString().slice(0, 10)} — ${t.description.replace(/\s+/g, ' ').slice(0, 180)}`);
+        const llegaron = await avisarAlEquipo({
+            asunto: `⚠️ ${avisos.length} avisos pendientes que estaban en la campanita`,
+            cuerpo: `Quedaron de antes de que estos avisos pasaran a Mensajes del equipo. La campanita ya no los muestra, así que van acá, todos juntos, para revisarlos a mano:\n\n${lineas.join('\n')}`,
+        });
+        if (!llegaron) {
+            noTocar = avisos.map((t) => t.id);
+            console.log(`\n✋ El aviso no le llegó a nadie: los ${avisos.length} avisos ⚠️ NO se cancelan.`);
+        } else {
+            console.log(`\n📨 Avisos ⚠️ mandados a Mensajes del equipo (le llegó a ${llegaron} persona/s).`);
+        }
+    }
     const r = await prisma.clientTask.updateMany({
-        where: filtro,
+        where: { ...filtro, ...(noTocar.length ? { id: { notIn: noTocar } } : {}) },
         data: { status: 'CANCELLED', completedBy: 'Sistema (limpieza 10/9/2026)', completedAt: new Date() },
     });
     console.log(`\n✅ Canceladas ${r.count} tareas automáticas.\n`);

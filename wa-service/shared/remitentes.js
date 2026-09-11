@@ -20,7 +20,11 @@ const SENDER_NAME_AUTORESPONDEDOR = 'Auto-respondedor';
  * 'Teléfono' es el eco de un mensaje escrito desde la app de WhatsApp del
  * local: ESO SÍ lo escribió un humano, por eso no está en la lista.
  */
-const REMITENTES_NO_HUMANOS = new Set([SENDER_NAME_AUTORESPONDEDOR, 'Bot', 'Sistema']);
+// ESPEJO de `src/lib/whatsapp/remitentes.ts` (CRM: Cierres y el embudo). Acá
+// faltaba 'Sistema Atelier', la firma de los avisos del CRM ("tu pedido está
+// listo"): el bot los leía como palabras de una vendedora. `npm run
+// check:cierres` falla si las dos listas vuelven a divergir.
+const REMITENTES_NO_HUMANOS = new Set([SENDER_NAME_AUTORESPONDEDOR, 'Bot', 'Sistema', 'Sistema Atelier']);
 
 /** `true` si el saliente lo escribió una persona del equipo. */
 function esRemitenteHumano(senderName) {

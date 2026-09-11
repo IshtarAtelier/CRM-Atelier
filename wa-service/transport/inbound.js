@@ -19,6 +19,7 @@
  *   }
  */
 
+const { avisarAlEquipo } = require('../shared/aviso-equipo');
 const { prisma } = require('../db');
 const { prefillAdTag, fallbackAdTag } = require('../shared/ad-tag');
 const { uploadMediaToCrm } = require('../shared/media');
@@ -395,15 +396,14 @@ async function persistStatus(s, { io } = {}) {
                 content: `⚠️ WhatsApp NO entregado — Meta lo rechazó: ${motivo}${quien}. Mensaje: "${resumen}"`,
             },
         }).catch(e => console.error('[Status] No se pudo anotar el rechazo en la ficha:', e.message));
-        await prisma.clientTask.create({
-            data: {
-                clientId: row.chat.clientId,
-                type: 'TASK',
-                status: 'PENDING',
-                createdBy: 'Sistema (WhatsApp)',
-                description: `⚠️ Un WhatsApp al cliente NO llegó (${conocido?.cuenta ? 'problema de la cuenta, no del cliente' : 'problema con este número'}): "${resumen}". ${conocido?.cuenta ? 'Cuando la cuenta esté arreglada, reenviarlo.' : 'Contactarlo por otro medio o revisar el número.'}`,
-            },
-        }).catch(e => console.error('[Status] No se pudo crear la tarea del rechazo:', e.message));
+        // Aviso al EQUIPO (mensajería interna), no una tarea: desde el 10/9/2026
+        // la campanita es solo lo que programa un vendedor, y una tarea "⚠️"
+        // ahí ya no la veía nadie. El waId va en el asunto porque el asunto es
+        // la llave del dedup: sin él, dos rechazos del mismo día se pisan.
+        await avisarAlEquipo({
+            asunto: `⚠️ No llegó un WhatsApp a ${row.chat.waId}`,
+            cuerpo: `Meta lo rechazó: ${motivo}${quien}.\nMensaje: "${resumen}"\n\n${conocido?.cuenta ? 'Es un problema de la cuenta, no del cliente: cuando esté arreglada, reenviarlo.' : 'Problema con este número: contactarlo por otro medio o revisar el número en la ficha.'}`,
+        });
     }
     return { code, motivo, deCuenta: !!conocido?.cuenta, waId: row.chat?.waId, senderName: row.senderName };
 }

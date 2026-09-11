@@ -15,6 +15,9 @@ import {
 } from '../../src/lib/cierres/armado.ts';
 import { telefonoLegible } from '../../src/lib/phone-utils.ts';
 import { SOLO_DEL_VENDEDOR, SOLO_DEL_EMBUDO, TIPO_EMBUDO } from '../../src/lib/tareas/origen.ts';
+import { REMITENTES_AUTOMATICOS } from '../../src/lib/whatsapp/remitentes.ts';
+import { createRequire } from 'node:module';
+const { REMITENTES_NO_HUMANOS } = createRequire(import.meta.url)('../../wa-service/shared/remitentes.js');
 
 let ok = 0;
 const fallas = [];
@@ -116,6 +119,14 @@ console.log('\nTareas: solo las del vendedor');
     check('las tareas SIN autor siguen visibles (el OR con null existe)', ors.some(o => o.createdBy === null));
     check('la campanita solo mira type TASK', SOLO_DEL_VENDEDOR.type === 'TASK');
     check('el embudo tiene su propio tipo', SOLO_DEL_EMBUDO.type === TIPO_EMBUDO && TIPO_EMBUDO !== 'TASK');
+}
+
+console.log('\nRemitentes: el CRM y el bot dicen lo mismo');
+{
+    const crm = [...REMITENTES_AUTOMATICOS].sort().join(', ');
+    const bot = [...REMITENTES_NO_HUMANOS].sort().join(', ');
+    check('la lista de "no es una persona" es la misma en src y en wa-service', crm === bot, `(CRM: ${crm} · bot: ${bot})`);
+    check('"Teléfono" (el celular de la óptica) cuenta como persona en los dos', !REMITENTES_AUTOMATICOS.includes('Teléfono') && !REMITENTES_NO_HUMANOS.has('Teléfono'));
 }
 
 console.log(`\n${ok} ok, ${fallas.length} fallas`);

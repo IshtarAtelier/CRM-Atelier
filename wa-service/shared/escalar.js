@@ -11,13 +11,17 @@
  * llame al silencio y me informe". Esto es la segunda mitad, la que faltaba.
  *
  * Deja TRES rastros, a propósito, porque cada uno falla distinto:
- *   1. una ClientTask en el dashboard — sobrevive a que nadie esté mirando;
+ *   1. un aviso URGENTE en Mensajes del equipo — sobrevive a que nadie esté
+ *      mirando el buzón. Hasta el 10/9/2026 era una ClientTask "⚠️" en la
+ *      campanita; desde que la campanita es solo lo que programa un vendedor
+ *      (decisión de Ishtar), esa tarea no la veía nadie;
  *   2. una nota firmada en la ficha del cliente — queda en su historia;
  *   3. un mail a la administración — llega aunque nadie abra el CRM.
  * Ninguna de las tres puede tumbar la conversación: si una falla, se sigue.
  */
 
 const { prisma } = require('../db');
+const { avisarAlEquipo } = require('./aviso-equipo');
 
 const CREADO_POR = 'Bot (pidió ayuda)';
 
@@ -31,7 +35,7 @@ const CREADO_POR = 'Bot (pidió ayuda)';
  * @param {string} [datos.detalle] contexto extra para el mail
  */
 async function escalarAHumano({ notifyAdminDown, disableBotForChatById }, { chatId, motivo, detalle }) {
-    const resultado = { apagado: false, tarea: false, nota: false, aviso: false };
+    const resultado = { apagado: false, equipo: false, nota: false, aviso: false };
     if (!chatId) return resultado;
 
     const chat = await prisma.whatsAppChat.findUnique({
@@ -51,20 +55,16 @@ async function escalarAHumano({ notifyAdminDown, disableBotForChatById }, { chat
             .then(() => { resultado.apagado = true; }).catch(() => {});
     }
 
-    // 2. Tarea en el dashboard: es lo que hace que alguien se entere aunque
-    //    nadie estuviera mirando el buzón en ese segundo.
-    if (chat.clientId) {
-        await prisma.clientTask.create({
-            data: {
-                clientId: chat.clientId,
-                description: `⚠️ El bot pidió ayuda con ${quien}: ${razon}. Está esperando respuesta.`,
-                type: 'TASK',
-                status: 'PENDING',
-                dueDate: new Date(),
-                createdBy: CREADO_POR,
-            },
-        }).then(() => { resultado.tarea = true; }).catch(() => {});
+    // 2. Aviso al equipo: es lo que hace que alguien se entere aunque nadie
+    //    estuviera mirando el buzón en ese segundo. Urgente: hay un cliente
+    //    esperando y el bot ya no le va a contestar.
+    resultado.equipo = await avisarAlEquipo({
+        asunto: `⚠️ El bot pidió ayuda con ${quien}`,
+        cuerpo: `${razon}.\n\nEl bot se apartó de la conversación para no improvisar y la persona está esperando respuesta. Escribile desde el buzón o el celular.`,
+        urgente: true,
+    });
 
+    if (chat.clientId) {
         await prisma.interaction.create({
             data: {
                 clientId: chat.clientId,
@@ -81,11 +81,11 @@ async function escalarAHumano({ notifyAdminDown, disableBotForChatById }, { chat
             `El bot pidió ayuda con ${quien}`,
             `El bot dejó de responderle a ${quien} (${chat.waId}) para no dar información equivocada.\n\n` +
             `Motivo: ${razon}\n${detalle ? `\n${detalle}\n` : ''}\n` +
-            `La persona está esperando una respuesta. Quedó una tarea en el panel y una nota en la ficha.`,
+            `La persona está esperando una respuesta. Quedó un aviso en Mensajes del equipo y una nota en la ficha.`,
         ).then(() => { resultado.aviso = true; }).catch(() => {});
     }
 
-    console.log(`  🆘 [Escalada] ${quien}: ${razon} · apagado:${resultado.apagado} tarea:${resultado.tarea} aviso:${resultado.aviso}`);
+    console.log(`  🆘 [Escalada] ${quien}: ${razon} · apagado:${resultado.apagado} equipo:${resultado.equipo} mail:${resultado.aviso}`);
     return resultado;
 }
 

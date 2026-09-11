@@ -13,5 +13,11 @@
  *
  * OJO al usarla en un `notIn` de Prisma: descarta también los senderName
  * NULL (en SQL `NULL NOT IN (...)` no es TRUE).
+ *
+ * ESPEJO de `wa-service/shared/remitentes.js` (el bot no puede importar src/).
+ * Estuvieron distintas: acá faltaba 'Auto-respondedor' (el mensaje fijo de
+ * fuera de horario contaba como que una persona le escribió) y allá 'Sistema
+ * Atelier' (el bot leía los avisos del CRM como palabras de una vendedora).
+ * `npm run check:cierres` falla si vuelven a divergir.
  */
-export const REMITENTES_AUTOMATICOS = ['Bot', 'Sistema Atelier', 'Sistema'] as const;
+export const REMITENTES_AUTOMATICOS = ['Bot', 'Sistema Atelier', 'Sistema', 'Auto-respondedor'] as const;
