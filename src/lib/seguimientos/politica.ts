@@ -32,6 +32,8 @@ export interface EstadoDelChat {
     lastInboundAt: Date | null;
     lastFollowUpAt: Date | null;
     followUpPausedUntil: Date | null;
+    /** Último mensaje SALIENTE del chat, de quien sea (persona, sistema o el motor). */
+    lastOutboundAt: Date | null;
 }
 
 export interface Contexto {
@@ -68,6 +70,23 @@ export const COMPUERTAS: Compuerta[] = [
     // "Hablamos a fin de mes" y los SKIP de la compuerta de conversación.
     (_c, chat, ctx) => (chat!.followUpPausedUntil && chat!.followUpPausedUntil.getTime() > ctx.now
         ? `seguimientos pausados hasta ${chat!.followUpPausedUntil.toISOString().slice(0, 10)}`
+        : null),
+
+    // Ya se le mandó un seguimiento hace poco. Es la red contra el doble envío
+    // que no depende de las etiquetas: si el registro de un envío falla, la
+    // etiqueta del escalón no se escribe y el tablero sigue diciendo "toca" —
+    // sin esta compuerta, el tick siguiente se lo volvía a mandar.
+    (_c, chat, ctx) => (chat!.lastFollowUpAt && ctx.now - chat!.lastFollowUpAt.getTime() < SILENCIO_MINIMO_HORAS * HORA_MS
+        ? `ya se le mandó un seguimiento hace menos de ${SILENCIO_MINIMO_HORAS} h`
+        : null),
+
+    // Alguien le escribió hace poco (una persona desde el celular o el buzón, o
+    // el propio motor). El clasificador del tablero deja que el escalón
+    // siguiente venza aunque una persona haya escrito ayer — para el tablero
+    // está bien, lo decide un humano; para un envío AUTOMÁTICO sería una
+    // plantilla encima de una charla que acaba de tener un vendedor.
+    (_c, chat, ctx) => (chat!.lastOutboundAt && ctx.now - chat!.lastOutboundAt.getTime() < SILENCIO_MINIMO_HORAS * HORA_MS
+        ? `le escribieron hace menos de ${SILENCIO_MINIMO_HORAS} h`
         : null),
 
     // La charla está viva: la atiende el bot o una persona.

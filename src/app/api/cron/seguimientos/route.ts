@@ -83,7 +83,16 @@ export async function GET(request: Request) {
         where: { id: { in: chatIds } },
         select: { id: true, lastInboundAt: true, lastFollowUpAt: true, followUpPausedUntil: true },
     }) : [];
-    const chats = new Map<string, EstadoDelChat>(filas.map(f => [f.id, f]));
+    // Último SALIENTE de cada chat (de quien sea): lo mira la compuerta de 48 h.
+    const salientes = chatIds.length ? await prisma.whatsAppMessage.groupBy({
+        by: ['chatId'],
+        where: { chatId: { in: chatIds }, direction: 'OUTBOUND' },
+        _max: { createdAt: true },
+    }) : [];
+    const ultimoSaliente = new Map(salientes.map(s => [s.chatId, s._max.createdAt]));
+    const chats = new Map<string, EstadoDelChat>(
+        filas.map(f => [f.id, { ...f, lastOutboundAt: ultimoSaliente.get(f.id) ?? null }]),
+    );
 
     const seleccion = seleccionar({ candidatos, chats, ctx: { now }, cupo });
 

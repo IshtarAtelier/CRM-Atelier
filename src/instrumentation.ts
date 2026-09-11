@@ -536,6 +536,9 @@ export async function register() {
         // playbook dice que tocan hoy. Diseño en docs/plan-motor-seguimientos.md.
         // Arranca EN SECO (MODO_POR_DEFECTO): lista, no manda. El horario y el
         // cupo los decide la ruta; acá solo se evita llamarla de madrugada.
+        // Guard persistente de la hora: el motor LE ESCRIBE A CLIENTES, y con dos
+        // instancias corriendo este archivo, la variable en memoria no alcanza.
+        const SEGUIMIENTOS_KEY = 'seguimientos_ultima_hora';
         let seguimientosLastHourKey: string | null = null;
         let seguimientosRunning = false;
         const maybeRunSeguimientos = async () => {
@@ -546,7 +549,13 @@ export async function register() {
             const cronSecret = process.env.CRON_SECRET;
             if (!cronSecret) return;
             seguimientosRunning = true;
+            // RECLAMO atómico, igual que los otros robots que escriben a clientes
+            // (arreglo del 8/9/2026). Sin esto, en modo real las dos instancias
+            // mandaban la misma plantilla a la misma persona.
+            let previo: string | null = null;
             try {
+                previo = await reclamarCorrida(SEGUIMIENTOS_KEY, hourKey);
+                if (previo === null) { seguimientosLastHourKey = hourKey; return; }
                 const res = await fetch(`${baseUrl}/api/cron/seguimientos`, {
                     method: 'GET',
                     headers: { Authorization: `Bearer ${cronSecret}` },
@@ -554,6 +563,7 @@ export async function register() {
                 });
                 if (!res.ok) {
                     console.error(`[CRON seguimientos] HTTP ${res.status} — se reintenta en el próximo tick.`);
+                    await devolverCorrida(SEGUIMIENTOS_KEY, hourKey, previo);
                     return;
                 }
                 seguimientosLastHourKey = hourKey;
@@ -563,6 +573,7 @@ export async function register() {
                 console.log(`[CRON seguimientos] modo ${data.modo} · candidatos ${data.candidatos ?? 0} · ${data.modo === 'seco' ? `habrían salido ${habrian}` : `salieron ${salieron}`} · vetados ${data.vetados?.length ?? 0}`);
             } catch (err) {
                 console.error('[CRON seguimientos] Error disparando el motor (se reintenta):', err);
+                if (previo !== null) await devolverCorrida(SEGUIMIENTOS_KEY, hourKey, previo);
             } finally {
                 seguimientosRunning = false;
             }
