@@ -5,6 +5,7 @@ import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService } from '@/services/PricingService';
 import { applyTeñidoPromoDiscount, isCrystal, isTeñidoAddon, recalculateCrystalPrices } from '@/lib/promo-utils';
 import { BOT_ACTOR } from '@/lib/actor';
+import { esArchivado } from '@/lib/catalog/vendible';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,6 +89,16 @@ export async function POST(request: Request) {
         const dbProducts = await prisma.product.findMany({
             where: { id: { in: productIds } }
         });
+
+        // Un id viejo que trae el modelo puede apuntar a un producto que se sacó
+        // de la venta. Se rechaza en vez de convertirlo en una Order real.
+        const archivados = dbProducts.filter(esArchivado);
+        if (archivados.length > 0) {
+            return NextResponse.json({
+                error: 'Hay productos que ya no están a la venta',
+                productos: archivados.map(p => p.name),
+            }, { status: 400 });
+        }
 
         // ─────────────────────────────────────────────────────────────────
         // Los precios NO se toman del body.

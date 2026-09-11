@@ -60,6 +60,7 @@ import { precioConOferta } from '@/lib/precio-oferta';
 import { normalizeLensOrigin, lensOriginSuffix, lensOriginFromItem } from '@/lib/lens-origin';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import TablaCotizador from './TablaCotizador';
+import { esArchivado } from '@/lib/catalog/vendible';
 
 // Recibe la CLAVE ya resuelta (p.ej. 'Cristal', 'Tratamiento') — no la vuelve a
 // derivar. `getTypeConfig(cat)` reinvocaba getCategoryKey tratando la clave como
@@ -276,7 +277,7 @@ function CotizadorPageContent() {
                     // para las ventas ya hechas, los reportes de costo de
                     // laboratorio siguen cuadrando, pero el vendedor no lo ve.
                     // Borrarlo dejaría huérfanas esas ventas.
-                    setProducts(data.filter((p: Product) => !/^\s*\[archivado\]/i.test(p.name || '')));
+                    setProducts(data.filter((p: Product) => !esArchivado(p)));
                 } else {
                     console.error('Error loading products:', data);
                     setProducts([]);

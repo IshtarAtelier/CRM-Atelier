@@ -7,6 +7,7 @@ import { PricingService } from '@/services/PricingService';
 import { esGraduacionAlta, CATEGORIAS_DE_CRISTAL, PALABRAS_DE_TALLADO } from '@/lib/receta/graduacion';
 import { cubreLaReceta, tieneGraduacion, motivoDeDescarte } from '@/lib/receta/rango-de-cristal';
 import { tipoDeRecetaSegunNumeros } from '@/lib/receta/tipo-de-lente';
+import { WHERE_VENDIBLE } from '@/lib/catalog/vendible';
 
 /** Cuántos cristales se le mandan al bot cuando la receta acotó el universo. */
 const MAX_OPCIONES_CRUZADAS = 8;
@@ -176,7 +177,7 @@ export async function GET(req: NextRequest) {
     // archivado seguía saliendo por WhatsApp, que es donde más se cotiza.
     // Pasó con el Stellest (9/9/2026): se archivó porque su rango cargado tenía
     // positivos y el bot lo habría seguido ofreciendo a un hipermétrope.
-    filtros.push({ NOT: { name: { startsWith: '[ARCHIVADO]' } } });
+    filtros.push(WHERE_VENDIBLE);
 
     if (category) {
         if (category === 'CLIPON') {

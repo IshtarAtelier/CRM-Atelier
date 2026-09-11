@@ -3,6 +3,7 @@ import { PricingService } from '@/services/PricingService';
 import { resolveMonthlyTargets } from '@/lib/targets';
 import { logAudit } from '@/lib/audit';
 import { OrderService } from '@/services/order.service';
+import { WHERE_VENDIBLE } from '@/lib/catalog/vendible';
 
 // ═══════════════════════════════════════════════════
 // Tipos
@@ -167,10 +168,15 @@ const getProductStock: CopilotTool = {
     const q = (args.query as string).toLowerCase();
     const products = await prisma.product.findMany({
       where: {
-        OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { brand: { contains: q, mode: 'insensitive' } },
-          { model: { contains: q, mode: 'insensitive' } },
+        AND: [
+          {
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { brand: { contains: q, mode: 'insensitive' } },
+              { model: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+          WHERE_VENDIBLE,
         ],
       },
       select: { id: true, name: true, brand: true, type: true, stock: true, price: true },

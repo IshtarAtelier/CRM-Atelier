@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { CrystalMapping } from '@/lib/config/crystal-mapping';
+import { WHERE_VENDIBLE } from '@/lib/catalog/vendible';
 
 /**
  * Precio "desde" de un multifocal, leído de la base.
@@ -36,7 +37,7 @@ export async function precioMultifocalDesde(): Promise<number | null> {
     };
 
     const cristales = await prisma.product.findMany({
-      where: { category: 'Cristal', ...(config.type ? { type: config.type } : {}) },
+      where: { AND: [{ category: 'Cristal', ...(config.type ? { type: config.type } : {}) }, WHERE_VENDIBLE] },
       select: { name: true, price: true },
     });
     if (!cristales.length) return null;

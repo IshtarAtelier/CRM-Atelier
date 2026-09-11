@@ -21,6 +21,7 @@ import { AdsService } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
 import { logAudit } from '@/lib/audit';
 import type { ContactSource } from '@/lib/contact-source';
+import { WHERE_VENDIBLE } from '@/lib/catalog/vendible';
 
 /**
  * Canal que escribe el checkout web. Tipado contra el vocabulario único
@@ -325,11 +326,12 @@ export async function POST(req: Request) {
     const transferMultiplier = 1 - cashDiscountRate;
 
     // Fetch all crystals and treatments from DB to recalculate pricing on backend
+    // Solo lo VENDIBLE: esto decide lo que se COBRA y lo que va al laboratorio.
     const crystals = await prisma.product.findMany({
-      where: { category: 'Cristal' }
+      where: { AND: [{ category: 'Cristal' }, WHERE_VENDIBLE] }
     });
     const treatments = await prisma.product.findMany({
-      where: { category: 'Tratamientos y Accesorios' }
+      where: { AND: [{ category: 'Tratamientos y Accesorios' }, WHERE_VENDIBLE] }
     });
 
     const findTintPrice = () => {

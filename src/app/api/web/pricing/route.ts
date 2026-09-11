@@ -1,19 +1,21 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { CrystalMapping } from '@/lib/config/crystal-mapping';
+import { WHERE_VENDIBLE } from '@/lib/catalog/vendible';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
         // Fetch all crystals
+        // Solo lo VENDIBLE: el precio "desde" que ve el cliente sale de acá.
         const crystals = await prisma.product.findMany({
-            where: { category: 'Cristal' }
+            where: { AND: [{ category: 'Cristal' }, WHERE_VENDIBLE] }
         });
 
         // Fetch extra treatments
         const treatments = await prisma.product.findMany({
-            where: { category: 'Tratamientos y Accesorios' }
+            where: { AND: [{ category: 'Tratamientos y Accesorios' }, WHERE_VENDIBLE] }
         });
 
         if (!crystals || crystals.length === 0) {

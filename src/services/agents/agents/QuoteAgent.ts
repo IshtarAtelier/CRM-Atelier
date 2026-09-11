@@ -3,6 +3,7 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { prisma } from "@/lib/db";
 import { PricingService, CartItem } from "@/services/PricingService";
 import { PrescriptionData } from "./OcrAgent";
+import { WHERE_VENDIBLE } from '@/lib/catalog/vendible';
 
 export interface QuoteRequest {
   prescription?: PrescriptionData;
@@ -62,8 +63,7 @@ export class QuoteAgent {
 
       const crystals = await prisma.product.findMany({
         where: {
-          category: 'Cristal',
-          type: dbCategory,
+          AND: [{ category: 'Cristal', type: dbCategory }, WHERE_VENDIBLE],
         }
       });
 
