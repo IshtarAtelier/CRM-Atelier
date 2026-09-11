@@ -81,9 +81,9 @@ export default function ProductForm({ onClose, onSuccess, isAdmin = false, uniqu
     }, []);
 
     // El costo que se tipea es SIEMPRE el pelado (lista del lab); el final se deriva.
-    const getFinalCost = (listCost: number, labName: string, is2x1 = false) =>
+    // Calibrado SIMPLE también en 2x1 (ver src/lib/lens-cost.ts).
+    const getFinalCost = (listCost: number, labName: string) =>
         computeFinalLensCost(listCost, findLabConfig(labConfigs, labName), {
-            is2x1,
             skipCalibrado: selectedCategory === 'Tratamiento',
         });
 

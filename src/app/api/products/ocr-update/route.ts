@@ -200,11 +200,11 @@ Devuelve SOLO un JSON válido con esta estructura:
             // Calculate cost based on matched product's 2x1 status
             const cantCristales = (bestMatch && bestScore >= 3 && bestMatch.is2x1) ? 2 : 1;
             // Misma fórmula que el alta y la edición (src/lib/lens-cost.ts): el costo
-            // pelado de lista + calibrado (doble si es 2x1), todo con IVA.
+            // pelado de lista + calibrado SIMPLE, con IVA. También en 2x1: el
+            // segundo par lo bonifica el laboratorio.
             const { calibrado: calibradoTotal, final: costoFinal } = breakdownLensCost(
                 item.precio,
                 { name: laboratory, calibrado, iva },
-                { is2x1: cantCristales === 2 },
             );
 
             // Calculate current markup and suggested new price

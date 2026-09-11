@@ -42,6 +42,7 @@
     "social:render": "node scripts/social/render.mjs",
     "social:publicar": "node scripts/social/publicar.mjs",
     "check:orden": "node scripts/checks/orden-del-repo.check.mjs",
+    "check:costos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/costos-vs-formula.check.mts",
     "check:cierres": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cierres.check.mjs",
     "check:motor": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/motor-seguimientos.check.mjs",
     "check:cierres-base": "node --env-file=.env --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cierres-base.check.mjs",

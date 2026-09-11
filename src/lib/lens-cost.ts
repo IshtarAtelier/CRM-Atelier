@@ -44,11 +44,20 @@ export function costoParBonificado(lab?: LabCostConfig): number {
 }
 
 export interface LensCostOptions {
-    /** Par bonificado: el lab calibra dos pares, así que el calibrado va doble. */
-    is2x1?: boolean;
     /** Los tratamientos no llevan calibrado. */
     skipCalibrado?: boolean;
 }
+
+/*
+ * EL 2x1 LLEVA CALIBRADO SIMPLE. El `cost` del producto es UN par; el segundo
+ * par de cristales lo bonifica el laboratorio y en el cruce vale cero (regla de
+ * CLAUDE.md, decisión de Ishtar del 8/9/2026). Esta función aceptaba antes una
+ * opción `is2x1` que DUPLICABA el calibrado: la usaban el alta de productos y
+ * el importador de listas (OCR), mientras la edición ya la había sacado. Un
+ * mismo cristal 2x1 quedaba con $27.830 de diferencia según qué pantalla lo
+ * hubiera tocado último. La opción no existe más, así nadie puede volver a
+ * pasarla.
+ */
 
 export function findLabConfig(labs: LabCostConfig[], labName?: string | null): LabCostConfig | undefined {
     const target = (labName || '').trim().toUpperCase();
@@ -59,8 +68,7 @@ export function findLabConfig(labs: LabCostConfig[], labName?: string | null): L
 /** Desglose de la fórmula, para mostrarlo en pantalla y que no sea una caja negra. */
 export function breakdownLensCost(baseCost: number, lab: LabCostConfig | undefined, opts: LensCostOptions = {}) {
     const base = Number.isFinite(baseCost) ? baseCost : 0;
-    const calibradoUnit = opts.skipCalibrado ? 0 : (lab?.calibrado || 0);
-    const calibrado = opts.is2x1 ? calibradoUnit * 2 : calibradoUnit;
+    const calibrado = opts.skipCalibrado ? 0 : (lab?.calibrado || 0);
     const iva = lab?.iva || 0;
     const final = Math.round((base + calibrado) * (1 + iva / 100));
     return { base, calibrado, iva, final };

@@ -33,17 +33,29 @@ export async function recalcularCostosDelLaboratorio(
     // Un solo UPDATE con la fórmula adentro: recalcular 225 filas una por una
     // desde Node tardaría minutos contra la base remota (ya nos pasó con los
     // scripts de carga) y esto corre adentro de un request HTTP.
+    //
+    // 🔴 ESPEJO de computeFinalLensCost (src/lib/lens-cost.ts): calibrado SIMPLE
+    // en los cristales —también en 2x1— y SIN calibrado en los tratamientos,
+    // todo con el IVA del laboratorio. Si cambia la fórmula allá, se cambia acá.
+    // `npm run check:costos` compara cada costo de la base contra esa función y
+    // grita si este SQL y ella se separan.
+    //
+    // Hasta el 11/9/2026 esto tocaba solo `category = 'Cristal'`: si se cambiaba
+    // el IVA de Optovisión, sus 22 tratamientos (que llevan ×1,21) quedaban con
+    // el IVA viejo para siempre.
     const recalculados: number = await prisma.$executeRaw`
         update "Product"
-        set cost = round(("baseCost" + ${calibrado}) * (1 + ${iva} / 100.0)),
+        set cost = round(("baseCost" + case when category = 'Tratamiento' then 0 else ${calibrado} end)
+                         * (1 + ${iva} / 100.0)),
             "updatedAt" = now()
-        where category = 'Cristal'
+        where category in ('Cristal', 'Tratamiento')
           and upper(laboratory) = upper(${labName})
           and "baseCost" is not null
-          and round(cost) <> round(("baseCost" + ${calibrado}) * (1 + ${iva} / 100.0))`;
+          and round(cost) <> round(("baseCost" + case when category = 'Tratamiento' then 0 else ${calibrado} end)
+                                   * (1 + ${iva} / 100.0))`;
 
     const sinPelado = await prisma.product.count({
-        where: { category: 'Cristal', laboratory: { equals: labName, mode: 'insensitive' }, baseCost: null },
+        where: { category: { in: ['Cristal', 'Tratamiento'] }, laboratory: { equals: labName, mode: 'insensitive' }, baseCost: null },
     });
 
     await logAudit({

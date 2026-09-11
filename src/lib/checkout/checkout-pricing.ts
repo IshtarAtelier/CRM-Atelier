@@ -1,8 +1,42 @@
 import { CrystalMapping } from '@/lib/config/crystal-mapping';
+import { WHERE_VENDIBLE } from '@/lib/catalog/vendible';
+import { estiloDeTenidoDelProducto } from '@/lib/constants/tenido';
 
+/**
+ * PRECIOS DE CRISTALES DE LA TIENDA Y DEL CHECKOUT — la única fuente.
+ *
+ * Hasta el 11/9/2026 este cálculo existía TRES veces: acá, en /api/web/pricing
+ * (lo que ve el cliente) y en /api/checkout/payway (lo que se le cobra). Las
+ * copias ya habían divergido: la de Payway no aplicaba `excludeKeywords` y
+ * cobraba "Mi Primer Varilux" a la mitad de lo publicado (ver payway), y esta
+ * tampoco la aplicaba. Ahora web y checkout leen de acá, así que lo que se
+ * publica y lo que se cobra no pueden separarse.
+ */
+
+/** Lo que la tienda puede vender: cristales y tratamientos, sin archivados. */
+export async function cargarCatalogoWeb(prisma: any) {
+  const [crystals, treatments] = await Promise.all([
+    prisma.product.findMany({ where: { AND: [{ category: 'Cristal' }, WHERE_VENDIBLE] } }),
+    // Los tratamientos se guardan con category 'Tratamiento'. Hasta el 11/9/2026
+    // se buscaban en 'Tratamientos y Accesorios', una categoría que no tiene
+    // ningún producto: el teñido de la tienda salía SIEMPRE del respaldo fijo
+    // de $25.000, sin importar lo que costara de verdad.
+    prisma.product.findMany({ where: { AND: [{ category: 'Tratamiento' }, WHERE_VENDIBLE] } }),
+  ]);
+  return { crystals, treatments };
+}
+
+/**
+ * Precio del teñido de la tienda: el COMPACTO, que es el teñido base (color
+ * entero). Se elige por estilo y no por "el primero que diga teñido", porque
+ * hay tres (compacto, degradé, según muestra) con precios distintos y el
+ * primero que devolvía la base era cualquiera.
+ */
 export const findTintPrice = (treatments: any[]) => {
-  const tintProduct = treatments.find(p => p.name?.toLowerCase().includes('teñido') || p.name?.toLowerCase().includes('tenido'));
-  if (tintProduct && tintProduct.price) return tintProduct.price;
+  const compactos = treatments
+    .filter(p => estiloDeTenidoDelProducto(p) === 'COMPACTO' && p.price > 0)
+    .sort((a, b) => a.price - b.price);
+  if (compactos.length) return compactos[0].price;
   return CrystalMapping.EXTRAS.TINT;
 };
 
@@ -11,17 +45,24 @@ export const findPrice = (crystals: any[], config: any) => {
   if (config.type) {
     matches = matches.filter(p => p.type === config.type);
   }
+  // Exclusiones del mapeo ("mi primer": restricciones de adición, no puede ser
+  // el precio "desde"). Esta rama faltaba en esta copia.
+  if (config.excludeKeywords && config.excludeKeywords.length > 0) {
+    matches = matches.filter(p =>
+      !config.excludeKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
+    );
+  }
   if (config.exactMatchName) {
     const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
     if (exactMatch && exactMatch.price) return exactMatch.price;
   }
   if (config.matchKeywords && config.matchKeywords.length > 0) {
-    matches = matches.filter(p => 
+    matches = matches.filter(p =>
       config.matchKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
     );
   } else if (config.matchKeywords && config.matchKeywords.length === 0 && config.type === "Cristal Monofocal") {
-    matches = matches.filter(p => 
-      !p.name?.toLowerCase().includes('blue') && 
+    matches = matches.filter(p =>
+      !p.name?.toLowerCase().includes('blue') &&
       !p.name?.toLowerCase().includes('foto') &&
       !p.name?.toLowerCase().includes('transitions')
     );

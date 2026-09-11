@@ -8,7 +8,7 @@ import { getWebSettings } from '@/lib/web-settings';
 import { CrystalMapping } from '@/lib/config/crystal-mapping';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
-import { recalculateItemPrice, effectiveFramePrice } from '@/lib/checkout/checkout-pricing';
+import { recalculateItemPrice, effectiveFramePrice, buildPricingMap, cargarCatalogoWeb } from '@/lib/checkout/checkout-pricing';
 import { calcular2x1Armazones } from '@/lib/promo-2x1-armazones';
 import { isFrame } from '@/lib/promo-utils';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
@@ -21,7 +21,6 @@ import { AdsService } from '@/services/ads.service';
 import { recordServerEvent } from '@/lib/analytics';
 import { logAudit } from '@/lib/audit';
 import type { ContactSource } from '@/lib/contact-source';
-import { WHERE_VENDIBLE } from '@/lib/catalog/vendible';
 
 /**
  * Canal que escribe el checkout web. Tipado contra el vocabulario único
@@ -325,83 +324,13 @@ export async function POST(req: Request) {
     const cashDiscountRate = (webSettings.web_promo_cash_discount ?? 15) / 100;
     const transferMultiplier = 1 - cashDiscountRate;
 
-    // Fetch all crystals and treatments from DB to recalculate pricing on backend
-    // Solo lo VENDIBLE: esto decide lo que se COBRA y lo que va al laboratorio.
-    const crystals = await prisma.product.findMany({
-      where: { AND: [{ category: 'Cristal' }, WHERE_VENDIBLE] }
-    });
-    const treatments = await prisma.product.findMany({
-      where: { AND: [{ category: 'Tratamientos y Accesorios' }, WHERE_VENDIBLE] }
-    });
-
-    const findTintPrice = () => {
-      const tintProduct = treatments.find(p => p.name?.toLowerCase().includes('teñido') || p.name?.toLowerCase().includes('tenido'));
-      if (tintProduct && tintProduct.price) return tintProduct.price;
-      return CrystalMapping.EXTRAS.TINT;
-    };
-
-    const findPrice = (config: any) => {
-      let matches = crystals;
-      if (config.type) {
-        matches = matches.filter(p => p.type === config.type);
-      }
-      // Exclusiones del mapeo. Esta rama FALTABA acá y la tienda sí la tenía
-      // (/api/web/pricing), así que las dos puntas del checkout no coincidían:
-      // `MULTIFOCAL.VARILUX` excluye "mi primer" —tiene restricciones de adición
-      // y por eso no puede ser el precio que se publica—, pero como este
-      // `findPrice` toma el MÍNIMO sin filtrar, elegía justo ese. Medido contra
-      // el catálogo real: la web mostraba $1.346.599 (COMFORT MAX - ORMA +
-      // CRIZAL 2x1) y acá se cobraba $673.301 (MI PRIMER VARILUX COMFORT MAX -
-      // ORMA). Diferencia de $673.298 por par, a favor del cliente, y el guard
-      // de precio no lo frena porque es direccional (solo bloquea si se paga de
-      // menos que lo que calcula el backend). Peor todavía: `findMatchedProduct`
-      // adjuntaba a la orden ese mismo cristal, así que al laboratorio le iba el
-      // que la exclusión existía para no vender.
-      if (config.excludeKeywords && config.excludeKeywords.length > 0) {
-        matches = matches.filter(p =>
-          !config.excludeKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
-        );
-      }
-      if (config.exactMatchName) {
-        const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
-        if (exactMatch && exactMatch.price) return exactMatch.price;
-      }
-      if (config.matchKeywords && config.matchKeywords.length > 0) {
-        matches = matches.filter(p => 
-          config.matchKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
-        );
-      } else if (config.matchKeywords && config.matchKeywords.length === 0 && config.type === "Cristal Monofocal") {
-        matches = matches.filter(p => 
-          !p.name?.toLowerCase().includes('blue') && 
-          !p.name?.toLowerCase().includes('foto') &&
-          !p.name?.toLowerCase().includes('transitions')
-        );
-      }
-      if (matches.length === 0) return 0;
-      return Math.min(...matches.map(p => p.price || 0));
-    };
-
-    const PRICING = {
-      MONOFOCAL: {
-        ORGANICO_BLANCO: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_BLANCO) || 20000,
-        ORGANICO_AR: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_AR) || 45000,
-        ORGANICO_BLUE: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_BLUE) || 68000,
-        POLI_BLUE: findPrice(CrystalMapping.MONOFOCAL.POLI_BLUE) || 120000,
-        ORGANICO_FOTOCROMATICO: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_FOTOCROMATICO) || 105000,
-        ORGANICO_BLANCO_TENIDO: findPrice(CrystalMapping.MONOFOCAL.ORGANICO_BLANCO_TENIDO) || 68000,
-      },
-      BIFOCAL: {
-        ORGANICO_BLANCO: findPrice(CrystalMapping.BIFOCAL.ORGANICO_BLANCO) || 45000,
-      },
-      MULTIFOCAL: {
-        SMART_FREE: findPrice(CrystalMapping.MULTIFOCAL.SMART_FREE) || 120000,
-        VARILUX: findPrice(CrystalMapping.MULTIFOCAL.VARILUX) || 350000,
-        FOTOCROMATICO: findPrice(CrystalMapping.MULTIFOCAL.FOTOCROMATICO) || 180000,
-      },
-      EXTRAS: {
-        TINT: findTintPrice()
-      }
-    };
+    // Cristales y tratamientos VENDIBLES, y el mapa de precios: la MISMA función
+    // que usa /api/web/pricing para mostrarlos (src/lib/checkout/checkout-pricing).
+    // Acá había una copia propia de findPrice/findTintPrice que ya había
+    // divergido de la de la web: ver el incidente de "Mi Primer Varilux" en
+    // findMatchedProduct, más arriba.
+    const { crystals, treatments } = await cargarCatalogoWeb(prisma);
+    const PRICING = buildPricingMap(crystals, treatments);
 
     // Promo 2x1 Varilux: los ítems marcados secondPair2x1 van sin cargo
     // (armazón + cristales), pero SOLO si el pedido incluye al menos un
