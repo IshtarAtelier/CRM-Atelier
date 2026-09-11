@@ -60,8 +60,17 @@ export async function ejecutar(elegidos: Candidato[], now = new Date()): Promise
             if (!r.ok) {
                 resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: false, detalle: r.error || `HTTP ${r.status ?? '?'}` });
             } else {
-                await registrarSeguimientoEnviado({ chatId: c.waChatId!, plantilla, actor: SYSTEM_ACTOR });
-                resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: true, detalle: r.via });
+                // Ya SALIÓ: pase lo que pase con el registro, cuenta como enviado.
+                // Antes, si el registro fallaba, quedaba "fallido" y sin la etiqueta
+                // del escalón, y el tick siguiente se lo volvía a mandar. La
+                // compuerta de 48 h (`politica.ts`) es la otra mitad de esa red.
+                try {
+                    await registrarSeguimientoEnviado({ chatId: c.waChatId!, plantilla, actor: SYSTEM_ACTOR });
+                    resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: true, detalle: r.via });
+                } catch (e: any) {
+                    console.error(`[Motor seguimientos] Enviado a ${c.nombre} pero no se pudo registrar:`, e?.message);
+                    resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: true, detalle: `enviado, pero no se pudo registrar: ${e?.message}` });
+                }
             }
         } catch (e: any) {
             resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: false, detalle: e?.message });

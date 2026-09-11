@@ -63,6 +63,9 @@ jobs:
       - name: Cierres y tareas (dedup, "ya le escribí", solo tareas del vendedor)
         run: npm run check:cierres
 
+      - name: Motor de seguimientos (compuertas antes de mandar solo)
+        run: npm run check:motor
+
       - name: Contrato herramientas del bot ↔ rutas del CRM
         run: npm run check:contrato-bot
 
