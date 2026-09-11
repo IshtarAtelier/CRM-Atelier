@@ -22,7 +22,8 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { config } from 'dotenv';
-import { emparejar, MARKUP } from './emparejador.mjs';
+import { emparejar, MARKUP, CALIBRADO, IVA } from './emparejador.mjs';
+import { exigirFormulaVigente } from '../_comun/formula-vigente.mjs';
 
 config();
 
@@ -46,6 +47,7 @@ const pesos = n => n == null ? '—' : `$${Math.round(n).toLocaleString('es-AR')
 
 async function main() {
     console.log(`Base: ${PRODUCCION ? '⚠️  PRODUCCIÓN' : 'LOCAL'} · modo: ${APLICAR ? 'APLICAR (escribe)' : 'ENSAYO (no escribe)'}\n`);
+    await exigirFormulaVigente(prisma, 'Optovision', { calibrado: CALIBRADO, iva: IVA });
 
     const productos = await prisma.$queryRaw`
         select id, name, price, cost, "baseCost", is2x1

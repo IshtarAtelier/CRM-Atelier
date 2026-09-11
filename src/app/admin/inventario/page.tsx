@@ -424,11 +424,23 @@ export default function InventarioPage() {
                 additionMin: editForm.additionMin !== '' ? parseFloat(editForm.additionMin) : null,
                 additionMax: editForm.additionMax !== '' ? parseFloat(editForm.additionMax) : null,
             };
-            const res = await fetch(`/api/products/${editingProduct.id}`, {
+            const guardar = (extra: Record<string, unknown> = {}) => fetch(`/api/products/${editingProduct.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-user-role': 'ADMIN' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ ...payload, ...extra })
             });
+            let res = await guardar();
+            // 409 = una regla de precio de la dueña (bajarle el precio a algo que
+            // se vende, o dejar un cristal debajo del piso de markup). No es un
+            // error: se muestra el aviso y, si confirma, se guarda igual.
+            if (res.status === 409) {
+                const data = await res.json();
+                if (data.requiereConfirmacion) {
+                    const ok = window.confirm(`${(data.avisos || []).join('\n\n')}\n\n¿Guardar igual?`);
+                    if (!ok) return;
+                    res = await guardar({ confirmarPrecio: true });
+                }
+            }
             if (res.ok) {
                 setEditingProduct(null);
                 refresh();
@@ -933,11 +945,20 @@ export default function InventarioPage() {
                                                         if (!isNaN(mult) && mult > 0) {
                                                             const newPrice = Math.round(p.cost * mult);
                                                             try {
-                                                                await fetch(`/api/products/${p.id}`, {
+                                                                const guardar = (extra: Record<string, unknown> = {}) => fetch(`/api/products/${p.id}`, {
                                                                     method: 'PUT',
                                                                     headers: { 'Content-Type': 'application/json', 'x-user-role': 'ADMIN' },
-                                                                    body: JSON.stringify({ price: newPrice })
+                                                                    body: JSON.stringify({ price: newPrice, ...extra })
                                                                 });
+                                                                let res = await guardar();
+                                                                // Misma regla que la edición completa: bajarle el precio a algo
+                                                                // que se vende, o dejarlo bajo el piso, pide confirmación.
+                                                                if (res.status === 409) {
+                                                                    const data = await res.json();
+                                                                    if (data.requiereConfirmacion && window.confirm(`${(data.avisos || []).join('\n\n')}\n\n¿Guardar igual?`)) {
+                                                                        res = await guardar({ confirmarPrecio: true });
+                                                                    }
+                                                                }
                                                                 refresh();
                                                             } catch (err) { console.error('Error updating price:', err); }
                                                         }

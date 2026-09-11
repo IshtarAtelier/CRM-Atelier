@@ -30,6 +30,7 @@ import { PrismaClient } from '@prisma/client';
 import { config } from 'dotenv';
 import { pathToFileURL } from 'node:url';
 import { emparejar } from './emparejador-go.mjs';
+import { exigirFormulaVigente } from '../_comun/formula-vigente.mjs';
 
 config();
 
@@ -64,6 +65,7 @@ async function main() {
     }
     const prisma = new PrismaClient({ datasources: { db: { url } } });
     try {
+    await exigirFormulaVigente(prisma, 'GRUPO OPTICO', { calibrado: CALIBRADO_GO, iva: IVA_GO });
     console.log(`Base: ${PRODUCCION ? '⚠️  PRODUCCIÓN' : 'LOCAL'} · modo: ${APLICAR ? 'APLICAR (escribe)' : 'ENSAYO (no escribe)'}`);
     console.log(`Fórmula: lista + $${CALIBRADO_GO.toLocaleString('es-AR')} de calibrado · SIN IVA\n`);
 

@@ -6,6 +6,7 @@ import { ProductService } from '@/services/product.service';
 import { getActor } from '@/lib/actor';
 import { logAudit } from '@/lib/audit';
 import { invalidateWebCatalog } from '@/lib/catalog/tienda-map';
+import { avisosDeCambioDePrecio } from '@/lib/precios/reglas-de-precio';
 
 export async function DELETE(
     request: Request,
@@ -78,8 +79,31 @@ export async function PUT(
         // Foto previa de los campos sensibles para auditar solo lo que cambia
         const before = await prisma.product.findUnique({
             where: { id },
-            select: { price: true, cost: true, wholesalePrice: true, stock: true, eligible2x1: true },
+            select: { price: true, cost: true, wholesalePrice: true, stock: true, eligible2x1: true, category: true },
         });
+
+        // Las reglas de precio de la dueña (src/lib/precios/reglas-de-precio.ts):
+        // bajarle el precio a algo que se vende, o dejar un cristal debajo del
+        // piso de markup, no se guarda en silencio. Se devuelve 409 con los
+        // avisos y la pantalla pide confirmación; con `confirmarPrecio: true`
+        // se guarda igual. Es una decisión de ella, no un candado.
+        if (before && body.price !== undefined && body.confirmarPrecio !== true) {
+            const precioNuevo = parseFloat(body.price);
+            if (Number.isFinite(precioNuevo) && Math.round(precioNuevo) !== Math.round(before.price ?? 0)) {
+                const ventas = await prisma.orderItem.count({ where: { productId: id } });
+                const avisos = avisosDeCambioDePrecio({
+                    precioActual: before.price,
+                    precioNuevo,
+                    costo: body.cost !== undefined && body.cost !== '' ? parseFloat(body.cost) : before.cost,
+                    categoria: before.category,
+                    ventas,
+                });
+                if (avisos.length) {
+                    return NextResponse.json({ error: 'El precio necesita confirmación', requiereConfirmacion: true, avisos }, { status: 409 });
+                }
+            }
+        }
+        delete body.confirmarPrecio;
 
         const product = await ProductService.update(id, body);
 
