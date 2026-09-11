@@ -54,6 +54,9 @@ veta('respondió al último seguimiento', cand(), chat({ lastFollowUpAt: hace(10
 veta('NUEVO · ya se le mandó un seguimiento hace 20 h', cand(), chat({ lastFollowUpAt: hace(20) }), 'seguimiento hace menos');
 veta('NUEVO · un vendedor le escribió hace 5 h', cand(), chat({ lastOutboundAt: hace(5) }), 'le escribieron');
 veta('11/9 · nombre de puros emojis (🫵🏻💪)', cand({ nombre: '🫵🏻💪' }), chat(), 'nombre');
+veta('11/9 · "anteojo de cerca" como nombre de perfil', cand({ nombre: 'anteojo de cerca' }), chat(), 'nombre');
+veta('11/9 · "El Flaco": no se manda "Hola El"', cand({ nombre: 'El Flaco' }), chat(), 'nombre');
+check('"Jorge 😎" sale como Jorge', evaluar(cand({ nombre: 'Jorge 😎' }), chat(), ctx) === null);
 veta('11/9 · apagado desde el chat (SIN_SEGUIMIENTO)', cand(), chat({ chatLabels: ['SIN_SEGUIMIENTO'] }), 'apagado desde el chat');
 veta('11/9 · apagado desde la ficha (etiqueta "Sin Seguimiento")', cand(), chat({ tagNames: ['Sin Seguimiento'] }), 'apagado desde la ficha');
 veta('11/9 · "no interesado" en la ficha', cand(), chat({ tagNames: ['No interesado'] }), 'apagado desde la ficha');
@@ -65,7 +68,7 @@ console.log('\nNombre de persona: el motor y el bot dicen lo mismo');
     const require = createRequire(import.meta.url);
     const { esNombreValido } = require('../../wa-service/shared/nombre-de-persona.js');
     const { esNombreDePersona } = await import('../../src/lib/nombre-de-persona.ts');
-    for (const [n, esperado] of [['Julio Pérez', true], ['Ana', true], ['😊', false], ['🫵🏻💪', false], ['3541215971', false], ['hola quiero info', false], ['Cliente', false]]) {
+    for (const [n, esperado] of [['Julio Pérez', true], ['Ana', true], ['😊', false], ['🫵🏻💪', false], ['3541215971', false], ['hola quiero info', false], ['Cliente', false], ['anteojo de cerca', false], ['lentes de sol', false]]) {
         check(`"${n}" → ${esperado ? 'nombre' : 'no es nombre'} (en los dos lados)`, esNombreValido(n) === esperado && esNombreDePersona(n) === esperado, `bot=${esNombreValido(n)} motor=${esNombreDePersona(n)}`);
     }
 }

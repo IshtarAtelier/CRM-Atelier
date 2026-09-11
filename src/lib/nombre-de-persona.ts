@@ -9,7 +9,7 @@
  * menos dos LETRAS.
  */
 const GENERICOS = new Set(['contacto nuevo wa', 'contacto nuevo', 'cliente', 'contacto', 'desconocido', '-', 'sin nombre', 'sin', 's/n']);
-const PALABRAS_DE_FRASE = /\b(hola|buen|buenos|buenas|d[ií]as|tardes|noches|c[oó]mo|info|informaci[oó]n|consulta|presupuesto|receta|turno|precio|cu[aá]nto|quiero|necesito|busco|gracias)\b/i;
+const PALABRAS_DE_FRASE = /\b(hola|buen|buenos|buenas|d[ií]as|tardes|noches|c[oó]mo|info|informaci[oó]n|consulta|presupuesto|receta|turno|precio|cu[aá]nto|quiero|necesito|busco|gracias|anteojos?|lentes?|armaz[oó]n|multifocal(es)?|cerca|lejos|sol)\b/i;
 
 export function esNombreDePersona(nombre: string | null | undefined): boolean {
     if (!nombre || typeof nombre !== 'string') return false;

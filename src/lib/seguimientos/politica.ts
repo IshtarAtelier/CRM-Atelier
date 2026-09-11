@@ -66,6 +66,8 @@ export function nombreDePila(nombre: string | null | undefined): string | null {
     const pila = (nombre || '').trim().split(/\s+/)[0] || '';
     // Un número, un "cliente" genérico, una sola letra o puros emojis no son un nombre.
     if (/\d/.test(pila) || !esNombreDePersona(pila)) return null;
+    // "El Flaco" es un apodo válido de ficha, pero "Hola El, buen día!" no se puede mandar.
+    if (/^(el|la|los|las|de|del|un|una|mi|don|doña|sr|sra)$/i.test(pila)) return null;
     return pila.charAt(0).toUpperCase() + pila.slice(1).toLowerCase();
 }
 
