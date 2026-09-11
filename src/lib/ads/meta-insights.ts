@@ -12,6 +12,7 @@
  */
 import crypto from 'crypto';
 import { parseAdTag } from '@/lib/ads/ad-tag';
+import { getDolarBlueVenta } from '@/lib/targets';
 
 // v24.0: mínimo que la Marketing API acepta desde jun-2026 (las anteriores dan #2635).
 const API_VERSION = 'v24.0';
@@ -78,22 +79,21 @@ export function adTag(text?: string | null): string | null {
 /**
  * Cotización blue (venta), o `null` si no se pudo leer.
  *
+ * NO consulta nada por su cuenta: delega en `getDolarBlueVenta`
+ * (`src/lib/targets.ts`), el helper del dólar que ya usan el dashboard y el
+ * reporte. Esta función tenía su propia copia que preguntaba SOLO a Ámbito, y
+ * el 10/9/2026 Ámbito no respondió desde el servidor de producción: el abono
+ * de Claude Code quedó en $0 y el cierre de septiembre, frenado. El helper
+ * prueba Ámbito, después dolarapi.com, y como último recurso la última
+ * cotización real que vio en los últimos 30 días.
+ *
  * Existe aparte de `dolarBlue` porque los dos usos son distintos: un REPORTE
- * prefiere un número aproximado antes que no salir, pero convertir un gasto
- * que se va a GUARDAR y a entrar al estado de resultados con un respaldo
- * escrito a mano es inventar plata con cara de dato.
+ * prefiere un número aproximado antes que no salir, pero un gasto que se va a
+ * GUARDAR y a entrar al estado de resultados no se convierte con un respaldo
+ * escrito a mano. Un número real de hace unos días sí vale; un 1570 inventado, no.
  */
 export async function cotizacionDolarONull(): Promise<number | null> {
-  try {
-    const res = await fetch('https://mercados.ambito.com/dolar/informal/variacion', {
-      signal: AbortSignal.timeout(8000),
-    });
-    const j = await res.json();
-    const v = Number(String(j?.venta ?? '').replace(/\./g, '').replace(',', '.'));
-    return Number.isFinite(v) && v > 0 ? v : null;
-  } catch {
-    return null;
-  }
+  return getDolarBlueVenta();
 }
 
 /** Respaldo cuando la cotización no se pudo leer. Solo para reportes. */
