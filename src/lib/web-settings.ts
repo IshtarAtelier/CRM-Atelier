@@ -26,6 +26,13 @@ export interface WebSettings {
    * Nada que ver con el 2x1 de multifocales del CRM, que es otra promo.
    */
   web_promo_2x1_frames: boolean;
+  /**
+   * Qué producto es cada opción de cristal de la tienda: { "GRUPO.OPCION": id }.
+   * Por ID y no por nombre, porque un rename rompía la tienda en silencio (ver
+   * `resolverOpcionWeb` en src/lib/checkout/checkout-pricing.ts). Vacío = cada
+   * opción cae a las palabras clave de CrystalMapping.
+   */
+  web_cristales_opciones: Record<string, string>;
 }
 
 export const defaultWebSettings: WebSettings = {
@@ -46,6 +53,7 @@ export const defaultWebSettings: WebSettings = {
   // Apagada por defecto: una promo que regala armazones se prende a propósito,
   // nunca por venir así de fábrica.
   web_promo_2x1_frames: false,
+  web_cristales_opciones: {},
 };
 
 export async function getWebSettings(): Promise<WebSettings> {

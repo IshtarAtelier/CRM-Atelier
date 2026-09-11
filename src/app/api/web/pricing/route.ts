@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { buildPricingMap, cargarCatalogoWeb } from '@/lib/checkout/checkout-pricing';
+import { getWebSettings } from '@/lib/web-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,8 @@ export async function GET() {
         if (!crystals || crystals.length === 0) {
             return NextResponse.json({ error: 'No se encontraron cristales' }, { status: 404 });
         }
-        return NextResponse.json(buildPricingMap(crystals, treatments));
+        const { web_cristales_opciones } = await getWebSettings();
+        return NextResponse.json(buildPricingMap(crystals, treatments, web_cristales_opciones));
     } catch (error) {
         console.error('Error fetching web pricing:', error);
         return NextResponse.json({ error: 'Error al obtener precios dinámicos' }, { status: 500 });

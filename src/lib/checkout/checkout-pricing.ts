@@ -40,26 +40,46 @@ export const findTintPrice = (treatments: any[]) => {
   return CrystalMapping.EXTRAS.TINT;
 };
 
-export const findPrice = (crystals: any[], config: any) => {
+/**
+ * QUÉ PRODUCTO ES CADA OPCIÓN DE LA WEB.
+ *
+ * La tienda vinculaba cada opción ("Orgánico Blanco", "Diseño Digital ONE",
+ * "Multi Fotocromático"…) con un producto BUSCÁNDOLO POR EL NOMBRE. El 8/9/2026
+ * se normalizaron los nombres del catálogo y ninguno de los 9 nombres exactos
+ * existió más: la web pasó a mostrar los precios de respaldo fijos, un Smart ONE
+ * donde debía ir un Smart FREE, y un monofocal fotocromático de $791.435. Nadie
+ * se enteró, porque los respaldos hacen que la tienda "ande".
+ *
+ * Ahora cada opción apunta a un producto POR SU ID, guardado en la
+ * configuración de la web (`web_cristales_opciones`, clave "GRUPO.OPCION"). El id
+ * no cambia cuando se renombra un producto. Si una opción no tiene id cargado,
+ * cae a las palabras clave de CrystalMapping (así la base local, sin
+ * configuración, sigue funcionando). Si tiene id y el producto ya no es
+ * vendible (archivado o borrado), NO se adivina otro: se usa el respaldo y se
+ * avisa por log — `npm run check:tienda` lo muestra.
+ *
+ * El PRECIO que se cobra y el CRISTAL que se manda al laboratorio salen de esta
+ * misma función: si salieran de dos lugares, se podría cobrar un producto y
+ * fabricar otro.
+ */
+export type OpcionesCristalesWeb = Record<string, string>;
+
+type Resolucion = { producto: any | null; via: 'id' | 'id-no-vendible' | 'palabra-clave' | 'ninguno' };
+
+const porPalabraClave = (crystals: any[], config: any) => {
   let matches = crystals;
-  if (config.type) {
-    matches = matches.filter(p => p.type === config.type);
-  }
+  if (config.type) matches = matches.filter(p => p.type === config.type);
   // Exclusiones del mapeo ("mi primer": restricciones de adición, no puede ser
-  // el precio "desde"). Esta rama faltaba en esta copia.
+  // el precio "desde").
   if (config.excludeKeywords && config.excludeKeywords.length > 0) {
-    matches = matches.filter(p =>
-      !config.excludeKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
-    );
+    matches = matches.filter(p => !config.excludeKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw)));
   }
   if (config.exactMatchName) {
-    const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
-    if (exactMatch && exactMatch.price) return exactMatch.price;
+    const exacto = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
+    if (exacto) return exacto;
   }
   if (config.matchKeywords && config.matchKeywords.length > 0) {
-    matches = matches.filter(p =>
-      config.matchKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
-    );
+    matches = matches.filter(p => config.matchKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw)));
   } else if (config.matchKeywords && config.matchKeywords.length === 0 && config.type === "Cristal Monofocal") {
     matches = matches.filter(p =>
       !p.name?.toLowerCase().includes('blue') &&
@@ -67,27 +87,71 @@ export const findPrice = (crystals: any[], config: any) => {
       !p.name?.toLowerCase().includes('transitions')
     );
   }
-  if (matches.length === 0) return 0;
-  return Math.min(...matches.map(p => p.price || 0));
+  if (matches.length === 0) return null;
+  return [...matches].sort((x, y) => (x.price || 0) - (y.price || 0))[0];
 };
 
-export const buildPricingMap = (crystals: any[], treatments: any[]) => {
+export function resolverOpcionWeb(
+  crystals: any[],
+  grupo: 'MONOFOCAL' | 'BIFOCAL' | 'MULTIFOCAL',
+  opcion: string,
+  opciones: OpcionesCristalesWeb = {},
+): Resolucion {
+  const clave = `${grupo}.${opcion}`;
+  const id = opciones[clave];
+  if (id) {
+    const producto = crystals.find(p => p.id === id);
+    if (producto) return { producto, via: 'id' };
+    console.error(`[tienda] La opción ${clave} apunta a ${id}, que ya no es vendible (archivado o borrado). Se usa el precio de respaldo.`);
+    return { producto: null, via: 'id-no-vendible' };
+  }
+  const config = (CrystalMapping as any)[grupo]?.[opcion];
+  if (!config) return { producto: null, via: 'ninguno' };
+  const producto = porPalabraClave(crystals, config);
+  return { producto, via: producto ? 'palabra-clave' : 'ninguno' };
+}
+
+/** Compatibilidad: el precio de una config de CrystalMapping, por palabra clave. */
+export const findPrice = (crystals: any[], config: any) => porPalabraClave(crystals, config)?.price || 0;
+
+/** El cristal que se adjunta a la orden (y que ve el laboratorio) para un ítem del checkout. */
+export function resolveCrystalProduct(item: any, crystals: any[], opciones: OpcionesCristalesWeb = {}) {
+  if (!item.lensConfig || (item.lensConfig.lensType === "NONE" && !item.lensConfig.color)) return null;
+  const { lensType, treatment, color } = item.lensConfig;
+  let grupo: 'MONOFOCAL' | 'BIFOCAL' | 'MULTIFOCAL' | null = null;
+  let opcion: string | null = null;
+  if (color) {
+    if (lensType === "NONE" || lensType === "MONOFOCAL") { grupo = 'MONOFOCAL'; opcion = 'ORGANICO_BLANCO'; }
+    else if (lensType === "BIFOCAL") { grupo = 'BIFOCAL'; opcion = 'ORGANICO_BLANCO'; }
+    else if (lensType === "MULTIFOCAL") { grupo = 'MULTIFOCAL'; opcion = 'SMART_FREE'; }
+  } else {
+    if (lensType === "MONOFOCAL") { grupo = 'MONOFOCAL'; opcion = treatment; }
+    else if (lensType === "BIFOCAL") { grupo = 'BIFOCAL'; opcion = 'ORGANICO_BLANCO'; }
+    else if (lensType === "MULTIFOCAL") { grupo = 'MULTIFOCAL'; opcion = treatment; }
+  }
+  if (!grupo || !opcion) return null;
+  return resolverOpcionWeb(crystals, grupo, opcion, opciones).producto;
+}
+
+export const buildPricingMap = (crystals: any[], treatments: any[], opciones: OpcionesCristalesWeb = {}) => {
+  const precio = (g: 'MONOFOCAL' | 'BIFOCAL' | 'MULTIFOCAL', o: string) =>
+    resolverOpcionWeb(crystals, g, o, opciones).producto?.price || 0;
   return {
     MONOFOCAL: {
-      ORGANICO_BLANCO: findPrice(crystals, CrystalMapping.MONOFOCAL.ORGANICO_BLANCO) || 20000,
-      ORGANICO_AR: findPrice(crystals, CrystalMapping.MONOFOCAL.ORGANICO_AR) || 45000,
-      ORGANICO_BLUE: findPrice(crystals, CrystalMapping.MONOFOCAL.ORGANICO_BLUE) || 68000,
-      POLI_BLUE: findPrice(crystals, CrystalMapping.MONOFOCAL.POLI_BLUE) || 120000,
-      ORGANICO_FOTOCROMATICO: findPrice(crystals, CrystalMapping.MONOFOCAL.ORGANICO_FOTOCROMATICO) || 105000,
-      ORGANICO_BLANCO_TENIDO: findPrice(crystals, CrystalMapping.MONOFOCAL.ORGANICO_BLANCO_TENIDO) || 68000,
+      ORGANICO_BLANCO: precio('MONOFOCAL', 'ORGANICO_BLANCO') || 20000,
+      ORGANICO_AR: precio('MONOFOCAL', 'ORGANICO_AR') || 45000,
+      ORGANICO_BLUE: precio('MONOFOCAL', 'ORGANICO_BLUE') || 68000,
+      POLI_BLUE: precio('MONOFOCAL', 'POLI_BLUE') || 120000,
+      ORGANICO_FOTOCROMATICO: precio('MONOFOCAL', 'ORGANICO_FOTOCROMATICO') || 105000,
+      ORGANICO_BLANCO_TENIDO: precio('MONOFOCAL', 'ORGANICO_BLANCO_TENIDO') || 68000,
     },
     BIFOCAL: {
-      ORGANICO_BLANCO: findPrice(crystals, CrystalMapping.BIFOCAL.ORGANICO_BLANCO) || 45000,
+      ORGANICO_BLANCO: precio('BIFOCAL', 'ORGANICO_BLANCO') || 45000,
     },
     MULTIFOCAL: {
-      SMART_FREE: findPrice(crystals, CrystalMapping.MULTIFOCAL.SMART_FREE) || 120000,
-      VARILUX: findPrice(crystals, CrystalMapping.MULTIFOCAL.VARILUX) || 350000,
-      FOTOCROMATICO: findPrice(crystals, CrystalMapping.MULTIFOCAL.FOTOCROMATICO) || 180000,
+      SMART_FREE: precio('MULTIFOCAL', 'SMART_FREE') || 120000,
+      VARILUX: precio('MULTIFOCAL', 'VARILUX') || 350000,
+      FOTOCROMATICO: precio('MULTIFOCAL', 'FOTOCROMATICO') || 180000,
     },
     EXTRAS: {
       TINT: findTintPrice(treatments)

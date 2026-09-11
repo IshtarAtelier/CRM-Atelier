@@ -5,10 +5,9 @@ import { snapshotFromProduct } from '@/lib/order-snapshot';
 import { sendEmail } from '@/lib/email';
 import { ContactService, normalizeArgentinePhone } from '@/services/contact.service';
 import { getWebSettings } from '@/lib/web-settings';
-import { CrystalMapping } from '@/lib/config/crystal-mapping';
 import { generateReceiptPDF } from '@/lib/receipt-pdf-generator';
 import { getAdminHtml, getAdminWholesaleHtml, getClientItemsHtml, getClientTransferHtml, getClientWholesaleHtml, getConfirmationHtml } from '@/lib/checkout/checkout-emails';
-import { recalculateItemPrice, effectiveFramePrice, buildPricingMap, cargarCatalogoWeb } from '@/lib/checkout/checkout-pricing';
+import { recalculateItemPrice, effectiveFramePrice, buildPricingMap, cargarCatalogoWeb, resolveCrystalProduct } from '@/lib/checkout/checkout-pricing';
 import { calcular2x1Armazones } from '@/lib/promo-2x1-armazones';
 import { isFrame } from '@/lib/promo-utils';
 import { notifyLowStockCrossing } from '@/lib/low-stock-alert';
@@ -100,69 +99,10 @@ function getArgentineStateCode(stateName: string): string {
   }
 }
 
-// Helper to find the matched product by mapping configuration (lowest price to match findPrice logic)
-function findMatchedProduct(crystals: any[], config: any) {
-  let matches = crystals;
-  if (config.type) {
-    matches = matches.filter(p => p.type === config.type);
-  }
-  // Misma exclusión que en `findPrice`: este helper elige el PRODUCTO que se
-  // adjunta a la orden y que después ve el laboratorio. Sin esta rama, a un
-  // pedido de Varilux se le enganchaba "Mi Primer Varilux" —el que la config
-  // excluye por sus restricciones de adición— y el lab fabricaba un cristal que
-  // no correspondía. El precio y el producto tienen que salir del MISMO filtro.
-  if (config.excludeKeywords && config.excludeKeywords.length > 0) {
-    matches = matches.filter(p =>
-      !config.excludeKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
-    );
-  }
-  if (config.exactMatchName) {
-    const exactMatch = matches.find(p => p.name?.toLowerCase() === config.exactMatchName.toLowerCase());
-    if (exactMatch) return exactMatch;
-  }
-  if (config.matchKeywords && config.matchKeywords.length > 0) {
-    matches = matches.filter(p => 
-      config.matchKeywords.some((kw: string) => p.name?.toLowerCase().includes(kw))
-    );
-  } else if (config.matchKeywords && config.matchKeywords.length === 0 && config.type === "Cristal Monofocal") {
-    matches = matches.filter(p => 
-      !p.name?.toLowerCase().includes('blue') && 
-      !p.name?.toLowerCase().includes('foto') &&
-      !p.name?.toLowerCase().includes('transitions')
-    );
-  }
-  if (matches.length === 0) return null;
-  return [...matches].sort((a, b) => (a.price || 0) - (b.price || 0))[0];
-}
-
-// Helper to resolve the crystal product configuration selected on checkout
-function resolveCrystalProduct(item: any, crystals: any[]) {
-  if (!item.lensConfig || (item.lensConfig.lensType === "NONE" && !item.lensConfig.color)) return null;
-
-  const { lensType, treatment, color } = item.lensConfig;
-  let config: any = null;
-
-  if (color) {
-    if (lensType === "NONE" || lensType === "MONOFOCAL") {
-      config = CrystalMapping.MONOFOCAL.ORGANICO_BLANCO;
-    } else if (lensType === "BIFOCAL") {
-      config = CrystalMapping.BIFOCAL.ORGANICO_BLANCO;
-    } else if (lensType === "MULTIFOCAL") {
-      config = CrystalMapping.MULTIFOCAL.SMART_FREE;
-    }
-  } else {
-    if (lensType === "MONOFOCAL") {
-      config = CrystalMapping.MONOFOCAL[treatment as keyof typeof CrystalMapping.MONOFOCAL];
-    } else if (lensType === "BIFOCAL") {
-      config = CrystalMapping.BIFOCAL.ORGANICO_BLANCO;
-    } else if (lensType === "MULTIFOCAL") {
-      config = CrystalMapping.MULTIFOCAL[treatment as keyof typeof CrystalMapping.MULTIFOCAL];
-    }
-  }
-
-  if (!config) return null;
-  return findMatchedProduct(crystals, config);
-}
+// El cristal que se adjunta a la orden sale de resolveCrystalProduct
+// (src/lib/checkout/checkout-pricing.ts): la MISMA función que da el precio. Acá
+// había una copia propia (findMatchedProduct) que elegía por nombre; el día que
+// los nombres cambiaron, se podía cobrar un cristal y mandar a fabricar otro.
 
 /**
  * Espeja la compra a la analítica propia y al Conversions API de Meta.
@@ -330,7 +270,7 @@ export async function POST(req: Request) {
     // divergido de la de la web: ver el incidente de "Mi Primer Varilux" en
     // findMatchedProduct, más arriba.
     const { crystals, treatments } = await cargarCatalogoWeb(prisma);
-    const PRICING = buildPricingMap(crystals, treatments);
+    const PRICING = buildPricingMap(crystals, treatments, webSettings.web_cristales_opciones);
 
     // Promo 2x1 Varilux: los ítems marcados secondPair2x1 van sin cargo
     // (armazón + cristales), pero SOLO si el pedido incluye al menos un
@@ -700,7 +640,7 @@ export async function POST(req: Request) {
         const lensName = `${lensTypeDesc}${treatmentDesc}`;
         
         // Encontrar producto de cristal coincidente en BD para capturar costo y laboratorio reales
-        const matchedCrystal = resolveCrystalProduct(item, crystals);
+        const matchedCrystal = resolveCrystalProduct(item, crystals, webSettings.web_cristales_opciones);
         const crystalCost = matchedCrystal ? (matchedCrystal.cost || 0) : 0;
         const crystalCostPerEye = Math.round(crystalCost / 2);
         

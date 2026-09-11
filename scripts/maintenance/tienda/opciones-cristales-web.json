@@ -1,0 +1,13 @@
+{
+  "_lee_esto": "Qué producto es cada opción de cristal de la tienda web, por ID de PRODUCCIÓN. Se carga en SystemSetting.web_cristales_opciones con opciones-cristales-web.mjs. Cada id sale del rastro de renombres del AuditLog o del nombre con que se vendió (OrderItem.productNameSnapshot), no de adivinar. Las opciones en null esperan una decisión de Ishtar.",
+  "opciones": {
+    "MONOFOCAL.ORGANICO_BLANCO":        { "id": "cmo4lzshp0000xle1ca6vykqo", "producto": "Stock · Orgánico Blanco 1.49", "fuente": "AuditLog: ' Ogranico Blanco'" },
+    "MONOFOCAL.ORGANICO_AR":            { "id": "cmo4m0n780001xle1831plq4g", "producto": "Stock · Orgánico Blanco c/AR 1.56", "fuente": "AuditLog: 'Ogranico Blanco con Antireflejo'" },
+    "MONOFOCAL.ORGANICO_BLUE":          { "id": "cmnrssq2o002app7t9y7hkwum", "producto": "Stock · Orgánico Super Blue Asf. c/AR 1.60", "fuente": "AuditLog: 'Orgánico Super Blue Asferico Antirreflejo'" },
+    "MONOFOCAL.POLI_BLUE":              { "id": "cmnxqebu8002hkeelvbqeq107", "producto": "Stock · Policarbonato c/AR 1.59", "fuente": "AuditLog: 'Policarbonato antireflejo'" },
+    "MONOFOCAL.ORGANICO_FOTOCROMATICO": { "id": "cmmxzsuc2004j10yt4nn8ruue", "producto": "Stock · Orgánico Fotocromático c/AR Gris 1.56", "fuente": "AuditLog: 'Organico fotocromatico Gris'" },
+    "BIFOCAL.ORGANICO_BLANCO":          { "id": "cmmxz8x3p004810yt62w7f0nq", "producto": "Bifocal Flat Top · Orgánico Blanco 1.5", "fuente": "AuditLog: 'Flat Top Orgánico Blanco (Bifocal Grupo)'" },
+    "MULTIFOCAL.SMART_FREE":            { "id": null, "producto": "PENDIENTE: la tarjeta dice 'Diseño Digital ONE' pero el mapeo apuntaba al Smart FREE Blue Light Essential 2x1 (cmmwnv193000l10ytyqli3hny, 554 ítems vendidos con ese nombre)", "fuente": "decisión de Ishtar" },
+    "MULTIFOCAL.FOTOCROMATICO":         { "id": null, "producto": "PENDIENTE: el nombre del mapeo no existe ni tiene ventas", "fuente": "decisión de Ishtar" }
+  }
+}
