@@ -128,6 +128,16 @@ export const CONCEPTOS_GASTO: ConceptoGasto[] = [
 ];
 
 
+/**
+ * Cuántos meses hacia atrás (además del corriente) se siguen actualizando los
+ * importes automáticos. Uno: el cierre corre el día 1 sobre el mes anterior,
+ * así que ese mes tiene que seguir vivo hasta entonces. Los más viejos quedan
+ * CONGELADOS en cuanto tienen importe: la conversión de dólares usa la
+ * cotización de HOY, y re-sincronizar marzo en diciembre le cambiaba el
+ * resultado a un mes ya cerrado sin que nadie tocara nada.
+ */
+export const MESES_VIVOS_AUTOMATICOS = 1;
+
 /** Un importe de fuente automática no se edita a mano. */
 export function esAutomatico(fuente?: string | null): boolean {
     return Boolean(fuente) && fuente !== 'manual';

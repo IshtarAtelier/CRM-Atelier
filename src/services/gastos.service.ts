@@ -24,7 +24,7 @@
  * (medio par, cantidad, y el segundo par del 2x1 en cero).
  */
 import { prisma } from '@/lib/db';
-import { CONCEPTOS_GASTO, esAutomatico, type ConceptoGasto } from '@/lib/constants/gastos-fijos';
+import { CONCEPTOS_GASTO, esAutomatico, MESES_VIVOS_AUTOMATICOS, type ConceptoGasto } from '@/lib/constants/gastos-fijos';
 import { fetchGastoMensualArs, cotizacionDolarONull, metaAdsConfigured } from '@/lib/ads/meta-insights';
 import { costoPorLaboratorioDeVenta } from '@/services/lab-recon/cost-matching';
 import { GoogleAdsService } from '@/services/google-ads.service';
@@ -106,6 +106,16 @@ async function importeAutomatico(
         default:
             return null;
     }
+}
+
+/**
+ * ¿El mes todavía recibe actualizaciones de los importes automáticos? El
+ * corriente y los `MESES_VIVOS_AUTOMATICOS` anteriores, en hora de Argentina.
+ */
+function esMesVivo(month: number, year: number): boolean {
+    const hoy = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Cordoba' }));
+    const distancia = (hoy.getFullYear() - year) * 12 + (hoy.getMonth() + 1 - month);
+    return distancia <= MESES_VIVOS_AUTOMATICOS;
 }
 
 /**
@@ -195,7 +205,22 @@ export async function sincronizarMesDeGastos(month: number, year: number): Promi
     // Los importes automáticos se piden TODOS JUNTOS antes del bucle: Meta
     // pagina y Google hace OAuth, y encadenados uno detrás del otro dentro del
     // recorrido de conceptos sumaban su latencia a la del mes entero.
-    const automaticos = CONCEPTOS_GASTO.filter((c) => esAutomatico(c.fuente));
+    // Un mes ya cerrado NO se re-lee: sus automáticos quedan con el importe que
+    // tienen. Además de no mover resultados viejos, ahorra las llamadas a Meta
+    // y Google cada vez que alguien mira un mes de hace medio año.
+    const vivo = esMesVivo(month, year);
+    const importeGuardado = (c: ConceptoGasto): number => {
+        const conClave = porClave.get(c.clave);
+        if (conClave) return conClave.amount || 0;
+        for (const n of [c.name, ...(c.alias || [])]) {
+            const f = sinClavePorNombre.get(n.trim().toLowerCase());
+            if (f) return f.amount || 0;
+        }
+        return 0;
+    };
+    const congelado = (c: ConceptoGasto) => !vivo && importeGuardado(c) > 0;
+
+    const automaticos = CONCEPTOS_GASTO.filter((c) => esAutomatico(c.fuente) && !congelado(c));
     const importes = new Map<string, number | null>(
         await Promise.all(
             automaticos.map(
@@ -206,8 +231,11 @@ export async function sincronizarMesDeGastos(month: number, year: number): Promi
 
     // ── 1. Reconciliar la lista fija ──────────────────────────────────────
     for (const concepto of CONCEPTOS_GASTO) {
+        // Se decide ANTES de adoptar: adoptar saca la fila del mapa por nombre.
+        const estaCongelado = congelado(concepto);
         const fila = porClave.get(concepto.clave) ?? adoptar(concepto);
-        const automatico = esAutomatico(concepto.fuente);
+        // Congelado = se trata como manual en esta pasada: ni se re-lee ni avisa.
+        const automatico = esAutomatico(concepto.fuente) && !estaCongelado;
         const importe = automatico ? importes.get(concepto.clave) ?? null : null;
 
         // Un automático que no se pudo leer PERO que ya tiene importe guardado
