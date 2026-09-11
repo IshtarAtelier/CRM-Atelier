@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useDolarBlue } from '@/hooks/useDolarBlue';
 import { TrendingUp, Tag, Layers, ArrowUpRight, DollarSign, ShoppingCart, Percent, Calendar, Clock, User, ArrowRight, CheckCircle2, UserPlus, FileText } from "lucide-react";
 import Link from "next/link";
 import DashboardActions from "@/components/dashboard/DashboardActions";
@@ -199,7 +200,8 @@ export default function Home() {
   const [dateTo, setDateTo] = useState<string | undefined>();
   const [userRole, setUserRole] = useState('STAFF');
   const [userId, setUserId] = useState<string | undefined>();
-  const [dolarBlue, setDolarBlue] = useState<number | null>(null);
+  // El dólar sale del servidor (helper único con respaldo), no de Ámbito directo.
+  const dolarBlue = useDolarBlue();
   const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>([]);
   const [emailSending, setEmailSending] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState<Set<string>>(new Set());
@@ -222,15 +224,6 @@ export default function Home() {
   const isAdmin = userRole === 'ADMIN';
 
   useEffect(() => {
-    // Fetch dólar blue venta from ambito.com (only on mount)
-    fetch('https://mercados.ambito.com//dolar/informal/variacion')
-      .then(r => r.json())
-      .then(json => {
-        const venta = parseFloat(json.venta.replace('.', '').replace(',', '.'));
-        if (!isNaN(venta)) setDolarBlue(venta);
-      })
-      .catch(() => {});
-
     // Fetch abandoned carts
     fetch('/api/checkout/session')
       .then(r => r.json())

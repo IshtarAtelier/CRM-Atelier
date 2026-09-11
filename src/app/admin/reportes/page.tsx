@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useDolarBlue } from '@/hooks/useDolarBlue';
 import {
     FileText, TrendingUp, DollarSign, Package, ArrowDown, RefreshCw, AlertCircle,
     Users, ShoppingCart, Percent, Send, UserX
@@ -135,18 +136,8 @@ export default function ReportsDashboard() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [activePreset, setActivePreset] = useState('month');
-    const [dolarBlue, setDolarBlue] = useState<number | null>(null);
-
-    // Cotización blue (venta) para mostrar equivalentes en USD
-    useEffect(() => {
-        fetch('https://mercados.ambito.com//dolar/informal/variacion')
-            .then(r => r.json())
-            .then(json => {
-                const venta = parseFloat(json.venta.replace('.', '').replace(',', '.'));
-                if (!isNaN(venta)) setDolarBlue(venta);
-            })
-            .catch(() => { });
-    }, []);
+    // El dólar sale del servidor (helper único con respaldo), no de Ámbito directo.
+    const dolarBlue = useDolarBlue();
 
     // Siempre arranca en el mes actual. El rango "guardado" en localStorage es
     // solo una preferencia manual (botón Guardar) — nunca el default de arranque,

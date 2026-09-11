@@ -430,10 +430,37 @@ export class GoogleAdsService {
   }
 
   /** Suma de `cost_micros` entre dos fechas (inclusive), en pesos. */
+  /**
+   * ¿Están las credenciales para leer el gasto? Existe para que quien muestra
+   * "sin datos" pueda decir POR QUÉ: el 10/9/2026 a producción le faltaban las
+   * cinco variables de Google Ads, esto devolvía null sin dejar rastro en los
+   * logs, y Gastos decía "no se pudo leer la plataforma" — se buscó una caída
+   * de Google que no existía.
+   */
+  public static gastoConfigurado(): boolean {
+    return Boolean(
+      this.customerId() &&
+        process.env.GOOGLE_ADS_DEVELOPER_TOKEN &&
+        process.env.GOOGLE_ADS_CLIENT_ID &&
+        process.env.GOOGLE_ADS_CLIENT_SECRET &&
+        process.env.GOOGLE_ADS_REFRESH_TOKEN,
+    );
+  }
+
+  private static avisoSinConfigurarDado = false;
+
   private static async getSpendArsForRange(desde: string, hasta: string): Promise<number | null> {
-    const customerId = this.customerId();
-    const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
-    if (!customerId || !developerToken) return null;
+    if (!this.gastoConfigurado()) {
+      // Una vez por proceso: suficiente para que aparezca en los logs sin
+      // repetirse en cada lectura de la pantalla.
+      if (!this.avisoSinConfigurarDado) {
+        console.warn('[GoogleAdsService] Faltan credenciales de Google Ads (GOOGLE_ADS_*): no se puede leer el gasto.');
+        this.avisoSinConfigurarDado = true;
+      }
+      return null;
+    }
+    const customerId = this.customerId()!;
+    const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN!;
 
     const accessToken = await this.getAccessToken();
     if (!accessToken) return null;

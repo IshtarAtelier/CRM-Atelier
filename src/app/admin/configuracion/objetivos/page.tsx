@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useDolarBlue } from '@/hooks/useDolarBlue';
 import Link from 'next/link';
 import {
     Target, Zap, Trophy, ChevronLeft, ChevronRight, ArrowLeft,
@@ -39,7 +40,8 @@ export default function ObjetivosConfigPage() {
     const [year, setYear] = useState(now.getFullYear());
     const [targets, setTargets] = useState<MonthlyTarget[]>([]);
     const [loading, setLoading] = useState(true);
-    const [dolarBlue, setDolarBlue] = useState<number | null>(null);
+    // El dólar sale del servidor (helper único con respaldo), no de Ámbito directo.
+    const dolarBlue = useDolarBlue();
 
     // Edit modal state (valores en USD)
     const [editingMonth, setEditingMonth] = useState<number | null>(null);
@@ -67,13 +69,6 @@ export default function ObjetivosConfigPage() {
 
     useEffect(() => {
         fetchTargets();
-        fetch('https://mercados.ambito.com//dolar/informal/variacion')
-            .then(r => r.json())
-            .then(json => {
-                const venta = parseFloat(json.venta.replace('.', '').replace(',', '.'));
-                if (!isNaN(venta)) setDolarBlue(venta);
-            })
-            .catch(() => { });
     }, [fetchTargets]);
 
     const getTargetFor = (month: number) => targets.find(t => t.month === month && t.year === year) || null;

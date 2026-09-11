@@ -217,7 +217,9 @@ export async function sincronizarMesDeGastos(month: number, year: number): Promi
         // la cotización no contestó un rato. Solo frena si NO hay importe.
         if (automatico && importe === null) {
             const importeViejo = fila?.amount ?? 0;
-            const sinConfigurar = concepto.fuente === 'meta-ads' && !metaAdsConfigured();
+            const sinConfigurar =
+                (concepto.fuente === 'meta-ads' && !metaAdsConfigured()) ||
+                (concepto.fuente === 'google-ads' && !GoogleAdsService.gastoConfigurado());
             const queNoSePudo =
                 concepto.fuente === 'usd-fijo'
                     ? 'la cotización del dólar'
@@ -225,7 +227,7 @@ export async function sincronizarMesDeGastos(month: number, year: number): Promi
             avisos.set(
                 concepto.clave,
                 sinConfigurar
-                    ? 'La integración con Meta no está configurada en este servidor.'
+                    ? `La integración con ${concepto.fuente === 'meta-ads' ? 'Meta' : 'Google Ads'} no está configurada en este servidor (faltan sus credenciales).`
                     : importeViejo > 0
                         ? `No se pudo actualizar ${queNoSePudo}: este es el importe de la última lectura.`
                         : `No se pudo leer ${queNoSePudo}.`,
