@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Zap, X, ChevronRight, Heart, FileText, ShoppingCart, Loader2, Check } from 'lucide-react';
+import { Zap, X, ChevronRight, Heart, FileText, ShoppingCart, Loader2, Check, UserPlus, MessageCircle } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/WhatsAppIcon';
 import { buildFollowUpMessage } from '@/lib/whatsapp-followup';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 interface Opportunity {
     id: string;
-    type: 'STALLED_FAVORITE' | 'PENDING_QUOTE' | 'ABANDONED_CART';
+    type: 'STALLED_FAVORITE' | 'PENDING_QUOTE' | 'ABANDONED_CART' | 'SIN_PRESUPUESTO';
     title: string;
     clientName: string;
     clientId: string | null;
@@ -19,6 +19,16 @@ interface Opportunity {
     amount: number | null;
     daysElapsed: number;
     lastActivity: string;
+    /** Ticket alto / multifocal / miopía / graduación alta: "importante del mes". */
+    importante?: boolean;
+    /** Si una persona ya le escribió en los últimos días (solo llega en los importantes). */
+    yaEscrito?: { cuando: string; quien: string | null };
+}
+
+/** "hoy", "ayer", "hace 3 días". */
+function haceCuanto(iso: string): string {
+    const dias = Math.floor((Date.now() - new Date(iso).getTime()) / (24 * 60 * 60 * 1000));
+    return dias <= 0 ? 'hoy' : dias === 1 ? 'ayer' : `hace ${dias} días`;
 }
 
 interface OpportunitiesPanelProps {
@@ -33,12 +43,14 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
     const getOppIcon = (type: string) => {
         if (type === 'STALLED_FAVORITE') return <Heart className="w-5 h-5 text-red-500 fill-red-500/10" />;
         if (type === 'PENDING_QUOTE') return <FileText className="w-5 h-5 text-indigo-500" />;
+        if (type === 'SIN_PRESUPUESTO') return <UserPlus className="w-5 h-5 text-sky-600" />;
         return <ShoppingCart className="w-5 h-5 text-amber-500" />;
     };
 
     const getOppColorClass = (type: string) => {
         if (type === 'STALLED_FAVORITE') return 'bg-red-500';
         if (type === 'PENDING_QUOTE') return 'bg-indigo-500';
+        if (type === 'SIN_PRESUPUESTO') return 'bg-sky-500';
         return 'bg-amber-500';
     };
 
@@ -53,15 +65,23 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                 Presupuesto
             </span>
         );
+        if (type === 'SIN_PRESUPUESTO') return (
+            <span className="text-[8px] font-black bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-400 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
+                Sin presupuesto
+            </span>
+        );
         return (
             <span className="text-[8px] font-black bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
-                Carrito Web
+                {/* "Carrito abandonado" con todas las letras (Ishtar, 10/9/2026):
+                    "Carrito Web" no decía qué pasó — el cliente armó la compra en
+                    la tienda y no la pagó. */}
+                Carrito abandonado
             </span>
         );
     };
 
     const getLinkHref = (opp: Opportunity) => {
-        if (opp.type === 'STALLED_FAVORITE') return `/admin/contactos?clientId=${opp.clientId}`;
+        if (opp.type === 'STALLED_FAVORITE' || opp.type === 'SIN_PRESUPUESTO') return `/admin/contactos?clientId=${opp.clientId}`;
         if (opp.type === 'PENDING_QUOTE') return `/admin/ventas?id=${opp.id}`;
         // Los carritos que califican tienen ficha creada automáticamente
         // (etiqueta "Carrito Web") — el click va directo a esa ficha.
@@ -100,11 +120,44 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
         fetch('/api/sales-opportunities/followup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: opp.id, type: opp.type, message }),
+            body: JSON.stringify({ id: opp.id, type: opp.type, message, via: 'whatsapp' }),
         }).catch(() => { });
 
         onClose();
         window.location.href = `/admin/whatsapp?phone=${phone}&text=${encodeURIComponent(message)}`;
+    };
+
+    /**
+     * "Ya le escribí" (Ishtar, 10/9/2026): la tarjeta común se esconde 5 días y
+     * vuelve sola si no compró; la importante queda abajo, atenuada. Copiar el
+     * número cuenta igual —es para escribirle desde el WhatsApp propio— pero no
+     * refresca al instante: la tarjeta no se puede ir de abajo del dedo justo
+     * cuando el vendedor va a pegar. Se va en el próximo refresco.
+     */
+    const [marcandoId, setMarcandoId] = useState<string | null>(null);
+    const registrarEscrito = async (opp: Opportunity, via: 'copia' | 'manual') => {
+        if (via === 'manual') setMarcandoId(opp.id);
+        try {
+            await fetch('/api/sales-opportunities/followup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: opp.id, type: opp.type, via }),
+            });
+            if (via === 'manual') onRefresh();
+        } catch {
+            if (via === 'manual') alert('No se pudo registrar. Probá de nuevo.');
+        } finally {
+            if (via === 'manual') setMarcandoId(null);
+        }
+    };
+
+    const tituloDeGrupo = (opp: Opportunity, i: number) => {
+        const grupo = (o: Opportunity) => (o.yaEscrito ? 'escritos' : o.importante ? 'importantes' : 'resto');
+        if (i > 0 && grupo(opportunities[i - 1]) === grupo(opp)) return null;
+        const g = grupo(opp);
+        if (g === 'importantes') return 'Importantes del mes';
+        if (g === 'escritos') return 'Importantes — ya les escribieron';
+        return 'Para escribir';
     };
 
     const handleFinalizeOpportunity = async (e: React.MouseEvent, opp: Opportunity) => {
@@ -150,8 +203,14 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
 
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 md:space-y-4 custom-scrollbar">
                 {opportunities.length > 0 ? (
-                    opportunities.map(opp => (
-                        <div key={opp.id} className="relative group">
+                    opportunities.map((opp, i) => (
+                        <div key={opp.id}>
+                        {tituloDeGrupo(opp, i) && (
+                            <p className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 ${i === 0 ? 'pb-2' : 'pt-4 pb-2'} ${opp.importante && !opp.yaEscrito ? 'text-amber-700 dark:text-amber-400' : 'text-stone-500 dark:text-stone-400'}`}>
+                                {tituloDeGrupo(opp, i)}
+                            </p>
+                        )}
+                        <div className={`relative group ${opp.yaEscrito ? 'opacity-60 hover:opacity-100 transition-opacity' : ''}`}>
                             <Link
                                 href={getLinkHref(opp)}
                                 onClick={onClose}
@@ -177,9 +236,32 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                                         sigue un vendedor de verdad desde SU WhatsApp,
                                         y así no se gasta una plantilla de la API
                                         oficial (Ishtar, 10/9/2026). */}
-                                    {opp.phone && (
-                                        <TelefonoCopiable phone={opp.phone} className="text-xs mt-1.5" />
-                                    )}
+                                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mt-1.5">
+                                        {opp.phone && (
+                                            <TelefonoCopiable
+                                                phone={opp.phone}
+                                                className="text-xs"
+                                                onCopiado={() => { if (!opp.yaEscrito) registrarEscrito(opp, 'copia'); }}
+                                            />
+                                        )}
+                                        {opp.yaEscrito ? (
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-500 dark:text-stone-400">
+                                                <MessageCircle className="w-3 h-3" />
+                                                {opp.yaEscrito.quien ? `Le escribió ${opp.yaEscrito.quien.split(' ')[0]}` : 'Ya le escribieron'} {haceCuanto(opp.yaEscrito.cuando)}
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); registrarEscrito(opp, 'manual'); }}
+                                                disabled={marcandoId === opp.id}
+                                                className="inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 -mx-1 text-[11px] font-bold text-stone-500 hover:text-emerald-700 hover:bg-emerald-50 dark:text-stone-400 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/30 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                                                title={opp.importante ? 'Queda a la vista, abajo, con la fecha' : 'Se esconde 5 días y vuelve si no compró'}
+                                            >
+                                                {marcandoId === opp.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                                Ya le escribí
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                                 <ChevronRight className="w-5 h-5 text-stone-200 group-hover:text-amber-500 transition-all group-hover:translate-x-1" />
                             </Link>
@@ -210,6 +292,7 @@ export default function OpportunitiesPanel({ opportunities, onClose, onRefresh }
                                     <WhatsAppIcon className="w-4 h-4 md:w-5 md:h-5" />
                                 </button>
                             )}
+                        </div>
                         </div>
                     ))
                 ) : (

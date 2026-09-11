@@ -24,7 +24,7 @@
 
 import { BUSINESS_INFO } from './business-info';
 
-export type FollowUpType = 'STALLED_FAVORITE' | 'PENDING_QUOTE' | 'ABANDONED_CART';
+export type FollowUpType = 'STALLED_FAVORITE' | 'PENDING_QUOTE' | 'ABANDONED_CART' | 'SIN_PRESUPUESTO';
 
 /** Cuál de los 3 seguimientos corresponde. */
 export type FollowUpTouch = 1 | 2 | 3;
@@ -75,6 +75,18 @@ const TOUCH_1: Record<FollowUpType, ((name: string, greeting: string) => string)
             `Hola ${n}, ${g}! ¿Todo bien? Quería saber si te quedó alguna duda de lo que habíamos charlado. Si te sirve te muestro los modelos que entraron. También está ${STORE_WEB} para ir mirando.`,
         (n, g) =>
             `¡Hola ${n}! ${g.charAt(0).toUpperCase() + g.slice(1)}. Te escribo para retomar lo de tus lentes, ¿seguís buscando? Contame qué estabas necesitando y te armo un par de opciones.`,
+    ],
+    // Consultó (casi siempre desde un anuncio) y nunca se le pasó presupuesto:
+    // lo que destraba es la receta, así que se la pide.
+    SIN_PRESUPUESTO: [
+        (n, g) =>
+            `Hola ${n}, ${g}! ¿Cómo estás? Te escribo porque habías consultado por anteojos y me quedó pendiente pasarte un presupuesto. ¿Tenés la receta a mano? Mandame una foto y te lo armo.`,
+        (n, g) =>
+            `¡Hola ${n}, ${g}! ¿Cómo va? Quedamos en armarte un presupuesto y no quería que se me pase. Si me mandás una foto de la receta te paso opciones.`,
+        (n, g) =>
+            `Hola ${n}, ${g}! ¿Todo bien? Retomo tu consulta por los anteojos: con una foto de la receta te preparo el presupuesto. Si todavía no te hiciste el control, avisame y te oriento.`,
+        (n, g) =>
+            `¡Hola ${n}! ${g.charAt(0).toUpperCase() + g.slice(1)}. Te escribo por tu consulta de anteojos. ¿Querés que te arme un presupuesto? Solo necesito una foto de la receta.`,
     ],
     ABANDONED_CART: [
         (n, g) =>

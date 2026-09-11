@@ -31,7 +31,10 @@ export function GlobalOpportunities() {
         }
     };
 
-    const count = opportunities.length;
+    // El número del ícono es lo que falta ESCRIBIR: los importantes a los que ya
+    // les escribieron siguen en el panel (para tenerlos presentes), pero no
+    // suman al pendiente.
+    const count = opportunities.filter(o => !o.yaEscrito).length;
 
     return (
         <>

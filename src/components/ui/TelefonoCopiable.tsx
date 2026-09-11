@@ -22,9 +22,14 @@ interface Props {
     phone: string | null | undefined;
     /** Clase del texto, para que cada panel lo pinte como corresponda. */
     className?: string;
+    /**
+     * Se llama cuando el número quedó efectivamente copiado. Cierres lo usa
+     * para registrar "copió el número para escribirle" (y esconder la tarjeta).
+     */
+    onCopiado?: () => void;
 }
 
-export default function TelefonoCopiable({ phone, className = '' }: Props) {
+export default function TelefonoCopiable({ phone, className = '', onCopiado }: Props) {
     const [copiado, setCopiado] = useState(false);
     if (!phone) return null;
 
@@ -65,6 +70,7 @@ export default function TelefonoCopiable({ phone, className = '' }: Props) {
         setCopiado(ok);
         if (ok) {
             setTimeout(() => setCopiado(false), 1800);
+            onCopiado?.();
         } else {
             // Último recurso: se lo dejamos seleccionado para un Ctrl/Cmd+C.
             const nodo = e.currentTarget as HTMLElement;
