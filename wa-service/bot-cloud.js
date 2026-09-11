@@ -347,7 +347,8 @@ function createCloudBot({ prisma, io, transport, botReplyingTo, broadcastChatUpd
             // La URL la arma shared/url-del-medio.js: con la clave pelada de la
             // nube, `base + mediaUrl` apuntaba a un host inexistente.
             const url = urlDelMedio(m.mediaUrl);
-            const r = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000, maxContentLength: 15 * 1024 * 1024 });
+            // Las fotos de los chats son sensibles: el CRM las sirve solo con sesión o con la clave del bot.
+            const r = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000, maxContentLength: 15 * 1024 * 1024, headers: { 'x-api-key': process.env.BOT_API_KEY } });
             // El tipo sale de los BYTES, no de la cabecera: las fotos de WhatsApp
             // se guardan sin extensión y el servidor las sirve como
             // application/octet-stream. Con el chequeo por cabecera el bot

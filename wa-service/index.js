@@ -126,6 +126,7 @@ async function obtenerImagenDelMensaje(msg, chatId) {
         const axios = require('axios');
         const url = require('./shared/url-del-medio').urlDelMedio(msg.mediaUrl);
         const res = await axios.get(url, {
+            headers: { 'x-api-key': process.env.BOT_API_KEY },
             responseType: 'arraybuffer',
             timeout: 15000,
             maxContentLength: 15 * 1024 * 1024,
