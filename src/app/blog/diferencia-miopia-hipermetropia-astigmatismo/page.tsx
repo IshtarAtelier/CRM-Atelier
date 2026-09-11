@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from '@/lib/constants';
+import { YouTubeEmbed } from '@/components/blog/YouTubeEmbed';
+import { VIDEOS_POR_SLUG } from '@/lib/constants/videos-blog';
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://atelieroptica.com.ar/blog/diferencia-miopia-hipermetropia-astigmatismo' },
@@ -82,6 +84,10 @@ export default function MiopiaHipermetropiaAstigmatismoBlog() {
             </p>
           </div>
         
+          {(VIDEOS_POR_SLUG['diferencia-miopia-hipermetropia-astigmatismo'] || []).map((v) => (
+            <YouTubeEmbed key={v.id} videoId={v.id} titulo={v.titulo} />
+          ))}
+
           {/* CTA WHATSAPP AUTOMÁTICO */}
           <div className="mt-16 bg-black/5 p-8 md:p-12 rounded-2xl text-center border border-black/10">
             <h3 className="text-2xl font-medium tracking-tight mb-4">¿Necesitás asesoramiento personalizado con tu receta?</h3>

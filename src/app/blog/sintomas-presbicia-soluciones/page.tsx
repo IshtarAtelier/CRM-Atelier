@@ -3,6 +3,8 @@ import Link from "next/link";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { YouTubeEmbed } from '@/components/blog/YouTubeEmbed';
+import { VIDEOS_POR_SLUG } from '@/lib/constants/videos-blog';
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://atelieroptica.com.ar/blog/sintomas-presbicia-soluciones' },
@@ -85,6 +87,10 @@ export default function SintomasPresbiciaPage() {
               Elegir el lente perfecto depende de tu receta, tu armazón ideal y tu rutina. Vení a visitarnos a nuestro local, o envianos tu receta por WhatsApp desde cualquier punto del país. Te vamos a explicar en detalle las diferencias entre las tecnologías disponibles para que tomes una decisión inteligente y a la medida de tus ojos.
             </p>
 
+            {(VIDEOS_POR_SLUG['sintomas-presbicia-soluciones'] || []).map((v) => (
+              <YouTubeEmbed key={v.id} videoId={v.id} titulo={v.titulo} />
+            ))}
+
             <div className="mt-12 pt-8 border-t border-[#e8e2db] flex flex-col sm:flex-row gap-4 justify-center items-center">
               <a 
                 href={`https://wa.me/${WHATSAPP_PHONE}`} 
@@ -102,6 +108,7 @@ export default function SintomasPresbiciaPage() {
               </Link>
             </div>
           </div>
+
         </article>
       </main>
 

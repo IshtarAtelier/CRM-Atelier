@@ -3,6 +3,8 @@ import Image from "next/image";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { StorefrontFooter } from "@/components/Storefront/StorefrontFooter";
 import { WHATSAPP_PHONE } from '@/lib/constants';
+import { YouTubeEmbed } from '@/components/blog/YouTubeEmbed';
+import { VIDEOS_POR_SLUG } from '@/lib/constants/videos-blog';
 
 /**
  * LA NOTA DEDICADA A STELLEST.
@@ -165,6 +167,10 @@ export default function StellestPage() {
             control. Por eso, cuando armamos un Stellest, dedicamos tiempo al calce y te explicamos
             cómo ajustarlo en casa. Y cuando vuelvan a control, revisámelo sin cargo.
           </p>
+
+          {(VIDEOS_POR_SLUG['stellest'] || []).map((v) => (
+            <YouTubeEmbed key={v.id} videoId={v.id} titulo={v.titulo} />
+          ))}
 
           <div className="bg-stone-900 text-stone-50 rounded-lg p-8 my-12 text-center">
             <p className="text-xl font-serif mb-2 m-0">¿Te lo recetaron y querés consultar?</p>

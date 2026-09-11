@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import Link from "next/link";
 import { WHATSAPP_PHONE } from '@/lib/constants';
+import { YouTubeEmbed } from '@/components/blog/YouTubeEmbed';
+import { VIDEOS_POR_SLUG } from '@/lib/constants/videos-blog';
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://atelieroptica.com.ar/blog/guia-cristales' },
@@ -72,6 +74,10 @@ export default function CrystalGuidePage() {
             </div>
           </section>
         </div>
+
+        {(VIDEOS_POR_SLUG['guia-cristales'] || []).map((v) => (
+          <YouTubeEmbed key={v.id} videoId={v.id} titulo={v.titulo} />
+        ))}
 
         <div className="mt-16 lg:mt-20 p-8 lg:p-12 border border-black text-center">
           <h3 className="text-xl font-medium mb-3">¿Tenés dudas sobre tu receta médica?</h3>

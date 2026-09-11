@@ -3,6 +3,8 @@ import Image from 'next/image';
 import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { WHATSAPP_PHONE } from '@/lib/constants';
+import { YouTubeEmbed } from '@/components/blog/YouTubeEmbed';
+import { VIDEOS_POR_SLUG } from '@/lib/constants/videos-blog';
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://atelieroptica.com.ar/blog/lentes-fotocromaticos-transitions' },
@@ -105,6 +107,10 @@ export default function LentesTransitionsPage() {
               </p>
             </section>
 
+            {(VIDEOS_POR_SLUG['lentes-fotocromaticos-transitions'] || []).map((v) => (
+              <YouTubeEmbed key={v.id} videoId={v.id} titulo={v.titulo} />
+            ))}
+
             <section className="mt-12 bg-black text-white p-8 lg:p-12 rounded-lg text-center">
               <h3 className="text-xl font-medium mb-4">¿Listo para elevar tu experiencia visual?</h3>
               <p className="text-sm text-neutral-300 mb-8 max-w-xl mx-auto leading-relaxed">
@@ -121,6 +127,7 @@ export default function LentesTransitionsPage() {
             </section>
 
           </div>
+
         </article>
       </main>
 
