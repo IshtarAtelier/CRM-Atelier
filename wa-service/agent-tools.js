@@ -143,6 +143,14 @@ const savePrescriptionDataTool = new DynamicStructuredTool({
             const { prisma } = require('./db');
             const ya = await prisma.prescription.findFirst({ where: { clientId, notes: { contains: marcaFoto } }, select: { id: true } }).catch(() => null);
             if (ya) return "[INSTRUCCIÓN INTERNA] Esa receta ya está guardada: el sistema la leyó de la foto. Usá los valores de RECETAS GUARDADAS y NO la vuelvas a guardar.";
+            // Si el lector dedicado ya miró ESTA foto y dijo que NO se puede leer
+            // con seguridad, dejó una tarea "Leer receta a mano" con la marca.
+            // Entonces esta herramienta NO guarda nada: los valores que traería
+            // el modelo son una adivinanza sobre la misma foto que el lector
+            // descartó — exactamente cómo se inventó la receta de Maxi. El
+            // candado de precios (sin receta no hay cristales) hace el resto.
+            const ilegible = await prisma.clientTask.findFirst({ where: { clientId, description: { contains: marcaFoto } }, select: { id: true } }).catch(() => null);
+            if (ilegible) return "[INSTRUCCIÓN INTERNA] El sistema ya revisó esa foto y NO pudo leer la receta con seguridad: quedó para que la lea una persona. NO guardes valores (serían una adivinanza) y NO des precios de cristales. Seguí la charla con naturalidad: armazones, formas de pago, invitarlo al local. Si te pide precios de cristales, decile que se los confirmás en un ratito y usá 'pedir_ayuda'.";
         }
 
         const prescriptionData = {
