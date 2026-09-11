@@ -116,6 +116,9 @@ export async function GET(request: Request) {
         habrianSalido: modo === 'seco' ? seleccion.elegidos.map(c => ({ nombre: c.nombre, plantilla: c.plantilla })) : undefined,
         enviados,
         enEspera: seleccion.enEspera.length,
+        // En seco, también QUIÉNES esperan: es la única forma de ver la audiencia
+        // completa del día antes de prender el motor (el cupo corta la lista).
+        esperan: modo === 'seco' ? seleccion.enEspera.map(c => ({ nombre: c.nombre, plantilla: c.plantilla })) : undefined,
         vetados: seleccion.vetados.map(v => ({ nombre: v.candidato.nombre, plantilla: v.candidato.plantilla, motivo: v.motivo })),
     });
 }
