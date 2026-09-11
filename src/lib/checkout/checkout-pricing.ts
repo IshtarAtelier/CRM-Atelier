@@ -66,8 +66,12 @@ export type OpcionesCristalesWeb = Record<string, string>;
 
 type Resolucion = { producto: any | null; via: 'id' | 'id-no-vendible' | 'palabra-clave' | 'ninguno' };
 
+const conPrecio = (p: any) => Number(p?.price) > 0;
+
 const porPalabraClave = (crystals: any[], config: any) => {
-  let matches = crystals;
+  // Un producto sin precio no puede ser el de una opción: se cobraría el
+  // respaldo fijo y se mandaría a fabricar un cristal de $0.
+  let matches = crystals.filter(conPrecio);
   if (config.type) matches = matches.filter(p => p.type === config.type);
   // Exclusiones del mapeo ("mi primer": restricciones de adición, no puede ser
   // el precio "desde").
@@ -99,20 +103,21 @@ export function resolverOpcionWeb(
 ): Resolucion {
   const clave = `${grupo}.${opcion}`;
   const id = opciones[clave];
+  const config = (CrystalMapping as any)[grupo]?.[opcion];
   if (id) {
     const producto = crystals.find(p => p.id === id);
-    if (producto) return { producto, via: 'id' };
-    console.error(`[tienda] La opción ${clave} apunta a ${id}, que ya no es vendible (archivado o borrado). Se usa el precio de respaldo.`);
+    // Además de existir y ser vendible, tiene que ser del TIPO de la opción y
+    // tener precio: un monofocal cargado por error en la opción de multifocal
+    // se mostraría, se cobraría y se mandaría a fabricar.
+    const tipoOk = !config?.type || producto?.type === config.type;
+    if (producto && tipoOk && conPrecio(producto)) return { producto, via: 'id' };
+    console.error(`[tienda] La opción ${clave} apunta a ${id}, que no sirve (${!producto ? 'archivado o borrado' : !tipoOk ? `es ${producto.type}, no ${config.type}` : 'sin precio'}). Se usa el precio de respaldo.`);
     return { producto: null, via: 'id-no-vendible' };
   }
-  const config = (CrystalMapping as any)[grupo]?.[opcion];
   if (!config) return { producto: null, via: 'ninguno' };
   const producto = porPalabraClave(crystals, config);
   return { producto, via: producto ? 'palabra-clave' : 'ninguno' };
 }
-
-/** Compatibilidad: el precio de una config de CrystalMapping, por palabra clave. */
-export const findPrice = (crystals: any[], config: any) => porPalabraClave(crystals, config)?.price || 0;
 
 /** El cristal que se adjunta a la orden (y que ve el laboratorio) para un ítem del checkout. */
 export function resolveCrystalProduct(item: any, crystals: any[], opciones: OpcionesCristalesWeb = {}) {

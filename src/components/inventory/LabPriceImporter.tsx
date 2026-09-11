@@ -169,29 +169,51 @@ export default function LabPriceImporter({ onClose, onSuccess, laboratories }: P
         if (toUpdate.length === 0) return;
         setSaving(true);
         let count = 0;
-        
+        const put = (id: string, body: Record<string, unknown>) => fetch(`/api/products/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        // Los que chocan con una regla de precio de la dueña (409: bajarle el
+        // precio a algo con ventas, o dejarlo bajo el piso de markup). Se juntan
+        // y se pregunta UNA vez al final. Antes el 409 no existía; cuando apareció,
+        // estas filas se perdían en silencio — y con ellas el COSTO nuevo, que es
+        // lo que este importador existe para cargar.
+        const conAviso: { id: string; costo: number; pelado: number; precio: number; avisos: string[] }[] = [];
+
         for (const item of toUpdate) {
             if (!item.match) continue;
-            
             const finalMarkup = customMarkups[item.match.id] || item.markupActual;
             const finalPrice = Math.ceil((item.extracted.costoFinal * finalMarkup) / 1000) * 1000;
-            
+            // El pelado de la lista, para que la ficha del producto no quede con
+            // un baseCost viejo que al editar recalcularía el costo hacia atrás.
+            const body = { cost: item.extracted.costoFinal, baseCost: item.extracted.precioLista, price: finalPrice };
             try {
-                const res = await fetch(`/api/products/${item.match.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        cost: item.extracted.costoFinal,
-                        // El pelado de la lista, para que la ficha del producto no quede con
-                        // un baseCost viejo que al editar recalcularía el costo hacia atrás.
-                        baseCost: item.extracted.precioLista,
-                        price: finalPrice
-                    }),
-                });
+                const res = await put(item.match.id, body);
                 if (res.ok) count++;
+                else if (res.status === 409) {
+                    const data = await res.json();
+                    conAviso.push({ id: item.match.id, costo: body.cost, pelado: body.baseCost, precio: finalPrice, avisos: data.avisos || [] });
+                }
             } catch { /* skip */ }
         }
-        
+
+        if (conAviso.length > 0) {
+            const muestra = conAviso.slice(0, 5).flatMap(c => c.avisos).join('\n\n');
+            const confirmar = window.confirm(
+                `${conAviso.length} producto(s) chocan con una regla de precio:\n\n${muestra}` +
+                `${conAviso.length > 5 ? `\n\n…y ${conAviso.length - 5} más.` : ''}\n\n` +
+                `Aceptar = guardar costo Y precio nuevos.\nCancelar = guardar SOLO el costo nuevo y dejar el precio como está.`);
+            for (const c of conAviso) {
+                try {
+                    const res = await put(c.id, confirmar
+                        ? { cost: c.costo, baseCost: c.pelado, price: c.precio, confirmarPrecio: true }
+                        : { cost: c.costo, baseCost: c.pelado });
+                    if (res.ok) count++;
+                } catch { /* skip */ }
+            }
+        }
+
         setSavedCount(count);
         setSaving(false);
         if (count > 0) {

@@ -267,8 +267,8 @@ export async function POST(req: Request) {
     // Cristales y tratamientos VENDIBLES, y el mapa de precios: la MISMA función
     // que usa /api/web/pricing para mostrarlos (src/lib/checkout/checkout-pricing).
     // Acá había una copia propia de findPrice/findTintPrice que ya había
-    // divergido de la de la web: ver el incidente de "Mi Primer Varilux" en
-    // findMatchedProduct, más arriba.
+    // divergido de la de la web (el incidente de "Mi Primer Varilux", cobrado a
+    // la mitad: ver resolverOpcionWeb en checkout-pricing.ts).
     const { crystals, treatments } = await cargarCatalogoWeb(prisma);
     const PRICING = buildPricingMap(crystals, treatments, webSettings.web_cristales_opciones);
 
