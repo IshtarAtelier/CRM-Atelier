@@ -24,6 +24,7 @@ const { prisma } = require('../db');
 const { prefillAdTag, fallbackAdTag } = require('../shared/ad-tag');
 const { uploadMediaToCrm } = require('../shared/media');
 const { asegurarFichaDeLead } = require('./alta-de-ficha');
+const { deshacerSeguimientoFallido, PAUSA_DIAS } = require('../shared/seguimiento-fallido');
 const cloud = require('./cloud-api');
 
 const TYPE_MAP = {
@@ -388,12 +389,19 @@ async function persistStatus(s, { io } = {}) {
     if (row.chat?.clientId && !yaEraFailed) {
         const resumen = (row.content || '').replace(/\s+/g, ' ').slice(0, 90);
         const quien = row.senderName ? ` (lo mandó ${row.senderName})` : '';
+        // Si lo mandó el motor solo, se deshace el escalón y el motor se aparta
+        // de esta charla: sigue una persona (ver shared/seguimiento-fallido.js).
+        const deshecho = await deshacerSeguimientoFallido(prisma, { ...row, chatId: row.chatId })
+            .catch(e => { console.error('[Status] No se pudo deshacer el seguimiento automático:', e.message); return null; });
+        const sigueUnaPersona = deshecho
+            ? ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}) y el motor no le va a escribir por ${PAUSA_DIAS} días: le toca a una persona.`
+            : '';
         await prisma.interaction.create({
             data: {
                 clientId: row.chat.clientId,
                 type: 'ERROR',
                 userName: 'Sistema',
-                content: `⚠️ WhatsApp NO entregado — Meta lo rechazó: ${motivo}${quien}. Mensaje: "${resumen}"`,
+                content: `⚠️ WhatsApp NO entregado — Meta lo rechazó: ${motivo}${quien}. Mensaje: "${resumen}"${sigueUnaPersona}`,
             },
         }).catch(e => console.error('[Status] No se pudo anotar el rechazo en la ficha:', e.message));
         // Aviso al EQUIPO (mensajería interna), no una tarea: desde el 10/9/2026
@@ -402,7 +410,7 @@ async function persistStatus(s, { io } = {}) {
         // la llave del dedup: sin él, dos rechazos del mismo día se pisan.
         await avisarAlEquipo({
             asunto: `⚠️ No llegó un WhatsApp a ${row.chat.waId}`,
-            cuerpo: `Meta lo rechazó: ${motivo}${quien}.\nMensaje: "${resumen}"\n\n${conocido?.cuenta ? 'Es un problema de la cuenta, no del cliente: cuando esté arreglada, reenviarlo.' : 'Problema con este número: contactarlo por otro medio o revisar el número en la ficha.'}`,
+            cuerpo: `Meta lo rechazó: ${motivo}${quien}.\nMensaje: "${resumen}"\n\n${conocido?.cuenta ? 'Es un problema de la cuenta, no del cliente: cuando esté arreglada, reenviarlo.' : 'Problema con este número: contactarlo por otro medio o revisar el número en la ficha.'}${sigueUnaPersona}`,
         });
     }
     return { code, motivo, deCuenta: !!conocido?.cuenta, waId: row.chat?.waId, senderName: row.senderName };

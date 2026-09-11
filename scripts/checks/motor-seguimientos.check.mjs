@@ -62,6 +62,33 @@ veta('11/9 · apagado desde la ficha (etiqueta "Sin Seguimiento")', cand(), chat
 veta('11/9 · "no interesado" en la ficha', cand(), chat({ tagNames: ['No interesado'] }), 'apagado desde la ficha');
 check('otras etiquetas no lo apagan', evaluar(cand(), chat({ chatLabels: ['SEGUIMIENTO_DIA_1'], tagNames: ['Frío'] }), ctx) === null);
 
+console.log('\nSi Meta rechaza un seguimiento automático, el sistema se aparta');
+{
+    const { createRequire } = await import('node:module');
+    const require = createRequire(import.meta.url);
+    const { readFileSync } = await import('node:fs');
+    const sf = require('../../wa-service/shared/seguimiento-fallido.js');
+    const { ETIQUETA_POR_PLANTILLA } = await import('../../src/lib/embudo/playbook.ts');
+    check('el espejo de etiquetas por plantilla coincide con el playbook', JSON.stringify(sf.ETIQUETA_POR_PLANTILLA) === JSON.stringify(ETIQUETA_POR_PLANTILLA), `bot=${JSON.stringify(sf.ETIQUETA_POR_PLANTILLA)} crm=${JSON.stringify(ETIQUETA_POR_PLANTILLA)}`);
+    check('un saliente de "Sistema" con plantilla de seguimiento es automático', sf.esSeguimientoAutomatico({ senderName: 'Sistema', templateName: 'seguimiento_presupuesto' }));
+    check('el mismo mensaje mandado por una persona NO se deshace', !sf.esSeguimientoAutomatico({ senderName: 'Matias Turchi', templateName: 'seguimiento_presupuesto' }));
+    check('un aviso de pedido listo de "Sistema" no es un seguimiento', !sf.esSeguimientoAutomatico({ senderName: 'Sistema', templateName: 'pedido_listo' }));
+    // Simulación sin base: el prisma de mentira registra qué se escribe.
+    let escrito = null;
+    const prismaFalso = {
+        whatsAppChat: {
+            findUnique: async () => ({ chatLabels: ['SEGUIMIENTO_DIA_1', 'OTRA'] }),
+            update: async ({ data }) => { escrito = data; },
+        },
+    };
+    const r = await sf.deshacerSeguimientoFallido(prismaFalso, { chatId: 'c1', senderName: 'Sistema', templateName: 'seguimiento_presupuesto' });
+    check('saca la etiqueta del escalón y deja las demás', escrito && JSON.stringify(escrito.chatLabels) === '["OTRA"]', JSON.stringify(escrito));
+    check('borra lastFollowUpAt (el tablero lo vuelve a mostrar para una persona)', escrito && escrito.lastFollowUpAt === null);
+    check(`pausa el motor ${sf.PAUSA_DIAS} días para esa charla`, r && escrito.followUpPausedUntil > new Date(Date.now() + (sf.PAUSA_DIAS - 1) * 86400000));
+    const inbound = readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('persistStatus lo llama al recibir FAILED', inbound.includes('deshacerSeguimientoFallido(prisma'));
+}
+
 console.log('\nNombre de persona: el motor y el bot dicen lo mismo');
 {
     const { createRequire } = await import('node:module');
