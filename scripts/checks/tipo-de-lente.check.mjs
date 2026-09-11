@@ -215,6 +215,10 @@ const pricing = readFileSync(new URL('../../src/app/api/bot/pricing/route.ts', i
 pricing.includes("id: 'SIN_RECETA'") ? ok('sin receta no hay precio de cristales') : mal('se sacó el candado de "sin receta"');
 pricing.includes("id: 'RECETA_MONOFOCAL'") ? ok('a una receta monofocal no se le dan multifocales') : mal('se sacó el candado de tipo');
 botCloud.includes('procesarRecetaDeLaFoto(') ? ok('el bot pasa cada foto por el lector dedicado') : mal('el bot ya no usa el lector dedicado');
+const agentTools = readFileSync(new URL('../../wa-service/agent-tools.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+agentTools.includes("prisma.clientTask.findFirst({ where: { clientId, description: { contains: marcaFoto } }")
+    ? ok('si el lector dijo "no legible", la tool no guarda lo que adivine el modelo')
+    : mal('la tool volvió a poder guardar valores de una foto que el lector marcó ilegible');
 
 console.log('');
 if (fallas.length) {
