@@ -1,12 +1,12 @@
 /**
  * Qué descuento puede dar cada rol. Un solo lugar.
  *
- * La promo VIGENTE de la óptica es -15% por efectivo y -15% por transferencia
- * (`BUSINESS_INFO.discountCashPercent` / `discountTransferPercent`, y el setting
- * `web_promo_cash_discount` que usan la tienda y el checkout). Acá decía "-20%
- * por efectivo", que era la promo vieja: el 20 que sí sigue vivo es el TOPE de
- * abajo, no lo que se anuncia. Confundir el tope con la promo es cómo
- * `/optica-cordoba` terminó publicando un 20% que el checkout no cobraba.
+ * SON DOS PROMOS DE EFECTIVO, según el canal (Ishtar, 31/8/2026 — ver
+ * BUSINESS_INFO): -20% EN EL LOCAL (efectivo en mano, el default de una venta
+ * del CRM) y -15% en la TIENDA WEB, que va a la par de la transferencia (-15%).
+ * Este comentario decía que la vigente era 15/15 y que el 20 era solo un tope:
+ * era cierto para la web y falso para el local. Antes de usar un número,
+ * mirá a qué canal pertenece la pantalla.
  *
  * Un VENDEDOR puede vender por la promo vigente, por menos descuento, o hasta
  * el tope de `TOPE_VENDEDOR`; para dar MÁS tiene que pedírselo al administrador,
@@ -22,6 +22,18 @@
  * cancelara una venta de $100.000. El tope tiene que vivir en el servidor y
  * salir del mismo lugar que las opciones que dibuja la pantalla.
  */
+
+import { BUSINESS_INFO } from '@/lib/business-info';
+
+/**
+ * El descuento con que NACE una venta del CRM (cotizador, ficha del cliente,
+ * presupuestos del bot). Estaba tipeado como `20` y `15` en seis lugares; uno
+ * de ellos es el espejo SQL del filtro "con saldo" (src/app/api/orders/route.ts)
+ * que TIENE que coincidir con este default, porque convierte a lista los pagos
+ * de una orden sin descuento guardado. Ahora todos leen de acá.
+ */
+export const DESCUENTO_EFECTIVO_POR_DEFECTO: number = BUSINESS_INFO.discountCashLocalPercent;
+export const DESCUENTO_TRANSFERENCIA_POR_DEFECTO: number = BUSINESS_INFO.discountTransferPercent;
 
 /** Opciones que ofrece el cotizador, por campo. El vendedor ve solo hasta su tope. */
 export const OPCIONES_DESCUENTO_EFECTIVO = [0, 5, 10, 15, 20, 25, 30];

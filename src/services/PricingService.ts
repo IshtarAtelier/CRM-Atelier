@@ -1,5 +1,5 @@
 import { hasActive2x1Promo, pick2x1FrameDiscount, safePrice } from '@/lib/promo-utils';
-import { FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
+import { FACTOR_MP_CUOTAS_LARGAS, DESCUENTO_EFECTIVO_POR_DEFECTO, DESCUENTO_TRANSFERENCIA_POR_DEFECTO } from '@/lib/constants/descuentos';
 import { esMpCuotasLargas } from '@/lib/payment-card';
 
 export interface CartItem {
@@ -187,25 +187,45 @@ export class PricingService {
      * grillas, carrito, resumen del checkout, emails y CTAs leen de acá.
      * `cashDiscountPct` es el % de la promo web (setting web_promo_cash_discount).
      */
-    static preciosVidriera(price: number, cashDiscountPct: number = 15) {
-        const lista = Math.round(price || 0);
+    /**
+     * LAS FORMAS DE PAGO DE UN PRECIO: lista, efectivo, transferencia y cuotas.
+     * La única cuenta de "cuánto sale en cada forma de pago". La tabla del
+     * cotizador, el mensaje de WhatsApp del presupuesto y la vidriera del bot
+     * la hacían cada uno a mano (y la cuota de 6 de la tabla no redondeaba,
+     * así que podía diferir en $1 de la del bot).
+     * @param precio   precio de lista del producto (sin markup)
+     * @param markup   recargo % del presupuesto (0 = ninguno)
+     */
+    static formasDePago(precio: number, cashDiscountPct: number, transferDiscountPct: number, markup: number = 0) {
+        const lista = Math.round(safePrice(precio) * (1 + safePrice(markup) / 100));
         const cuotasMp = PricingService.cuotasMpLargas(lista);
         return {
             lista,
+            efectivo: Math.round(lista * (1 - safePrice(cashDiscountPct) / 100)),
+            transferencia: Math.round(lista * (1 - safePrice(transferDiscountPct) / 100)),
+            cuota3: Math.round(lista / 3),
             cuota6: Math.round(lista / 6),
-            contado: Math.round(lista * (1 - cashDiscountPct / 100)),
-            ahorroContado: Math.round(lista * (cashDiscountPct / 100)),
             cuota12: cuotasMp.installment12,
             total12: cuotasMp.totalFinanced,
         };
     }
 
-    /**
-     * Calcula el desglose financiero completo (Totales y Saldos) para una orden existente.
-     */
+    static preciosVidriera(price: number, cashDiscountPct: number = 15) {
+        const f = PricingService.formasDePago(price, cashDiscountPct, 0);
+        return {
+            lista: f.lista,
+            cuota6: f.cuota6,
+            contado: f.efectivo,
+            ahorroContado: f.lista - f.efectivo,
+            cuota12: f.cuota12,
+            total12: f.total12,
+        };
+    }
+
     static calculateOrderFinancials(order: any): OrderFinancials {
-        const discCash = order.discountCash ?? 20;
-        const discTrans = order.discountTransfer ?? 15;
+        // Mismo default que el espejo SQL de /api/orders (filtro "con saldo").
+        const discCash = order.discountCash ?? DESCUENTO_EFECTIVO_POR_DEFECTO;
+        const discTrans = order.discountTransfer ?? DESCUENTO_TRANSFERENCIA_POR_DEFECTO;
         // Las ventas web se crean sin subtotalWithMarkup (no pasan por el markup del
         // cotizador); sin este fallback, listPrice caía a 0 y toda venta web figuraba
         // "PAGADO" con saldo 0 sin importar cuánto se pagó en realidad.

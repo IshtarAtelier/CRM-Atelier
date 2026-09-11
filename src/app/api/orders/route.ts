@@ -11,6 +11,7 @@ import { formatOrderItemsSummary } from '@/lib/order-utils';
 import { PricingService, calculateQuoteTotals } from '@/services/PricingService';
 import { descuentoNegativo, excedeTopeVendedor, FACTOR_MP_CUOTAS_LARGAS } from '@/lib/constants/descuentos';
 import { mapOrderPostSale } from '@/types/orders';
+import { DESCUENTO_EFECTIVO_POR_DEFECTO, DESCUENTO_TRANSFERENCIA_POR_DEFECTO } from '@/lib/constants/descuentos';
 
 // POST /api/orders — Create order from inline cotizador
 export async function POST(request: Request) {
@@ -535,11 +536,11 @@ export async function GET(request: Request) {
                     SELECT COALESCE(SUM(
                         CASE
                             WHEN UPPER(TRIM(p.method)) IN ('CASH', 'EFECTIVO', 'EFVO')
-                                 AND (1 - COALESCE(o."discountCash", 20) / 100.0) > 0
-                                THEN p.amount / (1 - COALESCE(o."discountCash", 20) / 100.0)
+                                 AND (1 - COALESCE(o."discountCash", ${DESCUENTO_EFECTIVO_POR_DEFECTO}) / 100.0) > 0
+                                THEN p.amount / (1 - COALESCE(o."discountCash", ${DESCUENTO_EFECTIVO_POR_DEFECTO}) / 100.0)
                             WHEN (UPPER(TRIM(p.method)) LIKE '%TRANSF%' OR UPPER(TRIM(p.method)) LIKE '%DEPOSITO%')
-                                 AND (1 - COALESCE(o."discountTransfer", 15) / 100.0) > 0
-                                THEN p.amount / (1 - COALESCE(o."discountTransfer", 15) / 100.0)
+                                 AND (1 - COALESCE(o."discountTransfer", ${DESCUENTO_TRANSFERENCIA_POR_DEFECTO}) / 100.0) > 0
+                                THEN p.amount / (1 - COALESCE(o."discountTransfer", ${DESCUENTO_TRANSFERENCIA_POR_DEFECTO}) / 100.0)
                             -- MP 12/18 cuotas: el cliente paga lista x factor (costo financiero);
                             -- cada peso cobrado vale 1/factor de lista. Espejo EXACTO de
                             -- esMpCuotasLargas() (src/lib/payment-card.ts): substring literal

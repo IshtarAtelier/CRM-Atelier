@@ -61,6 +61,7 @@ import { normalizeLensOrigin, lensOriginSuffix, lensOriginFromItem } from '@/lib
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import TablaCotizador from './TablaCotizador';
 import { esArchivado } from '@/lib/catalog/vendible';
+import { DESCUENTO_EFECTIVO_POR_DEFECTO, DESCUENTO_TRANSFERENCIA_POR_DEFECTO } from '@/lib/constants/descuentos';
 
 // Recibe la CLAVE ya resuelta (p.ej. 'Cristal', 'Tratamiento') — no la vuelve a
 // derivar. `getTypeConfig(cat)` reinvocaba getCategoryKey tratando la clave como
@@ -173,8 +174,8 @@ function CotizadorPageContent() {
     const [selectedTallado, setSelectedTallado] = useState('');
     const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
     const [markup, setMarkup] = useState(0);
-    const [discountCash, setDiscountCash] = useState(20);
-    const [discountTransfer, setDiscountTransfer] = useState(15);
+    const [discountCash, setDiscountCash] = useState(DESCUENTO_EFECTIVO_POR_DEFECTO);
+    const [discountTransfer, setDiscountTransfer] = useState(DESCUENTO_TRANSFERENCIA_POR_DEFECTO);
     const [discountCard, setDiscountCard] = useState(0);
     const [specialDiscount, setSpecialDiscount] = useState(0);
     // El descuento especial solo lo puede dar el admin; el resto ni ve el campo.
@@ -316,7 +317,7 @@ function CotizadorPageContent() {
                         
                         // Restore pricing settings — fields are directly on the order object
                         setMarkup(quote.markup || 0);
-                        setDiscountCash(quote.discountCash ?? 20);
+                        setDiscountCash(quote.discountCash ?? DESCUENTO_EFECTIVO_POR_DEFECTO);
                         setDiscountTransfer(quote.discountTransfer ?? 15);
                         setDiscountCard(quote.discountCard ?? 0);
                         setSpecialDiscount(quote.specialDiscount ?? 0);
@@ -822,13 +823,16 @@ function CotizadorPageContent() {
             console.error('El contacto no tiene teléfono');
             return;
         }
-        const listPrice = Math.round(totalWithMarkup);
-        const inst3 = Math.round(listPrice / 3);
-        const inst6 = Math.round(listPrice / 6);
-        // MP 12: costo financiero fijo del 10% sobre lista, ADENTRO del importe.
-        // El cálculo vive en PricingService (regla: cálculo de plata SOLO ahí);
+        // Transferencia y cuotas salen de PricingService.formasDePago (acá se
+        // hacían a mano). El efectivo sigue saliendo de calculateTotals, que es
+        // el que se guarda en la venta. Las 12 llevan el 10% ADENTRO del importe;
         // al cliente se le dice "cuotas fijas", sin la leyenda del % (31/8 noche).
-        const { installment12: inst12 } = PricingService.cuotasMpLargas(listPrice);
+        const formas = PricingService.formasDePago(totalWithMarkup, discountCash, discountTransfer);
+        const listPrice = formas.lista;
+        const inst3 = formas.cuota3;
+        const inst6 = formas.cuota6;
+        const inst12 = formas.cuota12;
+        const totalTransfer = formas.transferencia;
         
         // Build the message
         let msg = `Hola ${pendingContact.name}, te envío el presupuesto solicitado:\n\n`;
@@ -845,7 +849,7 @@ function CotizadorPageContent() {
         }
         msg += `\n*Precio Lista: $${listPrice.toLocaleString()}*\n`;
         msg += `💰 Efectivo (-${discountCash}%): $${Math.round(totalCash).toLocaleString()}\n`;
-        msg += `🏦 Transferencia (-${discountTransfer}%): $${Math.round(totalWithMarkup * (1 - discountTransfer / 100)).toLocaleString()}\n`;
+        msg += `🏦 Transferencia (-${discountTransfer}%): $${totalTransfer.toLocaleString()}\n`;
         msg += `💳 Tarjeta (Lista): $${listPrice.toLocaleString()}\n`;
         msg += `   ↳ 3 cuotas sin interés: $${inst3.toLocaleString()} c/u\n`;
         msg += `   ↳ 6 cuotas sin interés: $${inst6.toLocaleString()} c/u\n`;
@@ -862,7 +866,7 @@ function CotizadorPageContent() {
                     chatId: `${phone}@c.us`,
                     message: msg,
                     // API oficial, fuera de la ventana de 24 h: plantilla "presupuesto" (A14).
-                    template: { name: 'presupuesto', bodyParams: [pendingContact.name.split(' ')[0], `$ ${listPrice.toLocaleString('es-AR')}`, `$ ${Math.round(totalWithMarkup * (1 - discountTransfer / 100)).toLocaleString('es-AR')}`, `$ ${Math.round(totalCash).toLocaleString('es-AR')}`] },
+                    template: { name: 'presupuesto', bodyParams: [pendingContact.name.split(' ')[0], `$ ${listPrice.toLocaleString('es-AR')}`, `$ ${totalTransfer.toLocaleString('es-AR')}`, `$ ${Math.round(totalCash).toLocaleString('es-AR')}`] },
                 })
             });
 
@@ -920,7 +924,7 @@ function CotizadorPageContent() {
         
         // Restore all pricing settings — fields are on the order object directly (not in metadata)
         setMarkup(quote.markup || 0);
-        setDiscountCash(quote.discountCash ?? 20);
+        setDiscountCash(quote.discountCash ?? DESCUENTO_EFECTIVO_POR_DEFECTO);
         setDiscountTransfer(quote.discountTransfer ?? 15);
         setDiscountCard(quote.discountCard ?? 0);
         setSpecialDiscount(quote.specialDiscount ?? 0);

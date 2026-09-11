@@ -84,16 +84,8 @@ const pesos = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
 /** Las cinco formas de pago salen SIEMPRE de acá — nunca recalculadas en la vista. */
 export function formasDePago(product: Product, markup: number, dCash: number, dTransfer: number) {
     const oferta = precioConOferta(product);
-    const lista = safePrice(oferta.final) * (1 + markup / 100);
-    const { installment12 } = PricingService.cuotasMpLargas(lista);
-    return {
-        oferta,
-        lista,
-        efectivo: lista * (1 - dCash / 100),
-        transferencia: lista * (1 - dTransfer / 100),
-        cuota6: lista / 6,
-        cuota12: installment12,
-    };
+    // La cuenta vive en PricingService (regla: cálculo de plata SOLO ahí).
+    return { oferta, ...PricingService.formasDePago(safePrice(oferta.final), dCash, dTransfer, markup) };
 }
 
 export default function TablaCotizador({

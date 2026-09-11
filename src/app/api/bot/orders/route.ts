@@ -6,6 +6,7 @@ import { PricingService } from '@/services/PricingService';
 import { applyTeñidoPromoDiscount, isCrystal, isTeñidoAddon, recalculateCrystalPrices } from '@/lib/promo-utils';
 import { BOT_ACTOR } from '@/lib/actor';
 import { esArchivado } from '@/lib/catalog/vendible';
+import { DESCUENTO_EFECTIVO_POR_DEFECTO } from '@/lib/constants/descuentos';
 
 export const dynamic = 'force-dynamic';
 
@@ -156,7 +157,7 @@ export async function POST(request: Request) {
         // en src/app/api/orders/route.ts), que solo dispara con NULL. Con 0
         // guardado, `totalCash = lista` y todo pago en efectivo contra el
         // presupuesto se convertía mal: es el mecanismo de los saldos fantasma.
-        const descuentoEfectivo = discountCash ?? 20;
+        const descuentoEfectivo = discountCash ?? DESCUENTO_EFECTIVO_POR_DEFECTO;
         const totals = PricingService.calculateTotals(cartItems, 0, descuentoEfectivo, []);
         const totalLista = totals.subtotalWithMarkup;
         const totalContado = totals.totalCash;

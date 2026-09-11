@@ -7,6 +7,7 @@ import {
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
 import { calculateQuoteTotals } from '@/services/PricingService';
+import { DESCUENTO_EFECTIVO_POR_DEFECTO, DESCUENTO_TRANSFERENCIA_POR_DEFECTO } from '@/lib/constants/descuentos';
 
 interface OrderManagerProps {
     contactId: string;
@@ -43,8 +44,8 @@ export default function OrderManager({
     const [isQuoteSuccess, setIsQuoteSuccess] = useState(false);
     const [quoteItems, setQuoteItems] = useState<any[]>([]);
     const [quoteMarkup, setQuoteMarkup] = useState(0);
-    const [quoteDiscountCash, setQuoteDiscountCash] = useState(20);
-    const [quoteDiscountTransfer, setQuoteDiscountTransfer] = useState(15);
+    const [quoteDiscountCash, setQuoteDiscountCash] = useState(DESCUENTO_EFECTIVO_POR_DEFECTO);
+    const [quoteDiscountTransfer, setQuoteDiscountTransfer] = useState(DESCUENTO_TRANSFERENCIA_POR_DEFECTO);
     const [quoteDiscountCard, setQuoteDiscountCard] = useState(0);
     const [quoteSpecialDiscount, setQuoteSpecialDiscount] = useState(0);
     const [quoteFrameSource, setQuoteFrameSource] = useState<string | null>(null);
@@ -187,8 +188,8 @@ export default function OrderManager({
             framePosition: it.framePosition,
         })));
         setQuoteMarkup(order.markup || 0);
-        setQuoteDiscountCash(order.discountCash ?? 20);
-        setQuoteDiscountTransfer(order.discountTransfer ?? 15);
+        setQuoteDiscountCash(order.discountCash ?? DESCUENTO_EFECTIVO_POR_DEFECTO);
+        setQuoteDiscountTransfer(order.discountTransfer ?? DESCUENTO_TRANSFERENCIA_POR_DEFECTO);
         setQuoteDiscountCard(order.discountCard ?? 0);
         setQuoteSpecialDiscount(order.specialDiscount ?? 0);
         setQuoteFrameSource(order.frameSource as 'OPTICA' | 'USUARIO' | null);
