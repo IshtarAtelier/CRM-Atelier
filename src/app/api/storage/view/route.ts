@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFileBuffer } from '@/lib/storage';
 import { isPathTraversalKey } from '@/lib/utils/storage';
 import { decrypt } from '@/lib/auth';
+import { safeCompare } from '@/lib/safe-compare';
 import path from 'path';
 
 /**
@@ -11,10 +12,23 @@ import path from 'path';
  * fotos de chats de WhatsApp, recetas médicas y comprobantes. Servirlos sin
  * sesión era una fuga de PII con solo conocer la key.
  *
- * Regla: si la key matchea un patrón sensible, exige cookie de sesión válida.
+ * Regla: si la key matchea un patrón sensible, exige cookie de sesión válida
+ * (o la clave del bot: el wa-service baja las fotos de los chats para que el
+ * modelo y el lector de recetas las vean, y no tiene sesión).
  * El catálogo (avif/webp de productos) sigue público.
+ *
+ * 11/9/2026: el patrón decía `_wa_`, pero los medios de los chats se guardan
+ * como `<ts>_in_<ts>` (entrantes, transport/inbound.js) y `<ts>_eco_<ts>`
+ * (ecos del celular): 717 fotos de clientes —recetas, DNI, comprobantes—
+ * servidas sin sesión a quien tuviera la key. `_in_` y `_eco_` ahora cuentan.
  */
-const SENSITIVE_KEY = /_wa_|receta|receipt|comprobante|prescripcion|prescription|\.pdf$|\.ogg$/i;
+const SENSITIVE_KEY = /_wa_|_in_|_eco_|receta|receipt|comprobante|prescripcion|prescription|\.pdf$|\.ogg$/i;
+
+function esElBot(req: NextRequest): boolean {
+    const clave = req.headers.get('x-api-key');
+    const valida = process.env.BOT_API_KEY;
+    return Boolean(clave && valida && safeCompare(clave, valida));
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +49,7 @@ export async function GET(req: NextRequest) {
     if (isPathTraversalKey(cleanKey)) {
         return new NextResponse('Forbidden: Invalid key', { status: 403 });
     }
-    if (SENSITIVE_KEY.test(cleanKey)) {
+    if (SENSITIVE_KEY.test(cleanKey) && !esElBot(req)) {
         const token = req.cookies.get('session')?.value;
         const session = token ? await decrypt(token) : null;
         if (!session?.id) {

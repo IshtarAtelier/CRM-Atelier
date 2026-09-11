@@ -261,6 +261,17 @@ botCloud.includes('urlDelMedio(m.mediaUrl)') ? ok('bot-cloud baja la foto con ur
     ? ok('no queda ningún `base + mediaUrl` a mano en el bot')
     : mal('queda un `base + mediaUrl` a mano (clave pelada → host inexistente)');
 
+// Las fotos de los chats (`_in_`/`_eco_`) son sensibles y el bot las baja con su clave.
+const viewRoute = readFileSync(new URL('../../src/app/api/storage/view/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const sensible = viewRoute.match(/const SENSITIVE_KEY = (\/.*\/i);/)?.[1];
+const reSensible = sensible ? new Function(`return ${sensible}`)() : null;
+reSensible && reSensible.test('1789078202399_in_1789078202332') && reSensible.test('1789078202399_eco_1789078202332') && !reSensible.test('agent_clipon_dorado_1.jpg')
+    ? ok('las fotos de los chats exigen sesión o clave del bot; las del catálogo siguen públicas')
+    : mal('SENSITIVE_KEY no cubre `_in_`/`_eco_` (fotos de clientes servidas sin sesión) o tapa el catálogo');
+viewRoute.includes('esElBot(req)') && botCloud.includes("headers: { 'x-api-key': process.env.BOT_API_KEY }")
+    ? ok('el bot manda su clave al bajar la foto y la ruta la acepta')
+    : mal('el bot no manda x-api-key al bajar la foto (con `_in_` sensible, recibiría 401)');
+
 const leerRecetaSrc = readFileSync(new URL('../../wa-service/shared/leer-receta.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 leerRecetaSrc.includes('MÁS DE UNA foto, son de la MISMA receta') && botCloud.includes('leerReceta({ imagenes })')
     ? ok('varias fotos del mismo turno se leen JUNTAS (lejos en una, cerca en la otra)')
