@@ -6,6 +6,7 @@ import { getWebSettings } from '@/lib/web-settings';
 import { PricingService } from '@/services/PricingService';
 import { esGraduacionAlta, CATEGORIAS_DE_CRISTAL, PALABRAS_DE_TALLADO } from '@/lib/receta/graduacion';
 import { cubreLaReceta, tieneGraduacion, motivoDeDescarte } from '@/lib/receta/rango-de-cristal';
+import { tipoDeRecetaSegunNumeros } from '@/lib/receta/tipo-de-lente';
 
 /** Cuántos cristales se le mandan al bot cuando la receta acotó el universo. */
 const MAX_OPCIONES_CRUZADAS = 8;
@@ -83,10 +84,37 @@ export async function GET(req: NextRequest) {
             const rx = await prisma.prescription.findFirst({
                 where: { clientId: clientIdConsulta },
                 orderBy: { date: 'desc' },
-                select: { sphereOD: true, sphereOI: true, cylinderOD: true, cylinderOI: true },
+                select: {
+                    sphereOD: true, sphereOI: true, cylinderOD: true, cylinderOI: true,
+                    addition: true, additionOD: true, additionOI: true,
+                    nearSphereOD: true, nearSphereOI: true,
+                },
             }).catch(() => null);
             if (rx) {
                 receta = { odEsf: rx.sphereOD, oiEsf: rx.sphereOI, odCil: rx.cylinderOD, oiCil: rx.cylinderOI };
+
+                // 🔒 CANDADO DE TIPO. El error que se vio en producción no fue
+                // "cotizar sin receta": fue cotizarle MULTIFOCALES a alguien cuya
+                // receta es monofocal. Si la receta guardada no tiene adición ni
+                // sección de cerca (ninguna de las dos formas válidas de una
+                // receta multifocal), los multifocales, bifocales y ocupacionales
+                // NO se le entregan al bot aunque los pida. El tipo se DERIVA de
+                // los números (tipoDeRecetaSegunNumeros), nunca del campo
+                // `prescriptionType` guardado: 195 de 346 recetas lo tienen mal.
+                const tipo = tipoDeRecetaSegunNumeros(rx);
+                if (tipo === 'FAR' && ['MULTIFOCAL', 'BIFOCAL', 'OCUPACIONAL'].includes(category!)) {
+                    return NextResponse.json([{
+                        id: 'RECETA_MONOFOCAL',
+                        source: 'SERVICE',
+                        name: 'LA RECETA ES MONOFOCAL: NO CORRESPONDEN MULTIFOCALES NI BIFOCALES',
+                        category: 'SYSTEM',
+                        priceCash: 0, priceCredit: 0, creditMonths: 6, cuota6: 0, cuota12: 0, total12: 0,
+                        notes: '🔴 La receta guardada de esta persona NO tiene adición ni graduación de cerca: es MONOFOCAL. ' +
+                            'No le ofrezcas multifocales, bifocales ni ocupacionales, y no le preguntes si los quiere. ' +
+                            'Pedí de nuevo los precios con category "MONOFOCAL" y cotizale eso. ' +
+                            'Si ÉL pregunta por multifocales, explicale en criollo que según su receta no los necesita.',
+                    }]);
+                }
             }
         }
         if (!tieneGraduacion(receta)) {
