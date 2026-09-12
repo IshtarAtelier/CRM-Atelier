@@ -45,8 +45,21 @@ export async function reclamarEnvio(input: { chatId: string; clientId: string | 
         });
         return fila.id;
     } catch (e: any) {
-        if (e?.code === 'P2002') return null;
-        throw e;
+        if (e?.code !== 'P2002') throw e;
+        // Ya hay fila hoy. Si fue un FALLIDO, se vuelve a reclamar (atómico:
+        // solo gana quien la pase de FALLIDO a RECLAMADO): un envío que rebotó
+        // a las 10 se reintenta a las 11, no mañana. Si está ENVIADO o
+        // RECLAMADO por otro, null: no se manda dos veces.
+        const retomada = await prisma.seguimientoEnvio.updateMany({
+            where: { chatId: input.chatId, plantilla: input.plantilla, diaArt: input.dia, resultado: 'FALLIDO' },
+            data: { resultado: 'RECLAMADO', detalle: 'reintento tras una falla anterior hoy' },
+        });
+        if (retomada.count !== 1) return null;
+        const fila = await prisma.seguimientoEnvio.findUnique({
+            where: { chatId_plantilla_diaArt: { chatId: input.chatId, plantilla: input.plantilla, diaArt: input.dia } },
+            select: { id: true },
+        });
+        return fila?.id ?? null;
     }
 }
 

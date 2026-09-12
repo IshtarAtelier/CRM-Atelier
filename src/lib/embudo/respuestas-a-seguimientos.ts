@@ -14,6 +14,13 @@ import { prisma } from '@/lib/db';
  */
 export const PREFIJO_RESPUESTA = '💬 Respondió al seguimiento';
 const CREADO_POR = 'Sistema (Embudo)';
+/**
+ * Solo respuestas de los últimos N días. La primera corrida (12/9/2026) creó
+ * 87 tareas de golpe, muchas de respuestas de julio al robot viejo ("Gracias",
+ * "Ok", reacciones): una tarea sobre una charla de dos meses no le sirve a
+ * nadie y tapa las que sí. Las más viejas se cancelan solas.
+ */
+export const VENTANA_RESPUESTAS_DIAS = 14;
 
 export interface ChatConRespuesta {
     clientId: string;
@@ -26,10 +33,31 @@ export function respondioAlSeguimiento(c: ChatConRespuesta): boolean {
     return Boolean(c.lastFollowUpAt && c.lastInboundAt && c.lastInboundAt.getTime() > c.lastFollowUpAt.getTime());
 }
 
-/** Crea las tareas que falten. Devuelve cuántas creó. */
-export async function tareasPorRespuestasSinAtender(): Promise<number> {
+/** Crea las tareas que falten (respuestas de los últimos 14 días) y cancela las de respuestas más viejas. Devuelve cuántas creó. */
+export async function tareasPorRespuestasSinAtender(now = Date.now()): Promise<number> {
+    const limite = new Date(now - VENTANA_RESPUESTAS_DIAS * 24 * 3_600_000);
+
+    // Limpieza: tareas vivas cuya charla no tiene respuesta reciente (la
+    // respuesta que las originó es más vieja que la ventana).
+    const vivas = await prisma.clientTask.findMany({
+        where: { status: 'PENDING', description: { startsWith: PREFIJO_RESPUESTA } },
+        select: { id: true, clientId: true },
+    });
+    if (vivas.length) {
+        const chatsDeVivas = await prisma.whatsAppChat.findMany({
+            where: { clientId: { in: vivas.map(t => t.clientId) } },
+            select: { clientId: true, lastInboundAt: true },
+        });
+        const ultimaRespuesta = new Map<string, number>();
+        for (const c of chatsDeVivas) if (c.clientId && c.lastInboundAt) ultimaRespuesta.set(c.clientId, Math.max(ultimaRespuesta.get(c.clientId) ?? 0, c.lastInboundAt.getTime()));
+        const viejas = vivas.filter(t => (ultimaRespuesta.get(t.clientId) ?? 0) < limite.getTime()).map(t => t.id);
+        if (viejas.length) {
+            await prisma.clientTask.updateMany({ where: { id: { in: viejas } }, data: { status: 'CANCELLED', completedBy: CREADO_POR, completedAt: new Date(now) } });
+        }
+    }
+
     const chats = await prisma.whatsAppChat.findMany({
-        where: { clientId: { not: null }, lastFollowUpAt: { not: null }, lastInboundAt: { not: null } },
+        where: { clientId: { not: null }, lastFollowUpAt: { not: null }, lastInboundAt: { gte: limite } },
         select: { id: true, clientId: true, lastFollowUpAt: true, lastInboundAt: true },
     });
     const conRespuesta = chats.filter(c => respondioAlSeguimiento(c as ChatConRespuesta));
