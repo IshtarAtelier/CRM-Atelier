@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { enforceRateLimit } from '@/lib/api-guard';
 import { productReviewSchema, validateBody } from '@/lib/validation';
 import { captureError } from '@/lib/logger';
+import { agregadoDeResenas } from '@/lib/reviews/agregado-producto';
 
 /**
  * Reseñas de producto. Público bajo /api/web.
@@ -16,24 +17,24 @@ export async function GET(req: Request) {
     const productId = new URL(req.url).searchParams.get('productId');
     if (!productId) return NextResponse.json({ error: 'productId requerido' }, { status: 400 });
 
-    const [reviews, agg] = await Promise.all([
+    // El promedio se calcula en `agregado-producto.ts`, no acá: el mismo número
+    // lo declara el `aggregateRating` de la ficha para Google. Dos cuentas
+    // separadas pueden redondear distinto, y un JSON-LD que dice 4,6 sobre una
+    // página que muestra 4,7 es exactamente lo que se revisa en una sanción.
+    const [reviews, agregado] = await Promise.all([
       prisma.productReview.findMany({
         where: { productId, approved: true },
         orderBy: { createdAt: 'desc' },
         take: 50,
         select: { id: true, authorName: true, rating: true, comment: true, createdAt: true },
       }),
-      prisma.productReview.aggregate({
-        where: { productId, approved: true },
-        _avg: { rating: true },
-        _count: { _all: true },
-      }),
+      agregadoDeResenas(productId),
     ]);
 
     return NextResponse.json({
       reviews,
-      average: agg._avg.rating ? Math.round(agg._avg.rating * 10) / 10 : 0,
-      count: agg._count._all,
+      average: agregado?.promedio ?? 0,
+      count: agregado?.cantidad ?? 0,
     });
   } catch (error) {
     captureError(error, { scope: 'web.reviews.GET' });

@@ -13,6 +13,7 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { resolveStorageUrl } from "@/lib/utils/storage";
 import { armarNombreVisible, baseDelNombre } from '@/lib/catalog/display-name';
 import { precioConOferta } from '@/lib/precio-oferta';
+import { agregadoDeResenas } from '@/lib/reviews/agregado-producto';
 
 // Slugs históricos de productos renombrados (julio 2026): la URL vieja redirige a la definitiva
 const LEGACY_SLUGS: Record<string, string> = {
@@ -597,6 +598,29 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // Solo si se pudo leer del alt: mejor sin color que con uno inventado.
   if (colorSchema) {
     jsonLd.color = colorSchema;
+  }
+
+  // ── Las estrellas en Google ──────────────────────────────────────────────
+  //
+  // Con `aggregateRating`, el resultado de búsqueda de la ficha sale con
+  // estrellas y la nota; sin él, sale pelado al lado de competidores que sí las
+  // tienen. Es de las cosas que más mueven el clic.
+  //
+  // Sale de las reseñas APROBADAS de ESTE producto y de ninguna otra fuente. Si
+  // no hay, no se emite nada: una nota inventada, o la del local traída de las
+  // reseñas de Google Maps, es motivo de acción manual — y una acción manual se
+  // lleva puestas las estrellas de todo el sitio, no solo las de esta ficha.
+  // Las mismas reseñas se ven en la página (bloque ProductReviews), que es lo
+  // que Google exige para mostrarlas.
+  const resenas = await agregadoDeResenas((product as any).id);
+  if (resenas) {
+    jsonLd.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: resenas.promedio,
+      reviewCount: resenas.cantidad,
+      bestRating: 5,
+      worstRating: 1,
+    };
   }
 
   // Add measurement properties

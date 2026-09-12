@@ -1,4 +1,6 @@
 import { MetadataRoute } from 'next';
+import { getMappedWebCatalog } from '@/lib/catalog/tienda-map';
+import { totalDePaginas, urlDePagina } from '@/lib/catalog/paginacion-tienda';
 import { prisma } from '@/lib/db';
 import { categoriasConPosts } from '@/lib/blog-categorias';
 
@@ -161,6 +163,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Error armando las categorías del blog para el sitemap:', error);
   }
 
+  // Las páginas 2, 3, 4… de la tienda. Van en el sitemap por el mismo motivo
+  // por el que existen: son el camino interno hasta los modelos del 25 en
+  // adelante. Sin declararlas, Google depende de descubrirlas rastreando.
+  const paginasTienda: any[] = [];
+  try {
+    const { products: catalogo } = await getMappedWebCatalog();
+    const paginas = totalDePaginas(catalogo.length);
+    for (let n = 2; n <= paginas; n++) {
+      paginasTienda.push({
+        url: `${baseUrl}${urlDePagina(n)}`,
+        lastModified: new Date(),
+        changeFrequency: 'daily' as const,
+        // Menos que /tienda (0.9-1.0) y menos que una ficha: son índices, no
+        // destinos. Lo que aportan es el link, no la página en sí.
+        priority: 0.5,
+      });
+    }
+  } catch (error) {
+    console.error('Error armando las páginas de la tienda para el sitemap:', error);
+  }
+
   // Fetch dynamic products
   let productRoutes: any[] = [];
   try {
@@ -205,6 +228,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...fallbackBlogRoutes,
     ...dbBlogRoutes,
     ...categoriaRoutes,
+    ...paginasTienda,
     ...productRoutes,
   ]) {
     byUrl.set(route.url, route);

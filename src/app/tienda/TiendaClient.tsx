@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useTransition, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
@@ -18,6 +18,15 @@ import { leerPromoCuotas } from "@/lib/promo-cuotas";
 import { precioConOferta } from "@/lib/precio-oferta";
 import { UMBRAL_ULTIMAS_UNIDADES } from "@/lib/constants/social-proof";
 import { track } from "@/lib/client-analytics";
+import {
+  PRODUCTOS_POR_PAGINA,
+  PARAM_VER,
+  RUTA_TIENDA,
+  leerVer,
+  limpiarEstadoDeGrilla,
+  urlDePagina,
+  totalDePaginas,
+} from "@/lib/catalog/paginacion-tienda";
 
 // "Contacto" y "Cristales" no tienen productos en el catálogo web: apretarlos
 // devolvía una grilla vacía. Tienen su propia página, así que ahora llevan ahí.
@@ -114,11 +123,18 @@ export function TiendaClient({
   availableShapes = [],
   availableMaterials = [],
   availableColors = [],
+  paginaInicial = 1,
   footer
 }: { 
   initialCategory?: string;
   initialProducts: any[];
   initialTotalCount?: number;
+  /**
+   * Qué página del catálogo mandó el servidor. 1 en /tienda; 2, 3… en las URLs
+   * indexables /tienda/2, /tienda/3. `initialProducts` ya viene recortado a esa
+   * página, así que "Cargar más" sigue desde ahí y no desde el principio.
+   */
+  paginaInicial?: number;
   /** F1-02: conteos por opción para el primer pintado (ver tienda/page.tsx). */
   initialConteos?: { marca: Record<string, number>; forma: Record<string, number>; material: Record<string, number>; color?: Record<string, number> } | null;
   availableBrands?: string[];
@@ -128,7 +144,21 @@ export function TiendaClient({
   footer?: React.ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
+  /**
+   * Escribe una URL de filtro. Dos reglas, siempre, para los cuatro lugares que
+   * filtran (chips de categoría, panel, quitar uno, limpiar todos):
+   *
+   *  · Va a /tienda, NO al pathname actual. Desde /tienda/3 —una de las páginas
+   *    indexables— filtrar tiene que llevar a la página 1 del resultado nuevo;
+   *    quedarse en /tienda/3 mostraría los primeros 24 de la lista filtrada bajo
+   *    una URL que promete los del 49 al 72.
+   *  · Se lleva puesto el ?ver=. Otro filtro es otro conjunto: pedir "los 96 que
+   *    tenía cargados" sobre una lista de 7 no tiene sentido.
+   */
+  const navegarConFiltros = (params: URLSearchParams) => {
+    const qs = limpiarEstadoDeGrilla(params).toString();
+    navegarAFiltro(qs ? `${RUTA_TIENDA}?${qs}` : RUTA_TIENDA);
+  };
   const [searchQuery, setSearchQuery] = useState("");
   // R6: ver el comentario en ProductFilters. Los chips de categoría y los de
   // filtro aplicado escriben la misma URL y tienen que comportarse igual.
@@ -136,7 +166,6 @@ export function TiendaClient({
   const navegarAFiltro = (url: string) => {
     startTransition(() => router.replace(url, { scroll: false }));
   };
-  const [visibleCount, setVisibleCount] = useState(24);
 
   const [urlFilters, setUrlFilters] = useState<FiltrosUrl>({
     // Llega resuelta del servidor: si arrancara en 'Todo' y cambiara al
@@ -163,8 +192,7 @@ export function TiendaClient({
     const params = new URLSearchParams(window.location.search);
     if (cat && cat !== 'Todo') params.set('categoria', cat);
     else params.delete('categoria');
-    const qs = params.toString();
-    navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
+    navegarConFiltros(params);
   };
 
   const filterBrand = urlFilters.brand;
@@ -226,21 +254,15 @@ export function TiendaClient({
     } else {
       params.delete(param);
     }
-    const qs = params.toString();
-    navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
+    navegarConFiltros(params);
   };
 
   /** Saca todos los filtros pero respeta la categoría y la búsqueda. */
   const limpiarTodosLosFiltros = () => {
     const params = new URLSearchParams(window.location.search);
     ['marca', 'forma', 'material', 'genero', 'color', 'precioMin', 'precioMax'].forEach(p => params.delete(p));
-    const qs = params.toString();
-    navegarAFiltro(qs ? `${pathname}?${qs}` : pathname);
+    navegarConFiltros(params);
   };
-
-  useEffect(() => {
-    setVisibleCount(24);
-  }, [activeCategory, searchQuery, filterGender]);
 
   // F1-02: cuántos modelos hay detrás de cada opción de cada faceta. Los
   // calcula el endpoint contra los OTROS filtros activos (ver el comentario en
@@ -312,9 +334,14 @@ export function TiendaClient({
 
   // ── STATE FOR PRODUCTS & PAGINATION ──
   const [products, setProducts] = useState<any[]>(initialProducts);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(Math.ceil((initialTotalCount || initialProducts.length) / 24) || 1);
+  const [currentPage, setCurrentPage] = useState(paginaInicial);
   const [totalCount, setTotalCount] = useState(initialTotalCount || initialProducts.length);
+  // `totalPages` se DERIVA del total. Antes era estado propio, seteado con el
+  // `totalPages` que devuelve el endpoint — que es `total / limit`, o sea que
+  // dependía del tamaño del pedido. La restauración de ?ver=48 pide 48 de una,
+  // y con eso el endpoint contestaba "3 páginas" mientras el botón seguía
+  // avanzando de a 24: "Cargar más" desaparecía con medio catálogo sin ver.
+  const totalPages = totalDePaginas(totalCount);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
@@ -322,8 +349,104 @@ export function TiendaClient({
 
   // Whenever filters change, reset page to 1
   useEffect(() => {
-    setCurrentPage(1);
-  }, [activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, sortParam, isWholesale]);
+    setCurrentPage(paginaInicial);
+  }, [activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, sortParam, isWholesale, paginaInicial]);
+
+  // ── Volver con el botón "atrás" no puede empezar de cero ─────────────────
+  //
+  // Comparar modelos es entrar a una ficha y volver, varias veces. Hasta ahora
+  // volver remontaba el componente: la grilla reaparecía con los primeros 24 y
+  // arriba de todo, aunque la clienta hubiera cargado 96 y estuviera mirando el
+  // final. Había que rehacer el camino entero en cada comparación.
+  //
+  // `?ver=` guarda cuántos había cargados (lo escribe "Cargar más"). Al montar
+  // se piden esos N en UNA sola consulta —no N/24 consultas encadenadas— y se
+  // deja `currentPage` donde estaba para que el botón siga desde ahí.
+  // Se lee de `window`, no con useSearchParams(): ese hook obliga a envolver en
+  // Suspense y saca la página del render estático (es el motivo de que los
+  // filtros los lea el hijo FiltrosDesdeUrl y no este componente). Acá alcanza
+  // con leerlo una vez, ya montado.
+  const [restaurarHasta, setRestaurarHasta] = useState<number | null>(null);
+  const restauracionHecha = useRef(false);
+  useEffect(() => {
+    const ver = leerVer(new URLSearchParams(window.location.search).get(PARAM_VER));
+    if (ver > PRODUCTOS_POR_PAGINA) {
+      setRestaurarHasta(ver);
+      // `ver` cuenta los productos cargados DESDE la página que sirvió el
+      // servidor, no desde el principio del catálogo: en /tienda/3 con 48
+      // cargados, la última página vista es la 4, no la 2.
+      setCurrentPage(paginaInicial + ver / PRODUCTOS_POR_PAGINA - 1);
+    } else {
+      restauracionHecha.current = true;
+    }
+  }, []);
+
+  // ── …y volver tampoco puede dejarte arriba de todo ──────────────────────
+  //
+  // Restaurar los 96 productos no alcanza: si la página reaparece en scroll 0,
+  // hay que bajar de nuevo hasta donde se estaba. La posición se guarda
+  // mientras se scrollea y se repone una sola vez, cuando la grilla ya tiene
+  // los productos (y por lo tanto el alto) que tenía al salir.
+  //
+  // La clave NO incluye ?ver=: es la misma vitrina antes y después de cargar
+  // más, y si lo incluyera, cada "Cargar más" empezaría una posición nueva.
+  const claveDeScroll = () => {
+    const qs = limpiarEstadoDeGrilla(new URLSearchParams(window.location.search)).toString();
+    return `tienda:scroll:${window.location.pathname}${qs ? `?${qs}` : ''}`;
+  };
+
+  useEffect(() => {
+    // Se guarda con un timer y no con requestAnimationFrame: rAF no corre en una
+    // pestaña en segundo plano, que es justo el caso de una tienda abierta en
+    // otra solapa mientras la clienta mira algo más.
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const guardar = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        try { sessionStorage.setItem(claveDeScroll(), String(Math.round(window.scrollY))); } catch {}
+      }, 150);
+    };
+    window.addEventListener('scroll', guardar, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', guardar);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
+  const scrollRepuesto = useRef(false);
+  useEffect(() => {
+    if (scrollRepuesto.current) return;
+    // Todavía falta traer los de ?ver=: reponer ahora clavaría el scroll contra
+    // el fondo de una página de 24.
+    if (!restauracionHecha.current || isLoading || !products.length) return;
+    scrollRepuesto.current = true;
+    let y = 0;
+    try { y = Number(sessionStorage.getItem(claveDeScroll()) || 0); } catch {}
+    if (!y) return;
+
+    // Se reintenta durante medio segundo. No es paranoia: la grilla entra con
+    // una animación de framer-motion, así que en el primer frame la página
+    // todavía es más baja de lo que va a ser y el navegador recorta el scroll a
+    // lo que mide en ese momento — un solo scrollTo caía corto.
+    let intentos = 0;
+    let cancelado = false;
+    const rendirse = () => { cancelado = true; };
+    // Si la persona toca algo, manda ella: pelearle el scroll es peor que no
+    // reponerlo.
+    ['wheel', 'touchstart', 'keydown'].forEach(ev =>
+      window.addEventListener(ev, rendirse, { passive: true, once: true })
+    );
+    const id = setInterval(() => {
+      if (cancelado || Math.abs(window.scrollY - y) <= 2 || ++intentos > 10) {
+        clearInterval(id);
+        ['wheel', 'touchstart', 'keydown'].forEach(ev => window.removeEventListener(ev, rendirse));
+        return;
+      }
+      window.scrollTo(0, y);
+    }, 50);
+    window.scrollTo(0, y);
+  }, [products.length, isLoading]);
 
   // Load products from API based on current filters and page.
   // El skip del fetch inicial solo vale para la PRIMERA corrida del efecto:
@@ -338,9 +461,13 @@ export function TiendaClient({
     const isFirstRun = isFirstEffectRunRef.current;
     isFirstEffectRunRef.current = false;
 
-    // Check if it's the initial server load (page 1, no filters, not wholesale)
+    // ¿Hay que rehidratar la grilla a los N de ?ver=? Es UNA consulta por los N,
+    // y reemplaza en vez de apilar: al montar solo están los 24 del servidor.
+    const restaurando = restaurarHasta !== null && !restauracionHecha.current;
+
+    // Check if it's the initial server load (server page, no filters, not wholesale)
     const isFirstRenderWithInitialData =
-      currentPage === 1 &&
+      currentPage === paginaInicial &&
       activeCategory === initialCategory &&
       searchQuery === "" &&
       !filterBrand &&
@@ -361,7 +488,10 @@ export function TiendaClient({
       try {
         const queryParams = new URLSearchParams();
         queryParams.set('page', currentPage.toString());
-        queryParams.set('limit', '24');
+        queryParams.set('limit', String(restaurando ? restaurarHasta : PRODUCTOS_POR_PAGINA));
+        // Al rehidratar se piden los N de una, arrancando donde arranca esta
+        // URL: /tienda/3 empieza en el producto 49, no en el 1.
+        if (restaurando) queryParams.set('desde', String((paginaInicial - 1) * PRODUCTOS_POR_PAGINA));
         queryParams.set('category', activeCategory);
         if (filterBrand) queryParams.set('brand', filterBrand);
         if (filterShape) queryParams.set('shape', filterShape);
@@ -379,7 +509,7 @@ export function TiendaClient({
         const data = await res.json();
 
         if (active) {
-          if (currentPage === 1) {
+          if (restaurando || currentPage === 1) {
             setProducts(data.products || []);
           } else {
             setProducts(prev => {
@@ -389,8 +519,10 @@ export function TiendaClient({
               return [...prev, ...newProducts];
             });
           }
-          setTotalPages(data.totalPages || 1);
+          // `data.totalPages` no se usa: depende del `limit` del pedido y la
+          // restauración pide N de una. Las páginas se derivan de totalCount.
           setTotalCount(data.totalCount || 0);
+          if (restaurando) restauracionHecha.current = true;
           setConteos(data.conteos || null);
           filtrosDelUltimoFetch.current = [activeCategory, filterBrand, filterShape,
             filterMaterial, filterGender, filterColor, filterPrecioMin, filterPrecioMax,
@@ -411,7 +543,7 @@ export function TiendaClient({
     return () => {
       active = false;
     };
-  }, [currentPage, activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, filterColor, filterPrecioMin, filterPrecioMax, sortParam, isWholesale, reloadNonce]);
+  }, [currentPage, activeCategory, searchQuery, filterBrand, filterShape, filterMaterial, filterGender, filterColor, filterPrecioMin, filterPrecioMax, sortParam, isWholesale, reloadNonce, restaurarHasta, paginaInicial]);
 
   const displayedProducts = products;
 
@@ -1096,8 +1228,17 @@ export function TiendaClient({
                 // F1-08 / Anexo C: cuántas veces la gente pide más. Si el
                 // número es alto, el problema no es la paginación: es que los
                 // filtros no la están llevando a lo que busca.
-                track('load_more', { meta: { page: currentPage + 1, items_loaded: displayedProducts.length } });
-                setCurrentPage(p => p + 1);
+                const siguiente = currentPage + 1;
+                track('load_more', { meta: { page: siguiente, items_loaded: displayedProducts.length } });
+                setCurrentPage(siguiente);
+                // Y queda anotado en la URL cuántos hay cargados, para que
+                // entrar a una ficha y volver no devuelva los primeros 24.
+                // `replace` y no `push`: cargar más es seguir mirando la misma
+                // vitrina, no navegar — con push, el "atrás" del celular
+                // desharía un "Cargar más" por vez antes de salir de la tienda.
+                const params = new URLSearchParams(window.location.search);
+                params.set(PARAM_VER, String((siguiente - paginaInicial + 1) * PRODUCTOS_POR_PAGINA));
+                router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
               }}
               disabled={isLoading}
               className="border-2 border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white px-8 py-3 text-[11px] font-black uppercase tracking-[0.2em] rounded-full transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1116,6 +1257,46 @@ export function TiendaClient({
           <p className="mt-8 text-center text-[10px] text-stone-600 uppercase tracking-widest font-bold">
             Mostrando {displayedProducts.length} de {totalCount} {totalCount === 1 ? "modelo" : "modelos"} · {isWholesale ? "Cápsula Escarlata" : "Atelier Óptica"}
           </p>
+        )}
+
+        {/* ── Paginación de verdad, para que Google llegue a todo el catálogo ──
+            El HTML de /tienda enlaza los 24 primeros modelos; el resto aparecía
+            solo apretando "Cargar más", y Google no aprieta botones. El sitemap
+            los lista igual, así que se indexaban — pero sin un solo link interno
+            que los respaldara, que es lo que reparte autoridad y decide qué tan
+            arriba sale cada ficha.
+
+            Estos son links <a> reales a /tienda/2, /tienda/3… renderizados en el
+            servidor. La clienta sigue usando "Cargar más" y no los necesita; es
+            el camino que faltaba para el robot (y para quien quiera una URL
+            estable de la página 3).
+
+            Solo cuando la vitrina está sin filtrar: /tienda/3 muestra los
+            modelos 49 al 72 del catálogo completo, así que ofrecerlo con un
+            filtro puesto sería un link que promete otra cosa. */}
+        {!isWholesale && totalPages > 1 && !filtrosAplicados.length && !searchQuery && activeCategory === 'Todo' && (
+          <nav aria-label="Páginas del catálogo" className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            <span className="text-[10px] uppercase tracking-widest font-bold text-stone-500 mr-1">Página</span>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+              n === paginaInicial ? (
+                <span
+                  key={n}
+                  aria-current="page"
+                  className="min-w-9 h-9 px-3 inline-flex items-center justify-center rounded-full bg-stone-900 text-white text-xs font-black"
+                >
+                  {n}
+                </span>
+              ) : (
+                <Link
+                  key={n}
+                  href={urlDePagina(n)}
+                  className="min-w-9 h-9 px-3 inline-flex items-center justify-center rounded-full border border-stone-300 text-stone-700 text-xs font-bold hover:border-stone-900 hover:text-stone-900 transition-colors"
+                >
+                  {n}
+                </Link>
+              )
+            ))}
+          </nav>
         )}
         </div>
       </main>

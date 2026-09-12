@@ -232,7 +232,14 @@ export async function GET(request: NextRequest) {
         // 8) Paginación
         const totalCount = filtered.length;
         const totalPages = Math.ceil(totalCount / limit);
-        const skip = (page - 1) * limit;
+        // `desde` es el corrimiento explícito, y le gana a la cuenta por página.
+        // Existe para UN caso: rehidratar la grilla al volver del detalle. Ahí
+        // hace falta pedir "N productos a partir del 49" en una sola consulta, y
+        // con page/limit eso es indecible — `(page-1)*limit` ata el arranque al
+        // tamaño del pedido, así que pedir 48 desde el 49 devolvía desde el 97.
+        const desdeParam = Number(request.nextUrl.searchParams.get('desde'));
+        const desde = Number.isFinite(desdeParam) && desdeParam > 0 ? Math.floor(desdeParam) : null;
+        const skip = desde !== null ? desde : (page - 1) * limit;
         const paginatedProducts = filtered.slice(skip, skip + limit);
 
         // ── F1-02: cuántos modelos hay detrás de cada opción ─────────────────
