@@ -136,7 +136,7 @@ export const EmbudoService = {
             const quoteCreatedAt = enviado ? latestQuote!.createdAt : null;
             const borradorSinEnviar = latestQuote && !enviado ? latestQuote.createdAt : null;
 
-            const { stage, contactado, escalonCubierto } = classifyLead({
+            const { stage, contactado, escalonCubierto, cubiertoHasta } = classifyLead({
                 quoteCreatedAt,
                 hasPrescription: !!latestRx,
                 chatLabels,
@@ -152,6 +152,7 @@ export const EmbudoService = {
             const accion = proximaAccion({
                 stage,
                 escalonCubierto,
+                cubiertoHasta,
                 hasPrescription: !!latestRx,
                 visitoElLocal,
                 quoteCreatedAt,

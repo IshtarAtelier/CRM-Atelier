@@ -42,18 +42,22 @@ function esSeguimientoAutomatico(row) {
  * Deshace el registro del escalón y pausa el motor para ese chat.
  * @returns {Promise<{etiqueta:string, pausadoHasta:Date}|null>}
  */
-async function deshacerSeguimientoFallido(prisma, row) {
+async function deshacerSeguimientoFallido(prisma, row, { deCuenta = false } = {}) {
     if (!esSeguimientoAutomatico(row)) return null;
     const etiqueta = ETIQUETA_POR_PLANTILLA[row.templateName];
     const chat = await prisma.whatsAppChat.findUnique({ where: { id: row.chatId }, select: { chatLabels: true } });
     if (!chat) return null;
-    const pausadoHasta = new Date(Date.now() + PAUSA_DIAS * 86400000);
+    // Si el problema es de la CUENTA (pago, plantilla pausada, token), no es
+    // culpa de este número: se deshace el escalón y listo, el motor reintenta
+    // cuando la cuenta esté bien. La pausa de 30 días es solo para los
+    // rechazos propios del número (no tiene WhatsApp, pidió no recibir marketing).
+    const pausadoHasta = deCuenta ? null : new Date(Date.now() + PAUSA_DIAS * 86400000);
     await prisma.whatsAppChat.update({
         where: { id: row.chatId },
         data: {
             chatLabels: (chat.chatLabels || []).filter(l => l !== etiqueta),
             lastFollowUpAt: null,
-            followUpPausedUntil: pausadoHasta,
+            ...(pausadoHasta ? { followUpPausedUntil: pausadoHasta } : {}),
         },
     });
     return { etiqueta, pausadoHasta };

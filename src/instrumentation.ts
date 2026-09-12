@@ -247,6 +247,17 @@ export async function register() {
             }
         };
 
+        // ---- SALUD DEL EMBUDO, una vez por día a las 19:30 (después del último tick del motor) ----
+        const EMBUDO_SALUD_KEY = 'embudo_salud_last_run';
+        let embudoSaludRunning = false;
+        const maybeRunEmbudoSalud = async () => {
+            const { hour, minute, dateKey } = argNow();
+            if (hour < 19 || (hour === 19 && minute < 30) || embudoSaludRunning) return;
+            embudoSaludRunning = true;
+            try { await dispararSimple('embudo-salud', EMBUDO_SALUD_KEY, dateKey, 'embudo-salud'); }
+            finally { embudoSaludRunning = false; }
+        };
+
         const maybeRunAds = async () => {
             const { hour, dateKey } = argNow();
             if (hour < 10 || adsRunning) return;
@@ -541,6 +552,18 @@ export async function register() {
         const SEGUIMIENTOS_KEY = 'seguimientos_ultima_hora';
         let seguimientosLastHourKey: string | null = null;
         let seguimientosRunning = false;
+        // Si el proceso muere con una corrida reclamada (un deploy en el minuto
+        // del tick), la hora se devuelve para que la instancia nueva la corra.
+        // 11/9/2026: la hora de las 13 quedó reclamada y sin correr. El envío en
+        // sí es idempotente (clave única por chat+plantilla+día), así que
+        // volver a correr la hora no duplica nada.
+        let seguimientosReclamo: { hourKey: string; previo: string | null } | null = null;
+        process.once('SIGTERM', () => {
+            if (seguimientosReclamo) {
+                console.warn(`[CRON seguimientos] SIGTERM con la hora ${seguimientosReclamo.hourKey} reclamada: se devuelve.`);
+                devolverCorrida(SEGUIMIENTOS_KEY, seguimientosReclamo.hourKey, seguimientosReclamo.previo).catch(() => {});
+            }
+        });
         const maybeRunSeguimientos = async () => {
             const { hour, dateKey } = argNow();
             if (hour < 9 || hour >= 20) return;
@@ -556,6 +579,7 @@ export async function register() {
             try {
                 previo = await reclamarCorrida(SEGUIMIENTOS_KEY, hourKey);
                 if (previo === null) { seguimientosLastHourKey = hourKey; return; }
+                seguimientosReclamo = { hourKey, previo };
                 const res = await fetch(`${baseUrl}/api/cron/seguimientos`, {
                     method: 'GET',
                     headers: { Authorization: `Bearer ${cronSecret}` },
@@ -577,6 +601,7 @@ export async function register() {
                 console.error('[CRON seguimientos] Error disparando el motor (se reintenta):', err);
                 if (previo !== null) await devolverCorrida(SEGUIMIENTOS_KEY, hourKey, previo);
             } finally {
+                seguimientosReclamo = null;
                 seguimientosRunning = false;
             }
         };
@@ -631,6 +656,7 @@ export async function register() {
             maybeRunCarritos().catch(err => console.error('[CRON abandoned-carts] maybeRunCarritos:', err));
             maybeRunTurnos().catch(err => console.error('[CRON turnos] maybeRunTurnos:', err));
             maybeRunSeguimientos().catch(err => console.error('[CRON seguimientos] maybeRunSeguimientos:', err));
+            maybeRunEmbudoSalud().catch(err => console.error('[CRON embudo-salud] maybeRunEmbudoSalud:', err));
             maybeRunSaldo().catch(err => console.error('[CRON recordatorio-saldo] maybeRunSaldo:', err));
 
             if (!isBusinessHours()) {

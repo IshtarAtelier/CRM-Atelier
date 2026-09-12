@@ -112,6 +112,38 @@ console.log('\nSi el cliente responde a un seguimiento, el vendedor recibe una t
     check('correrDiario (9:00) la corre todos los días', svc.includes('tareasPorRespuestasSinAtender()'));
 }
 
+console.log('\nFreno, días de Córdoba y registro (12/9/2026)');
+{
+    const { debeFrenar } = await import('../../src/lib/seguimientos/ejecutor.ts');
+    const r = (ok, salteado = false) => ({ leadId: 'x', nombre: 'x', plantilla: 'p', ok, salteado });
+    check('3 fallas seguidas → frena', debeFrenar([r(true), r(false), r(false), r(false)]));
+    check('2 fallas y un éxito en el medio → no frena', !debeFrenar([r(false), r(false), r(true), r(false)]));
+    check('los salteados no cuentan como falla', !debeFrenar([r(false), r(false, true), r(false, true), r(false, true)]));
+    check('menos de 3 intentos → no frena', !debeFrenar([r(false), r(false)]));
+    const { diaArt, horaArt, inicioDelDiaArt, agruparVetos } = await import('../../src/lib/seguimientos/registro.ts');
+    check('23:30 de Córdoba (02:30Z del día siguiente) sigue siendo el MISMO día', diaArt(new Date('2026-09-12T02:30:00Z')) === '2026-09-11');
+    check('00:30 de Córdoba (03:30Z) ya es el día siguiente', diaArt(new Date('2026-09-12T03:30:00Z')) === '2026-09-12');
+    check('la hora es la de Córdoba (15:00Z → 12)', horaArt(new Date('2026-09-12T15:00:00Z')) === 12);
+    check('el día de Córdoba empieza a las 03:00Z', inicioDelDiaArt(new Date('2026-09-12T20:00:00Z')).toISOString() === '2026-09-12T03:00:00.000Z');
+    const g = agruparVetos([{ nombre: 'A', motivo: 'm1' }, { nombre: 'B', motivo: 'm2' }, { nombre: 'C', motivo: 'm1' }], 1);
+    check('los vetos se agrupan por motivo, el más frecuente primero, con nombres recortados', g[0].motivo === 'm1' && g[0].cantidad === 2 && g[0].nombres.length === 1 && g[1].cantidad === 1);
+    const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url);
+    const sf = require('../../wa-service/shared/seguimiento-fallido.js');
+    let escrito = null;
+    const prismaFalso = { whatsAppChat: { findUnique: async () => ({ chatLabels: ['SEGUIMIENTO_DIA_1'] }), update: async ({ data }) => { escrito = data; } } };
+    await sf.deshacerSeguimientoFallido(prismaFalso, { chatId: 'c', senderName: 'Sistema', templateName: 'seguimiento_presupuesto' }, { deCuenta: true });
+    check('rechazo por problema de la CUENTA: se deshace el escalón pero NO se pausa al cliente', escrito && !('followUpPausedUntil' in escrito) && escrito.lastFollowUpAt === null);
+    const { readFileSync } = await import('node:fs');
+    const ruta = readFileSync(new URL('../../src/app/api/cron/seguimientos/route.ts', import.meta.url), 'utf8');
+    check('la ruta registra la corrida SIEMPRE (también si revienta)', ruta.includes('registrarCorrida(') && ruta.includes("catch (e: any)") && ruta.includes('terminar({ error'));
+    check('el cupo del día se cuenta sobre los envíos registrados del día de Córdoba', ruta.includes("prisma.seguimientoEnvio.count") && ruta.includes("diaArt: dia, resultado: 'ENVIADO'"));
+    const ej = readFileSync(new URL('../../src/lib/seguimientos/ejecutor.ts', import.meta.url), 'utf8');
+    check('el ejecutor reclama la clave única ANTES de mandar', ej.indexOf('reclamarEnvio(') < ej.indexOf('sendWhatsApp('));
+    const inst = readFileSync(new URL('../../src/instrumentation.ts', import.meta.url), 'utf8');
+    check('SIGTERM devuelve la hora reclamada', inst.includes("process.once('SIGTERM'") && inst.includes('seguimientosReclamo'));
+    check('la alerta diaria del embudo está enganchada (19:30)', inst.includes("dispararSimple('embudo-salud'"));
+}
+
 console.log('\nNombre de persona: el motor y el bot dicen lo mismo');
 {
     const { createRequire } = await import('node:module');

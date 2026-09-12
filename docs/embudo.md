@@ -104,6 +104,11 @@ mueve la venta, la etiqueta o una persona.
 Si un toque se hace **a mano fuera de su día** (por ejemplo el 1er toque a las
 3 h), la etiqueta manda: el estado avanza igual.
 
+**Los toques van en orden, aunque el lead llegue atrasado** (desde el 12/9):
+a alguien de 20 días sin ningún toque le sale el 1º ("¿pudiste ver el
+presupuesto?"), a las 48 h el 2º y a las 48 h el 3º — no el "último
+seguimiento" con descuento de entrada (`playbook.ts`, `cubiertoHasta`).
+
 ### 3c. Fuera del embudo pero relacionado
 
 | Qué | Día | Mensaje | Quién | Dónde |
@@ -128,6 +133,7 @@ base (`SystemSetting`, `reclamarCorrida`) para que la haga una sola.
 | Tareas del día + mail al equipo | 1 vez por día, desde las **9:00** | Materializa "para hoy" como tareas `EMBUDO` (una viva por cliente; cancela las que ya no tocan) y manda el resumen. | `resumen-diario-equipo`, `src/lib/embudo/sincronizar-tareas.ts` |
 | Carritos (mail) | cada hora, 9–20 | Los dos mails del carrito. | `abandoned-carts` |
 | Calidad de WhatsApp | 1 vez por día | Mail: conexión, calidad del número, plantillas, rechazos de Meta, lint del prompt del bot. | `whatsapp-calidad` |
+| **Salud del embudo** | 1 vez por día, **19:30** | Mail (siempre, con ⚠️ en el asunto si hay problema): motor que no corrió alguna hora, corrió sin mandar, fallas, freno, leads olvidados (toque vencido +24 h y nadie les escribió). Vista: **/admin/leads/salud** (últimos 7 días). | `embudo-salud`, `src/lib/seguimientos/salud.ts` |
 
 **Compuertas del motor** (`src/lib/seguimientos/politica.ts`, en este orden;
 la primera que aplica veta):
@@ -147,6 +153,24 @@ la primera que aplica veta):
 10. alguien le escribió hace < 48 h;
 11. el cliente escribió hace < 48 h (charla viva);
 12. el cliente respondió al último seguimiento.
+
+**Registro de corridas y envíos (desde el 12/9).** Cada tick escribe una fila
+en `SeguimientoCorrida` (candidatos, elegidos, enviados, fallidos, en espera,
+vetados por motivo con nombres, error, duración). Cada envío automático
+reclama ANTES de mandar una fila en `SeguimientoEnvio` con clave única
+**chat + plantilla + día de Córdoba**: si el tick corre dos veces, o lo corren
+las dos instancias, o se reintenta, la segunda choca con la fila y no manda.
+El tope diario se cuenta sobre esas filas (`resultado = ENVIADO`).
+(`src/lib/seguimientos/registro.ts`, `prisma/schema.prisma`.)
+
+**Freno.** Tres fallas seguidas al mandar cortan la tanda, frenan el motor
+2 horas (`SystemSetting.seguimientos_freno_hasta`) y mandan mail: tres rebotes
+seguidos son la cuenta o la API, no tres clientes. Los que quedaron sin
+mandar vuelven a evaluarse en el tick siguiente (`ejecutor.ts`, `debeFrenar`).
+
+**Si el proceso muere con la hora reclamada** (deploy en el minuto del tick),
+`SIGTERM` devuelve la hora y la instancia nueva la corre
+(`instrumentation.ts`); el envío es idempotente, así que no duplica.
 
 **Rastro de cada envío** (igual para persona y motor,
 `src/lib/embudo/registrar-seguimiento.ts`): etiqueta `SEGUIMIENTO_DIA_x` en
@@ -216,10 +240,8 @@ sistema deshace el rastro, pausa 30 días y avisa al equipo
 - **L. Tope 120 por día, ritmo 135.** 15 por hora × 9 horas = 135, el tope
   corta en 120; el límite de Meta es 250 conversaciones/día compartidas con
   todo lo que sale (campañas, avisos, lo que manda el equipo).
-- **M. Sin registro de corridas.** El motor deja rastro por envío (ficha) y
-  una línea de log por tick, pero **ninguna tabla** dice "el día X corrió N
-  veces, evaluó A, mandó B, vetó C". Si un día no corre, nadie se entera
-  (objeto del paso 5 de la auditoría).
-- **N. La hora reclamada se pierde si el proceso muere.** Si un deploy cae en
-  el minuto del tick, la hora queda reclamada y sin correr; se recupera en la
-  siguiente (máximo 5 personas demoradas 1 h). Pasó el 11/9 a las 13:00.
+- **M. ~~Sin registro de corridas.~~** Resuelto el 12/9: `SeguimientoCorrida`
+  + mail diario 19:30 + `/admin/leads/salud`.
+- **N. ~~La hora reclamada se pierde si el proceso muere.~~** Resuelto el 12/9:
+  `SIGTERM` la devuelve; y aunque se corriera dos veces, la clave única no
+  deja duplicar.

@@ -122,6 +122,14 @@ export interface ClassifyResult {
    * contactar" a 194 de 339 leads a los que sí les habían escrito.
    */
   escalonCubierto: boolean;
+  /**
+   * Hasta qué escalón está CUBIERTO (por etiqueta o por mensaje humano):
+   * null = ningún toque todavía. Lo usa el playbook para no saltearse toques:
+   * a un lead de 20 días sin ningún seguimiento le toca el PRIMER toque, no
+   * el "último seguimiento" con descuento (12/9/2026: la simulación del
+   * atraso arrancaba con 120 descuentos a gente que nunca recibió nada).
+   */
+  cubiertoHasta: 'seguimiento1' | 'seguimiento2' | 'seguimiento10dias' | null;
 }
 
 /**
@@ -144,7 +152,7 @@ export function classifyLead(input: ClassifyInput): ClassifyResult {
   const { quoteCreatedAt, hasPrescription, chatLabels, tagNames, now, ultimoMensajeHumano } = input;
 
   if (!quoteCreatedAt) {
-    return { stage: hasPrescription ? 'nuevaReceta' : 'primerContacto', contactado: true, escalonCubierto: true };
+    return { stage: hasPrescription ? 'nuevaReceta' : 'primerContacto', contactado: true, escalonCubierto: true, cubiertoHasta: null };
   }
 
   // Un mensaje humano cuenta como haber cubierto el escalón que estaba vigente
@@ -165,10 +173,11 @@ export function classifyLead(input: ClassifyInput): ClassifyResult {
   // escrito a mano). Es la pregunta de la TARJETA.
   const huboContacto = porEtiquetas !== 'cotizacionEnviada' || contactoStage !== null;
 
+  const cubiertoHasta = isFollowupStage(labelStage) ? labelStage as ClassifyResult['cubiertoHasta'] : null;
   if (STAGE_ORDER[timeStage] > STAGE_ORDER[labelStage]) {
     // El tiempo lo empujó más allá de lo cubierto: el toque de hoy se debe.
     // Pero si le escribieron, la tarjeta NO puede decir "Sin contactar".
-    return { stage: timeStage, contactado: huboContacto, escalonCubierto: false };
+    return { stage: timeStage, contactado: huboContacto, escalonCubierto: false, cubiertoHasta };
   }
-  return { stage: labelStage, contactado: true, escalonCubierto: true };
+  return { stage: labelStage, contactado: true, escalonCubierto: true, cubiertoHasta };
 }
