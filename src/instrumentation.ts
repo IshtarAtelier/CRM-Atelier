@@ -559,7 +559,9 @@ export async function register() {
                 const res = await fetch(`${baseUrl}/api/cron/seguimientos`, {
                     method: 'GET',
                     headers: { Authorization: `Bearer ${cronSecret}` },
-                    signal: AbortSignal.timeout(5 * 60 * 1000),
+                    // 15 envíos con pausas de ~10 s son ~3 min; margen para que un
+                    // tick lento no se corte a la mitad y quede sin registrar.
+                    signal: AbortSignal.timeout(10 * 60 * 1000),
                 });
                 if (!res.ok) {
                     console.error(`[CRON seguimientos] HTTP ${res.status} — se reintenta en el próximo tick.`);

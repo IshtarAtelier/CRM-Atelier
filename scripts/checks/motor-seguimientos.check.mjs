@@ -45,7 +45,7 @@ const veta = (nombre, c, ch, contiene) => {
 };
 veta('sin plantilla (el paso es de una persona)', cand({ plantilla: undefined }), chat(), 'plantilla');
 veta('plantilla no habilitada para envío automático', cand({ plantilla: 'seguimiento_carrito' }), chat(), 'no está habilitada');
-veta('lead anterior al arranque del motor', cand({ createdAt: new Date('2026-09-01T12:00:00-03:00') }), chat(), 'a mano');
+check('12/9 · un lead de antes del 7/9 SALE (Ishtar: "a todos"; la ventana de 30 días la pone el playbook)', evaluar(cand({ createdAt: new Date('2026-09-01T12:00:00-03:00') }), chat(), ctx) === null);
 veta('sin chat', cand({ waChatId: null }), null, 'chat');
 veta('sin nombre de pila', cand({ nombre: 'Cliente' }), chat(), 'nombre');
 veta('seguimientos pausados', cand(), chat({ followUpPausedUntil: hace(-24) }), 'pausados');
@@ -87,6 +87,29 @@ console.log('\nSi Meta rechaza un seguimiento automático, el sistema se aparta'
     check(`pausa el motor ${sf.PAUSA_DIAS} días para esa charla`, r && escrito.followUpPausedUntil > new Date(Date.now() + (sf.PAUSA_DIAS - 1) * 86400000));
     const inbound = readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('persistStatus lo llama al recibir FAILED', inbound.includes('deshacerSeguimientoFallido(prisma'));
+}
+
+console.log('\nSi el cliente responde a un seguimiento, el vendedor recibe una tarea');
+{
+    const { createRequire } = await import('node:module');
+    const require = createRequire(import.meta.url);
+    const rs = require('../../wa-service/shared/respuesta-a-seguimiento.js');
+    check('primera respuesta después del seguimiento → sí', rs.esPrimeraRespuestaAlSeguimiento({ lastFollowUpAt: hace(20), lastInboundAt: hace(30) }));
+    check('nunca había escrito → sí', rs.esPrimeraRespuestaAlSeguimiento({ lastFollowUpAt: hace(20), lastInboundAt: null }));
+    check('ya había respondido después del seguimiento → no (una sola tarea)', !rs.esPrimeraRespuestaAlSeguimiento({ lastFollowUpAt: hace(20), lastInboundAt: hace(5) }));
+    check('sin seguimiento previo → no', !rs.esPrimeraRespuestaAlSeguimiento({ lastFollowUpAt: null, lastInboundAt: hace(5) }));
+    let creada = null;
+    const prismaFalso = { clientTask: { findFirst: async () => null, create: async ({ data }) => { creada = data; return data; } } };
+    await rs.crearTareaPorRespuesta(prismaFalso, { clientId: 'c1', lastFollowUpAt: hace(20), lastInboundAt: null }, { texto: 'Hola sí me parece bien, solo me quedó una duda', tipo: 'TEXT' });
+    check('la tarea es del VENDEDOR (type TASK, para hoy) y trae el texto', creada && creada.type === 'TASK' && creada.description.includes('me quedó una duda') && creada.dueDate instanceof Date, JSON.stringify(creada));
+    const inbound = (await import('node:fs')).readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8');
+    check('inbound.js la crea al guardar el entrante', inbound.includes('crearTareaPorRespuesta(prisma'));
+    const { respondioAlSeguimiento, PREFIJO_RESPUESTA } = await import('../../src/lib/embudo/respuestas-a-seguimientos.ts');
+    check('la red diaria usa el MISMO prefijo que el wa-service (no duplica)', PREFIJO_RESPUESTA === rs.PREFIJO);
+    check('red diaria: respuesta posterior al seguimiento → tarea', respondioAlSeguimiento({ clientId: 'c', lastFollowUpAt: hace(20), lastInboundAt: hace(5) }));
+    check('red diaria: respuesta ANTERIOR al seguimiento → nada', !respondioAlSeguimiento({ clientId: 'c', lastFollowUpAt: hace(5), lastInboundAt: hace(20) }));
+    const svc = (await import('node:fs')).readFileSync(new URL('../../src/services/embudo.service.ts', import.meta.url), 'utf8');
+    check('correrDiario (9:00) la corre todos los días', svc.includes('tareasPorRespuestasSinAtender()'));
 }
 
 console.log('\nNombre de persona: el motor y el bot dicen lo mismo');

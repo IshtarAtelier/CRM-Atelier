@@ -6,6 +6,7 @@ import { sincronizarTareasDelDia, type ResultadoSync } from '@/lib/embudo/sincro
 import { TAGS_NO_CLIENTE } from '@/lib/no-cliente';
 import { tieneEtiquetaDeVisita } from '@/lib/embudo/visito-local';
 import { presupuestoFueEnviado, MARCA_PDF_ENVIADO } from '@/lib/embudo/presupuesto-enviado';
+import { tareasPorRespuestasSinAtender } from '@/lib/embudo/respuestas-a-seguimientos';
 
 /**
  * EmbudoService — el tablero de leads (/admin/leads) y "lo de hoy".
@@ -210,16 +211,19 @@ export const EmbudoService = {
      *      dashboard y en la ficha del cliente, no solo en /admin/leads;
      *   2. arma la línea de texto para el resumen del equipo.
      */
-    async correrDiario(now = Date.now()): Promise<{ paraHoy: Tablero['paraHoy']; sync: ResultadoSync; linea: string }> {
+    async correrDiario(now = Date.now()): Promise<{ paraHoy: Tablero['paraHoy']; sync: ResultadoSync; respuestas: number; linea: string }> {
         const { paraHoy } = await EmbudoService.tablero(now);
         const sync = await sincronizarTareasDelDia(paraHoy);
-        return { paraHoy, sync, linea: EmbudoService.armarLinea(paraHoy, sync) };
+        // Respuestas a seguimientos que quedaron sin tarea del vendedor (red diaria).
+        const respuestas = await tareasPorRespuestasSinAtender().catch(err => { console.error('[Embudo] tareas por respuestas:', err); return 0; });
+        return { paraHoy, sync, respuestas, linea: EmbudoService.armarLinea(paraHoy, sync, respuestas) };
     },
 
     /** La línea de texto del resumen diario. Separada de `correrDiario` para
      * poder probarla sola, sin tocar la base. */
-    armarLinea(paraHoy: Tablero['paraHoy'], sync: ResultadoSync): string {
-        if (paraHoy.length === 0) return '🎯 Embudo: nadie con seguimiento vencido. Al día.';
+    armarLinea(paraHoy: Tablero['paraHoy'], sync: ResultadoSync, respuestas = 0): string {
+        const avisoRespuestas = respuestas ? `\n    💬 ${respuestas} cliente(s) respondieron a un seguimiento y quedaron sin tarea: ya la tienen (campanita).` : '';
+        if (paraHoy.length === 0) return `🎯 Embudo: nadie con seguimiento vencido. Al día.${avisoRespuestas}`;
         const porTipo = { plantilla: 0, cotizar: 0, decidir: 0 };
         for (const l of paraHoy) if (l.proximaAccion.tipo in porTipo) porTipo[l.proximaAccion.tipo as keyof typeof porTipo]++;
         const partes = [
@@ -235,6 +239,6 @@ export const EmbudoService = {
         const tareas = sync.creadas || sync.cerradas
             ? ` (${sync.creadas} tarea(s) nueva(s) en el dashboard${sync.cerradas ? `, ${sync.cerradas} cerrada(s) sola(s) porque ya se resolvieron` : ''})`
             : '';
-        return `🎯 Embudo — para hoy: ${partes.join(' · ')}.${tareas}\n    ${primeros}${paraHoy.length > 5 ? ` y ${paraHoy.length - 5} más` : ''} → /admin/leads`;
+        return `🎯 Embudo — para hoy: ${partes.join(' · ')}.${tareas}\n    ${primeros}${paraHoy.length > 5 ? ` y ${paraHoy.length - 5} más` : ''} → /admin/leads${avisoRespuestas}`;
     },
 };

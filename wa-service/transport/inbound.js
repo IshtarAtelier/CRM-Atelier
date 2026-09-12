@@ -24,6 +24,7 @@ const { prefillAdTag, fallbackAdTag } = require('../shared/ad-tag');
 const { uploadMediaToCrm } = require('../shared/media');
 const { asegurarFichaDeLead } = require('./alta-de-ficha');
 const { deshacerSeguimientoFallido, PAUSA_DIAS } = require('../shared/seguimiento-fallido');
+const { crearTareaPorRespuesta } = require('../shared/respuesta-a-seguimiento');
 const cloud = require('./cloud-api');
 
 const TYPE_MAP = {
@@ -119,6 +120,10 @@ async function persistInboundUnlocked(m, { io } = {}) {
         }
     }
 
+    // Foto del chat ANTES de registrar este entrante: con ella se sabe si es
+    // la primera respuesta a un seguimiento (shared/respuesta-a-seguimiento.js).
+    const chatAntes = chat ? { clientId: chat.clientId, lastFollowUpAt: chat.lastFollowUpAt, lastInboundAt: chat.lastInboundAt } : null;
+
     const commonUpdate = {
         lastMessageAt: now,
         lastInboundAt: now,
@@ -205,6 +210,14 @@ async function persistInboundUnlocked(m, { io } = {}) {
     // del contacto y la fecha del primer contacto leyendo los mensajes de este
     // chat, y corriendo antes no tendría nada que leer.
     chat = await asegurarFichaDeLead(chat, waId, m.profileName);
+
+    // Respondió a un seguimiento → tarea del vendedor (pedido de Ishtar, 12/9/2026).
+    try {
+        const tarea = await crearTareaPorRespuesta(prisma, chatAntes && { ...chatAntes, clientId: chatAntes.clientId || chat.clientId }, { texto: content, tipo: messageType });
+        if (tarea) console.log(`  📌 [Inbound] ${waId} respondió a un seguimiento: tarea creada para el vendedor.`);
+    } catch (e) {
+        console.error('[Inbound] No se pudo crear la tarea por respuesta al seguimiento:', e.message);
+    }
 
     // ── Eventos para el buzón (mismos nombres que hoy) ──────────────────────
     if (io) {

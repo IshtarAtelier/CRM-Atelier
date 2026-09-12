@@ -1,3 +1,7 @@
+> **Documento histórico (diseño del 7/9/2026).** El motor está PRENDIDO en modo
+> real desde el 11/9/2026. Cadencia, compuertas e interruptores vigentes en
+> [`docs/embudo.md`](embudo.md).
+
 # Motor automático de seguimientos por WhatsApp
 
 Diseño pedido por Ishtar el 7/9/2026: *"yo limpiaría y levantaría solo
