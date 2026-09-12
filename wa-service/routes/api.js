@@ -8,6 +8,7 @@
  * with the parent module's mutable state.
  */
 
+const { destinoDelChat, migrarChatLid } = require('../shared/destino-del-chat');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -359,7 +360,9 @@ function createApiRouter(deps) {
             if (!esWaIdLegacy && !esTelefono) {
                 const chat = await prisma.whatsAppChat.findUnique({ where: { id: chatId } });
                 if (!chat) return res.status(404).json({ error: 'Chat not found' });
-                waId = chat.waId;
+                // Un chat @lid (WhatsApp Web) se manda a su número real (shared/destino-del-chat.js).
+                waId = destinoDelChat(chat) || chat.waId;
+                if (waId !== chat.waId) migrarChatLid(prisma, chat).catch(() => {});
                 dbChatId = chat.id;
             } else {
                 // Buscar el chat existente por cualquiera de sus identidades.
@@ -377,7 +380,10 @@ function createApiRouter(deps) {
                 });
                 if (chat) {
                     dbChatId = chat.id;
-                    waId = chat.waId; // Usamos el waId real de la DB (por si es @lid!)
+                    // El número al que se puede mandar: el waId si sirve, si no el
+                    // teléfono real (los chats @lid de WhatsApp Web no se pueden usar).
+                    waId = destinoDelChat(chat) || chat.waId;
+                    if (waId !== chat.waId) migrarChatLid(prisma, chat).catch(() => {});
                 } else if (esTelefono) {
                     // API oficial: se puede escribir (con plantilla) a alguien que
                     // nunca escribió. Se crea el chat para que el saliente tenga

@@ -144,6 +144,23 @@ console.log('\nFreno, días de Córdoba y registro (12/9/2026)');
     check('la alerta diaria del embudo está enganchada (19:30)', inst.includes("dispararSimple('embudo-salud'"));
 }
 
+console.log('\nChats @lid: se manda al número real');
+{
+    const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url);
+    const { destinoDelChat } = require('../../wa-service/shared/destino-del-chat.js');
+    check('@lid con realPhone → realPhone', destinoDelChat({ waId: '92659725168855@lid', realPhone: '5493515308174' }) === '5493515308174');
+    check('@lid sin realPhone → null (no se puede mandar)', destinoDelChat({ waId: '92659725168855@lid', realPhone: null }) === null);
+    check('E.164 → tal cual', destinoDelChat({ waId: '5493515308174', realPhone: null }) === '5493515308174');
+    check('"<num>@c.us" → número pelado', destinoDelChat({ waId: '5493515308174@c.us', realPhone: null }) === '5493515308174');
+    const { readFileSync } = await import('node:fs');
+    const api = readFileSync(new URL('../../wa-service/routes/api.js', import.meta.url), 'utf8');
+    check('/api/send resuelve el destino con destinoDelChat', (api.match(/destinoDelChat\(chat\)/g) || []).length === 2);
+    const reg = readFileSync(new URL('../../src/lib/seguimientos/registro.ts', import.meta.url), 'utf8');
+    check('un envío FALLIDO se puede volver a reclamar en el tick siguiente (no espera a mañana)', reg.includes("resultado: 'FALLIDO' },\n            data: { resultado: 'RECLAMADO'"));
+    const resp = readFileSync(new URL('../../src/lib/embudo/respuestas-a-seguimientos.ts', import.meta.url), 'utf8');
+    check('las tareas por respuesta miran solo los últimos 14 días y cancelan las viejas', resp.includes('VENTANA_RESPUESTAS_DIAS = 14') && resp.includes("status: 'CANCELLED'"));
+}
+
 console.log('\nNombre de persona: el motor y el bot dicen lo mismo');
 {
     const { createRequire } = await import('node:module');
