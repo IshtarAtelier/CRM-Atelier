@@ -99,6 +99,12 @@ export interface EntradaProximaAccion {
      * algo es esto, no el saludo del martes.
      */
     escalonCubierto: boolean;
+    /**
+     * De classifyLead: hasta qué toque está cubierto (null = ninguno). Decide
+     * CUÁL plantilla toca: la del primer escalón sin cubrir, no la de la
+     * antigüedad. Un lead de 20 días sin ningún toque recibe el primero.
+     */
+    cubiertoHasta?: 'seguimiento1' | 'seguimiento2' | 'seguimiento10dias' | null;
     /** Presupuesto que LLEGÓ al cliente (ver presupuesto-enviado.ts); null si no hay o nunca se mandó. */
     quoteCreatedAt: Date | null;
     /** Hay un presupuesto armado en el CRM que nunca se envió: la tarjeta pide mandarlo. */
@@ -210,8 +216,14 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
     }
 
     // En un escalón de seguimiento sin haber mandado ese escalón: toca hoy.
+    // Pero toca el PRIMER escalón sin cubrir, no el de la antigüedad: los
+    // toques se dan en orden (¿viste el presupuesto? → vení al local → último),
+    // aunque el lead llegue atrasado. Entre uno y otro, la compuerta de 48 h
+    // del motor pone la distancia.
     if (e.stage in PLANTILLA_POR_ESCALON) {
-        const escalon = e.stage as keyof typeof PLANTILLA_POR_ESCALON;
+        const ORDEN: (keyof typeof PLANTILLA_POR_ESCALON)[] = ['seguimiento1', 'seguimiento2', 'seguimiento10dias'];
+        const cubierto = e.cubiertoHasta ? ORDEN.indexOf(e.cubiertoHasta) : -1;
+        const escalon = ORDEN[Math.min(cubierto + 1, ORDEN.indexOf(e.stage as keyof typeof PLANTILLA_POR_ESCALON))] ?? (e.stage as keyof typeof PLANTILLA_POR_ESCALON);
 
         // Ya vino al local: la invitación no tiene sentido y se lee como que
         // nadie está mirando. Se saltea ese toque — no se reemplaza por otro

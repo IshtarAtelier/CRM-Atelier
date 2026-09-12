@@ -403,10 +403,12 @@ async function persistStatus(s, { io } = {}) {
         const quien = row.senderName ? ` (lo mandó ${row.senderName})` : '';
         // Si lo mandó el motor solo, se deshace el escalón y el motor se aparta
         // de esta charla: sigue una persona (ver shared/seguimiento-fallido.js).
-        const deshecho = await deshacerSeguimientoFallido(prisma, { ...row, chatId: row.chatId })
+        const deshecho = await deshacerSeguimientoFallido(prisma, { ...row, chatId: row.chatId }, { deCuenta: !!conocido?.cuenta })
             .catch(e => { console.error('[Status] No se pudo deshacer el seguimiento automático:', e.message); return null; });
         const sigueUnaPersona = deshecho
-            ? ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}) y el motor no le va a escribir por ${PAUSA_DIAS} días: le toca a una persona.`
+            ? (deshecho.pausadoHasta
+                ? ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}) y el motor no le va a escribir por ${PAUSA_DIAS} días: le toca a una persona.`
+                : ` El seguimiento automático quedó SIN registrar (se sacó ${deshecho.etiqueta}); como el problema es de la cuenta, el motor lo reintenta solo cuando esté arreglada.`)
             : '';
         await prisma.interaction.create({
             data: {

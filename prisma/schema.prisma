@@ -906,6 +906,52 @@ model LaboratoryConfig {
   deliveryTime String?
 }
 
+/// Una fila por corrida del motor de seguimientos (un tick por hora). Es la
+/// única forma de saber, al día siguiente, si el motor corrió, a cuántos
+/// evaluó, a cuántos les mandó y por qué no les mandó al resto. Antes de
+/// esto (12/9/2026) todo eso vivía en una línea de log de Railway.
+model SeguimientoCorrida {
+  id          String   @id @default(cuid())
+  diaArt      String   // "2026-09-12", día de Córdoba
+  horaArt     Int      // 10..19
+  modo        String   // "real" | "seco"
+  candidatos  Int
+  elegidos    Int
+  enviados    Int      // aceptados por Meta en esta corrida
+  fallidos    Int
+  enEspera    Int      // pasaron las compuertas pero no entraron en el cupo
+  cupoDiario  Int
+  usadoHoy    Int      // antes de esta corrida
+  vetados     Json     // [{ motivo, cantidad, nombres: [...] }]
+  detalle     Json?    // [{ nombre, plantilla, ok, detalle }] de lo que se intentó mandar
+  error       String?  // si la corrida reventó entera
+  duracionMs  Int
+  createdAt   DateTime @default(now())
+
+  @@index([diaArt])
+}
+
+/// Un envío automático = una fila, reclamada ANTES de mandar. La clave única
+/// (chat + plantilla + día) es lo que hace idempotente al motor: si el tick
+/// corre dos veces, o dos instancias a la vez, el segundo intento choca con
+/// la fila y no manda. "resultado" cuenta la historia: RECLAMADO → ENVIADO /
+/// FALLIDO / SALTEADO (con motivo).
+model SeguimientoEnvio {
+  id        String   @id @default(cuid())
+  chatId    String
+  clientId  String?
+  plantilla String
+  diaArt    String
+  resultado String   // RECLAMADO | ENVIADO | FALLIDO | SALTEADO
+  detalle   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([chatId, plantilla, diaArt])
+  @@index([diaArt])
+  @@index([clientId])
+}
+
 model SystemSetting {
   key       String   @id
   value     String

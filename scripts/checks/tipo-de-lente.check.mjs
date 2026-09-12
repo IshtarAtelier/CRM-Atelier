@@ -200,6 +200,27 @@ for (const [nombre, e, esperado] of [
         : mal(`borrador viejo → ${JSON.stringify(b)}`);
 }
 
+// ── 6-ter. Los toques van en ORDEN, aunque el lead llegue atrasado ───────────
+// 12/9/2026: la simulación del atraso arrancaba con 120 "último seguimiento"
+// (el del descuento) a gente que nunca había recibido ni el primero.
+console.log('\n6-ter. Al atrasado le toca el PRIMER toque sin cubrir, no el de su antigüedad');
+{
+    const base = { escalonCubierto: false, hasPrescription: true, visitoElLocal: false, tieneChat: true, createdAt: haceDias(25), now: ahora, quoteCreatedAt: haceDias(20) };
+    const casos = [
+        ['20 días, sin ningún toque → 1er toque (¿viste el presupuesto?)', { ...base, stage: 'seguimiento10dias', cubiertoHasta: null, chatLabels: [] }, 'seguimiento_presupuesto'],
+        ['20 días, con el 1º → invitación al local', { ...base, stage: 'seguimiento10dias', cubiertoHasta: 'seguimiento1', chatLabels: ['SEGUIMIENTO_DIA_1'] }, 'invitacion_local_v4'],
+        ['20 días, con 1º y 2º → último', { ...base, stage: 'seguimiento10dias', cubiertoHasta: 'seguimiento2', chatLabels: ['SEGUIMIENTO_DIA_1', 'SEGUIMIENTO_DIA_4'] }, 'ultimo_seguimiento'],
+        ['5 días, sin ningún toque → 1er toque', { ...base, quoteCreatedAt: haceDias(5), stage: 'seguimiento2', cubiertoHasta: null, chatLabels: [] }, 'seguimiento_presupuesto'],
+        ['3 días, sin toque → 1er toque (como siempre)', { ...base, quoteCreatedAt: haceDias(3), stage: 'seguimiento1', cubiertoHasta: null, chatLabels: [] }, 'seguimiento_presupuesto'],
+    ];
+    for (const [nombre, e, esperado] of casos) {
+        const a = proximaAccion(e);
+        a.tipo === 'plantilla' && a.plantilla === esperado ? ok(nombre) : mal(`${nombre} → ${JSON.stringify(a)}`);
+    }
+    const c = classifyLead({ ...baseLead, quoteCreatedAt: haceDias(20), chatLabels: ['SEGUIMIENTO_DIA_1'] });
+    c.stage === 'seguimiento10dias' && c.cubiertoHasta === 'seguimiento1' ? ok('classifyLead informa hasta dónde está cubierto') : mal(`cubiertoHasta → ${JSON.stringify(c)}`);
+}
+
 // ── 7. El bot VE las fotos (causa raíz del 10/9/2026) ────────────────────────
 // Las fotos de WhatsApp se guardan sin extensión y el servidor las sirve como
 // application/octet-stream. El bot descartaba todo lo que no dijera "image/" en

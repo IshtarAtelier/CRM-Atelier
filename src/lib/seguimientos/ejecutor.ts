@@ -5,6 +5,7 @@ import { saludoSegunHoraArgentina } from '@/lib/whatsapp/saludo';
 import { registrarSeguimientoEnviado } from '@/lib/embudo/registrar-seguimiento';
 import { PAUSA_ENTRE_ENVIOS_MS } from '@/lib/constants/seguimientos';
 import { nombreDePila, type Candidato } from './politica';
+import { reclamarEnvio, cerrarEnvio, diaArt } from './registro';
 
 /**
  * MANDA. Cero lógica de negocio: lo que hay que decidir se decidió arriba
@@ -19,7 +20,25 @@ export interface ResultadoEnvio {
     nombre: string;
     plantilla: string;
     ok: boolean;
+    /** true = no se intentó (ya estaba reclamado hoy, o el freno cortó la tanda). No cuenta como falla. */
+    salteado?: boolean;
     detalle?: string;
+}
+
+/**
+ * FRENO: con esta cantidad de fallas SEGUIDAS al mandar, se corta la tanda.
+ * Tres rebotes consecutivos no son tres clientes raros: es la cuenta (pago,
+ * plantilla pausada, token) o la API caída, y seguir mandando de a 15 por
+ * hora contra eso solo suma rechazos y le pega a la calidad del número. El
+ * resto queda "salteado" con motivo y vuelve a evaluarse en el tick siguiente.
+ */
+export const FALLAS_SEGUIDAS_PARA_FRENAR = 3;
+
+/** Puro: ¿hay que frenar? (las últimas N no salteadas fallaron) */
+export function debeFrenar(resultados: ResultadoEnvio[], umbral = FALLAS_SEGUIDAS_PARA_FRENAR): boolean {
+    const intentados = resultados.filter(r => !r.salteado);
+    if (intentados.length < umbral) return false;
+    return intentados.slice(-umbral).every(r => !r.ok);
 }
 
 const dormir = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -38,12 +57,25 @@ export function armarParametros(plantilla: keyof typeof WHATSAPP_TEMPLATES, nomb
     });
 }
 
-export async function ejecutar(elegidos: Candidato[], now = new Date()): Promise<ResultadoEnvio[]> {
+export async function ejecutar(elegidos: Candidato[], now = new Date()): Promise<{ resultados: ResultadoEnvio[]; frenado: boolean }> {
     const resultados: ResultadoEnvio[] = [];
+    const dia = diaArt(now);
+    let frenado = false;
 
     for (let i = 0; i < elegidos.length; i++) {
         const c = elegidos[i];
         const plantilla = c.plantilla!;
+        if (frenado) {
+            resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: false, salteado: true, detalle: `freno: ${FALLAS_SEGUIDAS_PARA_FRENAR} fallas seguidas; se reintenta en el próximo tick` });
+            continue;
+        }
+        // Clave única (chat + plantilla + día): si ya existe, hoy ya se mandó
+        // (o lo está mandando la otra instancia). No se manda dos veces.
+        const registroId = await reclamarEnvio({ chatId: c.waChatId!, clientId: c.leadId, plantilla, dia });
+        if (!registroId) {
+            resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: false, salteado: true, detalle: 'ya reclamado hoy (clave única chat+plantilla+día)' });
+            continue;
+        }
         try {
             const params = armarParametros(plantilla, c.nombre, now);
             const r = await sendWhatsApp({
@@ -58,8 +90,11 @@ export async function ejecutar(elegidos: Candidato[], now = new Date()): Promise
                 template: templateSpec(plantilla, params),
             });
             if (!r.ok) {
-                resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: false, detalle: r.error || `HTTP ${r.status ?? '?'}` });
+                const detalle = r.error || `HTTP ${r.status ?? '?'}`;
+                await cerrarEnvio(registroId, 'FALLIDO', detalle);
+                resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: false, detalle });
             } else {
+                await cerrarEnvio(registroId, 'ENVIADO', r.via);
                 // Ya SALIÓ: pase lo que pase con el registro, cuenta como enviado.
                 // Antes, si el registro fallaba, quedaba "fallido" y sin la etiqueta
                 // del escalón, y el tick siguiente se lo volvía a mandar. La
@@ -73,7 +108,14 @@ export async function ejecutar(elegidos: Candidato[], now = new Date()): Promise
                 }
             }
         } catch (e: any) {
+            await cerrarEnvio(registroId, 'FALLIDO', e?.message);
             resultados.push({ leadId: c.leadId, nombre: c.nombre, plantilla, ok: false, detalle: e?.message });
+        }
+
+        if (debeFrenar(resultados)) {
+            frenado = true;
+            console.error(`[Motor seguimientos] FRENO: ${FALLAS_SEGUIDAS_PARA_FRENAR} fallas seguidas. Se corta la tanda.`);
+            continue;
         }
 
         if (i < elegidos.length - 1) {
@@ -82,5 +124,5 @@ export async function ejecutar(elegidos: Candidato[], now = new Date()): Promise
         }
     }
 
-    return resultados;
+    return { resultados, frenado };
 }
