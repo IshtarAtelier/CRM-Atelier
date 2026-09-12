@@ -102,13 +102,13 @@ console.log('\nSi el cliente responde a un seguimiento, el vendedor recibe una t
     const prismaFalso = { clientTask: { findFirst: async () => null, create: async ({ data }) => { creada = data; return data; } } };
     await rs.crearTareaPorRespuesta(prismaFalso, { clientId: 'c1', lastFollowUpAt: hace(20), lastInboundAt: null }, { texto: 'Hola sí me parece bien, solo me quedó una duda', tipo: 'TEXT' });
     check('la tarea es del VENDEDOR (type TASK, para hoy) y trae el texto', creada && creada.type === 'TASK' && creada.description.includes('me quedó una duda') && creada.dueDate instanceof Date, JSON.stringify(creada));
-    const inbound = (await import('node:fs')).readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8');
+    const inbound = (await import('node:fs')).readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('inbound.js la crea al guardar el entrante', inbound.includes('crearTareaPorRespuesta(prisma'));
     const { respondioAlSeguimiento, PREFIJO_RESPUESTA } = await import('../../src/lib/embudo/respuestas-a-seguimientos.ts');
     check('la red diaria usa el MISMO prefijo que el wa-service (no duplica)', PREFIJO_RESPUESTA === rs.PREFIJO);
     check('red diaria: respuesta posterior al seguimiento → tarea', respondioAlSeguimiento({ clientId: 'c', lastFollowUpAt: hace(20), lastInboundAt: hace(5) }));
     check('red diaria: respuesta ANTERIOR al seguimiento → nada', !respondioAlSeguimiento({ clientId: 'c', lastFollowUpAt: hace(5), lastInboundAt: hace(20) }));
-    const svc = (await import('node:fs')).readFileSync(new URL('../../src/services/embudo.service.ts', import.meta.url), 'utf8');
+    const svc = (await import('node:fs')).readFileSync(new URL('../../src/services/embudo.service.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('correrDiario (9:00) la corre todos los días', svc.includes('tareasPorRespuestasSinAtender()'));
 }
 
@@ -134,12 +134,12 @@ console.log('\nFreno, días de Córdoba y registro (12/9/2026)');
     await sf.deshacerSeguimientoFallido(prismaFalso, { chatId: 'c', senderName: 'Sistema', templateName: 'seguimiento_presupuesto' }, { deCuenta: true });
     check('rechazo por problema de la CUENTA: se deshace el escalón pero NO se pausa al cliente', escrito && !('followUpPausedUntil' in escrito) && escrito.lastFollowUpAt === null);
     const { readFileSync } = await import('node:fs');
-    const ruta = readFileSync(new URL('../../src/app/api/cron/seguimientos/route.ts', import.meta.url), 'utf8');
+    const ruta = readFileSync(new URL('../../src/app/api/cron/seguimientos/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('la ruta registra la corrida SIEMPRE (también si revienta)', ruta.includes('registrarCorrida(') && ruta.includes("catch (e: any)") && ruta.includes('terminar({ error'));
     check('el cupo del día se cuenta sobre los envíos registrados del día de Córdoba', ruta.includes("prisma.seguimientoEnvio.count") && ruta.includes("diaArt: dia, resultado: 'ENVIADO'"));
-    const ej = readFileSync(new URL('../../src/lib/seguimientos/ejecutor.ts', import.meta.url), 'utf8');
+    const ej = readFileSync(new URL('../../src/lib/seguimientos/ejecutor.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('el ejecutor reclama la clave única ANTES de mandar', ej.indexOf('reclamarEnvio(') < ej.indexOf('sendWhatsApp('));
-    const inst = readFileSync(new URL('../../src/instrumentation.ts', import.meta.url), 'utf8');
+    const inst = readFileSync(new URL('../../src/instrumentation.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('SIGTERM devuelve la hora reclamada', inst.includes("process.once('SIGTERM'") && inst.includes('seguimientosReclamo'));
     check('la alerta diaria del embudo está enganchada (19:30)', inst.includes("dispararSimple('embudo-salud'"));
 }
@@ -153,11 +153,11 @@ console.log('\nChats @lid: se manda al número real');
     check('E.164 → tal cual', destinoDelChat({ waId: '5493515308174', realPhone: null }) === '5493515308174');
     check('"<num>@c.us" → número pelado', destinoDelChat({ waId: '5493515308174@c.us', realPhone: null }) === '5493515308174');
     const { readFileSync } = await import('node:fs');
-    const api = readFileSync(new URL('../../wa-service/routes/api.js', import.meta.url), 'utf8');
+    const api = readFileSync(new URL('../../wa-service/routes/api.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('/api/send resuelve el destino con destinoDelChat', (api.match(/destinoDelChat\(chat\)/g) || []).length === 2);
-    const reg = readFileSync(new URL('../../src/lib/seguimientos/registro.ts', import.meta.url), 'utf8');
+    const reg = readFileSync(new URL('../../src/lib/seguimientos/registro.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('un envío FALLIDO se puede volver a reclamar en el tick siguiente (no espera a mañana)', reg.includes("resultado: 'FALLIDO' },\n            data: { resultado: 'RECLAMADO'"));
-    const resp = readFileSync(new URL('../../src/lib/embudo/respuestas-a-seguimientos.ts', import.meta.url), 'utf8');
+    const resp = readFileSync(new URL('../../src/lib/embudo/respuestas-a-seguimientos.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('las tareas por respuesta miran solo los últimos 14 días y cancelan las viejas', resp.includes('VENTANA_RESPUESTAS_DIAS = 14') && resp.includes("status: 'CANCELLED'"));
 }
 
