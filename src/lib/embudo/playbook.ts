@@ -99,7 +99,10 @@ export interface EntradaProximaAccion {
      * algo es esto, no el saludo del martes.
      */
     escalonCubierto: boolean;
+    /** Presupuesto que LLEGÓ al cliente (ver presupuesto-enviado.ts); null si no hay o nunca se mandó. */
     quoteCreatedAt: Date | null;
+    /** Hay un presupuesto armado en el CRM que nunca se envió: la tarjeta pide mandarlo. */
+    borradorSinEnviar?: Date | null;
     /** Alta del lead: para la charla frenada sin presupuesto. */
     createdAt: Date;
     /** ¿Ya mandó la receta? Decide cuál de las dos plantillas de charla frenada le toca. */
@@ -162,6 +165,11 @@ export function proximaAccion(e: EntradaProximaAccion): ProximaAccion {
                 venceEn: new Date(e.createdAt.getTime() + SEG1_HOURS * HORA_MS).toISOString(),
                 vencida: true,
             };
+        }
+        if (e.borradorSinEnviar) {
+            const d = e.borradorSinEnviar;
+            const fecha = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+            return { tipo: 'cotizar', etiqueta: `Presupuesto armado el ${fecha} y NUNCA enviado: mandarlo`, venceEn: null, vencida: true };
         }
         return { tipo: 'cotizar', etiqueta: 'Falta cotizar', venceEn: null, vencida: false };
     }

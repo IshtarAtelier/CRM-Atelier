@@ -18,6 +18,7 @@ import { sendClientEmail, escHtml } from '@/lib/client-email';
 import { logAudit } from '@/lib/audit';
 import { buildOrderDetailSummary, DETALLE_MARK } from '@/lib/order-detail-summary';
 import type { Actor } from '@/lib/actor';
+import { MARCA_PDF_ENVIADO } from '@/lib/embudo/presupuesto-enviado';
 
 export type SendOrderPdfResult =
   | { ok: true; status: 200; method: 'media'; via?: string; email: boolean }
@@ -55,7 +56,7 @@ export async function sendOrderPdf(
     where: {
       clientId: order.clientId,
       type: 'NOTE',
-      content: { startsWith: '📄 Presupuesto enviado' },
+      content: { startsWith: MARCA_PDF_ENVIADO },
       createdAt: { gte: unMinutoAtras },
     },
     orderBy: { createdAt: 'desc' },
@@ -74,7 +75,8 @@ export async function sendOrderPdf(
    * el que más importa poder reclamar.
    */
   const registrarEnFicha = async (detalle: string, ok: boolean) => {
-    let cuerpo = `${ok ? '📄' : '⚠️'} Presupuesto ${ok ? 'enviado' : 'NO enviado'} por ${senderName}: ${detalle}`;
+    // El prefijo del envío OK es MARCA_PDF_ENVIADO: el embudo lo lee para saber que el presupuesto llegó.
+    let cuerpo = `${ok ? MARCA_PDF_ENVIADO : '⚠️ Presupuesto NO enviado'} por ${senderName}: ${detalle}`;
     try {
       cuerpo += `${DETALLE_MARK}Mensaje enviado al cliente:\n${text}\n\n— CONTENIDO DEL PDF —\n${buildOrderDetailSummary(order)}`;
     } catch (e) {
