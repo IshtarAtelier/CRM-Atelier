@@ -184,13 +184,18 @@ export function FloatingWhatsApp({ message, productName }: { message?: string; p
         </a>
       )}
 
-      {/* Botón Flotante con animación de pulso */}
+      {/* Botón Flotante con animación de pulso.
+          El nombre accesible ARRANCA con el texto visible ("Presupuesto"):
+          WCAG 2.5.3 (Label in Name). Con "Contactar por WhatsApp" a secas,
+          quien navega por voz decía "tocá Presupuesto" y no pasaba nada,
+          porque el comando matchea contra el nombre accesible, no contra lo
+          que se ve. */}
       <a
         href={WHATSAPP_URL}
         target="_blank"
         rel="noopener noreferrer"
         className="relative group pointer-events-auto flex items-center gap-2"
-        aria-label="Contactar por WhatsApp"
+        aria-label="Presupuesto por WhatsApp"
       >
         {/* En celular el globo de arriba está oculto (hidden sm:block), así que
             el botón era un círculo verde sin decir para qué sirve. Esta etiqueta

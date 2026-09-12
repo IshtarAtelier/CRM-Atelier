@@ -267,7 +267,7 @@ const nextConfig: NextConfig = {
       // Google Ads quedaron sin medir antes, y el día que esta política se
       // promueva a activa cortaría la conversión de verdad. Se agrega ahora, con
       // la política todavía en modo reporte, que es cuando sale gratis.
-      `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://mercados.ambito.com${waOrigins}`,
+      `connect-src 'self' https://live.decidir.com https://developers.decidir.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://mercados.ambito.com${waOrigins}`,
       // youtube-nocookie.com: mismo motivo que i.ytimg.com en imgSrc — el
       // iframe del video embebido en el blog. La activa ya permite cualquier
       // origen (https://*), así que hoy esto solo evita que la Report-Only
