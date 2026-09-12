@@ -12,7 +12,12 @@ import type { TemplateName } from '@/lib/whatsapp/templates';
  * de un mes — lo que más se parece a spam y lo que más le pega a la calidad
  * del número.
  */
-export const MOTOR_SEGUIMIENTOS_DESDE = new Date('2026-09-07T00:00:00-03:00');
+export const MOTOR_SEGUIMIENTOS_DESDE: Date | null = null;
+// ↑ null desde el 12/9/2026: pedido de Ishtar ("mañana asegurame que le envías
+// a TODOS: tenemos a todos sin seguimiento por fallas del embudo"). El corte
+// del 7/9 dejaba ~370 leads del último mes esperando a mano y nadie llegaba.
+// Lo que sigue valiendo es la ventana de 30 días del embudo (playbook): a los
+// más viejos no se les manda nada. Para volver al corte: poner una fecha.
 
 /**
  * PRENDIDO ('real') desde el 11/9/2026, con el OK explícito de Ishtar sobre la
@@ -27,15 +32,15 @@ export const MOTOR_SEGUIMIENTOS_DESDE = new Date('2026-09-07T00:00:00-03:00');
 export const MODO_POR_DEFECTO: 'seco' | 'real' = 'real';
 
 /** Tope de envíos automáticos por día. Se pisa con `SystemSetting.seguimientos_cupo_diario`. */
-export const CUPO_DIARIO_POR_DEFECTO = 30;
+export const CUPO_DIARIO_POR_DEFECTO = 120; // 30 hasta el 12/9; subido para absorber el mes atrasado (Meta permite 250/día)
 
 /**
  * Cuántos salen por cada tick horario, con pausa entre uno y otro. El cupo es
  * el techo del día; el lote es el ritmo. 5 por hora entre las 10 y las 19 son
  * hasta 45: el cupo corta antes.
  */
-export const LOTE_POR_TICK = 5;
-export const PAUSA_ENTRE_ENVIOS_MS: readonly [number, number] = [15_000, 25_000];
+export const LOTE_POR_TICK = 15; // 5 hasta el 12/9
+export const PAUSA_ENTRE_ENVIOS_MS: readonly [number, number] = [8_000, 12_000]; // 15 × ~10 s = ~2,5 min por tick
 
 /** Horario en que salen (hora de Córdoba). Igual que las campañas: 10 a 19. */
 export const HORA_DESDE = 10;

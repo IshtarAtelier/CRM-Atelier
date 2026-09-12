@@ -1,3 +1,7 @@
+> **Documento histórico (5/9/2026).** La fuente única de verdad del embudo es
+> [`docs/embudo.md`](embudo.md). Donde se contradicen, manda ese. En
+> particular: desde el 11/9/2026 el motor SÍ le escribe solo al cliente.
+
 # Embudo de ventas — cómo funciona (desde el 5/9/2026)
 
 Dos embudos, un solo motor. Este documento es el mapa; el código manda y está

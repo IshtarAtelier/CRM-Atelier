@@ -78,7 +78,7 @@ export const COMPUERTAS: Compuerta[] = [
     (c) => (PLANTILLAS_AUTOMATICAS.includes(c.plantilla!) ? null : `la plantilla ${c.plantilla} no está habilitada para envío automático`),
 
     // Los viejos se atienden a mano (decisión del 7/9/2026).
-    (c) => (c.createdAt.getTime() >= MOTOR_SEGUIMIENTOS_DESDE.getTime() ? null : 'lead anterior al arranque del motor: se le escribe a mano'),
+    (c) => (!MOTOR_SEGUIMIENTOS_DESDE || c.createdAt.getTime() >= MOTOR_SEGUIMIENTOS_DESDE.getTime() ? null : 'lead anterior al arranque del motor: se le escribe a mano'),
 
     (c) => (c.waChatId ? null : 'sin chat de WhatsApp donde mandarle'),
 
