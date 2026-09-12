@@ -359,8 +359,6 @@ export class ReceiptAgentService {
             }
 
             if (extractedIds.length > 0) {
-                const extractedTx = extractedIds[0];
-
                 // Para buscar duplicados solo sirven los identificadores largos: un
                 // nº de lote o de cupón se repite todos los días. En los cobros
                 // presenciales la clave es el trío lote+cupón+autorización.
@@ -396,20 +394,45 @@ export class ReceiptAgentService {
                     select: { id: true }
                 });
 
-                // Check for duplicate transactions across other payments
-                const duplicates = dedupIds.length === 0 ? [] : await prisma.payment.findMany({
-                    where: {
-                        id: { not: paymentId },
-                        OR: dedupIds.map(id => ({ notes: { contains: `[TX: ${id}]` } }))
-                    },
-                    select: {
-                        id: true,
-                        orderId: true,
-                        order: { select: { client: { select: { id: true, name: true } } } }
-                    }
-                });
+                // Check for duplicate transactions across other payments.
+                // Se busca UN identificador por vez para saber CUÁL coincidió: antes
+                // se buscaban todos juntos y el aviso nombraba `extractedIds[0]`,
+                // así que informaba un nº de operación que no era el que había
+                // matcheado (12/9/2026: el cobro de Gabriela Peralta se acusó por
+                // "la Operación 178661762642" cuando el match real fue por el nº de
+                // serie del posnet).
+                let duplicates: {
+                    id: string;
+                    orderId: string;
+                    order: { client: { id: string; name: string } | null } | null;
+                }[] = [];
+                let matchedId: string | null = null;
 
-                if (duplicates.length > 0) {
+                for (const id of dedupIds) {
+                    const found = await prisma.payment.findMany({
+                        where: { id: { not: paymentId }, notes: { contains: `[TX: ${id}]` } },
+                        select: {
+                            id: true,
+                            orderId: true,
+                            order: { select: { client: { select: { id: true, name: true } } } }
+                        }
+                    });
+                    if (found.length === 0) continue;
+
+                    // Red de seguridad para los códigos genéricos que todavía no
+                    // conocemos: un identificador de transacción no puede estar en
+                    // los pagos de DOS clientes distintos. Si lo está, lo que se
+                    // repite es el aparato o el comprobante, no el cobro — se
+                    // descarta en silencio en vez de acusar a media agenda.
+                    const clientesAjenos = new Set(
+                        found.map(f => f.order?.client?.id).filter(Boolean) as string[]
+                    );
+                    if (clientesAjenos.size > 1) continue;
+
+                    if (!matchedId) { matchedId = id; duplicates = found; }
+                }
+
+                if (duplicates.length > 0 && matchedId) {
                     duplicateRefs.push(...duplicates.map(d => ({
                         clientName: d.order?.client?.name || 'Cliente Desconocido',
                         clientId: d.order?.client?.id,
@@ -420,8 +443,8 @@ export class ReceiptAgentService {
                         return `ID: ...${d.id.slice(-4).toUpperCase()} de ${clientName}`;
                     }).join(', ');
                     findings.push({
-                        admin: `¡Posible Duplicado! El comprobante tiene la Operación ${extractedTx}, igual a la/s en pago/s: ${duplicateDetails}.`,
-                        vendor: `El número de operación ${extractedTx} ya estaba cargado en otro pago (${duplicateDetails}) — parece el mismo comprobante dos veces.`
+                        admin: `¡Posible Duplicado! El comprobante tiene la Operación ${matchedId}, igual a la/s en pago/s: ${duplicateDetails}.`,
+                        vendor: `El número de operación ${matchedId} ya estaba cargado en otro pago (${duplicateDetails}) — parece el mismo comprobante dos veces.`
                     });
                 }
             }

@@ -143,14 +143,52 @@ export function sameVoucherNumber(a?: string | null, b?: string | null) {
 }
 
 /**
- * Identificadores lo bastante largos como para etiquetar un pago y buscar
- * duplicados con ellos. Un nº de lote ("011") o de cupón ("0172") se repite todos
- * los días en cualquier terminal: usarlos para detectar duplicados sería fabricar
- * falsos positivos. Para los cobros presenciales, la clave es el trío completo
- * (ver `cardVoucherKey` en payment-card.ts).
+ * Códigos que son LARGOS pero no identifican una transacción: identifican al
+ * aparato, a la marca de la tarjeta o al comprobante fiscal, así que se repiten
+ * en todos los cobros. Etiquetar un pago con uno de ellos convierte cada cobro
+ * siguiente en un "duplicado".
+ *
+ * Caso que lo motivó (12/9/2026): el cobro de Gabriela Peralta salió acusado de
+ * duplicar SIETE pagos de siete clientes distintos. El comprobante traía
+ * "Operación 178661762642 · A0000000041010 · SMARTPOS1493846733": el primero es
+ * el único que identifica el cobro; los otros dos son el AID de la tarjeta y el
+ * nº de serie del posnet, iguales en todos los tickets de esa terminal. En
+ * producción `SMARTPOS1493846733` etiquetaba 7 pagos y `A0000000041010` otros 4.
+ */
+export function esIdentificadorGenerico(id: string) {
+    const crudo = (id || '').trim();
+    const n = normalizeRef(crudo);
+    if (!n) return true;
+
+    // AID / RID de EMV: identifica la aplicación de la tarjeta, no el cobro.
+    // Visa es A000000003…, Mastercard A000000004…: siempre "A" + muchos ceros.
+    if (/^A0{6,}[0-9A-F]*$/.test(n)) return true;
+
+    // Nº de serie de la terminal: SMARTPOS1493846733, POS-15-179-352770.
+    if (/^(SMART)?POS\d{4,}$/.test(n)) return true;
+
+    // Nº de comprobante fiscal ("00001-00000012"): identifica la factura, no el
+    // cobro — y dos pagos de la misma factura comparten número legítimamente.
+    if (/^\d{4,5}\s*-\s*\d{6,8}$/.test(crudo)) return true;
+    if (/^0{4}\d{9,10}$/.test(n)) return true;
+
+    // Un código que es todo el mismo dígito o un solo carácter repetido.
+    if (/^(.)\1+$/.test(n)) return true;
+
+    return false;
+}
+
+/**
+ * Identificadores lo bastante largos —y lo bastante específicos— como para
+ * etiquetar un pago y buscar duplicados con ellos. Un nº de lote ("011") o de
+ * cupón ("0172") se repite todos los días en cualquier terminal: usarlos para
+ * detectar duplicados sería fabricar falsos positivos. Lo mismo vale para los
+ * códigos largos que describen al aparato o a la tarjeta (ver
+ * `esIdentificadorGenerico`). Para los cobros presenciales, la clave es el trío
+ * completo (ver `cardVoucherKey` en payment-card.ts).
  */
 export function strongIds(ids: string[]) {
-    return ids.filter(id => normalizeRef(id).length >= 8);
+    return ids.filter(id => normalizeRef(id).length >= 8 && !esIdentificadorGenerico(id));
 }
 
 /** Une los identificadores de las dos lecturas sin repetir (comparando normalizado). */

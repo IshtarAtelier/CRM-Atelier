@@ -18,7 +18,8 @@ import {
     referencesMatch,
     sameVoucherNumber,
     stripTxTags,
-    strongIds
+    strongIds,
+    esIdentificadorGenerico
 } from '../../src/lib/receipt-references.ts';
 import { cardVoucherKey, describeCardVoucher, isCardMethod } from '../../src/lib/payment-card.ts';
 
@@ -140,6 +141,29 @@ check('solo etiquetas → vacío', stripTxTags('[TX: 170029330395]') === '');
 console.log('\nIdentificadores fuertes (para duplicados)');
 check('un nº de operación largo sirve', strongIds([OPERACION, IDENTIFICACION]).length === 2);
 check('un nº de autorización de 6 dígitos no', strongIds(['007956']).length === 0);
+
+console.log('\nCaso Gabriela Peralta (12/9/2026): códigos largos que NO identifican el cobro');
+{
+    // El ticket decía: "Operación 178661762642 · A0000000041010 · SMARTPOS1493846733".
+    // Solo el primero identifica el cobro. Los otros dos etiquetaban 4 y 7 pagos de
+    // clientes distintos en producción, y convertían cada cobro nuevo en "duplicado".
+    const OPERACION_REAL = '178661762642';
+    const AID_MASTERCARD = 'A0000000041010';
+    const SERIE_POSNET = 'SMARTPOS1493846733';
+
+    check('el AID de Mastercard es genérico', esIdentificadorGenerico(AID_MASTERCARD));
+    check('el AID de Visa también', esIdentificadorGenerico('A0000000031010'));
+    check('el nº de serie del posnet es genérico', esIdentificadorGenerico(SERIE_POSNET));
+    check('el POS con guiones también', esIdentificadorGenerico('POS-15-179-352770'));
+    check('un nº de factura C es genérico', esIdentificadorGenerico('00001-00000012'));
+    check('el nº de operación NO es genérico', !esIdentificadorGenerico(OPERACION_REAL));
+    check('el código de identificación de MP tampoco', !esIdentificadorGenerico(IDENTIFICACION));
+
+    const ids = [OPERACION_REAL, AID_MASTERCARD, SERIE_POSNET];
+    const fuertes = strongIds(ids);
+    check('de los tres del ticket, solo uno sirve para buscar duplicados', fuertes.length === 1);
+    check('y es el nº de operación', fuertes[0] === OPERACION_REAL);
+}
 
 console.log('\nFecha impresa (blindaje del falso positivo de "comprobante viejo")');
 {
