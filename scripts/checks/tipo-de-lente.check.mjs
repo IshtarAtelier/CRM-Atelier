@@ -172,6 +172,34 @@ for (const [nombre, real, esperado] of casosEmbudo) {
         : mal(`${nombre} → contactado:${real.contactado} escalón:${real.escalonCubierto}, esperado ${JSON.stringify(esperado)}`);
 }
 
+// ── 6-bis. Un presupuesto armado no es un presupuesto ENVIADO ─────────────────
+// 12/9/2026: el motor le preguntó a Alina "¿pudiste ver el presupuesto que te
+// pasamos?" y contestó "no me pasaron presupuesto, ya compré en otra óptica".
+// 38 de 188 presupuestos creados desde el 7/9 no tenían rastro de envío.
+console.log('\n6-bis. Un presupuesto cuenta como enviado solo con prueba de envío');
+const { presupuestoFueEnviado } = await import('../../src/lib/embudo/presupuesto-enviado.ts');
+const { proximaAccion } = await import('../../src/lib/embudo/playbook.ts');
+for (const [nombre, e, esperado] of [
+    ['armado hace 3 días, sin PDF ni mensaje humano → NO enviado', { quoteCreatedAt: haceDias(3), pdfEnviadoAt: null, ultimoMensajeHumano: null }, false],
+    ['armado hace 3 días, PDF mandado hace 2 → enviado', { quoteCreatedAt: haceDias(3), pdfEnviadoAt: haceDias(2), ultimoMensajeHumano: null }, true],
+    ['armado hace 3 días, una persona le escribió hace 2 → enviado', { quoteCreatedAt: haceDias(3), pdfEnviadoAt: null, ultimoMensajeHumano: haceDias(2) }, true],
+    ['el mensaje humano ANTERIOR al presupuesto no prueba nada', { quoteCreatedAt: haceDias(3), pdfEnviadoAt: null, ultimoMensajeHumano: haceDias(5) }, false],
+    ['sin presupuesto → false', { quoteCreatedAt: null, pdfEnviadoAt: haceDias(1), ultimoMensajeHumano: haceDias(1) }, false],
+]) {
+    presupuestoFueEnviado(e) === esperado ? ok(nombre) : mal(`${nombre} → ${presupuestoFueEnviado(e)}`);
+}
+{
+    const base = { stage: 'primerContacto', escalonCubierto: false, hasPrescription: true, visitoElLocal: false, tieneChat: true, chatLabels: [], now: ahora };
+    const a = proximaAccion({ ...base, quoteCreatedAt: null, borradorSinEnviar: haceDias(1), createdAt: haceDias(1) });
+    a.tipo === 'cotizar' && /NUNCA enviado/.test(a.etiqueta) && a.vencida
+        ? ok('con un borrador sin enviar, la tarjeta pide MANDARLO (hoy), no "cotizar"')
+        : mal(`borrador sin enviar → ${JSON.stringify(a)}`);
+    const b = proximaAccion({ ...base, quoteCreatedAt: null, borradorSinEnviar: haceDias(4), createdAt: haceDias(4) });
+    b.tipo === 'plantilla' && b.plantilla === 'seguimiento_lentes_con_receta'
+        ? ok('a los 3+ días sin envío se le escribe "¿retomamos el armado?", nunca "¿pudiste verlo?"')
+        : mal(`borrador viejo → ${JSON.stringify(b)}`);
+}
+
 // ── 7. El bot VE las fotos (causa raíz del 10/9/2026) ────────────────────────
 // Las fotos de WhatsApp se guardan sin extensión y el servidor las sirve como
 // application/octet-stream. El bot descartaba todo lo que no dijera "image/" en

@@ -5,6 +5,7 @@ import { proximaAccion, ordenarPorUrgencia } from '@/lib/embudo/playbook';
 import { sincronizarTareasDelDia, type ResultadoSync } from '@/lib/embudo/sincronizar-tareas';
 import { TAGS_NO_CLIENTE } from '@/lib/no-cliente';
 import { tieneEtiquetaDeVisita } from '@/lib/embudo/visito-local';
+import { presupuestoFueEnviado, MARCA_PDF_ENVIADO } from '@/lib/embudo/presupuesto-enviado';
 
 /**
  * EmbudoService — el tablero de leads (/admin/leads) y "lo de hoy".
@@ -95,6 +96,21 @@ export const EmbudoService = {
             }
         }
 
+        // ¿El presupuesto le LLEGÓ? La nota "📄 Presupuesto enviado" (PDF) o un
+        // mensaje humano posterior lo prueban; sin eso, el lead sigue SIN
+        // presupuesto para el embudo (ver presupuesto-enviado.ts: a Alina se le
+        // preguntó "¿pudiste ver el presupuesto?" por uno que nunca se mandó).
+        const pdfPorCliente = new Map<string, Date>();
+        const conPresupuesto = leads.filter(l => l.orders[0]).map(l => l.id);
+        if (conPresupuesto.length > 0) {
+            const notas = await prisma.interaction.groupBy({
+                by: ['clientId'],
+                where: { clientId: { in: conPresupuesto }, type: 'NOTE', content: { startsWith: MARCA_PDF_ENVIADO } },
+                _max: { createdAt: true },
+            });
+            for (const n of notas) if (n._max.createdAt) pdfPorCliente.set(n.clientId, n._max.createdAt);
+        }
+
         const columns = {} as Record<PipelineStageKey, PipelineColumn>;
         for (const [key, cfg] of Object.entries(PIPELINE_COLUMNS)) {
             columns[key as PipelineStageKey] = { title: cfg.title, color: cfg.color, icon: cfg.icon, count: 0, totalAmount: 0, leads: [] };
@@ -107,13 +123,21 @@ export const EmbudoService = {
             const latestRx = lead.prescriptions[0];
             const chat = lead.whatsappChats[0] ?? null;
             const chatLabels = chat?.chatLabels || [];
+            const ultimoMensajeHumano = chat ? ultimoHumanoPorChat.get(chat.id) ?? null : null;
+            const enviado = presupuestoFueEnviado({
+                quoteCreatedAt: latestQuote?.createdAt ?? null,
+                pdfEnviadoAt: pdfPorCliente.get(lead.id) ?? null,
+                ultimoMensajeHumano,
+            });
+            const quoteCreatedAt = enviado ? latestQuote!.createdAt : null;
+            const borradorSinEnviar = latestQuote && !enviado ? latestQuote.createdAt : null;
 
             const { stage, contactado, escalonCubierto } = classifyLead({
-                quoteCreatedAt: latestQuote?.createdAt ?? null,
+                quoteCreatedAt,
                 hasPrescription: !!latestRx,
                 chatLabels,
                 tagNames: lead.tags.map(t => t.name),
-                ultimoMensajeHumano: chat ? ultimoHumanoPorChat.get(chat.id) ?? null : null,
+                ultimoMensajeHumano,
                 now,
             });
 
@@ -126,7 +150,8 @@ export const EmbudoService = {
                 escalonCubierto,
                 hasPrescription: !!latestRx,
                 visitoElLocal,
-                quoteCreatedAt: latestQuote?.createdAt ?? null,
+                quoteCreatedAt,
+                borradorSinEnviar,
                 createdAt: lead.createdAt,
                 tieneChat: !!chat,
                 chatLabels,
