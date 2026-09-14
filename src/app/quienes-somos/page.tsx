@@ -103,7 +103,7 @@ export default function QuienesSomosPage() {
               Ishtar y Yani. Una óptica de familia, no una cadena. Por eso acá nadie es un número.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:gap-6 mb-8">
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
             <div className="relative aspect-[9/16] rounded-3xl overflow-hidden border border-stone-200 dark:border-stone-800">
               <Image
                 src="/images/blog/ishtar/hermanas-espejo.jpg"
@@ -122,6 +122,23 @@ export default function QuienesSomosPage() {
                 className="object-cover"
               />
             </div>
+          </div>
+
+          {/* La tercera va apaisada y cruzando las dos columnas: es horizontal
+              (3000x2000), y meterla en un hueco vertical como el de arriba
+              obligaba a recortarla tanto que se perdía el local — que es
+              justamente lo que muestra. Acá abajo de las otras dos, ancha, se
+              lee como lo que es: el momento de atender.
+              Sin nombres en el alt: no se le ve la cara, así que decir quién es
+              sería inventarlo. */}
+          <div className="relative aspect-[3/2] rounded-3xl overflow-hidden border border-stone-200 dark:border-stone-800 mb-8">
+            <Image
+              src="/images/blog/guardapolvo-atelier.jpg"
+              alt="Atendiendo en el local de Atelier Óptica, con un anteojo de sol en la mano"
+              fill
+              sizes="(max-width: 768px) 100vw, 896px"
+              className="object-cover"
+            />
           </div>
           <ul className="space-y-3 max-w-2xl mx-auto">
             {[
