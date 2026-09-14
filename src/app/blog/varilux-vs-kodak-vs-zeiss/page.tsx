@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function VariluxVsKodakVsZeissPage() {
   return (
     <div className="bg-[#faf8f5] text-black min-h-screen flex flex-col">
-      <StorefrontNavbar theme="dark" />
+      <StorefrontNavbar theme="light" />
       
       <main className="flex-grow pt-32 pb-16">
         <article className="max-w-3xl mx-auto px-6">
@@ -21,8 +21,8 @@ export default function VariluxVsKodakVsZeissPage() {
               <span className="text-xs font-bold uppercase tracking-wider text-[#111]">
                 Guía de Cristales
               </span>
-              <span className="text-xs text-black/40">·</span>
-              <span className="text-xs text-black/40">Tiempo de lectura: 5 min</span>
+              <span className="text-xs text-black/60">·</span>
+              <span className="text-xs text-black/60">Tiempo de lectura: 5 min</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-medium tracking-tight mb-6">
               Varilux, Zeiss o Kodak: ¿Cuál es el Mejor Multifocal Prémium para Vos?

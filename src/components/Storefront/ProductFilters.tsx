@@ -349,7 +349,7 @@ export function ProductFilters({
                         onClick={() => cambiarRangoDePrecio(rango.min, rango.max)}
                         className={`px-4 min-h-11 inline-flex items-center text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
                           activo
-                            ? 'border-[#c8a55c] bg-[#c8a55c] text-white shadow-md shadow-[#c8a55c]/20 scale-[1.02]'
+                            ? 'border-[var(--dorado-solido)] bg-[var(--dorado-solido)] text-white shadow-md shadow-[#c8a55c]/20 scale-[1.02]'
                             : 'border-stone-200 text-stone-600 hover:border-stone-900 hover:text-stone-900'
                         }`}
                       >
@@ -370,7 +370,7 @@ export function ProductFilters({
                     onClick={() => handleFilterChange('genero', '')}
                     className={`px-4 min-h-11 inline-flex items-center text-[10px] font-black uppercase tracking-widest rounded-full border transition-all duration-300 ${
                       !currentGender
-                        ? 'border-[#c8a55c] bg-[#c8a55c] text-white shadow-md shadow-[#c8a55c]/20 scale-[1.02]'
+                        ? 'border-[var(--dorado-solido)] bg-[var(--dorado-solido)] text-white shadow-md shadow-[#c8a55c]/20 scale-[1.02]'
                         : 'border-stone-200 hover:border-[#c8a55c]/50 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                     }`}
                   >
@@ -411,7 +411,7 @@ export function ProductFilters({
                       onClick={() => handleFilterChange('forma', '')}
                       className={`group flex flex-col items-center justify-center py-2 px-1 rounded-lg border text-center transition-all duration-300 ${
                         !currentShape
-                          ? 'border-[#c8a55c] bg-[#c8a55c] text-white shadow-md shadow-[#c8a55c]/20 scale-[1.02]'
+                          ? 'border-[var(--dorado-solido)] bg-[var(--dorado-solido)] text-white shadow-md shadow-[#c8a55c]/20 scale-[1.02]'
                           : 'border-stone-200 hover:border-[#c8a55c]/50 bg-white text-stone-700 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                       }`}
                     >
@@ -446,7 +446,7 @@ export function ProductFilters({
                             {getShapeIcon(shape)}
                           </div>
                           <span className="text-[9px] font-bold uppercase tracking-wider">
-                            {shape}{typeof n === 'number' && <span className="ml-1 opacity-60">({n})</span>}
+                            {shape}{typeof n === 'number' && <span className="ml-1 font-normal">({n})</span>}
                           </span>
                         </button>
                       );
@@ -488,7 +488,7 @@ export function ProductFilters({
                               : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                           }`}
                         >
-                          {material}{typeof n === 'number' && <span className="ml-1 opacity-60">({n})</span>}
+                          {material}{typeof n === 'number' && <span className="ml-1 font-normal">({n})</span>}
                         </button>
                       );
                     })}
@@ -542,7 +542,7 @@ export function ProductFilters({
                             className={`w-3 h-3 rounded-full shrink-0 border ${isSelected ? 'border-white/40' : 'border-black/10 dark:border-white/10'}`}
                             style={{ backgroundColor: familia.swatch }}
                           />
-                          {familia.etiqueta}{typeof n === 'number' && <span className="opacity-60">({n})</span>}
+                          {familia.etiqueta}{typeof n === 'number' && <span className="font-normal">({n})</span>}
                         </button>
                       );
                     })}
@@ -591,7 +591,7 @@ export function ProductFilters({
                         />
                         <span className={`text-base tracking-wide ${currentBrand === brand ? 'font-bold text-[#8a6d3b] dark:text-white' : 'text-stone-500 dark:text-stone-400 group-hover:text-stone-800 dark:group-hover:text-stone-200'}`}>
                           {brand}{typeof conteoDe('marca', brand) === 'number' && (
-                            <span className="ml-1.5 text-sm opacity-60">({conteoDe('marca', brand)})</span>
+                            <span className="ml-1.5 text-sm font-normal">({conteoDe('marca', brand)})</span>
                           )}
                         </span>
                       </label>

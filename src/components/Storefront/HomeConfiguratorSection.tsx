@@ -49,7 +49,7 @@ export function HomeConfiguratorSection() {
               {step.num}
             </div>
             <h3 className="text-[11px] font-bold uppercase tracking-widest mb-1.5">{step.title}</h3>
-            <p className="text-xs text-[#78716c] uppercase tracking-[0.2em]">{step.desc}</p>
+            <p className="text-xs text-[#57534e] uppercase tracking-[0.2em]">{step.desc}</p>
           </motion.div>
         ))}
       </div>
@@ -71,11 +71,11 @@ export function HomeConfiguratorSection() {
           href={`https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent("Hola, me gustaría recibir asesoramiento para elegir mis lentes graduados.")}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[10px] font-bold uppercase tracking-[0.15em] text-stone-500 hover:text-black transition-colors underline underline-offset-4"
+          className="text-[10px] font-bold uppercase tracking-[0.15em] text-stone-600 hover:text-black transition-colors underline underline-offset-4"
         >
           ¿No sabés qué lentes elegir? Te ayudamos
         </a>
-        <span className="text-xs text-stone-500 font-medium tracking-wide max-w-xs sm:max-w-md text-center mt-2">
+        <span className="text-xs text-stone-600 font-medium tracking-wide max-w-xs sm:max-w-md text-center mt-2">
           📍 Retirá gratis en nuestro local en Cerro de las Rosas o recibilo a domicilio en todo el país.
         </span>
       </motion.div>

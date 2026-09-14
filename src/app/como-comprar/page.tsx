@@ -80,7 +80,7 @@ export default function ComoComprarPage() {
               href={`https://wa.me/${WHATSAPP_PHONE}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-primary text-white font-bold py-4 px-8 rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-bold py-4 px-8 rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25"
             >
               Consultar por WhatsApp
             </a>

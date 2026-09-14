@@ -17,7 +17,7 @@ export default function BlogPegamentoAnteojos() {
       
       <article className="max-w-3xl mx-auto px-5 py-24 md:py-32">
         <header className="mb-12 text-center">
-          <p className="text-[#c8a55c] text-xs font-black uppercase tracking-widest mb-4">
+          <p className="text-[var(--dorado-texto)] text-xs font-black uppercase tracking-widest mb-4">
             Laboratorio Óptico y Urgencias
           </p>
           <h1 className=" font-serif">

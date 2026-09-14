@@ -30,7 +30,7 @@ export default function MyopiaControlPage() {
 
       <main className="max-w-3xl mx-auto px-6 pt-24 lg:pt-40">
         <div className="mb-12 lg:mb-16 text-center">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#999] mb-4">Salud Visual e Innovación</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#6b6b6b] mb-4">Salud Visual e Innovación</p>
           <h1 className="text-3xl lg:text-5xl font-normal tracking-tight mb-6 lg:mb-8">Control de Miopía: La revolución del desenfoque periférico</h1>
           <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed max-w-xl mx-auto">
             La miopía ya no es solo un problema de corrección visual; es un desafío global. Descubrí cómo la tecnología de cristales <strong>Essilor Stellest</strong> con desenfoque periférico está cambiando el futuro visual de niños y adultos jóvenes en <strong>Córdoba</strong>.

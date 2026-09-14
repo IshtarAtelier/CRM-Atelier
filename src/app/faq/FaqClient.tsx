@@ -88,7 +88,7 @@ export function FaqClient() {
                                 <Link
                                   key={l.href}
                                   href={l.href}
-                                  className="text-[13px] font-medium text-[#b08f4c] underline decoration-[#b08f4c]/30 underline-offset-4 hover:decoration-[#b08f4c]"
+                                  className="text-[13px] font-medium text-[var(--dorado-texto)] underline decoration-[var(--dorado-texto)]/40 underline-offset-4 hover:decoration-[var(--dorado-texto)]"
                                 >
                                   {l.label} →
                                 </Link>

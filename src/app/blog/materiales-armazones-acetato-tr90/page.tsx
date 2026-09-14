@@ -18,7 +18,7 @@ export default function MaterialesArmazonesPage() {
       <main className="max-w-3xl mx-auto px-6 pt-32 lg:pt-40">
         <article>
           <header className="mb-12 lg:mb-16 text-center">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#999] mb-4">Guía de Materiales</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#6b6b6b] mb-4">Guía de Materiales</p>
             <h1 className="text-3xl lg:text-5xl font-normal tracking-tight mb-6 lg:mb-8 leading-tight">
               Acetato Italiano vs Metal vs Inyectado: ¿Cuál armazón dura más?
             </h1>

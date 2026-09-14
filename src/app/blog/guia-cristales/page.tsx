@@ -30,7 +30,7 @@ export default function CrystalGuidePage() {
 
       <main className="max-w-3xl mx-auto px-6 pt-24 lg:pt-40">
         <div className="mb-12 lg:mb-16 text-center">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#999] mb-4">Guía Exclusiva de Compra</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#6b6b6b] mb-4">Guía Exclusiva de Compra</p>
           <h1 className="text-3xl lg:text-5xl font-normal tracking-tight mb-6 lg:mb-8">El arte de elegir tus cristales</h1>
           <p className="text-[14px] lg:text-[15px] text-[#666] leading-relaxed max-w-xl mx-auto">
             Tu visión merece el mismo nivel de precisión que una pieza de <strong>joyería artesanal</strong>. Descubrí nuestra selección de materiales premium para optimizar tu vista, logrando un <strong>diseño exclusivo</strong> para cada armazón en el corazón de <strong>Córdoba</strong>.

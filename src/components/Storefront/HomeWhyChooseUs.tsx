@@ -72,7 +72,7 @@ export function HomeWhyChooseUs() {
                 <h3 className="text-[13px] font-black uppercase tracking-widest text-white mb-1 sm:mb-1.5 md:mb-3">
                   {feat.title}
                 </h3>
-                <p className="text-sm text-stone-400 font-medium leading-relaxed sm:max-w-[250px]">
+                <p className="text-sm text-stone-300 font-medium leading-relaxed sm:max-w-[250px]">
                   {feat.desc}
                 </p>
               </div>

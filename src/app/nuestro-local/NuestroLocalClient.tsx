@@ -197,7 +197,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c8a55c] mb-6">Nuestra Filosofía</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--dorado-texto)] mb-6">Nuestra Filosofía</p>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif tracking-tight leading-tight mb-8">
                 Tus anteojos son
                 <br />
@@ -217,7 +217,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
               {/* Decorative line */}
               <div className="flex items-center gap-4 mt-10">
                 <div className="h-[1px] w-12 bg-[#c8a55c]" />
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c8a55c]">Desde 2018</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--dorado-texto)]">Desde 2018</span>
               </div>
             </motion.div>
           </div>
@@ -282,7 +282,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
                 </div>
 
                 {/* Text */}
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#c8a55c] mb-2">{service.subtitle}</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--dorado-texto)] mb-2">{service.subtitle}</p>
                 <h3 className="text-xl font-serif tracking-tight mb-4">{service.title}</h3>
                 <p className="text-sm text-stone-500 leading-relaxed font-light">{service.description}</p>
               </motion.div>
@@ -313,7 +313,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
         <div className="max-w-[1200px] mx-auto px-5 md:px-10">
           {/* Section header */}
           <div className="text-center mb-14 md:mb-20">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#c8a55c] mb-3">Te Esperamos</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--dorado-texto)] mb-3">Te Esperamos</p>
             <h2 className="text-3xl md:text-5xl font-serif tracking-tight">
               Visitanos
             </h2>

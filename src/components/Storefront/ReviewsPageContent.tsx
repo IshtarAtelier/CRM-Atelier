@@ -307,7 +307,7 @@ export function ReviewsPageContent({
             href="https://www.google.com/maps?cid=14830223812501661125"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-primary text-white font-bold py-4 px-10 rounded-full hover:bg-primary/90 transition-all duration-300 shadow-xl shadow-primary/20 text-xs tracking-widest uppercase"
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-bold py-4 px-10 rounded-full hover:bg-primary/90 transition-all duration-300 shadow-xl shadow-primary/20 text-xs tracking-widest uppercase"
           >
             Dejar Reseña en Google <ExternalLink className="w-4 h-4" />
           </a>

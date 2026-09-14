@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function SintomasPresbiciaPage() {
   return (
     <div className="bg-[#faf8f5] text-black min-h-screen flex flex-col font-sans selection:bg-[#111] selection:text-white">
-      <StorefrontNavbar theme="dark" />
+      <StorefrontNavbar theme="light" />
       
       <main className="flex-grow pt-32 pb-20">
         <article className="max-w-3xl mx-auto px-6">

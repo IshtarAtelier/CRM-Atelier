@@ -337,7 +337,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
               {currentGlobalStep > 1 ? <span className="text-sm font-bold">✓</span> : <Glasses className="w-4 h-4" strokeWidth={1.8} />}
             </div>
             <span className={`text-[10px] font-black uppercase tracking-[0.15em] transition-colors ${
-              currentGlobalStep === 1 ? 'text-[#1a1714]' : currentGlobalStep > 1 ? 'text-[#c8a55c]' : 'text-stone-400'
+              currentGlobalStep === 1 ? 'text-[#1a1714]' : currentGlobalStep > 1 ? 'text-[var(--dorado-texto)]' : 'text-stone-400'
             }`}>
               Armazón
             </span>
@@ -365,7 +365,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
               {currentGlobalStep > 2 ? <span className="text-sm font-bold">✓</span> : <Disc3 className="w-4 h-4" strokeWidth={1.8} />}
             </div>
             <span className={`text-[10px] font-black uppercase tracking-[0.15em] transition-colors ${
-              currentGlobalStep === 2 ? 'text-[#1a1714]' : currentGlobalStep > 2 ? 'text-[#c8a55c]' : 'text-stone-400'
+              currentGlobalStep === 2 ? 'text-[#1a1714]' : currentGlobalStep > 2 ? 'text-[var(--dorado-texto)]' : 'text-stone-400'
             }`}>
               Cristales
             </span>
@@ -426,7 +426,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
 
           <div className="p-6 lg:p-10 pb-3 flex justify-between items-end shrink-0 relative z-10">
             <div>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#c8a55c] mb-1">{secondFramePending ? "Promo 2x1" : "Paso 1"}</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--dorado-texto)] mb-1">{secondFramePending ? "Promo 2x1" : "Paso 1"}</p>
               <h1 className="text-xl font-serif tracking-tight text-[#1a1714]">{secondFramePending ? "Elegí tu Segundo Armazón" : "Elegí tu Armazón"}</h1>
             </div>
             <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 bg-stone-100 border border-stone-200/80 px-2.5 py-1 rounded-full">
@@ -521,7 +521,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                 <p className="text-stone-450 text-[11px] uppercase tracking-widest mb-4">No se encontraron armazones</p>
                 <button 
                   onClick={() => { setSearchQuery(""); setSelectedBrand("Todas"); }} 
-                  className="text-[10px] font-bold uppercase tracking-[0.15em] underline underline-offset-4 text-[#c8a55c] hover:opacity-60 transition-opacity"
+                  className="text-[10px] font-bold uppercase tracking-[0.15em] underline underline-offset-4 text-[var(--dorado-texto)] hover:opacity-60 transition-opacity"
                 >
                   Limpiar Filtros
                 </button>
@@ -567,13 +567,13 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
                             sizes="(max-width: 768px) 50vw, 33vw"
                           />
                         </div>
-                        <p className={`text-[10px] uppercase tracking-[0.3em] font-bold mb-1 transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-400 group-hover:text-stone-500'}`}>
+                        <p className={`text-[10px] uppercase tracking-[0.3em] font-bold mb-1 transition-colors duration-300 ${isSelected ? 'text-[var(--dorado-texto)]' : 'text-stone-400 group-hover:text-stone-500'}`}>
                           {group.brand}
                         </p>
                         <h3 className={`text-sm font-serif uppercase tracking-tight transition-colors duration-300 mb-1.5 ${isSelected ? 'text-[#1a1714]' : 'text-stone-800 group-hover:text-black'}`}>
                           {group.baseName}
                         </h3>
-                        <p className={`text-[11px] font-bold transition-colors duration-300 ${isSelected ? 'text-[#c8a55c]' : 'text-stone-600'}`}>
+                        <p className={`text-[11px] font-bold transition-colors duration-300 ${isSelected ? 'text-[var(--dorado-texto)]' : 'text-stone-600'}`}>
                           ${formatearPrecio(activeVariant.price)}
                         </p>
                       </button>

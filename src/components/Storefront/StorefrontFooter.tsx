@@ -120,7 +120,7 @@ export async function StorefrontFooter() {
         {/* Copyright */}
         <div className="border-t border-white/10">
           <div className="mx-auto w-full max-w-6xl px-6 md:px-10 py-6">
-            <p className="text-[12px] text-stone-400 font-medium">© 2026 ATELIER ÓPTICA. Todos los derechos reservados.</p>
+            <p className="text-[12px] text-stone-300 font-medium">© 2026 ATELIER ÓPTICA. Todos los derechos reservados.</p>
           </div>
         </div>
       </div>

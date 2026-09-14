@@ -134,7 +134,7 @@ export default async function BlogPage() {
                       navega con el href del contenedor de la grilla — ver el
                       listado de categorías al pie de la página. */}
                   <div className="flex items-center gap-2 mb-3 -mt-10 lg:-mt-12 relative z-10">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white bg-primary px-3 py-1.5 rounded-full shadow-lg">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary-foreground bg-primary px-3 py-1.5 rounded-full shadow-lg">
                       {post.category}
                     </span>
                   </div>

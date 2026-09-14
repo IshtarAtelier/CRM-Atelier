@@ -77,6 +77,12 @@
 :root {
   --dorado: #c8a55c;
   --dorado-texto: #8a6d3b;
+  /* El dorado como FONDO de algo con texto blanco encima (el chip de filtro
+     activo de la tienda). No cambia con el modo a propósito: el elemento trae
+     su propio fondo, así que lo único que importa es el par fondo+texto, y ese
+     par es el mismo de día y de noche. Con el dorado claro daba 2,34:1 —el
+     estado activo del filtro era justo el que no se leía—; con este, 4,85:1. */
+  --dorado-solido: #8a6d3b;
 }
 
 .dark {
@@ -237,11 +243,33 @@ button:disabled {
    (0,1,0 y encima en @layer utilities, que pierde contra CSS sin capa): un <h3
    text-white dentro de un recuadro oscuro se pintaba #1a1a1a sobre negro —1,2:1,
    texto invisible—. La tipografía (tamaños, márgenes, la barrita lateral) sigue
-   aplicándose siempre; lo único condicionado es el color. */
+   aplicándose siempre; lo único condicionado es el color.
+
+   El `:not([class*="text-"])` solo mira al PROPIO elemento, y ahí estaba el
+   agujero: el recuadro oscuro casi nunca pone el color en cada párrafo, lo pone
+   UNA vez en el contenedor (`<div class="bg-neutral-900 text-white">`) y los
+   hijos lo heredan. Un `<p class="mb-6">` adentro no tiene ninguna clase
+   `text-*`, así que la regla del artículo le imponía #333 sobre #171717 —1,42:1,
+   ilegible— mientras que su `<h4 class="text-2xl">` zafaba de casualidad, porque
+   "text-2xl" contiene "text-". Eso es exactamente lo que se veía en
+   /blog/guia-precios-multifocales-argentina.
+   Por eso el cuerpo ahora HEREDA en vez de fijar su color: el valor por defecto
+   sigue siendo el mismo (`.blog-article` ya declara `color: #222`, y el cuerpo
+   lo afina abajo), pero cuando hay un contenedor que declaró su propio color de
+   texto, gana el contenedor y nunca puede contradecir a su propio fondo. */
+.blog-article { color: #333; }
+.blog-article :is(p, h4, li, td, dd, dt):not([class*="text-"]) { color: inherit; }
 .blog-article h2:not([class*="text-"]) { color: #111; }
 .blog-article h3:not([class*="text-"]) { color: #1a1a1a; }
-.blog-article h4:not([class*="text-"]) { color: #333; }
-.blog-article p:not([class*="text-"]) { color: #333; }
+
+/* …y los títulos también ceden cuando el recuadro que los contiene fijó su
+   propio color. Los títulos sí necesitan su tono más oscuro en el cuerpo del
+   artículo, así que no pueden heredar siempre: heredan solo acá adentro. */
+.blog-article [class*="text-white"] :is(h2, h3, h4):not([class*="text-"]),
+.blog-article [class*="text-neutral-"] :is(h2, h3, h4):not([class*="text-"]),
+.blog-article [class*="text-stone-"] :is(h2, h3, h4):not([class*="text-"]),
+.blog-article [class*="text-gray-"] :is(h2, h3, h4):not([class*="text-"]),
+.blog-article [class*="text-slate-"] :is(h2, h3, h4):not([class*="text-"]) { color: inherit; }
 /* `strong` y `a` HEREDAN el color en vez de fijarlo. Un <strong> sin clase dentro
    de un recuadro `bg-black text-white` no puede heredar el blanco si la regla del
    artículo le impone #111: quedaba negro sobre negro (1,1:1), invisible. Heredando,

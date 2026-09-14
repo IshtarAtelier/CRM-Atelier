@@ -136,7 +136,7 @@ export default async function OpticaMejorCalificadaPage() {
                 href="/resenas"
                 className="inline-flex items-center gap-2 py-2 px-4 rounded-full bg-amber-50 border border-amber-200 text-amber-900 text-sm font-bold mb-8 hover:bg-amber-100 transition-colors"
               >
-                <span className="text-amber-500">★★★★★</span>
+                <span className="text-amber-700">★★★★★</span>
                 {stars} en Google · +{userRatingCount} reseñas verificadas
               </Link>
             )}
