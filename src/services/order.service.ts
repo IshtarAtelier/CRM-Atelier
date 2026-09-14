@@ -2016,7 +2016,14 @@ export class OrderService {
                         where: { id },
                         select: {
                             appliedPromoName: true,
-                            frames: { select: { position: true, imageUrl: true } },
+                            // Los armazones ENTEROS, no solo la foto: más abajo se
+                            // valida forma y medidas de cada par, y del 3º en adelante
+                            // el único lugar donde viven es esta fila (las columnas
+                            // viejas del pedido solo llegan hasta el 2º). Con el select
+                            // recortado, forma y medidas del 3º armazón se leían null
+                            // aunque estuvieran cargadas, y el pedido no podía pasar a
+                            // venta nunca.
+                            frames: SELECT_FRAMES_REPASO,
                             items: { select: { eye: true, quantity: true, productNameSnapshot: true, productCategorySnapshot: true, productTypeSnapshot: true, product: { select: { name: true, category: true, type: true } } } },
                             labFrameShape: true, frameA: true, frameB: true, frameDbl: true, frameEdc: true,
                             labFrameDetails: true, frameImageUrl: true, labHeightOD: true, labHeightOI: true,
