@@ -5,7 +5,7 @@ import { sendEmail } from '@/lib/email';
 import { EmbudoService } from '@/services/embudo.service';
 import { seleccionar } from '@/lib/seguimientos/seleccion';
 import { ejecutar, FALLAS_SEGUIDAS_PARA_FRENAR } from '@/lib/seguimientos/ejecutor';
-import { agruparVetos, diaArt, horaArt, inicioDelDiaArt, registrarCorrida } from '@/lib/seguimientos/registro';
+import { agruparVetos, diaArt, horaArt, registrarCorrida } from '@/lib/seguimientos/registro';
 import type { Candidato, EstadoDelChat } from '@/lib/seguimientos/politica';
 import {
     CUPO_DIARIO_POR_DEFECTO, HORA_DESDE, HORA_HASTA, LOTE_POR_TICK, MODO_POR_DEFECTO,
