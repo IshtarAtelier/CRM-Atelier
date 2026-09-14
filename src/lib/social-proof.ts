@@ -1,6 +1,6 @@
 /**
  * Prueba social REAL de la tienda: cuántos clientes distintos compraron cada
- * producto y cada marca. Todo sale de órdenes reales de la base — nada se
+ * producto, cada MODELO (el armazón sumando todos sus colores) y cada marca. Todo sale de órdenes reales de la base — nada se
  * estima ni se infla (Ley 24.240; ver constants/social-proof.ts).
  *
  * Qué cuenta como "venta real" acá: una orden tipo SALE, no borrada, que además
@@ -24,13 +24,17 @@ import { prisma } from "@/lib/db";
 import { serverCache } from "@/lib/cache";
 import {
   UMBRAL_ELEGIDO_PRODUCTO,
+  UMBRAL_ELEGIDO_MODELO,
   UMBRAL_ELEGIDO_MARCA,
   claveMarca,
+  claveModelo,
 } from "@/lib/constants/social-proof";
 
 export interface SocialProof {
   /** productId → clientes DISTINTOS que lo compraron. Solo entradas >= UMBRAL_ELEGIDO_PRODUCTO. */
   productos: Record<string, number>;
+  /** modelo normalizado (claveModelo) → clientes distintos, sumando todos sus colores. Solo entradas >= UMBRAL_ELEGIDO_MODELO. */
+  modelos: Record<string, number>;
   /** marca normalizada (claveMarca) → clientes distintos. Solo entradas >= UMBRAL_ELEGIDO_MARCA. */
   marcas: Record<string, number>;
 }
@@ -38,7 +42,7 @@ export interface SocialProof {
 const CACHE_KEY = "social-proof:conteos";
 const CACHE_TTL_SECONDS = 3600;
 
-const VACIO: SocialProof = { productos: {}, marcas: {} };
+const VACIO: SocialProof = { productos: {}, modelos: {}, marcas: {} };
 
 /**
  * Nunca lanza: ante cualquier falla devuelve mapas vacíos y la tienda
@@ -71,7 +75,9 @@ export async function getSocialProof(): Promise<SocialProof> {
         productId: true,
         productBrandSnapshot: true,
         order: { select: { clientId: true } },
-        product: { select: { brand: true } },
+        // `model` es el código de fábrica ("HY238014 C4-1"), no el nombre de la
+        // tienda: de ahí sale la clave que comparten los colores del armazón.
+        product: { select: { brand: true, model: true } },
       },
     });
 
@@ -80,12 +86,19 @@ export async function getSocialProof(): Promise<SocialProof> {
     // marca sale del producto vinculado si existe; si no, del snapshot que
     // tipeó el vendedor.
     const clientesPorProducto = new Map<string, Set<string>>();
+    const clientesPorModelo = new Map<string, Set<string>>();
     const clientesPorMarca = new Map<string, Set<string>>();
 
     for (const item of items) {
       if (item.productId) {
         let set = clientesPorProducto.get(item.productId);
         if (!set) clientesPorProducto.set(item.productId, (set = new Set()));
+        set.add(item.order.clientId);
+      }
+      const modelo = claveModelo(item.product?.model);
+      if (modelo) {
+        let set = clientesPorModelo.get(modelo);
+        if (!set) clientesPorModelo.set(modelo, (set = new Set()));
         set.add(item.order.clientId);
       }
       const marca = claveMarca(item.product?.brand ?? item.productBrandSnapshot);
@@ -96,10 +109,15 @@ export async function getSocialProof(): Promise<SocialProof> {
       }
     }
 
-    const resultado: SocialProof = { productos: {}, marcas: {} };
+    const resultado: SocialProof = { productos: {}, modelos: {}, marcas: {} };
     for (const [productId, clientes] of clientesPorProducto) {
       if (clientes.size >= UMBRAL_ELEGIDO_PRODUCTO) {
         resultado.productos[productId] = clientes.size;
+      }
+    }
+    for (const [modelo, clientes] of clientesPorModelo) {
+      if (clientes.size >= UMBRAL_ELEGIDO_MODELO) {
+        resultado.modelos[modelo] = clientes.size;
       }
     }
     for (const [marca, clientes] of clientesPorMarca) {

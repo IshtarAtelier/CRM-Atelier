@@ -890,38 +890,51 @@ export function TiendaClient({
                         )}
                       </div>
 
-                      {/* Badge categoría */}
-                      {p.category && (
-                        <span className="absolute top-3 left-3 text-[10px] font-black uppercase tracking-widest bg-white/80 backdrop-blur-sm px-2 py-1 z-10">
-                          {p.shape === "XL" ? `${p.category} · XL` : p.category}
-                        </span>
-                      )}
-
-                      {/* ESQUINA SUPERIOR DERECHA (pedido de Ishtar, 7/9): la
-                          OFERTA REAL manda acá arriba, sobre la foto, que es
-                          donde el ojo llega primero. Antes vivía abajo, al lado
-                          del precio, compitiendo con las cuotas.
+                      {/* FILA SUPERIOR DE SELLOS. Categoría a la izquierda y
+                          oferta/stock a la derecha, pero en UNA SOLA fila flex
+                          —no dos absolutos independientes—, porque así no
+                          pueden pisarse por geometría, no por suerte.
+                          Antes eran `top-3 left-3` y `top-3 right-3` sueltos: en
+                          celular la tarjeta mide 156 px y "RECETA" (64 px) más
+                          "26% OFF 🔥" (93 px) no entran juntos, así que el
+                          cartel rojo tapaba la mitad de la palabra y se leía
+                          "RECE" (visto en producción a 375 px, 14/9).
+                          Cuando hay oferta, en celular gana la OFERTA y la
+                          categoría se esconde hasta `sm`: truncada a tres letras
+                          no informaba nada, y el filtro de arriba ya deja elegir
+                          receta o sol.
                           Ojo: es la oferta de verdad (`salePrice`), NO el 15%
                           de transferencia — ese está en todos los productos por
                           igual y por eso se dice al lado del precio, no como
                           cartel (ver el comentario largo del bloque de precio).
                           El aviso de stock se apila DEBAJO en la misma columna:
-                          las dos cosas pueden darse a la vez y así no se tapan. */}
+                          las dos cosas pueden darse a la vez y así no se tapan.
+                          (La esquina superior derecha para la oferta es pedido
+                          de Ishtar del 7/9: es donde el ojo llega primero.) */}
                       {(() => {
                         const { enOferta, descuentoPct } = precioConOferta(p);
                         const hayStockBajo = !isWholesale && typeof p.stock === 'number' && p.stock > 0 && p.stock <= UMBRAL_ULTIMAS_UNIDADES;
-                        if (!enOferta && !hayStockBajo) return null;
+                        if (!p.category && !enOferta && !hayStockBajo) return null;
                         return (
-                          <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5">
-                            {enOferta && (
-                              <span className="text-[11px] font-black uppercase tracking-widest text-white bg-rose-600 px-2 py-1 rounded-sm shadow-md">
-                                {descuentoPct}% OFF 🔥
+                          <div className="absolute inset-x-3 top-3 z-10 flex items-start gap-2">
+                            {p.category && (
+                              <span className={`min-w-0 truncate text-[10px] font-black uppercase tracking-widest bg-white/80 backdrop-blur-sm px-2 py-1 ${enOferta ? "hidden sm:inline-block" : ""}`}>
+                                {p.shape === "XL" ? `${p.category} · XL` : p.category}
                               </span>
                             )}
-                            {hayStockBajo && (
-                              <span className="text-[10px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1 rounded-sm shadow-sm">
-                                ¡Últimas {p.stock} u.!
-                              </span>
+                            {(enOferta || hayStockBajo) && (
+                              <div className="ml-auto shrink-0 flex flex-col items-end gap-1.5">
+                                {enOferta && (
+                                  <span className="text-[11px] font-black uppercase tracking-widest text-white bg-rose-600 px-2 py-1 rounded-sm shadow-md">
+                                    {descuentoPct}% OFF 🔥
+                                  </span>
+                                )}
+                                {hayStockBajo && (
+                                  <span className="text-[10px] font-black uppercase tracking-widest bg-stone-900 text-white px-2 py-1 rounded-sm shadow-sm">
+                                    ¡Últimas {p.stock} u.!
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
                         );

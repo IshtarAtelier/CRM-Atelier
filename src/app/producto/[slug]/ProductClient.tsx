@@ -20,7 +20,7 @@ import { PricingService } from "@/services/PricingService";
 import { formatearPrecio } from "@/lib/format-precio";
 import { textoCuotas12 } from "@/lib/promo-cuotas";
 import { precioConOferta } from "@/lib/precio-oferta";
-import { UMBRAL_ULTIMAS_UNIDADES, claveMarca } from "@/lib/constants/social-proof";
+import { UMBRAL_ULTIMAS_UNIDADES, claveMarca, claveModelo } from "@/lib/constants/social-proof";
 import { TrustStrip } from "@/components/Storefront/TrustStrip";
 import ProductReviews from "@/components/Storefront/ProductReviews";
 
@@ -212,7 +212,7 @@ export function ProductClient({
   // Prueba social REAL: clientes distintos que compraron este producto (o su
   // marca). El endpoint ya viene filtrado por umbral desde la base — si acá no
   // llega el número, el cartel no existe. Nunca se inventa (Ley 24.240).
-  const [socialProof, setSocialProof] = useState<{ productos: Record<string, number>; marcas: Record<string, number> } | null>(null);
+  const [socialProof, setSocialProof] = useState<{ productos: Record<string, number>; modelos: Record<string, number>; marcas: Record<string, number> } | null>(null);
   useEffect(() => {
     fetch('/api/store/social-proof')
       .then(res => (res.ok ? res.json() : null))
@@ -220,6 +220,7 @@ export function ProductClient({
       .catch(() => {});
   }, []);
   const clientesDelProducto = socialProof?.productos?.[product.id] || 0;
+  const clientesDelModelo = socialProof?.modelos?.[claveModelo(product.modelCode)] || 0;
   const clientesDeLaMarca = socialProof?.marcas?.[claveMarca(product.brand)] || 0;
 
   // Precios netos: la ficha es ISR y el HTML lo comparten todos, así que el
@@ -453,17 +454,28 @@ export function ProductClient({
               )}
             </div>
 
-            {/* "Elegido por N clientes": clientes REALES contados en la base
-                (ventas respaldadas por pago o laboratorio). El umbral lo
-                aplica el server: si el modelo no llega, cae al conteo de la
-                marca; si tampoco, no se muestra nada — jamás se inventa. */}
-            {!isWholesale && (clientesDelProducto > 0 || clientesDeLaMarca > 0) && (
+            {/* Prueba social: clientes REALES contados en la base (ventas
+                respaldadas por pago o laboratorio). Tres escalones, del dato
+                más específico al más general, y cada uno dice algo DISTINTO —
+                si los tres dijeran lo mismo, el cartel deja de informar y pasa
+                a ser un sello repetido en toda la tienda (pedido de Ishtar,
+                14/9): este color exacto → este armazón en todos sus colores →
+                la marca. El umbral lo aplica el server: lo que no alcanza no
+                viaja, y si no alcanza ninguno no se muestra nada. Jamás se
+                infla ni se inventa (Ley 24.240).
+                El escalón del medio existe porque cada color tiene ficha
+                propia: un armazón que vendió repartido entre tres colores no
+                llegaba nunca al umbral de producto y caía siempre en la frase
+                de marca, idéntica en cada ficha de esa marca. */}
+            {!isWholesale && (clientesDelProducto > 0 || clientesDelModelo > 0 || clientesDeLaMarca > 0) && (
               <div className="mb-6">
                 <span className="inline-flex items-center gap-1.5 border border-stone-200 bg-stone-50 rounded-full px-3.5 py-1.5 text-[11px] font-bold text-stone-800">
                   <Users aria-hidden="true" className="w-3.5 h-3.5 text-stone-600" />
                   {clientesDelProducto > 0
                     ? `Elegido por ${clientesDelProducto} clientes`
-                    : `Los ${product.brand} ya están en la cara de ${clientesDeLaMarca} clientes`}
+                    : clientesDelModelo > 0
+                      ? `${clientesDelModelo} clientes eligieron este armazón`
+                      : `${clientesDeLaMarca} clientes ya eligieron ${product.brand}`}
                 </span>
               </div>
             )}
