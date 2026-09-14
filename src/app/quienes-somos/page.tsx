@@ -154,27 +154,107 @@ export default function QuienesSomosPage() {
           </ul>
         </section>
 
-        {/* Las dos, una por una. Sin retrato: las únicas fotos sueltas de Ishtar
-            son de viaje y desentonaban al lado de la de Yani. */}
-        <section className="grid sm:grid-cols-2 gap-8">
-          {[
-            {
-              nombre: "Ishtar",
-              rol: "Al frente de la óptica",
-              texto: "Desde el primer día. Elige cada armazón que entra al local y sigue tu pedido hasta que te lo entrega puesto.",
-            },
-            {
-              nombre: "Yani",
-              rol: "Licenciada en Nutrición (UNC)",
-              texto: "Del mismo equipo de siempre, y flamante egresada de la UNC. Para nosotras la salud se cuida entera: la vista es parte de ese todo.",
-            },
-          ].map((p) => (
-            <article key={p.nombre} className="bg-white dark:bg-stone-900 rounded-3xl p-8 border border-stone-200 dark:border-stone-800 shadow-sm">
-              <h3 className="text-2xl font-bold text-stone-900 dark:text-white">{p.nombre}</h3>
-              <p className="text-primary text-[11px] font-bold uppercase tracking-widest mt-1 mb-3">{p.rol}</p>
-              <p className="text-stone-600 dark:text-stone-300">{p.texto}</p>
-            </article>
-          ))}
+        {/* ── Nuestro equipo ─────────────────────────────────────────────────
+            Antes esto eran dos tarjetas sueltas de Ishtar y Yani, sin foto (las
+            únicas sueltas de Ishtar eran de viaje y desentonaban). Ahora hay
+            fotos del local hechas para esto, y el equipo es de cuatro, así que
+            se arma como apartado: quiénes crearon la óptica y quiénes atienden.
+
+            Los retratos son de las dos personas que están de guardapolvo en las
+            fotos. A las creadoras no se les pone retrato nuevo acá porque las
+            suyas ya están arriba, en "somos nosotras". */}
+        <section id="equipo" className="scroll-mt-28">
+          <div className="max-w-2xl mx-auto text-center mb-8">
+            <h2 className="text-3xl font-black text-stone-900 dark:text-white mb-4">
+              Nuestro <span className="text-primary italic">equipo</span>
+            </h2>
+            <p className="text-lg text-stone-600 dark:text-stone-300">
+              Cuatro personas y un solo mostrador: dos que armaron la óptica y dos que la atienden todos los días.
+            </p>
+          </div>
+
+          <div className="relative aspect-[3/2] rounded-3xl overflow-hidden border border-stone-200 dark:border-stone-800 mb-10">
+            <Image
+              src="/images/equipo/equipo-mostrador.jpg"
+              alt="El equipo de Atelier Óptica atendiendo en el mostrador de mármol"
+              fill
+              sizes="(max-width: 768px) 100vw, 896px"
+              className="object-cover"
+            />
+          </div>
+
+          {/* Creadoras */}
+          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-500 dark:text-stone-400 mb-4">
+            Las creadoras
+          </h3>
+          <div className="grid sm:grid-cols-2 gap-6 mb-10">
+            {[
+              {
+                nombre: "Ishtar",
+                rol: "Creadora",
+                texto: "Desde el primer día. Elige cada armazón que entra al local y sigue tu pedido hasta que te lo entrega puesto.",
+              },
+              {
+                nombre: "Yani",
+                rol: "Creadora · Licenciada en Nutrición (UNC)",
+                texto: "Del mismo equipo de siempre, y flamante egresada de la UNC. Para nosotras la salud se cuida entera: la vista es parte de ese todo.",
+              },
+            ].map((p) => (
+              <article key={p.nombre} className="bg-white dark:bg-stone-900 rounded-3xl p-8 border border-stone-200 dark:border-stone-800 shadow-sm">
+                <h4 className="text-2xl font-bold text-stone-900 dark:text-white">{p.nombre}</h4>
+                <p className="text-primary text-[11px] font-bold uppercase tracking-widest mt-1 mb-3">{p.rol}</p>
+                <p className="text-stone-600 dark:text-stone-300">{p.texto}</p>
+              </article>
+            ))}
+          </div>
+
+          {/* Quienes atienden. El sello Essilor Expert va como dato, sin
+              explicarlo de más: es la certificación de Essilor, y decir qué
+              habilita exactamente sería inventarle alcance. */}
+          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-stone-500 dark:text-stone-400 mb-4">
+            Colaboradores especializados
+          </h3>
+          <div className="grid sm:grid-cols-2 gap-6">
+            {[
+              {
+                nombre: "Milena",
+                rol: "Colaboradora especializada",
+                foto: "/images/equipo/retrato-mostrador.jpg",
+                alt: "Milena, colaboradora especializada de Atelier Óptica, en el mostrador",
+                texto: "Te toma la receta, te ayuda a elegir el armazón y te explica qué cristal le va a cada uno.",
+              },
+              {
+                nombre: "Matías",
+                rol: "Colaborador especializado",
+                foto: "/images/equipo/retrato-guardapolvo.jpg",
+                alt: "Matías, colaborador especializado de Atelier Óptica, junto a la pared de armazones",
+                texto: "Del armado al ajuste final. Si el anteojo no te queda cómodo, vuelve al taller hasta que sí.",
+              },
+            ].map((p) => (
+              <article key={p.nombre} className="bg-white dark:bg-stone-900 rounded-3xl overflow-hidden border border-stone-200 dark:border-stone-800 shadow-sm flex flex-col">
+                <div className="relative aspect-[4/5]">
+                  <Image
+                    src={p.foto}
+                    alt={p.alt}
+                    fill
+                    sizes="(max-width: 640px) 100vw, 440px"
+                    className="object-cover object-top"
+                  />
+                </div>
+                <div className="p-6 sm:p-8">
+                  <h4 className="text-2xl font-bold text-stone-900 dark:text-white">{p.nombre}</h4>
+                  <p className="text-primary text-[11px] font-bold uppercase tracking-widest mt-1 mb-1">
+                    {p.rol}
+                  </p>
+                  <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-stone-700 dark:text-stone-200 bg-stone-100 dark:bg-stone-800 rounded-full px-3 py-1 mb-3">
+                    <Sparkles className="w-3 h-3 text-primary" />
+                    Essilor Expert
+                  </p>
+                  <p className="text-stone-600 dark:text-stone-300">{p.texto}</p>
+                </div>
+              </article>
+            ))}
+          </div>
         </section>
 
         {/* Yani recibida: el orgullo de familia, con la foto de las dos */}
