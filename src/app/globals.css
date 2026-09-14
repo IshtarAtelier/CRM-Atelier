@@ -286,11 +286,16 @@ button:disabled {
   line-height: 1.85;
 }
 
+/* El párrafo de entrada se distingue por TAMAÑO, no por color. Fijaba #444 sin
+   excepción y con más especificidad que la guarda de arriba, así que se comía
+   también al primer párrafo de cualquier recuadro: en /blog/stellest el
+   "¿Te lo recetaron y querés consultar?" salía #444 sobre stone-900 —1,8:1—
+   dentro de una caja que ya declaraba `text-stone-50`. Heredando, el color lo
+   decide el contenedor; el valor por defecto sigue siendo el del artículo. */
 .blog-article > p:first-child,
 .blog-article > div > p:first-child,
 .blog-article .lead {
   font-size: 1.35rem;
-  color: #444;
   line-height: 1.75;
   margin-bottom: 2rem;
 }

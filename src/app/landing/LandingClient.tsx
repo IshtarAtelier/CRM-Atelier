@@ -285,11 +285,11 @@ export function LandingClient({
       {/* Header minimalista (anti-fugas) */}
       <header className="w-full bg-[#0F0F0F] border-b border-white/10 py-5 px-6 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/30 hidden sm:block">
+          <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/60 hidden sm:block">
             Óptica de autor
           </span>
           <span className="text-xl font-serif text-[#C5A059] tracking-[0.35em] uppercase">Atelier</span>
-          <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/30 hidden sm:block">
+          <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/60 hidden sm:block">
             Córdoba · Arg
           </span>
         </div>

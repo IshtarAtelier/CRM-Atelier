@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import { ThemeProvider } from "next-themes";
+import { ProveedorDeTema } from "@/components/ProveedorDeTema";
 import { STORE_ORIGIN } from "@/lib/constants";
 import "./globals.css";
 
@@ -91,20 +91,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} antialiased selection:bg-primary/30`}
       >
-        {/* El modo oscuro se PRENDE A MANO, no lo decide el sistema operativo.
-            Con `enableSystem` el `.dark` se aplicaba a TODO el sitio —tienda,
-            blog, fichas— apenas el visitante tuviera el celular en oscuro, y
-            esas páginas están diseñadas solo en claro: fijan su propio fondo
-            crema pero heredan los tokens de gris y dorado, que sí se dan
-            vuelta. Resultado medido el 14/9 sobre el sitio en vivo: los links
-            del menú a 1,74:1, los volantillos a 2,38:1, el "Ordenar por" de la
-            tienda a 1,26:1 — texto que no se lee, en 10 páginas.
-            Además el interruptor (`ThemeToggle`, solo en /admin) nunca ofreció
-            "sistema": tiene sol y luna y nada más. O sea que el modo sistema no
-            se podía elegir ni ver, pero mandaba igual.
-            Quien ya eligió oscuro en el CRM lo conserva: la elección vive en
-            localStorage y `defaultTheme` solo decide para quien no eligió. */}
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        {/* Quién decide claro/oscuro y dónde: ver ProveedorDeTema. */}
+        <ProveedorDeTema>
           <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:p-4 focus:bg-background focus:text-foreground">Saltar al contenido principal</a>
           <div className="min-h-screen bg-background text-foreground" id="main-content">
             {children}
@@ -125,7 +113,7 @@ export default function RootLayout({
           <AnalyticsTracker />
           <WhatsAppAttribution />
           <ChunkReloadGuard />
-        </ThemeProvider>
+        </ProveedorDeTema>
       </body>
     </html>
   );

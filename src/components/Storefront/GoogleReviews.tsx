@@ -163,7 +163,7 @@ export function GoogleReviews() {
                       referrerPolicy="no-referrer" 
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-[#8a6d3b]/10 text-[#8a6d3b] flex items-center justify-center text-xs font-bold">
+                    <div className="w-9 h-9 rounded-full bg-[#8a6d3b]/10 text-[#6b5430] flex items-center justify-center text-xs font-bold">
                       {getInitials(review.author_name)}
                     </div>
                   )}

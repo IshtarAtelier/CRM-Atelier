@@ -429,7 +429,7 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
               <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--dorado-texto)] mb-1">{secondFramePending ? "Promo 2x1" : "Paso 1"}</p>
               <h1 className="text-xl font-serif tracking-tight text-[#1a1714]">{secondFramePending ? "Elegí tu Segundo Armazón" : "Elegí tu Armazón"}</h1>
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 bg-stone-100 border border-stone-200/80 px-2.5 py-1 rounded-full">
+            <span className="text-[9px] font-black uppercase tracking-widest text-stone-700 bg-stone-100 border border-stone-200/80 px-2.5 py-1 rounded-full">
               {groupedProducts.length} {groupedProducts.length === 1 ? 'modelo' : 'modelos'}
             </span>
           </div>

@@ -64,7 +64,7 @@ const OBRAS = [
 function SectionLabel({ n, children }: { n: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-4 mb-8">
-      <span className="text-[11px] tracking-[0.3em] text-white/35 font-mono">{n}</span>
+      <span className="text-[11px] tracking-[0.3em] text-white/70 font-mono">{n}</span>
       <span className="h-px flex-1 bg-white/15" />
       <span className="text-[11px] uppercase tracking-[0.3em] text-white/50">{children}</span>
     </div>
@@ -111,7 +111,7 @@ export default function AnteojosObrasDeArtePage() {
               </div>
             </div>
 
-            <div className="absolute bottom-6 right-6 lg:right-16 z-10 text-[11px] tracking-[0.2em] text-white/30 hidden sm:block">
+            <div className="absolute bottom-6 right-6 lg:right-16 z-10 text-[11px] tracking-[0.2em] text-white/70 hidden sm:block">
               SCROLL ↓
             </div>
           </header>
@@ -145,7 +145,7 @@ export default function AnteojosObrasDeArtePage() {
               <Image src="/images/blog/ishtar/ishtar-gucci.jpg" alt="Ishtar Pissano de viaje" fill sizes="50vw" className="object-cover grayscale" />
             </div>
           </section>
-          <p className="text-center text-[11px] uppercase tracking-[0.25em] text-white/35 py-6 border-b border-white/10">
+          <p className="text-center text-[11px] uppercase tracking-[0.25em] text-white/70 py-6 border-b border-white/10">
             Viajar, mirar, traerse partecitas de cada óptica del mundo
           </p>
 
@@ -193,7 +193,7 @@ export default function AnteojosObrasDeArtePage() {
                 <Image src="/images/blog/ishtar/hermana-diploma-2.jpg" alt="Ishtar sosteniendo el diploma de su hermana Yani" fill sizes="33vw" className="object-cover grayscale" />
               </div>
             </div>
-            <p className="text-center text-[11px] uppercase tracking-[0.25em] text-white/35 py-6 border-b border-white/10">
+            <p className="text-center text-[11px] uppercase tracking-[0.25em] text-white/70 py-6 border-b border-white/10">
               Mi hermana. Metódica, apasionada, la que sostuvo el primer año.
             </p>
           </section>
@@ -210,7 +210,7 @@ export default function AnteojosObrasDeArtePage() {
             <div className="max-w-5xl mx-auto grid sm:grid-cols-2 divide-y sm:divide-y-0 divide-white/10">
               {PROCESOS.map((p, i) => (
                 <div key={p.titulo} className={`py-8 sm:p-10 ${i % 2 === 0 ? 'sm:border-r border-white/10' : ''} ${i < 2 ? 'sm:border-b border-white/10' : ''}`}>
-                  <span className="text-[11px] font-mono text-white/30">{p.n}</span>
+                  <span className="text-[11px] font-mono text-white/70">{p.n}</span>
                   <h3 className="text-xl font-normal mt-3 mb-3">{p.titulo}</h3>
                   <p className="text-white/55 text-[14px] leading-relaxed">{p.texto}</p>
                 </div>
@@ -257,9 +257,9 @@ export default function AnteojosObrasDeArtePage() {
               <p className="text-2xl lg:text-4xl font-light leading-tight text-white">
                 Somos ópticos creativos.<br />Tu visión es nuestra obra maestra.
               </p>
-              <footer className="mt-6 text-[11px] uppercase tracking-[0.25em] text-white/40">Ishtar Pissano</footer>
+              <footer className="mt-6 text-[11px] uppercase tracking-[0.25em] text-white/70">Ishtar Pissano</footer>
             </blockquote>
-            <p className="text-white/35 text-[13px] leading-relaxed italic">
+            <p className="text-white/70 text-[13px] leading-relaxed italic">
               En la óptica no diagnosticamos ni recetamos: tu primer paso siempre es el médico oftalmólogo. Con la receta en mano, el resto es nuestro trabajo.
             </p>
           </section>

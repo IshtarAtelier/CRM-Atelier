@@ -91,7 +91,7 @@ export function ContactoClient({
         {!!reviewCount && reviewCount > 0 && (
           <div className="flex md:justify-center mt-5">
             <div className="inline-flex items-center gap-2 bg-[#c8a55c]/5 border border-[#c8a55c]/20 rounded-full px-4 py-2">
-              <span className="text-[#c8a55c] text-sm tracking-tight">★★★★★</span>
+              <span className="text-[var(--dorado-texto)] text-sm tracking-tight">★★★★★</span>
               <span className="text-stone-700 text-[10px] font-bold uppercase tracking-[0.15em]">
                 {(rating || 5).toFixed(1)} en Google · {reviewCount} Reseñas
               </span>

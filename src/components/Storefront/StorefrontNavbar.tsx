@@ -155,19 +155,13 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
   // Altura fija (en vez de paddings) para que links, logo e iconos queden
   // siempre centrados y contenidos dentro de la barra
   const headerBgClass = isHeaderScrolled
-    ? "bg-[#faf8f5]/90 dark:bg-stone-900/90 backdrop-blur-md shadow-sm border-b border-[#e8e2db]/50 dark:border-stone-800/60 h-12"
+    ? "bg-[#faf8f5]/90 backdrop-blur-md shadow-sm border-b border-[#e8e2db]/50 h-12"
     : "bg-transparent h-12 sm:h-14";
 
-  // El marrón oscuro es legible sobre el crema de la barra… pero el `.dark` se
-  // prende solo con la preferencia del sistema operativo del visitante
-  // (next-themes con `enableSystem` en el layout raíz), y ahí el fondo de la
-  // página pasa a ser casi negro con la barra transparente: el mismo #433831
-  // daba 1,74:1 y los links del menú desaparecían. Por eso el color del texto
-  // acompaña al modo, no solo al prop `theme` —que describe el fondo del HERO,
-  // que no cambia con el modo—.
-  const activeTextColorClass = isHeaderScrolled
-    ? "text-[#433831] dark:text-stone-100"
-    : (isDark ? "text-white" : "text-[#433831] dark:text-stone-100");
+  // Sin variantes `dark:` a propósito: el sitio público va siempre en claro
+  // (ver ProveedorDeTema). El prop `theme` describe el fondo del HERO de cada
+  // página, que es una decisión de diseño y no cambia con el modo del visitante.
+  const activeTextColorClass = isHeaderScrolled ? "text-[#433831]" : (isDark ? "text-white" : "text-[#433831]");
   const activeTextShadowStyle = (isDark && !isHeaderScrolled) ? { textShadow: "0 1px 3px rgba(0,0,0,0.3)" } : {};
 
   // La promo minorista (cuotas / % off) no aplica al canal mayorista: a las
