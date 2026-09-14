@@ -504,6 +504,21 @@ export function ProductClient({
                       <Link
                         key={v.slug}
                         href={`/producto/${v.slug}`}
+                        /* Cada color es una ficha propia (decisión de Ishtar: da
+                           sensación de más variedad), así que cambiar de color es
+                           NAVEGAR. Dos cosas lo hacían sentir una recarga entera:
+                           1) `prefetch` explícito: el selector suele quedar abajo
+                              del fold, y el prefetch automático de Next recién
+                              dispara cuando el link entra en pantalla. Así llega
+                              tarde. Cada variante son 27 KB (contra 117 KB de la
+                              carga completa) y un modelo tiene 3-4 colores: sale
+                              barato tenerlas listas antes del clic.
+                           2) `scroll={false}`: sin esto la página salta al tope en
+                              cada cambio, que es JUSTO lo que se lee como "se
+                              recargó todo". Con esto te quedás mirando el mismo
+                              lugar y solo cambia el anteojo. */
+                        prefetch
+                        scroll={false}
                         className={`group relative flex items-center justify-center rounded-full border p-1 transition-all duration-300 ${
                           isActive 
                             ? 'border-black scale-110 shadow-sm bg-white' 
