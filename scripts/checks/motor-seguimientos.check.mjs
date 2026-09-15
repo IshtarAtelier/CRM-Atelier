@@ -102,6 +102,9 @@ console.log('\nSi el cliente responde a un seguimiento, el vendedor recibe una t
     const prismaFalso = { clientTask: { findFirst: async () => null, create: async ({ data }) => { creada = data; return data; } } };
     await rs.crearTareaPorRespuesta(prismaFalso, { clientId: 'c1', lastFollowUpAt: hace(20), lastInboundAt: null }, { texto: 'Hola sí me parece bien, solo me quedó una duda', tipo: 'TEXT' });
     check('la tarea es del VENDEDOR (type TASK, para hoy) y trae el texto', creada && creada.type === 'TASK' && creada.description.includes('me quedó una duda') && creada.dueDate instanceof Date, JSON.stringify(creada));
+    check('la firma NO es "Sistema (Embudo)" (la sincronización diaria cancela esas)', creada && creada.createdBy === 'Sistema (Respuestas)' && rs.CREADO_POR === 'Sistema (Respuestas)');
+    const respTs = (await import('node:fs')).readFileSync(new URL('../../src/lib/embudo/respuestas-a-seguimientos.ts', import.meta.url), 'utf8');
+    check('la red diaria firma igual y vuelve a crear las canceladas por el sistema', respTs.includes("CREADO_POR = 'Sistema (Respuestas)'") && respTs.includes("t.status === 'COMPLETED' &&"));
     const inbound = (await import('node:fs')).readFileSync(new URL('../../wa-service/transport/inbound.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('inbound.js la crea al guardar el entrante', inbound.includes('crearTareaPorRespuesta(prisma'));
     const { respondioAlSeguimiento, PREFIJO_RESPUESTA } = await import('../../src/lib/embudo/respuestas-a-seguimientos.ts');

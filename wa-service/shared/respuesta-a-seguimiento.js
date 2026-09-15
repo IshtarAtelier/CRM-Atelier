@@ -14,7 +14,11 @@
  * o cerrar como perdido). Una tarea por respuesta; si el cliente manda tres
  * burbujas seguidas, la primera ya la creó y las otras no suman.
  */
-const CREADO_POR = 'Sistema (Embudo)';
+// NO 'Sistema (Embudo)': ese firmante es el de las tareas del día del embudo
+// (sincronizar-tareas.ts), que cada mañana convierte a tipo EMBUDO y CANCELA
+// todas las suyas que no estén en "para hoy". El 15/9/2026 se llevó puestas 13
+// tareas de respuestas (Maggie "sí, estoy interesada", Ceci, Patricia…).
+const CREADO_POR = 'Sistema (Respuestas)';
 const PREFIJO = '💬 Respondió al seguimiento';
 
 /** ¿Este entrante es la primera respuesta después del último seguimiento? (`chatAntes` = el chat ANTES de registrar el entrante) */

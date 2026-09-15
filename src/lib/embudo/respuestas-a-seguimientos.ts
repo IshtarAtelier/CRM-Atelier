@@ -13,7 +13,9 @@ import { prisma } from '@/lib/db';
  * Misma marca que el wa-service para no duplicar: `PREFIJO`.
  */
 export const PREFIJO_RESPUESTA = '💬 Respondió al seguimiento';
-const CREADO_POR = 'Sistema (Embudo)';
+// Mismo firmante que el wa-service y DISTINTO de 'Sistema (Embudo)': con ese,
+// sincronizar-tareas.ts las convertía a tipo EMBUDO y las cancelaba cada mañana.
+const CREADO_POR = 'Sistema (Respuestas)';
 /**
  * Solo respuestas de los últimos N días. La primera corrida (12/9/2026) creó
  * 87 tareas de golpe, muchas de respuestas de julio al robot viejo ("Gracias",
@@ -72,7 +74,8 @@ export async function tareasPorRespuestasSinAtender(now = Date.now()): Promise<n
     });
     let creadas = 0;
     for (const c of conRespuesta) {
-        const yaHay = tareas.some(t => t.clientId === c.clientId && (t.status === 'PENDING' || t.createdAt.getTime() > c.lastFollowUpAt!.getTime()));
+        // Una cancelada por el sistema no cuenta como atendida: se vuelve a crear.
+        const yaHay = tareas.some(t => t.clientId === c.clientId && (t.status === 'PENDING' || (t.status === 'COMPLETED' && t.createdAt.getTime() > c.lastFollowUpAt!.getTime())));
         if (yaHay) continue;
         const ultimo = await prisma.whatsAppMessage.findFirst({
             where: { chatId: c.id, direction: 'INBOUND', createdAt: { gt: c.lastFollowUpAt! } },
