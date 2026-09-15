@@ -543,6 +543,11 @@ export class GoogleAdsService {
     clics: number;
     impresiones: number;
     conversiones: number;
+    /** En cuántos días distintos gastó. Una campaña que quemó el mes en cuatro
+     *  días no se compara con otra que estiró lo mismo en treinta. */
+    diasConGasto: number;
+    primerDia: string | null;
+    ultimoDia: string | null;
   }> | null> {
     if (!this.gastoConfigurado()) return null;
     const customerId = this.customerId()!;
@@ -565,7 +570,10 @@ export class GoogleAdsService {
         body: JSON.stringify({
           // La moneda viaja en la misma consulta, por el mismo motivo que en
           // getSpendArsForRange: `cost_micros` está en la moneda DE LA CUENTA.
-          query: `SELECT customer.currency_code, campaign.name, campaign.status,
+          // `segments.date` viene en la proyección a propósito: la API devuelve
+          // una fila por campaña y día, y esos días son los que dicen cuánto
+          // DURÓ la inversión, no solo cuánta fue.
+          query: `SELECT customer.currency_code, campaign.name, campaign.status, segments.date,
                          metrics.cost_micros, metrics.clicks, metrics.impressions, metrics.conversions
                   FROM campaign
                   WHERE segments.date BETWEEN '${desde}' AND '${hasta}'`,
@@ -581,6 +589,7 @@ export class GoogleAdsService {
         results?: Array<{
           customer?: { currencyCode?: string };
           campaign?: { name?: string; status?: string };
+          segments?: { date?: string };
           metrics?: { costMicros?: string; clicks?: string; impressions?: string; conversions?: number };
         }>;
       };
@@ -598,17 +607,36 @@ export class GoogleAdsService {
       }
 
       // La API devuelve una fila por campaña y día: se suman por nombre.
-      const porNombre = new Map<string, { nombre: string; estado: string; costo: number; clics: number; impresiones: number; conversiones: number }>();
+      const porNombre = new Map<string, {
+        nombre: string; estado: string; costo: number; clics: number; impresiones: number;
+        conversiones: number; dias: Set<string>;
+      }>();
       for (const r of results) {
         const nombre = r.campaign?.name || '(sin nombre)';
-        const acc = porNombre.get(nombre) || { nombre, estado: r.campaign?.status || '—', costo: 0, clics: 0, impresiones: 0, conversiones: 0 };
-        acc.costo += (Number(r.metrics?.costMicros ?? 0) / 1_000_000) * aPesos;
+        const acc = porNombre.get(nombre)
+          || { nombre, estado: r.campaign?.status || '—', costo: 0, clics: 0, impresiones: 0, conversiones: 0, dias: new Set<string>() };
+        const costoDelDia = (Number(r.metrics?.costMicros ?? 0) / 1_000_000) * aPesos;
+        acc.costo += costoDelDia;
         acc.clics += Number(r.metrics?.clicks ?? 0);
         acc.impresiones += Number(r.metrics?.impressions ?? 0);
         acc.conversiones += Number(r.metrics?.conversions ?? 0);
+        // Solo cuenta el día en que REALMENTE gastó: la API devuelve filas en
+        // cero para los días que la campaña existió pausada, y contarlas diría
+        // que una campaña de cuatro días duró todo el mes.
+        if (costoDelDia > 0 && r.segments?.date) acc.dias.add(r.segments.date);
         porNombre.set(nombre, acc);
       }
-      return [...porNombre.values()].sort((a, b) => b.costo - a.costo);
+      return [...porNombre.values()]
+        .map(({ dias, ...c }) => {
+          const ordenados = [...dias].sort();
+          return {
+            ...c,
+            diasConGasto: ordenados.length,
+            primerDia: ordenados[0] ?? null,
+            ultimoDia: ordenados[ordenados.length - 1] ?? null,
+          };
+        })
+        .sort((a, b) => b.costo - a.costo);
     } catch (err) {
       console.error('[GoogleAdsService] Excepción leyendo las campañas:', err);
       return null;
