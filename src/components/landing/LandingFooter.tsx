@@ -54,29 +54,24 @@ export function LandingFooter({ theme = "dark" }: { theme?: "dark" | "light" }) 
         </p>
         <p className={`text-[13px] ${muted}`}>{BUSINESS_INFO.hours}</p>
 
-        {/* Cómo llegar y redes: lo tenía la landing vieja y acá faltaba. Son
-            links EXTERNOS (Maps, Instagram, YouTube), no navegación a la
-            tienda, así que no desvían del objetivo. Salen de BUSINESS_INFO: si
-            cambia una URL, cambia en todo el sitio. Facebook y TikTok no están
-            ahí, y no se inventan. */}
+        {/* Un solo link que sale de la landing: cómo llegar al local. Sirve al
+            mismo objetivo que el CTA ("retirá gratis en Cerro de las Rosas").
+            Instagram, YouTube y Términos se sacaron (Ishtar, 15/9/26): cada link
+            que lleva a otro lado es una salida del embudo. */}
         <div className={`flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-1 text-[13px]`}>
           <a href={BUSINESS_INFO.mapsUrl} target="_blank" rel="noopener noreferrer" className={linkCls}>
             Cómo llegar
           </a>
-          <a href={BUSINESS_INFO.instagramUrl} target="_blank" rel="noopener noreferrer" className={linkCls}>
-            Instagram
-          </a>
-          <a href={BUSINESS_INFO.youtubeUrl} target="_blank" rel="noopener noreferrer" className={linkCls}>
-            YouTube
-          </a>
         </div>
 
+        {/* La política de privacidad se QUEDA, aunque también lleve a otro lado:
+            la landing corre el Pixel de Meta y Google Tag (recolecta datos), y
+            Google Ads y Meta exigen una política accesible en el destino del
+            anuncio — su falta es motivo de desaprobación, sobre todo con
+            remarketing activo. Va chica y al final para no competir con el CTA. */}
         <div className={`flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-2 text-[12px]`}>
           <a href="/politicas-de-privacidad" className={linkCls}>
             Política de privacidad
-          </a>
-          <a href="/terminos-y-condiciones" className={linkCls}>
-            Términos y condiciones
           </a>
         </div>
 
