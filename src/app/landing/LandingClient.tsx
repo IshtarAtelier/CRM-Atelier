@@ -344,17 +344,26 @@ export function LandingClient({
                 {isRedirecting ? Spinner : config.primaryCta}
               </motion.button>
 
-              {/* Badge de rating solo con datos reales de Google */}
+              {/* Badge de rating solo con datos reales de Google. La frase
+                  "mejor calificada de Córdoba" vivía solo abajo, en la sección
+                  de reseñas: Ishtar pidió (15/9/26) que se lea arriba, donde
+                  entra el que viene del anuncio. Es un dato agregado, no una
+                  cita con nombre: por eso sí puede ir en una landing de pauta. */}
               {reviewCount > 0 && (
-                <div className="flex items-center gap-2.5">
-                  <div className="flex text-[#C5A059]">
-                    {[...Array(5)].map((_, j) => (
-                      <Star key={j} className="w-3.5 h-3.5 fill-current" />
-                    ))}
-                  </div>
-                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-300">
-                    {ratingStr} — {reviewCount} reseñas en Google
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#C5A059]">
+                    La óptica mejor calificada de Córdoba
                   </span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex text-[#C5A059]">
+                      {[...Array(5)].map((_, j) => (
+                        <Star key={j} className="w-3.5 h-3.5 fill-current" />
+                      ))}
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-300">
+                      {ratingStr} — {reviewCount} reseñas en Google
+                    </span>
+                  </div>
                 </div>
               )}
             </div>

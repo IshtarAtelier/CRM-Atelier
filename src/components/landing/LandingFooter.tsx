@@ -45,14 +45,11 @@ export function LandingFooter({ theme = "dark" }: { theme?: "dark" | "light" }) 
           {BUSINESS_INFO.address}
         </p>
         <p className={`text-sm ${strong}`}>
+          {/* Sin email a propósito (pedido de Ishtar, 15/9/26): la landing tiene
+              UN camino, WhatsApp. Un mailto era el único desvío que quedaba, y
+              la casilla venía de promo.atelieroptica.com.ar, que se retira. */}
           <a href={`tel:${BUSINESS_INFO.phoneE164}`} className={linkCls}>
             {BUSINESS_INFO.phone}
-          </a>
-          <span className={`mx-2 ${muted}`}>·</span>
-          {/* mailto no es fuga: es otro canal de contacto, mismo objetivo. Es
-              la casilla que el negocio ya publica en promo.atelieroptica.com.ar. */}
-          <a href="mailto:ventas@atelieroptica.com.ar" className={linkCls}>
-            ventas@atelieroptica.com.ar
           </a>
         </p>
         <p className={`text-[13px] ${muted}`}>{BUSINESS_INFO.hours}</p>
