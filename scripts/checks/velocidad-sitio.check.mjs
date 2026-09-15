@@ -39,7 +39,10 @@ const BASE = valor('--base', 'https://atelieroptica.com.ar').replace(/\/$/, '');
 const SOLO = valor('--ruta', null);
 const JSON_OUT = valor('--json', null);
 const MOVIL = !tiene('--escritorio');
-const VUELTAS = Number(valor('--vueltas', 1));
+// Tres vueltas por defecto y se queda la MEDIANA. Con una sola, el 14/9 la
+// tienda marcó 1,8 s y quedó como la única área en verde; repetida, da entre
+// 2,1 y 3,5 s. Una muestra sola no mide una página, mide una casualidad.
+const VUELTAS = Number(valor('--vueltas', 3));
 
 /** Las áreas del sitio, con el nombre que usa Ishtar para cada una. */
 const AREAS = [
