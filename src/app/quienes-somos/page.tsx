@@ -46,15 +46,22 @@ export default function QuienesSomosPage() {
         </div>
       </div>
 
-      {/* Fachada: lo primero que se ve es que el lugar existe y tiene puerta */}
+      {/* Fachada: lo primero que se ve es que el lugar existe y tiene puerta.
+          Y desde 9/2026, que adentro hay gente. La foto anterior era del local
+          vacío y de lejos, con el cartel de las marcas; esta es la puerta con el
+          equipo parado en ella.
+          `object-position` al 26% y no al centro: la foto es vertical y la banda
+          recorta una franja angosta (en escritorio se ve apenas el 24% del alto).
+          Centrada caía en los torsos y les cortaba la cabeza; al 26% entran las
+          tres caras enteras con aire arriba. Probado contra 10/18/26/34. */}
       <div className="relative w-full h-[280px] sm:h-[380px] lg:h-[460px]">
         <Image
-          src="/images/blog/local-varilux.webp"
-          alt="Fachada de Atelier Óptica en José Luis de Tejeda 4380, Cerro de las Rosas"
+          src="/images/equipo/equipo-puerta.jpg"
+          alt="El equipo de Atelier Óptica en la puerta del local, en José Luis de Tejeda 4380, Cerro de las Rosas"
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
+          className="object-cover object-[center_26%]"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-stone-950/70 via-stone-950/10 to-transparent" />
         <p className="absolute bottom-5 left-0 right-0 text-center text-white text-[11px] font-bold uppercase tracking-widest px-4">
@@ -81,10 +88,15 @@ export default function QuienesSomosPage() {
                 </p>
               </div>
             </div>
+            {/* Antes acá iba `mostrador-marmol`: un primer plano del mármol con
+                un florero y el frasco de caramelos. Linda foto, pero al lado de
+                un texto que habla de asesoramiento no mostraba a nadie
+                asesorando. Esta es el mismo mostrador con el equipo trabajando,
+                y es vertical, que es lo que pide este hueco. */}
             <div className="relative min-h-[280px] md:min-h-full order-1 md:order-2">
               <Image
-                src="/images/blog/mostrador-marmol.webp"
-                alt="Mostrador de mármol de Atelier Óptica"
+                src="/images/equipo/equipo-mostrador-vertical.jpg"
+                alt="El equipo de Atelier Óptica asesorando en el mostrador de mármol"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
@@ -332,9 +344,15 @@ export default function QuienesSomosPage() {
         <section>
           <div className="grid grid-cols-2 gap-4 sm:gap-6">
             <div className="relative aspect-[3/4] rounded-3xl overflow-hidden border border-stone-200 dark:border-stone-800">
+              {/* Antes era un primer plano del muestrario solo —con el frasco
+                  de caramelos al fondo, que es lo que se terminaba mirando—.
+                  Esta es la misma paleta pero en uso: la entrega del pedido
+                  sobre el mostrador, con los colores a la vista. Recortada 3:4
+                  desde el 42% del ancho: centrada dejaba a una de las dos
+                  personas fuera de cuadro. */}
               <Image
-                src="/images/blog/muestrario-smart-lens.webp"
-                alt="Muestrario de colores de cristales Smart Lens en el local"
+                src="/images/equipo/paleta-cristales-entrega.jpg"
+                alt="Entrega de un pedido sobre el mostrador, con la paleta de colores de cristales a la vista"
                 fill
                 sizes="(max-width: 640px) 50vw, 400px"
                 className="object-cover"
