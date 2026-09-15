@@ -521,4 +521,97 @@ export class GoogleAdsService {
       return null;
     }
   }
+
+  /**
+   * Rendimiento POR CAMPAÑA entre dos fechas, en pesos.
+   *
+   * Existe para el reporte quincenal de pauta: hasta el 14/9/26 ese reporte
+   * mostraba a Google solo como un número de gasto dentro del techo del mes,
+   * sin decir qué campaña se lo comió ni qué devolvió. Meta tenía su tabla por
+   * anuncio y Google no tenía ninguna.
+   *
+   * Devuelve `null` (nunca una lista vacía) si no se pudo leer: una lista vacía
+   * significaría "no hay campañas", que es una afirmación distinta.
+   */
+  public static async getCampanasArs(
+    desde: string,
+    hasta: string,
+  ): Promise<Array<{
+    nombre: string;
+    estado: string;
+    costo: number;
+    clics: number;
+    impresiones: number;
+    conversiones: number;
+  }> | null> {
+    if (!this.gastoConfigurado()) return null;
+    const customerId = this.customerId()!;
+    const accessToken = await this.getAccessToken();
+    if (!accessToken) return null;
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+      'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
+      'Content-Type': 'application/json',
+    };
+    if (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID) {
+      headers['login-customer-id'] = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID.replace(/-/g, '');
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/${API_VERSION}/customers/${customerId}/googleAds:search`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          // La moneda viaja en la misma consulta, por el mismo motivo que en
+          // getSpendArsForRange: `cost_micros` está en la moneda DE LA CUENTA.
+          query: `SELECT customer.currency_code, campaign.name, campaign.status,
+                         metrics.cost_micros, metrics.clicks, metrics.impressions, metrics.conversions
+                  FROM campaign
+                  WHERE segments.date BETWEEN '${desde}' AND '${hasta}'`,
+        }),
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!res.ok) {
+        console.error(`[GoogleAdsService] No se pudieron leer las campañas (HTTP ${res.status}).`);
+        return null;
+      }
+
+      const body = (await res.json()) as {
+        results?: Array<{
+          customer?: { currencyCode?: string };
+          campaign?: { name?: string; status?: string };
+          metrics?: { costMicros?: string; clicks?: string; impressions?: string; conversions?: number };
+        }>;
+      };
+      const results = body.results ?? [];
+      const moneda = (results.find((r) => r.customer?.currencyCode)?.customer?.currencyCode || 'ARS').toUpperCase();
+      let aPesos = 1;
+      if (moneda !== 'ARS') {
+        if (moneda !== 'USD') {
+          console.error(`[GoogleAdsService] Campañas en ${moneda}: no sé convertirlo a pesos.`);
+          return null;
+        }
+        const cotizacion = await cotizacionDolarONull();
+        if (!cotizacion) return null;
+        aPesos = cotizacion;
+      }
+
+      // La API devuelve una fila por campaña y día: se suman por nombre.
+      const porNombre = new Map<string, { nombre: string; estado: string; costo: number; clics: number; impresiones: number; conversiones: number }>();
+      for (const r of results) {
+        const nombre = r.campaign?.name || '(sin nombre)';
+        const acc = porNombre.get(nombre) || { nombre, estado: r.campaign?.status || '—', costo: 0, clics: 0, impresiones: 0, conversiones: 0 };
+        acc.costo += (Number(r.metrics?.costMicros ?? 0) / 1_000_000) * aPesos;
+        acc.clics += Number(r.metrics?.clicks ?? 0);
+        acc.impresiones += Number(r.metrics?.impressions ?? 0);
+        acc.conversiones += Number(r.metrics?.conversions ?? 0);
+        porNombre.set(nombre, acc);
+      }
+      return [...porNombre.values()].sort((a, b) => b.costo - a.costo);
+    } catch (err) {
+      console.error('[GoogleAdsService] Excepción leyendo las campañas:', err);
+      return null;
+    }
+  }
 }

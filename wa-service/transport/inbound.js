@@ -350,17 +350,27 @@ const STATUS_RANK = { SENT: 1, DELIVERED: 2, READ: 3, FAILED: 9 };
  * Qué significa cada rechazo de Meta, en criollo, para la ficha del cliente.
  * `cuenta: true` = el problema es de NUESTRA cuenta (todo envío muere igual),
  * no del número del cliente: hay que avisar a la administración, no al vendedor.
+ *
+ * `avisar: false` = NO manda email. Son los rechazos donde no hay nada que
+ * hacer: el cliente se dio de baja del marketing, o Meta le frenó el mensaje
+ * por su propio límite semanal. El rastro igual queda donde sirve (nota de
+ * error y tarea en la ficha). Existe porque el aviso uno-por-uno llenó la
+ * casilla: el 14/9/26 había 55 mails sin leer de "WhatsApp NO entregado", casi
+ * todos bajas de marketing. Un aviso que se ignora por volumen no avisa nada.
+ * Los códigos que SÍ avisan van agrupados (ver `alertasPorCodigo` en cloud.js).
+ * Un código DESCONOCIDO avisa siempre: es la única forma de enterarse de un
+ * modo de falla nuevo.
  * Códigos: https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes
  */
 const META_ERRORES = {
     131042: { texto: 'problema de pago de la cuenta de WhatsApp Business (Meta no cobra la conversación). Se arregla en WhatsApp Manager → Configuración → Métodos de pago.', cuenta: true },
     131047: { texto: 'pasaron más de 24 h desde el último mensaje del cliente y no salió como plantilla.', cuenta: false },
     131026: { texto: 'el número no tiene WhatsApp o bloqueó al negocio.', cuenta: false },
-    131049: { texto: 'Meta frenó el mensaje de marketing (el cliente recibió demasiados esta semana).', cuenta: false },
+    131049: { texto: 'Meta frenó el mensaje de marketing (el cliente recibió demasiados esta semana).', cuenta: false, avisar: false },
     132000: { texto: 'las variables de la plantilla no coinciden con lo aprobado en Meta.', cuenta: true },
     132001: { texto: 'la plantilla no existe o no está aprobada en Meta.', cuenta: true },
     132015: { texto: 'la plantilla está pausada en Meta por baja calidad.', cuenta: true },
-    130472: { texto: 'el cliente pidió no recibir mensajes de marketing por WhatsApp.', cuenta: false },
+    130472: { texto: 'el cliente pidió no recibir mensajes de marketing por WhatsApp.', cuenta: false, avisar: false },
 };
 
 /**
@@ -428,7 +438,9 @@ async function persistStatus(s, { io } = {}) {
             },
         }).catch(e => console.error('[Status] No se pudo crear la tarea del rechazo:', e.message));
     }
-    return { code, motivo, deCuenta: !!conocido?.cuenta, waId: row.chat?.waId, senderName: row.senderName };
+    // `avisar`: un código conocido puede pedir silencio; uno desconocido nunca.
+    const avisar = conocido ? conocido.avisar !== false : true;
+    return { code, motivo, deCuenta: !!conocido?.cuenta, avisar, waId: row.chat?.waId, senderName: row.senderName };
 }
 
 module.exports = { persistInbound, persistStatus, persistEcho, findClientIdByPhone };

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
-import { ADMIN_ALERT_EMAILS } from '@/lib/constants';
+import { ADS_REPORT_EMAILS } from '@/lib/constants';
+import { GoogleAdsService } from '@/services/google-ads.service';
 import { AdsBudgetService } from '@/services/ads-budget.service';
 import {
   metaAdsConfigured,
@@ -19,14 +20,24 @@ import { syncContactTags } from '@/services/contact.service';
 export const dynamic = 'force-dynamic';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Reporte diario de ads: gasto/resultados de Meta por campaña (ayer + 7 días)
-// cruzado con las ventas propias del CRM, con alertas accionables arriba.
-// Pensado para cron-job.org a la mañana (después de los otros crons de las 9).
+// Reporte QUINCENAL de pauta: gasto/resultados de Meta por campaña (ayer + la
+// quincena) y de Google por campaña, cruzados con las ventas propias del CRM,
+// con alertas accionables arriba. Lo dispara instrumentation.ts los días 1 y 16.
+//
+// Era diario y de 7 días hasta el 14/9/26. Cambió por dos motivos medidos:
+// 30 mails por mes dejaron de leerse, y con ventana de 7 días el cruce daba
+// CERO cierres para TODAS las etiquetas —una venta de óptica tarda más que eso
+// desde el primer chat—, así que el reporte informaba siempre "no vendió nada".
+// Con 14 días, ishvarilux pasaba de 0 a 2 cierres y $1.235.900 cobrados.
 // Si META_ADS_TOKEN no está configurado, responde skipped sin error (permite
 // dar de alta el cron antes de tener el token).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const money = (n: number) => `$${Math.round(n).toLocaleString('es-AR')}`;
+
+/** La quincena. Meta tiene preset propio para esta ventana (`last_14d`), así
+ *  que el gasto de la plataforma y el cruce con el CRM miran los mismos días. */
+const DIAS = 14 as const;
 
 interface CrmCampaignSales {
   count: number;
@@ -175,11 +186,19 @@ export async function GET(request: Request) {
     // scripts de ads imponen con su cola serializada.
     const rate = await dolarBlue();
     const yesterdayRows = await fetchCampaignInsights('yesterday', rate);
-    const weekRows = await fetchCampaignInsights('last_7d', rate);
-    const crmWeek = await crmSalesByCampaign(arDayStart(7), arDayStart(0));
+    const weekRows = await fetchCampaignInsights('last_14d', rate);
+    const crmWeek = await crmSalesByCampaign(arDayStart(DIAS), arDayStart(0));
     await barridoAdTagClientes();
-    // Misma ventana de 7 días y mismo cruce que muestra /admin/analitica/atribucion.
-    const roas = await AttributionService.porAnuncio(7, rate);
+    // Misma ventana que muestra /admin/analitica/atribucion, ahora quincenal.
+    const roas = await AttributionService.porAnuncio(DIAS, rate);
+
+    // Google Ads por campaña. Va en su propia tabla y no mezclado con Meta: las
+    // métricas no son comparables (Meta cuenta mensajes, Google clics y
+    // conversiones propias). `null` = no se pudo leer, y se dice explícitamente
+    // en vez de mostrar la sección vacía como si Google no hubiera gastado.
+    const hoyIso = new Date().toISOString().slice(0, 10);
+    const desdeIso = new Date(Date.now() - DIAS * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const google = await GoogleAdsService.getCampanasArs(desdeIso, hoyIso);
 
     const yMap = aggregateByName(yesterdayRows);
     const wMap = aggregateByName(weekRows);
@@ -190,7 +209,7 @@ export async function GET(request: Request) {
 
     // Sin actividad en ningún lado → no mandar email vacío todos los días.
     if (spendWeek === 0 && crmSalesTotal === 0) {
-      return NextResponse.json({ ok: true, sent: false, reason: 'sin actividad en 7 días' });
+      return NextResponse.json({ ok: true, sent: false, reason: 'sin actividad en la quincena' });
     }
 
     // ── Alertas accionables ──────────────────────────────────────────────
@@ -201,20 +220,20 @@ export async function GET(request: Request) {
     // a $0 pasaría en silencio justo cuando más importa avisar.
     if (spendYesterday === 0 && spendWeek > 0) {
       alerts.push(
-        `<b>Gasto en CERO ayer</b> pese a que la semana lleva ${money(spendWeek)}. Revisar estado de campañas y facturación en el Ads Manager — puede ser una tarjeta rechazada o una pausa involuntaria.`,
+        `<b>Gasto en CERO ayer</b> pese a que la quincena lleva ${money(spendWeek)}. Revisar estado de campañas y facturación en el Ads Manager — puede ser una tarjeta rechazada o una pausa involuntaria.`,
       );
     }
 
     for (const [name, week] of wMap) {
       const crm = crmWeek.get(name);
       if (week.spend > 0 && week.buys === 0 && week.msgs === 0 && !crm?.count) {
-        alerts.push(`<b>${name}</b>: ${money(week.spend)} gastados en 7 días sin ninguna conversión (ni Meta ni CRM). Candidata a pausar o rehacer.`);
+        alerts.push(`<b>${name}</b>: ${money(week.spend)} gastados en la quincena sin ninguna conversión (ni Meta ni CRM). Candidata a pausar o rehacer.`);
       }
       const y = yMap.get(name);
       const cpaY = y && y.buys > 0 ? y.spend / y.buys : null;
       const cpa7 = week.buys > 0 ? week.spend / week.buys : null;
       if (cpaY != null && cpa7 != null && cpa7 > 0 && cpaY > cpa7 * 1.5) {
-        alerts.push(`<b>${name}</b>: el CPA de ayer (${money(cpaY)}) fue ${Math.round((cpaY / cpa7 - 1) * 100)}% más alto que el promedio semanal (${money(cpa7)}).`);
+        alerts.push(`<b>${name}</b>: el CPA de ayer (${money(cpaY)}) fue ${Math.round((cpaY / cpa7 - 1) * 100)}% más alto que el promedio de la quincena (${money(cpa7)}).`);
       }
     }
     // Fatiga de frecuencia: por fila cruda (por campaña real, no por nombre
@@ -222,7 +241,7 @@ export async function GET(request: Request) {
     for (const r of weekRows) {
       const freq = Number(r.frequency || 0);
       if (freq > 3.5) {
-        alerts.push(`<b>${r.campaign_name}</b>: frecuencia ${freq.toFixed(1)} en 7 días — la audiencia está viendo el anuncio demasiadas veces (fatiga). Conviene renovar creatividad o ampliar audiencia.`);
+        alerts.push(`<b>${r.campaign_name}</b>: frecuencia ${freq.toFixed(1)} en la quincena — la audiencia está viendo el anuncio demasiadas veces (fatiga). Conviene renovar creatividad o ampliar audiencia.`);
       }
     }
 
@@ -307,9 +326,37 @@ export async function GET(request: Request) {
         </p>
       </div>`;
 
+    // Tabla de Google. Se arma aunque el gasto sea cero: una campaña prendida
+    // que no gastó nada también es información.
+    const googleHtml = google === null
+      ? `<p style="font-size:12px;color:#b45309;">Google Ads: no se pudo leer la cuenta (credenciales o API). El gasto de Google del techo puede estar incompleto.</p>`
+      : google.length === 0
+        ? `<p style="font-size:12px;color:#706359;">Google Ads: sin actividad en la quincena.</p>`
+        : `<h3 style="font-size:13px;text-transform:uppercase;letter-spacing:0.8px;border-bottom:1px solid #d8d1c8;padding-bottom:6px;margin-top:22px;">Google Ads — la quincena</h3>
+           <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+             <tr style="border-bottom:2px solid #9e7f65;">
+               <th style="text-align:left;padding:6px 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Campaña</th>
+               <th style="text-align:left;padding:6px 4px;font-size:11px;text-transform:uppercase;">Estado</th>
+               <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;">Costó</th>
+               <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;">Clics</th>
+               <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;">Conv.</th>
+               <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;">Costo/conv.</th>
+             </tr>
+             ${google.map((c) => `
+               <tr style="border-bottom:1px solid #e7e2dc;">
+                 <td style="padding:6px 4px;font-size:12px;">${c.nombre}</td>
+                 <td style="padding:6px 4px;font-size:11px;color:#706359;">${c.estado === 'ENABLED' ? 'Activa' : c.estado === 'PAUSED' ? 'Pausada' : c.estado}</td>
+                 <td style="padding:6px 4px;font-size:12px;text-align:right;">${money(c.costo)}</td>
+                 <td style="padding:6px 4px;font-size:12px;text-align:right;">${c.clics.toLocaleString('es-AR')}</td>
+                 <td style="padding:6px 4px;font-size:12px;text-align:right;">${c.conversiones ? c.conversiones.toFixed(1) : '—'}</td>
+                 <td style="padding:6px 4px;font-size:12px;text-align:right;">${c.conversiones > 0 ? money(c.costo / c.conversiones) : '—'}</td>
+               </tr>`).join('')}
+           </table>
+           <p style="font-size:10px;color:#a89c90;margin-top:6px;">Las conversiones de Google son las que mide Google (llamadas, formularios, visitas), no ventas cerradas del CRM.</p>`;
+
     const html = `
       <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;color:#433831;">
-        <h2 style="font-size:18px;border-bottom:2px solid #9e7f65;padding-bottom:8px;">📊 Ads — reporte diario</h2>
+        <h2 style="font-size:18px;border-bottom:2px solid #9e7f65;padding-bottom:8px;">📊 Ads — reporte quincenal</h2>
         ${techoHtml}
         ${
           alerts.length
@@ -319,18 +366,19 @@ export async function GET(request: Request) {
                </div>`
             : '<p style="font-size:12px;color:#706359;">Sin alertas: las campañas están dentro de sus parámetros normales.</p>'
         }
-        <p style="font-size:13px;">Gasto de ayer: <b>${money(spendYesterday)}</b> · últimos 7 días: <b>${money(spendWeek)}</b></p>
+        <p style="font-size:13px;">Meta — gasto de ayer: <b>${money(spendYesterday)}</b> · la quincena: <b>${money(spendWeek)}</b></p>
         ${roasHtml}
         <table style="width:100%;border-collapse:collapse;margin-top:8px;">
           <tr style="border-bottom:2px solid #9e7f65;">
             <th style="text-align:left;padding:6px 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Campaña</th>
             <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;">Ayer</th>
-            <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;">7 días</th>
+            <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;">Quincena</th>
             <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;">Compras Meta (CPA)</th>
-            <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;">Ventas CRM 7d</th>
+            <th style="text-align:right;padding:6px 4px;font-size:11px;text-transform:uppercase;">Ventas CRM 14d</th>
           </tr>
           ${rowsHtml}
         </table>
+        ${googleHtml}
         ${
           unattributed
             ? `<p style="font-size:11px;color:#706359;margin-top:10px;">Además: ${unattributed.count} venta(s) web por ${money(unattributed.revenue)} sin atribución de campaña (directo/orgánico).</p>`
@@ -340,8 +388,8 @@ export async function GET(request: Request) {
       </div>`;
 
     await sendEmail({
-      to: ADMIN_ALERT_EMAILS,
-      subject: `📊 Ads diario — ayer ${money(spendYesterday)}${alerts.length ? ` · ${alerts.length} alerta(s)` : ''}`,
+      to: ADS_REPORT_EMAILS,
+      subject: `📊 Ads quincenal — Meta ${money(spendWeek)}${google && google.length ? ` · Google ${money(google.reduce((a, c) => a + c.costo, 0))}` : ''}${alerts.length ? ` · ${alerts.length} alerta(s)` : ''}`,
       html,
     });
 

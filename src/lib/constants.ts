@@ -31,6 +31,13 @@ export const CRM_ORIGIN = (process.env.NEXT_PUBLIC_APP_URL || 'https://crm-ateli
 // Single source of truth: no hardcodear estos correos en cada endpoint.
 export const ADMIN_ALERT_EMAILS = process.env.ADMIN_ALERT_EMAILS || 'pisano.ishtar@gmail.com, atelier.optica.cerro@gmail.com';
 
+// Destinatarios del reporte de pauta (Meta + Google). Lista APARTE de
+// ADMIN_ALERT_EMAILS a propósito: el reporte de ads lo mira la dueña y nadie
+// más (pedido del 14/9/26), mientras que las alertas operativas —venta web,
+// stock bajo— las tiene que ver también el local. Compartir la constante haría
+// que sacar a alguien de un lado lo sacara del otro sin que nadie lo decidiera.
+export const ADS_REPORT_EMAILS = process.env.ADS_REPORT_EMAILS || 'pisano.ishtar@gmail.com';
+
 // "Sin atender" — borrón y cuenta nueva. El backlog viejo de leads sin atender se
 // dio por cerrado el 2026-07-06: solo los contactos ingresados a partir de este
 // momento cuentan/marcan como "sin atender" (contador del botón, badge del sidebar,

@@ -258,8 +258,17 @@ export async function register() {
             finally { embudoSaludRunning = false; }
         };
 
+        // QUINCENAL, no diario: los días 1 y 16 a partir de las 10 (pedido de
+        // Ishtar del 14/9/26). Diario mandaba 30 mails por mes que informaban
+        // siempre lo mismo —y con la ventana de 7 días, siempre cero cierres—,
+        // así que se dejaron de leer. Los días fijos se eligen en vez de "cada
+        // 15 días" porque `dateKey` es la única memoria que hay: con día fijo,
+        // un deploy o un reinicio en el medio no corre el reporte de nuevo ni
+        // se lo saltea.
+        const DIAS_DEL_MES_QUE_CORRE = ['-01', '-16'];
         const maybeRunAds = async () => {
             const { hour, dateKey } = argNow();
+            if (!DIAS_DEL_MES_QUE_CORRE.some((d) => dateKey.endsWith(d))) return;
             if (hour < 10 || adsRunning) return;
             adsRunning = true;
             try { await dispararSimple('ads-report', ADS_KEY, dateKey, 'ads-report'); }

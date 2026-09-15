@@ -25,12 +25,18 @@ import { esVentaReal } from '@/lib/constants/ventas';
  */
 
 /** Rangos que ofrece la pantalla. Meta no acepta días arbitrarios: van por preset. */
-export const RANGOS_ATRIBUCION = [7, 30, 90] as const;
+export const RANGOS_ATRIBUCION = [7, 14, 30, 90] as const;
 export type RangoAtribucion = (typeof RANGOS_ATRIBUCION)[number];
 
 /** `date_preset` de la Marketing API por rango. */
 const PRESET_META: Record<RangoAtribucion, string> = {
     7: 'last_7d',
+    // La quincena. Existe porque en 7 días el cruce da CERO cierres para TODOS
+    // los anuncios: una venta de óptica tarda más que eso desde el primer chat
+    // (medido el 14/9/26 contra producción — a 7 días, 0 cierres en todas las
+    // etiquetas; a 14, ishvarilux ya mostraba 2 cierres y $1.235.900 cobrados).
+    // Un reporte que siempre informa cero retorno no se puede usar para decidir.
+    14: 'last_14d',
     30: 'last_30d',
     90: 'last_90d',
 };

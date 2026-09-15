@@ -101,6 +101,13 @@ function dispatchInbound(msg, res) {
 // cuenta mata TODOS los envíos hasta que alguien lo arregle en Meta, y el
 // 3/9/26 pasó una semana entera sin que nadie lo viera.
 const alertasDeCuenta = new Map(); // code -> última vez (ms)
+// Rechazos del NÚMERO del cliente: también agrupados. Antes avisaban uno por
+// uno "porque son pocos" — el 14/9/26 había 55 mails sin leer de eso, así que
+// no eran pocos y el aviso se había vuelto ruido. Ahora: como mucho un mail
+// por hora por código, y ese mail dice cuántos hubo en el lapso. Los códigos
+// donde no hay NADA que hacer (baja de marketing, límite semanal de Meta) no
+// mandan mail nunca: ver `avisar` en transport/inbound.js.
+const alertasPorCodigo = new Map(); // code -> { ultima: ms, acumulados: n }
 async function onStatus(s, r) {
     if (!r) return;
     // Pedido de Ishtar (3/9/26): "que me avise a mí si algo no se pudo". Un
@@ -116,9 +123,21 @@ async function onStatus(s, r) {
         ).catch(() => {});
         return;
     }
+    // Nada que hacer con este rechazo (baja de marketing, tope semanal de Meta):
+    // queda en la ficha del cliente y no se avisa por mail.
+    if (r.avisar === false) return;
+
+    const acum = alertasPorCodigo.get(r.code) || { ultima: 0, acumulados: 0 };
+    acum.acumulados += 1;
+    if (Date.now() - acum.ultima < 60 * 60 * 1000) {
+        alertasPorCodigo.set(r.code, acum);
+        return;
+    }
+    const otros = acum.acumulados - 1;
+    alertasPorCodigo.set(r.code, { ultima: Date.now(), acumulados: 0 });
     await transport.notifyAdminDown(
         `WhatsApp NO entregado al ${r.waId || '?'}`,
-        `Un WhatsApp${r.senderName ? ` mandado por ${r.senderName}` : ''} al ${r.waId || '?'} no llegó.\n\nMotivo: ${r.motivo}\n\nQuedó anotado como error y como tarea en la ficha del cliente. Conviene contactarlo por otro medio o revisar el número.`,
+        `Un WhatsApp${r.senderName ? ` mandado por ${r.senderName}` : ''} al ${r.waId || '?'} no llegó.\n\nMotivo: ${r.motivo}\n\nQuedó anotado como error y como tarea en la ficha del cliente. Conviene contactarlo por otro medio o revisar el número.${otros > 0 ? `\n\nEn la última hora hubo ${otros} rechazo(s) más por el mismo motivo; están todos anotados en la ficha de cada cliente. Este aviso se manda como mucho una vez por hora.` : ''}`,
     ).catch(() => {});
 }
 /**
