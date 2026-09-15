@@ -67,6 +67,9 @@ import {
     stripTxTags,
     strongIds,
     verifierSystemPrompt,
+    parseTipoComprobante,
+    plataformaDelMetodo,
+    plataformaImpresa,
     type ReceiptReading
 } from '@/lib/receipt-references';
 import { cardVoucherKey } from '@/lib/payment-card';
@@ -139,7 +142,9 @@ export class ReceiptAgentService {
                 ids: collectReferenceIds(parsed),
                 batchNumber: texto(parsed.batch_number),
                 couponNumber: texto(parsed.coupon_number),
-                authNumber: texto(parsed.auth_number)
+                authNumber: texto(parsed.auth_number),
+                tipo: parseTipoComprobante(parsed.comprobante_tipo),
+                plataforma: texto(parsed.plataforma)
             };
         } catch (e) {
             console.error(`[ReceiptAgent] No se pudo parsear el JSON del lector ${role}:`, e, text);
@@ -324,6 +329,54 @@ export class ReceiptAgentService {
                         vendor: `La transferencia fue a otro CUIT: en el comprobante figura ${extractedCuit} y tendría que ser ${expectedCuit}.`
                     });
                 }
+            }
+
+            // B bis) ¿El PAPEL es del medio de pago que se cargó?
+            // Ningún número podía detectar esto: un cobro por Mercado Pago
+            // cargado como Pay Way tiene el importe bien, la referencia bien y
+            // la fecha bien — lo único que no cuadra es de qué es el ticket.
+            // (Pedido de Ishtar, 14/9/26.) Solo se reclama con los DOS lectores
+            // de acuerdo, y nunca sobre un 'OTRO' o un tipo que no se distinguió.
+            const tipoLeido = extracted.tipo;
+            const esEfectivo = ['EFECTIVO', 'CASH'].includes(method);
+            const esTransferencia = method.toUpperCase().includes('TRANSFER');
+            if (tipoLeido && tipoLeido !== 'OTRO') {
+                const comoSeVe: Record<string, string> = {
+                    MANUSCRITO: 'un recibo escrito a mano',
+                    TRANSFERENCIA: 'un comprobante de transferencia',
+                    TICKET_TARJETA: 'un ticket de terminal de tarjeta',
+                };
+                const visto = comoSeVe[tipoLeido];
+
+                if (esEfectivo && tipoLeido !== 'MANUSCRITO') {
+                    findings.push({
+                        admin: `El pago se cargó como EFECTIVO pero el comprobante es ${visto}. O el método está mal cargado, o se adjuntó el comprobante de otro pago.`,
+                        vendor: `Este pago figura en efectivo pero el comprobante que subieron es ${visto}. ¿Se fijan si el método es el correcto?`
+                    });
+                } else if (esTransferencia && tipoLeido !== 'TRANSFERENCIA') {
+                    findings.push({
+                        admin: `El pago se cargó como TRANSFERENCIA pero el comprobante es ${visto}.`,
+                        vendor: `Este pago figura como transferencia y el comprobante es ${visto}. ¿Revisan cuál corresponde?`
+                    });
+                } else if (isCardTerminal && tipoLeido !== 'TICKET_TARJETA') {
+                    findings.push({
+                        admin: `El pago se cargó con tarjeta (${method}) pero el comprobante es ${visto}.`,
+                        vendor: `Este pago figura con tarjeta y el comprobante es ${visto}. ¿Revisan cuál corresponde?`
+                    });
+                }
+            }
+
+            // Y si es un ticket de terminal: que la MARCA impresa sea la del
+            // método. Acá es donde se cae "cobré por Point y lo cargué como
+            // Pay Way". `plataformaImpresa` ya descarta el PAYWAVE del pie de
+            // los tickets de Visa, que no es Pay Way sino el contactless.
+            const plataformaEsperada = plataformaDelMetodo(method);
+            const plataformaDelTicket = plataformaImpresa(extracted.plataforma);
+            if (plataformaEsperada && plataformaDelTicket && plataformaEsperada !== plataformaDelTicket) {
+                findings.push({
+                    admin: `Medio de pago distinto: se cargó ${plataformaEsperada} (${method}) y el comprobante es de ${plataformaDelTicket}. Revisar el método del pago — la comisión y el tope del posnet dependen de cuál sea.`,
+                    vendor: `El pago está cargado como ${plataformaEsperada} pero el ticket es de ${plataformaDelTicket}. ¿Lo corrigen al método que corresponde?`
+                });
             }
 
             // C) Check Transaction ID + Check Duplicates

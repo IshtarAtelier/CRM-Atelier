@@ -19,7 +19,10 @@ import {
     sameVoucherNumber,
     stripTxTags,
     strongIds,
-    esConstanteDeComprobante
+    esConstanteDeComprobante,
+    plataformaDelMetodo,
+    plataformaImpresa,
+    parseTipoComprobante
 } from '../../src/lib/receipt-references.ts';
 import { cardVoucherKey, describeCardVoucher, isCardMethod } from '../../src/lib/payment-card.ts';
 
@@ -156,6 +159,22 @@ check('el nº de operación sí', strongIds(['177530461287']).length === 1);
 check('el AID ni siquiera se lista como referencia',
     collectReferenceIds({ transaction_id: '177530461287', reference_ids: ['A0000000041010', 'SMARTPOS1493846733'] })
         .join('|') === '177530461287');
+
+console.log('\nQue el comprobante sea del medio de pago cargado');
+check('el método de MP es Mercado Pago', plataformaDelMetodo('MERCADO_PAGO_6_ISH') === 'MERCADO PAGO');
+check('el de Pay Way es Pay Way', plataformaDelMetodo('PAY_WAY_6_ISH') === 'PAY WAY');
+check('el efectivo no ata a ninguna plataforma', plataformaDelMetodo('EFECTIVO') === null);
+check('la transferencia tampoco', plataformaDelMetodo('TRANSFERENCIA_ISHTAR') === null);
+check('un ticket de Mercado Pago se reconoce', plataformaImpresa('mercado pago') === 'MERCADO PAGO');
+check('uno de Pay Way también', plataformaImpresa('PAY WAY') === 'PAY WAY');
+// La trampa: los tickets de Visa contactless terminan en "PAYWAVE/VIS".
+check('PAYWAVE NO es Pay Way', plataformaImpresa('PAYWAVE/VIS') === null);
+check('PAYWAVE suelto tampoco', plataformaImpresa('payWave') === null);
+check('una marca desconocida no se inventa', plataformaImpresa('VISA') === null);
+check('sin marca no se reclama nada', plataformaImpresa(null) === null);
+check('el tipo válido se acepta', parseTipoComprobante('MANUSCRITO') === 'MANUSCRITO');
+check('el tipo en minúscula también', parseTipoComprobante('transferencia') === 'TRANSFERENCIA');
+check('un tipo inventado se descarta', parseTipoComprobante('RECIBO X') === null);
 
 console.log('\nFecha impresa (blindaje del falso positivo de "comprobante viejo")');
 {

@@ -25,6 +25,63 @@ export interface ReceiptReading {
     batchNumber: string | null;
     couponNumber: string | null;
     authNumber: string | null;
+    /** Qué CLASE de papel es, para cruzarlo contra el método cargado. */
+    tipo: TipoComprobante | null;
+    /** La marca impresa en el comprobante (MERCADO PAGO, PAY WAY, un banco…). */
+    plataforma: string | null;
+}
+
+/**
+ * Qué clase de comprobante es. Sirve para un chequeo que ningún número puede
+ * hacer: que el PAPEL sea del medio de pago que se cargó. Un cobro en efectivo
+ * se respalda con un recibo escrito a mano, uno por transferencia con el
+ * comprobante del banco/billetera y uno con tarjeta con el ticket de la
+ * terminal — si no coinciden, o el método está mal cargado o el comprobante no
+ * es de ese pago.
+ */
+export type TipoComprobante = 'MANUSCRITO' | 'TRANSFERENCIA' | 'TICKET_TARJETA' | 'OTRO';
+
+const TIPOS_VALIDOS: TipoComprobante[] = ['MANUSCRITO', 'TRANSFERENCIA', 'TICKET_TARJETA', 'OTRO'];
+
+export function parseTipoComprobante(v: unknown): TipoComprobante | null {
+    if (typeof v !== 'string') return null;
+    const t = v.trim().toUpperCase().replace(/[^A-Z_]/g, '');
+    return (TIPOS_VALIDOS as string[]).includes(t) ? (t as TipoComprobante) : null;
+}
+
+/**
+ * A qué plataforma pertenece un método de pago, para compararla con la marca
+ * impresa. `null` = el método no ata a ninguna plataforma (efectivo, débito).
+ *
+ * OJO con PAYWAVE: los tickets de Visa contactless terminan en "PAYWAVE/VIS".
+ * Es el contactless de VISA, no "Pay Way" el procesador. Se normaliza fuera de
+ * acá (ver `plataformaImpresa`) para que no se confundan, que es exactamente el
+ * error que llevó a cargar cobros de Mercado Pago como Pay Way.
+ */
+export function plataformaDelMetodo(method: string): string | null {
+    const m = (method || '').toUpperCase();
+    if (m.includes('MERCADO_PAGO')) return 'MERCADO PAGO';
+    if (m.includes('PAY_WAY') || m.includes('PAYWAY')) return 'PAY WAY';
+    if (m.includes('NARANJA')) return 'NARANJA';
+    if (m.includes('GO_CUOTAS')) return 'GO CUOTAS';
+    return null;
+}
+
+/**
+ * Normaliza la marca que leyó la IA a una de las plataformas conocidas.
+ * Devuelve `null` cuando no reconoce ninguna: sin certeza no se reclama nada.
+ */
+export function plataformaImpresa(valor: string | null | undefined): string | null {
+    const v = (valor || '').toUpperCase().replace(/[^A-Z]/g, '');
+    if (!v) return null;
+    // PAYWAVE primero: contiene "PAYWA" igual que PAYWAY y hay que descartarlo
+    // ANTES, o todo ticket de Visa contactless se leería como Pay Way.
+    if (v.includes('PAYWAVE')) return null;
+    if (v.includes('MERCADOPAGO') || v.includes('MERCADOLIBRE')) return 'MERCADO PAGO';
+    if (v.includes('PAYWAY')) return 'PAY WAY';
+    if (v.includes('NARANJA')) return 'NARANJA';
+    if (v.includes('GOCUOTAS')) return 'GO CUOTAS';
+    return null;
 }
 
 /**
@@ -237,7 +294,7 @@ export function crossCheckReadings(primary: ReceiptReading, supervisor: ReceiptR
     if (!supervisor) {
         disagreements.push('El segundo lector OCR no pudo leer el comprobante: se revisó con una sola lectura y no se le reclamó nada a nadie.');
         return {
-            values: { amount: null, amountRaw: null, cuit: null, date: null, dateRaw: null, ids, batchNumber: null, couponNumber: null, authNumber: null },
+            values: { amount: null, amountRaw: null, cuit: null, date: null, dateRaw: null, ids, batchNumber: null, couponNumber: null, authNumber: null, tipo: null, plataforma: null },
             disagreements,
             bothListedIds: false
         };
@@ -301,7 +358,18 @@ export function crossCheckReadings(primary: ReceiptReading, supervisor: ReceiptR
             ids,
             batchNumber: voucherField('batchNumber', 'nº de lote'),
             couponNumber: voucherField('couponNumber', 'nº de cupón'),
-            authNumber: voucherField('authNumber', 'nº de autorización')
+            authNumber: voucherField('authNumber', 'nº de autorización'),
+            // Qué clase de papel es y de qué marca. Solo queda habilitado si los
+            // DOS lectores vieron lo mismo: sobre esto se le reclama a una
+            // persona que cargó mal el método, así que no se adivina.
+            tipo: primary.tipo && supervisor.tipo && primary.tipo === supervisor.tipo ? primary.tipo : null,
+            plataforma: (() => {
+                const a = plataformaImpresa(primary.plataforma);
+                const b = plataformaImpresa(supervisor.plataforma);
+                if (a && b && a === b) return a;
+                if (a && b && a !== b) disagreements.push(`Los dos lectores vieron marcas distintas en el comprobante (${a} vs ${b}): no se auditó el medio de pago.`);
+                return null;
+            })()
         },
         disagreements,
         bothListedIds: primary.ids.length > 0 && supervisor.ids.length > 0
