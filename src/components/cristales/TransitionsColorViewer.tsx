@@ -60,7 +60,7 @@ export function TransitionsColorViewer() {
 
         {/* Toggle Interior/Exterior flotante */}
         <div className="absolute top-6 right-6 z-30 flex items-center gap-3 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-md text-sm font-medium">
-          <span className={isIndoor ? 'text-black' : 'text-black/40'}>Interior</span>
+          <span className={isIndoor ? 'text-black font-semibold' : 'text-stone-500'}>Interior</span>
           <button 
             onClick={() => setIsIndoor(!isIndoor)}
             className="relative w-12 h-6 bg-gray-200 rounded-full transition-colors duration-300"
@@ -70,7 +70,7 @@ export function TransitionsColorViewer() {
               className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 ${isIndoor ? 'left-1' : 'translate-x-7'}`}
             />
           </button>
-          <span className={!isIndoor ? 'text-black' : 'text-black/40'}>Exterior</span>
+          <span className={!isIndoor ? 'text-black font-semibold' : 'text-stone-500'}>Exterior</span>
         </div>
 
         {/* Selector de colores inferior */}

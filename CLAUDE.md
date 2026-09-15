@@ -72,6 +72,9 @@ y `wip-otra-sesion` son la cicatriz.
 - `npx prisma generate` — regenera el cliente
 - `npm run lint` / `npm run build` — lint y build de producción
 - `npm run check:orden` — verifica que cada archivo esté en su carpeta (sin base ni red)
+- `npm run check:contraste` — mide el contraste de TODOS los textos de las 66
+  páginas públicas, en modo claro y oscuro, contra localhost:3000 (`--base` para
+  apuntar a producción, `--ruta` para una sola). Necesita el dev prendido.
 
 ## Base de datos local (docker)
 - Contenedor: `atelier-postgres` — `postgresql://postgres:localpassword@localhost:5432/atelier`
@@ -331,6 +334,18 @@ porqué de cada decisión están en `docs/plan-publicacion-meta.md`.
 - El horario que responde el bot vive en `SystemSetting.bot_prompt`, no en el
   código. Tocar los prompts y deployar NO cambia lo que contesta.
 - Qué falta deployar se mide con `git cherry -v origin/main`, no contra el `main` local.
+- **El modo oscuro es del CRM, no del sitio público.** `ProveedorDeTema` le pone
+  `forcedTheme="light"` a todo lo que no sea `/admin`, y no es un capricho: la
+  tienda, el blog y las fichas fijan su fondo claro a mano pero heredan los
+  tokens de gris y dorado, que sí se dan vuelta. Un `.dark` a medias no es "el
+  sitio en oscuro", es el sitio claro con la mitad de los textos ilegibles
+  (medido el 14/9: 477 textos bajo 4,5:1). Antes llegaba con que el visitante
+  tuviera el celular en oscuro. Agregar `dark:` a una pantalla pública no
+  arregla nada mientras el fondo siga fijo en claro.
+- **El tono del dorado depende del fondo de CADA bloque, no de la página.**
+  `--dorado` (#c8a55c) sobre fondo oscuro, `--dorado-texto` (#8a6d3b) sobre
+  fondo claro, `--dorado-solido` cuando el dorado es el FONDO y arriba va texto
+  blanco. Cambiarlos en masa rompe la mitad: ya pasó el 14/9 en Nuestro Local.
 
 ## Pendientes / notas
 - Token de GitHub en texto plano en `.git/config` (remote origin) — conviene rotar

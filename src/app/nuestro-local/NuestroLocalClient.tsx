@@ -272,7 +272,7 @@ export function NuestroLocalClient({ settings, reviewCount = 0, rating = 0, chil
                 transition={{ duration: 0.6, delay: i * 0.15 }}
               >
                 {/* Number */}
-                <span className="text-[80px] font-serif text-stone-100 group-hover:text-stone-200/80 absolute top-4 right-6 leading-none transition-colors duration-500 select-none">
+                <span aria-hidden="true" className="text-[80px] font-serif text-stone-100 group-hover:text-stone-200/80 absolute top-4 right-6 leading-none transition-colors duration-500 select-none">
                   {String(i + 1).padStart(2, '0')}
                 </span>
 

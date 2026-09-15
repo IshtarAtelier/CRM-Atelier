@@ -223,6 +223,11 @@ const MEDIR = () => {
     // de los 477 de la primera corrida). Se descarta solo cuando es UN símbolo
     // o dos; "★★★★★" tiene cinco y sí dice algo, así que se sigue midiendo.
     if (texto.length <= 2 && !/[\p{L}\p{N}]/u.test(texto)) continue;
+    // `aria-hidden` es la forma estándar de decir "esto es decoración": el
+    // lector de pantalla no lo lee y WCAG no le exige contraste. Son los
+    // numerales gigantes de fondo tipo marca de agua. Marcarlos es una decisión
+    // explícita del que escribe la pantalla, no una excepción del chequeo.
+    if (el.closest('[aria-hidden="true"]')) continue;
 
     // `mix-blend-difference` invierte el color contra lo que tenga debajo: un
     // "text-white" ahí se ve NEGRO sobre fondo claro. Medirlo como color plano

@@ -77,7 +77,7 @@ function LoginForm() {
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-foreground tracking-tight">
                     {isMayorista ? "Acceso Mayorista" : "Ingreso a Atelier Óptica"}
                 </h2>
-                <p className="mt-2 text-center text-sm text-foreground/60">
+                <p className="mt-2 text-center text-sm text-foreground/80">
                     {isMayorista ? "Portal exclusivo para Ópticas y Distribuidores" : "Sistema de Gestión y CRM"}
                 </p>
             </div>
@@ -201,7 +201,7 @@ function LoginForm() {
                     </form>
 
                     <div className="mt-6 text-center">
-                        <p className="text-xs text-foreground/40">
+                        <p className="text-xs text-foreground/75">
                             Sistema de gestión interno · Atelier Óptica
                         </p>
                     </div>

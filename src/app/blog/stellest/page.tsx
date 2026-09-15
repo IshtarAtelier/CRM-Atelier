@@ -43,7 +43,7 @@ export default function StellestPage() {
 
       <main className="flex-grow container mx-auto px-4 pt-32 pb-20 max-w-4xl">
         <article className="blog-article w-full max-w-none">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#c8a55c] mb-4">Control de miopía infantil</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--dorado-texto)] mb-4">Control de miopía infantil</p>
           <h1 className="text-4xl md:text-5xl font-serif text-stone-900 mb-8 leading-tight">
             Lentes Stellest: qué son, cómo funcionan y qué esperar de verdad
           </h1>

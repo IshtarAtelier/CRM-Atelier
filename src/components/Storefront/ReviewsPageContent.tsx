@@ -300,7 +300,7 @@ export function ReviewsPageContent({
           <h2 className=" font-serif">
             ¿Ya compraste en Atelier?
           </h2>
-          <p className="text-stone-400 text-sm md:text-base leading-relaxed mb-10 max-w-xl mx-auto">
+          <p className="text-stone-300 text-sm md:text-base leading-relaxed mb-10 max-w-xl mx-auto">
             Tu opinión es sumamente valiosa para nosotros y nos ayuda a seguir mejorando día a día. Compartí tu experiencia y ayuda a otros clientes a elegir sus próximos anteojos.
           </p>
           <a

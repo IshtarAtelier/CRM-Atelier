@@ -541,7 +541,7 @@ export function LandingClient({
                   &ldquo;{rev.text}&rdquo;
                 </p>
                 <div className="flex items-center gap-3">
-                  <span className="w-9 h-9 rounded-full bg-[#C5A059]/15 text-[#8a6f3d] flex items-center justify-center font-serif">
+                  <span className="w-9 h-9 rounded-full bg-[#C5A059]/15 text-[#6b5430] flex items-center justify-center font-serif">
                     {rev.initial}
                   </span>
                   <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-500">
