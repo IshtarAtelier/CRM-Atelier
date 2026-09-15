@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Star, X, Glasses } from "lucide-react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
 import { captureAttribution } from "@/lib/client-analytics";
@@ -335,14 +334,12 @@ export function LandingClient({
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <button
                 onClick={handleWhatsAppClick}
-                className={`${goldButton} w-full sm:w-auto`}
+                className={`${goldButton} w-full sm:w-auto hover:scale-[1.02] active:scale-[0.98]`}
               >
                 {isRedirecting ? Spinner : config.primaryCta}
-              </motion.button>
+              </button>
 
               {/* Badge de rating solo con datos reales de Google. La frase
                   "mejor calificada de Córdoba" vivía solo abajo, en la sección
@@ -605,14 +602,12 @@ export function LandingClient({
           {config.finalCtaTitle}
         </h2>
         <p className="text-stone-300 text-lg font-light mb-12 max-w-xl mx-auto">{config.finalCtaSubtitle}</p>
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
+        <button
           onClick={handleWhatsAppClick}
-          className={`${goldButton} w-full sm:w-auto`}
+          className={`${goldButton} w-full sm:w-auto hover:scale-[1.03] active:scale-[0.97]`}
         >
           {isRedirecting ? "Conectando..." : config.finalCta}
-        </motion.button>
+        </button>
       </section>
 
       <Marquee />
@@ -625,23 +620,20 @@ export function LandingClient({
 
       {/* El WhatsApp flotante persistente lo inyecta el layout raíz (<FloatingWhatsApp/>). */}
 
-      {/* Exit intent */}
-      <AnimatePresence>
-        {showExitPopup && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowExitPopup(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.97, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.97, y: 16 }}
-              className="relative w-full max-w-lg bg-[#0F0F0F] border border-[#C5A059]/30 p-10 text-center shadow-2xl z-10"
-            >
+      {/* Exit intent. Sin framer-motion a propósito (15/9/26): la landing
+          cargaba la librería entera —el chunk más pesado propio de la página—
+          para dos botones que se agrandan al pasar el mouse y este fade. Las
+          entradas van con los keyframes que ya tiene globals.css; la salida
+          simplemente desaparece, que es lo que hace el resto del sitio. */}
+      {showExitPopup && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm [animation:backdropFade_.25s_ease-out]"
+            onClick={() => setShowExitPopup(false)}
+          />
+          <div
+            className="relative w-full max-w-lg bg-[#0F0F0F] border border-[#C5A059]/30 p-10 text-center shadow-2xl z-10 [animation:navDropIn_.3s_ease-out]"
+          >
               <button
                 onClick={() => setShowExitPopup(false)}
                 className="absolute top-5 right-5 text-stone-500 hover:text-white transition-colors"
@@ -671,10 +663,9 @@ export function LandingClient({
               >
                 Ahora no, gracias
               </button>
-            </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }
