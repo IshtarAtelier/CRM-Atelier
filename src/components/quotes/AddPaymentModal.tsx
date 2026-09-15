@@ -66,15 +66,6 @@ const PAYMENT_GROUPS = [
         ]
     },
     {
-        id: 'ish',
-        items: [
-            { id: 'PAY_WAY_3_ISH', label: 'Pay Way 3 Ish', icon: CreditCard, color: 'rose' },
-            { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6 Ish', icon: CreditCard, color: 'rose' },
-            { id: 'GO_CUOTAS_ISH', label: 'Go Cuotas Ish', icon: CreditCard, color: 'rose' },
-            { id: 'NARANJA_Z_ISH', label: 'Naranja Z Ish', icon: CreditCard, color: 'rose' },
-        ]
-    },
-    {
         // Mercado Pago Ishtar: 3/6 sin interés (lista); 12 con costo financiero
         // fijo del 10% — el cliente paga lista × 1,10 y el saldo divide por 1,10
         // (PricingService). La etiqueta lo aclara SIEMPRE. El 18 se retiró el
@@ -84,6 +75,15 @@ const PAYMENT_GROUPS = [
             { id: 'MERCADO_PAGO_3_ISH', label: 'MP 3 Ish', icon: CreditCard, color: 'sky' },
             { id: 'MERCADO_PAGO_6_ISH', label: 'MP 6 Ish', icon: CreditCard, color: 'sky' },
             { id: 'MERCADO_PAGO_12_ISH', label: 'MP 12 Ish (+10%)', icon: CreditCard, color: 'sky' },
+        ]
+    },
+    {
+        id: 'ish',
+        items: [
+            { id: 'PAY_WAY_3_ISH', label: 'Pay Way 3 Ish', icon: CreditCard, color: 'rose' },
+            { id: 'PAY_WAY_6_ISH', label: 'Pay Way 6 Ish', icon: CreditCard, color: 'rose' },
+            { id: 'GO_CUOTAS_ISH', label: 'Go Cuotas Ish', icon: CreditCard, color: 'rose' },
+            { id: 'NARANJA_Z_ISH', label: 'Naranja Z Ish', icon: CreditCard, color: 'rose' },
         ]
     },
     {
@@ -164,6 +164,15 @@ export default function AddPaymentModal({
     const requiresReceipt = !isCashMethod;
     const isCard = isCardMethod(method);
     const isPresencial = isCard && cardMode === 'PRESENCIAL';
+    // Mercado Pago POINT es presencial, pero su ticket NO trae lote ni cupón:
+    // trae "Operación #…" y el código de autorización (los 6 dígitos antes de
+    // NFC/Chip). Pedirle lote y cupón obligaba a inventarlos, y eso es lo que
+    // pasaba: el 14/9/26 un cobro por Point tenía cargado en "lote" el código de
+    // autorización, en "cupón" los últimos 4 del CUIT del comercio y en
+    // "autorización" los últimos 4 del nº de operación. Ninguno de los tres
+    // existía como tal en el ticket.
+    const esPoint = isCard && cardMode === 'PRESENCIAL' && method.includes('MERCADO_PAGO');
+    const esPosnetClasico = isPresencial && !esPoint;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -173,8 +182,14 @@ export default function AddPaymentModal({
         }
 
         // En un ticket de posnet no hay "nº de comprobante": lo que identifica el
-        // cobro es el cupón + la autorización.
-        if (isPresencial) {
+        // cobro es el cupón + la autorización. En uno de Point es al revés: el
+        // nº de operación y la autorización, y no existen ni el lote ni el cupón.
+        if (esPoint) {
+            if (!reference.trim() || !authNumber.trim()) {
+                setError('Del ticket de Point cargá el Nro. de operación y el código de autorización (los 6 dígitos antes de NFC o Chip)');
+                return;
+            }
+        } else if (isPresencial) {
             if (!couponNumber.trim() || !authNumber.trim()) {
                 setError('Cargá el Nro. de cupón y el Nro. de autorización que figuran en el ticket del posnet');
                 return;
@@ -239,8 +254,10 @@ export default function AddPaymentModal({
                     receiptUrl,
                     ...(isCard ? {
                         cardMode,
-                        batchNumber: isPresencial ? batchNumber.trim() || undefined : undefined,
-                        couponNumber: isPresencial ? couponNumber.trim() || undefined : undefined,
+                        // Point no tiene lote ni cupón: se mandan vacíos a propósito
+                        // para que nadie los complete con otra cosa.
+                        batchNumber: esPosnetClasico ? batchNumber.trim() || undefined : undefined,
+                        couponNumber: esPosnetClasico ? couponNumber.trim() || undefined : undefined,
                         authNumber: isPresencial ? authNumber.trim() || undefined : undefined
                     } : {})
                 })
@@ -397,7 +414,13 @@ export default function AddPaymentModal({
                             </label>
                             <div className="grid grid-cols-2 gap-3">
                                 {([
-                                    { id: 'PRESENCIAL' as CardMode, label: 'Presencial (posnet)', hint: 'Ticket con lote y cupón' },
+                                    {
+                                        id: 'PRESENCIAL' as CardMode,
+                                        label: 'Presencial (posnet)',
+                                        // El ticket de Point tampoco tiene lote ni cupón: la pista cambia
+                                        // según el método para no pedir algo que el papel no trae.
+                                        hint: method.includes('MERCADO_PAGO') ? 'Ticket de Point' : 'Ticket con lote y cupón'
+                                    },
                                     { id: 'LINK' as CardMode, label: 'Link de pago', hint: 'Comprobante con nº de operación' }
                                 ]).map((opt) => {
                                     const isSelected = cardMode === opt.id;
@@ -421,8 +444,30 @@ export default function AddPaymentModal({
                         </div>
                     )}
 
+                    {/* Point: solo autorización — la operación va en Referencia */}
+                    {esPoint && (
+                        <div className="space-y-2">
+                            <label htmlFor="payment-auth-point" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
+                                Código de autorización <span className="text-red-400">*</span>
+                            </label>
+                            <input
+                                id="payment-auth-point"
+                                type="text"
+                                inputMode="numeric"
+                                value={authNumber}
+                                onChange={(e) => setAuthNumber(e.target.value)}
+                                placeholder="008174"
+                                className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                            />
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 pl-1">
+                                Son los 6 dígitos que están arriba a la izquierda, antes de &quot;NFC&quot; o &quot;Chip&quot;. El
+                                Nro. de operación va en Referencia. El ticket de Point no tiene lote ni cupón.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Datos del cupón del posnet */}
-                    {isPresencial && (
+                    {esPosnetClasico && (
                         <div className="grid grid-cols-3 gap-3">
                             <div className="space-y-2">
                                 <label htmlFor="payment-batch" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">Lote</label>
@@ -476,13 +521,14 @@ export default function AddPaymentModal({
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
-                                Referencia {!isCashMethod && !isPresencial && <span className="text-red-400">*</span>}
+                                {esPoint ? 'Nro. de operación' : 'Referencia'}{' '}
+                                {!isCashMethod && (!isPresencial || esPoint) && <span className="text-red-400">*</span>}
                             </label>
                             <input
                                 type="text"
                                 value={reference}
                                 onChange={(e) => setReference(e.target.value)}
-                                placeholder={isPresencial ? 'Opcional' : !isCashMethod ? 'Obligatorio: N° Comprobante' : 'N° Comprobante, etc'}
+                                placeholder={esPoint ? 'Obligatorio: Operación #…' : esPosnetClasico ? 'Opcional' : !isCashMethod ? 'Obligatorio: N° Comprobante' : 'N° Comprobante, etc'}
                                 className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                             />
                         </div>
