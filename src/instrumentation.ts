@@ -275,6 +275,21 @@ export async function register() {
             finally { adsRunning = false; }
         };
 
+        // ---- TECHO DE PUBLICIDAD, todos los días a las 11 ----
+        // Diario y no quincenal como el reporte: que se acabe el presupuesto es
+        // justo lo que no puede esperar dos semanas. El endpoint decide si hay
+        // algo que avisar y se guarda la marca de que ya avisó este mes, así
+        // que correrlo todos los días no genera un pop-up por día.
+        const TECHO_ADS_KEY = 'techo_ads_last_run';
+        let techoAdsRunning = false;
+        const maybeRunTechoAds = async () => {
+            const { hour, dateKey } = argNow();
+            if (hour < 11 || techoAdsRunning) return;
+            techoAdsRunning = true;
+            try { await dispararSimple('techo-ads', TECHO_ADS_KEY, dateKey, 'techo-ads'); }
+            finally { techoAdsRunning = false; }
+        };
+
         const maybeRunCierreMes = async () => {
             const { hour, minute, dateKey } = argNow();
             if (!dateKey.endsWith('-01')) return;           // solo el día 1
@@ -658,6 +673,7 @@ export async function register() {
             maybeRunDaily().catch(err => console.error('[CRON lab-invoices] maybeRunDaily:', err));
             maybeRunSemanalLab().catch(err => console.error('[CRON lab-weekly-report] maybeRunSemanalLab:', err));
             maybeRunAds().catch(err => console.error('[CRON ads-report] maybeRunAds:', err));
+            maybeRunTechoAds().catch(err => console.error('[CRON techo-ads] maybeRunTechoAds:', err));
             maybeRunCierreMes().catch(err => console.error('[CRON month-close] maybeRunCierreMes:', err));
             maybeRunResumen().catch(err => console.error('[CRON resumen-equipo] maybeRunResumen:', err));
             maybeRunPickupReminder().catch(err => console.error('[CRON pickup-reminder] maybeRunPickupReminder:', err));
