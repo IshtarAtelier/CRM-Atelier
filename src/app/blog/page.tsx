@@ -52,10 +52,24 @@ export default async function BlogPage() {
     date: p.date.toISOString(),
   }));
 
-  const posts = [
+  const todosLosPosts = [
     ...mappedDbPosts,
     ...staticPosts.filter(sp => !mappedDbPosts.some(dp => dp.slug === sp.slug))
   ];
+
+  // ── El manifiesto, fijo arriba de todo ────────────────────────────────────
+  //
+  // Es la nota que cuenta quién es Ishtar y por qué existe Atelier: el mejor
+  // gancho del blog, y hasta ahora vivía mezclada en el orden por fecha —
+  // ninguna otra página del sitio la enlazaba, así que nadie caía en ella
+  // salvo por el sitemap. Se saca del orden cronológico y va de encabezado,
+  // como haría cualquier medio con su nota insignia.
+  const FEATURED_SLUG = 'anteojos-obras-de-arte';
+  const featuredPost = todosLosPosts.find(p => p.slug === FEATURED_SLUG) || null;
+  // El resto de la grilla sigue exactamente como estaba (mismo orden, mismo
+  // reparto de tamaños por índice) menos esta nota, que ya no compite por el
+  // primer lugar de la grilla — tiene el suyo propio, más grande, arriba.
+  const posts = todosLosPosts.filter(p => p.slug !== FEATURED_SLUG);
 
   const categorias = await categoriasConPosts();
   return (
@@ -80,6 +94,44 @@ export default async function BlogPage() {
           </Link>
         </div>
       </div>
+
+      {/* Encabezado del blog: la nota que cuenta el origen de Atelier, apaisada
+          y a todo el ancho — bien más grande que cualquier tarjeta de la
+          grilla de abajo, como el header de una revista. La misma foto que ya
+          es la portada de la nota (recortada en apaisado), para que se
+          reconozca como la misma historia antes de entrar. */}
+      {featuredPost && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 lg:pt-16">
+          <Link
+            href={`/blog/${featuredPost.slug}`}
+            className="group relative block w-full aspect-[16/9] sm:aspect-[21/9] rounded-3xl overflow-hidden shadow-lg"
+          >
+            <Image
+              src="/images/blog/destacados/manifiesto-banner.jpg"
+              alt="Ishtar Pissano, creadora de Atelier Óptica"
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 1152px"
+              className="object-cover object-[center_25%] grayscale contrast-125 brightness-[0.6] group-hover:scale-105 transition-transform duration-700"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/10" />
+            <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-10 lg:p-14">
+              <span className="inline-flex w-fit text-[10px] font-black uppercase tracking-[0.25em] text-white/60 mb-3">
+                {featuredPost.category}
+              </span>
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight mb-3 max-w-3xl">
+                {featuredPost.title}
+              </h2>
+              <p className="hidden sm:block text-white/70 text-sm lg:text-base max-w-2xl mb-4 line-clamp-2">
+                {featuredPost.excerpt}
+              </p>
+              <span className="inline-flex items-center gap-2 text-white font-bold text-sm group-hover:gap-3 transition-all">
+                Leer la nota <ArrowRight className="w-4 h-4" />
+              </span>
+            </div>
+          </Link>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[300px] md:auto-rows-[350px] grid-flow-row-dense">
