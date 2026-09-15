@@ -8,9 +8,30 @@
     "que programar pieza y reel el mismo día deja una de las dos muerta.",
     "",
     "Cadencia: carruseles mar/jue/sáb + DOMINGO (campañas de pago y",
-    "tratamientos — el domingo vende), reels los miércoles. Lunes y viernes",
-    "no se publica al feed a propósito: la constancia se sostiene con las",
+    "tratamientos — el domingo vende), reels MIÉRCOLES y VIERNES. El lunes",
+    "sigue sin publicar al feed a propósito: la constancia se sostiene con las",
     "stories, que salen los 7 días.",
+    "",
+    "DOS REELS POR SEMANA desde el 18/9/26 (pedido de Ishtar). El viernes era",
+    "uno de los dos días libres; se ocupó ese y no el lunes porque el lunes es",
+    "el día más flojo de la semana y porque así los dos reels quedan repartidos",
+    "(mié/vie) en vez de pegados. El feed pasa de 5 a 6 días por semana.",
+    "",
+    "Separación entre repeticiones de un MISMO reel: 42 días (6 semanas), no",
+    "los 21 de los carruseles. Con 15 reels y dos emisiones por semana, 21 días",
+    "dejaba temas repitiéndose casi mensualmente. Con 42 ningún reel sale más",
+    "de 3 veces hasta fin de año.",
+    "",
+    "Los reels de PROMO (6-cuotas, garantia-30-dias, 2x1-multifocales) no se",
+    "programan dentro de los 10 días de su campaña pagada del domingo: es la",
+    "misma oferta y duplicarla en la semana satura. Por eso 6-cuotas se queda",
+    "sin viernes: sus campañas caen 15/11, 6/12 y 27/12 y lo tapan.",
+    "",
+    "Viernes 20/11 y 27/11 quedan VACÍOS a propósito: no hay ningún reel con",
+    "6 semanas de descanso para esas fechas. Para llenarlos hacen falta DOS",
+    "reels nuevos — no es un olvido, es que el contenido no alcanza.",
+    "",
+    "El 25/12 (viernes) el feed descansa.",
     "",
     "Regla anti-repetición: una misma pieza no vuelve al feed antes de los",
     "21 días. Verificado sobre toda la lista, no solo sobre lo nuevo.",
@@ -154,6 +175,10 @@
       "pieza": "eyezen-pantallas"
     },
     {
+      "fecha": "2026-09-18",
+      "reel": "lente-monofocal"
+    },
+    {
       "fecha": "2026-09-19",
       "pieza": "receta-seleccion"
     },
@@ -172,6 +197,10 @@
     {
       "fecha": "2026-09-24",
       "pieza": "leer-tu-receta"
+    },
+    {
+      "fecha": "2026-09-25",
+      "reel": "lente-stellest"
     },
     {
       "fecha": "2026-09-26",
@@ -194,6 +223,10 @@
       "pieza": "laboratorio-propio"
     },
     {
+      "fecha": "2026-10-02",
+      "reel": "lente-myofix"
+    },
+    {
       "fecha": "2026-10-03",
       "pieza": "armazones-destacados"
     },
@@ -212,6 +245,10 @@
     {
       "fecha": "2026-10-08",
       "pieza": "multifocales-no-fallan"
+    },
+    {
+      "fecha": "2026-10-09",
+      "reel": "que-es-la-miopia"
     },
     {
       "fecha": "2026-10-10",
@@ -234,6 +271,10 @@
       "pieza": "cristales-transitions"
     },
     {
+      "fecha": "2026-10-16",
+      "reel": "que-es-la-hipermetropia"
+    },
+    {
       "fecha": "2026-10-17",
       "pieza": "receta-seleccion"
     },
@@ -252,6 +293,10 @@
     {
       "fecha": "2026-10-22",
       "pieza": "elegir-armazon-rostro"
+    },
+    {
+      "fecha": "2026-10-23",
+      "reel": "indices-de-refraccion"
     },
     {
       "fecha": "2026-10-24",
@@ -274,6 +319,10 @@
       "pieza": "eyezen-pantallas"
     },
     {
+      "fecha": "2026-10-30",
+      "reel": "que-es-la-presbicia"
+    },
+    {
       "fecha": "2026-10-31",
       "pieza": "stellest-senales-en-tu-hijo"
     },
@@ -292,6 +341,10 @@
     {
       "fecha": "2026-11-05",
       "pieza": "varilux-comfort"
+    },
+    {
+      "fecha": "2026-11-06",
+      "reel": "garantia-30-dias"
     },
     {
       "fecha": "2026-11-07",
@@ -314,6 +367,10 @@
       "pieza": "kodak-cristales"
     },
     {
+      "fecha": "2026-11-13",
+      "reel": "stellest-frena-miopia"
+    },
+    {
       "fecha": "2026-11-14",
       "pieza": "indices-de-refraccion"
     },
@@ -324,6 +381,10 @@
     {
       "fecha": "2026-11-17",
       "pieza": "resenas-clientes"
+    },
+    {
+      "fecha": "2026-11-18",
+      "reel": "lente-myofix"
     },
     {
       "fecha": "2026-11-19",
@@ -370,6 +431,10 @@
       "pieza": "garantia-adaptacion"
     },
     {
+      "fecha": "2026-12-04",
+      "reel": "indices-de-refraccion"
+    },
+    {
       "fecha": "2026-12-05",
       "pieza": "cristales-transitions"
     },
@@ -390,6 +455,10 @@
       "pieza": "tratamientos-tus-cristales"
     },
     {
+      "fecha": "2026-12-11",
+      "reel": "lente-bifocal"
+    },
+    {
       "fecha": "2026-12-12",
       "pieza": "elegir-armazon-rostro"
     },
@@ -408,6 +477,10 @@
     {
       "fecha": "2026-12-17",
       "pieza": "crizal-vale-la-pena"
+    },
+    {
+      "fecha": "2026-12-18",
+      "reel": "lente-monofocal"
     },
     {
       "fecha": "2026-12-19",
