@@ -92,6 +92,10 @@ export const PLATFORM_COMMISSIONS: Record<string, number> = {
     'MERCADO_PAGO_12_ISH': 0.25,
 
     // ── Sin comisión ──
+    // Cuenta especial: lo que no entra en ninguna forma de pago del listado
+    // (canje, cheque, descuento a un empleado). No tiene plataforma detrás, así
+    // que no tiene comisión; lo que cobró de verdad se escribe en el pago.
+    'OTRO_ESPECIAL': 0,
     'EFECTIVO': 0,
     'CASH': 0,
     'DEBIT': 0,
@@ -142,6 +146,7 @@ export const ISH_POSNET_METHODS = ['PAY_WAY_6_ISH', 'PAY_WAY_3_ISH', 'NARANJA_Z_
 
 // Human-readable labels for payment methods (single source of truth)
 export const METHOD_LABELS: Record<string, string> = {
+    OTRO_ESPECIAL: 'Otra forma de pago',
     CASH: 'Efectivo',
     EFECTIVO: 'Efectivo',
     DEBIT: 'Débito',

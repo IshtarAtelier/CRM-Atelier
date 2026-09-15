@@ -34,6 +34,35 @@ export function isCardMethod(method: string) {
 }
 
 /**
+ * ¿El cobro es con Mercado Pago (cualquier plan)?
+ * Único lugar del criterio: lo usan el formulario de pagos y la validación del
+ * servidor, que TIENEN que coincidir o el cobro se rechaza al guardar.
+ */
+export function esMercadoPago(method: string | null | undefined) {
+    return (method || '').toUpperCase().includes('MERCADO_PAGO');
+}
+
+/**
+ * ¿Es un cobro presencial con Mercado Pago Point?
+ *
+ * Importa porque el ticket de Point NO trae lote ni cupón —trae "Operación #" y
+ * el código de autorización—, así que no se le pueden exigir los mismos campos
+ * que a un posnet de Pay Way o Naranja. Exigírselos era lo que obligaba a
+ * inventar números: el 14/9/26 un cobro por Point tenía en "cupón" los últimos
+ * cuatro dígitos del CUIT del comercio.
+ */
+export function esPointPresencial(method: string | null | undefined, cardMode: string | null | undefined) {
+    return isCardMethod(method || '') && cardMode === 'PRESENCIAL' && esMercadoPago(method);
+}
+
+/**
+ * Cuenta especial: forma de pago fuera del listado (canje, cheque, descuento a
+ * un empleado). No tiene plataforma ni comprobante que la respalde, así que no
+ * se le exige la foto; lo que sí se exige es escribir cuál fue.
+ */
+export const METODO_ESPECIAL = 'OTRO_ESPECIAL';
+
+/**
  * ¿Es un cobro de Mercado Pago en cuotas largas (12/18)?
  *
  * ÚNICA definición del concepto: el cliente pagó lista × FACTOR_MP_CUOTAS_LARGAS

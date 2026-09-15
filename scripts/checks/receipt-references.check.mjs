@@ -24,7 +24,7 @@ import {
     plataformaImpresa,
     parseTipoComprobante
 } from '../../src/lib/receipt-references.ts';
-import { cardVoucherKey, describeCardVoucher, isCardMethod } from '../../src/lib/payment-card.ts';
+import { cardVoucherKey, describeCardVoucher, isCardMethod, esPointPresencial } from '../../src/lib/payment-card.ts';
 
 let fallos = 0;
 function check(nombre, condicion) {
@@ -133,6 +133,12 @@ console.log('\nTicket de posnet (Payway presencial)');
     check('011 y 11 son el mismo lote', sameVoucherNumber('011', '11'));
     check('un campo vacío nunca coincide', !sameVoucherNumber('', '011'));
     check('Pay Way es método con tarjeta', isCardMethod('PAY_WAY_6_YANI'));
+    // El formulario y el servidor comparten el criterio: si se separan, el
+    // cobro se carga en pantalla y el servidor lo rechaza al guardar.
+    check('Point presencial se reconoce', esPointPresencial('MERCADO_PAGO_6_ISH', 'PRESENCIAL'));
+    check('Pay Way presencial NO es Point', !esPointPresencial('PAY_WAY_6_ISH', 'PRESENCIAL'));
+    check('MP por link tampoco', !esPointPresencial('MERCADO_PAGO_6_ISH', 'LINK'));
+    check('el efectivo tampoco', !esPointPresencial('EFECTIVO', 'PRESENCIAL'));
     check('una transferencia no lo es', !isCardMethod('TRANSFERENCIA_ISHTAR'));
 }
 

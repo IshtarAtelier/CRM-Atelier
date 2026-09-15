@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ContactService } from '@/services/contact.service';
 import { getActor } from '@/lib/actor';
-import { isCardMethod } from '@/lib/payment-card';
+import { isCardMethod, esPointPresencial, METODO_ESPECIAL } from '@/lib/payment-card';
 import { z } from 'zod';
 
 const PaymentSchema = z.object({
@@ -40,7 +40,10 @@ export async function POST(
 
         // Validation: Non-cash payments MUST include a receipt photo
         const isCash = method === 'EFECTIVO' || method === 'CASH';
-        if (!isCash && !receiptUrl) {
+        // La cuenta especial no exige foto: un canje o un descuento a un
+        // empleado no emite comprobante. Lo obligatorio ahí es el detalle
+        // escrito (`notes`), que se valida abajo.
+        if (!isCash && method !== METODO_ESPECIAL && !receiptUrl) {
             return NextResponse.json({
                 error: 'Para métodos electrónicos (transferencia, tarjeta, etc.) es obligatorio cargar la foto del comprobante.'
             }, { status: 400 });
@@ -49,9 +52,25 @@ export async function POST(
         // Un cobro presencial con tarjeta sin cupón ni autorización no se puede
         // cruzar después contra la liquidación: se exigen acá también, no solo
         // en la pantalla.
-        if (isCardMethod(method) && cardMode === 'PRESENCIAL' && (!couponNumber?.trim() || !authNumber?.trim())) {
+        // Mercado Pago Point es presencial pero su ticket no tiene lote ni cupón:
+        // lo que identifica el cobro es el nº de operación (va en `notes`) más el
+        // código de autorización. Se pide eso, no el cupón que no existe — el
+        // criterio vive en esPointPresencial() y lo comparte el formulario.
+        if (esPointPresencial(method, cardMode) && (!notes?.trim() || !authNumber?.trim())) {
+            return NextResponse.json({
+                error: 'En un cobro con Mercado Pago Point hay que cargar el Nro. de operación y el código de autorización que figuran en el ticket.'
+            }, { status: 400 });
+        }
+
+        if (isCardMethod(method) && !esPointPresencial(method, cardMode) && cardMode === 'PRESENCIAL' && (!couponNumber?.trim() || !authNumber?.trim())) {
             return NextResponse.json({
                 error: 'En un cobro presencial con tarjeta hay que cargar el Nro. de cupón y el Nro. de autorización que figuran en el ticket.'
+            }, { status: 400 });
+        }
+
+        if (method === METODO_ESPECIAL && !notes?.trim()) {
+            return NextResponse.json({
+                error: 'En una forma de pago especial hay que escribir cuál fue (canje, cheque, descuento a empleado, etc.).'
             }, { status: 400 });
         }
 

@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import { 
     X, Banknote, ArrowRightLeft, CreditCard, 
-    Save, Loader2, AlertCircle, DollarSign
+    Save, Loader2, AlertCircle, DollarSign, Sparkles
 } from 'lucide-react';
 import { PricingService } from '@/services/PricingService';
 import FileDropZone from '@/components/ui/FileDropZone';
-import { isCardMethod, type CardMode } from '@/lib/payment-card';
+import { isCardMethod, esMercadoPago, METODO_ESPECIAL, type CardMode } from '@/lib/payment-card';
 
 interface AddPaymentModalProps {
     orderId: string;
@@ -41,6 +41,12 @@ const COLOR_STYLES: Record<string, { active: string; inactive: string; iconActiv
         inactive: 'bg-rose-50 dark:bg-rose-900/10 border-rose-200 dark:border-rose-900/30 text-rose-700 dark:text-rose-400 hover:bg-rose-100 hover:border-rose-300',
         iconActive: 'text-white',
         iconInactive: 'text-rose-600 dark:text-rose-400'
+    },
+    stone: {
+        active: 'bg-stone-700 border-stone-700 text-white shadow-lg scale-105',
+        inactive: 'bg-stone-50 dark:bg-stone-900/20 border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:bg-stone-100 hover:border-stone-300',
+        iconActive: 'text-white',
+        iconInactive: 'text-stone-600 dark:text-stone-400'
     },
     sky: {
         active: 'bg-sky-500 border-sky-500 text-white shadow-lg scale-105',
@@ -92,6 +98,16 @@ const PAYMENT_GROUPS = [
             { id: 'PAY_WAY_3_YANI', label: 'Pay Way 3 Yani', icon: CreditCard, color: 'orange' },
             { id: 'PAY_WAY_6_YANI', label: 'Pay Way 6 Yani', icon: CreditCard, color: 'orange' },
             { id: 'NARANJA_Z_YANI', label: 'Naranja Z Yani', icon: CreditCard, color: 'orange' },
+        ]
+    },
+    {
+        // Cuenta especial, al final de todo (pedido de Ishtar 14/9/26): lo que
+        // no entra en ninguna forma de pago de arriba —canje, cheque, descuento
+        // a un empleado—. Obliga a ESCRIBIR cuál fue: un "otro" sin explicación
+        // es un agujero en la caja que después nadie puede reconstruir.
+        id: 'especial',
+        items: [
+            { id: METODO_ESPECIAL, label: 'Otra forma de pago', icon: Sparkles, color: 'stone' },
         ]
     }
 ];
@@ -161,7 +177,11 @@ export default function AddPaymentModal({
     // Saldo a cobrar por MP 12/18: saldo de lista + 10% de costo financiero,
     // calculado por PricingService (un solo lugar para la plata).
     const saldoMpLargas = financials ? PricingService.cuotasMpLargas(financials.remainingCard).totalFinanced : 0;
-    const requiresReceipt = !isCashMethod;
+    // Cuenta especial: no hay plataforma ni comprobante que la respalde (un canje
+    // no emite ticket), así que no se exige la foto. Lo que SÍ se exige es
+    // escribir qué forma de pago fue: sin eso, es plata entrando sin explicación.
+    const esFormaEspecial = method === METODO_ESPECIAL;
+    const requiresReceipt = !isCashMethod && !esFormaEspecial;
     const isCard = isCardMethod(method);
     const isPresencial = isCard && cardMode === 'PRESENCIAL';
     // Mercado Pago POINT es presencial, pero su ticket NO trae lote ni cupón:
@@ -171,7 +191,7 @@ export default function AddPaymentModal({
     // autorización, en "cupón" los últimos 4 del CUIT del comercio y en
     // "autorización" los últimos 4 del nº de operación. Ninguno de los tres
     // existía como tal en el ticket.
-    const esPoint = isCard && cardMode === 'PRESENCIAL' && method.includes('MERCADO_PAGO');
+    const esPoint = isCard && cardMode === 'PRESENCIAL' && esMercadoPago(method);
     const esPosnetClasico = isPresencial && !esPoint;
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -194,7 +214,10 @@ export default function AddPaymentModal({
                 setError('Cargá el Nro. de cupón y el Nro. de autorización que figuran en el ticket del posnet');
                 return;
             }
-        } else if (!isCashMethod && !reference.trim()) {
+        } else if (esFormaEspecial && !reference.trim()) {
+            setError('Escribí qué forma de pago fue (canje, cheque, descuento a empleado, etc.)');
+            return;
+        } else if (!isCashMethod && !esFormaEspecial && !reference.trim()) {
             setError('Es obligatorio ingresar el Nro. de Comprobante / Referencia para métodos electrónicos');
             return;
         }
@@ -419,7 +442,7 @@ export default function AddPaymentModal({
                                         label: 'Presencial (posnet)',
                                         // El ticket de Point tampoco tiene lote ni cupón: la pista cambia
                                         // según el método para no pedir algo que el papel no trae.
-                                        hint: method.includes('MERCADO_PAGO') ? 'Ticket de Point' : 'Ticket con lote y cupón'
+                                        hint: esMercadoPago(method) ? 'Ticket de Point' : 'Ticket con lote y cupón'
                                     },
                                     { id: 'LINK' as CardMode, label: 'Link de pago', hint: 'Comprobante con nº de operación' }
                                 ]).map((opt) => {
@@ -521,14 +544,14 @@ export default function AddPaymentModal({
                         </div>
                         <div className="space-y-2">
                             <label htmlFor="payment-amount" className="text-[10px] font-black uppercase text-stone-400 tracking-widest block pl-1">
-                                {esPoint ? 'Nro. de operación' : 'Referencia'}{' '}
-                                {!isCashMethod && (!isPresencial || esPoint) && <span className="text-red-400">*</span>}
+                                {esFormaEspecial ? '¿Qué forma de pago fue?' : esPoint ? 'Nro. de operación' : 'Referencia'}{' '}
+                                {((!isCashMethod && (!isPresencial || esPoint)) || esFormaEspecial) && <span className="text-red-400">*</span>}
                             </label>
                             <input
                                 type="text"
                                 value={reference}
                                 onChange={(e) => setReference(e.target.value)}
-                                placeholder={esPoint ? 'Obligatorio: Operación #…' : esPosnetClasico ? 'Opcional' : !isCashMethod ? 'Obligatorio: N° Comprobante' : 'N° Comprobante, etc'}
+                                placeholder={esFormaEspecial ? 'Obligatorio: canje, cheque, descuento a empleado…' : esPoint ? 'Obligatorio: Operación #…' : esPosnetClasico ? 'Opcional' : !isCashMethod ? 'Obligatorio: N° Comprobante' : 'N° Comprobante, etc'}
                                 className="w-full px-4 py-3 bg-stone-50 dark:bg-stone-900/50 border border-stone-100 dark:border-stone-700 rounded-xl text-sm font-bold text-stone-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                             />
                         </div>
