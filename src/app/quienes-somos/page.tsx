@@ -251,13 +251,18 @@ export default async function QuienesSomosPage() {
             pidió explícitamente que en esta no aparezca ella. */}
         <section className="border-t border-white/10">
           <div className="grid md:grid-cols-2">
-            <div className="relative aspect-[4/5] md:aspect-auto md:min-h-[640px]">
+            {/* Proporción FIJA 4:5 en todos los tamaños. Antes en escritorio la
+                altura la ponía el texto (una franja apaisada sobre una foto
+                vertical) y con `object-top` se veía el diploma y le cortaba la
+                cara a Yani a la altura de la boca. A 4:5 y centrada al 8% entran
+                el diploma y la cara enteros. */}
+            <div className="relative aspect-[4/5]">
               <Image
                 src="/images/blog/ishtar/hermana-diploma.jpg"
                 alt="Yani levantando su diploma de Licenciada en Nutrición de la Universidad Nacional de Córdoba"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover object-top grayscale"
+                className="object-cover object-[center_8%] grayscale"
               />
             </div>
             <div className="px-6 lg:px-16 py-20 lg:py-28 flex flex-col justify-center">
