@@ -204,7 +204,12 @@ async function convertIntoLead({ phone, name, contactSource, interest, chatId, i
     }
 
     try {
-        const VALID_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda nube", "Referido", "Wave", "Salida"];
+        // "Tienda online" y no "Tienda nube": esa plataforma ya no se usa, la
+        // tienda es propia (atelieroptica.com.ar/tienda). El CRM ya traducía el
+        // nombre viejo al leer (src/lib/contact-source.ts), pero acá seguía
+        // siendo el único valor aceptado, así que el bot no podía escribir el
+        // nombre vigente: se lo rechazaba y caía a la detección automática.
+        const VALID_SOURCES = ["Google Ads", "Meta", "Calle", "Jemima", "Ya es Cliente", "Tienda online", "Referido", "Wave", "Salida"];
         let resolvedSource = contactSource;
         if (!resolvedSource || !VALID_SOURCES.includes(resolvedSource)) {
             resolvedSource = await detectContactSourceFromChat(chatId);
