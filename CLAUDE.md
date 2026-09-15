@@ -75,6 +75,12 @@ y `wip-otra-sesion` son la cicatriz.
 - `npm run check:contraste` — mide el contraste de TODOS los textos de las 66
   páginas públicas, en modo claro y oscuro, contra localhost:3000 (`--base` para
   apuntar a producción, `--ruta` para una sola). Necesita el dev prendido.
+- `npm run check:velocidad` — mide las 19 áreas del sitio en celular de gama
+  media con 4G lento y parte el LCP en sus cuatro tramos (servidor / espera /
+  descarga / pintado), que es lo único que dice dónde tocar. Por defecto pega a
+  producción; `--base` para un build local, `--escritorio` para sacar los frenos.
+  OJO: medir performance contra `npm run dev` no sirve (TTFB de 8 ms y bundles
+  sin minificar) — para un A/B local hay que buildear.
 
 ## Base de datos local (docker)
 - Contenedor: `atelier-postgres` — `postgresql://postgres:localpassword@localhost:5432/atelier`

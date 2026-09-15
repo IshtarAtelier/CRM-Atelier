@@ -43,6 +43,7 @@
     "social:publicar": "node scripts/social/publicar.mjs",
     "check:orden": "node scripts/checks/orden-del-repo.check.mjs",
     "check:contraste": "node scripts/checks/contraste-textos.check.mjs",
+    "check:velocidad": "node scripts/checks/velocidad-sitio.check.mjs",
     "check:cierres": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cierres.check.mjs",
     "check:motor": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/motor-seguimientos.check.mjs",
     "check:motor-base": "node --env-file=.env --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/motor-idempotencia.check.mjs",
