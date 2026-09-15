@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { ChevronDown, Star, X, Glasses } from "lucide-react";
 import { WHATSAPP_PHONE } from "@/lib/constants";
+import { BUSINESS_INFO } from "@/lib/business-info";
+import { CUOTAS_SIN_INTERES } from "@/lib/promo-cuotas";
 import { captureAttribution } from "@/lib/client-analytics";
 import { trackWhatsAppClick } from "@/lib/tracking";
 import { CAMPAIGNS, type LandingProduct } from "@/lib/landing/campaigns";
@@ -373,8 +375,23 @@ export function LandingClient({
 
       {/* ═══════════════ TRUST — hairline strip ═══════════════ */}
       <section className="w-full bg-[#FBFAF8] border-b border-black/[0.06]">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-black/[0.06]">
-          {["Cuotas sin interés", "Envíos a todo el país", "Retiro gratis en el local"].map((t) => (
+        {/* La oferta se NOMBRA, no solo se refleja en el precio. La landing vieja
+            (promo.atelieroptica.com.ar) la gritaba en la primera línea y acá
+            solo se veía implícita en "$X por transferencia": quien venía del
+            anuncio no encontraba el "15% OFF" que lo trajo. El porcentaje sale
+            de BUSINESS_INFO (el mismo setting que usa la tienda) y las cuotas de
+            promo-cuotas.ts — nunca un número tipeado (regla de CLAUDE.md). */}
+        <div className="max-w-7xl mx-auto px-6 md:px-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-black/[0.06]">
+          {[
+            // "por transferencia" y no "en efectivo": online no se paga en efectivo,
+            // y el efectivo EN EL LOCAL tiene otro descuento (20%, business-info.ts).
+            // Nombrar "efectivo" acá mezclaba los dos canales — el error que Ishtar
+            // pidió no repetir el 31/8/26.
+            `${BUSINESS_INFO.discountCashPercent}% OFF por transferencia`,
+            `${CUOTAS_SIN_INTERES.join(" y ")} cuotas sin interés`,
+            "Envíos a todo el país",
+            "Retiro gratis en el local",
+          ].map((t) => (
             <div key={t} className="py-5 text-center">
               <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-stone-500">{t}</span>
             </div>
