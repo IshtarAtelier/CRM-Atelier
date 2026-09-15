@@ -9,6 +9,7 @@ import { CUOTAS_SIN_INTERES } from "@/lib/promo-cuotas";
 import { captureAttribution } from "@/lib/client-analytics";
 import { trackWhatsAppClick } from "@/lib/tracking";
 import { CAMPAIGNS, type LandingProduct } from "@/lib/landing/campaigns";
+import { lineaAtribucionWhatsApp } from "@/lib/landing/wa-attribution";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
 // ── Créditos de obra para los retratos editoriales (mismo espíritu que FilmmakerReel) ──
@@ -169,23 +170,25 @@ export function LandingClient({
     captureAttribution();
     try {
       const p = new URLSearchParams(window.location.search);
-      const utmSource = p.get("utm_source");
-      const utmCampaign = p.get("utm_campaign");
-      const gclid = p.get("gclid");
-      const fbclid = p.get("fbclid");
       let referrerHost = "";
       try {
         referrerHost = document.referrer ? new URL(document.referrer).hostname : "";
       } catch {
         referrerHost = "";
       }
-      const origen =
-        utmSource || (gclid ? "google-ads" : "") || (fbclid ? "meta-ads" : "") || referrerHost;
-
-      let line = `\n\n— Campaña: ${config.slug}`;
-      if (utmCampaign) line += ` (${utmCampaign})`;
-      if (origen) line += ` · origen: ${origen}`;
-      setAttribution(line);
+      // La línea la arma el helper: texto legible + la etiqueta [googleXxx] /
+      // [metaXxx] que el bot parsea. Ver wa-attribution.ts para el porqué.
+      setAttribution(
+        lineaAtribucionWhatsApp(config.slug, {
+          utmSource: p.get("utm_source"),
+          utmCampaign: p.get("utm_campaign"),
+          gclid: p.get("gclid"),
+          gbraid: p.get("gbraid"),
+          wbraid: p.get("wbraid"),
+          fbclid: p.get("fbclid"),
+          referrerHost,
+        }),
+      );
     } catch {
       setAttribution(`\n\n— Campaña: ${config.slug}`);
     }
