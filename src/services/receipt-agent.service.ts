@@ -397,7 +397,7 @@ export class ReceiptAgentService {
                 });
 
                 // Check for duplicate transactions across other payments
-                const duplicates = dedupIds.length === 0 ? [] : await prisma.payment.findMany({
+                const candidatos = dedupIds.length === 0 ? [] : await prisma.payment.findMany({
                     where: {
                         id: { not: paymentId },
                         OR: dedupIds.map(id => ({ notes: { contains: `[TX: ${id}]` } }))
@@ -405,9 +405,24 @@ export class ReceiptAgentService {
                     select: {
                         id: true,
                         orderId: true,
+                        amount: true,
                         order: { select: { client: { select: { id: true, name: true } } } }
                     }
                 });
+
+                // Segundo candado: un duplicado de verdad es EL MISMO comprobante
+                // cargado dos veces, así que el importe tiene que coincidir. Si el
+                // identificador coincide pero el importe no, lo que falla es el
+                // identificador —no es tal—, y acusar ahí es un falso positivo.
+                // El 14/9/2026 se acusó a un pago de $532.450 de ser duplicado de
+                // uno de $216.490 y otro de $1.580.862. La tolerancia es de $1
+                // por el redondeo de los centavos.
+                const duplicates = candidatos.filter(d => Math.abs(Number(d.amount || 0) - expectedAmount) <= 1);
+                if (candidatos.length > duplicates.length) {
+                    console.warn(
+                        `[ReceiptAgent] ${candidatos.length - duplicates.length} coincidencia(s) de identificador descartadas por importe distinto (pago ${paymentId}).`,
+                    );
+                }
 
                 if (duplicates.length > 0) {
                     duplicateRefs.push(...duplicates.map(d => ({

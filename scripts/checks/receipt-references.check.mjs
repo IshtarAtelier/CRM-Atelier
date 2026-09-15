@@ -18,7 +18,8 @@ import {
     referencesMatch,
     sameVoucherNumber,
     stripTxTags,
-    strongIds
+    strongIds,
+    esConstanteDeComprobante
 } from '../../src/lib/receipt-references.ts';
 import { cardVoucherKey, describeCardVoucher, isCardMethod } from '../../src/lib/payment-card.ts';
 
@@ -140,6 +141,21 @@ check('solo etiquetas → vacío', stripTxTags('[TX: 170029330395]') === '');
 console.log('\nIdentificadores fuertes (para duplicados)');
 check('un nº de operación largo sirve', strongIds([OPERACION, IDENTIFICACION]).length === 2);
 check('un nº de autorización de 6 dígitos no', strongIds(['007956']).length === 0);
+
+console.log('\nConstantes del ticket que NO identifican nada (falso duplicado del 14/9/2026)');
+// Los tres comprobantes del caso real: números de operación distintos, mismo AID.
+check('el AID de Mastercard se descarta', esConstanteDeComprobante('A0000000041010'));
+check('el AID de Visa también', esConstanteDeComprobante('A0000000031010'));
+check('el de Maestro también', esConstanteDeComprobante('A0000000043060'));
+check('la serie del posnet se descarta', esConstanteDeComprobante('SMARTPOS1493846733'));
+check('el CUIT del comercio se descarta', esConstanteDeComprobante('23386152314'));
+check('un nº de operación de Point NO se descarta', !esConstanteDeComprobante('177530461287'));
+check('ni el de otro comprobante del caso', !esConstanteDeComprobante('177028852495'));
+check('el AID no llega a buscar duplicados', strongIds(['A0000000041010']).length === 0);
+check('el nº de operación sí', strongIds(['177530461287']).length === 1);
+check('el AID ni siquiera se lista como referencia',
+    collectReferenceIds({ transaction_id: '177530461287', reference_ids: ['A0000000041010', 'SMARTPOS1493846733'] })
+        .join('|') === '177530461287');
 
 console.log('\nFecha impresa (blindaje del falso positivo de "comprobante viejo")');
 {

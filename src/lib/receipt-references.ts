@@ -150,7 +150,36 @@ export function sameVoucherNumber(a?: string | null, b?: string | null) {
  * (ver `cardVoucherKey` en payment-card.ts).
  */
 export function strongIds(ids: string[]) {
-    return ids.filter(id => normalizeRef(id).length >= 8);
+    return ids.filter(id => normalizeRef(id).length >= 8 && !esConstanteDeComprobante(id));
+}
+
+/**
+ * ¿Este "identificador" es en realidad un valor CONSTANTE del ticket?
+ *
+ * Un ticket de Mercado Pago Point imprime varios números largos que parecen
+ * identificadores y no lo son: son iguales en TODOS los tickets de la misma
+ * terminal o de la misma marca de tarjeta. Si se usan para buscar duplicados,
+ * cada comprobante "coincide" con todos los demás.
+ *
+ * Caso real (14/9/2026): el pago de Nestor Bocco se denunció como duplicado de
+ * Cejas Osvaldo y Lucas Casinghino. Los tres números de operación eran
+ * distintos (177530461287 / 177028852495 / 177376983059); lo único igual era
+ * `A0000000041010`, que es el AID de EMV —el código de aplicación de Mastercard,
+ * idéntico en todas las tarjetas Mastercard del mundo—.
+ *
+ * Lo que se descarta:
+ *  · AID de EMV: "A" + ceros + dígitos (A0000000041010 Mastercard,
+ *    A0000000031010 Visa, A000000025… Amex, A0000000043060 Maestro).
+ *  · Número de serie del posnet (SMARTPOS…): constante por terminal.
+ *  · CUIT/CUIL del comercio: constante por comercio (ya se pide excluirlo en el
+ *    prompt; esto es el cinturón por si la IA lo devuelve igual).
+ */
+export function esConstanteDeComprobante(id: string) {
+    const v = normalizeRef(id);
+    if (/^A0{4,}[0-9A-F]+$/.test(v)) return true;      // AID de EMV
+    if (/^SMARTPOS\d+$/.test(v)) return true;          // nº de serie del posnet
+    if (/^(20|23|24|27|30|33|34)\d{9}$/.test(v)) return true; // CUIT/CUIL
+    return false;
 }
 
 /** Une los identificadores de las dos lecturas sin repetir (comparando normalizado). */
@@ -185,7 +214,10 @@ export function collectReferenceIds(extracted: any): string[] {
         // Se aceptan números cortos (un nº de lote es "011") porque el vendedor
         // puede haber tipeado cualquiera de ellos como referencia; lo que NO se
         // hace con los cortos es buscar duplicados (ver `strongIds`).
-        if (key.length < 3 || seen.has(key)) continue;
+        // Las constantes del ticket (AID de EMV, serie del posnet, CUIT) no son
+        // identificadores de NADA: no se listan ni para comparar la referencia
+        // tipeada ni para buscar duplicados. Ver esConstanteDeComprobante().
+        if (key.length < 3 || seen.has(key) || esConstanteDeComprobante(id)) continue;
         seen.add(key);
         ids.push(id);
     }
@@ -283,7 +315,7 @@ const CAMPOS_JSON = `{
   "date_raw": "la fecha del pago EXACTAMENTE como está impresa en el comprobante, sin reinterpretar ni convertir (por ejemplo '17/07/26' o '17-07-2026'). Copiá los dígitos tal cual. Si no aparece, null",
   "date": "la misma fecha en formato YYYY-MM-DD. OJO: los comprobantes argentinos la imprimen DÍA/MES/AÑO, así que '17/07/26' es 2026-07-17 (NO 2017). Si no aparece o no se lee con claridad, null",
   "transaction_id": "el identificador principal: el Número de operación si aparece, si no el número de transferencia o comprobante. Si no hay, null",
-  "reference_ids": ["TODOS los identificadores que figuran en el comprobante, uno por elemento, transcriptos tal cual: número de operación, código de identificación, número de comprobante, ID de transacción, número de lote, número de cupón y número/código de autorización. Un mismo comprobante suele traer DOS o MÁS y hay que listarlos todos. NO incluyas CBU, CVU, alias, CUIT/CUIL, número de establecimiento o terminal, importes, fechas ni números de tarjeta. Si no hay ninguno, []"],
+  "reference_ids": ["TODOS los identificadores que figuran en el comprobante, uno por elemento, transcriptos tal cual: número de operación, código de identificación, número de comprobante, ID de transacción, número de lote, número de cupón y número/código de autorización. Un mismo comprobante suele traer DOS o MÁS y hay que listarlos todos. NO incluyas CBU, CVU, alias, CUIT/CUIL, número de establecimiento o terminal, número de serie del posnet (SMARTPOS...), el AID de la tarjeta (empieza con A0000000 y es igual en todos los tickets de la misma marca), el DNI del titular aunque esté escrito a mano, importes, fechas ni números de tarjeta. Si no hay ninguno, []"],
   "batch_number": "si es un ticket de posnet, el Nro. de lote transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"011\\"). Si no aparece, null",
   "coupon_number": "si es un ticket de posnet, el Nro. de cupón transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"0172\\"). Si no aparece, null",
   "auth_number": "si es un ticket de posnet, el Nro. de autorización transcripto TAL CUAL con sus ceros a la izquierda (ej. \\"007956\\"). Si no aparece, null"
