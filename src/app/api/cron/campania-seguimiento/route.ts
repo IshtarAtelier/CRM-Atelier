@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendWhatsApp } from '@/lib/whatsapp/send';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
-import { WHATSAPP_TEMPLATES } from '@/lib/whatsapp/templates';
+import { WHATSAPP_TEMPLATES, templateSpec } from '@/lib/whatsapp/templates';
+import { STORE_ORIGIN } from '@/lib/constants';
 import { BUSINESS_INFO } from '@/lib/business-info';
 import type { Prisma } from '@prisma/client';
 
@@ -156,14 +157,22 @@ export async function GET(request: NextRequest) {
         if (claimed === 0) continue;
 
         const pila = (c.name || '').trim().split(/\s+/)[0] || 'Hola';
-        const texto = WHATSAPP_TEMPLATES[plantilla].body.replace('{{1}}', pila);
+        const def = WHATSAPP_TEMPLATES[plantilla] as { body: string; header?: string; imagenMuestra?: string };
+        const texto = def.body.replace('{{1}}', pila);
+        // La v2 lleva IMAGEN de cabecera: sin el link Meta rechaza el envío con
+        // 132012 ("Parameter format does not match"). Medido el 15/9/2026: la
+        // campaña v2 nunca había mandado NADA por esto (0 envíos, 10 errores
+        // por tanda, silenciosos). La imagen es la misma que se aprobó.
+        const headerImage = def.header === 'IMAGE' && def.imagenMuestra
+            ? { link: `${STORE_ORIGIN}${def.imagenMuestra.replace(/^public/, '')}` }
+            : undefined;
         const res = await sendWhatsApp({
             chatId: `${telefono}@c.us`,
             message: texto,
             senderName: nombreTag,
             isProactive: true,
             forceTemplate: true,
-            template: { name: plantilla, bodyParams: [pila] },
+            template: templateSpec(plantilla, [pila], headerImage ? { headerImage } : {}),
         });
 
         if (!res.ok) {
