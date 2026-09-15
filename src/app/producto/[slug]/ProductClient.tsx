@@ -432,6 +432,82 @@ export function ProductClient({
               </div>
             )}
             
+            {/* Selector de color. Ishtar (14/9): "cuando estás navegando en uno
+                que tiene más de un color no te das cuenta que de ahí mismo
+                podés cambiarlo… me encantan los círculos pero creo que
+                destacan más". Los círculos se quedan —le gustan— y lo que
+                cambia es todo lo que los hacía pasar desapercibidos:
+                · El título decía "Variantes de Color:", que describe pero no
+                  invita. Ahora dice CUÁNTOS colores hay y qué hacer con ellos:
+                  un dato concreto ("Este modelo viene en 4 colores") convierte
+                  el bloque en una oferta, no en una etiqueta.
+                · El bloque tiene marco y fondo propios, así que se lee como un
+                  control y no como parte del texto de la ficha.
+                · Los círculos pasan de 32 a 44 px, que además es el mínimo que
+                  pide WCAG para algo que se toca con el dedo. */}
+            {variants && variants.length > 1 && (
+              <div className="mb-6 rounded-2xl border border-stone-200 bg-stone-50/70 p-4">
+                <span className="text-xs text-stone-700 font-bold uppercase tracking-wider block mb-3">
+                  Este modelo viene en {variants.length} colores — tocá para verlos
+                </span>
+                <div className="flex flex-wrap gap-3">
+                  {variants.map((v) => {
+                    const isActive = v.slug === product.slug;
+                    return (
+                      <Link
+                        key={v.slug}
+                        href={`/producto/${v.slug}`}
+                        /* Cada color es una ficha propia (decisión de Ishtar: da
+                           sensación de más variedad), así que cambiar de color es
+                           NAVEGAR. Dos cosas lo hacían sentir una recarga entera:
+                           1) `prefetch` explícito: el selector suele quedar abajo
+                              del fold, y el prefetch automático de Next recién
+                              dispara cuando el link entra en pantalla. Así llega
+                              tarde. Cada variante son 27 KB (contra 117 KB de la
+                              carga completa) y un modelo tiene 3-4 colores: sale
+                              barato tenerlas listas antes del clic.
+                           2) `scroll={false}`: sin esto la página salta al tope en
+                              cada cambio, que es JUSTO lo que se lee como "se
+                              recargó todo". Con esto te quedás mirando el mismo
+                              lugar y solo cambia el anteojo. */
+                        prefetch
+                        scroll={false}
+                        className={`group relative flex items-center justify-center rounded-full border p-1 transition-all duration-300 ${
+                          isActive 
+                            ? 'border-black scale-110 shadow-sm bg-white' 
+                            : 'border-stone-200 hover:border-black bg-stone-50'
+                        }`}
+                        title={`Color: ${v.colorCode}`}
+                      >
+                        {v.imageUrl ? (
+                          <div className="w-11 h-11 rounded-full overflow-hidden relative bg-white">
+                            <Image unoptimized={String(resolveStorageUrl(v.imageUrl)).startsWith('data:')}
+                              src={resolveStorageUrl(v.imageUrl)}
+                              alt={v.colorCode}
+                              fill
+                              sizes="44px"
+                              style={{ objectFit: 'contain' }}
+                              className="transition-transform duration-300 group-hover:scale-110"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xs font-mono font-bold uppercase px-2 py-1">
+                            {v.colorCode}
+                          </span>
+                        )}
+                        {isActive && (
+                          <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-wider text-black bg-white px-1.5 py-0.5 rounded shadow-sm border border-stone-100 whitespace-nowrap z-20 pointer-events-none">
+                            {v.colorCode}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+                <div className="h-4"></div>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center gap-2 mb-6 text-[11px] text-stone-500">
               <span className="uppercase tracking-widest font-bold">SKU: {product.id?.substring(0, 8).toUpperCase() || 'ATELIER'}</span>
               {product.modelCode && (
@@ -504,68 +580,6 @@ export function ProductClient({
               </div>
             )}
 
-            {variants && variants.length > 1 && (
-              <div className="mb-6">
-                <span className="text-xs text-stone-500 font-bold uppercase tracking-wider block mb-2.5">
-                  Variantes de Color:
-                </span>
-                <div className="flex flex-wrap gap-2.5">
-                  {variants.map((v) => {
-                    const isActive = v.slug === product.slug;
-                    return (
-                      <Link
-                        key={v.slug}
-                        href={`/producto/${v.slug}`}
-                        /* Cada color es una ficha propia (decisión de Ishtar: da
-                           sensación de más variedad), así que cambiar de color es
-                           NAVEGAR. Dos cosas lo hacían sentir una recarga entera:
-                           1) `prefetch` explícito: el selector suele quedar abajo
-                              del fold, y el prefetch automático de Next recién
-                              dispara cuando el link entra en pantalla. Así llega
-                              tarde. Cada variante son 27 KB (contra 117 KB de la
-                              carga completa) y un modelo tiene 3-4 colores: sale
-                              barato tenerlas listas antes del clic.
-                           2) `scroll={false}`: sin esto la página salta al tope en
-                              cada cambio, que es JUSTO lo que se lee como "se
-                              recargó todo". Con esto te quedás mirando el mismo
-                              lugar y solo cambia el anteojo. */
-                        prefetch
-                        scroll={false}
-                        className={`group relative flex items-center justify-center rounded-full border p-1 transition-all duration-300 ${
-                          isActive 
-                            ? 'border-black scale-110 shadow-sm bg-white' 
-                            : 'border-stone-200 hover:border-black bg-stone-50'
-                        }`}
-                        title={`Color: ${v.colorCode}`}
-                      >
-                        {v.imageUrl ? (
-                          <div className="w-8 h-8 rounded-full overflow-hidden relative bg-white">
-                            <Image unoptimized={String(resolveStorageUrl(v.imageUrl)).startsWith('data:')}
-                              src={resolveStorageUrl(v.imageUrl)}
-                              alt={v.colorCode}
-                              fill
-                              sizes="32px"
-                              style={{ objectFit: 'contain' }}
-                              className="transition-transform duration-300 group-hover:scale-110"
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-xs font-mono font-bold uppercase px-2 py-1">
-                            {v.colorCode}
-                          </span>
-                        )}
-                        {isActive && (
-                          <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-black uppercase tracking-wider text-black bg-white px-1.5 py-0.5 rounded shadow-sm border border-stone-100 whitespace-nowrap z-20 pointer-events-none">
-                            {v.colorCode}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-                <div className="h-4"></div>
-              </div>
-            )}
             
             {isWholesale ? (
               <div className="mb-6 flex flex-col gap-1">
