@@ -103,13 +103,27 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                   src={imageUrl} 
                   alt={`${p.brand} ${p.model}`}
                   fill
-                  // Sin `priority`: marcaba 4 miniaturas como prioritarias y Next
-                  // emite un <link rel="preload"> por cada una, compitiendo por
-                  // ancho de banda con lo que define el primer pintado. Mismo
-                  // caso que ya se corrigió en el carrusel de la home.
-                  loading="lazy"
+                  /* La PRIMERA foto se precarga; el resto queda diferido.
+                     Antes iban las cuatro con `priority` —cuatro preloads
+                     peleándose el ancho de banda— y la corrección de entonces
+                     las dejó a TODAS en lazy, que es el otro extremo: la foto
+                     que define el primer pintado esperaba a que el navegador
+                     terminara el layout. Medido el 14/9 en celular con 4G
+                     lento: en /lentes-de-sol la imagen del LCP pasaba 2,4 s
+                     ESPERANDO antes de empezar a bajar (el 57% de un LCP de
+                     4,2 s), y en /clip-on 2,2 s. La grilla de /tienda, que
+                     nunca dejó de precargar, mide 1,8 s con las mismas fotos y
+                     el mismo servidor. Una sola: en celular la grilla es de una
+                     columna, así que arriba del pliegue hay exactamente una
+                     foto, y las de la primera fila en escritorio cargan igual
+                     de inmediato por estar en pantalla. */
+                  priority={index === 0}
+                  loading={index === 0 ? undefined : "lazy"}
                   style={{ transform: "translateZ(0)" }}
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  /* 25vw en xl: la grilla ahí es de CUATRO columnas, no de tres.
+                     Con 33vw Next servía una foto un tercio más grande que el
+                     hueco donde entra. */
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, (max-width: 1536px) 33vw, 25vw"
                   className={`object-contain mix-blend-multiply transition-opacity duration-500 ease-in-out ${imagePaddingClass} ${hasSecondImage ? 'md:group-hover:opacity-0 ' : ''}`}
                 />
 
@@ -119,7 +133,7 @@ export function CategoryGrid({ products, emptyMessage = "Estamos actualizando nu
                     alt={`${p.brand} ${p.model} Try-On`}
                     fill
                     style={{ transform: "translateZ(0)" }}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, (max-width: 1536px) 33vw, 25vw"
                     className="object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 ease-in-out"
                   />
                 )}
