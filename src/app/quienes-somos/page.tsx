@@ -6,6 +6,7 @@ import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 import { buildWhatsAppUrl } from '@/lib/whatsapp-link';
 import { getGoogleReviews } from '@/lib/googleReviews';
+import { RESENAS_DESTACADAS, haceCuanto } from '@/lib/constants/resenas-destacadas';
 
 /*
  * Quiénes somos, en la estética y la voz de /blog/anteojos-obras-de-arte
@@ -98,23 +99,20 @@ const EQUIPO = [
 type Resena = { author_name?: string; rating?: number; text?: string; relative_time_description?: string };
 
 /**
- * Reseñas REALES de Google (las mismas que usan la landing y /resenas). Se
- * muestran solo las de 5 estrellas con texto, primero las que nombran a
- * alguien del equipo. Se recortan al final de oración para que las tarjetas
- * queden parejas. Si Google no responde, `getGoogleReviews` devuelve reseñas
- * reales de respaldo con rating 0: en ese caso no se muestra el promedio ni la
- * cantidad, porque un número inventado es peor que ninguno.
+ * Recibe las reseñas destacadas (reales, copiadas del Perfil de Negocio, ver
+ * lib/constants/resenas-destacadas.ts) en el orden que eligió Ishtar, y deja
+ * las primeras 4 de 5 estrellas. Solo recorta si alguna es muy larga, y lo
+ * hace por oraciones enteras.
  */
 function elegirResenas(reviews: Resena[]) {
   const nombraEquipo = (t: string) => /\b(matías|matias|milena)\b/i.test(t);
   return reviews
     .filter((r) => (r.rating ?? 0) >= 5 && r.text && r.author_name)
-    .sort((a, b) => Number(nombraEquipo(b.text!)) - Number(nombraEquipo(a.text!)))
     .slice(0, 4)
     .map((r) => {
       const full = r.text!.trim().replace(/\s+/g, ' ');
       let texto = full;
-      if (full.length > 260) {
+      if (full.length > 420) {
         // Se arma por ORACIONES: la primera, y si la reseña nombra a alguien del
         // equipo, también la oración donde lo nombra. Un recorte por caracteres
         // se comía justo esa parte ("Destaco especialmente la atención de
@@ -124,15 +122,15 @@ function elegirResenas(reviews: Resena[]) {
         if (conNombre) {
           texto = `${oraciones[0]} … ${conNombre}`;
         } else {
-          // Sin nombre: oraciones enteras en orden mientras entren en 260.
+          // Sin nombre: oraciones enteras en orden mientras entren en 420.
           const juntas: string[] = [];
           for (const s of oraciones) {
-            if ([...juntas, s].join(' ').length > 260 && juntas.length) break;
+            if ([...juntas, s].join(' ').length > 420 && juntas.length) break;
             juntas.push(s);
           }
           texto = juntas.join(' ');
         }
-        if (texto.length > 320) texto = `${texto.slice(0, 317).trimEnd()}…`;
+        if (texto.length > 460) texto = `${texto.slice(0, 457).trimEnd()}…`;
       }
       return { nombre: r.author_name!.trim(), texto, cuando: r.relative_time_description || '' };
     });
@@ -153,7 +151,11 @@ export const revalidate = 3600;
 
 export default async function QuienesSomosPage() {
   const datosResenas = await getGoogleReviews().catch(() => ({ reviews: [], rating: 0, userRatingCount: 0 }));
-  const resenas = elegirResenas(datosResenas.reviews as Resena[]);
+  // Los TEXTOS salen de las reseñas destacadas (copiadas del Perfil de Negocio,
+  // de esta semana). De la API solo el promedio y la cantidad, que ahí son exactos.
+  const resenas = elegirResenas(
+    RESENAS_DESTACADAS.map((r) => ({ author_name: r.autor, rating: r.estrellas, text: r.texto, relative_time_description: haceCuanto(r.fecha) })),
+  );
   const hayPromedio = datosResenas.rating > 0 && datosResenas.userRatingCount > 0;
 
   return (
