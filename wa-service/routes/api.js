@@ -384,10 +384,18 @@ function createApiRouter(deps) {
                     // teléfono real (los chats @lid de WhatsApp Web no se pueden usar).
                     waId = destinoDelChat(chat) || chat.waId;
                     if (waId !== chat.waId) migrarChatLid(prisma, chat).catch(() => {});
-                } else if (esTelefono) {
+                } else if (esTelefono || (esWaIdLegacy && /^\d{10,15}$/.test(cleanPhone))) {
                     // API oficial: se puede escribir (con plantilla) a alguien que
                     // nunca escribió. Se crea el chat para que el saliente tenga
                     // dónde guardarse y aparezca en el buzón.
+                    //
+                    // También cuando el destino viene como "<num>@c.us" (así lo
+                    // mandan las campañas del CRM): el 15/9/2026 la campaña
+                    // SoyCliente mandó 30 mensajes a fichas importadas sin chat y
+                    // ninguno quedó guardado —Meta los aceptó, el CRM no tenía
+                    // dónde anotarlos— así que no se supo si llegaron ni se
+                    // pudo enlazar la respuesta. Un @lid nunca entra acá:
+                    // cleanPhone de un LID no es un teléfono.
                     waId = cleanPhone;
                     if (template) {
                         const nuevo = await prisma.whatsAppChat.create({

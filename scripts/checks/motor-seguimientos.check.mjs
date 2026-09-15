@@ -158,6 +158,7 @@ console.log('\nChats @lid: se manda al número real');
     const { readFileSync } = await import('node:fs');
     const api = readFileSync(new URL('../../wa-service/routes/api.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('/api/send resuelve el destino con destinoDelChat', (api.match(/destinoDelChat\(chat\)/g) || []).length === 2);
+    check('/api/send crea el chat también cuando la campaña manda "<num>@c.us" (si no, el envío no se guarda)', api.includes("esTelefono || (esWaIdLegacy && /^\\d{10,15}$/.test(cleanPhone))"));
     const reg = readFileSync(new URL('../../src/lib/seguimientos/registro.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
     check('un envío FALLIDO se puede volver a reclamar en el tick siguiente (no espera a mañana)', reg.includes("resultado: 'FALLIDO' },\n            data: { resultado: 'RECLAMADO'"));
     const resp = readFileSync(new URL('../../src/lib/embudo/respuestas-a-seguimientos.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
