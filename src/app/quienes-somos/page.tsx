@@ -5,6 +5,7 @@ import { StorefrontNavbar } from '@/components/Storefront/StorefrontNavbar';
 import { StorefrontFooter } from '@/components/Storefront/StorefrontFooter';
 import { WHATSAPP_PHONE } from '@/lib/constants';
 import { buildWhatsAppUrl } from '@/lib/whatsapp-link';
+import { getGoogleReviews } from '@/lib/googleReviews';
 
 /*
  * Quiénes somos, en la estética y la voz de /blog/anteojos-obras-de-arte
@@ -26,7 +27,7 @@ import { buildWhatsAppUrl } from '@/lib/whatsapp-link';
 
 const PAGE_URL = 'https://atelieroptica.com.ar/quienes-somos';
 const DESCRIPCION =
-  'Detrás de Atelier Óptica hay un taller de ópticos creativos en el Cerro de las Rosas: Ishtar y Yani, que la crearon, y Milena y Matías, que la atienden todos los días.';
+  'Detrás de Atelier Óptica hay un equipo de ópticos creativos en el Cerro de las Rosas: Ishtar y Yani, que la crearon, y Milena y Matías, que la atienden todos los días.';
 
 export const metadata: Metadata = {
   title: 'Quiénes Somos',
@@ -41,11 +42,18 @@ export const metadata: Metadata = {
   },
 };
 
+/*
+ * OJO con lo que se promete acá (correcciones de Ishtar, 15/9/2026):
+ *  · NO hay taller propio. No decir "taller propio", "nuestro taller" ni
+ *    "vuelve al taller".
+ *  · La garantía de adaptación es UN cambio de cristales. Nunca "hasta que
+ *    quede", "hasta que sí" ni nada que suene a cambios ilimitados.
+ */
 const PRINCIPIOS = [
   {
     n: '01',
     titulo: 'Nadie es un número',
-    texto: 'Somos una óptica de familia, no una cadena. El que te atiende hoy es el mismo que te ajusta el aro dentro de un año.',
+    texto: 'Somos una óptica de familia, no una cadena. El que te atiende hoy es el mismo que te recibe cuando volvés.',
   },
   {
     n: '02',
@@ -55,12 +63,12 @@ const PRINCIPIOS = [
   {
     n: '03',
     titulo: 'Medido con tu armazón puesto',
-    texto: 'Taller propio, mostrador de mármol y toda la paleta de cristales para probar en la mano. Lo que sale de acá, sale ajustado a vos.',
+    texto: 'Tomamos las medidas con el armazón que elegiste ya puesto, y tenés toda la paleta de cristales para probar en la mano antes de decidir.',
   },
   {
     n: '04',
-    titulo: 'El nombre en cada par',
-    texto: 'Si el anteojo no te queda cómodo, vuelve al taller hasta que sí. Por eso existe la garantía de adaptación: nos obliga a hacerlo bien.',
+    titulo: 'Garantía de adaptación',
+    texto: 'Adaptarse a cristales nuevos lleva unos días. Si no te adaptás, dentro de los 30 días tenés un cambio de cristales sin cargo.',
   },
 ];
 
@@ -70,16 +78,65 @@ const EQUIPO = [
     rol: 'Colaboradora especializada · Essilor Expert',
     foto: '/images/equipo/retrato-mostrador.jpg',
     alt: 'Milena, colaboradora especializada de Atelier Óptica, en el mostrador',
-    texto: 'Te toma la receta, te ayuda a elegir el armazón y te explica qué cristal le va a cada uno.',
+    texto: [
+      'Te toma la receta, te ayuda a elegir el armazón y te explica qué cristal le va a cada uno, sin tecnicismos.',
+      'Es de las que se adelantan: revisa cada detalle de la receta y del armazón antes de que haga falta preguntar, y no da nada por sabido.',
+    ],
   },
   {
     nombre: 'Matías',
     rol: 'Colaborador especializado · Essilor Expert',
     foto: '/images/equipo/retrato-guardapolvo.jpg',
     alt: 'Matías, colaborador especializado de Atelier Óptica, junto a la pared de armazones',
-    texto: 'Del armado al ajuste final. Si el anteojo no te queda cómodo, vuelve al taller hasta que sí.',
+    texto: [
+      'Te acompaña desde el primer mensaje hasta el ajuste final del armazón en tu cara. Muchas de nuestras reseñas lo nombran a él.',
+      'Se toma el tiempo que haga falta: explica cada paso con paciencia y no te deja ir hasta que entendiste todo lo que compraste.',
+    ],
   },
 ];
+
+type Resena = { author_name?: string; rating?: number; text?: string; relative_time_description?: string };
+
+/**
+ * Reseñas REALES de Google (las mismas que usan la landing y /resenas). Se
+ * muestran solo las de 5 estrellas con texto, primero las que nombran a
+ * alguien del equipo. Se recortan al final de oración para que las tarjetas
+ * queden parejas. Si Google no responde, `getGoogleReviews` devuelve reseñas
+ * reales de respaldo con rating 0: en ese caso no se muestra el promedio ni la
+ * cantidad, porque un número inventado es peor que ninguno.
+ */
+function elegirResenas(reviews: Resena[]) {
+  const nombraEquipo = (t: string) => /\b(matías|matias|milena)\b/i.test(t);
+  return reviews
+    .filter((r) => (r.rating ?? 0) >= 5 && r.text && r.author_name)
+    .sort((a, b) => Number(nombraEquipo(b.text!)) - Number(nombraEquipo(a.text!)))
+    .slice(0, 4)
+    .map((r) => {
+      const full = r.text!.trim().replace(/\s+/g, ' ');
+      let texto = full;
+      if (full.length > 260) {
+        // Se arma por ORACIONES: la primera, y si la reseña nombra a alguien del
+        // equipo, también la oración donde lo nombra. Un recorte por caracteres
+        // se comía justo esa parte ("Destaco especialmente la atención de
+        // Matías" quedaba afuera), que es la que más dice en esta página.
+        const oraciones = full.match(/[^.!?]+[.!?]+/g)?.map((s) => s.trim()) ?? [full];
+        const conNombre = oraciones.find((s, i) => i > 0 && nombraEquipo(s));
+        if (conNombre) {
+          texto = `${oraciones[0]} … ${conNombre}`;
+        } else {
+          // Sin nombre: oraciones enteras en orden mientras entren en 260.
+          const juntas: string[] = [];
+          for (const s of oraciones) {
+            if ([...juntas, s].join(' ').length > 260 && juntas.length) break;
+            juntas.push(s);
+          }
+          texto = juntas.join(' ');
+        }
+        if (texto.length > 320) texto = `${texto.slice(0, 317).trimEnd()}…`;
+      }
+      return { nombre: r.author_name!.trim(), texto, cuando: r.relative_time_description || '' };
+    });
+}
 
 function SectionLabel({ n, children }: { n: string; children: React.ReactNode }) {
   return (
@@ -91,7 +148,14 @@ function SectionLabel({ n, children }: { n: string; children: React.ReactNode })
   );
 }
 
-export default function QuienesSomosPage() {
+// Las reseñas se refrescan cada hora, igual que en el resto del sitio.
+export const revalidate = 3600;
+
+export default async function QuienesSomosPage() {
+  const datosResenas = await getGoogleReviews().catch(() => ({ reviews: [], rating: 0, userRatingCount: 0 }));
+  const resenas = elegirResenas(datosResenas.reviews as Resena[]);
+  const hayPromedio = datosResenas.rating > 0 && datosResenas.userRatingCount > 0;
+
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-white selection:text-black">
       <StorefrontNavbar theme="dark" />
@@ -116,7 +180,7 @@ export default function QuienesSomosPage() {
           <div className="relative z-10 w-full px-6 lg:px-16 pb-16 lg:pb-24 pt-40">
             <p className="text-[11px] uppercase tracking-[0.4em] text-white/70 mb-6">Quiénes somos — Atelier Óptica</p>
             <h1 className="text-[13vw] leading-[0.92] sm:text-6xl lg:text-8xl font-normal tracking-tight max-w-5xl">
-              Un taller.<br />No un mostrador<br />de paso.
+              Una óptica<br />de autor.<br />No de paso.
             </h1>
             <p className="mt-8 text-white/80 text-[15px] lg:text-lg leading-relaxed max-w-xl">
               Somos ópticos creativos en el Cerro de las Rosas. Cuatro personas, un solo mostrador y la misma obsesión por el detalle.
@@ -132,7 +196,7 @@ export default function QuienesSomosPage() {
         <section className="px-6 lg:px-16 pt-24 lg:pt-32 pb-20 lg:pb-28 max-w-3xl mx-auto">
           <SectionLabel n="01">El nombre</SectionLabel>
           <p className="text-2xl lg:text-3xl leading-[1.4] font-light text-white/95 mb-8">
-            Un atelier no es un negocio ni un consultorio: <span className="text-white">es un taller donde se hacen obras</span>. Elegimos ese nombre a propósito.
+            Un atelier no es un negocio ni un consultorio: <span className="text-white">es el lugar donde se hacen obras</span>. Elegimos ese nombre a propósito.
           </p>
           <div className="space-y-6 text-white/70 text-[15px] lg:text-base leading-relaxed">
             <p>
@@ -167,14 +231,14 @@ export default function QuienesSomosPage() {
 
         {/* 02 — LAS CREADORAS */}
         <section className="px-6 lg:px-16 pt-20 lg:pt-28 pb-20 lg:pb-28 max-w-3xl mx-auto">
-          <SectionLabel n="02">Las creadoras</SectionLabel>
+          <SectionLabel n="02">Las socias fundadoras</SectionLabel>
           <h2 className="text-3xl lg:text-5xl font-normal leading-tight mb-8">Ishtar y Yani</h2>
           <div className="space-y-6 text-white/70 text-[15px] lg:text-base leading-relaxed">
             <p>
-              <span className="text-white">Ishtar</span> viene de una familia envuelta en el arte. Estudió escultura, grabado y pintura, se recibió de óptica contactóloga y pasó más de diez años como gerente comercial liderando grandes equipos. Hoy elige cada armazón que entra al local y sigue tu pedido hasta que te lo entrega puesto.
+              <span className="text-white">Ishtar</span> es socia fundadora y está a cargo de la dirección artística de Atelier. Elige cada uno de los armazones que hay en la óptica.
             </p>
             <p>
-              <span className="text-white">Yani</span> es su hermana. Metódica, apasionada, amante de la salud en todas sus formas. Sostuvo el primer año de Atelier —el más difícil— mientras terminaba su carrera y viajaba una hora todos los días para llegar. La Cápsula Escarlata, nuestra línea mayorista, está inspirada en ella.
+              <span className="text-white">Yani</span> es su hermana. Metódica, apasionada, amante de la salud en todas sus formas. Sostuvo el primer año de Atelier —el más difícil— mientras terminaba su carrera y viajaba una hora todos los días para llegar. La <span className="text-white">Cápsula Escarlata</span>, nuestra nueva cápsula 2026, está inspirada en ella.
             </p>
             <p>
               Empezaron en un rinconcito de la Galería Gitana. Un día Ishtar la llamó y le dijo{' '}
@@ -216,10 +280,15 @@ export default function QuienesSomosPage() {
         <section id="equipo" className="border-t border-white/10 scroll-mt-28">
           <div className="px-6 lg:px-16 pt-20 lg:pt-28 pb-14 max-w-3xl mx-auto">
             <SectionLabel n="04">Quienes te atienden</SectionLabel>
-            <h2 className="text-3xl lg:text-5xl font-normal leading-tight mb-6">Milena y Matías</h2>
-            <p className="text-white/70 text-[15px] lg:text-base leading-relaxed max-w-xl">
-              Dos personas que están en el local todos los días. Los dos con la certificación Essilor Expert.
-            </p>
+            <h2 className="text-3xl lg:text-5xl font-normal leading-tight mb-8">Milena y Matías</h2>
+            <div className="space-y-6 text-white/70 text-[15px] lg:text-base leading-relaxed">
+              <p>
+                Están en el local todos los días. Los dos tienen <span className="text-white">una trayectoria muy amplia en óptica</span>, la certificación Essilor Expert y algo que no se enseña: <span className="text-white">aman lo que hacen</span>.
+              </p>
+              <p>
+                Son pacientes, saben muchísimo y analizan cada detalle antes de que haga falta preguntar. Se aseguran de que te vayas con todo entendido, y cada compra sale con una confirmación ultra detallada de todo lo que llevás.
+              </p>
+            </div>
           </div>
           <div className="grid grid-cols-2">
             {EQUIPO.map((p, i) => (
@@ -236,17 +305,59 @@ export default function QuienesSomosPage() {
                 <figcaption className="px-4 sm:px-8 lg:px-12 py-8 lg:py-10 border-b border-white/10">
                   <h3 className="text-2xl lg:text-3xl font-normal">{p.nombre}</h3>
                   <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-white/70 mt-2 mb-4">{p.rol}</p>
-                  <p className="text-white/70 text-[14px] lg:text-[15px] leading-relaxed">{p.texto}</p>
+                  <div className="space-y-3 text-white/70 text-[14px] lg:text-[15px] leading-relaxed">
+                    {p.texto.map((t) => <p key={t}>{t}</p>)}
+                  </div>
                 </figcaption>
               </figure>
             ))}
           </div>
         </section>
 
-        {/* 05 — COMO TRABAJAMOS */}
-        <section className="px-6 lg:px-16 py-20 lg:py-28">
+        {/* 05 — LO QUE DICEN. Reseñas reales de Google; si no hay, la sección no existe. */}
+        {resenas.length > 0 && (
+          <section className="border-t border-white/10 px-6 lg:px-16 py-20 lg:py-28">
+            <div className="max-w-3xl mx-auto mb-14">
+              <SectionLabel n="05">Lo que dicen</SectionLabel>
+              <h2 className="text-3xl lg:text-5xl font-normal leading-tight mb-6">En palabras de quienes nos eligieron</h2>
+              {hayPromedio && (
+                <p className="text-white/70 text-[15px] lg:text-base leading-relaxed">
+                  <span className="text-white">{datosResenas.rating.toFixed(1)} de 5</span> en Google, con{' '}
+                  <span className="text-white">{datosResenas.userRatingCount.toLocaleString('es-AR')} reseñas reales</span>.
+                </p>
+              )}
+            </div>
+            <div className="max-w-5xl mx-auto grid sm:grid-cols-2 border-t border-white/10">
+              {resenas.map((r, i) => (
+                <figure
+                  key={r.nombre + i}
+                  className={`py-10 sm:p-10 border-b border-white/10 ${i % 2 === 0 ? 'sm:border-r' : ''}`}
+                >
+                  <p className="text-[13px] tracking-[0.3em] text-white mb-5" aria-label="5 estrellas">★★★★★</p>
+                  <blockquote className="text-white/85 text-[16px] lg:text-lg leading-relaxed font-light">
+                    &ldquo;{r.texto}&rdquo;
+                  </blockquote>
+                  <figcaption className="mt-6 text-[11px] uppercase tracking-[0.25em] text-white/70">
+                    {r.nombre}{r.cuando ? ` · ${r.cuando}` : ''}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+            <div className="max-w-5xl mx-auto mt-10 text-center">
+              <Link
+                href="/resenas"
+                className="inline-block text-[11px] uppercase tracking-[0.25em] text-white/80 border-b border-white/30 pb-1 hover:text-white hover:border-white transition-colors"
+              >
+                Leé todas las reseñas →
+              </Link>
+            </div>
+          </section>
+        )}
+
+        {/* 06 — COMO TRABAJAMOS */}
+        <section className="border-t border-white/10 px-6 lg:px-16 py-20 lg:py-28">
           <div className="max-w-3xl mx-auto mb-14">
-            <SectionLabel n="05">Cómo trabajamos</SectionLabel>
+            <SectionLabel n="06">Cómo trabajamos</SectionLabel>
             <h2 className="text-3xl lg:text-5xl font-normal leading-tight mb-6">Lo que no negociamos</h2>
             <p className="text-white/70 text-[15px] lg:text-base leading-relaxed max-w-xl">
               Trabajamos con cristales de alta gama y marcas como Varilux, Vulk y Rusty. Pero lo que nos define no es la vidriera.
@@ -263,10 +374,10 @@ export default function QuienesSomosPage() {
           </div>
         </section>
 
-        {/* 06 — EL TALLER */}
+        {/* 07 — EL LOCAL */}
         <section className="border-t border-white/10">
           <div className="px-6 lg:px-16 pt-20 lg:pt-28 pb-14 max-w-3xl mx-auto">
-            <SectionLabel n="06">El taller</SectionLabel>
+            <SectionLabel n="07">El local</SectionLabel>
             <h2 className="text-3xl lg:text-5xl font-normal leading-tight mb-8">Donde pasa todo</h2>
             <p className="text-white/70 text-[15px] lg:text-base leading-relaxed">
               Un espacio en el Cerro de las Rosas pensado para que elijas tus anteojos como se elige una prenda de autor. Sin turno previo.
