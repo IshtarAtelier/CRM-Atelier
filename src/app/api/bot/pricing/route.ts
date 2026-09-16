@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { STORE_ORIGIN } from '@/lib/constants';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { getWebSettings } from '@/lib/web-settings';
+import { generoDeNombre } from '@/lib/nombre-genero';
 import { PricingService } from '@/services/PricingService';
 import { esGraduacionAlta, CATEGORIAS_DE_CRISTAL, PALABRAS_DE_TALLADO } from '@/lib/receta/graduacion';
 import { cubreLaReceta, tieneGraduacion, motivoDeDescarte } from '@/lib/receta/rango-de-cristal';
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search')?.trim();
     // Género de la PERSONA que consulta (lo deduce el bot del nombre de pila).
     // 'HOMBRE' | 'MUJER'. Si no viene, no se filtra nada.
-    const genero = searchParams.get('genero')?.toUpperCase();
+    let genero = searchParams.get('genero')?.toUpperCase();
     // Graduación de la receta (esfera más alta, valor absoluto). La manda el bot
     // cuando ya leyó la receta. Ver más abajo por qué cambia lo que se ofrece.
     // La receta, para cruzarla con el rango que cubre cada cristal. La manda el
@@ -234,6 +235,24 @@ export async function GET(req: NextRequest) {
     // (el suyo, los unisex, los mixtos y los que no tienen dato). Se equivoca
     // hacia mostrar de más, nunca hacia mostrarle una montura que claramente no
     // es para esa persona.
+    // 🔒 El género sale de la FICHA, no de lo que adivine el modelo.
+    //
+    // Hasta el 16/9/2026 el único origen era el parámetro `genero`, que el bot
+    // deducía del nombre de pila y pasaba "cuando estuviera seguro": cuando no
+    // lo pasaba —lo habitual— no se filtraba nada y a un hombre le llegaban
+    // monturas de mujer (lo vio Ishtar). Ahora, si no vino, se deduce acá del
+    // nombre de la ficha con `generoDeNombre` (tabla fija; ante la duda, null y
+    // no se filtra). Lo que mande el modelo sigue teniendo prioridad: si el
+    // cliente dijo "es para mi señora", el bot lo pasa y manda eso.
+    if (genero !== 'HOMBRE' && genero !== 'MUJER' && clientIdConsulta) {
+        const ficha = await prisma.client.findUnique({ where: { id: clientIdConsulta }, select: { name: true } }).catch(() => null);
+        const deducido = generoDeNombre(ficha?.name);
+        if (deducido) {
+            genero = deducido;
+            console.log(`[pricing] Género deducido de la ficha (${(ficha?.name || '').split(' ')[0]}): ${deducido}`);
+        }
+    }
+
     if (genero === 'HOMBRE' || genero === 'MUJER') {
         const opuesto = genero === 'HOMBRE' ? 'femenino' : 'masculino';
         const propio = genero === 'HOMBRE' ? 'masculino' : 'femenino';
@@ -268,6 +287,7 @@ export async function GET(req: NextRequest) {
             botLabel: true,
             laboratory: true,
             publishToWeb: true,
+            gender: true,
             rawImageUrls: true,
             webProducts: {
                 select: { slug: true, imageUrl: true }
@@ -297,6 +317,7 @@ export async function GET(req: NextRequest) {
                 botLabel: true,
                 laboratory: true,
                 publishToWeb: true,
+                gender: true,
                 rawImageUrls: true,
                 webProducts: { select: { slug: true, imageUrl: true } },
             },
@@ -328,6 +349,7 @@ export async function GET(req: NextRequest) {
                 botLabel: true,
                 laboratory: true,
                 publishToWeb: true,
+                gender: true,
                 rawImageUrls: true,
                 webProducts: { select: { slug: true, imageUrl: true } },
             },
@@ -419,6 +441,10 @@ export async function GET(req: NextRequest) {
             lensIndex: p.lensIndex,
             laboratory: p.laboratory,
             botRecommended: p.botRecommended,
+            /** Género del ARMAZÓN como está cargado ("Femenino", "Unisex, Masculino"…).
+             *  Lo usa `sendProductPhotos` para poner PRIMERO lo que de verdad
+             *  corresponde, y no un armazón sin dato. */
+            genero: p.gender || null,
             // Publicado en la tienda = precio real y foto que resuelve en el
             // sitio. Los 336 armazones sin publicar tienen precios de carga
             // ($6,36 / $34,14) que no son de venta: el que manda fotos ordena

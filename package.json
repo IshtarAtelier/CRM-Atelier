@@ -47,6 +47,7 @@
     "check:velocidad": "node scripts/checks/velocidad-sitio.check.mjs",
     "check:cierres": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cierres.check.mjs",
     "check:motor": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/motor-seguimientos.check.mjs",
+    "check:genero-fotos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/genero-fotos.check.mjs",
     "check:horario-bot": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/horario-bot.check.mjs",
     "check:motor-base": "node --env-file=.env --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/motor-idempotencia.check.mjs",
     "check:cierres-base": "node --env-file=.env --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cierres-base.check.mjs",

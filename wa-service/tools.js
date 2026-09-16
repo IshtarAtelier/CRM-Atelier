@@ -741,6 +741,13 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
     // Género de la PERSONA. La ruta no filtra por el propio: excluye lo
     // claramente contrario (ver el comentario largo en api/bot/pricing).
     if (genero === 'HOMBRE' || genero === 'MUJER') params.genero = genero;
+    // El clientId va SIEMPRE: con él la ruta deduce sola el género del nombre
+    // de la ficha cuando el modelo no lo pasó (16/9/2026 — hasta entonces, si
+    // el modelo se olvidaba, a un hombre le llegaban monturas de mujer).
+    const fichaDelChat = destino.dbChatId
+        ? await prisma.whatsAppChat.findUnique({ where: { id: destino.dbChatId }, select: { clientId: true } }).catch(() => null)
+        : null;
+    if (fichaDelChat?.clientId) params.clientId = fichaDelChat.clientId;
     // Mismo criterio que 'get_price_list': con búsqueda se barre todo el
     // catálogo de la categoría; sin búsqueda se priorizan los recomendados por
     // la óptica (y la ruta ya cae sola a la categoría entera si no hay ninguno).
@@ -779,9 +786,26 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
         return `[INSTRUCCIÓN INTERNA] No hay fotos disponibles para esa búsqueda. NUNCA le digas al cliente que no encontraste fotos ni le prometas mandarlas después: seguí en texto${nombres ? ` (podés nombrar estos modelos: ${nombres})` : ''} e invitalo a probárselos en el local.`;
     }
 
-    // Primero lo que la óptica destacó, después lo publicado en la tienda (el
-    // resto tiene precios de carga, no de venta).
-    const puntaje = p => (p.botRecommended === true ? 2 : 0) + (p.publishToWeb === true ? 1 : 0);
+    // Orden: primero lo que de verdad le corresponde a la persona, después lo
+    // que la óptica destacó y lo publicado en la tienda (el resto tiene precios
+    // de carga, no de venta).
+    //
+    // El género pesa MÁS que todo lo demás (16/9/2026). La ruta ya sacó lo
+    // claramente contrario, pero quedaban adentro los 33 armazones sin género
+    // cargado, y como el catálogo se ordena alfabéticamente, terminaban
+    // ganando siempre los mismos tres. Un armazón marcado "Femenino" para una
+    // mujer vale más que uno sin dato.
+    const generoEfectivo = (genero === 'HOMBRE' || genero === 'MUJER') ? genero : null;
+    const puntajeDeGenero = p => {
+        const g = (p.genero || '').toLowerCase();
+        if (!g.trim()) return 0;                                  // sin dato: puede ser cualquier cosa
+        if (!generoEfectivo) return g.includes('unisex') ? 1 : 0;  // sin saber de quién es, unisex primero
+        const propio = generoEfectivo === 'HOMBRE' ? 'masculino' : 'femenino';
+        if (g.includes(propio)) return 3;
+        if (g.includes('unisex')) return 2;
+        return 0;
+    };
+    const puntaje = p => puntajeDeGenero(p) * 10 + (p.botRecommended === true ? 2 : 0) + (p.publishToWeb === true ? 1 : 0);
     const seleccion = [...conFoto].sort((a, b) => puntaje(b) - puntaje(a)).slice(0, MAX_FOTOS_POR_TURNO);
 
     const enviadas = [];
