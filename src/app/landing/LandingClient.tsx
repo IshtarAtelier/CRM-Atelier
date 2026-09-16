@@ -64,6 +64,17 @@ interface LandingClientProps {
 // nunca depende del motor de animación (SSR siempre visible).
 function HeroBackdrop({ images }: { images: string[] }) {
   const [frame, setFrame] = useState(0);
+  // Los frames 2..N se montan DESPUÉS de que el primero (la imagen LCP) esté en
+  // pantalla, o a los 2,5 s como tope — antes de que arranque la rotación a los
+  // 5 s. Lighthouse en celular (15/9/26): los cinco frames se pedían todos a la
+  // vez a los 65 ms, 162 KB compitiendo con la única imagen que importa para el
+  // LCP (4,0 s con FCP de 1,4 s). Están en el viewport, así que `loading="lazy"`
+  // no los frena: hay que no renderizarlos hasta que la primera cargó.
+  const [restoListo, setRestoListo] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setRestoListo(true), 2500);
+    return () => clearTimeout(id);
+  }, []);
   useEffect(() => {
     if (images.length <= 1) return;
     const id = setInterval(() => setFrame((p) => (p + 1) % images.length), 5000);
@@ -75,7 +86,7 @@ function HeroBackdrop({ images }: { images: string[] }) {
   return (
     <>
       <div className="absolute inset-0 pointer-events-none">
-        {images.map((src, i) => (
+        {images.map((src, i) => (i === 0 || restoListo) && (
           <div
             key={src}
             className="absolute inset-0 transition-opacity duration-[1800ms] ease-in-out"
@@ -87,6 +98,11 @@ function HeroBackdrop({ images }: { images: string[] }) {
               fill
               sizes="100vw"
               priority={i === 0}
+              // Explícito además de `priority`: Lighthouse marcaba el preload de
+              // la imagen LCP sin fetchpriority=high y el navegador la bajaba
+              // con prioridad Low, a la par de los frames de atrás.
+              fetchPriority={i === 0 ? "high" : "auto"}
+              onLoad={i === 0 ? () => setRestoListo(true) : undefined}
               className="object-cover object-[center_18%] grayscale"
             />
           </div>
