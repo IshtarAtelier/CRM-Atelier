@@ -81,6 +81,11 @@ const PRINCIPIOS = [
     titulo: 'Acompañamiento a toda hora',
     texto: 'Brindamos apoyo y contención a todos los clientes la mayor cantidad de horas posible, para que nadie quede sin un asesoramiento personalizado.',
   },
+  {
+    n: '07',
+    titulo: 'Tu historia clínica, con precisión',
+    texto: 'Usamos procesos y metodologías ágiles con un sistema desarrollado a medida, para llevar todo el historial clínico de nuestros pacientes con muchísima precisión.',
+  },
 ];
 
 const EQUIPO = [
@@ -385,7 +390,7 @@ export default async function QuienesSomosPage() {
           </div>
           <div className="max-w-5xl mx-auto grid sm:grid-cols-2 divide-y sm:divide-y-0 divide-white/10">
             {PRINCIPIOS.map((p, i) => (
-              <div key={p.titulo} className={`py-8 sm:p-10 ${i % 2 === 0 ? 'sm:border-r border-white/10' : ''} ${i < PRINCIPIOS.length - 2 ? 'sm:border-b border-white/10' : ''}`}>
+              <div key={p.titulo} className={`py-8 sm:p-10 ${i % 2 === 0 && i !== PRINCIPIOS.length - 1 ? 'sm:border-r border-white/10' : ''} ${i < PRINCIPIOS.length - (PRINCIPIOS.length % 2 === 0 ? 2 : 1) ? 'sm:border-b border-white/10' : ''} ${i === PRINCIPIOS.length - 1 && PRINCIPIOS.length % 2 === 1 ? 'sm:col-span-2' : ''}`}>
                 <span className="text-[11px] font-mono text-white/70">{p.n}</span>
                 <h3 className="text-xl font-normal mt-3 mb-3">{p.titulo}</h3>
                 <p className="text-white/70 text-[14px] leading-relaxed">{p.texto}</p>
