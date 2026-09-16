@@ -6,7 +6,7 @@
   "temas": [
     "cristales"
   ],
-  "caption": "¿Horas de pantalla y los ojos agotados? Eyezen de Essilor es el cristal pensado para eso: un apoyo suave de enfoque en la zona de lectura, y filtro de luz azul-violeta en el material. No es multifocal. Con o sin graduación. Preguntanos por WhatsApp.",
+  "caption": "¿Horas de pantalla y los ojos agotados? Eyezen de Essilor es el cristal pensado para eso: un refuerzo suave de enfoque en la zona de lectura, y tecnología Light Scan contra la luz azul nociva. No es multifocal. Con o sin graduación. Preguntanos por WhatsApp.",
   "slides": [
     {
       "type": "cover",
@@ -31,9 +31,9 @@
       "image": "eyezen/eyezen-dualoptim.jpg",
       "title": "Qué tiene *adentro*",
       "items": [
-        "Un apoyo suave de enfoque en la zona de abajo",
-        "Filtro de luz azul-violeta en el material, no una capa amarilla",
-        "Cuatro niveles de apoyo: se elige por tu edad y tu rutina"
+        "Un refuerzo suave de enfoque en la zona de abajo",
+        "Tecnología Light Scan: filtra la luz azul nociva y el UV",
+        "Dos potencias: 0,4 D hasta los 34 y 0,6 D de 35 a 39"
       ]
     },
     {
@@ -51,7 +51,7 @@
       "role": "cierre",
       "image": "blog/mostrador-marmol.jpg",
       "title": "Contanos cómo trabajás",
-      "body": "Te decimos qué nivel de apoyo te corresponde. Cerro de las Rosas, sin turno previo. También por WhatsApp."
+      "body": "Te decimos qué potencia te corresponde. Cerro de las Rosas, sin turno previo. También por WhatsApp."
     }
   ]
 }

@@ -27,15 +27,15 @@ Los cristales Eyezen incorporan dos tecnologías clave que cambian por completo 
 ### 1. Eyezen Focus (Relajación muscular activa)
 Esta es la verdadera magia del lente. En la zona inferior del cristal (exactamente donde bajás los ojos para mirar el celular, la tablet o el teclado), Eyezen incorpora un ligero incremento de graduación (conocido como *boost*). Este sutil empujón óptico reduce significativamente el esfuerzo del cristalino (el músculo del ojo), permitiendo que tu sistema visual se relaje, incluso después de una extensa jornada frente al monitor.
 
-Dependiendo de tu edad y exigencia visual (desde los 10 hasta los 45 años), en nuestra óptica en Córdoba determinamos clínicamente qué nivel de *boost* necesitás: Start, Kids, o Boost (0.4, 0.6, 0.85 o 1.1).
+Dependiendo de tu edad y exigencia visual, en nuestra óptica en Córdoba determinamos clínicamente qué variante te corresponde: Kids (6 a 12 años), Start (12 a 39) o Boost (18 a 39, con refuerzo de 0.4 D hasta los 34 y de 0.6 D de 35 a 39).
 
 ### 2. Filtro de Luz Azul Integrado (Blue UV Capture o Crizal Prevencia)
 Eyezen no sería el lente definitivo para pantallas si no contara con protección avanzada contra la luz azul-violeta. Esta tecnología bloquea selectivamente la radiación nociva emitida por los dispositivos LED, la cual altera tus ciclos de sueño, al mismo tiempo que protege tu retina a largo plazo.
 
 ## Eyezen Start vs. Eyezen Boost: ¿Cuál es el cristal ideal para vos?
 
-*   **Eyezen Kids / Teens:** Adaptado de manera ergonómica a cómo los niños y adolescentes sostienen las pantallas. Protege sus ojos durante el pleno desarrollo escolar.
-*   **Eyezen Start:** Diseñado para usuarios de entre 18 y 40 años con síntomas leves de fatiga. Posee un diseño asférico digital que optimiza el contraste y la nitidez periférica, sin el *boost* de lectura intenso.
+*   **Eyezen Kids:** De 6 a 12 años, adaptado de manera ergonómica a cómo los niños sostienen las pantallas. Protege sus ojos durante el pleno desarrollo escolar. Admite Crizal, pero no fotocromático Transitions.
+*   **Eyezen Start:** Diseñado para usuarios de entre 12 y 39 años con síntomas leves de fatiga. Posee un diseño asférico digital que optimiza el contraste y la nitidez periférica, sin el *boost* de lectura intenso.
 *   **Eyezen Boost:** Pensado para quienes experimentan dolores de cabeza fuertes, ardor y fatiga visual severa al terminar la jornada. Es el aliado perfecto para programadores, diseñadores y administrativos que buscan los mejores anteojos en Córdoba, Argentina.
 
 **Dato de Color:** Podés hacerte unos lentes Eyezen **incluso si no tenés graduación (neutros)**. Funciona como un escudo puramente preventivo y relajante para que tu vista no se agote.
@@ -59,7 +59,7 @@ Como **Centro Essilor Expert**, en **Atelier Óptica** (ubicados en el exclusivo
 ## FAQ: Preguntas Frecuentes sobre lentes Eyezen
 
 **¿Eyezen es un lente multifocal?**
-No. Eyezen es un lente monofocal (visión sencilla) sumamente avanzado. No está diseñado para tratar la presbicia (condición de personas mayores de 40 años que no pueden enfocar de cerca). Es un cristal preventivo enfocado en niños, adolescentes y adultos jóvenes.
+No. Eyezen es un lente monofocal (visión sencilla) sumamente avanzado. No está diseñado para tratar la presbicia (condición de personas mayores de 40 años que no pueden enfocar de cerca). Es un cristal preventivo enfocado en niños, adolescentes y adultos de hasta 39 años.
 
 **¿El cristal es amarillo u oscuro?**
 Falso. Gracias a las tecnologías actuales de Essilor que empleamos en Atelier Óptica, el lente Eyezen es prácticamente transparente. Es ideal para el uso diario continuo sin comprometer en absoluto tu estética personal.
@@ -114,7 +114,7 @@ La adaptación es inmediata y 100% natural. A diferencia de lo que ocurre a vece
           "name": "¿Eyezen es un lente multifocal?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. Eyezen es un lente monofocal avanzado (visión sencilla) con un diseño que relaja el enfoque de cerca, pensado para personas menores de 45 años que sufren de fatiga visual digital."
+            "text": "No. Eyezen es un lente monofocal avanzado (visión sencilla) con un diseño que relaja el enfoque de cerca, pensado para personas de hasta 39 años que sufren de fatiga visual digital."
           }
         },
         {

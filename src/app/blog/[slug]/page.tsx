@@ -114,15 +114,15 @@ const posts: Record<string, Post> = {
   'lentes-eyezen-boost-cordoba': {
     slug: 'lentes-eyezen-boost-cordoba',
     title: 'Eyezen Boost: el monofocal de Essilor con ayuda de enfoque para la generación de las pantallas',
-    excerpt: 'No es un lente de descanso genérico: Eyezen Boost trae un refuerzo de potencia calibrado por edad (de 0,4 a 1,1 dioptrías) en la zona de lectura. Te contamos cómo funciona y para quién es.',
+    excerpt: 'No es un lente de descanso genérico: Eyezen Boost trae un refuerzo de potencia calibrado por edad (0,4 D de 18 a 34 años, 0,6 D de 35 a 39) en la zona de lectura. Te contamos cómo funciona y para quién es.',
     metaTitle: 'Lentes Eyezen Boost de Essilor en Córdoba | Atelier Óptica',
-    metaDescription: 'Fatiga visual por pantallas entre los 18 y 50 años. Conocé Eyezen Boost de Essilor: 4 niveles de refuerzo de enfoque según tu edad, con filtro de luz azul incorporado. Atelier Óptica Córdoba.',
+    metaDescription: 'Fatiga visual por pantallas entre los 18 y 39 años. Conocé Eyezen Boost de Essilor: refuerzo de enfoque de 0,4 D o 0,6 D según tu edad, con tecnología Light Scan contra la luz azul nociva. Atelier Óptica Córdoba.',
     date: '2026-08-19',
     category: 'Tecnología Essilor',
     imageUrl: '/images/blog/muestrario-smart-lens.webp',
     content: (
       <>
-        <p className="lead">Si tenés entre 18 y 50 años y terminás el día con los ojos cansados, ardor o dolor de cabeza después de horas de celular y computadora, esta nota es para vos. <strong>Eyezen Boost</strong> es la línea de monofocales de Essilor pensada exactamente para ese problema — y a diferencia de un &quot;lente de descanso&quot; genérico, acá el refuerzo se elige a medida.</p>
+        <p className="lead">Si tenés entre 18 y 39 años y terminás el día con los ojos cansados, ardor o dolor de cabeza después de horas de celular y computadora, esta nota es para vos. <strong>Eyezen Boost</strong> es la línea de monofocales de Essilor pensada exactamente para ese problema — y a diferencia de un &quot;lente de descanso&quot; genérico, acá el refuerzo se elige a medida.</p>
 
         <h2>El síntoma que casi nadie relaciona con la vista</h2>
         <p>La consulta llega siempre parecida: <em>&quot;de lejos veo perfecto, pero a la tarde no doy más&quot;</em>. Y como la visión de lejos está intacta, la persona descarta que sea un tema visual y lo atribuye al estrés o al cansancio general. La <strong>fatiga visual digital</strong> se manifiesta así:</p>
@@ -142,22 +142,20 @@ const posts: Record<string, Post> = {
         <h2>¿Qué es exactamente el &quot;Boost&quot;?</h2>
         <p>Eyezen Boost es un lente de visión sencilla que incorpora la tecnología <strong>Eyezen Focus</strong>: un leve refuerzo de potencia ubicado en la parte inferior del cristal, justo en la zona por donde mirás cuando leés el celular o la pantalla. Ese refuerzo acompaña el esfuerzo de acomodación del ojo: el músculo ciliar trabaja menos, y eso se traduce en menos fatiga al final del día y una postura más natural frente a los dispositivos.</p>
 
-        <h2>Cuatro niveles, según tu edad visual</h2>
-        <p>Acá está la diferencia con cualquier lente de descanso estándar. El refuerzo de Eyezen Boost viene en <strong>cuatro niveles de potencia adicional</strong>, porque el esfuerzo de enfoque que hace tu ojo a los 22 no es el mismo que a los 45:</p>
+        <h2>Dos potencias, según tu edad</h2>
+        <p>Acá está la diferencia con cualquier lente de descanso estándar. El refuerzo de Eyezen Boost viene en <strong>dos potencias</strong>, porque el esfuerzo de enfoque que hace tu ojo a los 22 no es el mismo que a los 38:</p>
         <ul>
-          <li><strong>Boost 0,4</strong> — para las edades más jóvenes del rango, que ya sienten fatiga digital.</li>
-          <li><strong>Boost 0,6</strong> — cuando el esfuerzo de cerca empieza a notarse más.</li>
-          <li><strong>Boost 0,85</strong> — para quienes se acercan a la presbicia.</li>
-          <li><strong>Boost 1,1</strong> — el refuerzo máximo, en la puerta de los multifocales.</li>
+          <li><strong>Boost 0,4 D</strong> — de 18 a 34 años.</li>
+          <li><strong>Boost 0,6 D</strong> — de 35 a 39 años, cuando el esfuerzo de cerca empieza a pesar más.</li>
         </ul>
-        <p>La elección del nivel no es adivinanza: se define con tu edad, tu receta y tus hábitos de pantalla. Ese es nuestro trabajo en el mostrador.</p>
+        <p>La edad orienta, pero no decide sola: también entran tu receta, cuántas horas de pantalla hacés y a qué distancia trabajás — todo sobre el cuadro clínico que verificó tu profesional de la visión. Ese es nuestro trabajo en el mostrador.</p>
 
         <h2>Toda la familia Eyezen, no solo el Boost</h2>
         <p>Eyezen no es un lente único sino una gama, y elegir mal dentro de la gama es tan problemático como no usarla. Estas son las variantes que trabajamos:</p>
         <ul>
-          <li><strong>Eyezen Kids / Teens</strong> — pensados para chicos y adolescentes, adaptados a la distancia real a la que ellos sostienen el celular y la tablet (bastante más corta que la de un adulto). Protegen durante los años de mayor desarrollo visual y escolar.</li>
-          <li><strong>Eyezen Start</strong> — para usuarios jóvenes con síntomas leves. Trae un diseño asférico digital que mejora el contraste y la nitidez en la periferia del cristal, sin un refuerzo de lectura pronunciado.</li>
-          <li><strong>Eyezen Boost</strong> — la versión con el refuerzo calibrado en cuatro niveles, para quien ya tiene fatiga instalada: dolor de cabeza, ardor, agotamiento al terminar el día.</li>
+          <li><strong>Eyezen Kids</strong> (6 a 12 años) — pensado para chicos, adaptado a la distancia real a la que ellos sostienen el celular y la tablet, bastante más corta que la de un adulto. Trae tecnología Blue UV y se puede combinar con Crizal, pero <strong>no</strong> con fotocromático Transitions.</li>
+          <li><strong>Eyezen Start</strong> (12 a 39 años) — para quien tiene síntomas leves. Diseño asférico digital que mejora el contraste y la nitidez en la periferia del cristal, sin un refuerzo de lectura pronunciado. Con Blue UV, y admite Crizal y Transitions.</li>
+          <li><strong>Eyezen Boost</strong> (18 a 39 años) — la versión con el refuerzo de potencia, para quien ya tiene fatiga instalada: dolor de cabeza, ardor, agotamiento al terminar el día. Trae tecnología <strong>Light Scan</strong> y admite Transitions.</li>
         </ul>
 
         <h2>Eyezen no es un bifocal ni un multifocal</h2>
@@ -177,7 +175,7 @@ const posts: Record<string, Post> = {
         <p>Vale la pena subrayarlo porque es lo que más sorprende: <strong>podés usar Eyezen aunque tu vista sea perfecta</strong>. En versión neutra funciona como un anteojo puramente preventivo — el apoyo de enfoque y el filtro, sin corrección. Es la opción para quien trabaja con pantallas todo el día, nunca necesitó anteojos, y sin embargo termina la jornada con los ojos agotados.</p>
 
         <h2>¿Me voy a marear? ¿Cuánto tarda la adaptación?</h2>
-        <p>La adaptación es prácticamente inmediata. El refuerzo de Eyezen es tan suave —entre 0,4 y 1,1 dioptrías, y repartido de forma gradual— que no produce el &quot;efecto balanceo&quot; que algunas personas sienten los primeros días con un progresivo. La mayoría se los pone y sigue trabajando.</p>
+        <p>La adaptación es prácticamente inmediata. El refuerzo de Eyezen es tan suave —0,4 o 0,6 dioptrías, y repartido de forma gradual— que no produce el &quot;efecto balanceo&quot; que algunas personas sienten los primeros días con un progresivo. La mayoría se los pone y sigue trabajando.</p>
         <p>Lo que sí hace falta es que <strong>estén bien centrados</strong>. El refuerzo tiene que caer exactamente donde vos bajás los ojos, y eso depende de tu altura pupilar, del armazón que elijas y de cómo lo apoyás en la cara. Un Eyezen mal medido pierde buena parte de su gracia: por eso la medición no es un trámite.</p>
 
         <h2>¿Es para vos?</h2>
@@ -362,7 +360,7 @@ const posts: Record<string, Post> = {
     imageUrl: '/images/blog/muestrario-smart-lens.webp',
     content: (
       <>
-        <p className="lead"><strong>¡Atención Córdoba!</strong> Si tenés entre 20 y 45 años, es muy probable que pases más de 8 horas al día mirando la pantalla del celular, la notebook o el televisor. Todo este esfuerzo de enfoque cercano genera fatiga visual, ojos secos y dolor de cabeza. Muchos buscan "lentes de descanso", pero <strong>Essilor Eyezen</strong> redefine por completo este concepto.</p>
+        <p className="lead"><strong>¡Atención Córdoba!</strong> Si tenés entre 18 y 39 años, es muy probable que pases más de 8 horas al día mirando la pantalla del celular, la notebook o el televisor. Todo este esfuerzo de enfoque cercano genera fatiga visual, ojos secos y dolor de cabeza. Muchos buscan "lentes de descanso", pero <strong>Essilor Eyezen</strong> redefine por completo este concepto.</p>
 
         <h2>¿Qué pasa en tu ojo cuando mirás el celular?</h2>
         <p>Tus ojos no fueron diseñados por la naturaleza para mirar un objeto luminoso a 30 centímetros de distancia durante horas. Para mantener la imagen nítida de cerca, un músculo dentro de tu ojo (el músculo ciliar) se contrae. Cuando este músculo permanece contraído todo el día, se produce lo que llamamos <strong>estrés o fatiga visual</strong>.</p>
@@ -377,7 +375,7 @@ const posts: Record<string, Post> = {
 
         <h2>Disponibles con y sin graduación</h2>
         <p>Podés hacer tus lentes Eyezen incluso si no tenés miopía ni astigmatismo. Si ya usás lentes recetados para ver de lejos, Eyezen reemplaza tu cristal monofocal tradicional brindándote esta tecnología extra para el mundo digital.</p>
-        <p>Visitá <strong>Atelier Óptica</strong> en Cerro de las Rosas y enterate de cuál de las variantes de Eyezen (Start, o Boost con sus 4 niveles de refuerzo: 0,4 / 0,6 / 0,85 / 1,1) es la ideal para tu estilo de vida.</p>
+        <p>Visitá <strong>Atelier Óptica</strong> en Cerro de las Rosas y enterate de cuál de las variantes de Eyezen (Kids, Start, o Boost con su refuerzo de 0,4 D o 0,6 D según tu edad) es la ideal para tu estilo de vida.</p>
       <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )

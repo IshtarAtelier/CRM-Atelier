@@ -2,10 +2,11 @@
   "tema": "lente-eyezen",
   "plantilla": "lente",
   "tipoLente": "eyezen",
+  "duracionMs": 22000,
   "temas": [
     "cristales"
   ],
   "coverMs": 8200,
-  "guion": "¿Ves bien de lejos, pero a la tarde los ojos te arden? No es tu vista: son ocho horas enfocando a cuarenta centímetros. El lente común no hace nada por eso. Eyezen, de Essilor, tiene un apoyo suave abajo, donde mirás el celular... y el ojo deja de forzar.",
+  "guion": "Si tenés entre 25 y 37 años y usás mucho la computadora, estos anteojos son para vos. Son los Eyezen, de Essilor. Abajo tienen un refuerzo de enfoque, justo donde mirás la pantalla. El ojo deja de forzar, y llegás a la tarde sin esa pesadez.",
   "copy": "Si a la tarde te arden los ojos y de lejos ves perfecto, no estás inventando nada: ocho horas de pantalla son ocho horas enfocando de cerca.\nEyezen, de Essilor, es un monofocal con un apoyo suave de enfoque justo en la zona por donde mirás el celular. No son dos focos: es uno solo, sin línea y sin salto.\nSe puede hacer incluso sin graduación. Contanos cuántas horas de pantalla hacés y te decimos si te sirve, Cerro de las Rosas."
 }
