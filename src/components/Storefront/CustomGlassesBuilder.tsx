@@ -271,45 +271,37 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
           <div className="w-8 h-8 rounded-full bg-[#1a1714] flex items-center justify-center shrink-0 mt-1 shadow-lg">
             <Sparkles className="w-3.5 h-3.5 text-[#c8a55c]" />
           </div>
-          <motion.div 
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="bg-white border border-stone-200/80 text-stone-800 p-5 rounded-2xl rounded-tl-sm shadow-sm flex-1"
-          >
+          {/* Burbujas con animación CSS y sin demora, no con framer-motion:
+              con `initial={{ opacity: 0 }}` el texto quedaba invisible hasta
+              que bajaba el JavaScript del builder (import dinámico) y encima
+              esperaba delays de 0,2 / 1,5 / 2,8 s. Medido en producción,
+              celular con 4G lento: el LCP de esta página era la segunda
+              burbuja, a los 4,7 s. La animación CSS arranca con el primer
+              pintado, sin esperar a nada. */}
+          <div className="chat-burbuja-entra bg-white border border-stone-200/80 text-stone-800 p-5 rounded-2xl rounded-tl-sm shadow-sm flex-1">
             <p className="text-[13px] font-medium leading-relaxed">
               ¡Hola! 👋 Te voy a guiar paso a paso en el diseño de tus nuevos lentes a medida.
             </p>
-          </motion.div>
+          </div>
         </div>
 
         {/* Chat Bubble 2 */}
         <div className="flex items-start gap-3">
           <div className="w-8 shrink-0" />
-          <motion.div 
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.4, delay: 1.5 }}
-            className="bg-white border border-stone-200/80 text-stone-800 p-5 rounded-2xl rounded-tl-sm shadow-sm flex-1"
-          >
+          <div className="chat-burbuja-entra bg-white border border-stone-200/80 text-stone-800 p-5 rounded-2xl rounded-tl-sm shadow-sm flex-1" style={{ animationDelay: '0.15s' }}>
             <p className="text-[13px] font-medium leading-relaxed">
               El primer paso es elegir tu armazón. En el catálogo vas a encontrar nuestras opciones exclusivas en metal y acetato.
             </p>
-          </motion.div>
+          </div>
         </div>
 
         {/* Chat Bubble 3 - CTA */}
-        <motion.div 
-          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, delay: 2.8 }}
-          className="bg-gradient-to-r from-[#1a1714] to-[#2a2520] text-white p-5 rounded-2xl rounded-br-sm shadow-xl w-[85%] self-end mt-4 text-center border border-white/5"
-        >
+        <div className="chat-burbuja-entra bg-gradient-to-r from-[#1a1714] to-[#2a2520] text-white p-5 rounded-2xl rounded-br-sm shadow-xl w-[85%] self-end mt-4 text-center border border-white/5" style={{ animationDelay: '0.3s' }}>
           <p className="text-[11px] font-black tracking-[0.15em] uppercase flex items-center justify-center gap-2">
             <Glasses className="w-4 h-4 text-[#c8a55c]" />
             Seleccioná un modelo
           </p>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -481,38 +473,28 @@ export function CustomGlassesBuilder({ products }: { products: Product[] }) {
             {/* Chat Bubbles (Mobile Only) */}
             {!selectedProduct && (
               <div className="lg:hidden w-full flex flex-col gap-3 mb-8">
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
-                  className="bg-white border border-stone-200/85 text-stone-800 p-4 rounded-2xl rounded-tl-sm w-[90%] self-start shadow-sm"
-                >
+                {/* Mismo criterio que las burbujas de escritorio: animación
+                    CSS sin demora. Esta segunda burbuja es el LCP de la
+                    página en celular (4,7 s medidos en producción por el
+                    delay de 1,5 s más la espera del chunk). */}
+                <div className="chat-burbuja-entra bg-white border border-stone-200/85 text-stone-800 p-4 rounded-2xl rounded-tl-sm w-[90%] self-start shadow-sm">
                   <p className="text-[12px] font-medium leading-relaxed">
                     ¡Hola! 👋 Te voy a guiar paso a paso en el diseño de tus nuevos lentes a medida.
                   </p>
-                </motion.div>
+                </div>
  
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: 1.5 }}
-                  className="bg-white border border-stone-200/85 text-stone-800 p-4 rounded-2xl rounded-tl-sm w-[95%] self-start shadow-sm"
-                >
+                <div className="chat-burbuja-entra bg-white border border-stone-200/85 text-stone-800 p-4 rounded-2xl rounded-tl-sm w-[95%] self-start shadow-sm" style={{ animationDelay: '0.15s' }}>
                   <p className="text-[12px] font-medium leading-relaxed">
                     El primer paso es elegir tu armazón. Abajo vas a encontrar nuestras opciones exclusivas en metal y acetato.
                   </p>
-                </motion.div>
+                </div>
  
-                <motion.div 
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: 2.8 }}
-                  className="bg-[#c8a55c] text-white p-3 rounded-2xl rounded-br-sm shadow-lg shadow-[#c8a55c]/20 w-[85%] self-end mt-2 text-center"
+                <div style={{ animationDelay: '0.3s' }} className="chat-burbuja-entra bg-[#c8a55c] text-white p-3 rounded-2xl rounded-br-sm shadow-lg shadow-[#c8a55c]/20 w-[85%] self-end mt-2 text-center"
                 >
                   <p className="text-[11px] font-black tracking-[0.1em] uppercase flex items-center justify-center gap-1.5">
                     <Glasses className="w-3.5 h-3.5" /> Seleccioná un modelo
                   </p>
-                </motion.div>
+                </div>
               </div>
             )}
  

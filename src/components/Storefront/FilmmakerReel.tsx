@@ -167,6 +167,11 @@ export function FilmmakerReel({ reviewCount = 0, rating = 0 }: FilmmakerReelProp
               alt={frame.title}
               fill
               priority={current === 0}
+              // `priority` solo agrega el <link rel="preload">; verificado en el
+              // HTML de producción, el <img> salía sin fetchpriority. Es la
+              // imagen del LCP de la home: que el navegador la pida antes que
+              // los 30 chunks de JavaScript.
+              fetchPriority={current === 0 ? "high" : undefined}
               className="object-cover"
               sizes="100vw"
             />
@@ -252,7 +257,7 @@ export function FilmmakerReel({ reviewCount = 0, rating = 0 }: FilmmakerReelProp
             invisible para quien llega de un anuncio. Sin precios acá (los
             precios salen generados de la base, nunca escritos a mano). */}
         <Link
-          href="/cristales-opticos"
+          href="/cristales-opticos/varilux"
           className="mt-5 inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] md:text-xs text-white/85 hover:text-white uppercase tracking-[0.18em] font-black transition-colors group"
         >
           <span className="text-amber-500">◆</span>

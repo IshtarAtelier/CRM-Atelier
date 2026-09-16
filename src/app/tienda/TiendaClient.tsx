@@ -25,7 +25,7 @@ import { track } from "@/lib/client-analytics";
 const CATEGORIES = ["Todo", "Receta", "Sol", "Clip-On"];
 const CATEGORIAS_CON_PAGINA_PROPIA: { nombre: string; href: string }[] = [
   { nombre: "Contacto", href: "/lentes-de-contacto" },
-  { nombre: "Cristales", href: "/cristales-opticos" },
+  { nombre: "Cristales", href: "/cristales-opticos/varilux" },
 ];
 
 // A-05/A-15 (auditoría 2/9/26): estos banners alimentaban el hero de /tienda,
@@ -651,8 +651,14 @@ export function TiendaClient({
             mientras se recorre la grilla. */}
         <aside className="w-full lg:w-64 flex-shrink-0 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
           {/* ProductFilters usa useSearchParams: necesita su propio Suspense para
-              no arrastrar el resto de la página al render en cliente */}
-          <Suspense fallback={null}>
+              no arrastrar el resto de la página al render en cliente.
+              El fallback reserva el alto de la barra en celular y tablet (68 px:
+              el botón "Filtrar" de 48 px más sus márgenes). Con `null`, el
+              servidor pintaba la grilla pegada al encabezado y al hidratar la
+              barra la empujaba 68 px hacia abajo: CLS de 0,14 en la tienda
+              filtrada (medido en producción, el único CLS malo del sitio). En
+              escritorio la barra es una columna al costado y no empuja nada. */}
+          <Suspense fallback={<div aria-hidden className="h-[68px] lg:hidden" />}>
             <ProductFilters
               availableBrands={availableBrands}
               availableShapes={availableShapes}

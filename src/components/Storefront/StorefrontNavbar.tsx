@@ -285,7 +285,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                     etc.) — su experiencia es la tienda y nada más. */}
                 {!isOptica && (
                 <Link
-                  href="/cristales-opticos"
+                  href="/cristales-opticos/varilux"
                   className={`relative group text-[11px] lg:text-[13px] leading-none font-medium ${activeTextColorClass} hidden lg:block transition-colors`}
                   style={activeTextShadowStyle}
                 >
@@ -344,7 +344,7 @@ export function StorefrontNavbar({ theme = "dark", mixBlend = false, initialSett
                             en celular —donde entra el grueso del tráfico pago—,
                             así que acá decía "Cristales" mientras la versión de
                             escritorio ya decía "Multifocales". */}
-                        <Link href="/cristales-opticos" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
+                        <Link href="/cristales-opticos/varilux" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/80 hover:bg-white/5 hover:text-white transition-all group">
                           <Gem className="w-4 h-4 text-[#c8a55c] opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
                           Multifocales
                           <ChevronRight className="w-3 h-3 text-white/20 ml-auto group-hover:text-white/50 group-hover:translate-x-0.5 transition-all" />
