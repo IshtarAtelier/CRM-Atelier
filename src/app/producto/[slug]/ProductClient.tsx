@@ -346,12 +346,17 @@ export function ProductClient({
                   transition={{ duration: 0.4 }}
                   className={`absolute inset-0 z-10 isolate group-hover:scale-[1.3] group-hover:cursor-zoom-in transition-transform duration-700 ease-out origin-center ${activeImageIndex === 0 ? 'mix-blend-multiply' : ''}`}
                 >
+                  {/* `sizes` en 45vw y no 51vw: medido en producción, el
+                      recuadro de la galería mide 652px en una pantalla de 1440
+                      y 570px en una de 1280 — o sea el 45% del ancho. Declarar
+                      de más hace que el navegador pida un archivo más grande
+                      del que después va a mostrar. */}
                   <Image unoptimized={String(images[activeImageIndex]).startsWith('data:')}
                     src={images[activeImageIndex]}
                     alt={altFor(activeImageIndex)}
                     fill
                     priority={activeImageIndex === 0}
-                    sizes="(max-width: 1024px) 100vw, 51vw"
+                    sizes="(max-width: 1024px) 100vw, 45vw"
                     style={{ objectFit: activeImageIndex === 0 ? "contain" : "cover", transform: "translateZ(0)" }}
                     className={activeImageIndex === 0 ? (((product.model || '').toLowerCase().includes('tl3932 c3') || product.id === 'cmq5d11hf002rhy61fhvqs7nj') ? "p-0 scale-125" : ((product.model || '').toLowerCase().includes('diana') ? "p-0 scale-110" : "p-8 lg:p-12")) : ""}
                   />
