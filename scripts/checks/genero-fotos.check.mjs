@@ -76,6 +76,7 @@ console.log('\nAl cliente no se le nombra el género, y se le manda el catálogo
     const { generoDeSlug, tipoDeSlug, rutaDeCatalogo, etiquetaDeGenero, TIPOS_DE_CATALOGO } = await import('../../src/lib/constants/genero-catalogo.ts');
     check('/catalogo/hombre lleva al filtro homme', generoDeSlug('hombre')?.id === 'homme' && generoDeSlug('mujer')?.id === 'femme');
     check('los tres tipos tienen dirección propia', TIPOS_DE_CATALOGO.length === 3 && tipoDeSlug('clip-on')?.categoria === 'Clip-On' && tipoDeSlug('sol')?.categoria === 'Sol');
+    check('escrito a mano también entra: "clipon", "CLIP ON", "Hombre"', tipoDeSlug('clipon')?.categoria === 'Clip-On' && tipoDeSlug('CLIP ON')?.categoria === 'Clip-On' && generoDeSlug('Hombre')?.id === 'homme');
     check('una palabra que no es ni género ni tipo no se interpreta', generoDeSlug('cualquiera') === null && tipoDeSlug('cualquiera') === null);
     // Ningún link del catálogo puede terminar en error: lo reenvían y lo copian mal.
     const pagina = readFileSync(new URL('../../src/app/catalogo/[[...partes]]/page.tsx', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
@@ -83,6 +84,33 @@ console.log('\nAl cliente no se le nombra el género, y se le manda el catálogo
     check('una parte que no se entiende se ignora y se abre el resto', pagina.includes('// Ni género ni tipo, o repetida: se ignora y se sigue.'));
     check('el bot y la web arman la MISMA dirección', rutaDeCatalogo('mujer', 'sol') === '/catalogo/mujer/sol' && linkDelCatalogo('MUJER', 'SOL', null).endsWith(rutaDeCatalogo('mujer', 'sol')));
     check('el chip del filtro ya no muestra "homme" crudo', etiquetaDeGenero('homme') === 'Homme');
+}
+
+console.log('\nDe dónde salen las fotos, y que no sean siempre las mismas');
+{
+    const tools = readFileSync(new URL('../../wa-service/tools.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    const ruta = readFileSync(new URL('../../src/app/api/bot/pricing/route.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+    check('el que manda fotos pide el catálogo PUBLICADO', tools.includes("params.paraFotos = '1'"));
+    check('para fotos, la ruta exige publicado en la tienda', ruta.includes('productWhere.publishToWeb = true'));
+    check('para fotos NO se exige "recomendado" (no hay ninguno marcado)', ruta.includes("if (!paraFotos && (onlyBotRecommended || !search))"));
+    check('cada cliente arranca en un punto distinto del catálogo', tools.includes('const semilla') && tools.includes('const corrimiento'));
+
+    // La rotación, tal como la hace el bot: mismo cliente = mismos modelos;
+    // clientes distintos = modelos distintos; y nunca rompe la prioridad.
+    const MAX = 3;
+    const catalogo = Array.from({ length: 20 }, (_, i) => ({ name: `M${String(i + 1).padStart(2, '0')}`, genero: i === 7 ? 'Masculino' : 'Unisex', publishToWeb: true }));
+    const puntaje = p => ((p.genero || '').toLowerCase().includes('masculino') ? 3 : 2) * 10 + 1;
+    const elegir = (id) => {
+        const semilla = String(id).split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+        const ordenados = [...catalogo].sort((a, b) => puntaje(b) - puntaje(a));
+        const corrimiento = ordenados.length > MAX ? semilla % ordenados.length : 0;
+        return [...ordenados.slice(corrimiento), ...ordenados.slice(0, corrimiento)]
+            .sort((a, b) => puntaje(b) - puntaje(a)).slice(0, MAX).map(p => p.name);
+    };
+    const juan = elegir('cli-juan'), sole = elegir('cli-sole');
+    check('dos clientes distintos ven modelos distintos', juan.join() !== sole.join(), `${juan} vs ${sole}`);
+    check('el mismo cliente ve siempre los mismos', elegir('cli-juan').join() === juan.join());
+    check('el que de verdad le corresponde sigue saliendo primero', elegir('cli-juan')[0] === 'M08' && elegir('cli-sole')[0] === 'M08');
 }
 
 console.log('\nOrden de las fotos: primero lo que corresponde');

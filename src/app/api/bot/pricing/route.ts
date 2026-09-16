@@ -63,6 +63,19 @@ export async function GET(req: NextRequest) {
     };
     let receta = { odEsf: nOpt('odEsf'), oiEsf: nOpt('oiEsf'), odCil: nOpt('odCil'), oiCil: nOpt('oiCil') };
     const clientIdConsulta = searchParams.get('clientId') || null;
+    /**
+     * Lo pide `send_product_photos`: no es una lista de precios para que el
+     * modelo la lea, son los armazones que se le pueden MOSTRAR al cliente.
+     *
+     * Cambia dos cosas (16/9/2026, auditoría de lo que le llega al cliente):
+     * ya no se exige `botRecommended` —no hay NI UN armazón marcado así, y por
+     * eso la consulta caía al plan B, que tomaba los primeros 20 por orden
+     * alfabético: a un hombre y a una mujer les llegaban los mismos tres
+     * Andrómeda— y el universo pasa a ser lo PUBLICADO EN LA TIENDA, que es lo
+     * único con foto, precio de venta y stock de verdad (115 contra los 21 que
+     * veía el bot).
+     */
+    const paraFotos = searchParams.get('paraFotos') === '1';
     // La graduación se deduce de la receta si vino; si no, del parámetro suelto
     // (compatibilidad). Es la esfera más alta en valor absoluto.
     const esCristal = !!category && CATEGORIAS_DE_CRISTAL.includes(category);
@@ -144,8 +157,13 @@ export async function GET(req: NextRequest) {
 
     // ── Fuente 1: Productos del inventario ──────────────────────────────────
     const productWhere: any = {};
-    if (onlyBotRecommended || !search) {
+    if (!paraFotos && (onlyBotRecommended || !search)) {
         productWhere.botRecommended = true;
+    }
+    // Para fotos: solo lo publicado en la tienda. Lo no publicado tiene precios
+    // de carga ($6,36) y fotos que no resuelven en la web.
+    if (paraFotos) {
+        productWhere.publishToWeb = true;
     }
     // GRADUACIÓN ALTA: las opciones salen de los TALLADOS (digital / CNC), que
     // se calculan para esa receta y vienen en índices altos. Un cristal de

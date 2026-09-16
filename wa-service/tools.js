@@ -782,6 +782,12 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
     // Género de la PERSONA. La ruta no filtra por el propio: excluye lo
     // claramente contrario (ver el comentario largo en api/bot/pricing).
     if (genero === 'HOMBRE' || genero === 'MUJER') params.genero = genero;
+    // Las fotos salen de lo PUBLICADO en la tienda, no del catálogo interno:
+    // es lo único con foto, precio de venta y stock reales. Sin esto el bot
+    // elegía entre 21 armazones (los que tienen `type` cargado) y, como ninguno
+    // está marcado como recomendado, terminaba mandando los primeros 20 por
+    // orden alfabético — los mismos tres a todo el mundo.
+    params.paraFotos = '1';
     // El clientId va SIEMPRE: con él la ruta deduce sola el género del nombre
     // de la ficha cuando el modelo no lo pasó (16/9/2026 — hasta entonces, si
     // el modelo se olvidaba, a un hombre le llegaban monturas de mujer).
@@ -847,7 +853,22 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
         return 0;
     };
     const puntaje = p => puntajeDeGenero(p) * 10 + (p.botRecommended === true ? 2 : 0) + (p.publishToWeb === true ? 1 : 0);
-    const seleccion = [...conFoto].sort((a, b) => puntaje(b) - puntaje(a)).slice(0, MAX_FOTOS_POR_TURNO);
+    // Entre los que valen lo mismo, cada persona arranca en un punto distinto
+    // del catálogo. Sin esto el orden es alfabético y TODOS reciben los mismos
+    // tres: en 60 días el bot mandó 26 fotos y fueron siempre Andrómeda y
+    // Adhara, a Eva, a Andrea, a Maxi y a Soledad por igual. El corrimiento es
+    // fijo por cliente (no al azar): si vuelve a pedir fotos en la misma
+    // charla, ve los mismos modelos y no parece otra óptica.
+    const semilla = String(fichaDelChat?.clientId || destino.dbChatId || destino.waId || '')
+        .split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    const ordenados = [...conFoto].sort((a, b) => puntaje(b) - puntaje(a));
+    const corrimiento = ordenados.length > MAX_FOTOS_POR_TURNO ? semilla % ordenados.length : 0;
+    const rotados = [...ordenados.slice(corrimiento), ...ordenados.slice(0, corrimiento)]
+        // La rotación no puede romper la prioridad: se reordena por puntaje otra
+        // vez (el sort es estable, así que adentro de cada puntaje queda la
+        // rotación).
+        .sort((a, b) => puntaje(b) - puntaje(a));
+    const seleccion = rotados.slice(0, MAX_FOTOS_POR_TURNO);
 
     const enviadas = [];
     for (const p of seleccion) {

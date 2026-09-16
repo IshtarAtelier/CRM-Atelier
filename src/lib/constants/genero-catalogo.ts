@@ -28,7 +28,8 @@ export function etiquetaDeGenero(id: string | null | undefined): string {
 /** De "hombre"/"mujer" (la URL linda) al id que entiende la tienda. */
 export function generoDeSlug(slug: string | null | undefined): GeneroDeCatalogo | null {
     if (!slug) return null;
-    return GENEROS_DE_CATALOGO.find(g => g.slug === slug.toLowerCase()) ?? null;
+    const pelado = slug.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+    return GENEROS_DE_CATALOGO.find(g => g.slug === pelado) ?? null;
 }
 
 /** El id de la tienda para una persona: 'HOMBRE' → 'homme'. */
@@ -62,8 +63,13 @@ export const TIPOS_DE_CATALOGO: readonly TipoDeCatalogo[] = [
 
 export function tipoDeSlug(slug: string | null | undefined): TipoDeCatalogo | null {
     if (!slug) return null;
-    const s = slug.toLowerCase();
-    return TIPOS_DE_CATALOGO.find(t => t.slug === s || t.categoria.toLowerCase() === s) ?? null;
+    // Sin guiones ni tildes: el cliente reenvía el link escrito a mano y
+    // "clipon" tiene que valer igual que "clip-on".
+    const pelado = slug.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+    return TIPOS_DE_CATALOGO.find(t =>
+        t.slug.replace(/-/g, '') === pelado
+        || t.categoria.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '') === pelado,
+    ) ?? null;
 }
 
 /** De la categoría de la tienda a su dirección linda: "Clip-On" → "clip-on". */
