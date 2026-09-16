@@ -72,6 +72,7 @@ interface DatosWhatsApp {
     cargandoAnteriores: boolean;
     tags: Tag[];
     agentEnabled: boolean;
+    mantenerApagadoFueraHorario: boolean;
     followupsEnabled: boolean;
     /** Prompt que empujó el servicio por `bot_status` (no el editado en pantalla). */
     promptDelServicio: string | null;
@@ -105,6 +106,7 @@ interface AccionesWhatsApp {
     refrescarStatus: () => Promise<void>;
     refrescarTags: () => Promise<void>;
     setAgentEnabled: (v: boolean) => void;
+    setMantenerApagadoFueraHorario: (v: boolean) => void;
     setFollowupsEnabled: (v: boolean) => void;
     descartarEvento: (id: string) => void;
     /** El ÚNICO emisor de carteles del sistema operativo del CRM para WhatsApp. */
@@ -126,6 +128,7 @@ const DATOS_VACIOS: DatosWhatsApp = {
     cargandoAnteriores: false,
     tags: [],
     agentEnabled: false,
+    mantenerApagadoFueraHorario: false,
     followupsEnabled: true,
     promptDelServicio: null,
     vista: 'lista',
@@ -177,6 +180,7 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
     const [messagesByChat, setMessagesByChat] = useState<Record<string, Message[]>>({});
     const [tags, setTags] = useState<Tag[]>([]);
     const [agentEnabled, setAgentEnabledState] = useState(false);
+    const [mantenerApagadoFueraHorario, setMantenerApagadoFueraHorarioState] = useState(false);
     const [followupsEnabled, setFollowupsEnabledState] = useState(true);
     const [promptDelServicio, setPromptDelServicio] = useState<string | null>(null);
     const [vista, setVista] = useState<VistaWhatsApp>('lista');
@@ -468,6 +472,12 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
                 setStatus(data);
                 setCargandoStatus(false);
                 setAgentEnabledState(!!data.agentEnabled);
+
+                // Independiente del status del wa-service: vive en el CRM (protege
+                // al vigilante de horario, @/lib/whatsapp/vigilar-horario-bot.ts).
+                fetch('/api/whatsapp/bot-horario').then(r => r.json())
+                    .then(d => { if (!cancelado) setMantenerApagadoFueraHorarioState(!!d.mantenerApagadoFueraHorario); })
+                    .catch(() => {});
 
                 // El socketUrl que reporta el status va antes que el origin: sin
                 // ese fallback el panel se conectaba a un socket muerto.
@@ -831,6 +841,15 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
         }).catch(() => {});
     }, []);
 
+    const setMantenerApagadoFueraHorario = useCallback((v: boolean) => {
+        setMantenerApagadoFueraHorarioState(v);
+        fetch('/api/whatsapp/bot-horario', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: v }),
+        }).catch(() => {
+            setMantenerApagadoFueraHorarioState(!v);
+        });
+    }, []);
+
     const setFollowupsEnabled = useCallback((v: boolean) => {
         setFollowupsEnabledState(v);
         fetch('/api/whatsapp/agent', {
@@ -868,13 +887,14 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
         cargandoAnteriores,
         tags,
         agentEnabled,
+        mantenerApagadoFueraHorario,
         followupsEnabled,
         promptDelServicio,
         vista,
         eventos,
         enviando,
     }), [status, cargandoStatus, chats, chatsCargados, errorCarga, unreadTotal, selectedChatId, chatSeleccionado,
-        messagesByChat, sinAnteriores, cargandoAnteriores, tags, agentEnabled, followupsEnabled,
+        messagesByChat, sinAnteriores, cargandoAnteriores, tags, agentEnabled, mantenerApagadoFueraHorario, followupsEnabled,
         promptDelServicio, vista, eventos, enviando]);
 
     // Identidad ESTABLE: si este objeto cambiara, todo el panel se re-renderizaría
@@ -882,11 +902,11 @@ export function WhatsAppProvider({ children }: { children: ReactNode }) {
     const acciones = useMemo<AccionesWhatsApp>(() => ({
         activarBuzon, abrirChat, cerrarChat, setVista, marcarLeido, enviar, enviarPlantilla,
         actualizarChat, aplicarChatLocal, toggleBot, refrescarChats, refrescarMensajes,
-        cargarMensajesAnteriores, refrescarStatus, refrescarTags, setAgentEnabled,
+        cargarMensajesAnteriores, refrescarStatus, refrescarTags, setAgentEnabled, setMantenerApagadoFueraHorario,
         setFollowupsEnabled, descartarEvento, notificar,
     }), [activarBuzon, abrirChat, cerrarChat, marcarLeido, enviar, enviarPlantilla, actualizarChat,
         aplicarChatLocal, toggleBot, refrescarChats, refrescarMensajes, cargarMensajesAnteriores,
-        refrescarStatus, refrescarTags, setAgentEnabled, setFollowupsEnabled, descartarEvento, notificar]);
+        refrescarStatus, refrescarTags, setAgentEnabled, setMantenerApagadoFueraHorario, setFollowupsEnabled, descartarEvento, notificar]);
 
     return (
         <AccionesContext.Provider value={acciones}>

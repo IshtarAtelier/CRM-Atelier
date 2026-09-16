@@ -44,6 +44,13 @@ export interface InboxHeaderProps {
 
     asistenteActivo: boolean;
     onToggleAsistente: (proximo: boolean) => void;
+    /**
+     * El escape del vigilante que prende el bot solo fuera de horario
+     * (`@/lib/whatsapp/vigilar-horario-bot.ts`). Tildado, el apagado manual
+     * queda firme también de noche y fin de semana.
+     */
+    mantenerApagadoFueraHorario: boolean;
+    onToggleMantenerApagadoFueraHorario: (proximo: boolean) => void;
     seguimientosActivos: boolean;
     onToggleSeguimientos: (proximo: boolean) => void;
 
@@ -96,6 +103,7 @@ function Interruptor({ rotulo, activo, textoActivo, textoInactivo, color, onTogg
 export default function InboxHeader({
     conectado, telefono, esApiOficial, calidad, error,
     asistenteActivo, onToggleAsistente,
+    mantenerApagadoFueraHorario, onToggleMantenerApagadoFueraHorario,
     seguimientosActivos, onToggleSeguimientos,
     sincronizando, onSincronizar, onProbarChat,
     onAbrirEtiquetas, onAbrirPersonalidad, personalidadAbierta,
@@ -139,16 +147,33 @@ export default function InboxHeader({
                     SIEMPRE visible, con cualquier transporte: es el botón de
                     apagado del bot. Ver el comentario de `esApiOficial`. */}
                 <div className="flex items-center gap-5 bg-white/80 dark:bg-stone-900/70 px-4 py-2 rounded-2xl border border-stone-300/70 dark:border-stone-800 shadow-sm">
-                    <Interruptor
-                        rotulo="Asistente IA"
-                        activo={asistenteActivo}
-                        textoActivo="Activa" textoInactivo="Inactiva"
-                        color="emerald"
-                        onToggle={() => onToggleAsistente(!asistenteActivo)}
-                        title={asistenteActivo
-                            ? 'Apagar el bot: deja de contestar solo en TODOS los chats'
-                            : 'Encender el bot: vuelve a contestar solo'}
-                    />
+                    <div className="flex flex-col items-end gap-1">
+                        <Interruptor
+                            rotulo="Asistente IA"
+                            activo={asistenteActivo}
+                            textoActivo="Activa" textoInactivo="Inactiva"
+                            color="emerald"
+                            onToggle={() => onToggleAsistente(!asistenteActivo)}
+                            title={asistenteActivo
+                                ? 'Apagar el bot: deja de contestar solo en TODOS los chats'
+                                : 'Encender el bot: vuelve a contestar solo'}
+                        />
+                        {/* Sin esto, un apagado se olvida y el bot queda mudo
+                            de noche y fin de semana: un vigilante lo prende
+                            solo fuera de horario a menos que esto esté tildado. */}
+                        <label
+                            className="flex items-center gap-1.5 text-[10px] font-semibold text-stone-500 dark:text-stone-400 cursor-pointer select-none"
+                            title='Fuera de horario comercial el bot se prende solo. Tildar esto para que un apagado quede firme también de noche y fin de semana.'
+                        >
+                            <input
+                                type="checkbox"
+                                checked={mantenerApagadoFueraHorario}
+                                onChange={e => onToggleMantenerApagadoFueraHorario(e.target.checked)}
+                                className="w-3 h-3 accent-stone-600 dark:accent-stone-400"
+                            />
+                            Mantener apagado fuera de horario
+                        </label>
+                    </div>
                     <span aria-hidden className="w-px h-8 bg-stone-300 dark:bg-stone-700" />
                     {/* El rótulo cambia con el transporte porque cambia lo que
                         el interruptor realmente hace. Con WhatsApp Web frenaba

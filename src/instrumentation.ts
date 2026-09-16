@@ -683,6 +683,11 @@ export async function register() {
             maybeRunSeguimientos().catch(err => console.error('[CRON seguimientos] maybeRunSeguimientos:', err));
             maybeRunEmbudoSalud().catch(err => console.error('[CRON embudo-salud] maybeRunEmbudoSalud:', err));
             maybeRunSaldo().catch(err => console.error('[CRON recordatorio-saldo] maybeRunSaldo:', err));
+            (async () => {
+                const { vigilarBotFueraDeHorario } = await import('@/lib/whatsapp/vigilar-horario-bot');
+                const r = await vigilarBotFueraDeHorario();
+                if (r.accion === 'encendido') console.log('[Vigilante bot] El bot se prendió solo: estaba apagado y es fuera de horario.');
+            })().catch(err => console.error('[Vigilante bot] vigilarBotFueraDeHorario:', err));
 
             if (!isBusinessHours()) {
                 console.log('[CRON SmartLab] Fuera de horario (8-20 ARG). Saltando.');

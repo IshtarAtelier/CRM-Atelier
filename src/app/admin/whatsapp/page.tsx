@@ -43,7 +43,7 @@ import type { AdjuntoMedia, Chat, ClienteExtraido, QuickReply, ReadFilter } from
 function WhatsAppPageContent() {
     const {
         status, cargandoStatus, esApiOficial, chats, chatsCargados, selectedChatId, chatSeleccionado,
-        messagesByChat, tags, agentEnabled, followupsEnabled, promptDelServicio, enviando,
+        messagesByChat, tags, agentEnabled, mantenerApagadoFueraHorario, followupsEnabled, promptDelServicio, enviando,
     } = useWhatsAppDatos();
     const acciones = useWhatsAppAcciones();
 
@@ -426,6 +426,8 @@ function WhatsAppPageContent() {
                 error={status.error}
                 asistenteActivo={agentEnabled}
                 onToggleAsistente={acciones.setAgentEnabled}
+                mantenerApagadoFueraHorario={mantenerApagadoFueraHorario}
+                onToggleMantenerApagadoFueraHorario={acciones.setMantenerApagadoFueraHorario}
                 seguimientosActivos={followupsEnabled}
                 onToggleSeguimientos={next => {
                     // Apagar es el botón de pánico: no pedimos confirmación.

@@ -72,6 +72,9 @@ jobs:
       - name: Prompts del bot (nada prohibido, nada obligatorio que falte)
         run: npm run check:prompt-bot
 
+      - name: Fuera de horario el bot se prende solo (y el tilde lo frena)
+        run: npm run check:horario-bot
+
       - name: Build Next.js app
         run: npm run build
         env:
