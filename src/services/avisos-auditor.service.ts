@@ -43,6 +43,8 @@ export interface AvisoFaltante {
     desde: Date;
     /** Qué pasó al redispararlo (vacío en modo seco). */
     reenvio?: { ok: boolean; detalle: string };
+    /** El hito es de hace más de MAX_HORAS_PARA_REENVIAR: no se reenvía solo. */
+    viejo?: boolean;
 }
 
 export interface ResultadoAuditoria {
@@ -53,6 +55,8 @@ export interface ResultadoAuditoria {
     fallidos: number;
     /** Faltantes que NO se tocaron por el tope de la corrida. */
     postergados: number;
+    /** Faltantes viejos: se informan, nunca se reenvían solos. */
+    viejos: number;
 }
 
 /**
@@ -69,6 +73,26 @@ const GRACIA_MINUTOS = 90;
  * todos juntos se come el cupo del día. Lo que sobra espera a la próxima.
  */
 const TOPE_POR_CORRIDA = 15;
+
+/**
+ * 🔴 NADA VIEJO. Un aviso solo se redispara si el hito que lo dispara es de las
+ * últimas 24 h. Regla de Ishtar (16/9/2026), y tiene todo el sentido: mandarle
+ * hoy la "confirmación de compra" de un pedido de hace tres semanas —que el
+ * cliente ya retiró— no lo informa, lo confunde, y encima gasta una conversación
+ * paga. Lo viejo se informa y se arregla a mano si hace falta, nunca solo.
+ */
+const MAX_HORAS_PARA_REENVIAR = 24;
+
+/**
+ * 🔴 EL AUDITOR ARRANCA HOY. Nada anterior a esta fecha se audita ni se informa:
+ * el atraso acumulado —53 avisos al 16/9/2026— se revisa a mano con
+ * `scripts/checks/avisos-sin-entregar.mjs`, no lo toca un proceso automático.
+ * Decisión de Ishtar (16/9/2026): "todo a partir de HOY".
+ *
+ * El día que se quiera reprocesar algo viejo, se corre el check y se decide caso
+ * por caso. Esta fecha NO se mueve hacia atrás.
+ */
+const AUDITA_DESDE = new Date('2026-09-16T00:00:00-03:00');
 
 /** Los estados que prueban que el pedido YA pasó por cada hito. */
 const ESTADOS_PROCESADO = ['IN_PROGRESS', 'FINISHED', 'READY', 'DELIVERED'];
@@ -122,7 +146,9 @@ async function leerModo(): Promise<'seco' | 'real'> {
 export async function auditarAvisos(opts: { dias?: number; modo?: 'seco' | 'real' } = {}): Promise<ResultadoAuditoria> {
     const dias = opts.dias ?? 30;
     const modo = opts.modo ?? (await leerModo());
-    const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
+    // La ventana nunca empieza antes del día en que el auditor entró en servicio.
+    const ventana = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
+    const desde = ventana > AUDITA_DESDE ? ventana : AUDITA_DESDE;
     const corte = new Date(Date.now() - GRACIA_MINUTOS * 60 * 1000);
 
     // Contra producción el select va explícito (el schema local va adelantado).
@@ -232,6 +258,7 @@ export async function auditarAvisos(opts: { dias?: number; modo?: 'seco' | 'real
             if (hay) continue;
 
             faltantes.push({
+                viejo: e.desde.getTime() < Date.now() - MAX_HORAS_PARA_REENVIAR * 3600000,
                 orderId: v.id,
                 nro: nroDe(v.id),
                 clientId: v.clientId || '',
@@ -245,13 +272,17 @@ export async function auditarAvisos(opts: { dias?: number; modo?: 'seco' | 'real
 
     const resultado: ResultadoAuditoria = {
         modo, ventasRevisadas: ventas.length, faltantes, reenviados: 0, fallidos: 0, postergados: 0,
+        viejos: faltantes.filter(f => f.viejo).length,
     };
 
     if (modo === 'seco') return resultado;
 
     // ── Redisparo ───────────────────────────────────────────────────────────
-    // Los más viejos primero: son los que hace más tiempo que el cliente espera.
-    const cola = [...faltantes].sort((a, b) => a.desde.getTime() - b.desde.getTime());
+    // Solo lo fresco, y dentro de eso lo más viejo primero: es el cliente que
+    // hace más rato que espera.
+    const cola = faltantes
+        .filter(f => !f.viejo)
+        .sort((a, b) => a.desde.getTime() - b.desde.getTime());
     resultado.postergados = Math.max(0, cola.length - TOPE_POR_CORRIDA);
 
     for (const f of cola.slice(0, TOPE_POR_CORRIDA)) {

@@ -17,7 +17,9 @@ export const maxDuration = 300;
  *   /api/cron/avisos-auditor?secret=CRON_SECRET
  *
  * Parámetros opcionales:
- *   &dias=N    ventana a revisar (default 30)
+ *   &dias=N    ventana a revisar (default 30). Nunca mira antes del día en que
+ *              el auditor entró en servicio (`AUDITA_DESDE`): el atraso viejo se
+ *              revisa a mano con el check, no lo redispara un cron.
  *   &modo=seco corrida de prueba: informa sin mandar nada, aunque el sistema
  *              esté en 'real'. Al revés NO se puede: prender los envíos es una
  *              decisión que se toma en la base (SystemSetting
@@ -43,7 +45,7 @@ export async function GET(request: Request) {
 
         console.log(
             `[Auditor de avisos] modo=${r.modo} ventas=${r.ventasRevisadas} faltantes=${r.faltantes.length} ` +
-            `reenviados=${r.reenviados} fallidos=${r.fallidos} postergados=${r.postergados}`,
+            `reenviados=${r.reenviados} fallidos=${r.fallidos} postergados=${r.postergados} viejos=${r.viejos}`,
         );
 
         return NextResponse.json({
@@ -54,10 +56,13 @@ export async function GET(request: Request) {
             reenviados: r.reenviados,
             fallidos: r.fallidos,
             postergados: r.postergados,
+            // Faltantes de más de 24 h: se informan, nunca se reenvían solos.
+            viejos: r.viejos,
             detalle: r.faltantes.map(f => ({
                 pedido: f.nro,
                 cliente: f.clientName,
                 aviso: etiqueta(f.tipo),
+                viejo: !!f.viejo,
                 desde: f.desde,
                 reenvio: f.reenvio || null,
             })),
