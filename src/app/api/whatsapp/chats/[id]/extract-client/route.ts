@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { GoogleGenAI, Type } from '@google/genai';
 import { decrypt } from '@/lib/auth';
 import { CONTACT_SOURCES, matchContactSource } from '@/lib/contact-source';
+import { origenDeterministico } from '@/lib/origen-deterministico';
 
 // POST /api/whatsapp/chats/[id]/extract-client
 // Lee los mensajes del chat y usa IA para extraer datos del cliente
@@ -171,15 +172,11 @@ INSTRUCCIONES:
 
         // Deterministic template pre-extraction
         const firstInbound = sortedMessages.find(m => m.direction === 'INBOUND');
-        let deterministicSource: string | null = null;
-        if (firstInbound && firstInbound.content) {
-            const firstContent = firstInbound.content;
-            if (/\[meta[^\]]*\]/i.test(firstContent)) {
-                deterministicSource = 'Meta';
-            } else if (/vi su anuncio en google|los vi en google/i.test(firstContent)) {
-                deterministicSource = 'Google Ads';
-            }
-        }
+        // Las reglas viven en src/lib/origen-deterministico.ts (compartidas con
+        // el check y espejadas en el bot). Si el primer mensaje prueba el origen,
+        // se devuelve BLOQUEADO: el formulario lo muestra y no deja cambiarlo.
+        const detectado = origenDeterministico(firstInbound?.content);
+        const deterministicSource: string | null = detectado?.origen ?? null;
 
         // Normalizar contactSource con el vocabulario único (src/lib/contact-source.ts)
         let sourceNorm: string | null = null;
@@ -212,6 +209,8 @@ INSTRUCCIONES:
             interest: typeof parsedData.interest === 'string' ? parsedData.interest : null,
             insurance: typeof parsedData.insurance === 'string' ? parsedData.insurance : null,
             contactSource: sourceNorm === 'Otros' ? null : sourceNorm, // Nunca preseleccionar Otros
+            contactSourceBloqueado: Boolean(detectado),
+            contactSourceMotivo: detectado?.motivo ?? null,
             notes: typeof parsedData.notes === 'string' ? parsedData.notes : null
         };
 

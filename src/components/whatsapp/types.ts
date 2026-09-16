@@ -108,6 +108,10 @@ export interface ClienteExtraido {
     insurance: string | null;
     contactSource: string;
     notes: string | null;
+    /** El primer mensaje probó el origen (etiqueta de anuncio, frase del sitio): no se puede cambiar. */
+    contactSourceBloqueado?: boolean;
+    /** Por qué quedó bloqueado, para mostrarlo en el formulario. */
+    contactSourceMotivo?: string | null;
 }
 
 /** Filtro de leídos de la lista. */

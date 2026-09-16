@@ -108,39 +108,27 @@ async function detectContactSourceFromChat(chatId) {
     }
 
     const text = firstMessage.content.toLowerCase();
-
-    // 0. Deterministic Template Matches
-    // Meta templates with brackets, e.g. [metaSofi], [Metaplaca]
-    // Plantillas de Meta con corchetes ([metaSofi], [MetaAgos]) y la frase que
-    // agrega la web cuando el visitante trae fbclid. Las dos van en el paso 0,
-    // simétricas con las de Google: si "Los vi en Meta." cayera al chequeo
-    // genérico de abajo, un "los busqué en google maps" en el mismo mensaje le
-    // ganaría y escribiría el origen equivocado.
-    if (/\[meta[^\]]*\]/i.test(firstMessage.content) || /los vi en meta\b/i.test(firstMessage.content)) {
+    // Espejo de src/lib/origen-deterministico.ts (si tocás una, tocá la otra).
+    // 1) Etiqueta del anuncio: prueba canal y anuncio.
+    if (/\[\s*google[^\]]*\]/i.test(firstMessage.content)) return 'Google Ads';
+    if (/\[\s*(meta|clipsjav)[^\]]*\]/i.test(firstMessage.content) || /los vi en meta\b/i.test(firstMessage.content)) {
         return 'Meta';
     }
-    // Google, señales DETERMINÍSTICAS (verificadas contra 120 días de mensajes
-    // reales de producción):
-    //  · "Los vi en Google Ads." — la frase que ahora agrega la web cuando el
-    //    visitante llegó con gclid/wbraid/gbraid.
-    //  · "Hola! Vi su anuncio en Google y quiero recibir más información." —
-    //    la plantilla de los anuncios de click-to-WhatsApp de Google (10 casos).
-    //  · "Encontré este producto en Google: https://share.google/..." — compartir
-    //    desde la ficha de Google.
-    if (/vi su anuncio en google|los vi en google|encontr[ée] este producto en google|share\.google/i.test(firstMessage.content)) {
+    // 2) Frase precargada de los anuncios de Google.
+    if (/vi su anuncio en google|los vi en google ads|encontr[ée] este producto en google|share\.google/i.test(firstMessage.content)) {
         return 'Google Ads';
     }
-
-    // 1. Google por mención genérica de la plataforma
-    if (
-        text.includes('google') ||
-        text.includes('busqueda') ||
-        text.includes('búsqueda')
-    ) {
-        return 'Google Ads';
+    // 3) Texto del botón de WhatsApp del sitio: llegó a la web, no a un anuncio.
+    if (/nueva web de atelier|recorriendo la tienda online|entr[eé] a la web de atelier|vi sus anteojos en la web/i.test(firstMessage.content)) {
+        return 'Tienda online';
     }
-
-    // 2. Meta — solo con menciones explícitas de la plataforma (sin regex agresivos)
+    // Mencionar "google" o "búsqueda" NO es pauta: hasta el 16/9/26 esto devolvía
+    // 'Google Ads' y sumaba a la plata de Google gente que buscó sola. Mismo
+    // criterio que el extractor del CRM: Maps es Maps, lo demás es orgánico.
+    if (text.includes('maps')) return 'Google Maps';
+    if (text.includes('google') || text.includes('busqueda') || text.includes('búsqueda')) {
+        return 'Google orgánico';
+    }
     if (
         text.includes('instagram') ||
         text.includes('facebook') ||

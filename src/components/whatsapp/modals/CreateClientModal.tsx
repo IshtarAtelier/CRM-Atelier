@@ -64,14 +64,27 @@ export function CreateClientModal({ datos, onDatos, creando, onConfirmar, onCerr
                     </div>
                     <div>
                         <label htmlFor="ficha-origen" className={rotulo}>¿Dónde nos conocieron? *</label>
-                        <select id="ficha-origen" aria-invalid={!datos.contactSource} value={datos.contactSource || ''} onChange={e => onDatos({ ...datos, contactSource: e.target.value })} className={`${campo} cursor-pointer ${!datos.contactSource ? 'border-red-400 dark:border-red-500' : ''}`}>
-                            <option value="">Elegí una opción…</option>
-                            {CONTACT_SOURCES_SELECCIONABLES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                        {!datos.contactSource && (
-                            <p role="alert" className="mt-1 text-xs font-bold text-red-700 dark:text-red-300">
-                                Falta elegir dónde nos conoció: sin eso no se puede crear la ficha.
-                            </p>
+                        {datos.contactSourceBloqueado && datos.contactSource ? (
+                            /* El primer mensaje lo probó (etiqueta del anuncio, frase del sitio):
+                               se muestra y no se deja cambiar. Hasta el 16/9/26 se podía pisar
+                               con el desplegable y así quedaban chats de Meta y de la web
+                               marcados como Google Ads. */
+                            <div id="ficha-origen" className={`${campo} flex flex-col gap-0.5 cursor-default border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20`}>
+                                <span className="text-emerald-900 dark:text-emerald-200">{datos.contactSource} <span className="font-black text-[10px] uppercase tracking-widest ml-1">detectado</span></span>
+                                {datos.contactSourceMotivo && <span className="text-xs font-semibold text-emerald-800/80 dark:text-emerald-300/80">{datos.contactSourceMotivo}. No hace falta elegirlo.</span>}
+                            </div>
+                        ) : (
+                            <>
+                                <select id="ficha-origen" aria-invalid={!datos.contactSource} value={datos.contactSource || ''} onChange={e => onDatos({ ...datos, contactSource: e.target.value })} className={`${campo} cursor-pointer ${!datos.contactSource ? 'border-red-400 dark:border-red-500' : ''}`}>
+                                    <option value="">Elegí una opción…</option>
+                                    {CONTACT_SOURCES_SELECCIONABLES.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                                {!datos.contactSource && (
+                                    <p role="alert" className="mt-1 text-xs font-bold text-red-700 dark:text-red-300">
+                                        Falta elegir dónde nos conoció: sin eso no se puede crear la ficha.
+                                    </p>
+                                )}
+                            </>
                         )}
                     </div>
                     <div>
