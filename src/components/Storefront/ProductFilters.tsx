@@ -4,6 +4,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useCallback, useState, useTransition } from 'react';
 import { Filter, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GENEROS_DE_CATALOGO } from '@/lib/constants/genero-catalogo';
 import { track } from '@/lib/client-analytics';
 import { todasLasFamilias, type FamiliaColor } from '@/lib/catalog/color-normalizado';
 
@@ -376,11 +377,7 @@ export function ProductFilters({
                   >
                     Todos
                   </button>
-                  {[
-                    { id: 'femme', label: 'Femme' },
-                    { id: 'homme', label: 'Homme' },
-                    { id: 'no_gender', label: 'No Gender' }
-                  ].map((genderOption) => {
+                  {GENEROS_DE_CATALOGO.map((genderOption) => {
                     const isSelected = currentGender === genderOption.id;
                     return (
                       <button
@@ -392,7 +389,7 @@ export function ProductFilters({
                             : 'border-stone-200 hover:border-stone-400 bg-white text-stone-600 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-400 hover:bg-stone-50/50 dark:hover:bg-stone-800/30'
                         }`}
                       >
-                        {genderOption.label}
+                        {genderOption.etiqueta}
                       </button>
                     );
                   })}

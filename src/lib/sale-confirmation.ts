@@ -23,7 +23,7 @@ import { normalizeArgentinePhone } from '@/services/contact.service';
 import { resolveStorageUrl } from '@/lib/utils/storage';
 import { uploadFile, getFileBuffer } from '@/lib/storage';
 import { STORE_ORIGIN } from '@/lib/constants';
-import { GARANTIA_UNA_LINEA } from '@/lib/garantia';
+import { GARANTIA_UNA_LINEA, pedidoTieneGarantiaDeAdaptacion } from '@/lib/garantia';
 import { PricingService } from '@/services/PricingService';
 import { describeLabFrameDetails } from '@/lib/lab-frame-summary';
 import { frameRecapText, prescriptionRecapText, tienePhotocromatico } from '@/lib/sale-recap-text';
@@ -37,7 +37,11 @@ import { armazonesPorPar, tituloDePar, tipoDeItem, esArmazonItem } from '@/lib/a
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
 /** Marca de la nota que registra el envío: sirve de candado de idempotencia. */
-const MARCA_NOTA = '📧 Confirmación de compra enviada al cliente';
+/**
+ * Sello de la nota que queda en la ficha. Exportado porque el auditor de avisos
+ * lo usa para saber si esta confirmación ya se intentó.
+ */
+export const MARCA_NOTA = '📧 Confirmación de compra enviada al cliente';
 
 const money = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
 
@@ -250,6 +254,12 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
     // eso — no las cadenas vacías, que son los espacios a propósito.
     const L = (...lineas: (string | null)[]) => lineas.filter(l => l !== null) as string[];
 
+    // La garantía solo se promete si el pedido lleva cristales cubiertos
+    // (multifocales o Super Blue). Antes salía en toda confirmación, así que una
+    // venta de monofocales comunes se llevaba por escrito una garantía que la
+    // política publicada no le da (Ishtar, 16/9/2026).
+    const tieneGarantia = pedidoTieneGarantiaDeAdaptacion(order);
+
     const waText = L(
         `*Confirmación de compra — Pedido #${nro}*`,
         esActualizacion ? `⚠️ *PEDIDO ACTUALIZADO* — este repaso reemplaza al anterior.` : null,
@@ -306,13 +316,13 @@ export function buildSaleConfirmation(order: any, esActualizacion = false): Sale
         `• Si hay algún término que no entendés (esférico, cilindro, eje, adición, fotocromático), preguntanos y te lo explicamos.`,
         ``,
         `Respondenos *OK* si está todo bien, o contanos qué corregir. Es el momento: una vez fabricado no se puede cambiar.`,
-        ``,
+        tieneGarantia ? `` : null,
         // Las condiciones del cambio viajan CON el pedido a confirmar, no
         // después: es el último momento en que el cliente puede decidir sabiendo
         // que el cambio es solo por receta nueva, sobre el mismo cristal y el
         // mismo armazón, y que la seña no se devuelve (Ishtar, 31/8/2026).
-        `✅ ${GARANTIA_UNA_LINEA}`,
-        `📄 Condiciones de cambio y garantía: ${STORE_ORIGIN}/politicas-de-cambio#terminos-del-cambio`,
+        tieneGarantia ? `✅ ${GARANTIA_UNA_LINEA}` : null,
+        tieneGarantia ? `📄 Condiciones de cambio y garantía: ${STORE_ORIGIN}/politicas-de-cambio#terminos-del-cambio` : null,
     ).join('\n');
 
     // ── Email ────────────────────────────────────────────────────────────────
@@ -637,9 +647,12 @@ export interface EnvioConfirmacionResultado {
  */
 export async function sendSaleConfirmation(
     orderId: string,
-    opts: { esActualizacion?: boolean; version?: number } = {}
+    opts: { esActualizacion?: boolean; version?: number; reenviar?: boolean } = {}
 ): Promise<EnvioConfirmacionResultado> {
-    const { esActualizacion = false, version } = opts;
+    // `reenviar`: saltea el candado de idempotencia. Lo usa el auditor cuando la
+    // nota existe pero el mensaje NO está en la conversación — el caso que
+    // apareció el 16/9/2026 y que el candado, por sí solo, volvía irreparable.
+    const { esActualizacion = false, version, reenviar = false } = opts;
     const resultado: EnvioConfirmacionResultado = { email: false, whatsapp: false };
 
     // Los checks convierten ventas sintéticas para probar el candado, y cada
@@ -665,7 +678,7 @@ export async function sendSaleConfirmation(
             where: { clientId: order.client.id, content: { startsWith: sello } },
             select: { id: true },
         });
-        if (yaHay) return { ...resultado, yaEnviada: true };
+        if (yaHay && !reenviar) return { ...resultado, yaEnviada: true };
 
         const conf = buildSaleConfirmation(order, esActualizacion);
 
@@ -695,6 +708,7 @@ export async function sendSaleConfirmation(
         });
 
         // ── WhatsApp ─────────────────────────────────────────────────────────
+        let sinRegistro = false;
         const tel = (order.client.phone || '').replace(/\D/g, '');
         if (tel.length >= 10) {
             try {
@@ -722,7 +736,12 @@ export async function sendSaleConfirmation(
                     })() : null,
                 });
                 resultado.whatsapp = res.ok;
+                // El wa-service contestó OK pero el mensaje no quedó en la
+                // conversación: el vendedor no lo puede verificar y el ✅ de la
+                // ficha no prueba nada. Se anota como lo que es.
+                sinRegistro = res.ok && res.guardado === false;
                 if (!res.ok) console.warn('[Confirmación de compra] WhatsApp no salió:', explainSendFailure(res));
+                if (sinRegistro) console.warn('[Confirmación de compra] WhatsApp salió SIN quedar registrado en la conversación:', order.id);
 
                 // Y las FOTOS del armazón, una por mensaje.
                 //
@@ -762,7 +781,11 @@ export async function sendSaleConfirmation(
         const detalle = [
             sello,
             `Email: ${resultado.email ? `✅ enviado a ${order.client.email}` : (order.client.email ? '❌ NO se pudo enviar' : '— sin email cargado')}`,
-            `WhatsApp: ${resultado.whatsapp ? `✅ enviado al ${order.client.phone}` : (tel.length >= 10 ? '❌ NO se pudo enviar' : '— sin teléfono válido')}`,
+            `WhatsApp: ${resultado.whatsapp
+                ? (sinRegistro
+                    ? `⚠️ salió al ${order.client.phone} pero NO quedó en la conversación — revisá el chat con tus ojos`
+                    : `✅ enviado al ${order.client.phone}`)
+                : (tel.length >= 10 ? '❌ NO se pudo enviar' : '— sin teléfono válido')}`,
             pdfUrl ? `PDF del pedido: ${resolveStorageUrl(pdfUrl)}` : `PDF del pedido: ❌ no se pudo generar`,
         ].join('\n') + DETALLE_MARK + conf.waText;
 

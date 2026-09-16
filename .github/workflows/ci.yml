@@ -75,6 +75,9 @@ jobs:
       - name: Fuera de horario el bot se prende solo (y el tilde lo frena)
         run: npm run check:horario-bot
 
+      - name: A un hombre no se le mandan monturas de mujer
+        run: npm run check:genero-fotos
+
       - name: Build Next.js app
         run: npm run build
         env:

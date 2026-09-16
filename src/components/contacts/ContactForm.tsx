@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { X, Star, Save, Loader2, Calculator, AlertCircle } from 'lucide-react';
 import { PersonalDataSection, InterestSection } from './ContactFormSections';
+import { PreguntaDeOrigen, ORIGEN_LABEL } from './PreguntaDeOrigen';
 import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
 
 export interface ContactFormData {
@@ -35,11 +36,9 @@ interface ContactFormProps {
 
 const PRODUCT_TYPES = ["Monofocal", "Multifocal", "Bifocal", "Ocupacional", "Solar", "Accesorios", "Lentes de Contacto", "Otros"];
 
-/** La pregunta tal como se le hace al cliente: es el nombre del campo en todo el CRM. */
-const ORIGEN_LABEL = '¿Dónde nos conocieron?';
-
 export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal, initialData }: ContactFormProps) {
     const [faltantes, setFaltantes] = useState<string[]>([]);
+    const [preguntandoOrigen, setPreguntandoOrigen] = useState(false);
     const formRef = useRef<HTMLFormElement>(null);
     const [formData, setFormData] = useState<ContactFormData>({
         name: initialData?.name || '',
@@ -78,41 +77,34 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
     // falta de verdad (el envío a fábrica tiene su propia validación).
     const isEdit = !!initialData;
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const faltantes: string[] = [];
-        if (!formData.name?.trim()) faltantes.push('Nombre');
-        if (!formData.phone?.trim()) faltantes.push('Teléfono');
+    /** Qué falta para poder guardar. Una sola lista: la usa el submit y el popup. */
+    const faltantesDe = (datos: ContactFormData): string[] => {
+        const faltan: string[] = [];
+        if (!datos.name?.trim()) faltan.push('Nombre');
+        if (!datos.phone?.trim()) faltan.push('Teléfono');
         // El origen se exige SIEMPRE, no solo al crear: las fichas que nacen del
         // bot vienen sin él, y editar era la única oportunidad de completarlo.
-        if (!formData.contactSource) faltantes.push(ORIGEN_LABEL);
+        if (!datos.contactSource) faltan.push(ORIGEN_LABEL);
         if (!isEdit) {
-            if (!formData.interest) faltantes.push('Tipo de producto');
-            if (!formData.email?.trim()) faltantes.push('Email');
-            if (!formData.birthDate) faltantes.push('Fecha de nacimiento');
-            if (!formData.dni?.trim()) faltantes.push('DNI');
-            if (!formData.address?.trim()) faltantes.push('Dirección');
+            if (!datos.interest) faltan.push('Tipo de producto');
+            if (!datos.email?.trim()) faltan.push('Email');
+            if (!datos.birthDate) faltan.push('Fecha de nacimiento');
+            if (!datos.dni?.trim()) faltan.push('DNI');
+            if (!datos.address?.trim()) faltan.push('Dirección');
         }
-        if (faltantes.length > 0) {
-            // Cartel en el formulario, no alert(): se ve qué falta y el campo
-            // queda marcado. El alert se cerraba y no quedaba rastro.
-            setFaltantes(faltantes);
-            formRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-            if (faltantes.includes(ORIGEN_LABEL)) {
-                setTimeout(() => document.getElementById('input-origen')?.focus(), 350);
-            }
-            return;
-        }
-        setFaltantes([]);
-        if (!isEdit && isHighTicket && !followUpTask.trim()) {
-            alert('Para clientes Multifocal es obligatorio registrar una tarea de seguimiento.');
-            return;
-        }
+        return faltan;
+    };
 
+    /**
+     * Guardar de verdad. Recibe los datos por parámetro —y no los lee del
+     * estado— porque el popup de origen elige y guarda en el mismo gesto, y el
+     * estado de React todavía no se actualizó en ese instante.
+     */
+    const guardar = async (datos: ContactFormData) => {
         setSaving(true);
         try {
             const dataToSubmit: ContactFormData = {
-                ...formData,
+                ...datos,
                 ...(isHighTicket && followUpTask.trim() ? { followUpTask: followUpTask.trim(), followUpDate } : {}),
                 startQuote: submitAction === 'quote',
                 visitedStore,
@@ -132,8 +124,51 @@ export default function ContactForm({ onClose, onSubmit, onUnify, onGoToOriginal
         }
     };
 
+    const intentarGuardar = async (datos: ContactFormData) => {
+        const faltan = faltantesDe(datos);
+        setFaltantes(faltan);
+
+        // Si lo único que falta es el origen, no se manda a nadie a buscar el
+        // desplegable: se pregunta acá mismo y el toque también guarda.
+        if (faltan.includes(ORIGEN_LABEL)) {
+            setPreguntandoOrigen(true);
+            return;
+        }
+        if (faltan.length > 0) {
+            // Cartel en el formulario, no alert(): se ve qué falta y el campo
+            // queda marcado. El alert se cerraba y no quedaba rastro.
+            formRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+        if (!isEdit && isHighTicket && !followUpTask.trim()) {
+            alert('Para clientes Multifocal es obligatorio registrar una tarea de seguimiento.');
+            return;
+        }
+        await guardar(datos);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await intentarGuardar(formData);
+    };
+
+    /** Un toque en el popup: queda elegido y sigue el guardado donde había quedado. */
+    const elegirOrigen = async (origen: string) => {
+        const datos = { ...formData, contactSource: origen };
+        setFormData(datos);
+        setPreguntandoOrigen(false);
+        await intentarGuardar(datos);
+    };
+
     return (
         <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+            {preguntandoOrigen && (
+                <PreguntaDeOrigen
+                    nombre={formData.name}
+                    onElegir={elegirOrigen}
+                    onCerrar={() => setPreguntandoOrigen(false)}
+                />
+            )}
             <div className="bg-white dark:bg-stone-900 w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden">
                 <header className="p-8 border-b flex justify-between items-center bg-stone-50/50 dark:bg-stone-800/30">
                     <div>

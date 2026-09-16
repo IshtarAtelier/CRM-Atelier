@@ -472,8 +472,31 @@ function createApiRouter(deps) {
                 sent = await sendMessage(waId, message, null, sendOpts);
             }
 
+            // Si el mensaje SALIÓ y no sabemos dónde guardarlo, se crea el chat
+            // ahora. Antes el chat solo se creaba en la rama de plantilla, así que
+            // un saliente a un número sin chat previo se mandaba y no se guardaba
+            // en ningún lado: invisible en el buzón y en la ficha. La auditoría
+            // del 16/9/2026 encontró 5 confirmaciones de compra marcadas como
+            // "✅ enviado" sin un solo mensaje en la conversación.
+            if (sent && !dbChatId) {
+                const soloDigitos = String(waId).replace(/\D/g, '');
+                if (/^\d{10,15}$/.test(soloDigitos)) {
+                    try {
+                        const nuevo = await prisma.whatsAppChat.upsert({
+                            where: { waId: soloDigitos },
+                            update: {},
+                            create: { waId: soloDigitos, realPhone: soloDigitos, status: 'OPEN', botEnabled: false, lastMessageAt: new Date() },
+                        });
+                        dbChatId = nuevo.id;
+                    } catch (e) {
+                        console.error('[Bot API] No se pudo crear el chat para guardar el saliente:', e.message);
+                    }
+                }
+            }
+
             // Se guarda aunque WhatsApp Web no devuelva su id: el mensaje salió, así que
             // tiene que verse en el buzón. Antes el guarda `sent.id._serialized` lo tiraba.
+            let guardado = false;
             if (sent && dbChatId) {
                 try {
                     const msgType = media
@@ -505,6 +528,7 @@ function createApiRouter(deps) {
                         }
                     });
                     await prisma.whatsAppChat.update({ where: { id: dbChatId }, data: { lastMessageAt: new Date() } }).catch(() => {});
+                    guardado = true;
                 } catch (e) {
                     console.error('Error guardando el saliente del CRM:', e.message);
                 }
@@ -526,7 +550,10 @@ function createApiRouter(deps) {
             
             if (dbChatId) broadcastChatUpdate(dbChatId);
             
-            res.json({ success: true });
+            // `guardado` viaja al CRM: un envío que no quedó en la conversación no
+            // se puede verificar después, y la ficha tiene que decirlo en vez de
+            // firmar un ✅ que nadie puede comprobar.
+            res.json({ success: true, guardado });
         } catch (e) {
             // El código viaja al CRM para que el aviso diga el motivo REAL: sin
             // esto, un timeout o una sesión trabada se le comunicaban al vendedor

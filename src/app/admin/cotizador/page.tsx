@@ -29,6 +29,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import CotizadorCart from '@/components/quotes/CotizadorCart';
 import { formatPhoneForWhatsApp } from '@/lib/phone-utils';
 import { CONTACT_SOURCES_SELECCIONABLES } from '@/lib/contact-source';
+import { PreguntaDeOrigen } from '@/components/contacts/PreguntaDeOrigen';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
 import FrameRecapReadOnly from '@/components/orders/FrameRecapReadOnly';
 import {
@@ -199,6 +200,7 @@ function CotizadorPageContent() {
     const [newContactDni, setNewContactDni] = useState('');
     const [newContactEmail, setNewContactEmail] = useState('');
     const [newContactSource, setNewContactSource] = useState('');
+    const [preguntandoOrigen, setPreguntandoOrigen] = useState(false);
     const [newContactInterest, setNewContactInterest] = useState('');
     const [newContactInsurance, setNewContactInsurance] = useState('');
     const [newContactDoctor, setNewContactDoctor] = useState('');
@@ -754,11 +756,17 @@ function CotizadorPageContent() {
         }
     };
 
-    const handleCreateAndSave = async () => {
-        if (!newContactName.trim() || !newContactPhone.trim() || !newContactSource || !newContactInterest) {
-            alert('Falta completar: Nombre, Teléfono, ¿Dónde nos conocieron? y Tipo de Producto.');
+    const handleCreateAndSave = async (origenElegido?: string) => {
+        // El origen puede venir del popup: elige y guarda en el mismo gesto,
+        // cuando el estado de React todavía no se propagó.
+        const origen = origenElegido || newContactSource;
+        if (!newContactName.trim() || !newContactPhone.trim() || !newContactInterest) {
+            alert('Falta completar: Nombre, Teléfono y Tipo de Producto.');
             return;
         }
+        // Lo único que falta es el origen: se pregunta acá mismo en vez de
+        // mandar a buscar el desplegable (pedido de Ishtar, 16/9/26).
+        if (!origen) { setPreguntandoOrigen(true); return; }
         if (savingQuote) return;
         setDuplicateError(null);
         setSavingQuote(true);
@@ -771,7 +779,7 @@ function CotizadorPageContent() {
                     phone: newContactPhone,
                     dni: newContactDni || null,
                     email: newContactEmail || null,
-                    contactSource: newContactSource,
+                    contactSource: origen,
                     interest: newContactInterest,
                     insurance: newContactInsurance || null,
                     doctor: newContactDoctor || null
@@ -1771,6 +1779,13 @@ function CotizadorPageContent() {
                                         </select>
                                     </div>
                                     {!newContactSource && <p role="alert" className="text-xs font-bold text-red-700 dark:text-red-300 ml-2">Preguntale dónde nos conoció y elegí la opción: sin eso no se crea la ficha.</p>}
+                                    {preguntandoOrigen && (
+                                        <PreguntaDeOrigen
+                                            nombre={newContactName}
+                                            onElegir={(o) => { setNewContactSource(o); setPreguntandoOrigen(false); handleCreateAndSave(o); }}
+                                            onCerrar={() => setPreguntandoOrigen(false)}
+                                        />
+                                    )}
                                 </div>
                             </div>
 
@@ -1796,7 +1811,7 @@ function CotizadorPageContent() {
                             </div>
 
                             <div className="flex gap-4 pt-6">
-                                <button onClick={handleCreateAndSave} disabled={!newContactName || !newContactPhone || !newContactSource || !newContactInterest || savingQuote} className="flex-1 py-5 bg-primary text-primary-foreground rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95">{savingQuote ? <><Loader2 className="w-5 h-5 animate-spin" /> Creando...</> : 'Crear y Guardar'}</button>
+                                <button onClick={() => handleCreateAndSave()} disabled={!newContactName || !newContactPhone || !newContactInterest || savingQuote} className="flex-1 py-5 bg-primary text-primary-foreground rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95">{savingQuote ? <><Loader2 className="w-5 h-5 animate-spin" /> Creando...</> : 'Crear y Guardar'}</button>
                                 <button onClick={() => { setShowNewContact(false); setDuplicateError(null); }} className="px-8 py-5 bg-foreground/[0.06] text-foreground/40 rounded-[2rem] font-black text-[11px] uppercase tracking-widest hover:bg-foreground/10 transition-all">Cancelar</button>
                             </div>
                         </div>

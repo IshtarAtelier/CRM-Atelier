@@ -97,50 +97,63 @@ async function detectContactSourceFromChat(chatId) {
     // Ahora se decide SOLO por lo que dice el mensaje. Sin señal explícita se
     // devuelve null y el vendedor elige: un origen inventado es peor que vacío.
     
-    // Find the earliest inbound message
-    const firstMessage = await prisma.whatsAppMessage.findFirst({
-        where: { chatId, direction: 'INBOUND' },
-        orderBy: { createdAt: 'asc' }
+    // ── La etiqueta YA GUARDADA manda, antes que cualquier texto ──
+    // Cuando entra un clic de un anuncio, el portero guarda la campaña en
+    // WhatsAppChat.adTag. Sin prefijo `google:` es de Meta — así la leen los
+    // reportes (platformFromStoredTag en src/lib/ads/ad-tag-core.ts).
+    //
+    // Hasta el 16/9/2026 esta función ni la miraba, y encima Meta manda primero
+    // un entrante VACÍO con el referral del anuncio: el `!firstMessage.content`
+    // de abajo cortaba ahí y devolvía null. Medido en producción sobre 90 días:
+    // 47 fichas de Meta quedaron sin origen teniendo la etiqueta guardada
+    // (`clip`, `ishvarilux`, `flor`, `agos`) — plata de Meta que no aparecía en
+    // ningún reporte por canal.
+    const chat = await prisma.whatsAppChat.findUnique({
+        where: { id: chatId },
+        select: { adTag: true, adSourceId: true }
     });
+    // El id del anuncio lo manda Meta con el clic, por fuera del texto: vale
+    // aunque el cliente haya borrado el mensajito precargado.
+    if (chat?.adSourceId) return 'Meta';
+    if (chat?.adTag) {
+        return chat.adTag.startsWith('google:') ? 'Google Ads' : 'Meta';
+    }
 
-    if (!firstMessage || !firstMessage.content) {
+    // Primer entrante CON TEXTO. Los vacíos son los referrals de Meta y los
+    // adjuntos sin epígrafe: saltearlos, no rendirse en el primero.
+    const primeros = await prisma.whatsAppMessage.findMany({
+        where: { chatId, direction: 'INBOUND' },
+        orderBy: { createdAt: 'asc' },
+        take: 5
+    });
+    const firstMessage = primeros.find(m => (m.content || '').trim());
+
+    if (!firstMessage) {
         return null;
     }
 
     const text = firstMessage.content.toLowerCase();
-
-    // 0. Deterministic Template Matches
-    // Meta templates with brackets, e.g. [metaSofi], [Metaplaca]
-    // Plantillas de Meta con corchetes ([metaSofi], [MetaAgos]) y la frase que
-    // agrega la web cuando el visitante trae fbclid. Las dos van en el paso 0,
-    // simétricas con las de Google: si "Los vi en Meta." cayera al chequeo
-    // genérico de abajo, un "los busqué en google maps" en el mismo mensaje le
-    // ganaría y escribiría el origen equivocado.
-    if (/\[meta[^\]]*\]/i.test(firstMessage.content) || /los vi en meta\b/i.test(firstMessage.content)) {
+    // Espejo de src/lib/origen-deterministico.ts (si tocás una, tocá la otra).
+    // 1) Etiqueta del anuncio: prueba canal y anuncio.
+    if (/\[\s*google[^\]]*\]/i.test(firstMessage.content)) return 'Google Ads';
+    if (/\[\s*(meta|clipsjav)[^\]]*\]/i.test(firstMessage.content) || /los vi en meta\b/i.test(firstMessage.content)) {
         return 'Meta';
     }
-    // Google, señales DETERMINÍSTICAS (verificadas contra 120 días de mensajes
-    // reales de producción):
-    //  · "Los vi en Google Ads." — la frase que ahora agrega la web cuando el
-    //    visitante llegó con gclid/wbraid/gbraid.
-    //  · "Hola! Vi su anuncio en Google y quiero recibir más información." —
-    //    la plantilla de los anuncios de click-to-WhatsApp de Google (10 casos).
-    //  · "Encontré este producto en Google: https://share.google/..." — compartir
-    //    desde la ficha de Google.
-    if (/vi su anuncio en google|los vi en google|encontr[ée] este producto en google|share\.google/i.test(firstMessage.content)) {
+    // 2) Frase precargada de los anuncios de Google.
+    if (/vi su anuncio en google|los vi en google ads|encontr[ée] este producto en google|share\.google/i.test(firstMessage.content)) {
         return 'Google Ads';
     }
-
-    // 1. Google por mención genérica de la plataforma
-    if (
-        text.includes('google') ||
-        text.includes('busqueda') ||
-        text.includes('búsqueda')
-    ) {
-        return 'Google Ads';
+    // 3) Texto del botón de WhatsApp del sitio: llegó a la web, no a un anuncio.
+    if (/nueva web de atelier|recorriendo la tienda online|entr[eé] a la web de atelier|vi sus anteojos en la web/i.test(firstMessage.content)) {
+        return 'Tienda online';
     }
-
-    // 2. Meta — solo con menciones explícitas de la plataforma (sin regex agresivos)
+    // Mencionar "google" o "búsqueda" NO es pauta: hasta el 16/9/26 esto devolvía
+    // 'Google Ads' y sumaba a la plata de Google gente que buscó sola. Mismo
+    // criterio que el extractor del CRM: Maps es Maps, lo demás es orgánico.
+    if (text.includes('maps')) return 'Google Maps';
+    if (text.includes('google') || text.includes('busqueda') || text.includes('búsqueda')) {
+        return 'Google orgánico';
+    }
     if (
         text.includes('instagram') ||
         text.includes('facebook') ||
@@ -725,6 +738,37 @@ function pieDeFoto(p) {
 }
 
 /**
+ * El link del catálogo para mandar por WhatsApp, filtrado por lo que se habló.
+ *
+ * Las direcciones lindas viven en src/app/catalogo/[[...partes]]/page.tsx y
+ * llevan a la tienda ya filtrada — la misma tienda, con la foto grande, el
+ * precio de hoy, la oferta, el stock y el botón de comprar. Un PDF mandado
+ * hace un mes muestra precios que ya no son.
+ *
+ *   ARMAZON + HOMBRE → /catalogo/hombre
+ *   SOL + MUJER      → /catalogo/mujer/sol
+ *   CLIPON, sin saber de quién → /catalogo/clip-on
+ *
+ * Espejo de `rutaDeCatalogo` (src/lib/constants/genero-catalogo.ts): el
+ * wa-service es CommonJS y no puede importar el .ts. `check:genero-fotos` los
+ * cruza para que no se separen.
+ */
+const CATEGORIA_A_SLUG = { SOL: 'sol', CLIPON: 'clip-on', 'CLIP-ON': 'clip-on', RECETA: 'receta' };
+
+function linkDelCatalogo(genero, category, search) {
+    const base = 'https://atelieroptica.com.ar';
+    const partes = [];
+    if (genero === 'HOMBRE') partes.push('hombre');
+    else if (genero === 'MUJER') partes.push('mujer');
+    // ARMAZON es el catálogo entero de esa persona: no lleva tipo.
+    const tipo = CATEGORIA_A_SLUG[String(category || '').toUpperCase()];
+    if (tipo && tipo !== 'receta') partes.push(tipo);
+    const ruta = partes.length ? `/catalogo/${partes.join('/')}` : '/tienda';
+    const query = search ? `?search=${encodeURIComponent(String(search).trim())}` : '';
+    return `${base}${ruta}${query}`;
+}
+
+/**
  * Tool: mandarle al cliente hasta 3 fotos de armazones/clip-ons/lentes de sol.
  * Reusa /api/bot/pricing (misma fuente y mismo filtro por categoría que las
  * cotizaciones: no hay una segunda copia de esa lógica que pueda divergir).
@@ -741,6 +785,19 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
     // Género de la PERSONA. La ruta no filtra por el propio: excluye lo
     // claramente contrario (ver el comentario largo en api/bot/pricing).
     if (genero === 'HOMBRE' || genero === 'MUJER') params.genero = genero;
+    // Las fotos salen de lo PUBLICADO en la tienda, no del catálogo interno:
+    // es lo único con foto, precio de venta y stock reales. Sin esto el bot
+    // elegía entre 21 armazones (los que tienen `type` cargado) y, como ninguno
+    // está marcado como recomendado, terminaba mandando los primeros 20 por
+    // orden alfabético — los mismos tres a todo el mundo.
+    params.paraFotos = '1';
+    // El clientId va SIEMPRE: con él la ruta deduce sola el género del nombre
+    // de la ficha cuando el modelo no lo pasó (16/9/2026 — hasta entonces, si
+    // el modelo se olvidaba, a un hombre le llegaban monturas de mujer).
+    const fichaDelChat = destino.dbChatId
+        ? await prisma.whatsAppChat.findUnique({ where: { id: destino.dbChatId }, select: { clientId: true } }).catch(() => null)
+        : null;
+    if (fichaDelChat?.clientId) params.clientId = fichaDelChat.clientId;
     // Mismo criterio que 'get_price_list': con búsqueda se barre todo el
     // catálogo de la categoría; sin búsqueda se priorizan los recomendados por
     // la óptica (y la ruta ya cae sola a la categoría entera si no hay ninguno).
@@ -779,10 +836,58 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
         return `[INSTRUCCIÓN INTERNA] No hay fotos disponibles para esa búsqueda. NUNCA le digas al cliente que no encontraste fotos ni le prometas mandarlas después: seguí en texto${nombres ? ` (podés nombrar estos modelos: ${nombres})` : ''} e invitalo a probárselos en el local.`;
     }
 
-    // Primero lo que la óptica destacó, después lo publicado en la tienda (el
-    // resto tiene precios de carga, no de venta).
-    const puntaje = p => (p.botRecommended === true ? 2 : 0) + (p.publishToWeb === true ? 1 : 0);
-    const seleccion = [...conFoto].sort((a, b) => puntaje(b) - puntaje(a)).slice(0, MAX_FOTOS_POR_TURNO);
+    // Orden: primero lo que de verdad le corresponde a la persona, después lo
+    // que la óptica destacó y lo publicado en la tienda (el resto tiene precios
+    // de carga, no de venta).
+    //
+    // El género pesa MÁS que todo lo demás (16/9/2026). La ruta ya sacó lo
+    // claramente contrario, pero quedaban adentro los 33 armazones sin género
+    // cargado, y como el catálogo se ordena alfabéticamente, terminaban
+    // ganando siempre los mismos tres. Un armazón marcado "Femenino" para una
+    // mujer vale más que uno sin dato.
+    const generoEfectivo = (genero === 'HOMBRE' || genero === 'MUJER') ? genero : null;
+    /**
+     * Cuánto le corresponde este armazón a esta persona.
+     *
+     * Regla de Ishtar (16/9/2026): "que sea fem o mas". Un armazón marcado SOLO
+     * "Masculino" es más de él que uno marcado "Unisex, Femenino, Masculino",
+     * que en el catálogo quiere decir "sirve para cualquiera". Antes los dos
+     * valían igual (3) y, como los mixtos son 37 contra 12, a un hombre casi
+     * nunca le llegaba uno pensado para él.
+     *
+     *   4 = solo lo suyo ("Masculino")
+     *   3 = lo suyo y lo otro ("Unisex, Femenino, Masculino")
+     *   2 = unisex
+     *   0 = sin dato (va último; del género contrario ya no llega ninguno:
+     *       eso lo saca la ruta antes)
+     */
+    const puntajeDeGenero = p => {
+        const g = (p.genero || '').toLowerCase();
+        if (!g.trim()) return 0;
+        if (!generoEfectivo) return g.includes('unisex') ? 1 : 0;  // sin saber de quién es, unisex primero
+        const propio = generoEfectivo === 'HOMBRE' ? 'masculino' : 'femenino';
+        const otro = generoEfectivo === 'HOMBRE' ? 'femenino' : 'masculino';
+        if (g.includes(propio)) return g.includes(otro) ? 3 : 4;
+        if (g.includes('unisex')) return 2;
+        return 0;
+    };
+    const puntaje = p => puntajeDeGenero(p) * 10 + (p.botRecommended === true ? 2 : 0) + (p.publishToWeb === true ? 1 : 0);
+    // Entre los que valen lo mismo, cada persona arranca en un punto distinto
+    // del catálogo. Sin esto el orden es alfabético y TODOS reciben los mismos
+    // tres: en 60 días el bot mandó 26 fotos y fueron siempre Andrómeda y
+    // Adhara, a Eva, a Andrea, a Maxi y a Soledad por igual. El corrimiento es
+    // fijo por cliente (no al azar): si vuelve a pedir fotos en la misma
+    // charla, ve los mismos modelos y no parece otra óptica.
+    const semilla = String(fichaDelChat?.clientId || destino.dbChatId || destino.waId || '')
+        .split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    const ordenados = [...conFoto].sort((a, b) => puntaje(b) - puntaje(a));
+    const corrimiento = ordenados.length > MAX_FOTOS_POR_TURNO ? semilla % ordenados.length : 0;
+    const rotados = [...ordenados.slice(corrimiento), ...ordenados.slice(0, corrimiento)]
+        // La rotación no puede romper la prioridad: se reordena por puntaje otra
+        // vez (el sort es estable, así que adentro de cada puntaje queda la
+        // rotación).
+        .sort((a, b) => puntaje(b) - puntaje(a));
+    const seleccion = rotados.slice(0, MAX_FOTOS_POR_TURNO);
 
     const enviadas = [];
     for (const p of seleccion) {
@@ -865,7 +970,16 @@ async function sendProductPhotos({ chatId, category, search, products, genero })
     }
 
     const omitidos = conFoto.slice(MAX_FOTOS_POR_TURNO).map(p => p.name).filter(Boolean);
-    let nota = `[INSTRUCCIÓN INTERNA] Ya se enviaron ${enviadas.length} foto(s) al cliente, cada una con su nombre y su precio de contado al pie: ${enviadas.join(', ')}. NO las describas de nuevo, NO repitas esos precios y NO anuncies que "ahí van": ya llegaron. Escribí UNA sola burbuja corta preguntándole cuál le gustó más. PROHIBIDO volver a llamar esta herramienta en este mismo turno.`;
+    let nota = `[INSTRUCCIÓN INTERNA] Ya se enviaron ${enviadas.length} foto(s) al cliente, cada una con su nombre y su precio de contado al pie: ${enviadas.join(', ')}. NO las describas de nuevo, NO repitas esos precios y NO anuncies que "ahí van": ya llegaron. Escribí UNA sola burbuja corta con el link del catálogo de acá abajo y preguntándole cuál le gustó más. PROHIBIDO volver a llamar esta herramienta en este mismo turno.`;
+    // El catálogo entero, en la misma burbuja: tres fotos son una muestra, y el
+    // link deja que siga mirando el resto con precio al día y foto grande (pedido
+    // de Ishtar, 16/9/2026: "que la persona pueda ver varias opciones en un mismo
+    // lugar"). Va filtrado por lo que se habló, así abre en lo suyo.
+    nota += ` MANDALE TAMBIÉN el catálogo, en la MISMA burbuja y tal cual: "${linkDelCatalogo(generoEfectivo, category, search)}". Presentalo como "acá los podés ver todos" — NUNCA digas de quién son ni por qué elegiste esos.`;
+    // Regla de Ishtar (16/9/2026): al cliente no se le clasifica el armazón por
+    // género. Un armazón unisex mandado a un hombre es, para él, un armazón: si
+    // se le aclara "este es unisex" se le está diciendo que no es para él.
+    nota += ` PROHIBIDO decirle al cliente que un armazón es "unisex", "de hombre", "de mujer" o "para los dos", y prohibido explicarle que los elegiste por su género: le mandás los modelos y listo.`;
     if (omitidos.length > 0) {
         nota += ` Quedaron sin enviar (tope de ${MAX_FOTOS_POR_TURNO} fotos por vez): ${omitidos.slice(0, 8).join(', ')}. Si el cliente pide ver más, recién ahí volvé a llamarla con 'search' del modelo que nombre.`;
     }

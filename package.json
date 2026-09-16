@@ -17,10 +17,12 @@
     "check:humo": "node scripts/checks/humo-tienda.check.mjs",
     "check:catalog": "node --experimental-strip-types scripts/checks/catalog-resilience.check.mjs",
     "check:comprobantes": "node --experimental-strip-types scripts/checks/receipt-references.check.mjs",
+    "check:origen": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/origen-deterministico.check.mjs",
     "check:landing": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/landing-atribucion.check.mjs",
     "check:adtag": "node --experimental-strip-types scripts/checks/ad-tag-paridad.check.mjs",
     "check:capi": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/capi-payload.check.mjs",
     "check:businessinfo": "node --experimental-strip-types scripts/checks/business-info-paridad.check.mjs",
+    "check:garantia": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/garantia-en-confirmacion.check.mjs",
     "check:receta": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/tipo-de-lente.check.mjs",
     "check:contrato-bot": "node scripts/checks/contrato-tools-bot.check.mjs",
     "check:prompt-bot": "node --experimental-strip-types scripts/checks/prompt-bot.check.mjs",
@@ -47,6 +49,7 @@
     "check:velocidad": "node scripts/checks/velocidad-sitio.check.mjs",
     "check:cierres": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cierres.check.mjs",
     "check:motor": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/motor-seguimientos.check.mjs",
+    "check:genero-fotos": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/genero-fotos.check.mjs",
     "check:horario-bot": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/horario-bot.check.mjs",
     "check:motor-base": "node --env-file=.env --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/motor-idempotencia.check.mjs",
     "check:cierres-base": "node --env-file=.env --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/cierres-base.check.mjs",
@@ -63,7 +66,9 @@
     "check:costo-pelado": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/costo-desde-pelado.check.mjs",
     "check:auditoria-costos": "node scripts/checks/auditoria-costos-optovision.check.mjs",
     "check:crizal": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/crizal-obligatorio.check.mjs",
-    "check:recalculo-lab": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/recalculo-costos-lab.check.mjs"
+    "check:recalculo-lab": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/recalculo-costos-lab.check.mjs",
+    "check:meta-anuncios": "node --experimental-strip-types --import ./scripts/checks/_alias.mjs scripts/checks/meta-anuncios-identificados.mjs",
+    "check:referral": "node scripts/checks/referral-anuncio.check.cjs"
   },
   "dependencies": {
     "@afipsdk/afip.js": "^1.2.3",

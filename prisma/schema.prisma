@@ -64,6 +64,10 @@ model Client {
   wantsInvoice           Boolean?
   metaLid                String?
   adTag                  String?
+  // Espejo del id del anuncio del chat (ver WhatsAppChat.adSourceId): los
+  // reportes por canal leen la ficha, no el chat. Se escribe una sola vez, con
+  // el primer toque, igual que adTag.
+  adSourceId             String?
   createdBy              String?           @default("Sistema")
   isDeleted              Boolean           @default(false)
   opportunityDismissedAt DateTime?
@@ -85,6 +89,7 @@ model Client {
   @@index([dni])
   @@index([isDeleted])
   @@index([adTag])
+  @@index([adSourceId])
 }
 
 model CashMovement {
@@ -723,6 +728,20 @@ model WhatsAppChat {
   // minutos y perdía los "hablamos a fin de mes" en cada reinicio.
   followUpPausedUntil DateTime?
   adTag               String?
+  // ── Prueba estructural del click-to-WhatsApp (Cloud API) ──────────────────
+  // Meta manda estos datos en el objeto `referral`, POR FUERA del texto del
+  // mensaje: llegan aunque el cliente borre o reescriba el mensajito precargado.
+  // `adTag` (arriba) sigue siendo la etiqueta legible que usan los reportes;
+  // esto es la prueba de que el chat vino de un anuncio, y de CUÁL.
+  // adSourceId es el id del anuncio en Meta: se traduce a nombre de anuncio y
+  // campaña con la Graph API (MetaAd, más abajo). adCtwaClid es el id del clic,
+  // lo que Meta necesita para contar una venta contra el anuncio que la trajo.
+  adSourceId          String?
+  adSourceType        String?
+  adCtwaClid          String?
+  adHeadline          String?
+  adSourceUrl         String?
+  adReferralAt        DateTime?
   // API oficial (Cloud API): último mensaje ENTRANTE del cliente. Define la
   // ventana de servicio de 24 h: dentro se puede escribir texto libre; fuera,
   // solo plantillas aprobadas. Lo escribe el webhook; lo lee /api/send.
@@ -733,6 +752,7 @@ model WhatsAppChat {
   @@index([clientId])
   @@index([status])
   @@index([lastMessageAt])
+  @@index([adSourceId])
 }
 
 model WhatsAppMessage {
@@ -1434,4 +1454,23 @@ model InternalMessage {
   sender User           @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Restrict)
 
   @@index([threadId, createdAt(sort: Desc)])
+}
+
+// Nombre del anuncio y de la campaña que Meta devuelve para un id de anuncio.
+//
+// El `referral` del click-to-WhatsApp trae solo el id (120250350194950023). El
+// nombre vive en Meta y puede cambiar, así que no se copia a mano: se consulta
+// a la Graph API y se guarda acá para no pegarle en cada lectura. Verificado el
+// 16/9/2026: ese id devuelve el anuncio "[metaishvarilux]" de la campaña
+// "Mensajes ✉️" — el mismo nombre que ya usan los reportes.
+model MetaAd {
+  id           String   @id
+  name         String?
+  campaignId   String?
+  campaignName String?
+  adsetName    String?
+  status       String?
+  // Cuándo se consultó por última vez a Meta. Se refresca al vencer.
+  fetchedAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

@@ -3,10 +3,10 @@
   "format": "9:16",
   "theme": "dark",
   "pilar": "educacion",
-  "caption": "¿Horas de pantalla y los ojos agotados? Eyezen de Essilor es el cristal pensado para eso: relaja el enfoque de cerca y filtra parte de la luz azul. Con o sin graduación. Preguntanos por WhatsApp.",
   "temas": [
     "cristales"
   ],
+  "caption": "¿Horas de pantalla y los ojos agotados? Eyezen de Essilor es el cristal pensado para eso: un apoyo suave de enfoque en la zona de lectura, y filtro de luz azul-violeta en el material. No es multifocal. Con o sin graduación. Preguntanos por WhatsApp.",
   "slides": [
     {
       "type": "cover",
@@ -14,6 +14,44 @@
       "image": "eyezen/eyezen-pantalla-acostado.jpg",
       "title": "¿Pantallas todo el día? *Hay un cristal para eso*",
       "subtitle": "Eyezen de Essilor: relaja el enfoque de cerca. Con o sin graduación."
+    },
+    {
+      "type": "list",
+      "title": "Te pasa si *a la tarde*",
+      "items": [
+        "Te arden los ojos o te los frotás sin darte cuenta",
+        "Te duele la cabeza al terminar la jornada",
+        "Te acercás a la pantalla de a poco, sin querer",
+        "Ves borroso de lejos un rato: es fatiga, no miopía"
+      ]
+    },
+    {
+      "type": "list",
+      "role": "bisagra",
+      "image": "eyezen/eyezen-dualoptim.jpg",
+      "title": "Qué tiene *adentro*",
+      "items": [
+        "Un apoyo suave de enfoque en la zona de abajo",
+        "Filtro de luz azul-violeta en el material, no una capa amarilla",
+        "Cuatro niveles de apoyo: se elige por tu edad y tu rutina"
+      ]
+    },
+    {
+      "type": "list",
+      "title": "Lo que *no* es",
+      "items": [
+        "No es multifocal: no es para présbitas",
+        "No son dos focos: es uno solo, sin línea y sin salto",
+        "No es amarillo: el cristal queda transparente",
+        "No hace falta tener graduación para usarlo"
+      ]
+    },
+    {
+      "type": "cta",
+      "role": "cierre",
+      "image": "blog/mostrador-marmol.jpg",
+      "title": "Contanos cómo trabajás",
+      "body": "Te decimos qué nivel de apoyo te corresponde. Cerro de las Rosas, sin turno previo. También por WhatsApp."
     }
   ]
 }

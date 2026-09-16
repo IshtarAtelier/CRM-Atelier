@@ -816,5 +816,35 @@
       "question": "¿Cuáles son las marcas de lentes más vendidas en la zona norte este año?",
       "answer": "Nuestros clientes prefieren armazones livianos de titanio y acetatos gruesos de diseño italiano, combinados siempre con cristales premium Crizal o Varilux."
     }
+  ],
+  "lentes-eyezen-boost-cordoba": [
+    {
+      "question": "¿Eyezen es un lente multifocal?",
+      "answer": "No. Eyezen es un monofocal (visión sencilla) con un refuerzo suave de enfoque en la zona inferior. No tiene línea ni salto de imagen como un bifocal, y no está diseñado para tratar la presbicia como un progresivo. Es un solo foco con un apoyo, no dos focos."
+    },
+    {
+      "question": "¿Puedo usar Eyezen si no tengo graduación?",
+      "answer": "Sí. Existe en versión neutra, sin corrección: funciona como anteojo preventivo, con el apoyo de enfoque y el filtro de luz azul-violeta. Es la opción para quien ve bien pero termina la jornada con los ojos agotados por las pantallas."
+    },
+    {
+      "question": "¿Qué nivel de Boost me corresponde?",
+      "answer": "El refuerzo viene en cuatro niveles: 0,4 · 0,6 · 0,85 y 1,1 dioptrías. Se define según tu edad, tu receta y cuántas horas de pantalla hacés por día. En Atelier Óptica lo medimos con tu armazón ya elegido y puesto."
+    },
+    {
+      "question": "¿El cristal Eyezen es amarillo?",
+      "answer": "No. El filtrado de luz azul-violeta está incorporado en el material del lente, no como una capa amarilla agregada. El cristal se mantiene prácticamente transparente y los colores de la pantalla se ven reales."
+    },
+    {
+      "question": "¿Me voy a marear con los Eyezen?",
+      "answer": "La adaptación es prácticamente inmediata. El refuerzo es muy suave y gradual, así que no produce el efecto balanceo típico de los primeros días con un multifocal. Lo importante es que estén bien centrados: el apoyo tiene que caer donde vos bajás los ojos."
+    },
+    {
+      "question": "¿Desde qué edad se puede usar Eyezen?",
+      "answer": "Hay versiones Kids y Teens para chicos y adolescentes, adaptadas a la distancia corta a la que ellos sostienen el celular. La gama cubre desde los 10 años hasta cerca de los 45; a partir de la presbicia declarada, el camino suele ser un multifocal."
+    },
+    {
+      "question": "¿Dónde consigo lentes Eyezen en Córdoba?",
+      "answer": "En Atelier Óptica, José Luis de Tejeda 4380, Cerro de las Rosas. Somos Centro Essilor Expert: hacemos la toma de medidas digital para que el refuerzo quede alineado con tu pupila. Sin turno previo."
+    }
   ]
 }

@@ -3,7 +3,12 @@ import nextDynamic from 'next/dynamic';
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
 import { getArmaTusLentes } from "@/lib/catalog/sources";
 
-export const dynamic = 'force-dynamic';
+// ISR y no `force-dynamic`: la página no lee cookies ni searchParams, y el
+// catálogo sale de una fuente resiliente (vivo → memoria → snapshot). Con
+// `force-dynamic` cada visita renderizaba en el servidor con una consulta a la
+// base; medido en producción, 711 ms de TTFB. Cinco minutos es lo mismo que
+// usa la ficha: precio y stock se refrescan igual.
+export const revalidate = 300;
 
 // Import dinámico: el builder arrastra framer-motion + LensConfigurator; separarlo
 // del chunk inicial baja el TBT de la página. SSR se mantiene (SEO intacto).

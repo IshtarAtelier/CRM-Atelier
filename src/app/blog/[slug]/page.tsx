@@ -124,6 +124,21 @@ const posts: Record<string, Post> = {
       <>
         <p className="lead">Si tenés entre 18 y 50 años y terminás el día con los ojos cansados, ardor o dolor de cabeza después de horas de celular y computadora, esta nota es para vos. <strong>Eyezen Boost</strong> es la línea de monofocales de Essilor pensada exactamente para ese problema — y a diferencia de un &quot;lente de descanso&quot; genérico, acá el refuerzo se elige a medida.</p>
 
+        <h2>El síntoma que casi nadie relaciona con la vista</h2>
+        <p>La consulta llega siempre parecida: <em>&quot;de lejos veo perfecto, pero a la tarde no doy más&quot;</em>. Y como la visión de lejos está intacta, la persona descarta que sea un tema visual y lo atribuye al estrés o al cansancio general. La <strong>fatiga visual digital</strong> se manifiesta así:</p>
+        <ul>
+          <li><strong>Ardor, picazón u ojo seco</strong> al final de la jornada. Frente a una pantalla parpadeamos hasta la mitad de lo normal, y la lágrima deja de repartirse bien.</li>
+          <li><strong>Dolor de cabeza</strong> que aparece a media tarde, muchas veces alrededor de los ojos o en las sienes.</li>
+          <li><strong>Visión borrosa de lejos</strong> durante unos minutos al levantar la vista de la pantalla. Es el músculo que tarda en soltar el enfoque, no una miopía nueva.</li>
+          <li><strong>Acercarse a la pantalla sin darse cuenta</strong>, o agrandar la letra del celular de a poco.</li>
+          <li><strong>Frotarse los ojos</strong> repetidamente, o necesitar cerrarlos un rato para seguir.</li>
+        </ul>
+        <p>El origen es mecánico y bastante simple: mirar de cerca obliga al <strong>músculo ciliar</strong> a contraerse para enfocar. A cuarenta centímetros, sostenido ocho o diez horas por día, ese músculo no descansa nunca. Es el equivalente visual de mantener un peso con el brazo estirado toda la jornada.</p>
+
+        <h2>Por qué un monofocal común no resuelve esto</h2>
+        <p>Acá está el malentendido más caro. Un cristal monofocal tradicional tiene <strong>exactamente la misma graduación en toda su superficie</strong>: arriba, al medio y abajo. Corrige tu miopía, tu hipermetropía o tu astigmatismo, y lo hace bien — pero no hace absolutamente nada por el esfuerzo de acomodación. Mires de lejos o mires el celular, tu ojo trabaja igual.</p>
+        <p>Los &quot;anteojos de descanso&quot; genéricos que se venden sin receta tampoco: en general son cristales neutros con un tinte amarillo que filtra algo de luz azul. Pueden hacerte más cómoda la pantalla, pero <strong>no descargan el músculo</strong>, que es de donde viene el dolor de cabeza.</p>
+
         <h2>¿Qué es exactamente el &quot;Boost&quot;?</h2>
         <p>Eyezen Boost es un lente de visión sencilla que incorpora la tecnología <strong>Eyezen Focus</strong>: un leve refuerzo de potencia ubicado en la parte inferior del cristal, justo en la zona por donde mirás cuando leés el celular o la pantalla. Ese refuerzo acompaña el esfuerzo de acomodación del ojo: el músculo ciliar trabaja menos, y eso se traduce en menos fatiga al final del día y una postura más natural frente a los dispositivos.</p>
 
@@ -137,8 +152,33 @@ const posts: Record<string, Post> = {
         </ul>
         <p>La elección del nivel no es adivinanza: se define con tu edad, tu receta y tus hábitos de pantalla. Ese es nuestro trabajo en el mostrador.</p>
 
-        <h2>Filtro de luz azul incorporado en el material</h2>
-        <p>Todos los Eyezen traen el filtrado de luz azul-violeta <strong>dentro del propio material del lente</strong>, no como una capa amarillenta agregada. El cristal se mantiene prácticamente transparente y los colores de tu pantalla se ven reales.</p>
+        <h2>Toda la familia Eyezen, no solo el Boost</h2>
+        <p>Eyezen no es un lente único sino una gama, y elegir mal dentro de la gama es tan problemático como no usarla. Estas son las variantes que trabajamos:</p>
+        <ul>
+          <li><strong>Eyezen Kids / Teens</strong> — pensados para chicos y adolescentes, adaptados a la distancia real a la que ellos sostienen el celular y la tablet (bastante más corta que la de un adulto). Protegen durante los años de mayor desarrollo visual y escolar.</li>
+          <li><strong>Eyezen Start</strong> — para usuarios jóvenes con síntomas leves. Trae un diseño asférico digital que mejora el contraste y la nitidez en la periferia del cristal, sin un refuerzo de lectura pronunciado.</li>
+          <li><strong>Eyezen Boost</strong> — la versión con el refuerzo calibrado en cuatro niveles, para quien ya tiene fatiga instalada: dolor de cabeza, ardor, agotamiento al terminar el día.</li>
+        </ul>
+
+        <h2>Eyezen no es un bifocal ni un multifocal</h2>
+        <p>Es la confusión más común cuando uno escucha &quot;tiene un refuerzo abajo&quot;. Conviene separarlo bien:</p>
+        <ul>
+          <li><strong>Un bifocal</strong> tiene dos graduaciones separadas por una línea visible, y al cruzar esa línea la imagen <em>salta</em>. Eyezen no tiene línea ni salto: el refuerzo se funde de manera continua con el resto del cristal.</li>
+          <li><strong>Un multifocal (progresivo)</strong> resuelve la presbicia, con una diferencia de potencia grande entre la zona de lejos y la de cerca. Eyezen no está diseñado para présbitas: su refuerzo es una fracción de eso.</li>
+          <li><strong>Eyezen es un monofocal</strong> — visión sencilla — con una ayuda suave en la zona por donde bajás los ojos. Una sola graduación, con un empujón.</li>
+        </ul>
+        <p>Dicho corto: <strong>no son dos focos, es uno solo con un apoyo</strong>. Por eso la adaptación no se parece en nada a la de un progresivo.</p>
+
+        <h2>La luz azul: qué filtra de verdad y qué no</h2>
+        <p>No toda la luz azul es dañina, y este es un punto donde el marketing hizo bastante ruido. La franja <strong>azul-turquesa</strong> es necesaria: regula el ritmo circadiano, el ánimo y la agudeza visual. La que conviene atenuar es la <strong>azul-violeta</strong>, la de longitud de onda más corta, asociada al estrés oxidativo de la retina a largo plazo.</p>
+        <p>Los Eyezen filtran selectivamente esa franja, y lo hacen <strong>desde el material del cristal</strong>, no con una capa amarilla pegada encima. El resultado práctico: el lente se ve transparente, los colores de tu pantalla se mantienen reales y no tenés el reflejo azulado antiestético de los filtros baratos en las fotos.</p>
+
+        <h2>También existe sin graduación</h2>
+        <p>Vale la pena subrayarlo porque es lo que más sorprende: <strong>podés usar Eyezen aunque tu vista sea perfecta</strong>. En versión neutra funciona como un anteojo puramente preventivo — el apoyo de enfoque y el filtro, sin corrección. Es la opción para quien trabaja con pantallas todo el día, nunca necesitó anteojos, y sin embargo termina la jornada con los ojos agotados.</p>
+
+        <h2>¿Me voy a marear? ¿Cuánto tarda la adaptación?</h2>
+        <p>La adaptación es prácticamente inmediata. El refuerzo de Eyezen es tan suave —entre 0,4 y 1,1 dioptrías, y repartido de forma gradual— que no produce el &quot;efecto balanceo&quot; que algunas personas sienten los primeros días con un progresivo. La mayoría se los pone y sigue trabajando.</p>
+        <p>Lo que sí hace falta es que <strong>estén bien centrados</strong>. El refuerzo tiene que caer exactamente donde vos bajás los ojos, y eso depende de tu altura pupilar, del armazón que elijas y de cómo lo apoyás en la cara. Un Eyezen mal medido pierde buena parte de su gracia: por eso la medición no es un trámite.</p>
 
         <h2>¿Es para vos?</h2>
         <ul>
@@ -147,8 +187,25 @@ const posts: Record<string, Post> = {
           <li>Si ya tenés presbicia declarada, probablemente tu camino sea un multifocal — te lo decimos honestamente en el local.</li>
         </ul>
 
+        <h2>Cuándo Eyezen NO es la respuesta</h2>
+        <p>Preferimos decirlo antes que después:</p>
+        <ul>
+          <li><strong>Si ya tenés presbicia declarada</strong> (más de 45, no podés enfocar de cerca ni con tus anteojos de lejos), tu camino es un multifocal o un ocupacional. Eyezen se te va a quedar corto.</li>
+          <li><strong>Si el problema es ojo seco severo</strong>, el lente ayuda con el esfuerzo pero no reemplaza el tratamiento: eso lo maneja tu oftalmólogo.</li>
+          <li><strong>Si nunca te controlaste la vista</strong>, empezá por ahí. Puede haber una graduación sin corregir detrás del cansancio, y en ese caso lo primero es la receta.</li>
+        </ul>
+
+        <h2>Hábitos que acompañan (y son gratis)</h2>
+        <p>Ningún cristal reemplaza descansar. Estas tres cosas suman de verdad:</p>
+        <ul>
+          <li><strong>Regla 20-20-20</strong>: cada 20 minutos, mirá algo a 6 metros durante 20 segundos. Le da al músculo el respiro que la jornada no le da.</li>
+          <li><strong>Subí la pantalla</strong>: el borde superior del monitor a la altura de los ojos, y a un brazo de distancia. Cuanto más lejos, menos esfuerzo.</li>
+          <li><strong>Parpadeá a propósito</strong> y bajá el brillo de la pantalla al del ambiente. El contraste extremo cansa más de lo que parece.</li>
+        </ul>
+
         <h2>Nuestro consejo como ópticos</h2>
         <p>Primero, el control con tu médico oftalmólogo: en la óptica no diagnosticamos ni recetamos. Con tu receta al día, en <strong>Atelier Óptica</strong> te medimos, definimos juntos el nivel de Boost que corresponde a tu edad y tu rutina, y lo combinamos con el tratamiento antirreflex adecuado.</p>
+        <p>Somos <strong>Centro Essilor Expert</strong>: la toma de medidas es digital, con tu armazón ya elegido y puesto, para que el refuerzo quede alineado con tu pupila y no a ojo. Contanos cuántas horas de pantalla hacés por día y a qué distancia trabajás — con eso y tu edad se define el nivel, y no hay mucho más misterio.</p>
       <p className="mt-4 font-bold text-[#111]">📍 Encontrá la mejor atención en José Luis de Tejeda 4380, Cerro de las Rosas, Córdoba. ¡Te esperamos en Atelier Óptica!</p>
       </>
     )
@@ -1524,6 +1581,29 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+/**
+ * transformTags de sanitize-html para las <img> del cuerpo de una nota: la
+ * ruta local se sirve por /_next/image con un srcset de tres anchos, y la
+ * imagen se carga perezosa. `sizes` copia el ancho real de la columna de
+ * texto (max-w-4xl = 896 px).
+ */
+function imagenDelCuerpoOptimizada(tagName: string, attribs: Record<string, string>) {
+  const src = attribs.src || '';
+  if (!src.startsWith('/images/')) return { tagName, attribs };
+  const variante = (w: number) => `/_next/image?url=${encodeURIComponent(src)}&w=${w}&q=75`;
+  return {
+    tagName,
+    attribs: {
+      ...attribs,
+      src: variante(828),
+      srcset: [640, 828, 1080].map(w => `${variante(w)} ${w}w`).join(', '),
+      sizes: '(max-width: 896px) 100vw, 896px',
+      loading: attribs.loading || 'lazy',
+      decoding: 'async',
+    },
+  };
+}
+
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
 
@@ -1702,12 +1782,20 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               // que puede venir del pipeline de IA (SeoAgent / blog-agent.service).
               allowedAttributes: {
                 a: ['href', 'name', 'target', 'rel'],
-                img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+                img: ['src', 'srcset', 'sizes', 'alt', 'title', 'width', 'height', 'loading', 'decoding'],
                 iframe: ['src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen', 'title', 'loading'],
                 '*': ['class', 'id', 'style'],
               },
               allowedSchemes: ['http', 'https', 'mailto', 'tel'],
               allowedSchemesByTag: { img: ['http', 'https', 'data'] },
+              // Las fotos del cuerpo pasan por el optimizador de Next, como las
+              // del resto del sitio. Venían como <img src="/images/blog/x.png">
+              // crudas: PNG de 1024 px y 200-240 KB mostrados a 584 px, en las
+              // 87 notas (medido en producción, 16/9/2026: 500-700 KB de
+              // imágenes por nota). Solo se reescriben las locales de /images;
+              // una URL externa queda como está. Corre DESPUÉS del filtrado de
+              // atributos, así que no abre nada que el sanitizado cerró.
+              transformTags: { img: imagenDelCuerpoOptimizada },
               allowIframeRelativeUrls: false,
               // Solo embeds de proveedores conocidos; si un embed legítimo desaparece,
               // agregar el hostname acá.

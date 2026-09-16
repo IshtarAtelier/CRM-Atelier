@@ -163,6 +163,11 @@ button:disabled {
 @keyframes heroImgFade { from { opacity: 0.6; } to { opacity: 1; } }
 .hero-img-fade { animation: heroImgFade 0.4s ease-out; }
 
+/* Burbujas del asesor en /arma-tus-lentes: `both` deja el estado final
+   puesto y `animationDelay` inline escalona las tres sin JavaScript. */
+@keyframes chatBurbujaEntra { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: none; } }
+.chat-burbuja-entra { animation: chatBurbujaEntra 0.4s ease-out both; }
+
 @keyframes tiendaFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .tienda-grid-fade { animation: tiendaFadeUp 0.3s ease-out; }
 
