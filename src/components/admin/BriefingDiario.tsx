@@ -21,7 +21,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
     AlertTriangle, ArrowLeft, ArrowRight, Calculator, Camera, CheckCircle2,
-    ClipboardList, Coffee, Gift, Headphones, Loader2, Lock, Mic, Send, Star,
+    ClipboardList, Coffee, Gift, Headphones, Loader2, Lock, Mic, Send, Star, Tag,
 } from 'lucide-react';
 import {
     BRIEFING_MINIMO_TEXTO, objetivosDe, type ObjetivosBriefing,
@@ -201,7 +201,39 @@ export default function BriefingDiario() {
         setGuardando(false);
     };
 
-    // ── Las 3 fichas ────────────────────────────────────────────────────────
+    // ── La ficha propia de cada uno ─────────────────────────────────────────
+    // Lo que se le pide a UNA persona y no al resto. Va por NOMBRE, igual que
+    // los objetivos: los ids de usuario difieren entre bases, y un id mal
+    // copiado le muestra a alguien el pedido de otro sin error a la vista.
+    // Quien no tenga ficha propia sigue viendo las 3 de siempre.
+    const n = (nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const propias = [];
+
+    if (n.includes('matias')) {
+        propias.push({
+            titulo: 'Etiquetá todo y mandá audios',
+            cuerpo: (
+                <>
+                    <ul className="space-y-3">
+                        <Fila icono={Tag} titulo="Etiquetá TODO">
+                            <p>
+                                Cada conversación, etiquetada. Sin la etiqueta no hay forma de saber
+                                después de dónde vino ese cliente ni en qué quedó.
+                            </p>
+                        </Fila>
+                        <Fila icono={Mic} titulo="Mandá audios">
+                            <p>
+                                No te quedes solo en el texto. Escuchar tu voz no es lo mismo que leer:
+                                se nota que hay alguien atendiendo del otro lado.
+                            </p>
+                        </Fila>
+                    </ul>
+                </>
+            ),
+        });
+    }
+
+    // ── Las fichas ──────────────────────────────────────────────────────────
     const fichas = [
         {
             titulo: 'No olvides mirar tu reporte de trabajo',
@@ -227,7 +259,9 @@ export default function BriefingDiario() {
                         </Fila>
 
                         <Fila icono={CheckCircle2} titulo="Tareas">
-                            <p>Entre <strong>{objetivos.tareasMin} y {objetivos.tareasMax} por día</strong>.</p>
+                            <p>{objetivos.tareasMax
+                                ? <>Entre <strong>{objetivos.tareasMin} y {objetivos.tareasMax} por día</strong>.</>
+                                : <>Mínimo <strong>{objetivos.tareasMin} por día</strong>.</>}</p>
                             {a && (
                                 <p className="flex flex-wrap items-center gap-2">
                                     <span>{dia}: cerraste <strong>{a.tareasCerradas}</strong>.</span>
@@ -328,7 +362,7 @@ export default function BriefingDiario() {
                             maxLength={2000}
                             aria-describedby={error ? 'briefing-ayuda briefing-error' : 'briefing-ayuda'}
                             aria-invalid={!!error}
-                            placeholder={`Ej.: ${objetivos.presupuestos} presupuestos, entre ${objetivos.tareasMin} y ${objetivos.tareasMax} tareas, pedirle el comentario a todos los que entregué, atender con audios y fotos y el presupuesto del sistema, y ofrecer café y caramelos.`}
+                            placeholder={`Ej.: ${objetivos.presupuestos} presupuestos, ${objetivos.tareasMax ? `entre ${objetivos.tareasMin} y ${objetivos.tareasMax}` : objetivos.tareasMin} tareas, pedirle el comentario a todos los que entregué, atender con audios y fotos y el presupuesto del sistema, y ofrecer café y caramelos.`}
                             className={'mt-2 w-full rounded-2xl border-2 p-3 text-[15px] leading-relaxed resize-y'
                                 + ' bg-white text-stone-900 placeholder:text-stone-500'
                                 + ' dark:bg-stone-800 dark:text-white dark:placeholder:text-stone-400'
@@ -353,6 +387,10 @@ export default function BriefingDiario() {
             ),
         },
     ];
+
+    // Las propias entran ANTES de la última: la última es la que lleva el campo
+    // donde escribe qué se le pidió, y tiene que quedar al final.
+    fichas.splice(fichas.length - 1, 0, ...propias);
 
     const esUltima = ficha === fichas.length - 1;
 

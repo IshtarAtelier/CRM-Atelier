@@ -24,7 +24,13 @@ export const BRIEFING_MINIMO_TEXTO = 10;
 export interface ObjetivosBriefing {
     presupuestos: number;
     tareasMin: number;
-    tareasMax: number;
+    /**
+     * Tope del rango de tareas. Es OPCIONAL: sin él la ficha dice "mínimo N por
+     * día" y no un rango inventado. El rango nació como freno a cerrar 40
+     * tareas de una para inflar el número; cuando la dueña fija un piso alto y
+     * no un techo, poner un techo de más sería ponerle un límite que no pidió.
+     */
+    tareasMax?: number;
 }
 
 const OBJETIVOS_POR_DEFECTO: ObjetivosBriefing = {
@@ -53,7 +59,7 @@ const OBJETIVOS: { coincide: (n: string) => boolean; objetivos: ObjetivosBriefin
     },
     {
         coincide: n => n.includes('matias'),
-        objetivos: { ...OBJETIVOS_POR_DEFECTO, presupuestos: 20 },
+        objetivos: { presupuestos: 20, tareasMin: 20, tareasMax: undefined },
     },
 ];
 
