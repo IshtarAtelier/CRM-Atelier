@@ -46,15 +46,21 @@ export default function QuienesSomosPage() {
         </div>
       </div>
 
-      {/* Fachada: lo primero que se ve es que el lugar existe y tiene puerta */}
+      {/* Fachada: lo primero que se ve es que el lugar existe y tiene puerta.
+          Y desde 9/2026, que adentro hay gente. La anterior era del local vacío
+          y de lejos; esta es la puerta con el equipo parado en ella.
+          `object-position` al 26% y no al centro: la foto es vertical y la banda
+          recorta una franja angosta (en escritorio se ve apenas el 24% del
+          alto). Centrada caía en los torsos y les cortaba la cabeza; al 26%
+          entran las tres caras enteras con aire arriba. */}
       <div className="relative w-full h-[280px] sm:h-[380px] lg:h-[460px]">
         <Image
-          src="/images/blog/local-varilux.webp"
-          alt="Fachada de Atelier Óptica en José Luis de Tejeda 4380, Cerro de las Rosas"
+          src="/images/equipo/equipo-puerta.jpg"
+          alt="El equipo de Atelier Óptica en la puerta del local, en José Luis de Tejeda 4380, Cerro de las Rosas"
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
+          className="object-cover object-[center_26%]"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-stone-950/70 via-stone-950/10 to-transparent" />
         <p className="absolute bottom-5 left-0 right-0 text-center text-white text-[11px] font-bold uppercase tracking-widest px-4">
