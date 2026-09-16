@@ -34,18 +34,10 @@ async function topeCabeza(buf) {
 }
 // [archivo, tipo]: cara = desde el tope de la cabeza, con `alto` (fracción del resto) y ancho 0.86·alto; libre = entera
 const M = {
-  'receta-helena-c4-cerca':   ['057 - HELENA C4.jpg',   'cara', 0.84],
-  'receta-frida-c1-cerca':    ['061 - FRIDA C1.jpg',    'cara', 0.84],
-  'receta-victoria-c5-cerca': ['017 - VICTORIA C5.jpg', 'cara', 0.84],
-  'sol-vega-c1-frente':       ['570 - VEGA C1.jpg',     'cara', 1],
-  'sol-adhara-frente':        ['560 - ADHARA C4.jpg',   'cara', 1],
-  'clipon-verona-frente':     ['466 - VERONA C1.jpg',   'cara', 1],
-  'clipon-palermo-frente':    ['456 - PALERMO C3.jpg',  'cara', 1],
-  'clipon-monaco-manos':      ['486 - MONACO A12183 C2.jpg', 'libre'],
-  'tienda-victoria-manos':    ['081 - VICTORIA C1.jpg', 'libre'],
-  'receta-victoria-perfil':   ['080 - VICTORIA C1.jpg', 'cara', 1],
-  'receta-dionisio-frente':   ['020 - DIONISIO C2.jpg', 'cara', 1],
-  'sol-nashira-perfil':       ['590 - NASHIRA C3.jpg',  'cara', 1],
+  'receta-helena-c4-cerca': ['057 - HELENA C4.jpg',   'cara', 0.84],
+  'sol-vega-c1-frente':     ['570 - VEGA C1.jpg',     'cara', 1],
+  'clipon-verona-frente':   ['466 - VERONA C1.jpg',   'cara', 1],
+  'tienda-victoria-manos':  ['081 - VICTORIA C1.jpg', 'libre'],
 };
 for (const [k, [f, tipo, alto]] of Object.entries(M)) {
   const buf = await sharp(S + '/' + f).rotate().toBuffer(); const meta = await sharp(buf).metadata();

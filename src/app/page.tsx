@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { Metadata } from "next";
 
 import { StorefrontNavbar } from "@/components/Storefront/StorefrontNavbar";
-import { HomeCarpetas, type Carpeta, type VarianteCarpetas } from "@/components/Storefront/HomeCarpetas";
+import { HomeCarpetas, type Carpeta } from "@/components/Storefront/HomeCarpetas";
 import { FilmmakerReel } from "@/components/Storefront/FilmmakerReel";
 import dynamic from "next/dynamic";
 const StorefrontFooter = dynamic(() => import("@/components/Storefront/StorefrontFooter").then(mod => mod.StorefrontFooter));
@@ -48,13 +46,7 @@ export const metadata: Metadata = {
 // + Horizontal product scroll + Footer simple
 // ==========================================
 
-export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  // PROTOTIPO carpetas del home (16/9/2026): `?carpetas=a|b|c`, solo fuera de
-  // producción. Sin el parámetro el home queda exactamente como está.
-  const sp = await searchParams;
-  const varianteCarpetas = (process.env.NODE_ENV !== "production" && typeof sp.carpetas === "string" && ["a", "b", "c"].includes(sp.carpetas))
-    ? (sp.carpetas as VarianteCarpetas)
-    : null;
+export default async function Home() {
   // Reseñas de Google y settings web en paralelo con las consultas de productos (antes bloqueaban en serie)
   const reviewsPromise = getGoogleReviews();
   const webSettingsPromise = getWebSettings().catch(() => defaultWebSettings);
@@ -76,27 +68,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
 
   const catalogCount = homeData.count;
 
-  // Datos del prototipo de carpetas. Los clip-on no están en la base local ni
-  // tienen foto con modelo: van con las fotos de producto que ya existen.
-  const CLIPON_FALLBACK = ["g5919-c1-front", "7018-c5", "8125s-c3", "a12183-c2", "7103-c2", "g5921-c2"].map((k, i) => ({
-    id: `clipon-${i}`, name: `Clip-on ${k.split("-")[0].toUpperCase()}`, img: `/images/products/clipon-${k}.webp`, slug: "clip-on",
-  }));
-  const conteos = (homeData as { conteos?: { sol?: number; receta?: number; clipon?: number } }).conteos;
-  // Solo para el prototipo en local: la base de docker tiene productos cuya foto
-  // no está en este disco; se saltean para que no aparezcan cuadros rotos.
-  const conFoto = <T extends { img: string }>(lista: T[]) => lista.filter((p) =>
-    !p.img.startsWith("/") || existsSync(join(process.cwd(), "public", p.img)));
-  const carpetas: Carpeta[] = varianteCarpetas ? [
-    { key: "sol", titulo: "Sol", bajada: "Acetato italiano y cristales polarizados. Para mirar de frente.", href: "/lentes-de-sol",
-      portada: "/images/home/carpetas/sol-vega-c1-frente.webp", portadaAlt: "/images/home/carpetas/sol-adhara-frente.webp", foco: "center top",
-      cantidad: conteos?.sol ?? carouselData.sol.length, productos: conFoto(carouselData.sol) },
-    { key: "receta", titulo: "Receta", bajada: "Armazones de autor para tus cristales. Medidos con el armazón puesto.", href: "/receta",
-      portada: "/images/home/carpetas/receta-helena-c4-cerca.webp", portadaAlt: "/images/home/carpetas/receta-victoria-perfil.webp", foco: "center top",
-      cantidad: conteos?.receta ?? carouselData.receta.length, productos: conFoto(carouselData.receta) },
-    { key: "clipon", titulo: "Clip-on", bajada: "Un armazón, dos anteojos: receta de día y sol con el clip imantado.", href: "/clip-on",
-      portada: "/images/home/carpetas/clipon-verona-frente.webp", portadaAlt: "/images/home/carpetas/clipon-monaco-manos.webp", foco: "center top",
-      cantidad: conteos?.clipon || CLIPON_FALLBACK.length, productos: carouselData.clipon.length ? conFoto(carouselData.clipon) : CLIPON_FALLBACK },
-  ] : [];
+  // Carpetas del home (mosaico después del carrusel). Las cantidades salen del
+  // mismo conteo que usan las pestañas del carrusel; si la base no las trae,
+  // se usa lo que haya en cada colección para no mostrar un cero falso.
+  const conteos = homeData.conteos;
+  const carpetas: Carpeta[] = [
+    { key: "receta", titulo: "Receta", href: "/receta", portada: "/images/home/carpetas/receta-helena-c4-cerca.webp",
+      cantidad: conteos?.receta || carouselData.receta.length },
+    { key: "tienda", titulo: "Toda la tienda", href: "/tienda", portada: "/images/home/carpetas/tienda-victoria-manos.webp", foco: "center 40%",
+      cantidad: catalogCount },
+    { key: "clipon", titulo: "Clip-on", href: "/clip-on", portada: "/images/home/carpetas/clipon-verona-frente.webp",
+      cantidad: conteos?.clipon || carouselData.clipon.length },
+    { key: "sol", titulo: "Sol", href: "/lentes-de-sol", portada: "/images/home/carpetas/sol-vega-c1-frente.webp",
+      cantidad: conteos?.sol || carouselData.sol.length },
+  ];
 
   const organizationSchema = {
     "@context": "https://schema.org",
@@ -218,8 +203,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       {/* PRODUCT GRID — Scroll horizontal infinito en Cliente */}
       <HomeProductCarousel collections={carouselData} totalCount={catalogCount} conteos={homeData.conteos} />
 
-      {/* PROTOTIPO — carpetas Sol / Receta / Clip-on, después del carrusel (solo con ?carpetas=) */}
-      {varianteCarpetas && <HomeCarpetas carpetas={carpetas} variante={varianteCarpetas} totalCatalogo={catalogCount} portadaTienda="/images/home/carpetas/tienda-victoria-manos.webp" />}
+      {/* CARPETAS — Receta / Toda la tienda / Clip-on / Sol, con las fotos de Agostina */}
+      <HomeCarpetas carpetas={carpetas} />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* GOOGLE REVIEWS (REAL TIME - Server Component)   */}
