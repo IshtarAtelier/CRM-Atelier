@@ -75,8 +75,14 @@ export function origenDeterministico(primerMensaje: string | null | undefined): 
  * de la tienda, sigue contando como el anuncio que lo trajo.
  */
 export function origenDeChat(
-    { adTag, mensajesEntrantes }: { adTag?: string | null; mensajesEntrantes: (string | null | undefined)[] }
+    { adSourceId, adTag, mensajesEntrantes }: { adSourceId?: string | null; adTag?: string | null; mensajesEntrantes: (string | null | undefined)[] }
 ): OrigenDetectado | null {
+    // El id del anuncio que manda Meta con el clic (WhatsAppChat.adSourceId) es
+    // la prueba más dura de todas: viaja por fuera del mensaje, así que vale
+    // aunque el cliente borre o reescriba el texto precargado. Va primero.
+    if ((adSourceId || "").trim()) {
+        return { origen: "Meta", motivo: `Meta avisó que el chat entró por un anuncio (${String(adSourceId).trim()})` };
+    }
     const guardada = (adTag || "").trim();
     if (guardada) {
         const plataforma = platformFromStoredTag(guardada);

@@ -4,6 +4,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { decrypt } from '@/lib/auth';
 import { CONTACT_SOURCES, matchContactSource } from '@/lib/contact-source';
 import { origenDeChat } from '@/lib/origen-deterministico';
+import { resolverAnuncios, nombreDeAnuncio, metaLookupConfigurado } from '@/lib/ads/meta-ad-lookup';
 
 // POST /api/whatsapp/chats/[id]/extract-client
 // Lee los mensajes del chat y usa IA para extraer datos del cliente
@@ -177,7 +178,23 @@ INSTRUCCIONES:
         // el check y espejadas en el bot). Si el chat prueba el origen —la
         // etiqueta guardada del anuncio, o un mensaje del cliente— se devuelve
         // BLOQUEADO: el formulario lo muestra y no deja cambiarlo.
-        const detectado = origenDeChat({ adTag: chat.adTag, mensajesEntrantes: entrantes.map(m => m.content) });
+        const detectado = origenDeChat({ adSourceId: chat.adSourceId, adTag: chat.adTag, mensajesEntrantes: entrantes.map(m => m.content) });
+
+        // Si la prueba fue el id del anuncio, se muestra el NOMBRE del anuncio y
+        // de la campaña, no el número: "120250350194950023" no le dice nada a
+        // nadie. El nombre lo trae Meta y queda cacheado (MetaAd).
+        let motivoDetectado = detectado?.motivo ?? null;
+        if (detectado && chat.adSourceId && metaLookupConfigurado()) {
+            try {
+                const anuncios = await resolverAnuncios([chat.adSourceId]);
+                const anuncio = anuncios.get(chat.adSourceId);
+                if (anuncio?.name) {
+                    motivoDetectado = `Meta avisó que entró por el anuncio ${nombreDeAnuncio(anuncio, chat.adSourceId)}`;
+                }
+            } catch {
+                // El nombre es un lujo: si Meta no contesta, queda el motivo con el id.
+            }
+        }
         const deterministicSource: string | null = detectado?.origen ?? null;
 
         // Normalizar contactSource con el vocabulario único (src/lib/contact-source.ts)
@@ -212,7 +229,7 @@ INSTRUCCIONES:
             insurance: typeof parsedData.insurance === 'string' ? parsedData.insurance : null,
             contactSource: sourceNorm === 'Otros' ? null : sourceNorm, // Nunca preseleccionar Otros
             contactSourceBloqueado: Boolean(detectado),
-            contactSourceMotivo: detectado?.motivo ?? null,
+            contactSourceMotivo: motivoDetectado,
             notes: typeof parsedData.notes === 'string' ? parsedData.notes : null
         };
 

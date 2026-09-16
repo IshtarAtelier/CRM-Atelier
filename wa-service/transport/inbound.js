@@ -176,6 +176,38 @@ async function persistInboundUnlocked(m, { io } = {}) {
         if (chat.clientId) await prisma.client.updateMany({ where: { id: chat.clientId, adTag: null }, data: { adTag } }).catch(() => {});
     }
 
+    // ── La prueba estructural del anuncio, aparte de la etiqueta ────────────
+    // El `referral` viaja POR FUERA del texto: llega aunque el cliente borre o
+    // reescriba el mensajito precargado, que es para el humano, no para nosotros.
+    // Hasta el 16/9/2026 solo se usaba de RESERVA —si el texto traía etiqueta, se
+    // descartaba— así que de 937 chats etiquetados guardamos el id del anuncio en
+    // 22. Ahora se guarda SIEMPRE, en su propia columna: `adTag` sigue igual que
+    // antes (misma prioridad, mismos valores) para no mover ningún reporte.
+    // Primer toque: solo si todavía no hay nada guardado.
+    if (m.referral && (m.referral.source_id || m.referral.ctwa_clid)) {
+        const r = m.referral;
+        const datosDelAnuncio = {
+            adSourceId: r.source_id || null,
+            adSourceType: r.source_type || null,
+            adCtwaClid: r.ctwa_clid || null,
+            adHeadline: r.headline || null,
+            adSourceUrl: r.source_url || null,
+            adReferralAt: now,
+        };
+        await prisma.whatsAppChat
+            .updateMany({ where: { id: chat.id, adSourceId: null }, data: datosDelAnuncio })
+            .catch((e) => console.error('[Inbound] No se pudo guardar el referral:', e.message));
+        if (chat.clientId && r.source_id) {
+            await prisma.client
+                .updateMany({ where: { id: chat.clientId, adSourceId: null }, data: { adSourceId: r.source_id } })
+                .catch(() => {});
+        }
+        // El objeto en memoria también, porque el alta automática de la ficha
+        // corre más abajo y lee de acá para copiarle el id del anuncio.
+        if (!chat.adSourceId) chat = { ...chat, ...datosDelAnuncio };
+        console.log(`  📣 [Inbound] ${waId} vino del anuncio ${r.source_id || '(sin id)'}${r.ctwa_clid ? ' · clic ' + String(r.ctwa_clid).slice(0, 12) + '…' : ''}`);
+    }
+
     // ── Medio: bajar de Meta y subir al CRM ─────────────────────────────────
     let mediaUrl = null;
     if (m.media?.id) {

@@ -40,6 +40,11 @@ check('primer entrante VACÍO (referral de Meta): sigue leyendo', c({ adTag: nul
 check('la etiqueta gana al texto posterior (primer toque)', c({ adTag: 'ishvarilux', mensajesEntrantes: ['Los vi en la nueva web de Atelier, quisiera que me asesoren.'] }) === 'Meta');
 check('sin etiqueta y sin prueba → null', c({ adTag: null, mensajesEntrantes: ['Hola', 'buenas tardes', '¿precio de multifocales?'] }) === null);
 check('chat vacío → null', c({ adTag: null, mensajesEntrantes: [] }) === null);
+console.log('El id del anuncio que manda Meta con el clic (no depende del texto)');
+check('borró el mensajito precargado → igual es Meta', c({ adSourceId: '120250350194950023', adTag: null, mensajesEntrantes: ['Hola, precio de multifocales?'] }) === 'Meta');
+check('el id gana a un texto del sitio posterior', c({ adSourceId: '120249083743660023', adTag: null, mensajesEntrantes: ['Los vi en la nueva web de Atelier, quisiera que me asesoren.'] }) === 'Meta');
+check('sin id, todo sigue como antes', c({ adSourceId: null, adTag: 'clip', mensajesEntrantes: [''] }) === 'Meta');
+check('id vacío no decide nada', c({ adSourceId: '  ', adTag: null, mensajesEntrantes: ['Hola'] }) === null);
 console.log('');
 if (fallos) { console.error(`${fallos} chequeo(s) fallaron`); process.exit(1); }
 console.log('Todos los chequeos pasaron');

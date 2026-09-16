@@ -110,8 +110,11 @@ async function detectContactSourceFromChat(chatId) {
     // ningún reporte por canal.
     const chat = await prisma.whatsAppChat.findUnique({
         where: { id: chatId },
-        select: { adTag: true }
+        select: { adTag: true, adSourceId: true }
     });
+    // El id del anuncio lo manda Meta con el clic, por fuera del texto: vale
+    // aunque el cliente haya borrado el mensajito precargado.
+    if (chat?.adSourceId) return 'Meta';
     if (chat?.adTag) {
         return chat.adTag.startsWith('google:') ? 'Google Ads' : 'Meta';
     }

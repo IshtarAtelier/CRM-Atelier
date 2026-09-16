@@ -153,6 +153,14 @@ async function asegurarFichaDeLead(chat, waId, profileName) {
                 data: { adTag: chat.adTag },
             }).catch(() => {});
         }
+        // Lo mismo con el id del anuncio: es la prueba que no depende del texto
+        // del mensaje, y la ficha nace después de que el chat la recibió.
+        if (chat.adSourceId) {
+            await prisma.client.updateMany({
+                where: { id: clientId, adSourceId: null },
+                data: { adSourceId: chat.adSourceId },
+            }).catch(() => {});
+        }
 
         if (global.io) {
             global.io.emit('lead_created', {
