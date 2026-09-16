@@ -37,7 +37,11 @@ import { armazonesPorPar, tituloDePar, tipoDeItem, esArmazonItem } from '@/lib/a
 import { DETALLE_MARK } from '@/lib/order-detail-summary';
 
 /** Marca de la nota que registra el envío: sirve de candado de idempotencia. */
-const MARCA_NOTA = '📧 Confirmación de compra enviada al cliente';
+/**
+ * Sello de la nota que queda en la ficha. Exportado porque el auditor de avisos
+ * lo usa para saber si esta confirmación ya se intentó.
+ */
+export const MARCA_NOTA = '📧 Confirmación de compra enviada al cliente';
 
 const money = (n: number) => `$${Math.round(n || 0).toLocaleString('es-AR')}`;
 
@@ -643,9 +647,12 @@ export interface EnvioConfirmacionResultado {
  */
 export async function sendSaleConfirmation(
     orderId: string,
-    opts: { esActualizacion?: boolean; version?: number } = {}
+    opts: { esActualizacion?: boolean; version?: number; reenviar?: boolean } = {}
 ): Promise<EnvioConfirmacionResultado> {
-    const { esActualizacion = false, version } = opts;
+    // `reenviar`: saltea el candado de idempotencia. Lo usa el auditor cuando la
+    // nota existe pero el mensaje NO está en la conversación — el caso que
+    // apareció el 16/9/2026 y que el candado, por sí solo, volvía irreparable.
+    const { esActualizacion = false, version, reenviar = false } = opts;
     const resultado: EnvioConfirmacionResultado = { email: false, whatsapp: false };
 
     // Los checks convierten ventas sintéticas para probar el candado, y cada
@@ -671,7 +678,7 @@ export async function sendSaleConfirmation(
             where: { clientId: order.client.id, content: { startsWith: sello } },
             select: { id: true },
         });
-        if (yaHay) return { ...resultado, yaEnviada: true };
+        if (yaHay && !reenviar) return { ...resultado, yaEnviada: true };
 
         const conf = buildSaleConfirmation(order, esActualizacion);
 

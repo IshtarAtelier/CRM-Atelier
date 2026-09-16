@@ -1255,87 +1255,25 @@ export class OrderService {
                         data.labSentAt = new Date();
                     }
 
-                    // Enviar mensaje automático de laboratorio procesado
+                    // Enviar mensaje automático de laboratorio procesado.
+                    // El armado y el envío viven en `@/lib/avisos/aviso-procesado`
+                    // para que el auditor pueda REDISPARARLO sin tener que volver
+                    // a mover el estado del pedido.
                     try {
-                        const estimatedDays = calculateEstimatedDays(fullOrder.items || []);
-                        const estimatedDate = format(addBusinessDays(new Date(), estimatedDays), 'dd/MM/yyyy');
-                        const phone = fullOrder.client?.phone?.replace(/\D/g, '');
-                        
-                        if (phone && phone.length >= 10) {
-                            const financials = PricingService.calculateOrderFinancials(fullOrder);
-                            const activeLabOrderNumber = labOrderNumber || fullOrder.labOrderNumber || '';
-
-                            let balanceInfo = '';
-                            if (financials.hasBalance) {
-                                balanceInfo = `Adjuntamos el PDF con el detalle de tu presupuesto, pagos y saldo pendiente.`;
-                            } else {
-                                balanceInfo = `Adjuntamos el PDF con el detalle de tu presupuesto (tu saldo está totalmente abonado).`;
-                            }
-
-                            const operationInfo = activeLabOrderNumber ? `• N° de Operación: ${activeLabOrderNumber}\n` : '';
-
-                            // La fecha al principio como primer dato relevante sin formato negrita
-                            const msg = `Fecha aproximada de entrega: ${estimatedDate}\n\nHola ${fullOrder.client?.name || ''}, tu pedido ya fue procesado con éxito.\nPor favor, lee esta info importante: Una vez que el pedido esté listo te informaremos para que pases a retirarlo, si tenés dudas sobre el estado, por favor consultanos recién pasada la fecha prevista, recordá que los tiempos de confeccion son aproximados.\n\n${operationInfo}${balanceInfo}`;
-
-                            // Generar PDF del presupuesto/venta completo
-                            let pdfMedia: any = null;
-                            try {
-                                const { generateOrderPDF } = await import('@/lib/order-pdf-generator');
-                                const pdfResult = await generateOrderPDF(fullOrder, fullOrder.client);
-                                pdfMedia = {
-                                    base64: pdfResult.base64,
-                                    mimetype: 'application/pdf',
-                                    filename: pdfResult.filename
-                                };
-                                console.log('[Lab Status Notification] Order PDF generated successfully:', pdfResult.filename);
-                            } catch (pdfErr) {
-                                console.error('[Lab Status Notification] Failed to generate Order PDF:', pdfErr);
-                            }
-
-                            const formattedPhone = normalizeArgentinePhone(phone);
-
-                            // Texto + PDF dentro de la ventana de 24 h; plantilla
-                            // "estado_pedido" (A7→A13) si está cerrada (sin PDF: la
-                            // plantilla no lleva documento; el detalle ya lo tiene
-                            // de la confirmación de compra).
-                            sendWhatsApp({
-                                chatId: `${formattedPhone}@c.us`,
-                                message: msg,
-                                senderName: 'Sistema Atelier',
-                                isProactive: true,
-                                media: pdfMedia,
-                                template: templateSpec('estado_pedido', [
-                                    (fullOrder.client?.name || 'cliente').split(' ')[0],
-                                    `#${String(fullOrder.id).slice(-4).toUpperCase()}`,
-                                    `ya fue enviado a fabricar, con fecha aproximada de entrega ${estimatedDate}`,
-                                ]),
-                            }).then(async (res) => {
-                                if (!res.ok) {
-                                    throw new Error(explainSendFailure(res));
-                                }
-                            }).catch(async (err) => {
-                                console.error('[Lab Status] Error enviando WhatsApp:', err);
+                        const { enviarAvisoProcesado } = await import('@/lib/avisos/aviso-procesado');
+                        enviarAvisoProcesado(fullOrder, { labOrderNumber })
+                            .then(r => {
+                                if (r.ok && !r.motivo) return;
+                                const quien = fullOrder.client?.name || 'el cliente';
+                                const pedido = `#${String(fullOrder.id).slice(-4).toUpperCase()}`;
                                 // Mensaje del sistema al equipo, no una tarea
                                 // (Ishtar, 10/9/2026).
-                                if (fullOrder && fullOrder.clientId) {
-                                    const quien = fullOrder.client?.name || 'el cliente';
-                                    const pedido = `#${String(fullOrder.id).slice(-4).toUpperCase()}`;
-                                    avisarAlEquipo({
-                                        asunto: `⚠️ No salió el aviso de fábrica ${pedido}`,
-                                        cuerpo: `Falló el mensaje automático de laboratorio a ${quien} (pedido ${pedido}).\n\nHay que avisarle a mano que el pedido se envió a fabricar.`,
-                                    }).catch(avisoErr => console.error('[Lab Status] No se pudo avisar al equipo:', avisoErr));
-                                }
-                            });
-
-                            // SIN copia a la administración (Ishtar, 5/9/2026): el mail
-                            // "🏭 Pedido enviado a fábrica" era la copia del WhatsApp que
-                            // recibe el cliente, y con el volumen actual es ruido diario en
-                            // la casilla — el envío ya queda registrado en la ficha, en el
-                            // AuditLog y en el estado de la venta. Antes iba por WhatsApp al
-                            // grupo de ventas y el 18/8/2026 se pasó a email; el 5/9/2026 se
-                            // apaga del todo. Si alguna vez hace falta volver a verlo, el
-                            // mensaje al cliente está en la ficha, no hace falta el mail.
-                        }
+                                avisarAlEquipo({
+                                    asunto: `⚠️ No salió el aviso de fábrica ${pedido}`,
+                                    cuerpo: `El mensaje automático de laboratorio a ${quien} (pedido ${pedido}) ${r.ok ? 'salió pero no quedó registrado' : 'NO salió'}: ${r.motivo}.\n\nHay que avisarle a mano que el pedido se envió a fabricar.`,
+                                }).catch(avisoErr => console.error('[Lab Status] No se pudo avisar al equipo:', avisoErr));
+                            })
+                            .catch(err => console.error('[Lab Status] Error enviando WhatsApp:', err));
                     } catch (err: any) {
                         console.error('[Lab Status Notification Error]:', err.message);
                     }
