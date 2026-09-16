@@ -91,7 +91,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
       portada: "/images/home/carpetas/sol-vega-c1-frente.webp", portadaAlt: "/images/home/carpetas/sol-adhara-frente.webp", foco: "center top",
       cantidad: conteos?.sol ?? carouselData.sol.length, productos: conFoto(carouselData.sol) },
     { key: "receta", titulo: "Receta", bajada: "Armazones de autor para tus cristales. Medidos con el armazón puesto.", href: "/receta",
-      portada: "/images/home/carpetas/receta-helena-c3-frente.webp", portadaAlt: "/images/home/carpetas/receta-victoria-perfil.webp", foco: "center top",
+      portada: "/images/home/carpetas/receta-helena-c4-cerca.webp", portadaAlt: "/images/home/carpetas/receta-victoria-perfil.webp", foco: "center top",
       cantidad: conteos?.receta ?? carouselData.receta.length, productos: conFoto(carouselData.receta) },
     { key: "clipon", titulo: "Clip-on", bajada: "Un armazón, dos anteojos: receta de día y sol con el clip imantado.", href: "/clip-on",
       portada: "/images/home/carpetas/clipon-verona-frente.webp", portadaAlt: "/images/home/carpetas/clipon-monaco-manos.webp", foco: "center top",
