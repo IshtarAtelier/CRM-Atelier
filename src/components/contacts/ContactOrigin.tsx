@@ -86,7 +86,7 @@ export function OrigenBanner({ contact, onEdit }: { contact: ConOrigen; onEdit: 
             {origen.sinOrigen ? (
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-900 dark:text-amber-200">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    Sin origen registrado — preguntale cómo nos encontró y cargalo acá
+                    ¿Dónde nos conocieron? Falta cargarlo — tocá acá, preguntale y elegí el origen
                 </span>
             ) : (
                 <>
@@ -94,7 +94,7 @@ export function OrigenBanner({ contact, onEdit }: { contact: ConOrigen; onEdit: 
                     {origen.anuncio && <AnuncioChip anuncio={origen.anuncio} conLeyenda />}
                     {!origen.tieneCanal && (
                         <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200">
-                            Falta el canal: cargalo para que la venta cuente en el reporte
+                            ¿Dónde nos conocieron? Falta el canal: sin él la venta no cuenta en el reporte
                         </span>
                     )}
                 </>

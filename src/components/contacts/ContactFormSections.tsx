@@ -11,9 +11,11 @@ interface ContactFormSectionsProps {
     hasOrdersInFactory?: boolean;
     // false al editar una ficha existente: solo nombre y teléfono son obligatorios
     requireFull?: boolean;
+    /** El origen quedó vacío al intentar guardar: se marca el campo y se explica. */
+    faltaOrigen?: boolean;
 }
 
-export function PersonalDataSection({ formData, setFormData, doctors, sources, hasOrdersInFactory, requireFull = true }: ContactFormSectionsProps) {
+export function PersonalDataSection({ formData, setFormData, doctors, sources, hasOrdersInFactory, requireFull = true, faltaOrigen = false }: ContactFormSectionsProps) {
     const optStar = requireFull ? <span className="text-primary">*</span> : null;
     return (
         <div className="space-y-6">
@@ -85,14 +87,23 @@ export function PersonalDataSection({ formData, setFormData, doctors, sources, h
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">Origen / Canal {optStar}</label>
+                    {/* Es la pregunta que hay que hacerle al cliente, no un campo técnico
+                        (Ishtar, 16/9/26). Obligatorio SIEMPRE, también al editar: el 18% de
+                        las fichas nuevas las crea el bot sin origen y, si al editarlas no se
+                        exige, nadie lo carga nunca — y esa venta no cuenta en ningún reporte. */}
+                    <label htmlFor="input-origen" className="text-xs font-black uppercase tracking-widest text-stone-500 ml-1 flex items-center gap-1">¿Dónde nos conocieron? <span className="text-primary">*</span></label>
                     <div className="relative group">
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-600 pointer-events-none" />
-                        <select className="w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary" value={formData.contactSource} onChange={(e) => setFormData({ ...formData, contactSource: e.target.value })}>
-                            <option value="">Seleccionar origen...</option>
+                        <select id="input-origen" aria-invalid={faltaOrigen} aria-describedby={faltaOrigen ? 'origen-falta' : undefined} className={`w-full px-5 py-4 bg-stone-50 dark:bg-stone-800 border-2 rounded-2xl font-bold text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-amber-500 focus:outline-none focus:border-primary ${faltaOrigen ? 'border-red-500 dark:border-red-500 bg-red-50 dark:bg-red-900/20' : ''}`} value={formData.contactSource} onChange={(e) => setFormData({ ...formData, contactSource: e.target.value })}>
+                            <option value="">Elegí una opción…</option>
                             {sources.map((s, idx) => <option key={s || `source-${idx}`} value={s}>{s}</option>)}
                         </select>
                     </div>
+                    {faltaOrigen && (
+                        <p id="origen-falta" role="alert" className="text-sm font-bold text-red-700 dark:text-red-300 ml-1">
+                            Preguntale al cliente dónde nos conoció y elegí la opción. Sin esto no se puede guardar.
+                        </p>
+                    )}
                 </div>
             </div>
 
